@@ -3,8 +3,7 @@ import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {useNativeStackTraceContext} from 'sentry/components/stackTrace/native/nativeStackTraceContext';
 import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTraceContext';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import {SectionKey} from 'sentry/views/issueDetails/context';
-import {useIssueDetails} from 'sentry/views/issueDetails/context';
+import {SectionKey, useIssueDetails} from 'sentry/views/issueDetails/context';
 import {getFoldSectionKey} from 'sentry/views/issueDetails/foldSection';
 
 export function useGoToImagesLoaded() {
