@@ -94,7 +94,7 @@ function Row({
   return (
     <Grid align="center" column="1 / -1" columns="subgrid" gap="md lg" role="row">
       <Container role="cell">
-        <Text as="div" bold density="comfortable" size="md" wordBreak="break-word">
+        <Text as="div" bold density="comfortable" wordBreak="break-word">
           {subjectNode ?? subject}
         </Text>
       </Container>
