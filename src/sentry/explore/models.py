@@ -508,7 +508,7 @@ class ExploreSavedFormula(DefaultFieldsModel):
     formula = models.CharField(max_length=2500)
     # Formulas need to have a dataset since functions differ dataset to dataset
     dataset = BoundedPositiveIntegerField(
-        choices=ExploreSavedQueryDataset.as_choices(), default=ExploreSavedQueryDataset.SPANS
+        choices=ExploreSavedQueryDataset.as_choices(), db_default=ExploreSavedQueryDataset.SPANS
     )
 
     class Meta:

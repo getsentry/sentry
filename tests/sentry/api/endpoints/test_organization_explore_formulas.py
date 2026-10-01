@@ -45,6 +45,7 @@ class TestFormulaDetails(BaseFormulaTest):
         data = response.data
         assert data["id"] == str(formula.id)
         assert data["name"] == "formula.apdex"
+        assert data["dataset"] == "spans"
         assert data["formula"] == "({count_satisfied} + {count_tolerating} / 2) / count()"
         assert data["unit"] is None
         assert data["type"] == "number"
@@ -84,6 +85,7 @@ class TestFormulaDetails(BaseFormulaTest):
         formula = self.create_formula()
         self.formula_object["name"] = "formula.hello"
         self.formula_object["formula"] = "count() + count()"
+        self.formula_object["dataset"] = "logs"
         with self.feature(self.feature_flags):
             response = self.client.put(
                 reverse("sentry-api-0-explore-formulas-detail", args=[self.org.slug, formula.id]),
@@ -92,6 +94,7 @@ class TestFormulaDetails(BaseFormulaTest):
             assert response.status_code == 200, response.content
         assert response.data["name"] == "formula.hello"
         assert response.data["formula"] == "count() + count()"
+        assert response.data["dataset"] == "logs"
 
     def test_update_explore_formula_with_name_already_in_db(self) -> None:
         formula = self.create_formula()
