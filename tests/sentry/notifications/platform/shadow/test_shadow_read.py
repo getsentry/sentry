@@ -148,8 +148,7 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase):
         assert log is not None
         assert log["diff_count"] == 1
         [entry] = log["diff"]
-        assert entry["path"] == path
-        assert entry["kind"] == "value"
+        assert entry.startswith(f"{path}: old=str(")
         legacy, platform = (resolve(payload, path) for payload in observation.payloads)
         assert f"notification_uuid={NOTIFICATION_UUID}" in legacy
         assert f"/events/{self.event.event_id}/" not in legacy
@@ -162,7 +161,7 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase):
         observation, client = self.send(self.invocation(action))
 
         client.return_value.chat_postMessage.assert_called_once()
-        self.assert_event_link_mismatch(observation, "$.blocks[0].text.text")
+        self.assert_event_link_mismatch(observation, "blocks[0].text.text")
         log = observation.mismatch
         assert log is not None
         assert log["provider"] == "slack"
@@ -178,7 +177,7 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase):
 
         observation, _ = self.send(self.invocation(action))
 
-        self.assert_event_link_mismatch(observation, "$.blocks[0].text.text")
+        self.assert_event_link_mismatch(observation, "blocks[0].text.text")
 
     @with_feature("organizations:slack-reinstall-nudge-on-issue-alert")
     @override_options({"slack.nudge-frequency": 1.0})
@@ -193,22 +192,11 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase):
         assert observation.outcome == ShadowOutcome.MISMATCH
         log = observation.mismatch
         assert log is not None
-        first, *_, last = log["diff"]
-        assert first == {
-            "path": "$.blocks",
-            "kind": "length",
-            "legacy": {"type": "list", "length": len(sent_blocks)},
-            "platform": {"type": "list", "length": len(sent_blocks) - 1},
-        }
-        assert last == {
-            "path": f"$.blocks[{len(sent_blocks) - 1}]",
-            "kind": "missing",
-            "legacy": {"type": "dict", "length": len(nudge)},
-            "platform": None,
-        }
-        legacy, _ = observation.payloads
-        assert resolve(legacy, last["path"]) == nudge
-        assert "$.blocks[0].text.text" in observation.diff_paths
+        assert log["diff"][0] == f"blocks count: old={len(sent_blocks)}, new={len(sent_blocks) - 1}"
+        assert any(entry.startswith("blocks[0].text.text: ") for entry in log["diff"])
+        legacy, platform = observation.payloads
+        assert legacy["blocks"][-1] == nudge
+        assert nudge not in platform["blocks"]
 
     def test_slack_additional_attachment_is_missing_from_platform(self) -> None:
         attachment = {"type": "section", "text": {"type": "mrkdwn", "text": "extra"}}
@@ -223,21 +211,19 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase):
         assert observation.outcome == ShadowOutcome.MISMATCH
         log = observation.mismatch
         assert log is not None
-        first, *_, last = log["diff"]
-        assert first["path"] == "$.blocks"
-        assert first["kind"] == "length"
-        assert first["legacy"]["length"] == first["platform"]["length"] + 1
-        assert last["platform"] is None
-        legacy, _ = observation.payloads
-        assert resolve(legacy, last["path"]) == attachment
-        assert "$.blocks[0].text.text" in observation.diff_paths
+        legacy, platform = observation.payloads
+        legacy_count = len(legacy["blocks"])
+        assert log["diff"][0] == f"blocks count: old={legacy_count}, new={legacy_count - 1}"
+        assert any(entry.startswith("blocks[0].text.text: ") for entry in log["diff"])
+        assert legacy["blocks"][-1] == attachment
+        assert attachment not in platform["blocks"]
 
     def test_slack_staging_differs_only_by_event_link(self) -> None:
         action = self.create_shadow_action("slack_staging", {"tags": "level", "notes": ""})
 
         observation, _ = self.send(self.invocation(action))
 
-        self.assert_event_link_mismatch(observation, "$.blocks[0].text.text")
+        self.assert_event_link_mismatch(observation, "blocks[0].text.text")
         assert observation.results[0]["provider"] == "slack_staging"
 
     def test_discord_differs_only_by_event_link(self) -> None:
@@ -246,7 +232,7 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase):
         observation, client = self.send(self.invocation(action))
 
         client.return_value.send_message.assert_called_once()
-        self.assert_event_link_mismatch(observation, "$.embeds[0].url")
+        self.assert_event_link_mismatch(observation, "embeds[0].url")
 
     def test_msteams_matches(self) -> None:
         action = self.create_shadow_action("msteams")
@@ -288,7 +274,7 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase):
             execute_via_group_type_registry(self.invocation(action))
 
         assert excinfo.value.__cause__ is error
-        self.assert_event_link_mismatch(observation, "$.blocks[0].text.text")
+        self.assert_event_link_mismatch(observation, "blocks[0].text.text")
 
     @mock.patch(f"{RUNNER_PATH}.sentry_sdk.capture_exception")
     @mock.patch(
@@ -397,8 +383,8 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
         log = observation.mismatch
         assert log is not None
         [entry] = log["diff"]
-        assert entry["path"] == "$.text"
-        legacy, platform = (resolve(payload, "$.text") for payload in observation.payloads)
+        assert entry.startswith("text: ")
+        legacy, platform = (payload["text"] for payload in observation.payloads)
         assert "referrer=metric_alert_slack&" in legacy
         assert "referrer=metric_alert_slack_staging&" in platform
 

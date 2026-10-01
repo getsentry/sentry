@@ -17,8 +17,7 @@ from sentry.notifications.platform.shadow.capture import (
     LegacyRender,
     record_legacy_render,
 )
-from sentry.notifications.platform.shadow.compare import diff
-from sentry.notifications.platform.shadow.runner import ShadowOutcome, shadow_read
+from sentry.notifications.platform.shadow.runner import ShadowOutcome, _diff, shadow_read
 from sentry.notifications.platform.types import NotificationProviderKey, NotificationSource
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.testutils.cases import TestCase
@@ -31,16 +30,15 @@ SAMPLE_RATES = "notifications.platform.shadow-render.sample-rates"
 KILLSWITCH = "notifications.platform.killswitch.sources"
 SAMPLE_ALL = {SAMPLE_RATES: {"issue": 1.0, "metric-alert": 1.0}}
 
-_PATH_STEP = re.compile(r"\.(\w+)|\[(\d+)\]")
+_PATH_STEP = re.compile(r"(?:^|\.)(\w+)|\[(\d+)\]")
 
 
 def resolve(payload: Any, path: str) -> Any:
     """
-    Returns the value at a diff entry path like `$.blocks[0].text.text`.
+    Returns the value at a diff path like `blocks[0].text.text`.
     """
-    assert path.startswith("$")
     value = payload
-    for key, index in _PATH_STEP.findall(path[1:]):
+    for key, index in _PATH_STEP.findall(path):
         value = value[key] if key else value[int(index)]
     return value
 
@@ -69,10 +67,6 @@ class ShadowObservation:
         assert len(self.mismatch_logs) <= 1
         return self.mismatch_logs[0] if self.mismatch_logs else None
 
-    @property
-    def diff_paths(self) -> list[str]:
-        return [entry["path"] for entry in self.mismatch["diff"]] if self.mismatch else []
-
 
 @contextmanager
 def observe_shadow() -> Generator[ShadowObservation]:
@@ -80,7 +74,7 @@ def observe_shadow() -> Generator[ShadowObservation]:
     with (
         mock.patch(f"{RUNNER_PATH}.metrics") as mock_metrics,
         mock.patch(f"{RUNNER_PATH}.logger") as mock_logger,
-        mock.patch(f"{RUNNER_PATH}.diff", wraps=diff) as mock_diff,
+        mock.patch(f"{RUNNER_PATH}._diff", wraps=_diff) as mock_diff,
     ):
         try:
             yield observation
@@ -143,6 +137,20 @@ def shadow(
 
 def _send_legacy(payload: dict[str, Any] | None = None) -> None:
     record_legacy_render(NotificationProviderKey.MSTEAMS, payload or {"type": "AdaptiveCard"})
+
+
+def test_diff_excludes_values() -> None:
+    legacy = {"text": "user@example.com", "tags": [{"value": "10.0.0.1"}], "level": "fatal"}
+    platform = {"text": "other@example.com", "level": "warning"}
+    entries = _diff(legacy, platform)
+
+    assert entries == [
+        "level: old=str(len=5), new=str(len=7)",
+        "Missing from new: tags",
+        "text: old=str(len=16), new=str(len=17)",
+    ]
+    for value in ("example.com", "10.0.0.1", "fatal", "warning"):
+        assert all(value not in entry for entry in entries)
 
 
 @mock.patch(f"{RUNNER_PATH}._compare_with_platform")
@@ -308,7 +316,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
     ) -> None:
         with (
             observe_shadow() as observation,
-            mock.patch(f"{RUNNER_PATH}.diff", side_effect=RuntimeError("compare")) as mock_diff,
+            mock.patch(f"{RUNNER_PATH}._diff", side_effect=RuntimeError("compare")) as mock_diff,
         ):
             with shadow(self.create_invocation(Action.Type.MSTEAMS), NotificationSource.ISSUE):
                 _send_legacy()
@@ -356,20 +364,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
             "group_id": self.issue_group.id,
             "detector_id": self.detector.id,
             "diff_count": 2,
-            "diff": [
-                {
-                    "path": "$.extra",
-                    "kind": "missing",
-                    "legacy": None,
-                    "platform": {"type": "int", "length": None},
-                },
-                {
-                    "path": "$.type",
-                    "kind": "value",
-                    "legacy": {"type": "str", "length": 12},
-                    "platform": {"type": "str", "length": 4},
-                },
-            ],
+            "diff": ["Extra in new: extra", "type: old=str(len=12), new=str(len=4)"],
         }
 
     @override_options({"notifications.platform.shadow-render.max-diff-entries": 1})
@@ -384,7 +379,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
 
         assert observation.mismatch is not None
         assert observation.mismatch["diff_count"] == 2
-        assert observation.diff_paths == ["$.extra"]
+        assert observation.mismatch["diff"] == ["Extra in new: extra"]
 
     @mock.patch(
         f"{RUNNER_PATH}.NotificationService.render_template", return_value={"type": "AdaptiveCard"}

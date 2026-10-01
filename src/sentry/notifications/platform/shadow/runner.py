@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import logging
 import random
-from collections.abc import Callable, Generator
+from collections.abc import Callable, Generator, Mapping
 from contextlib import contextmanager
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
@@ -22,7 +22,7 @@ from sentry.notifications.platform.shadow.capture import (
     ShadowCollector,
     collecting,
 )
-from sentry.notifications.platform.shadow.compare import DiffEntry, diff, normalize
+from sentry.notifications.platform.shadow.normalize import normalize
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -30,6 +30,7 @@ from sentry.notifications.platform.types import (
 )
 from sentry.notifications.types import TEST_NOTIFICATION_ID
 from sentry.utils import metrics
+from sentry.utils.payload_comparison import ParityChecker, describe_value
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation
 
@@ -62,7 +63,7 @@ class ShadowOutcome(StrEnum):
 @dataclass(frozen=True)
 class ShadowResult:
     outcome: ShadowOutcome
-    diff: list[DiffEntry] = field(default_factory=list)
+    diff: list[str] = field(default_factory=list)
 
 
 def _should_shadow(invocation: ActionInvocation, source: NotificationSource) -> bool:
@@ -93,6 +94,17 @@ def _capture_shadow_error(
     return ShadowResult(outcome=outcome)
 
 
+def _diff(legacy: Mapping[str, Any], platform: Mapping[str, Any]) -> list[str]:
+    """
+    Describes each difference between two normalized payloads, with legacy as "old" and platform
+    as "new". Payloads carry customer data, so values are summarized by `describe_value` rather
+    than included.
+    """
+    checker = ParityChecker(format_value=describe_value)
+    checker.compare(legacy, platform, frozenset())
+    return checker.mismatches
+
+
 def _compare_with_platform(
     source: NotificationSource,
     provider_key: NotificationProviderKey,
@@ -120,7 +132,7 @@ def _compare_with_platform(
         return _capture_shadow_error(e, ShadowOutcome.PLATFORM_ERROR, source, provider_key)
 
     try:
-        entries = diff(
+        entries = _diff(
             normalize(legacy_render.provider, legacy_render.payload),
             normalize(provider_key, platform_payload),
         )
@@ -168,7 +180,7 @@ def _report(
                     "group_id": invocation.event_data.group.id,
                     "detector_id": invocation.detector.id,
                     "diff_count": len(result.diff),
-                    "diff": [asdict(entry) for entry in result.diff[:max_entries]],
+                    "diff": result.diff[:max_entries],
                 },
             )
     except Exception:
