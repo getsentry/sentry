@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from functools import lru_cache
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 from django.conf import settings
@@ -157,7 +157,7 @@ def record_handoff_event(
 def _claim_pr_lifecycle_event(handoff_id: int, event_key: str) -> bool:
     with transaction.atomic(using=router.db_for_write(SeerRunCodingAgentHandoff)):
         handoff = SeerRunCodingAgentHandoff.objects.select_for_update().get(id=handoff_id)
-        extras: SeerRunCodingAgentHandoffExtras = dict(handoff.extras)
+        extras = cast(SeerRunCodingAgentHandoffExtras, dict(handoff.extras))
         emitted = list(extras.get("telemetry_events", []))
         if event_key in emitted:
             return False
