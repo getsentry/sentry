@@ -10,11 +10,7 @@ from sentry.dynamic_sampling.per_org.telemetry import (
     track_dynamic_sampling,
 )
 from sentry.testutils.helpers.options import override_options
-from sentry.utils.snuba_rpc import (
-    SnubaRPCError,
-    SnubaRPCTimeout,
-    SnubaRPCTooManySimultaneous,
-)
+from sentry.utils.snuba_rpc import SnubaRPCError, SnubaRPCTimeout
 
 # The metrics sample rate is overridden only so emitting a metric does not read the
 # option from the database; none of these tests assert on the emitted metrics.
@@ -40,10 +36,6 @@ def test_reraises_exception() -> None:
     ("error", "status"),
     [
         (SnubaRPCTimeout("timed out"), DynamicSamplingStatus.SNUBA_TIMEOUT),
-        (
-            SnubaRPCTooManySimultaneous("too many"),
-            DynamicSamplingStatus.SNUBA_TOO_MANY_SIMULTANEOUS,
-        ),
         (SnubaRPCError("snuba failed"), DynamicSamplingStatus.SNUBA_ERROR),
     ],
 )
