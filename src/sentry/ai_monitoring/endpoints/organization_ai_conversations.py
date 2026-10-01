@@ -309,12 +309,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     ) -> list[AIConversationData]:
         operation_filter = "has:gen_ai.operation.type"
         ai_client_filter = "gen_ai.operation.type:ai_client"
-        # Anthropic's OTel SDK records messages on the invoke_agent span and
-        # leaves its generation spans empty. OTLP ingest plus an `anthropic.`
-        # span name only co-occur for those spans.
-        anthropic_agent_filter = (
-            "gen_ai.operation.type:agent origin:auto.otlp.spans span.name:anthropic.*"
-        )
+        # Some SDKs put messages on the agent span instead of its generation spans.
+        agent_filter = "gen_ai.operation.type:agent"
         results = Spans.run_table_query(
             params=snuba_params,
             query_string=build_escaped_term_filter("gen_ai.conversation.id", conversation_ids),
@@ -337,8 +333,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 f"max_if(`{ai_client_filter} has:gen_ai.output.messages`, timestamp) as output_messages_timestamp",
                 f"last_if(`{ai_client_filter}`, gen_ai.response.text, timestamp) as response_text",
                 f"max_if(`{ai_client_filter} has:gen_ai.response.text`, timestamp) as response_text_timestamp",
-                f"first_if(`{anthropic_agent_filter} has:gen_ai.input.messages`, gen_ai.input.messages, timestamp) as agent_input_messages",
-                f"last_if(`{anthropic_agent_filter} has:gen_ai.output.messages`, gen_ai.output.messages, timestamp) as agent_output_messages",
+                f"first_if(`{agent_filter} has:gen_ai.input.messages`, gen_ai.input.messages, timestamp) as agent_input_messages",
+                f"last_if(`{agent_filter} has:gen_ai.output.messages`, gen_ai.output.messages, timestamp) as agent_output_messages",
             ],
             orderby=None,
             offset=0,

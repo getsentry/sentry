@@ -49,7 +49,6 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         user_username=None,
         user_ip=None,
         origin=None,
-        name=None,
         input_messages=None,
         output_messages=None,
         system_instructions=None,
@@ -89,7 +88,6 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             user_email: User email (sentry.user.email)
             user_username: User username (sentry.user.username)
             user_ip: User IP address (sentry.user.ip)
-            name: The span name (sentry.name)
             input_messages: The gen_ai.input.messages (new format, will be JSON serialized)
             output_messages: The gen_ai.output.messages (new format, will be JSON serialized)
             system_instructions: The gen_ai.system_instructions attribute
@@ -165,7 +163,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
 
         extra_data = {
             "description": description or "default",
-            "sentry_tags": {"status": status, "op": op, "name": name},
+            "sentry_tags": {"status": status, "op": op},
             "data": span_data,
             "ai_conversation_id": conversation_id,
         }

@@ -1519,12 +1519,10 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             '{"type": "object", "data": {"question": "Weather in Paris?"}}'
         )
 
-    def _store_anthropic_turn(
+    def _store_agent_turn(
         self,
         conversation_id: str,
         timestamp: Any,
-        origin: str = "auto.otlp.spans",
-        agent_name: str = "anthropic.session.turn",
         generation_output: list[dict[str, Any]] | None = None,
     ) -> None:
         trace_id = uuid4().hex
@@ -1534,8 +1532,6 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             op="gen_ai.invoke_agent",
             operation_type="agent",
             trace_id=trace_id,
-            origin=origin,
-            name=agent_name,
             input_messages=[
                 {"role": "user", "parts": [{"type": "text", "content": "Weather in Vienna?"}]}
             ],
@@ -1557,8 +1553,6 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             op="gen_ai.chat",
             operation_type="ai_client",
             trace_id=trace_id,
-            origin=origin,
-            name="anthropic.model_request",
             output_messages=generation_output,
         )
 
@@ -1574,38 +1568,18 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
         assert len(response.data) == 1
         return response.data[0]
 
-    def test_anthropic_otel_agent_messages_populate_input_and_output(self) -> None:
+    def test_agent_messages_populate_input_and_output(self) -> None:
         now = before_now(days=20).replace(microsecond=0)
-        self._store_anthropic_turn(uuid4().hex, now - timedelta(seconds=1))
+        self._store_agent_turn(uuid4().hex, now - timedelta(seconds=1))
 
         conversation = self._request_conversation(now)
         assert conversation["firstInput"] == "Weather in Vienna?"
         # Only the turn's final assistant step, not every step joined together.
         assert conversation["lastOutput"] == "Sunny, 20°C"
 
-    def test_agent_messages_ignored_for_non_otlp_origin(self) -> None:
+    def test_generation_messages_take_priority_over_agent(self) -> None:
         now = before_now(days=20).replace(microsecond=0)
-        self._store_anthropic_turn(
-            uuid4().hex, now - timedelta(seconds=1), origin="auto.ai.anthropic"
-        )
-
-        conversation = self._request_conversation(now)
-        assert conversation["firstInput"] is None
-        assert conversation["lastOutput"] is None
-
-    def test_agent_messages_ignored_without_anthropic_span_name(self) -> None:
-        now = before_now(days=20).replace(microsecond=0)
-        self._store_anthropic_turn(
-            uuid4().hex, now - timedelta(seconds=1), agent_name="gen_ai.invoke_agent"
-        )
-
-        conversation = self._request_conversation(now)
-        assert conversation["firstInput"] is None
-        assert conversation["lastOutput"] is None
-
-    def test_generation_messages_take_priority_over_anthropic_agent(self) -> None:
-        now = before_now(days=20).replace(microsecond=0)
-        self._store_anthropic_turn(
+        self._store_agent_turn(
             uuid4().hex,
             now - timedelta(seconds=1),
             generation_output=[{"role": "assistant", "content": "From the generation"}],
