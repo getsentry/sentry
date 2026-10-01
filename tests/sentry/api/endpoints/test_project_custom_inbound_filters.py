@@ -9,7 +9,7 @@ from sentry.api.endpoints.project_custom_inbound_filters import (
     MAX_CONDITIONS_PER_FILTER,
 )
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.custominboundfilter import CustomInboundFilter
+from sentry.models.custominboundfilter import CustomInboundFilter, LegacyFilter
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
@@ -26,6 +26,58 @@ class CustomInboundFiltersTest(APITestCase):
         self.team = self.create_team(organization=self.organization)
         self.project = self.create_project(organization=self.organization, teams=[self.team])
         self.login_as(user=self.user)
+
+    def test_get_hides_the_row_of_a_legacy_list(self) -> None:
+        self.create_project_custom_inbound_filter(
+            project=self.project,
+            data_type="all",
+            conditions=[{"type": "release", "value": ["1.*"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
+        )
+        mine = self.create_project_custom_inbound_filter(project=self.project, name="Mine")
+
+        with self.feature(self.features):
+            response = self.get_success_response(self.organization.slug, self.project.slug)
+
+        assert [item["id"] for item in response.data] == [str(mine.id)]
+
+    @patch("sentry.api.endpoints.project_custom_inbound_filters.MAX_FILTERS_PER_PROJECT", 1)
+    def test_post_does_not_count_a_hidden_row_against_the_cap(self) -> None:
+        self.create_project_custom_inbound_filter(
+            project=self.project,
+            data_type="all",
+            conditions=[{"type": "release", "value": ["1.*"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
+        )
+
+        with self.feature(self.features):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                status_code=201,
+                name="Mine",
+                dataType="all",
+                conditions=[{"type": "release", "value": ["2.*"]}],
+            )
+
+    def test_post_cannot_set_legacy_filter(self) -> None:
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                status_code=201,
+                name="Mine",
+                dataType="all",
+                conditions=[{"type": "release", "value": ["1.*"]}],
+                legacyFilter="release-version",
+                legacy_filter="release-version",
+            )
+
+        assert "legacyFilter" not in response.data
+        row = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert row.legacy_filter is None
 
     def test_get(self) -> None:
         first_filter = self.create_project_custom_inbound_filter(
@@ -461,6 +513,56 @@ class CustomInboundFilterDetailsTest(APITestCase):
             conditions=[{"type": "release", "value": ["1.*"]}],
         )
         self.login_as(user=self.user)
+
+    def test_put_cannot_set_legacy_filter(self) -> None:
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                legacyFilter="release-version",
+                legacy_filter="release-version",
+            )
+
+        assert "legacyFilter" not in response.data
+        self.custom_filter.refresh_from_db()
+        assert self.custom_filter.legacy_filter is None
+
+    def test_row_of_a_legacy_list_is_not_reachable(self) -> None:
+        legacy_row = self.create_project_custom_inbound_filter(
+            project=self.project,
+            data_type="all",
+            conditions=[{"type": "release", "value": ["1.*"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
+        )
+
+        with self.feature(self.features):
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                legacy_row.id,
+                method="get",
+                status_code=404,
+            )
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                legacy_row.id,
+                method="put",
+                status_code=404,
+                name="Renamed",
+            )
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                legacy_row.id,
+                method="delete",
+                status_code=404,
+            )
+
+        legacy_row.refresh_from_db()
+        assert legacy_row.name == "Custom inbound filter"
+        assert legacy_row.conditions == [{"type": "release", "value": ["1.*"]}]
 
     def test_get(self) -> None:
         with self.feature(self.features):

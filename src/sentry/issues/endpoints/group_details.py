@@ -244,7 +244,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
             )
 
             # TODO: these probably should be another endpoint
-            activity = Activity.objects.get_activities_for_group(group, 100)
             seen_by = self._get_seen_by(request, group)
 
             if "release" not in collapse:
@@ -345,21 +344,21 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     ).count()
                     data.update({"latestEventHasAttachments": num_attachments > 0})
 
+            activity_items = get_serialized_activity_items(
+                group, request.user, endpoint=activity_read_endpoint(request)
+            )
+            if activity_items is None:
+                activity = Activity.objects.get_activities_for_group(group, 100)
+                activity_items = serialize(activity, request.user)
+
             data.update(
                 {
-                    "activity": serialize(activity, request.user),
+                    "activity": activity_items,
                     "seenBy": seen_by,
                     "userReportCount": user_reports.count(),
                     "count": get_group_global_count(group),
                 }
             )
-
-            # swap action log data in under the activity name
-            activity_items = get_serialized_activity_items(
-                group, request.user, endpoint=activity_read_endpoint(request)
-            )
-            if activity_items is not None:
-                data.update({"activity": activity_items})
 
             if "stats" not in collapse:
                 hourly_stats, daily_stats = self.__group_hourly_daily_stats(group, environment_ids)

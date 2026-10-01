@@ -26,6 +26,7 @@ class BulkDeleteQuery:
         days: int | None = None,
         order_by: str | None = None,
         partition: tuple[int, int, str] | None = None,
+        defer_dt_filter: bool = False,
     ):
         self.model = model
         self.project_id = int(project_id) if project_id else None
@@ -34,7 +35,15 @@ class BulkDeleteQuery:
         self.days = int(days) if days is not None else None
         self.order_by = order_by
         self.partition = partition
+        self.defer_dt_filter = defer_dt_filter
         self.using = router.db_for_write(model)
+
+        self.deferred_filter: dict[str, Any] = {}
+        if self.defer_dt_filter:
+            if self.dtfield is None or self.days is None:
+                raise ValueError("Expected a datetime filter")
+            cutoff = timezone.now() - timedelta(days=self.days)
+            self.deferred_filter = {f"{self.dtfield}__lt": cutoff}
 
     def execute(self, chunk_size: int = 10000) -> None:
         quote_name = connections[self.using].ops.quote_name
@@ -91,11 +100,18 @@ class BulkDeleteQuery:
     def iterator(
         self, chunk_size: int = 100, batch_size: int = 10000
     ) -> Generator[tuple[int, ...]]:
-        assert self.days is not None
-        assert self.dtfield is not None
+        queryset = self.model.objects.all()
 
-        cutoff = timezone.now() - timedelta(days=self.days)
-        queryset = self.model.objects.filter(**{f"{self.dtfield}__lt": cutoff})
+        if not self.defer_dt_filter:
+            assert self.dtfield is not None
+            assert self.days is not None
+            cutoff = timezone.now() - timedelta(days=self.days)
+            queryset = queryset.filter(**{f"{self.dtfield}__lt": cutoff})
+        else:
+            max_pk = queryset.order_by("-pk").values_list("pk", flat=True).first()
+            if max_pk is None:
+                return
+            queryset = queryset.filter(pk__lte=max_pk)
 
         if self.project_id:
             queryset = queryset.filter(project_id=self.project_id)  # type: ignore[misc]

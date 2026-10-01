@@ -2,6 +2,7 @@ from inspect import signature
 from unittest.mock import ANY, MagicMock, patch
 
 import orjson
+import pytest
 from scm.helpers import iter_all_pages
 
 from sentry.scm.types import CheckSuiteEvent
@@ -48,8 +49,10 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.listeners.check_suite import (
     pr_iteration_from_check_suite_listener,
+    process_check_suite_event,
 )
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
+from sentry.seer.models import SeerUnavailableError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 
@@ -227,7 +230,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_mark_ready.side_effect = lambda *_a, **_k: call_order.append("ready")
         mock_request_review.side_effect = lambda *_a, **_k: call_order.append("review")
 
-        pr_iteration_from_check_suite_listener(event)
+        process_check_suite_event(event)
 
         mock_resolve.assert_called_once_with(event)
         mock_confirm.assert_called_once_with(resolved)
@@ -269,7 +272,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
             {"marked": True} if extra_key == READY_FOR_REVIEW_EXTRA else None
         )
 
-        pr_iteration_from_check_suite_listener(self._event(self._raw(), conclusion="success"))
+        process_check_suite_event(self._event(self._raw(), conclusion="success"))
 
         mock_confirm.assert_called_once_with(resolved)
         mock_mark_ready.assert_not_called()
@@ -299,7 +302,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
     ) -> None:
         mock_resolve.return_value = self._resolved_green()
 
-        pr_iteration_from_check_suite_listener(self._event(self._raw(), conclusion="success"))
+        process_check_suite_event(self._event(self._raw(), conclusion="success"))
 
         mock_confirm.assert_not_called()
         mock_mark_ready.assert_not_called()
@@ -326,7 +329,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         """The resolve no longer implies the review-request flag; the caller checks it."""
         mock_resolve.return_value = self._resolved_green()
 
-        pr_iteration_from_check_suite_listener(self._event(self._raw(), conclusion="success"))
+        process_check_suite_event(self._event(self._raw(), conclusion="success"))
 
         mock_marker.assert_not_called()
         mock_confirm.assert_not_called()
@@ -353,7 +356,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         _mock_peek: MagicMock,
     ) -> None:
         mock_resolve.return_value = self._resolved_green()
-        pr_iteration_from_check_suite_listener(self._event(self._raw(), conclusion="success"))
+        process_check_suite_event(self._event(self._raw(), conclusion="success"))
 
         mock_mark_ready.assert_not_called()
         mock_request_review.assert_not_called()
@@ -362,7 +365,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
     @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories", return_value=[])
     @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
     def test_no_repository(self, mock_get_state: MagicMock, _mock_resolve: MagicMock) -> None:
-        pr_iteration_from_check_suite_listener(self._event(self._raw()))
+        process_check_suite_event(self._event(self._raw()))
         mock_get_state.assert_not_called()
 
     @patch(f"{CHECK_PATH}.sentry_sdk.capture_exception")
@@ -372,7 +375,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
     ) -> None:
         # Missing required check_suite fields (head_sha, check_runs_url, app).
         raw = {"check_suite": {"id": 1}, "repository": {"html_url": "https://github.com/o/r"}}
-        pr_iteration_from_check_suite_listener(self._event(raw))
+        process_check_suite_event(self._event(raw))
         mock_capture.assert_called_once()
         mock_get_state.assert_not_called()
 
@@ -383,7 +386,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
     ) -> None:
         event = self._event()
         event.subscription_event["event"] = "not-json"
-        pr_iteration_from_check_suite_listener(event)
+        process_check_suite_event(event)
         mock_capture.assert_called_once()
         mock_get_state.assert_not_called()
 
@@ -399,7 +402,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_resolve.return_value = [MagicMock(organization_id=self.organization.id)]
         raw = self._raw(pull_requests=[own_repo_pr(555)])
 
-        pr_iteration_from_check_suite_listener(self._event(raw))
+        process_check_suite_event(self._event(raw))
 
         mock_enqueue.assert_not_called()
 
@@ -418,7 +421,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_get_state.return_value = state
         raw = self._raw(pull_requests=[own_repo_pr(555)])
 
-        pr_iteration_from_check_suite_listener(self._event(raw))
+        process_check_suite_event(self._event(raw))
 
         mock_enqueue.assert_not_called()
 
@@ -439,7 +442,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_get_state.return_value = self._agent_state()
         raw = self._raw(pull_requests=[own_repo_pr(555)])
 
-        pr_iteration_from_check_suite_listener(self._event(raw))
+        process_check_suite_event(self._event(raw))
 
         # Queued regardless: the gate is at trigger time, and the row keeps the
         # reason nothing will drain it.
@@ -467,7 +470,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_get_state.return_value = self._agent_state()
         raw = self._raw(pull_requests=[own_repo_pr(555)])
 
-        pr_iteration_from_check_suite_listener(self._event(raw))
+        process_check_suite_event(self._event(raw))
 
         mock_enqueue.assert_called_once()
         # A failure on an older commit says nothing about the current head.
@@ -493,7 +496,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_get_state.return_value = self._agent_state()
         raw = self._raw(pull_requests=[own_repo_pr(555)])
 
-        pr_iteration_from_check_suite_listener(self._event(raw))
+        process_check_suite_event(self._event(raw))
 
         mock_enqueue.assert_called_once()
         _, kwargs = mock_enqueue.call_args
@@ -531,7 +534,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_get_state.side_effect = [error, self._agent_state()]
         raw = self._raw(pull_requests=[own_repo_pr(111), own_repo_pr(222)])
 
-        pr_iteration_from_check_suite_listener(self._event(raw))
+        process_check_suite_event(self._event(raw))
 
         assert mock_get_state.call_count == 2
         mock_capture.assert_called_once_with(error)
@@ -555,7 +558,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_get_state.side_effect = [None, self._agent_state()]
         raw = self._raw(pull_requests=[own_repo_pr(555)])
 
-        pr_iteration_from_check_suite_listener(self._event(raw))
+        process_check_suite_event(self._event(raw))
 
         assert mock_get_state.call_count == 2
         mock_get_state.assert_any_call(111, "integrations:github", 555)
@@ -574,7 +577,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         raw = {"check_suite": {"id": 1}, "repository": {"html_url": "https://github.com/o/r"}}
         event = check_suite_event(raw, installation_id=987)
 
-        pr_iteration_from_check_suite_listener(event)
+        process_check_suite_event(event)
 
         mock_capture.assert_called_once()
         assert (
@@ -603,7 +606,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_get_state.return_value = self._agent_state()
         raw = self._raw(pull_requests=[own_repo_pr(555)])
 
-        pr_iteration_from_check_suite_listener(self._event(raw))
+        process_check_suite_event(self._event(raw))
 
         assert mock_logger.error.call_args.args[0] == "autofix.pr_iteration.check_suite.failed"
         extra = mock_logger.error.call_args.kwargs["extra"]
@@ -638,7 +641,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_get_state.return_value = self._agent_state()
         raw = self._raw(pull_requests=[own_repo_pr(555)])
 
-        pr_iteration_from_check_suite_listener(self._event(raw))
+        process_check_suite_event(self._event(raw))
 
         mock_capture.assert_called_once()
 
@@ -752,7 +755,7 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
         mock_resolve.return_value = resolved
         mock_peek.return_value = [parked]
 
-        pr_iteration_from_check_suite_listener(self._event())
+        process_check_suite_event(self._event())
 
         mock_trigger.assert_called_once_with(
             log_ctx=ANY,
@@ -780,7 +783,7 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
     ) -> None:
         mock_resolve.return_value = self._resolved()
 
-        pr_iteration_from_check_suite_listener(self._event())
+        process_check_suite_event(self._event())
 
         mock_trigger.assert_not_called()
         mock_logger.info.assert_any_call(
@@ -811,7 +814,7 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
         mock_resolve.return_value = self._resolved()
         mock_peek.return_value = [MagicMock()]
 
-        pr_iteration_from_check_suite_listener(self._event())
+        process_check_suite_event(self._event())
 
         mock_trigger.assert_not_called()
 
@@ -827,7 +830,7 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
         mock_resolve.return_value = self._resolved()
         mock_peek.return_value = [self._parked_check_suite(head_sha="old")]
 
-        pr_iteration_from_check_suite_listener(self._event())
+        process_check_suite_event(self._event())
 
         mock_trigger.assert_not_called()
 
@@ -849,7 +852,7 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
         mock_resolve.return_value = self._resolved()
         mock_peek.return_value = [self._parked_check_suite()]
 
-        pr_iteration_from_check_suite_listener(self._event())
+        process_check_suite_event(self._event())
 
         mock_defer.assert_called_once()
         mock_trigger.assert_not_called()
@@ -870,7 +873,7 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
         mock_peek.return_value = [self._parked_check_suite()]
 
         with override_options({"github-app.rate-limit-sensitive-orgs": [self.organization.slug]}):
-            pr_iteration_from_check_suite_listener(self._event())
+            process_check_suite_event(self._event())
 
         mock_peek.assert_not_called()
         mock_defer.assert_not_called()
@@ -895,7 +898,7 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
         mock_resolve.return_value = self._resolved()
         mock_peek.return_value = [self._parked_check_suite()]
 
-        pr_iteration_from_check_suite_listener(self._event())
+        process_check_suite_event(self._event())
 
         mock_inspect.assert_called_once()
         mock_trigger.assert_not_called()
@@ -919,7 +922,7 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
         mock_peek.return_value = [self._parked_check_suite()]
 
         with self.feature(REVIEW_REQUEST_FLAG):
-            pr_iteration_from_check_suite_listener(self._event())
+            process_check_suite_event(self._event())
 
         mock_trigger.assert_called_once()
         mock_confirm.assert_not_called()
@@ -949,7 +952,7 @@ class GreenCheckSuiteDeferredIterationTest(TestCase):
         mock_confirm.return_value = ctx
 
         with self.feature(REVIEW_REQUEST_FLAG):
-            pr_iteration_from_check_suite_listener(self._event())
+            process_check_suite_event(self._event())
 
         mock_mark_ready.assert_called_once_with(ctx)
         mock_request_review.assert_called_once_with(ctx)
@@ -1870,3 +1873,93 @@ class CheckSuiteLiveHeadTest(TestCase):
         _check_suite_source().should_consume(state)
 
         assert not mock_metrics.incr.called
+
+
+TASK_PATH = "sentry.tasks.seer.pr_iteration.process_pr_iteration_check_suite"
+
+
+class CheckSuiteListenerQueuesTaskTest(TestCase):
+    @patch(f"{TASK_PATH}.delay")
+    @patch(f"{CHECK_PATH}.resolve_check_suite_flag_gate")
+    def test_flagged_suite_is_queued_for_the_task(
+        self, mock_flag_gate: MagicMock, mock_delay: MagicMock
+    ) -> None:
+        from sentry.scm.private.ipc import deserialize_check_suite_event
+
+        mock_flag_gate.return_value = CheckSuiteFlagGate(
+            organization_ids=[self.organization.id],
+            organization_ids_by_flag={ITERATION_FLAG: [self.organization.id]},
+        )
+        event = check_suite_event({"check_suite": {"id": 1}})
+
+        pr_iteration_from_check_suite_listener(event)
+
+        mock_delay.assert_called_once()
+        queued = deserialize_check_suite_event(mock_delay.call_args.kwargs["event_data"])
+        assert queued.subscription_event["event"] == event.subscription_event["event"]
+
+
+class CheckSuiteSeerUnavailableTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+        self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
+        self.repo = MagicMock(organization_id=self.organization.id, id=2)
+        patcher = patch(
+            f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories", return_value=[self.repo]
+        )
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.raw = {
+            "check_suite": {
+                "id": 1,
+                "head_sha": "abc",
+                "check_runs_url": "https://github.com/owner/repo/check-runs",
+                "app": {"name": "CI"},
+                "updated_at": "2024-01-01T00:00:00Z",
+                "pull_requests": [own_repo_pr(555)],
+            },
+            "repository": {"html_url": "https://github.com/owner/repo", "id": OWN_REPO_ID},
+        }
+        self.unavailable = SeerUnavailableError("Seer request failed", 503)
+
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    def test_outage_then_recovery_queues_the_suite_once(
+        self,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        from sentry.scm.private.ipc import serialize_check_suite_event
+        from sentry.tasks.seer.pr_iteration import (
+            SEER_UNAVAILABLE_RETRY,
+            process_pr_iteration_check_suite,
+        )
+
+        assert process_pr_iteration_check_suite.retry is SEER_UNAVAILABLE_RETRY
+        mock_get_state.side_effect = [
+            self.unavailable,
+            SeerRunState(
+                run_id=67890,
+                blocks=[],
+                status="completed",
+                updated_at="2024-01-01T00:00:00Z",
+                repo_pr_states={
+                    "owner/repo": RepoPRState(repo_name="owner/repo", commit_sha="abc")
+                },
+                metadata={"group_id": self.group.id},
+            ),
+        ]
+        event_data = serialize_check_suite_event(check_suite_event(self.raw))
+
+        # Seer is down: the task raises so Taskbroker retries it, having done nothing.
+        with pytest.raises(SeerUnavailableError):
+            process_pr_iteration_check_suite(event_data=event_data)
+        mock_enqueue.assert_not_called()
+
+        process_pr_iteration_check_suite(event_data=event_data)
+
+        mock_enqueue.assert_called_once()
+        mock_trigger.assert_called_once()

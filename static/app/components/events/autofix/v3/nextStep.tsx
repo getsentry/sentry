@@ -27,13 +27,12 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {PrIterationFeedbackForm} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
 import {RepositoryWritePermissionButton} from 'sentry/components/events/autofix/v3/repositoryWritePermissionButton';
-import {
-  ASK_SEER_CONTINUE_PROMPT,
-  useAskSeerHandoff,
-} from 'sentry/components/events/autofix/v3/useAskSeerHandoff';
+import {useAskSeerHandoff} from 'sentry/components/events/autofix/v3/useAskSeerHandoff';
 import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
+import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconChevron} from 'sentry/icons/iconChevron';
+import {IconSeer} from 'sentry/icons/iconSeer';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
@@ -170,11 +169,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
     });
 
   const handleYesClick = () => {
-    if (isCodeMode) {
-      askSeer(ASK_SEER_CONTINUE_PROMPT);
-    } else {
-      startStep('solution', {runId});
-    }
+    startStep('solution', {runId});
     trackAnalytics('autofix.root_cause.find_solution', {
       organization,
       group_id: group.id,
@@ -195,6 +190,12 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
     },
     [organization, group, startStep, runId, referrer, section.index]
   );
+
+  const rethinkPrompt = t('How can this root cause be improved?');
+  const rethinkInChat = useRethinkInChat({
+    prompt: rethinkPrompt,
+    step: 'root_cause',
+  });
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
 
@@ -219,7 +220,8 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
         </Button>
       }
       placeholderPrompt={t('Give seer additional context to improve this root cause.')}
-      rethinkPrompt={t('How can this root cause be improved?')}
+      rethinkPrompt={rethinkPrompt}
+      rethinkInChat={rethinkInChat}
       labelRethink={t('Rethink root cause')}
       askSeer={isCodeMode ? {onAsk: askSeer, prompt: t('Rethink root cause')} : undefined}
       codingAgentIntegrations={codingAgentIntegrations}
@@ -244,11 +246,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
     });
 
   const handleYesClick = () => {
-    if (isCodeMode) {
-      askSeer(ASK_SEER_CONTINUE_PROMPT);
-    } else {
-      startStep('code_changes', {runId});
-    }
+    startStep('code_changes', {runId});
     trackAnalytics('autofix.solution.code', {
       organization,
       group_id: group.id,
@@ -269,6 +267,12 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
     },
     [organization, group, startStep, runId, referrer, section.index]
   );
+
+  const rethinkPrompt = t('How can this plan be improved?');
+  const rethinkInChat = useRethinkInChat({
+    prompt: rethinkPrompt,
+    step: 'solution',
+  });
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
 
@@ -293,7 +297,8 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
         </Button>
       }
       placeholderPrompt={t('Give seer additional context to improve this plan.')}
-      rethinkPrompt={t('How can this plan be improved?')}
+      rethinkPrompt={rethinkPrompt}
+      rethinkInChat={rethinkInChat}
       labelRethink={t('Rethink plan')}
       askSeer={isCodeMode ? {onAsk: askSeer, prompt: t('Rethink plan')} : undefined}
       codingAgentIntegrations={codingAgentIntegrations}
@@ -305,17 +310,10 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
 
 function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextStepProps) {
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
-  // The same answer `CodeChangesNextStepContent` uses to route "yes", so the
-  // gate is only skipped when the click really goes to the agent.
-  const {isCodeMode} = useAskSeerHandoff();
 
-  // In code mode "yes" asks the agent rather than opening a pull request, so
-  // repository write access is beside the point. Leaving the gate on would hide
-  // the whole row while it resolves, then offer a permissions CTA in place of
-  // the question.
   const {permissionsTarget, isPending, checkTargetWriteAccess} = useAutofixCreatePrGate({
     group,
-    enabled: defined(artifact) && !isCodeMode,
+    enabled: defined(artifact),
   });
 
   if (!defined(artifact)) {
@@ -394,11 +392,7 @@ function CodeChangesNextStepContent({
   const {askSeer, isCodeMode} = useAskSeerHandoff();
 
   const handleYesClick = () => {
-    if (isCodeMode) {
-      askSeer(ASK_SEER_CONTINUE_PROMPT);
-    } else {
-      createPR(runId);
-    }
+    createPR(runId);
     trackAnalytics('autofix.create_pr_clicked', {
       organization,
       group_id: group.id,
@@ -419,6 +413,12 @@ function CodeChangesNextStepContent({
     },
     [organization, group, startStep, runId, referrer, section.index]
   );
+
+  const rethinkPrompt = t('How can this code change be improved?');
+  const rethinkInChat = useRethinkInChat({
+    prompt: rethinkPrompt,
+    step: 'code_changes',
+  });
 
   return (
     <NextStepTemplate
@@ -449,7 +449,8 @@ function CodeChangesNextStepContent({
         />
       }
       placeholderPrompt={t('Give seer additional context to improve this code change.')}
-      rethinkPrompt={t('How can this code change be improved?')}
+      rethinkPrompt={rethinkPrompt}
+      rethinkInChat={rethinkInChat}
       labelRethink={t('Rethink code changes')}
       askSeer={
         isCodeMode ? {onAsk: askSeer, prompt: t('Rethink code changes')} : undefined
@@ -466,17 +467,24 @@ interface NextStepTemplateProps {
   onClickNo: (prompt: string) => void;
   placeholderPrompt: string;
   prompt: ReactNode;
-  rethinkPrompt: ReactNode;
+  rethinkPrompt: string;
   yesButton: ReactNode;
   /**
    * Set only in code mode, where "no" hands the question to Seer Agent with
    * this prompt instead of collecting context for another Autofix step. The
-   * agent asks its own follow-ups, so the textarea is redundant there.
+   * agent asks its own follow-ups, so the textarea is redundant there. When
+   * `rethinkInChat` is also set, the button asks through that instead.
    */
   askSeer?: {onAsk: (prompt: string) => void; prompt: string};
   codingAgentDisabledReason?: string;
   codingAgentIntegrations?: CodingAgentIntegration[];
   onCodingAgentHandoff?: (integration: CodingAgentIntegration) => void;
+  /**
+   * When set, "no" (or "Ask Seer" in code mode) opens Seer Agent on
+   * `rethinkPrompt` instead of the textarea below, and the reader types their
+   * changes into the chat.
+   */
+  rethinkInChat?: () => void;
 }
 
 function NextStepTemplate({
@@ -490,6 +498,7 @@ function NextStepTemplate({
   rethinkPrompt,
   labelRethink,
   askSeer,
+  rethinkInChat,
   codingAgentIntegrations,
   codingAgentDisabledReason,
   onCodingAgentHandoff,
@@ -551,11 +560,18 @@ function NextStepTemplate({
       <Text>{prompt}</Text>
       <Flex gap="md">
         {askSeer ? (
-          <Button disabled={isProcessing} onClick={() => askSeer.onAsk(askSeer.prompt)}>
+          <Button
+            disabled={isProcessing}
+            icon={<IconSeer />}
+            onClick={rethinkInChat ?? (() => askSeer.onAsk(askSeer.prompt))}
+          >
             {t('Ask Seer')}
           </Button>
         ) : (
-          <Button disabled={isProcessing} onClick={() => handleClickedNo(true)}>
+          <Button
+            disabled={isProcessing}
+            onClick={rethinkInChat ?? (() => handleClickedNo(true))}
+          >
             {labelNo}
           </Button>
         )}

@@ -113,6 +113,7 @@ AI_CONVERSATION_ATTRIBUTES = [
     "is_transaction",
     "gen_ai.conversation.id",
     "gen_ai.cost.total_tokens",
+    "gen_ai.operation.name",
     "gen_ai.operation.type",
     "gen_ai.input.messages",
     "gen_ai.output.messages",
@@ -126,6 +127,7 @@ AI_CONVERSATION_ATTRIBUTES = [
     "gen_ai.tool.input",
     "gen_ai.tool.call.result",
     "gen_ai.tool.output",
+    "anthropic.tool_result.content",
     "gen_ai.embeddings.input",
     "gen_ai.usage.cache_creation.input_tokens",
     "gen_ai.usage.cache_read.input_tokens",
@@ -151,6 +153,7 @@ AI_CONVERSATION_ATTRIBUTES = [
 
 class AIConversationModelUsage(TypedDict):
     model: str | None
+    llmCalls: int
     inputTokens: int
     outputTokens: int
     totalTokens: int
@@ -219,6 +222,7 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
             model,
             {
                 "model": model,
+                "llmCalls": 0,
                 "inputTokens": 0,
                 "outputTokens": 0,
                 "totalTokens": 0,
@@ -230,6 +234,7 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
                 "totalCost": 0,
             },
         )
+        usage["llmCalls"] += llm_calls
         usage["inputTokens"] += model_pair_stats["inputTokens"]
         usage["outputTokens"] += model_pair_stats["outputTokens"]
         usage["totalTokens"] += model_pair_stats["totalTokens"]

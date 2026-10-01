@@ -14,6 +14,10 @@ import {
   TraceColumnLayout,
 } from 'sentry/views/performance/traceDetails/traceColumnLayout';
 import {
+  isParentAutogroupedNode,
+  isSiblingAutogroupedNode,
+} from 'sentry/views/performance/traceDetails/traceGuards';
+import {
   getRenderableTraceIssues,
   getTraceIconGroupWidth,
   getTraceIssueTimestamp,
@@ -133,7 +137,9 @@ export class VirtualizedViewManager {
   > = [];
   span_patterns: Array<Array<{ref: HTMLElement; space: [number, number]} | undefined>> =
     [];
-  invisible_bars: Array<{ref: HTMLElement; space: [number, number]} | undefined> = [];
+  invisible_bars: Array<
+    {kind: 'error' | 'autogroup'; ref: HTMLElement; space: [number, number]} | undefined
+  > = [];
   span_arrows: Array<
     | {
         position: 0 | 1;
@@ -314,25 +320,32 @@ export class VirtualizedViewManager {
 
   setTimeCompression(compression: TraceTimeCompression) {
     this.time_compression = compression;
+    this.scheduler.dispatch('time compression change');
   }
 
   recomputeTimeCompression(options = this.timeCompressionOptions) {
     if (!options) {
-      this.time_compression = TraceTimeCompression.Disabled([
-        this.view.to_origin,
-        this.view.trace_space.width,
-      ]);
+      this.setTimeCompression(
+        TraceTimeCompression.Disabled([this.view.to_origin, this.view.trace_space.width])
+      );
       return;
     }
 
-    this.time_compression = TraceTimeCompression.FromVisibleItems({
-      ...options,
-      physicalWidth: this.view.trace_physical_space.width,
-    });
+    this.setTimeCompression(
+      TraceTimeCompression.FromVisibleItems({
+        ...options,
+        physicalWidth: this.view.trace_physical_space.width,
+      })
+    );
   }
 
   dividerStartVec: [number, number] | null = null;
   previousDividerClientVec: [number, number] | null = null;
+  private activeDividerView: {list: number; span_list: number} | null = null;
+
+  get currentSpanListWidth() {
+    return this.activeDividerView?.span_list ?? this.columns.span_list.width;
+  }
 
   onDividerMouseDown(event: MouseEvent) {
     if (!this.container) {
@@ -374,10 +387,16 @@ export class VirtualizedViewManager {
 
     this.dividerStartVec = null;
     this.previousDividerClientVec = null;
+    this.activeDividerView = null;
 
     this.enqueueOnScrollEndOutOfBoundsCheck();
     document.removeEventListener('mouseup', this.onDividerMouseUp);
     document.removeEventListener('mousemove', this.onDividerMouseMove);
+
+    this.view.trace_physical_space.width =
+      span_list * (this.view.trace_container_physical_space.width - this.scrollbar_width);
+    this.recomputeTimeCompression();
+    this.draw();
 
     this.scheduler.dispatch('divider resize end', this.columns.list.width);
   }
@@ -400,6 +419,7 @@ export class VirtualizedViewManager {
       return;
     }
 
+    this.activeDividerView = {list, span_list};
     this.view.trace_physical_space.width =
       span_list * (this.view.trace_container_physical_space.width - this.scrollbar_width);
     this.recomputeTimeCompression();
@@ -542,19 +562,12 @@ export class VirtualizedViewManager {
   registerInvisibleBarRef(
     ref: HTMLElement | null,
     space: [number, number],
-    index: number
+    index: number,
+    kind: 'error' | 'autogroup'
   ) {
     if (ref) {
-      this.invisible_bars[index] = ref ? {ref, space} : undefined;
-
-      const span_transform = this.computeSpanCSSMatrixTransform(space);
-      ref.style.transform = `matrix(${span_transform.join(',')}`;
-      const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
-      ref.style.setProperty(
-        '--inverse-span-scale',
-        // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
-        isNaN(inverseScale) ? 1 : inverseScale
-      );
+      this.invisible_bars[index] = ref ? {kind, ref, space} : undefined;
+      this.drawInvisibleBar(this.invisible_bars[index]);
     }
   }
 
@@ -1704,8 +1717,9 @@ export class VirtualizedViewManager {
     this.recomputeTimelineIntervals();
     this.recomputeSpanToPXMatrix();
 
-    const list_width = options.list ?? this.columns.list.width;
-    const span_list_width = options.span_list ?? this.columns.span_list.width;
+    const list_width =
+      options.list ?? this.activeDividerView?.list ?? this.columns.list.width;
+    const span_list_width = options.span_list ?? this.currentSpanListWidth;
 
     this.drawContainers(this.container, {
       list_width,
@@ -2240,20 +2254,100 @@ export class VirtualizedViewManager {
 
   last_list_column_width = 0;
   last_span_column_width = 0;
+
+  drawInvisibleBar(invisible_bar: this['invisible_bars'][0]) {
+    if (!invisible_bar) {
+      return;
+    }
+
+    const span_transform = this.computeSpanCSSMatrixTransform(invisible_bar.space);
+    if (invisible_bar.kind === 'error') {
+      // Error icons use their timestamp without the span bar's end-of-trace offset.
+      span_transform[4] = this.transformXFromTimestamp(invisible_bar.space[0]);
+    }
+    invisible_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
+    const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
+    invisible_bar.ref.style.setProperty(
+      '--inverse-span-scale',
+      // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
+      isNaN(inverseScale) ? 1 : inverseScale
+    );
+
+    if (invisible_bar.kind === 'error') {
+      const icon = invisible_bar.ref.querySelector('.TraceIcon');
+      if (icon) {
+        const edge = this.computeTraceIconEdge(invisible_bar.space[0], TRACE_ICON_WIDTH);
+        icon.classList.toggle('TraceIconStart', edge === 'start');
+        icon.classList.toggle('TraceIconEnd', edge === 'end');
+      }
+    }
+  }
+
+  private drawAutogroupIssueIcons(ref: HTMLElement, node: BaseNode) {
+    const icons = Array.from(ref.children).filter(
+      (child): child is HTMLElement =>
+        child instanceof HTMLElement &&
+        (child.classList.contains('TraceIcon') ||
+          child.classList.contains('TraceIconGroup'))
+    );
+    if (icons.length === 0) {
+      return;
+    }
+
+    const issues = getRenderableTraceIssues(
+      node,
+      node.errors,
+      node.occurrences,
+      node.space
+    );
+    issues.forEach(({issue, additionalIssueCount}, index) => {
+      const icon = icons[index];
+      if (!icon) {
+        return;
+      }
+      const baseClass =
+        additionalIssueCount === undefined ? 'TraceIcon' : 'TraceIconGroup';
+      const width =
+        additionalIssueCount === undefined
+          ? TRACE_ICON_WIDTH
+          : getTraceIconGroupWidth(additionalIssueCount, text =>
+              this.text_measurer.measure(text)
+            );
+      const {edge, anchorTimestamp} = this.computeTraceIconPlacement(
+        getTraceIssueTimestamp(issue, node.space),
+        width,
+        node.space
+      );
+      icon.style.left = `${
+        this.computeRelativeLeftPositionFromOrigin(anchorTimestamp, node.space) * 100
+      }%`;
+      icon.classList.toggle(`${baseClass}Start`, edge === 'start');
+      icon.classList.toggle(`${baseClass}End`, edge === 'end');
+    });
+  }
+
   drawInvisibleBars() {
     for (let i = 0; i < this.invisible_bars.length; i++) {
       const invisible_bar = this.invisible_bars[i];
       const text = this.span_text[i];
 
-      if (invisible_bar) {
-        const span_transform = this.computeSpanCSSMatrixTransform(invisible_bar?.space);
-        invisible_bar.ref.style.transform = `matrix(${span_transform.join(',')}`;
-        const inverseScale = Math.round((1 / span_transform[0]) * 1e4) / 1e4;
-        invisible_bar.ref.style.setProperty(
-          '--inverse-span-scale',
-          // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
-          isNaN(inverseScale) ? 1 : inverseScale
-        );
+      this.drawInvisibleBar(invisible_bar);
+
+      if (invisible_bar?.kind === 'autogroup') {
+        const node = this.columns.list.column_nodes[i];
+        if (node && (isParentAutogroupedNode(node) || isSiblingAutogroupedNode(node))) {
+          node.autogroupedSegments.forEach((space, index) => {
+            const bar = invisible_bar.ref.children[index];
+            if (!(bar instanceof HTMLElement)) {
+              return;
+            }
+            bar.style.left = `${
+              this.computeRelativeLeftPositionFromOrigin(space[0], node.space) * 100
+            }%`;
+            bar.style.width = `${this.computeRelativeWidth(space, node.space) * 100}%`;
+          });
+          this.drawAutogroupIssueIcons(invisible_bar.ref, node);
+        }
       }
 
       if (text) {

@@ -1,5 +1,6 @@
 from typing import Any
 
+from sentry.models.activity import Activity
 from sentry.notifications.platform.strategies.deploy_release import DeployReleaseStrategy
 from sentry.notifications.platform.types import (
     NotificationProviderKey,
@@ -10,12 +11,18 @@ from sentry.notifications.types import (
     NotificationSettingsOptionEnum,
 )
 from sentry.testutils.cases import TestCase
+from sentry.types.activity import ActivityType
 
 
 class DeployReleaseStrategyTest(TestCase):
     def _make_strategy(self, **overrides: Any) -> DeployReleaseStrategy:
         defaults = dict(
             projects=frozenset([self.project]),
+            activity=Activity(
+                project=self.project,
+                type=ActivityType.DEPLOY.value,
+                data={"version": "1.0.0"},
+            ),
             organization=self.organization,
             committer_user_ids=frozenset(),
         )
@@ -49,6 +56,23 @@ class DeployReleaseStrategyTest(TestCase):
         assert email_targets[0].resource_type == NotificationTargetResourceType.EMAIL
         assert email_targets[0].resource_id == self.user.email
         assert email_targets[0].specific_data == {"user_id": self.user.id}
+
+    def test_uses_project_specific_email(self) -> None:
+        self._set_deploy_setting(NotificationSettingsOptionEnum.ALWAYS)
+        alternate_email = "project-route@example.com"
+        self.create_useremail(user=self.user, email=alternate_email)
+        self.create_user_option(
+            user=self.user,
+            project_id=self.project.id,
+            key="mail:email",
+            value=alternate_email,
+        )
+
+        targets = self._make_strategy().get_targets()
+
+        email_targets = [t for t in targets if t.provider_key == NotificationProviderKey.EMAIL]
+        assert len(email_targets) == 1
+        assert email_targets[0].resource_id == alternate_email
 
     def test_returns_email_target_for_committer_with_committed_only(self) -> None:
         self._set_deploy_setting(NotificationSettingsOptionEnum.COMMITTED_ONLY)
