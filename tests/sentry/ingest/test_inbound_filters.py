@@ -497,10 +497,22 @@ def test_legacy_lists_reach_relay_without_comments(default_project) -> None:
     )
 
     assert generic_filters is not None
-    assert [(f["id"], f["condition"]["value"]) for f in generic_filters["filters"]] == [
-        ("ip-address", ["10.0.0.0/8"]),
-        ("log-message", ["*health*"]),
-        ("trace-metric-name", ["test.*"]),
+    assert generic_filters["filters"] == [
+        {
+            "id": "ip-address",
+            "isEnabled": True,
+            "condition": {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
+        },
+        {
+            "id": "log-message",
+            "isEnabled": True,
+            "condition": {"op": "glob", "name": "log.body", "value": ["*health*"]},
+        },
+        {
+            "id": "trace-metric-name",
+            "isEnabled": True,
+            "condition": {"op": "glob", "name": "trace_metric.name", "value": ["test.*"]},
+        },
     ]
 
 
