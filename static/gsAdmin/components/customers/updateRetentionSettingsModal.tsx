@@ -12,8 +12,9 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
 
 import type {Subscription} from 'getsentry/types';
 
@@ -75,7 +76,6 @@ function UpdateRetentionSettingsModal({
   Body,
   Footer,
 }: ModalProps) {
-  const api = useApi();
   const mutation = useMutation({
     mutationFn: (values: z.infer<typeof retentionSchema>) => {
       const retentions: Partial<
@@ -108,13 +108,13 @@ function UpdateRetentionSettingsModal({
         downsampled: null,
       };
 
-      return api.requestPromise(
-        `/_admin/customers/${organization.slug}/retention-settings/`,
-        {
-          method: 'POST',
-          data: {retentions, orgRetention},
-        }
-      );
+      return fetchMutation({
+        url: getApiUrl('/_admin/customers/$organizationIdOrSlug/retention-settings/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        method: 'POST',
+        data: {retentions, orgRetention},
+      });
     },
     onSuccess: () => {
       addSuccessMessage('Retention settings updated successfully.');

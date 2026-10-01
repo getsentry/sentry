@@ -14,6 +14,7 @@ export type KnownGetsentryApiUrls =
   | '/_admin/customers/$organizationIdOrSlug/billing-platform-migration/'
   | '/_admin/customers/$organizationIdOrSlug/test-flag/'
   | '/_admin/customers/$organizationIdOrSlug/queue-spike-projection/'
+  | '/_admin/customers/$organizationIdOrSlug/retention-settings/'
   | '/_admin/instance-level-oauth/'
   | '/_admin/users/$userId/suspend/'
   | '/audit-logs/'
