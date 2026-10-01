@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {useMutation, useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -14,10 +15,11 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -95,14 +97,11 @@ type State = {
 function CancelSubscriptionForm() {
   const organization = useOrganization();
   const navigate = useNavigate();
-  const api = useApi();
-  const {data: subscription, isPending} = useApiQuery<Subscription>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {staleTime: 0}
+  const {data: subscription, isPending} = useQuery(
+    apiOptions.as<Subscription>()('/customers/$organizationIdOrSlug/', {
+      path: {organizationIdOrSlug: organization.slug},
+      staleTime: 0,
+    })
   );
   const [state, setState] = useState<State>({
     canSubmit: false,
@@ -117,9 +116,9 @@ function CancelSubscriptionForm() {
     onSubmit: ({value}) => handleSubmit(value),
   });
 
-  const handleSubmitSuccess = (resp: any) => {
+  const handleSubmitSuccess = (resp: {details?: string}) => {
     SubscriptionStore.loadData(organization.slug);
-    const msg = resp?.responseJSON?.details || t('Successfully cancelled subscription');
+    const msg = resp.details || t('Successfully cancelled subscription');
 
     addSuccessMessage(msg);
     navigate({
@@ -127,22 +126,32 @@ function CancelSubscriptionForm() {
     });
   };
 
-  const handleSubmit = async (data: {followup: string; reason: string}) => {
-    try {
-      const submitData = {
+  const mutation = useMutation({
+    mutationFn: (data: {checkboxes: string[]; followup: string; reason: string}) =>
+      fetchMutation<{details?: string}>({
+        url: getApiUrl('/customers/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: subscription?.slug ?? organization.slug},
+        }),
+        method: 'DELETE',
+        data,
+      }),
+    onSuccess: handleSubmitSuccess,
+    onError: error => {
+      const detail =
+        error instanceof RequestError ? error.responseJSON?.detail : undefined;
+      addErrorMessage(
+        typeof detail === 'string' ? detail : t('Failed to cancel subscription')
+      );
+    },
+  });
+
+  const handleSubmit = (data: {followup: string; reason: string}) => {
+    return mutation
+      .mutateAsync({
         ...data,
         checkboxes: Object.keys(state.checkboxes).filter(key => state.checkboxes[key]),
-      };
-
-      const response = await api.requestPromise(`/customers/${subscription?.slug}/`, {
-        method: 'DELETE',
-        data: submitData,
-      });
-
-      handleSubmitSuccess(response);
-    } catch (error: any) {
-      addErrorMessage(error.responseJSON?.detail || t('Failed to cancel subscription'));
-    }
+      })
+      .catch(() => {});
   };
 
   if (isPending || !subscription) {
