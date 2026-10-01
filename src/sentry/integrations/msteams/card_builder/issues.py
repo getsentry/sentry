@@ -52,6 +52,18 @@ from .block import (
 logger = logging.getLogger(__name__)
 
 
+def get_workflow_ids(rules: Sequence[Rule]) -> list[int]:
+    workflow_ids = []
+    for rule in rules:
+        action = rule.data.get("actions", [{}])[0]
+        workflow_id = action.get("workflow_id")
+
+        if workflow_id is not None:
+            workflow_ids.append(int(workflow_id))
+
+    return workflow_ids
+
+
 class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
     def __init__(
         self,
@@ -59,20 +71,24 @@ class MSTeamsIssueMessageBuilder(MSTeamsMessageBuilder):
         event: Event | GroupEvent | None,
         rules: Sequence[Rule],
         integration: RpcIntegration,
+        workflow_ids: Sequence[int] = (),
     ):
         self.group = group
         self.event = event
         self.rules = rules
         self.integration = integration
+        self.workflow_ids = workflow_ids
 
     def generate_action_payload(self, action_type: ACTION_TYPE) -> Any:
         # we need nested data or else Teams won't handle the payload correctly
+        workflow_ids = get_workflow_ids(self.rules)
         return {
             "payload": {
                 "actionType": action_type,
                 "groupId": self.group.id,
                 "eventId": self.event.event_id if self.event else None,
                 "rules": [rule.id for rule in self.rules],
+                "workflows": list(dict.fromkeys([*workflow_ids, *self.workflow_ids])),
                 "integrationId": self.integration.id,
             }
         }

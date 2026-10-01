@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib.resources
 import inspect
 import logging
+from collections.abc import Generator
 from copy import deepcopy
 from threading import Lock
 from typing import Any, Literal, TypeGuard, TypeVar, cast, overload
@@ -21,6 +22,7 @@ from sentry.exceptions import InvalidConfiguration
 from sentry.options import OptionsManager
 from sentry.utils import warnings
 from sentry.utils.env import in_test_environment
+from sentry.utils.redis_key_specs import COMMAND_KEY_SPECS
 from sentry.utils.versioning import Version, check_versions
 from sentry.utils.warnings import DeprecatedSettingWarning
 
@@ -131,6 +133,7 @@ class RedisClusterManager:
         readonly_mode: bool = False,
         hosts: list[dict[Any, Any]] | dict[Any, Any] | None = None,
         client_args: dict[str, Any] | None = None,
+        key_prefix: str | None = None,
         **config: Any,
     ) -> RedisCluster[bytes] | StrictRedis[bytes]: ...
 
@@ -143,6 +146,7 @@ class RedisClusterManager:
         readonly_mode: bool = False,
         hosts: list[dict[Any, Any]] | dict[Any, Any] | None = None,
         client_args: dict[str, Any] | None = None,
+        key_prefix: str | None = None,
         **config: Any,
     ) -> RedisCluster[str] | StrictRedis[str]: ...
 
@@ -154,8 +158,15 @@ class RedisClusterManager:
         readonly_mode: bool = False,
         hosts: list[dict[Any, Any]] | dict[Any, Any] | None = None,
         client_args: dict[str, Any] | None = None,
+        key_prefix: str | None = None,
         **config: Any,
     ) -> RedisCluster[bytes] | StrictRedis[bytes] | RedisCluster[str] | StrictRedis[str]:
+        if key_prefix is not None:
+            if not is_redis_cluster or "{" in key_prefix:
+                raise InvalidConfiguration(
+                    "key_prefix needs is_redis_cluster and must not contain '{'"
+                )
+
         # StrictRedisCluster expects a list of { host, port } dicts. Coerce the
         # configuration into the correct format if necessary.
         if not hosts:
@@ -176,7 +187,7 @@ class RedisClusterManager:
             RedisCluster[bytes] | StrictRedis[bytes] | RedisCluster[str] | StrictRedis[str]
         ):
             if is_redis_cluster:
-                return _add_transaction_checks(
+                cluster = _add_transaction_checks(
                     RetryingRedisCluster(
                         # Intentionally copy hosts here because redis-cluster-py
                         # mutates the inner dicts and this closure can be run
@@ -194,6 +205,9 @@ class RedisClusterManager:
                         **client_args,
                     )
                 )
+                if key_prefix is not None:
+                    return _add_key_prefix(cluster, key_prefix)
+                return cluster
 
             assert len(hosts_list) > 0, "Hosts should have at least 1 entry"
             host = dict(hosts_list[0])
@@ -364,6 +378,154 @@ def _redis_transaction_callers() -> tuple[str, ...]:
             callers.append(f"{module}.{frame.f_code.co_qualname}")
         frame = frame.f_back
     return tuple(callers)
+
+
+# for commands with a `numkeys` argument: the index of that argument
+_SCRIPT_COMMANDS = ("eval", "evalsha", "eval_ro", "evalsha_ro", "fcall", "fcall_ro")
+_NUMKEYS_INDEX = {
+    **dict.fromkeys(_SCRIPT_COMMANDS, 2),
+    **dict.fromkeys(("zunionstore", "zinterstore", "zdiffstore", "blmpop", "bzmpop"), 2),
+    **dict.fromkeys(("zunion", "zinter", "zdiff", "zintercard", "sintercard", "lmpop", "zmpop"), 1),
+}
+
+# commands that see the keys of all workers
+_UNSUPPORTED_WITH_KEY_PREFIX = frozenset(("scan", "randomkey", "flushdb", "flushall"))
+
+# prefixed clients that ran a command since the last call to `pop_used_key_prefix_clients`
+_used_key_prefix_clients: dict[int, RedisCluster[Any] | StrictRedis[Any]] = {}
+
+
+def pop_used_key_prefix_clients() -> list[RedisCluster[Any] | StrictRedis[Any]]:
+    used = list(_used_key_prefix_clients.values())
+    _used_key_prefix_clients.clear()
+    return used
+
+
+def _to_str(value: Any) -> str:
+    return value.decode(errors="replace") if isinstance(value, bytes) else str(value)
+
+
+def _key_positions(args: tuple[Any, ...]) -> list[int]:
+    # redis-py sends some commands as one argument with a space, such as "XGROUP CREATE". Split
+    # the name so that the arguments have the same shape as the table
+    head = _to_str(args[0]).lower().split()
+    offset = len(head) - 1
+    args = (*head, *args[1:])
+
+    name = head[0]
+    if len(args) > 1 and f"{name}|{_to_str(args[1]).lower()}" in COMMAND_KEY_SPECS:
+        name = f"{name}|{_to_str(args[1]).lower()}"
+    # Names that are not in the table have no keys, such as "SCRIPT LOAD".
+    spec = COMMAND_KEY_SPECS.get(name)
+    if spec is None:
+        return []
+
+    positions: list[int] = []
+    if spec.first > 0:
+        last = spec.last if spec.last >= 0 else len(args) + spec.last
+        positions.extend(range(spec.first, min(last, len(args) - 1) + 1, spec.step))
+    if spec.movable:
+        if name in _NUMKEYS_INDEX:
+            index = _NUMKEYS_INDEX[name]
+            positions.extend(range(index + 1, index + 1 + int(args[index])))
+        elif name in ("xread", "xreadgroup"):
+            streams = [_to_str(arg).upper() for arg in args].index("STREAMS")
+            positions.extend(range(streams + 1, streams + 1 + (len(args) - streams - 1) // 2))
+        else:
+            raise NotImplementedError(f"The Redis key prefix does not support {name}")
+    return [position - offset for position in positions]
+
+
+def _add_key_prefix(
+    client: RedisCluster[T] | StrictRedis[T], key_prefix: str
+) -> RedisCluster[T] | StrictRedis[T]:
+    """
+    Adds `key_prefix` to each key that the client sends, and removes it from the key names
+    that the client returns. Tests use this to isolate parallel workers that share a cluster.
+    """
+    mutable_client = cast(Any, client)
+    prefix_bytes = key_prefix.encode()
+
+    def add_prefix(key: Any) -> Any:
+        if isinstance(key, (bytes, memoryview)):
+            return prefix_bytes + bytes(key)
+        return f"{key_prefix}{key}"
+
+    def remove_prefix(key: Any) -> Any:
+        if isinstance(key, bytes) and key.startswith(prefix_bytes):
+            return key[len(prefix_bytes) :]
+        if isinstance(key, str) and key.startswith(key_prefix):
+            return key[len(key_prefix) :]
+        return key
+
+    def prefix_args(args: tuple[Any, ...]) -> tuple[Any, ...]:
+        name = _to_str(args[0]).lower()
+        if name in _UNSUPPORTED_WITH_KEY_PREFIX:
+            raise NotImplementedError(f"The Redis key prefix does not support {name}")
+        if name == "keys":
+            return (args[0], add_prefix(args[1]), *args[2:])
+        positions = set(_key_positions(args))
+        return tuple(add_prefix(arg) if i in positions else arg for i, arg in enumerate(args))
+
+    def unprefix_reply(args: tuple[Any, ...], reply: Any) -> Any:
+        name = _to_str(args[0]).lower()
+        if not reply or isinstance(reply, Exception):
+            return reply
+        if name == "keys":
+            return [remove_prefix(key) for key in reply]
+        if name in ("blpop", "brpop", "bzpopmin", "bzpopmax", "lmpop", "blmpop", "zmpop", "bzmpop"):
+            return type(reply)([remove_prefix(reply[0]), *reply[1:]])
+        if name in ("xread", "xreadgroup"):
+            return [[remove_prefix(stream), *rest] for stream, *rest in reply]
+        if name in _SCRIPT_COMMANDS:
+            return remove_prefix_from_script_reply(reply)
+        return reply
+
+    def remove_prefix_from_script_reply(reply: Any) -> Any:
+        if isinstance(reply, list):
+            return [remove_prefix_from_script_reply(item) for item in reply]
+        return remove_prefix(reply)
+
+    execute_command = mutable_client.execute_command
+    scan_iter = mutable_client.scan_iter
+    pipeline_factory = mutable_client.pipeline
+
+    def execute_prefixed_command(*args: Any, **kwargs: Any) -> Any:
+        # Other workers share the cluster, so a flush deletes only the keys with this prefix.
+        if _to_str(args[0]).lower() in ("flushdb", "flushall"):
+            for key in scan_iter(match=add_prefix("*")):
+                execute_command("DEL", key)
+            return True
+        _used_key_prefix_clients[id(client)] = client
+        return unprefix_reply(args, execute_command(*prefix_args(args), **kwargs))
+
+    def scan_prefixed_keys(match: Any = None, **kwargs: Any) -> Generator[Any]:
+        _used_key_prefix_clients[id(client)] = client
+        for key in scan_iter(match=add_prefix("*" if match is None else match), **kwargs):
+            yield remove_prefix(key)
+
+    def pipeline(*args: Any, **kwargs: Any) -> Any:
+        redis_pipeline = pipeline_factory(*args, **kwargs)
+        queue_command = redis_pipeline.execute_command
+        execute_pipeline = redis_pipeline.execute
+
+        def queue_prefixed_command(*args: Any, **kwargs: Any) -> Any:
+            _used_key_prefix_clients[id(client)] = client
+            return queue_command(*prefix_args(args), **kwargs)
+
+        def execute_prefixed_pipeline(*args: Any, **kwargs: Any) -> Any:
+            commands = [command.args for command in redis_pipeline.command_stack]
+            results = execute_pipeline(*args, **kwargs)
+            return [unprefix_reply(c, result) for c, result in zip(commands, results)]
+
+        redis_pipeline.execute_command = queue_prefixed_command
+        redis_pipeline.execute = execute_prefixed_pipeline
+        return redis_pipeline
+
+    mutable_client.execute_command = execute_prefixed_command
+    mutable_client.scan_iter = scan_prefixed_keys
+    mutable_client.pipeline = pipeline
+    return client
 
 
 # TODO(epurkhiser): When migration of all rb cluster to true redis clusters has
