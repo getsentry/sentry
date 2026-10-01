@@ -18,6 +18,12 @@ from arroyo.types import Partition, Topic
 from django.conf import settings
 from django.utils import timezone
 
+from sentry.attachments import (
+    CachedAttachment,
+    MissingAttachmentChunks,
+    get_attachments_for_event,
+    store_attachments_for_event,
+)
 from sentry.constants import DataCategory
 from sentry.event_manager import EventManager
 from sentry.ingest.consumer.processors import (
@@ -40,6 +46,7 @@ from sentry.models.userreport import UserReport
 from sentry.objectstore import UsecaseId, get_session
 from sentry.services import eventstore
 from sentry.services.eventstore.processing import event_processing_store
+from sentry.tasks.store import save_event_attachments
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.helpers.options import override_options
@@ -524,6 +531,61 @@ def test_with_attachments(default_project, task_runner, missing_chunks, django_c
         assert abs(delta.total_seconds()) < 3600
     else:
         assert not persisted_attachments
+
+
+@django_db_all
+@pytest.mark.parametrize("cache_key", (None, "", "e:working-event"))
+def test_save_cached_attachments_with_optional_event_cache_key(
+    default_project, task_runner, django_cache, cache_key
+) -> None:
+    payload = get_normalized_event({"message": "hello world"}, default_project)
+    event_id = payload["event_id"]
+    chunked_data = b"chunked attachment" * 20
+    process_attachment_chunk(
+        {
+            "payload": chunked_data,
+            "event_id": event_id,
+            "project_id": default_project.id,
+            "id": 0,
+            "chunk_index": 0,
+        }
+    )
+    store_attachments_for_event(
+        default_project,
+        payload,
+        [
+            CachedAttachment(id=0, name="chunked.txt", chunks=1, size=len(chunked_data)),
+            CachedAttachment(id=1, name="unchunked.txt", data=b"unchunked attachment"),
+            CachedAttachment(id=2, name="limited.txt", data=b"limited", rate_limited=True),
+        ],
+        timeout=3600,
+    )
+    cached_attachments = list(get_attachments_for_event(payload))
+
+    with (
+        patch("sentry.features.has", return_value=True),
+        override_options({"objectstore.enable_for.attachments": 0.0}),
+        task_runner(),
+    ):
+        save_event_attachments(
+            cache_key=cache_key,
+            data=payload,
+            project_id=default_project.id,
+            event_id=event_id,
+            start_time=time.time(),
+        )
+
+    attachments = EventAttachment.objects.filter(
+        project_id=default_project.id, event_id=event_id
+    ).order_by("name")
+    assert [attachment.name for attachment in attachments] == ["chunked.txt", "unchunked.txt"]
+    for attachment, expected in zip(attachments, (chunked_data, b"unchunked attachment")):
+        with attachment.getfile() as file:
+            assert file.read() == expected
+    assert "_attachments" not in payload
+    for attachment in cached_attachments:
+        with pytest.raises(MissingAttachmentChunks):
+            attachment.load_data()
 
 
 @debug_files_test_both_backends
