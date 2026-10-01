@@ -2,7 +2,7 @@ import {useRef, useState} from 'react';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
@@ -399,6 +399,7 @@ export function CellAction({pin, allowActions, usePortalOnDropdown, ...props}: P
       width="100%"
       height="100%"
       minWidth="0"
+      gap="0"
       data-test-id={cellActions === null ? undefined : 'cell-action-container'}
     >
       <Stack flex="1" minWidth="0" justify="center">
@@ -407,49 +408,51 @@ export function CellAction({pin, allowActions, usePortalOnDropdown, ...props}: P
       </Stack>
       {!!cellActions?.length && (
         <RevealOnHover.Action visible={isMenuOpen}>
-          <DropdownMenu
-            items={cellActions}
-            usePortal={usePortalOnDropdown ?? true}
-            disableTextSelection
-            strategy="fixed"
-            size="sm"
-            offset={4}
-            position={align === 'left' ? 'bottom-start' : 'bottom-end'}
-            preventOverflowOptions={{padding: 4}}
-            flipOptions={{
-              fallbackPlacements: [
-                'bottom-start',
-                'bottom-end',
-                'top',
-                'right-start',
-                'right-end',
-                'left-start',
-                'left-end',
-              ],
-            }}
-            isOpen={isMenuOpen}
-            onOpenChange={isOpen => {
-              if (isOpen) {
-                // Read the rendered link when opening by mouse or keyboard.
-                const href = containerRef.current?.getElementsByTagName('a')[0]?.href;
-                setTarget(
-                  href && (isInternalNavigationTarget(href) || isValidUrl(href))
-                    ? href
-                    : undefined
-                );
-              }
-              setIsMenuOpen(isOpen);
-            }}
-            trigger={triggerProps => (
-              <OverlayTrigger.IconButton
-                {...triggerProps}
-                aria-label={t('Actions')}
-                icon={<IconEllipsis size="xs" />}
-                size="zero"
-              />
-            )}
-            minMenuWidth={0}
-          />
+          <Flex position="absolute" top="0" bottom="0" right="0" align="center">
+            <DropdownMenu
+              items={cellActions}
+              usePortal={usePortalOnDropdown ?? true}
+              disableTextSelection
+              strategy="fixed"
+              size="sm"
+              offset={4}
+              position={align === 'left' ? 'bottom-start' : 'bottom-end'}
+              preventOverflowOptions={{padding: 4}}
+              flipOptions={{
+                fallbackPlacements: [
+                  'bottom-start',
+                  'bottom-end',
+                  'top',
+                  'right-start',
+                  'right-end',
+                  'left-start',
+                  'left-end',
+                ],
+              }}
+              isOpen={isMenuOpen}
+              onOpenChange={isOpen => {
+                if (isOpen) {
+                  // Read the rendered link when opening by mouse or keyboard.
+                  const href = containerRef.current?.getElementsByTagName('a')[0]?.href;
+                  setTarget(
+                    href && (isInternalNavigationTarget(href) || isValidUrl(href))
+                      ? href
+                      : undefined
+                  );
+                }
+                setIsMenuOpen(isOpen);
+              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.IconButton
+                  {...triggerProps}
+                  aria-label={t('Actions')}
+                  icon={<IconEllipsis size="xs" />}
+                  size="zero"
+                />
+              )}
+              minMenuWidth={0}
+            />
+          </Flex>
         </RevealOnHover.Action>
       )}
     </RevealOnHover>
