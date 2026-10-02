@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 import {createContext, Fragment, useContext} from 'react';
-import {css} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 
 import {Container} from '@sentry/scraps/layout';
@@ -100,17 +99,9 @@ const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
       if (level === 'inline') {
         return embed;
       }
-      return (
-        <Container
-          css={theme => css`
-            &:last-child {
-              margin-bottom: ${theme.space['2xl']};
-            }
-          `}
-        >
-          {embed}
-        </Container>
-      );
+      // Surfaces that float controls over the end of their content (an assistant answer's
+      // actions) target this to leave room below a trailing embed.
+      return <Container data-seer-embed="">{embed}</Container>;
     }
     // Unknown embeds are expected to be registered here; drop them and report
     // instead of echoing plaintext like default Markdown.

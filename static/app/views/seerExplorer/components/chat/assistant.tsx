@@ -58,7 +58,15 @@ export function AssistantBlock({
     <Fragment>
       {hasValidContent(content) && (
         <MessageRow from="assistant" density={compact ? 'compact' : undefined}>
-          <AssistantMessage>
+          <AssistantMessage
+            // Room below a block embed that ends the answer, so the floating actions don't
+            // cover it.
+            css={theme => css`
+              [data-seer-embed]:last-child {
+                margin-bottom: ${theme.space['2xl']};
+              }
+            `}
+          >
             <SeerMarkdown raw={content} scope={embedScope} />
           </AssistantMessage>
         </MessageRow>

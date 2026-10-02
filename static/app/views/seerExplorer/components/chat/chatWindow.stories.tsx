@@ -73,8 +73,8 @@ function ChatWindow({
 }: {
   session: Session;
   /**
-   * Story-only: removes the space `SeerMarkdown` leaves below a block embed that ends an
-   * answer, to show what the floating answer actions would overlap without it.
+   * Story-only: removes the space an assistant answer leaves below a block embed that ends
+   * it, to show what the floating answer actions would overlap without it.
    */
   withoutTrailingEmbedSpace?: boolean;
 }) {
@@ -107,7 +107,7 @@ function ChatWindow({
                   css={
                     withoutTrailingEmbedSpace
                       ? css`
-                          [data-block-wrapper] div:last-child {
+                          [data-seer-embed]:last-child {
                             margin-bottom: 0 !important;
                           }
                         `
@@ -399,8 +399,8 @@ export default Storybook.story('ChatWindow', story => {
       <p>
         Hover the answer to reveal its actions: thumbs up, thumbs down, and copy. They
         float over the bottom-right corner of the answer, so when an answer ends in a
-        block embed (here a DSN), <Storybook.JSXNode name="SeerMarkdown" /> leaves space
-        below the embed for them.
+        block embed (here a DSN), the answer leaves space below the embed for them. Tool
+        results in the thinking block have no actions, so they leave none.
       </p>
       <ChatWindow session={ANSWER_ENDING_IN_EMBED_SESSION} />
     </Fragment>
