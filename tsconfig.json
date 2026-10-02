@@ -68,7 +68,6 @@
   },
   "include": [
     "*.config.*s",
-    "build-utils/*.spec.ts",
     "static/app",
     "static/packages/scraps/src",
     "static/gsApp",
