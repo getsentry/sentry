@@ -100,7 +100,9 @@ const config: Config.InitialOptions = {
   setupFiles: ['<rootDir>/tests/js/sentry-test/snapshots/snapshot-setup.ts'],
   setupFilesAfterEnv: ['<rootDir>/tests/js/sentry-test/snapshots/snapshot-framework.ts'],
 
+  resolver: '<rootDir>/build-utils/reactRouterResolver.ts',
   moduleNameMapper: {
+    '^react-router-dom$': '<rootDir>/static/app/router/reactRouterV6.tsx',
     // Visual snapshots use the production router version.
     '^sentry/router/reactRouter$': '<rootDir>/static/app/router/reactRouterV6.tsx',
     '\\.(css|less|png|gif|jpg|woff|mp4)$':

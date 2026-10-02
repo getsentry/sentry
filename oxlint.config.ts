@@ -50,7 +50,6 @@ const restrictedRouterImportPattern = {
   group: [
     'react-router',
     'react-router/*',
-    'react-router-dom',
     'react-router-dom/*',
     '@remix-run/router',
     'nuqs/adapters/react-router',
@@ -63,7 +62,7 @@ const restrictedRouterImportPattern = {
     './routerV8',
   ],
   message:
-    "Import from 'sentry/router/reactRouter' so the build selects the matching router and adapter.",
+    "Use 'react-router-dom' for router APIs and 'sentry/router/reactRouter' for the versioned adapter and internal router type.",
 };
 
 const restrictedImportPatterns = [

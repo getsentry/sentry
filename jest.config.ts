@@ -273,7 +273,9 @@ const config: Config.InitialOptions = {
   ],
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
+  resolver: '<rootDir>/build-utils/reactRouterResolver.ts',
   moduleNameMapper: {
+    '^react-router-dom$': `<rootDir>/static/app/router/reactRouterV${REACT_ROUTER_VERSION}.tsx`,
     '^sentry/router/reactRouter$': `<rootDir>/static/app/router/reactRouterV${REACT_ROUTER_VERSION}.tsx`,
     '^sentry-test/router$': `<rootDir>/tests/js/sentry-test/routerV${REACT_ROUTER_VERSION}.ts`,
     '\\.(css|less|png|gif|jpg|avif|webp|woff|mp4)$':

@@ -319,6 +319,21 @@ const appConfig: Configuration = {
      */
     rules: [
       {
+        // Remap application imports without changing resolution inside dependencies.
+        include: [staticPrefix, path.join(import.meta.dirname, 'tests', 'js')],
+        exclude: /reactRouterV[68]\.tsx$/,
+        resolve: {
+          alias: {
+            'react-router-dom$': path.join(
+              staticPrefix,
+              'app',
+              'router',
+              `reactRouterV${REACT_ROUTER_VERSION}.tsx`
+            ),
+          },
+        },
+      },
+      {
         test: /\.(?:tsx?|jsx?)$/,
         oneOf: [
           {

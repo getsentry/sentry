@@ -68,7 +68,7 @@
   },
   "include": [
     "*.config.*s",
-    "build-utils/reactRouterVersion*.ts",
+    "build-utils/reactRouter*.ts",
     "static/app",
     "static/packages/scraps/src",
     "static/gsApp",

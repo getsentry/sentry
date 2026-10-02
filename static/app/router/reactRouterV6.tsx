@@ -1,9 +1,10 @@
+// Bypass Jest's package mapping when loading the actual v6 implementation.
 import {
   MemoryRouter as ReactMemoryRouter,
   RouterProvider as ReactRouterProvider,
   type MemoryRouterProps,
   type RouterProviderProps,
-} from 'react-router-dom';
+} from 'react-router-dom/dist/index.js';
 
 export {
   Link,
@@ -37,7 +38,7 @@ export {
   type To,
   useMatches,
   type UIMatch,
-} from 'react-router-dom';
+} from 'react-router-dom/dist/index.js';
 export type {Router as DataRouter} from '@remix-run/router';
 export {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
 
