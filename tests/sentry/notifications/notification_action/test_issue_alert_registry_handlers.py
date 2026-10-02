@@ -123,7 +123,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         )
 
         assert isinstance(rule, NotificationRule)
-        assert rule.id == self.action.id
+        assert rule.action_id == self.action.id
         assert rule.project == self.detector.project
         assert rule.environment_id is not None
         assert self.workflow.environment is not None
@@ -157,7 +157,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert {rule: "first", other_rule: "second"} == {rule: "second"}
 
         same_numeric_legacy_rule = NotificationRule(
-            id=self.workflow.id,
+            action_id=None,
             label="Legacy rule",
             data={"actions": [{"id": "test-action"}]},
             project=self.project,
@@ -176,7 +176,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         )
 
         assert isinstance(rule, NotificationRule)
-        assert rule.id == self.action.id
+        assert rule.action_id == self.action.id
         assert rule.project == self.detector.project
         assert rule.environment_id is not None
         assert self.workflow.environment is not None
@@ -263,7 +263,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
         with pytest.raises(ValueError, match="requires at least one action"):
             NotificationRule(
-                id=self.action.id,
+                action_id=self.action.id,
                 label="Invalid",
                 data={"actions": []},
                 project=self.project,
@@ -274,7 +274,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
         with pytest.raises(ValueError, match="requires a workflow or legacy rule ID"):
             NotificationRule(
-                id=self.action.id,
+                action_id=self.action.id,
                 label="Invalid",
                 data=data,
                 project=self.project,
@@ -285,7 +285,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
 
         with pytest.raises(ValueError, match="cannot have a workflow ID"):
             NotificationRule(
-                id=self.action.id,
+                action_id=self.action.id,
                 label="Invalid",
                 data=data,
                 project=self.project,
@@ -298,7 +298,8 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         legacy_rule = self.create_project_rule(project=self.project, include_workflow_id=False)
         notification_rule = NotificationRule.from_deprecated_legacy_rule(legacy_rule)
 
-        assert notification_rule.id == legacy_rule.id
+        assert notification_rule.action_id is None
+        assert notification_rule.legacy_rule_id == legacy_rule.id
         assert notification_rule.legacy_rule_id == legacy_rule.id
         assert notification_rule.workflow_id is None
         assert notification_rule.is_legacy_rule_only
@@ -326,7 +327,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         )
 
         assert isinstance(rule, NotificationRule)
-        assert rule.id == self.action.id
+        assert rule.action_id == self.action.id
         assert rule.project == self.detector.project
         assert rule.environment_id is None
         assert rule.label == self.workflow.name

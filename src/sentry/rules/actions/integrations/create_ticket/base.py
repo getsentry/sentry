@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from collections.abc import Generator, Mapping
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.notifications.types import NotificationRule
@@ -11,9 +11,6 @@ from sentry.rules.actions.integrations.create_ticket.form import IntegrationNoti
 from sentry.rules.actions.integrations.create_ticket.utils import create_issue
 from sentry.rules.base import CallbackFuture
 from sentry.services.eventstore.models import GroupEvent
-
-if TYPE_CHECKING:
-    from sentry.models.rule import Rule
 
 
 class TicketEventAction(IntegrationEventAction, abc.ABC):
@@ -50,7 +47,7 @@ class TicketEventAction(IntegrationEventAction, abc.ABC):
         return label
 
     @property
-    def rule_context(self) -> Rule | NotificationRule:
+    def rule_context(self) -> NotificationRule:
         if self.rule is None:
             raise TypeError("Ticket delivery requires a rule context")
         return self.rule

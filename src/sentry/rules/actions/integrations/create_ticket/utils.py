@@ -138,7 +138,7 @@ def create_issue(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
     organization = event.group.project.organization
 
     for future in futures:
-        action_id = future.rule.id
+        action_id = future.rule.action_id
         data: dict[str, Any] = future.kwargs["data"]
         provider = future.kwargs.get("provider")
         integration_id = future.kwargs.get("integration_id")

@@ -48,10 +48,11 @@
 </div>
 
 {% for rule, groups in digest.items %}
+{% with rule_context_id=rule.workflow_id|default:rule.legacy_rule_id %}
 
     <div class="rule">
       <div class="container">
-        {% with rule_details=rules_details|get_item:rule.id snooze_alert_url=snooze_alert_urls|get_item:rule.id %}
+        {% with rule_details=rules_details|get_item:rule_context_id snooze_alert_url=snooze_alert_urls|get_item:rule_context_id %}
         {% if snooze_alert %}
             <a class="mute" href="{% absolute_uri snooze_alert_url %}">Mute this alert</a>
         {% endif %}
@@ -72,7 +73,7 @@
                       <span class="level level-{{ group.get_level_display }}">{{ group.get_level_display }}</span>
                   </td>
                   <td class="event-detail">
-                      {% include "sentry/emails/_group.html" %}
+                      {% include "sentry/emails/_group.html" with rule_id=rule_context_id %}
                       <div>
                         <small>
                           {% if clock_24_hours %}
@@ -106,6 +107,7 @@
           {% endwith %}
       </table>
     </div>
+{% endwith %}
 {% endfor %}
 
 {% endblock %}

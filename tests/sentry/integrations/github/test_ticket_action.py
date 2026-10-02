@@ -67,12 +67,8 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
     def trigger(self, event, rule_object):
         action = rule_object.data.get("actions", ())[0]
-        action_inst = self.get_rule(data=action, rule=rule_object)
-        results = list(action_inst.after(event=event))
-        assert len(results) == 1
-
         notification_rule = NotificationRule(
-            id=rule_object.id,
+            action_id=rule_object.id,
             label=rule_object.label,
             data={"actions": [action]},
             project=rule_object.project,
@@ -80,6 +76,10 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             workflow_id=123,
             legacy_rule_id=rule_object.id,
         )
+        action_inst = self.get_rule(data=action, rule=notification_rule)
+        results = list(action_inst.after(event=event))
+        assert len(results) == 1
+
         rule_future = RuleFuture(rule=notification_rule, kwargs=results[0].kwargs)
         return results[0].callback(event, futures=[rule_future])
 

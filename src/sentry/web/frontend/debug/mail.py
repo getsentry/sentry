@@ -519,7 +519,7 @@ def digest(request: HttpRequest) -> HttpResponse:
     project = Project(id=1, slug="example", name="Example Project", organization=org)
     rules = {
         i: NotificationRule(
-            id=i,
+            action_id=None,
             label=f"Rule #{i}",
             data={"actions": [{}]},
             project=project,

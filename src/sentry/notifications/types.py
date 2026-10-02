@@ -22,10 +22,6 @@ class NotificationRuleData(TypedDict):
 class NotificationRule:
     """Rule-like notification context for the legacy action registry.
 
-    ``id`` identifies the source of this delivery. It is usually a workflow-engine
-    Action ID, but its domain is not stable across every notification path. It must
-    not be used to look up a persisted Rule; use ``legacy_rule_id`` explicitly.
-
     ``workflow_id`` and ``legacy_rule_id`` are the canonical notification identities.
     Notification code must not recover identity from ``data["actions"]``. Action data
     exists only to configure the legacy action registry. Parsing identity from action
@@ -33,7 +29,7 @@ class NotificationRule:
     and payloads serialized before these top-level fields existed.
     """
 
-    id: int
+    action_id: int | None
     label: str
     data: NotificationRuleData
     project: Project
@@ -80,7 +76,7 @@ class NotificationRule:
             legacy_rule_id = rule.id
 
         return cls(
-            id=rule.id,
+            action_id=None,
             label=rule.label,
             data={"actions": [dict(action) for action in actions]},
             project=project or rule.project,
@@ -107,6 +103,16 @@ class NotificationRule:
             return f"workflow:{self.workflow_id}"
         assert self.legacy_rule_id is not None
         return f"legacy:{self.legacy_rule_id}"
+
+    @property
+    def broken_rule_id(self) -> int:
+        """Preserve callers that historically treated several ID domains as Rule.id."""
+        if self.action_id is not None:
+            return self.action_id
+        if self.legacy_rule_id is not None:
+            return self.legacy_rule_id
+        assert self.workflow_id is not None
+        return self.workflow_id
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, NotificationRule):

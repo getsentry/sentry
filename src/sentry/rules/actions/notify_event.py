@@ -23,10 +23,14 @@ class NotifyEventAction(EventAction):
     def after(
         self, event: GroupEvent, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture]:
+        rule_id = None
+        if self.rule is not None:
+            rule_id = self.rule.broken_rule_id
+
         logger.info(
             "notify_event.legacy_plugin_action_noop",
             extra={
-                "rule_id": self.rule.id if self.rule else None,
+                "rule_id": rule_id,
                 "event_id": event.event_id,
                 "action": self.id,
             },

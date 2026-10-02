@@ -243,7 +243,7 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
                 organization_id=self.organization.id,
                 project_id=self.project.id,
                 provider="email",
-                alert_id=rule.id,
+                alert_id=rule.data["actions"][0]["workflow_id"],
                 alert_type="issue_alert",
                 external_id="ANY",
                 notification_uuid="ANY",
@@ -1589,7 +1589,8 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
     def test_normal(self, mock_logger: MagicMock) -> None:
         event = self.store_event(data={}, project_id=self.project.id)
         rule = self.create_project_rule(name="my rule")
-        futures = [RuleFuture(NotificationRule.from_deprecated_legacy_rule(rule), {})]
+        notification_rule = NotificationRule.from_deprecated_legacy_rule(rule)
+        futures = [RuleFuture(notification_rule, {})]
         with mock.patch.object(self.adapter, "notify") as notify:
             self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
             assert notify.call_count == 1
@@ -1605,7 +1606,8 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
                     "target_identifier": None,
                     "fallthrough_choice": None,
                     "notification_uuid": mock.ANY,
-                    "rule_id": rule.id,
+                    "workflow_id": notification_rule.workflow_id,
+                    "legacy_rule_id": notification_rule.legacy_rule_id,
                     "project_id": event.group.project.id,
                 },
             )
@@ -1618,7 +1620,8 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         event = self.store_event(data={}, project_id=self.project.id)
         rule = self.create_project_rule(project=self.project)
 
-        futures = [RuleFuture(NotificationRule.from_deprecated_legacy_rule(rule), {})]
+        notification_rule = NotificationRule.from_deprecated_legacy_rule(rule)
+        futures = [RuleFuture(notification_rule, {})]
         self.adapter.rule_notify(event, futures, ActionTargetType.ISSUE_OWNERS)
         assert digests.backend.add.call_count == 1
         assert event.group
@@ -1633,7 +1636,8 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
                 "target_identifier": None,
                 "fallthrough_choice": None,
                 "notification_uuid": mock.ANY,
-                "rule_id": rule.id,
+                "workflow_id": notification_rule.workflow_id,
+                "legacy_rule_id": notification_rule.legacy_rule_id,
                 "project_id": event.group.project.id,
                 "digest_key": mock.ANY,
             },

@@ -22,6 +22,7 @@ class SerializableRuleProxy(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     id: int
+    action_id: int | None = None
     label: str
     data: NotificationRuleData
     environment_id: int | None = None
@@ -33,7 +34,8 @@ class SerializableRuleProxy(BaseModel):
     def from_rule(cls, rule: NotificationRule) -> SerializableRuleProxy:
         """Create a serializable representation of a notification rule."""
         return cls(
-            id=rule.id,
+            id=rule.broken_rule_id,
+            action_id=rule.action_id,
             label=rule.label,
             data=rule.data,
             environment_id=rule.environment_id,
@@ -58,7 +60,7 @@ class SerializableRuleProxy(BaseModel):
                 legacy_rule_id = self.id
 
         return NotificationRule(
-            id=self.id,
+            action_id=self.action_id if "action_id" in self.__fields_set__ else self.id,
             label=self.label,
             data=self.data,
             environment_id=self.environment_id,
