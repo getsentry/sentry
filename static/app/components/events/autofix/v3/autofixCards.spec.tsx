@@ -309,6 +309,25 @@ describe('ArtifactCard', () => {
       expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
     });
 
+    it('renders unclosed embed syntax in the description as literal text', () => {
+      const description =
+        "Users clicking 'Ask Seer' trigger Seer chat that emits {% autofix %} embeds.";
+      const artifact = makeRootCauseArtifact({
+        one_line_description: description,
+        five_whys: [],
+      });
+
+      render(
+        <RootCauseCard
+          autofix={mockAutofix}
+          groupId="1"
+          section={makeSection('root_cause', 'completed', [artifact])}
+        />
+      );
+
+      expect(screen.getByText(description)).toBeInTheDocument();
+    });
+
     it('renders five_whys list items and heading', () => {
       const artifact = makeRootCauseArtifact({
         one_line_description: 'Bug',
