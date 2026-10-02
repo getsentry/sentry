@@ -40,7 +40,8 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.registry import detector_settings_registry
+from sentry.workflow_engine.types import DetectorAPIOperation, DetectorPriorityLevel
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.test_base import ProjectAccessTestMixin
 
@@ -160,9 +161,23 @@ class OrganizationDetectorDetailsBaseTest(APITestCase):
 
 @cell_silo_test
 class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
+    @mock.patch.object(
+        detector_settings_registry.get(MetricIssue.slug),
+        "excluded_api_operations",
+        frozenset({DetectorAPIOperation.LIST}),
+    )
     def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug, self.detector.id)
         assert response.data == serialize(self.detector)
+
+    def test_get_exclusion(self) -> None:
+        settings = detector_settings_registry.get(MetricIssue.slug)
+        with mock.patch.object(
+            settings, "excluded_api_operations", frozenset({DetectorAPIOperation.GET})
+        ):
+            self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
+
+        assert Detector.objects.filter(id=self.detector.id).exists()
 
     def test_does_not_exist(self) -> None:
         self.get_error_response(self.organization.slug, 999999999, status_code=404)
@@ -346,6 +361,50 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert snuba_query.query == "updated query"
         assert snuba_query.time_window == 300
 
+    def test_put_exclusion_preserves_state(self) -> None:
+        original_name = self.detector.name
+        original_config = self.detector.config
+        settings = detector_settings_registry.get(MetricIssue.slug)
+        with mock.patch.object(
+            settings, "excluded_api_operations", frozenset({DetectorAPIOperation.PUT})
+        ):
+            self.get_error_response(
+                self.organization.slug, self.detector.id, **self.valid_data, status_code=404
+            )
+
+        self.detector.refresh_from_db()
+        self.snuba_query.refresh_from_db()
+        self.condition.refresh_from_db()
+        assert self.detector.name == original_name
+        assert self.detector.config == original_config
+        assert self.detector.type == MetricIssue.slug
+        assert self.snuba_query.query == "hello"
+        assert self.condition.comparison == 50
+
+    def test_put_excluded_target_type_preserves_state(self) -> None:
+        original_name = self.detector.name
+        settings = detector_settings_registry.get(MonitorIncidentType.slug)
+        with mock.patch.object(
+            settings, "excluded_api_operations", frozenset({DetectorAPIOperation.PUT})
+        ):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.detector.id,
+                name="Unauthorized change",
+                type=MonitorIncidentType.slug,
+                status_code=400,
+            )
+
+        assert "type" in response.data
+        self.detector.refresh_from_db()
+        assert self.detector.type == MetricIssue.slug
+        assert self.detector.name == original_name
+
+    @mock.patch.object(
+        detector_settings_registry.get(MetricIssue.slug),
+        "excluded_api_operations",
+        frozenset({DetectorAPIOperation.LIST}),
+    )
     @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
     def test_update(self, mock_schedule_update_project_config: mock.MagicMock) -> None:
         with self.tasks():
@@ -1135,6 +1194,26 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
 class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest):
     method = "DELETE"
 
+    def test_delete_exclusion_preserves_detector(self) -> None:
+        original_status = self.detector.status
+        settings = detector_settings_registry.get(MetricIssue.slug)
+        with mock.patch.object(
+            settings, "excluded_api_operations", frozenset({DetectorAPIOperation.DELETE})
+        ):
+            self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
+
+        self.detector.refresh_from_db()
+        assert self.detector.status == original_status
+        assert not CellScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=self.detector.id
+        ).exists()
+        assert DataSourceDetector.objects.filter(id=self.data_source_detector.id).exists()
+
+    @mock.patch.object(
+        detector_settings_registry.get(MetricIssue.slug),
+        "excluded_api_operations",
+        frozenset({DetectorAPIOperation.LIST}),
+    )
     @mock.patch(
         "sentry.workflow_engine.endpoints.organization_detector_details.schedule_update_project_config"
     )

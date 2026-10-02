@@ -1150,13 +1150,63 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
             organization=self.organization,
         )
 
-    def test_update_detectors_by_ids_success(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug,
-            qs_params=[("id", str(self.detector.id)), ("id", str(self.detector_two.id))],
-            enabled=False,
-            status_code=200,
+    def test_put_exclusion_rejects_mixed_ids_without_updates(self) -> None:
+        allowed_detector = self.create_detector(
+            project=self.project, type=MonitorIncidentType.slug, enabled=True
         )
+        with patch.object(
+            MetricIssue.detector_settings,
+            "excluded_api_operations",
+            frozenset({DetectorAPIOperation.PUT}),
+        ):
+            self.get_error_response(
+                self.organization.slug,
+                qs_params={"id": [allowed_detector.id, self.detector.id]},
+                enabled=False,
+                status_code=400,
+            )
+
+        allowed_detector.refresh_from_db()
+        self.detector.refresh_from_db()
+        assert allowed_detector.enabled is True
+        assert self.detector.enabled is True
+
+    def test_put_exclusion_skips_type_in_query_selection(self) -> None:
+        allowed_detector = self.create_detector(
+            project=self.project, type=MonitorIncidentType.slug, enabled=True
+        )
+        with patch.object(
+            MetricIssue.detector_settings,
+            "excluded_api_operations",
+            frozenset({DetectorAPIOperation.PUT}),
+        ):
+            response = self.get_success_response(
+                self.organization.slug,
+                qs_params={
+                    "project": self.project.id,
+                    "query": f"type:[{MetricIssue.slug},{MonitorIncidentType.slug}]",
+                },
+                enabled=False,
+            )
+
+        allowed_detector.refresh_from_db()
+        self.detector.refresh_from_db()
+        assert allowed_detector.enabled is False
+        assert self.detector.enabled is True
+        assert [detector["id"] for detector in response.data] == [str(allowed_detector.id)]
+
+    def test_update_detectors_by_ids_success(self) -> None:
+        with patch.object(
+            MetricIssue.detector_settings,
+            "excluded_api_operations",
+            frozenset({DetectorAPIOperation.LIST, DetectorAPIOperation.GET}),
+        ):
+            response = self.get_success_response(
+                self.organization.slug,
+                qs_params=[("id", str(self.detector.id)), ("id", str(self.detector_two.id))],
+                enabled=False,
+                status_code=200,
+            )
 
         # Verify detectors were updated
         self.detector.refresh_from_db()
@@ -1538,9 +1588,63 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
             project=self.project, name="Third Detector", type=MetricIssue.slug
         )
 
+    def test_delete_exclusion_rejects_mixed_ids_without_deletions(self) -> None:
+        with patch.object(
+            ErrorGroupType.detector_settings,
+            "excluded_api_operations",
+            frozenset({DetectorAPIOperation.DELETE}),
+        ):
+            self.get_error_response(
+                self.organization.slug,
+                qs_params={"id": [self.detector.id, self.error_detector.id]},
+                status_code=400,
+            )
+
+        self.detector.refresh_from_db()
+        self.error_detector.refresh_from_db()
+        assert self.detector.status == ObjectStatus.ACTIVE
+        assert self.error_detector.status == ObjectStatus.ACTIVE
+        assert not CellScheduledDeletion.objects.filter(
+            model_name="Detector",
+            object_id__in=[self.detector.id, self.error_detector.id],
+        ).exists()
+
+    def test_delete_exclusion_skips_type_in_query_selection(self) -> None:
+        with patch.object(
+            ErrorGroupType.detector_settings,
+            "excluded_api_operations",
+            frozenset({DetectorAPIOperation.DELETE}),
+        ):
+            self.get_success_response(
+                self.organization.slug,
+                qs_params={
+                    "project": self.project.id,
+                    "query": f"type:[{ErrorGroupType.slug},{MetricIssue.slug}]",
+                },
+                status_code=204,
+            )
+
+        self.detector.refresh_from_db()
+        self.error_detector.refresh_from_db()
+        assert self.detector.status == ObjectStatus.PENDING_DELETION
+        assert self.error_detector.status == ObjectStatus.ACTIVE
+        assert CellScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=self.detector.id
+        ).exists()
+        assert not CellScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=self.error_detector.id
+        ).exists()
+
     def test_delete_detectors_by_ids_success(self) -> None:
         """Test successful deletion of detectors by specific IDs"""
-        with outbox_runner():
+        with (
+            outbox_runner(),
+            patch.object(
+                MetricIssue.detector_settings,
+                "excluded_api_operations",
+                frozenset({DetectorAPIOperation.LIST, DetectorAPIOperation.GET}),
+            ),
+        ):
             self.get_success_response(
                 self.organization.slug,
                 qs_params=[("id", str(self.detector.id)), ("id", str(self.detector_two.id))],

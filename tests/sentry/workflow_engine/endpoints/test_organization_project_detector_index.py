@@ -35,7 +35,7 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.registry import data_source_type_registry
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import DetectorAPIOperation, DetectorPriorityLevel
 from tests.sentry.workflow_engine.test_base import ProjectAccessTestMixin
 
 
@@ -167,6 +167,27 @@ class OrganizationProjectDetectorIndexBaseTest(APITestCase):
 @cell_silo_test
 @with_feature(METRIC_SUBSCRIPTION_FEATURE_FLAGS)
 class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexBaseTest):
+    def test_post_exclusion_preserves_state(self) -> None:
+        detector_count = Detector.objects.filter(project=self.project).count()
+        data_source_count = DataSource.objects.filter(organization=self.organization).count()
+        with mock.patch.object(
+            MetricIssue.detector_settings,
+            "excluded_api_operations",
+            frozenset({DetectorAPIOperation.POST}),
+        ):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                **self.valid_data,
+                status_code=400,
+            )
+
+        assert "type" in response.data
+        assert Detector.objects.filter(project=self.project).count() == detector_count
+        assert (
+            DataSource.objects.filter(organization=self.organization).count() == data_source_count
+        )
+
     def test_reject_upsampled_count_aggregate(self) -> None:
         """Users should not be able to submit upsampled_count() directly in ACI."""
         data = {**self.valid_data}
@@ -310,7 +331,14 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
         assert response.data["projectId"] == str(self.project.id)
 
     def test_project_by_slug(self) -> None:
-        with self.tasks():
+        with (
+            self.tasks(),
+            mock.patch.object(
+                MetricIssue.detector_settings,
+                "excluded_api_operations",
+                frozenset({DetectorAPIOperation.LIST, DetectorAPIOperation.GET}),
+            ),
+        ):
             response = self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
