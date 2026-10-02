@@ -126,10 +126,7 @@ export function BroadcastDetails() {
       broadcastId={broadcastId}
       data={data}
       onCancel={() => setIsEditing(false)}
-      onSaved={() => {
-        refetch();
-        setIsEditing(false);
-      }}
+      onSaved={() => setIsEditing(false)}
     />
   );
 

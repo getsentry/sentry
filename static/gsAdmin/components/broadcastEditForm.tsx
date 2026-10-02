@@ -1,4 +1,4 @@
-import {useMutation} from '@tanstack/react-query';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -43,6 +43,7 @@ const formSchema = z.object({
 });
 
 export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props) {
+  const queryClient = useQueryClient();
   const mutation = useMutation({
     mutationFn: (payload: Record<string, unknown>) =>
       fetchMutation({
@@ -52,6 +53,9 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
       }),
     onSuccess: () => {
       addSuccessMessage('Broadcast updated.');
+      queryClient.invalidateQueries({
+        queryKey: [getApiUrl('/broadcasts/$broadcastId/', {path: {broadcastId}})],
+      });
       onSaved();
     },
     onError: error => {
