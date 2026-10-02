@@ -1,8 +1,5 @@
-import {z} from 'zod';
-
 import {Tag} from '@sentry/scraps/badge';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {InputGroup} from '@sentry/scraps/input';
+import {withFieldGroup} from '@sentry/scraps/form';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -19,75 +16,44 @@ import {
   sanitizeBranch,
 } from './normalization';
 import {PathMappingPreview} from './pathMappingPreview';
-import type {PathMappingValue} from './type';
 
-// Non-transforming schema used only for the form's onDynamic validator.
-const schema = z.object({
-  stackRoot: z.string(),
-  sourceRoot: z.string(),
-  branch: z.string(),
-});
+export const PathMappingEdit = withFieldGroup({
+  defaultValues: {stackRoot: '', sourceRoot: '', branch: ''},
+  props: {} as {
+    defaultBranch?: string;
+    providerKey?: string;
+  },
+  render: ({group, defaultBranch, providerKey}) => {
+    const branchFallback = defaultBranch ?? DEFAULT_BRANCH;
 
-interface PathMappingEditProps extends PathMappingValue {
-  onChange: (value: PathMappingValue) => void;
-  defaultBranch?: string;
-  providerKey?: string;
-}
-
-export function PathMappingEdit({
-  branch,
-  sourceRoot,
-  stackRoot,
-  onChange,
-  defaultBranch,
-  providerKey,
-}: PathMappingEditProps) {
-  const branchFallback = defaultBranch ?? DEFAULT_BRANCH;
-  const form = useScrapsForm({
-    ...defaultFormOptions,
-    defaultValues: {stackRoot, sourceRoot, branch},
-    validators: {onDynamic: schema},
-    listeners: {
-      onChange: ({formApi}) => {
-        const values = formApi.state.values;
-        onChange({...values, branch: resolveBranch(values.branch, branchFallback)});
-      },
-    },
-    onSubmit: () => {},
-  });
-
-  return (
-    <form.AppForm form={form}>
+    return (
       <Container containerType="inline-size" padding="xl">
         <Stack gap="xl">
-          <form.AppField name="branch">
+          <group.AppField
+            name="branch"
+            listeners={{
+              onBlur: ({value}) =>
+                group.setFieldValue('branch', resolveBranch(value, branchFallback)),
+            }}
+          >
             {field => (
               <field.Layout.Stack label={t('Branch')}>
-                <field.Base<HTMLInputElement>>
-                  {(baseProps, {indicator}) => (
-                    <InputGroup style={{flex: 1}}>
-                      <InputGroup.LeadingItems disablePointerEvents>
-                        <IconBranch />
-                      </InputGroup.LeadingItems>
-                      <InputGroup.Input
-                        {...baseProps}
-                        value={field.state.value}
-                        placeholder={branchFallback}
-                        onChange={e => field.handleChange(sanitizeBranch(e.target.value))}
-                      />
-                      <InputGroup.TrailingItems>{indicator}</InputGroup.TrailingItems>
-                    </InputGroup>
-                  )}
-                </field.Base>
+                <field.Input
+                  value={field.state.value}
+                  onChange={(value: string) => field.handleChange(sanitizeBranch(value))}
+                  placeholder={branchFallback}
+                  leadingItems={<IconBranch />}
+                />
               </field.Layout.Stack>
             )}
-          </form.AppField>
+          </group.AppField>
 
           <Grid columns={{zero: '1fr', '2xs': '1fr auto 1fr'}} gap="xl">
-            <form.AppField
+            <group.AppField
               name="stackRoot"
               listeners={{
-                onBlur: ({value: v}) => form.setFieldValue('stackRoot', normalizeRoot(v)),
+                onBlur: ({value}) =>
+                  group.setFieldValue('stackRoot', normalizeRoot(value)),
               }}
             >
               {field => (
@@ -108,7 +74,7 @@ export function PathMappingEdit({
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
+            </group.AppField>
 
             <Flex
               align="center"
@@ -118,11 +84,11 @@ export function PathMappingEdit({
               <IconArrow direction="right" size="sm" />
             </Flex>
 
-            <form.AppField
+            <group.AppField
               name="sourceRoot"
               listeners={{
-                onBlur: ({value: v}) =>
-                  form.setFieldValue('sourceRoot', normalizeRoot(v)),
+                onBlur: ({value}) =>
+                  group.setFieldValue('sourceRoot', normalizeRoot(value)),
               }}
             >
               {field => (
@@ -145,21 +111,24 @@ export function PathMappingEdit({
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
+            </group.AppField>
           </Grid>
 
           <Stack gap="md" paddingTop="xl">
             <Text bold>{t('Preview')}</Text>
-            <form.Subscribe
+            <group.Subscribe
               selector={state => ({
                 stackRoot: state.values.stackRoot,
                 sourceRoot: state.values.sourceRoot,
               })}
             >
-              {previewValue => {
+              {({stackRoot, sourceRoot}) => {
                 const {stackRoot: previewStackRoot, sourceRoot: previewSourceRoot} =
-                  normalizedPathMappingSchema.parse({...previewValue, branch: ''});
-
+                  normalizedPathMappingSchema.parse({
+                    stackRoot,
+                    sourceRoot,
+                    branch: '',
+                  });
                 return (
                   <PathMappingPreview
                     stackRoot={previewStackRoot}
@@ -167,10 +136,10 @@ export function PathMappingEdit({
                   />
                 );
               }}
-            </form.Subscribe>
+            </group.Subscribe>
           </Stack>
         </Stack>
       </Container>
-    </form.AppForm>
-  );
-}
+    );
+  },
+});

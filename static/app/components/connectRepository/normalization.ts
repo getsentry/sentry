@@ -16,13 +16,13 @@ export const resolveBranch = (branch: string, fallback: string = DEFAULT_BRANCH)
 export const normalizeRoot = (root: string) =>
   root === '' || root.endsWith('/') ? root : `${root}/`;
 
-const schema = z.object({
+export const pathMappingSchema = z.object({
   stackRoot: z.string(),
   sourceRoot: z.string(),
   branch: z.string(),
 });
 
-export const normalizedPathMappingSchema = schema.extend({
+export const normalizedPathMappingSchema = pathMappingSchema.extend({
   stackRoot: z.string().transform(normalizeRoot),
   sourceRoot: z.string().transform(normalizeRoot),
   branch: z.string().transform(v => resolveBranch(v)),
