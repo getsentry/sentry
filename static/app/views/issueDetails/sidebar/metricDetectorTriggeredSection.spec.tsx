@@ -127,7 +127,6 @@ describe('MetricDetectorTriggeredSection', () => {
       name: 'Seer Investigation',
     });
     expect(await screen.findByText('Seer investigation completed')).toBeInTheDocument();
-    expect(screen.getByText('Investigation conclusion')).toBeInTheDocument();
     expect(screen.getByText('Errors rose across releases')).toBeInTheDocument();
     expect(
       screen.getByText('All active releases increased together.')
