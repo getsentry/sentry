@@ -69,15 +69,13 @@ describe('node agentMonitoring onboarding', () => {
         makeParams({integration: 'manual', deploymentTarget})
       );
       render(
-        <>
+        <React.Fragment>
           {steps.flatMap(step =>
             (step.content ?? []).map((block, index) =>
-              block.type === 'custom' ? (
-                <div key={index}>{block.content}</div>
-              ) : null
+              block.type === 'custom' ? <div key={index}>{block.content}</div> : null
             )
           )}
-        </>
+        </React.Fragment>
       );
 
       expect(
