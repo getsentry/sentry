@@ -57,14 +57,14 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
             max(self.group.last_seen, self.event.datetime) if self.event else self.group.last_seen
         )
         obj: Group | GroupEvent = self.event if self.event is not None else self.group
-        rule_id = None
+        rule_id: int | None = None
         rule_environment_id = None
         is_workflow = False
         if self.rules:
             rule_environment_id = self.rules[0].environment_id
-            key, rule_id = get_rule_or_workflow_id(self.rules[0], prefer="workflow_id")
+            key, rule_id_value = get_rule_or_workflow_id(self.rules[0], prefer="workflow_id")
             is_workflow = key == "workflow_id"
-            rule_id = int(rule_id)
+            rule_id = int(rule_id_value)
 
         url = None
         if is_workflow:

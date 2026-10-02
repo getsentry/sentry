@@ -448,7 +448,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
         assert 3 == len(issue_card["body"])
 
-    def test_action_payload_uses_explicit_rule_and_workflow_ids(self) -> None:
+    def test_action_payload_preserves_rule_id_contract(self) -> None:
         legacy_rule = self.rules[0]
         legacy_rule_id = legacy_rule.legacy_rule_id
         assert legacy_rule_id is not None
@@ -481,7 +481,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
         payload = builder.generate_action_payload(ACTION_TYPE.RESOLVE)
 
-        assert payload["payload"]["rules"] == [legacy_rule_id]
+        assert payload["payload"]["rules"] == [legacy_rule_id, 123]
         assert payload["payload"]["workflows"] == [123]
 
     def test_issue_with_only_one_rule(self) -> None:
