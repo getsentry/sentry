@@ -5,7 +5,7 @@ import onboardingSetup from 'sentry-images/spot/onboarding-setup.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Image} from '@sentry/scraps/image';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {TAGS_DOCS_LINK} from 'sentry/components/events/eventTags/util';
@@ -31,20 +31,22 @@ export function EventTagCustomBanner() {
           </Flex>
         </Stack>
       </Body>
-      <Image
-        src={onboardingSetup}
-        alt={t('Sentry mascot setting up an app')}
-        height="150px"
-        width="auto"
+      <Container
+        padding="lg lg md md"
+        pointerEvents="none"
         css={theme => css`
-          margin: 20px 20px 10px 10px;
-          pointer-events: none;
-          justify-self: end;
           @container (max-width: ${theme.container.xl}) {
             display: none;
           }
         `}
-      />
+      >
+        <Image
+          src={onboardingSetup}
+          alt={t('Set up custom tags to add debugging context to events')}
+          height="150px"
+          width="auto"
+        />
+      </Container>
     </Wrapper>
   );
 }
