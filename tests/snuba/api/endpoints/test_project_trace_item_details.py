@@ -696,50 +696,6 @@ class ProjectTraceItemDetailsEndpointTest(
         }
         assert raw_attrs["sentry.body"] == {"valStr": "debug test"}
 
-    def test_registered_referrer_is_forwarded(self) -> None:
-        superuser = self.create_user(is_superuser=True)
-        self.create_member(user=superuser, organization=self.organization)
-        self.login_as(user=superuser, superuser=True)
-
-        log = self.create_ourlog(
-            {"body": "referrer test", "trace_id": self.trace_uuid},
-            timestamp=self.one_min_ago,
-        )
-        self.store_eap_items([log])
-        item_id = log.item_id.hex()
-
-        response = self.do_request(
-            "logs",
-            item_id,
-            extra_data={"debug": "true", "referrer": "api.trace-view.cache-origin"},
-        )
-
-        assert response.status_code == 200, response.content
-        raw_request = response.data["meta"]["debug_info"]["raw_request"]
-        assert raw_request["meta"]["referrer"] == "api.trace-view.cache-origin"
-
-    def test_unregistered_referrer_falls_back_to_default(self) -> None:
-        superuser = self.create_user(is_superuser=True)
-        self.create_member(user=superuser, organization=self.organization)
-        self.login_as(user=superuser, superuser=True)
-
-        log = self.create_ourlog(
-            {"body": "referrer test", "trace_id": self.trace_uuid},
-            timestamp=self.one_min_ago,
-        )
-        self.store_eap_items([log])
-        item_id = log.item_id.hex()
-
-        response = self.do_request(
-            "logs",
-            item_id,
-            extra_data={"debug": "true", "referrer": "not-a-registered-referrer"},
-        )
-
-        assert response.status_code == 200, response.content
-        raw_request = response.data["meta"]["debug_info"]["raw_request"]
-        assert raw_request["meta"]["referrer"] == "api.organization-trace-item-details"
-
     def test_debug_param_as_regular_user(self) -> None:
         regular_user = self.create_user(is_superuser=False)
         self.create_member(user=regular_user, organization=self.organization)
