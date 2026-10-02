@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
@@ -42,11 +43,23 @@ export function FlagActionDropdown({
         onOpenChange={isOpen => setIsVisible(isOpen)}
         size="xs"
         trigger={triggerProps => (
-          <FlagButton
-            {...triggerProps}
-            aria-label={t('Flag Details')}
-            icon={<IconEllipsis />}
-          />
+          <Container
+            width="25px"
+            height="15px"
+            minHeight="15px"
+            marginTop="xs"
+            padding="0 sm"
+            radius="xs"
+          >
+            {containerProps => (
+              <OverlayTrigger.IconButton
+                {...triggerProps}
+                {...containerProps}
+                aria-label={t('Flag Details')}
+                icon={<IconEllipsis />}
+              />
+            )}
+          </Container>
         )}
         items={[
           {
@@ -84,14 +97,4 @@ const StyledDropdownMenu = styled(DropdownMenu)`
   [data-test-id='menu-list-item-label'] {
     font-family: ${p => p.theme.font.family.sans};
   }
-`;
-
-const FlagButton = styled(OverlayTrigger.IconButton)`
-  height: 15px;
-  min-height: 15px;
-  width: 25px;
-  margin-top: ${p => p.theme.space.xs};
-  padding: 0 ${p => p.theme.space.sm};
-  border-radius: ${p => p.theme.space.xs};
-  z-index: 0;
 `;

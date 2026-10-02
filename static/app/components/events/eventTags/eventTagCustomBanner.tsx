@@ -23,7 +23,7 @@ export function EventTagCustomBanner() {
           <Text as="p">
             {t('Include relevant metadata for debugging on events you send to Sentry')}
           </Text>
-          <Flex gap="md">
+          <Flex>
             <LinkButton size="sm" href={TAGS_DOCS_LINK} external>
               {t('Learn More')}
             </LinkButton>
