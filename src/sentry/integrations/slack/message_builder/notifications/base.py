@@ -39,9 +39,9 @@ class SlackNotificationsMessageBuilder(BlockSlackMessageBuilder):
         first_block_text = ""
         if title_link:
             if title:
-                first_block_text += f"<{title_link}|*{escape_slack_text(title)}*>  \n"
+                first_block_text += f"<{title_link}|{escape_slack_text(title)}>  \n"
             else:
-                first_block_text += f"<{title_link}|*{escape_slack_text(title_link)}*>  \n"
+                first_block_text += f"<{title_link}|{escape_slack_text(title_link)}>  \n"
         elif title:  # ie. "ZeroDivisionError",
             first_block_text += f"*{escape_slack_text(title)}*  \n"
 
