@@ -239,6 +239,73 @@ const AWAITING_APPROVAL_SESSION: Session = {
   ],
 };
 
+const APPROVAL_REQUEST_BLOCK = AWAITING_APPROVAL_SESSION.blocks!.at(-1)!;
+
+// The run after the user approved: the request's status line resolves, and the agent keeps
+// reasoning and calling tools inside the same thinking block before answering.
+const RESUMED_AFTER_APPROVAL_SESSION: Session = {
+  status: 'completed',
+  updated_at: at(90),
+  blocks: [
+    ...AWAITING_APPROVAL_SESSION.blocks!.slice(0, -1),
+    {
+      ...APPROVAL_REQUEST_BLOCK,
+      tool_results: APPROVAL_REQUEST_BLOCK.tool_results!.map(result => ({
+        ...result!,
+        structuredContent: {
+          agentWriteApproval: {
+            inputId: APPROVAL_ID,
+            requiredScopes: ['alerts:write'],
+            sessionId: 'story-session',
+            status: 'approved',
+          },
+        },
+      })),
+      tool_links: [{kind: 'sentry_api_execute', params: {}}],
+    },
+    {
+      id: 'tool-4',
+      message: {
+        role: 'tool_use',
+        content: null,
+        thinking_content:
+          'Access was granted. Muting the monitor until Friday, when the fix is scheduled to ship.',
+        tool_calls: [
+          {
+            id: 'call-4',
+            function: 'telemetry_live_search',
+            args: JSON.stringify({
+              question: 'checkout latency monitor status',
+              dataset: 'issues',
+              project_slugs: ['storefront'],
+            }),
+          },
+        ],
+      },
+      timestamp: at(80),
+      loading: false,
+      tool_results: [
+        {
+          tool_call_id: 'call-4',
+          tool_call_function: 'telemetry_live_search',
+          content: '{}',
+        },
+      ],
+      tool_links: [{kind: 'telemetry_live_search', params: {}}],
+    },
+    {
+      id: 'assistant-2',
+      message: {
+        role: 'assistant',
+        content:
+          'Muted **Checkout p95 latency** until Friday. It will alert again after that.',
+      },
+      timestamp: at(90),
+      loading: false,
+    },
+  ],
+};
+
 const AWAITING_ANSWER_SESSION: Session = {
   status: 'awaiting_user_input',
   updated_at: at(10),
@@ -281,6 +348,17 @@ export default Storybook.story('ChatWindow', story => {
         request as a status line, and the Approve/Reject prompt sits above the composer.
       </p>
       <ChatWindow session={AWAITING_APPROVAL_SESSION} />
+    </Fragment>
+  ));
+
+  story('Resumed after approval', () => (
+    <Fragment>
+      <p>
+        The same run after the user approved. The status line resolves to granted access,
+        and the agent's next reasoning and tool calls follow it in the same thinking
+        block.
+      </p>
+      <ChatWindow session={RESUMED_AFTER_APPROVAL_SESSION} />
     </Fragment>
   ));
 
