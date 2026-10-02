@@ -148,7 +148,15 @@ class NotificationService[T: NotificationData]:
                     case SendFailureStatus.FAILURE:
                         lifecycle.record_failure(failure_reason=result.exception, create_issue=True)
             else:
-                NotificationService._record_sent(data=self.data, target=target, template=template)
+                record_sent(
+                    NotificationTrackingContext(
+                        source=self.data.source,
+                        provider=target.provider_key,
+                        category=template.category,
+                        notification_uuid=self.data.notification_uuid,
+                        organization_id=self.data.organization_id,
+                    )
+                )
 
             # Step 5: Store threading result
             if threading_options is not None:
@@ -176,23 +184,6 @@ class NotificationService[T: NotificationData]:
         rendered_template = template.render(data=data)
         renderer = provider.get_renderer(data=data)
         return renderer.render(data=data, rendered_template=rendered_template)
-
-    @staticmethod
-    def _record_sent(
-        *,
-        data: NotificationData,
-        target: NotificationTarget,
-        template: NotificationTemplate[Any],
-    ) -> None:
-        record_sent(
-            NotificationTrackingContext(
-                source=data.source,
-                provider=target.provider_key,
-                category=template.category,
-                notification_uuid=data.notification_uuid,
-                organization_id=data.organization_id,
-            )
-        )
 
     @staticmethod
     def _resolve_thread_context(
@@ -413,8 +404,14 @@ def notify_target_async(
                 case SendFailureStatus.FAILURE:
                     lifecycle.record_failure(failure_reason=result.exception, create_issue=True)
         else:
-            NotificationService._record_sent(
-                data=notification_data, target=target, template=template
+            record_sent(
+                NotificationTrackingContext(
+                    source=notification_data.source,
+                    provider=target.provider_key,
+                    category=template.category,
+                    notification_uuid=notification_data.notification_uuid,
+                    organization_id=notification_data.organization_id,
+                )
             )
 
         # Step 6: Store threading result
