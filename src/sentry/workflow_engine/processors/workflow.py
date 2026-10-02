@@ -409,7 +409,6 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
 
         return environment
     elif isinstance(event_data.event, Activity):
-        # evaluate_workflow_triggers calls this again for logging; cache it to keep one query.
         if "activity_environment" not in event_data._cache:
             event_data._cache["activity_environment"] = _get_environment_by_group(
                 event_data.group.id
@@ -421,17 +420,11 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
 
 def _get_environment_by_group(group_id: int) -> Environment | None:
     """
-    Activity events carry no environment of their own, so recover it from the environments
-    recorded on the group as its events and occurrences arrived.
-
-    A group seen in more than one environment has no single environment that resolved it, so it
-    stays unscoped until that behavior is defined. Unscoped means only environment-less workflows
-    are considered, which is the behavior every Activity had before this lookup existed.
+    Activities carry no environment of their own, so use the group's. Returns None unless the
+    group has exactly one existing environment.
     """
     environment_ids = list(
-        GroupEnvironment.objects.filter(group_id=group_id).values_list("environment_id", flat=True)[
-            :2
-        ]
+        GroupEnvironment.objects.filter(group_id=group_id).values_list("environment_id", flat=True)
     )
 
     environment: Environment | None = None
@@ -444,8 +437,6 @@ def _get_environment_by_group(group_id: int) -> Environment | None:
             environment = Environment.objects.get_from_cache(id=environment_ids[0])
             outcome = "resolved"
         except Environment.DoesNotExist:
-            # GroupEnvironment's foreign key sets db_constraint=False, so its rows can outlive
-            # the Environment. Stay unscoped rather than letting this abort the whole evaluation.
             outcome = "deleted"
 
     metrics_incr("process_workflows.activity_environment", tags={"outcome": outcome})
