@@ -7,7 +7,6 @@ from django.conf import settings
 from django.http.request import HttpRequest
 from django.http.response import HttpResponseBase
 
-from sentry.auth.services.auth import AuthenticatedToken
 from sentry.seer.agent_token import is_agent_auth
 from sentry.viewer_context import (
     ActorType,
@@ -104,7 +103,4 @@ def _viewer_context_from_request(request: HttpRequest) -> ViewerContext:
         organization_id=organization_id,
         actor_type=actor_type,
         token=auth,
-        superuser_access_expires_at=auth.superuser_access_expires_at
-        if isinstance(auth, AuthenticatedToken)
-        else None,
     )
