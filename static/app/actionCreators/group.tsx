@@ -122,25 +122,26 @@ type BulkUpdateParams = UpdateParams & {
 };
 
 export async function bulkUpdate(api: Client, params: BulkUpdateParams) {
-  const {itemIds, failSilently, data} = params;
+  const {itemIds, failSilently, data: changes} = params;
   const path = getUpdateUrl(params);
 
   const query = paramsToQueryArgs(params);
   const id = uniqueId();
 
   const optimisticData: Partial<Group> =
-    typeof data.assignedTo === 'string'
-      ? {...data, assignedTo: parseActorString(data.assignedTo) ?? null}
-      : data;
+    typeof changes.assignedTo === 'string'
+      ? {...changes, assignedTo: parseActorString(changes.assignedTo) ?? null}
+      : changes;
   GroupStore.onUpdate(id, itemIds, optimisticData);
 
   try {
-    const response = await api.requestPromise(path, {
+    const [data] = await api.requestPromise(path, {
       query,
       method: 'PUT',
-      data,
+      data: changes,
+      includeAllArgs: true,
     });
-    GroupStore.onUpdateSuccess(id, itemIds, response);
+    GroupStore.onUpdateSuccess(id, itemIds, data);
   } catch (error) {
     GroupStore.onUpdateError(id, itemIds, !!failSilently);
     throw error;
@@ -159,13 +160,14 @@ export async function mergeGroups(api: Client, params: MergeGroupsParams) {
   GroupStore.onMerge(id, itemIds);
 
   try {
-    const response = await api.requestPromise(path, {
+    const [data] = await api.requestPromise(path, {
       query,
       method: 'PUT',
       data: {merge: 1},
+      includeAllArgs: true,
     });
-    GroupStore.onMergeSuccess(id, itemIds, response);
-    return response;
+    GroupStore.onMergeSuccess(id, itemIds, data);
+    return data;
   } catch (error) {
     GroupStore.onMergeError(id, itemIds, error);
     throw error;
