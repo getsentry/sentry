@@ -21,9 +21,6 @@ type Props = {
   onSaved: () => void;
 };
 
-const toOptions = (choices: ReadonlyArray<readonly [string, string]>) =>
-  choices.map(([value, label]) => ({value, label}));
-
 const formSchema = z.object({
   title: z
     .string()
@@ -161,7 +158,9 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
                 clearable
                 value={typeof field.state.value === 'string' ? field.state.value : null}
                 onChange={field.handleChange}
-                options={toOptions(CATEGORYCHOICES)}
+                options={CATEGORYCHOICES.map(
+                  ([value, label]): {label: string; value: string} => ({value, label})
+                )}
               />
             </field.Layout.Stack>
           )}
