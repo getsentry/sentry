@@ -89,7 +89,7 @@ class Environment(Model):
         return env
 
     @classmethod
-    def get_or_create(cls, project, name, metrics_tags=None):
+    def get_or_create(cls, project, name, metrics_tags=None, project_metrics_tags=None):
         with metrics.timer("models.environment.get_or_create") as timer_tags:
             name = cls.get_name_or_default(name)
 
@@ -113,19 +113,29 @@ class Environment(Model):
                 if metrics_tags is not None:
                     metrics_tags[DATA_ACCESS_TAG] = DataAccessTagValues.CACHE_HIT.value
 
-            env.add_project(project)
+            # Unconditional, including on a cache hit above, so it is recorded
+            # separately as the `environmentproject` model.
+            env.add_project(project, metrics_tags=project_metrics_tags)
 
             return env
 
-    def add_project(self, project, is_hidden=None):
+    def add_project(self, project, is_hidden=None, metrics_tags=None):
         cache_key = f"envproj:c:{self.id}:{project.id}"
 
         if cache.get(cache_key) is None:
-            EnvironmentProject.objects.get_or_create(
+            _, created = EnvironmentProject.objects.get_or_create(
                 project=project, environment=self, defaults={"is_hidden": is_hidden}
             )
             # The object already exists, we cache the action to reduce the load on the database.
             cache.set(cache_key, 1, 3600)
+            if metrics_tags is not None:
+                metrics_tags[DATA_ACCESS_TAG] = (
+                    DataAccessTagValues.DB_CREATE.value
+                    if created
+                    else DataAccessTagValues.DB_READ.value
+                )
+        elif metrics_tags is not None:
+            metrics_tags[DATA_ACCESS_TAG] = DataAccessTagValues.CACHE_HIT.value
 
     @staticmethod
     def get_name_from_path_segment(segment):

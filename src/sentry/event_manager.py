@@ -940,12 +940,15 @@ def _get_group_processing_kwargs(job: Job) -> dict[str, Any]:
 def _get_or_create_environment_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
         resolve_tags: dict[str, str] = {}
+        envproj_tags: dict[str, str] = {}
         job["environment"] = Environment.get_or_create(
             project=projects[job["project_id"]],
             name=job["environment"],
             metrics_tags=resolve_tags,
+            project_metrics_tags=envproj_tags,
         )
         _record_resolve_model("environment", resolve_tags)
+        _record_resolve_model("environmentproject", envproj_tags)
 
 
 @trace
