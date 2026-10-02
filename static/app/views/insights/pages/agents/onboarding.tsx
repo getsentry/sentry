@@ -424,8 +424,8 @@ export function UnsupportedPlatformOnboarding({
                 <ExternalLink
                   href={
                     project.platform?.startsWith('javascript')
-                      ? `${AI_INSTRUMENTATION_DOCS_LINKS.javascript}#manual-instrumentation`
-                      : `${AI_INSTRUMENTATION_DOCS_LINKS.python}#manual-instrumentation`
+                      ? `${AI_INSTRUMENTATION_DOCS_LINKS.javascript}manual-instrumentation/`
+                      : `${AI_INSTRUMENTATION_DOCS_LINKS.python}manual-instrumentation/`
                   }
                 />
               ),
