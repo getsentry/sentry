@@ -3,6 +3,7 @@ from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
+from sentry import features
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import (
     DEFAULT_EXPIRY_TIME,
@@ -200,6 +201,30 @@ class GroupTypeReleasedTest(BaseGroupTypeTest):
 
         assert not TestGroupType.allow_post_process_group(self.organization)
         assert not TestGroupType.allow_ingest(self.organization)
+
+    def test_backend_only_visibility(self) -> None:
+        class BackendOnlyGroupType(GroupType):
+            type_id = 1
+            slug = "backend_only"
+            description = "Backend-only issue"
+            category = GroupCategory.DB_QUERY.value
+            visible_feature_api_expose = False
+
+        visible_flag = BackendOnlyGroupType.build_visible_feature_name()[0]
+        assert visible_flag not in features.all(api_expose_only=True)
+
+        registry = GroupTypeRegistry()
+        registry.add(BackendOnlyGroupType)
+        with self.feature(
+            [
+                visible_flag,
+                BackendOnlyGroupType.build_ingest_feature_name(),
+                BackendOnlyGroupType.build_post_process_group_feature_name(),
+            ]
+        ):
+            assert registry.get_visible(self.organization) == [BackendOnlyGroupType]
+            assert BackendOnlyGroupType.allow_ingest(self.organization)
+            assert BackendOnlyGroupType.allow_post_process_group(self.organization)
 
     def test_not_released_features(self) -> None:
         @dataclass(frozen=True)
