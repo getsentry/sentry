@@ -1,6 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
-import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
@@ -13,8 +12,6 @@ import {
   EVENTS_TABLE_RESPONSE_FIELDS,
   MOCK_EVENTS_TABLE_DATA,
 } from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
-
-const theme = ThemeFixture();
 
 type Data = {
   features?: string[];
@@ -153,7 +150,6 @@ describe('Performance GridEditable Table', () => {
 
     render(
       <EventsTable
-        theme={theme}
         eventView={eventView}
         organization={organization}
         location={initialData.router.location}
@@ -197,7 +193,6 @@ describe('Performance GridEditable Table', () => {
 
     render(
       <EventsTable
-        theme={theme}
         eventView={eventView}
         organization={organization}
         location={initialData.router.location}
@@ -230,7 +225,6 @@ describe('Performance GridEditable Table', () => {
 
     render(
       <EventsTable
-        theme={theme}
         eventView={eventView}
         organization={organization}
         location={initialData.router.location}
@@ -268,7 +262,6 @@ describe('Performance GridEditable Table', () => {
 
     render(
       <EventsTable
-        theme={theme}
         eventView={eventView}
         organization={organization}
         location={initialData.router.location}
@@ -311,7 +304,6 @@ describe('Performance GridEditable Table', () => {
 
     render(
       <EventsTable
-        theme={theme}
         eventView={eventView}
         organization={organization}
         location={initialData.router.location}
@@ -345,7 +337,6 @@ describe('Performance GridEditable Table', () => {
 
     render(
       <EventsTable
-        theme={theme}
         eventView={eventView}
         organization={organization}
         location={initialData.router.location}
