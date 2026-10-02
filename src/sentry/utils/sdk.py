@@ -415,7 +415,7 @@ def configure_sdk():
 
     warnings.warn(
         "Sentry SDK not initialized: no DSN available. "
-        "Set `sentry_mirror_dsn` in SENTRY_SDK_CONFIG or ensure an internal project key exists."
+        "Set `backend_dsn` in SENTRY_SDK_CONFIG or ensure an internal project key exists."
     )
 
 
