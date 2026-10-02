@@ -2,6 +2,7 @@ import logging
 from collections.abc import Collection, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
+from typing import NotRequired, TypedDict, cast
 
 import sentry_sdk
 
@@ -140,15 +141,26 @@ def record_engagement(
         )
 
 
-def _get_tags(context: NotificationTrackingContext) -> dict[str, str]:
-    tags = {"source": context.source, "provider": context.provider, "category": context.category}
+class _NotificationTrackingTags(TypedDict):
+    source: str
+    provider: str
+    category: str
+    stage: NotRequired[str]
+    link: NotRequired[str]
+    mechanism: NotRequired[NotificationEngagementMechanism]
+
+
+def _get_tags(context: NotificationTrackingContext) -> _NotificationTrackingTags:
+    tags = _NotificationTrackingTags(
+        source=context.source, provider=context.provider, category=context.category
+    )
     if context.stage:
         tags["stage"] = context.stage
     return tags
 
 
-def _incr(key: str, tags: Mapping[str, str]) -> None:
-    metrics.incr(key, tags=tags, sample_rate=1.0)
+def _incr(key: str, tags: _NotificationTrackingTags) -> None:
+    metrics.incr(key, tags=cast(Mapping[str, str], tags), sample_rate=1.0)
     # The default metrics backend mirrors to Sentry at a low sample rate, so the dashboard reads
     # this unsampled count instead.
     sentry_sdk.metrics.count(key, 1, attributes=dict(tags))
