@@ -1,10 +1,7 @@
 from django.urls import reverse
 
 from sentry.core.endpoints.scim.constants import SCIM_API_ERROR
-from sentry.models.authprovider import AuthProvider
-from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SCIMAzureTestCase, SCIMTestCase
-from sentry.testutils.silo import assume_test_silo_mode
 
 
 class SCIMServiceProviderConfigTest(SCIMTestCase):
@@ -102,8 +99,7 @@ class SCIMServiceProviderConfigPermissionsTest(APITestCase):
         assert response.status_code == 403
 
     def test_cant_use_scim_even_with_authprovider(self) -> None:
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
+        self.create_auth_provider(organization_id=self.organization.id, provider="dummy")
         response = self.client.get(self.url)
         assert response.status_code == 403
 
