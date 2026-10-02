@@ -70,22 +70,20 @@ export function BroadcastDetails() {
   const isAdmin = ConfigStore.get('user').permissions.has('broadcasts.admin');
   const fromChangelog = Boolean(data.upstreamId);
 
-  const onUpdate = (params: Record<string, unknown>) => {
-    updateMutation.mutate(params);
-  };
-
-  const formatData = (item: string[] | string | null | undefined, choices: any) => {
+  const formatData = (
+    item: string[] | string | null | undefined,
+    choices: ReadonlyArray<readonly string[]>
+  ) => {
     if (Array.isArray(item)) {
       if (item.length === 0) {
         return '-';
       }
       return item
-        .map(value => choices.find(([name, _]: any) => name === value))
-        .map(([_, label]) => label)
+        .map(value => choices.find(([name]) => name === value)?.[1] ?? value)
         .join(', ');
     }
 
-    return item ? (choices.find(([name, _]: any) => name === item)?.[1] ?? '-') : '-';
+    return item ? (choices.find(([name]) => name === item)?.[1] ?? '-') : '-';
   };
 
   const overviewSection = (
@@ -170,14 +168,14 @@ export function BroadcastDetails() {
         ? 'Hide this broadcast from users.'
         : "Show this broadcast to users (if it hasn't expired).",
       visible: isAdmin,
-      onAction: () => onUpdate({isActive: !data.isActive}),
+      onAction: () => updateMutation.mutate({isActive: !data.isActive}),
     },
     {
       key: 'unlock-sync',
       name: 'Re-enable changelog sync',
       help: 'Allow the hourly changelog job to refresh this broadcast again. Your manual edits will be overwritten on the next sync.',
       visible: isAdmin && fromChangelog && data.syncLocked && !isEditing,
-      onAction: () => onUpdate({syncLocked: false}),
+      onAction: () => updateMutation.mutate({syncLocked: false}),
     },
   ];
 
