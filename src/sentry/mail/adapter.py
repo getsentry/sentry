@@ -91,6 +91,10 @@ class MailAdapter:
             ):
                 # Workflow-triggered notifications should always have a workflow ID, but
                 # deliver immediately rather than dropping an unexpected legacy notification.
+                logger.info(
+                    "mail.adapter.notification.legacy_rule_immediate_delivery",
+                    extra={**extra, "legacy_rule_count": len(rules_and_workflows.rules)},
+                )
                 self.notify(
                     Notification(event=event, rules=rules_and_workflows.rules),
                     target_type,

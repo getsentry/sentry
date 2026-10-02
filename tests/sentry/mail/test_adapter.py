@@ -1640,12 +1640,29 @@ class MailAdapterRuleNotifyTest(BaseMailAdapterTest):
         with (
             self.options({"workflow_engine.notifications.use_workflow_data": True}),
             mock.patch.object(self.adapter, "notify") as notify,
+            mock.patch("sentry.mail.adapter.logger") as logger,
         ):
             self.adapter.rule_notify(event, [RuleFuture(rule, {})], ActionTargetType.ISSUE_OWNERS)
 
         assert digests.backend.add.call_count == 0
         notify.assert_called_once_with(
             mock.ANY, ActionTargetType.ISSUE_OWNERS, None, None, mock.ANY
+        )
+        logger.info.assert_any_call(
+            "mail.adapter.notification.legacy_rule_immediate_delivery",
+            extra={
+                "event_id": event.event_id,
+                "group_id": event.group_id,
+                "is_from_mail_action_adapter": True,
+                "target_type": ActionTargetType.ISSUE_OWNERS.value,
+                "target_identifier": None,
+                "fallthrough_choice": None,
+                "notification_uuid": mock.ANY,
+                "rule_id": rule.id,
+                "project_id": self.project.id,
+                "digest_key": mock.ANY,
+                "legacy_rule_count": 1,
+            },
         )
 
     @mock.patch("sentry.mail.adapter.digests")
