@@ -1,10 +1,10 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {css} from '@emotion/react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
@@ -147,40 +147,34 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
             </Container>
           ),
           value: (
-            <Grid
-              columns="minmax(0, 1fr) auto"
-              align="center"
-              gap="md"
-              justifyItems="start"
-              width="100%"
-              css={css`
-                .invisible {
-                  visibility: hidden;
-                }
-                &:hover,
-                &:active {
-                  .invisible .flag-button {
-                    visibility: visible;
-                  }
-                }
-              `}
-            >
-              <Flex align="center" gap="sm" wrap="wrap">
-                <Container whiteSpace="nowrap">{f.result.toString()}</Container>
-                {suspectFlagNames.has(f.flag) && (
-                  <Text as="div" size="sm" variant="secondary" wrap="nowrap">
-                    {t('Suspect')}
-                  </Text>
-                )}
-              </Flex>
-              <Container column="2" justifySelf="end">
-                <FlagActionDropdown
-                  flag={f.flag}
-                  result={f.result.toString()}
-                  generateAction={generateAction}
-                />
-              </Container>
-            </Grid>
+            <RevealOnHover>
+              {revealProps => (
+                <Grid
+                  {...revealProps}
+                  columns="minmax(0, 1fr) auto"
+                  align="center"
+                  gap="md"
+                  justifyItems="start"
+                  width="100%"
+                >
+                  <Flex align="center" gap="sm" wrap="wrap">
+                    <Container whiteSpace="nowrap">{f.result.toString()}</Container>
+                    {suspectFlagNames.has(f.flag) && (
+                      <Text as="div" size="sm" variant="secondary" wrap="nowrap">
+                        {t('Suspect')}
+                      </Text>
+                    )}
+                  </Flex>
+                  <Container column="2" justifySelf="end">
+                    <FlagActionDropdown
+                      flag={f.flag}
+                      result={f.result.toString()}
+                      generateAction={generateAction}
+                    />
+                  </Container>
+                </Grid>
+              )}
+            </RevealOnHover>
           ),
         },
         isSuspectFlag: suspectFlagNames.has(f.flag),
