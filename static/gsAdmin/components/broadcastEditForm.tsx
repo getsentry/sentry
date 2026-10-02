@@ -12,7 +12,15 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {BroadcastDetailsData} from 'admin/types';
-import {CATEGORYCHOICES} from 'getsentry/utils/broadcasts';
+import {
+  ALL_PLANCHOICES,
+  CATEGORYCHOICES,
+  platformOptions,
+  PRODUCTCHOICES,
+  REGIONCHOICES,
+  ROLECHOICES,
+  TRIALCHOICES,
+} from 'getsentry/utils/broadcasts';
 
 type Props = {
   broadcastId: string;
@@ -33,6 +41,7 @@ const formSchema = z.object({
     .min(1, 'Message is required')
     .max(256, 'Message must be 256 characters or fewer'),
   link: z.url({protocol: /^https?$/, error: 'Enter a valid http or https URL'}),
+  organizations: z.string(),
   mediaUrl: z.union([
     z.literal(''),
     z.url({protocol: /^https?$/, error: 'Enter a valid http or https URL'}),
@@ -40,6 +49,13 @@ const formSchema = z.object({
   category: z.string().nullable(),
   dateExpires: z.string(),
   isActive: z.boolean(),
+  roles: z.array(z.string()),
+  plans: z.array(z.string()),
+  trialStatus: z.array(z.string()),
+  earlyAdopter: z.boolean(),
+  region: z.string().nullable(),
+  platform: z.array(z.string()),
+  product: z.array(z.string()),
 });
 
 export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props) {
@@ -71,10 +87,22 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
     title: data.title ?? '',
     message: data.message ?? '',
     link: data.link ?? '',
+    organizations: data.organizations?.join(', ') ?? '',
     mediaUrl: data.mediaUrl ?? '',
     category: data.category ?? null,
     dateExpires: data.dateExpires?.slice(0, 16) ?? '',
     isActive: Boolean(data.isActive),
+    roles: data.roles ?? [],
+    plans: data.plans ?? [],
+    trialStatus: Array.isArray(data.trialStatus)
+      ? data.trialStatus
+      : data.trialStatus
+        ? [data.trialStatus]
+        : [],
+    earlyAdopter: Boolean(data.earlyAdopter),
+    region: data.region ?? null,
+    platform: data.platform ?? [],
+    product: data.product ?? [],
   };
 
   const form = useScrapsForm({
@@ -88,6 +116,17 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
         link: value.link,
         dateExpires: value.dateExpires || null,
         isActive: value.isActive,
+        organizations: value.organizations
+          .split(',')
+          .map(id => Number(id.trim()))
+          .filter(id => id > 0),
+        roles: value.roles,
+        plans: value.plans,
+        trialStatus: value.trialStatus,
+        earlyAdopter: value.earlyAdopter,
+        platform: value.platform,
+        product: value.product,
+        ...(value.region ? {region: value.region} : {}),
         ...(value.mediaUrl || data.mediaUrl ? {mediaUrl: value.mediaUrl || null} : {}),
         ...(value.category || data.category ? {category: value.category} : {}),
       };
@@ -142,6 +181,16 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
             </field.Layout.Stack>
           )}
         </form.AppField>
+        <form.AppField name="organizations">
+          {field => (
+            <field.Layout.Stack
+              label="Organization IDs"
+              hintText="Comma-separated list of organization IDs to restrict this broadcast to. If left empty, the broadcast will be shown to all users."
+            >
+              <field.Input value={field.state.value} onChange={field.handleChange} />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
         <form.AppField name="mediaUrl">
           {field => (
             <field.Layout.Stack
@@ -190,6 +239,97 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
                 />
               </field.Layout.Row>
             </Container>
+          )}
+        </form.AppField>
+        <form.AppField name="roles">
+          {field => (
+            <field.Layout.Stack label="Roles">
+              <field.Select
+                multiple
+                value={field.state.value}
+                onChange={field.handleChange}
+                options={ROLECHOICES.map(
+                  ([value, label]): {label: string; value: string} => ({value, label})
+                )}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="plans">
+          {field => (
+            <field.Layout.Stack label="Plans">
+              <field.Select
+                multiple
+                value={field.state.value}
+                onChange={field.handleChange}
+                options={ALL_PLANCHOICES.map(
+                  ([value, label]): {label: string; value: string} => ({value, label})
+                )}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="trialStatus">
+          {field => (
+            <field.Layout.Stack label="Trial Status">
+              <field.Select
+                multiple
+                value={field.state.value}
+                onChange={field.handleChange}
+                options={TRIALCHOICES.map(
+                  ([value, label]): {label: string; value: string} => ({value, label})
+                )}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="earlyAdopter">
+          {field => (
+            <Container width="160px">
+              <field.Layout.Row label="Early Adopter">
+                <field.Switch checked={field.state.value} onChange={field.handleChange} />
+              </field.Layout.Row>
+            </Container>
+          )}
+        </form.AppField>
+        <form.AppField name="region">
+          {field => (
+            <field.Layout.Stack label="Region">
+              <field.Select
+                clearable
+                value={field.state.value}
+                onChange={field.handleChange}
+                options={REGIONCHOICES.map(
+                  ([value, label]): {label: string; value: string} => ({value, label})
+                )}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="platform">
+          {field => (
+            <field.Layout.Stack label="Platform">
+              <field.Select
+                multiple
+                value={field.state.value}
+                onChange={field.handleChange}
+                options={platformOptions.flatMap(group => group.options)}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="product">
+          {field => (
+            <field.Layout.Stack label="Product">
+              <field.Select
+                multiple
+                value={field.state.value}
+                onChange={field.handleChange}
+                options={PRODUCTCHOICES.map(
+                  ([value, label]): {label: string; value: string} => ({value, label})
+                )}
+              />
+            </field.Layout.Stack>
           )}
         </form.AppField>
         <Flex gap="sm" justify="end">

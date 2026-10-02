@@ -90,10 +90,14 @@ describe('Broadcast Details', () => {
         isActive: true,
         mediaUrl: 'https://example.com/image.png',
         category: 'blog',
-        plans: [],
-        roles: [],
-        platform: [],
-        product: [],
+        organizations: [123, 456],
+        roles: ['admin'],
+        plans: ['business'],
+        trialStatus: ['trialing'],
+        earlyAdopter: true,
+        region: 'de',
+        platform: ['bun'],
+        product: ['errors'],
         dateExpires: null,
       },
     });
@@ -116,6 +120,12 @@ describe('Broadcast Details', () => {
     await userEvent.clear(screen.getByRole('textbox', {name: 'Title'}));
     await userEvent.type(screen.getByRole('textbox', {name: 'Title'}), 'Updated title');
     await userEvent.clear(screen.getByRole('textbox', {name: 'Media URL'}));
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Organization IDs'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Organization IDs'}),
+      '321, 654'
+    );
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Early Adopter'}));
     await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
     await waitFor(() => expect(update).toHaveBeenCalled());
@@ -130,6 +140,14 @@ describe('Broadcast Details', () => {
           category: 'blog',
           dateExpires: null,
           isActive: true,
+          organizations: [321, 654],
+          roles: ['admin'],
+          plans: ['business'],
+          trialStatus: ['trialing'],
+          earlyAdopter: false,
+          region: 'de',
+          platform: ['bun'],
+          product: ['errors'],
         },
       })
     );
@@ -183,6 +201,13 @@ describe('Broadcast Details', () => {
           link: 'https://example.com',
           dateExpires: null,
           isActive: true,
+          organizations: [],
+          roles: [],
+          plans: [],
+          trialStatus: [],
+          earlyAdopter: false,
+          platform: [],
+          product: [],
         },
       })
     );
