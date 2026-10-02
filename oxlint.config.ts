@@ -1699,6 +1699,18 @@ const config = defineConfig({
       rules: {'boundaries/no-unknown-files': 'off'},
     },
     {
+      files: ['static/packages/scraps/scripts/*.mjs'],
+      rules: {
+        'boundaries/no-unknown-files': 'off',
+        'import-js/no-extraneous-dependencies': 'off',
+        'import/no-nodejs-modules': 'off',
+        'no-console': 'off',
+      },
+      env: {
+        node: true,
+      },
+    },
+    {
       files: ['static/packages/scraps/src/**/*.{ts,tsx}'],
       // Re-enable these rules when Scraps has its own stricter lint config.
       rules: {

@@ -9,6 +9,7 @@ import {t, tct} from 'sentry/locale';
 import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
 import {ManualInstrumentationNote} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
+import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 
 import {getPythonInstallCodeBlock} from './utils';
 
@@ -258,7 +259,9 @@ sentry_sdk.init(
           content: (
             <ManualInstrumentationNote
               docsLink={
-                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
+                <ExternalLink
+                  href={`${AI_INSTRUMENTATION_DOCS_LINKS.python}manual-instrumentation/`}
+                />
               }
             />
           ),

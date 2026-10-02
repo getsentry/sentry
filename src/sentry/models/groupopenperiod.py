@@ -113,25 +113,6 @@ class GroupOpenPeriod(DefaultFieldsModel):
         self.update(date_ended=None)
 
 
-def get_last_checked_for_open_period(group: Group) -> datetime:
-    from sentry.incidents.grouptype import MetricIssue
-    from sentry.incidents.models.alert_rule import AlertRule
-
-    event = group.get_latest_event()
-    last_checked = group.last_seen
-    if event and group.type == MetricIssue.type_id:
-        alert_rule_id = event.data.get("contexts", {}).get("metric_alert", {}).get("alert_rule_id")
-        if alert_rule_id:
-            try:
-                alert_rule = AlertRule.objects.get(id=alert_rule_id)
-                now = timezone.now()
-                last_checked = now - timedelta(seconds=alert_rule.snuba_query.time_window)
-            except AlertRule.DoesNotExist:
-                pass
-
-    return last_checked
-
-
 def get_open_periods_for_group(
     group: Group,
     query_start: datetime | None = None,
