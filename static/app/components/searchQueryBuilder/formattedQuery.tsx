@@ -120,12 +120,14 @@ export function FormattedQuery({
   filterKeys = EMPTY_FILTER_KEYS,
   filterKeyAliases = EMPTY_FILTER_KEYS,
 }: FormattedQueryProps) {
+  const {allowRegexOperators} = useSearchQueryBuilderConfig();
   const parsedQuery = useMemo(() => {
     return parseQueryBuilderValue(query, fieldDefinitionGetter, {
+      allowRegexOperators,
       filterKeys,
       filterKeyAliases,
     });
-  }, [fieldDefinitionGetter, filterKeys, query, filterKeyAliases]);
+  }, [allowRegexOperators, fieldDefinitionGetter, filterKeys, query, filterKeyAliases]);
 
   if (!parsedQuery) {
     return <QueryWrapper className={className} />;
