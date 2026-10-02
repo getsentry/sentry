@@ -4,8 +4,6 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import NotRequired, TypedDict, cast
 
-import sentry_sdk
-
 from sentry import analytics, options
 from sentry.analytics.events.notification_tracking import (
     NotificationTrackingEngagementEvent,
@@ -161,6 +159,3 @@ def _get_tags(context: NotificationTrackingContext) -> _NotificationTrackingTags
 
 def _incr(key: str, tags: _NotificationTrackingTags) -> None:
     metrics.incr(key, tags=cast(Mapping[str, str], tags), sample_rate=1.0)
-    # The default metrics backend mirrors to Sentry at a low sample rate, so the dashboard reads
-    # this unsampled count instead.
-    sentry_sdk.metrics.count(key, 1, attributes=dict(tags))

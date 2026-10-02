@@ -62,13 +62,12 @@ class IsTrackingEnabledTest(TestCase):
         assert not is_tracking_enabled(NotificationSource.ACTIVITY_SEER_RCA_COMPLETED, "carrier")
 
 
-@mock.patch("sentry.notifications.platform.tracking.sentry_sdk.metrics.count")
 @mock.patch("sentry.notifications.platform.tracking.metrics.incr")
 @mock.patch("sentry.analytics.record")
 class RecordSentTest(TestCase):
     @override_options(ENABLED_OPTIONS)
     def test_records_metrics_and_event(
-        self, mock_record: mock.MagicMock, mock_incr: mock.MagicMock, mock_count: mock.MagicMock
+        self, mock_record: mock.MagicMock, mock_incr: mock.MagicMock
     ) -> None:
         record_sent(CONTEXT, links=["issue", "seer"])
 
@@ -86,11 +85,6 @@ class RecordSentTest(TestCase):
                 "notifications.tracking.link_sent", tags={**tags, "link": "seer"}, sample_rate=1.0
             ),
         ]
-        assert mock_count.call_args_list == [
-            mock.call("notifications.tracking.sent", 1, attributes=tags),
-            mock.call("notifications.tracking.link_sent", 1, attributes={**tags, "link": "issue"}),
-            mock.call("notifications.tracking.link_sent", 1, attributes={**tags, "link": "seer"}),
-        ]
         assert_last_analytics_event(
             mock_record,
             NotificationTrackingSentEvent(
@@ -105,9 +99,7 @@ class RecordSentTest(TestCase):
         )
 
     @override_options(ENABLED_OPTIONS)
-    def test_stage_tag(
-        self, mock_record: mock.MagicMock, mock_incr: mock.MagicMock, mock_count: mock.MagicMock
-    ) -> None:
+    def test_stage_tag(self, mock_record: mock.MagicMock, mock_incr: mock.MagicMock) -> None:
         record_sent(replace(CONTEXT, stage="root_cause"))
 
         tags = {
@@ -118,13 +110,10 @@ class RecordSentTest(TestCase):
         }
         mock_incr.assert_called_once_with("notifications.tracking.sent", tags=tags, sample_rate=1.0)
 
-    def test_disabled(
-        self, mock_record: mock.MagicMock, mock_incr: mock.MagicMock, mock_count: mock.MagicMock
-    ) -> None:
+    def test_disabled(self, mock_record: mock.MagicMock, mock_incr: mock.MagicMock) -> None:
         record_sent(CONTEXT, links=["issue"])
 
         mock_incr.assert_not_called()
-        mock_count.assert_not_called()
         mock_record.assert_not_called()
 
     @override_options(ENABLED_OPTIONS)
@@ -134,7 +123,6 @@ class RecordSentTest(TestCase):
         mock_logger: mock.MagicMock,
         mock_record: mock.MagicMock,
         mock_incr: mock.MagicMock,
-        mock_count: mock.MagicMock,
     ) -> None:
         mock_record.side_effect = Exception("boom")
 
@@ -143,13 +131,12 @@ class RecordSentTest(TestCase):
         mock_logger.exception.assert_called_once()
 
 
-@mock.patch("sentry.notifications.platform.tracking.sentry_sdk.metrics.count")
 @mock.patch("sentry.notifications.platform.tracking.metrics.incr")
 @mock.patch("sentry.analytics.record")
 class RecordEngagementTest(TestCase):
     @override_options(ENABLED_OPTIONS)
     def test_records_metrics_and_event(
-        self, mock_record: mock.MagicMock, mock_incr: mock.MagicMock, mock_count: mock.MagicMock
+        self, mock_record: mock.MagicMock, mock_incr: mock.MagicMock
     ) -> None:
         record_engagement(
             CONTEXT,
@@ -168,7 +155,6 @@ class RecordEngagementTest(TestCase):
         mock_incr.assert_called_once_with(
             "notifications.tracking.engagement", tags=tags, sample_rate=1.0
         )
-        mock_count.assert_called_once_with("notifications.tracking.engagement", 1, attributes=tags)
         assert_last_analytics_event(
             mock_record,
             NotificationTrackingEngagementEvent(
@@ -185,9 +171,7 @@ class RecordEngagementTest(TestCase):
         )
 
     @override_options(ENABLED_OPTIONS)
-    def test_unauthenticated(
-        self, mock_record: mock.MagicMock, mock_incr: mock.MagicMock, mock_count: mock.MagicMock
-    ) -> None:
+    def test_unauthenticated(self, mock_record: mock.MagicMock, mock_incr: mock.MagicMock) -> None:
         record_engagement(
             CONTEXT, mechanism=NotificationEngagementMechanism.REDIRECT, link="view_pr"
         )
@@ -196,15 +180,12 @@ class RecordEngagementTest(TestCase):
         assert isinstance(event, NotificationTrackingEngagementEvent)
         assert event.user_id is None
 
-    def test_disabled(
-        self, mock_record: mock.MagicMock, mock_incr: mock.MagicMock, mock_count: mock.MagicMock
-    ) -> None:
+    def test_disabled(self, mock_record: mock.MagicMock, mock_incr: mock.MagicMock) -> None:
         record_engagement(
             CONTEXT, mechanism=NotificationEngagementMechanism.REDIRECT, link="view_pr"
         )
 
         mock_incr.assert_not_called()
-        mock_count.assert_not_called()
         mock_record.assert_not_called()
 
     @override_options(ENABLED_OPTIONS)
@@ -214,7 +195,6 @@ class RecordEngagementTest(TestCase):
         mock_logger: mock.MagicMock,
         mock_record: mock.MagicMock,
         mock_incr: mock.MagicMock,
-        mock_count: mock.MagicMock,
     ) -> None:
         mock_incr.side_effect = Exception("boom")
 
