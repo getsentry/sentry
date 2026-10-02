@@ -594,6 +594,30 @@ describe('AutofixSection', () => {
     );
   });
 
+  it('skips setup UI when the onboarding check fails', async () => {
+    const seatBasedOrg = OrganizationFixture({
+      hideAiFeatures: false,
+      features: ['seat-based-seer-enabled'],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${seatBasedOrg.slug}/seer/onboarding-check/`,
+      statusCode: 500,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
+      organization: seatBasedOrg,
+    });
+
+    expect(await screen.findByText('Have Seer...')).toBeInTheDocument();
+    expect(screen.queryByText('Finish Configuring Seer')).not.toBeInTheDocument();
+  });
+
   it('skips setup UI for legacy seer plan orgs without SCM integration', async () => {
     const legacyOrg = OrganizationFixture({
       hideAiFeatures: false,
