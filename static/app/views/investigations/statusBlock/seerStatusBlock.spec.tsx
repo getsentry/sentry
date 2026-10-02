@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {
   InvestigationHypothesisFixture,
@@ -34,27 +34,58 @@ describe('SeerStatusBlock', () => {
     expect(screen.getByRole('button', {name: 'Connect Datadog'})).toBeInTheDocument();
   });
 
-  it('lists tool calls when they are supplied', () => {
+  it('shows a lone tool call without anything to expand', () => {
     const {rerender} = render(
       <SeerStatusBlock variant="running" title="Seer is gathering context" />
     );
 
-    expect(screen.queryByRole('list', {name: 'Tool calls'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('seer-status-block-tool-activity')
+    ).not.toBeInTheDocument();
 
     rerender(
       <SeerStatusBlock
         variant="running"
         title="Seer is gathering context"
+        toolActivity={[{id: 'a', kind: 'tool', status: 'running', title: 'Query spans'}]}
+      />
+    );
+
+    expect(screen.getByTestId('seer-status-block-tool-activity')).toHaveTextContent(
+      'Query spans'
+    );
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+  });
+
+  it('shows only the latest tool call and expands to the earlier ones', async () => {
+    render(
+      <SeerStatusBlock
+        variant="running"
+        title="Seer is gathering context"
         toolActivity={[
           {id: 'a', kind: 'tool', status: 'completed', title: 'Query spans'},
-          {id: 'b', kind: 'tool', status: 'running', title: 'Compare releases'},
+          {id: 'b', kind: 'tool', status: 'failed', title: 'Fetch traces'},
+          {id: 'c', kind: 'tool', status: 'running', title: 'Compare releases'},
         ]}
       />
     );
 
-    const list = screen.getByRole('list', {name: 'Tool calls'});
-    expect(list).toHaveTextContent('Query spans');
-    expect(list).toHaveTextContent('Compare releases');
+    const toggle = screen.getByRole('button', {name: 'Compare releases'});
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByText('Query spans')).not.toBeVisible();
+
+    await userEvent.click(toggle);
+
+    // Newest first, reading back in time from the call that is running now.
+    const earlier = screen.getByRole('list', {name: 'Earlier tool calls'});
+    expect(
+      within(earlier)
+        .getAllByRole('listitem')
+        .map(item => item.textContent)
+    ).toEqual([
+      expect.stringContaining('Fetch traces'),
+      expect.stringContaining('Query spans'),
+    ]);
   });
 });
 
@@ -200,7 +231,9 @@ describe('getSeerStatusBlock', () => {
       expect(block?.toolActivity).toEqual([activity('new')]);
     });
 
-    it('keeps only the latest few calls', () => {
+    // The block collapses to the latest call itself, so every call for the phase
+    // has to reach it for the expanded view to be complete.
+    it('passes every call for the phase, latest last', () => {
       const projection = InvestigationOrchestrationFixture({
         status: 'processing',
         phase: 'reporting',
@@ -210,6 +243,7 @@ describe('getSeerStatusBlock', () => {
       );
 
       expect(getSeerStatusBlock(projection)?.toolActivity?.map(a => a.id)).toEqual([
+        '1',
         '2',
         '3',
         '4',

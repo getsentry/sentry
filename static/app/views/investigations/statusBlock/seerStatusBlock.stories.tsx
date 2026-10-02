@@ -151,40 +151,58 @@ export default Storybook.story('Investigations — Seer status block', story => 
   story('With tool calls', () => (
     <Fragment>
       <p>
-        While the agent is working, <code>toolActivity</code> lists the latest calls
-        behind the current phase — the broad scan, the hypotheses still under
-        investigation, or the report block being written. They sit under the description
-        in muted text: they show the run is moving and what it is looking at, but the
-        title is still the sentence to read. A stopped run leaves them out, since its last
-        calls are history, not status.
+        While the agent is working, <code>toolActivity</code> carries the calls behind the
+        current phase — the broad scan, the hypotheses still under investigation, or the
+        report block being written. Each is drawn with the same <code>ToolCall</code> the
+        Seer agent uses, but only the latest is shown: it says what the agent is doing
+        right now, and the title is still the sentence to read. When there is history
+        behind it, the latest call is the toggle, and opening it lists the earlier calls
+        newest first. A stopped run leaves them out, since its last calls are history, not
+        status.
       </p>
       <Storybook.Demo direction="column" align="stretch" maxHeight="none">
-        <SeerStatusBlock
-          variant="running"
-          title="Seer found four possible causes and is checking for evidence"
-          description="Seer is checking for evidence to validate each possible cause. No input needed."
-          elapsed="101.5s"
-          toolActivity={[
-            {
-              id: 'tool-1',
-              kind: 'tool',
-              status: 'completed',
-              title: 'Compared cache hit rate with p95 response time',
-            },
-            {
-              id: 'tool-2',
-              kind: 'api',
-              status: 'failed',
-              title: 'Fetched identity-provider spans',
-            },
-            {
-              id: 'tool-3',
-              kind: 'tool',
-              status: 'running',
-              title: 'Grouping Redis command latency by key prefix',
-            },
-          ]}
-        />
+        <Stack gap="xl">
+          <SeerStatusBlock
+            variant="running"
+            title="Seer is gathering context"
+            description="Comparing the signals around the problem to work out where to look. No input needed."
+            elapsed="12.3s"
+            toolActivity={[
+              {
+                id: 'tool-0',
+                kind: 'tool',
+                status: 'running',
+                title: 'Querying FCP by release',
+              },
+            ]}
+          />
+          <SeerStatusBlock
+            variant="running"
+            title="Seer found four possible causes and is checking for evidence"
+            description="Seer is checking for evidence to validate each possible cause. No input needed."
+            elapsed="101.5s"
+            toolActivity={[
+              {
+                id: 'tool-1',
+                kind: 'tool',
+                status: 'completed',
+                title: 'Compared cache hit rate with p95 response time',
+              },
+              {
+                id: 'tool-2',
+                kind: 'api',
+                status: 'failed',
+                title: 'Fetched identity-provider spans',
+              },
+              {
+                id: 'tool-3',
+                kind: 'tool',
+                status: 'running',
+                title: 'Grouping Redis command latency by key prefix',
+              },
+            ]}
+          />
+        </Stack>
       </Storybook.Demo>
     </Fragment>
   ));

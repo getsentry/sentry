@@ -15,13 +15,6 @@ type SeerStatusBlockContent = {
 };
 
 /**
- * How many tool calls the block lists. The block is a status line, not a log:
- * the latest few say what the agent is doing right now, and the rest belongs
- * on the hypotheses themselves.
- */
-const MAX_TOOL_ACTIVITY = 3;
-
-/**
  * The tool calls behind the phase the run is in, latest last.
  *
  * Each phase keeps its own list on the projection — the broad scan, each
@@ -51,7 +44,7 @@ function getToolActivity(
     default:
       break;
   }
-  return activity.length ? activity.slice(-MAX_TOOL_ACTIVITY) : undefined;
+  return activity.length ? activity : undefined;
 }
 
 /**
