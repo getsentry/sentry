@@ -1,8 +1,9 @@
 import {useMutation} from '@tanstack/react-query';
+import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -20,18 +21,6 @@ import {
   TRIALCHOICES,
 } from 'getsentry/utils/broadcasts';
 
-type FormValue = string | string[] | boolean | null;
-type FormValues = Record<string, FormValue>;
-type EditField = {
-  label: string;
-  name: string;
-  type: 'input' | 'date' | 'select' | 'multi' | 'switch';
-  hintText?: string;
-  maxLength?: number;
-  options?: Array<{label: string; value: string}>;
-  required?: boolean;
-};
-
 type Props = {
   broadcastId: string;
   data: Record<string, any>;
@@ -42,49 +31,34 @@ type Props = {
 const toOptions = (choices: ReadonlyArray<readonly string[]>) =>
   choices.map(choice => ({value: choice[0]!, label: choice[1]!}));
 
-const fields: EditField[] = [
-  {name: 'title', label: 'Title', type: 'input', required: true, maxLength: 64},
-  {name: 'message', label: 'Message', type: 'input', required: true, maxLength: 256},
-  {name: 'link', label: 'Link', type: 'input', required: true},
-  {
-    name: 'organizations',
-    label: 'Organization IDs',
-    type: 'input',
-    hintText:
-      'Comma-separated list of organization IDs to restrict this broadcast to. If left empty, the broadcast will be shown to all users.',
-  },
-  {
-    name: 'mediaUrl',
-    label: 'Media URL',
-    type: 'input',
-    hintText: "Optional. Image or video shown in What's New.",
-  },
-  {
-    name: 'category',
-    label: 'Category',
-    type: 'select',
-    options: toOptions(CATEGORYCHOICES),
-  },
-  {name: 'dateExpires', label: 'Expires', type: 'date'},
-  {name: 'isActive', label: 'Active', type: 'switch'},
-  {name: 'roles', label: 'Roles', type: 'multi', options: toOptions(ROLECHOICES)},
-  {name: 'plans', label: 'Plans', type: 'multi', options: toOptions(ALL_PLANCHOICES)},
-  {
-    name: 'trialStatus',
-    label: 'Trial Status',
-    type: 'select',
-    options: toOptions(TRIALCHOICES),
-  },
-  {name: 'earlyAdopter', label: 'Early Adopter', type: 'switch'},
-  {name: 'region', label: 'Region', type: 'select', options: toOptions(REGIONCHOICES)},
-  {
-    name: 'platform',
-    label: 'Platform',
-    type: 'multi',
-    options: toOptions(PLATFORMCHOICES),
-  },
-  {name: 'product', label: 'Product', type: 'multi', options: toOptions(PRODUCTCHOICES)},
-];
+const formSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(1, 'Title is required')
+    .max(64, 'Title must be 64 characters or fewer'),
+  message: z
+    .string()
+    .trim()
+    .min(1, 'Message is required')
+    .max(256, 'Message must be 256 characters or fewer'),
+  link: z.url({protocol: /^https?$/, error: 'Enter a valid http or https URL'}),
+  organizations: z.string(),
+  mediaUrl: z.union([
+    z.literal(''),
+    z.url({protocol: /^https?$/, error: 'Enter a valid http or https URL'}),
+  ]),
+  category: z.string().nullable(),
+  dateExpires: z.string(),
+  isActive: z.boolean(),
+  roles: z.array(z.string()),
+  plans: z.array(z.string()),
+  trialStatus: z.string().nullable(),
+  earlyAdopter: z.boolean(),
+  region: z.string().nullable(),
+  platform: z.array(z.string()),
+  product: z.array(z.string()),
+});
 
 export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props) {
   const mutation = useMutation({
@@ -107,7 +81,7 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
     },
   });
 
-  const defaultValues: FormValues = {
+  const defaultValues: z.input<typeof formSchema> = {
     title: data.title ?? '',
     message: data.message ?? '',
     link: data.link ?? '',
@@ -128,17 +102,8 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues,
+    validators: {onDynamic: formSchema},
     onSubmit: ({value}) => {
-      const errors: Record<string, {message: string}> = {};
-      for (const field of fields) {
-        if (field.required && !value[field.name]) {
-          errors[field.name] = {message: 'This field is required'};
-        }
-      }
-      if (Object.keys(errors).length) {
-        setFieldErrors(form, errors);
-        return;
-      }
       const payload: Record<string, unknown> = {};
       for (const [key, fieldValue] of Object.entries(value)) {
         if (key === 'dateExpires') {
@@ -172,61 +137,179 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
             let the hourly job refresh it again.
           </Alert>
         )}
-        {fields.map(config => (
-          <form.AppField key={config.name} name={config.name}>
-            {field => {
-              const currentValue = field.state.value;
-              if (config.type === 'switch') {
-                return (
-                  <field.Layout.Row label={config.label}>
-                    <field.Switch
-                      checked={Boolean(currentValue)}
-                      onChange={field.handleChange}
-                    />
-                  </field.Layout.Row>
-                );
-              }
-              if (config.type === 'multi') {
-                return (
-                  <field.Layout.Stack label={config.label}>
-                    <field.Select
-                      multiple
-                      value={Array.isArray(currentValue) ? currentValue : []}
-                      onChange={field.handleChange}
-                      options={config.options ?? []}
-                    />
-                  </field.Layout.Stack>
-                );
-              }
-              if (config.type === 'select') {
-                return (
-                  <field.Layout.Stack label={config.label}>
-                    <field.Select
-                      clearable
-                      value={typeof currentValue === 'string' ? currentValue : null}
-                      onChange={field.handleChange}
-                      options={config.options ?? []}
-                    />
-                  </field.Layout.Stack>
-                );
-              }
-              return (
-                <field.Layout.Stack
-                  label={config.label}
-                  hintText={config.hintText}
-                  required={config.required}
-                >
-                  <field.Input
-                    type={config.type === 'date' ? 'datetime-local' : 'text'}
-                    value={typeof currentValue === 'string' ? currentValue : ''}
-                    onChange={field.handleChange}
-                    maxLength={config.maxLength}
-                  />
-                </field.Layout.Stack>
-              );
-            }}
-          </form.AppField>
-        ))}
+        <form.AppField name="title">
+          {field => (
+            <field.Layout.Stack label="Title" required>
+              <field.Input
+                value={typeof field.state.value === 'string' ? field.state.value : ''}
+                onChange={field.handleChange}
+                maxLength={64}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="message">
+          {field => (
+            <field.Layout.Stack label="Message" required>
+              <field.Input
+                value={typeof field.state.value === 'string' ? field.state.value : ''}
+                onChange={field.handleChange}
+                maxLength={256}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="link">
+          {field => (
+            <field.Layout.Stack label="Link" required>
+              <field.Input
+                value={typeof field.state.value === 'string' ? field.state.value : ''}
+                onChange={field.handleChange}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="organizations">
+          {field => (
+            <field.Layout.Stack
+              label="Organization IDs"
+              hintText="Comma-separated list of organization IDs to restrict this broadcast to. If left empty, the broadcast will be shown to all users."
+            >
+              <field.Input
+                value={typeof field.state.value === 'string' ? field.state.value : ''}
+                onChange={field.handleChange}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="mediaUrl">
+          {field => (
+            <field.Layout.Stack
+              label="Media URL"
+              hintText="Optional. Image or video shown in What's New."
+            >
+              <field.Input
+                value={typeof field.state.value === 'string' ? field.state.value : ''}
+                onChange={field.handleChange}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="category">
+          {field => (
+            <field.Layout.Stack label="Category">
+              <field.Select
+                clearable
+                value={typeof field.state.value === 'string' ? field.state.value : null}
+                onChange={field.handleChange}
+                options={toOptions(CATEGORYCHOICES)}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="dateExpires">
+          {field => (
+            <field.Layout.Stack label="Expires">
+              <field.Input
+                type="datetime-local"
+                value={typeof field.state.value === 'string' ? field.state.value : ''}
+                onChange={field.handleChange}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="isActive">
+          {field => (
+            <field.Layout.Row label="Active">
+              <field.Switch
+                checked={Boolean(field.state.value)}
+                onChange={field.handleChange}
+              />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+        <form.AppField name="roles">
+          {field => (
+            <field.Layout.Stack label="Roles">
+              <field.Select
+                multiple
+                value={Array.isArray(field.state.value) ? field.state.value : []}
+                onChange={field.handleChange}
+                options={toOptions(ROLECHOICES)}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="plans">
+          {field => (
+            <field.Layout.Stack label="Plans">
+              <field.Select
+                multiple
+                value={Array.isArray(field.state.value) ? field.state.value : []}
+                onChange={field.handleChange}
+                options={toOptions(ALL_PLANCHOICES)}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="trialStatus">
+          {field => (
+            <field.Layout.Stack label="Trial Status">
+              <field.Select
+                clearable
+                value={typeof field.state.value === 'string' ? field.state.value : null}
+                onChange={field.handleChange}
+                options={toOptions(TRIALCHOICES)}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="earlyAdopter">
+          {field => (
+            <field.Layout.Row label="Early Adopter">
+              <field.Switch
+                checked={Boolean(field.state.value)}
+                onChange={field.handleChange}
+              />
+            </field.Layout.Row>
+          )}
+        </form.AppField>
+        <form.AppField name="region">
+          {field => (
+            <field.Layout.Stack label="Region">
+              <field.Select
+                clearable
+                value={typeof field.state.value === 'string' ? field.state.value : null}
+                onChange={field.handleChange}
+                options={toOptions(REGIONCHOICES)}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="platform">
+          {field => (
+            <field.Layout.Stack label="Platform">
+              <field.Select
+                multiple
+                value={Array.isArray(field.state.value) ? field.state.value : []}
+                onChange={field.handleChange}
+                options={toOptions(PLATFORMCHOICES)}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
+        <form.AppField name="product">
+          {field => (
+            <field.Layout.Stack label="Product">
+              <field.Select
+                multiple
+                value={Array.isArray(field.state.value) ? field.state.value : []}
+                onChange={field.handleChange}
+                options={toOptions(PRODUCTCHOICES)}
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
         <Flex gap="sm" justify="end">
           <Button onClick={onCancel}>Cancel</Button>
           <form.SubmitButton>Save Changes</form.SubmitButton>
