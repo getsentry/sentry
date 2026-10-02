@@ -44,7 +44,35 @@ function getToolActivity(
     default:
       break;
   }
-  return activity.length ? activity : undefined;
+  return activity.length ? inFlightLast(activity) : undefined;
+}
+
+/**
+ * Where a call sorts relative to the others: settled, then queued, then running.
+ * Statuses this code does not know yet are treated as settled.
+ */
+const IN_FLIGHT_RANK: Partial<Record<InvestigationToolActivity['status'], number>> = {
+  queued: 1,
+  running: 2,
+};
+
+/**
+ * Moves calls still in flight to the end, keeping the order within each group.
+ *
+ * Each list on the projection is latest-last on its own, but hypotheses are
+ * investigated in parallel and their calls carry no timestamp, so joining
+ * their lists end to end does not give a timeline: one hypothesis's finished
+ * call can land after another's running one. The block shows the last call as
+ * what the agent is doing now, and a running call is the best evidence of that,
+ * so it wins.
+ */
+function inFlightLast(
+  activity: InvestigationToolActivity[]
+): InvestigationToolActivity[] {
+  return activity
+    .map((call, index) => ({call, index, rank: IN_FLIGHT_RANK[call.status] ?? 0}))
+    .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    .map(({call}) => call);
 }
 
 /**

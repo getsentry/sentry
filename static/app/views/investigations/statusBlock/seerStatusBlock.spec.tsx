@@ -7,6 +7,7 @@ import {
 } from 'sentry/views/investigations/fixtures';
 import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
 import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
+import type {InvestigationToolActivity} from 'sentry/views/investigations/types';
 
 describe('SeerStatusBlock', () => {
   it('omits the elapsed time when there is nothing to count from', () => {
@@ -57,6 +58,22 @@ describe('SeerStatusBlock', () => {
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
+  it('announces a queued latest call as queued, not as awaiting approval', () => {
+    render(
+      <SeerStatusBlock
+        variant="running"
+        title="Seer is gathering context"
+        toolActivity={[
+          {id: 'a', kind: 'tool', status: 'completed', title: 'Query spans'},
+          {id: 'b', kind: 'tool', status: 'queued', title: 'Fetch traces'},
+        ]}
+      />
+    );
+
+    expect(screen.getByRole('status', {name: 'Queued'})).toBeInTheDocument();
+    expect(screen.queryByLabelText('Waiting for approval')).not.toBeInTheDocument();
+  });
+
   it('shows only the latest tool call and expands to the earlier ones', async () => {
     render(
       <SeerStatusBlock
@@ -71,6 +88,7 @@ describe('SeerStatusBlock', () => {
     );
 
     const toggle = screen.getByRole('button', {name: 'Compare releases'});
+    expect(screen.getByRole('status', {name: 'Running'})).toBeInTheDocument();
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByText('Query spans')).not.toBeVisible();
 
@@ -194,7 +212,10 @@ describe('getSeerStatusBlock', () => {
   });
 
   describe('tool activity', () => {
-    function activity(id: string, status = 'completed' as const) {
+    function activity(
+      id: string,
+      status: InvestigationToolActivity['status'] = 'completed'
+    ) {
       return {id, kind: 'tool' as const, status, title: `Call ${id}`};
     }
 
@@ -229,6 +250,37 @@ describe('getSeerStatusBlock', () => {
       );
 
       expect(block?.toolActivity).toEqual([activity('new')]);
+    });
+
+    // Parallel hypotheses keep their own latest-last lists with no timestamps,
+    // so one hypothesis's finished call must not be shown as "now" over another's
+    // running one.
+    it('puts calls still in flight last across parallel hypotheses', () => {
+      const block = getSeerStatusBlock(
+        InvestigationOrchestrationFixture({
+          status: 'processing',
+          phase: 'investigating',
+          hypotheses: [
+            InvestigationHypothesisFixture({
+              id: 'first',
+              effectiveStatus: 'investigating',
+              toolActivity: [activity('a-done'), activity('a-running', 'running')],
+            }),
+            InvestigationHypothesisFixture({
+              id: 'second',
+              effectiveStatus: 'investigating',
+              toolActivity: [activity('b-queued', 'queued'), activity('b-done')],
+            }),
+          ],
+        })
+      );
+
+      expect(block?.toolActivity?.map(a => a.id)).toEqual([
+        'a-done',
+        'b-done',
+        'b-queued',
+        'a-running',
+      ]);
     });
 
     // The block collapses to the latest call itself, so every call for the phase

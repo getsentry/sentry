@@ -92,6 +92,26 @@ function getToolCallStatus(status: InvestigationToolActivity['status']): ToolCal
 }
 
 /**
+ * What the latest call's bare glyph announces. Without a label the shared
+ * indicator falls back to describing a pending call as waiting for approval,
+ * which is not what a queued call means here.
+ */
+function getToolCallLabel(status: InvestigationToolActivity['status']): string {
+  switch (status) {
+    case 'queued':
+      return t('Queued');
+    case 'running':
+      return t('Running');
+    case 'completed':
+      return t('Succeeded');
+    case 'failed':
+      return t('Failed');
+    default:
+      return t('Waiting');
+  }
+}
+
+/**
  * The calls behind the current phase, drawn the way the Seer agent draws them.
  *
  * Only the latest is shown: it says what the agent is doing right now, and the
@@ -118,7 +138,12 @@ function ToolActivityList({toolActivity}: {toolActivity: InvestigationToolActivi
     <Container data-test-id="seer-status-block-tool-activity">
       <Disclosure size="xs">
         <Disclosure.Title
-          leadingItems={<ToolCallIndicator status={getToolCallStatus(latest.status)} />}
+          leadingItems={
+            <ToolCallIndicator
+              status={getToolCallStatus(latest.status)}
+              aria-label={getToolCallLabel(latest.status)}
+            />
+          }
         >
           <Text size="sm" variant="secondary" monospace ellipsis>
             {latest.title}
