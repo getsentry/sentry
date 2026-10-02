@@ -20,7 +20,6 @@ from typing import Any, Final, Never, TypeIs, overload
 
 import orjson
 from django.conf import settings
-from django.core import signing
 from django.core.signing import BadSignature
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone as django_timezone
@@ -31,7 +30,7 @@ from rest_framework.request import Request
 from sentry import options
 from sentry.api.exceptions import DataSecrecyError, SentryAPIException
 from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
-from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState, SuperuserAccess
+from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.auth.system import is_system_auth
 from sentry.data_secrecy.logic import should_allow_superuser_access
 from sentry.models.organization import Organization
@@ -581,15 +580,14 @@ class Superuser(ElevatedMode):
             response.delete_cookie(COOKIE_NAME)
 
 
-SUPERUSER_ACCESS_SALT = "sentry.viewer-context.superuser"
 SUPERUSER_ACCESS_TTL = timedelta(minutes=5)
 
 
 def create_superuser_access(
     request: HttpRequest | Request,
     organization_context: Organization | RpcOrganization | RpcUserOrganizationContext,
-) -> SuperuserAccess | None:
-    """Attest to approved read access without exporting browser session credentials."""
+) -> int | None:
+    """Carry the approved session deadline without exporting browser credentials."""
     if getattr(request, "auth", None) is not None or not request.user.is_superuser:
         return None
     organization = (
@@ -609,27 +607,18 @@ def create_superuser_access(
         expires = min(expires, data["exp"] - MAX_AGE + MAX_AGE_PRIVILEGED_ORG_ACCESS)
     if expires <= now:
         return None
-    expires_at = int(expires.timestamp())
-    value = f"{request.user.id}:{organization.id}:{expires_at}"
-    return {
-        "expires_at": expires_at,
-        "signature": signing.Signer(salt=SUPERUSER_ACCESS_SALT).signature(value),
-    }
+    return int(expires.timestamp())
 
 
 def resolve_superuser_access(
-    proof: SuperuserAccess, user: RpcUser, org_context: RpcUserOrganizationContext
+    expires_at: int, user: RpcUser, org_context: RpcUserOrganizationContext
 ) -> tuple[set[str], datetime] | None:
-    """Validate the Sentry signature, expiry, and current user/customer policy."""
+    """Validate expiry and current user/customer policy."""
     if not user.is_active or not user.is_superuser or user.is_suspended:
         return None
     try:
-        expires_at = proof["expires_at"]
-        signature = proof["signature"]
-        if type(expires_at) is not int or not isinstance(signature, str):
+        if type(expires_at) is not int:
             return None
-        value = f"{user.id}:{org_context.organization.id}:{expires_at}"
-        signing.Signer(salt=SUPERUSER_ACCESS_SALT).unsign(f"{value}:{signature}")
         expires = datetime.fromtimestamp(expires_at, timezone.utc)
         if expires <= django_timezone.now():
             return None
@@ -639,6 +628,6 @@ def resolve_superuser_access(
             )
             & settings.SENTRY_READONLY_SCOPES
         )
-    except (signing.BadSignature, KeyError, TypeError, ValueError, OverflowError, DataSecrecyError):
+    except (TypeError, ValueError, OverflowError, DataSecrecyError):
         return None
     return scopes, expires

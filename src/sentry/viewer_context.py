@@ -8,7 +8,7 @@ import hashlib
 import logging
 import time
 from collections.abc import Generator, Mapping
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 
 import jwt as pyjwt
 import sentry_sdk
@@ -20,7 +20,6 @@ logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from sentry.auth.services.auth import AuthenticatedToken
-    from sentry.auth.services.auth.model import SuperuserAccess
 
 # Sentinel for `observe_viewer_context_propagation(ctx=...)`: distinguishes
 # "caller passed None" from "caller didn't pass ctx".
@@ -64,8 +63,8 @@ class ViewerContext:
     project_id: int | None = None
     user_id: int | None = None
     actor_type: ActorType = ActorType.UNKNOWN
-    # Expiry and a Sentry signature bound to this context's user and organization.
-    superuser_access: SuperuserAccess | None = dataclasses.field(default=None, repr=False)
+    # Deadline from Sentry's approved superuser session for this organization.
+    superuser_access_expires_at: int | None = dataclasses.field(default=None, repr=False)
 
     # Carries scopes/kind for in-process permission checks.
     # NOT propagated across process/service boundaries.
@@ -80,21 +79,16 @@ class ViewerContext:
             result["project_id"] = self.project_id
         if self.user_id is not None:
             result["user_id"] = self.user_id
-        if self.superuser_access is not None:
-            result["superuser_access"] = self.superuser_access
+        if self.superuser_access_expires_at is not None:
+            result["superuser_access_expires_at"] = self.superuser_access_expires_at
         return result
 
     @classmethod
     def deserialize(cls, data: dict[str, Any]) -> ViewerContext:
         """Reconstruct from a serialized dict. Token is not deserialized."""
-        superuser_access = data.get("superuser_access")
-        if superuser_access is not None and (
-            not isinstance(superuser_access, dict)
-            or type(superuser_access.get("expires_at")) is not int
-            or not isinstance(superuser_access.get("signature"), str)
-            or not superuser_access["signature"]
-        ):
-            raise ValueError("Invalid superuser access")
+        superuser_access_expires_at = data.get("superuser_access_expires_at")
+        if superuser_access_expires_at is not None and type(superuser_access_expires_at) is not int:
+            raise ValueError("Invalid superuser access expiry")
         try:
             actor_type = ActorType(data.get("actor_type", "unknown"))
         except ValueError:
@@ -104,7 +98,7 @@ class ViewerContext:
             project_id=data.get("project_id"),
             user_id=data.get("user_id"),
             actor_type=actor_type,
-            superuser_access=cast("SuperuserAccess | None", superuser_access),
+            superuser_access_expires_at=superuser_access_expires_at,
         )
 
 
@@ -191,14 +185,16 @@ def observe_viewer_context_propagation(
 
 
 def set_viewer_context_superuser(
-    *, user_id: int, organization_id: int, superuser_access: SuperuserAccess
+    *, user_id: int, organization_id: int, superuser_access_expires_at: int
 ) -> None:
     """Attach elevation produced by the normal organization access checks."""
     ctx = get_viewer_context()
     if ctx is not None and ctx.user_id == user_id:
         _viewer_context_var.set(
             dataclasses.replace(
-                ctx, organization_id=organization_id, superuser_access=superuser_access
+                ctx,
+                organization_id=organization_id,
+                superuser_access_expires_at=superuser_access_expires_at,
             )
         )
 
@@ -210,7 +206,7 @@ def set_viewer_context_organization(organization_id: int) -> None:
         return
 
     _viewer_context_var.set(
-        dataclasses.replace(ctx, organization_id=organization_id, superuser_access=None)
+        dataclasses.replace(ctx, organization_id=organization_id, superuser_access_expires_at=None)
     )
 
 

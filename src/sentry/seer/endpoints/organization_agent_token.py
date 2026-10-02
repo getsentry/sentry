@@ -104,19 +104,19 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
             requested_scopes=requested_scopes,
         )
 
-        proof = (
-            request.auth.superuser_access
+        superuser_access_expires_at = (
+            request.auth.superuser_access_expires_at
             if request.auth is not None
             else create_superuser_access(request, organization)
         )
         ttl = agent_token.DEFAULT_TOKEN_TTL
-        if proof is not None:
+        if superuser_access_expires_at is not None:
             users = user_service.get_many(filter={"user_ids": [user_id]})
             org_context = organization_service.get_organization_by_id(
                 id=organization.id, user_id=user_id
             )
             delegated = (
-                resolve_superuser_access(proof, users[0], org_context)
+                resolve_superuser_access(superuser_access_expires_at, users[0], org_context)
                 if users and org_context is not None
                 else None
             )
@@ -130,7 +130,7 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
             organization_id=organization.id,
             scopes=scopes,
             session_id=session_id,
-            superuser_access=proof,
+            superuser_access_expires_at=superuser_access_expires_at,
             ttl=ttl,
         )
         return Response(

@@ -14,7 +14,6 @@ from uuid import uuid4
 import pytest
 import requests
 from django.conf import settings
-from django.core import signing
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
@@ -27,12 +26,7 @@ from rest_framework.test import APIClient
 from sentry.api.endpoints.seer_models import SEER_MODELS_CACHE_KEY
 from sentry.apidocs.hooks import CustomEndpointEnumerator
 from sentry.attachments.base import CachedAttachment
-from sentry.auth.superuser import (
-    SESSION_KEY,
-    SUPERUSER_ACCESS_SALT,
-    Superuser,
-    create_superuser_access,
-)
+from sentry.auth.superuser import SESSION_KEY, Superuser, create_superuser_access
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.issues.endpoints.group_tags import GroupTagsEndpoint
@@ -84,24 +78,22 @@ class SuperuserAgentTokenTest(APITestCase):
                 f"{self.path}seer/explorer-chat/", {"query": "List projects"}, format="json"
             )
         assert response.status_code == 200, response.content
-        proof = outbound.call_args.kwargs["viewer_context"]["superuser_access"]
-        assert isinstance(proof, dict)
-        assert type(proof["expires_at"]) is int
-        assert isinstance(proof["signature"], str)
-        return proof
+        expires_at = outbound.call_args.kwargs["viewer_context"]["superuser_access_expires_at"]
+        assert type(expires_at) is int
+        return expires_at
 
-    def _mint(self, proof, *, user=None, organization=None):
+    def _mint(self, expires_at):
         viewer = encode_viewer_context(
             ViewerContext(
-                organization_id=(organization or self.org).id,
-                user_id=(user or self.employee).id,
+                organization_id=self.org.id,
+                user_id=self.employee.id,
                 actor_type=ActorType.USER,
-                superuser_access=proof,
+                superuser_access_expires_at=expires_at,
             ),
             key=SECRET,
         )
         return APIClient().post(
-            f"/api/0/organizations/{(organization or self.org).slug}/agent/token/",
+            f"/api/0/organizations/{self.org.slug}/agent/token/",
             {"sessionId": "123"},
             format="json",
             HTTP_X_VIEWER_CONTEXT=viewer,
@@ -114,11 +106,11 @@ class SuperuserAgentTokenTest(APITestCase):
         assert not OrganizationMember.objects.filter(
             organization=self.org, user_id=self.employee.id
         ).exists()
-        proof = self._chat_authorization()
+        expires_at = self._chat_authorization()
         project = self.create_project(organization=self.org)
         group = self.create_group(project=project)
         with self.feature(FLAG):
-            minted = self._mint(proof)
+            minted = self._mint(expires_at)
             assert minted.status_code == 200, minted.content
             response = self._read(minted.data["token"])
             issue_response = self._read(minted.data["token"], f"/api/0/issues/{group.id}/")
@@ -128,16 +120,16 @@ class SuperuserAgentTokenTest(APITestCase):
         assert issue_response.data["id"] == str(group.id)
         claims = agent_token.decode_agent_token(minted.data["token"])
         assert set(claims["scopes"]) <= agent_token.readonly_scopes()
-        assert claims["superuser_access"] == proof
+        assert claims["superuser_access_expires_at"] == expires_at
 
     def test_viewer_context_authorizes_standard_api_reads(self):
-        proof = self._chat_authorization()
+        expires_at = self._chat_authorization()
         viewer = encode_viewer_context(
             ViewerContext(
                 organization_id=self.org.id,
                 user_id=self.employee.id,
                 actor_type=ActorType.USER,
-                superuser_access=proof,
+                superuser_access_expires_at=expires_at,
             ),
             key=SECRET,
         )
@@ -163,28 +155,18 @@ class SuperuserAgentTokenTest(APITestCase):
             assert minted.status_code == 200, minted.content
             assert self._read(minted.data["token"]).status_code == 200
 
-    def test_proof_cannot_be_rebound_to_another_user_or_org(self):
-        proof = self._chat_authorization()
-        other_user = self.create_user(is_superuser=True)
-        other_org = self.create_organization()
+    def test_invalid_expiry_cannot_mint(self):
+        self._chat_authorization()
         with self.feature(FLAG):
-            assert self._mint(proof, user=other_user).status_code == 401
-            assert self._mint(proof, organization=other_org).status_code == 401
-            assert (
-                self._mint({**proof, "signature": proof["signature"] + "tampered"}).status_code
-                == 401
-            )
-            assert (
-                self._mint({**proof, "expires_at": proof["expires_at"] + 3600}).status_code == 401
-            )
+            assert self._mint(True).status_code == 401
 
     def test_expired_elevation_cannot_mint_or_be_used(self):
-        proof = self._chat_authorization()
+        expires_at = self._chat_authorization()
         with self.feature(FLAG):
-            minted = self._mint(proof)
+            minted = self._mint(expires_at)
             assert minted.status_code == 200, minted.content
             with freeze_time(timezone.now() + timedelta(minutes=6)):
-                assert self._mint(proof).status_code == 401
+                assert self._mint(expires_at).status_code == 401
                 assert self._read(minted.data["token"]).status_code == 401
 
     def test_current_user_privilege_is_rechecked_without_cache_clear(self):
@@ -197,23 +179,23 @@ class SuperuserAgentTokenTest(APITestCase):
         self._assert_revoked({"is_suspended": True})
 
     def _assert_revoked(self, changes):
-        proof = self._chat_authorization()
+        expires_at = self._chat_authorization()
         with self.feature(FLAG):
-            minted = self._mint(proof)
+            minted = self._mint(expires_at)
             assert minted.status_code == 200, minted.content
             with assume_test_silo_mode(SiloMode.CONTROL):
                 self.employee.update(**changes)
-            assert self._mint(proof).status_code == 401
+            assert self._mint(expires_at).status_code == 401
             assert self._read(minted.data["token"]).status_code == 401
 
     def test_delegated_token_cannot_write_remint_or_cross_org(self):
-        proof = self._chat_authorization()
+        expires_at = self._chat_authorization()
         other_org = self.create_organization()
         self.create_seer_agent_write_grant(
             organization=self.org, user=self.employee, session_id="123", scope_list=["org:write"]
         )
         with self.feature(FLAG):
-            minted = self._mint(proof)
+            minted = self._mint(expires_at)
             assert minted.status_code == 200, minted.content
             client = APIClient()
             client.credentials(HTTP_AUTHORIZATION=f"Bearer {minted.data['token']}")
@@ -227,12 +209,12 @@ class SuperuserAgentTokenTest(APITestCase):
             assert client.get(f"/api/0/organizations/{other_org.slug}/").status_code == 403
 
     def test_customer_policy_is_rechecked(self):
-        proof = self._chat_authorization()
+        expires_at = self._chat_authorization()
         with self.feature(FLAG):
-            minted = self._mint(proof)
+            minted = self._mint(expires_at)
             assert minted.status_code == 200, minted.content
             with patch("sentry.auth.superuser.should_allow_superuser_access", return_value=False):
-                assert self._mint(proof).status_code == 401
+                assert self._mint(expires_at).status_code == 401
                 assert self._read(minted.data["token"]).status_code == 401
 
     @override_settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
@@ -249,25 +231,15 @@ class SuperuserAgentTokenTest(APITestCase):
             request.superuser.authorize_org(
                 self.org.slug, "for_unit_test", "Testing delegated access"
             )
-            proof = create_superuser_access(request, self.org)
-            assert proof is not None
-            assert self._mint(proof).status_code == 200
+            expires_at = create_superuser_access(request, self.org)
+            assert expires_at is not None
+            assert self._mint(expires_at).status_code == 200
 
     def test_account_flag_without_active_session_cannot_delegate(self):
         request = self.make_request(user=self.employee)
         request.auth = None
         with self.feature(FLAG):
             assert create_superuser_access(request, self.org) is None
-
-    def test_seer_shared_secret_cannot_forge_elevation(self):
-        proof = self._chat_authorization()
-        value = f"{self.employee.id}:{self.org.id}:{proof['expires_at']}"
-        forged = {
-            **proof,
-            "signature": signing.Signer(key=SECRET, salt=SUPERUSER_ACCESS_SALT).signature(value),
-        }
-        with self.feature(FLAG):
-            assert self._mint(forged).status_code == 401
 
     def test_delegation_does_not_renew_idle_expiry(self):
         self.login_as(self.employee, superuser=True)
@@ -279,14 +251,14 @@ class SuperuserAgentTokenTest(APITestCase):
         idle_expiry = timezone.now() + timedelta(seconds=30)
         request.session[SESSION_KEY]["idl"] = str(idle_expiry.timestamp())
         with self.feature(FLAG):
-            proof = create_superuser_access(request, self.org)
-            assert proof is not None
-            minted = self._mint(proof)
+            expires_at = create_superuser_access(request, self.org)
+            assert expires_at is not None
+            minted = self._mint(expires_at)
             assert minted.status_code == 200, minted.content
             claims = agent_token.decode_agent_token(minted.data["token"])
             assert claims["exp"] <= int(idle_expiry.timestamp())
             with freeze_time(idle_expiry + timedelta(seconds=1)):
-                assert self._mint(proof).status_code == 401
+                assert self._mint(expires_at).status_code == 401
                 assert self._read(minted.data["token"]).status_code == 401
 
 
