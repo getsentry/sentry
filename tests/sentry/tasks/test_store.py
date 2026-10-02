@@ -419,7 +419,9 @@ def test_inline_save_persists_then_cleans_up_backup_without_working_key(default_
 
     def check_backup(**kwargs):
         assert kwargs["cache_key"] is None
-        assert event_processing_store.get(working_key, unprocessed=True)["event_id"] == EVENT_ID
+        backup = event_processing_store.get(working_key, unprocessed=True)
+        assert backup is not None
+        assert backup["event_id"] == EVENT_ID
 
     with mock.patch.object(EventManager, "save", side_effect=check_backup):
         save_event(data=data, project_id=default_project.id)

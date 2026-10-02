@@ -5,6 +5,7 @@ from unittest import mock
 import pytest
 
 from sentry.models.eventattachment import EventAttachment
+from sentry.models.project import Project
 from sentry.reprocessing2 import (
     ReprocessableEvent,
     _maybe_copy_attachment_into_cache,
@@ -20,11 +21,11 @@ from sentry.testutils.pytest.fixtures import django_db_all
     "rate,disable_store,expected_writes", [(0.0, True, 1), (1.0, False, 1), (1.0, True, 0)]
 )
 def test_reprocessing_conditions_working_payload_write(
-    default_project,
-    rate,
-    disable_store,
-    expected_writes,
-):
+    default_project: Project,
+    rate: float,
+    disable_store: bool,
+    expected_writes: int,
+) -> None:
     event_id = "a" * 32
     data = {"event_id": event_id, "project": default_project.id}
     event = mock.Mock(group_id=123)

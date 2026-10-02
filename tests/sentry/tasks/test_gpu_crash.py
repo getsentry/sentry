@@ -219,7 +219,9 @@ def test_task_always_continues_to_save() -> None:
 
 @pytest.mark.parametrize("has_changed", (False, True))
 @pytest.mark.parametrize("cache_key,expected_writes", [(None, 0), ("e:working", 1)])
-def test_gpu_task_payload_transport(has_changed, cache_key, expected_writes) -> None:
+def test_gpu_task_payload_transport(
+    has_changed: bool, cache_key: str | None, expected_writes: int
+) -> None:
     data = {"event_id": "e" * 32, "project": 1, "message": "gpu crash"}
     with (
         override_options(
