@@ -23,6 +23,7 @@ class IssueStreamGroupType(GroupType):
 
 @detector_settings_registry.register(IssueStreamGroupType.slug)
 class IssueStreamDetectorSettings(DetectorSettings):
+    excluded_api_operations = frozenset()
     config_schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "type": "object",

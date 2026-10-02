@@ -388,11 +388,12 @@ The group type describes the issue. The detector components live in a
 
 ```python
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import DetectorSettings
+from sentry.workflow_engine.types import DetectorAPIOperation, DetectorSettings
 
 
 @detector_settings_registry.register(ExampleGroupType.slug)
 class ExampleDetectorSettings(DetectorSettings):
+    excluded_api_operations = frozenset()
     handler = ExampleDetectorHandler
     validator = ExampleDetectorValidator
     config_schema = {
@@ -412,12 +413,32 @@ imported during application startup.
 
 [`DetectorSettings`](../types.py) fields are:
 
-| Field           | Purpose                                                                 |
-| --------------- | ----------------------------------------------------------------------- |
-| `handler`       | Runtime `DetectorHandler` class                                         |
-| `validator`     | Native detector API validator                                           |
-| `config_schema` | Save-time JSON schema for `Detector.config`                             |
-| `filter`        | Optional `Q` filter controlling user-visible detector rows of this type |
+| Field                     | Purpose                                                                 |
+| ------------------------- | ----------------------------------------------------------------------- |
+| `excluded_api_operations` | Required immutable set of `DetectorAPIOperation` exclusions             |
+| `handler`                 | Runtime `DetectorHandler` class                                         |
+| `validator`               | Native detector API validator                                           |
+| `config_schema`           | Save-time JSON schema for `Detector.config`                             |
+| `filter`                  | Optional `Q` filter controlling user-visible detector rows of this type |
+
+Every settings class must explicitly define `excluded_api_operations`; the base class
+has no default. Use `frozenset()` to allow every API operation. The supported enum
+members are `LIST`, `GET`, `POST`, `PUT`, and `DELETE`.
+
+To omit a type from the organization detector list API, opt out of `LIST`:
+
+```python
+excluded_api_operations = frozenset({DetectorAPIOperation.LIST})
+```
+
+Opting out of `GET` also excludes the type from listing. Exclusions are independent of
+the group type's `released` state and the detector's `enabled` state. The list API filters
+excluded types before pagination and hit counting, including requests that filter by
+detector ID or type.
+
+Only the organization detector list API currently enforces this setting. Detail access,
+creation, updates, deletion, and evaluation remain unchanged; write-verb exclusions do
+not affect listing.
 
 Both registrations happen at import time. The `GroupType` subclass registers itself
 with the global Issue Platform registry when the class is created. The settings class

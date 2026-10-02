@@ -75,6 +75,8 @@ from sentry.workflow_engine.endpoints.validators.utils import (
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors.detector import get_all_projects_detector
+from sentry.workflow_engine.registry import detector_settings_registry
+from sentry.workflow_engine.types import DetectorAPIOperation
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 detector_search_config = SearchConfig.create_from(
@@ -308,6 +310,13 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             return self.respond(status=status.HTTP_401_UNAUTHORIZED)
 
         queryset = self.filter_detectors(request, organization)
+        hidden_types = [
+            detector_type
+            for detector_type, settings in detector_settings_registry.registrations.items()
+            if DetectorAPIOperation.LIST in settings.excluded_api_operations
+            or DetectorAPIOperation.GET in settings.excluded_api_operations
+        ]
+        queryset = queryset.exclude(type__in=hidden_types)
 
         if detector_types := request.GET.getlist("type"):
             detector_types = [DETECTOR_TYPE_ALIASES.get(value, value) for value in detector_types]

@@ -25,4 +25,5 @@ class MonitorIncidentType(GroupType):
 
 @detector_settings_registry.register(MonitorIncidentType.slug)
 class MonitorIncidentDetectorSettings(DetectorSettings):
+    excluded_api_operations = frozenset()
     validator = MonitorIncidentDetectorValidator

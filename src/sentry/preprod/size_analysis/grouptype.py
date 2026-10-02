@@ -421,6 +421,7 @@ class PreprodSizeAnalysisGroupType(GroupType):
 
 @detector_settings_registry.register(PreprodSizeAnalysisGroupType.slug)
 class PreprodSizeAnalysisDetectorSettings(DetectorSettings):
+    excluded_api_operations = frozenset()
     handler = PreprodSizeAnalysisDetectorHandler
     validator = PreprodSizeAnalysisDetectorValidator
     config_schema = {

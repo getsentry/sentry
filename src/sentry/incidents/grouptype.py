@@ -367,6 +367,7 @@ class MetricIssue(GroupType):
 
 @detector_settings_registry.register(MetricIssue.slug)
 class MetricIssueDetectorSettings(DetectorSettings):
+    excluded_api_operations = frozenset()
     handler = MetricIssueDetectorHandler
     validator = MetricIssueDetectorValidator
     config_schema = {

@@ -275,6 +275,7 @@ class UptimeDomainCheckFailure(GroupType):
 
 @detector_settings_registry.register(UptimeDomainCheckFailure.slug)
 class UptimeDomainCheckFailureDetectorSettings(DetectorSettings):
+    excluded_api_operations = frozenset()
     handler = UptimeDetectorHandler
     validator = UptimeDomainCheckFailureValidator
     config_schema = {

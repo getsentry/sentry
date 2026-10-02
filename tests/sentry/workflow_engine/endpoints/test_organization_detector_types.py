@@ -122,6 +122,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             released = True
 
         class MockDetectorSettings(DetectorSettings):
+            excluded_api_operations = frozenset()
             handler = MockDetectorHandler
 
         for group_type in (TestMetricGroupType, TestCronsGroupType, TestUptimeGroupType):

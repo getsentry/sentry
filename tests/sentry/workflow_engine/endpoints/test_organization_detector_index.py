@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 from datetime import timedelta
+from unittest.mock import patch
 
 import pytest
 from django.db.models import Q
@@ -38,6 +39,8 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.detector_group import DetectorGroup
+from sentry.workflow_engine.registry import detector_settings_registry
+from sentry.workflow_engine.types import DetectorAPIOperation
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 pytestmark = pytest.mark.sentry_metrics
@@ -84,6 +87,104 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         assert "X-Hits" in response
         hits = int(response["X-Hits"])
         assert hits == 4
+
+    def test_hidden_detector_type(self) -> None:
+        self.create_detector(project=self.project, type=ErrorGroupType.slug)
+        settings = detector_settings_registry.get(ErrorGroupType.slug)
+        with patch.object(
+            settings,
+            "excluded_api_operations",
+            frozenset({DetectorAPIOperation.LIST}),
+        ):
+            response = self.get_success_response(
+                self.organization.slug,
+                qs_params={"project": self.project.id, "per_page": 1},
+            )
+
+        assert [detector["id"] for detector in response.data] == [
+            str(self.issue_stream_detector.id)
+        ]
+        assert int(response["X-Hits"]) == 1
+
+    def test_hidden_detector_type_with_type_filters(self) -> None:
+        settings = detector_settings_registry.get(ErrorGroupType.slug)
+        with patch.object(
+            settings,
+            "excluded_api_operations",
+            frozenset({DetectorAPIOperation.LIST}),
+        ):
+            response = self.get_success_response(
+                self.organization.slug,
+                qs_params={
+                    "project": self.project.id,
+                    "type": [ErrorGroupType.slug, IssueStreamGroupType.slug],
+                    "query": f"type:[{ErrorGroupType.slug},{IssueStreamGroupType.slug}]",
+                },
+            )
+
+        assert [detector["id"] for detector in response.data] == [
+            str(self.issue_stream_detector.id)
+        ]
+
+    def test_hidden_detector_type_by_ids(self) -> None:
+        settings = detector_settings_registry.get(ErrorGroupType.slug)
+        with patch.object(
+            settings,
+            "excluded_api_operations",
+            frozenset({DetectorAPIOperation.LIST}),
+        ):
+            response = self.get_success_response(
+                self.organization.slug,
+                qs_params={
+                    "id": [self.error_detector.id, self.issue_stream_detector.id],
+                },
+            )
+
+        assert [detector["id"] for detector in response.data] == [
+            str(self.issue_stream_detector.id)
+        ]
+        assert int(response["X-Hits"]) == 1
+
+    def test_get_exclusion_hides_detector_type_from_list(self) -> None:
+        settings = detector_settings_registry.get(ErrorGroupType.slug)
+        with patch.object(
+            settings,
+            "excluded_api_operations",
+            frozenset({DetectorAPIOperation.GET}),
+        ):
+            response = self.get_success_response(
+                self.organization.slug,
+                qs_params={"project": self.project.id},
+            )
+
+        assert [detector["id"] for detector in response.data] == [
+            str(self.issue_stream_detector.id)
+        ]
+        assert int(response["X-Hits"]) == 1
+
+    def test_write_exclusions_do_not_hide_detector_type_from_list(self) -> None:
+        settings = detector_settings_registry.get(ErrorGroupType.slug)
+        with patch.object(
+            settings,
+            "excluded_api_operations",
+            frozenset(
+                {
+                    DetectorAPIOperation.POST,
+                    DetectorAPIOperation.PUT,
+                    DetectorAPIOperation.DELETE,
+                }
+            ),
+        ):
+            response = self.get_success_response(
+                self.organization.slug,
+                qs_params={"project": self.project.id},
+            )
+
+        assert [detector["id"] for detector in response.data] == [
+            str(self.error_detector.id),
+            str(self.issue_stream_detector.id),
+        ]
+        assert int(response["X-Hits"]) == 2
 
     def test_uptime_detector(self) -> None:
         subscription = self.create_uptime_subscription()

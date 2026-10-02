@@ -138,6 +138,7 @@ class TestBaseGroupTypeDetectorValidator(BaseValidatorTest):
 
         @detector_settings_registry.register(TestGroupType.slug)
         class TestDetectorSettings(DetectorSettings):
+            excluded_api_operations = frozenset()
             validator = MetricIssueDetectorValidator
 
         with mock.patch.object(grouptype.registry, "get_by_slug") as mock_get_by_slug:
