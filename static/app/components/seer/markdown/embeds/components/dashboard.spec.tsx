@@ -103,7 +103,7 @@ describe('dashboard embed', () => {
     expect(screen.queryByText('Throughput')).not.toBeInTheDocument();
     expect(screen.queryByText('Slow spans')).not.toBeInTheDocument();
     expect(screen.getByText('5 widgets')).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'View 3 more widgets'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: '+ 3 additional widgets'})).toHaveAttribute(
       'href',
       '/organizations/org-slug/dashboard/123/'
     );

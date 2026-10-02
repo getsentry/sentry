@@ -183,7 +183,7 @@ function DashboardPreview({
       </WidgetQueryQueueProvider>
       {remainingWidgets > 0 ? (
         <Link to={href}>
-          {tn('View %s more widget', 'View %s more widgets', remainingWidgets)}
+          {tn('+ %s additional widget', '+ %s additional widgets', remainingWidgets)}
         </Link>
       ) : null}
     </Stack>
