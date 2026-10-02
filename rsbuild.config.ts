@@ -738,6 +738,7 @@ if (
             '/api/0/assistant/**',
           ],
           target: controlSiloAddress,
+          changeOrigin: false,
         },
       ];
     }
@@ -749,6 +750,16 @@ if (
         watch: true,
         copyOnBuild: false,
       },
+      // Preserve the static URL prefix, with compiled assets taking precedence.
+      setup:
+        ({server}) =>
+        async () => {
+          const {default: sirv} = await import('sirv');
+          server.middlewares.use(
+            '/_static/dist/sentry',
+            sirv(sentryDjangoAppPath, {dev: true, etag: true})
+          );
+        },
       // syntax for matching is using https://www.npmjs.com/package/micromatch
       proxy: [
         ...controlSiloProxy,
@@ -759,10 +770,12 @@ if (
             '/api/0/relays/outcomes/**',
           ],
           target: relayAddress,
+          changeOrigin: false,
         },
         {
           pathFilter: ['!/_static/dist/sentry/**'],
           target: backendAddress,
+          changeOrigin: false,
         },
       ],
     };
