@@ -26,7 +26,10 @@ import {
 import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {useLegacyEventSuspectFlags} from 'sentry/components/issues/suspect/useLegacyEventSuspectFlags';
-import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
+import {
+  KeyValueTableCard,
+  KeyValueTableSubject,
+} from 'sentry/components/tables/keyValueTable';
 import {IconSearch} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
@@ -137,6 +140,11 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
         item: {
           key: f.flag,
           subject: f.flag,
+          subjectNode: (
+            <Container alignSelf="center">
+              <KeyValueTableSubject>{f.flag}</KeyValueTableSubject>
+            </Container>
+          ),
           value: (
             <Grid
               columns={{zero: '1fr auto', sm: '1fr auto auto'}}
@@ -157,13 +165,13 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
                 }
               `}
             >
-              {f.result.toString()}
+              <Container whiteSpace="nowrap">{f.result.toString()}</Container>
               {suspectFlagNames.has(f.flag) && (
                 <Container
                   column={{zero: '1 / -1', sm: '2'}}
                   row={{zero: '2', sm: 'auto'}}
                 >
-                  <Text as="div" size="sm" variant="secondary">
+                  <Text as="div" size="sm" variant="secondary" wrap="nowrap">
                     {t('Suspect')}
                   </Text>
                 </Container>
