@@ -454,6 +454,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
  * More details: https://kentcdodds.com/blog/common-mistakes-with-react-testing-library#not-using-testing-libraryuser-event
  */
 const fireEvent = rtl.fireEvent;
+const renderWithoutProviders = rtl.render;
 
 function renderGlobalModal(options?: RenderOptions) {
   const result = render(<GlobalModal />, options);
@@ -498,6 +499,7 @@ export {
   render,
   renderGlobalModal,
   renderHookWithProviders,
+  renderWithoutProviders,
   userEvent,
   waitForDrawerToHide,
 };
