@@ -62,13 +62,7 @@ export function EventDataSection({
 
   return (
     <Stack gap="md" ref={scrollToSection} className={className} padding="0" {...props}>
-      <Flex
-        id={type}
-        data-test-id={`event-section-${type}`}
-        align="center"
-        gap="xs"
-        wrap="wrap"
-      >
+      <Flex id={type} align="center" gap="xs" wrap="wrap">
         {title && (
           <Grid
             columns="max-content 1fr"
