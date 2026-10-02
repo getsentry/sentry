@@ -290,9 +290,9 @@ def test_project_config_json_expansion(default_project: MagicMock, option_enable
 
     cfg = project_cfg.to_dict()
     _validate_project_config(cfg["config"])
-    json_expansion = get_path(cfg, "config", "jsonExpansion")
+    exposed_features = get_path(cfg, "config", "features") or []
 
-    assert json_expansion == ({"enabled": True} if option_enabled else None)
+    assert ("projects:relay-automatic-json-expansion" in exposed_features) == option_enabled
 
 
 @django_db_all

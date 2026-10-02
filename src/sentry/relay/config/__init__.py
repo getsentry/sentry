@@ -846,7 +846,11 @@ def _get_project_config(
         config["trustedRelaySettings"] = {"verifySignature": verify_signature}
 
     with start_span(op="get_exposed_features", name="get_exposed_features"):
-        if exposed_features := get_exposed_features(project):
+        exposed_features = list(get_exposed_features(project))
+        if project.get_option("sentry:relay_automatic_json_expansion"):
+            # This is a project option encoded as a feature, not an actual project flag.
+            exposed_features.append("projects:relay-automatic-json-expansion")
+        if exposed_features:
             config["features"] = exposed_features
 
     # NOTE: Omitting dynamicSampling because of a failure increases the number
@@ -864,11 +868,6 @@ def _get_project_config(
         config["txNameReady"] = True
 
     config["breakdownsV2"] = project.get_option("sentry:breakdowns")
-
-    # Absent means disabled, so the key is only emitted for projects that opted in via
-    # project settings.
-    if project.get_option("sentry:relay_automatic_json_expansion"):
-        config["jsonExpansion"] = {"enabled": True}
 
     config["sessionMetrics"] = {
         "version": (
