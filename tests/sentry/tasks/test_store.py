@@ -1,5 +1,4 @@
 from time import time
-from typing import Any
 from unittest import mock
 
 import pytest
@@ -10,7 +9,6 @@ from sentry.exceptions import HashDiscarded
 from sentry.ingest.event_payload import (
     get_event_payload_transport,
     load_event_payload,
-    prepare_event_payload,
 )
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.tasks.store import (
@@ -45,8 +43,8 @@ def test_payload_transport_policy(rate, disable_store, send_inline, write_store)
     ):
         transport = get_event_payload_transport(EVENT_ID)
 
-    assert transport.send_inline is send_inline
-    assert transport.write_processing_store is write_store
+    assert transport.inline is send_inline
+    assert transport.cache is write_store
 
 
 @pytest.mark.parametrize(
@@ -58,62 +56,25 @@ def test_partial_inline_rollout_keeps_unsampled_events_in_redis(event_id, send_i
     ):
         transport = get_event_payload_transport(event_id)
 
-    assert transport.send_inline is send_inline
-    assert transport.write_processing_store is write_store
+    assert transport.inline is send_inline
+    assert transport.cache is write_store
 
 
-@pytest.mark.parametrize("rate", (0.0, 1.0))
-@pytest.mark.parametrize("disable_store", (False, True))
-def test_keyed_handoff_always_writes_current_payload(rate, disable_store):
-    data = {"event_id": EVENT_ID, "project": 1, "message": "current"}
+def test_invalid_inline_payload_falls_back_to_redis(caplog):
     processing_store = mock.Mock()
-    processing_store.store.return_value = "e:working"
-    with (
-        override_options(
-            {"store.enable-inline-payloads": rate, "store.disable-processing-store": disable_store}
-        ),
-        mock.patch("sentry.ingest.event_payload.options.get", wraps=options.get) as get_option,
-    ):
-        payload, key = prepare_event_payload(
-            data, "e:working", event_id=EVENT_ID, processing_store=processing_store
-        )
-
-    get_option.assert_called_once_with("store.enable-inline-payloads")
-    assert payload == {0.0: None, 1.0: data}[rate]
-    assert key == "e:working"
-    processing_store.store.assert_called_once_with(data)
+    assert (
+        load_event_payload([], "e:working", processing_store) is processing_store.get.return_value
+    )
+    processing_store.get.assert_called_once_with("e:working")
+    assert "event_payload.invalid_inline_payload" in caplog.text
 
 
-@pytest.mark.parametrize("cache_key", (None, ""))
-def test_keyless_payload_stays_inline_when_rollout_and_cache_options_change(cache_key):
-    data = {"event_id": EVENT_ID, "project": 1, "message": "current"}
+def test_invalid_inline_payload_without_cache_key_raises(caplog):
     processing_store = mock.Mock()
-    with override_options(
-        {"store.enable-inline-payloads": 1.0, "store.disable-processing-store": True}
-    ):
-        payload, key = prepare_event_payload(
-            data, cache_key, event_id=EVENT_ID, processing_store=processing_store
-        )
-    assert payload is data
-    assert key == cache_key
-
-    with override_options(
-        {"store.enable-inline-payloads": 0.0, "store.disable-processing-store": False}
-    ):
-        payload, key = prepare_event_payload(
-            payload, key, event_id=EVENT_ID, processing_store=processing_store
-        )
-    assert payload is data
-    assert key == cache_key
-    processing_store.store.assert_not_called()
-
-
-@pytest.mark.parametrize("data", ({}, [], {"event_id": 123}, {"event_id": ""}))
-def test_invalid_inline_payload_does_not_read_redis(data: Any):
-    processing_store = mock.Mock()
-    with pytest.raises(ValueError):
-        load_event_payload(data, "e:stale", processing_store)
+    with pytest.raises(ValueError, match="payload or cache key"):
+        load_event_payload([], None, processing_store)
     processing_store.get.assert_not_called()
+    assert "event_payload.invalid_inline_payload" in caplog.text
 
 
 def test_payload_reader_requires_data_or_key():
@@ -379,6 +340,7 @@ def test_move_to_process_event_inline_save_event_still_submits_process_event(
         data_has_changed=False,
         from_symbolicate=False,
         has_attachments=False,
+        data=None,
     )
     assert mock_save_event.call_count == 0
     assert mock_save_event.delay.call_count == 0

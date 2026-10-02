@@ -231,7 +231,7 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
     # consider minidumps because filestore just stays as-is after reprocessing
     # (we simply update group_id on the EventAttachment models in post_process)
     project = Project.objects.get_from_cache(id=project_id)
-    cache_key = cache_key_for_event(data)
+    attachment_cache_key = cache_key_for_event(data)
     attachment_objects = []
     for attachment_id, attachment in enumerate(attachments):
         with start_span(
@@ -244,7 +244,7 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
                     project=project,
                     attachment_id=attachment_id,
                     attachment=attachment,
-                    cache_key=cache_key,
+                    cache_key=attachment_cache_key,
                     cache_timeout=CACHE_TIMEOUT,
                 )
             )
@@ -259,12 +259,10 @@ def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
         data, "contexts", "reprocessing", "original_primary_hash", value=event.get_primary_hash()
     )
     transport = get_event_payload_transport(data["event_id"])
-    working_cache_key = (
-        event_processing_store.store(data) if transport.write_processing_store else None
-    )
+    cache_key = event_processing_store.store(data) if transport.cache else None
 
     preprocess_event_from_reprocessing(
-        cache_key=working_cache_key,
+        cache_key=cache_key,
         start_time=start_time,
         event_id=event_id,
         data=data,

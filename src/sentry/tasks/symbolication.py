@@ -6,7 +6,7 @@ from typing import Any
 import sentry_sdk
 from django.conf import settings
 
-from sentry.ingest.event_payload import load_event_payload, prepare_event_payload
+from sentry.ingest.event_payload import load_event_payload, prepare_submit
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.processing import (
     get_native_symbolication_functions,
@@ -229,12 +229,8 @@ def submit_symbolicate(
     symbolicate_functions: list[SymbolicatorFunction] | None = None,
     data: Event | None = None,
 ) -> None:
-    if data is not None:
-        data, cache_key = prepare_event_payload(
-            data,
-            cache_key,
-            event_id=event_id or data["event_id"],
-        )
+    data, cache_key = prepare_submit(data, cache_key, event_id)
+
     # Because of `mock` usage, we cannot just save a reference to the actual function
     # into the `TASK_FNS` dict. We actually have to access it at runtime from the global scope
     # on every invocation. Great stuff!
@@ -247,16 +243,13 @@ def submit_symbolicate(
         None if symbolicate_functions is None else [p.name for p in symbolicate_functions]
     )
 
-    task_kwargs: dict[str, Any] = {}
-    if data is not None:
-        task_kwargs["data"] = data
     task_fn.delay(
         cache_key=cache_key,
         start_time=start_time,
         event_id=event_id,
         has_attachments=has_attachments,
         symbolicate_functions=symbolicate_function_names,
-        **task_kwargs,
+        data=data,
     )
 
 

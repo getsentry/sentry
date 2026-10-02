@@ -209,7 +209,7 @@ def process_event(
         # expires, since nothing on the feedback path deletes it.
         cache_key = None
         transport = get_event_payload_transport(data["event_id"])
-        if data.get("type") != "feedback" and transport.write_processing_store:
+        if data.get("type") != "feedback" and transport.cache:
             with metrics.timer("ingest_consumer._store_event"):
                 cache_key = processing_store.store(data)
         if consumer_type == ConsumerType.Transactions and cache_key:
@@ -251,7 +251,7 @@ def process_event(
             # directly transaction specific save_event task.
             save_transaction_kwargs: dict[str, Any] = {
                 "cache_key": cache_key,
-                "data": data if transport.send_inline else None,
+                "data": data if transport.inline else None,
                 "start_time": start_time,
                 "event_id": event_id,
                 "project_id": project_id,

@@ -16,7 +16,7 @@ from sentry.event_preprocessors import get_event_preprocessors
 from sentry.feedback.usecases.ingest.save_event_feedback import (
     save_event_feedback as save_event_feedback_impl,
 )
-from sentry.ingest.event_payload import load_event_payload, prepare_event_payload
+from sentry.ingest.event_payload import load_event_payload, prepare_submit
 from sentry.ingest.types import ConsumerType
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.symbolicator import SymbolicatorTaskKind
@@ -71,19 +71,11 @@ def submit_process(
     has_attachments: bool = False,
     data: MutableMapping[str, Any] | None = None,
 ) -> None:
-    if data is not None:
-        data, cache_key = prepare_event_payload(
-            data,
-            cache_key,
-            event_id=event_id or data["event_id"],
-        )
+    data, cache_key = prepare_submit(data, cache_key, event_id)
     if from_reprocessing:
         task = process_event_from_reprocessing
     else:
         task = process_event
-    task_kwargs: dict[str, Any] = {}
-    if data is not None:
-        task_kwargs["data"] = data
     task.delay(
         cache_key=cache_key,
         start_time=start_time,
@@ -91,7 +83,7 @@ def submit_process(
         data_has_changed=data_has_changed,
         from_symbolicate=from_symbolicate,
         has_attachments=has_attachments,
-        **task_kwargs,
+        data=data,
     )
 
 
@@ -110,12 +102,7 @@ def submit_save_event(
     data: MutableMapping[str, Any] | None,
     inline: bool = False,
 ) -> None:
-    if data is not None:
-        data, cache_key = prepare_event_payload(
-            data,
-            cache_key,
-            event_id=event_id or data["event_id"],
-        )
+    data, cache_key = prepare_submit(data, cache_key, event_id)
 
     # XXX: honor from_reprocessing
     if task_kind.has_attachments:
@@ -210,7 +197,7 @@ def _do_preprocess_event(
         )
         and is_gpu_crash_event(data)
     ):
-        task_data, cache_key = prepare_event_payload(data, cache_key, event_id=event_id)
+        task_data, cache_key = prepare_submit(data, cache_key, event_id=event_id)
         symbolicate_gpu_crash_event.delay(
             cache_key=cache_key,
             event_id=event_id,
@@ -559,16 +546,13 @@ def _do_save_event(
     from sentry.event_manager import EventManager, resolve_project
     from sentry.exceptions import HashDiscarded
 
-    event_type = "none"
-
     if consumer_type and consumer_type == ConsumerType.Transactions:
         processing_store = processing.transaction_processing_store
     else:
         processing_store = processing.event_processing_store
 
     data = load_event_payload(data, cache_key, processing_store)
-    if data is not None:
-        event_type = data.get("type") or "none"
+    event_type = data and data.get("type") or "none"
 
     track_event_since_received(
         step="start_save_event",
