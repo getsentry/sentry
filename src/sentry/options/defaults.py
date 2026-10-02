@@ -4226,6 +4226,14 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Hours between LLM prompt-cache detection runs; its scheduler ticks hourly.
+register(
+    "issue-detection.llm-cache-detection.interval-hours",
+    type=Int,
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Sets the sample rate for profiles collected via the JoinProfiler arroyo strategy
 register(
     "consumer.join.profiling.rate",
