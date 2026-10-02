@@ -19,6 +19,10 @@ import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
+import {
+  createHostCheckMiddleware,
+  createHostCheckUpgrade,
+} from './build-utils/dev-server-host-check.ts';
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
 import {rehypePlugins, remarkPlugins} from './build-utils/mdx-plugins.ts';
 import {StoryManifestPlugin} from './build-utils/story-manifest.ts';
@@ -674,6 +678,20 @@ if (
   (HAS_WEBPACK_DEV_SERVER_CONFIG && !NO_DEV_SERVER) ||
   IS_UI_DEV_ONLY
 ) {
+  const allowedHosts = [
+    '.sentry.dev',
+    '.dev.getsentry.net',
+    '.localhost',
+    '127.0.0.1',
+    '.docker.internal',
+    ...(SENTRY_WEBPACK_PROXY_HOST ? [SENTRY_WEBPACK_PROXY_HOST] : []),
+    ...(SENTRY_DEVSERVER_NGROK ? [`.${SENTRY_DEVSERVER_NGROK}`] : []),
+  ];
+  const setupHostCheck: ServerConfig['setup'] = ({server}) => {
+    server.middlewares.use(createHostCheckMiddleware(allowedHosts));
+    server.httpServer?.prependListener('upgrade', createHostCheckUpgrade(allowedHosts));
+  };
+
   // Preserve the previous dev server's errors-only build diagnostics.
   appConfig.stats = {warnings: false};
   workerConfig.stats = {warnings: false};
@@ -702,6 +720,7 @@ if (
     },
     host: SENTRY_WEBPACK_PROXY_HOST,
     port: Number(SENTRY_WEBPACK_PROXY_PORT),
+    setup: setupHostCheck,
   };
 
   if (!IS_UI_DEV_ONLY) {
@@ -751,15 +770,17 @@ if (
         copyOnBuild: false,
       },
       // Preserve the static URL prefix, with compiled assets taking precedence.
-      setup:
+      setup: [
+        setupHostCheck,
         ({server}) =>
-        async () => {
-          const {default: sirv} = await import('sirv');
-          server.middlewares.use(
-            '/_static/dist/sentry',
-            sirv(sentryDjangoAppPath, {dev: true, etag: true})
-          );
-        },
+          async () => {
+            const {default: sirv} = await import('sirv');
+            server.middlewares.use(
+              '/_static/dist/sentry',
+              sirv(sentryDjangoAppPath, {dev: true, etag: true})
+            );
+          },
+      ],
       // syntax for matching is using https://www.npmjs.com/package/micromatch
       proxy: [
         ...controlSiloProxy,

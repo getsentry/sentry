@@ -173,6 +173,9 @@ importers:
       '@rsbuild/core':
         specifier: ^2.2.4
         version: 2.2.4(core-js@3.45.0)
+      '@rsbuild/plugin-basic-ssl':
+        specifier: ^1.2.3
+        version: 1.2.3(@rsbuild/core@2.2.4(core-js@3.45.0))
       '@rsdoctor/rspack-plugin':
         specifier: 1.6.3
         version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rsbuild/core@2.2.4(core-js@3.45.0))(@rspack/core@2.2.3(@swc/helpers@0.5.23))
@@ -567,9 +570,6 @@ importers:
       '@mdx-js/mdx':
         specifier: 3.1.1
         version: 3.1.1
-      '@rsbuild/plugin-basic-ssl':
-        specifier: ^1.2.3
-        version: 1.2.3(@rsbuild/core@2.2.4(core-js@3.45.0))
       '@sentry/jest-environment':
         specifier: 8.0.0
         version: 8.0.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.1))(@sentry/node@11.0.0)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.16.2(@swc/helpers@0.5.23))(@types/node@24.13.2)(@typescript/typescript6@6.0.2)))(jsdom@30.1.1)
