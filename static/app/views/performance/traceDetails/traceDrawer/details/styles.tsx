@@ -149,7 +149,7 @@ function SubtitleWithCopyButton({
   subTitle: string;
 }) {
   return (
-    <Flex align="center" width="100%">
+    <Flex align="center" gap="xs" width="100%">
       <Container minWidth="0">
         <Text as="div" size="md" variant="secondary" ellipsis>
           {subTitle}
