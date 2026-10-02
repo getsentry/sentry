@@ -20,13 +20,7 @@ import {
 
 const METRIC_ATTRIBUTES_DEBOUNCE_DURATION = 200;
 
-export function MetricDetailPanel({
-  metric,
-  hasMetricUnitsUI,
-}: {
-  hasMetricUnitsUI: boolean;
-  metric: MetricSelectorOption | null;
-}) {
+export function MetricDetailPanel({metric}: {metric: MetricSelectorOption | null}) {
   if (!metric) {
     return (
       <Flex align="center" justify="center" flex="1">
@@ -46,7 +40,7 @@ export function MetricDetailPanel({
         </Text>
         <MetricTypeBadge metricType={metric.metricType} />
       </Flex>
-      {hasDisplayMetricUnit(hasMetricUnitsUI, metric.metricUnit) ? (
+      {hasDisplayMetricUnit(metric.metricUnit) ? (
         <Flex gap="xs" align="center">
           <Text variant="muted" size="md">
             {t('Unit')}
