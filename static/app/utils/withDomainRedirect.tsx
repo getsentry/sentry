@@ -1,9 +1,9 @@
+import {generatePath} from 'react-router-dom';
 import trim from 'lodash/trim';
 import trimEnd from 'lodash/trimEnd';
 import trimStart from 'lodash/trimStart';
 
 import {Redirect} from 'sentry/components/redirect';
-import {generatePath} from 'sentry/router/reactRouter';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';

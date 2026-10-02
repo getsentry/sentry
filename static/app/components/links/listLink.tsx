@@ -1,7 +1,7 @@
+import {NavLink} from 'react-router-dom';
 import classNames from 'classnames';
 import type {LocationDescriptor} from 'history';
 
-import {NavLink} from 'sentry/router/reactRouter';
 import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';

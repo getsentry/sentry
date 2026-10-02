@@ -1,4 +1,5 @@
 import {useContext, useEffect} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {Scope} from '@sentry/core';
 import * as Sentry from '@sentry/react';
@@ -10,7 +11,6 @@ import {getLastEventId} from 'sentry/bootstrap/initializeSdk';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {t, tct} from 'sentry/locale';
-import {useMatches} from 'sentry/router/reactRouter';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';

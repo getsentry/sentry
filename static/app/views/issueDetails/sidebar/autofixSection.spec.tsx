@@ -1,3 +1,4 @@
+import {useMatches} from 'react-router-dom';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -6,7 +7,6 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DiffFileType} from 'sentry/components/events/autofix/types';
-import {useMatches} from 'sentry/router/reactRouter';
 import {IssueCategory, IssueType, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
@@ -19,8 +19,8 @@ import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmCon
 import {AutofixSection} from './autofixSection';
 
 jest.mock('sentry/utils/cells');
-jest.mock('sentry/router/reactRouter', () => ({
-  ...jest.requireActual('sentry/router/reactRouter'),
+jest.mock('react-router-dom', () => ({
+  ...jest.requireActual('react-router-dom'),
   useMatches: jest.fn(),
 }));
 

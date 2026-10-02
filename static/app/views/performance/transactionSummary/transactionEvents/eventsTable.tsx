@@ -1,5 +1,6 @@
 import type React from 'react';
 import {Fragment, useCallback, useMemo, useState, type ReactNode} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 import groupBy from 'lodash/groupBy';
@@ -13,7 +14,6 @@ import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {GridEditable} from 'sentry/components/tables/gridEditable';
 import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {useMatches} from 'sentry/router/reactRouter';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';

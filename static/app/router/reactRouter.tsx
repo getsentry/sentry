@@ -1,3 +1,3 @@
-// Typecheck the application against the production API. Rspack and Jest select
-// the implementation without changing the imports inside either dependency.
+// Versioned adapter and internal router types. Application router APIs are
+// imported from react-router-dom and remapped by Rspack and Jest.
 export * from './reactRouterV6';

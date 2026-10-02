@@ -1,4 +1,5 @@
 import {useCallback, useState} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Input} from '@sentry/scraps/input';
@@ -9,7 +10,6 @@ import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
-import {useMatches} from 'sentry/router/reactRouter';
 import {formatSecondsToClock} from 'sentry/utils/duration/formatSecondsToClock';
 import {parseClockToSeconds} from 'sentry/utils/duration/parseClockToSeconds';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';

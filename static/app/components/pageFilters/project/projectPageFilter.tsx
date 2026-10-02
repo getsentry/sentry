@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {useMatches} from 'react-router-dom';
 import {isAppleDevice} from '@react-aria/utils';
 import sortBy from 'lodash/sortBy';
 import xor from 'lodash/xor';
@@ -27,7 +28,6 @@ import {
   IconSettings,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import {useMatches} from 'sentry/router/reactRouter';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';

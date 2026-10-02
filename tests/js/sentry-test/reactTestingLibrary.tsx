@@ -1,5 +1,12 @@
 import {Fragment} from 'react';
 import {createPortal} from 'react-dom';
+import {
+  Outlet,
+  useRouteError,
+  type RouteObject,
+  type To,
+  RouterProvider,
+} from 'react-router-dom';
 import {cache} from '@emotion/css'; // eslint-disable-line @sentry/no-vanilla-emotion
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import {QueryClientProvider} from '@tanstack/react-query';
@@ -23,13 +30,6 @@ import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {GlobalModal} from '@sentry/scraps/modal';
 
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
-import {
-  Outlet,
-  useRouteError,
-  type RouteObject,
-  type To,
-  RouterProvider,
-} from 'sentry/router/reactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
@@ -370,10 +370,7 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
     outletContext,
   });
 
-  const renderResult = rtl.render(
-    <RouterProvider router={memoryRouter} useTransitions={false} />,
-    options
-  );
+  const renderResult = rtl.render(<RouterProvider router={memoryRouter} />, options);
 
   const rerender = (newUi: React.ReactElement) => {
     const newRouter = makeRouter({
@@ -383,7 +380,7 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
       outletContext,
     });
 
-    renderResult.rerender(<RouterProvider router={newRouter} useTransitions={false} />);
+    renderResult.rerender(<RouterProvider router={newRouter} />);
     // Force the router to update children
     rtl.act(() => {
       newRouter.revalidate();
@@ -426,7 +423,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
       outletContext,
     });
 
-    return <RouterProvider router={memoryRouter} useTransitions={false} />;
+    return <RouterProvider router={memoryRouter} />;
   }
 
   const {initialProps, ...rest} = options;

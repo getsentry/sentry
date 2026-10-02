@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import styled from '@emotion/styled';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import startCase from 'lodash/startCase';
@@ -19,7 +20,6 @@ import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t, tct} from 'sentry/locale';
-import {useSearchParams} from 'sentry/router/reactRouter';
 import type {
   AppOrProviderOrPlugin,
   DocIntegration,

@@ -1,8 +1,8 @@
 import {useCallback} from 'react';
+import {useBlocker} from 'react-router-dom';
 
 import {removeProject} from 'sentry/actionCreators/projects';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
-import {useBlocker} from 'sentry/router/reactRouter';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';

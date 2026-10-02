@@ -1,4 +1,5 @@
 import {Fragment, useMemo} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -11,7 +12,6 @@ import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ReplayBadge} from 'sentry/components/replays/replayBadge';
 import {t} from 'sentry/locale';
-import {useMatches} from 'sentry/router/reactRouter';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';

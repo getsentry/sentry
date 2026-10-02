@@ -1,8 +1,8 @@
+import {Outlet} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
 
-import {Outlet} from 'sentry/router/reactRouter';
 import {useParams} from 'sentry/utils/useParams';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {SettingsBreadcrumb} from 'sentry/views/settings/components/settingsBreadcrumb';

@@ -1,4 +1,5 @@
 import {createContext, use, useCallback, type ReactElement, type ReactNode} from 'react';
+import {UNSAFE_DataRouterContext} from 'react-router-dom';
 import {
   unstable_createAdapterProvider as createAdapterProvider,
   renderQueryString,
@@ -6,7 +7,6 @@ import {
 import type {unstable_AdapterInterface as AdapterInterface} from 'nuqs/adapters/custom';
 import type {OnUrlUpdateFunction} from 'nuqs/adapters/testing';
 
-import {UNSAFE_DataRouterContext} from 'sentry/router/reactRouter';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 

@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
+import {Link as RouterLink} from 'react-router-dom';
 
 import {LinkBehaviorContextProvider, type LinkProps} from '@sentry/scraps/link';
 
 import {preload} from 'sentry/router/preload';
-import {Link as RouterLink} from 'sentry/router/reactRouter';
 import {useRouteConfig} from 'sentry/router/routeConfigContext';
 import {locationDescriptorToTo} from 'sentry/utils/reactRouter6Compat/location';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';

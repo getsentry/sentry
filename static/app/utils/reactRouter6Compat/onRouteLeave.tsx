@@ -1,4 +1,4 @@
-import {unstable_usePrompt, type Location} from 'sentry/router/reactRouter';
+import {unstable_usePrompt, type Location} from 'react-router-dom';
 
 type ReactRouterV6RouteLeaveCallback = (state: {
   currentLocation: Location;

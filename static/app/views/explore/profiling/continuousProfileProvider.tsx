@@ -1,9 +1,9 @@
 import {useMemo, useState} from 'react';
+import {Outlet} from 'react-router-dom';
 
 import {Stack} from '@sentry/scraps/layout';
 
 import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
-import {Outlet} from 'sentry/router/reactRouter';
 import type {RequestState} from 'sentry/types/core';
 import {useTransactionAsSpans} from 'sentry/utils/profiling/hooks/useTransactionAsSpans';
 import {decodeScalar} from 'sentry/utils/queryString';

@@ -1,9 +1,10 @@
+import {Outlet} from 'react-router-dom';
+
 import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {NoAccess} from 'sentry/components/noAccess';
 import {AiFeaturesAreDisabledBanner} from 'sentry/components/seer/aiFeaturesAreDisabledBanner';
-import {Outlet} from 'sentry/router/reactRouter';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export default function SeerAutomationRoot() {

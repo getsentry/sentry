@@ -1,4 +1,5 @@
-import type {UIMatch} from 'sentry/router/reactRouter';
+import type {UIMatch} from 'react-router-dom';
+
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 
 describe('getRouteStringFromRoutes', () => {

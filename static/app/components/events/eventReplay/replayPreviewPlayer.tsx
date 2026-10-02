@@ -1,5 +1,6 @@
 import type {ComponentProps} from 'react';
 import {useEffect, useRef, useState} from 'react';
+import {useMatches} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 
@@ -20,7 +21,6 @@ import {ReplaySessionColumn} from 'sentry/components/replays/table/replayTableCo
 import {TimeAndScrubberGrid} from 'sentry/components/replays/timeAndScrubberGrid';
 import {IconNext, IconPrevious} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {useMatches} from 'sentry/router/reactRouter';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import {useMarkReplayViewed} from 'sentry/utils/replays/hooks/useMarkReplayViewed';

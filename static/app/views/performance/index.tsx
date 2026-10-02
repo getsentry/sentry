@@ -1,10 +1,11 @@
+import {Outlet} from 'react-router-dom';
+
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
-import {Outlet} from 'sentry/router/reactRouter';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {useLocation} from 'sentry/utils/useLocation';

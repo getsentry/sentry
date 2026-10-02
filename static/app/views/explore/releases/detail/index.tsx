@@ -1,4 +1,5 @@
 import {createContext, useCallback, useEffect, useMemo} from 'react';
+import {Outlet} from 'react-router-dom';
 import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
@@ -16,7 +17,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PickProjectToContinue} from 'sentry/components/pickProjectToContinue';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {Outlet} from 'sentry/router/reactRouter';
 import type {SessionApiResponse} from 'sentry/types/organization';
 import {SessionFieldWithOperation} from 'sentry/types/organization';
 import type {

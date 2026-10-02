@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import type {To} from 'react-router-dom';
 import {
   closestCenter,
   DndContext,
@@ -41,7 +42,6 @@ import {useScrollLock} from '@sentry/scraps/useScrollLock';
 import {useHovercardContext} from 'sentry/components/hovercard';
 import {IconChevron, IconClose, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {To} from 'sentry/router/reactRouter';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';

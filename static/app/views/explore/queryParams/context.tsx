@@ -7,9 +7,9 @@ import {
   useMemo,
   useState,
 } from 'react';
+import type {NavigateOptions} from 'react-router-dom';
 import {parseAsString, useQueryStates} from 'nuqs';
 
-import type {NavigateOptions} from 'sentry/router/reactRouter';
 import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';

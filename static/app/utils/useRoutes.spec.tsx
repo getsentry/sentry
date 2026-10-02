@@ -1,6 +1,7 @@
+import {createMemoryRouter, RouterProvider} from 'react-router-dom';
+
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {createMemoryRouter, RouterProvider} from 'sentry/router/reactRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 
 describe('useRoutes', () => {
@@ -12,7 +13,6 @@ describe('useRoutes', () => {
             [{path: '/', handle: {path: '/'}, element: children}],
             {initialEntries: ['/']}
           )}
-          useTransitions={false}
         />
       ),
     });

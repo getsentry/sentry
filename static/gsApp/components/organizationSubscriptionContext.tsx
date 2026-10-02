@@ -1,4 +1,5 @@
-import {Outlet} from 'sentry/router/reactRouter';
+import {Outlet} from 'react-router-dom';
+
 import {OrganizationContainer} from 'sentry/views/organizationContainer';
 
 import {SubscriptionContext} from 'getsentry/components/subscriptionContext';

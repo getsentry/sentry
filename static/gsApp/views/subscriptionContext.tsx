@@ -1,4 +1,5 @@
-import {Outlet} from 'sentry/router/reactRouter';
+import {Outlet} from 'react-router-dom';
+
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';

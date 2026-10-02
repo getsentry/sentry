@@ -1,3 +1,5 @@
+import {Outlet} from 'react-router-dom';
+
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -8,7 +10,6 @@ import {SeerRepoTable} from 'sentry/components/seer/repoTable/seerRepoTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconSettings} from 'sentry/icons/iconSettings';
 import {t, tct} from 'sentry/locale';
-import {Outlet} from 'sentry/router/reactRouter';
 import {orgHasCodeReviewFeature} from 'sentry/utils/seer/orgHasCodeReviewFeature';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';

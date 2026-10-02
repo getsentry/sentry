@@ -1,3 +1,12 @@
+import {
+  createBrowserRouter,
+  Link,
+  Navigate,
+  Outlet,
+  RouterProvider,
+  useMatches,
+  useParams,
+} from 'react-router-dom';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {
@@ -8,16 +17,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {
-  createBrowserRouter,
-  Link,
-  Navigate,
-  NuqsAdapter,
-  Outlet,
-  RouterProvider,
-  useMatches,
-  useParams,
-} from 'sentry/router/reactRouter';
+import {NuqsAdapter} from 'sentry/router/reactRouter';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 

@@ -1,11 +1,11 @@
 import {Fragment} from 'react';
+import {Link} from 'react-router-dom';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t} from 'sentry/locale';
-import {Link} from 'sentry/router/reactRouter';
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';

@@ -1,9 +1,9 @@
 import {useEffect} from 'react';
+import {Navigate, type NavigateProps, type RouteObject} from 'react-router-dom';
 import * as Sentry from '@sentry/react';
 
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {PRELOAD_HANDLE} from 'sentry/router/preload';
-import {Navigate, type NavigateProps, type RouteObject} from 'sentry/router/reactRouter';
 import type {SentryRouteObject} from 'sentry/router/types';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {useParams} from 'sentry/utils/useParams';

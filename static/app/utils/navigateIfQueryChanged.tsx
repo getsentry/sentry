@@ -1,7 +1,7 @@
+import type {NavigateOptions} from 'react-router-dom';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
-import type {NavigateOptions} from 'sentry/router/reactRouter';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
 interface NavigateTarget {

@@ -1,5 +1,6 @@
+import {matchRoutes, type RouteObject} from 'react-router-dom';
+
 import * as constants from 'sentry/constants';
-import {matchRoutes, type RouteObject} from 'sentry/router/reactRouter';
 import {buildRoutes} from 'sentry/router/routes';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';

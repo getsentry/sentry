@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useMemo} from 'react';
+import {useSearchParams} from 'react-router-dom';
 import {useQuery} from '@tanstack/react-query';
 import type {BarSeriesOption} from 'echarts';
 
@@ -8,7 +9,6 @@ import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {LoadingError} from 'sentry/components/loadingError';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {useSearchParams} from 'sentry/router/reactRouter';
 import type {Project, ProjectStats} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';

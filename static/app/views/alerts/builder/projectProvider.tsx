@@ -1,3 +1,4 @@
+import {Outlet, useOutletContext} from 'react-router-dom';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -5,7 +6,6 @@ import {Alert} from '@sentry/scraps/alert';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {Outlet, useOutletContext} from 'sentry/router/reactRouter';
 import type {Member} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';

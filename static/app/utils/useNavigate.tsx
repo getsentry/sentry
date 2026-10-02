@@ -1,10 +1,8 @@
 import {useCallback} from 'react';
+import {useNavigate as useReactRouterNavigate} from 'react-router-dom';
 import type {LocationDescriptor} from 'history';
 
-import {
-  useNavigate as useReactRouterNavigate,
-  type DataRouter,
-} from 'sentry/router/reactRouter';
+import {type DataRouter} from 'sentry/router/reactRouter';
 
 import {locationDescriptorToTo} from './reactRouter6Compat/location';
 

@@ -1,3 +1,4 @@
+import {Link} from 'react-router-dom';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
@@ -12,7 +13,6 @@ import {
 } from 'sentry/components/tables/gridEditable';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {Link} from 'sentry/router/reactRouter';
 import type {GroupOpenPeriodActivity} from 'sentry/types/group';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getShortEventId} from 'sentry/utils/events';

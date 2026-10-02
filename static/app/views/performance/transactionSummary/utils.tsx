@@ -1,7 +1,7 @@
+import type {UIMatch} from 'react-router-dom';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor, Query} from 'history';
 
-import type {UIMatch} from 'sentry/router/reactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {getDateFromTimestamp} from 'sentry/utils/dates';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';

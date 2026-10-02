@@ -1,6 +1,7 @@
+import {useMatches} from 'react-router-dom';
+
 import type {TrackingProps} from '@sentry/scraps/trackingContext';
 
-import {useMatches} from 'sentry/router/reactRouter';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';

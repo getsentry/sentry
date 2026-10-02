@@ -1,8 +1,8 @@
+import {useNavigate} from 'react-router-dom';
 import {useMutation} from '@tanstack/react-query';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
-import {useNavigate} from 'sentry/router/reactRouter';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
 import {fetchMutation} from 'sentry/utils/queryClient';

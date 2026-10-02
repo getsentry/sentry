@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {Outlet, useMatches} from 'react-router-dom';
 import {useQuery} from '@tanstack/react-query';
 
 import SeerConfigBug1 from 'sentry-images/spot/seer-config-bug-1.svg';
@@ -16,7 +17,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Redirect} from 'sentry/components/redirect';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {t, tct} from 'sentry/locale';
-import {Outlet, useMatches} from 'sentry/router/reactRouter';
 import type {Integration} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {orgNeedsSeerTrial} from 'sentry/utils/seer/orgNeedsSeerTrial';

@@ -1,11 +1,10 @@
+import type {UIMatch} from 'react-router-dom';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {ProjectFixture} from 'getsentry-test/fixtures/project';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
-
-import type {UIMatch} from 'sentry/router/reactRouter';
 
 import {
   DELAY_TIME_MS,

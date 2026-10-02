@@ -1,7 +1,7 @@
 import {createContext, useMemo} from 'react';
+import {useMatches} from 'react-router-dom';
 
 import {getOverride} from 'sentry/overrideRegistry';
-import {useMatches} from 'sentry/router/reactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {useLocation} from 'sentry/utils/useLocation';
 

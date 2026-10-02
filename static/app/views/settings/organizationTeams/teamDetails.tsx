@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {Outlet, useOutletContext} from 'react-router-dom';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -12,7 +13,6 @@ import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {Outlet, useOutletContext} from 'sentry/router/reactRouter';
 import type {Team} from 'sentry/types/organization';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';

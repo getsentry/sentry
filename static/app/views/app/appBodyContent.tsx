@@ -1,4 +1,4 @@
-import {Outlet} from 'sentry/router/reactRouter';
+import {Outlet} from 'react-router-dom';
 
 /**
  * Route component version that renders children via Outlet.

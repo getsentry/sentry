@@ -1,3 +1,4 @@
+import type {UIMatch} from 'react-router-dom';
 import type {Location} from 'history';
 
 import type {TrackingProps} from '@sentry/scraps/trackingContext';
@@ -9,7 +10,6 @@ import type {UseScmFeatureMetaResult} from 'sentry/components/onboarding/scm/use
 import type {InstallationInfo} from 'sentry/components/pipeline/integrationGitHub';
 import type {DateRange} from 'sentry/components/timeRangeSelector/dateRange';
 import type {SelectorItems} from 'sentry/components/timeRangeSelector/selectorItems';
-import type {UIMatch} from 'sentry/router/reactRouter';
 import type {SentryRouteObject} from 'sentry/router/types';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import type {UseReplayForCriticalFlowOptions} from 'sentry/utils/replays/useReplayForCriticalFlow';

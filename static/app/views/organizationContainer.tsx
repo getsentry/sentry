@@ -1,3 +1,4 @@
+import {Outlet} from 'react-router-dom';
 import {useProfiler} from '@sentry/react';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -8,7 +9,6 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
 import {t} from 'sentry/locale';
-import {Outlet} from 'sentry/router/reactRouter';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 

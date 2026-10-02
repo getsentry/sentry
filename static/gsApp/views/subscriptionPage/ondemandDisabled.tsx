@@ -1,7 +1,3 @@
-import {Alert} from '@sentry/scraps/alert';
-import {ExternalLink} from '@sentry/scraps/link';
-
-import {tct} from 'sentry/locale';
 /**
  * OnDemandDisabled is a component that displays an error alert when on-demand billing
  * has been disabled for an organization due to unpaid invoices.
@@ -28,7 +24,12 @@ import {tct} from 'sentry/locale';
  *   - onDemandDisabled: boolean indicating if on-demand billing is disabled
  *   - onDemandMaxSpend: number indicating maximum on-demand spend limit
  */
-import {NavLink} from 'sentry/router/reactRouter';
+import {NavLink} from 'react-router-dom';
+
+import {Alert} from '@sentry/scraps/alert';
+import {ExternalLink} from '@sentry/scraps/link';
+
+import {tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import {type Subscription} from 'getsentry/types';

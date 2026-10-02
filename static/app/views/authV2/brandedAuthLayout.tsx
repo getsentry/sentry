@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useLocation, useOutlet} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
@@ -9,7 +10,6 @@ import {BrandPageLayout} from 'sentry/components/brandPageLayout';
 import {InitialLoadingIndicator} from 'sentry/components/initialLoadingIndicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconSentry} from 'sentry/icons';
-import {useLocation, useOutlet} from 'sentry/router/reactRouter';
 
 import {BrandedAuthLoadingProvider} from './useBrandedAuthLoading';
 

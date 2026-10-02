@@ -1,3 +1,4 @@
+import {createMemoryRouter, RouterProvider} from 'react-router-dom';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {ProjectFixture} from 'getsentry-test/fixtures/project';
@@ -5,7 +6,6 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 
-import {createMemoryRouter, RouterProvider} from 'sentry/router/reactRouter';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 
 import {useButtonTracking} from 'getsentry/overrides/useButtonTracking';
@@ -49,7 +49,6 @@ describe('buttonTracking', () => {
           ],
           {initialEntries: [`/settings/${organization.slug}/${project.slug}/`]}
         )}
-        useTransitions={false}
       />
     </OrganizationContext>
   );
@@ -67,7 +66,6 @@ describe('buttonTracking', () => {
           ],
           {initialEntries: ['/auth/login/']}
         )}
-        useTransitions={false}
       />
     </OrganizationContext>
   );

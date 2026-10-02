@@ -1,3 +1,4 @@
+import {type LinkProps as ReactRouterLinkProps} from 'react-router-dom';
 import isPropValid from '@emotion/is-prop-valid';
 import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -6,8 +7,6 @@ import type {LocationDescriptor} from 'history';
 import type {ButtonVariant} from '@sentry/scraps/button/types';
 import {getTextStyles} from '@sentry/scraps/text/text';
 import {type AnalyticsProps, useClickTracking} from '@sentry/scraps/trackingContext';
-
-import {type LinkProps as ReactRouterLinkProps} from 'sentry/router/reactRouter';
 
 import {useLinkBehavior} from './linkBehaviorContext';
 

@@ -6,8 +6,8 @@ import {
   useLayoutEffect,
   useState,
 } from 'react';
+import {useMatches, type UIMatch} from 'react-router-dom';
 
-import {useMatches, type UIMatch} from 'sentry/router/reactRouter';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 
 type ExplicitTitleProps = {

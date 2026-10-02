@@ -1,10 +1,10 @@
 import {useMemo, useState} from 'react';
+import {Outlet} from 'react-router-dom';
 
 import {Stack} from '@sentry/scraps/layout';
 
 import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
 import {t} from 'sentry/locale';
-import {Outlet} from 'sentry/router/reactRouter';
 import type {RequestState} from 'sentry/types/core';
 import {
   isEventedProfile,
