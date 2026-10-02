@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {AvatarList} from '@sentry/scraps/avatar';
-import {Stack} from '@sentry/scraps/layout';
 
 import {QuickContextCommitRow} from 'sentry/components/discover/quickContextCommitRow';
 import {Panel} from 'sentry/components/panels/panel';
@@ -164,11 +163,9 @@ function LastCommit({commit}: {commit: NonNullable<ReleaseWithHealth['lastCommit
       <ContextHeader>
         <ContextTitle>{t('Last Commit')}</ContextTitle>
       </ContextHeader>
-      <Stack padding="0">
-        <Panel>
-          <QuickContextCommitRow commit={commit} />
-        </Panel>
-      </Stack>
+      <Panel>
+        <QuickContextCommitRow commit={commit} />
+      </Panel>
     </ReleaseContextContainer>
   );
 }

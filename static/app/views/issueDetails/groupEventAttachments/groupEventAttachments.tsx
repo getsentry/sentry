@@ -145,7 +145,7 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
   );
 
   return (
-    <Stack gap="xl" containerType="inline-size">
+    <Stack gap="xl">
       <Flex justify="between" align="center" wrap="wrap" gap="md">
         <Flex align="center" gap="md">
           <IconFilter size="xs" />

@@ -48,7 +48,7 @@ export function EventDataSection({
   ...props
 }: EventDataSectionProps) {
   return (
-    <Stack gap="md" ref={scrollToSection} className={className} padding="0" {...props}>
+    <Stack gap="md" ref={scrollToSection} className={className} {...props}>
       <Flex id={type} align="center" gap="xs" wrap="wrap">
         {title && (
           <Container flexGrow={1} padding="sm 0">
