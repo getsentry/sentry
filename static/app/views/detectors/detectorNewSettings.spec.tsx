@@ -1545,6 +1545,50 @@ describe('DetectorEdit', () => {
       );
     });
 
+    it('submits a typed interval schedule value as a number', async () => {
+      const mockCreateDetector = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        method: 'POST',
+        body: CronDetectorFixture({id: '999'}),
+      });
+
+      render(<DetectorNewSettings />, {
+        organization,
+        initialRouterConfig: cronRouterConfig,
+      });
+
+      await selectEvent.select(
+        await screen.findByRole('textbox', {name: 'Schedule Type'}),
+        'Interval'
+      );
+
+      const intervalValue = screen.getByRole('spinbutton', {name: 'Interval Frequency'});
+      await userEvent.clear(intervalValue);
+      await userEvent.type(intervalValue, '5');
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
+
+      await waitFor(() => {
+        expect(mockCreateDetector).toHaveBeenCalled();
+      });
+
+      expect(mockCreateDetector).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            dataSources: [
+              expect.objectContaining({
+                config: expect.objectContaining({
+                  schedule: [5, 'day'],
+                  schedule_type: 'interval',
+                }),
+              }),
+            ],
+          }),
+        })
+      );
+    });
+
     it('displays slug errors on the name field and in a toast', async () => {
       const errorMessage = 'The slug "new-test-cron-job" is already in use.';
       MockApiClient.addMockResponse({
