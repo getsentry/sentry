@@ -203,7 +203,11 @@ export default function OrganizationRepositories() {
       return [];
     }
     return integrationsQuery.data.filter(
-      i => i !== null && scmProviderKeys.includes(i.provider.key)
+      i =>
+        i !== null &&
+        i.organizationIntegrationStatus === 'active' &&
+        i.status === 'active' &&
+        scmProviderKeys.includes(i.provider.key)
     );
   }, [integrationsQuery.data, scmProviderKeys]);
 

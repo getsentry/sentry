@@ -426,6 +426,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         notes: str | None = None,
         send_nudge: bool = False,
         has_mentions_read_scope: bool = False,
+        workflow_id: int | None = None,
     ) -> None:
         super().__init__()
         self.group = group
@@ -443,6 +444,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.notes = notes
         self.send_nudge = send_nudge
         self.has_mentions_read_scope = has_mentions_read_scope
+        self.workflow_id = workflow_id
         self._has_autofix = SeerAutofixOperator.has_access(
             organization=self.group.organization, entrypoint_key=SeerEntrypointKey.SLACK
         ) and SeerAutofixOperator.can_trigger_autofix(group=self.group)
@@ -602,11 +604,15 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             has_action = False
 
         rule_id = None
+        workflow_id = self.workflow_id
         rule_environment_id = None
         key = "legacy_rule_id"
         if self.rules:
             key, value = get_rule_or_workflow_id(self.rules[0])
             rule_id = int(value)
+            action = self.rules[0].data.get("actions", [{}])[0]
+            if action.get("workflow_id") is not None:
+                workflow_id = int(action["workflow_id"])
 
             match key:
                 case "workflow_id":
@@ -661,6 +667,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         block_id = {"issue": self.group.id}
         if rule_id:
             block_id["rule"] = rule_id
+        if workflow_id:
+            block_id["workflow"] = workflow_id
 
         # build tags block
         tags = get_tags(event_for_tags=event_for_tags, tags=self.tags)

@@ -182,6 +182,12 @@ class TestEventAttributeCondition(ConditionTestCase):
         self.dc.save()
 
         self.dc.comparison.update(
+            {"match": MatchType.GREATER_OR_EQUAL, "attribute": "platform", "value": "php"}
+        )
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
+        self.dc.comparison.update(
             {"match": "invalid_match", "attribute": "platform", "value": "php"}
         )
         with pytest.raises(ValidationError):

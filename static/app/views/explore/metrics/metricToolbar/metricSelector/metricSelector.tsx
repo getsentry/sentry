@@ -9,7 +9,6 @@ import {mergeProps} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 import {useDebouncedValue} from '@tanstack/react-pacer';
-import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LeadWrap, ListWrap} from '@sentry/scraps/compactSelect';
@@ -21,6 +20,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconCheckmark, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -514,7 +514,7 @@ export function MetricSelector({
   );
   const focusedKey = comboBoxState.selectionManager.focusedKey;
 
-  const virtualizer = useVirtualizer({
+  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
     count: collectionItems.length,
     getScrollElement: () => scrollElementRef.current,
     estimateSize: () => METRIC_SELECTOR_OPTION_HEIGHT,
@@ -588,8 +588,6 @@ export function MetricSelector({
     },
     [updateSidePanelAnchorOffset]
   );
-
-  const virtualItems = virtualizer.getVirtualItems();
 
   // Fall back to rendering all items when the virtualizer can't measure
   // the scroll container (e.g. in tests where the DOM has no layout).
@@ -737,7 +735,7 @@ export function MetricSelector({
                         <Container
                           width="100%"
                           position="relative"
-                          style={{height: `${virtualizer.getTotalSize()}px`}}
+                          style={{height: `${totalSize}px`}}
                         >
                           <Container
                             width="100%"

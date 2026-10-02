@@ -10,7 +10,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SPAN_ID_DISPLAY_LENGTH} from 'sentry/views/insights/http/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {ModuleName} from 'sentry/views/insights/types';
-import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import type {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
 
 interface Props {
   location: Location;

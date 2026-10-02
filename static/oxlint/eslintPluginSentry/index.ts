@@ -19,6 +19,7 @@ import {noStaticTranslations} from './noStaticTranslations.ts';
 import {noStyledShortcut} from './noStyledShortcut.ts';
 import {noUnnecessaryUseCallback} from './noUnnecessaryUseCallback.ts';
 import {noUselessCssInterpolationSemicolon} from './noUselessCssInterpolationSemicolon.ts';
+import {preferReactComponent} from './preferReactComponent.ts';
 import {sortInterfaceKeys} from './sortInterfaceKeys.ts';
 
 export const rules = {
@@ -36,9 +37,10 @@ export const rules = {
   'no-relative-import-paths': noRelativeImportPaths,
   'no-static-translations': noStaticTranslations,
   'no-styled-shortcut': noStyledShortcut,
-  'no-useless-css-interpolation-semicolon': noUselessCssInterpolationSemicolon,
   'no-unnecessary-use-callback': noUnnecessaryUseCallback,
+  'no-useless-css-interpolation-semicolon': noUselessCssInterpolationSemicolon,
   'no-vanilla-emotion': noVanillaEmotion,
+  'prefer-react-component': preferReactComponent,
   'sort-interface-keys': sortInterfaceKeys,
 };
 

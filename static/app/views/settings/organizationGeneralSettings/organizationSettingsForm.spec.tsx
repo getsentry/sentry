@@ -9,6 +9,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import * as RegionUtils from 'sentry/utils/cells';
 import {OrganizationSettingsForm} from 'sentry/views/settings/organizationGeneralSettings/organizationSettingsForm';
@@ -41,6 +42,10 @@ describe('OrganizationSettingsForm', () => {
       body: [{user: UserFixture()}],
     });
     onSave.mockReset();
+  });
+
+  afterEach(() => {
+    ConfigStore.set('isSelfHosted', false);
   });
 
   it('can change a form field', async () => {
@@ -183,7 +188,7 @@ describe('OrganizationSettingsForm', () => {
     // initialData.hideAiFeatures = false (default) → switch starts OFF
     render(
       <OrganizationSettingsForm initialData={OrganizationFixture()} onSave={onSave} />,
-      {organization: {...organization, features: ['gen-ai-features']}}
+      {organization}
     );
     const mock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
@@ -216,7 +221,7 @@ describe('OrganizationSettingsForm', () => {
         initialData={OrganizationFixture({hideAiFeatures: true})}
         onSave={onSave}
       />,
-      {organization: {...organization, features: ['gen-ai-features']}}
+      {organization}
     );
     const mock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
@@ -254,7 +259,7 @@ describe('OrganizationSettingsForm', () => {
       {
         organization: {
           ...organization,
-          features: ['autofix', 'gen-ai-features'],
+          features: ['autofix'],
         },
       }
     );
@@ -263,15 +268,11 @@ describe('OrganizationSettingsForm', () => {
     expect(toggle).toBeEnabled();
   });
 
-  it('disables "Show Generative AI Features" toggle when feature flag is off', () => {
+  it('disables "Show Generative AI Features" toggle when self-hosted', () => {
+    ConfigStore.set('isSelfHosted', true);
     render(
       <OrganizationSettingsForm initialData={OrganizationFixture()} onSave={onSave} />,
-      {
-        organization: {
-          ...organization,
-          features: [], // No gen-ai-features flag
-        },
-      }
+      {organization}
     );
 
     const checkbox = screen.getByRole('checkbox', {

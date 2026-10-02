@@ -66,7 +66,7 @@ from sentry.issues.action_log import (
     resolve_action_actor,
 )
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange, post_bulk_create
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequestLifecycleState
@@ -776,9 +776,7 @@ class PushEventWebhook(GitHubWebhook):
                         if commit_author is not None:
                             authors[author_email] = commit_author
 
-            # TODO(dcramer): we need to deal with bad values here, but since
-            # its optional, lets just throw it out for now
-            if len(author_email) > 75:
+            if len(author_email) > COMMIT_AUTHOR_EMAIL_LENGTH:
                 author = None
             else:
                 if author_email not in authors:
@@ -1276,7 +1274,7 @@ class PullRequestEventWebhook(GitHubWebhook):
                         "provider_updated_at": provider_updated_at,
                         "state": state,
                         "draft": draft,
-                        "external_id": pull_request["id"],
+                        "external_id": str(pull_request["id"]),
                     },
                     event_state=state,
                     event_updated_at=provider_updated_at,
@@ -1530,9 +1528,9 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
                     github_delivery_id=github_delivery_id,
                 )
 
-        # Publish the request to the unified SCM (source control management) subscription's
-        # platform. This is a replacement for the handlers defined above. Handlers should be
-        # defined as consumers of the SCM subscriptions Kafka topic.
+        # Publish the request to the unified SCM event stream, which normalizes the event
+        # and dispatches a Taskbroker task for each registered listener. New handlers should
+        # register with scm_event_stream and be imported in sentry/scm/stream.py.
         #
         # NOTE: Publication of the event assumes the event has been properly authorized (as it has
         #       been above).

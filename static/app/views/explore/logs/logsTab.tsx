@@ -511,6 +511,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
                   <LogsDirectExportModalButton
                     isLoading={tableData.isPending}
                     tableData={tableData.data}
+                    timeseriesIngestDelay={timeseriesIngestDelay}
                     error={tableData.error}
                   />
                 )}
