@@ -9,12 +9,13 @@ import {
   type DropdownMenuProps,
   type MenuItemProps,
 } from '@sentry/scraps/dropdownMenu';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Markdown, markdownRendersVisibleContent} from '@sentry/scraps/markdown';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
@@ -25,7 +26,6 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {type LazyRenderProps} from 'sentry/components/lazyRender';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {StructuredData} from 'sentry/components/structuredEventData';
@@ -89,13 +89,13 @@ import {
 } from './durationComparison';
 import type {KeyValueActionParams, TraceDrawerActionKind} from './utils';
 
-const BodyContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  height: calc(100% - 52px);
-  overflow-y: auto;
-  overflow-x: hidden;
-`;
+function BodyContainer({children}: PropsWithChildren) {
+  return (
+    <Stack height="calc(100% - 52px)" overflowY="auto" overflowX="hidden">
+      {children}
+    </Stack>
+  );
+}
 
 const DetailContainer = styled('div')`
   ${traceGridCssVariables}
@@ -149,8 +149,12 @@ function SubtitleWithCopyButton({
   subTitle: string;
 }) {
   return (
-    <SubTitleWrapper>
-      <StyledSubTitleText>{subTitle}</StyledSubTitleText>
+    <Flex align="center" width="100%">
+      <Container minWidth="0">
+        <Text as="div" size="md" variant="secondary" ellipsis>
+          {subTitle}
+        </Text>
+      </Container>
       {clipboardText ? (
         <CopyToClipboardButton
           aria-label={t('Copy to clipboard')}
@@ -160,22 +164,9 @@ function SubtitleWithCopyButton({
           tooltipProps={{disabled: true}}
         />
       ) : null}
-    </SubTitleWrapper>
+    </Flex>
   );
 }
-
-const SubTitleWrapper = styled(FlexBox)`
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const StyledSubTitleText = styled('span')`
-  font-size: ${p => p.theme.font.size.md};
-  color: ${p => p.theme.tokens.content.secondary};
-`;
 
 function TitleOp({text}: {text: string}) {
   return (
@@ -381,8 +372,8 @@ function Highlights({
   );
 
   return (
-    <Fragment>
-      <HighlightsWrapper>
+    <Stack gap="xl" padding="md 0">
+      <Flex align="stretch" gap="md" width="100%">
         <Stack justify="center" align="center" gap="xs">
           <Tooltip title={node.projectSlug}>
             <ProjectBadge
@@ -395,61 +386,82 @@ function Highlights({
             <Separator orientation="vertical" />
           </Flex>
         </Stack>
-        <Stack justify="left" flex="1" height="100%" overflow="hidden">
-          <HighlightOp>{node.op}</HighlightOp>
-          <HighlightsDurationWrapper>
-            <HighlightDuration>
-              {getDuration(durationInSeconds, 2, true)}
-            </HighlightDuration>
-            {comparison && comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
-              <HiglightsDurationComparison status={comparison.status}>
-                {comparison.deltaText}
-              </HiglightsDurationComparison>
+        <Stack justify="left" flex="1" height="100%" overflow="hidden" gap="md">
+          <Stack>
+            <Text as="div" size="md" bold>
+              {node.op}
+            </Text>
+            <Flex align="center" gap="md">
+              <Text as="div" size="xl">
+                {getDuration(durationInSeconds, 2, true)}
+              </Text>
+              {comparison && comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
+                <HiglightsDurationComparison status={comparison.status}>
+                  {comparison.deltaText}
+                </HiglightsDurationComparison>
+              ) : null}
+            </Flex>
+          </Stack>
+          <Stack gap="lg">
+            {highlightedAttributes && highlightedAttributes.length > 0 ? (
+              <Grid columns="max-content minmax(0, 1fr)" gap="xs lg">
+                {highlightedAttributes.map(({name, value}) => (
+                  <Fragment key={name}>
+                    <Text as="div" variant="secondary">
+                      {name}
+                    </Text>
+                    <Text as="div" size="md">
+                      {value}
+                    </Text>
+                  </Fragment>
+                ))}
+              </Grid>
             ) : null}
-          </HighlightsDurationWrapper>
-          {highlightedAttributes && highlightedAttributes.length > 0 ? (
-            <HighlightedAttributesWrapper>
-              {highlightedAttributes.map(({name, value}) => (
-                <Fragment key={name}>
-                  <HighlightedAttributeName>{name}</HighlightedAttributeName>
-                  <div>{value}</div>
-                </Fragment>
-              ))}
-            </HighlightedAttributesWrapper>
-          ) : null}
-          {isAiNode && !hideNodeActions && (
-            <OpenInAIFocusButton
-              size="xs"
-              onClick={() => {
-                trackAnalytics('agent-monitoring.view-ai-trace-click', {
-                  organization,
-                });
-              }}
-              to={{
-                ...location,
-                query: {
-                  ...location.query,
-                  tab: TraceLayoutTabKeys.AI_SPANS,
-                },
-              }}
-            >
-              {t('Open Agent Activity')}
-            </OpenInAIFocusButton>
-          )}
-          {!hidePanelAndBreakdown && (
-            <Fragment>
-              <StyledPanel>
-                <StyledPanelHeader>{headerContent}</StyledPanelHeader>
-                <PanelBody>{bodyContent}</PanelBody>
-              </StyledPanel>
-              {footerContent}
-            </Fragment>
-          )}
+            {isAiNode && !hideNodeActions && (
+              <Container alignSelf="start">
+                <LinkButton
+                  size="xs"
+                  onClick={() => {
+                    trackAnalytics('agent-monitoring.view-ai-trace-click', {
+                      organization,
+                    });
+                  }}
+                  to={{
+                    ...location,
+                    query: {
+                      ...location.query,
+                      tab: TraceLayoutTabKeys.AI_SPANS,
+                    },
+                  }}
+                >
+                  {t('Open Agent Activity')}
+                </LinkButton>
+              </Container>
+            )}
+            {!hidePanelAndBreakdown && (
+              <Container>
+                <StyledPanel>
+                  <Flex
+                    align="center"
+                    justify="between"
+                    borderBottom="primary"
+                    radius="md md 0 0"
+                    background="secondary"
+                    position="relative"
+                    overflow="hidden"
+                  >
+                    {headerContent}
+                  </Flex>
+                  <PanelBody>{bodyContent}</PanelBody>
+                </StyledPanel>
+                {footerContent}
+              </Container>
+            )}
+          </Stack>
         </Stack>
-      </HighlightsWrapper>
-      {/* margin (deprecated) kept for parity with surrounding margin-based sections in BodyContainer */}
-      <Separator orientation="horizontal" margin="md 0" border="muted" />
-    </Fragment>
+      </Flex>
+      <Separator orientation="horizontal" border="muted" />
+    </Stack>
   );
 }
 
@@ -463,10 +475,10 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
   const dispatch = useTraceStateDispatch();
 
   return (
-    <HighlightsOpsBreakdownWrapper>
-      <HighlightsSpanCount>
+    <Stack align="start" gap="xs" marginTop="lg">
+      <Text as="div" size="md">
         {t('Most frequent span ops for this transaction are')}
-      </HighlightsSpanCount>
+      </Text>
       <Flex wrap="wrap" gap="md">
         {breakdown.slice(0, 3).map(currOp => {
           const {name, percentage} = currOp;
@@ -476,7 +488,10 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
           const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
 
           return (
-            <HighlightsOpRow
+            <Flex
+              align="center"
+              gap="xs"
+              cursor="pointer"
               key={operationName}
               onClick={() =>
                 dispatch({
@@ -487,13 +502,17 @@ function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
               }
             >
               <StyledIconCircleFill size="xs" fill={color} />
-              {operationName}
-              <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
-            </HighlightsOpRow>
+              <Text as="span" size="md">
+                {operationName}
+              </Text>
+              <Text as="div" size="md" variant="secondary">
+                {pctLabel}%
+              </Text>
+            </Flex>
           );
         })}
       </Flex>
-    </HighlightsOpsBreakdownWrapper>
+    </Stack>
   );
 }
 
@@ -524,8 +543,10 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
   }
 
   return (
-    <HighlightsOpsBreakdownWrapper>
-      <HighlightsSpanCount>{t('Most frequent child span ops are:')}</HighlightsSpanCount>
+    <Stack align="start" gap="xs" marginTop="lg">
+      <Text as="div" size="md">
+        {t('Most frequent child span ops are:')}
+      </Text>
       <Flex wrap="wrap" gap="md">
         {displayOps.map(currOp => {
           const operationName = currOp.op;
@@ -533,7 +554,10 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
           const pctLabel = Math.round(currOp.percentage);
 
           return (
-            <HighlightsOpRow
+            <Flex
+              align="center"
+              gap="xs"
+              cursor="pointer"
               key={operationName}
               onClick={() =>
                 dispatch({
@@ -544,40 +568,22 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
               }
             >
               <StyledIconCircleFill size="xs" fill={color} />
-              {operationName}
-              <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
-            </HighlightsOpRow>
+              <Text as="span" size="md">
+                {operationName}
+              </Text>
+              <Text as="div" size="md" variant="secondary">
+                {pctLabel}%
+              </Text>
+            </Flex>
           );
         })}
       </Flex>
-    </HighlightsOpsBreakdownWrapper>
+    </Stack>
   );
 }
 
 const StyledIconCircleFill = styled(IconCircleFill)<{fill: string}>`
   fill: ${p => p.fill};
-`;
-
-const HighlightsOpPct = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: 14px;
-`;
-
-const HighlightsSpanCount = styled('div')`
-  margin-bottom: ${p => p.theme.space['2xs']};
-`;
-
-const HighlightsOpRow = styled(FlexBox)`
-  font-size: 13px;
-  gap: ${p => p.theme.space.xs};
-  cursor: pointer;
-`;
-
-const HighlightsOpsBreakdownWrapper = styled(FlexBox)`
-  align-items: flex-start;
-  flex-direction: column;
-  gap: ${p => p.theme.space['2xs']};
-  margin-top: ${p => p.theme.space.lg};
 `;
 
 const HiglightsDurationComparison = styled('div')<
@@ -592,57 +598,6 @@ const HiglightsDurationComparison = styled('div')<
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
   display: inline-block;
   height: 21px;
-`;
-
-const HighlightsDurationWrapper = styled(FlexBox)`
-  gap: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
-const HighlightDuration = styled('div')`
-  font-size: ${p => p.theme.font.size.xl};
-  font-weight: 400;
-`;
-
-const HighlightOp = styled('div')`
-  font-weight: bold;
-  font-size: ${p => p.theme.font.size.md};
-  line-height: normal;
-`;
-
-const HighlightedAttributesWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  column-gap: ${p => p.theme.space.lg};
-  row-gap: ${p => p.theme.space.xs};
-  font-size: ${p => p.theme.font.size.md};
-  &:not(:last-child) {
-    margin-bottom: ${p => p.theme.space.lg};
-  }
-`;
-
-const HighlightedAttributeName = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const OpenInAIFocusButton = styled(LinkButton)`
-  width: max-content;
-`;
-
-const StyledPanelHeader = styled(PanelHeader)`
-  font-weight: normal;
-  padding: 0;
-  line-height: normal;
-  text-transform: none;
-  overflow: hidden;
-`;
-
-const HighlightsWrapper = styled('div')`
-  display: flex;
-  align-items: stretch;
-  gap: ${p => p.theme.space.md};
-  width: 100%;
-  margin: ${p => p.theme.space.md} 0;
 `;
 
 function IssuesLink({
@@ -1066,8 +1021,8 @@ function SectionCardGroup({children}: {children: React.ReactNode}) {
 
 function CopyableCardValueWithLink({value}: {value: React.ReactNode}) {
   return (
-    <CardValueContainer>
-      <CardValueText>
+    <Flex align="center" justify="between" gap="md" wrap="wrap">
+      <Text as="span" wordBreak="break-word">
         {value}
         {typeof value === 'string' ? (
           <StyledCopyToClipboardButton
@@ -1077,8 +1032,8 @@ function CopyableCardValueWithLink({value}: {value: React.ReactNode}) {
             aria-label={t('Copy to clipboard')}
           />
         ) : null}
-      </CardValueText>
-    </CardValueContainer>
+      </Text>
+    </Flex>
   );
 }
 
@@ -1103,16 +1058,6 @@ function TraceDataSection({event}: {event: EventTransaction}) {
 
 const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
   transform: translateY(2px);
-`;
-
-const CardValueContainer = styled(FlexBox)`
-  justify-content: space-between;
-  gap: ${p => p.theme.space.md};
-  flex-wrap: wrap;
-`;
-
-const CardValueText = styled('span')`
-  overflow-wrap: anywhere;
 `;
 
 function MultilineText({
