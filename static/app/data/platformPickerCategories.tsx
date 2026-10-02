@@ -184,13 +184,6 @@ export const createablePlatforms = new Set<PlatformKey>([
   ...serverless,
 ]);
 
-/**
- * Additional aliases used for filtering in the platform picker
- */
-export const filterAliases: Partial<Record<PlatformKey, string[]>> = {
-  native: ['cpp', 'c++'],
-};
-
 export const categoryList = [
   {id: 'popular', name: t('Popular'), platforms: popularPlatformCategories},
   {id: 'browser', name: t('Browser'), platforms: browser},
@@ -209,3 +202,5 @@ export const categoryList = [
     platforms: createablePlatforms,
   },
 ];
+
+export type Category = (typeof categoryList)[number]['id'];
