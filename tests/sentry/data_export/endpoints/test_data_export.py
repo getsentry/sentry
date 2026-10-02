@@ -615,9 +615,7 @@ class DataExportTest(APITestCase):
             )
         assert response.status_code == 400, response.content
         assert json.loads(response.content) == {
-            "non_field_errors": [
-                "The requested time range is outside your data retention period."
-            ]
+            "non_field_errors": ["The requested time range is outside your data retention period."]
         }
         assert not ExportedData.objects.filter(organization=self.org).exists()
 
