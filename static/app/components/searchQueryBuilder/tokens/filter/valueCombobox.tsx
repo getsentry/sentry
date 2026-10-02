@@ -29,6 +29,7 @@ import {
   type CustomComboboxMenu,
   type CustomComboboxMenuProps,
 } from 'sentry/components/searchQueryBuilder/tokens/combobox';
+import {renderRegexPattern} from 'sentry/components/searchQueryBuilder/tokens/filter/highlightedRegexPattern';
 import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
 import {RegexDelimiter} from 'sentry/components/searchQueryBuilder/tokens/filter/regexDelimiter';
 import {SpecificDatePicker} from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
@@ -870,9 +871,14 @@ export function SearchQueryBuilderValueCombobox({
     // a long neighbouring chip can't keep it off-screen.
     const containerRect = container.getBoundingClientRect();
     const inputRect = input.getBoundingClientRect();
+    // An input wider than the row can't be brought fully into view.
+    const isWiderThanRow = inputRect.width > containerRect.width;
+    if (isWiderThanRow && input.selectionStart !== input.value.length) {
+      return;
+    }
     if (inputRect.right > containerRect.right) {
       container.scrollLeft += inputRect.right - containerRect.right;
-    } else if (inputRect.left < containerRect.left) {
+    } else if (inputRect.left < containerRect.left && !isWiderThanRow) {
       container.scrollLeft -= containerRect.left - inputRect.left;
     }
   }, []);
@@ -1431,6 +1437,7 @@ export function SearchQueryBuilderValueCombobox({
         inputValue={inputValue}
         filterValue={filterValue}
         placeholder={placeholder}
+        renderInputValue={isRegexValue ? renderRegexPattern : undefined}
         token={token}
         inputLabel={t('Edit filter value')}
         keepVisibleRef={ref}
@@ -1477,6 +1484,7 @@ export function SearchQueryBuilderValueCombobox({
         <RegexDelimiter key="regex-end" onMouseDown={focusInputFromDelimiter} />,
       ]
     : [...chips.slice(0, inputSlot), valueInput, ...chips.slice(inputSlot)];
+  const rowScrolls = canSelectMultipleValues || isRegexValue;
 
   return (
     <ValueComboboxContext.Provider value={valueComboboxContextValue}>
@@ -1486,8 +1494,8 @@ export function SearchQueryBuilderValueCombobox({
           gap="2xs"
           minWidth="0"
           height="100%"
-          overflowX={canSelectMultipleValues ? 'auto' : undefined}
-          overflowY={canSelectMultipleValues ? 'hidden' : undefined}
+          overflowX={rowScrolls ? 'auto' : undefined}
+          overflowY={rowScrolls ? 'hidden' : undefined}
           ref={ref}
           data-test-id="filter-value-editing"
         >

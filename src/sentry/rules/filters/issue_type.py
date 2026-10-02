@@ -1,13 +1,9 @@
 from collections import OrderedDict
-from typing import Any
 
 from django import forms
 
 from sentry.issues import grouptype
-from sentry.models.group import Group
-from sentry.rules import EventState
 from sentry.rules.filters import EventFilter
-from sentry.services.eventstore.models import GroupEvent
 
 
 def get_type_choices() -> list[tuple[str, str]]:
@@ -46,28 +42,6 @@ class IssueTypeFilter(EventFilter):
             },
             "value": {"type": "choice", "choices": get_type_choices()},
         }
-
-    def _passes(self, group: Group) -> bool:
-        try:
-            comparison_value = self.get_option("value")
-            if not isinstance(comparison_value, str):
-                return False
-            value = grouptype.registry.get_by_slug(comparison_value)
-            if value is None:
-                return False
-        except (TypeError, KeyError):
-            return False
-
-        include_type = self.get_option("include", "true") != "false"
-
-        if group:
-            type_matches = group.issue_type == value
-            return type_matches if include_type else not type_matches
-
-        return False
-
-    def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
-        return self._passes(event.group)
 
     def render_label(self) -> str:
         value = self.data["value"]

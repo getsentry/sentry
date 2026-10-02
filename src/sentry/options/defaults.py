@@ -2831,6 +2831,14 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Sends relay a quota that limits each monitor environment to
+# `crons.per_monitor_rate_limit` check-ins per minute.
+register(
+    "crons.per_monitor_relay_quota.enabled",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Deterministic % of check-ins that use the seat-acceptance timeout wrapper.
 # Keyed on project id. Default 0.0 so deploy is a no-op until dialed up via
 # sentry-options-automator.
@@ -4252,12 +4260,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "warmup.url_resolver.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Cap on consecutive automated PR iterations (check suites + bot re-reviews);
 # human feedback resets the streak. See ``automated_iteration_cap_reached``.
