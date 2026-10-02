@@ -142,15 +142,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
               columns={{zero: '1fr 0.5fr', sm: '1fr 1fr 0.5fr'}}
               rows={{zero: 'auto auto', sm: 'auto'}}
               justifyItems="start"
-              css={theme => css`
-                @container (width < ${theme.container.sm}) {
-                  /* Move suspect label to second row, spanning full width */
-                  .suspect-label {
-                    grid-column: 1 / -1;
-                    grid-row: 2;
-                  }
-                }
-
+              css={css`
                 .invisible {
                   visibility: hidden;
                 }
@@ -164,9 +156,14 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
             >
               {f.result.toString()}
               {suspectFlagNames.has(f.flag) && (
-                <Text as="div" variant="secondary" className="suspect-label">
-                  {t('Suspect')}
-                </Text>
+                <Container
+                  column={{zero: '1 / -1', sm: 'auto'}}
+                  row={{zero: '2', sm: 'auto'}}
+                >
+                  <Text as="div" variant="secondary">
+                    {t('Suspect')}
+                  </Text>
+                </Container>
               )}
               <FlagActionDropdown
                 flag={f.flag}
