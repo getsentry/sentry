@@ -73,7 +73,7 @@ export function Screenshot({
 
   const AttachmentComponent = webmMimeTypes.includes(screenshot.mimetype)
     ? VideoViewer
-    : StyledImageViewer;
+    : ImageViewer;
   const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${screenshot.id}/`;
 
   return (
@@ -234,8 +234,7 @@ const AttachmentComponentWrapper = styled('div')`
   :hover {
     cursor: pointer;
   }
-`;
-
-const StyledImageViewer = styled(ImageViewer)`
-  width: 100%;
+  & > * {
+    width: 100%;
+  }
 `;
