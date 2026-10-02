@@ -618,7 +618,7 @@ class AgentTokenAuthentication(StandardAuthentication):
     The agent credential remains the authorization authority. A non-authoritative,
     ephemeral copy of the delegating user is returned only for compatibility with
     callsites that still require ``request.user``; API access is derived from the
-    delegating member and capped by the token in ``access.from_agent_auth``."""
+    delegating member or approved superuser context, capped by the token."""
 
     token_name = b"bearer"
 
@@ -661,7 +661,12 @@ class AgentTokenAuthentication(StandardAuthentication):
             fail("no_user_principal", org_id=auth_token.organization_id)
 
         # The delegating user must still be valid even though they are not the request user.
-        user = user_service.get_user(user_id=user_id)
+        if auth_token.superuser_access_expires_at is not None:
+            # Non-members do not necessarily receive this cell's user-cache invalidations.
+            users = user_service.get_many(filter={"user_ids": [user_id]})
+            user = users[0] if users else None
+        else:
+            user = user_service.get_user(user_id=user_id)
         if user is None:
             fail("user_not_found", user_id=user_id)
         if not user.is_active:
@@ -677,7 +682,13 @@ class AgentTokenAuthentication(StandardAuthentication):
         )
         if org_context is None:
             fail("org_context_missing", user_id=user_id, org_id=auth_token.organization_id)
-        if org_context.member is None:
+        if auth_token.superuser_access_expires_at is not None:
+            if (
+                resolve_superuser_access(auth_token.superuser_access_expires_at, user, org_context)
+                is None
+            ):
+                fail("superuser_access_invalid", user_id=user_id)
+        elif org_context.member is None:
             fail("org_membership_missing", user_id=user_id, org_id=auth_token.organization_id)
         if not features.has(
             agent_token.FEATURE_FLAG,
