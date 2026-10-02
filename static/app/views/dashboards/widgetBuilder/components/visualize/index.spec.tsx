@@ -890,6 +890,37 @@ describe('Visualize', () => {
     expect(screen.queryByText('this field has an error')).not.toBeInTheDocument();
   });
 
+  it('does not throw when error.queries is a string instead of an array', async () => {
+    // flattenErrors() flattens array-of-string API errors into a plain string,
+    // so error.queries may arrive as a string. The component must not call .find()
+    // on it.
+    render(
+      <WidgetBuilderProvider>
+        <Visualize
+          error={{
+            queries: 'some validation error' as any,
+          }}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+            query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.LINE},
+          },
+          route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+        },
+      }
+    );
+
+    // The component should render without throwing a 'not a function' TypeError.
+    // Verify no query-level error text is rendered from the string value.
+    await waitFor(() => {
+      expect(screen.queryByText('some validation error')).not.toBeInTheDocument();
+    });
+  });
+
   it('shows radio buttons for big number widgets when there are multiple aggregates', async () => {
     render(
       <WidgetBuilderProvider>
