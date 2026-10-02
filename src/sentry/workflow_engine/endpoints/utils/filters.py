@@ -25,6 +25,12 @@ if TYPE_CHECKING:
     from sentry.users.services.user.model import RpcUser
 
 
+_API_OPERATIONS_BY_NAME: dict[str | None, DetectorAPIOperation] = {
+    operation.value: operation for operation in DetectorAPIOperation
+}
+_API_OPERATIONS_BY_NAME["HEAD"] = DetectorAPIOperation.GET
+
+
 def _api_gate_enabled(
     gate: APIGate,
     organization: Organization,
@@ -42,36 +48,28 @@ def get_excluded_detector_types(
     actor: User | RpcUser | AnonymousUser | None = None,
 ) -> list[str]:
     """Resolve detector-platform API gates for the current request, without fetching rows."""
-    if operation == "HEAD":
-        operation = DetectorAPIOperation.GET
-
     required_operations: tuple[DetectorAPIOperation, ...]
-    if operation is None:
-        required_operations = ()
-    else:
-        try:
-            operation = DetectorAPIOperation(operation)
-        except ValueError:
-            # Leave unsupported verbs to endpoint dispatch; only the global gate applies.
+    match _API_OPERATIONS_BY_NAME.get(operation):
+        case DetectorAPIOperation.LIST:
+            required_operations = (DetectorAPIOperation.GET, DetectorAPIOperation.LIST)
+        case None:
             required_operations = ()
-        else:
-            required_operations = (
-                (DetectorAPIOperation.GET, DetectorAPIOperation.LIST)
-                if operation == DetectorAPIOperation.LIST
-                else (operation,)
-            )
+        case normalized_operation:
+            required_operations = (normalized_operation,)
 
-    return [
-        detector_type
-        for detector_type, settings in detector_settings_registry.registrations.items()
-        if not _api_gate_enabled(settings.api_enabled, organization, actor)
-        or not all(
-            _api_gate_enabled(
-                settings.api_availability.get(required_operation, True), organization, actor
-            )
-            for required_operation in required_operations
-        )
-    ]
+    excluded_types = []
+    for detector_type, settings in detector_settings_registry.registrations.items():
+        if not _api_gate_enabled(settings.api_enabled, organization, actor):
+            excluded_types.append(detector_type)
+            continue
+
+        for required_operation in required_operations:
+            gate = settings.api_availability.get(required_operation, True)
+            if not _api_gate_enabled(gate, organization, actor):
+                excluded_types.append(detector_type)
+                break
+
+    return excluded_types
 
 
 def exclude_disallowed_metric_detectors(
