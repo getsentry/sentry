@@ -6,7 +6,7 @@ from typing import NamedTuple
 
 DEFAULT_PREFIX_CAP = 200
 _SLASH = "/"
-_APP_SCHEME = "app:///"
+_BACKSLASH = "\\"
 
 
 class RankedPrefix(NamedTuple):
@@ -15,17 +15,13 @@ class RankedPrefix(NamedTuple):
 
 
 def directory_prefixes(path: str) -> list[str]:
-    normalized = _normalize_separators(path)
-    scheme, remainder = _peel_scheme(normalized)
-    directories = _directory_segments(remainder)
-
-    prefixes: list[str] = []
-    built: list[str] = []
-    for segment in directories:
-        built.append(segment)
-        prefixes.append(_SLASH.join(built) + _SLASH)
+    scheme, remainder = _peel_scheme(path)
+    sep = _detect_separator(remainder)
+    prefixes = _prefix_slices(remainder, sep)
 
     if scheme:
+        # Emit the bare scheme first; prepend it to each later prefix so each
+        # result is a literal slice of the original frame path.
         return [scheme] + [scheme + p for p in prefixes]
     return prefixes
 
@@ -36,39 +32,45 @@ def rank_directory_prefixes(
     counts: Counter[str] = Counter()
     seen: set[str] = set()
     for path in paths:
-        normalized = _normalize_separators(path)
-        if normalized in seen:
+        # src/foo.py and src\foo.py are different stack roots; treat as distinct.
+        if path in seen:
             continue
-        seen.add(normalized)
-        counts.update(directory_prefixes(normalized))
+        seen.add(path)
+        counts.update(directory_prefixes(path))
 
     ranked = sorted(counts.items(), key=_rank_key)
     return [RankedPrefix(path, count) for path, count in ranked[:cap]]
 
 
-def _normalize_separators(path: str) -> str:
-    return path.replace("\\", _SLASH)
-
-
 def _peel_scheme(path: str) -> tuple[str, str]:
-    if path.startswith(_APP_SCHEME):
-        return _APP_SCHEME, path[len(_APP_SCHEME) :]
+    # Cuts inside scheme:/// (e.g. app:/, webpack:/) are not valid prefix options.
+    idx = path.find(":///")
+    if idx > 0:
+        scheme = path[: idx + 4]
+        return scheme, path[idx + 4 :]
     return "", path
 
 
-def _directory_segments(path: str) -> list[str]:
-    normalized = _normalize_separators(path)
-    absolute = normalized.startswith(_SLASH)
-    segments = [segment for segment in normalized.split(_SLASH) if segment]
-    if len(segments) <= 1:
-        return []
+def _detect_separator(path: str) -> str:
+    # Keep the path's own separator so each prefix is a literal slice of the
+    # original frame, which is what startswith checks in code_mapping.py.
+    return _SLASH if _SLASH in path else _BACKSLASH
 
-    directories = segments[:-1]
-    if absolute:
-        directories[0] = f"{_SLASH}{directories[0]}"
-    return directories
+
+def _prefix_slices(path: str, sep: str) -> list[str]:
+    prefixes = []
+    for i, ch in enumerate(path):
+        if ch != sep:
+            continue
+        prefix = path[: i + 1]
+        # Skip a prefix made entirely of separators — no directory content to suggest.
+        if prefix.strip(sep):
+            prefixes.append(prefix)
+    return prefixes
 
 
 def _rank_key(item: tuple[str, int]) -> tuple[int, int, str]:
     path, count = item
-    return (-count, path.count(_SLASH), path)
+    # Count both separators so src\foo\ ranks deeper than src\ when counts tie.
+    depth = path.count(_SLASH) + path.count(_BACKSLASH)
+    return (-count, depth, path)

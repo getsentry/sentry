@@ -26,7 +26,10 @@ class TestDirectoryPrefixes:
         assert directory_prefixes("") == []
 
     def test_windows_separators(self) -> None:
-        assert directory_prefixes("src\\foo\\bar.py") == ["src/", "src/foo/"]
+        result = directory_prefixes("src\\foo\\bar.py")
+        assert result == ["src\\", "src\\foo\\"]
+        assert "src\\foo\\bar.py".startswith(result[0])
+        assert "src\\foo\\bar.py".startswith(result[1])
 
     def test_root_file_has_no_prefix(self) -> None:
         assert directory_prefixes("/foo.py") == []
@@ -38,6 +41,21 @@ class TestDirectoryPrefixes:
 
     def test_app_scheme_file_at_root(self) -> None:
         assert directory_prefixes("app:///index.tsx") == ["app:///"]
+
+    def test_webpack_scheme(self) -> None:
+        result = directory_prefixes("webpack:///src/index.js")
+        assert result == ["webpack:///", "webpack:///src/"]
+        assert all("webpack:///src/index.js".startswith(p) for p in result)
+
+    def test_double_slash_path(self) -> None:
+        result = directory_prefixes("//usr/src/foo.py")
+        assert result == ["//usr/", "//usr/src/"]
+        assert all("//usr/src/foo.py".startswith(p) for p in result)
+
+    def test_unc_path(self) -> None:
+        result = directory_prefixes("\\\\server\\share\\file.py")
+        assert result == ["\\\\server\\", "\\\\server\\share\\"]
+        assert all("\\\\server\\share\\file.py".startswith(p) for p in result)
 
 
 class TestRankDirectoryPrefixes:
@@ -62,8 +80,11 @@ class TestRankDirectoryPrefixes:
         assert all(item.file_count == 1 for item in ranked[2:])
 
     def test_duplicate_files_count_once(self) -> None:
+        # a/b.py deduped to 1 instance; a\b.py is a distinct path, not a duplicate
         ranked = rank_directory_prefixes(["a/b.py", "a/b.py", "a\\b.py"])
-        assert ranked == [("a/", 1)]
+        by_path = {item.path: item.file_count for item in ranked}
+        assert by_path["a/"] == 1
+        assert by_path["a\\"] == 1
 
     def test_cap_keeps_highest_counts(self) -> None:
         paths = [f"common/dir{index}/file.py" for index in range(DEFAULT_PREFIX_CAP + 50)]
