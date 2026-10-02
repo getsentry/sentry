@@ -31,6 +31,7 @@ import {
 
 export function BroadcastDetails() {
   const {broadcastId} = useParams<{broadcastId: string}>();
+  const broadcastUrl = getApiUrl('/broadcasts/$broadcastId/', {path: {broadcastId}});
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
 
@@ -42,16 +43,16 @@ export function BroadcastDetails() {
   );
 
   const updateMutation = useMutation({
-    mutationFn: (params: Record<string, unknown>) =>
+    mutationFn: (params: {isActive: boolean} | {syncLocked: boolean}) =>
       fetchMutation({
-        url: getApiUrl('/broadcasts/$broadcastId/', {path: {broadcastId}}),
+        url: broadcastUrl,
         method: 'PUT',
         data: params,
       }),
     onSuccess: () => {
       addSuccessMessage('Broadcast updated.');
       queryClient.invalidateQueries({
-        queryKey: [getApiUrl('/broadcasts/$broadcastId/', {path: {broadcastId}})],
+        queryKey: [broadcastUrl],
       });
     },
     onError: () => {
@@ -69,83 +70,6 @@ export function BroadcastDetails() {
 
   const isAdmin = ConfigStore.get('user').permissions.has('broadcasts.admin');
   const fromChangelog = Boolean(data.upstreamId);
-
-  const formatData = (
-    item: string[] | string | null | undefined,
-    choices: ReadonlyArray<readonly string[]>
-  ) => {
-    if (Array.isArray(item)) {
-      if (item.length === 0) {
-        return '-';
-      }
-      return item
-        .map(value => choices.find(([name]) => name === value)?.[1] ?? value)
-        .join(', ');
-    }
-
-    return item ? (choices.find(([name]) => name === item)?.[1] ?? '-') : '-';
-  };
-
-  const overviewSection = (
-    <DetailList>
-      <DetailLabel title="Title">{data.title}</DetailLabel>
-      <DetailLabel title="Message">{data.message}</DetailLabel>
-      <DetailLabel title="Link">
-        <ExternalLink href={data.link}>{data.link}</ExternalLink>
-      </DetailLabel>
-      <DetailLabel title="Organization IDs">
-        {data.organizations?.length ? data.organizations.join(', ') : '-'}
-      </DetailLabel>
-      <DetailLabel title="Media URL">{data.mediaUrl ?? '-'}</DetailLabel>
-      <DetailLabel title="Category">
-        {formatData(data.category, CATEGORYCHOICES)}
-      </DetailLabel>
-      <DetailLabel title="Roles">{formatData(data.roles, ROLECHOICES)}</DetailLabel>
-      <DetailLabel title="Plans">{formatData(data.plans, ALL_PLANCHOICES)}</DetailLabel>
-      <DetailLabel title="Trial Status">
-        {formatData(data.trialStatus, TRIALCHOICES)}
-      </DetailLabel>
-      <DetailLabel title="Early Adopter">{data.earlyAdopter ? 'Yes' : '-'}</DetailLabel>
-      <DetailLabel title="Region">{formatData(data.region, REGIONCHOICES)}</DetailLabel>
-      <DetailLabel title="Platform">
-        {formatData(data.platform, PLATFORMCHOICES)}
-      </DetailLabel>
-      <DetailLabel title="Product">
-        {formatData(data.product, PRODUCTCHOICES)}
-      </DetailLabel>
-      <DetailLabel title="Expires">
-        {data.dateExpires ? moment(data.dateExpires).fromNow() : '∞'}
-      </DetailLabel>
-      <DetailLabel title="Status">{data.isActive ? 'Active' : 'Inactive'}</DetailLabel>
-    </DetailList>
-  );
-
-  const editSection = (
-    <BroadcastEditForm
-      key={broadcastId}
-      broadcastId={broadcastId}
-      data={data}
-      onCancel={() => setIsEditing(false)}
-      onSaved={() => setIsEditing(false)}
-    />
-  );
-
-  const metadataSection = (
-    <DetailList>
-      <DetailLabel title="Seen By">
-        {data.userCount?.toLocaleString()} user(s)
-      </DetailLabel>
-      {data.createdBy && <DetailLabel title="Created By">{data.createdBy}</DetailLabel>}
-      {data.upstreamId && (
-        <DetailLabel title="Changelog ID">{data.upstreamId}</DetailLabel>
-      )}
-      {fromChangelog && (
-        <DetailLabel title="Sync Status">
-          {data.syncLocked ? 'Locked (manual edits)' : 'Auto-synced from changelog'}
-        </DetailLabel>
-      )}
-    </DetailList>
-  );
 
   const actions: ActionItem[] = [
     {
@@ -200,9 +124,89 @@ export function BroadcastDetails() {
       actions={actions}
     >
       <DetailsPage.Section>
-        {isEditing ? editSection : overviewSection}
+        {isEditing ? (
+          <BroadcastEditForm
+            key={broadcastId}
+            broadcastId={broadcastId}
+            data={data}
+            onCancel={() => setIsEditing(false)}
+            onSaved={() => setIsEditing(false)}
+          />
+        ) : (
+          <BroadcastOverview data={data} />
+        )}
       </DetailsPage.Section>
-      <DetailsPage.Section>{metadataSection}</DetailsPage.Section>
+      <DetailsPage.Section>
+        <BroadcastMetadata data={data} />
+      </DetailsPage.Section>
     </DetailsPage>
+  );
+}
+
+function formatData(
+  item: string[] | string | null | undefined,
+  choices: ReadonlyArray<readonly string[]>
+) {
+  if (!item || (Array.isArray(item) && item.length === 0)) {
+    return '-';
+  }
+  const values = Array.isArray(item) ? item : [item];
+  return values
+    .map(value => choices.find(([name]) => name === value)?.[1] ?? value)
+    .join(', ');
+}
+
+function BroadcastOverview({data}: {data: BroadcastDetailsData}) {
+  return (
+    <DetailList>
+      <DetailLabel title="Title">{data.title}</DetailLabel>
+      <DetailLabel title="Message">{data.message}</DetailLabel>
+      <DetailLabel title="Link">
+        <ExternalLink href={data.link}>{data.link}</ExternalLink>
+      </DetailLabel>
+      <DetailLabel title="Organization IDs">
+        {data.organizations?.length ? data.organizations.join(', ') : '-'}
+      </DetailLabel>
+      <DetailLabel title="Media URL">{data.mediaUrl ?? '-'}</DetailLabel>
+      <DetailLabel title="Category">
+        {formatData(data.category, CATEGORYCHOICES)}
+      </DetailLabel>
+      <DetailLabel title="Roles">{formatData(data.roles, ROLECHOICES)}</DetailLabel>
+      <DetailLabel title="Plans">{formatData(data.plans, ALL_PLANCHOICES)}</DetailLabel>
+      <DetailLabel title="Trial Status">
+        {formatData(data.trialStatus, TRIALCHOICES)}
+      </DetailLabel>
+      <DetailLabel title="Early Adopter">{data.earlyAdopter ? 'Yes' : '-'}</DetailLabel>
+      <DetailLabel title="Region">{formatData(data.region, REGIONCHOICES)}</DetailLabel>
+      <DetailLabel title="Platform">
+        {formatData(data.platform, PLATFORMCHOICES)}
+      </DetailLabel>
+      <DetailLabel title="Product">
+        {formatData(data.product, PRODUCTCHOICES)}
+      </DetailLabel>
+      <DetailLabel title="Expires">
+        {data.dateExpires ? moment(data.dateExpires).fromNow() : '∞'}
+      </DetailLabel>
+      <DetailLabel title="Status">{data.isActive ? 'Active' : 'Inactive'}</DetailLabel>
+    </DetailList>
+  );
+}
+
+function BroadcastMetadata({data}: {data: BroadcastDetailsData}) {
+  return (
+    <DetailList>
+      <DetailLabel title="Seen By">
+        {data.userCount?.toLocaleString()} user(s)
+      </DetailLabel>
+      {data.createdBy && <DetailLabel title="Created By">{data.createdBy}</DetailLabel>}
+      {data.upstreamId && (
+        <DetailLabel title="Changelog ID">{data.upstreamId}</DetailLabel>
+      )}
+      {data.upstreamId && (
+        <DetailLabel title="Sync Status">
+          {data.syncLocked ? 'Locked (manual edits)' : 'Auto-synced from changelog'}
+        </DetailLabel>
+      )}
+    </DetailList>
   );
 }

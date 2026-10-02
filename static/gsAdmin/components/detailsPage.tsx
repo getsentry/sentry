@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -152,13 +153,11 @@ export function DetailsPage({
         )}
       </PageHeader>
 
-      {sections
-        .filter(section => section.visible !== false)
-        .map((section, i) => (
-          <DetailsPageSection key={section.name ?? i} {...section}>
-            {section.content}
-          </DetailsPageSection>
-        ))}
+      {sections.map((section, i) => (
+        <DetailsPageSection key={section.name ?? i} {...section}>
+          {section.content}
+        </DetailsPageSection>
+      ))}
       {children}
     </Fragment>
   );
@@ -181,10 +180,14 @@ function DetailsPageSection({
     <Panel>
       {name && <PanelHeader>{name}</PanelHeader>}
       <ErrorBoundary>
-        <Container padding={noPadding ? undefined : 'xl'}>{children}</Container>
+        <SectionBody withPadding={!noPadding}>{children}</SectionBody>
       </ErrorBoundary>
     </Panel>
   );
 }
 
 DetailsPage.Section = DetailsPageSection;
+
+const SectionBody = styled('div')<{withPadding?: boolean}>`
+  ${p => p.withPadding && `padding: ${p.theme.space.xl}`};
+`;
