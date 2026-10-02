@@ -78,6 +78,16 @@ class SCIMSchemaEndpointTest(SCIMTestCase):
         assert user_attrs["name"]["mutability"] == "readOnly"
         assert user_attrs["active"]["mutability"] == "readWrite"
 
+    def test_group_members_mutability_matches_provisioning_behavior(self) -> None:
+        # Members are referenced by id. display is derived from the member's
+        # email and client-sent values are ignored (RFC 7644 §3.5.1), so it is
+        # readOnly, like the removed $ref, which /Groups never returned.
+        group_attrs = {a["name"]: a for a in SCIM_GROUP_ATTRIBUTES_SCHEMA["attributes"]}
+        members = {s["name"]: s for s in group_attrs["members"]["subAttributes"]}
+        assert list(members) == ["value", "display"]
+        assert members["value"]["mutability"] == "immutable"
+        assert members["display"]["mutability"] == "readOnly"
+
     def test_every_attribute_declares_mutability(self) -> None:
         # RFC 7643 §2.2 defaults mutability when omitted, but Entra's SCIM
         # validator rejects schemas whose attributes lack it entirely.
@@ -113,6 +123,24 @@ class SCIMSchemaDetailsTest(SCIMTestCase):
         assert response.data["id"] == SCIM_SCHEMA_GROUP
         assert response.data["name"] == "Group"
         assert response.data["attributes"] == SCIM_GROUP_ATTRIBUTES_SCHEMA["attributes"]
+
+    def test_group_members_schema_matches_groups_payload(self) -> None:
+        # Clients build their Group model from this schema, so the members
+        # sub-attributes it declares must be exactly the keys /Groups returns,
+        # and every returned:default sub-attribute must actually be returned.
+        team = self.create_team(organization=self.organization)
+        self.create_member(user=self.create_user(), organization=self.organization, teams=[team])
+        schema = self.get_success_response(self.organization.slug, SCIM_SCHEMA_GROUP).data
+        group_attrs = {a["name"]: a for a in schema["attributes"]}
+        declared = {s["name"]: s["returned"] for s in group_attrs["members"]["subAttributes"]}
+        assert declared == {"value": "default", "display": "default"}
+
+        group = self.client.get(
+            f"/api/0/organizations/{self.organization.slug}/scim/v2/Groups/{team.id}"
+        )
+        assert group.status_code == 200, group.content
+        assert len(group.data["members"]) == 1
+        assert set(group.data["members"][0]) == set(declared)
 
     def test_percent_encoded_schema_uri(self) -> None:
         url = f"/api/0/organizations/{self.organization.slug}/scim/v2/Schemas/" + quote(
