@@ -1,8 +1,8 @@
 import logging
 import math
-from collections.abc import Generator, Iterator, Mapping
+from collections.abc import Generator, Iterator
 from datetime import datetime, timedelta
-from typing import Any, SupportsIndex, TypedDict, overload
+from typing import Any, TypedDict
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -12,6 +12,7 @@ from sentry.api.utils import default_start_end_dates
 from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.project import Project
+from sentry.replays.lib.safe_dict import SafeDict, SafeText, safe_view
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance, query_trace_connected_events
 from sentry.replays.usecases.ingest.event_parser import (
@@ -267,68 +268,10 @@ def get_summary_logs(
     )
 
 
-class _Text(str):
-    """A non-empty display string read from replay JSON.
-
-    Indexing with a string key returns `MISSING` instead of raising, so a lookup chain like
-    `payload["data"]["method"]` stays safe when `data` turned out to be a string such as
-    `"[Filtered]"`. Positional indexing and slicing behave like a normal `str`.
-    """
-
-    @overload
-    def __getitem__(self, key: str) -> "_Text": ...
-
-    @overload
-    def __getitem__(self, key: SupportsIndex | slice) -> str: ...
-
-    def __getitem__(self, key: str | SupportsIndex | slice) -> str:
-        if isinstance(key, str):
-            return MISSING
-        return super().__getitem__(key)
-
-    def get(self, key: str, default: Any = None) -> Any:
-        return default
-
-
-MISSING = _Text("")
-
-
-class _SafeDict(dict[str, Any]):
-    """Read-only view over untrusted replay recording JSON where `[]` never raises.
-
-    Recording payloads come from many SDK versions and platforms, so any key may be missing,
-    null, or a different type than expected. `[]` returns a nested `_SafeDict` for objects, a
-    `_Text` for displayable strings and numbers, and `MISSING` (an empty, falsy `_Text`) for
-    anything else, including empty objects. Every lookup is safe to chain and drop straight
-    into an f-string, and `value or "fallback"` handles the gaps.
-
-    `.get()` keeps normal dict semantics and returns the raw value, for the few fields that
-    aren't text (e.g. booleans).
-
-    `[]` deliberately changes dict semantics, so pass the original event, not this view, to
-    helpers that expect a plain dict.
-    """
-
-    def __getitem__(self, key: str) -> "_SafeDict | _Text":
-        return _safe(super().get(key))
-
-
-def _safe(value: Any) -> _SafeDict | _Text:
-    if isinstance(value, (_SafeDict, _Text)):
-        return value
-    if isinstance(value, Mapping):
-        return _SafeDict(value) if value else MISSING
-    if isinstance(value, str):
-        return _Text(value) if value.strip() else MISSING
-    if isinstance(value, (int, float)) and not isinstance(value, bool):
-        return _Text(value)
-    return MISSING
-
-
 def _get_event_timestamp_ms(event: Any, event_type: EventType) -> float | None:
     """Return the event timestamp in milliseconds, or None if it is missing or malformed."""
     try:
-        timestamp = float(str(_safe(event)["timestamp"]))
+        timestamp = float(str(safe_view(event)["timestamp"]))
     except ValueError:
         return None
     if not math.isfinite(timestamp):
@@ -387,7 +330,7 @@ def generate_summary_logs(
 
             # Yield the current event's log message
             if event_type == EventType.FEEDBACK:
-                feedback_id = str(_safe(event)["data"]["payload"]["data"]["feedbackId"]) or None
+                feedback_id = str(safe_view(event)["data"]["payload"]["data"]["feedbackId"]) or None
                 # Filter out duplicate feedback events.
                 if feedback_id not in seen_feedback_ids:
                     feedback = fetch_feedback_details(feedback_id, project_id)
@@ -417,12 +360,12 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
     to the AI use case. In later iterations, if more or all log messages are desired, this function
     should be forked.
 
-    Every field is read through `_SafeDict`, so a missing or malformed field degrades the message
+    Every field is read through `SafeDict`, so a missing or malformed field degrades the message
     instead of discarding the event.
     """
     event_type = which(event)
     when = _format_when(_get_event_timestamp_ms(event, event_type))
-    payload = _safe(event)["data"]["payload"]
+    payload = safe_view(event)["data"]["payload"]
     data = payload["data"]
 
     trunc_length = 200  # used for CONSOLE logs and RESOURCE_* urls.
@@ -558,7 +501,7 @@ def _join_words(*parts: object) -> str:
 
 
 def _network_log_message(
-    label: str, event: dict[str, Any], payload: _SafeDict | _Text, when: str, trunc_length: int
+    label: str, event: dict[str, Any], payload: SafeDict | SafeText, when: str, trunc_length: int
 ) -> str | None:
     data = payload["data"]
     method = data["method"]
