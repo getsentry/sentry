@@ -1,6 +1,5 @@
 import {queryOptions} from '@tanstack/react-query';
 
-import type {RequestCallbacks} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group, Tag as GroupTag, TagValue} from 'sentry/types/group';
