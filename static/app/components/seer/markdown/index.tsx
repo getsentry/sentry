@@ -41,7 +41,6 @@ function LinkifyIssueShortIds({children}: {children: string}): ReactNode {
 
 const IsInsideLinkContext = createContext(false);
 const StructuredContentContext = createContext<Record<string, unknown> | null>(null);
-const ReserveTrailingEmbedSpaceContext = createContext(true);
 
 function toRelativeHref(href: string): string {
   if (!/^https?:\/\//.test(href)) {
@@ -89,7 +88,6 @@ function reportUnhandledTag(
 const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
   Tag: function SeerTag({name, data, level, attrs, index}) {
     const structuredContent = useContext(StructuredContentContext);
-    const reserveTrailingSpace = useContext(ReserveTrailingEmbedSpaceContext);
     const Embed = SeerEmbedRegistry.get(name);
     if (Embed) {
       const embedData =
@@ -99,7 +97,7 @@ const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
             ? structuredContent?.[name]
             : data;
       const embed = <Embed name={name} data={embedData} level={level} index={index} />;
-      if (level === 'inline' || !reserveTrailingSpace) {
+      if (level === 'inline') {
         return embed;
       }
       return (
@@ -163,15 +161,8 @@ export function SeerMarkdown({
   components,
   structuredContent = null,
   scope = null,
-  reserveTrailingEmbedSpace = true,
   ...props
 }: MarkdownProps & {
-  /**
-   * Leave room below a block embed that ends the markdown, so floating message actions (an
-   * assistant answer's feedback and copy buttons) don't overlap it. Turn off where nothing
-   * floats below the content.
-   */
-  reserveTrailingEmbedSpace?: boolean;
   /**
    * Conversation and message this markdown belongs to. Supply it to record
    * embed renders; omit it (stories, demos, previews) to render untracked.
@@ -186,9 +177,7 @@ export function SeerMarkdown({
   return (
     <SeerEmbedScopeContext.Provider value={scope}>
       <StructuredContentContext.Provider value={structuredContent}>
-        <ReserveTrailingEmbedSpaceContext.Provider value={reserveTrailingEmbedSpace}>
-          <Markdown {...props} components={{...SEER_EMBED_COMPONENTS, ...components}} />
-        </ReserveTrailingEmbedSpaceContext.Provider>
+        <Markdown {...props} components={{...SEER_EMBED_COMPONENTS, ...components}} />
       </StructuredContentContext.Provider>
     </SeerEmbedScopeContext.Provider>
   );

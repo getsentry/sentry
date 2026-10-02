@@ -625,8 +625,6 @@ export function ToolCallList({block, latestTodos, getPageReferrer}: ToolCallList
               key={`${key}-markdown`}
               raw={structuredContentMarkdown.content}
               structuredContent={structuredContentMarkdown.structuredContent}
-              // Tool rows sit inside the thinking block, with no message actions below them.
-              reserveTrailingEmbedSpace={false}
             />
           );
         }

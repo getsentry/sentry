@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {css} from '@emotion/react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
@@ -66,7 +67,17 @@ const noopDispatch = () => {};
  * The whole Explorer chat window — header, transcript, pending-input blocks, and composer — as
  * the sidebar renders it, for a fixed run.
  */
-function ChatWindow({session}: {session: Session}) {
+function ChatWindow({
+  session,
+  withoutTrailingEmbedSpace = false,
+}: {
+  session: Session;
+  /**
+   * Story-only: removes the space `SeerMarkdown` leaves below a block embed that ends an
+   * answer, to show what the floating answer actions would overlap without it.
+   */
+  withoutTrailingEmbedSpace?: boolean;
+}) {
   const organization = useOrganization();
   const [queryClient] = useState(() => new FixtureQueryClient(session));
 
@@ -88,7 +99,21 @@ function ChatWindow({session}: {session: Session}) {
           >
             <PictureInPictureProvider>
               <SeerExplorerSessionsProvider>
-                <Container height="720px" width="480px" border="primary" radius="md">
+                <Container
+                  height="720px"
+                  width="480px"
+                  border="primary"
+                  radius="md"
+                  css={
+                    withoutTrailingEmbedSpace
+                      ? css`
+                          [data-block-wrapper] div:last-child {
+                            margin-bottom: 0 !important;
+                          }
+                        `
+                      : undefined
+                  }
+                >
                   <SeerExplorerContent
                     getPageReferrer={() => '/issues/'}
                     onClose={() => {}}
@@ -175,6 +200,35 @@ const ANSWER: Block = {
   },
   timestamp: at(20),
   loading: false,
+};
+
+// An answer that ends in a block embed, the case the trailing embed space exists for.
+const ANSWER_ENDING_IN_EMBED: Block = {
+  id: 'assistant-dsn',
+  message: {
+    role: 'assistant',
+    content: [
+      'Here is the DSN for **storefront**. Add it to `Sentry.init()` in the new service:',
+      '',
+      `{% dsn %}${JSON.stringify({value: 'https://examplePublicKey@o0.ingest.sentry.io/0'})}{% /dsn %}`,
+    ].join('\n'),
+  },
+  timestamp: at(8),
+  loading: false,
+};
+
+const ANSWER_ENDING_IN_EMBED_SESSION: Session = {
+  status: 'completed',
+  updated_at: at(8),
+  blocks: [
+    {
+      id: 'user-dsn',
+      message: {role: 'user', content: 'What DSN should the new checkout service use?'},
+      timestamp: at(0),
+      loading: false,
+    },
+    ANSWER_ENDING_IN_EMBED,
+  ],
 };
 
 const COMPLETED_SESSION: Session = {
@@ -337,6 +391,28 @@ export default Storybook.story('ChatWindow', story => {
         message.
       </p>
       <ChatWindow session={COMPLETED_SESSION} />
+    </Fragment>
+  ));
+
+  story('Answer actions', () => (
+    <Fragment>
+      <p>
+        Hover the answer to reveal its actions: thumbs up, thumbs down, and copy. They
+        float over the bottom-right corner of the answer, so when an answer ends in a
+        block embed (here a DSN), <Storybook.JSXNode name="SeerMarkdown" /> leaves space
+        below the embed for them.
+      </p>
+      <ChatWindow session={ANSWER_ENDING_IN_EMBED_SESSION} />
+    </Fragment>
+  ));
+
+  story('Answer actions without the trailing embed space', () => (
+    <Fragment>
+      <p>
+        The same answer with that space removed by a story-only override. On hover, the
+        actions sit on top of the embed.
+      </p>
+      <ChatWindow session={ANSWER_ENDING_IN_EMBED_SESSION} withoutTrailingEmbedSpace />
     </Fragment>
   ));
 
