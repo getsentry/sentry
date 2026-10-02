@@ -138,13 +138,13 @@ class GroupTypeRegistry:
             op="GroupTypeRegistry.get_visible", name="GroupTypeRegistry.get_visible"
         ) as span:
             released = [gt for gt in self.all() if gt.released]
-            feature_to_grouptype: dict[str, type[GroupType]] = {}
+            feature_to_grouptypes: dict[str, list[type[GroupType]]] = defaultdict(list)
             for gt in self.all():
                 if not gt.released:
                     for fname in gt.build_visible_feature_name():
-                        feature_to_grouptype[fname] = gt
+                        feature_to_grouptypes[fname].append(gt)
             batch_features = features.batch_has(
-                list(feature_to_grouptype.keys()), actor=actor, organization=organization
+                list(feature_to_grouptypes), actor=actor, organization=organization
             )
             enabled: list[type[GroupType]] = []
             if batch_features:
@@ -152,15 +152,15 @@ class GroupTypeRegistry:
                 seen: set[int] = set()
                 for feature, active in feature_results.items():
                     if active:
-                        gt = feature_to_grouptype[feature]
-                        if gt.type_id not in seen:
-                            seen.add(gt.type_id)
-                            enabled.append(gt)
+                        for gt in feature_to_grouptypes[feature]:
+                            if gt.type_id not in seen:
+                                seen.add(gt.type_id)
+                                enabled.append(gt)
             set_span_tag(span, "organization_id", organization.id)
             set_span_tag(span, "has_batch_features", batch_features is not None)
             set_span_tag(span, "released", released)
             set_span_tag(span, "enabled", enabled)
-            set_span_data(span, "feature_to_grouptype", feature_to_grouptype)
+            set_span_data(span, "feature_to_grouptype", feature_to_grouptypes)
             return released + enabled
 
     def get_all_group_type_ids(self) -> set[int]:
@@ -254,6 +254,8 @@ class GroupType:
     # being displayed on frontend.
     released: ClassVar[bool] = False
     visible_feature_api_expose: ClassVar[bool] = True
+    # Override the rollout flag slug without changing the issue type slug.
+    feature_flag_slug: ClassVar[str | None] = None
     # If False this group is excluded from default searches, when there are no filters on issue.category or issue.type.
     in_default_search: ClassVar[bool] = True
 
@@ -328,7 +330,7 @@ class GroupType:
 
     @classmethod
     def build_base_feature_name(cls) -> str:
-        return f"organizations:issue-{cls.build_feature_name_slug()}"
+        return f"organizations:issue-{cls.feature_flag_slug or cls.build_feature_name_slug()}"
 
     @classmethod
     def build_visible_feature_name(cls) -> list[str]:
@@ -584,6 +586,7 @@ class QueryInjectionVulnerabilityGroupType(GroupType):
     slug = "query_injection_vulnerability"
     description = "Potential Query Injection Vulnerability"
     category = GroupCategory.DB_QUERY.value
+    released = True
     enable_auto_resolve = False
     enable_escalation_detection = False
     noise_config = NoiseConfig(ignore_limit=10)
@@ -688,6 +691,7 @@ class AIDetectedHTTPGroupType(GroupType):
     default_priority = PriorityLevel.MEDIUM
     released = False
     visible_feature_api_expose = False
+    feature_flag_slug = "ai-detected"
     enable_auto_resolve = False
     enable_escalation_detection = False
 
@@ -701,6 +705,7 @@ class AIDetectedDBGroupType(GroupType):
     default_priority = PriorityLevel.MEDIUM
     released = False
     visible_feature_api_expose = False
+    feature_flag_slug = "ai-detected"
     enable_auto_resolve = False
     enable_escalation_detection = False
 
@@ -714,6 +719,7 @@ class AIDetectedRuntimePerformanceGroupType(GroupType):
     default_priority = PriorityLevel.MEDIUM
     released = False
     visible_feature_api_expose = False
+    feature_flag_slug = "ai-detected"
     enable_auto_resolve = False
     enable_escalation_detection = False
 
@@ -727,6 +733,7 @@ class AIDetectedSecurityGroupType(GroupType):
     default_priority = PriorityLevel.MEDIUM
     released = False
     visible_feature_api_expose = False
+    feature_flag_slug = "ai-detected"
     enable_auto_resolve = False
     enable_escalation_detection = False
 
@@ -740,6 +747,7 @@ class AIDetectedCodeHealthGroupType(GroupType):
     default_priority = PriorityLevel.MEDIUM
     released = False
     visible_feature_api_expose = False
+    feature_flag_slug = "ai-detected"
     enable_auto_resolve = False
     enable_escalation_detection = False
 

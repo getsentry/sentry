@@ -410,7 +410,7 @@ class PreprodSizeAnalysisGroupType(GroupType):
     description = "Size Analysis"
     category = GroupCategory.PREPROD.value
     default_priority = PriorityLevel.LOW
-    released = False
+    released = True
     enable_auto_resolve = True
     enable_escalation_detection = False
     notification_config = NotificationConfig(
