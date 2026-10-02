@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import styled from '@emotion/styled';
+import {mergeProps} from '@react-aria/utils';
 import type {LocationDescriptor} from 'history';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -53,8 +54,7 @@ export function FlagActionDropdown({
           >
             {containerProps => (
               <OverlayTrigger.IconButton
-                {...triggerProps}
-                {...containerProps}
+                {...mergeProps(triggerProps, containerProps)}
                 aria-label={t('Flag Details')}
                 icon={<IconEllipsis />}
               />
