@@ -20,7 +20,6 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
-import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {Redirect} from 'sentry/components/redirect';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
@@ -58,7 +57,7 @@ import {ReleaseListInner} from 'sentry/views/explore/releases/list/releaseListIn
 import {isMobileRelease} from 'sentry/views/explore/releases/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
-import {makeSnapshotsListUrl} from 'sentry/views/preprod/utils/releasesUrl';
+import {makeSnapshotsListUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {
@@ -660,13 +659,7 @@ export default function ReleasesList() {
   const organization = useOrganization();
   const location = useLocation();
 
-  const tab = decodeScalar(location.query.tab);
-  const display = decodeScalar(location.query.display);
-  const isSnapshotsUrl =
-    tab === 'snapshots' ||
-    (tab === 'mobile-builds' && display === PreprodBuildsDisplay.SNAPSHOT);
-
-  if (isSnapshotsUrl) {
+  if (decodeScalar(location.query.tab) === 'snapshots') {
     const {statsPeriod, start, end, utc} = location.query;
     return (
       <Redirect

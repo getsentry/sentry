@@ -46,8 +46,10 @@ import {
   isSnapshotApproved,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
-import {getSnapshotPath} from 'sentry/views/preprod/utils/buildLinkUtils';
-import {makeSnapshotsListUrl} from 'sentry/views/preprod/utils/releasesUrl';
+import {
+  getSnapshotPath,
+  makeSnapshotsListUrl,
+} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermissionError';
 
 interface SnapshotHeaderActionsProps {

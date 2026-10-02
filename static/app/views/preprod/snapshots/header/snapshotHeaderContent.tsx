@@ -12,7 +12,7 @@ import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
-import {makeSnapshotsListUrl} from 'sentry/views/preprod/utils/releasesUrl';
+import {makeSnapshotsListUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {getBranchUrl, getPrUrl, getShaUrl} from 'sentry/views/preprod/utils/vcsLinkUtils';
 
 const TITLE_MARKER_ATTR = 'data-snapshot-header-title';

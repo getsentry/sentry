@@ -896,26 +896,6 @@ describe('ReleasesList', () => {
     expect(router.location.query).not.toHaveProperty('cursor');
   });
 
-  it('redirects mobile builds with the snapshot display to the snapshots page', async () => {
-    const {router} = render(<ReleasesList />, {
-      organization,
-      initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${organization.slug}/explore/releases/`,
-          query: {tab: 'mobile-builds', display: PreprodBuildsDisplay.SNAPSHOT},
-        },
-      },
-    });
-
-    await waitFor(() =>
-      expect(router.location.pathname).toBe(
-        `/organizations/${organization.slug}/explore/snapshots/`
-      )
-    );
-    expect(router.location.query).not.toHaveProperty('tab');
-    expect(router.location.query).not.toHaveProperty('display');
-  });
-
   it('does not render a snapshots tab', async () => {
     render(<ReleasesList />, {
       organization,
