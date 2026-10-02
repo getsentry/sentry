@@ -233,8 +233,6 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
 
   if (isRegexOperator(token.operator)) {
     return (
-      // No gap: the value's trailing clipping allowance already spaces the closing
-      // delimiter, so only the opening one needs padding to match it.
       <Flex align="center" minWidth="0" width="100%">
         <Container paddingRight="2xs">
           <RegexDelimiter />
