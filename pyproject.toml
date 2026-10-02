@@ -115,6 +115,7 @@ dependencies = [
   "tldextract>=5.1.2",
   "toronado>=0.1.0",
   "typing-extensions>=4.12.0",
+  "tzdata>=2026.4",
   "ua-parser>=0.10.0",
   "unidiff>=0.7.4",
   # note: we cannot resolve urllib3[brotli] but brotli is installed

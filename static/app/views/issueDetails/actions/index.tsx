@@ -258,62 +258,31 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     });
   };
 
-  const onDelete = () => {
+  const onDelete = async () => {
     addLoadingMessage(t('Delete event\u2026'));
-
-    bulkDelete(
-      api,
-      {
-        orgId: organization.slug,
-        projectId: project.slug,
-        itemIds: [group.id],
-      },
-      {
-        success: () => {
-          clearIndicators();
-
-          addSuccessMessage(t('Issue deleted'));
-          navigate({
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {project: project.id},
-          });
-        },
-      }
-    );
-
     trackIssueAction('deleted');
     IssueListCacheStore.reset();
-  };
 
-  const onUpdate = (data: UpdateData, onComplete?: () => void) => {
-    const successMessage = getUpdateSuccessMessage(group, data);
-
-    bulkUpdate(
-      api,
-      {
+    try {
+      await bulkDelete(api, {
         orgId: organization.slug,
         projectId: project.slug,
         itemIds: [group.id],
-        data,
-      },
-      {
-        success: () => {
-          clearIndicators();
-          if (successMessage) {
-            addSuccessMessage(successMessage);
-          }
-          onComplete?.();
-        },
-        complete: () => {
-          queryClient.invalidateQueries({
-            queryKey: groupQueryKey({
-              organizationSlug: organization.slug,
-              groupId: group.id,
-            }),
-          });
-        },
-      }
-    );
+      });
+      clearIndicators();
+
+      addSuccessMessage(t('Issue deleted'));
+      navigate({
+        pathname: `/organizations/${organization.slug}/issues/`,
+        query: {project: project.id},
+      });
+    } catch {
+      // GroupStore already shows the error
+    }
+  };
+
+  const onUpdate = async (data: UpdateData, onComplete?: () => void) => {
+    const successMessage = getUpdateSuccessMessage(group, data);
 
     if (isResolutionStatus(data)) {
       trackIssueAction(
@@ -326,6 +295,29 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
       trackIssueAction('mark_reviewed');
     }
     IssueListCacheStore.reset();
+
+    try {
+      await bulkUpdate(api, {
+        orgId: organization.slug,
+        projectId: project.slug,
+        itemIds: [group.id],
+        data,
+      });
+      clearIndicators();
+      if (successMessage) {
+        addSuccessMessage(successMessage);
+      }
+      onComplete?.();
+    } catch {
+      // GroupStore already shows the error
+    } finally {
+      queryClient.invalidateQueries({
+        queryKey: groupQueryKey({
+          organizationSlug: organization.slug,
+          groupId: group.id,
+        }),
+      });
+    }
   };
 
   const onReprocessEvent = () => {

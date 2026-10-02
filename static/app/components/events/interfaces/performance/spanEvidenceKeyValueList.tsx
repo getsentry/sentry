@@ -7,7 +7,7 @@ import kebabCase from 'lodash/kebabCase';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -740,11 +740,13 @@ function getSpanEvidenceValue(span: Span | null) {
 
   if (span.op && span.op.startsWith('db') && span.description) {
     return (
-      <NoPaddingClippedBox clipHeight={200}>
-        <StyledCodeSnippet language="sql">
-          {formatter.toString(span.description)}
-        </StyledCodeSnippet>
-      </NoPaddingClippedBox>
+      <Container padding="2xs 0">
+        <NoPaddingClippedBox clipHeight={200}>
+          <StyledCodeSnippet language="sql">
+            {formatter.toString(span.description)}
+          </StyledCodeSnippet>
+        </NoPaddingClippedBox>
+      </Container>
     );
   }
 

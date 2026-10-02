@@ -917,6 +917,11 @@ register("vercel.integration-slug", default="sentry", flags=FLAG_AUTOMATOR_MODIF
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("msteams.app-id")
+register(
+    "msteams.personal-installation-link.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Tenant-specific OAuth authority, required for single-tenant Azure Bots.
 # Empty (default) keeps the historical multi-tenant botframework.com authority.
 register("msteams.tenant-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -2829,6 +2834,14 @@ register(
     type=Int,
     default=6,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Sends relay a quota that limits each monitor environment to
+# `crons.per_monitor_rate_limit` check-ins per minute.
+register(
+    "crons.per_monitor_relay_quota.enabled",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Deterministic % of check-ins that use the seat-acceptance timeout wrapper.
