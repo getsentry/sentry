@@ -85,7 +85,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -326,7 +326,7 @@ describe('GlobalCommandPaletteActions - search recall', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -538,7 +538,7 @@ describe('GlobalCommandPaletteActions - Seer XRay Mode gating', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [],
     });
     MockApiClient.addMockResponse({

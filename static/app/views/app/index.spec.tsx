@@ -1,4 +1,3 @@
-import Cookies from 'js-cookie';
 import {InstallWizardFixture} from 'sentry-fixture/installWizard';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -38,7 +37,6 @@ describe('App', () => {
   const configState = ConfigStore.getState();
 
   beforeEach(() => {
-    Cookies.remove('sentry_react_auth', {path: '/'});
     const organization = OrganizationFixture();
 
     ConfigStore.init();
@@ -77,8 +75,6 @@ describe('App', () => {
   });
 
   afterEach(() => {
-    Cookies.remove('sentry_react_auth', {path: '/'});
-    localStorage.removeItem('sentry_react_auth_rollout_organization');
     jest.clearAllMocks();
   });
 
@@ -88,19 +84,6 @@ describe('App', () => {
     await waitFor(() => OrganizationsStore.getAll().length === 1);
     expect(screen.getByText('placeholder content')).toBeInTheDocument();
     expect(testableWindowLocation.replace).not.toHaveBeenCalled();
-  });
-
-  it.each(['0', '1'])('preserves the Auth V2 cookie %s on app load', async cookie => {
-    Cookies.set('sentry_react_auth', cookie, {path: '/'});
-    localStorage.setItem(
-      'sentry_react_auth_rollout_organization',
-      JSON.stringify('org-slug')
-    );
-
-    render(<App />, {initialRouterConfig: defaultRouterConfig});
-
-    expect(await screen.findByText('placeholder content')).toBeInTheDocument();
-    expect(Cookies.get('sentry_react_auth')).toBe(cookie);
   });
 
   it('requires an explicit NewsletterConsent choice', async () => {

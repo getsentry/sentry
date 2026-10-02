@@ -142,10 +142,6 @@ function IssueOpenPeriodsList() {
       : []),
   ];
 
-  const renderHeadCell = (col: GridColumnOrder) => {
-    return <AlignLeft>{col.name}</AlignLeft>;
-  };
-
   const renderBodyCell = (
     col: GridColumnOrder<string>,
     dataRow: OpenPeriodDisplayData
@@ -180,7 +176,6 @@ function IssueOpenPeriodsList() {
         error={error}
         columnOrder={columnOrder}
         grid={{
-          renderHeadCell,
           renderBodyCell,
         }}
       />

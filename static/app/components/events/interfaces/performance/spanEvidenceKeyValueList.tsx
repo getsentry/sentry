@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {Fragment, useMemo} from 'react';
+import {Fragment, isValidElement, useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
@@ -7,8 +7,9 @@ import kebabCase from 'lodash/kebabCase';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
@@ -35,7 +36,7 @@ import {
   SpanSubTimingName,
 } from 'sentry/components/events/interfaces/spans/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {IconGraph} from 'sentry/icons/iconGraph';
 import {t} from 'sentry/locale';
 import type {Entry, EntryRequest, Event, EventTransaction} from 'sentry/types/event';
@@ -86,6 +87,8 @@ type SpanEvidenceKeyValueListProps = {
   issueType?: IssueType;
   projectSlug?: string;
 };
+
+const TEST_ID_NAMESPACE = 'span-evidence-key-value-list';
 
 function ConsecutiveDBQueriesSpanEvidence({
   event,
@@ -244,21 +247,19 @@ function NPlusOneAPICallsSpanEvidence({
           commonPathPrefix
             ? makeRow(
                 t('Repeating Spans (%s)', offendingSpans.length),
-                <pre className="val-string">
-                  <AnnotatedText
-                    value={
-                      <Fragment>
-                        {commonPathPrefix.split('').map((char, i) => {
-                          return char === '*' ? (
-                            <HighlightedEvidence key={i}>{char}</HighlightedEvidence>
-                          ) : (
-                            char
-                          );
-                        })}
-                      </Fragment>
-                    }
-                  />
-                </pre>
+                <AnnotatedText
+                  value={
+                    <Fragment>
+                      {commonPathPrefix.split('').map((char, i) => {
+                        return char === '*' ? (
+                          <HighlightedEvidence key={i}>{char}</HighlightedEvidence>
+                        ) : (
+                          char
+                        );
+                      })}
+                    </Fragment>
+                  }
+                />
               )
             : null,
           queryParameters.length > 0
@@ -293,9 +294,7 @@ function MainThreadFunctionEvidence({
       dataRows.push(
         makeRow(
           t('Transaction'),
-          <pre>
-            <Link to={transactionSummaryLocation}>{evidenceData.transactionName}</Link>
-          </pre>
+          <Link to={transactionSummaryLocation}>{evidenceData.transactionName}</Link>
         )
       );
     }
@@ -395,11 +394,9 @@ function AIDetectedSpanEvidence({
 
   const transactionRow = makeRow(
     t('Transaction'),
-    <pre>
-      <Tooltip title={t('View Transaction Summary')} skipWrapper>
-        <Link to={transactionSummaryLocation}>{transactionName}</Link>
-      </Tooltip>
-    </pre>,
+    <Tooltip title={t('View Transaction Summary')} skipWrapper>
+      <Link to={transactionSummaryLocation}>{transactionName}</Link>
+    </Tooltip>,
     actionButton
   );
 
@@ -565,9 +562,7 @@ function SlowDBQueryEvidence({
   );
 
   return (
-    <KeyValueTableDataList
-      margin
-      shouldSort={false}
+    <PresortedKeyValueList
       data={[
         makeTransactionNameRow(event, organization, location, projectSlug),
         makeRow(t('Duration Impact'), getSingleSpanDurationImpact(event, span)),
@@ -630,7 +625,7 @@ function UncompressedAssetSpanEvidence({
 function WebVitalsEvidence({event}: SpanEvidenceKeyValueListProps) {
   const transactionRow = makeRow(
     t('Transaction'),
-    <pre>{event.tags.find(tag => tag.key === 'transaction')?.value}</pre>
+    event.tags.find(tag => tag.key === 'transaction')?.value
   );
 
   return <PresortedKeyValueList data={[transactionRow].filter(Boolean)} />;
@@ -658,7 +653,7 @@ function DefaultSpanEvidence({
 }
 
 function PresortedKeyValueList({data}: {data: KeyValueListData}) {
-  return <KeyValueTableDataList margin shouldSort={false} data={data} />;
+  return <KeyValueTableCard contentItems={data.map(item => ({item}))} variant="label" />;
 }
 
 const makeTransactionNameRow = (
@@ -692,11 +687,9 @@ const makeTransactionNameRow = (
 
   return makeRow(
     t('Transaction'),
-    <pre>
-      <Tooltip title={t('View Transaction Summary')} skipWrapper>
-        <Link to={transactionSummaryLocation}>{event.title}</Link>
-      </Tooltip>
-    </pre>,
+    <Tooltip title={t('View Transaction Summary')} skipWrapper>
+      <Link to={transactionSummaryLocation}>{event.title}</Link>
+    </Tooltip>,
     actionButton
   );
 };
@@ -711,9 +704,24 @@ const makeRow = (
   return {
     key: itemKey,
     subject,
-    value,
-    isMultiValue: Array.isArray(value),
+    value: Array.isArray(value) ? (
+      <Stack gap="xs">
+        {value.map((entry, index) =>
+          isValidElement(entry) ? (
+            <Fragment key={index}>{entry}</Fragment>
+          ) : (
+            <Text key={index} monospace size="sm">
+              {entry}
+            </Text>
+          )
+        )}
+      </Stack>
+    ) : (
+      value
+    ),
+    subjectDataTestId: `${TEST_ID_NAMESPACE}.${itemKey}`,
     actionButton,
+    actionButtonAlwaysVisible: true,
   };
 };
 
@@ -732,11 +740,13 @@ function getSpanEvidenceValue(span: Span | null) {
 
   if (span.op && span.op.startsWith('db') && span.description) {
     return (
-      <NoPaddingClippedBox clipHeight={200}>
-        <StyledCodeSnippet language="sql">
-          {formatter.toString(span.description)}
-        </StyledCodeSnippet>
-      </NoPaddingClippedBox>
+      <Container padding="2xs 0">
+        <NoPaddingClippedBox clipHeight={200}>
+          <StyledCodeSnippet language="sql">
+            {formatter.toString(span.description)}
+          </StyledCodeSnippet>
+        </NoPaddingClippedBox>
+      </Container>
     );
   }
 
@@ -744,9 +754,11 @@ function getSpanEvidenceValue(span: Span | null) {
 }
 
 const StyledCodeSnippet = styled(CodeBlock)`
-  pre {
+  pre[class*='language-'] {
     /* overflow is set to visible in global styles so need to enforce auto here */
     overflow: auto !important;
+    /* Keeps the code flush with the plain values in the card's value column */
+    padding-inline: 0;
   }
 
   z-index: 0;

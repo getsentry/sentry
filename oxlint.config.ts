@@ -189,7 +189,10 @@ const storyFilesPolicy = {
 };
 
 const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'];
-const coreComponentFiles = ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}'];
+const coreComponentFiles = [
+  'static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}',
+  'static/packages/scraps/src/**/*.{ts,tsx}',
+];
 
 /**
  * Import linting uses two complementary approaches:
@@ -275,7 +278,7 @@ const config = defineConfig({
       // Keep core stories inside Scraps; story-files still classifies them as stories.
       {
         type: 'scraps',
-        pattern: 'static/app/components/core',
+        pattern: ['static/app/components/core', 'static/packages/scraps/src'],
         partialMatch: false,
       },
       {
@@ -289,7 +292,7 @@ const config = defineConfig({
       },
       {
         type: 'test',
-        pattern: 'tests/js',
+        pattern: ['tests/js', 'static/packages/scraps/test'],
       },
       // Sentry application and assets.
       {
@@ -362,6 +365,7 @@ const config = defineConfig({
         pattern: [
           'tests/js/fixtures/**/*',
           'tests/js/sentry-test/**/*',
+          'static/packages/scraps/test/**/*',
           'tests/js/getsentry-test/**/*',
           'static/gsApp/__fixtures__/**/*',
           'static/**/*{t,T}estUtils*.{js,jsx,mjs,ts,tsx}',
@@ -1677,7 +1681,7 @@ const config = defineConfig({
     // Scraps is its own component library rather than ordinary app code, and a
     // handful of its internal imports are deliberately parent-relative.
     {
-      files: ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}'],
+      files: coreComponentFiles,
       rules: {
         'import/no-relative-parent-imports': 'off',
       },
@@ -1688,6 +1692,30 @@ const config = defineConfig({
       files: ['scripts/**/*.{js,mjs,ts,jsx,tsx}'],
       rules: {
         'import/no-relative-parent-imports': 'off',
+      },
+    },
+    {
+      files: ['static/packages/scraps/*.config.mjs'],
+      rules: {'boundaries/no-unknown-files': 'off'},
+    },
+    {
+      files: ['static/packages/scraps/scripts/*.mjs'],
+      rules: {
+        'boundaries/no-unknown-files': 'off',
+        'import-js/no-extraneous-dependencies': 'off',
+        'import/no-nodejs-modules': 'off',
+        'no-console': 'off',
+      },
+      env: {
+        node: true,
+      },
+    },
+    {
+      files: ['static/packages/scraps/src/**/*.{ts,tsx}'],
+      // Re-enable these rules when Scraps has its own stricter lint config.
+      rules: {
+        'boundaries/no-unknown-files': 'off',
+        'eslint/no-shadow': 'off',
       },
     },
     {
@@ -1795,6 +1823,31 @@ const config = defineConfig({
                 message: 'Translations are not needed in tests.',
               },
             ],
+          },
+        ],
+      },
+    },
+    {
+      files: [
+        'static/packages/scraps/src/**/*.spec.tsx',
+        'static/packages/scraps/test/**/*.{ts,tsx,mjs}',
+      ],
+      rules: {
+        'import/no-relative-parent-imports': 'off',
+        'import/no-nodejs-modules': 'off',
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: [
+              ...restrictedImportPatterns,
+              {
+                group: ['sentry/*', 'sentry-test/*', 'sentry-fixture/*'],
+                message: 'Scraps tests must be independent of the Sentry application.',
+              },
+            ],
+            paths: restrictedImportPaths.filter(
+              ({name}) => !name.startsWith('@testing-library/')
+            ),
           },
         ],
       },

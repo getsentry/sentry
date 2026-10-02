@@ -4,6 +4,9 @@ import type {Series} from 'sentry/types/echarts';
 import {areNumbersAlmostEqual} from 'sentry/utils/number/areNumbersAlmostEqual';
 import type {WidgetSeries} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
 
+// Maximum percentage difference allowed between bucket values
+const VALUE_DIFFERENCE_THRESHOLD_PERCENTAGE = 3;
+
 type SeriesDifference = {
   reason: 'unmatchedSeries' | 'length' | 'timestamp' | 'value' | 'other';
 };
@@ -43,7 +46,11 @@ export function findSeriesDifferences(
           .slice(1, -1)
           .some(
             ([item, matchingItem]) =>
-              !areNumbersAlmostEqual(item.value, matchingItem.value)
+              !areNumbersAlmostEqual(
+                item.value,
+                matchingItem.value,
+                VALUE_DIFFERENCE_THRESHOLD_PERCENTAGE
+              )
           )
       ) {
         differences.push({reason: 'value'});
@@ -65,7 +72,7 @@ export function findSeriesDifferences(
       normalizeSeries(timeSeries),
       (a, b, key) =>
         key === 'value' && typeof a === 'number' && typeof b === 'number'
-          ? areNumbersAlmostEqual(a, b)
+          ? areNumbersAlmostEqual(a, b, VALUE_DIFFERENCE_THRESHOLD_PERCENTAGE)
           : undefined
     )
   ) {
