@@ -1,6 +1,7 @@
 import builtins
 from typing import Any, NotRequired, TypedDict
 
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
@@ -23,20 +24,34 @@ class ActionInput(TypedDict):
     type: str
     data: dict[str, Any]
     config: dict[str, Any]
-    integrationId: NotRequired[int | None]
+    integrationId: NotRequired[str | None]
     status: NotRequired[str]
 
 
+@extend_schema_field(str)
+class StringifiedIntegerField(serializers.IntegerField):
+    pass
+
+
 class BaseActionValidator(CamelSnakeSerializer[Any]):
+    action_type: str | None = None
+
+    id = StringifiedIntegerField(required=False)
     data = serializers.JSONField()  # type: ignore[assignment]
     config = serializers.JSONField()
     type = serializers.ChoiceField(choices=[(t.value, t.name) for t in Action.Type])
-    integration_id = serializers.IntegerField(required=False, allow_null=True)
+    integration_id = StringifiedIntegerField(required=False, allow_null=True)
     status = serializers.CharField(required=False)
 
+    def to_internal_value(self, data: Any) -> dict[str, Any]:
+        action_type = data.get("type") if isinstance(data, dict) else None
+        self.action_type = action_type if isinstance(action_type, str) else None
+        return super().to_internal_value(data)
+
     def _get_action_handler(self) -> builtins.type[ActionHandler]:
-        action_type = self.initial_data.get("type")
-        return action_handler_registry.get(action_type)
+        if self.action_type is None:
+            raise serializers.ValidationError("Action type is required")
+        return action_handler_registry.get(self.action_type)
 
     def validate_data(self, value: Any) -> ActionData:
         data_schema = self._get_action_handler().data_schema

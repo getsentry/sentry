@@ -2,8 +2,28 @@ from collections.abc import Mapping
 from typing import Any, NotRequired, TypedDict
 
 from sentry.api.serializers import Serializer, register
+from sentry.api.serializers.rest_framework.base import snake_to_camel_case
 from sentry.rules.actions.notify_event_service import PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS
 from sentry.workflow_engine.types import ActionHandler
+
+
+def json_schema_to_api(schema: dict[str, Any]) -> dict[str, Any]:
+    def convert(value: Any) -> Any:
+        if isinstance(value, list):
+            return [convert(item) for item in value]
+        if not isinstance(value, dict):
+            return value
+
+        result = {key: convert(item) for key, item in value.items()}
+        if isinstance(properties := value.get("properties"), dict):
+            result["properties"] = {
+                snake_to_camel_case(name): convert(spec) for name, spec in properties.items()
+            }
+        if isinstance(required := value.get("required"), list):
+            result["required"] = [snake_to_camel_case(field) for field in required]
+        return result
+
+    return convert(schema)
 
 
 class SentryAppContext(TypedDict):
@@ -16,14 +36,30 @@ class SentryAppContext(TypedDict):
     title: NotRequired[str]
 
 
+class AvailableActionService(TypedDict):
+    id: str
+    name: str
+
+
+class AvailableActionIntegration(TypedDict):
+    id: str
+    name: str
+    services: NotRequired[list[AvailableActionService]]
+
+
+class AvailableWebhookService(TypedDict):
+    slug: str
+    name: str
+
+
 class ActionHandlerSerializerResponse(TypedDict):
     type: str
     handlerGroup: str
     configSchema: dict[str, Any]
     dataSchema: dict[str, Any]
     sentryApp: NotRequired[SentryAppContext]
-    integrations: NotRequired[list[Any]]
-    services: NotRequired[list[Any]]
+    integrations: NotRequired[list[AvailableActionIntegration]]
+    services: NotRequired[list[AvailableWebhookService]]
 
 
 @register(ActionHandler)
@@ -47,15 +83,18 @@ class ActionHandlerSerializer(Serializer[ActionHandlerSerializerResponse]):
         result: ActionHandlerSerializerResponse = {
             "type": action_type,
             "handlerGroup": obj.group.value,
-            "configSchema": obj.config_schema,
-            "dataSchema": obj.data_schema,
+            "configSchema": json_schema_to_api(obj.get_api_config_schema()),
+            "dataSchema": json_schema_to_api(obj.data_schema),
         }
 
         integrations = kwargs.get("integrations")
         if integrations:
-            integrations_result = []
+            integrations_result: list[AvailableActionIntegration] = []
             for i in integrations:
-                i_result = {"id": str(i["integration"].id), "name": i["integration"].name}
+                i_result: AvailableActionIntegration = {
+                    "id": str(i["integration"].id),
+                    "name": i["integration"].name,
+                }
                 if i["services"]:
                     i_result["services"] = [
                         {"id": str(id), "name": name} for id, name in i["services"]
@@ -82,7 +121,7 @@ class ActionHandlerSerializer(Serializer[ActionHandlerSerializerResponse]):
 
         services = kwargs.get("services")
         if services:
-            services_list = [
+            services_list: list[AvailableWebhookService] = [
                 {"slug": service.slug, "name": self.transform_title(service.title)}
                 for service in services
             ]

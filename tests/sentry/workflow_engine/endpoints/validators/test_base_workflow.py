@@ -69,7 +69,7 @@ class TestWorkflowValidator(TestCase):
                         "type": Action.Type.SLACK,
                         "config": {"foo": "bar"},
                         "data": {"baz": "bar"},
-                        "integrationId": self.integration.id,
+                        "integrationId": str(self.integration.id),
                     }
                 ],
             }
@@ -77,6 +77,10 @@ class TestWorkflowValidator(TestCase):
 
         validator = WorkflowValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid() is True
+        assert (
+            validator.validated_data["action_filters"][0]["actions"][0]["integration_id"]
+            == self.integration.id
+        )
 
     @mock.patch(
         "sentry.workflow_engine.registry.action_handler_registry.get",

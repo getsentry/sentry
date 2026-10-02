@@ -8,6 +8,9 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.notifications.notification_action.action_handler_registry.base import (
     IntegrationActionHandler,
 )
+from sentry.notifications.notification_action.action_handler_registry.email_handler import (
+    EmailActionHandler,
+)
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
@@ -259,6 +262,31 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "configSchema": {},
                 "dataSchema": {},
             }
+        ]
+
+    def test_schemas_use_public_wire_format(self) -> None:
+        self.registry.register(Action.Type.EMAIL)(EmailActionHandler)
+
+        response = self.get_success_response(self.organization.slug, status_code=200)
+
+        action = response.data[0]
+        config_properties = action["configSchema"]["properties"]
+        assert "target_identifier" not in config_properties
+        assert config_properties["targetIdentifier"]["type"] == ["string", "null"]
+        assert config_properties["targetType"] == {
+            "type": ["string"],
+            "enum": ["user", "team", "issue_owners"],
+        }
+        assert action["configSchema"]["required"] == ["targetType"]
+        assert action["configSchema"]["allOf"][0]["then"]["required"] == [
+            "targetType",
+            "targetIdentifier",
+        ]
+        assert "fallthrough_type" not in action["dataSchema"]["properties"]
+        assert action["dataSchema"]["properties"]["fallthroughType"]["enum"] == [
+            "AllMembers",
+            "ActiveMembers",
+            "NoOne",
         ]
 
     def test_simple_integrations(self) -> None:

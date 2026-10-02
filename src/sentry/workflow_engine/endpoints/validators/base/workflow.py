@@ -47,14 +47,7 @@ class ActionFilterInput(DataConditionGroupInput):
 
 
 class ActionFilterValidator(BaseDataConditionGroupValidator):
-    actions = serializers.ListField(child=serializers.DictField())
-
-    def validate_actions(self, value: ListInputData) -> ListInputData:
-        id_field = serializers.IntegerField()
-        for action in value:
-            if "id" in action:
-                action["id"] = id_field.run_validation(action["id"])
-        return value
+    actions = BaseActionValidator(many=True)
 
 
 class WorkflowInput(TypedDict):
@@ -128,14 +121,6 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
     def validate_action_filters(self, value: ListInputData) -> ListInputData:
         if "workflow" in self.context:
             self._validate_action_filter_ownership(value)
-
-        for action_filter in value:
-            for action in action_filter["actions"]:
-                action_validator = BaseActionValidator(data=action, context=self.context)
-                action_validator.is_valid(raise_exception=True)
-
-                # update because the validated data does not contain "id" for updates
-                action.update(action_validator.validated_data)
 
         return value
 

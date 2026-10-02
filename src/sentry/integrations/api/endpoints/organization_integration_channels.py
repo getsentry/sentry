@@ -1,14 +1,23 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
+from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.integrations.api.bases.organization_integrations import (
     OrganizationIntegrationBaseEndpoint,
 )
@@ -23,7 +32,19 @@ from sentry.shared_integrations.exceptions import ApiError
 logger = logging.getLogger(__name__)
 
 
-def _slack_list_channels(*, integration_id: int) -> list[dict[str, Any]]:
+class IntegrationChannel(TypedDict):
+    id: str
+    name: str
+    display: str
+    type: str
+
+
+class IntegrationChannelsResponse(TypedDict):
+    results: list[IntegrationChannel]
+    warning: NotRequired[str]
+
+
+def _slack_list_channels(*, integration_id: int) -> list[IntegrationChannel]:
     """
     List Slack channels for a given integration.
 
@@ -56,7 +77,7 @@ def _slack_list_channels(*, integration_id: int) -> list[dict[str, Any]]:
         )
         return []
 
-    results: list[dict[str, Any]] = []
+    results: list[IntegrationChannel] = []
     for ch in raw_channels:
         if not isinstance(ch, dict):
             continue
@@ -81,7 +102,7 @@ def _slack_list_channels(*, integration_id: int) -> list[dict[str, Any]]:
     return results
 
 
-def _discord_list_channels(*, guild_id: str) -> list[dict[str, Any]]:
+def _discord_list_channels(*, guild_id: str) -> list[IntegrationChannel]:
     """
     List Discord channels for a given guild that can receive messages.
 
@@ -119,7 +140,7 @@ def _discord_list_channels(*, guild_id: str) -> list[dict[str, Any]]:
         return []
 
     selectable_types = set(DISCORD_CHANNEL_TYPES.keys())
-    results: list[dict[str, Any]] = []
+    results: list[IntegrationChannel] = []
 
     for item in raw_resp:
         if not isinstance(item, dict):
@@ -148,7 +169,7 @@ def _discord_list_channels(*, guild_id: str) -> list[dict[str, Any]]:
 
 def _msteams_list_channels(
     *, integration: Integration | RpcIntegration, team_id: str
-) -> list[dict[str, Any]]:
+) -> list[IntegrationChannel]:
     """
     List Microsoft Teams channels for a given team.
 
@@ -187,7 +208,7 @@ def _msteams_list_channels(
         )
         return []
 
-    results: list[dict[str, Any]] = []
+    results: list[IntegrationChannel] = []
     for item in raw_channels:
         if not isinstance(item, dict):
             continue
@@ -214,19 +235,34 @@ def _msteams_list_channels(
 
 
 @control_silo_endpoint
+@extend_schema(tags=["Integrations"])
 class OrganizationIntegrationChannelsEndpoint(OrganizationIntegrationBaseEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
+    @extend_schema(
+        operation_id="listOrganizationIntegrationChannels",
+        summary="List Messaging Channels for an Integration",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, GlobalParams.INTEGRATION_ID],
+        responses={
+            200: inline_sentry_response_serializer(
+                "IntegrationChannelsResponse", IntegrationChannelsResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def get(
         self,
         request: Request,
         organization_context: RpcUserOrganizationContext,
         integration_id: int,
         **kwargs: Any,
-    ) -> Response:
+    ) -> Response[IntegrationChannelsResponse]:
         """
         List all messaging channels for an integration.
         """

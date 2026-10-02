@@ -18,7 +18,15 @@ class EmailActionHandler(ActionHandler):
         "description": "The configuration schema for an email Action",
         "type": "object",
         "properties": {
-            "target_identifier": {"type": ["string", "null"]},
+            "target_identifier": {
+                "type": ["string", "null"],
+                "description": (
+                    "The stringified Sentry User.id or Team.id. Resolve users with the "
+                    "organization members endpoint and teams with the organization teams endpoint; "
+                    "member IDs, email addresses, team slugs, and 'me' are not accepted. Omit this "
+                    "field when target_type is issue_owners."
+                ),
+            },
             "target_display": {"type": ["null"]},
             "target_type": {
                 "type": ["integer"],

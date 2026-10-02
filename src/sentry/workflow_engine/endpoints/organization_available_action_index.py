@@ -62,20 +62,22 @@ class AvailableIntegration(TypedDict):
 
 
 @cell_silo_endpoint
+@extend_schema(tags=["Monitors"])
 class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
 
     @extend_schema(
-        operation_id="Fetch Available Actions",
+        operation_id="fetchOrganizationAvailableActions",
+        summary="List Available Alert Actions",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             AVAILABLE_ACTION_TYPE_PARAMETER,
         ],
         responses={
-            201: inline_sentry_response_serializer(
+            200: inline_sentry_response_serializer(
                 "ListAvailableActionResponse", list[ActionHandlerSerializerResponse]
             ),
             400: RESPONSE_BAD_REQUEST,
