@@ -125,7 +125,11 @@ from sentry.quotas.base import index_data_category
 from sentry.receivers.features import record_event_processed
 from sentry.receivers.onboarding import record_release_received
 from sentry.releases.auto_creation import should_auto_create_releases
-from sentry.reprocessing2 import is_reprocessed_event
+from sentry.reprocessing2 import (
+    delete_unprocessed_backup,
+    get_unprocessed_backup,
+    is_reprocessed_event,
+)
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.signals import (
@@ -1087,14 +1091,25 @@ def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
         subkeys = {}
 
         event = job["event"]
-        # We only care about `unprocessed` for error events
+        # We only care about `unprocessed` for error events. Depending on the status of
+        # `store.reprocessing-nodestore-backup.rollout`, the unprocessed copy is parked
+        # in either store; whichever holds it, it gets persisted here as a subkey.
+        from_node = False
         if event.get_event_type() not in ("transaction", "generic") and job["groups"]:
-            unprocessed = event_processing_store.get(
-                cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
-                unprocessed=True,
-            )
+            unprocessed = get_unprocessed_backup(event.project_id, event.event_id)
+            from_node = unprocessed is not None
+            if unprocessed is None:
+                unprocessed = event_processing_store.get(
+                    cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
+                    unprocessed=True,
+                )
             if unprocessed is not None:
                 subkeys["unprocessed"] = unprocessed
+                metrics.incr(
+                    "events.unprocessed_copy.promoted",
+                    tags={"source": "node" if from_node else "processing_store"},
+                    sample_rate=1.0,
+                )
 
         if app_feature:
             event_size = 0
@@ -1109,6 +1124,11 @@ def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
             )
         job["event"].data["nodestore_insert"] = inserted_time
         job["event"].data.save(subkeys=subkeys)
+
+        # Only now that the payload is durable as a subkey is it safe to drop it from
+        # the temporary store.
+        if from_node:
+            delete_unprocessed_backup(event.project_id, event.event_id)
 
 
 def _eventstream_insert_many(jobs: Sequence[Job]) -> None:
