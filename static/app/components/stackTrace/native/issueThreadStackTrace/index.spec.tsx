@@ -457,7 +457,7 @@ describe('IssueThreadStackTrace', () => {
                               rule_id: 'project:0',
                               remark: 's',
                             },
-                            {type: 'text', text: ''},
+                            {type: 'text', text: '', rule_id: ''},
                           ],
                         },
                       },
@@ -475,6 +475,51 @@ describe('IssueThreadStackTrace', () => {
 
     expect(await screen.findByText('<redacted>')).toBeInTheDocument();
     expect(screen.queryByText('ViewController.causeCrash')).not.toBeInTheDocument();
+  });
+
+  it('uses sparse thread metadata for a thread without an exception', async () => {
+    const event = makeEvent([
+      makeThread({crashed: true, id: 7}),
+      makeThread({id: 8, name: 'worker', stacktrace: makeStacktrace('Worker.run')}),
+    ]);
+    event._meta = {
+      entries: {
+        1: {
+          data: {
+            values: {
+              1: {
+                stacktrace: {
+                  frames: {
+                    1: {
+                      function: {
+                        '': {
+                          chunks: [
+                            {
+                              type: 'redaction',
+                              text: '<redacted worker>',
+                              rule_id: 'project:0',
+                              remark: 's',
+                            },
+                            {type: 'text', text: '', rule_id: ''},
+                          ],
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    } as Event['_meta'];
+
+    renderThreadStackTrace(event);
+
+    expect(await screen.findByText('ViewController.causeCrash')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
+    expect(await screen.findByText('<redacted worker>')).toBeInTheDocument();
+    expect(screen.queryByText('Worker.run')).not.toBeInTheDocument();
   });
 
   it('renders chained exceptions for exception-backed native threads', async () => {

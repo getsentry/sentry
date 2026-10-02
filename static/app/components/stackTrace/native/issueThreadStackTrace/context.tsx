@@ -13,7 +13,6 @@ import {NativeStackTraceViewStateProvider} from 'sentry/components/stackTrace/na
 import type {Event, Thread} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils/defined';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {setActiveThreadId as setCopyIssueDetailsActiveThreadId} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
@@ -71,10 +70,10 @@ export function IssueThreadStackTraceProviders({
 }: IssueThreadStackTraceProvidersProps) {
   const organization = useOrganization();
   const storageKey = `issue-details-stracktrace-display-${organization.slug}-${projectSlug}`;
-  const {data: detailedProject} = useDetailedProject(
-    {orgSlug: organization.slug, projectSlug},
-    {enabled: defined(projectSlug)}
-  );
+  const {data: detailedProject} = useDetailedProject({
+    orgSlug: organization.slug,
+    projectSlug,
+  });
   const hasScmSourceContext = !!detailedProject?.scmSourceContextEnabled;
   const [selectedThreadId, setSelectedThreadId] = useState(
     () => findBestThread(threads)?.id

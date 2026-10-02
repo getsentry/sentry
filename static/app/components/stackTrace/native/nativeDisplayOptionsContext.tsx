@@ -1,11 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import {createContext, useCallback, useContext, useMemo, useState} from 'react';
 
 import {StackTraceViewStateContext} from 'sentry/components/stackTrace/stackTraceContext';
 import type {
@@ -16,25 +9,17 @@ import type {
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 import {
-  getNativeDisplayOptions,
   NATIVE_DISPLAY_OPTION,
+  updateNativeDisplayOption,
   type NativePersistedDisplayOption,
 } from './nativeDisplayOptionsPersistence';
-
-interface NativeDisplayOptionsState {
-  absoluteAddresses: boolean;
-  absoluteFilePaths: boolean;
-  isNewestFirst: boolean;
-  prefersMinified: boolean;
-  verboseFunctionNames: boolean;
-  view: StackTraceView;
-}
 
 interface NativeDisplayOptionsContextValue {
   absoluteAddresses: boolean;
   absoluteFilePaths: boolean;
-  prefersMinified: boolean;
-  updateDisplayOptions: (options: NativeDisplayOptionsState) => void;
+  setAbsoluteAddresses: (absoluteAddresses: boolean) => void;
+  setAbsoluteFilePaths: (absoluteFilePaths: boolean) => void;
+  setVerboseFunctionNames: (verboseFunctionNames: boolean) => void;
   verboseFunctionNames: boolean;
 }
 
@@ -47,6 +32,18 @@ type SetPersistedOptions = React.Dispatch<React.SetStateAction<PersistedOptions>
 
 const NativeDisplayOptionsContext =
   createContext<NativeDisplayOptionsContextValue | null>(null);
+
+function getInitialDisplayOptions(
+  storedValue: unknown,
+  {defaultIsMinified, defaultView}: NativeStackTraceViewStateProviderProps
+): PersistedOptions {
+  return Object.values(NATIVE_DISPLAY_OPTION).filter(
+    option =>
+      (Array.isArray(storedValue) && storedValue.includes(option)) ||
+      (defaultIsMinified && option === NATIVE_DISPLAY_OPTION.MINIFIED) ||
+      (defaultView === 'raw' && option === NATIVE_DISPLAY_OPTION.RAW_STACK_TRACE)
+  );
+}
 
 export function NativeStackTraceViewStateProvider({
   storageKey,
@@ -67,7 +64,7 @@ function PersistedNativeStackTraceViewStateProvider({
 }: Omit<NativeStackTraceViewStateProviderProps, 'storageKey'> & {storageKey: string}) {
   const [persistedOptions, setPersistedOptions] = useLocalStorageState<PersistedOptions>(
     storageKey,
-    []
+    storedValue => getInitialDisplayOptions(storedValue, props)
   );
 
   return (
@@ -83,7 +80,9 @@ function PersistedNativeStackTraceViewStateProvider({
 function LocalNativeStackTraceViewStateProvider(
   props: Omit<NativeStackTraceViewStateProviderProps, 'storageKey'>
 ) {
-  const [persistedOptions, setPersistedOptions] = useState<PersistedOptions>([]);
+  const [persistedOptions, setPersistedOptions] = useState<PersistedOptions>(() =>
+    getInitialDisplayOptions(undefined, props)
+  );
 
   return (
     <NativeStackTraceViewStateRoot
@@ -96,7 +95,6 @@ function LocalNativeStackTraceViewStateProvider(
 
 function NativeStackTraceViewStateRoot({
   children,
-  defaultIsMinified = false,
   defaultView = 'app',
   hasMinifiedStacktrace = false,
   persistedOptions,
@@ -108,71 +106,38 @@ function NativeStackTraceViewStateRoot({
   setPersistedOptions: SetPersistedOptions;
 }) {
   // Preferences survive thread changes; effective settings depend on available data.
-  const [selectedView, setView] = useState<StackTraceView | null>(() =>
-    defaultView === 'raw' ||
-    persistedOptions.includes(NATIVE_DISPLAY_OPTION.RAW_STACK_TRACE)
-      ? 'raw'
-      : null
-  );
-  const [prefersMinified, setIsMinified] = useState(
-    () => defaultIsMinified || persistedOptions.includes(NATIVE_DISPLAY_OPTION.MINIFIED)
-  );
+  const [selectedView, setSelectedView] = useState<StackTraceView | null>(null);
   const [isNewestFirst, setIsNewestFirst] = useState(defaultIsNewestFirst);
-  const view = selectedView ?? defaultView;
-
-  useEffect(() => {
-    setPersistedOptions(previous => {
-      const next = getNativeDisplayOptions({
-        absoluteAddresses: previous.includes(NATIVE_DISPLAY_OPTION.ABSOLUTE_ADDRESSES),
-        absoluteFilePaths: previous.includes(NATIVE_DISPLAY_OPTION.ABSOLUTE_FILE_PATHS),
-        verboseFunctionNames: previous.includes(
-          NATIVE_DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES
-        ),
-        isMinified: prefersMinified,
-        view,
-      });
-      return next.length === previous.length &&
-        next.every((option, index) => option === previous[index])
-        ? previous
-        : next;
-    });
-  }, [prefersMinified, setPersistedOptions, view]);
-  const isMinified = hasMinifiedStacktrace && prefersMinified;
+  const view =
+    selectedView ??
+    (persistedOptions.includes(NATIVE_DISPLAY_OPTION.RAW_STACK_TRACE)
+      ? 'raw'
+      : defaultView);
+  const isMinified =
+    hasMinifiedStacktrace && persistedOptions.includes(NATIVE_DISPLAY_OPTION.MINIFIED);
+  const setOption = useCallback(
+    (option: NativePersistedDisplayOption, enabled: boolean) => {
+      setPersistedOptions(previous =>
+        updateNativeDisplayOption(previous, option, enabled)
+      );
+    },
+    [setPersistedOptions]
+  );
   const viewState = useMemo<StackTraceViewState>(
     () => ({
       view,
-      setView: update =>
-        setView(previous =>
-          typeof update === 'function' ? update(previous ?? defaultView) : update
-        ),
+      setView: nextView => {
+        setSelectedView(nextView);
+        setOption(NATIVE_DISPLAY_OPTION.RAW_STACK_TRACE, nextView === 'raw');
+      },
       isMinified,
-      setIsMinified,
+      setIsMinified: enabled => setOption(NATIVE_DISPLAY_OPTION.MINIFIED, enabled),
       isNewestFirst,
       setIsNewestFirst,
       hasMinifiedStacktrace,
       platform,
     }),
-    [view, isMinified, isNewestFirst, hasMinifiedStacktrace, platform, defaultView]
-  );
-
-  const updateDisplayOptions = useCallback(
-    (options: NativeDisplayOptionsState) => {
-      if (options.view !== view) {
-        setView(options.view);
-      }
-      setIsNewestFirst(options.isNewestFirst);
-      setIsMinified(options.prefersMinified);
-      setPersistedOptions(
-        getNativeDisplayOptions({
-          absoluteAddresses: options.absoluteAddresses,
-          absoluteFilePaths: options.absoluteFilePaths,
-          isMinified: options.prefersMinified,
-          verboseFunctionNames: options.verboseFunctionNames,
-          view: options.view,
-        })
-      );
-    },
-    [setIsMinified, setIsNewestFirst, setPersistedOptions, setView, view]
+    [view, isMinified, isNewestFirst, hasMinifiedStacktrace, platform, setOption]
   );
   const displayOptions = useMemo<NativeDisplayOptionsContextValue>(
     () => ({
@@ -182,13 +147,17 @@ function NativeStackTraceViewStateRoot({
       absoluteFilePaths: persistedOptions.includes(
         NATIVE_DISPLAY_OPTION.ABSOLUTE_FILE_PATHS
       ),
-      prefersMinified,
-      updateDisplayOptions,
+      setAbsoluteAddresses: enabled =>
+        setOption(NATIVE_DISPLAY_OPTION.ABSOLUTE_ADDRESSES, enabled),
+      setAbsoluteFilePaths: enabled =>
+        setOption(NATIVE_DISPLAY_OPTION.ABSOLUTE_FILE_PATHS, enabled),
+      setVerboseFunctionNames: enabled =>
+        setOption(NATIVE_DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES, enabled),
       verboseFunctionNames: persistedOptions.includes(
         NATIVE_DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES
       ),
     }),
-    [prefersMinified, persistedOptions, updateDisplayOptions]
+    [persistedOptions, setOption]
   );
 
   return (

@@ -299,8 +299,8 @@ describe('NativeFrameRow', () => {
     };
     renderFrames(stacktrace, makeEvent(stacktrace, [makeImage()]), {
       meta: {
-        frames: [
-          {
+        frames: {
+          0: {
             function: {
               '': {
                 chunks: [
@@ -310,12 +310,12 @@ describe('NativeFrameRow', () => {
                     rule_id: 'project:0',
                     remark: 's',
                   },
-                  {type: 'text', text: ''},
+                  {type: 'text', text: '', rule_id: ''},
                 ],
               },
             },
           },
-        ],
+        },
       },
     });
 
@@ -495,7 +495,7 @@ describe('NativeFrameRow', () => {
     expect(screen.queryByTestId('symbolication-error-icon')).not.toBeInTheDocument();
   });
 
-  it('reveals hidden system frames when the toggle is clicked', async () => {
+  it('preserves expanded details when system frames are hidden and revealed', async () => {
     // Default view is "app", which collapses runs of non-app frames into a
     // "Show N more frames" toggle on the last visible non-app row.
     const stacktrace: StacktraceType = {
@@ -504,7 +504,11 @@ describe('NativeFrameRow', () => {
       registers: null,
       frames: [
         makeFrame({function: 'app_main', inApp: true}),
-        makeFrame({function: 'hidden_one', inApp: false}),
+        makeFrame({
+          function: 'hidden_one',
+          inApp: false,
+          vars: {state: 'retained frame details'},
+        }),
         makeFrame({function: 'hidden_two', inApp: false}),
         makeFrame({function: 'hidden_three', inApp: false}),
         // Last system frame stays visible (anchor for the toggle).
@@ -527,6 +531,23 @@ describe('NativeFrameRow', () => {
         .getByText('hidden_one')
         .closest('[data-test-id="native-stack-trace-frame-title"]')
     ).toHaveAttribute('data-sub-frame', 'true');
+
+    const title = screen
+      .getByText('hidden_one')
+      .closest<HTMLElement>('[data-test-id="native-stack-trace-frame-title"]')!;
+    await userEvent.click(
+      within(title).getByRole('button', {name: 'Expand frame details'})
+    );
+    expect(screen.getByText('retained frame details')).toBeVisible();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Hide 3 frames'}));
+    expect(screen.getByText('retained frame details')).not.toBeVisible();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show 3 more frames'}));
+    expect(screen.getByText('retained frame details')).toBeVisible();
+    expect(
+      within(title).getByRole('button', {name: 'Collapse frame details'})
+    ).toHaveAttribute('aria-expanded', 'true');
   });
 
   it('shows native lead hints only in app-only view', () => {

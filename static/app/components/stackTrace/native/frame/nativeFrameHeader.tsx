@@ -15,21 +15,16 @@ import {
   useStackTraceFrameContext,
   useStackTraceViewState,
 } from 'sentry/components/stackTrace/stackTraceContext';
-import type {StackTraceMeta} from 'sentry/components/stackTrace/types';
+import type {
+  StackTraceFrameHeaderProps,
+  StackTraceFrameMeta,
+} from 'sentry/components/stackTrace/types';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 
 import {isDartAsyncSuspension} from './actions/getSymbolicatorStatus';
-import {NativeDefaultActions} from './actions/nativeDefaultActions';
 import {SymbolicatorStatusIcon} from './actions/symbolicatorStatusIcon';
 import {NativeFrameAddress} from './nativeFrameAddress';
-
-type FrameMeta = NonNullable<StackTraceMeta['frames']>[number];
-
-interface NativeFrameHeaderProps {
-  /** Custom trailing actions; falls back to NativeDefaultActions. */
-  actions?: React.ReactNode | ((props: {isHovering: boolean}) => React.ReactNode);
-}
 
 function getFunctionLabel({
   frame,
@@ -37,7 +32,7 @@ function getFunctionLabel({
   verboseFunctionNames,
 }: {
   frame: ReturnType<typeof useStackTraceFrameContext>['frame'];
-  frameMeta: FrameMeta | undefined;
+  frameMeta: StackTraceFrameMeta | undefined;
   verboseFunctionNames: boolean;
 }) {
   const functionNameHiddenDetails =
@@ -62,7 +57,7 @@ function getFunctionLabel({
   return null;
 }
 
-export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
+export function NativeFrameHeader({actions}: StackTraceFrameHeaderProps) {
   const {
     event,
     frame,
@@ -86,10 +81,7 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
   const showLeadHint = view === 'app' && !isExpanded && leadsToApp;
 
-  const resolvedActions =
-    typeof actions === 'function'
-      ? actions({isHovering})
-      : (actions ?? <NativeDefaultActions />);
+  const resolvedActions = typeof actions === 'function' ? actions({isHovering}) : actions;
 
   return (
     <Container containerType="inline-size">

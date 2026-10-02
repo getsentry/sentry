@@ -30,6 +30,7 @@ export function NativeDisplayOptionsMenu({
     setView,
     hasMinifiedStacktrace,
     isMinified,
+    setIsMinified,
     isNewestFirst,
     setIsNewestFirst,
     platform,
@@ -37,8 +38,9 @@ export function NativeDisplayOptionsMenu({
   const {
     absoluteAddresses,
     absoluteFilePaths,
-    prefersMinified,
-    updateDisplayOptions,
+    setAbsoluteAddresses,
+    setAbsoluteFilePaths,
+    setVerboseFunctionNames,
     verboseFunctionNames,
   } = useNativeDisplayOptionsContext();
 
@@ -73,33 +75,23 @@ export function NativeDisplayOptionsMenu({
 
   function handleFrameDetailsChange(opts: Array<{value: string}>) {
     const vals = opts.map(o => o.value);
-    const nextPrefersMinified = hasMinifiedStacktrace
-      ? vals.includes(NATIVE_DISPLAY_OPTION.MINIFIED)
-      : prefersMinified;
-    let nextAbsoluteAddresses = absoluteAddresses;
-    let nextAbsoluteFilePaths = absoluteFilePaths;
-    let nextVerboseFunctionNames = verboseFunctionNames;
-
-    if (!isRawView) {
-      nextAbsoluteAddresses = hasAbsoluteAddresses
-        ? vals.includes(NATIVE_DISPLAY_OPTION.ABSOLUTE_ADDRESSES)
-        : absoluteAddresses;
-      nextAbsoluteFilePaths = hasAbsoluteFilePaths
-        ? vals.includes(NATIVE_DISPLAY_OPTION.ABSOLUTE_FILE_PATHS)
-        : absoluteFilePaths;
-      nextVerboseFunctionNames = hasVerboseFunctionNames
-        ? vals.includes(NATIVE_DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES)
-        : verboseFunctionNames;
+    if (hasMinifiedStacktrace) {
+      setIsMinified(vals.includes(NATIVE_DISPLAY_OPTION.MINIFIED));
     }
 
-    updateDisplayOptions({
-      absoluteAddresses: nextAbsoluteAddresses,
-      absoluteFilePaths: nextAbsoluteFilePaths,
-      isNewestFirst,
-      prefersMinified: nextPrefersMinified,
-      verboseFunctionNames: nextVerboseFunctionNames,
-      view,
-    });
+    if (!isRawView) {
+      if (hasAbsoluteAddresses) {
+        setAbsoluteAddresses(vals.includes(NATIVE_DISPLAY_OPTION.ABSOLUTE_ADDRESSES));
+      }
+      if (hasAbsoluteFilePaths) {
+        setAbsoluteFilePaths(vals.includes(NATIVE_DISPLAY_OPTION.ABSOLUTE_FILE_PATHS));
+      }
+      if (hasVerboseFunctionNames) {
+        setVerboseFunctionNames(
+          vals.includes(NATIVE_DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES)
+        );
+      }
+    }
   }
 
   return (

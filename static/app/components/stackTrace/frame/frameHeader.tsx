@@ -12,6 +12,7 @@ import {
   isPotentiallyThirdPartyFrame,
 } from 'sentry/components/events/interfaces/frame/utils';
 import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTraceContext';
+import type {StackTraceFrameHeaderProps} from 'sentry/components/stackTrace/types';
 import {t} from 'sentry/locale';
 import type {Event, Frame} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
@@ -51,15 +52,7 @@ function formatFrameLocation(
   return `${path}:${lineNo}:${colNo}`;
 }
 
-interface FrameHeaderProps {
-  /**
-   * Custom trailing actions for this frame. Pass a ReactNode, or a render
-   * function that receives `isHovering`.
-   */
-  actions?: React.ReactNode | ((props: {isHovering: boolean}) => React.ReactNode);
-}
-
-export function FrameHeader({actions}: FrameHeaderProps) {
+export function FrameHeader({actions}: StackTraceFrameHeaderProps) {
   const [isHovering, setIsHovering] = useState(false);
   const {frame, isExpandable, isExpanded, nextFrame, platform, toggleExpansion} =
     useStackTraceFrameContext();

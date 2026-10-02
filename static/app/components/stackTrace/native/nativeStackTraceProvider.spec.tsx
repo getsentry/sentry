@@ -197,4 +197,83 @@ describe('NativeStackTraceProvider', () => {
       ]);
     });
   });
+
+  it('updates multiple frame preferences without losing earlier selections', async () => {
+    function Preferences() {
+      return (
+        <PersistedNativeStackTrace
+          hasMinifiedStacktrace
+          stacktrace={stacktraceWithAddress}
+        >
+          <NativeDisplayOptionsMenu
+            hasAbsoluteAddresses
+            hasAbsoluteFilePaths
+            hasVerboseFunctionNames
+          />
+        </PersistedNativeStackTrace>
+      );
+    }
+    const {unmount} = render(<Preferences />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    for (const name of [
+      'Absolute Addresses',
+      'Absolute File Paths',
+      'Verbose Function Names',
+      'Unsymbolicated',
+    ]) {
+      await userEvent.click(screen.getByRole('option', {name}));
+    }
+    await waitFor(() => {
+      expect(JSON.parse(localStorageWrapper.getItem(storageKey)!)).toEqual([
+        'absolute-addresses',
+        'absolute-file-paths',
+        'minified',
+        'verbose-function-names',
+      ]);
+    });
+
+    await userEvent.click(screen.getByRole('option', {name: 'Absolute File Paths'}));
+    unmount();
+    render(<Preferences />);
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    for (const name of [
+      'Absolute Addresses',
+      'Verbose Function Names',
+      'Unsymbolicated',
+    ]) {
+      expect(screen.getByRole('option', {name})).toHaveAttribute('aria-selected', 'true');
+    }
+    expect(screen.getByRole('option', {name: 'Absolute File Paths'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+  });
+
+  it('allows local minified defaults to be deselected', async () => {
+    render(
+      <NativeStackTraceViewStateProvider
+        defaultIsMinified
+        hasMinifiedStacktrace
+        platform="cocoa"
+      >
+        <NativeDisplayOptionsMenu
+          hasAbsoluteAddresses={false}
+          hasAbsoluteFilePaths={false}
+          hasVerboseFunctionNames={false}
+        />
+      </NativeStackTraceViewStateProvider>
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    expect(screen.getByRole('option', {name: 'Unsymbolicated'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Unsymbolicated'}));
+    expect(screen.getByRole('option', {name: 'Unsymbolicated'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+  });
 });

@@ -1,5 +1,3 @@
-import type {ComponentType} from 'react';
-
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
@@ -51,7 +49,6 @@ export interface IssueStackTraceFrameListProps {
 interface IssueExceptionStackTraceProps {
   event: Event;
   values: ExceptionValue[];
-  frameListComponent?: ComponentType<IssueStackTraceFrameListProps>;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hasScmSourceContext?: boolean;
   isStandalone?: boolean;
@@ -59,7 +56,6 @@ interface IssueExceptionStackTraceProps {
 
 export function IssueExceptionStackTrace({
   event,
-  frameListComponent: FrameListComponent = IssueStackTraceFrameList,
   groupingCurrentLevel,
   hasScmSourceContext = false,
   isStandalone = false,
@@ -120,7 +116,7 @@ export function IssueExceptionStackTrace({
             <StacktraceBanners event={event} stacktrace={exception.stacktrace} />
           </ErrorBoundary>
         )}
-        <FrameListComponent
+        <IssueStackTraceFrameList
           event={event}
           exceptionIndex={isStandalone ? undefined : exception.exceptionIndex}
           groupingCurrentLevel={groupingCurrentLevel}
@@ -191,7 +187,7 @@ export function IssueExceptionStackTrace({
                     <StacktraceBanners event={event} stacktrace={exception.stacktrace} />
                   </ErrorBoundary>
                 ) : null}
-                <FrameListComponent
+                <IssueStackTraceFrameList
                   event={event}
                   exceptionIndex={exception.exceptionIndex}
                   groupingCurrentLevel={groupingCurrentLevel}

@@ -3,6 +3,7 @@ import type {ReactNode} from 'react';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import type {StackTraceRowPolicy} from 'sentry/components/stackTrace/rowPolicy';
 import type {Event, Frame, Thread} from 'sentry/types/event';
+import type {Meta} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
@@ -12,9 +13,9 @@ export interface StackTraceViewState {
   hasMinifiedStacktrace: boolean;
   isMinified: boolean;
   isNewestFirst: boolean;
-  setIsMinified: React.Dispatch<React.SetStateAction<boolean>>;
-  setIsNewestFirst: React.Dispatch<React.SetStateAction<boolean>>;
-  setView: React.Dispatch<React.SetStateAction<StackTraceView>>;
+  setIsMinified: (isMinified: boolean) => void;
+  setIsNewestFirst: (isNewestFirst: boolean) => void;
+  setView: (view: StackTraceView) => void;
   view: StackTraceView;
   platform?: PlatformKey;
 }
@@ -47,14 +48,21 @@ export type OmittedFramesRow = {
 
 export type Row = FrameRow | OmittedFramesRow;
 
-export type StackTraceMeta = {
-  frames?: Array<{
-    function?: Record<string, Record<any, any>>;
-    rawFunction?: Record<string, Record<any, any>>;
-    vars?: Record<string, unknown>;
-  }>;
+export interface StackTraceFrameHeaderProps {
+  /** Custom trailing actions, optionally resolved with the header's hover state. */
+  actions?: ReactNode | ((props: {isHovering: boolean}) => ReactNode);
+}
+
+export interface StackTraceFrameMeta {
+  function?: Record<string, Partial<Meta>>;
+  rawFunction?: Record<string, Partial<Meta>>;
+  vars?: Record<string, unknown>;
+}
+
+export interface StackTraceMeta {
+  frames?: Record<number, StackTraceFrameMeta>;
   registers?: Record<string, unknown>;
-} & Record<string, unknown>;
+}
 
 export interface StackTraceProviderProps {
   children: ReactNode;

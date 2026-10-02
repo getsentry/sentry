@@ -54,7 +54,6 @@ export function ActiveThreadStackTrace() {
         event={event}
         groupingCurrentLevel={groupingCurrentLevel}
         hasScmSourceContext={hasScmSourceContext}
-        frameListComponent={IssueStackTraceFrameList}
       />
     );
   }

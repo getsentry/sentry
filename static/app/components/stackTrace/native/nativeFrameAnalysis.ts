@@ -32,7 +32,7 @@ export function analyzeNativeFrames({event, frames}: {event: Event; frames: Fram
       addrMode: frame.addrMode,
       address: frame.instructionAddr,
     });
-    imageByFrameIndex.set(i, image ?? null);
+    imageByFrameIndex.set(i, image);
 
     if (image?.image_addr && frame.instructionAddr) {
       const relative = (
@@ -41,8 +41,7 @@ export function analyzeNativeFrames({event, frames}: {event: Event; frames: Fram
       maxLengthOfRelativeAddress = Math.max(maxLengthOfRelativeAddress, relative.length);
     }
 
-    hasAnyStatusIcons =
-      hasAnyStatusIcons || getSymbolicatorStatus(frame, image ?? null) !== null;
+    hasAnyStatusIcons = hasAnyStatusIcons || getSymbolicatorStatus(frame, image) !== null;
   }
 
   return {

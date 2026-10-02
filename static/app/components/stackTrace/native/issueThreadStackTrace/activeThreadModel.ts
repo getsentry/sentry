@@ -8,37 +8,6 @@ import type {Event, ExceptionValue, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
-function getEntryIndex(event: Event, type: EntryType) {
-  return event.entries.findIndex(entry => entry.type === type);
-}
-
-function getExceptionStacktraceMeta({
-  activeException,
-  event,
-}: {
-  activeException: ExceptionValue;
-  event: Event;
-}): StackTraceMeta | undefined {
-  const entryIndex = getEntryIndex(event, EntryType.EXCEPTION);
-  const exceptionEntry = event.entries[entryIndex];
-  const exceptionValues =
-    exceptionEntry?.type === EntryType.EXCEPTION
-      ? (exceptionEntry.data.values ?? [])
-      : [];
-  let exceptionIndex = exceptionValues.indexOf(activeException);
-
-  if (exceptionIndex === -1 && activeException.threadId !== null) {
-    exceptionIndex = exceptionValues.findIndex(
-      value => value.threadId === activeException.threadId
-    );
-  }
-  if (exceptionIndex === -1 && exceptionValues.length === 1) {
-    exceptionIndex = 0;
-  }
-
-  return event._meta?.entries?.[entryIndex]?.data?.values?.[exceptionIndex]?.stacktrace;
-}
-
 function getThreadStacktraceMeta({
   activeThread,
   event,
@@ -46,7 +15,7 @@ function getThreadStacktraceMeta({
   activeThread: Thread | undefined;
   event: Event;
 }): StackTraceMeta | undefined {
-  const entryIndex = getEntryIndex(event, EntryType.THREADS);
+  const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.THREADS);
   const threadsEntry = event.entries[entryIndex];
   const threadIndex =
     threadsEntry?.type === EntryType.THREADS
@@ -56,22 +25,6 @@ function getThreadStacktraceMeta({
       : -1;
 
   return event._meta?.entries?.[entryIndex]?.data?.values?.[threadIndex]?.stacktrace;
-}
-
-function getActiveStacktraceMeta({
-  activeException,
-  activeThread,
-  event,
-}: {
-  activeException: ExceptionValue | undefined;
-  activeThread: Thread | undefined;
-  event: Event;
-}): StackTraceMeta | undefined {
-  if (activeException) {
-    return getExceptionStacktraceMeta({activeException, event});
-  }
-
-  return getThreadStacktraceMeta({activeThread, event});
 }
 
 function getActiveExceptionValue({
@@ -151,7 +104,7 @@ export function getActiveThreadStackTraceModel({
     minifiedStacktrace,
     platform,
     stacktrace,
-    stacktraceMeta: getActiveStacktraceMeta({activeException, activeThread, event}),
+    stacktraceMeta: getThreadStacktraceMeta({activeThread, event}),
   };
 }
 
