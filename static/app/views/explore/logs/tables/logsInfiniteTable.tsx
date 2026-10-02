@@ -243,11 +243,8 @@ export function LogsInfiniteTable({
 
   const isEmptyWithoutInjectedErrors = isEmpty && !hasInjectedErrorRows;
 
-  const clockDisplay = useClockDisplay();
-
-  // Rows are virtualized, so the timestamp column would otherwise only fit the
-  // rendered rows and wrap wider ones that scroll in after its width is locked.
   // Widest timestamps: "Dec 28, 10:58:58.888 PM" (12h), "Dec 28, 22:58:58.888" (24h).
+  const clockDisplay = useClockDisplay();
   const timestampWidth = clockDisplay === '24' ? 20 : 23;
 
   // Calculate quantized start and end times for replay links
