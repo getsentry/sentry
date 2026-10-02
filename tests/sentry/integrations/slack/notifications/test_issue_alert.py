@@ -9,7 +9,7 @@ import responses
 import sentry
 from sentry.constants import ObjectStatus
 from sentry.digests.backends.redis import RedisBackend
-from sentry.digests.notifications import event_to_record
+from sentry.digests.notifications import event_to_record, get_rules_from_workflows
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.message_builder.issues import get_tags
@@ -34,6 +34,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.identity import Identity, IdentityStatus
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
+from sentry.workflow_engine.models import Workflow
 
 pytestmark = [requires_snuba]
 
@@ -355,7 +356,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&environment=production&workflow_id={rule.data['actions'][0]['workflow_id']}&alert_type=issue|*Hello world*>"
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&environment={environment.name}&workflow_id={rule.data['actions'][0]['workflow_id']}&alert_type=issue|*Hello world*>"
         )
         assert (
             blocks[4]["elements"][0]["text"]
@@ -402,6 +403,27 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         IssueAlertMigrator(rule).run()
 
         self._assert_issue_owners_env_block(rule, environment)
+
+    def test_issue_alert_uses_environment_from_workflow_rule(self) -> None:
+        development = self.create_environment(self.project, name="development")
+        production = self.create_environment(self.project, name="production")
+        ProjectOwnership.objects.create(project_id=self.project.id)
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "IssueOwners",
+            "targetIdentifier": "",
+        }
+        legacy_rule = self.create_project_rule(
+            project=self.project,
+            action_data=[action_data],
+            name="ja rule",
+            environment_id=development.id,
+        )
+        workflow_id = int(legacy_rule.data["actions"][0]["workflow_id"])
+        Workflow.objects.filter(id=workflow_id).update(environment_id=production.id)
+        workflow_rule = get_rules_from_workflows(self.project, {workflow_id})[workflow_id]
+
+        self._assert_issue_owners_env_block(workflow_rule, production)
 
     @responses.activate
     def test_issue_alert_team_issue_owners_block(self) -> None:
