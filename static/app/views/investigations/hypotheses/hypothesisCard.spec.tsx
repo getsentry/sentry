@@ -40,79 +40,21 @@ describe('HypothesisCard', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders the statement, rationale, and one-based ordinal', () => {
-    render(
-      <HypothesisCard
-        hypothesis={InvestigationHypothesisFixture({
-          order: 1,
-          statement: 'An external SSO provider slowed the response',
-          rationale: 'SSO and non-SSO organizations slowed together.',
-        })}
-      />
-    );
+  it('numbers the hypothesis from one', () => {
+    render(<HypothesisCard hypothesis={InvestigationHypothesisFixture({order: 1})} />);
 
-    expect(
-      screen.getByRole('heading', {name: 'An external SSO provider slowed the response'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('SSO and non-SSO organizations slowed together.')
-    ).toBeInTheDocument();
     // `order` is zero-based on the wire, so the second hypothesis reads as 2.
     expect(screen.getByText('Hypothesis 2')).toBeInTheDocument();
   });
 
-  it('shows the verdict as a tag without confidence', () => {
+  it('shows the verdict as a tag', () => {
     render(
       <HypothesisCard
-        hypothesis={InvestigationHypothesisFixture({
-          effectiveStatus: 'supported',
-          confidence: 0.86,
-        })}
+        hypothesis={InvestigationHypothesisFixture({effectiveStatus: 'supported'})}
       />
     );
 
     expect(screen.getByTestId('hypothesis-status')).toHaveTextContent('Supported');
-    expect(screen.queryByText(/confidence/i)).not.toBeInTheDocument();
-  });
-
-  it('omits confidence stored on the agent verdict', () => {
-    render(
-      <HypothesisCard
-        hypothesis={InvestigationHypothesisFixture({
-          effectiveStatus: 'inconclusive',
-          confidence: undefined,
-          agentVerdict: {
-            verdict: 'inconclusive',
-            confidence: 0.34,
-            rationale: 'Span coverage is incomplete.',
-            supportingEvidenceIds: [],
-            refutingEvidenceIds: [],
-            remainingGaps: [],
-          },
-        })}
-      />
-    );
-
-    expect(screen.getByTestId('hypothesis-status')).toHaveTextContent('Inconclusive');
-    expect(screen.queryByText(/confidence/i)).not.toBeInTheDocument();
-  });
-
-  it('omits confidence while the hypothesis is still in flight', () => {
-    render(
-      <HypothesisCard
-        hypothesis={InvestigationHypothesisFixture({
-          effectiveStatus: 'investigating',
-          status: 'running',
-          confidence: 0.4,
-          verificationSteps: [
-            InvestigationVerificationStepFixture({status: 'running', result: null}),
-          ],
-        })}
-      />
-    );
-
-    expect(screen.getByText('Verifying…')).toBeInTheDocument();
-    expect(screen.queryByText(/confidence/i)).not.toBeInTheDocument();
   });
 
   // A hypothesis in flight is one `effectiveStatus`, but it passes through
@@ -154,10 +96,11 @@ describe('HypothesisCard', () => {
     ).toBeInTheDocument();
   });
 
-  it('lists only verification titles in order without an evidence heading', () => {
+  it('lists only verification titles in order', () => {
     render(
       <HypothesisCard
         hypothesis={InvestigationHypothesisFixture({
+          effectiveStatus: 'investigating',
           verificationSteps: [
             InvestigationVerificationStepFixture({
               id: 'second',
@@ -176,7 +119,6 @@ describe('HypothesisCard', () => {
       />
     );
 
-    expect(screen.queryByText('Evidence checked')).not.toBeInTheDocument();
     expect(screen.queryByText('Ran first.')).not.toBeInTheDocument();
     expect(screen.queryByText('Ran second.')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /check/})).not.toBeInTheDocument();
@@ -210,7 +152,6 @@ describe('HypothesisCard', () => {
     const steps = within(screen.getByRole('list', {name: 'Verification steps'}));
 
     expect(steps.getByRole('listitem', {current: 'step'})).toHaveTextContent(first.title);
-    expect(screen.queryByText('Awaiting evidence')).not.toBeInTheDocument();
 
     rerender(
       <HypothesisCard
@@ -257,6 +198,7 @@ describe('HypothesisCard', () => {
     render(
       <HypothesisCard
         hypothesis={InvestigationHypothesisFixture({
+          effectiveStatus: 'investigating',
           verificationSteps: [
             InvestigationVerificationStepFixture({
               title: 'Compare error rates',
@@ -324,6 +266,168 @@ describe('HypothesisCard', () => {
       'data-border',
       border
     );
+  });
+
+  it('shows every step while verifying when there are two or fewer', () => {
+    render(
+      <HypothesisCard
+        hypothesis={InvestigationHypothesisFixture({
+          effectiveStatus: 'investigating',
+          verificationSteps: [0, 1].map(order =>
+            InvestigationVerificationStepFixture({
+              id: `step-${order}`,
+              order,
+              title: `Check ${order + 1}`,
+            })
+          ),
+        })}
+      />
+    );
+
+    const steps = within(screen.getByRole('list', {name: 'Verification steps'}));
+    expect(steps.getAllByRole('listitem')).toHaveLength(2);
+    expect(screen.queryByRole('button', {name: /show/i})).not.toBeInTheDocument();
+  });
+
+  it('collapses to the first running step while verifying', async () => {
+    render(
+      <HypothesisCard
+        hypothesis={InvestigationHypothesisFixture({
+          effectiveStatus: 'investigating',
+          status: 'running',
+          verificationSteps: [
+            InvestigationVerificationStepFixture({id: 'a', order: 0, title: 'Check 1'}),
+            InvestigationVerificationStepFixture({
+              id: 'b',
+              order: 1,
+              title: 'Check 2',
+              status: 'running',
+              result: null,
+            }),
+            InvestigationVerificationStepFixture({
+              id: 'c',
+              order: 2,
+              title: 'Check 3',
+              status: 'running',
+              result: null,
+            }),
+            InvestigationVerificationStepFixture({
+              id: 'd',
+              order: 3,
+              title: 'Check 4',
+              status: 'queued',
+              result: null,
+            }),
+          ],
+        })}
+      />
+    );
+
+    expect(screen.getByText('Check 2')).toBeInTheDocument();
+    for (const title of ['Check 1', 'Check 3', 'Check 4']) {
+      expect(screen.queryByText(title)).not.toBeInTheDocument();
+    }
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show 3 steps'}));
+
+    for (const title of ['Check 1', 'Check 2', 'Check 3', 'Check 4']) {
+      expect(screen.getByText(title)).toBeInTheDocument();
+    }
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show less'}));
+
+    expect(screen.queryByText('Check 1')).not.toBeInTheDocument();
+    expect(screen.getByText('Check 2')).toBeInTheDocument();
+  });
+
+  it('falls back to the latest step while verifying when none is running', () => {
+    render(
+      <HypothesisCard
+        hypothesis={InvestigationHypothesisFixture({
+          effectiveStatus: 'investigating',
+          verificationSteps: [0, 1, 2].map(order =>
+            InvestigationVerificationStepFixture({
+              id: `step-${order}`,
+              order,
+              title: `Check ${order + 1}`,
+            })
+          ),
+        })}
+      />
+    );
+
+    expect(screen.getByText('Check 3')).toBeInTheDocument();
+    expect(screen.queryByText('Check 1')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Show 2 steps'})).toBeInTheDocument();
+  });
+
+  it.each(['supported', 'refuted', 'inconclusive'] as const)(
+    'collapses every step of a %s hypothesis',
+    async effectiveStatus => {
+      render(
+        <HypothesisCard
+          hypothesis={InvestigationHypothesisFixture({
+            effectiveStatus,
+            verificationSteps: [0, 1].map(order =>
+              InvestigationVerificationStepFixture({
+                id: `step-${order}`,
+                order,
+                title: `Check ${order + 1}`,
+              })
+            ),
+          })}
+        />
+      );
+
+      expect(screen.queryByText('Check 1')).not.toBeInTheDocument();
+      expect(screen.queryByText('Check 2')).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Show 2 steps'}));
+
+      expect(screen.getByText('Check 1')).toBeInTheDocument();
+      expect(screen.getByText('Check 2')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Show less'}));
+
+      expect(screen.queryByText('Check 1')).not.toBeInTheDocument();
+    }
+  );
+
+  it('uses the singular for a single settled step', () => {
+    render(
+      <HypothesisCard
+        hypothesis={InvestigationHypothesisFixture({
+          verificationSteps: [InvestigationVerificationStepFixture()],
+        })}
+      />
+    );
+
+    expect(screen.getByRole('button', {name: 'Show 1 step'})).toBeInTheDocument();
+  });
+
+  it('starts collapsed again when a verdict lands on an expanded card', async () => {
+    const hypothesis = InvestigationHypothesisFixture({
+      effectiveStatus: 'investigating',
+      verificationSteps: [0, 1, 2].map(order =>
+        InvestigationVerificationStepFixture({
+          id: `step-${order}`,
+          order,
+          title: `Check ${order + 1}`,
+        })
+      ),
+    });
+    const {rerender} = render(<HypothesisCard hypothesis={hypothesis} />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show 2 steps'}));
+    expect(screen.getByText('Check 1')).toBeInTheDocument();
+
+    rerender(
+      <HypothesisCard hypothesis={{...hypothesis, effectiveStatus: 'supported'}} />
+    );
+
+    expect(screen.queryByText('Check 1')).not.toBeInTheDocument();
+    expect(screen.queryByText('Check 3')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Show 3 steps'})).toBeInTheDocument();
   });
 
   it('hides the timeline when there are no steps', () => {

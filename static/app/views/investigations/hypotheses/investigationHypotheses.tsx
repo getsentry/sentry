@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import {uuid4} from '@sentry/core';
 import {useQuery} from '@tanstack/react-query';
@@ -8,7 +8,7 @@ import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   investigationOrchestrationQueryOptions,
@@ -107,6 +107,11 @@ type InvestigationHypothesesProps = {
    * replaces it as soon as it lands.
    */
   phase?: InvestigationOrchestrationPhase;
+  /**
+   * The run's status from the investigation summary, read the same way as
+   * `phase`: only until the projection arrives.
+   */
+  status?: InvestigationOrchestrationStatus;
 };
 
 /**
@@ -127,6 +132,7 @@ export function InvestigationHypotheses({
   enabled = true,
   investigationId,
   phase: summaryPhase,
+  status: summaryStatus,
 }: InvestigationHypothesesProps) {
   const organization = useOrganization();
   // When the last accepted command was sent, or null if none has been. A
@@ -158,43 +164,66 @@ export function InvestigationHypotheses({
   const verificationComplete =
     projection?.status === 'completed' ||
     ['reporting', 'metadata', 'completed'].includes(phase ?? '');
+  // A run that has already finished verifying when the page loads opens
+  // collapsed: the report is what the viewer came for. A run that finishes while
+  // someone watches keeps the panel as it was, so the cards they were reading
+  // don't fold away underneath them. The decision is made once, on the first
+  // projection — until then the summary's phase stands in for it — and a
+  // toggle by the viewer before that lands settles it too.
   const [panelState, setPanelState] = useState({
-    verificationComplete,
+    investigationId,
+    settled: projection !== undefined,
     expanded: !verificationComplete,
   });
 
-  if (panelState.verificationComplete !== verificationComplete) {
-    setPanelState({verificationComplete, expanded: !verificationComplete});
+  if (panelState.investigationId !== investigationId) {
+    setPanelState({
+      investigationId,
+      settled: projection !== undefined,
+      expanded: !verificationComplete,
+    });
+  } else if (
+    !panelState.settled &&
+    (projection !== undefined || panelState.expanded === verificationComplete)
+  ) {
+    setPanelState({
+      investigationId,
+      settled: projection !== undefined,
+      expanded: !verificationComplete,
+    });
+  }
+
+  function setExpanded(expanded: boolean) {
+    setPanelState({investigationId, settled: true, expanded});
   }
 
   // Nothing is known yet, so the panel goes up empty rather than appearing a
   // moment later. A run with no hypotheses left to produce is skipped: its
-  // panel would open on placeholders and then collapse.
+  // panel would open on placeholders and then collapse. So is a run waiting on
+  // a person — nothing will arrive until they answer.
   if (!projection) {
-    const worthHoldingSpaceFor = enabled && isPending && !SETTLED_PHASES.has(phase ?? '');
+    const worthHoldingSpaceFor =
+      enabled &&
+      isPending &&
+      summaryStatus !== 'awaiting_input' &&
+      !SETTLED_PHASES.has(phase ?? '');
 
     return worthHoldingSpaceFor ? (
-      <Stack gap="2xl">
-        <HypothesesPanel
-          expanded={panelState.expanded}
-          onExpandedChange={expanded => setPanelState({verificationComplete, expanded})}
-        >
+      <Stack gap="3xl">
+        <HypothesesPanel expanded={panelState.expanded} onExpandedChange={setExpanded}>
           <HypothesisListPlaceholder />
         </HypothesesPanel>
       </Stack>
     ) : null;
   }
 
-  const statusBlock = getSeerStatusBlock(projection);
+  // A finished run has nothing left to report here: the findings below speak
+  // for themselves, and the header badge still says it completed. Every other
+  // state — running, waiting on input, failed, stopped — keeps the block.
+  const seerStatus = getSeerStatusBlock(projection);
+  const statusBlock = seerStatus?.variant === 'complete' ? null : seerStatus;
   const {workflowVersion} = projection;
   const commandPending = commandMutation.isPending;
-  const completedChecks = projection.hypotheses.reduce(
-    (count, hypothesis) =>
-      count +
-      (hypothesis.verificationSteps ?? []).filter(step => step.status === 'completed')
-        .length,
-    0
-  );
 
   function setDisposition(
     hypothesis: InvestigationHypothesis,
@@ -254,31 +283,18 @@ export function InvestigationHypotheses({
   }
 
   const hasHypotheses = projection.hypotheses.length > 0;
-  const awaitingFirstHypothesis = !hasHypotheses && !SETTLED_PHASES.has(projection.phase);
+  // A run waiting on a person makes no hypotheses until they answer, so a
+  // placeholder there would promise cards that are not coming.
+  const awaitingFirstHypothesis =
+    !hasHypotheses &&
+    projection.status !== 'awaiting_input' &&
+    !SETTLED_PHASES.has(projection.phase);
 
   return (
-    <Stack gap="2xl">
+    <Stack gap="3xl">
       {statusBlock ? <SeerStatusBlock {...statusBlock} /> : null}
       {hasHypotheses || awaitingFirstHypothesis ? (
-        <HypothesesPanel
-          expanded={panelState.expanded}
-          onExpandedChange={expanded => setPanelState({verificationComplete, expanded})}
-          // No count before the first hypothesis: "0 plausible causes" reads
-          // as a result rather than a wait.
-          meta={
-            hasHypotheses ? (
-              <Fragment>
-                {tn(
-                  '%s plausible cause',
-                  '%s plausible causes',
-                  projection.hypotheses.length
-                )}
-                {' • '}
-                {tn('%s check completed', '%s checks completed', completedChecks)}
-              </Fragment>
-            ) : null
-          }
-        >
+        <HypothesesPanel expanded={panelState.expanded} onExpandedChange={setExpanded}>
           {hasHypotheses ? (
             <HypothesisList
               hypotheses={projection.hypotheses}
@@ -301,13 +317,11 @@ export function InvestigationHypotheses({
 function HypothesesPanel({
   children,
   expanded,
-  meta,
   onExpandedChange,
 }: {
   children: React.ReactNode;
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
-  meta?: React.ReactNode;
 }) {
   return (
     <Disclosure
@@ -316,35 +330,56 @@ function HypothesesPanel({
       border="primary"
       radius="xl"
       background="secondary"
-      padding="lg"
-      gap={expanded ? 'xl' : undefined}
       data-test-id="investigation-run-panel"
     >
       <HypothesesTitle>
-        <Stack gap="xs" minWidth={0}>
-          <Text variant="muted" bold>
-            {t('Hypotheses')}
-          </Text>
-          {meta ? (
-            <Text variant="muted" density="comfortable" bold={false}>
-              {meta}
-            </Text>
-          ) : null}
-        </Stack>
+        <Text variant="muted" bold>
+          {t('Hypotheses')}
+        </Text>
       </HypothesesTitle>
       <HypothesesContent>{children}</HypothesesContent>
     </Disclosure>
   );
 }
 
+// The card carries no padding of its own: the header row runs edge to edge
+// and the button inside it holds the padding, so the whole header is the hit
+// area and the focus ring traces the card's corners rather than sitting inset
+// in its padding.
+//
+// The `[data-disclosure] > *:has(> &)` rules style Disclosure's title row, the
+// button's parent. Starting from the Disclosure root matters twice over: a
+// nested selector that starts with `:` is glued onto the button's own class,
+// so a bare `:has(> &)` never matches, and the extra attribute outranks the
+// row's own single-class rules whichever stylesheet lands last.
 const HypothesesTitle = styled(Disclosure.Title)`
-  :has(> &) {
+  [data-disclosure] > *:has(> &) {
     padding: 0;
+    border-radius: ${p => p.theme.radius.xl};
+  }
+
+  /* No hover or press background: the header is part of the card, and a tint
+   * on it alone sets it apart from the body below when expanded. */
+  /* The state goes before ":has()", one rule each: written as a list with the
+   * state after ":has(> &)", stylis left the "&" unreplaced. */
+  [data-disclosure] > *:hover:has(> &) {
+    background: transparent;
+  }
+
+  [data-disclosure] > *:active:has(> &) {
+    background: transparent;
+  }
+
+  /* Expanded, the header is only the top of the card. */
+  [data-disclosure] > *:has(> &[aria-expanded='true']) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
   }
 
   && {
     height: auto;
-    padding: 0;
+    padding: ${p => p.theme.space.lg};
+    border-radius: inherit;
     white-space: normal;
     text-align: left;
   }
@@ -356,6 +391,8 @@ const HypothesesTitle = styled(Disclosure.Title)`
   }
 `;
 
+// The header's bottom padding plus this top padding keeps the old `xl` gap
+// between the header and the first card.
 const HypothesesContent = styled(Disclosure.Content)`
-  padding: 0;
+  padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg} ${p => p.theme.space.lg};
 `;

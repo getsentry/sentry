@@ -1360,7 +1360,7 @@ export interface GroupOpenPeriodActivity {
 export interface GroupOpenPeriod {
   activities: GroupOpenPeriodActivity[];
   duration: string;
-  end: string;
+  end: string | null;
   id: string;
   isOpen: boolean;
   lastChecked: string;
@@ -1476,8 +1476,6 @@ export type KeyValueListDataItem = {
    * If true, the action button will always be visible, not just on hover.
    */
   actionButtonAlwaysVisible?: boolean;
-  isMultiValue?: boolean;
-  meta?: Meta;
   subjectDataTestId?: string;
   subjectNode?: React.ReactNode;
   value?: React.ReactNode | Record<string, string | number>;

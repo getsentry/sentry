@@ -57,8 +57,6 @@ class SavedQueryStarredOrderEndpoint(OrganizationEndpoint):
     def has_feature(self, organization: Organization, request: Request) -> bool:
         return features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
-        ) and features.has(
-            "organizations:discover-queries-in-all-queries", organization, actor=request.user
         )
 
     def put(self, request: Request, organization: Organization) -> Response:

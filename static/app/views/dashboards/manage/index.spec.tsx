@@ -119,7 +119,7 @@ describe('Dashboards > Detail', () => {
   });
 
   it('creates new dashboard', async () => {
-    const org = OrganizationFixture({features: FEATURES});
+    const org = OrganizationFixture({features: FEATURES, hideAiFeatures: true});
 
     const {router} = render(<ManageDashboards />, {
       organization: org,

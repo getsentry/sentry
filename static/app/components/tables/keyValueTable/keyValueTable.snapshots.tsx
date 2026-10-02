@@ -2,7 +2,6 @@ import {Button} from '@sentry/scraps/button';
 
 import {KeyValueTable, KeyValueTableRow} from './keyValueTable';
 import {KeyValueTableCard} from './keyValueTableCard';
-import {KeyValueTableDataList} from './keyValueTableDataList';
 import {
   KeyValueTableDataRow,
   type KeyValueTableDataRowProps,
@@ -14,12 +13,6 @@ const contentItems: KeyValueTableDataRowProps[] = [
   {item: {key: 'dict', subject: 'dict', value: {primary: 'alpha', secondary: 2}}},
   {item: {key: 'null', subject: 'null', value: null}},
   {item: {key: 'nested', subject: 'nested', value: {region: 'us', retries: 3}}},
-];
-
-const listData = [
-  {key: 'browser', subject: 'Browser', value: 'Chrome 131.0.0'},
-  {key: 'os', subject: 'OS', value: 'macOS 15.1'},
-  {key: 'runtime', subject: 'Runtime', value: {name: 'node', version: '22.11.0'}},
 ];
 
 describe('KeyValueTable', () => {
@@ -138,67 +131,12 @@ describe('KeyValueTable', () => {
   );
 
   it.snapshot(
-    'list',
+    'card-label-variant',
     () => (
       <div style={{padding: 8, width: 500}}>
-        <KeyValueTableDataList data={listData} />
+        <KeyValueTableCard contentItems={contentItems} variant="label" />
       </div>
     ),
-    {tags: {area: 'core', variant: 'list'}}
-  );
-
-  it.snapshot(
-    'list-context-data',
-    () => (
-      <div style={{padding: 8, width: 500}}>
-        <KeyValueTableDataList data={listData} isContextData />
-      </div>
-    ),
-    {tags: {area: 'core', variant: 'list'}}
-  );
-
-  it.snapshot(
-    'list-multi-value',
-    () => (
-      <div style={{padding: 8, width: 500}}>
-        <KeyValueTableDataList
-          shouldSort={false}
-          data={[
-            {
-              key: 'tags',
-              subject: 'Tags',
-              value: ['alpha', 'beta', 'gamma'],
-              isMultiValue: true,
-            },
-            {
-              key: 'action-button',
-              subject: 'Action',
-              value: 'With a button',
-              actionButton: <Button size="zero">{'Edit'}</Button>,
-            },
-          ]}
-        />
-      </div>
-    ),
-    {tags: {area: 'core', variant: 'list'}}
-  );
-
-  it.snapshot(
-    'list-wrapping',
-    () => (
-      <div style={{padding: 8, width: 360}}>
-        <KeyValueTableDataList
-          data={[
-            {
-              key: 'policy',
-              subject: 'original_policy',
-              value:
-                "default-src 'self'; script-src 'self' 'unsafe-inline' cdn.example.com; img-src * data:",
-            },
-          ]}
-        />
-      </div>
-    ),
-    {tags: {area: 'core', variant: 'list'}}
+    {tags: {area: 'core', variant: 'card'}}
   );
 });

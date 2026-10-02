@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import sentry_sdk
+
 from sentry.api.endpoints.timeseries import Annotation
 from sentry.constants import DataCategory
 from sentry.search.events.types import SnubaParams
@@ -10,11 +12,40 @@ from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.outcomes import QueryDefinition, run_outcomes_query_timeseries
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
+from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import parse_snuba_datetime
 from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
+
+
+def record_dropped_events_telemetry(
+    *,
+    endpoint: str,
+    client_kind: str,
+    dataset_label: str,
+    dropped_count: int,
+    accepted_count: int,
+) -> None:
+    """Record who asked for dropped-events data and what they got."""
+    had_drops = dropped_count > 0
+    metrics.incr(
+        "dropped_events.served",
+        tags={
+            "endpoint": endpoint,
+            "client_kind": client_kind,
+            "dataset": dataset_label,
+            "had_drops": had_drops,
+        },
+    )
+    sentry_sdk.set_attribute("dropped_events.endpoint", endpoint)
+    sentry_sdk.set_attribute("dropped_events.client_kind", client_kind)
+    sentry_sdk.set_attribute("dropped_events.dataset", dataset_label)
+    sentry_sdk.set_attribute("dropped_events.dropped_count", dropped_count)
+    sentry_sdk.set_attribute("dropped_events.accepted_count", accepted_count)
+    sentry_sdk.set_attribute("dropped_events.had_drops", had_drops)
+
 
 DROPPED_OUTCOMES: tuple[Outcome, ...] = (
     Outcome.FILTERED,

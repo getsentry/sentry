@@ -134,9 +134,9 @@ describe('getTraceAttributesTreeActions', () => {
       location: LocationFixture(),
       organization: OrganizationFixture({features: []}),
     })({
-      subtree: {},
+      subtree: new Map(),
       value: 'GET /api/users',
-      originalAttribute: {
+      original: {
         attribute_key: 'description',
         attribute_value: 'GET /api/users',
         original_attribute_key: 'span.description',

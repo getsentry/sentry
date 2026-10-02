@@ -20,7 +20,7 @@ import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
 import {DataTable} from 'sentry/components/tables/dataTable';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
-import {IconArrow, IconWarning} from 'sentry/icons';
+import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
@@ -113,7 +113,7 @@ type LogsTableProps = {
   };
   numberAttributes?: TagCollection;
   showCellActions?: boolean;
-  showExploreSimilarSpansLink?: boolean;
+  showExploreConnectedSpansLink?: boolean;
   stringAttributes?: TagCollection;
   validatedFieldTypes?: Partial<Record<string, FieldValueType>>;
 };
@@ -135,7 +135,7 @@ export function LogsInfiniteTable({
   additionalData,
   injectedErrorRows,
   showCellActions,
-  showExploreSimilarSpansLink,
+  showExploreConnectedSpansLink,
   validatedFieldTypes = {},
 }: LogsTableProps) {
   const location = useLocation();
@@ -404,6 +404,7 @@ export function LogsInfiniteTable({
     isPending,
     isScrolling,
     dataLength: data?.length ?? 0,
+    tableWidth,
   });
 
   useEffect(() => {
@@ -697,7 +698,7 @@ export function LogsInfiniteTable({
                   isExpanded={expandedLogRows.has(rowId)}
                   onExpandHeight={handleExpandHeight}
                   showCellActions={showCellActions}
-                  showExploreSimilarSpansLink={showExploreSimilarSpansLink}
+                  showExploreConnectedSpansLink={showExploreConnectedSpansLink}
                   isPinned={logsPinning?.hasPinnedRow?.(rowId)}
                   isHighlighted={!!linkedRowId && rowId === linkedRowId}
                   isHoverLinked={hoveredRowId === rowId}
@@ -829,14 +830,14 @@ function LogsTableHeader({
 }
 
 function ErrorRenderer({error, onRetry}: {error?: unknown; onRetry?: () => void}) {
+  if (!isRateLimitError(error)) {
+    return <DataTable.Error onRetry={onRetry} />;
+  }
+
   return (
-    <DataTable.Status>
-      {isRateLimitError(error) ? (
-        <LogsRateLimitError onRetry={onRetry} />
-      ) : (
-        <IconWarning variant="muted" size="lg" />
-      )}
-    </DataTable.Status>
+    <DataTable.Empty>
+      <LogsRateLimitError onRetry={onRetry} />
+    </DataTable.Empty>
   );
 }
 
@@ -853,7 +854,7 @@ export function LoadingRenderer({
   );
 
   return (
-    <DataTable.Status>
+    <DataTable.Empty>
       <Stack align="center">
         <EmptyStateText size="md" textAlign="center">
           <StyledLoadingIndicator margin="1em auto" />
@@ -875,7 +876,7 @@ export function LoadingRenderer({
           )}
         </EmptyStateText>
       </Stack>
-    </DataTable.Status>
+    </DataTable.Empty>
   );
 }
 

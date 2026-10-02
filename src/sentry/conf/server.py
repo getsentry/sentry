@@ -887,7 +887,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.hybridcloud.tasks.webhook_backlog_metrics",
-    "sentry.incidents.tasks",
     "sentry.ingest.consumer.simple_event",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.data_forwarding.tasks",
@@ -899,8 +898,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.integrations.source_code_management.sync_repos",
     "sentry.integrations.gitlab.tasks",
     "sentry.integrations.jira.tasks",
-    "sentry.integrations.slack.tasks.find_channel_id_for_alert_rule",
-    "sentry.integrations.slack.tasks.find_channel_id_for_rule",
     "sentry.integrations.slack.tasks.link_slack_user_identities",
     "sentry.integrations.slack.tasks.post_message",
     "sentry.integrations.slack.tasks.send_notifications_on_activity",
@@ -1017,7 +1014,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.context_engine_index",
     "sentry.tasks.seer.lightweight_rca_cluster",
     "sentry.tasks.seer.investigation",
-    "sentry.tasks.seer.night_shift.cron",
+    "sentry.tasks.seer.agentic_triage.cron",
     "sentry.tasks.seer.autofix_issue_data",
     "sentry.tasks.seer.backfill_supergroups_lightweight",
     # Used for tests
@@ -1069,10 +1066,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "clear-expired-snoozes": {
         "task": "issues:sentry.tasks.clear_expired_snoozes",
-        "schedule": crontab("*/5", "*", "*", "*", "*"),
-    },
-    "clear-expired-rulesnoozes": {
-        "task": "issues:sentry.tasks.clear_expired_rulesnoozes",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
     "collect-project-platforms": {
@@ -1387,7 +1380,11 @@ LOGGING: LoggingConfig = {
             "propagate": False,
         },
         "arroyo": {"level": "INFO", "handlers": ["console"], "propagate": False},
-        "taskbroker_client": {"level": "INFO", "handlers": ["console"], "propagate": False},
+        "taskbroker_client": {
+            "level": "INFO",
+            "handlers": ["console", "internal"],
+            "propagate": False,
+        },
         # Configure grpc explicitly so its errors aren't dropped by disable_existing_loggers.
         "grpc": {"level": "ERROR", "handlers": ["console"], "propagate": False},
         "static_compiler": {"level": "INFO"},
@@ -1966,6 +1963,28 @@ SENTRY_TOKEN_ONLY_SCOPES = frozenset(
     ]
 )
 
+# Scopes that endpoints already accept, but that roles only grant once
+# `organizations:granular-permission-scopes` is enabled. Until that rollout finishes
+# they are not universally grantable, so they stay out of the public API schema and
+# out of the Seer agent token flow. Drop an entry when its rollout completes.
+GRANULAR_SCOPES = frozenset(
+    [
+        "dashboard:read",
+        "dashboard:write",
+        "dashboard:delete",
+    ]
+)
+
+# Broad read scopes being retired in favour of granular ones. API attribution tags
+# whether a caller still holds one (see sentry.api.caller_scopes).
+DEPRECATED_SCOPES = frozenset(
+    [
+        "org:read",
+        "project:read",
+        "member:read",
+    ]
+)
+
 SENTRY_SCOPE_SETS = (
     (
         ("org:admin", "Read, write, and admin access to organization details."),
@@ -2035,6 +2054,174 @@ SENTRY_DEFAULT_ROLE = "member"
 # that is earlier in the chain cannot manage the settings of a member later
 # in the chain (they still require the appropriate scope).
 SENTRY_ROLES: tuple[RoleDict, ...] = (
+    {
+        "id": "member",
+        "name": "Member",
+        "desc": "Members can view and act on events, as well as view most other data within the organization. By default, they can invite members to the organization unless the organization has disabled this feature.",
+        "scopes": {
+            "event:read",
+            "event:write",
+            "event:admin",
+            "project:releases",
+            "project:read",
+            "org:read",
+            "member:invite",
+            "member:read",
+            "team:read",
+            "alerts:read",
+            "alerts:write",
+        },
+    },
+    {
+        "id": "admin",
+        "name": "Admin",
+        "desc": (
+            """
+            Admin privileges on any teams of which they're a member. They can
+            create new teams and projects, as well as remove teams and projects
+            on which they already hold membership (or all teams, if open
+            membership is enabled). Additionally, they can manage memberships of
+            teams that they are members of. By default, they can invite members
+            to the organization unless the organization has disabled this feature.
+            """
+        ),
+        "scopes": {
+            "event:read",
+            "event:write",
+            "event:admin",
+            "org:read",
+            "member:read",
+            "member:invite",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "project:releases",
+            "team:read",
+            "team:write",
+            "team:admin",
+            "org:integrations",
+            "alerts:read",
+            "alerts:write",
+        },
+        "is_retired": True,
+    },
+    {
+        "id": "manager",
+        "name": "Manager",
+        "desc": "Gains admin access on all teams as well as the ability to add and remove members.",
+        "scopes": {
+            "event:read",
+            "event:write",
+            "event:admin",
+            "member:invite",
+            "member:read",
+            "member:write",
+            "member:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "project:releases",
+            "team:read",
+            "team:write",
+            "team:admin",
+            "org:read",
+            "org:write",
+            "org:integrations",
+            "alerts:read",
+            "alerts:write",
+        },
+        "is_global": True,
+    },
+    {
+        "id": "owner",
+        "name": "Owner",
+        "desc": (
+            """
+            Unrestricted access to the organization, its data, and its settings.
+            Can add, modify, and delete projects and members, as well as make
+            billing and plan changes.
+            """
+        ),
+        "scopes": {
+            "org:read",
+            "org:write",
+            "org:admin",
+            "org:integrations",
+            "member:invite",
+            "member:read",
+            "member:write",
+            "member:admin",
+            "team:read",
+            "team:write",
+            "team:admin",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "project:releases",
+            "event:read",
+            "event:write",
+            "event:admin",
+            "alerts:read",
+            "alerts:write",
+        },
+        "is_global": True,
+    },
+)
+
+SENTRY_TEAM_ROLES: tuple[RoleDict, ...] = (
+    {
+        "id": "contributor",
+        "name": "Contributor",
+        "desc": "Contributors can view and act on events, as well as view most other data within the team's projects.",
+        "scopes": {
+            "event:read",
+            "event:write",
+            # "event:admin",  # Scope granted/withdrawn by "sentry:events_member_admin" to org-level role
+            "project:releases",
+            "project:read",
+            "org:read",
+            "member:read",
+            "team:read",
+            "alerts:read",
+            # "alerts:write",  # Scope granted/withdrawn by "sentry:alerts_member_write" to org-level role
+        },
+    },
+    {
+        "id": "admin",
+        "name": "Team Admin",
+        "desc": (
+            # TODO: Editing pass
+            """
+            Admin privileges on the team. They can create and remove projects,
+            and can manage the team's memberships.
+            """
+        ),
+        "scopes": {
+            "event:read",
+            "event:write",
+            "event:admin",
+            "org:read",
+            "member:read",
+            "project:read",
+            "project:write",
+            "project:admin",
+            "project:releases",
+            "team:read",
+            "team:write",
+            "team:admin",
+            "org:integrations",
+            "alerts:read",
+            "alerts:write",
+        },
+        "is_minimum_role_for": "admin",
+    },
+)
+
+# Copy of SENTRY_ROLES that also grants granular scopes (e.g. dashboard:*). Used in
+# place of SENTRY_ROLES when `organizations:granular-permission-scopes` is enabled.
+# Keep the two in sync until the flag is removed; the goal is to eventually delete
+# SENTRY_ROLES and rename this to take its place.
+SENTRY_GRANULAR_ROLES: tuple[RoleDict, ...] = (
     {
         "id": "member",
         "name": "Member",
@@ -2158,55 +2345,6 @@ SENTRY_ROLES: tuple[RoleDict, ...] = (
             "dashboard:delete",
         },
         "is_global": True,
-    },
-)
-
-SENTRY_TEAM_ROLES: tuple[RoleDict, ...] = (
-    {
-        "id": "contributor",
-        "name": "Contributor",
-        "desc": "Contributors can view and act on events, as well as view most other data within the team's projects.",
-        "scopes": {
-            "event:read",
-            "event:write",
-            # "event:admin",  # Scope granted/withdrawn by "sentry:events_member_admin" to org-level role
-            "project:releases",
-            "project:read",
-            "org:read",
-            "member:read",
-            "team:read",
-            "alerts:read",
-            # "alerts:write",  # Scope granted/withdrawn by "sentry:alerts_member_write" to org-level role
-        },
-    },
-    {
-        "id": "admin",
-        "name": "Team Admin",
-        "desc": (
-            # TODO: Editing pass
-            """
-            Admin privileges on the team. They can create and remove projects,
-            and can manage the team's memberships.
-            """
-        ),
-        "scopes": {
-            "event:read",
-            "event:write",
-            "event:admin",
-            "org:read",
-            "member:read",
-            "project:read",
-            "project:write",
-            "project:admin",
-            "project:releases",
-            "team:read",
-            "team:write",
-            "team:admin",
-            "org:integrations",
-            "alerts:read",
-            "alerts:write",
-        },
-        "is_minimum_role_for": "admin",
     },
 )
 
@@ -2365,7 +2503,7 @@ if SENTRY_DEV_DSN:
     # In production, this value is *not* set via an env variable
     # https://github.com/getsentry/getsentry/blob/16a07f72853104b911a368cc8ae2b4b49dbf7408/getsentry/conf/settings/prod.py#L604-L606
     # This is used in case you want to report traces of your development set up to a project of your choice
-    SENTRY_SDK_CONFIG["sentry_mirror_dsn"] = SENTRY_DEV_DSN
+    SENTRY_SDK_CONFIG["backend_dsn"] = SENTRY_DEV_DSN
 
 SENTRY_SDK_THREADING_INTEGRATION = os.environ.get("SENTRY_SDK_DISABLE_THREADING") != "1"
 
@@ -2942,7 +3080,7 @@ SENTRY_PROJECT_COUNTER_STATEMENT_TIMEOUT = 1000
 # Implemented in getsentry to run additional devserver workers.
 SENTRY_EXTRA_WORKERS: MutableSequence[str] = []
 
-SAMPLED_DEFAULT_RATE = 0.0015
+SAMPLED_DEFAULT_RATE = 0.00075
 
 # A set of extra URLs to sample
 ADDITIONAL_SAMPLED_URLS: dict[str, float] = {}
@@ -3029,9 +3167,6 @@ SENTRY_TEAPOT_URL = f"http://{os.getenv('SENTRY_TEAPOT_HOST', 'localhost:8125')}
 SENTRY_TEAPOT_SHARED_SECRET = os.getenv("SENTRY_TEAPOT_SHARED_SECRET", "")
 
 SENTRY_REPLAYS_SERVICE_URL = "http://localhost:8090"
-
-SENTRY_ISSUE_ALERT_HISTORY = "sentry.rules.history.backends.postgres.PostgresRuleHistoryBackend"
-SENTRY_ISSUE_ALERT_HISTORY_OPTIONS: dict[str, Any] = {}
 
 # This is useful for testing SSO expiry flows
 SENTRY_SSO_EXPIRY_SECONDS = os.environ.get("SENTRY_SSO_EXPIRY_SECONDS", None)
