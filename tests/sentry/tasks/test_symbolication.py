@@ -42,7 +42,9 @@ def test_inline_preprocess_keeps_backup_and_samples_canonical_event_id(
 
 
 @django_db_all
-@pytest.mark.parametrize("cache_key", (None, "e:cleanup"))
+@pytest.mark.parametrize(
+    "cache_key,expected_writes,expected_reads", [(None, 0, 0), ("e:working", 3, 1)]
+)
 @pytest.mark.parametrize("has_changed", (False, True))
 def test_inline_chained_symbolication_survives_rate_rollback(
     default_project,
@@ -50,6 +52,8 @@ def test_inline_chained_symbolication_survives_rate_rollback(
     mock_process_event,
     mock_symbolication_function,
     cache_key,
+    expected_writes,
+    expected_reads,
     has_changed,
 ):
     data = {
@@ -60,6 +64,8 @@ def test_inline_chained_symbolication_survives_rate_rollback(
     }
     enriched = dict(data, message="symbolicated")
     mock_symbolication_function.return_value = {False: None, True: enriched}[has_changed]
+    mock_event_processing_store.store.return_value = cache_key
+    mock_event_processing_store.get.return_value = {False: data, True: enriched}[has_changed]
 
     with (
         override_options(
@@ -88,10 +94,17 @@ def test_inline_chained_symbolication_survives_rate_rollback(
         symbolicate_jvm_event(**jvm_kwargs)
 
     assert mock_symbolication_function.call_count == 3
-    mock_event_processing_store.get.assert_not_called()
-    mock_event_processing_store.store.assert_not_called()
+    assert mock_event_processing_store.get.call_count == expected_reads
+    assert mock_event_processing_store.store.call_count == expected_writes
+    expected_data = {False: data, True: enriched}[has_changed]
+    assert (
+        mock_event_processing_store.store.call_args_list
+        == [mock.call(expected_data)] * expected_writes
+    )
     final_kwargs = mock_process_event.delay.call_args.kwargs
-    assert final_kwargs["data"] == {False: data, True: enriched}[has_changed]
+    expected_inline_data = {None: expected_data, "e:working": None}[cache_key]
+    assert final_kwargs.get("data") == expected_inline_data
+    assert jvm_kwargs.get("data") == expected_inline_data
     assert final_kwargs["cache_key"] == cache_key
     assert final_kwargs["has_attachments"] is True
     assert final_kwargs["data_has_changed"] is has_changed

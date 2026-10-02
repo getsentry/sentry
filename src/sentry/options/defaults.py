@@ -1690,8 +1690,9 @@ register(
     default=0.0,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Suppresses working-payload writes only for the inline cohort. Backups and
-# cleanup remain in Redis; re-enable writes before lowering the inline rate.
+# Suppresses working-cache keys only for events entering in the inline cohort.
+# Keyless events remain inline after rollout changes; keyed events keep writing.
+# Unprocessed backups and cleanup remain in Redis.
 register(
     "store.disable-processing-store",
     type=Bool,

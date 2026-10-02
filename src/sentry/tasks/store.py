@@ -70,15 +70,12 @@ def submit_process(
     from_symbolicate: bool = False,
     has_attachments: bool = False,
     data: MutableMapping[str, Any] | None = None,
-    input_was_inline: bool = False,
 ) -> None:
     if data is not None:
         data, cache_key = prepare_event_payload(
             data,
             cache_key,
             event_id=event_id or data["event_id"],
-            input_was_inline=input_was_inline,
-            data_has_changed=data_has_changed,
         )
     if from_reprocessing:
         task = process_event_from_reprocessing
@@ -112,16 +109,12 @@ def submit_save_event(
     start_time: float | None,
     data: MutableMapping[str, Any] | None,
     inline: bool = False,
-    input_was_inline: bool = False,
-    data_has_changed: bool = False,
 ) -> None:
     if data is not None:
         data, cache_key = prepare_event_payload(
             data,
             cache_key,
             event_id=event_id or data["event_id"],
-            input_was_inline=input_was_inline,
-            data_has_changed=data_has_changed,
         )
 
     # XXX: honor from_reprocessing
@@ -153,7 +146,6 @@ def _do_preprocess_event(
     project: Project | None,
     has_attachments: bool = False,
     inline_save_event: bool = False,
-    input_was_inline: bool = False,
 ) -> None:
     # Imported here, not at module top, to avoid circular imports back into
     # sentry.tasks (e.g. sentry.tasks.gpu_crash imports this module).
@@ -218,9 +210,7 @@ def _do_preprocess_event(
         )
         and is_gpu_crash_event(data)
     ):
-        task_data, cache_key = prepare_event_payload(
-            data, cache_key, event_id=event_id, input_was_inline=input_was_inline
-        )
+        task_data, cache_key = prepare_event_payload(data, cache_key, event_id=event_id)
         symbolicate_gpu_crash_event.delay(
             cache_key=cache_key,
             event_id=event_id,
@@ -270,7 +260,6 @@ def _do_preprocess_event(
                 has_attachments=has_attachments,
                 symbolicate_functions=symbolicate_functions,
                 data=data,
-                input_was_inline=input_was_inline,
             )
             return
         # else: go directly to process, do not go through the symbolicate queue, do not collect 200
@@ -285,7 +274,6 @@ def _do_preprocess_event(
             data_has_changed=False,
             has_attachments=has_attachments,
             data=data,
-            input_was_inline=input_was_inline,
         )
         return
 
@@ -300,7 +288,6 @@ def _do_preprocess_event(
         start_time=start_time,
         data=original_data,
         inline=inline_save_event,
-        input_was_inline=input_was_inline,
     )
 
 
@@ -312,7 +299,6 @@ def preprocess_event(
     project: Project | None = None,
     has_attachments: bool = False,
     inline_save_event: bool = False,
-    input_was_inline: bool = False,
     **kwargs: Any,
 ) -> None:
     return _do_preprocess_event(
@@ -324,7 +310,6 @@ def preprocess_event(
         project=project,
         has_attachments=has_attachments,
         inline_save_event=inline_save_event,
-        input_was_inline=input_was_inline,
     )
 
 
@@ -334,7 +319,6 @@ def preprocess_event_from_reprocessing(
     start_time: float | None = None,
     event_id: str | None = None,
     project: Project | None = None,
-    input_was_inline: bool = False,
     **kwargs: Any,
 ) -> None:
     return _do_preprocess_event(
@@ -344,7 +328,6 @@ def preprocess_event_from_reprocessing(
         event_id=event_id,
         from_reprocessing=True,
         project=project,
-        input_was_inline=input_was_inline,
     )
 
 
@@ -388,7 +371,6 @@ def do_process_event(
     from_symbolicate: bool = False,
     has_attachments: bool = False,
 ) -> None:
-    input_was_inline = data is not None
     data = load_event_payload(data, cache_key, processing.event_processing_store)
 
     if data is None:
@@ -408,7 +390,7 @@ def do_process_event(
 
     data_event_id = data["event_id"]
 
-    def _continue_to_save_event(has_changed: bool = False) -> None:
+    def _continue_to_save_event() -> None:
         task_kind = SaveEventTaskKind(
             from_reprocessing=from_reprocessing,
             has_attachments=has_attachments,
@@ -420,8 +402,6 @@ def do_process_event(
             event_id=data_event_id,
             start_time=start_time,
             data=data,
-            input_was_inline=input_was_inline,
-            data_has_changed=has_changed,
         )
 
     if is_process_disabled(project_id, data_event_id, data.get("platform") or "null"):
@@ -492,7 +472,7 @@ def do_process_event(
         if attachments:
             data["_attachments"] = attachments
 
-    return _continue_to_save_event(has_changed)
+    return _continue_to_save_event()
 
 
 @instrumented_task(

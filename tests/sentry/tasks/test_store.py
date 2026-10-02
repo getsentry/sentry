@@ -31,85 +31,81 @@ EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
 
 
 @pytest.mark.parametrize(
-    "rate,disable_store,input_was_inline,send_inline,write_store",
+    "rate,disable_store,send_inline,write_store",
     [
-        (0.0, False, False, False, True),
-        (0.0, True, False, False, True),
-        (1.0, False, False, True, True),
-        (1.0, True, False, True, False),
-        (0.0, False, True, True, True),
-        (0.0, True, True, True, False),
+        (0.0, False, False, True),
+        (0.0, True, False, True),
+        (1.0, False, True, True),
+        (1.0, True, True, False),
     ],
 )
-def test_payload_transport_policy(rate, disable_store, input_was_inline, send_inline, write_store):
+def test_payload_transport_policy(rate, disable_store, send_inline, write_store):
     with override_options(
         {"store.enable-inline-payloads": rate, "store.disable-processing-store": disable_store}
     ):
-        transport = get_event_payload_transport(EVENT_ID, input_was_inline=input_was_inline)
+        transport = get_event_payload_transport(EVENT_ID)
 
     assert transport.send_inline is send_inline
     assert transport.write_processing_store is write_store
 
 
 @pytest.mark.parametrize(
-    "event_id,send_inline,expected_writes", [("a" * 32, True, 0), ("b" * 32, False, 1)]
+    "event_id,send_inline,write_store", [("a" * 32, True, False), ("b" * 32, False, True)]
 )
-def test_partial_inline_rollout_keeps_unsampled_events_in_redis(
-    event_id,
-    send_inline,
-    expected_writes,
-):
-    data = {"event_id": event_id, "project": 1}
-    processing_store = mock.Mock()
-    processing_store.store.return_value = "e:working"
+def test_partial_inline_rollout_keeps_unsampled_events_in_redis(event_id, send_inline, write_store):
     with override_options(
         {"store.enable-inline-payloads": 0.7, "store.disable-processing-store": True}
     ):
-        payload, key = prepare_event_payload(
-            data,
-            None,
-            event_id=event_id,
-            input_was_inline=False,
-            processing_store=processing_store,
-        )
+        transport = get_event_payload_transport(event_id)
 
-    assert payload == {True: data, False: None}[send_inline]
-    assert key == {True: None, False: "e:working"}[send_inline]
-    assert processing_store.store.call_count == expected_writes
+    assert transport.send_inline is send_inline
+    assert transport.write_processing_store is write_store
 
 
-@pytest.mark.parametrize("cache_key", (None, "e:existing"))
-def test_inline_payload_refreshes_redis_when_writes_resume(cache_key):
-    data = {"event_id": EVENT_ID, "project": 1, "message": "unchanged"}
+@pytest.mark.parametrize("rate", (0.0, 1.0))
+@pytest.mark.parametrize("disable_store", (False, True))
+def test_keyed_handoff_always_writes_current_payload(rate, disable_store):
+    data = {"event_id": EVENT_ID, "project": 1, "message": "current"}
     processing_store = mock.Mock()
-    processing_store.store.return_value = "e:restored"
-    with override_options(
-        {"store.enable-inline-payloads": 0.0, "store.disable-processing-store": True}
+    processing_store.store.return_value = "e:working"
+    with (
+        override_options(
+            {"store.enable-inline-payloads": rate, "store.disable-processing-store": disable_store}
+        ),
+        mock.patch("sentry.ingest.event_payload.options.get", wraps=options.get) as get_option,
     ):
         payload, key = prepare_event_payload(
-            data,
-            cache_key,
-            event_id=EVENT_ID,
-            input_was_inline=True,
-            processing_store=processing_store,
+            data, "e:working", event_id=EVENT_ID, processing_store=processing_store
+        )
+
+    get_option.assert_called_once_with("store.enable-inline-payloads")
+    assert payload == {0.0: None, 1.0: data}[rate]
+    assert key == "e:working"
+    processing_store.store.assert_called_once_with(data)
+
+
+@pytest.mark.parametrize("cache_key", (None, ""))
+def test_keyless_payload_stays_inline_when_rollout_and_cache_options_change(cache_key):
+    data = {"event_id": EVENT_ID, "project": 1, "message": "current"}
+    processing_store = mock.Mock()
+    with override_options(
+        {"store.enable-inline-payloads": 1.0, "store.disable-processing-store": True}
+    ):
+        payload, key = prepare_event_payload(
+            data, cache_key, event_id=EVENT_ID, processing_store=processing_store
         )
     assert payload is data
     assert key == cache_key
-    processing_store.store.assert_not_called()
 
     with override_options(
         {"store.enable-inline-payloads": 0.0, "store.disable-processing-store": False}
     ):
         payload, key = prepare_event_payload(
-            data,
-            key,
-            event_id=EVENT_ID,
-            input_was_inline=True,
-            processing_store=processing_store,
+            payload, key, event_id=EVENT_ID, processing_store=processing_store
         )
     assert payload is data
-    assert key == "e:restored"
-    processing_store.store.assert_called_once_with(data)
+    assert key == cache_key
+    processing_store.store.assert_not_called()
 
 
 @pytest.mark.parametrize("data", ({}, [], {"event_id": 123}, {"event_id": ""}))
@@ -128,7 +124,9 @@ def test_payload_reader_requires_data_or_key():
 
 
 @django_db_all
-@pytest.mark.parametrize("cache_key", (None, "e:cleanup"))
+@pytest.mark.parametrize(
+    "cache_key,expected_writes,send_inline", [(None, 0, True), ("e:working", 1, False)]
+)
 @pytest.mark.parametrize("load_shed", (False, True))
 def test_process_inline_payload_survives_rate_rollback(
     default_project,
@@ -136,10 +134,13 @@ def test_process_inline_payload_survives_rate_rollback(
     mock_save_event,
     mock_get_preprocessors,
     cache_key,
+    expected_writes,
+    send_inline,
     load_shed,
 ):
     data = {"project": default_project.id, "event_id": EVENT_ID, "platform": "python"}
     mock_get_preprocessors.return_value = [_noop]
+    mock_event_processing_store.store.return_value = cache_key
     with (
         override_options(
             {"store.enable-inline-payloads": 0.0, "store.disable-processing-store": True}
@@ -149,8 +150,8 @@ def test_process_inline_payload_survives_rate_rollback(
         process_event(cache_key=cache_key, data=data)
 
     mock_event_processing_store.get.assert_not_called()
-    mock_event_processing_store.store.assert_not_called()
-    assert mock_save_event.delay.call_args.kwargs["data"] == data
+    assert mock_event_processing_store.store.call_count == expected_writes
+    assert mock_save_event.delay.call_args.kwargs["data"] == {True: data, False: None}[send_inline]
     assert mock_save_event.delay.call_args.kwargs["cache_key"] == cache_key
 
 
@@ -164,13 +165,14 @@ def test_legacy_process_payload_keeps_redis_transport_when_writes_disabled(
     data = {"project": default_project.id, "event_id": EVENT_ID, "platform": "python"}
     mock_get_preprocessors.return_value = [_noop]
     mock_event_processing_store.get.return_value = data
+    mock_event_processing_store.store.return_value = "e:legacy"
     with override_options(
         {"store.enable-inline-payloads": 0.0, "store.disable-processing-store": True}
     ):
         process_event(cache_key="e:legacy")
 
     mock_event_processing_store.get.assert_called_once_with("e:legacy")
-    mock_event_processing_store.store.assert_not_called()
+    mock_event_processing_store.store.assert_called_once_with(data)
     assert mock_save_event.delay.call_args.kwargs["data"] is None
     assert mock_save_event.delay.call_args.kwargs["cache_key"] == "e:legacy"
 
@@ -304,6 +306,7 @@ def mock_symbolicate_event():
 @pytest.fixture
 def mock_event_processing_store():
     with mock.patch("sentry.services.eventstore.processing.event_processing_store") as m:
+        m.store.return_value = "e:1"
         yield m
 
 
@@ -370,7 +373,7 @@ def test_move_to_process_event_inline_save_event_still_submits_process_event(
 
     assert mock_symbolicate_event.delay.call_count == 0
     mock_process_event.delay.assert_called_once_with(
-        cache_key="e:1",
+        cache_key=cache_key_for_event(data),
         start_time=None,
         event_id=EVENT_ID,
         data_has_changed=False,
@@ -417,7 +420,7 @@ def test_move_to_save_event_inline(
     assert mock_symbolicate_event.delay.call_count == 0
     assert mock_process_event.delay.call_count == 0
     mock_save_event.assert_called_once_with(
-        cache_key="e:1",
+        cache_key=cache_key_for_event(data),
         data=None,
         start_time=None,
         event_id=EVENT_ID,
@@ -473,8 +476,8 @@ def test_process_event_no_mutate_and_save(
 
     process_event(cache_key="e:1", start_time=1)
 
-    # The event did not mutate, so we shouldn't reset it in cache
-    assert mock_event_processing_store.store.call_count == 0
+    # A working key always causes a write, including unchanged payloads.
+    mock_event_processing_store.store.assert_called_once_with(data)
 
     mock_save_event.delay.assert_called_once_with(
         cache_key="e:1", data=None, start_time=1, event_id=EVENT_ID, project_id=default_project.id

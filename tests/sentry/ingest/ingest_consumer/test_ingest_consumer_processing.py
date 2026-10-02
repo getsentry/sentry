@@ -139,8 +139,6 @@ def test_ingest_conditions_working_payload_write(
     (kwargs,) = preprocess_event
     assert kwargs["data"] == data
     assert bool(kwargs["cache_key"]) is bool(expected_writes)
-    # Locally decoded ingest data is not an inline task input.
-    assert kwargs.get("input_was_inline", False) is False
 
 
 @django_db_all

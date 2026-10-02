@@ -62,7 +62,6 @@ def symbolicate_gpu_crash_event(
     **kwargs: Any,
 ) -> None:
     """Run teapot over the event's ``.nv-gpudmp`` and apply the decode, pre-save."""
-    input_was_inline = data is not None
     data = load_event_payload(data, cache_key, processing.event_processing_store)
     if data is None:
         metrics.incr("tasks.gpu_crash.skipped", tags={"reason": "cache"})
@@ -87,7 +86,6 @@ def symbolicate_gpu_crash_event(
         from_symbolicate=True,
         has_attachments=has_attachments,
         data=data,
-        input_was_inline=input_was_inline,
     )
 
 

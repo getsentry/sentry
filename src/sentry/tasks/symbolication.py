@@ -68,7 +68,6 @@ def _do_symbolicate_event(
     has_attachments: bool = False,
     symbolicate_functions: list[SymbolicatorFunction] | None = None,
 ) -> None:
-    input_was_inline = data is not None
     data = load_event_payload(data, cache_key, processing.event_processing_store)
 
     if data is None:
@@ -100,8 +99,6 @@ def _do_symbolicate_event(
                 has_attachments=has_attachments,
                 symbolicate_functions=symbolicate_functions,
                 data=data,
-                input_was_inline=input_was_inline,
-                data_has_changed=has_changed,
             )
             return
         # else:
@@ -114,7 +111,6 @@ def _do_symbolicate_event(
             from_symbolicate=True,
             has_attachments=has_attachments,
             data=data,
-            input_was_inline=input_was_inline,
         )
 
     symbolication_function = task_kind.function
@@ -232,16 +228,12 @@ def submit_symbolicate(
     has_attachments: bool = False,
     symbolicate_functions: list[SymbolicatorFunction] | None = None,
     data: Event | None = None,
-    input_was_inline: bool = False,
-    data_has_changed: bool = False,
 ) -> None:
     if data is not None:
         data, cache_key = prepare_event_payload(
             data,
             cache_key,
             event_id=event_id or data["event_id"],
-            input_was_inline=input_was_inline,
-            data_has_changed=data_has_changed,
         )
     # Because of `mock` usage, we cannot just save a reference to the actual function
     # into the `TASK_FNS` dict. We actually have to access it at runtime from the global scope

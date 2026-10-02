@@ -17,10 +17,9 @@ class EventPayloadTransport:
     write_processing_store: bool
 
 
-def get_event_payload_transport(
-    event_id: str, *, input_was_inline: bool = False
-) -> EventPayloadTransport:
-    send_inline = input_was_inline or in_rollout_group("store.enable-inline-payloads", event_id)
+def get_event_payload_transport(event_id: str) -> EventPayloadTransport:
+    """Choose working-cache writes when an event enters the pipeline."""
+    send_inline = in_rollout_group("store.enable-inline-payloads", event_id)
     return EventPayloadTransport(
         send_inline=send_inline,
         write_processing_store=not (send_inline and options.get("store.disable-processing-store")),
@@ -49,18 +48,12 @@ def prepare_event_payload(
     cache_key: str | None,
     *,
     event_id: str,
-    input_was_inline: bool,
-    data_has_changed: bool = False,
     processing_store: LazyServiceWrapper[EventProcessingStore] | None = None,
 ) -> tuple[MutableMapping[str, Any] | None, str | None]:
-    transport = get_event_payload_transport(event_id, input_was_inline=input_was_inline)
-    if transport.write_processing_store and (
-        transport.send_inline or data_has_changed or not cache_key
-    ):
-        # Inline handoffs always refresh Redis, even if the payload is unchanged:
-        # working-payload writes may have been re-enabled since the previous task.
+    # Cache-key presence fixes the write policy for the event's entire pipeline.
+    if cache_key:
         if processing_store is None:
             processing_store = processing.event_processing_store
         cache_key = processing_store.store(data)
-    # An incoming key still represents cleanup owed when writes are disabled.
-    return (data if transport.send_inline else None), cache_key
+    send_inline = not cache_key or in_rollout_group("store.enable-inline-payloads", event_id)
+    return (data if send_inline else None), cache_key
