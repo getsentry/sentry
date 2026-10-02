@@ -17,23 +17,30 @@ set -euo pipefail
 # --findRelatedTests reads the changed files from FRONTEND_ALL_FILES.
 eval "$(./.github/workflows/scripts/frontend-changed-scope.sh)"
 
+list_jest_tests() {
+  # Include suites related through either version's compatibility module.
+  for router_version in 6 8; do
+    SENTRY_REACT_ROUTER_VERSION="$router_version" pnpm exec jest --listTests --json "$@" || return 1
+  done | jq -s 'add | unique'
+}
+
 if [ "$scope" == "scoped" ]; then
   # shellcheck disable=SC2086
-  JEST_TESTS="$(pnpm exec jest --listTests --json --findRelatedTests $FRONTEND_ALL_FILES | jq '.')"
+  JEST_TESTS="$(list_jest_tests --findRelatedTests $FRONTEND_ALL_FILES)"
 
   RUNNER_CHUNK_SIZE=250
   JEST_TESTS_LENGTH=$(echo "$JEST_TESTS" | jq 'length')
   if [ "$JEST_TESTS_LENGTH" -gt 0 ]; then
     RUNNERS=$(( ( ( JEST_TESTS_LENGTH + RUNNER_CHUNK_SIZE - 1 ) / RUNNER_CHUNK_SIZE ) > 0 ? ( ( JEST_TESTS_LENGTH + RUNNER_CHUNK_SIZE - 1 ) / RUNNER_CHUNK_SIZE ) : 1 ))
   else
-    JEST_TESTS="$(pnpm exec jest --listTests --json)"
+    JEST_TESTS="$(list_jest_tests)"
     RUNNERS=8
   fi
 else
-  JEST_TESTS="$(pnpm exec jest --listTests --json)"
+  JEST_TESTS="$(list_jest_tests)"
   RUNNERS=8
 fi
 echo "$JEST_TESTS" > jest-test-files.json
 
 INDEX_ARRAY=$(seq 0 $(( RUNNERS - 1 )) | jq -s .)
-echo "jest_test_matrix=$(jq -nc --argjson index "$INDEX_ARRAY" --argjson total "$RUNNERS" '{index: $index, total: [$total]}')" >> "$GITHUB_OUTPUT"
+echo "jest_test_matrix=$(jq -nc --argjson index "$INDEX_ARRAY" --argjson total "$RUNNERS" '{index: $index, total: [$total], router: ["6", "8"]}')" >> "$GITHUB_OUTPUT"

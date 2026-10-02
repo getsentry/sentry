@@ -159,7 +159,7 @@ jobs:
   jest-tests:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
     needs: [files-changed, jest-config]
-    name: Jest
+    name: Jest (Router v${{ matrix.router }}, shard ${{ matrix.index }}/${{ matrix.total }})
     # If you change the runs-on image, you must also change the runner in jest-balance.yml
     # so that the balancer runs in the same environment as the tests.
     runs-on: ubuntu-24.04
@@ -182,10 +182,10 @@ jobs:
           path: |
             .cache/jest
             ~/.cache/swc
-          key: jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-${{ matrix.index }}
+          key: jest-cache-${{ runner.os }}-router-${{ matrix.router }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-${{ matrix.index }}
           restore-keys: |
-            jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-
-            jest-cache-${{ runner.os }}-
+            jest-cache-${{ runner.os }}-router-${{ matrix.router }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-
+            jest-cache-${{ runner.os }}-router-${{ matrix.router }}-
 
       - name: Download jest-test-files.json
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
@@ -212,6 +212,7 @@ jobs:
 
           CI_NODE_TOTAL: ${{ matrix.total }}
           CI_NODE_INDEX: ${{ matrix.index }}
+          SENTRY_REACT_ROUTER_VERSION: ${{ matrix.router }}
 
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}
