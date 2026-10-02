@@ -569,6 +569,14 @@ class ScmOnboardingTest(AcceptanceTestCase):
             input_el.send_keys("nonexistent-repo")
             self.browser.wait_until(xpath='//*[contains(text(), "No repositories found")]')
 
+    def test_welcome_start_without_agentic_setup(self) -> None:
+        """Without agentic setup, the welcome step's Start button leads to scm-connect."""
+        with self.feature({"organizations:onboarding-agentic-setup": False}):
+            self.browser.get(f"/onboarding/{self.org.slug}/")
+            self.browser.wait_until('[data-test-id="onboarding-step-welcome"]')
+            self.browser.click('[data-test-id="onboarding-welcome-start"]')
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-connect"]')
+
     def test_scm_onboarding_control_skip_integration(self) -> None:
         """Control path skip flow: skip connect → manual platform → Continue auto-creates project."""
         self.start_onboarding()
@@ -587,6 +595,37 @@ class ScmOnboardingTest(AcceptanceTestCase):
         assert Workflow.objects.filter(
             organization=project.organization, name=DEFAULT_WORKFLOW_LABEL
         ).exists()
+        assert_existing_projects_status(
+            self.org, active_project_ids=[project.id], deleted_project_ids=[]
+        )
+
+    def test_framework_modal_open_by_selecting_vanilla_platform(self) -> None:
+        """Picking a vanilla platform asks about frameworks; Configure SDK keeps the vanilla platform."""
+        self.start_onboarding()
+        self.browser.click(xpath='//button[contains(., "Continue without a repo")]')
+        self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+
+        input_el = self.browser.element('input[aria-autocomplete="list"]')
+        input_el.send_keys("Browser JavaScript")
+        platform_label = '//p[@data-test-id="menu-list-item-label"][text()="Browser JavaScript"]'
+        self.browser.wait_until(xpath=platform_label)
+        self.browser.click(xpath=platform_label)
+        self.browser.wait_until(xpath='//h6[text()="Do you use a framework?"]')
+        self.browser.click('[aria-label="Close Modal"]')
+        self.browser.wait_until_not(xpath='//h6[text()="Do you use a framework?"]')
+
+        input_el = self.browser.element('input[aria-autocomplete="list"]')
+        input_el.clear()
+        input_el.send_keys("Browser JavaScript")
+        self.browser.wait_until(xpath=platform_label)
+        self.browser.click(xpath=platform_label)
+        self.browser.click('[aria-label="Configure SDK"]')
+        self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+        self.browser.click(xpath='//button[contains(., "Continue")]')
+
+        self.browser.wait_until(xpath='//h2[text()="Configure Browser JavaScript SDK"]')
+        project = Project.objects.get(organization=self.org, slug="javascript")
+        assert project.platform == "javascript"
         assert_existing_projects_status(
             self.org, active_project_ids=[project.id], deleted_project_ids=[]
         )
@@ -663,7 +702,9 @@ class ScmOnboardingTest(AcceptanceTestCase):
             )
 
     def test_scm_back_from_setup_docs_control_non_active_project(self) -> None:
-        """Control path: non-active project is deleted on back-nav; Continue creates a fresh one."""
+        """Control path: non-active project is deleted on back-nav; Continue creates a fresh one
+        that survives Skip setup. Guards the regression fixed in
+        https://github.com/getsentry/sentry/pull/87869."""
         self.start_onboarding()
         self.continue_past_platform_features("React", "React")
 
@@ -681,10 +722,45 @@ class ScmOnboardingTest(AcceptanceTestCase):
         self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
         project2 = Project.objects.get(organization=self.org, slug="javascript-react", status=0)
         assert project2.id != project1.id
+
+        self.browser.click(xpath='//a[contains(., "Skip setup")]')
+        self.browser.get(f"/organizations/{self.org.slug}/projects/")
+        self.browser.wait_until("[data-test-id='javascript-react']")
         assert_existing_projects_status(
             self.org,
             active_project_ids=[project2.id],
             deleted_project_ids=[project1.id],
+        )
+
+    def test_skip_after_going_back_deletes_projects(self) -> None:
+        """Projects created during onboarding are deleted when the user goes back
+        from setup-docs and then skips setup."""
+        self.start_onboarding()
+        self.continue_past_platform_features("Next.js", "Next.js")
+
+        self.browser.wait_until(xpath='//h2[text()="Configure Next.js SDK"]')
+        project1 = Project.objects.get(organization=self.org, slug="javascript-nextjs")
+        assert project1.platform == "javascript-nextjs"
+
+        self.browser.click('[aria-label="Back"]')
+        self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+        input_el = self.browser.element('input[aria-autocomplete="list"]')
+        input_el.send_keys("React")
+        self.browser.wait_until(xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]')
+        self.browser.click(xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]')
+        self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+        self.browser.click(xpath='//button[contains(., "Continue")]')
+
+        self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+        project2 = Project.objects.get(organization=self.org, slug="javascript-react")
+        assert project2.platform == "javascript-react"
+
+        self.browser.back()
+        self.browser.click(xpath='//a[contains(., "Skip setup")]')
+        self.browser.get(f"/organizations/{self.org.slug}/projects/")
+        self.browser.wait_until(xpath='//*[text()="Remain Calm"]')
+        assert_existing_projects_status(
+            self.org, active_project_ids=[], deleted_project_ids=[project1.id, project2.id]
         )
 
     def test_scm_back_from_setup_docs_control_active_project_no_changes(self) -> None:
