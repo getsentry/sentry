@@ -118,8 +118,8 @@ export const PathMappingEdit = withFieldGroup({
             <Text bold>{t('Preview')}</Text>
             <group.Subscribe
               selector={state => ({
-                stackRoot: state.values.stackRoot,
-                sourceRoot: state.values.sourceRoot,
+                stackRoot: state.values?.stackRoot ?? '',
+                sourceRoot: state.values?.sourceRoot ?? '',
               })}
             >
               {({stackRoot, sourceRoot}) => {

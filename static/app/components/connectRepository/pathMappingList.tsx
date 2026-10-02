@@ -92,14 +92,9 @@ export const PathMappingList = withForm({
 
         <form.AppField name="pathMappings" mode="array">
           {field => {
-            const pathMappings = field.state.value;
-            const addDisabledReason = hasDuplicateMappings(pathMappings)
-              ? t('Resolve the duplicate path mapping first')
-              : undefined;
-
             const handleDelete = (i: number) => {
               const freshId = nextId();
-              if (pathMappings.length === 1) {
+              if (form.state.values.pathMappings.length === 1) {
                 form.setFieldValue('pathMappings', [newRowValue]);
                 setRowMeta([{id: freshId, isNew: true}]);
                 setOpenId(freshId);
@@ -121,42 +116,54 @@ export const PathMappingList = withForm({
               setOpenId(id);
             };
 
+            // Subscribe to live per-row values so the duplicate check and
+            // collapsed summaries update while the user types.
             return (
-              <Fragment>
-                <Stack gap="md">
-                  {pathMappings.map((value, i) => {
-                    const meta = rowMeta[i]!;
-                    const fields: `pathMappings[${number}]` = `pathMappings[${i}]`;
-                    return (
-                      <PathMapping
-                        key={meta.id}
-                        editing={openId === meta.id}
-                        fields={fields}
-                        form={form}
-                        isNew={meta.isNew}
-                        value={value}
-                        providerKey={providerKey}
-                        defaultBranch={defaultBranch}
-                        onDelete={() => handleDelete(i)}
-                        onExpandToggle={() => toggle(meta.id)}
-                      />
-                    );
-                  })}
-                </Stack>
+              <form.Subscribe selector={state => state.values.pathMappings}>
+                {pathMappings => {
+                  const addDisabledReason = hasDuplicateMappings(pathMappings)
+                    ? t('Resolve the duplicate path mapping first')
+                    : undefined;
 
-                <Flex justify="end">
-                  <Button
-                    size="xs"
-                    variant="transparent"
-                    icon={<IconAdd />}
-                    disabled={Boolean(addDisabledReason)}
-                    tooltipProps={{title: addDisabledReason}}
-                    onClick={handleAddAnother}
-                  >
-                    {t('Add another path')}
-                  </Button>
-                </Flex>
-              </Fragment>
+                  return (
+                    <Fragment>
+                      <Stack gap="md">
+                        {pathMappings.map((value, i) => {
+                          const meta = rowMeta[i]!;
+                          const fields: `pathMappings[${number}]` = `pathMappings[${i}]`;
+                          return (
+                            <PathMapping
+                              key={meta.id}
+                              editing={openId === meta.id}
+                              fields={fields}
+                              form={form}
+                              isNew={meta.isNew}
+                              value={value}
+                              providerKey={providerKey}
+                              defaultBranch={defaultBranch}
+                              onDelete={() => handleDelete(i)}
+                              onExpandToggle={() => toggle(meta.id)}
+                            />
+                          );
+                        })}
+                      </Stack>
+
+                      <Flex justify="end">
+                        <Button
+                          size="xs"
+                          variant="transparent"
+                          icon={<IconAdd />}
+                          disabled={Boolean(addDisabledReason)}
+                          tooltipProps={{title: addDisabledReason}}
+                          onClick={handleAddAnother}
+                        >
+                          {t('Add another path')}
+                        </Button>
+                      </Flex>
+                    </Fragment>
+                  );
+                }}
+              </form.Subscribe>
             );
           }}
         </form.AppField>
