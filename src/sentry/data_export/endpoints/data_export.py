@@ -149,6 +149,13 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
             sentry_sdk.capture_exception(err)
             raise serializers.ValidationError("Invalid date parameters.")
 
+        if not export_window_within_retention(
+            self.context["organization"], end, now=timezone.now()
+        ):
+            raise serializers.ValidationError(
+                "The requested time range is outside your data retention period."
+            )
+
         if "statsPeriod" in query_info:
             del query_info["statsPeriod"]
         if "statsPeriodStart" in query_info:
@@ -190,13 +197,6 @@ class DataExportQuerySerializer(serializers.Serializer[dict[str, Any]]):
                 explore_query=query_info,
                 organization=organization,
             )
-
-            if full_export and not export_window_within_retention(
-                organization, explore_processor.end, now=timezone.now()
-            ):
-                raise serializers.ValidationError(
-                    "The requested time range is outside your data retention period."
-                )
 
             # ignore sort clause if full export.
             sort = query_info.get("sort", []) if not full_export else []
