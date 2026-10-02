@@ -11,10 +11,15 @@ from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.permissions import StaffPermission
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import fetch_run_status
-from sentry.seer.autofix.autofix_agent import trigger_autofix_agent
+from sentry.seer.autofix.autofix_agent import (
+    fetch_run_group,
+    get_current_step,
+    resolve_run_group_id,
+    trigger_autofix_agent,
+)
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.feature.models import FEATURE_ID, LEGACY_FEATURE_ID
-from sentry.seer.autofix.on_completion_hook import PIPELINE_ORDER, AutofixOnCompletionHook
+from sentry.seer.autofix.on_completion_hook import PIPELINE_ORDER
 from sentry.seer.models import SeerRun
 from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
@@ -83,7 +88,7 @@ def _retry_run(organization: Organization, run_id: int) -> dict[str, Any]:
     if state.status != "error":
         return _skipped(run_id, f"Run status is {state.status!r}, not 'error'")
 
-    step, step_referrer = AutofixOnCompletionHook._get_current_step(state)
+    step, step_referrer = get_current_step(state)
     if step is None:
         return _skipped(run_id, "Could not determine the failed step")
     if step not in PIPELINE_ORDER:
@@ -92,10 +97,10 @@ def _retry_run(organization: Organization, run_id: int) -> dict[str, Any]:
     if state.get_created_pull_request_states() or state.coding_agents:
         return _skipped(run_id, "Run has a pull request or coding agent")
 
-    group_id, run_referrer = AutofixOnCompletionHook._resolve_group_id(organization, run_id, state)
+    group_id, run_referrer = resolve_run_group_id(organization, run_id, state)
     if group_id is None:
         return _skipped(run_id, "Run has no group")
-    group = AutofixOnCompletionHook._fetch_group(organization, run_id, group_id)
+    group = fetch_run_group(organization, run_id, group_id)
     if group is None:
         return _skipped(run_id, "Group not found")
 
