@@ -3,15 +3,12 @@ import pytest
 from sentry.models.project import Project
 from sentry.testutils.asserts import assert_existing_projects_status
 from sentry.testutils.cases import AcceptanceTestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import no_silo_test
 
 pytestmark = pytest.mark.sentry_metrics
 
 
 @no_silo_test
-# Needed until the frontend stops reading this flag. Remove it with the flag registration.
-@with_feature("organizations:onboarding-scm-experiment")
 class OrganizationOnboardingTest(AcceptanceTestCase):
     def setUp(self) -> None:
         super().setUp()
