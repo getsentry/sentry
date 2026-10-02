@@ -11,6 +11,7 @@ from sentry.db.models import (
     cell_silo_model,
     sane_repr,
 )
+from sentry.models.metric_tags import DATA_ACCESS_TAG, DataAccessTagValues
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
@@ -58,10 +59,14 @@ class GroupRelease(Model):
                     "project_id": group.project_id,
                 },
             )
-            data_access = "db_create" if created else "db_read"
+            data_access = (
+                DataAccessTagValues.DB_CREATE.value
+                if created
+                else DataAccessTagValues.DB_READ.value
+            )
         else:
             created = False
-            data_access = "cache_hit"
+            data_access = DataAccessTagValues.CACHE_HIT.value
 
         if not created and instance.last_seen < datetime - timedelta(seconds=60):
             buffer_incr(
@@ -73,7 +78,7 @@ class GroupRelease(Model):
             instance.last_seen = datetime
 
         if metrics_tags is not None:
-            metrics_tags["data_access"] = data_access
+            metrics_tags[DATA_ACCESS_TAG] = data_access
 
         cache.set(cache_key, instance, 3600)
         return instance

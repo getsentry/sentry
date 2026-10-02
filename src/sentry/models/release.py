@@ -34,6 +34,7 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.metric_tags import DATA_ACCESS_TAG, DataAccessTagValues
 from sentry.models.releases.constants import (
     DB_VERSION_LENGTH,
     ERR_RELEASE_HEALTH_DATA,
@@ -550,7 +551,7 @@ class Release(Model):
                 ).first()
                 if release is None:
                     metric_tags["cache_hit"] = "false"
-                    metric_tags["data_access"] = "db_read"
+                    metric_tags[DATA_ACCESS_TAG] = DataAccessTagValues.DB_READ.value
                     return None
 
                 # NOTE: `add_project` creates a ReleaseProject instance
@@ -586,10 +587,14 @@ class Release(Model):
             # the new "latest release" for this project
             cache.set(cache_key, release, 3600)
             metric_tags["cache_hit"] = "false"
-            metric_tags["data_access"] = "db_create" if created else "db_read"
+            metric_tags[DATA_ACCESS_TAG] = (
+                DataAccessTagValues.DB_CREATE.value
+                if created
+                else DataAccessTagValues.DB_READ.value
+            )
         else:
             metric_tags["cache_hit"] = "true"
-            metric_tags["data_access"] = "cache_hit"
+            metric_tags[DATA_ACCESS_TAG] = DataAccessTagValues.CACHE_HIT.value
 
         return release
 

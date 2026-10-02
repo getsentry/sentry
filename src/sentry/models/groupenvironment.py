@@ -4,6 +4,7 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
+from sentry.models.metric_tags import DATA_ACCESS_TAG, DataAccessTagValues
 from sentry.utils.cache import cache
 
 
@@ -46,13 +47,17 @@ class GroupEnvironment(Model):
                 group_id=group_id, environment_id=environment_id, defaults=defaults
             )
             cache.set(cache_key, instance, 3600)
-            data_access = "db_create" if created else "db_read"
+            data_access = (
+                DataAccessTagValues.DB_CREATE.value
+                if created
+                else DataAccessTagValues.DB_READ.value
+            )
         else:
             created = False
-            data_access = "cache_hit"
+            data_access = DataAccessTagValues.CACHE_HIT.value
 
         if metrics_tags is not None:
-            metrics_tags["data_access"] = data_access
+            metrics_tags[DATA_ACCESS_TAG] = data_access
 
         return instance, created
 

@@ -111,6 +111,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupopenperiod import create_open_period
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
+from sentry.models.metric_tags import DATA_ACCESS_TAG, DataAccessTagValues
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
@@ -752,7 +753,10 @@ def _set_project_platform_if_needed(project: Project, event: Event) -> None:
 def _record_resolve_model(model: str, tags: dict[str, str]) -> None:
     metrics.incr(
         "save_event.resolve_model",
-        tags={"model": model, "data_access": tags.get("data_access", "unknown")},
+        tags={
+            "model": model,
+            DATA_ACCESS_TAG: tags.get(DATA_ACCESS_TAG, DataAccessTagValues.UNKNOWN.value),
+        },
     )
 
 

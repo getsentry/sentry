@@ -15,6 +15,7 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.manager.base import BaseManager
+from sentry.models.metric_tags import DATA_ACCESS_TAG, DataAccessTagValues
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
@@ -102,11 +103,15 @@ class Environment(Model):
                 )
                 cache.set(cache_key, env, 3600)
                 if metrics_tags is not None:
-                    metrics_tags["data_access"] = "db_create" if created else "db_read"
+                    metrics_tags[DATA_ACCESS_TAG] = (
+                        DataAccessTagValues.DB_CREATE.value
+                        if created
+                        else DataAccessTagValues.DB_READ.value
+                    )
             else:
                 timer_tags["cache_hit"] = "true"
                 if metrics_tags is not None:
-                    metrics_tags["data_access"] = "cache_hit"
+                    metrics_tags[DATA_ACCESS_TAG] = DataAccessTagValues.CACHE_HIT.value
 
             env.add_project(project)
 

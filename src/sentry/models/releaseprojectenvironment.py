@@ -15,6 +15,7 @@ from sentry.db.models import (
     cell_silo_model,
     sane_repr,
 )
+from sentry.models.metric_tags import DATA_ACCESS_TAG, DataAccessTagValues
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.last_seen import BumpResult, try_bump_last_seen
@@ -101,13 +102,13 @@ class ReleaseProjectEnvironment(Model):
             metrics_tags["bumped"] = "false"
 
         if bump in (BumpResult.BUMPED, BumpResult.ERROR):
-            metrics_tags["data_access"] = "db_update"
+            metrics_tags[DATA_ACCESS_TAG] = DataAccessTagValues.DB_UPDATE.value
         elif created:
-            metrics_tags["data_access"] = "db_create"
+            metrics_tags[DATA_ACCESS_TAG] = DataAccessTagValues.DB_CREATE.value
         elif cache_hit:
-            metrics_tags["data_access"] = "cache_hit"
+            metrics_tags[DATA_ACCESS_TAG] = DataAccessTagValues.CACHE_HIT.value
         else:
-            metrics_tags["data_access"] = "db_read"
+            metrics_tags[DATA_ACCESS_TAG] = DataAccessTagValues.DB_READ.value
 
         return instance
 
