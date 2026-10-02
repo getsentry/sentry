@@ -305,20 +305,21 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
       title={t('Feature Flags')}
       actions={actions}
     >
-      <Container ref={cardContainerRef} width="100%">
+      <Container
+        ref={cardContainerRef}
+        width="100%"
+        border={hasFlags ? undefined : 'primary'}
+        radius={hasFlags ? undefined : 'md'}
+      >
         {hasFlags ? (
           <CardContainer numCols={shouldUseTwoColumns ? 2 : 1}>
             <KeyValueTableCard expandLeft contentItems={columnOne} />
             <KeyValueTableCard expandLeft contentItems={columnTwo} />
           </CardContainer>
         ) : (
-          <Container border="primary" radius="md">
-            {containerProps => (
-              <EmptyStateWarning {...containerProps} withIcon small>
-                {t('No feature flags were found for this event')}
-              </EmptyStateWarning>
-            )}
-          </Container>
+          <EmptyStateWarning small>
+            {t('No feature flags were found for this event')}
+          </EmptyStateWarning>
         )}
       </Container>
       {extraFlags > 0 && (

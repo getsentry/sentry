@@ -42,11 +42,10 @@ export function FlagActionDropdown({
         onOpenChange={isOpen => setIsVisible(isOpen)}
         size="xs"
         trigger={triggerProps => (
-          <OverlayTrigger.IconButton
+          <FlagButton
             {...triggerProps}
             aria-label={t('Flag Details')}
             icon={<IconEllipsis />}
-            className="flag-button"
           />
         )}
         items={[
@@ -85,14 +84,14 @@ const StyledDropdownMenu = styled(DropdownMenu)`
   [data-test-id='menu-list-item-label'] {
     font-family: ${p => p.theme.font.family.sans};
   }
+`;
 
-  .flag-button {
-    height: 15px;
-    min-height: 15px;
-    width: 25px;
-    margin-top: ${p => p.theme.space.xs};
-    padding: 0 ${p => p.theme.space.sm};
-    border-radius: ${p => p.theme.space.xs};
-    z-index: 0;
-  }
+const FlagButton = styled(OverlayTrigger.IconButton)`
+  height: 15px;
+  min-height: 15px;
+  width: 25px;
+  margin-top: ${p => p.theme.space.xs};
+  padding: 0 ${p => p.theme.space.sm};
+  border-radius: ${p => p.theme.space.xs};
+  z-index: 0;
 `;
