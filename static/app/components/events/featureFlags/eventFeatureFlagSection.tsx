@@ -5,11 +5,12 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
-import {Container, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {
   CardContainer,
   EventFeatureFlagDrawer,
@@ -60,11 +61,12 @@ type EventFeatureFlagSectionProps = {
 
 function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSectionProps) {
   const organization = useOrganization();
-  const isContainerSmall = useResponsivePropValue({zero: true, sm: false});
 
   const [orderBy, setOrderBy] = useState(OrderBy.NEWEST);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
+  const cardContainerRef = useRef<HTMLDivElement>(null);
+  const cardColumnCount = useIssueDetailsColumnCount(cardContainerRef);
 
   const eventView = useIssueDetailsEventView({group});
   const {data: rawFlagData} = useQuery(
@@ -147,10 +149,9 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
           ),
           value: (
             <Grid
-              columns={{zero: '1fr auto', sm: '1fr auto auto'}}
-              rows={{zero: 'auto auto', sm: 'auto'}}
+              columns="minmax(0, 1fr) auto"
               align="center"
-              gap={{zero: '0 md', sm: 'md'}}
+              gap="md"
               justifyItems="start"
               width="100%"
               css={css`
@@ -165,22 +166,15 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
                 }
               `}
             >
-              <Container whiteSpace="nowrap">{f.result.toString()}</Container>
-              {suspectFlagNames.has(f.flag) && (
-                <Container
-                  column={{zero: '1 / -1', sm: '2'}}
-                  row={{zero: '2', sm: 'auto'}}
-                >
+              <Flex align="center" gap="sm" wrap="wrap">
+                <Container whiteSpace="nowrap">{f.result.toString()}</Container>
+                {suspectFlagNames.has(f.flag) && (
                   <Text as="div" size="sm" variant="secondary" wrap="nowrap">
                     {t('Suspect')}
                   </Text>
-                </Container>
-              )}
-              <Container
-                column={{zero: '2', sm: '3'}}
-                row={{zero: '1', sm: 'auto'}}
-                justifySelf="end"
-              >
+                )}
+              </Flex>
+              <Container column="2" justifySelf="end">
                 <FlagActionDropdown
                   flag={f.flag}
                   result={f.result.toString()}
@@ -299,7 +293,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   );
 
   const shouldUseTwoColumns =
-    !isContainerSmall && truncatedItems.length > NUM_PREVIEW_FLAGS / 2;
+    cardColumnCount > 1 && truncatedItems.length > NUM_PREVIEW_FLAGS / 2;
   const columnOne = shouldUseTwoColumns
     ? truncatedItems.slice(0, NUM_PREVIEW_FLAGS / 2)
     : truncatedItems;
@@ -316,16 +310,18 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
       title={t('Feature Flags')}
       actions={actions}
     >
-      {hasFlags ? (
-        <CardContainer numCols={shouldUseTwoColumns ? 2 : 1}>
-          <KeyValueTableCard expandLeft contentItems={columnOne} />
-          <KeyValueTableCard expandLeft contentItems={columnTwo} />
-        </CardContainer>
-      ) : (
-        <StyledEmptyStateWarning withIcon small>
-          {t('No feature flags were found for this event')}
-        </StyledEmptyStateWarning>
-      )}
+      <Container ref={cardContainerRef} width="100%">
+        {hasFlags ? (
+          <CardContainer numCols={shouldUseTwoColumns ? 2 : 1}>
+            <KeyValueTableCard expandLeft contentItems={columnOne} />
+            <KeyValueTableCard expandLeft contentItems={columnTwo} />
+          </CardContainer>
+        ) : (
+          <StyledEmptyStateWarning withIcon small>
+            {t('No feature flags were found for this event')}
+          </StyledEmptyStateWarning>
+        )}
+      </Container>
       {extraFlags > 0 && (
         <Button
           size="sm"
