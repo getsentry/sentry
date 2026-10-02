@@ -8631,6 +8631,7 @@ describe('SearchQueryBuilder', () => {
         screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
       );
       await userEvent.click(screen.getByRole('option', {name: 'matches regex'}));
+      await userEvent.keyboard('{Enter}');
 
       expect(
         within(
@@ -8643,6 +8644,127 @@ describe('SearchQueryBuilder', () => {
           expect.anything()
         );
       });
+    });
+
+    it('focuses the value input when matches regex is selected', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery='browser.name:""'
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'matches regex'}));
+
+      await waitFor(() => {
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+      });
+    });
+
+    it('does not mark an empty pattern invalid until the value is committed', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery='browser.name:""'
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'matches regex'}));
+
+      expect(
+        await screen.findByRole('row', {name: 'browser.name:////', hidden: true})
+      ).toHaveAttribute('aria-invalid', 'false');
+
+      await userEvent.keyboard('{Enter}');
+
+      expect(screen.getByRole('row', {name: 'browser.name:////'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+    });
+
+    it('shows slashes around a regex value', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery="browser.name://^a.*b//"
+        />
+      );
+
+      const valueButton = await screen.findByRole('button', {
+        name: 'Edit value for filter: browser.name',
+      });
+
+      expect(within(valueButton).getAllByText('/')).toHaveLength(2);
+      expect(within(valueButton).getByText('^a.*b')).toBeInTheDocument();
+    });
+
+    it('shows slashes around an empty regex value', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery="browser.name:////"
+        />
+      );
+
+      const valueButton = await screen.findByRole('button', {
+        name: 'Edit value for filter: browser.name',
+      });
+
+      expect(within(valueButton).getAllByText('/')).toHaveLength(2);
+    });
+
+    it('keeps slashes around the input while editing a regex value', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery="browser.name://^a.*b//"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+
+      expect(
+        within(screen.getByTestId('filter-value-editing')).getAllByText('/')
+      ).toHaveLength(2);
+      expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+        '^a.*b'
+      );
+    });
+
+    it('keeps the input focused when a slash is clicked while editing', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery="browser.name://^a.*b//"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      await userEvent.click(
+        within(screen.getByTestId('filter-value-editing')).getAllByText('/')[1]!
+      );
+
+      expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+      expect(mockOnChange).not.toHaveBeenCalled();
     });
 
     it('offers the regex operators for an array membership filter', async () => {
@@ -8663,6 +8785,7 @@ describe('SearchQueryBuilder', () => {
       );
       expect(screen.getByRole('option', {name: 'includes'})).toBeInTheDocument();
       await userEvent.click(screen.getByRole('option', {name: 'matches regex'}));
+      await userEvent.keyboard('{Enter}');
 
       expect(
         within(
@@ -8728,6 +8851,7 @@ describe('SearchQueryBuilder', () => {
         screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
       );
       await userEvent.click(screen.getByRole('option', {name: 'does not match regex'}));
+      await userEvent.keyboard('{Enter}');
 
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalledWith(

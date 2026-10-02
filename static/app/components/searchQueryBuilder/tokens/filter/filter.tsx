@@ -22,6 +22,7 @@ import {
 import {AggregateKey} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKey';
 import {FilterKey} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKey';
 import {FilterOperator} from 'sentry/components/searchQueryBuilder/tokens/filter/filterOperator';
+import {RegexDelimiter} from 'sentry/components/searchQueryBuilder/tokens/filter/regexDelimiter';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {
@@ -34,11 +35,12 @@ import {GridInvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/toke
 import {isInvalidFilterKey} from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
+  InvalidReason,
   Token,
   type ParseResultToken,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {getKeyName} from 'sentry/components/searchSyntax/utils';
+import {getKeyName, isRegexOperator} from 'sentry/components/searchSyntax/utils';
 import {isQueryBuilderPanelChrome} from 'sentry/components/tokenizedInput/token/comboBoxLayout';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -219,6 +221,19 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
         value={prettifyTagKey(token.value.text)}
         fallbackMaxLength={FILTER_VALUE_FALLBACK_MAX_LENGTH}
       />
+    );
+  }
+
+  if (isRegexOperator(token.operator)) {
+    return (
+      <Flex align="center" gap="2xs" minWidth="0" width="100%">
+        <RegexDelimiter />
+        <TruncatedFilterDisplayValue
+          value={formatFilterValue({token: token.value, valueType})}
+          fallbackMaxLength={FILTER_VALUE_FALLBACK_MAX_LENGTH}
+        />
+        <RegexDelimiter />
+      </Flex>
     );
   }
 
@@ -410,7 +425,11 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
     onKeyDown,
   });
 
-  const hasTokenInvalid = 'invalid' in token && defined(token.invalid);
+  // A filter that is still being filled in hasn't failed to have a value yet.
+  const hasTokenInvalid =
+    'invalid' in token &&
+    defined(token.invalid) &&
+    !(filterMenuOpen && token.invalid.type === InvalidReason.FILTER_MUST_HAVE_VALUE);
   const tokenHasWarning = 'warning' in token && defined(token.warning);
   const filterKeyName = getKeyName(token.key, {aggregateWithArgs: true});
   const keyIsInvalid = isInvalidFilterKey(token.key, invalidFilterKeys);

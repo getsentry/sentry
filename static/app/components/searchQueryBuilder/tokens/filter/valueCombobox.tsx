@@ -30,6 +30,7 @@ import {
   type CustomComboboxMenuProps,
 } from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
+import {RegexDelimiter} from 'sentry/components/searchQueryBuilder/tokens/filter/regexDelimiter';
 import {SpecificDatePicker} from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {useFrozenSuggestionSectionItems} from 'sentry/components/searchQueryBuilder/tokens/filter/useFrozenSuggestionSectionItems';
 import {
@@ -1312,6 +1313,12 @@ export function SearchQueryBuilderValueCombobox({
     [dispatch, fieldDefinition, selectedValues, token]
   );
 
+  // Prevent the mousedown from blurring the input, which would commit the value.
+  const focusInputFromDelimiter = (e: React.MouseEvent) => {
+    e.preventDefault();
+    inputRef.current?.focus();
+  };
+
   const editValue = (index: number) => {
     const target = selectedValues[index];
     if (!target) {
@@ -1463,7 +1470,13 @@ export function SearchQueryBuilderValueCombobox({
   const inputSlot = editingChip
     ? committedValues.filter(v => v.index < editingChip.index).length
     : chips.length;
-  const chipRow = [...chips.slice(0, inputSlot), valueInput, ...chips.slice(inputSlot)];
+  const chipRow = isRegexValue
+    ? [
+        <RegexDelimiter key="regex-start" onMouseDown={focusInputFromDelimiter} />,
+        valueInput,
+        <RegexDelimiter key="regex-end" onMouseDown={focusInputFromDelimiter} />,
+      ]
+    : [...chips.slice(0, inputSlot), valueInput, ...chips.slice(inputSlot)];
 
   return (
     <ValueComboboxContext.Provider value={valueComboboxContextValue}>
