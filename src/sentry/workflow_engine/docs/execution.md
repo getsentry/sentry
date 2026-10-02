@@ -432,82 +432,6 @@ The sanitized `trigger_evaluation`, `filter_evaluations`, and `delayed` attribut
 JSON strings because EAP ingestion discards nested protobuf key/value lists. Scalar
 attributes and primitive arrays, such as `triggered_action_ids`, retain their native types.
 
-### Evaluation Artifacts API
-
-`GET /api/0/organizations/{organization_id_or_slug}/evaluation-artifacts/` reads
-these artifacts for Code Mode and debugging clients. The API is experimental and
-requires `organizations:workflow-engine-evaluation-artifacts-api`. Ingestion still
-requires the separate EAP emission flag above. Artifacts are retained for seven days;
-delivery is best-effort, so an empty result does not prove an evaluation never ran.
-
-Access matches organization alert-read APIs (`alerts:read` or the existing
-organization read/write/admin scopes). Every query is restricted to the URL
-organization and projects the caller can access. Use repeated `project` parameters
-to select projects, or `project=-1` for all accessible projects.
-
-Supported attribute filters use stored snake_case names:
-
-- Identity: `detector_id`, `workflow_id`, `group_id`, `event_id`, `project_id`,
-  `detector_type`.
-- Evaluation: `outcome`, `error`, `evaluation_type`, `evaluation_phase`.
-
-Filters match exactly. Different fields are ANDed; repeated values for one field are
-ORed. Other attributes are returned but cannot be used as filters; unsupported query
-parameters are ignored. Retrieval pages matching artifact IDs, then fetches all
-stored attributes in one bulk query rather than maintaining a response-column list.
-For example:
-
-```text
-/api/0/organizations/org-slug/evaluation-artifacts/?project=123&workflow_id=456&evaluation_phase=delayed&outcome=error&outcome=not_triggered&statsPeriod=24h&per_page=50
-```
-
-Use `statsPeriod` or paired ISO-8601 `start`/`end` parameters to select the time window;
-the default is seven days. Requested windows are intersected with the retained
-seven-day window, so broader searches still include recent artifacts. The response
-is a list, newest first, ordered by timestamp then artifact ID. Pagination uses
-`cursor`, `per_page` (maximum 100), and standard
-`Link` headers with previous/next links. Use explicit `start`/`end` when traversing
-pages: offset pagination does not provide a snapshot of concurrent ingestion.
-
-Detector and workflow responses share one serializer: camelCase field names, string
-IDs, an ISO-8601 `timestamp`, and decoded `triggerEvaluation`, `filterEvaluations`,
-and `delayed` objects. Condition `input` is opaque: its keys, types, and nulls are
-preserved; `comparison` remains the original JSON-encoded string. Optional fields
-absent from storage are omitted. Concrete workflow artifacts return
-`triggeredActionIds: []` when no action fired; batch outcomes without individual
-evaluations do not invent workflow or condition fields.
-
-### Browser Testing With Seeded Data
-
-Seed the existing local organization/project from the repository root:
-
-```bash
-.venv/bin/sentry exec scripts/seed_evaluation_artifacts.py
-```
-
-Defaults are organization `sentry`, project `internal`, and browser server
-`http://dev.getsentry.net:8000`. Override them with `--organization`, `--project`,
-and `--base-url`. Enable `organizations:workflow-engine-evaluation-artifacts-api`
-in the server configuration, start the local backend, and sign in through
-`/auth/login/` before opening the generated links. Browser GETs use the session
-cookie; a bearer token is not required.
-
-The script inserts 15 synthetic artifacts through Snuba's development insertion
-endpoint. It exercises real EAP storage and API reads, but bypasses Kafka emission.
-It creates no alerts, workflows, issues, or actions. Synthetic IDs are run-specific,
-and generated query parameters isolate each run without deleting previous data.
-The script refuses non-loopback Snuba instances and non-local application URLs.
-
-Output includes scenario URLs, expected row counts, and directly usable pagination
-links (three five-row pages and an empty fourth page). The same links and IDs are
-saved to `.artifacts/evaluation-artifacts-seed.json`. Fixtures cover initial/delayed
-workflows, detectors, errors, deferred groups, action arrays, issue/event state,
-activity types, opaque inputs with nulls, batch-only outcomes, and validation errors.
-The artifacts expire after seven days; rerun the script to get fresh data and links.
-
-Pagination URLs in HTTP `Link` headers use the configured `system.url-prefix`.
-It must point to the browser-facing local server, not an old backend port.
-
 ### Tracing a Missing Action
 
 When tracing a missing action, check the boundaries in order:
@@ -522,22 +446,3 @@ When tracing a missing action, check the boundaries in order:
 8. Was the action suppressed by frequency or event-level deduplication?
 9. Was fire history created and the action task scheduled?
 10. Did the action handler reject missing or invalid external configuration?
-
-## Recommended Tests
-
-- [`test_integration.py`](../../../../tests/sentry/workflow_engine/test_integration.py)
-  covers the full detector and workflow paths.
-- [`test_stateful.py`](../../../../tests/sentry/workflow_engine/handlers/detector/test_stateful.py)
-  covers state transitions and Redis behavior.
-- [`test_detector.py`](../../../../tests/sentry/workflow_engine/processors/test_detector.py)
-  covers detector output and event detector selection.
-- [`test_workflow.py`](../../../../tests/sentry/workflow_engine/processors/test_workflow.py)
-  covers workflow evaluation.
-- [`test_data_condition_group.py`](../../../../tests/sentry/workflow_engine/processors/test_data_condition_group.py)
-  covers condition logic and fast/slow splitting.
-- [`test_delayed_workflow.py`](../../../../tests/sentry/workflow_engine/processors/test_delayed_workflow.py)
-  covers delayed queries and action firing.
-- [`test_schedule.py`](../../../../tests/sentry/workflow_engine/processors/test_schedule.py)
-  covers cohort scheduling and batches.
-- [`test_actions.py`](../../../../tests/sentry/workflow_engine/tasks/test_actions.py)
-  covers action task reconstruction and dispatch.
