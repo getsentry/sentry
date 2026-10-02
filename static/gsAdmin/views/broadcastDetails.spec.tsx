@@ -125,7 +125,7 @@ describe('Broadcast Details', () => {
       screen.getByRole('textbox', {name: 'Organization IDs'}),
       '321, 654'
     );
-    await userEvent.click(screen.getByRole('checkbox', {name: 'Early Adopter'}));
+    await userEvent.click(screen.getByText('Early Adopter'));
     await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
     await waitFor(() => expect(update).toHaveBeenCalled());

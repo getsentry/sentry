@@ -4,7 +4,8 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -230,14 +231,20 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
         </form.AppField>
         <form.AppField name="isActive">
           {field => (
-            <Container width="144px">
-              <field.Layout.Row label="Active">
-                <field.Switch
-                  checked={Boolean(field.state.value)}
-                  onChange={field.handleChange}
-                />
-              </field.Layout.Row>
-            </Container>
+            <Flex align="center" gap="sm" width="fit-content">
+              <Text
+                as="label"
+                bold={false}
+                htmlFor={`${field.form.formId}${field.name}`}
+                textWrap="nowrap"
+              >
+                Active
+              </Text>
+              <field.Switch
+                checked={Boolean(field.state.value)}
+                onChange={field.handleChange}
+              />
+            </Flex>
           )}
         </form.AppField>
         <form.AppField name="roles">
@@ -284,11 +291,17 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
         </form.AppField>
         <form.AppField name="earlyAdopter">
           {field => (
-            <Container width="160px">
-              <field.Layout.Row label="Early Adopter">
-                <field.Switch checked={field.state.value} onChange={field.handleChange} />
-              </field.Layout.Row>
-            </Container>
+            <Flex align="center" gap="sm" width="fit-content">
+              <Text
+                as="label"
+                bold={false}
+                htmlFor={`${field.form.formId}${field.name}`}
+                textWrap="nowrap"
+              >
+                Early Adopter
+              </Text>
+              <field.Switch checked={field.state.value} onChange={field.handleChange} />
+            </Flex>
           )}
         </form.AppField>
         <form.AppField name="region">
