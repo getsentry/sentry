@@ -213,6 +213,7 @@ class DeployReleaseTemplate(NotificationTemplate[DeployReleaseData]):
     category = NotificationCategory.DEPLOY
     example_data = DeployReleaseData(
         source=NotificationSource.DEPLOY_RELEASE,
+        organization_id=1,
         user_settings_url="https://sentry.io/settings/account/notifications/deploy/",
         alert_name="Notify #feed-deploys via Slack",
         alert_url="https://sentry.io/organizations/acme/monitors/alerts/1/",
@@ -343,6 +344,7 @@ def build_deploy_release_data(deploy: Deploy, release: Release) -> DeployRelease
         )
 
     data = DeployReleaseData(
+        organization_id=organization.id,
         date=deploy.date_finished.isoformat() if deploy.date_finished else "",
         author_count=len(email_list),
         commit_count=len(commit_list),
