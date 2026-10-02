@@ -24,26 +24,28 @@ function BreadcrumbTimestampTooltipBody({timestamp}: {timestamp: Date}) {
   const isUTCLocalTimezone = currentTimezone === 'UTC';
 
   return (
-    <Tooltip.Grid dl terms="strong">
-      <DescriptionList.Term>{t('Occurred')}</DescriptionList.Term>
-      <DescriptionList.Details>
-        <TimestampValues>
-          <DateTime date={timestamp} seconds milliseconds timeZone />
-          {!isUTCLocalTimezone && (
-            <DateTime date={timestamp} seconds milliseconds timeZone utc />
-          )}
-        </TimestampValues>
-      </DescriptionList.Details>
-      {isUTCLocalTimezone && (
-        <Fragment>
-          <DescriptionList.Term />
-          <DescriptionList.Details>
-            <TimezoneLink to="/settings/account/details/#timezone">
-              {t('Add your local timezone')}
-            </TimezoneLink>
-          </DescriptionList.Details>
-        </Fragment>
-      )}
+    <Tooltip.Grid>
+      <DescriptionList terms="strong">
+        <DescriptionList.Term>{t('Occurred')}</DescriptionList.Term>
+        <DescriptionList.Details>
+          <TimestampValues>
+            <DateTime date={timestamp} seconds milliseconds timeZone />
+            {!isUTCLocalTimezone && (
+              <DateTime date={timestamp} seconds milliseconds timeZone utc />
+            )}
+          </TimestampValues>
+        </DescriptionList.Details>
+        {isUTCLocalTimezone && (
+          <Fragment>
+            <DescriptionList.Term />
+            <DescriptionList.Details>
+              <TimezoneLink to="/settings/account/details/#timezone">
+                {t('Add your local timezone')}
+              </TimezoneLink>
+            </DescriptionList.Details>
+          </Fragment>
+        )}
+      </DescriptionList>
     </Tooltip.Grid>
   );
 }

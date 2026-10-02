@@ -25,27 +25,29 @@ export function FeedbackTimestampsTooltip({feedbackItem}: Props) {
   const dateResolved = resolvedActivity ? moment(resolvedActivity.dateCreated) : null;
 
   return (
-    <Tooltip.Grid dl nowrap terms="strong">
-      <DescriptionList.Term>{t('Created')}</DescriptionList.Term>
-      <DescriptionList.Details>
-        {dateFirstSeen ? (
-          <AutoSelectText>
-            {dateFirstSeen.format('ll')} {dateFirstSeen.format(format)}
-          </AutoSelectText>
-        ) : (
-          <NotApplicableText>{t('n/a')}</NotApplicableText>
-        )}
-      </DescriptionList.Details>
-      {dateResolved && (
-        <Fragment>
-          <DescriptionList.Term>{t('Resolved')}</DescriptionList.Term>
-          <DescriptionList.Details>
+    <Tooltip.Grid>
+      <DescriptionList nowrap terms="strong">
+        <DescriptionList.Term>{t('Created')}</DescriptionList.Term>
+        <DescriptionList.Details>
+          {dateFirstSeen ? (
             <AutoSelectText>
-              {dateResolved.format('ll')} {dateResolved.format(format)}
+              {dateFirstSeen.format('ll')} {dateFirstSeen.format(format)}
             </AutoSelectText>
-          </DescriptionList.Details>
-        </Fragment>
-      )}
+          ) : (
+            <NotApplicableText>{t('n/a')}</NotApplicableText>
+          )}
+        </DescriptionList.Details>
+        {dateResolved && (
+          <Fragment>
+            <DescriptionList.Term>{t('Resolved')}</DescriptionList.Term>
+            <DescriptionList.Details>
+              <AutoSelectText>
+                {dateResolved.format('ll')} {dateResolved.format(format)}
+              </AutoSelectText>
+            </DescriptionList.Details>
+          </Fragment>
+        )}
+      </DescriptionList>
     </Tooltip.Grid>
   );
 }

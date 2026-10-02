@@ -61,13 +61,15 @@ export function ErrorCounts({replayErrors}: Props) {
           <Tooltip
             key={projectSlug}
             title={
-              <Tooltip.Grid dl gap="md 2xl" nowrap terms="strong">
-                <DescriptionList.Term>{projectSlug}</DescriptionList.Term>
-                <DescriptionList.Details>
-                  {Object.entries(counts)
-                    .map(([level, count]) => `${level}: ${count}`)
-                    .join(', ')}
-                </DescriptionList.Details>
+              <Tooltip.Grid>
+                <DescriptionList gap="md 2xl" nowrap terms="strong">
+                  <DescriptionList.Term>{projectSlug}</DescriptionList.Term>
+                  <DescriptionList.Details>
+                    {Object.entries(counts)
+                      .map(([level, count]) => `${level}: ${count}`)
+                      .join(', ')}
+                  </DescriptionList.Details>
+                </DescriptionList>
               </Tooltip.Grid>
             }
           >
@@ -75,7 +77,9 @@ export function ErrorCounts({replayErrors}: Props) {
               <ProjectAvatar
                 size={16}
                 project={
-                  projects.find(p => p.slug === projectSlug) ?? {slug: projectSlug}
+                  projects.find(p => p.slug === projectSlug) ?? {
+                    slug: projectSlug,
+                  }
                 }
               />
               <ErrorCount aria-label={t('number of errors')}>
@@ -93,17 +97,19 @@ export function ErrorCounts({replayErrors}: Props) {
   return (
     <Tooltip
       title={
-        <Tooltip.Grid dl gap="md 2xl" nowrap terms="strong">
-          {Object.entries(countsPerProject).map(([projectSlug, counts]) => (
-            <Fragment key={projectSlug}>
-              <DescriptionList.Term>{projectSlug}</DescriptionList.Term>
-              <DescriptionList.Details>
-                {Object.entries(counts)
-                  .map(([level, count]) => `${level}: ${count}`)
-                  .join(', ')}
-              </DescriptionList.Details>
-            </Fragment>
-          ))}
+        <Tooltip.Grid>
+          <DescriptionList gap="md 2xl" nowrap terms="strong">
+            {Object.entries(countsPerProject).map(([projectSlug, counts]) => (
+              <Fragment key={projectSlug}>
+                <DescriptionList.Term>{projectSlug}</DescriptionList.Term>
+                <DescriptionList.Details>
+                  {Object.entries(counts)
+                    .map(([level, count]) => `${level}: ${count}`)
+                    .join(', ')}
+                </DescriptionList.Details>
+              </Fragment>
+            ))}
+          </DescriptionList>
         </Tooltip.Grid>
       }
     >
@@ -117,7 +123,9 @@ export function ErrorCounts({replayErrors}: Props) {
                   key={projectSlug}
                   size={16}
                   project={
-                    projects.find(p => p.slug === projectSlug) ?? {slug: projectSlug}
+                    projects.find(p => p.slug === projectSlug) ?? {
+                      slug: projectSlug,
+                    }
                   }
                 />
               );

@@ -43,37 +43,39 @@ export function EventCreatedTooltip({event}: Props) {
   const dateReceived = event.dateReceived ? moment(event.dateReceived) : null;
 
   return (
-    <Tooltip.Grid dl terms="strong">
-      <DescriptionList.Term>{t('Occurred')}</DescriptionList.Term>
-      <DescriptionList.Details>
-        {dateCreated ? (
-          <AutoSelectText>
-            {dateCreated.format('ll')} {dateCreated.format(format)}
-          </AutoSelectText>
-        ) : (
-          <NotApplicableText>{t('n/a')}</NotApplicableText>
+    <Tooltip.Grid>
+      <DescriptionList terms="strong">
+        <DescriptionList.Term>{t('Occurred')}</DescriptionList.Term>
+        <DescriptionList.Details>
+          {dateCreated ? (
+            <AutoSelectText>
+              {dateCreated.format('ll')} {dateCreated.format(format)}
+            </AutoSelectText>
+          ) : (
+            <NotApplicableText>{t('n/a')}</NotApplicableText>
+          )}
+        </DescriptionList.Details>
+        {dateReceived && (
+          <Fragment>
+            <DescriptionList.Term>{t('Received')}</DescriptionList.Term>
+            <DescriptionList.Details>
+              <AutoSelectText>
+                {dateReceived.format('ll')} {dateReceived.format(format)}
+              </AutoSelectText>
+            </DescriptionList.Details>
+            <DescriptionList.Term>{t('Latency')}</DescriptionList.Term>
+            <DescriptionList.Details>
+              <AutoSelectText>
+                {dateCreated ? (
+                  formatDateDelta(dateCreated, dateReceived)
+                ) : (
+                  <NotApplicableText>{t('n/a')}</NotApplicableText>
+                )}
+              </AutoSelectText>
+            </DescriptionList.Details>
+          </Fragment>
         )}
-      </DescriptionList.Details>
-      {dateReceived && (
-        <Fragment>
-          <DescriptionList.Term>{t('Received')}</DescriptionList.Term>
-          <DescriptionList.Details>
-            <AutoSelectText>
-              {dateReceived.format('ll')} {dateReceived.format(format)}
-            </AutoSelectText>
-          </DescriptionList.Details>
-          <DescriptionList.Term>{t('Latency')}</DescriptionList.Term>
-          <DescriptionList.Details>
-            <AutoSelectText>
-              {dateCreated ? (
-                formatDateDelta(dateCreated, dateReceived)
-              ) : (
-                <NotApplicableText>{t('n/a')}</NotApplicableText>
-              )}
-            </AutoSelectText>
-          </DescriptionList.Details>
-        </Fragment>
-      )}
+      </DescriptionList>
     </Tooltip.Grid>
   );
 }
