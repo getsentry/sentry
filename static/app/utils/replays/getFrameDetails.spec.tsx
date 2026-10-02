@@ -1,26 +1,6 @@
-import {getFrameDetails} from 'sentry/utils/replays/getFrameDetails';
-import type {ErrorFrame} from 'sentry/utils/replays/types';
+import {ReplayErrorFrameFixture} from 'sentry-fixture/replay/error';
 
-function makeErrorFrame(level: string): ErrorFrame {
-  const timestamp = new Date('2024-01-01T00:00:00Z');
-  return {
-    category: 'issue',
-    data: {
-      eventId: 'abc123',
-      groupId: 1,
-      groupShortId: 'PROJ-1',
-      label: '',
-      labels: [],
-      level,
-      projectSlug: 'proj',
-    },
-    message: 'Something happened',
-    offsetMs: 0,
-    timestamp,
-    timestampMs: timestamp.getTime(),
-    type: 'error',
-  };
-}
+import {getFrameDetails} from 'sentry/utils/replays/getFrameDetails';
 
 describe('getFrameDetails', () => {
   describe('issue frames', () => {
@@ -33,7 +13,11 @@ describe('getFrameDetails', () => {
       ['log', 'neutral'],
       ['debug', 'neutral'],
     ])('uses the %p level to pick the %p color', (level, color) => {
-      expect(getFrameDetails(makeErrorFrame(level)).colorGraphicsToken).toBe(color);
+      const frame = ReplayErrorFrameFixture({
+        timestamp: new Date('2024-01-01T00:00:00Z'),
+        data: {level},
+      });
+      expect(getFrameDetails(frame).colorGraphicsToken).toBe(color);
     });
   });
 });
