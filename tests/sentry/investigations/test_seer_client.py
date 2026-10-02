@@ -28,6 +28,16 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
         get_connections: mock.Mock,
         pool: mock.Mock,
     ) -> None:
+        for name in ("checkout", "payments"):
+            repo = self.create_repo(
+                project=self.project,
+                name=f"example/{name}",
+                provider="integrations:github",
+                integration_id=999,
+                external_id=f"repo-{name}",
+            )
+            self.create_seer_project_repository(project=self.project, repository=repo)
+        self.create_project(organization=self.organization)
         investigation, run = create_agentic_manual_investigation(
             organization=self.organization,
             user_id=self.user.id,
@@ -117,6 +127,15 @@ class InvestigationOrchestrationSeerClientTest(TestCase):
         assert create_body["source"] == run.source
         assert create_body["activeTimeBudgetSeconds"] == 1800
         assert create_body["monitoringProviders"] == [provider.dict.return_value]
+        context = create_body["userOrgContext"]
+        assert context["org_slug"] == self.organization.slug
+        assert context["user_id"] == self.user.id
+        assert [p["id"] for p in context["all_org_projects"]] == [self.project.id]
+        assert context["user_projects"] == context["all_org_projects"]
+        assert {repo["external_id"] for repo in context["all_org_projects"][0]["repos"]} == {
+            "repo-checkout",
+            "repo-payments",
+        }
         assert "Authorization" in create_request.kwargs["headers"]
         assert "X-Viewer-Context" in create_request.kwargs["headers"]
 

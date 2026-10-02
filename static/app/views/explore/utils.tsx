@@ -5,7 +5,10 @@ import * as qs from 'query-string';
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {getTooltipText as getAnnotatedTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
+import {
+  getTooltipText as getAnnotatedTooltipText,
+  isDataScrubbingRule,
+} from 'sentry/components/events/meta/annotatedText/utils';
 import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
@@ -15,7 +18,7 @@ import type {Confidence, Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {defined} from 'sentry/utils/defined';
-import {encodeSort} from 'sentry/utils/discover/eventView';
+import {encodeSort, EventView} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   isEquation,
@@ -23,6 +26,7 @@ import {
   prettifyParsedFunction,
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
+import {FieldValueType} from 'sentry/utils/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {determineTimeSeriesConfidence} from 'sentry/utils/timeSeries/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
@@ -36,17 +40,21 @@ import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import type {
+  SavedQuery,
   RawGroupBy,
   RawVisualize,
-  SavedQuery,
+  CombinedSavedQuery,
+  DiscoverSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {
   getSavedQueryTraceItemDataset,
+  isExploreSavedQuery,
   isRawVisualize,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import type {
   TraceItemAttributeMeta,
   TraceItemDetailsMeta,
+  TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {getLogsUrlFromSavedQueryUrl} from 'sentry/views/explore/logs/utils';
 import {getMetricsUrlFromSavedQueryUrl} from 'sentry/views/explore/metrics/utils';
@@ -509,7 +517,8 @@ export function confirmDeleteSavedQuery({
   savedQuery,
 }: {
   handleDelete: () => void;
-  savedQuery: SavedQuery;
+  // Only the name is shown, so this works for either kind of saved query.
+  savedQuery: Pick<CombinedSavedQuery, 'name'>;
 }) {
   openConfirmModal({
     message: t('Are you sure you want to delete the query "%s"?', savedQuery.name),
@@ -708,8 +717,12 @@ export function getSavedQueryTraceItemUrl({
   organization,
 }: {
   organization: Organization;
-  savedQuery: SavedQuery;
+  savedQuery: CombinedSavedQuery;
 }) {
+  if (!isExploreSavedQuery(savedQuery)) {
+    return getDiscoverSavedQueryUrl({savedQuery, organization});
+  }
+
   if (savedQuery.dataset === 'ai_conversations') {
     return getConversationsUrlFromSavedQueryUrl({savedQuery, organization});
   }
@@ -799,6 +812,20 @@ const TRACE_ITEM_TO_URL_FUNCTION: Record<
 };
 
 /**
+ * The value type an attribute was stored with, for when no field definition
+ * describes it more precisely.
+ */
+export const ATTRIBUTE_VALUE_TYPES: Record<
+  TraceItemResponseAttribute['type'],
+  FieldValueType
+> = {
+  bool: FieldValueType.BOOLEAN,
+  float: FieldValueType.NUMBER,
+  int: FieldValueType.INTEGER,
+  str: FieldValueType.STRING,
+};
+
+/**
  * Metadata about trace item attributes.
  *
  * This can be used to extract additional information about attributes
@@ -871,6 +898,33 @@ interface RemarkObject {
   type: string;
 }
 
+/**
+ * Whether a PII rule redacted the attribute's value. Relay also remarks on
+ * values it trimmed for size, which are annotated but not scrubbed, so this is
+ * narrower than {@link hasRemarkedValue}.
+ */
+export function hasScrubbedValue(
+  meta: TraceItemDetailsMeta | undefined,
+  attribute: string
+): boolean {
+  return meta === undefined
+    ? false
+    : new TraceItemMetaInfo(meta)
+        .getRemarks(attribute)
+        .some(({ruleId}) => isDataScrubbingRule(ruleId));
+}
+
+/**
+ * Whether Relay remarked on the attribute's value at all, for any reason, so
+ * that the annotation explaining what it did can be offered.
+ */
+export function hasRemarkedValue(
+  meta: TraceItemDetailsMeta | undefined,
+  attribute: string
+): boolean {
+  return meta === undefined ? false : new TraceItemMetaInfo(meta).hasRemarks(attribute);
+}
+
 const SAMPLING_SENSITIVE_AGGREGATES = new Set([
   'count_unique',
   'failure_count',
@@ -934,4 +988,26 @@ function computeAvgSampleRate(series: TimeSeries[]): number | undefined {
   }
 
   return count > 0 ? total / count : undefined;
+}
+
+function getDiscoverSavedQueryUrl({
+  savedQuery,
+  organization,
+}: {
+  organization: Organization;
+  savedQuery: DiscoverSavedQuery;
+}) {
+  const {pathname, query} =
+    EventView.fromSavedQuery(savedQuery).getResultsViewShortUrlTarget(organization);
+  const search = qs.stringify(query);
+  return search ? `${pathname}?${search}` : pathname;
+}
+
+export function getYAxisDiscoverSavedQuery(
+  savedQuery: DiscoverSavedQuery
+): BaseVisualize[] {
+  if (savedQuery.yAxis?.length) {
+    return [{yAxes: savedQuery.yAxis}];
+  }
+  return [{yAxes: [EventView.fromSavedQuery(savedQuery).getYAxis()]}];
 }

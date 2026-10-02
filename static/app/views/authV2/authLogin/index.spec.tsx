@@ -1,14 +1,14 @@
 import {Fragment} from 'react';
-import Cookies from 'js-cookie';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {setWindowLocation} from 'sentry-test/utils';
 
-import {BrandPageLayout} from 'sentry/components/brandPageLayout';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {ConfigStore} from 'sentry/stores/configStore';
 import type {AuthConfig} from 'sentry/types/auth';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+import type {AuthenticatedResult} from 'sentry/views/authV2/authLogin/types';
 import {BrandedAuthLoadingProvider} from 'sentry/views/authV2/useBrandedAuthLoading';
 
 import AuthLogin from './index';
@@ -18,6 +18,7 @@ jest.mock('sentry/utils/analytics');
 describe('AuthLogin', () => {
   beforeEach(() => {
     jest.mocked(trackAnalytics).mockClear();
+    ConfigStore.set('singleOrganization', false);
   });
 
   beforeAll(() => {
@@ -31,7 +32,7 @@ describe('AuthLogin', () => {
     Reflect.deleteProperty(document, 'elementFromPoint');
   });
 
-  function mockAuthConfig() {
+  function mockAuthConfig(singleOrganizationSlug?: string) {
     MockApiClient.addMockResponse({
       url: '/auth/config/',
       body: {
@@ -42,7 +43,25 @@ describe('AuthLogin', () => {
         pendingMfa: null,
         serverHostname: 'sentry.example.com',
         vstsLoginLink: '',
+        ...(singleOrganizationSlug ? {singleOrganizationSlug} : {}),
       } satisfies AuthConfig,
+    });
+  }
+
+  function mockDemoOrganizationConfig() {
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/config/',
+      body: {
+        authenticated: false,
+        memberAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: '/join-request/acme/',
+        loginMethod: 'demo',
+        ssoRequired: false,
+        organization: {avatarUrl: null, name: 'Acme', slug: 'acme'},
+        provider: null,
+        warnings: [],
+      },
     });
   }
 
@@ -140,6 +159,255 @@ describe('AuthLogin', () => {
       screen.queryByRole('heading', {name: 'Sign in to Sentry'})
     ).not.toBeInTheDocument();
     expect(screen.getByText('Loading authentication')).toBeInTheDocument();
+  });
+
+  it('replaces the generic login route and shows password auth for a single org', async () => {
+    ConfigStore.set('singleOrganization', true);
+    mockAuthConfig('sentry');
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/sentry/config/',
+      body: {
+        authenticated: false,
+        memberAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: null,
+        loginMethod: 'password',
+        ssoRequired: false,
+        organization: {avatarUrl: null, name: 'Sentry', slug: 'sentry'},
+        provider: null,
+        warnings: [],
+      },
+    });
+
+    const {router} = render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/'},
+        route: '/auth/login/:orgSlug?/',
+      },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText('Sentry')).toBeVisible();
+      expect(screen.getByRole('textbox', {name: 'Email'})).toBeVisible();
+      expect(screen.getByLabelText('Password')).toBeVisible();
+    });
+    expect(router.location.pathname).toBe('/auth/login/sentry/');
+    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole('button', {name: 'Clear organization login context'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows both SSO and password auth when SSO is optional for a single org', async () => {
+    ConfigStore.set('singleOrganization', true);
+    mockAuthConfig('sentry');
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/sentry/config/',
+      body: {
+        authenticated: false,
+        memberAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: null,
+        loginMethod: 'sso',
+        ssoRequired: false,
+        organization: {avatarUrl: null, name: 'Sentry', slug: 'sentry'},
+        provider: {key: 'saml2', name: 'SAML'},
+        warnings: [],
+      },
+    });
+
+    render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/sentry/'},
+        route: '/auth/login/:orgSlug?/',
+      },
+    });
+
+    expect(await screen.findByRole('textbox', {name: 'Email'})).toBeVisible();
+    expect(screen.getByLabelText('Password')).toBeVisible();
+    expect(screen.getByRole('button', {name: 'SSO'})).toBeEnabled();
+    expect(
+      screen.queryByRole('button', {name: 'Clear organization login context'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers password auth to an authenticated user without single-org access', async () => {
+    ConfigStore.set('singleOrganization', true);
+    MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      body: {nextUri: '/organizations/sentry/issues/'},
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/sentry/config/',
+      body: {
+        authenticated: true,
+        memberAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: null,
+        loginMethod: 'password',
+        ssoRequired: false,
+        organization: {avatarUrl: null, name: 'Sentry', slug: 'sentry'},
+        provider: null,
+        warnings: [],
+      },
+    });
+
+    render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/sentry/'},
+        route: '/auth/login/:orgSlug?/',
+      },
+    });
+
+    expect(await screen.findByRole('textbox', {name: 'Email'})).toBeVisible();
+    expect(screen.getByLabelText('Password')).toBeVisible();
+    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole('button', {name: 'Clear organization login context'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('requires SSO without offering another org in single-org mode', async () => {
+    ConfigStore.set('singleOrganization', true);
+    mockAuthConfig('sentry');
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/sentry/config/',
+      body: {
+        authenticated: false,
+        memberAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: null,
+        loginMethod: 'sso',
+        ssoRequired: true,
+        organization: {avatarUrl: null, name: 'Sentry', slug: 'sentry'},
+        provider: {key: 'saml2', name: 'SAML'},
+        warnings: [],
+      },
+    });
+
+    render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/sentry/'},
+        route: '/auth/login/:orgSlug?/',
+      },
+    });
+
+    expect(await screen.findByRole('button', {name: 'SSO'})).toBeEnabled();
+    expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Wrong organization'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('authenticates a demo organization before rendering the sign-in flow', async () => {
+    const demoLogin = Promise.withResolvers<AuthenticatedResult>();
+    mockAuthConfig();
+    mockDemoOrganizationConfig();
+    const request = MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/demo/',
+      method: 'POST',
+      body: () => demoLogin.promise,
+    });
+
+    render(
+      <BrandedAuthLoadingProvider>
+        {isLoading => (
+          <Fragment>
+            <div>{isLoading ? 'Loading authentication' : 'Authentication ready'}</div>
+            <AuthLogin />
+          </Fragment>
+        )}
+      </BrandedAuthLoadingProvider>,
+      {
+        initialRouterConfig: {
+          location: {pathname: '/auth/login/acme/'},
+          route: '/auth/login/:orgSlug/',
+        },
+      }
+    );
+
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    expect(request).toHaveBeenCalledWith(
+      '/auth/organizations/acme/demo/',
+      expect.objectContaining({
+        method: 'POST',
+        data: {nextUri: null},
+      })
+    );
+    expect(screen.getByText('Loading authentication')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', {name: 'Sign in to Sentry'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
+
+    act(() => {
+      demoLogin.resolve({
+        nextUri: '/organizations/acme/issues/',
+        user: UserFixture(),
+      });
+    });
+
+    await waitFor(() =>
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+        '/organizations/acme/issues/'
+      )
+    );
+    expect(screen.getByText('Loading authentication')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', {name: 'Sign in to Sentry'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('uses the existing MFA flow for demo authentication', async () => {
+    mockAuthConfig();
+    mockDemoOrganizationConfig();
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/demo/',
+      method: 'POST',
+      statusCode: 202,
+      body: {mfaRequired: true, mfaMethods: [{id: 'totp'}]},
+    });
+
+    render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/acme/'},
+        route: '/auth/login/:orgSlug/',
+      },
+    });
+
+    expect(await screen.findByRole('textbox', {name: 'One-time password'})).toBeVisible();
+    expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
+  });
+
+  it('renders the error boundary when demo authentication fails', async () => {
+    const errorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+    mockAuthConfig();
+    mockDemoOrganizationConfig();
+    const request = MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/demo/',
+      method: 'POST',
+      statusCode: 503,
+      body: {detail: 'Demo login unavailable'},
+    });
+
+    render(
+      <ErrorBoundary>
+        <AuthLogin />
+      </ErrorBoundary>,
+      {
+        initialRouterConfig: {
+          location: {pathname: '/auth/login/acme/'},
+          route: '/auth/login/:orgSlug/',
+        },
+      }
+    );
+
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    expect(await screen.findByTestId('error-boundary')).toBeVisible();
+    expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
+    expect(request).toHaveBeenCalledTimes(1);
+    errorSpy.mockRestore();
   });
 
   it('focuses organization SSO when the authenticated user still requires it', async () => {
@@ -300,38 +568,10 @@ describe('AuthLogin', () => {
       'href',
       '/identity/login/vsts/'
     );
-  });
-
-  it('returns to the legacy login experience', async () => {
-    const originalLocation = window.location.href;
-    setWindowLocation('https://login.sentry.io/auth/login/');
-    Cookies.set('sentry_react_auth', '1', {
-      domain: '.sentry.io',
-      path: '/auth/',
-    });
-    mockAuthConfig();
-
-    try {
-      render(
-        <BrandPageLayout>
-          <BrandPageLayout.Content>
-            <AuthLogin />
-          </BrandPageLayout.Content>
-        </BrandPageLayout>
-      );
-
-      expect(await screen.findByText('New Experience')).toBeVisible();
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Return to the old login experience'})
-      );
-
-      expect(Cookies.get('sentry_react_auth')).toBe('0');
-      expect(testableWindowLocation.reload).toHaveBeenCalled();
-    } finally {
-      Cookies.remove('sentry_react_auth', {domain: '.sentry.io', path: '/'});
-      Cookies.remove('sentry_react_auth', {domain: '.sentry.io', path: '/auth/'});
-      setWindowLocation(originalLocation);
-    }
+    expect(screen.getByRole('link', {name: 'Create an account'})).toHaveAttribute(
+      'href',
+      '/auth/register/'
+    );
   });
 
   it('renders warnings above the configured login banner', async () => {

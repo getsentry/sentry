@@ -61,20 +61,18 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
         assert banner.encode() in response.content
 
-    def test_renders_react_template_with_cookie(self) -> None:
-        self.client.cookies["sentry_react_auth"] = "1"
+    @override_options({"auth.v2.enabled": True})
+    def test_renders_react_template_with_setting(self) -> None:
+        response = self.client.get(self.path)
 
-        resp = self.client.get(self.path)
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/base-react.html")
+        self.assertTemplateNotUsed(response, "sentry/login.html")
 
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/base-react.html")
-        self.assertTemplateNotUsed(resp, "sentry/login.html")
-        assert b'<body class="theme-system">' in resp.content
-
+    @override_options({"auth.v2.enabled": True})
     @with_feature("system:multi-region")
     def test_customer_domain_login_redirects_to_primary_domain(self) -> None:
         organization = self.create_organization(slug="customer-domain-org")
-        self.client.cookies["sentry_react_auth"] = "1"
 
         response = self.client.get(
             f"{self.path}?next=%2Fsettings%2Faccount%2F",
@@ -91,9 +89,26 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         ]
         self.assertTemplateUsed(response, "sentry/base-react.html")
 
+    @with_feature("system:multi-region")
+    def test_customer_domain_register_redirects_to_primary_domain_registration(self) -> None:
+        organization = self.create_organization(slug="customer-domain-org")
+        self.session["can_register"] = True
+        self.save_session()
+
+        response = self.client.get(
+            reverse("sentry-register"),
+            HTTP_HOST=f"{organization.slug}.testserver",
+            follow=True,
+        )
+
+        assert response.status_code == 200
+        assert response.redirect_chain == [("http://testserver/auth/register/", 302)]
+        assert response.context["op"] == "register"
+        self.assertTemplateUsed(response, "sentry/login.html")
+
+    @override_options({"auth.v2.enabled": True})
     def test_customer_domain_login_does_not_redirect_without_multi_region(self) -> None:
         organization = self.create_organization(slug="customer-domain-org")
-        self.client.cookies["sentry_react_auth"] = "1"
 
         response = self.client.get(
             self.path,
@@ -403,17 +418,6 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             assert resp.status_code == 200
             assert resp.context["op"] == "register"
             self.assertTemplateUsed("sentry/login.html")
-
-    def test_register_renders_django_template_with_react_auth_cookie(self) -> None:
-        self.client.cookies["sentry_react_auth"] = "1"
-
-        with self.allow_registration():
-            resp = self.client.get(reverse("sentry-register"))
-
-        assert resp.status_code == 200
-        assert resp.context["op"] == "register"
-        self.assertTemplateUsed(resp, "sentry/login.html")
-        self.assertTemplateNotUsed(resp, "sentry/base-react.html")
 
     def test_register_prefills_invite_email(self) -> None:
         self.session["invite_email"] = "foo@example.com"

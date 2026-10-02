@@ -1,13 +1,13 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
+import {useDebouncedState} from '@tanstack/react-pacer';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SearchBar as BaseSearchBar} from 'sentry/components/searchBar';
 import {SearchDropdown} from 'sentry/components/searchBar/searchDropdown';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {ItemType} from 'sentry/components/searchBar/types';
-import {getSearchGroupWithItemMarkedActive} from 'sentry/components/searchBar/utils';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -37,48 +37,103 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
 
   const navigate = useNavigate();
   const {view} = useDomainViewFilters();
-  const [searchResults, setSearchResults] = useState<SearchGroup[]>([]);
-  const transactionCount = searchResults[0]?.children?.length || 0;
+  const {selection} = usePageFilters();
+  const containerRef = useRef<HTMLDivElement>(null);
   const [highlightedItemIndex, setHighlightedItemIndex] = useState(-1);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const openDropdown = () => setIsDropdownOpen(true);
-  const closeDropdown = useCallback(() => setIsDropdownOpen(false), []);
-  const [loading, setLoading] = useState(false);
   const [searchString, setSearchString] = useState(searchQuery);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const {
-    selection: {projects: selectedProjectIds},
-  } = usePageFilters();
-  useOnClickOutside(containerRef, closeDropdown);
-
+  const [transactions, setTransactions] = useState<string[] | null>(null);
+  const [debouncedSearch, setDebouncedSearch, {cancel: cancelSuggestions}] =
+    useDebouncedState('', {wait: DEFAULT_DEBOUNCE_DURATION, leading: true});
   const getTraceItemAttributeValues = useGetTraceItemAttributeValues({
     traceItemType: TraceItemDataset.SPANS,
     type: 'string',
   });
+  const isDebouncing = searchString !== debouncedSearch;
+  const loading = isDebouncing || transactions === null;
+  const transactionCount = transactions?.length ?? 0;
+  const searchResults = useMemo<SearchGroup[]>(
+    () => [
+      {
+        title: 'All Transactions',
+        icon: null,
+        type: 'header',
+        children: (transactions ?? []).map((value, index) => ({
+          value,
+          title: value,
+          type: ItemType.LINK,
+          desc: '',
+          active: index === highlightedItemIndex,
+        })),
+      },
+    ],
+    [transactions, highlightedItemIndex]
+  );
 
-  const handleSearchChange = (query: any) => {
+  useEffect(() => {
+    if (!isDropdownOpen || isDebouncing || debouncedSearch.length < 3) {
+      return;
+    }
+
+    let ignore = false;
+
+    async function fetchSuggestions() {
+      setTransactions(null);
+      try {
+        const results = await getTraceItemAttributeValues({
+          tag: {
+            key: SpanFields.TRANSACTION,
+            name: SpanFields.TRANSACTION,
+            kind: undefined,
+          },
+          searchQuery: debouncedSearch,
+        });
+        if (!ignore) {
+          setTransactions(results.map(item => item.value));
+        }
+      } catch {
+        if (!ignore) {
+          setTransactions([]);
+          addErrorMessage(t('Unable to fetch transaction suggestions'));
+        }
+      }
+    }
+
+    void fetchSuggestions();
+
+    return () => {
+      // The shared request can finish, but this effect no longer owns the results.
+      ignore = true;
+    };
+  }, [debouncedSearch, getTraceItemAttributeValues, isDebouncing, isDropdownOpen]);
+
+  const closeDropdown = useCallback(() => {
+    cancelSuggestions();
+    setIsDropdownOpen(false);
+  }, [cancelSuggestions]);
+
+  useOnClickOutside(containerRef, closeDropdown);
+
+  const handleSearchChange = (query: string) => {
     setSearchString(query);
+    setTransactions(null);
+    setHighlightedItemIndex(-1);
 
     if (query.length === 0) {
       onSearch('');
     }
 
     if (query.length < 3) {
-      setSearchResults([]);
       closeDropdown();
       return;
     }
 
-    openDropdown();
-    getSuggestedTransactions(query);
+    setIsDropdownOpen(true);
+    setDebouncedSearch(query);
   };
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     const {key} = event;
-
-    if (loading) {
-      return;
-    }
 
     if (key === 'Escape' && isDropdownOpen) {
       closeDropdown();
@@ -87,126 +142,51 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
 
     if (
       (key === 'ArrowUp' || key === 'ArrowDown') &&
+      !loading &&
       isDropdownOpen &&
       transactionCount > 0
     ) {
-      const currentHighlightedItem = searchResults[0]!.children[highlightedItemIndex];
-      const nextHighlightedItemIndex =
+      setHighlightedItemIndex(
         (highlightedItemIndex + transactionCount + (key === 'ArrowUp' ? -1 : 1)) %
-        transactionCount;
-      setHighlightedItemIndex(nextHighlightedItemIndex);
-      const nextHighlightedItem = searchResults[0]!.children[nextHighlightedItemIndex];
-
-      let newSearchResults = searchResults;
-      if (currentHighlightedItem) {
-        newSearchResults = getSearchGroupWithItemMarkedActive(
-          searchResults,
-          currentHighlightedItem,
-          false
-        );
-      }
-
-      if (nextHighlightedItem) {
-        newSearchResults = getSearchGroupWithItemMarkedActive(
-          newSearchResults,
-          nextHighlightedItem,
-          true
-        );
-      }
-
-      setSearchResults(newSearchResults);
+          transactionCount
+      );
       return;
     }
 
     if (key === 'Enter') {
       event.preventDefault();
-      const currentItem = searchResults[0]?.children[highlightedItemIndex];
+      const selectedTransaction =
+        loading || !isDropdownOpen ? undefined : transactions?.[highlightedItemIndex];
 
-      if (currentItem?.value) {
-        handleChooseItem(currentItem.value);
+      if (selectedTransaction) {
+        handleChooseItem(selectedTransaction);
       } else {
         handleSearch(searchString, true);
       }
     }
   };
 
-  const getSuggestedTransactions = debounce(
-    async query => {
-      try {
-        setLoading(true);
-
-        const results = await getTraceItemAttributeValues({
-          tag: {
-            key: SpanFields.TRANSACTION,
-            name: SpanFields.TRANSACTION,
-            kind: undefined,
-          },
-          searchQuery: query,
-        });
-
-        const parsedResults = results.reduce(
-          (searchGroup: SearchGroup, item) => {
-            const value = typeof item === 'string' ? item : item.value;
-            searchGroup.children.push({
-              value,
-              title: value,
-              type: ItemType.LINK,
-              desc: '',
-            });
-            return searchGroup;
-          },
-          {
-            title: 'All Transactions',
-            children: [],
-            icon: null,
-            type: 'header',
-          }
-        );
-
-        setHighlightedItemIndex(-1);
-
-        setSearchResults([parsedResults]);
-      } catch (_) {
-        throw new Error('Unable to fetch event field values');
-      } finally {
-        setLoading(false);
-      }
-    },
-    DEFAULT_DEBOUNCE_DURATION,
-    {leading: true}
-  );
-
   const handleChooseItem = (transactionName: string) => {
     handleSearch(transactionName, false);
   };
 
-  const handleClickItemIcon = (value: string) => {
-    const item = decodeValueToItem(value);
-    navigateToItemTransactionSummary(item);
-  };
-
   const handleSearch = (query: string, asRawText: boolean) => {
-    setSearchResults([]);
     setSearchString(query);
-    query = new MutableSearch(query).formatString();
+    const formattedQuery = new MutableSearch(query).formatString();
 
-    const fullQuery = asRawText ? query : `transaction:"${query}"`;
-    onSearch(query ? fullQuery : '');
+    const fullQuery = asRawText ? formattedQuery : `transaction:"${formattedQuery}"`;
+    onSearch(formattedQuery ? fullQuery : '');
     closeDropdown();
   };
 
-  const navigateToItemTransactionSummary = (item: DataItem) => {
-    const {transaction} = item;
-
-    setSearchResults([]);
+  const handleClickItemIcon = (transaction: string) => {
+    closeDropdown();
 
     const next = transactionSummaryRouteWithQuery({
       view,
       organization,
       transaction,
-      projectID: projectIds.length
-        ? projectIds
-        : selectedProjectIds.map(id => id.toString()),
+      projectID: projectIds.length ? projectIds : selection.projects.map(String),
       query: {},
     });
 
@@ -223,7 +203,7 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
 
   return (
     <Container
-      className={className || ''}
+      className={className}
       data-test-id="transaction-search-bar"
       ref={containerRef}
     >
@@ -241,23 +221,11 @@ export function TransactionNameSearchBar(props: SearchBarProps) {
           items={searchResults}
           onClick={handleChooseItem}
           onIconClick={handleClickItemIcon}
-          onDocsOpen={() => logDocsOpenedEvent()}
+          onDocsOpen={logDocsOpenedEvent}
         />
       )}
     </Container>
   );
-}
-
-const decodeValueToItem = (value: string): DataItem => {
-  const lastIndex = value.lastIndexOf(':');
-
-  return {
-    transaction: value.slice(0, lastIndex),
-  };
-};
-
-interface DataItem {
-  transaction: string;
 }
 
 const Container = styled('div')`

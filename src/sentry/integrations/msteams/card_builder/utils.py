@@ -100,12 +100,12 @@ class IssueConstants:
     ARCHIVE_INPUT_ID = "archiveInput"
     ARCHIVE_INPUT_TITLE = "Archive until this happens again..."
     ARCHIVE_INPUT_CHOICES = [
-        ("Archive forever", -1),
-        ("1 time", 1),
-        ("10 times", 10),
-        ("100 times", 100),
-        ("1,000 times", 1000),
-        ("10,000 times", 10000),
+        ("Archive forever", "-1"),
+        ("1 time", "1"),
+        ("10 times", "10"),
+        ("100 times", "100"),
+        ("1,000 times", "1000"),
+        ("10,000 times", "10000"),
     ]
     UNARCHIVE = "Unarchive"
 

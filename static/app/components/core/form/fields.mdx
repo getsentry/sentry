@@ -9,7 +9,7 @@ resources:
 
 import {Container} from '@sentry/scraps/layout';
 
-import {BaseFieldDemo} from './__stories__/formDemos';
+import {BaseFieldDemo, CheckboxFieldDemo, NumberFieldDemo} from './__stories__/formDemos';
 
 import * as Storybook from 'sentry/stories';
 
@@ -43,6 +43,9 @@ Text input for single-line string values.
 </form.AppField>
 ```
 
+Use `leadingItems` to display content such as a currency symbol before the
+editable value.
+
 ## Number
 
 Numeric input with optional min/max/step constraints.
@@ -57,6 +60,32 @@ Numeric input with optional min/max/step constraints.
         min={0}
         max={120}
         step={1}
+      />
+    </field.Layout.Row>
+  )}
+</form.AppField>
+```
+
+### Leading items
+
+`Number` supports the same `leadingItems` slot as `Input` for prefixes such as
+currency symbols.
+
+<Storybook.Demo>
+  <Container width="80%">
+    <NumberFieldDemo />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<form.AppField name="amount">
+  {field => (
+    <field.Layout.Row label={t('Amount')}>
+      <field.Number
+        leadingItems="$"
+        value={field.state.value}
+        onChange={field.handleChange}
+        min={0}
       />
     </field.Layout.Row>
   )}
@@ -156,6 +185,29 @@ Async search select that loads options from an API. Pass `queryOptions` to confi
         })}
       />
     </field.Layout.Row>
+  )}
+</form.AppField>
+```
+
+## Checkbox
+
+Boolean choice with a label and optional hint text. The hint aligns beneath the label.
+
+<Storybook.Demo>
+  <Container width="80%">
+    <CheckboxFieldDemo />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<form.AppField name="subscribe">
+  {field => (
+    <field.Checkbox
+      checked={field.state.value}
+      onChange={field.handleChange}
+      label={t('Send me the newsletter')}
+      hintText={t('Get product updates by email.')}
+    />
   )}
 </form.AppField>
 ```

@@ -472,7 +472,7 @@ describe('DetectorDetailsAutomations', () => {
       const editButton = await screen.findByRole('button', {
         name: 'Edit Alerts',
       });
-      expect(editButton).toBeDisabled();
+      expect(editButton).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('disables connect and create buttons in empty state when user lacks permission', async () => {
@@ -505,8 +505,8 @@ describe('DetectorDetailsAutomations', () => {
       });
       const createButton = screen.getByRole('button', {name: 'Create a New Alert'});
 
-      expect(connectButton).toBeDisabled();
-      expect(createButton).toBeDisabled();
+      expect(connectButton).toHaveAttribute('aria-disabled', 'true');
+      expect(createButton).toHaveAttribute('aria-disabled', 'true');
     });
   });
 });

@@ -186,6 +186,7 @@ export function GlobalModal() {
     }
 
     return reset;
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [portal, handleEscapeClose, visible, scrollLock, triggerElement]);
 
   // Close the modal when the browser history changes.
