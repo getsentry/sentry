@@ -433,7 +433,6 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
     onKeyDown,
   });
 
-  // A filter that is still being filled in hasn't failed to have a value yet.
   const hasTokenInvalid =
     'invalid' in token &&
     defined(token.invalid) &&
