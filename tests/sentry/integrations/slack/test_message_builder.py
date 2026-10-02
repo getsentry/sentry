@@ -465,8 +465,9 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         rule = self.create_project_rule(project=self.project)
         workflow_id = rule.data["actions"][0]["workflow_id"]
         rule.data["actions"][0].pop("legacy_rule_id")
+        notification_rule = NotificationRule.from_deprecated_legacy_rule(rule)
 
-        blocks = SlackIssuesMessageBuilder(self.group, rules=[rule]).build()["blocks"]
+        blocks = SlackIssuesMessageBuilder(self.group, rules=[notification_rule]).build()["blocks"]
 
         assert orjson.loads(blocks[0]["block_id"]) == {
             "issue": self.group.id,
