@@ -404,13 +404,6 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
               }
               .context {
                 background: ${theme.tokens.background.primary};
-
-                table.key-value {
-                  border-color: ${theme.tokens.border.primary};
-                  td {
-                    border-color: ${theme.tokens.border.primary} !important;
-                  }
-                }
               }
             }
           }

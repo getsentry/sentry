@@ -4,8 +4,10 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
+  SavedQueryType,
   useInvalidateSavedQueries,
   useInvalidateSavedQuery,
+  type SavedQueryRef,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 export function useStarQuery() {
@@ -15,11 +17,18 @@ export function useStarQuery() {
   const invalidateSavedQuery = useInvalidateSavedQuery();
 
   const starQuery = useCallback(
-    async (id: number, starred: boolean) => {
+    async ({queryId, queryType}: SavedQueryRef, starred: boolean) => {
       await api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/starred/', {
-          path: {organizationIdOrSlug: organization.slug, id},
-        }),
+        queryType === SavedQueryType.EXPLORE
+          ? getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/starred/', {
+              path: {organizationIdOrSlug: organization.slug, id: String(queryId)},
+            })
+          : getApiUrl(
+              '/organizations/$organizationIdOrSlug/discover/saved/$id/starred/',
+              {
+                path: {organizationIdOrSlug: organization.slug, id: String(queryId)},
+              }
+            ),
         {
           method: 'POST',
           data: {

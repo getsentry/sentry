@@ -39,6 +39,7 @@ export const seerProjectSettingsSchema = z.object({
     return isPreferredAgentProvider(provider);
   }),
   stoppingPoint: z.enum(['off', 'root_cause', 'solution', 'code_changes', 'open_pr']),
+  prIteration: z.boolean(),
 });
 
 export function getSeerProjectSettingsQueryOptions({
@@ -82,6 +83,18 @@ export function getInfiniteSeerProjectsSettingsQueryOptions({
   );
 }
 
+/**
+ * Mutation key for saving one project's settings. Leave out `projectSlug` to
+ * match a save for any project in the organization, e.g. with `useIsMutating`.
+ */
+export const getSeerProjectSettingsMutationKey = (
+  orgSlug: string,
+  projectSlug?: string
+) =>
+  projectSlug === undefined
+    ? (['seer-project-settings', orgSlug] as const)
+    : (['seer-project-settings', orgSlug, projectSlug] as const);
+
 export function getMutateSeerProjectSettingsOptions({
   organization,
   project,
@@ -97,6 +110,7 @@ export function getMutateSeerProjectSettingsOptions({
   const [url] = queryKey;
 
   return mutationOptions({
+    mutationKey: getSeerProjectSettingsMutationKey(organization.slug, project.slug),
     mutationFn: (data: SeerProjectSettingUpdatePayload) => {
       const {stoppingPoint, agentOption, ...rest} = data;
 
@@ -158,6 +172,9 @@ export function getMutateSeerProjectSettingsOptions({
       if (data.autoCreatePr !== undefined) {
         jsonUpdates.autoCreatePr = data.autoCreatePr;
       }
+      if (data.prIteration !== undefined) {
+        jsonUpdates.prIteration = data.prIteration;
+      }
 
       queryClient.setQueryData(
         queryKey,
@@ -211,6 +228,13 @@ export function getMutateSeerProjectSettingsOptions({
   });
 }
 
+/**
+ * What a bulk save sends: the new settings and which projects to apply them to.
+ */
+export type SeerBulkEditVariables = SeerBulkProjectSettingUpdatePayload & {
+  selectedIds: ListItemCheckboxState['selectedIds'];
+};
+
 export function getMutateSeerProjectsSettingsOptions({
   organization,
   projectsById,
@@ -240,11 +264,7 @@ export function getMutateSeerProjectsSettingsOptions({
   };
 
   return mutationOptions({
-    mutationFn: (
-      data: SeerBulkProjectSettingUpdatePayload & {
-        selectedIds: ListItemCheckboxState['selectedIds'];
-      }
-    ) => {
+    mutationFn: (data: SeerBulkEditVariables) => {
       const {stoppingPoint, agentOption, query, selectedIds, ...rest} = data;
 
       const agentObj = agentOption
@@ -293,6 +313,9 @@ export function getMutateSeerProjectsSettingsOptions({
           jsonUpdates.stoppingPoint = data.stoppingPoint;
           jsonUpdates.automationTuning = 'medium';
         }
+      }
+      if (data.prIteration !== undefined) {
+        jsonUpdates.prIteration = data.prIteration;
       }
 
       const shouldUpdate = (item: SeerProjectSettingResponse) =>

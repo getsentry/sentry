@@ -92,11 +92,11 @@ SAMPLED_TASKS = {
     "sentry.monitors.tasks.clock_pulse": 1.0,
     # The scheduler's decision propagates to every per-org run, and each run
     # fans out into many snuba queries. Keep both rates equal.
-    "sentry.dynamic_sampling.per_org.run_calculations_per_org": 0.1,
-    "sentry.dynamic_sampling.per_org.schedule_per_org_calculations": 0.1,
+    "sentry.dynamic_sampling.per_org.run_calculations_per_org": 0.001,
+    "sentry.dynamic_sampling.per_org.schedule_per_org_calculations": 0.001,
     "sentry.tasks.autofix.configure_seer_for_existing_org": 1.0,
     "sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks": 1.0,
-    "sentry.workflow_engine.tasks.process_workflows_event": 0.00006,
+    "sentry.workflow_engine.tasks.process_workflows_event": 0.00003,
 }
 
 SAMPLED_ROUTES = {
@@ -312,8 +312,6 @@ def before_send_log(log: Log, _: Hint) -> Log | None:
 
 
 class Dsns(NamedTuple):
-    sentry4sentry: str | None
-    sentry_saas: str | None
     backend: str | None
 
 
@@ -334,12 +332,15 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
         transport_http2=options.get("sdk_http2_experiment.enabled"),
     )
 
+    # Remove legacy keys to avoid cross-deploy problems.
+    sdk_options.pop("dsn", None)  # type: ignore[typeddict-item]
+    sdk_options.pop("relay_dsn", None)  # type: ignore[typeddict-item]
+    sdk_options.pop("sentry_mirror_dsn", None)  # type: ignore[typeddict-item]
+
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
-    dsns = Dsns(
-        sentry4sentry=sdk_options.pop("dsn", None),
-        sentry_saas=sdk_options.pop("relay_dsn", None),
-        backend=sdk_options.pop("sentry_mirror_dsn", None),
-    )
+    backend_dsn = sdk_options.pop("backend_dsn", None)
+
+    dsns = Dsns(backend=backend_dsn)
 
     return sdk_options, dsns
 
@@ -414,7 +415,7 @@ def configure_sdk():
 
     warnings.warn(
         "Sentry SDK not initialized: no DSN available. "
-        "Set `sentry_mirror_dsn` in SENTRY_SDK_CONFIG or ensure an internal project key exists."
+        "Set `backend_dsn` in SENTRY_SDK_CONFIG or ensure an internal project key exists."
     )
 
 

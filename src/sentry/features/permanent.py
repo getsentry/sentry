@@ -52,8 +52,6 @@ def register_permanent_features(manager: FeatureManager) -> None:
         "organizations:dashboards-import": FlagpoleFeature(default=False, api_expose=True),
         # Enable various explore related dev features, may be used by internal branches for testing.
         "organizations:explore-dev-features": FlagpoleFeature(default=False, api_expose=True),
-        # Enable the rendering of @sentry/toolbar inside the sentry app. See `useInitSentryToolbar()`
-        "organizations:init-sentry-toolbar": FlagpoleFeature(default=False, api_expose=True),
         # Opt orgs in to logging workflow evaluations (bypasses sample rate when enabled).
         "organizations:workflow-engine-log-evaluations": FlagpoleFeature(default=False),
         # Enable anomaly detection alerts

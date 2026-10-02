@@ -261,7 +261,9 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                     )
 
                 elif key == "scope":
-                    queryset = queryset.filter(role__in=[r.id for r in roles.with_any_scope(value)])
+                    queryset = queryset.filter(
+                        role__in=[r.id for r in organization.get_roles().with_any_scope(value)]
+                    )
 
                 elif key == "role":
                     queryset = queryset.filter(role__in=value)

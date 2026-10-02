@@ -23,14 +23,12 @@ import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
 import {toArray} from 'sentry/utils/array/toArray';
+import {getMonitorRefetchInterval, getNextCheckInEnv} from 'sentry/utils/monitor/cron';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  getMonitorRefetchInterval,
-  getNextCheckInEnv,
-} from 'sentry/views/alerts/rules/crons/utils';
-import {
   DisableDetectorAction,
+  DuplicateDetectorAction,
   EditDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
@@ -182,6 +180,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                     onTimezoneSelected={setTimezoneOverride}
                   />
                   <DisableDetectorAction detector={detector} />
+                  <DuplicateDetectorAction detector={detector} />
                   <EditDetectorAction detector={detector} />
                 </Flex>
               </Flex>

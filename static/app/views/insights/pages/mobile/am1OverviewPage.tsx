@@ -1,4 +1,3 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import Feature from 'sentry/components/acl/feature';
@@ -87,7 +86,6 @@ interface Am1MobileOverviewPageProps {
 export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPageProps) {
   useOverviewPageTrackPageload();
 
-  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const {setPageDanger} = usePageAlert();
@@ -255,7 +253,6 @@ export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPa
                       projects={projects}
                       columnTitles={columnTitles}
                       setError={setPageDanger}
-                      theme={theme}
                       {...sharedProps}
                     />
                   </TeamKeyTransactionManager.Provider>

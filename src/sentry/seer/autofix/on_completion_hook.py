@@ -691,15 +691,18 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         elif current_step == AutofixStep.SOLUTION:
             webhook_action_type = SeerActionType.SOLUTION_COMPLETED
         elif current_step == AutofixStep.CODE_CHANGES:
-            if state.repo_pr_states:
-                # When the current step is code changes and there are pr states,
-                # then we are actually in the PR created step.
-                #
+            pull_requests = format_pull_requests_payload(state)
+            if state.repo_pr_states and not pull_requests:
+                # Seer adds one entry per repository before asking the provider to open
+                # a PR. If every request fails, the entries remain but there is no PR.
+                return
+
+            if pull_requests:
                 # One caveat here is that re-running code changes step isn't
                 # handled but the expectation is that we only create PRs once
                 # per seer run.
                 webhook_action_type = SeerActionType.PR_CREATED
-                webhook_payload["pull_requests"] = format_pull_requests_payload(state)
+                webhook_payload["pull_requests"] = pull_requests
                 is_pr_created = True
                 record_autofix_event(
                     AiAutofixPrCreatedCompletedEvent(
