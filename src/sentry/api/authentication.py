@@ -27,7 +27,7 @@ from sentry_relay.exceptions import UnpackError
 
 from sentry import features, options
 from sentry.auth.services.auth import AuthenticatedToken
-from sentry.auth.superuser import superuser_context_access
+from sentry.auth.superuser import resolve_superuser_access
 from sentry.auth.system import SystemToken, is_internal_ip
 from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, compare_signature
@@ -661,7 +661,7 @@ class AgentTokenAuthentication(StandardAuthentication):
             fail("no_user_principal", org_id=auth_token.organization_id)
 
         # The delegating user must still be valid even though they are not the request user.
-        if auth_token.superuser_context is not None:
+        if auth_token.superuser_access is not None:
             # Non-members do not necessarily receive this cell's user-cache invalidations.
             users = user_service.get_many(filter={"user_ids": [user_id]})
             user = users[0] if users else None
@@ -682,9 +682,9 @@ class AgentTokenAuthentication(StandardAuthentication):
         )
         if org_context is None:
             fail("org_context_missing", user_id=user_id, org_id=auth_token.organization_id)
-        if auth_token.superuser_context is not None:
-            if superuser_context_access(auth_token.superuser_context, user, org_context) is None:
-                fail("superuser_context_invalid", user_id=user_id)
+        if auth_token.superuser_access is not None:
+            if resolve_superuser_access(auth_token.superuser_access, user, org_context) is None:
+                fail("superuser_access_invalid", user_id=user_id)
         elif org_context.member is None:
             fail("org_membership_missing", user_id=user_id, org_id=auth_token.organization_id)
         if not features.has(
@@ -960,7 +960,7 @@ class ViewerContextAuthentication(BaseAuthentication):
             )
             return None
 
-        if vc.superuser_context is not None:
+        if vc.superuser_access is not None:
             users = user_service.get_many(filter={"user_ids": [vc.user_id]})
             user = users[0] if users else None
         else:
@@ -992,7 +992,7 @@ class ViewerContextAuthentication(BaseAuthentication):
         # avoid requiring browser-session SSO state on service callbacks.
         setattr(request, "user_from_viewer_context", True)
 
-        if vc.superuser_context is not None:
+        if vc.superuser_access is not None:
             org_context = (
                 organization_service.get_organization_by_id(
                     id=vc.organization_id,
@@ -1004,19 +1004,19 @@ class ViewerContextAuthentication(BaseAuthentication):
                 else None
             )
             delegated = (
-                superuser_context_access(vc.superuser_context, user, org_context)
+                resolve_superuser_access(vc.superuser_access, user, org_context)
                 if org_context is not None
                 else None
             )
             if delegated is None:
-                raise AuthenticationFailed("Invalid superuser context")
+                raise AuthenticationFailed("Invalid superuser access")
             scopes, _ = delegated
             credential = AuthenticatedToken(
                 kind="viewer_context",
                 user_id=user.id,
                 organization_id=vc.organization_id,
                 scopes=sorted(scopes),
-                superuser_context=vc.superuser_context,
+                superuser_access=vc.superuser_access,
             )
             # Org-bound access must not enable global staff/superuser bypasses.
             user = user.copy(

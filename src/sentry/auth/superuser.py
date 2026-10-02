@@ -31,11 +31,11 @@ from rest_framework.request import Request
 from sentry import options
 from sentry.api.exceptions import DataSecrecyError, SentryAPIException
 from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
-from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
+from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState, SuperuserAccess
 from sentry.auth.system import is_system_auth
 from sentry.data_secrecy.logic import should_allow_superuser_access
 from sentry.models.organization import Organization
-from sentry.organizations.services.organization import RpcUserOrganizationContext
+from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.types.request import _HttpRequestWithUser, _RequestWithUser
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -581,13 +581,14 @@ class Superuser(ElevatedMode):
             response.delete_cookie(COOKIE_NAME)
 
 
-SUPERUSER_CONTEXT_SALT = "sentry.viewer-context.superuser"
-SUPERUSER_CONTEXT_TTL = timedelta(minutes=5)
+SUPERUSER_ACCESS_SALT = "sentry.viewer-context.superuser"
+SUPERUSER_ACCESS_TTL = timedelta(minutes=5)
 
 
-def create_superuser_context(
-    request: HttpRequest | Request, organization_context: Organization | RpcUserOrganizationContext
-) -> str | None:
+def create_superuser_access(
+    request: HttpRequest | Request,
+    organization_context: Organization | RpcOrganization | RpcUserOrganizationContext,
+) -> SuperuserAccess | None:
     """Attest to approved read access without exporting browser session credentials."""
     if getattr(request, "auth", None) is not None or not request.user.is_superuser:
         return None
@@ -603,32 +604,33 @@ def create_superuser_context(
     if data is None or not should_allow_superuser_access(organization_context):
         return None
     now = django_timezone.now()
-    expires = min(data["exp"], data["idl"], now + SUPERUSER_CONTEXT_TTL)
+    expires = min(data["exp"], data["idl"], now + SUPERUSER_ACCESS_TTL)
     if organization.id != su.org_id:
         expires = min(expires, data["exp"] - MAX_AGE + MAX_AGE_PRIVILEGED_ORG_ACCESS)
     if expires <= now:
         return None
-    return signing.dumps(
-        {"uid": request.user.id, "org": organization.id, "exp": int(expires.timestamp())},
-        salt=SUPERUSER_CONTEXT_SALT,
-    )
+    expires_at = int(expires.timestamp())
+    value = f"{request.user.id}:{organization.id}:{expires_at}"
+    return {
+        "expires_at": expires_at,
+        "signature": signing.Signer(salt=SUPERUSER_ACCESS_SALT).signature(value),
+    }
 
 
-def superuser_context_access(
-    proof: str, user: RpcUser, org_context: RpcUserOrganizationContext
+def resolve_superuser_access(
+    proof: SuperuserAccess, user: RpcUser, org_context: RpcUserOrganizationContext
 ) -> tuple[set[str], datetime] | None:
-    """Validate the original Sentry attestation and current user/customer policy.
-
-    The nested signature uses Sentry's secret, not a service-shared VC signing key.
-    Re-signing a ViewerContext therefore cannot renew or widen its elevation.
-    """
+    """Validate the Sentry signature, expiry, and current user/customer policy."""
     if not user.is_active or not user.is_superuser or user.is_suspended:
         return None
     try:
-        data = signing.loads(proof, salt=SUPERUSER_CONTEXT_SALT, max_age=SUPERUSER_CONTEXT_TTL)
-        if data["uid"] != user.id or data["org"] != org_context.organization.id:
+        expires_at = proof["expires_at"]
+        signature = proof["signature"]
+        if type(expires_at) is not int or not isinstance(signature, str):
             return None
-        expires = datetime.fromtimestamp(data["exp"], timezone.utc)
+        value = f"{user.id}:{org_context.organization.id}:{expires_at}"
+        signing.Signer(salt=SUPERUSER_ACCESS_SALT).unsign(f"{value}:{signature}")
+        expires = datetime.fromtimestamp(expires_at, timezone.utc)
         if expires <= django_timezone.now():
             return None
         scopes = (
@@ -637,6 +639,6 @@ def superuser_context_access(
             )
             & settings.SENTRY_READONLY_SCOPES
         )
-    except (signing.BadSignature, KeyError, TypeError, ValueError, DataSecrecyError):
+    except (signing.BadSignature, KeyError, TypeError, ValueError, OverflowError, DataSecrecyError):
         return None
     return scopes, expires
