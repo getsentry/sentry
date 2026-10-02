@@ -44,6 +44,7 @@ import {
   PRIMARY_HEADER_HEIGHT,
 } from 'sentry/views/navigation/constants';
 import {getBlockChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
+import {AgentWriteApprovalBlock} from 'sentry/views/seerExplorer/components/agentWriteApprovalBlock';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import {ChatPromptMessage} from 'sentry/views/seerExplorer/components/chat/chatPrompt';
@@ -424,8 +425,13 @@ export function SeerExplorerContent({
     !readOnly && isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches;
   const questionToShow = !readOnly && isQuestionPending ? currentQuestion : undefined;
   const reauthToShow = !readOnly && showReauth ? reauthData : null;
+  // Shown read-only too, so a viewer can see the run is waiting on the owner's approval.
+  const agentWriteApprovalToShow = isAgentWriteApprovalPending ? pendingInput : null;
   const showsPendingInputBlock =
-    showFileApprovalBlock || !!questionToShow || !!reauthToShow;
+    showFileApprovalBlock ||
+    !!questionToShow ||
+    !!reauthToShow ||
+    !!agentWriteApprovalToShow;
 
   const requestErrorAlert = requestError ? (
     <Container padding="0 xl">
@@ -781,7 +787,6 @@ export function SeerExplorerContent({
                 }
                 pendingInput={pendingInput}
                 readOnly={readOnly}
-                respondToUserInput={respondToUserInput}
                 showThinking={showThinking}
               />
               {chatPrompt ? <ChatPromptMessage text={chatPrompt.text} /> : null}
@@ -801,6 +806,14 @@ export function SeerExplorerContent({
                   onSelectOption={handleQuestionSelectOption}
                   questionIndex={questionIndex}
                   selectedOption={selectedOption}
+                />
+              )}
+              {agentWriteApprovalToShow && (
+                <AgentWriteApprovalBlock
+                  key={agentWriteApprovalToShow.id}
+                  pendingInput={agentWriteApprovalToShow}
+                  readOnly={readOnly}
+                  respondToUserInput={respondToUserInput}
                 />
               )}
               {reauthToShow && (
@@ -893,7 +906,6 @@ interface SeerExplorerTranscriptProps {
   interactionPending: boolean;
   pendingInput: PendingUserInput | null;
   readOnly: boolean;
-  respondToUserInput: (inputId: string, responseData?: Record<string, unknown>) => void;
   runId: SeerExplorerRunId | null;
   showThinking: boolean;
 }
@@ -909,7 +921,6 @@ const SeerExplorerTranscript = memo(function SeerExplorerTranscript({
   interactionPending,
   pendingInput,
   readOnly,
-  respondToUserInput,
   runId,
   showThinking,
 }: SeerExplorerTranscriptProps) {
@@ -942,7 +953,6 @@ const SeerExplorerTranscript = memo(function SeerExplorerTranscript({
         interactionPending={interactionPending}
         pendingInput={pendingInput}
         readOnly={readOnly}
-        respondToUserInput={respondToUserInput}
         showThinking={showThinking}
       />
     );
