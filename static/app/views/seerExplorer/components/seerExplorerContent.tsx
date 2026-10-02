@@ -44,8 +44,6 @@ import {
   PRIMARY_HEADER_HEIGHT,
 } from 'sentry/views/navigation/constants';
 import {getBlockChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
-import {AgentWriteApprovalBlock} from 'sentry/views/seerExplorer/components/agentWriteApprovalBlock';
-import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import {ChatPromptMessage} from 'sentry/views/seerExplorer/components/chat/chatPrompt';
 import {
@@ -55,10 +53,12 @@ import {
 import {findLatestTodos} from 'sentry/views/seerExplorer/components/chat/toolUse';
 import {EmptyState} from 'sentry/views/seerExplorer/components/emptyState';
 import {useExplorerMenu} from 'sentry/views/seerExplorer/components/explorerMenu';
-import {FileChangeApprovalBlock} from 'sentry/views/seerExplorer/components/fileChangeApprovalBlock';
 import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
+import {
+  isReauthEnabled,
+  PendingUserInputDock,
+} from 'sentry/views/seerExplorer/components/pendingUserInputDock';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
-import {ReauthMonitoringProviderBlock} from 'sentry/views/seerExplorer/components/reauthMonitoringProviderBlock';
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
 import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
@@ -76,7 +76,6 @@ import type {
 import {
   getExplorerFeedbackOptions,
   getExplorerUrl,
-  getRelativeExplorerUrl,
   useCopySessionDataToClipboard,
   useSeerExplorerDeepLink,
   useSeerExplorerResumeDeepLink,
@@ -384,6 +383,15 @@ export function SeerExplorerContent({
   );
 
   // - Pending user input (file approval + questions) -------------------------
+  // The prompt itself renders in `PendingUserInputDock`; the composer carries the question and
+  // diff controls.
+  const pendingUserInputState = usePendingUserInput({
+    isAwaitingUserInput,
+    pendingInput,
+    respondToUserInput,
+    scrollContainerRef,
+    userScrolledUpRef,
+  });
   const {
     isFileApprovalPending,
     fileApprovalIndex,
@@ -394,45 +402,17 @@ export function SeerExplorerContent({
     questionIndex,
     totalQuestions,
     currentQuestion,
-    selectedOption,
-    isOtherSelected,
-    customText,
     canSubmitQuestion,
     handleQuestionNext,
     handleQuestionBack,
-    handleQuestionSelectOption,
     handleQuestionMoveUp,
     handleQuestionMoveDown,
-    handleQuestionCustomTextChange,
     isReauthPending,
     reauthData,
     handleReauthComplete,
-  } = usePendingUserInput({
-    isAwaitingUserInput,
-    pendingInput,
-    respondToUserInput,
-    scrollContainerRef,
-    userScrolledUpRef,
-  });
+  } = pendingUserInputState;
 
-  const showReauth =
-    isReauthPending &&
-    !!organization?.features.includes('seer-infra-telemetry') &&
-    !!organization?.features.includes('seer-infra-telemetry-user-level-auth');
-
-  // Pending-input blocks are pinned between the transcript and the composer, outside the
-  // scroll area, so a run waiting on the user never has its prompt scrolled out of view.
-  const showFileApprovalBlock =
-    !readOnly && isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches;
-  const questionToShow = !readOnly && isQuestionPending ? currentQuestion : undefined;
-  const reauthToShow = !readOnly && showReauth ? reauthData : null;
-  // Shown read-only too, so a viewer can see the run is waiting on the owner's approval.
-  const agentWriteApprovalToShow = isAgentWriteApprovalPending ? pendingInput : null;
-  const showsPendingInputBlock =
-    showFileApprovalBlock ||
-    !!questionToShow ||
-    !!reauthToShow ||
-    !!agentWriteApprovalToShow;
+  const showReauth = isReauthPending && isReauthEnabled(organization);
 
   const requestErrorAlert = requestError ? (
     <Container padding="0 xl">
@@ -816,52 +796,15 @@ export function SeerExplorerContent({
           </Container>
         )}
         {requestErrorAlert}
-        {!showEmptyState && showsPendingInputBlock && (
-          <Stack
-            data-test-id="seer-explorer-pending-input"
-            flexShrink={0}
-            maxHeight="50%"
-            overflowY="auto"
-            gap="md"
-            paddingTop="md"
-          >
-            {showFileApprovalBlock && (
-              <FileChangeApprovalBlock
-                currentIndex={fileApprovalIndex}
-                pendingInput={pendingInput}
-              />
-            )}
-            {questionToShow && (
-              <AskUserQuestionBlock
-                currentQuestion={questionToShow}
-                customText={customText}
-                isOtherSelected={isOtherSelected}
-                onCustomTextChange={handleQuestionCustomTextChange}
-                onSelectOption={handleQuestionSelectOption}
-                questionIndex={questionIndex}
-                selectedOption={selectedOption}
-              />
-            )}
-            {agentWriteApprovalToShow && (
-              <AgentWriteApprovalBlock
-                key={agentWriteApprovalToShow.id}
-                pendingInput={agentWriteApprovalToShow}
-                readOnly={readOnly}
-                respondToUserInput={respondToUserInput}
-              />
-            )}
-            {reauthToShow && (
-              <ReauthMonitoringProviderBlock
-                data={reauthToShow}
-                onComplete={handleReauthComplete}
-                returnUrl={
-                  runId === null
-                    ? undefined
-                    : getRelativeExplorerUrl(runId, {resume: true})
-                }
-              />
-            )}
-          </Stack>
+        {!showEmptyState && (
+          <PendingUserInputDock
+            isAwaitingUserInput={isAwaitingUserInput}
+            pendingInput={pendingInput}
+            pendingUserInputState={pendingUserInputState}
+            readOnly={readOnly}
+            respondToUserInput={respondToUserInput}
+            runId={runId}
+          />
         )}
         <InputSection
           blocks={blocks}
