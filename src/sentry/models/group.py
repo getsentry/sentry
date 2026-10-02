@@ -146,7 +146,11 @@ def get_group_with_redirect(
         # Validate that the numeric ID doesn't exceed the max value for the
         # bounded field, otherwise the ORM will raise an AssertionError.
         max_id = Group._meta.get_field("id").MAX_VALUE
-        if int(id_or_qualified_short_id) > max_id:
+        try:
+            numeric_id = int(id_or_qualified_short_id)
+        except ValueError:
+            raise Group.DoesNotExist() from None
+        if numeric_id > max_id:
             raise Group.DoesNotExist()
         params = {"id": id_or_qualified_short_id}
 
@@ -789,7 +793,6 @@ class GroupManager(BaseManager["Group"]):
                     group=group,
                     new_status=GroupStatus.RESOLVED,
                     resolution_time=activity.datetime,
-                    resolution_activity=activity,
                 )
             elif is_status_unresolved and should_reopen_open_period[group.id]:
                 update_group_open_period(

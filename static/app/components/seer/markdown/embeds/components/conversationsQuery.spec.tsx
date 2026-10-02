@@ -168,9 +168,9 @@ describe('conversationsQuery embed', () => {
       '/organizations/org-slug/explore/agents/conversations/8f0e1f6a-1f2b-4d3c-9e5a-0b1c2d3e4f5a/'
     );
     const params = searchParams(href);
-    // The row's own timestamps, padded the same hour the detail view expects.
-    expect(params.get('start')).toBe('2023-11-14T21:13:20.000Z');
-    expect(params.get('end')).toBe('2023-11-14T23:15:20.000Z');
+    // The row's own timestamps; the detail view pads them.
+    expect(params.get('start')).toBe('2023-11-14T22:13:20.000Z');
+    expect(params.get('end')).toBe('2023-11-14T22:15:20.000Z');
     expect(params.getAll('project')).toEqual(['1']);
     expect(params.get('referrer')).toBe('seer-conversations-query-embed');
   });

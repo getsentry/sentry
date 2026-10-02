@@ -6,7 +6,6 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
 import {
@@ -19,9 +18,7 @@ jest.mock('sentry/views/dashboards/utils/widgetQueryQueue', () => ({
 }));
 
 describe('useTransactionsSeriesQuery', () => {
-  const organization = OrganizationFixture({
-    features: ['on-demand-metrics-extraction', 'on-demand-metrics-ui-widgets'],
-  });
+  const organization = OrganizationFixture();
   const pageFilters = PageFiltersFixture();
 
   beforeEach(() => {
@@ -67,62 +64,47 @@ describe('useTransactionsSeriesQuery', () => {
         expect.objectContaining({
           query: expect.objectContaining({
             yAxis: ['count()'],
-            dataset: DiscoverDatasets.TRANSACTIONS,
+            dataset: DiscoverDatasets.SPANS,
           }),
         })
       );
     });
   });
 
-  it('makes a request to the metrics enhanced dataset with the correct mep state', async () => {
+  it('excludes the Other series for grouped widgets with multiple aggregates', async () => {
     const widget = WidgetFixture({
       displayType: DisplayType.LINE,
       queries: [
         {
-          name: 'test',
-          fields: ['count()'],
-          aggregates: ['count()'],
-          columns: [],
+          name: '',
+          fields: [],
+          aggregates: ['count()', 'p95()'],
+          columns: ['transaction'],
           conditions: '',
           orderby: '',
         },
       ],
     });
-
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: {
-        data: [],
-      },
+      body: {},
     });
 
     renderHookWithProviders(() =>
-      useTransactionsSeriesQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-        mepSetting: MEPState.AUTO,
-      })
+      useTransactionsSeriesQuery({widget, organization, pageFilters, enabled: true})
     );
 
-    await waitFor(() => {
+    await waitFor(() =>
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events-stats/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            dataset: DiscoverDatasets.METRICS_ENHANCED,
-          }),
-        })
-      );
-    });
+        expect.objectContaining({query: expect.objectContaining({excludeOther: '1'})})
+      )
+    );
   });
 });
 
 describe('useTransactionsTableQuery', () => {
-  const organization = OrganizationFixture({
-    features: ['on-demand-metrics-extraction', 'on-demand-metrics-ui-widgets'],
-  });
+  const organization = OrganizationFixture();
   const pageFilters = PageFiltersFixture();
 
   beforeEach(() => {
@@ -167,51 +149,7 @@ describe('useTransactionsTableQuery', () => {
         '/organizations/org-slug/events/',
         expect.objectContaining({
           query: expect.objectContaining({
-            dataset: 'transactions',
-          }),
-        })
-      );
-    });
-  });
-
-  it('makes a request to the metrics enhanced dataset with the correct mep state', async () => {
-    const widget = WidgetFixture({
-      displayType: DisplayType.TABLE,
-      queries: [
-        {
-          name: 'test',
-          fields: ['transaction', 'count()'],
-          aggregates: ['count()'],
-          columns: ['transaction'],
-          conditions: '',
-          orderby: '',
-        },
-      ],
-    });
-
-    const mockRequest = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-      },
-    });
-
-    renderHookWithProviders(() =>
-      useTransactionsTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-        mepSetting: MEPState.AUTO,
-      })
-    );
-
-    await waitFor(() => {
-      expect(mockRequest).toHaveBeenCalledWith(
-        '/organizations/org-slug/events/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            dataset: DiscoverDatasets.METRICS_ENHANCED,
+            dataset: 'spans',
           }),
         })
       );

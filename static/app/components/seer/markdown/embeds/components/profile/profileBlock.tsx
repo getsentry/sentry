@@ -223,23 +223,6 @@ export default function ProfileBlock({projectSlug, profileId}: EmbedOutput<'prof
 
   return (
     <SeerEmbedBlock
-      badge={
-        flamegraph ? (
-          <SegmentedControl
-            aria-label={t('Profile view')}
-            size="xs"
-            value={viewMode}
-            onChange={setViewMode}
-          >
-            <SegmentedControl.Item key="aggregated">
-              {t('Left-heavy')}
-            </SegmentedControl.Item>
-            <SegmentedControl.Item key="timeline">
-              {t('Time-ordered')}
-            </SegmentedControl.Item>
-          </SegmentedControl>
-        ) : null
-      }
       gap="lg"
       // `target` rather than the inline link's plain flamechart route: it
       // carries the view mode the reader picked above, so the full page opens
@@ -305,27 +288,44 @@ export default function ProfileBlock({projectSlug, profileId}: EmbedOutput<'prof
           ) : null}
 
           {flamegraph ? (
-            <ErrorBoundary mini>
-              <FlamegraphThemeProvider>
-                <Container
-                  data-test-id="seer-profile-flamechart"
-                  height={PREVIEW_HEIGHT}
-                  position="relative"
+            <Stack gap="sm">
+              <Flex justify="end">
+                <SegmentedControl
+                  aria-label={t('Profile view')}
+                  size="xs"
+                  value={viewMode}
+                  onChange={setViewMode}
                 >
-                  <FlamegraphPreview
-                    anchorAtRoot
-                    flamegraph={flamegraph}
-                    relativeStartTimestamp={0}
-                    relativeStopTimestamp={formatTo(
-                      flamegraph.configSpace.width,
-                      flamegraph.unit,
-                      'second'
-                    )}
-                    updateFlamegraphView={setCanvasView}
-                  />
-                </Container>
-              </FlamegraphThemeProvider>
-            </ErrorBoundary>
+                  <SegmentedControl.Item key="aggregated">
+                    {t('Left-heavy')}
+                  </SegmentedControl.Item>
+                  <SegmentedControl.Item key="timeline">
+                    {t('Time-ordered')}
+                  </SegmentedControl.Item>
+                </SegmentedControl>
+              </Flex>
+              <ErrorBoundary mini>
+                <FlamegraphThemeProvider>
+                  <Container
+                    data-test-id="seer-profile-flamechart"
+                    height={PREVIEW_HEIGHT}
+                    position="relative"
+                  >
+                    <FlamegraphPreview
+                      anchorAtRoot
+                      flamegraph={flamegraph}
+                      relativeStartTimestamp={0}
+                      relativeStopTimestamp={formatTo(
+                        flamegraph.configSpace.width,
+                        flamegraph.unit,
+                        'second'
+                      )}
+                      updateFlamegraphView={setCanvasView}
+                    />
+                  </Container>
+                </FlamegraphThemeProvider>
+              </ErrorBoundary>
+            </Stack>
           ) : null}
         </Stack>
       )}

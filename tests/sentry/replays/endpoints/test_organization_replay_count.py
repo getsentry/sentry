@@ -297,6 +297,12 @@ class OrganizationReplayCountEndpointTest(
         assert response.data == expected
 
     def test_simple_events(self) -> None:
+        self._test_simple_events(Dataset.Events.value)
+
+    def test_simple_errors(self) -> None:
+        self._test_simple_events("errors")
+
+    def _test_simple_events(self, data_source: str) -> None:
         replay1_id = uuid.uuid4().hex
         replay2_id = uuid.uuid4().hex
 
@@ -335,7 +341,7 @@ class OrganizationReplayCountEndpointTest(
 
         query = {
             "query": f"issue.id:[{event_a.group.id}, {event_b.group.id}]",
-            "data_source": Dataset.Events.value,
+            "data_source": data_source,
         }
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")

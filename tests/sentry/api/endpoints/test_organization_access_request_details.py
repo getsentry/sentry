@@ -3,6 +3,7 @@ from django.urls import reverse
 from sentry.models.organizationaccessrequest import OrganizationAccessRequest
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers import Feature
 
 
 class GetOrganizationAccessRequestTest(APITestCase):
@@ -102,6 +103,38 @@ class UpdateOrganizationAccessRequestTest(APITestCase):
         assert not OrganizationAccessRequest.objects.filter(id=access_request.id).exists()
 
     def test_team_admin_can_approve(self) -> None:
+        organization = self.create_organization(
+            name="foo",
+            owner=self.user,
+            flags=0,
+        )
+        user = self.create_user("bar@example.com")
+        member = self.create_member(organization=organization, user=user, role="member")
+        team = self.create_team(name="foo", organization=organization)
+        access_request = OrganizationAccessRequest.objects.create(member=member, team=team)
+        admin_user = self.create_user("admin@example.com")
+        self.create_member(
+            organization=organization,
+            user=admin_user,
+            role="member",
+            teams=[team],
+            teamRole="admin",
+        )
+        path = reverse(
+            "sentry-api-0-organization-access-request-details",
+            args=[organization.slug, access_request.id],
+        )
+
+        self.login_as(admin_user)
+        with Feature({"organizations:team-roles": True}):
+            resp = self.client.put(path, data={"isApproved": 1})
+
+        assert resp.status_code == 204
+        assert OrganizationMemberTeam.objects.filter(
+            organizationmember=member, team=team, is_active=True
+        ).exists()
+
+    def test_legacy_org_admin_can_approve(self) -> None:
         self.login_as(user=self.user)
 
         organization = self.create_organization(name="foo", owner=self.user)

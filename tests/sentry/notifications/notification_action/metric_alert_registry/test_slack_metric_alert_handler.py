@@ -6,6 +6,7 @@ from typing import Any
 from unittest import mock
 from unittest.mock import patch
 
+import orjson
 from slack_sdk.web import SlackResponse
 
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
@@ -23,6 +24,8 @@ from sentry.notifications.notification_action.metric_alert_registry import Slack
 from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
     get_detector_serializer,
 )
+from sentry.notifications.notification_action.utils import metric_alert_notification_data_factory
+from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
@@ -87,6 +90,7 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
     def test_send_alert_via_np_sends_to_slack_channel(
         self, mock_slack_client: mock.MagicMock
     ) -> None:
+        self.action.update(data={"notes": "Check <https://example.com/runbook|the runbook>"})
         mock_client_instance = mock_slack_client.return_value
         mock_client_instance.chat_postMessage.return_value = SlackResponse(
             client=mock_client_instance,
@@ -107,9 +111,83 @@ class TestSlackMetricAlertHandlerSendAlert(MetricAlertHandlerBase):
         attachments: list[Any] = call_kwargs["attachments"]
         assert len(attachments) == 1
         blocks: list[Any] = attachments[0]["blocks"]
-        assert len(blocks) >= 1
+        assert len(blocks) == 2
         assert blocks[0]["type"] == "section"
         assert blocks[0]["text"]["type"] == "mrkdwn"
+        assert "123.45" in blocks[0]["text"]["text"]
+        assert blocks[1] == {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": "notes: Check <https://example.com/runbook|the runbook>",
+            },
+        }
+
+    @with_feature("organizations:metric-alert-chartcuterie")
+    @patch("sentry.integrations.slack.utils.notifications.build_metric_alert_chart")
+    @patch("sentry.integrations.slack.utils.notifications.SlackSdkClient")
+    @patch(f"{_HANDLER_PATH}.NotificationService.has_access", return_value=False)
+    def test_send_alert_and_resolution_with_notes_and_chart(
+        self,
+        mock_has_access: mock.MagicMock,
+        mock_slack_client: mock.MagicMock,
+        mock_chart: mock.MagicMock,
+    ) -> None:
+        self.action.update(data={"notes": "Check <https://example.com/runbook|the runbook>"})
+        mock_chart.return_value = "https://example.com/chart.png"
+        client = mock_slack_client.return_value
+        client.chat_postMessage.return_value = {"ok": True, "ts": "123.456"}
+
+        kwargs = self._make_send_alert_kwargs()
+        self.handler.send_alert(**kwargs)
+
+        client.chat_postMessage.assert_called_once()
+        payload = client.chat_postMessage.call_args.kwargs
+        assert payload["channel"] == "channel123"
+        blocks = orjson.loads(payload["attachments"])[0]["blocks"]
+        assert "123.45" in blocks[0]["text"]["text"]
+        expected_notes_and_chart = [
+            {
+                "type": "section",
+                "text": {
+                    "type": "mrkdwn",
+                    "text": "notes: Check <https://example.com/runbook|the runbook>",
+                },
+            },
+            {
+                "type": "image",
+                "image_url": "https://example.com/chart.png",
+                "alt_text": "Metric Alert Chart",
+            },
+        ]
+        assert blocks[1:] == expected_notes_and_chart
+
+        kwargs["metric_issue_context"].new_status = IncidentStatus.CLOSED
+        kwargs["trigger_status"] = TriggerStatus.RESOLVED
+
+        self.handler.send_alert(**kwargs)
+
+        assert client.chat_postMessage.call_count == 2
+        resolved_payload = client.chat_postMessage.call_args.kwargs
+        assert resolved_payload["channel"] == "channel123"
+        assert "Resolved" in resolved_payload["text"]
+        resolved_blocks = orjson.loads(resolved_payload["attachments"])[0]["blocks"]
+        assert resolved_blocks[1:] == expected_notes_and_chart
+
+    @patch("sentry.integrations.slack.utils.notifications.SlackSdkClient")
+    @patch(f"{_HANDLER_PATH}.NotificationService.has_access", return_value=False)
+    def test_send_alert_with_empty_notes(
+        self, mock_has_access: mock.MagicMock, mock_slack_client: mock.MagicMock
+    ) -> None:
+        self.action.update(data={"notes": ""})
+        client = mock_slack_client.return_value
+        client.chat_postMessage.return_value = {"ok": True, "ts": "123.456"}
+
+        self.handler.send_alert(**self._make_send_alert_kwargs())
+
+        client.chat_postMessage.assert_called_once()
+        blocks = orjson.loads(client.chat_postMessage.call_args.kwargs["attachments"])[0]["blocks"]
+        assert len(blocks) == 1
 
     @patch(f"{_HANDLER_PATH}.send_incident_alert_notification")
     @freeze_time("2021-01-01 00:00:00")
@@ -219,6 +297,7 @@ class TestSlackMetricAlertHandlerInvokeRegistry(MetricAlertHandlerBase):
     )
     @freeze_time("2021-01-01 00:00:00")
     def test_invoke_legacy_registry_with_activity(self, mock_send_alert: mock.MagicMock) -> None:
+        self.action.update(data={"notes": "Check the runbook"})
         activity = Activity(
             project=self.project,
             group=self.group,
@@ -260,7 +339,14 @@ class TestSlackMetricAlertHandlerInvokeRegistry(MetricAlertHandlerBase):
             target_display="Channel 123",
             sentry_app_config=None,
             sentry_app_id=None,
+            notes="Check the runbook",
         )
+
+        notification_data = metric_alert_notification_data_factory(
+            IssueNotificationContext(invocation)
+        )
+        assert notification_data.notes == "Check the runbook"
+        assert notification_data.new_status == IncidentStatus.CLOSED.value
 
         self.assert_alert_context(
             alert_context,

@@ -64,6 +64,10 @@ class TestLevelCondition(ConditionTestCase):
         self.dc.comparison.update({"match": MatchType.EQUAL, "level": 30})
         self.dc.save()
 
+        self.dc.comparison.update({"match": MatchType.CONTAINS, "level": 30})
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
         self.dc.comparison.update({"hi": "bye"})
         with pytest.raises(ValidationError):
             self.dc.save()

@@ -1,7 +1,7 @@
 import {Fragment, useContext, useEffect, useRef} from 'react';
 import {useHover, useKeyboard} from '@react-aria/interactions';
 import {useMenuItem} from '@react-aria/menu';
-import {mergeProps} from '@react-aria/utils';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {TreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
 import type {LocationDescriptor} from 'history';
@@ -73,7 +73,7 @@ export interface MenuItemProps extends MenuListItemProps {
   to?: LocationDescriptor;
 }
 
-interface DropdownMenuItemProps {
+interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {
   /**
    * Whether to close the menu when an item has been clicked/selected
    */
@@ -86,15 +86,20 @@ interface DropdownMenuItemProps {
    * Tree state (from @react-stately) inherited from parent menu
    */
   state: TreeState<MenuItemProps>;
+  id?: string;
+  /**
+   * Ref to the inner focusable menu item.
+   */
+  menuItemRef?: React.Ref<HTMLElement>;
   /**
    * Handler that is called when the menu should close after selecting an item
    */
   onClose?: () => void;
-  ref?: React.Ref<HTMLLIElement>;
+  ref?: React.ComponentPropsWithRef<NoInfer<T>>['ref'];
   /**
    * Tag name for item wrapper
    */
-  renderAs?: React.ElementType;
+  renderAs?: T;
 }
 
 /**
@@ -102,16 +107,17 @@ interface DropdownMenuItemProps {
  * Can also be used as a trigger button for a submenu. See:
  * https://react-spectrum.adobe.com/react-aria/useMenu.html
  */
-export function DropdownMenuItem({
+export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   node,
   state,
   closeOnSelect,
   onClose,
-  renderAs = 'li',
+  renderAs,
   ref,
+  menuItemRef,
   ...props
-}: DropdownMenuItemProps) {
-  const innerWrapRef = useRef<HTMLDivElement | null>(null);
+}: DropdownMenuItemProps<T>) {
+  const innerWrapRef = useRef<HTMLElement | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
   const {
@@ -232,7 +238,7 @@ export function DropdownMenuItem({
     keyboardProps,
     makeInnerWrapProps(),
     // oxlint-disable-next-line react/refs
-    {ref: innerWrapRef, 'data-test-id': key}
+    {ref: mergeRefs(menuItemRef, innerWrapRef), 'data-test-id': key}
   );
   const itemLabel = node.rendered ?? label;
 

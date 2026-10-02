@@ -1,8 +1,8 @@
 import moment from 'moment-timezone';
 
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
+import type {Frame} from 'sentry/utils/profiling/frame';
 
-import type {Frame} from './../frame';
 import {Profile} from './profile';
 import type {createSentrySampleProfileFrameIndex} from './utils';
 import {sortProfileSamples} from './utils';

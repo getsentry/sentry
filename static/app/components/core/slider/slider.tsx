@@ -186,6 +186,11 @@ export function Slider({
               {...inputProps}
               name={name}
               id={id ?? inputProps.id}
+              // React Aria references the group, but aria-labelledby cannot follow
+              // the group's aria-labelledby to an external label.
+              aria-labelledby={
+                htmlProps['aria-labelledby'] ?? inputProps['aria-labelledby']
+              }
               aria-invalid={htmlProps['aria-invalid']}
               {...(ariaValueText !== undefined && {'aria-valuetext': ariaValueText})}
             />
