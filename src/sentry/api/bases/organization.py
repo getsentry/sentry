@@ -24,7 +24,7 @@ from sentry.api.helpers.projects import (
 )
 from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
-from sentry.auth.superuser import is_active_superuser
+from sentry.auth.superuser import create_superuser_access, is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
 from sentry.exceptions import InvalidParams
 from sentry.models.apikey import is_api_key_auth
@@ -47,6 +47,7 @@ from sentry.utils.hashlib import hash_values
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import bind_organization_context, set_span_attribute
 from sentry.utils.tracing import set_span_data, start_span
+from sentry.viewer_context import set_viewer_context_superuser
 
 
 class NoProjects(Exception):
@@ -131,7 +132,21 @@ class OrganizationPermission(DemoSafePermission):
                 raise SuperuserRequired(orgSlug=org_slug)
 
         allowed_scopes = set(self.scope_map.get(request.method or "", []))
-        return any(request.access.has_scope(s) for s in allowed_scopes)
+        allowed = any(request.access.has_scope(s) for s in allowed_scopes)
+        if allowed and request.auth is None and request.user.is_superuser:
+            grant = create_superuser_access(request, organization)
+            if grant is not None:
+                org = (
+                    organization.organization
+                    if isinstance(organization, RpcUserOrganizationContext)
+                    else organization
+                )
+                set_viewer_context_superuser(
+                    user_id=request.user.id,
+                    organization_id=org.id,
+                    superuser_access=grant,
+                )
+        return allowed
 
     def is_member_disabled_from_limit(
         self,

@@ -9,6 +9,7 @@ import orjson
 from django.conf import settings
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool, Retry
 
+from sentry.auth.services.auth.model import SuperuserAccess
 from sentry.net.http import connection_from_url
 from sentry.utils import metrics
 from sentry.utils.tracing import trace
@@ -28,7 +29,7 @@ class SeerViewerContext(TypedDict, total=False):
     # Once all call sites are wired up, tighten this to int and ensure callers
     # only set user_id when an authenticated user is present.
     user_id: int | None
-    superuser_context: str | None
+    superuser_access: SuperuserAccess | None
 
 
 logger = logging.getLogger(__name__)
@@ -75,7 +76,7 @@ def _resolve_viewer_context(
     explicit_vc = ViewerContext(
         organization_id=explicit.get("organization_id"),
         user_id=explicit.get("user_id"),
-        superuser_context=explicit.get("superuser_context"),
+        superuser_access=explicit.get("superuser_access"),
     )
 
     if vc is None:
@@ -141,13 +142,13 @@ def _resolve_viewer_context(
             user_id=user_id,
             project_id=None,
             token=None,
-            superuser_context=None,
+            superuser_access=None,
         )
     return replace(
         vc,
         organization_id=org_id,
         user_id=user_id,
-        superuser_context=explicit.get("superuser_context", vc.superuser_context),
+        superuser_access=explicit.get("superuser_access", vc.superuser_access),
     )
 
 

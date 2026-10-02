@@ -104,5 +104,5 @@ def _viewer_context_from_request(request: HttpRequest) -> ViewerContext:
         organization_id=organization_id,
         actor_type=actor_type,
         token=auth,
-        superuser_context=auth.superuser_context if isinstance(auth, AuthenticatedToken) else None,
+        superuser_access=auth.superuser_access if isinstance(auth, AuthenticatedToken) else None,
     )
