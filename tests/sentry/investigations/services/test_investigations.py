@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import threading
+from datetime import UTC, datetime
 from unittest import mock
 from uuid import UUID, uuid4
 
@@ -25,6 +26,7 @@ from sentry.investigations.services.investigations import (
     create_block,
     create_manual_investigation,
     create_template_investigation,
+    default_investigation_title,
     delete_block,
     duplicate_investigation,
     investigation_legacy_source_key,
@@ -39,6 +41,7 @@ from sentry.investigations.services.orchestration import (
 )
 from sentry.seer.models.run import SeerRunType
 from sentry.testutils.cases import TestCase, TransactionTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 TEMPLATE_KWARGS = {
@@ -228,6 +231,65 @@ class BreachedMetricSourceRefTest(TestCase):
                 },
                 accessible_project_ids={self.project.id},
             )
+
+
+def test_default_title_names_the_investigation_type_and_start_time() -> None:
+    started_at = datetime(2026, 10, 2, 9, 5, tzinfo=UTC)
+
+    assert (
+        default_investigation_title(InvestigationSourceType.METRIC_OPEN_PERIOD, started_at)
+        == "Breached metrics investigation - Oct 2, 2026 09:05 UTC"
+    )
+    assert (
+        default_investigation_title(InvestigationSourceType.BREACHED_METRIC, started_at)
+        == "Breached metrics investigation - Oct 2, 2026 09:05 UTC"
+    )
+    assert (
+        default_investigation_title(InvestigationSourceType.MANUAL, started_at)
+        == "Manual investigation - Oct 2, 2026 09:05 UTC"
+    )
+
+
+class DefaultTitleTest(TestCase):
+    @freeze_time("2026-10-02 14:30:00")
+    def test_untitled_agentic_investigation_gets_a_default_title(self) -> None:
+        investigation, _ = create_agentic_manual_investigation(
+            organization=self.organization,
+            user_id=self.user.id,
+            title=None,
+            source={"type": "manual", "prompt": "Investigate latency"},
+            project_ids=[],
+            filters={},
+        )
+
+        assert investigation.title == "Manual investigation - Oct 2, 2026 14:30 UTC"
+
+    @freeze_time("2026-10-02 14:30:00")
+    def test_untitled_template_investigation_gets_a_default_title(self) -> None:
+        source = {
+            "type": InvestigationSourceType.METRIC_OPEN_PERIOD,
+            "ref": {"groupId": "1", "openPeriodId": "2"},
+            "snapshot": {"monitor": {"name": "Checkout errors"}},
+        }
+        resolved = BreachedMetricSource(project_id=self.project.id, dataset="errors", source=source)
+
+        with mock.patch(
+            "sentry.investigations.services.investigations.resolve_investigation_source",
+            return_value=resolved,
+        ):
+            investigation, created = create_template_investigation(
+                organization=self.organization,
+                user_id=self.user.id,
+                template_key="breached_metric",
+                template_version=1,
+                source={"type": "metric_open_period", "ref": source["ref"]},
+                supplied_parameters={},
+                accessible_project_ids={self.project.id},
+            )
+
+        assert created
+        investigation.refresh_from_db()
+        assert investigation.title == "Breached metrics investigation - Oct 2, 2026 14:30 UTC"
 
 
 class SourceTransitionCompatibilityTest(TestCase):

@@ -15,7 +15,10 @@ from sentry.investigations.agent import (
     title_generation_preview,
 )
 from sentry.investigations.models import InvestigationBlockExecutionStatus
-from sentry.investigations.services.investigations import DEFAULT_INVESTIGATION_TITLE
+from sentry.investigations.services.investigations import (
+    DEFAULT_INVESTIGATION_TITLE,
+    default_investigation_title,
+)
 from sentry.investigations.telemetry import (
     record_execution_completed,
     record_investigation_completed,
@@ -1212,6 +1215,46 @@ class InvestigationAgentTest(TestCase):
         assert self.investigation.title_generation_status == "completed"
         record_title_completed.assert_called_once_with(self.investigation)
         record_investigation_completed.assert_called_once_with(self.investigation)
+
+    def test_title_replaces_a_derived_default_title(self) -> None:
+        self.investigation.title = default_investigation_title(
+            self.investigation.source_type, self.investigation.date_added
+        )
+        self.investigation.title_generation_status = "running"
+        self.investigation.save(update_fields=["title", "title_generation_status"])
+        run_state = state(
+            blocks=[
+                MemoryBlock(
+                    id="title",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(role="assistant", content=completion_metadata()),
+                )
+            ]
+        )
+
+        synchronize_title(self.investigation, run_state)
+
+        self.investigation.refresh_from_db()
+        assert self.investigation.title == "Daily error volume spike"
+
+    def test_title_keeps_a_user_chosen_title(self) -> None:
+        self.investigation.title_generation_status = "running"
+        self.investigation.save(update_fields=["title_generation_status"])
+        run_state = state(
+            blocks=[
+                MemoryBlock(
+                    id="title",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(role="assistant", content=completion_metadata()),
+                )
+            ]
+        )
+
+        synchronize_title(self.investigation, run_state)
+
+        self.investigation.refresh_from_db()
+        assert self.investigation.title == "Already titled"
+        assert self.investigation.summary == "Error volume crossed threshold"
 
     @patch("sentry.investigations.telemetry.metrics.distribution")
     @patch("sentry.investigations.telemetry.sentry_sdk.metrics.distribution")
