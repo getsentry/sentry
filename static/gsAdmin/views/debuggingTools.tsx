@@ -40,13 +40,14 @@ function IssueOwnerDebbuging() {
     }
 
     try {
-      const data = await api.requestPromise(
+      const [data] = await api.requestPromise(
         getApiUrl('/organizations/$organizationIdOrSlug/debugging/issue-owners/', {
           path: {organizationIdOrSlug: organizationSlug},
         }),
         {
           method: 'GET',
           query: {projectSlug, stacktracePath},
+          includeAllArgs: true,
         }
       );
       setRuleMatches(data);
