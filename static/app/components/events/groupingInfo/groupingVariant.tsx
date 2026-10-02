@@ -1,10 +1,16 @@
+import {isValidElement} from 'react';
+
 import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {getSpanHash} from 'sentry/components/events/interfaces/performance/utils';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {KeyValueTableDataList} from 'sentry/components/tables/keyValueTable';
+import {StructuredData} from 'sentry/components/structuredEventData';
+import {
+  KeyValueTableCard,
+  KeyValueTableSubject,
+} from 'sentry/components/tables/keyValueTable';
 import {IconCheckmark, IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {
@@ -194,30 +200,38 @@ export function GroupingVariant({
         {title}
       </Flex>
 
-      <KeyValueTableDataList
-        margin
-        data={data.map(([subject, value]) => ({
-          key: subject,
-          subject,
-          subjectNode:
-            subject === t('Hash') ? (
-              <Flex align="center" gap="xs">
-                {subject}
-                <InfoTip
-                  size="xs"
-                  position="top"
-                  title={t('Events with the same hash are grouped together')}
-                />
-              </Flex>
-            ) : subject === t('Client fingerprint values') ? (
-              <Text as="span" wrap="nowrap">
-                {subject}
-              </Text>
-            ) : undefined,
-          value,
+      <KeyValueTableCard
+        variant="label"
+        contentItems={data.map(([subject, value]) => ({
+          item: {
+            key: subject,
+            subject,
+            subjectNode:
+              subject === t('Hash') ? (
+                <KeyValueTableSubject variant="label">
+                  <Flex align="center" gap="xs">
+                    {subject}
+                    <InfoTip
+                      size="xs"
+                      position="top"
+                      title={t('Events with the same hash are grouped together')}
+                    />
+                  </Flex>
+                </KeyValueTableSubject>
+              ) : subject === t('Client fingerprint values') ? (
+                <KeyValueTableSubject variant="label">
+                  <Text as="span" wrap="nowrap">
+                    {subject}
+                  </Text>
+                </KeyValueTableSubject>
+              ) : undefined,
+            value: isValidElement(value) ? (
+              value
+            ) : (
+              <StructuredData withAnnotatedText value={value} maxDefaultDepth={2} />
+            ),
+          },
         }))}
-        isContextData
-        shouldSort={false}
       />
     </Stack>
   );

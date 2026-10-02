@@ -232,7 +232,7 @@ describe('Request entry', () => {
       ).toBeInTheDocument();
     });
 
-    it('should return a KeyValueTableDataList element when inferred Content-Type is x-www-form-urlencoded', () => {
+    it('renders form fields in a Body card when inferred Content-Type is x-www-form-urlencoded', () => {
       const data: EntryRequest['data'] = {
         apiTarget: null,
         query: [],
@@ -261,9 +261,9 @@ describe('Request entry', () => {
         },
       });
 
-      expect(
-        screen.getByTestId('rich-http-content-body-key-value-list')
-      ).toBeInTheDocument();
+      expect(screen.getByText('Body').parentElement).toHaveTextContent(
+        'Bodybar[1 item]foo[1 item]'
+      );
     });
 
     it('should return a ContextData element when inferred Content-Type is application/json', () => {
@@ -421,10 +421,12 @@ describe('Request entry', () => {
         render(<Request event={event} data={event.entries[0]!.data} />);
 
         expect(screen.getByText('query Test { test }')).toBeInTheDocument();
-        expect(screen.getByRole('row', {name: 'operationName Test'})).toBeInTheDocument();
-        expect(
-          screen.getByRole('row', {name: 'variables { foo : bar }'})
-        ).toBeInTheDocument();
+        expect(screen.getByText('operationName').parentElement).toHaveTextContent(
+          'operationNameTest'
+        );
+        expect(screen.getByText('variables').parentElement).toHaveTextContent(
+          'variables{1 item}'
+        );
       });
 
       it('highlights graphql query lines with errors', async () => {

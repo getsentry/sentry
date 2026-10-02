@@ -2,6 +2,7 @@ from typing import cast
 
 import sentry_sdk
 from django.db.models import Q
+from scm.errors import SCMCodedError, UnhandledException
 from scm.providers.cursor_origin.provider import CursorOriginProvider
 from scm.providers.github.provider import GitHubProvider
 from scm.providers.gitlab.provider import GitLabProvider
@@ -115,7 +116,8 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
 
 
 def report_error_to_sentry(e: Exception) -> None:
-    sentry_sdk.capture_exception(e)
+    if not isinstance(e, SCMCodedError) or isinstance(e, UnhandledException):
+        sentry_sdk.capture_exception(e)
 
 
 def record_count_metric(key: str, amount: int, tags: dict[str, str]) -> None:

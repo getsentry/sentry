@@ -61,16 +61,6 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
         assert banner.encode() in response.content
 
-    def test_renders_react_template_with_cookie(self) -> None:
-        self.client.cookies["sentry_react_auth"] = "1"
-
-        resp = self.client.get(self.path)
-
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/base-react.html")
-        self.assertTemplateNotUsed(resp, "sentry/login.html")
-        assert b'<body class="theme-system">' in resp.content
-
     @override_options({"auth.v2.enabled": True})
     def test_renders_react_template_with_setting(self) -> None:
         response = self.client.get(self.path)
@@ -78,16 +68,6 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert response.status_code == 200
         self.assertTemplateUsed(response, "sentry/base-react.html")
         self.assertTemplateNotUsed(response, "sentry/login.html")
-
-    @override_options({"auth.v2.enabled": True})
-    def test_cookie_disables_react_template_with_setting(self) -> None:
-        self.client.cookies["sentry_react_auth"] = "0"
-
-        response = self.client.get(self.path)
-
-        assert response.status_code == 200
-        self.assertTemplateUsed(response, "sentry/login.html")
-        self.assertTemplateNotUsed(response, "sentry/base-react.html")
 
     @override_options({"auth.v2.enabled": True})
     @with_feature("system:multi-region")
@@ -438,17 +418,6 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             assert resp.status_code == 200
             assert resp.context["op"] == "register"
             self.assertTemplateUsed("sentry/login.html")
-
-    def test_register_renders_django_template_with_react_auth_cookie(self) -> None:
-        self.client.cookies["sentry_react_auth"] = "1"
-
-        with self.allow_registration():
-            resp = self.client.get(reverse("sentry-register"))
-
-        assert resp.status_code == 200
-        assert resp.context["op"] == "register"
-        self.assertTemplateUsed(resp, "sentry/login.html")
-        self.assertTemplateNotUsed(resp, "sentry/base-react.html")
 
     def test_register_prefills_invite_email(self) -> None:
         self.session["invite_email"] = "foo@example.com"
