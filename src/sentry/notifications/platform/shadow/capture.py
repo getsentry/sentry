@@ -114,9 +114,12 @@ def _sampled_variant(
         if limit <= 0:
             return None
         variant = _variant(invocation, source, provider_key)
-        if ratelimiter.is_limited(
+        limited, count, _ = ratelimiter.is_limited_with_value(
             f"notifications.platform.shadow:{variant}", limit, window=24 * 60 * 60
-        ):
+        )
+        # The rate limiter fails open and reports a count of 0 when it can't count, e.g. on a
+        # Redis error; skip the shadow then rather than shadowing every send.
+        if limited or count == 0:
             return None
         return variant
     except Exception:

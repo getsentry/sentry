@@ -157,6 +157,15 @@ class ShadowReadSamplingTest(ShadowInvocationTestCase):
         ]
 
     @override_options(SAMPLE_ALL)
+    def test_not_shadowed_when_rate_limiter_is_unavailable(
+        self, mock_report: mock.MagicMock
+    ) -> None:
+        with mock.patch(
+            f"{CAPTURE_PATH}.ratelimiter.is_limited_with_value", return_value=(False, 0, 0)
+        ):
+            self.assert_not_shadowed(mock_report, self.create_invocation())
+
+    @override_options(SAMPLE_ALL)
     def test_metric_alert_without_metric_evidence_is_not_shadowed(
         self, mock_report: mock.MagicMock
     ) -> None:
