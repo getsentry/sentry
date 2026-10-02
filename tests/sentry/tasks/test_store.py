@@ -6,6 +6,7 @@ import pytest
 from sentry import options, quotas
 from sentry.event_manager import EventManager
 from sentry.exceptions import HashDiscarded
+from sentry.ingest.types import ConsumerType
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.tasks.store import (
     is_process_disabled,
@@ -19,6 +20,7 @@ from sentry.tasks.store import (
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.cache import cache_key_for_event
+from sentry.utils.event_tracker import TransactionStageStatus
 from sentry.viewer_context import ActorType, get_viewer_context
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
@@ -585,6 +587,49 @@ def test_transactions_store(default_project, mock_transaction_processing_store) 
         )
 
     mock_transaction_processing_store.get.assert_called_once_with("e:1")
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    ("cache_key", "expected_stages"),
+    (
+        (
+            None,
+            [TransactionStageStatus.SAVE_TXN_STARTED, TransactionStageStatus.SAVE_TXN_FINISHED],
+        ),
+        (
+            "e:1",
+            [
+                TransactionStageStatus.SAVE_TXN_STARTED,
+                TransactionStageStatus.REDIS_DELETED,
+                TransactionStageStatus.SAVE_TXN_FINISHED,
+            ],
+        ),
+    ),
+)
+def test_inline_transaction_tracks_redis_deletion_only_with_cache_key(
+    default_project, mock_transaction_processing_store, cache_key, expected_stages
+) -> None:
+    data = {"project": default_project.id, "event_id": EVENT_ID, "type": "transaction"}
+
+    with (
+        mock.patch.object(EventManager, "save"),
+        mock.patch("sentry.tasks.store.track_sampled_event") as track,
+    ):
+        save_event_transaction(
+            cache_key=cache_key,
+            data=data,
+            event_id=EVENT_ID,
+            project_id=default_project.id,
+        )
+
+    assert track.call_args_list == [
+        mock.call(EVENT_ID, ConsumerType.Transactions, stage) for stage in expected_stages
+    ]
+    mock_transaction_processing_store.get.assert_not_called()
+    mock_transaction_processing_store.delete_by_key.assert_called_once_with(
+        cache_key or cache_key_for_event(data)
+    )
 
 
 @django_db_all

@@ -640,7 +640,7 @@ def _do_save_event(
             )
             processing_store.delete_by_key(cleanup_key)
 
-            if consumer_type == ConsumerType.Transactions:
+            if consumer_type == ConsumerType.Transactions and cache_key:
                 track_sampled_event(
                     cleanup_event_id,
                     ConsumerType.Transactions,
