@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -151,9 +152,17 @@ export function ScreenshotCard({
               onError={() => setLoadingImage(false)}
             />
             {loadingImage && (
-              <StyledLoadingIndicator align="center" justify="center">
+              <Flex
+                align="center"
+                justify="center"
+                position="absolute"
+                inset="0"
+                css={css`
+                  z-index: 2;
+                `}
+              >
                 <LoadingIndicator mini />
-              </StyledLoadingIndicator>
+              </Flex>
             )}
           </LazyRender>
         </StyledPanelBody>
@@ -194,12 +203,6 @@ const StyledPanelBody = styled(PanelBody)`
   justify-content: center;
   flex: 1;
   border-radius: ${p => p.theme.radius.md};
-`;
-
-const StyledLoadingIndicator = styled(Flex)`
-  position: absolute;
-  inset: 0;
-  z-index: 2;
 `;
 
 const StyledImageVisualization = styled(ImageVisualization)`
