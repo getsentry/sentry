@@ -247,15 +247,8 @@ export function LogsInfiniteTable({
 
   // Rows are virtualized, so the timestamp column would otherwise only fit the
   // rendered rows and wrap wider ones that scroll in after its width is locked.
-  // Widest timestamps: "Dec 28, 10:58:58.888 PM" (12h), "Dec 28, 22:58:58.888" (24h),
-  // plus "2025 " when the year is shown.
-  const timestampWidth = useMemo(() => {
-    const currentYear = new Date().getFullYear();
-    const hasOtherYear = data.some(
-      row => new Date(row[OurLogKnownFieldKey.TIMESTAMP]).getFullYear() !== currentYear
-    );
-    return (clockDisplay === '24' ? 20 : 23) + (hasOtherYear ? 5 : 0);
-  }, [clockDisplay, data]);
+  // Widest timestamps: "Dec 28, 10:58:58.888 PM" (12h), "Dec 28, 22:58:58.888" (24h).
+  const timestampWidth = clockDisplay === '24' ? 20 : 23;
 
   // Calculate quantized start and end times for replay links
   const {logStart, logEnd} = useMemo(() => {
@@ -420,7 +413,6 @@ export function LogsInfiniteTable({
     isScrolling,
     dataLength: data?.length ?? 0,
     tableWidth,
-    timestampWidth,
   });
 
   useEffect(() => {
