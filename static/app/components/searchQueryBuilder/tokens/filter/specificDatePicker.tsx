@@ -1,4 +1,5 @@
 import {Fragment, useEffect, useMemo, useRef, useState} from 'react';
+import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import moment from 'moment-timezone';
@@ -11,6 +12,7 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {DatePicker} from 'sentry/components/calendar';
 import {Overlay} from 'sentry/components/overlay';
+import {useSearchQueryBuilderLayout} from 'sentry/components/searchQueryBuilder/context';
 import type {CustomComboboxMenuProps} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
 import {Token} from 'sentry/components/searchSyntax/parser';
@@ -70,6 +72,7 @@ export function SpecificDatePicker({
   isOpen,
   overlayProps,
 }: SearchBarDatePickerProps) {
+  const {menuPresentation, portalTarget} = useSearchQueryBuilderLayout();
   const parsedToken = useMemo(() => {
     if (!dateString) {
       return null;
@@ -97,10 +100,11 @@ export function SpecificDatePicker({
   const utc = !parsedToken?.tz || parsedToken?.tz === 'Z' ? true : false;
   const hasTime = Boolean(parsedToken?.time);
 
-  return (
+  const datePicker = (
     <StyledPositionWrapper {...overlayProps} visible={isOpen}>
       <SearchBarDatePickerOverlay
         data-test-id="specific-date-picker"
+        data-menu-presentation={menuPresentation}
         ref={popoverRef}
         // Otherwise clicks will propagate to the grid and close the dropdown
         onClick={e => e.stopPropagation()}
@@ -204,6 +208,10 @@ export function SpecificDatePicker({
       </SearchBarDatePickerOverlay>
     </StyledPositionWrapper>
   );
+
+  return menuPresentation === 'panel' && portalTarget
+    ? createPortal(datePicker, portalTarget)
+    : datePicker;
 }
 
 /**
@@ -266,6 +274,13 @@ const SearchBarDatePickerOverlay = styled(Overlay)`
   min-width: 332px;
   min-height: 380px;
   cursor: default;
+
+  &[data-menu-presentation='panel'] {
+    .rdrCalendarWrapper,
+    .rdrMonth {
+      width: 100%;
+    }
+  }
 `;
 
 const StyledInput = styled(Input)`

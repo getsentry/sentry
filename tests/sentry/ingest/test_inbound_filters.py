@@ -1,6 +1,7 @@
 import pytest
 from django.test import override_settings
-from sentry_relay.processing import is_glob_match, validate_rule_condition
+from sentry_ophio.glob import is_glob_match
+from sentry_relay.processing import validate_rule_condition
 
 from sentry.ingest.inbound_filters import (
     ACTIVE_GENERIC_FILTERS,
@@ -395,6 +396,33 @@ def release_rule_condition(values: list[str]) -> dict:
             },
             id="catch_all_release_range",
         ),
+        pytest.param(
+            "error",
+            [{"type": "ip_address", "value": ["10.0.0.0/8", "203.0.113.7"]}],
+            {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8", "203.0.113.7"]},
+            id="ip_address_reads_the_envelope_client_ip",
+        ),
+        pytest.param(
+            "all",
+            [{"type": "ip_address", "value": ["10.0.0.0/8"]}],
+            {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
+            id="catch_all_ip_address_needs_no_per_data_type_field",
+        ),
+        pytest.param(
+            "log",
+            [
+                {"type": "log_message", "value": ["*DEBUG*"]},
+                {"type": "ip_address", "value": ["10.0.0.0/8"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "glob", "name": "log.body", "value": ["*DEBUG*"]},
+                    {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
+                ],
+            },
+            id="ip_address_combines_with_item_conditions",
+        ),
     ],
 )
 def test_custom_inbound_filter_condition_translation(
@@ -523,11 +551,6 @@ def test_custom_inbound_filter_skips_untranslatable_filters(default_project, fac
         data_type="unknown_data_type",
         conditions=[{"type": "release", "value": ["1.*"]}],
     )
-    # A row written before the column existed carries no data type at all.
-    factories.create_project_custom_inbound_filter(
-        default_project,
-        conditions=[{"type": "release", "value": ["1.*"]}],
-    ).update(data_type=None)
     # A span filter accepts release alone, so any other condition disables the filter
     # rather than widening it.
     factories.create_project_custom_inbound_filter(
@@ -607,8 +630,13 @@ def test_custom_inbound_filters_are_ordered_by_id(default_project, factories) ->
             id="custom_inbound_filters_v2",
         ),
         pytest.param(
-            InboundFilterFeatures(True, True, True, True),
-            ["log-message", "trace-metric-name", "cif"],
+            InboundFilterFeatures(generic_ip_filter=True),
+            ["ip-address"],
+            id="generic_ip_filter_needs_no_plan_feature",
+        ),
+        pytest.param(
+            InboundFilterFeatures(True, True, True, True, True),
+            ["ip-address", "log-message", "trace-metric-name", "cif"],
             id="every_feature",
         ),
     ],
@@ -618,6 +646,7 @@ def test_get_generic_filters_gates_each_source_on_its_feature(
 ) -> None:
     for builtin_filter_id, _ in ACTIVE_GENERIC_FILTERS:
         default_project.update_option(f"filters:{builtin_filter_id}", "0")
+    default_project.update_option("sentry:blacklisted_ips", ["10.0.0.0/8"])
     default_project.update_option("sentry:log_messages", ["some log"])
     default_project.update_option("sentry:trace_metric_names", ["some.metric"])
     custom_filter = factories.create_project_custom_inbound_filter(
@@ -643,5 +672,33 @@ def test_get_generic_filters_omits_gated_sources_without_configuration(default_p
         default_project.update_option(f"filters:{builtin_filter_id}", "0")
 
     assert (
-        get_generic_filters(default_project, InboundFilterFeatures(True, True, True, True)) is None
+        get_generic_filters(default_project, InboundFilterFeatures(True, True, True, True, True))
+        is None
     )
+
+
+@django_db_all
+def test_ip_denylist_becomes_a_generic_filter_with_the_native_reason(default_project) -> None:
+    for builtin_filter_id, _ in ACTIVE_GENERIC_FILTERS:
+        default_project.update_option(f"filters:{builtin_filter_id}", "0")
+    default_project.update_option("sentry:blacklisted_ips", ["10.0.0.0/8", "2001:db8::1"])
+
+    generic_filters = get_generic_filters(
+        default_project, InboundFilterFeatures(generic_ip_filter=True)
+    )
+
+    assert generic_filters == {
+        "version": 1,
+        "filters": [
+            {
+                "id": "ip-address",
+                "isEnabled": True,
+                "condition": {
+                    "op": "cidr",
+                    "name": "envelope.client_ip",
+                    "value": ["10.0.0.0/8", "2001:db8::1"],
+                },
+            }
+        ],
+    }
+    assert_relay_accepts_condition(generic_filters["filters"][0]["condition"])

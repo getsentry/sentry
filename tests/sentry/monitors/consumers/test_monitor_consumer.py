@@ -1126,6 +1126,22 @@ class MonitorConsumerTest(TestCase):
 
         assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
 
+    def test_payload_key_collides_with_log_record(self) -> None:
+        """
+        Client payload keys are logged on failure paths. A key such as
+        `message` collides with a `logging.LogRecord` attribute and must not
+        break check-in processing.
+        """
+        self.send_checkin(
+            "my-missing-monitor",
+            message="hello",
+            expected_error=ProcessingErrorsException(
+                [{"type": ProcessingErrorType.MONITOR_NOT_FOUND}],
+            ),
+        )
+
+        assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
+
     @override_settings(MAX_MONITORS_PER_ORG=2)
     def test_monitor_limits(self) -> None:
         for i in range(settings.MAX_MONITORS_PER_ORG + 2):

@@ -44,7 +44,14 @@ export function ScmAlertOptionCard({
               `}
             >
               <Flex area="radio" align="center">
-                <Radio size="xs" readOnly checked={isSelected} tabIndex={-1} />
+                {/* Decorative: the card button carries the radio role and state. */}
+                <Radio
+                  size="xs"
+                  readOnly
+                  checked={isSelected}
+                  tabIndex={-1}
+                  aria-hidden
+                />
               </Flex>
               <Container area="label">
                 <Text bold size="sm" density="comfortable">

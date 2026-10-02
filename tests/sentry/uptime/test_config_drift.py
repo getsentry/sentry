@@ -24,9 +24,11 @@ from sentry.uptime.subscriptions.tasks import (
     check_missing_configs,
     check_orphaned_configs,
     config_drift_dispatcher,
+    update_remote_uptime_subscription,
     uptime_subscription_to_check_config,
 )
 from sentry.utils import redis
+from tests.sentry.uptime.subscriptions.test_tasks import ConfigPusherTestMixin
 
 # a1 and a2 share a store (same cluster and key prefix); b1 is a second store.
 REGIONS = [
@@ -120,7 +122,7 @@ class ConfigDriftDispatcherTest(UptimeTestCase):
 
 
 @override_settings(UPTIME_REGIONS=REGIONS)
-class CheckMissingConfigsTest(UptimeTestCase):
+class CheckMissingConfigsTest(ConfigPusherTestMixin):
     def test_counts_absent_configs_per_store(self) -> None:
         # Two slugs in store A: checked once there, not twice.
         published = self.create_uptime_subscription(
@@ -180,6 +182,64 @@ class CheckMissingConfigsTest(UptimeTestCase):
         select_clause = region_queries[0].removeprefix("SELECT ").split(" FROM ")[0]
         columns = [column.split(" AS ")[0] for column in select_clause.split(", ")]
         assert columns == ['"uptime_uptimesubscription"."subscription_id"'], region_queries[0]
+
+    def _seed_lost_on_b(self) -> tuple[UptimeSubscription, UptimeSubscription]:
+        published = self.create_uptime_subscription(
+            subscription_id=_subscription_id(), region_slugs=["a1", "b1"]
+        )
+        _publish(published, ["a1", "b1"])
+        lost_on_b = self.create_uptime_subscription(
+            subscription_id=_subscription_id(), region_slugs=["a1", "b1"]
+        )
+        _publish(lost_on_b, ["a1"])
+        return published, lost_on_b
+
+    def test_repair_option_off_publishes_nothing(self) -> None:
+        _, lost_on_b = self._seed_lost_on_b()
+
+        with mock.patch.object(update_remote_uptime_subscription, "delay") as delay:
+            check_missing_configs(subscription_id_prefix=PREFIX, cluster="default", key_prefix="b")
+
+        assert not delay.called
+        self.assert_redis_config("b1", lost_on_b, None, None)
+
+    @override_options({"uptime.config-drift.repair": True})
+    def test_repairs_only_missing_and_keeps_status(self) -> None:
+        published, lost_on_b = self._seed_lost_on_b()
+        assert lost_on_b.status == UptimeSubscription.Status.ACTIVE.value
+
+        with (
+            mock.patch.object(tasks, "metrics") as metrics,
+            self.tasks(),
+            mock.patch.object(
+                update_remote_uptime_subscription,
+                "delay",
+                wraps=update_remote_uptime_subscription.delay,
+            ) as delay,
+        ):
+            check_missing_configs(subscription_id_prefix=PREFIX, cluster="default", key_prefix="b")
+
+        delay.assert_called_once_with(uptime_subscription_id=lost_on_b.id, region_slugs=["b1"])
+        self.assert_redis_config(
+            "b1", lost_on_b, "upsert", UptimeSubscriptionRegion.RegionMode.ACTIVE
+        )
+        for sub in (published, lost_on_b):
+            sub.refresh_from_db()
+            assert sub.status == UptimeSubscription.Status.ACTIVE.value
+        metrics.incr.assert_any_call(
+            "uptime.config_repair.queued", amount=1, tags={"cluster": "default"}, sample_rate=1.0
+        )
+
+    @override_options({"uptime.config-drift.repair": True})
+    def test_second_run_queues_nothing(self) -> None:
+        self._seed_lost_on_b()
+        with self.tasks():
+            check_missing_configs(subscription_id_prefix=PREFIX, cluster="default", key_prefix="b")
+
+        with mock.patch.object(update_remote_uptime_subscription, "delay") as delay:
+            check_missing_configs(subscription_id_prefix=PREFIX, cluster="default", key_prefix="b")
+
+        assert not delay.called
 
 
 @override_settings(UPTIME_REGIONS=REGIONS)

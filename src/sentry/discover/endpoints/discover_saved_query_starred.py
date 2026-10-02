@@ -43,8 +43,6 @@ class DiscoverSavedQueryStarredEndpoint(OrganizationEndpoint):
     def has_feature(self, organization, request):
         return features.has(
             "organizations:visibility-explore-view", organization, actor=request.user
-        ) and features.has(
-            "organizations:discover-queries-in-all-queries", organization, actor=request.user
         )
 
     def post(self, request: Request, organization: Organization, id: int) -> Response:

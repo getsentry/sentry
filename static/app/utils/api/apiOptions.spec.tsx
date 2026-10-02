@@ -4,7 +4,7 @@ import {expectTypeOf} from 'expect-type';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 
 type Promisable<T> = T | Promise<T>;
@@ -149,7 +149,7 @@ describe('apiOptions', () => {
     });
 
     const {result} = renderHookWithProviders(() =>
-      useQuery({...options, select: _ => _})
+      useQuery({...options, select: selectJsonWithHeaders})
     );
 
     await waitFor(() => expect(result.current.isPending).toBe(false));
@@ -157,6 +157,7 @@ describe('apiOptions', () => {
     expect(result.current.data).toEqual({
       json: ['Project 1', 'Project 2'],
       headers: {Link: 'my-link', 'X-Hits': 14, 'X-Max-Hits': undefined},
+      status: 200,
     });
 
     expectTypeOf(result.current.data!.headers).toEqualTypeOf<{
@@ -165,6 +166,26 @@ describe('apiOptions', () => {
       'X-Max-Hits'?: number;
       'X-Sentry-Direct-Hit'?: string;
     }>();
+  });
+
+  it('should extract a non-200 success status', async () => {
+    const options = apiOptions.as<string[]>()('/projects/', {
+      staleTime: 0,
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/projects/',
+      body: ['Project 1'],
+      statusCode: 201,
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useQuery({...options, select: selectJsonWithHeaders})
+    );
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(result.current.data!.status).toBe(201);
   });
 
   describe('types', () => {

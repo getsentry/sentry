@@ -18,7 +18,6 @@ import {
   COL_WIDTH_MINIMUM,
   COL_WIDTH_UNDEFINED,
   GridEditable,
-  type GridColumnHeader,
   type GridColumnOrder,
   type GridColumnSort,
 } from 'sentry/components/tables/gridEditable';
@@ -34,13 +33,12 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
-import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
 import {
   CONVERSATION_FIELDS,
-  useConversations,
   type Conversation,
   type ConversationSortField,
   type ConversationUser,
+  type useConversations,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {getConversationDetailUrl} from 'sentry/views/explore/conversations/utils/urlParams';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
@@ -205,22 +203,16 @@ export function parseStoredColumnWidths(value?: unknown): ColumnWidths {
   return widths;
 }
 
-export function ConversationsTable() {
+interface ConversationsTableProps {
+  conversations: ReturnType<typeof useConversations>;
+}
+
+export function ConversationsTable({conversations}: ConversationsTableProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const {
-    data,
-    isFetching,
-    error,
-    pageLinks,
-    setCursor,
-    unsetCursor,
-    isDirectHit,
-    sort,
-    setSort,
-  } = useConversations();
-  useConversationDirectHitRedirect({isDirectHit, conversations: data});
+  const {data, isFetching, error, pageLinks, setCursor, unsetCursor, sort, setSort} =
+    conversations;
 
   const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
 
@@ -298,20 +290,6 @@ export function ConversationsTable() {
     [navigate, organization.slug, selection.projects]
   );
 
-  const renderHeadCell = useCallback(
-    (column: GridColumnHeader<ColumnKey>) => (
-      <Flex
-        flex="1"
-        align="center"
-        gap="xs"
-        justify={RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'end' : 'start'}
-      >
-        {column.name}
-      </Flex>
-    ),
-    []
-  );
-
   const getColumnSort = useCallback(
     (column: GridColumnOrder<ColumnKey>): GridColumnSort | undefined => {
       const field = SORT_FIELD_BY_COLUMN[column.key];
@@ -319,8 +297,12 @@ export function ConversationsTable() {
         return undefined;
       }
 
-      const direction =
-        sort === field ? 'asc' : sort === `-${field}` ? 'desc' : undefined;
+      let direction: 'asc' | 'desc' | undefined;
+      if (sort === field) {
+        direction = 'asc';
+      } else if (sort === `-${field}`) {
+        direction = 'desc';
+      }
       return {
         align: RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'right' : undefined,
         direction,
@@ -354,7 +336,6 @@ export function ConversationsTable() {
           bodyStyle={{marginBottom: 0}}
           grid={{
             getColumnSort,
-            renderHeadCell,
             renderBodyCell,
             onResizeColumn: handleResizeColumn,
             staticColumnWidths,
@@ -634,13 +615,15 @@ function ToolsCell({toolNames}: {toolNames: string[]}) {
   // width) so it tracks resizing synchronously — otherwise the ResizeObserver
   // lag lets the tag/badge flicker onto a second line for a frame. `max()`
   // keeps a floor when the column is narrow.
-  const maxTagWidth = layout
-    ? overflowCount > 0
-      ? `max(${MIN_TOOL_TAG_WIDTH}px, calc(100% - ${
-          layout.badgeWidth + layout.gap + TAG_WIDTH_SLACK
-        }px))`
-      : '100%'
-    : undefined;
+  let maxTagWidth: string | undefined;
+  if (layout) {
+    maxTagWidth =
+      overflowCount > 0
+        ? `max(${MIN_TOOL_TAG_WIDTH}px, calc(100% - ${
+            layout.badgeWidth + layout.gap + TAG_WIDTH_SLACK
+          }px))`
+        : '100%';
+  }
 
   // Pin the container to exactly MAX_TOOL_ROWS so a transient reflow during
   // resize can't briefly spill onto another line before the count settles.
