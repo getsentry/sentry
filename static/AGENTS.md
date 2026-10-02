@@ -30,8 +30,10 @@
 ### Routing
 
 - Routes defined in `static/app/router/routes.tsx`
-- Use React Router v8 imports from `react-router` and `react-router/dom`
-- Set `useTransitions={false}` on router providers; the app's external stores are not compatible with React transitions
+- Import router APIs and `NuqsAdapter` from `sentry/router/reactRouter`; only the version implementations import the router packages directly
+- Local development defaults to React Router v8. Run `SENTRY_REACT_ROUTER_VERSION=6 pnpm dev-ui` to test the v6 fallback; restart the dev server after changing versions
+- Production and CI builds use v6 regardless of the override. Jest accepts `SENTRY_REACT_ROUTER_VERSION=6` or `8` and defaults to v8. Visual snapshots always use production's v6
+- The version implementations disable React navigation transitions; the app's external stores are not compatible with them
 - Lazy load route components when possible
 
 ### Frontend API Calls
