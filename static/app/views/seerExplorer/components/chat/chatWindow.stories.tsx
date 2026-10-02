@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import {css} from '@emotion/react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
 import {Container} from '@sentry/scraps/layout';
@@ -67,17 +66,7 @@ const noopDispatch = () => {};
  * The whole Explorer chat window — header, transcript, pending-input blocks, and composer — as
  * the sidebar renders it, for a fixed run.
  */
-function ChatWindow({
-  session,
-  withoutTrailingEmbedSpace = false,
-}: {
-  session: Session;
-  /**
-   * Story-only: removes the space an assistant answer leaves below a block embed that ends
-   * it, to show what the floating answer actions would overlap without it.
-   */
-  withoutTrailingEmbedSpace?: boolean;
-}) {
+function ChatWindow({session}: {session: Session}) {
   const organization = useOrganization();
   const [queryClient] = useState(() => new FixtureQueryClient(session));
 
@@ -99,21 +88,7 @@ function ChatWindow({
           >
             <PictureInPictureProvider>
               <SeerExplorerSessionsProvider>
-                <Container
-                  height="720px"
-                  width="480px"
-                  border="primary"
-                  radius="md"
-                  css={
-                    withoutTrailingEmbedSpace
-                      ? css`
-                          [data-seer-embed]:last-child {
-                            margin-bottom: 0 !important;
-                          }
-                        `
-                      : undefined
-                  }
-                >
+                <Container height="720px" width="480px" border="primary" radius="md">
                   <SeerExplorerContent
                     getPageReferrer={() => '/issues/'}
                     onClose={() => {}}
@@ -403,16 +378,6 @@ export default Storybook.story('ChatWindow', story => {
         results in the thinking block have no actions, so they leave none.
       </p>
       <ChatWindow session={ANSWER_ENDING_IN_EMBED_SESSION} />
-    </Fragment>
-  ));
-
-  story('Answer actions without the trailing embed space', () => (
-    <Fragment>
-      <p>
-        The same answer with that space removed by a story-only override. On hover, the
-        actions sit on top of the embed.
-      </p>
-      <ChatWindow session={ANSWER_ENDING_IN_EMBED_SESSION} withoutTrailingEmbedSpace />
     </Fragment>
   ));
 
