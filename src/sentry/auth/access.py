@@ -1324,17 +1324,15 @@ def from_agent_auth(
     auth: AuthenticatedToken, rpc_user_org_context: RpcUserOrganizationContext
 ) -> Access:
     """Access for a Seer agent capability token: a non-user actor acting on behalf of a
-    user. Authority comes from membership or an approved superuser context, capped
-    by the token's scopes. Without elevation, project access follows the member's
-    teams. The context MUST be resolved for the delegating user_id."""
+    member. Unlike an org token, the agent is not org-global — its authority is the
+    delegating member's, capped by the token's scopes, so project access follows the
+    member's teams. The context MUST be resolved for the delegating user_id."""
     # Bound to the org it was minted for; never honored elsewhere, even if the
     # delegating user is also a member of the requested org.
     if auth.organization_id != rpc_user_org_context.organization.id:
         return DEFAULT
     if auth.user_id != rpc_user_org_context.user_id:
         return DEFAULT
-    if isinstance(auth, AuthenticatedToken) and auth.superuser_access_expires_at is not None:
-        return from_superuser_access(auth, rpc_user_org_context)
     # No membership (never a member, or revoked since mint) -> no access. Required
     # explicitly because RpcBackedAccess would otherwise hand back the full token
     # scopes uncapped when member is None.
