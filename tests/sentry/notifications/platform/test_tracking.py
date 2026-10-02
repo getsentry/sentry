@@ -1,21 +1,32 @@
 from dataclasses import replace
 from unittest import mock
 
+import pytest
+
 from sentry.analytics.events.notification_tracking import (
     NotificationTrackingEngagementEvent,
     NotificationTrackingSentEvent,
 )
 from sentry.notifications.platform.tracking import (
     NotificationEngagementMechanism,
+    NotificationLink,
     NotificationTrackingContext,
+    classify_link,
+    decorate_links,
     is_tracking_enabled,
     record_engagement,
     record_sent,
 )
 from sentry.notifications.platform.types import (
+    LinkTextBlock,
     NotificationCategory,
     NotificationProviderKey,
+    NotificationRenderedAction,
+    NotificationRenderedImage,
+    NotificationRenderedTemplate,
     NotificationSource,
+    ParagraphSection,
+    PlainTextBlock,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import (
@@ -69,7 +80,7 @@ class RecordSentTest(TestCase):
     def test_records_metrics_and_event(
         self, mock_record: mock.MagicMock, mock_incr: mock.MagicMock
     ) -> None:
-        record_sent(CONTEXT, links=["issue", "seer"])
+        record_sent(CONTEXT, links=["seer", "issue", "seer"])
 
         tags = {
             "source": "activity-seer-rca-completed",
@@ -204,3 +215,128 @@ class RecordEngagementTest(TestCase):
 
         mock_logger.exception.assert_called_once()
         mock_record.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("url", "expected"),
+    [
+        ("https://sentry.io/organizations/acme/issues/1/", NotificationLink.ISSUE),
+        ("https://acme.sentry.io/issues/1/?referrer=slack", NotificationLink.ISSUE),
+        ("https://acme.sentry.io/issues/1/events/latest/", NotificationLink.ISSUE),
+        ("https://acme.sentry.io/issues/1/?seerDrawer=true", NotificationLink.SEER),
+        ("https://acme.sentry.io/issues/inbox/?project=2&preview=1", NotificationLink.ISSUE),
+        ("https://sentry.io/organizations/acme/issues/?project=2", NotificationLink.ISSUE_LIST),
+        ("https://acme.sentry.io/monitors/alerts/3/", NotificationLink.ALERT),
+        ("https://acme.sentry.io/alerts/rules/details/3/", NotificationLink.ALERT),
+        ("https://acme.sentry.io/releases/1.0.0/?project=2", NotificationLink.RELEASE),
+        ("https://acme.sentry.io/data-export/4/", NotificationLink.DATA_EXPORT),
+        ("https://sentry.io/settings/account/notifications/alerts/", NotificationLink.SETTINGS),
+        ("https://sentry.io/settings/acme/developer-settings/app/", NotificationLink.SETTINGS),
+        ("https://acme.sentry.io/repos/", NotificationLink.OTHER),
+    ],
+)
+def test_classify_link(url: str, expected: NotificationLink) -> None:
+    assert classify_link(url) == expected
+
+
+class DecorateLinksTest(TestCase):
+    referrer = "activity-seer-rca-completed-email"
+    notification_uuid = "0b1c3a4e-7d0f-4b8a-9b6e-0c7a2f3d5e61"
+    tracking = f"referrer={referrer}&notification_uuid={notification_uuid}"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.enterContext(override_options({"system.url-prefix": "https://sentry.io"}))
+
+    def decorate(
+        self, rendered_template: NotificationRenderedTemplate
+    ) -> tuple[NotificationRenderedTemplate, set[NotificationLink]]:
+        return decorate_links(
+            rendered_template, referrer=self.referrer, notification_uuid=self.notification_uuid
+        )
+
+    def test_decorates_sentry_links(self) -> None:
+        rendered_template = NotificationRenderedTemplate(
+            subject=[
+                PlainTextBlock(text="Root cause for"),
+                LinkTextBlock(
+                    text="ACME-1",
+                    url="https://sentry.io/organizations/acme/issues/1/?referrer=activity_notification",
+                ),
+            ],
+            body=[
+                ParagraphSection(
+                    blocks=[
+                        LinkTextBlock(text="PR", url="https://github.com/acme/repo/pull/1"),
+                        LinkTextBlock(text="Jane", url="mailto:jane@example.com"),
+                    ]
+                )
+            ],
+            actions=[
+                NotificationRenderedAction(
+                    label="Open Seer", link="https://acme.sentry.io/issues/1/?seerDrawer=true"
+                )
+            ],
+            chart=NotificationRenderedImage(url="https://sentry.io/chart.png", alt_text="Chart"),
+            footer=[
+                LinkTextBlock(
+                    text="Manage Preferences",
+                    url="https://sentry.io/settings/account/notifications/alerts/",
+                )
+            ],
+        )
+
+        decorated, links = self.decorate(rendered_template)
+
+        assert decorated == replace(
+            rendered_template,
+            subject=[
+                PlainTextBlock(text="Root cause for"),
+                LinkTextBlock(
+                    text="ACME-1",
+                    url=f"https://sentry.io/organizations/acme/issues/1/?{self.tracking}",
+                ),
+            ],
+            actions=[
+                NotificationRenderedAction(
+                    label="Open Seer",
+                    link=f"https://acme.sentry.io/issues/1/?seerDrawer=true&{self.tracking}",
+                )
+            ],
+            footer=[
+                LinkTextBlock(
+                    text="Manage Preferences",
+                    url=f"https://sentry.io/settings/account/notifications/alerts/?{self.tracking}",
+                )
+            ],
+        )
+        assert links == {NotificationLink.ISSUE, NotificationLink.SEER, NotificationLink.SETTINGS}
+        assert rendered_template.subject[1] == LinkTextBlock(
+            text="ACME-1",
+            url="https://sentry.io/organizations/acme/issues/1/?referrer=activity_notification",
+        )
+
+    def test_idempotent(self) -> None:
+        rendered_template = NotificationRenderedTemplate(
+            subject="Export ready",
+            body=[],
+            actions=[NotificationRenderedAction(label="Download", link="https://sentry.io/x/")],
+        )
+
+        decorated, _ = self.decorate(rendered_template)
+
+        assert self.decorate(decorated) == (decorated, {NotificationLink.OTHER})
+
+    def test_plain_text_and_undecoratable_links_are_unchanged(self) -> None:
+        rendered_template = NotificationRenderedTemplate(
+            subject="Export ready",
+            body=[ParagraphSection(blocks=[LinkTextBlock(text="Broken", url="https://[::1")])],
+            footer="Sent by Sentry",
+        )
+
+        with mock.patch("sentry.notifications.platform.tracking.logger") as mock_logger:
+            decorated, links = self.decorate(rendered_template)
+
+        assert decorated == rendered_template
+        assert links == set()
+        mock_logger.exception.assert_called_once()
