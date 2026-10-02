@@ -148,10 +148,7 @@ export function SpansTabSeerComboBox() {
       // Keep the table's current columns and append any extras Seer asked for.
       // Passing them explicitly also stops getExploreUrl from dropping the
       // user's columns back to the defaults.
-      const newFields =
-        (result.extraFields ?? []).length > 0
-          ? mergeSeerExtraFields(currFields, result.extraFields)
-          : [];
+      const fields = mergeSeerExtraFields(currFields, result.extraFields);
 
       // TODO: Include traces mode once we can switch the table in getExploreUrl
       const url = getExploreUrl({
@@ -163,7 +160,7 @@ export function SpansTabSeerComboBox() {
         sort: seerQuery.sort,
         mode: seerQuery.mode,
         interval: seerQuery.interval,
-        ...(newFields.length > 0 ? {field: newFields} : {}),
+        field: fields,
         ...(result.crossEvents?.length ? {crossEvents: result.crossEvents} : {}),
       });
 
@@ -175,7 +172,7 @@ export function SpansTabSeerComboBox() {
         sort: seerQuery.sort,
         mode: seerQuery.mode,
         interval: seerQuery.interval,
-        ...(newFields.length > 0 ? {field: newFields} : {}),
+        field: fields,
         ...(result.crossEvents?.length ? {crossEvents: result.crossEvents} : {}),
       });
       trackAnalytics('ai_query.applied', {
