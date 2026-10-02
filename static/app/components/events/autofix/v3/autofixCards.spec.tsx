@@ -819,6 +819,31 @@ describe('ArtifactCard', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('renders embeds in the agent explanation instead of raw tags', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofixWithRunState}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [],
+            [
+              makeAssistantBlock(
+                'See {% docs %}{"href":"https://docs.sentry.io/product/issues/","title":"Issues"}{% /docs %} for details.'
+              ),
+            ]
+          )}
+        />
+      );
+
+      expect(screen.getByRole('link', {name: /Issues/})).toHaveAttribute(
+        'href',
+        'https://docs.sentry.io/product/issues/'
+      );
+      expect(screen.queryByText(/\{% docs %\}/)).not.toBeInTheDocument();
+    });
+
     it('opens and consumes a requested context prompt without an explanation', async () => {
       const {router} = render(
         <CodeChangesCard
