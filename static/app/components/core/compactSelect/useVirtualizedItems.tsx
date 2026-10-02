@@ -23,12 +23,14 @@ type ObjectLike = object;
 
 export function useVirtualizedItems<T extends ObjectLike>({
   listItems,
+  listPadding = listPaddingVertical,
   virtualized = false,
   size,
 }: {
   listItems: Array<Node<T>>;
   size: FormSize;
   virtualized: boolean | undefined;
+  listPadding?: number;
 }) {
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const heightEstimation = heightEstimations[size];
@@ -38,7 +40,8 @@ export function useVirtualizedItems<T extends ObjectLike>({
     getScrollElement: () => scrollElementRef?.current,
     estimateSize: index => {
       const item = listItems[index];
-      if (item?.value && 'details' in item.value) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      if (item?.props?.details) {
         return heightEstimation.large;
       }
       return heightEstimation.regular;
@@ -50,6 +53,9 @@ export function useVirtualizedItems<T extends ObjectLike>({
     const virtualizedItems = virtualizer.getVirtualItems();
     return {
       items: virtualizedItems,
+      scrollToIndex: (index: number) => {
+        virtualizer.scrollToIndex(index, {align: 'auto'});
+      },
       scrollElementRef,
       itemProps: (index: number) => ({
         ref: virtualizer.measureElement,
@@ -58,7 +64,7 @@ export function useVirtualizedItems<T extends ObjectLike>({
       wrapperProps: {
         'data-is-virtualized': true,
         style: {
-          height: virtualizer.getTotalSize() + listPaddingVertical * 2,
+          height: virtualizer.getTotalSize() + listPadding * 2,
           width: '100%',
           position: 'relative',
         },
@@ -75,6 +81,7 @@ export function useVirtualizedItems<T extends ObjectLike>({
 
   return {
     items: listItems.map((_, index) => ({index, start: 0})),
+    scrollToIndex: () => {},
     scrollElementRef: undefined,
     itemProps: () => {},
     wrapperProps: {
