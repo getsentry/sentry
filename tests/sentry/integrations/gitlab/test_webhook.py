@@ -17,7 +17,7 @@ from fixtures.gitlab import (
     GitLabTestCase,
 )
 from sentry.integrations.gitlab.integration import GitlabIntegration
-from sentry.integrations.gitlab.webhooks import MergeEventWebhook
+from sentry.integrations.gitlab.webhooks import IssuesEventWebhook, MergeEventWebhook
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.types import ExternalProviders
@@ -241,6 +241,7 @@ class WebhookTest(GitLabWebhookTestCase):
     @patch("sentry.integrations.gitlab.webhooks.PushEventWebhook.__call__")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_push_event_failure_metric(self, mock_record: MagicMock, mock_event: MagicMock) -> None:
+        self.create_gitlab_repo("getsentry/sentry")
         error = Exception("oops")
         mock_event.side_effect = error
 
@@ -308,6 +309,38 @@ class WebhookTest(GitLabWebhookTestCase):
         assert len(commits) == 2
         for commit in commits:
             assert commit.organization_id == other_org.id
+
+    def test_merge_event_handled_only_by_organizations_with_the_repo(self) -> None:
+        self.create_gitlab_repo("getsentry/sentry")
+        self.install_on_other_organizations(3)
+
+        with patch.object(MergeEventWebhook, "__call__", autospec=True) as handle:
+            response = self.client.post(
+                self.url,
+                data=MERGE_REQUEST_OPENED_EVENT,
+                content_type="application/json",
+                HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+                HTTP_X_GITLAB_EVENT="Merge Request Hook",
+            )
+
+        assert response.status_code == 204
+        handled_org_ids = [call.kwargs["organization"].id for call in handle.call_args_list]
+        assert handled_org_ids == [self.organization.id]
+
+    def test_merge_event_without_project_is_rejected(self) -> None:
+        self.create_gitlab_repo("getsentry/sentry")
+        event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+        del event["project"]
+
+        response = self.client.post(
+            self.url,
+            data=orjson.dumps(event),
+            content_type="application/json",
+            HTTP_X_GITLAB_TOKEN=WEBHOOK_TOKEN,
+            HTTP_X_GITLAB_EVENT="Merge Request Hook",
+        )
+
+        assert response.status_code == 404
 
     def test_push_event_create_commits_and_authors(self) -> None:
         repo = self.create_gitlab_repo("getsentry/sentry")
@@ -416,6 +449,7 @@ class WebhookTest(GitLabWebhookTestCase):
     def test_merge_event_failure_metric(
         self, mock_record: MagicMock, mock_event: MagicMock
     ) -> None:
+        self.create_gitlab_repo("getsentry/sentry")
         payload = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
 
         error = Exception("oops")
@@ -914,8 +948,8 @@ class WebhookTest(GitLabWebhookTestCase):
         assert group.get_assignee() is None
 
     def test_assignment_checks_sync_settings_only_where_the_issue_is_linked(self) -> None:
-        # Every organization sharing the integration gets its own pass over the event, so a
-        # sync-settings lookup per organization inside each pass grows quadratically.
+        # Each organization that linked the issue gets its own pass over the event, so a pass
+        # must look up sync settings for its own organization only, not for every install.
         group = self._linked_group_for_assignee_sync()
         alice = self._create_gitlab_member("alice", 11)
         self.install_on_other_organizations(3)
@@ -938,6 +972,16 @@ class WebhookTest(GitLabWebhookTestCase):
             if call.args[1] == "inbound_assignee"
         ]
         assert checked_org_ids == [self.organization.id]
+
+    def test_issue_event_handled_only_by_organizations_that_linked_the_issue(self) -> None:
+        self.link_issue()
+        self.install_on_other_organizations(3)
+
+        with patch.object(IssuesEventWebhook, "__call__", autospec=True) as handle:
+            self._post_issue_event(orjson.loads(ISSUE_ASSIGNED_EVENT))
+
+        handled_org_ids = [call.kwargs["organization"].id for call in handle.call_args_list]
+        assert handled_org_ids == [self.organization.id]
 
     def test_unassignment_syncs_every_organization_that_linked_the_issue(self) -> None:
         group = self._linked_group_for_assignee_sync()

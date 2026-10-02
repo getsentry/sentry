@@ -136,9 +136,8 @@ def update_group(
     return resp
 
 
-def get_rule(slack_request: SlackActionRequest, organization_id: int) -> Rule | None:
+def get_rule(rule_id: int | None, organization_id: int) -> Rule | None:
     """Get the rule that fired"""
-    rule_id = slack_request.callback_data.get("rule")
     if not rule_id:
         return None
     try:
@@ -364,7 +363,18 @@ class SlackActionEndpoint(Endpoint):
         if not group:
             return self.respond(status=403)
 
-        rule = get_rule(slack_request, group.project.organization_id)
+        rule_id = slack_request.callback_data.get("rule")
+        workflow_id = slack_request.callback_data.get("workflow")
+        rule = get_rule(rule_id, group.project.organization_id)
+        metrics.incr(
+            "integrations.slack.action.rule_lookup",
+            tags={
+                "has_rule": bool(rule_id),
+                "has_workflow": bool(workflow_id),
+                "lookup_succeeded": rule is not None,
+            },
+            sample_rate=1.0,
+        )
         identity = slack_request.get_identity()
         # Determine the acting user by Slack identity.
         identity_user = slack_request.get_identity_user()
@@ -436,6 +446,7 @@ class SlackActionEndpoint(Endpoint):
                     actions=[status_action],
                     tags=original_tags_from_request,
                     rules=[rule] if rule else None,
+                    workflow_id=workflow_id,
                     issue_details=True,
                     skip_fallback=True,
                 ).build()
@@ -523,6 +534,7 @@ class SlackActionEndpoint(Endpoint):
             actions=action_list,
             tags=original_tags_from_request,
             rules=[rule] if rule else None,
+            workflow_id=workflow_id,
         ).build()
         # XXX(isabella): for actions on link unfurls, we omit the fallback text from the
         # response so the unfurling endpoint understands the payload
@@ -1079,6 +1091,7 @@ class _ModalDialog(ABC):
             "orig_response_url": slack_request.data["response_url"],
             "is_message": _is_message(slack_request.data),
             "rule": slack_request.callback_data.get("rule"),
+            "workflow": slack_request.callback_data.get("workflow"),
         }
 
         if slack_request.data.get("channel"):

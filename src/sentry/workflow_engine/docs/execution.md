@@ -64,8 +64,8 @@ One packet can produce:
 - Multiple results keyed by `DetectorGroupKey`
 
 A handler returns a mapping of group keys to `DetectorEvaluation` objects. An evaluation
-can contain an `IssueOccurrence`, a `StatusChangeMessage`, or `None`;
-`process_detectors` publishes only non-null results.
+can contain an `IssueOccurrence`, a `StatusChangeMessage`, or `None`. `process_detectors`
+routes non-null results according to the handler's `outcome`.
 
 ### 4. Detector orchestration
 
@@ -142,12 +142,18 @@ Detectors that need a different flow inherit `DetectorHandler` and override `eva
 but then they own this orchestration. `BaseDetectorHandler` is only the abstract
 interface and is not a base for new detectors.
 
-### 5. Publish to Issue Platform
+### 5. Produce detector output
 
-`process_detectors` passes detector results to
-`create_issue_platform_payload` and
-[`produce_occurrence_to_kafka`](../../issues/producer.py). The payload type distinguishes
-occurrences from status changes.
+`process_detectors` invokes the detector handler's `on_complete` lifecycle callback with
+the detector and each evaluation. The default callback is
+`DetectorOutcome.ISSUE_PLATFORM.dispatch`; it resolves the registered outcome handler,
+whose `handle` method ignores evaluations without a result and passes the others to Issue
+Platform via [`produce_occurrence_to_kafka`](../../issues/producer.py). A detector can
+assign another supported outcome dispatcher or override `on_complete` for custom processing.
+
+Supported outcome implementations register their `DetectorOutcomeHandler` class with
+`@detector_outcome_registry.add(DetectorOutcome.<KEY>)`. The closed, typed set of keys
+lives in `supported_outcomes.py`; the registry maps each key to its handler implementation.
 
 Issue Platform ingestion creates or updates a group. The detector ID in occurrence
 evidence allows ingestion to create a

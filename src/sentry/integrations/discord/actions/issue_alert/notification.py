@@ -11,11 +11,11 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.notifications.types import RuleFuture
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
 
 
