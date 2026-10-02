@@ -198,11 +198,11 @@ export function BroadcastDetails() {
       name={data.title}
       badges={badges}
       actions={actions}
-      sections={
-        isEditing
-          ? [{content: editSection}, {content: metadataSection}]
-          : [{content: overviewSection}, {content: metadataSection}]
-      }
-    />
+    >
+      <DetailsPage.Section>
+        {isEditing ? editSection : overviewSection}
+      </DetailsPage.Section>
+      <DetailsPage.Section>{metadataSection}</DetailsPage.Section>
+    </DetailsPage>
   );
 }
