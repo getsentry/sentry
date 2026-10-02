@@ -1,5 +1,4 @@
 import {useState} from 'react';
-import {css} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -39,7 +38,7 @@ export function SuspectCommitFeedback({
   if (feedbackSubmitted) {
     return (
       <Flex align="center" gap="xs" display={{zero: 'none', sm: 'flex'}}>
-        <Text as="span" size="md" variant="secondary" wrap="nowrap" css={feedbackTextCss}>
+        <Text as="span" size="md" variant="secondary" wrap="nowrap">
           {t('Thanks!')}
         </Text>
       </Flex>
@@ -48,7 +47,7 @@ export function SuspectCommitFeedback({
 
   return (
     <Flex align="center" gap="xs" display={{zero: 'none', sm: 'flex'}}>
-      <Text as="span" size="md" variant="secondary" wrap="nowrap" css={feedbackTextCss}>
+      <Text as="span" size="md" variant="secondary" wrap="nowrap">
         {t('Is this correct?')}
       </Text>
       <Flex gap="2xs">
@@ -68,7 +67,3 @@ export function SuspectCommitFeedback({
     </Flex>
   );
 }
-
-const feedbackTextCss = css`
-  line-height: 1.5;
-`;

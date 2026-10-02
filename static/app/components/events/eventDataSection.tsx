@@ -53,16 +53,11 @@ export function EventDataSection({
   ...props
 }: EventDataSectionProps) {
   const titleNode = (
-    <Heading
-      as="h3"
-      size="md"
-      variant="secondary"
-      css={theme => css`
-        padding: ${theme.space.sm} 0;
-      `}
-    >
-      {title}
-    </Heading>
+    <Container padding="sm 0">
+      <Heading as="h3" size="md" variant="secondary">
+        {title}
+      </Heading>
+    </Container>
   );
 
   return (
@@ -113,37 +108,39 @@ export function EventDataSection({
         {title && (
           <Grid columns="max-content 1fr" align="center" gap="xs">
             <Container as="span" width="100%" position="relative" className="permalink">
-              <ExternalLink
-                href={`#${type}`}
-                openInNewTab={false}
-                css={theme => css`
-                  display: flex;
-                  align-items: center;
-                  position: absolute;
-                  top: 0;
-                  left: 0;
-                  width: calc(100% + ${theme.space['2xl']});
-                  height: 100%;
-                  padding-left: ${theme.space.xs};
-                  transform: translateX(-${theme.space['2xl']});
-
-                  :hover .permalink-icon,
-                  :focus .permalink-icon {
-                    opacity: 1;
-                  }
-                `}
+              <Flex
+                position="absolute"
+                top="0"
+                left="0"
+                height="100%"
+                paddingLeft="xs"
+                align="center"
               >
-                <IconLink
-                  size="xs"
-                  variant="muted"
-                  className="permalink-icon"
-                  css={css`
-                    opacity: 0;
-                    transform: translateY(-1px);
-                    transition: opacity 100ms;
-                  `}
-                />
-              </ExternalLink>
+                {linkProps => (
+                  <ExternalLink
+                    {...linkProps}
+                    href={`#${type}`}
+                    openInNewTab={false}
+                    css={theme => css`
+                      width: calc(100% + ${theme.space['2xl']});
+                      transform: translateX(-${theme.space['2xl']});
+
+                      .permalink-icon {
+                        opacity: 0;
+                        transform: translateY(-1px);
+                        transition: opacity 100ms;
+                      }
+
+                      :hover .permalink-icon,
+                      :focus .permalink-icon {
+                        opacity: 1;
+                      }
+                    `}
+                  >
+                    <IconLink size="xs" variant="muted" className="permalink-icon" />
+                  </ExternalLink>
+                )}
+              </Flex>
               {titleNode}
             </Container>
           </Grid>
