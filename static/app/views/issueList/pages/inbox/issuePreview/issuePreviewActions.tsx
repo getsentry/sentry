@@ -148,65 +148,7 @@ function IssueResolutionActions({
   const organization = useOrganization();
   const location = useLocation();
   const queryClient = useQueryClient();
-  function handleUpdate(data: GroupStatusResolution) {
-    bulkUpdate(
-      api,
-      {
-        orgId: organization.slug,
-        projectId: project.slug,
-        itemIds: [group.id],
-        data,
-      },
-      {
-        success: () => {
-          clearIndicators();
-          addSuccessMessage(
-            data.status === GroupStatus.UNRESOLVED
-              ? t('Issue marked unresolved')
-              : t('Issue resolved')
-          );
-          IssueListCacheStore.reset();
-          const issueListUrl = getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
-            path: {organizationIdOrSlug: organization.slug},
-          });
-          const issueCountUrl = getApiUrl(
-            '/organizations/$organizationIdOrSlug/issues-count/',
-            {path: {organizationIdOrSlug: organization.slug}}
-          );
-          const issueUrl = getApiUrl(
-            '/organizations/$organizationIdOrSlug/issues/$issueId/',
-            {
-              path: {
-                organizationIdOrSlug: organization.slug,
-                issueId: group.id,
-              },
-            }
-          );
-          const issueActivitiesUrl = getApiUrl(
-            '/organizations/$organizationIdOrSlug/issues/$issueId/activities/',
-            {
-              path: {
-                organizationIdOrSlug: organization.slug,
-                issueId: group.id,
-              },
-            }
-          );
-          void queryClient.invalidateQueries({
-            predicate: query => {
-              const url = safeParseQueryKey(query.queryKey)?.url;
-
-              return (
-                url === issueListUrl ||
-                url === issueCountUrl ||
-                url === issueUrl ||
-                url === issueActivitiesUrl
-              );
-            },
-          });
-        },
-      }
-    );
-
+  async function handleUpdate(data: GroupStatusResolution) {
     const {alert_date, alert_rule_id, alert_type} = location.query;
     trackAnalytics('issue_inbox.resolve_clicked', {
       organization,
@@ -221,6 +163,61 @@ function IssueResolutionActions({
       ...getAnalyicsDataForProject(project),
       org_streamline_only: organization.streamlineOnly ?? undefined,
     });
+
+    try {
+      await bulkUpdate(api, {
+        orgId: organization.slug,
+        projectId: project.slug,
+        itemIds: [group.id],
+        data,
+      });
+      clearIndicators();
+      addSuccessMessage(
+        data.status === GroupStatus.UNRESOLVED
+          ? t('Issue marked unresolved')
+          : t('Issue resolved')
+      );
+      IssueListCacheStore.reset();
+      const issueListUrl = getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
+        path: {organizationIdOrSlug: organization.slug},
+      });
+      const issueCountUrl = getApiUrl(
+        '/organizations/$organizationIdOrSlug/issues-count/',
+        {path: {organizationIdOrSlug: organization.slug}}
+      );
+      const issueUrl = getApiUrl(
+        '/organizations/$organizationIdOrSlug/issues/$issueId/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            issueId: group.id,
+          },
+        }
+      );
+      const issueActivitiesUrl = getApiUrl(
+        '/organizations/$organizationIdOrSlug/issues/$issueId/activities/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            issueId: group.id,
+          },
+        }
+      );
+      void queryClient.invalidateQueries({
+        predicate: query => {
+          const url = safeParseQueryKey(query.queryKey)?.url;
+
+          return (
+            url === issueListUrl ||
+            url === issueCountUrl ||
+            url === issueUrl ||
+            url === issueActivitiesUrl
+          );
+        },
+      });
+    } catch {
+      // GroupStore already shows the error
+    }
   }
 
   return (

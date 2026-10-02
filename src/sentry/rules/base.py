@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING, Any, ClassVar
 from django import forms
 
 from sentry.models.project import Project
+from sentry.notifications.types import RuleFuture
 from sentry.services.eventstore.models import GroupEvent
-from sentry.types.rules import RuleFuture
 
 if TYPE_CHECKING:
     from sentry.models.rule import Rule
