@@ -1,4 +1,5 @@
-from taskbroker_client.retry import Retry
+import sentry_sdk
+from taskbroker_client.retry import Retry, retry_task
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.eventstream.base import GroupState
@@ -23,6 +24,14 @@ from sentry.workflow_engine.types import WorkflowEventData, WorkflowId
 from sentry.workflow_engine.utils import log_context
 
 logger = log_context.get_logger(__name__)
+
+TRIGGER_ACTION_RETRY_IGNORED_EXCEPTIONS = (
+    Action.DoesNotExist,
+    Group.DoesNotExist,
+    Project.DoesNotExist,
+    ProjectNotActiveError,
+    Workflow.DoesNotExist,
+)
 
 
 def build_trigger_action_task_params(
@@ -77,13 +86,7 @@ def build_trigger_action_task_params(
         times=3,
         delay=5,
         on=(Exception, ProcessingDeadlineExceeded),
-        ignore=(
-            Action.DoesNotExist,
-            Group.DoesNotExist,
-            Project.DoesNotExist,
-            ProjectNotActiveError,
-            Workflow.DoesNotExist,
-        ),
+        ignore=TRIGGER_ACTION_RETRY_IGNORED_EXCEPTIONS,
     ),
     silo_mode=SiloMode.CELL,
     silenced_exceptions=(
@@ -153,4 +156,12 @@ def trigger_action(
     # Set up a timeout grouping context because we want to make sure any Sentry timeout reporting
     # in this scope is grouped properly.
     with timeout_grouping_context(action.type), action_context_scope(ActionSource.SYSTEM):
-        action.trigger(event_data, notification_uuid=notification_uuid, workflow_id=workflow_id)
+        try:
+            action.trigger(event_data, notification_uuid=notification_uuid, workflow_id=workflow_id)
+        except TRIGGER_ACTION_RETRY_IGNORED_EXCEPTIONS:
+            return
+        except (Exception, ProcessingDeadlineExceeded) as error:
+            # Action triggering is best effort. This raises while attempts remain, but returns
+            # after the final attempt so giving up does not count as a task failure.
+            retry_task(error, raise_on_no_retries=False)
+            sentry_sdk.capture_exception(error)
