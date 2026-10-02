@@ -50,49 +50,6 @@ INSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(minutes=14)
 IDLE_EXPIRE_TIME = OUTSIDE_PRIVILEGE_ACCESS_EXPIRE_TIME = timedelta(hours=2)
 
 
-@pytest.mark.parametrize("remaining_seconds", [0, 60])
-def test_validate_superuser_session_data(remaining_seconds: int) -> None:
-    expires = BASETIME + timedelta(seconds=remaining_seconds)
-    raw = {"uid": "1", "tok": "test-token", "idl": expires.timestamp(), "exp": expires.timestamp()}
-    data = Superuser.validate_session_data(
-        raw,
-        cookie_token="test-token",
-        user_id=1,
-        ip_address="127.0.0.1",
-        current_datetime=BASETIME,
-    )
-    assert data == {"uid": "1", "tok": "test-token", "idl": expires, "exp": expires}
-    assert raw["idl"] == raw["exp"] == expires.timestamp()
-
-
-@pytest.mark.parametrize(
-    ("field", "value"),
-    [
-        ("uid", "2"),
-        ("tok", "wrong-token"),
-        ("tok", ""),
-        ("idl", "invalid"),
-        ("exp", "invalid"),
-        ("idl", "0"),
-        ("exp", "0"),
-    ],
-)
-def test_validate_superuser_session_data_rejects_invalid_evidence(field: str, value: str) -> None:
-    expires = str((BASETIME + timedelta(minutes=1)).timestamp())
-    data = {"uid": "1", "tok": "test-token", "idl": expires, "exp": expires}
-    data[field] = value
-    assert (
-        Superuser.validate_session_data(
-            data,
-            cookie_token="test-token",
-            user_id=1,
-            ip_address="127.0.0.1",
-            current_datetime=BASETIME,
-        )
-        is None
-    )
-
-
 @control_silo_test
 @freeze_time(BASETIME)
 class SuperuserTestCase(TestCase):
@@ -188,6 +145,15 @@ class SuperuserTestCase(TestCase):
         request = self.build_request(cookie_token="foobar")
         superuser = Superuser(request, allowed_ips=())
         assert superuser.is_active is False
+
+    def test_reading_session_data_does_not_mutate_expiry(self) -> None:
+        request = self.build_request()
+        su = Superuser(request)
+        raw = dict(request.session[SESSION_KEY])
+        first = su.get_session_data()
+        assert first is not None
+        assert su.get_session_data() == first
+        assert request.session[SESSION_KEY] == raw
 
     def test_invalid_session_token(self) -> None:
         request = self.build_request(session_token="foobar")

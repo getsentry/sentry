@@ -89,7 +89,6 @@ class UserOrgContext(TypedDict):
 
 
 class AgentChatRequest(TypedDict):
-    agent_authorization: NotRequired[str | None]
     organization_id: int
     query: str
     run_id: int | None

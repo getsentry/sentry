@@ -20,6 +20,7 @@ from typing import Any, Final, Never, TypeIs, overload
 
 import orjson
 from django.conf import settings
+from django.core import signing
 from django.core.signing import BadSignature
 from django.http import HttpRequest, HttpResponse
 from django.utils import timezone as django_timezone
@@ -30,7 +31,7 @@ from rest_framework.request import Request
 from sentry import options
 from sentry.api.exceptions import DataSecrecyError, SentryAPIException
 from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
-from sentry.auth.services.auth.model import RpcAuthState
+from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.auth.system import is_system_auth
 from sentry.data_secrecy.logic import should_allow_superuser_access
 from sentry.models.organization import Organization
@@ -316,7 +317,8 @@ class Superuser(ElevatedMode):
             )
             return None
 
-        data = request.session.get(SESSION_KEY)
+        raw_data = request.session.get(SESSION_KEY)
+        data = dict(raw_data) if raw_data else None
         if not cookie_token:
             if data:
                 logger.warning(
@@ -331,49 +333,29 @@ class Superuser(ElevatedMode):
             )
             return None
 
-        return self.validate_session_data(
-            data,
-            cookie_token=cookie_token,
-            user_id=request.user.id,
-            ip_address=request.META["REMOTE_ADDR"],
-            current_datetime=current_datetime,
-        )
-
-    @staticmethod
-    def validate_session_data(
-        data: dict[str, Any],
-        *,
-        cookie_token: str,
-        user_id: int | None,
-        ip_address: str,
-        current_datetime: datetime | None = None,
-    ) -> dict[str, Any] | None:
-        """Validate present, signature-verified session and cookie data.
-
-        This does not check superuser status, SSO, IP restrictions, or org access.
-        Returns a copy with native expiration timestamps.
-        """
-        data = data.copy()
-        log_context = {"ip_address": ip_address, "user_id": user_id}
         session_token = data.get("tok")
         if not session_token:
             logger.warning(
                 "superuser.missing-session-token",
-                extra=log_context,
+                extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
             return None
 
         if not constant_time_compare(cookie_token, session_token):
             logger.warning(
                 "superuser.invalid-token",
-                extra=log_context,
+                extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
             return None
 
-        if data["uid"] != str(user_id):
+        if data["uid"] != str(request.user.id):
             logger.warning(
                 "superuser.invalid-uid",
-                extra={**log_context, "expected_user_id": data["uid"]},
+                extra={
+                    "ip_address": request.META["REMOTE_ADDR"],
+                    "user_id": request.user.id,
+                    "expected_user_id": data["uid"],
+                },
             )
             return None
 
@@ -385,7 +367,7 @@ class Superuser(ElevatedMode):
         except (TypeError, ValueError):
             logger.warning(
                 "superuser.invalid-idle-expiration",
-                extra=log_context,
+                extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
                 exc_info=True,
             )
             return None
@@ -393,7 +375,7 @@ class Superuser(ElevatedMode):
         if data["idl"] < current_datetime:
             logger.info(
                 "superuser.session-expired",
-                extra=log_context,
+                extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
             return None
 
@@ -402,7 +384,7 @@ class Superuser(ElevatedMode):
         except (TypeError, ValueError):
             logger.warning(
                 "superuser.invalid-expiration",
-                extra=log_context,
+                extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
                 exc_info=True,
             )
             return None
@@ -410,7 +392,7 @@ class Superuser(ElevatedMode):
         if data["exp"] < current_datetime:
             logger.info(
                 "superuser.session-expired",
-                extra=log_context,
+                extra={"ip_address": request.META["REMOTE_ADDR"], "user_id": request.user.id},
             )
             return None
 
@@ -597,3 +579,64 @@ class Superuser(ElevatedMode):
         # otherwise, if the session is invalid and there's a cookie set, clear it
         elif not self.is_valid and request.COOKIES.get(COOKIE_NAME):
             response.delete_cookie(COOKIE_NAME)
+
+
+SUPERUSER_CONTEXT_SALT = "sentry.viewer-context.superuser"
+SUPERUSER_CONTEXT_TTL = timedelta(minutes=5)
+
+
+def create_superuser_context(
+    request: HttpRequest | Request, organization_context: Organization | RpcUserOrganizationContext
+) -> str | None:
+    """Attest to approved read access without exporting browser session credentials."""
+    if getattr(request, "auth", None) is not None or not request.user.is_superuser:
+        return None
+    organization = (
+        organization_context.organization
+        if isinstance(organization_context, RpcUserOrganizationContext)
+        else organization_context
+    )
+    su = getattr(request, "superuser", None) or Superuser(request)
+    if not su.is_active or su.requires_org_auth(organization):
+        return None
+    data = su.get_session_data()
+    if data is None or not should_allow_superuser_access(organization_context):
+        return None
+    now = django_timezone.now()
+    expires = min(data["exp"], data["idl"], now + SUPERUSER_CONTEXT_TTL)
+    if organization.id != su.org_id:
+        expires = min(expires, data["exp"] - MAX_AGE + MAX_AGE_PRIVILEGED_ORG_ACCESS)
+    if expires <= now:
+        return None
+    return signing.dumps(
+        {"uid": request.user.id, "org": organization.id, "exp": int(expires.timestamp())},
+        salt=SUPERUSER_CONTEXT_SALT,
+    )
+
+
+def superuser_context_access(
+    proof: str, user: RpcUser, org_context: RpcUserOrganizationContext
+) -> tuple[set[str], datetime] | None:
+    """Validate the original Sentry attestation and current user/customer policy.
+
+    The nested signature uses Sentry's secret, not a service-shared VC signing key.
+    Re-signing a ViewerContext therefore cannot renew or widen its elevation.
+    """
+    if not user.is_active or not user.is_superuser or user.is_suspended:
+        return None
+    try:
+        data = signing.loads(proof, salt=SUPERUSER_CONTEXT_SALT, max_age=SUPERUSER_CONTEXT_TTL)
+        if data["uid"] != user.id or data["org"] != org_context.organization.id:
+            return None
+        expires = datetime.fromtimestamp(data["exp"], timezone.utc)
+        if expires <= django_timezone.now():
+            return None
+        scopes = (
+            get_superuser_scopes(
+                RpcAuthState(sso_state=RpcMemberSsoState(), permissions=[]), user, org_context
+            )
+            & settings.SENTRY_READONLY_SCOPES
+        )
+    except (signing.BadSignature, KeyError, TypeError, ValueError, DataSecrecyError):
+        return None
+    return scopes, expires
