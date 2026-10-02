@@ -92,9 +92,10 @@ export async function bulkDelete(api: Client, params: BulkDeleteParams) {
   GroupStore.onDelete(id, itemIds);
 
   try {
-    const data = await api.requestPromise(path, {
+    const [data] = await api.requestPromise(path, {
       query,
       method: 'DELETE',
+      includeAllArgs: true,
     });
     GroupStore.onDeleteSuccess(id, itemIds, data);
   } catch (error) {
