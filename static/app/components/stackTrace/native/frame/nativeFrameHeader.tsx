@@ -99,11 +99,11 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
           zero: hasAnyStatusIcons
             ? '16px minmax(0, 120px) minmax(0, 1fr)'
             : 'minmax(0, 120px) minmax(0, 1fr)',
-          '2xl': hasAnyStatusIcons
+          lg: hasAnyStatusIcons
             ? '16px 150px 120px minmax(0, 1fr) minmax(168px, auto)'
             : '150px 120px minmax(0, 1fr) minmax(168px, auto)',
         }}
-        gap={{zero: '2xs sm', '2xl': '0 md'}}
+        gap={{zero: '2xs sm', lg: '0 md'}}
         padding="xs md"
         data-test-id="native-stack-trace-frame-title"
         data-sub-frame={isSubFrame ? true : undefined}
@@ -124,7 +124,7 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
             align="center"
             justify="center"
             column="1"
-            row={{zero: '1 / 3', '2xl': '1'}}
+            row={{zero: '1 / 3', lg: '1'}}
             data-test-id="native-stack-trace-status-cell"
           >
             <SymbolicatorStatusIcon />
@@ -132,14 +132,14 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
         ) : null}
 
         <Flex
-          direction={{zero: 'row', '2xl': 'column'}}
-          align={{zero: 'baseline', '2xl': 'start'}}
+          direction={{zero: 'row', lg: 'column'}}
+          align={{zero: 'baseline', lg: 'start'}}
           column={{
             zero: hasAnyStatusIcons ? '3' : '2',
-            '2xl': hasAnyStatusIcons ? '2' : '1',
+            lg: hasAnyStatusIcons ? '2' : '1',
           }}
           row="1"
-          gap={{zero: 'xs', '2xl': '0'}}
+          gap={{zero: 'xs', lg: '0'}}
           justify="center"
           minWidth={0}
           overflow="hidden"
@@ -181,7 +181,7 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
           overflow="hidden"
           column={{
             zero: hasAnyStatusIcons ? '2' : '1',
-            '2xl': hasAnyStatusIcons ? '3' : '2',
+            lg: hasAnyStatusIcons ? '3' : '2',
           }}
           row="1"
         >
@@ -195,9 +195,9 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
           minWidth={0}
           column={{
             zero: hasAnyStatusIcons ? '2 / -1' : '1 / -1',
-            '2xl': hasAnyStatusIcons ? '4' : '3',
+            lg: hasAnyStatusIcons ? '4' : '3',
           }}
-          row={{zero: '2', '2xl': '1'}}
+          row={{zero: '2', lg: '1'}}
         >
           {functionLabel ? (
             <Tooltip
@@ -235,9 +235,9 @@ export function NativeFrameHeader({actions}: NativeFrameHeaderProps) {
           minWidth={0}
           column={{
             zero: hasAnyStatusIcons ? '2 / -1' : '1 / -1',
-            '2xl': hasAnyStatusIcons ? '5' : '4',
+            lg: hasAnyStatusIcons ? '5' : '4',
           }}
-          row={{zero: '3', '2xl': '1'}}
+          row={{zero: '3', lg: '1'}}
           data-test-id="native-stack-trace-frame-actions"
         >
           {resolvedActions}
