@@ -143,6 +143,11 @@ EVENT_MODELS_TO_MIGRATE = (EventAttachment, models.UserReport)
 # and after which we just give up and mark the group as finished.
 REPROCESSING_TIMEOUT = 20 * 60
 
+# Unprocessed event copies are ultimately stored as subkeys in the same row as the
+# processed event copy. While processing is still ongoing, they are stored in their own
+# nodestore row with a 24h TTL.
+UNPROCESSED_COPY_TTL = timedelta(hours=24)
+
 
 # Note: This list of reasons is exposed in the EventReprocessableEndpoint to
 # the frontend.
@@ -164,14 +169,35 @@ class CannotReprocess(Exception):
 
 def backup_unprocessed_event(data: Mapping[str, Any]) -> None:
     """
-    Backup unprocessed event payload into redis. Only call if event should be
-    able to be reprocessed.
+    Backup unprocessed event payload. Only call if event should be able to be
+    reprocessed.
     """
 
     if options.get("store.reprocessing-force-disable"):
         return
 
-    event_processing_store.store(dict(data), unprocessed=True)
+    if in_random_rollout("store.reprocessing-nodestore-backup.rollout"):
+        node_id = Event.generate_unprocessed_node_id(data["project"], data["event_id"])
+        nodestore.backend.set(node_id, dict(data), ttl=UNPROCESSED_COPY_TTL)
+    else:
+        # Once the rollout is complete, this branch goes away.
+        event_processing_store.store(dict(data), unprocessed=True)
+
+
+def get_unprocessed_backup(project_id: int, event_id: str) -> Any | None:
+    """
+    Read the short-lived backup written by `backup_unprocessed_event`, not the durable
+    `unprocessed` subkey of a saved event.
+    """
+    return nodestore.backend.get(Event.generate_unprocessed_node_id(project_id, event_id))
+
+
+def delete_unprocessed_backup(project_id: int, event_id: str) -> None:
+    """
+    Drop the short-lived backup once its payload is durable elsewhere. Backups belonging
+    to events that never get saved are left to expire via `UNPROCESSED_COPY_TTL`.
+    """
+    nodestore.backend.delete(Event.generate_unprocessed_node_id(project_id, event_id))
 
 
 @dataclass
