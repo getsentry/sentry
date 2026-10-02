@@ -7,12 +7,18 @@ export function useRAF(callback: () => unknown, opts?: {enabled: boolean}) {
     if (enabled) {
       // Keep polling even when the callback does not trigger a React render.
       let timer: number;
+      let active = true;
       const tick = () => {
         onFrame();
-        timer = window.requestAnimationFrame(tick);
+        if (active) {
+          timer = window.requestAnimationFrame(tick);
+        }
       };
       timer = window.requestAnimationFrame(tick);
-      return () => window.cancelAnimationFrame(timer);
+      return () => {
+        active = false;
+        window.cancelAnimationFrame(timer);
+      };
     }
     return () => {};
   }, [enabled]);
