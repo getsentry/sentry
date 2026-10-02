@@ -1,6 +1,9 @@
 import {t, tn} from 'sentry/locale';
 import type {SeerStatusBlockVariant} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
-import type {InvestigationOrchestration} from 'sentry/views/investigations/types';
+import type {
+  InvestigationOrchestration,
+  InvestigationToolActivity,
+} from 'sentry/views/investigations/types';
 
 type SeerStatusBlockContent = {
   statusLabel: string;
@@ -8,7 +11,48 @@ type SeerStatusBlockContent = {
   variant: SeerStatusBlockVariant;
   description?: string;
   meta?: string;
+  toolActivity?: InvestigationToolActivity[];
 };
+
+/**
+ * How many tool calls the block lists. The block is a status line, not a log:
+ * the latest few say what the agent is doing right now, and the rest belongs
+ * on the hypotheses themselves.
+ */
+const MAX_TOOL_ACTIVITY = 3;
+
+/**
+ * The tool calls behind the phase the run is in, latest last.
+ *
+ * Each phase keeps its own list on the projection — the broad scan, each
+ * hypothesis under investigation, the report block being written — so the
+ * phase picks which one is current. Only hypotheses still being investigated
+ * contribute: a settled one's calls are history, not activity.
+ */
+function getToolActivity(
+  projection: InvestigationOrchestration
+): InvestigationToolActivity[] | undefined {
+  let activity: InvestigationToolActivity[] = [];
+  switch (projection.phase) {
+    case 'intake':
+    case 'broad_scan':
+      activity = projection.broadScan.toolActivity ?? [];
+      break;
+    case 'investigating':
+    case 'judging':
+      activity = projection.hypotheses
+        .filter(hypothesis => hypothesis.effectiveStatus === 'investigating')
+        .flatMap(hypothesis => hypothesis.toolActivity ?? []);
+      break;
+    case 'reporting':
+    case 'metadata':
+      activity = projection.report.currentBlockToolActivity ?? [];
+      break;
+    default:
+      break;
+  }
+  return activity.length ? activity.slice(-MAX_TOOL_ACTIVITY) : undefined;
+}
 
 /**
  * How many checks have produced something across every hypothesis.
@@ -67,6 +111,11 @@ function getFailureMessage(projection: InvestigationOrchestration): string | und
 function getRunningContent(
   projection: InvestigationOrchestration
 ): SeerStatusBlockContent {
+  return {...getRunningCopy(projection), toolActivity: getToolActivity(projection)};
+}
+
+/** The words for a running run; the tool calls are added by the caller. */
+function getRunningCopy(projection: InvestigationOrchestration): SeerStatusBlockContent {
   const causeCount = projection.hypotheses.length;
 
   switch (projection.phase) {

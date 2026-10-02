@@ -5,11 +5,15 @@ import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
+  IconCheckmark,
   IconCircleCheckmark,
   IconCircleDashed,
+  IconClose,
   IconFatal,
   IconWarning,
 } from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {InvestigationToolActivity} from 'sentry/views/investigations/types';
 
 /**
  * Where an agentic run has got to, as one line the viewer can read without
@@ -69,6 +73,56 @@ function StatusIcon({variant}: {variant: SeerStatusBlockVariant}) {
   }
 }
 
+function ToolActivityIcon({status}: {status: InvestigationToolActivity['status']}) {
+  switch (status) {
+    case 'running':
+      return <LoadingIndicator size={12} />;
+    case 'completed':
+      return <IconCheckmark size="xs" variant="success" />;
+    case 'failed':
+      return <IconClose size="xs" variant="danger" />;
+    // Queued, or a status Seer added before this code knew the name: the call
+    // exists but nothing has come of it yet.
+    default:
+      return <IconCircleDashed size="xs" variant="muted" />;
+  }
+}
+
+/**
+ * The calls the agent is making right now, one line each. Muted on purpose:
+ * they show the run is moving and what it is looking at, but the title is
+ * still the sentence to read.
+ */
+function ToolActivityList({toolActivity}: {toolActivity: InvestigationToolActivity[]}) {
+  return (
+    <Stack
+      as="ul"
+      gap="xs"
+      margin="0"
+      padding="0"
+      aria-label={t('Tool calls')}
+      data-test-id="seer-status-block-tool-activity"
+    >
+      {toolActivity.map(activity => (
+        <Flex as="li" key={activity.id} gap="sm" align="center" minWidth="0">
+          <Flex
+            width="12px"
+            height="12px"
+            align="center"
+            justify="center"
+            flex="0 0 auto"
+          >
+            <ToolActivityIcon status={activity.status} />
+          </Flex>
+          <Text size="sm" variant="muted" ellipsis>
+            {activity.title}
+          </Text>
+        </Flex>
+      ))}
+    </Stack>
+  );
+}
+
 type SeerStatusBlockProps = {
   /** The sentence the block leads with, in the agent's voice. */
   title: string;
@@ -100,6 +154,11 @@ type SeerStatusBlockProps = {
    */
   meta?: string;
   /**
+   * The tool calls behind the current phase, latest last. Only a running block
+   * should supply these — once a run stops they are history, not status.
+   */
+  toolActivity?: InvestigationToolActivity[];
+  /**
    * A control on the right edge of the block, such as a link to open the
    * investigation. Unlike `action`, it is not a request for input.
    */
@@ -126,6 +185,7 @@ export function SeerStatusBlock({
   elapsed,
   meta,
   title,
+  toolActivity,
   trailing,
   variant,
 }: SeerStatusBlockProps) {
@@ -177,6 +237,10 @@ export function SeerStatusBlock({
               <Text size="sm" density="comfortable">
                 {description}
               </Text>
+            ) : null}
+
+            {toolActivity?.length ? (
+              <ToolActivityList toolActivity={toolActivity} />
             ) : null}
 
             {children}

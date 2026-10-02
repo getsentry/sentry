@@ -148,6 +148,47 @@ export default Storybook.story('Investigations — Seer status block', story => 
     </Fragment>
   ));
 
+  story('With tool calls', () => (
+    <Fragment>
+      <p>
+        While the agent is working, <code>toolActivity</code> lists the latest calls
+        behind the current phase — the broad scan, the hypotheses still under
+        investigation, or the report block being written. They sit under the description
+        in muted text: they show the run is moving and what it is looking at, but the
+        title is still the sentence to read. A stopped run leaves them out, since its last
+        calls are history, not status.
+      </p>
+      <Storybook.Demo direction="column" align="stretch" maxHeight="none">
+        <SeerStatusBlock
+          variant="running"
+          title="Seer found four possible causes and is checking for evidence"
+          description="Seer is checking for evidence to validate each possible cause. No input needed."
+          elapsed="101.5s"
+          toolActivity={[
+            {
+              id: 'tool-1',
+              kind: 'tool',
+              status: 'completed',
+              title: 'Compared cache hit rate with p95 response time',
+            },
+            {
+              id: 'tool-2',
+              kind: 'api',
+              status: 'failed',
+              title: 'Fetched identity-provider spans',
+            },
+            {
+              id: 'tool-3',
+              kind: 'tool',
+              status: 'running',
+              title: 'Grouping Redis command latency by key prefix',
+            },
+          ]}
+        />
+      </Storybook.Demo>
+    </Fragment>
+  ));
+
   story('Without an elapsed time', () => (
     <Fragment>
       <p>

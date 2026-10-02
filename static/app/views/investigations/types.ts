@@ -249,7 +249,7 @@ type InvestigationOrchestrationError = {
   source?: string | null;
 };
 
-type InvestigationToolActivity = {
+export type InvestigationToolActivity = {
   id: string;
   kind: InvestigationOrchestrationOpenString<'api' | 'library' | 'step' | 'tool'>;
   status: InvestigationOrchestrationOpenString<
