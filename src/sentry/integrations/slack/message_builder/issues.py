@@ -624,8 +624,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                     workflow = Workflow.objects.filter(id=link_id).first()
                     rule_environment_id = workflow.environment_id if workflow else None
                 case "legacy_rule_id":
-                    rule = Rule.objects.filter(id=link_id).first()
-                    rule_environment_id = rule.environment_id if rule else None
+                    rule_environment_id = self.rules[0].environment_id
 
         # build up actions text
         if self.actions and self.identity and not action_text:
