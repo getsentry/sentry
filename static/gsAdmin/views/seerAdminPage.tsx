@@ -46,12 +46,6 @@ function parseRunIds(value: string): number[] | null {
 
 const retryFormSchema = z.object({
   locality: z.string().min(1, 'Select a region'),
-  organizationId: z
-    .number()
-    .int('Organization ID must be a whole number')
-    .positive('Organization ID must be greater than 0')
-    .nullable()
-    .refine(value => value !== null, 'Organization ID is required'),
   runIds: z
     .string()
     .refine(
@@ -65,7 +59,6 @@ type AutofixRetryResult =
   | {reason: string; retried: false; run_id: number};
 
 type AutofixRetryResponse = {
-  organization_id: number;
   results: AutofixRetryResult[];
 };
 
@@ -200,10 +193,7 @@ function AutofixRetryForm() {
       return fetchMutation<AutofixRetryResponse>({
         url: getApiUrl('/internal/seer/autofix/retry/'),
         method: 'POST',
-        data: {
-          organization_id: data.organizationId,
-          run_ids: parseRunIds(data.runIds),
-        },
+        data: {run_ids: parseRunIds(data.runIds)},
         options: {host: data.locality},
       });
     },
@@ -218,7 +208,6 @@ function AutofixRetryForm() {
 
   const defaultValues: z.input<typeof retryFormSchema> = {
     locality: localities[0]?.url ?? '',
-    organizationId: null,
     runIds: '',
   };
   const form = useScrapsForm({
@@ -249,17 +238,6 @@ function AutofixRetryForm() {
                   value={field.state.value}
                   onChange={field.handleChange}
                   options={regionOptions(localities)}
-                />
-              </field.Layout.Stack>
-            )}
-          </form.AppField>
-          <form.AppField name="organizationId">
-            {field => (
-              <field.Layout.Stack label="Organization ID" required>
-                <field.Number
-                  min={1}
-                  value={field.state.value}
-                  onChange={field.handleChange}
                 />
               </field.Layout.Stack>
             )}

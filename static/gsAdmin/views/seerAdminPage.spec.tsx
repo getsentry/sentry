@@ -55,7 +55,6 @@ describe('SeerAdminPage', () => {
       url: '/internal/seer/autofix/retry/',
       method: 'POST',
       body: {
-        organization_id: 123,
         results: [
           {run_id: 1, retried: true, step: 'root_cause'},
           {run_id: 2, retried: false, reason: "Run status is 'completed', not 'error'"},
@@ -65,17 +64,13 @@ describe('SeerAdminPage', () => {
 
     render(<SeerAdminPage />);
 
-    await userEvent.type(
-      screen.getByRole('spinbutton', {name: 'Organization ID'}),
-      '123'
-    );
     await userEvent.type(screen.getByRole('textbox', {name: 'Run IDs'}), '1, 2');
     await userEvent.click(screen.getByRole('button', {name: 'Retry Runs'}));
 
     await waitFor(() =>
       expect(request).toHaveBeenCalledWith(
         '/internal/seer/autofix/retry/',
-        expect.objectContaining({data: {organization_id: 123, run_ids: [1, 2]}})
+        expect.objectContaining({data: {run_ids: [1, 2]}})
       )
     );
     expect(await screen.findByText('Retried root_cause')).toBeInTheDocument();
@@ -93,10 +88,6 @@ describe('SeerAdminPage', () => {
 
     render(<SeerAdminPage />);
 
-    await userEvent.type(
-      screen.getByRole('spinbutton', {name: 'Organization ID'}),
-      '123'
-    );
     await userEvent.type(screen.getByRole('textbox', {name: 'Run IDs'}), '1, abc');
     await userEvent.click(screen.getByRole('button', {name: 'Retry Runs'}));
 
