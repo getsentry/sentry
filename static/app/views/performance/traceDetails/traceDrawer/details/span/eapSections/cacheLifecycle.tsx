@@ -2,7 +2,7 @@ import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {Tag} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -12,7 +12,6 @@ import type {Organization} from 'sentry/types/organization';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   useTraceItemDetails,
   type TraceItemResponseAttribute,
@@ -109,7 +108,14 @@ function findCacheOriginLink(
   );
 }
 
-function useOpenOriginSpan({
+/**
+ * Link target and click handler for the origin span. The real href lets users
+ * open the origin trace in a new tab. A plain left click is intercepted when
+ * the fill span is in the tree already on screen: the replay trace view merges
+ * several traces into one tree, so search it even when the link points to
+ * another trace.
+ */
+function useOriginSpanLink({
   tree,
   node,
   link,
@@ -124,26 +130,10 @@ function useOpenOriginSpan({
   itemAgeSeconds: number | undefined;
   link: TraceItemResponseLink | undefined;
 }) {
-  const navigate = useNavigate();
   const traceDispatch = useTraceStateDispatch();
 
-  return function openOriginSpan() {
-    if (!link) {
-      return;
-    }
-
-    // The fill span can be in the tree already on screen. The replay trace
-    // view merges several traces into one tree, so search it even when the
-    // link points to another trace.
-    const spanNode = tree?.root.findChild(c => c.matchById(link.itemId));
-    if (spanNode) {
-      onTabScrollToNode(spanNode);
-      return;
-    }
-
-    traceDispatch({type: 'minimize drawer', payload: true});
-    navigate(
-      generateLinkToEventInTraceView({
+  const to = link
+    ? generateLinkToEventInTraceView({
         organization,
         location,
         traceSlug: link.traceId,
@@ -152,8 +142,27 @@ function useOpenOriginSpan({
         timestamp: node.value.start_timestamp - (itemAgeSeconds ?? 0),
         tab: TraceLayoutTabKeys.WATERFALL,
       })
-    );
-  };
+    : '';
+
+  function onClick(event: React.MouseEvent<HTMLAnchorElement>) {
+    // Modified clicks (new tab, new window) go through the href.
+    if (event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) {
+      return;
+    }
+
+    const spanNode = link
+      ? tree?.root.findChild(c => c.matchById(link.itemId))
+      : undefined;
+    if (spanNode) {
+      event.preventDefault();
+      onTabScrollToNode(spanNode);
+      return;
+    }
+
+    traceDispatch({type: 'minimize drawer', payload: true});
+  }
+
+  return {to, onClick};
 }
 
 function useTimelineColors() {
@@ -339,7 +348,7 @@ function CacheReadLifecycleSection(props: CacheLifecycleSectionProps) {
     sourceFilePath: getAttributeValue(originAttributes, 'code.file.path', 'string'),
   };
 
-  const openOriginSpan = useOpenOriginSpan({...props, link, itemAgeSeconds});
+  const originSpanLink = useOriginSpanLink({...props, link, itemAgeSeconds});
   const outcome = getReadOutcome(hit, colors);
 
   const expiresInSeconds =
@@ -387,9 +396,13 @@ function CacheReadLifecycleSection(props: CacheLifecycleSectionProps) {
               )}
             </Stack>
             {link ? (
-              <Button size="xs" onClick={openOriginSpan} busy={origin.isLoading}>
+              <LinkButton
+                size="xs"
+                to={originSpanLink.to}
+                onClick={originSpanLink.onClick}
+              >
                 {t('Open origin span')}
-              </Button>
+              </LinkButton>
             ) : null}
           </Stack>
         </Timeline.Item>
