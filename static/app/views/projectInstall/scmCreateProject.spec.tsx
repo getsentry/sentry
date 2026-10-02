@@ -26,7 +26,7 @@ import type {PlatformKey} from 'sentry/types/platform';
 import {DEFAULT_ISSUE_ALERT_OPTIONS_VALUES} from 'sentry/views/projectInstall/issueAlertOptions';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
-import {ScmCreateProject} from './scmCreateProject';
+import ScmCreateProject from './scmCreateProject';
 
 // Mock the virtualizer so the platform-features manual-picker Select renders.
 jest.mock('@tanstack/react-virtual', () => ({
