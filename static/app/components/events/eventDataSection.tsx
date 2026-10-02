@@ -74,39 +74,15 @@ export function EventDataSection({
         align="center"
         gap="xs"
         wrap="wrap"
-        css={theme => css`
-          & h3 a {
-            color: ${theme.tokens.content.secondary};
-            font-size: ${theme.font.size.md};
-            font-weight: ${theme.font.weight.sans.medium};
-          }
-
-          & small {
-            color: ${theme.tokens.content.primary};
-            font-size: ${theme.font.size.md};
-            margin-right: ${theme.space.xs};
-            margin-left: ${theme.space.xs};
-          }
-          & small > span {
-            color: ${theme.tokens.content.primary};
-            font-weight: ${theme.font.weight.sans.regular};
-          }
-
-          @container (min-width: ${theme.container['5xl']}) {
-            & > small {
-              margin-left: ${theme.space.md};
-              display: inline-block;
-            }
-          }
-
-          > *:first-child {
-            position: relative;
-            flex-grow: 1;
-          }
-        `}
       >
         {title && (
-          <Grid columns="max-content 1fr" align="center" gap="xs">
+          <Grid
+            columns="max-content 1fr"
+            align="center"
+            gap="xs"
+            position="relative"
+            flexGrow={1}
+          >
             <Container as="span" width="100%" position="relative" className="permalink">
               <Flex
                 position="absolute"
