@@ -108,6 +108,7 @@ export function SlowestFunctionsWidget<F extends BreakdownFunction>({
     setExpandedIndex,
     // we want to reset the sorting option and expanded index to the default
     // every time the breakdown function changes.
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     breakdownFunction,
   ]);
 
@@ -437,13 +438,15 @@ function SlowestFunctionEntry<F extends BreakdownFunction>({
         </Tooltip>
         <DropdownMenu
           position="bottom-end"
-          triggerProps={{
-            icon: <IconEllipsis size="xs" />,
-            variant: 'transparent',
-            showChevron: false,
-            size: 'xs',
-            'aria-label': t('Example Profiles'),
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              icon={<IconEllipsis size="xs" />}
+              variant="transparent"
+              size="xs"
+              aria-label={t('Example Profiles')}
+            />
+          )}
           onOpenChange={isOpen => {
             if (isOpen) {
               trackAnalytics('profiling_views.landing.widget.open_list', {

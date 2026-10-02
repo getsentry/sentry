@@ -31,7 +31,11 @@ export function ProvideAriaRouter({children}: {children: React.ReactNode}) {
   );
 
   return (
-    <AriaRouterProvider navigate={handleNavigate} useHref={useHref}>
+    <AriaRouterProvider
+      navigate={handleNavigate}
+      // oxlint-disable-next-line react/hooks -- react-aria RouterProvider takes useHref as a value and calls it internally.
+      useHref={useHref}
+    >
       {children}
     </AriaRouterProvider>
   );

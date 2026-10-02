@@ -37,6 +37,7 @@ from .detectors.render_blocking_asset_span_detector import RenderBlockingAssetSp
 from .detectors.slow_db_query_detector import SlowDBQueryDetector
 from .detectors.sql_injection_detector import SQLInjectionDetector
 from .detectors.uncompressed_asset_detector import UncompressedAssetSpanDetector
+from .detectors.utils import get_browser_name
 from .performance_problem import PerformanceProblem
 
 logger = logging.getLogger(__name__)
@@ -868,11 +869,7 @@ def report_metrics_for_detectors(
         if event_id:
             set_span_tag(sdk_span, "_pi_transaction", event_id)
 
-    tags = event.get("tags", [])
-    browser_name = next(
-        (tag[1] for tag in tags if tag is not None and tag[0] == "browser.name" and len(tag) == 2),
-        None,
-    )
+    browser_name = get_browser_name(event)
     allowed_browser_name = "Other"
     if browser_name in [
         "Chrome",

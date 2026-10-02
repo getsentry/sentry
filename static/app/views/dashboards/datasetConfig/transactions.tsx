@@ -38,7 +38,7 @@ import {
   getTableSortOptions,
   getTimeseriesSortOptions,
   transformEventsResponseToTable,
-} from './errorsAndTransactions';
+} from './events';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',

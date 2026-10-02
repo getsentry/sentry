@@ -302,6 +302,7 @@ function OnionView({
         </Text>
         <Flex width="200px">
           <Slider
+            aria-label={t('Head image opacity')}
             value={opacity}
             onChange={onOpacityChange}
             formatOptions={{style: 'unit', unit: 'percent'}}

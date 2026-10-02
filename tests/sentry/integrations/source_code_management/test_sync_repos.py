@@ -11,6 +11,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegrationProvider
 from sentry.integrations.gitlab.integration import GitlabIntegration
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.perforce.integration import PerforceIntegrationProvider
 from sentry.integrations.source_code_management.sync_repos import (
@@ -233,6 +234,145 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             assert repos[0].status == ObjectStatus.ACTIVE
 
     @responses.activate
+    def test_transfers_repo_from_other_integration_in_same_org(self, _: MagicMock) -> None:
+        old_integration = self.create_integration(
+            organization=self.organization, external_id="old-gh-org", provider="github"
+        )
+        old_oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=old_integration
+        )
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="old-org/sentry",
+                url="https://github.com/old-org/sentry",
+                external_id="1",
+                provider="integrations:github",
+                integration_id=old_integration.id,
+                status=ObjectStatus.ACTIVE,
+                config={"name": "old-org/sentry", "webhook_id": 5},
+            )
+            Commit.objects.create(
+                organization_id=self.organization.id, repository_id=repo.id, key="abc123"
+            )
+        code_mapping = self.create_code_mapping(
+            project=self.project, repo=repo, organization_integration=old_oi
+        )
+
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
+
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert Repository.objects.filter(organization_id=self.organization.id).count() == 1
+            repo.refresh_from_db()
+            assert repo.integration_id == self.integration.id
+            assert repo.status == ObjectStatus.ACTIVE
+            assert repo.name == "getsentry/sentry"
+            assert repo.url == "https://github.com/getsentry/sentry"
+            assert repo.config == {"name": "getsentry/sentry", "webhook_id": 5}
+            assert Commit.objects.filter(repository_id=repo.id).exists()
+
+            code_mapping.refresh_from_db()
+            assert code_mapping.integration_id == self.integration.id
+            assert code_mapping.organization_integration_id == self.oi.id
+
+    @responses.activate
+    def test_transfers_disabled_repo_from_other_integration(self, _: MagicMock) -> None:
+        old_integration = self.create_integration(
+            organization=self.organization, external_id="old-gh-org", provider="github"
+        )
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="old-org/sentry",
+                external_id="1",
+                provider="integrations:github",
+                integration_id=old_integration.id,
+                status=ObjectStatus.DISABLED,
+            )
+        code_mapping = self.create_code_mapping(
+            project=self.project,
+            repo=repo,
+            organization_integration=old_integration.organizationintegration_set.get(),
+        )
+
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
+
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo.refresh_from_db()
+            assert repo.integration_id == self.integration.id
+            assert repo.status == ObjectStatus.ACTIVE
+            assert repo.name == "getsentry/sentry"
+
+            code_mapping.refresh_from_db()
+            assert code_mapping.integration_id == self.integration.id
+            assert code_mapping.organization_integration_id == self.oi.id
+
+    @responses.activate
+    @patch(
+        "sentry.integrations.services.repository.repository_service.transfer_repository_to_integration",
+        return_value=False,
+    )
+    def test_does_not_report_repo_when_transfer_does_not_apply(
+        self, mock_transfer: MagicMock, _: MagicMock
+    ) -> None:
+        old_integration = self.create_integration(
+            organization=self.organization, external_id="old-gh-org", provider="github"
+        )
+        self.create_repo(
+            project=self.project,
+            name="old-org/sentry",
+            external_id="1",
+            provider="integrations:github",
+            integration_id=old_integration.id,
+        )
+
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
+
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        assert mock_transfer.called
+        with assume_test_silo_mode_of(AuditLogEntry):
+            assert not AuditLogEntry.objects.filter(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("REPO_ENABLED"),
+            ).exists()
+
+    @responses.activate
+    def test_does_not_transfer_repo_in_other_org(self, _: MagicMock) -> None:
+        other_org = self.create_organization()
+        other_integration = self.create_integration(
+            organization=other_org, external_id="old-gh-org", provider="github"
+        )
+        with assume_test_silo_mode(SiloMode.CELL):
+            other_repo = Repository.objects.create(
+                organization_id=other_org.id,
+                name="old-org/sentry",
+                external_id="1",
+                provider="integrations:github",
+                integration_id=other_integration.id,
+                status=ObjectStatus.ACTIVE,
+            )
+
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
+
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            other_repo.refresh_from_db()
+            assert other_repo.integration_id == other_integration.id
+            assert other_repo.name == "old-org/sentry"
+            new_repo = Repository.objects.get(organization_id=self.organization.id)
+            assert new_repo.integration_id == self.integration.id
+
+    @responses.activate
     def test_stamps_last_sync_on_org_integration(self, _: MagicMock) -> None:
         self.oi.config = {
             "last_sync": "2020-01-01T00:00:00+00:00",
@@ -444,6 +584,93 @@ class SyncReposForOrgGHETestCase(TestCase):
 
         assert len(repos) == 2
         assert repos[0].provider == "integrations:github_enterprise"
+
+    def _create_ghe_integration(self, host: str) -> Integration:
+        return self.create_integration(
+            organization=self.organization,
+            external_id=f"{host}:12345",
+            provider="github_enterprise",
+            metadata={
+                "domain_name": f"{host}/testorg",
+                "installation_id": "12345",
+                "installation": {"id": "2", "private_key": "private_key", "verify_ssl": True},
+            },
+        )
+
+    def _assert_other_integration_repo_untouched(
+        self, other_integration: Integration, status: int
+    ) -> Integration:
+        """
+        Syncs a GHE integration that lists repo id 1 while the org already has a repo with
+        id 1 on ``other_integration``, and asserts that repo is left alone. Returns the
+        synced integration so callers can check what, if anything, it got.
+        """
+        GitHubEnterpriseIntegrationProvider().setup()
+        provider = f"integrations:{other_integration.provider}"
+        integration = self._create_ghe_integration("10.0.0.2")
+        oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=integration
+        )
+        with assume_test_silo_mode(SiloMode.CELL):
+            other_repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="testorg/other",
+                external_id="1",
+                provider=provider,
+                integration_id=other_integration.id,
+                status=status,
+            )
+
+        with (
+            patch(
+                "sentry.integrations.github.client.GitHubBaseClient.get_repos",
+                return_value=[{"id": 1, "full_name": "testorg/repo1", "name": "repo1"}],
+            ),
+            self.tasks(),
+        ):
+            sync_repos_for_org(oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            other_repo.refresh_from_db()
+            assert other_repo.integration_id == other_integration.id
+            assert other_repo.provider == provider
+            assert other_repo.name == "testorg/other"
+            assert other_repo.status == status
+        return integration
+
+    def _assert_nothing_linked(self, integration: Integration) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not Repository.objects.filter(
+                organization_id=self.organization.id, integration_id=integration.id
+            ).exists()
+
+    def test_does_not_transfer_repo_between_ghe_integrations(self) -> None:
+        # Same numeric ID on a different host is a different repository.
+        integration = self._assert_other_integration_repo_untouched(
+            self._create_ghe_integration("10.0.0.1"), ObjectStatus.ACTIVE
+        )
+        self._assert_nothing_linked(integration)
+
+    def test_does_not_transfer_disabled_repo_between_ghe_integrations(self) -> None:
+        integration = self._assert_other_integration_repo_untouched(
+            self._create_ghe_integration("10.0.0.1"), ObjectStatus.DISABLED
+        )
+        self._assert_nothing_linked(integration)
+
+    def test_does_not_reuse_disabled_github_repo_for_ghe(self) -> None:
+        # github.com and GHE number repositories independently.
+        github_integration = self.create_integration(
+            organization=self.organization, external_id="gh-org", provider="github"
+        )
+        self._assert_other_integration_repo_untouched(github_integration, ObjectStatus.DISABLED)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert Repository.objects.filter(
+                organization_id=self.organization.id,
+                provider="integrations:github_enterprise",
+                external_id="1",
+                status=ObjectStatus.ACTIVE,
+            ).exists()
 
     @patch("sentry.integrations.github.client.GitHubBaseClient.get_repos")
     def test_truncated_fetch_skips_disable_for_ghe(self, mock_get_repos: MagicMock) -> None:

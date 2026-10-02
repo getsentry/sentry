@@ -118,7 +118,10 @@ describe('EventAttachments', () => {
 
     expect(await screen.findByText('Attachments (1)')).toBeInTheDocument();
 
-    expect(screen.getByRole('button', {name: /preview/i})).toBeDisabled();
+    expect(screen.getByRole('button', {name: /preview/i})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
     await userEvent.hover(screen.getByRole('button', {name: /preview/i}));
 
     await screen.findByText(/insufficient permissions to preview attachments/i);

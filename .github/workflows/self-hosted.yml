@@ -5,6 +5,9 @@ on:
       - master
       - releases/**
   pull_request:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
@@ -80,6 +83,7 @@ jobs:
           python3 -m sentry.build.main
 
       - uses: getsentry/action-build-and-push-images@07a1c835f7a78e0f438fc766cc6024ed0ca1bf03
+        if: github.event_name == 'push' || github.event_name == 'pull_request'
         with:
           image_name: 'sentry'
           platforms: linux/${{ matrix.platform }}
@@ -91,6 +95,32 @@ jobs:
           ghcr: true
           tag_nightly: false
           tag_latest: false
+
+      # getsentry/action-build-and-push-images only publishes on push, so the
+      # daily and manual distroless builds use the Docker actions directly.
+      - uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+
+      - uses: docker/login-action@74a5d142397b4f367a81961eba4e8cd7edddf772 # v3
+        if: (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && github.ref_name == 'master'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - uses: docker/build-push-action@263435318d21b8e681c14492fe198d362a7d2c83 # v6.18.0
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        with:
+          context: .
+          file: self-hosted/Dockerfile
+          target: distroless
+          platforms: linux/${{ matrix.platform }}
+          build-args: |
+            SOURCE_COMMIT=${{ github.sha }}
+            TARGETARCH=${{ matrix.platform }}
+          tags: ghcr.io/getsentry/sentry:${{ github.sha }}-distroless-${{ matrix.platform }}
+          cache-from: type=gha,scope=buildcache
+          push: ${{ github.ref_name == 'master' }}
 
   assemble:
     needs: [self-hosted]
@@ -109,9 +139,19 @@ jobs:
         uses: docker/setup-buildx-action@b5ca514318bd6ebac0fb2aedd5d36ec1b5c232a2 # v3.10.0
 
       - name: Create multiplatform manifests
+        if: github.event_name == 'push'
         run: |
           docker buildx imagetools create \
             --tag ghcr.io/getsentry/sentry:${{ github.sha }} \
             --tag ghcr.io/getsentry/sentry:nightly \
             ghcr.io/getsentry/sentry:${{ github.sha }}-amd64 \
             ghcr.io/getsentry/sentry:${{ github.sha }}-arm64
+
+      - name: Create distroless multiplatform manifests
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
+        run: |
+          docker buildx imagetools create \
+            --tag ghcr.io/getsentry/sentry:${{ github.sha }}-distroless \
+            --tag ghcr.io/getsentry/sentry:nightly-distroless \
+            ghcr.io/getsentry/sentry:${{ github.sha }}-distroless-amd64 \
+            ghcr.io/getsentry/sentry:${{ github.sha }}-distroless-arm64

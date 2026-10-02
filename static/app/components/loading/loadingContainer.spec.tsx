@@ -3,8 +3,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import type {LoadingContainerProps} from 'sentry/components/loading/loadingContainer';
 import {LoadingContainer} from 'sentry/components/loading/loadingContainer';
 
-function renderComponent(props: LoadingContainerProps = {}) {
-  return render(
+function ExampleLoadingContainer(props: LoadingContainerProps) {
+  return (
     <LoadingContainer {...props}>
       <div>hello!</div>
     </LoadingContainer>
@@ -13,13 +13,13 @@ function renderComponent(props: LoadingContainerProps = {}) {
 
 describe('LoadingContainer', () => {
   it('handles normal state', () => {
-    renderComponent();
+    render(<ExampleLoadingContainer />);
     expect(screen.getByText('hello!')).toBeInTheDocument();
     expect(() => screen.getByTestId('loading-indicator')).toThrow();
   });
 
   it('handles loading state', () => {
-    const {rerender} = renderComponent({isLoading: true});
+    const {rerender} = render(<ExampleLoadingContainer isLoading />);
     expect(screen.getByText('hello!')).toBeInTheDocument();
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     rerender(<LoadingContainer isLoading />);
@@ -28,7 +28,7 @@ describe('LoadingContainer', () => {
   });
 
   it('handles reloading state', () => {
-    const {rerender} = renderComponent({isReloading: true});
+    const {rerender} = render(<ExampleLoadingContainer isReloading />);
     expect(screen.getByText('hello!')).toBeInTheDocument();
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
     rerender(<LoadingContainer isReloading />);

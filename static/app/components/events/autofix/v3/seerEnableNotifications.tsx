@@ -10,6 +10,7 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {usePrompt} from 'sentry/actionCreators/prompts';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import type {ExplorerAutofixState} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {useAskSeerHandoff} from 'sentry/components/events/autofix/v3/useAskSeerHandoff';
 import {IconSubscribed} from 'sentry/icons/iconSubscribed';
 import {t} from 'sentry/locale';
 import {useServiceWorker} from 'sentry/serviceWorker/client/serviceWorkerContext';
@@ -41,11 +42,15 @@ export function SeerEnableNotifications({status}: Props) {
   const {isServiceWorkerSupported, controller} = useServiceWorker();
   const {permission, supportsNotifications, askNotificationPermission} =
     useNotificationPermission();
+  const {isCodeMode} = useAskSeerHandoff();
 
   const analyticsArea = useAnalyticsArea();
 
   const isEligible =
     organization.features.includes('autofix-browser-notifications') &&
+    // In code mode the run is handed to the agent and followed in chat, so an
+    // offer to announce it from here would point at the wrong surface.
+    !isCodeMode &&
     isServiceWorkerSupported &&
     supportsNotifications &&
     status === 'processing';

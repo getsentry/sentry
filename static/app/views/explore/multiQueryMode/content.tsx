@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -59,12 +59,7 @@ function Content({datePageFilterProps}: ContentProps) {
   const totalQueryRows = queries.length;
   const id = decodeScalar(location.query.id);
 
-  const visitQuery = useVisitQuery();
-  useEffect(() => {
-    if (id) {
-      visitQuery(id);
-    }
-  }, [id, visitQuery]);
+  useVisitQuery(id);
 
   const {data: savedQuery, isLoading: isLoadingSavedQuery} = useGetSavedQuery(id);
 

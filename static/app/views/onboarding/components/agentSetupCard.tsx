@@ -6,6 +6,7 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {IconBot} from 'sentry/icons';
@@ -74,6 +75,7 @@ export function AgentSetupCard({
     <Grid
       columns={`${SETUP_CARD_MARKER_PX} 1fr`}
       gap="0 md"
+      background="primary"
       border="primary"
       radius="xl"
       padding="xl"
@@ -81,6 +83,7 @@ export function AgentSetupCard({
         "icon  title"
         ".     meta"
         "steps steps"
+        "feedback feedback"
       `}
     >
       <Flex area="icon" align="center" justify="center">
@@ -165,6 +168,15 @@ export function AgentSetupCard({
           </ListItem>
         </List>
       </Container>
+
+      <Flex area="feedback" justify="end" paddingTop="lg">
+        <FeedbackButton
+          size="xs"
+          feedbackOptions={{
+            tags: {'feedback.source': 'onboarding-agent-setup'},
+          }}
+        />
+      </Flex>
     </Grid>
   );
 }

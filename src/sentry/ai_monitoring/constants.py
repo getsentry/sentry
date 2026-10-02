@@ -1,3 +1,4 @@
+from sentry.ai_monitoring.conversation_aggregates import CONVERSATION_AGGREGATE_DEFINITIONS
 from sentry.search.events.fields import get_function_alias
 
 AI_CONVERSATIONS_FIELDS = {
@@ -7,36 +8,15 @@ AI_CONVERSATIONS_FIELDS = {
         "sum_if(`has:gen_ai.operation.type`,span.duration)",
         "duration",
     ),
-    "conversation.generationDuration": (
-        "sum_if(span.duration,gen_ai.operation.type,equals,ai_client)",
-        "generation_duration",
-    ),
     "conversation.errors": ("failure_count()", "errors"),
-    "conversation.llmCalls": (
-        "count_if(gen_ai.operation.type,equals,ai_client)",
-        "llm_calls",
-    ),
-    "conversation.toolCalls": ("count_if(gen_ai.operation.type,equals,tool)", "tool_calls"),
-    "conversation.totalTokens": (
-        "sum_if(gen_ai.usage.total_tokens,gen_ai.operation.type,equals,ai_client)",
-        "total_tokens",
-    ),
-    "conversation.inputTokens": (
-        "sum_if(gen_ai.usage.input_tokens,gen_ai.operation.type,equals,ai_client)",
-        "input_tokens",
-    ),
-    "conversation.outputTokens": (
-        "sum_if(gen_ai.usage.output_tokens,gen_ai.operation.type,equals,ai_client)",
-        "output_tokens",
-    ),
-    "conversation.totalCost": (
-        "sum_if(gen_ai.cost.total_tokens,gen_ai.operation.type,equals,ai_client)",
-        "total_cost",
-    ),
-    "conversation.toolErrors": (
-        "failure_count_if(gen_ai.operation.type,equals,tool)",
-        "tool_errors",
-    ),
+    "conversation.generationDuration": CONVERSATION_AGGREGATE_DEFINITIONS["generationDuration"],
+    "conversation.inputTokens": CONVERSATION_AGGREGATE_DEFINITIONS["inputTokens"],
+    "conversation.llmCalls": CONVERSATION_AGGREGATE_DEFINITIONS["llmCalls"],
+    "conversation.outputTokens": CONVERSATION_AGGREGATE_DEFINITIONS["outputTokens"],
+    "conversation.toolCalls": CONVERSATION_AGGREGATE_DEFINITIONS["toolCalls"],
+    "conversation.toolErrors": CONVERSATION_AGGREGATE_DEFINITIONS["toolErrors"],
+    "conversation.totalCost": CONVERSATION_AGGREGATE_DEFINITIONS["totalCost"],
+    "conversation.totalTokens": CONVERSATION_AGGREGATE_DEFINITIONS["totalTokens"],
 }
 
 AI_CONVERSATIONS_LEGACY_ALIASES = {

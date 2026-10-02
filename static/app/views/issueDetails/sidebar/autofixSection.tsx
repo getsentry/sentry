@@ -47,6 +47,8 @@ import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import type {AutofixContentProps} from 'sentry/views/issueDetails/sidebar/autofixSectionTypes';
 import {Resources} from 'sentry/views/issueDetails/sidebar/resources';
 import {useOpenSeerDrawer} from 'sentry/views/issueDetails/sidebar/seerDrawer';
+import {Tab} from 'sentry/views/issueDetails/types';
+import {useCurrentTab} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
@@ -57,6 +59,7 @@ interface AutofixSectionProps {
 
 export function AutofixSection({group, project}: AutofixSectionProps) {
   const aiConfig = useAiConfig(group, project);
+  const isOnAutofixTab = useCurrentTab() === Tab.AUTOFIX;
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
@@ -89,6 +92,11 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
 
   return (
     <SidebarFoldSection
+      // The autofix tab already shows the full analysis, so start collapsed
+      // there. Opening it on that tab shouldn't change the saved preference
+      // for every other tab, and the key remounts it so each tab starts from
+      // its own state.
+      key={isOnAutofixTab ? 'autofix-tab' : 'default'}
       title={
         <Flex align="center" gap="xs">
           <Text size="md">{t('Seer Autofix')}</Text>
@@ -97,6 +105,8 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
       }
       sectionKey={SectionKey.SEER}
       preventCollapse={false}
+      initialCollapse={isOnAutofixTab}
+      disableCollapsePersistence={isOnAutofixTab}
     >
       <AutofixQuotaContent aiConfig={aiConfig} group={group} project={project} />
     </SidebarFoldSection>
@@ -343,6 +353,11 @@ function AutofixPreviews({group, project, sections, referrer}: AutofixPreviewsPr
     project,
   });
 
+  // On the autofix tab the full analysis is already open beside this sidebar,
+  // so a button whose only job is to go there has nowhere to take you. The
+  // previews above it stay, since they double as a table of contents.
+  const isOnAutofixTab = useCurrentTab() === Tab.AUTOFIX;
+
   return (
     <Stack gap="xl">
       {sections.map(section => {
@@ -370,29 +385,31 @@ function AutofixPreviews({group, project, sections, referrer}: AutofixPreviewsPr
         // TODO: maybe send a log?
         return null;
       })}
-      <Button
-        size="md"
-        icon={<IconSeer />}
-        aria-label={t('Open Autofix')}
-        variant="primary"
-        onClick={openSeerDrawer}
-        analyticsEventKey="issue_details.seer_opened"
-        analyticsEventName="Issue Details: Seer Opened"
-        analyticsParams={{
-          group_id: group.id,
-          has_streamlined_ui: true,
-          autofix_exists: true,
-          autofix_step_type: sections[sections.length - 1]?.step ?? null,
-          has_root_cause: hasRootCause,
-          has_solution: hasSolution,
-          has_coded_solution: hasCodeChanges,
-          has_pr: hasPullRequests,
-          mode: 'explorer',
-          referrer,
-        }}
-      >
-        {t('Open Autofix')}
-      </Button>
+      {!isOnAutofixTab && (
+        <Button
+          size="md"
+          icon={<IconSeer />}
+          aria-label={t('Open Autofix')}
+          variant="primary"
+          onClick={openSeerDrawer}
+          analyticsEventKey="issue_details.seer_opened"
+          analyticsEventName="Issue Details: Seer Opened"
+          analyticsParams={{
+            group_id: group.id,
+            has_streamlined_ui: true,
+            autofix_exists: true,
+            autofix_step_type: sections[sections.length - 1]?.step ?? null,
+            has_root_cause: hasRootCause,
+            has_solution: hasSolution,
+            has_coded_solution: hasCodeChanges,
+            has_pr: hasPullRequests,
+            mode: 'explorer',
+            referrer,
+          }}
+        >
+          {t('Open Autofix')}
+        </Button>
+      )}
     </Stack>
   );
 }
