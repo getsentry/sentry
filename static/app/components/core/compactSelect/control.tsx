@@ -384,12 +384,23 @@ export function Control<Value extends SelectKey>({
     flipOptions,
     strategy,
     onOpenChange: open => {
+      const focusedElementAtOpen = document.activeElement;
       onOpenChange?.(open);
 
       nextFrameCallback(() => {
         if (open) {
           // Force a overlay update, as sometimes the overlay is misaligned when opened
           updateOverlay?.();
+          // Respect focus changes that happened while the overlay was being placed.
+          const activeElement = document.activeElement;
+          if (
+            activeElement !== focusedElementAtOpen &&
+            activeElement !== triggerRef.current &&
+            activeElement !== document.body
+          ) {
+            return;
+          }
+
           // Focus on search box if present
           if (searchEnabled) {
             searchRef.current?.focus();
