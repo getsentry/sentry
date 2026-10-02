@@ -1,6 +1,5 @@
 import type {ReactEventHandler} from 'react';
 import {useState} from 'react';
-import {css} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -133,22 +132,21 @@ export function Screenshot({
                   openVisualizationModal(screenshot, `${downloadUrl}?download=1`)
                 }
               >
-                <AttachmentComponent
-                  css={css`
-                    width: 100%;
-                    z-index: 1;
-                    border: 0;
-                    padding: 0 !important;
-                  `}
-                  orgSlug={organization.slug}
-                  projectSlug={projectSlug}
-                  eventId={eventId}
-                  attachment={screenshot}
-                  onLoad={() => setLoadingImage(false)}
-                  onError={() => setLoadingImage(false)}
-                  controls={false}
-                  onCanPlay={() => setLoadingImage(false)}
-                />
+                <Container width="100%" border="none" padding="0">
+                  {containerProps => (
+                    <AttachmentComponent
+                      {...containerProps}
+                      orgSlug={organization.slug}
+                      projectSlug={projectSlug}
+                      eventId={eventId}
+                      attachment={screenshot}
+                      onLoad={() => setLoadingImage(false)}
+                      onError={() => setLoadingImage(false)}
+                      controls={false}
+                      onCanPlay={() => setLoadingImage(false)}
+                    />
+                  )}
+                </Container>
               </Container>
             </Stack>
             <Container
