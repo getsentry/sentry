@@ -388,10 +388,22 @@ class TestProcessWorkflows(BaseWorkflowTest):
 
         assert get_environment_by_event(self._activity_event_data()) == env
 
-    def test_activity_environment_when_group_has_no_environment(self) -> None:
-        assert get_environment_by_event(self._activity_event_data()) is None
+    # The unresolved cases all return None, so each also asserts its metric outcome to prove
+    # which branch it took.
 
-    def test_activity_environment_when_group_has_multiple_environments(self) -> None:
+    @patch("sentry.workflow_engine.processors.workflow.metrics_incr")
+    def test_activity_environment_when_group_has_no_environment(
+        self, mock_metrics_incr: MagicMock
+    ) -> None:
+        assert get_environment_by_event(self._activity_event_data()) is None
+        mock_metrics_incr.assert_called_once_with(
+            "process_workflows.activity_environment", tags={"outcome": "missing"}
+        )
+
+    @patch("sentry.workflow_engine.processors.workflow.metrics_incr")
+    def test_activity_environment_when_group_has_multiple_environments(
+        self, mock_metrics_incr: MagicMock
+    ) -> None:
         # No single environment resolved the group, so it stays unscoped.
         for _ in range(2):
             GroupEnvironment.objects.create(
@@ -400,15 +412,26 @@ class TestProcessWorkflows(BaseWorkflowTest):
             )
 
         assert get_environment_by_event(self._activity_event_data()) is None
+        mock_metrics_incr.assert_called_once_with(
+            "process_workflows.activity_environment", tags={"outcome": "ambiguous"}
+        )
 
-    def test_activity_environment_when_environment_was_deleted(self) -> None:
-        # The foreign key sets db_constraint=False, so the row can outlive its Environment.
+    @patch("sentry.workflow_engine.processors.workflow.metrics_incr")
+    def test_activity_environment_when_environment_was_deleted(
+        self, mock_metrics_incr: MagicMock
+    ) -> None:
+        # Deleting an Environment through the ORM cascades to its GroupEnvironment rows, so
+        # delete it first and then create the orphaned row the database itself would allow.
         env = self.create_environment(project=self.project)
-        GroupEnvironment.objects.create(group_id=self.group.id, environment_id=env.id)
-        Environment.objects.filter(id=env.id).delete()
+        deleted_env_id = env.id
+        env.delete()
+        GroupEnvironment.objects.create(group_id=self.group.id, environment_id=deleted_env_id)
         cache.clear()
 
         assert get_environment_by_event(self._activity_event_data()) is None
+        mock_metrics_incr.assert_called_once_with(
+            "process_workflows.activity_environment", tags={"outcome": "deleted"}
+        )
 
     def test_issue_occurrence_event(self) -> None:
         issue_occurrence = self.build_occurrence(evidence_data={"detector_id": self.detector.id})

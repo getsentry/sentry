@@ -409,7 +409,7 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
 
         return environment
     elif isinstance(event_data.event, Activity):
-        # This is looked up again further down to build a log line, so keep it to one query.
+        # evaluate_workflow_triggers calls this again for logging; cache it to keep one query.
         if "activity_environment" not in event_data._cache:
             event_data._cache["activity_environment"] = _get_environment_by_group(
                 event_data.group.id
@@ -421,8 +421,8 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
 
 def _get_environment_by_group(group_id: int) -> Environment | None:
     """
-    Activity events carry no environment of their own, so recover the one recorded on the group
-    when it was created from the originating occurrence.
+    Activity events carry no environment of their own, so recover it from the environments
+    recorded on the group as its events and occurrences arrived.
 
     A group seen in more than one environment has no single environment that resolved it, so it
     stays unscoped until that behavior is defined. Unscoped means only environment-less workflows
