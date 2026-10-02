@@ -1,4 +1,3 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import onboardingSetup from 'sentry-images/spot/onboarding-setup.svg';
@@ -34,11 +33,7 @@ export function EventTagCustomBanner() {
       <Container
         padding="lg lg md md"
         pointerEvents="none"
-        css={theme => css`
-          @container (max-width: ${theme.container.xl}) {
-            display: none;
-          }
-        `}
+        display={{zero: 'none', xl: 'block'}}
       >
         <Image
           src={onboardingSetup}
