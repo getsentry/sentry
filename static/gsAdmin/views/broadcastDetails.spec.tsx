@@ -74,7 +74,7 @@ describe('Broadcast Details', () => {
     ).toBeInTheDocument();
   });
 
-  it('updates a broadcast through the Scraps form', async () => {
+  it('updates targeting and omits a cleared optional URL', async () => {
     ConfigStore.loadInitialData(
       ConfigFixture({
         user: UserFixture({permissions: new Set(['broadcasts.admin'])}),
@@ -136,7 +136,6 @@ describe('Broadcast Details', () => {
           title: 'Updated title',
           message: 'Original message',
           link: 'https://example.com',
-          mediaUrl: null,
           category: 'blog',
           dateExpires: null,
           isActive: true,

@@ -127,8 +127,8 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
         platform: value.platform,
         product: value.product,
         ...(value.region ? {region: value.region} : {}),
-        ...(value.mediaUrl || data.mediaUrl ? {mediaUrl: value.mediaUrl || null} : {}),
-        ...(value.category || data.category ? {category: value.category} : {}),
+        ...(value.mediaUrl ? {mediaUrl: value.mediaUrl} : {}),
+        ...(value.category ? {category: value.category} : {}),
       };
       return mutation.mutateAsync(payload).catch(() => {});
     },
@@ -208,7 +208,6 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
           {field => (
             <field.Layout.Stack label="Category">
               <field.Select
-                clearable
                 value={typeof field.state.value === 'string' ? field.state.value : null}
                 onChange={field.handleChange}
                 options={CATEGORYCHOICES.map(
