@@ -25,6 +25,9 @@ SHARED_SENTRY_ATTRIBUTES = (
     "sentry.mobile",
     "sentry.os.name",
     "sentry.device.class",
+    "sentry.device.model",
+    "sentry.device.brand",
+    "sentry.device.name",
     # TODO(mjq): Remove `sentry.browser.name` (deprecated in favor of
     # `ATTRIBUTE_NAMES.BROWSER_NAME`) once everything is switched over to the new conventional
     # attribute names. See BROWSE-535.
