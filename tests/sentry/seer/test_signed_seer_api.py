@@ -217,23 +217,22 @@ def test_delete_grouping_records_uses_generic_metrics_endpoint(
 
 class TestResolveViewerContext:
     def test_outbox_preserves_elevation_without_ambient_context(self) -> None:
-        proof = {"expires_at": 1234567890, "signature": "sentry-proof"}
         result = _resolve_viewer_context(
-            SeerViewerContext(organization_id=42, user_id=7, superuser_access=proof)
+            SeerViewerContext(organization_id=42, user_id=7, superuser_access_expires_at=1234567890)
         )
         assert result is not None
-        assert result.superuser_access == proof
+        assert result.superuser_access_expires_at == 1234567890
 
     def test_changing_viewer_strips_elevation(self) -> None:
         ctx = ViewerContext(
             organization_id=42,
             user_id=7,
-            superuser_access={"expires_at": 1234567890, "signature": "sentry-proof"},
+            superuser_access_expires_at=1234567890,
         )
         with viewer_context_scope(ctx):
             result = _resolve_viewer_context(SeerViewerContext(organization_id=43, user_id=7))
         assert result is not None
-        assert result.superuser_access is None
+        assert result.superuser_access_expires_at is None
 
     def test_both_none(self) -> None:
         assert _resolve_viewer_context(None) is None
