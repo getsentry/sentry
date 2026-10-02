@@ -54,7 +54,7 @@ from sentry.models.rule import Rule
 from sentry.services import eventstore
 from sentry.silo.base import SiloMode
 from sentry.users.services.user.service import user_service
-from sentry.utils import jwt
+from sentry.utils import jwt, metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.signing import sign
 
@@ -658,7 +658,18 @@ class MsTeamsWebhookEndpoint(Endpoint):
             issue_change_response = self._issue_state_change(group, identity, data["value"])
 
             # get the rules from the payload
-            rules = tuple(Rule.objects.filter(id__in=payload["rules"]))
+            rule_ids = payload.get("rules", [])
+            workflow_ids = payload.get("workflows", [])
+            rules = tuple(Rule.objects.filter(id__in=rule_ids, project_id=group.project_id))
+            metrics.incr(
+                "integrations.msteams.action.rule_lookup",
+                tags={
+                    "has_rule": bool(rule_ids),
+                    "has_workflow_ids": bool(workflow_ids),
+                    "lookup_succeeded": bool(rule_ids) and len(rules) == len(set(rule_ids)),
+                },
+                sample_rate=1.0,
+            )
 
             # pull the event based off our payload
             event = None
@@ -680,7 +691,13 @@ class MsTeamsWebhookEndpoint(Endpoint):
 
             # refresh issue and update card
             group.refresh_from_db()
-            card = MSTeamsIssueMessageBuilder(group, event, rules, integration).build_group_card()
+            card = MSTeamsIssueMessageBuilder(
+                group,
+                event,
+                rules,
+                integration,
+                workflow_ids=workflow_ids,
+            ).build_group_card()
             client.update_card(conversation_id, activity_id, card)
 
             return issue_change_response

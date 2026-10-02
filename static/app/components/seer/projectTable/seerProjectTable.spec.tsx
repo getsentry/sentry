@@ -1,7 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {SentryNuqsTestingAdapter} from 'sentry-test/nuqsTestingAdapter';
 import {
   render,
   screen,
@@ -98,14 +97,6 @@ describe('SeerProjectTable', () => {
     jest.restoreAllMocks();
   });
 
-  function ExampleSeerProjectTable() {
-    return (
-      <SentryNuqsTestingAdapter>
-        <SeerProjectTable />
-      </SentryNuqsTestingAdapter>
-    );
-  }
-
   it('blocks coding-agent handoff and warns for a project with a non-GitHub repo', async () => {
     mockProjectRepos('gitlab');
     const settingsPut = MockApiClient.addMockResponse({
@@ -114,7 +105,7 @@ describe('SeerProjectTable', () => {
     });
     const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
 
-    render(<ExampleSeerProjectTable />, {organization});
+    render(<SeerProjectTable />, {organization});
 
     // The agent dropdown renders its current value, "Seer".
     await userEvent.click(await screen.findByText('Seer'));
@@ -158,7 +149,7 @@ describe('SeerProjectTable', () => {
     });
     const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
 
-    render(<ExampleSeerProjectTable />, {organization});
+    render(<SeerProjectTable />, {organization});
 
     await userEvent.click(await screen.findByText('Seer'));
     await userEvent.click(
@@ -183,7 +174,7 @@ describe('SeerProjectTable', () => {
     });
     const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
 
-    render(<ExampleSeerProjectTable />, {organization});
+    render(<SeerProjectTable />, {organization});
 
     await userEvent.click(await screen.findByText('Seer'));
     await userEvent.click(
@@ -201,7 +192,7 @@ describe('SeerProjectTable', () => {
       method: 'PUT',
     });
 
-    render(<ExampleSeerProjectTable />, {organization});
+    render(<SeerProjectTable />, {organization});
 
     expect(await screen.findByText('Auto-Iterate on PRs')).toBeInTheDocument();
     await chooseRowPrIteration('project-slug', 'Off');
@@ -327,7 +318,7 @@ describe('SeerProjectTable', () => {
   it('sets PR iteration for all selected projects', async () => {
     const {bulkPut} = mockTwoProjects();
 
-    render(<ExampleSeerProjectTable />, {organization});
+    render(<SeerProjectTable />, {organization});
 
     await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for other-project'});
     await selectAllProjects();
@@ -360,7 +351,7 @@ describe('SeerProjectTable', () => {
   it('updates a PR iteration dropdown that was already changed when the bulk menu is used', async () => {
     const {bulkPut, rowPuts} = mockTwoProjects();
 
-    render(<ExampleSeerProjectTable />, {organization});
+    render(<SeerProjectTable />, {organization});
 
     // Turn other-project's row on by hand.
     await chooseRowPrIteration('other-project', 'On');
@@ -390,7 +381,7 @@ describe('SeerProjectTable', () => {
   it('updates an automation steps dropdown that was already changed when the bulk menu is used', async () => {
     const {bulkPut, rowPuts} = mockTwoProjects();
 
-    render(<ExampleSeerProjectTable />, {organization});
+    render(<SeerProjectTable />, {organization});
 
     // Change project-slug's row from "Root Cause" to "PR drafted".
     await userEvent.click(await screen.findByText('Stop after Root Cause'));
@@ -435,7 +426,7 @@ describe('SeerProjectTable', () => {
       statusCode: 500,
     });
 
-    render(<ExampleSeerProjectTable />, {organization});
+    render(<SeerProjectTable />, {organization});
 
     await chooseRowPrIteration('project-slug', 'Off');
     await waitFor(() => expect(failedPut).toHaveBeenCalled());
@@ -459,7 +450,7 @@ describe('SeerProjectTable', () => {
       asyncDelay: delay.promise,
     });
 
-    render(<ExampleSeerProjectTable />, {organization});
+    render(<SeerProjectTable />, {organization});
 
     const rowSelect = await screen.findByRole('textbox', {
       name: 'Auto-iterate on PRs for project-slug',
@@ -488,7 +479,7 @@ describe('SeerProjectTable', () => {
       asyncDelay: delay.promise,
     });
 
-    render(<ExampleSeerProjectTable />, {organization});
+    render(<SeerProjectTable />, {organization});
 
     await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for project-slug'});
     await selectAllProjects();
@@ -514,7 +505,7 @@ describe('SeerProjectTable', () => {
       asyncDelay: delay.promise,
     });
 
-    render(<ExampleSeerProjectTable />, {organization});
+    render(<SeerProjectTable />, {organization});
 
     await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for other-project'});
     await selectAllProjects();
@@ -538,7 +529,7 @@ describe('SeerProjectTable', () => {
       asyncDelay: delay.promise,
     });
 
-    render(<ExampleSeerProjectTable />, {organization});
+    render(<SeerProjectTable />, {organization});
 
     await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for other-project'});
     await selectAllProjects();
@@ -550,8 +541,19 @@ describe('SeerProjectTable', () => {
     await waitFor(() => expect(getRowPrIterationSelect('other-project')).toBeEnabled());
   });
 
+  it('leaves the built-in repos filter out of the selection banner', async () => {
+    render(<SeerProjectTable />, {organization});
+
+    await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for project-slug'});
+    // The first checkbox in the table is the header's "select all".
+    await userEvent.click(screen.getAllByRole('checkbox')[0]!);
+
+    expect(await screen.findByText('Selected 1 project.')).toBeInTheDocument();
+    expect(screen.queryByText(/reposCount/)).not.toBeInTheDocument();
+  });
+
   it('disables adding a project without organization write access', async () => {
-    render(<ExampleSeerProjectTable />, {
+    render(<SeerProjectTable />, {
       organization: OrganizationFixture({slug: organization.slug, access: []}),
     });
 

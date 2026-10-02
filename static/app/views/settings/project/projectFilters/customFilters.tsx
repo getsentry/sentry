@@ -470,7 +470,7 @@ function CustomFilterModal({
       </Header>
       <Body>
         <Stack gap="xl">
-          <Grid columns="3fr minmax(180px, 1fr)" gap="md">
+          <Grid columns={{zero: '1fr', md: '3fr minmax(180px, 1fr)'}} gap="md">
             <form.AppField name="name">
               {field => (
                 <field.Layout.Stack label={t('Name')} required>
@@ -531,27 +531,41 @@ function CustomFilterModal({
                       )}
                       {/* The value textarea grows with its lines, so the row aligns
                           to the top and the single-line cells center on the control
-                          height to line up with the first line. */}
+                          height to line up with the first line. On a narrow screen
+                          the row folds into property, "matches", and value lines. */}
                       <Stack gap="sm">
                         {conditions.map((condition, index) => (
                           <Grid
                             key={index}
-                            columns="160px max-content 1fr max-content"
-                            gap="md"
+                            areas={{
+                              zero: '"property remove" "matches matches" "value value"',
+                              md: '"property matches value remove"',
+                            }}
+                            columns={{
+                              zero: '1fr max-content',
+                              md: '160px max-content 1fr max-content',
+                            }}
+                            gap={{zero: 'xs md', md: 'md'}}
                             align="start"
                           >
-                            <form.AppField name={`conditions[${index}].property`}>
-                              {propertyField => (
-                                <propertyField.Select
-                                  aria-label={t('Condition property')}
-                                  clearable={false}
-                                  options={getPropertyOptions(dataType)}
-                                  value={propertyField.state.value}
-                                  onChange={value => propertyField.handleChange(value)}
-                                />
-                              )}
-                            </form.AppField>
-                            <Flex align="center" height={theme.form.md.height}>
+                            <Container area="property">
+                              <form.AppField name={`conditions[${index}].property`}>
+                                {propertyField => (
+                                  <propertyField.Select
+                                    aria-label={t('Condition property')}
+                                    clearable={false}
+                                    options={getPropertyOptions(dataType)}
+                                    value={propertyField.state.value}
+                                    onChange={value => propertyField.handleChange(value)}
+                                  />
+                                )}
+                              </form.AppField>
+                            </Container>
+                            <Flex
+                              area="matches"
+                              align="center"
+                              height={{zero: 'auto', md: theme.form.md.height}}
+                            >
                               <InfoText
                                 variant="muted"
                                 title={getMatchDescription(condition.property, dataType)}
@@ -559,23 +573,29 @@ function CustomFilterModal({
                                 {t('matches')}
                               </InfoText>
                             </Flex>
-                            <form.AppField name={`conditions[${index}].value`}>
-                              {valueField => (
-                                <valueField.TextArea
-                                  aria-label={t('Condition value')}
-                                  placeholder={
-                                    getCondition(condition.property).placeholder
-                                  }
-                                  value={valueField.state.value}
-                                  onChange={valueField.handleChange}
-                                  monospace
-                                  autosize
-                                  rows={1}
-                                  maxRows={10}
-                                />
-                              )}
-                            </form.AppField>
-                            <Flex align="center" height={theme.form.md.height}>
+                            <Container area="value">
+                              <form.AppField name={`conditions[${index}].value`}>
+                                {valueField => (
+                                  <valueField.TextArea
+                                    aria-label={t('Condition value')}
+                                    placeholder={
+                                      getCondition(condition.property).placeholder
+                                    }
+                                    value={valueField.state.value}
+                                    onChange={valueField.handleChange}
+                                    monospace
+                                    autosize
+                                    rows={1}
+                                    maxRows={10}
+                                  />
+                                )}
+                              </form.AppField>
+                            </Container>
+                            <Flex
+                              area="remove"
+                              align="center"
+                              height={theme.form.md.height}
+                            >
                               <Button
                                 size="sm"
                                 variant="transparent"

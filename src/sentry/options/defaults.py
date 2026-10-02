@@ -95,6 +95,38 @@ register(
     flags=FLAG_NOSTORE | FLAG_IMMUTABLE,
 )
 
+# Share of lock keys (0.0 to 1.0) that MigrationLockBackend sends to its new backend.
+# Only used when a lock manager is configured with the matching selector in
+# sentry.utils.locking.backends.migration.
+register(
+    "locks.default.migration-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "locks.post-process.migration-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When on, MigrationLockBackend also checks the new backend for keys that go to the old
+# backend. Turn it on before the matching rollout rate goes above 0, and turn it off only
+# after the rate is back at 0 and all locks on the new backend have expired. See the
+# MigrationLockBackend docstring for the full sequence.
+register(
+    "locks.default.migration-check-new",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "locks.post-process.migration-check-new",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Processing worker caches
 register(
     "dsym.cache-path",
@@ -1715,6 +1747,16 @@ register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIAB
 register(
     "relay.invalidation-direct-outside-atomic",
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Stage of each legacy inbound filter list on its way into custom inbound filter rows,
+# keyed by list: releases, error_messages, log_messages, trace_metric_names. A value is
+# off, double_write, rows or v2; a missing list is off. See sentry.ingest.legacy_filter_lists.
+register(
+    "custom-inbound-filters.legacy-filter-stage",
+    default={},
+    type=Dict,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3484,7 +3526,7 @@ register(
 register(
     "notifications.issue-alerts.disable-rule-snooze",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -4210,12 +4252,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "warmup.url_resolver.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Cap on consecutive automated PR iterations (check suites + bot re-reviews);
 # human feedback resets the streak. See ``automated_iteration_cap_reached``.
@@ -4451,20 +4487,6 @@ register(
     default=[],
     type=Sequence,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "preprod.snapshots.auto-approve-sibling-diffs.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "preprod.snapshots.objectstore.snapshots-usecase.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # How far back the ingestion delay measurement window reaches, in minutes.

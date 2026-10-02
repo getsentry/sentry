@@ -38,7 +38,6 @@ _LOGIN_URL: str | None = None
 _STATIC_LOGIN_REDIRECT_SUFFIXES = frozenset({".js", ".css", ".map"})
 
 MFA_SESSION_KEY = "mfa"
-REACT_AUTH_COOKIE = "sentry_react_auth"
 
 SUSPENDED_USER_REJECTED_METRIC = "auth.suspended_user.rejected"
 
@@ -136,9 +135,6 @@ def has_pending_2fa(request: HttpRequest) -> bool:
 
 
 def is_react_auth_enabled(request: HttpRequest) -> bool:
-    cookie_value = request.COOKIES.get(REACT_AUTH_COOKIE)
-    if cookie_value is not None:
-        return cookie_value == "1"
     return options.get("auth.v2.enabled")
 
 

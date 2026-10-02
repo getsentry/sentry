@@ -354,6 +354,18 @@ def reset_snuba(call_snuba):
 
 
 @pytest.fixture
+def skip_group_attributes_snapshots() -> Generator[None]:
+    """
+    Skip sending group attribute snapshots to Snuba, for tests that create groups but run
+    without Snuba.
+    """
+    from unittest import mock
+
+    with mock.patch("sentry.issues.attributes.produce_snapshot_to_kafka"):
+        yield
+
+
+@pytest.fixture
 def set_sentry_option():
     """
     A pytest-style wrapper around override_options.

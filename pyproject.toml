@@ -90,16 +90,16 @@ dependencies = [
   "rfc3986-validator>=0.1.1",
   # [end] jsonschema format validators
   "sentry-arroyo>=2.42.2",
-  "sentry-conventions>=0.24.0",
+  "sentry-conventions>=0.25.0",
   "sentry-forked-email-reply-parser>=0.5.12.post1",
   "sentry-kafka-schemas>=3.0.2",
-  "sentry-ophio>=1.1.3",
+  "sentry-ophio>=1.2.0",
   # sentry-options is only used in getsentry for now
-  "sentry-options>=1.2.8",
-  "sentry-protos>=0.75.3",
+  "sentry-options>=1.2.13",
+  "sentry-protos>=0.79.0",
   "sentry-redis-tools>=0.5.0",
   "sentry-relay>=0.9.31",
-  "sentry-scm>=1.6.0",
+  "sentry-scm>=1.7.2",
   "sentry-sdk[http2]>=2.68.0",
   "sentry-usage-accountant>=0.0.10",
   "simplejson>=3.17.6",
@@ -115,6 +115,7 @@ dependencies = [
   "tldextract>=5.1.2",
   "toronado>=0.1.0",
   "typing-extensions>=4.12.0",
+  "tzdata>=2026.4",
   "ua-parser>=0.10.0",
   "unidiff>=0.7.4",
   # note: we cannot resolve urllib3[brotli] but brotli is installed
@@ -137,7 +138,11 @@ dependencies = [
 ]
 
 [tool.uv]
-environments = ["sys_platform == 'darwin' or sys_platform == 'linux'"]
+# only lock for the python we run (.python-version); our internal pypi lacks
+# wheels for some packages on newer pythons, so resolving for them fails
+environments = [
+  "(sys_platform == 'darwin' or sys_platform == 'linux') and python_version < '3.14'",
+]
 
 [[tool.uv.index]]
 # We don't allow using public pypi - submit a PR to
@@ -612,7 +617,6 @@ module = [
     "sentry.api.serializers.models.groupsearchviewstarred",
     "sentry.api.serializers.models.groupseen",
     "sentry.api.serializers.models.grouptombstone",
-    "sentry.api.serializers.models.incidentactivity",
     "sentry.api.serializers.models.organization",
     "sentry.api.serializers.models.organization_access_request",
     "sentry.api.serializers.models.organizationmemberinvite",
@@ -631,7 +635,6 @@ module = [
     "sentry.api.serializers.models.release_threshold",
     "sentry.api.serializers.models.repository",
     "sentry.api.serializers.models.role",
-    "sentry.api.serializers.models.rule",
     "sentry.api.serializers.models.seer_agentic_triage_run",
     "sentry.api.serializers.models.tagvalue",
     "sentry.api.serializers.models.team",
@@ -1057,7 +1060,6 @@ module = [
     "sentry.models.groupreaction",
     "sentry.models.grouprelease",
     "sentry.models.groupresolution",
-    "sentry.models.grouprulestatus",
     "sentry.models.groupsearchview",
     "sentry.models.groupsearchviewlastvisited",
     "sentry.models.groupsearchviewstarred",
@@ -1218,15 +1220,9 @@ module = [
     "sentry.rules.actions.base",
     "sentry.rules.actions.notify_event_service",
     "sentry.rules.actions.services",
-    "sentry.rules.actions.utils",
     "sentry.rules.age",
     "sentry.rules.base",
     "sentry.rules.filters.*",
-    "sentry.rules.history",
-    "sentry.rules.history.backends.*",
-    "sentry.rules.history.base",
-    "sentry.rules.history.preview",
-    "sentry.rules.history.preview_strategy",
     "sentry.rules.match",
     "sentry.rules.processing.*",
     "sentry.rules.registry",
@@ -1391,7 +1387,6 @@ module = [
     "sentry.testutils.helpers.redis",
     "sentry.testutils.helpers.response",
     "sentry.testutils.helpers.sdk",
-    "sentry.testutils.helpers.serializer_parity",
     "sentry.testutils.helpers.slack",
     "sentry.testutils.helpers.socket",
     "sentry.testutils.helpers.uptime",
@@ -1756,7 +1751,6 @@ module = [
     "tests.sentry.incidents.test_logic",
     "tests.sentry.incidents.test_metric_issue_detector_handler",
     "tests.sentry.incidents.test_metric_issue_post_process",
-    "tests.sentry.incidents.test_tasks",
     "tests.sentry.incidents.utils.*",
     "tests.sentry.ingest.*",
     "tests.sentry.integrations",
@@ -1973,8 +1967,6 @@ module = [
     "tests.sentry.rules.actions.test_notify_event_service",
     "tests.sentry.rules.conditions.*",
     "tests.sentry.rules.history",
-    "tests.sentry.rules.history.backends.*",
-    "tests.sentry.rules.history.test_preview",
     "tests.sentry.rules.processing",
     "tests.sentry.rules.test_match",
     "tests.sentry.runner",

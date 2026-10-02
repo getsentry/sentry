@@ -36,7 +36,7 @@ describe('OrganizationLayout', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/explore/saved/',
+      url: '/organizations/org-slug/explore/all-queries/',
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -215,7 +215,10 @@ describe('OrganizationLayout', () => {
         </OrganizationContext.Provider>
       );
 
-      await screen.findByTestId('no-organization-sidebar');
+      expect(await screen.findByRole('link', {name: 'Account Details'})).toHaveAttribute(
+        'href',
+        '/settings/account/details/'
+      );
     });
   });
 });

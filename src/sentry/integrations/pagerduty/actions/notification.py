@@ -15,11 +15,11 @@ from sentry.integrations.pagerduty.client import (
 )
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.rule import Rule
+from sentry.notifications.types import RuleFuture
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.types.rules import RuleFuture
 from sentry.utils.strings import truncatechars
 
 logger = logging.getLogger("sentry.integrations.pagerduty")
