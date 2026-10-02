@@ -59,7 +59,6 @@ class SeerAdminAutofixRetryEndpoint(Endpoint):
             if organization is None:
                 results.append(_skipped(run_id, "Autofix run not found"))
                 continue
-            # Retry as the system rather than the staff member making the request.
             with viewer_context_scope(
                 ViewerContext(organization_id=organization.id, actor_type=ActorType.SYSTEM)
             ):
