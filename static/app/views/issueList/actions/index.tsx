@@ -222,15 +222,7 @@ export function IssueListActions({
   }
 
   function handleMerge() {
-    actionSelectedGroups(itemIds => {
-      mergeGroups(api, {
-        orgId: organization.slug,
-        itemIds,
-        query: queryExcludingPerformanceIssues,
-        project: selection.projects,
-        environment: selection.environments,
-        ...selection.datetime,
-      }).catch(() => {});
+    actionSelectedGroups(async itemIds => {
       if (selection.projects[0]) {
         const trackProject = ProjectsStore.getById(`${selection.projects[0]}`);
         trackAnalytics('issues_stream.merged', {
@@ -240,6 +232,19 @@ export function IssueListActions({
           items_merged: allInQuerySelected ? 'all_in_query' : itemIds?.length,
           area,
         });
+      }
+
+      try {
+        await mergeGroups(api, {
+          orgId: organization.slug,
+          itemIds,
+          query: queryExcludingPerformanceIssues,
+          project: selection.projects,
+          environment: selection.environments,
+          ...selection.datetime,
+        });
+      } catch {
+        // GroupStore already shows the error
       }
     });
   }

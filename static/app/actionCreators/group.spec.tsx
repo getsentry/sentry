@@ -78,13 +78,13 @@ describe('group', () => {
       jest.spyOn(GroupStore, 'onUpdate'); // stub GroupStore.onUpdate call from update
     });
 
-    it('should use itemIds as query if provided', () => {
+    it('should use itemIds as query if provided', async () => {
       const request = MockApiClient.addMockResponse({
         url: '/projects/1337/1337/issues/',
         method: 'PUT',
       });
 
-      bulkUpdate(new MockApiClient(), {
+      await bulkUpdate(new MockApiClient(), {
         orgId: '1337',
         projectId: '1337',
         itemIds: ['1', '2', '3'],
@@ -99,13 +99,13 @@ describe('group', () => {
       );
     });
 
-    it('should use query as query if itemIds are absent', () => {
+    it('should use query as query if itemIds are absent', async () => {
       const request = MockApiClient.addMockResponse({
         url: '/projects/1337/1337/issues/',
         method: 'PUT',
       });
 
-      bulkUpdate(new MockApiClient(), {
+      await bulkUpdate(new MockApiClient(), {
         orgId: '1337',
         projectId: '1337',
         itemIds: undefined,
@@ -120,13 +120,13 @@ describe('group', () => {
       );
     });
 
-    it('should apply project option', () => {
+    it('should apply project option', async () => {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/1337/issues/',
         method: 'PUT',
       });
 
-      bulkUpdate(new MockApiClient(), {
+      await bulkUpdate(new MockApiClient(), {
         orgId: '1337',
         project: [99],
         itemIds: ['1', '2', '3'],
@@ -140,13 +140,13 @@ describe('group', () => {
       );
     });
 
-    it('should normalize string assignedTo to Actor object for optimistic update', () => {
+    it('should normalize string assignedTo to Actor object for optimistic update', async () => {
       MockApiClient.addMockResponse({
         url: '/projects/1337/1337/issues/',
         method: 'PUT',
       });
 
-      bulkUpdate(new MockApiClient(), {
+      await bulkUpdate(new MockApiClient(), {
         orgId: '1337',
         projectId: '1337',
         itemIds: ['1'],
@@ -158,13 +158,13 @@ describe('group', () => {
       });
     });
 
-    it('should normalize empty assignedTo string to null for optimistic update', () => {
+    it('should normalize empty assignedTo string to null for optimistic update', async () => {
       MockApiClient.addMockResponse({
         url: '/projects/1337/1337/issues/',
         method: 'PUT',
       });
 
-      bulkUpdate(new MockApiClient(), {
+      await bulkUpdate(new MockApiClient(), {
         orgId: '1337',
         projectId: '1337',
         itemIds: ['1'],
@@ -176,13 +176,13 @@ describe('group', () => {
       });
     });
 
-    it('should normalize team assignedTo string for optimistic update', () => {
+    it('should normalize team assignedTo string for optimistic update', async () => {
       MockApiClient.addMockResponse({
         url: '/projects/1337/1337/issues/',
         method: 'PUT',
       });
 
-      bulkUpdate(new MockApiClient(), {
+      await bulkUpdate(new MockApiClient(), {
         orgId: '1337',
         projectId: '1337',
         itemIds: ['1'],
@@ -194,13 +194,13 @@ describe('group', () => {
       });
     });
 
-    it('should send raw string assignedTo to the API', () => {
+    it('should send raw string assignedTo to the API', async () => {
       const request = MockApiClient.addMockResponse({
         url: '/projects/1337/1337/issues/',
         method: 'PUT',
       });
 
-      bulkUpdate(new MockApiClient(), {
+      await bulkUpdate(new MockApiClient(), {
         orgId: '1337',
         projectId: '1337',
         itemIds: ['1'],
@@ -221,13 +221,13 @@ describe('group', () => {
       jest.spyOn(GroupStore, 'onMerge'); // stub GroupStore.onMerge call from mergeGroups
     });
 
-    it('should use itemIds as query if provided', () => {
+    it('should use itemIds as query if provided', async () => {
       const request = MockApiClient.addMockResponse({
         url: '/projects/1337/1337/issues/',
         method: 'PUT',
       });
 
-      mergeGroups(new MockApiClient(), {
+      await mergeGroups(new MockApiClient(), {
         orgId: '1337',
         projectId: '1337',
         itemIds: ['1', '2', '3'],
@@ -241,13 +241,13 @@ describe('group', () => {
       );
     });
 
-    it('should use query as query if itemIds are absent', () => {
+    it('should use query as query if itemIds are absent', async () => {
       const request = MockApiClient.addMockResponse({
         url: '/projects/1337/1337/issues/',
         method: 'PUT',
       });
 
-      mergeGroups(new MockApiClient(), {
+      await mergeGroups(new MockApiClient(), {
         orgId: '1337',
         projectId: '1337',
         itemIds: undefined,

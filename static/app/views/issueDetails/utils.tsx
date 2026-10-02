@@ -22,21 +22,25 @@ import {useGroupData} from 'sentry/views/issueDetails/groupDataContext';
 import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
-export function markEventSeen(
+export async function markEventSeen(
   api: Client,
   orgId: string,
   projectId: string,
   groupId: string
 ) {
-  bulkUpdate(api, {
-    orgId,
-    projectId,
-    itemIds: [groupId],
-    failSilently: true,
-    data: {hasSeen: true},
-  }).catch(() => {});
-
   IssueListCacheStore.markGroupAsSeen(groupId);
+
+  try {
+    await bulkUpdate(api, {
+      orgId,
+      projectId,
+      itemIds: [groupId],
+      failSilently: true,
+      data: {hasSeen: true},
+    });
+  } catch {
+    // Marking an issue as seen is best-effort
+  }
 }
 
 export function useDefaultIssueEvent() {

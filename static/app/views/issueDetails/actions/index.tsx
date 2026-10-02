@@ -285,31 +285,8 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     IssueListCacheStore.reset();
   };
 
-  const onUpdate = (data: UpdateData, onComplete?: () => void) => {
+  const onUpdate = async (data: UpdateData, onComplete?: () => void) => {
     const successMessage = getUpdateSuccessMessage(group, data);
-
-    bulkUpdate(api, {
-      orgId: organization.slug,
-      projectId: project.slug,
-      itemIds: [group.id],
-      data,
-    })
-      .then(() => {
-        clearIndicators();
-        if (successMessage) {
-          addSuccessMessage(successMessage);
-        }
-        onComplete?.();
-      })
-      .catch(() => {})
-      .finally(() => {
-        queryClient.invalidateQueries({
-          queryKey: groupQueryKey({
-            organizationSlug: organization.slug,
-            groupId: group.id,
-          }),
-        });
-      });
 
     if (isResolutionStatus(data)) {
       trackIssueAction(
@@ -322,6 +299,29 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
       trackIssueAction('mark_reviewed');
     }
     IssueListCacheStore.reset();
+
+    try {
+      await bulkUpdate(api, {
+        orgId: organization.slug,
+        projectId: project.slug,
+        itemIds: [group.id],
+        data,
+      });
+      clearIndicators();
+      if (successMessage) {
+        addSuccessMessage(successMessage);
+      }
+      onComplete?.();
+    } catch {
+      // GroupStore already shows the error
+    } finally {
+      queryClient.invalidateQueries({
+        queryKey: groupQueryKey({
+          organizationSlug: organization.slug,
+          groupId: group.id,
+        }),
+      });
+    }
   };
 
   const onReprocessEvent = () => {

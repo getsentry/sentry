@@ -234,7 +234,7 @@ export function invalidateIssueQueries({
   });
 }
 
-export function performBulkUpdate({
+export async function performBulkUpdate({
   api,
   data,
   itemIds,
@@ -257,22 +257,21 @@ export function performBulkUpdate({
 
   addLoadingMessage(t('Saving changes…'));
 
-  bulkUpdate(api, {
-    orgId: organizationSlug,
-    itemIds,
-    data,
-    query,
-    environment: selection.environments,
-    failSilently: true,
-    ...projectConstraints,
-    ...selection.datetime,
-  })
-    .then(() => {
-      clearIndicators();
-      onSuccess?.(itemIds);
-    })
-    .catch(() => {
-      clearIndicators();
-      addErrorMessage(t('Unable to update issues'));
+  try {
+    await bulkUpdate(api, {
+      orgId: organizationSlug,
+      itemIds,
+      data,
+      query,
+      environment: selection.environments,
+      failSilently: true,
+      ...projectConstraints,
+      ...selection.datetime,
     });
+    clearIndicators();
+    onSuccess?.(itemIds);
+  } catch {
+    clearIndicators();
+    addErrorMessage(t('Unable to update issues'));
+  }
 }

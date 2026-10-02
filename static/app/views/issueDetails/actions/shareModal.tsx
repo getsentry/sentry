@@ -94,35 +94,33 @@ export function ShareIssueModal({
     );
   };
 
-  const handlePublicShare = (
+  const handlePublicShare = async (
     e: React.ChangeEvent<HTMLInputElement> | null,
     reshare?: boolean
   ) => {
     e?.preventDefault();
     setLoading(true);
     onToggle();
-    bulkUpdate(api, {
-      orgId: organization.slug,
-      projectId: projectSlug,
-      itemIds: [groupId],
-      data: {
-        isPublic: reshare ?? !isPublished,
-      },
-    })
-      .then(() => {
-        queryClient.invalidateQueries({
-          queryKey: groupQueryKey({
-            organizationSlug: organization.slug,
-            groupId,
-          }),
-        });
-      })
-      .catch(() => {
-        addErrorMessage(t('Error sharing'));
-      })
-      .finally(() => {
-        setLoading(false);
+    try {
+      await bulkUpdate(api, {
+        orgId: organization.slug,
+        projectId: projectSlug,
+        itemIds: [groupId],
+        data: {
+          isPublic: reshare ?? !isPublished,
+        },
       });
+      queryClient.invalidateQueries({
+        queryKey: groupQueryKey({
+          organizationSlug: organization.slug,
+          groupId,
+        }),
+      });
+    } catch {
+      addErrorMessage(t('Error sharing'));
+    } finally {
+      setLoading(false);
+    }
   };
 
   const shareUrl = group?.shareId ? getShareUrl(organization, group) : null;
