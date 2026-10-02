@@ -489,10 +489,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
 
     # Skip legacy alert-rule lookups and send those URLs to the automations or monitors list.
     manager.add("organizations:workflow-engine-disable-legacy-alert-rule-redirects", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Gate sending evaluation artifacts from workflow_engine to EAP
+    # Gate evaluation artifact emission to EAP and API reads
     manager.add("organizations:workflow-engine-evaluation-artifacts-eap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Gate reading detector and workflow evaluation artifacts through the API
-    manager.add("organizations:workflow-engine-evaluation-artifacts-api", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable logging to debug workflow engine process workflows
     manager.add("organizations:workflow-engine-process-workflows-logs", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Show historical examples of when an alert would have fired while building a workflow.

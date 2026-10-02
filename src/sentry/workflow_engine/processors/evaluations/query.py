@@ -5,9 +5,8 @@ from typing import Any
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import Column, TraceItemTableRequest
-from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import ExportTraceItemsRequest
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta, TraceItemType
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue, StrArray
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter, TraceItemFilter
 
 from sentry.search.eap.rpc_utils import (
@@ -17,7 +16,7 @@ from sentry.search.eap.rpc_utils import (
     or_trace_item_filters,
 )
 from sentry.utils import json
-from sentry.utils.snuba_rpc import export_logs_rpc, table_rpc
+from sentry.utils.snuba_rpc import table_rpc
 
 # Only these attributes are supported as API filters.
 EVALUATION_FILTER_TYPES: dict[str, AttributeKey.Type.ValueType] = {
@@ -33,6 +32,27 @@ EVALUATION_FILTER_TYPES: dict[str, AttributeKey.Type.ValueType] = {
     "evaluation_phase": AttributeKey.TYPE_STRING,
 }
 JSON_ATTRIBUTES = frozenset({"trigger_evaluation", "filter_evaluations", "delayed"})
+_EVALUATION_ATTRIBUTE_TYPES: dict[str, AttributeKey.Type.ValueType] = {
+    **EVALUATION_FILTER_TYPES,
+    "trace_id": AttributeKey.TYPE_STRING,
+    "triggered": AttributeKey.TYPE_BOOLEAN,
+    "group_key": AttributeKey.TYPE_STRING,
+    "priority": AttributeKey.TYPE_INT,
+    "trigger_evaluation": AttributeKey.TYPE_STRING,
+    "filter_evaluations": AttributeKey.TYPE_STRING,
+    "triggered_action_ids": AttributeKey.TYPE_ARRAY_INT,
+    "delayed": AttributeKey.TYPE_STRING,
+    "event_kind": AttributeKey.TYPE_STRING,
+    "issue_status": AttributeKey.TYPE_INT,
+    "issue_substatus": AttributeKey.TYPE_INT,
+    "issue_priority": AttributeKey.TYPE_INT,
+    "environment_id": AttributeKey.TYPE_INT,
+    "is_resolved": AttributeKey.TYPE_BOOLEAN,
+    "is_new": AttributeKey.TYPE_BOOLEAN,
+    "is_regression": AttributeKey.TYPE_BOOLEAN,
+    "is_new_group_environment": AttributeKey.TYPE_BOOLEAN,
+    "has_escalated": AttributeKey.TYPE_BOOLEAN,
+}
 
 
 def build_evaluation_filter(filters: Mapping[str, Sequence[Any]]) -> TraceItemFilter | None:
@@ -90,11 +110,34 @@ def query_evaluation_artifacts(
     timestamp_column = Column(
         label="timestamp", key=AttributeKey(name="sentry.timestamp", type=AttributeKey.TYPE_DOUBLE)
     )
+    columns = [
+        item_id_column,
+        timestamp_column,
+        *[
+            Column(
+                label=name,
+                key=AttributeKey(
+                    name=f"sentry.{name}" if name in {"project_id", "trace_id"} else name,
+                    type=attr_type,
+                ),
+            )
+            for name, attr_type in _EVALUATION_ATTRIBUTE_TYPES.items()
+        ],
+        # Known activity types are names; unknown types retain their integer IDs.
+        Column(
+            label="activity_type_string",
+            key=AttributeKey(name="activity_type", type=AttributeKey.TYPE_STRING),
+        ),
+        Column(
+            label="activity_type_int",
+            key=AttributeKey(name="activity_type", type=AttributeKey.TYPE_INT),
+        ),
+    ]
     response = table_rpc(
         [
             TraceItemTableRequest(
                 meta=meta,
-                columns=[item_id_column, timestamp_column],
+                columns=columns,
                 filter=filters,
                 order_by=[
                     TraceItemTableRequest.OrderBy(column=column, descending=True)
@@ -105,45 +148,27 @@ def query_evaluation_artifacts(
             )
         ]
     )[0]
-    item_ids = [
-        value.val_str
-        for column in response.column_values
-        if column.attribute_name == "item_id"
-        for value in column.results
-    ]
-    if not item_ids:
+    if not response.column_values:
         return []
 
-    # The export endpoint returns all stored attributes, but does not support
-    # custom ordering. Fetch the selected page in bulk, then restore its order.
-    artifacts = export_logs_rpc(
-        ExportTraceItemsRequest(
-            meta=meta,
-            filter=TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=item_id_column.key,
-                    op=ComparisonFilter.OP_IN,
-                    value=AttributeValue(val_str_array=StrArray(values=item_ids)),
-                )
-            ),
-            limit=len(item_ids),
-        )
-    )
-    rows: dict[str, dict[str, Any]] = {}
-    for item in artifacts.trace_items:
-        row = {name: anyvalue_to_python(value) for name, value in item.attributes.items()}
-        for name in JSON_ATTRIBUTES:
-            if name in row:
-                row[name] = json.loads(row[name])
-        row.update(
-            item_id=item.item_id.hex(),
-            trace_id=item.trace_id,
-            timestamp=item.timestamp.ToDatetime(tzinfo=timezone.utc),
-            project_id=item.project_id,
-        )
+    rows: list[dict[str, Any]] = [{} for _ in response.column_values[0].results]
+    for column in response.column_values:
+        name = column.attribute_name
+        if name in {"activity_type_string", "activity_type_int"}:
+            name = "activity_type"
+        for row, value in zip(rows, column.results, strict=True):
+            if value.is_null:
+                continue
+            converted = anyvalue_to_python(value)
+            if name in JSON_ATTRIBUTES:
+                converted = json.loads(converted)
+            elif name == "timestamp":
+                converted = datetime.fromtimestamp(converted, tz=timezone.utc)
+            row[name] = converted
+
+    for row in rows:
         # EAP cannot distinguish absent arrays from stored empty arrays. Concrete
         # workflow artifacts always emit action IDs, including an empty list.
         if "workflow_id" in row:
             row.setdefault("triggered_action_ids", [])
-        rows[row["item_id"]] = row
-    return [rows[item_id] for item_id in item_ids if item_id in rows]
+    return rows

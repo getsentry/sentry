@@ -31,6 +31,7 @@ from sentry.workflow_engine.endpoints.serializers.evaluation_artifact import (
     EvaluationArtifactResponse,
     EvaluationArtifactSerializer,
 )
+from sentry.workflow_engine.processors.evaluations.base import EvaluationPhase, EvaluationType
 from sentry.workflow_engine.processors.evaluations.eap import EAP_RETENTION_DAYS
 from sentry.workflow_engine.processors.evaluations.query import (
     EVALUATION_FILTER_TYPES,
@@ -38,22 +39,24 @@ from sentry.workflow_engine.processors.evaluations.query import (
     query_evaluation_artifacts,
 )
 
-FEATURE_FLAG = "organizations:workflow-engine-evaluation-artifacts-api"
+FEATURE_FLAG = "organizations:workflow-engine-evaluation-artifacts-eap"
 _ATTRIBUTE_PARAM_TYPES = {
     AttributeKey.TYPE_STRING: str,
     AttributeKey.TYPE_INT: int,
+}
+_ATTRIBUTE_PARAM_CHOICES = {
+    "evaluation_type": [member.value for member in EvaluationType],
+    "evaluation_phase": [member.value for member in EvaluationPhase],
 }
 
 
 def evaluation_filter_field(name: str) -> serializers.Field[Any, Any, Any, Any]:
     attr_type = EVALUATION_FILTER_TYPES[name]
-    if name == "evaluation_type":
-        return serializers.ChoiceField(choices=["detector", "workflow"])
-    if name == "evaluation_phase":
-        return serializers.ChoiceField(choices=["initial", "delayed"])
+    if name in _ATTRIBUTE_PARAM_CHOICES:
+        return serializers.ChoiceField(choices=_ATTRIBUTE_PARAM_CHOICES[name])
     if attr_type == AttributeKey.TYPE_INT:
         return serializers.IntegerField(min_value=0, max_value=I64_MAX)
-    return serializers.CharField()
+    return serializers.CharField(trim_whitespace=False)
 
 
 @cell_silo_endpoint
@@ -85,6 +88,7 @@ class OrganizationEvaluationArtifactsEndpoint(OrganizationEndpoint):
                 OpenApiParameter(
                     name=name,
                     type=_ATTRIBUTE_PARAM_TYPES[attr_type],
+                    enum=_ATTRIBUTE_PARAM_CHOICES.get(name),
                     many=True,
                     description="Exact attribute filter; repeat to match any value.",
                 )
