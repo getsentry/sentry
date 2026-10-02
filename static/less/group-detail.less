@@ -1,46 +1,4 @@
 /**
-* Group Detail
-* ============================================================================
-*/
-
-.group-detail {
-  position: relative;
-
-  h3 {
-    font-size: 22px;
-    margin: 0 0 8px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    overflow: hidden;
-
-    em {
-      font-style: normal;
-      font-weight: 400;
-      color: @70;
-      font-size: 90%;
-    }
-  }
-
-  .count {
-    font-size: 22px;
-    display: inline-block;
-    line-height: 1.2;
-  }
-
-  .meta {
-    margin: 0 0 15px;
-    color: #949ea4;
-  }
-
-  .severity {
-    display: inline-block;
-    position: relative;
-    top: -7px;
-    padding: 0 10px;
-  }
-}
-
-/**
 * Event Details
 * ============================================================================
 */
@@ -54,36 +12,6 @@
 
   @media (min-width: 1200px) {
     flex-direction: row;
-  }
-
-  .primary {
-    flex: 1;
-
-    @media (min-width: 1200px) {
-      // TODO(dcramer): whatever flex is doing here is causing this to extend to
-      // whatever it pleases (e.g. 4k pixels on my 1280 screen)
-      max-width: ~'calc(100% - 365px)';
-    }
-  }
-
-  .secondary {
-    width: 100%;
-    padding: 30px 40px 30px 30px;
-    border-left: 1px solid @trim;
-
-    @media (min-width: 1200px) {
-      width: 365px;
-    }
-  }
-}
-
-.module-user .avatar {
-  width: 64px;
-  height: 64px;
-
-  img {
-    height: 100%;
-    width: 100%;
   }
 }
 
@@ -203,63 +131,6 @@ div.traceback > ul {
   }
 }
 
-// Request
-
-.request {
-  .path {
-    font-weight: normal;
-    float: left;
-
-    strong {
-      margin-right: 4px;
-    }
-  }
-}
-
-/* message details */
-.server-list,
-.url-list,
-.logger-list,
-.level-list {
-  list-style: none;
-  margin-left: 0;
-  margin-bottom: 0;
-}
-
-.server-list li,
-.url-list li {
-  padding-bottom: 10px;
-}
-
-.url-list li a {
-  line-height: 18px;
-}
-
-pre.val {
-  span {
-    display: inline;
-  }
-}
-
-.val-string {
-  border-radius: 4px;
-  padding: 2px 4px;
-}
-
-/**
-* Exceptions and Threads
-* ============================================================================
-*/
-.box .thread {
-  .exception {
-    margin-top: 10px;
-  }
-
-  .traceback.no-exception {
-    margin-top: 0;
-  }
-}
-
 /**
 * Shared Group Detail
 * ============================================================================
@@ -297,61 +168,9 @@ pre.val {
     padding-right: 0;
   }
 
-  .group-detail {
-    padding: 0 30px;
-    border-bottom: 1px solid darken(@trim, 5);
-    box-shadow: 0 2px 0 rgba(0, 0, 0, 0.03);
-
-    &:before {
-      display: none;
-    }
-
-    .details {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 20px 0 0;
-    }
-  }
-
   .event-details-container {
     display: block;
     margin: 0;
-
-    .primary {
-      max-width: 100%;
-
-      .box {
-        padding: 0 30px;
-
-        &:first-child {
-          border-top: 0;
-        }
-      }
-
-      .box-header,
-      .box-content {
-        max-width: 960px;
-        margin: 0 auto;
-      }
-
-      .box-header {
-        margin-top: 15px;
-      }
-
-      .exception {
-        padding: 20px 0;
-        margin: 0;
-
-        &:first-child {
-          padding-top: 0;
-        }
-      }
-
-      .traceback.no-exception {
-        margin-bottom: 25px;
-        margin-top: -5px;
-      }
-    }
   }
 }
 
@@ -361,67 +180,8 @@ pre.val {
 */
 
 @media (max-width: 767px) {
-  .group-detail {
-    h3 {
-      white-space: normal;
-      font-size: 20px;
-      line-height: 1.2;
-    }
-
-    .meta {
-      font-size: 12px;
-    }
-  }
-
-  // Event detail columns
-
   .event-details-container {
     flex-direction: column;
     margin: 0;
-
-    .primary {
-      max-width: 100%;
-
-      .box {
-        padding: 15px 0;
-
-        .box-header {
-          h3 {
-            margin: 0 0 10px;
-
-            small {
-              margin-left: 0 !important;
-              display: block;
-            }
-          }
-
-          .permalink {
-            display: none;
-          }
-        }
-      }
-
-      .exception {
-        margin: 0;
-        padding: 15px 0;
-      }
-
-      .traceback {
-        &.no-exception {
-          margin: 0;
-        }
-
-        .btn-toggle {
-          width: 17px;
-        }
-      }
-    }
-
-    .secondary {
-      width: auto;
-      padding: 0;
-      border: 0;
-      margin-bottom: 20px;
-    }
   }
 }
