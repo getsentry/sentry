@@ -10,6 +10,24 @@ from sentry.models.organization import Organization
 from sentry.snuba.models import QuerySubscription
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
+from sentry.workflow_engine.registry import detector_settings_registry
+from sentry.workflow_engine.types import DetectorAPIOperation
+
+
+def get_excluded_detector_types(operation: DetectorAPIOperation | str) -> list[str]:
+    """Resolve detector-platform API exclusions without fetching detector rows."""
+    if operation == "HEAD":
+        operation = DetectorAPIOperation.GET
+
+    return [
+        detector_type
+        for detector_type, settings in detector_settings_registry.registrations.items()
+        if operation in settings.excluded_api_operations
+        or (
+            operation == DetectorAPIOperation.LIST
+            and DetectorAPIOperation.GET in settings.excluded_api_operations
+        )
+    ]
 
 
 def exclude_disallowed_metric_detectors(

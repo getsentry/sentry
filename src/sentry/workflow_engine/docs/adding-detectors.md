@@ -436,9 +436,25 @@ the group type's `released` state and the detector's `enabled` state. The list A
 excluded types before pagination and hit counting, including requests that filter by
 detector ID or type.
 
-Only the organization detector list API currently enforces this setting. Detail access,
-creation, updates, deletion, and evaluation remain unchanged; write-verb exclusions do
-not affect listing.
+Generic detector-platform APIs enforce HTTP-method exclusions through
+`get_excluded_detector_types`, which reads registered settings without fetching detector
+rows. `GET` exclusions also apply to detail retrieval and type discovery. Detector counts
+use the same `LIST` policy as the organization detector list, including its implied `GET`
+exclusions. `LIST` alone does not restrict those other reads.
+
+Product-specific APIs, such as anomaly-data retrieval, do not inherit these platform API
+exclusions.
+
+Individual requests for a detector excluded from `GET`, `PUT`, or `DELETE` return 404.
+Creation of a type excluded from `POST`, or an update targeting a type excluded from
+`PUT`, returns a 400 type-field validation error before saving.
+
+Bulk updates and deletions filter excluded types before mutation. Query/project selections
+operate on the remaining types; explicit ID selections return 400 without changing any
+detectors if an excluded ID was requested.
+
+Read exclusions do not restrict creation, updates, or deletion. Write exclusions do not
+affect listing, and API exclusions never change detector evaluation.
 
 Both registrations happen at import time. The `GroupType` subclass registers itself
 with the global Issue Platform registry when the class is created. The settings class

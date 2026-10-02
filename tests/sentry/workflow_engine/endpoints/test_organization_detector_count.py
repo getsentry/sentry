@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
@@ -5,6 +7,8 @@ from sentry.models.environment import Environment
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
+from sentry.workflow_engine.registry import detector_settings_registry
+from sentry.workflow_engine.types import DetectorAPIOperation
 
 
 @cell_silo_test
@@ -136,3 +140,61 @@ class OrganizationDetectorCountTest(APITestCase):
             "inactive": 0,
             "total": 2,
         }
+
+    def test_get_excluded_types_are_not_counted(self) -> None:
+        active_detector = self.create_detector(
+            project=self.project,
+            type=MetricIssue.slug,
+            enabled=True,
+            config={"detection_type": AlertRuleDetectionType.STATIC.value},
+        )
+        inactive_detector = self.create_detector(
+            project=self.project,
+            type=MetricIssue.slug,
+            enabled=False,
+            config={"detection_type": AlertRuleDetectionType.STATIC.value},
+        )
+        settings = detector_settings_registry.get(MetricIssue.slug)
+        with patch.object(
+            settings, "excluded_api_operations", frozenset({DetectorAPIOperation.GET})
+        ):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data == {"active": 2, "inactive": 0, "total": 2}
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"type": MetricIssue.slug}
+            )
+            assert response.data == {"active": 0, "inactive": 0, "total": 0}
+
+        active_detector.refresh_from_db()
+        inactive_detector.refresh_from_db()
+        assert active_detector.enabled
+        assert not inactive_detector.enabled
+
+    def test_list_excluded_types_are_not_counted(self) -> None:
+        active_detector = self.create_detector(
+            project=self.project,
+            type=MetricIssue.slug,
+            enabled=True,
+            config={"detection_type": AlertRuleDetectionType.STATIC.value},
+        )
+        inactive_detector = self.create_detector(
+            project=self.project,
+            type=MetricIssue.slug,
+            enabled=False,
+            config={"detection_type": AlertRuleDetectionType.STATIC.value},
+        )
+        settings = detector_settings_registry.get(MetricIssue.slug)
+        with patch.object(
+            settings, "excluded_api_operations", frozenset({DetectorAPIOperation.LIST})
+        ):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data == {"active": 2, "inactive": 0, "total": 2}
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"type": MetricIssue.slug}
+            )
+            assert response.data == {"active": 0, "inactive": 0, "total": 0}
+
+        active_detector.refresh_from_db()
+        inactive_detector.refresh_from_db()
+        assert active_detector.enabled
+        assert not inactive_detector.enabled

@@ -17,6 +17,8 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.issues import grouptype
 from sentry.models.organization import Organization
+from sentry.workflow_engine.endpoints.utils.filters import get_excluded_detector_types
+from sentry.workflow_engine.types import DetectorAPIOperation
 
 
 @cell_silo_endpoint
@@ -43,10 +45,13 @@ class OrganizationDetectorTypeIndexEndpoint(OrganizationEndpoint):
         """
         Returns a list of detector types for a given org
         """
+        excluded_types = get_excluded_detector_types(DetectorAPIOperation.GET)
         type_slugs = [
             gt.slug
             for gt in grouptype.registry.get_visible(organization)
-            if gt.detector_settings is not None and gt.detector_settings.handler is not None
+            if gt.detector_settings is not None
+            and gt.detector_settings.handler is not None
+            and gt.slug not in excluded_types
         ]
         type_slugs.sort()
 

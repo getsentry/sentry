@@ -16,6 +16,7 @@ from sentry.workflow_engine.processors import DataConditionGroupEvaluation, Dete
 from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
+    DetectorAPIOperation,
     DetectorPriorityLevel,
     DetectorSettings,
 )
@@ -140,3 +141,31 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
     def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug, status_code=200)
         assert response.data == self.expected_type_slugs
+
+    def test_get_excluded_type_is_not_returned(self) -> None:
+        excluded_slug = self.expected_type_slugs[0]
+        settings = detector_settings_registry.get(excluded_slug)
+
+        class ExcludedDetectorSettings(DetectorSettings):
+            handler = settings.handler
+            excluded_api_operations = frozenset({DetectorAPIOperation.GET})
+
+        with patch.dict(
+            detector_settings_registry.registrations, {excluded_slug: ExcludedDetectorSettings}
+        ):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data == self.expected_type_slugs[1:]
+
+    def test_list_exclusion_does_not_affect_type_discovery(self) -> None:
+        excluded_slug = self.expected_type_slugs[0]
+        settings = detector_settings_registry.get(excluded_slug)
+
+        class ExcludedDetectorSettings(DetectorSettings):
+            handler = settings.handler
+            excluded_api_operations = frozenset({DetectorAPIOperation.LIST})
+
+        with patch.dict(
+            detector_settings_registry.registrations, {excluded_slug: ExcludedDetectorSettings}
+        ):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data == self.expected_type_slugs
