@@ -188,8 +188,9 @@ function ContentsTable(props: React.ComponentProps<typeof DataTable>) {
   return <DataTable contentsBody {...props} />;
 }
 
-export const LogTable = styled(ContentsTable)<{minWidth: string}>`
+export const LogTable = styled(ContentsTable)<{minWidth: string; timestampWidth: number}>`
   --logsPinEdgeGap: ${p => p.theme.space.sm};
+  --logsTimestampWidth: ${p => p.timestampWidth}ch;
   --logsPinButtonArea: calc(2rem + var(--logsPinEdgeGap));
   flex: 0 1 auto;
   min-height: 0;
@@ -324,6 +325,10 @@ export const ColoredLogText = styled('span')<{
 export const LogDate = styled('span')<{align?: 'left' | 'center' | 'right'}>`
   color: ${p => p.theme.tokens.content.secondary};
   text-align: ${p => p.align || 'left'};
+`;
+
+export const LogTimestamp = styled(LogDate)`
+  min-width: var(--logsTimestampWidth);
 `;
 
 export const LogsHighlight = styled(MultiHighlight)`
