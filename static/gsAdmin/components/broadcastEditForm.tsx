@@ -4,7 +4,7 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -182,12 +182,14 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
         </form.AppField>
         <form.AppField name="isActive">
           {field => (
-            <field.Layout.Row label="Active">
-              <field.Switch
-                checked={Boolean(field.state.value)}
-                onChange={field.handleChange}
-              />
-            </field.Layout.Row>
+            <Container width="144px">
+              <field.Layout.Row label="Active">
+                <field.Switch
+                  checked={Boolean(field.state.value)}
+                  onChange={field.handleChange}
+                />
+              </field.Layout.Row>
+            </Container>
           )}
         </form.AppField>
         <Flex gap="sm" justify="end">
