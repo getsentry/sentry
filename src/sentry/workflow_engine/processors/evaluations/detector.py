@@ -17,7 +17,7 @@ from .condition_group import DataConditionGroupEvaluation, DataConditionGroupEva
 
 class DetectorEvaluationData(TypedDict):
     group_key: DetectorGroupKey
-    trigger_group_evaluation: DataConditionGroupEvaluation
+    trigger_group_evaluation: DataConditionGroupEvaluation | None
     event_data: dict[str, Any] | None  # TODO - improve this typing, for now migrating
 
 
@@ -36,7 +36,7 @@ class DetectorEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
     group_key: DetectorGroupKey
     outcome: DetectorEvaluationOutcome
     priority: int
-    trigger_evaluation: DataConditionGroupEvaluationArtifact
+    trigger_evaluation: DataConditionGroupEvaluationArtifact | None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -58,8 +58,8 @@ class DetectorEvaluation(
         each individual DetectorHandler will determine if they should create a new issue (IssueOccurrence)
         or if it will send an update to an existing Issue (StatusChangeMessage). Set to None when the detector
         is not triggered. By default this is set to None, to signify a detector's not expected to be triggered.
-    - data: DetectorEvaluationData - This data includes the group key (DetectorGroupKey), the evaluation of the Detector
-        triggers (DataConditionGroupEvaluation), and the event data (dict) that triggered the detector evaluation.
+    - data: DetectorEvaluationData - The group key, optional trigger-group evaluation,
+        and event data used by the detector. Detectors without condition groups store None.
     - error: ConditionError - An error during the processing of the conditions in the trigger group.
     - triggered: bool - If there is an event that should trigger the next phase in the system.
     """
@@ -82,6 +82,7 @@ class DetectorEvaluation(
         # We only need to extract the top level detector items for tracking here.
         event_data = self.data["event_data"] or {}
         event_id = event_data.get("event_id")
+        group_evaluation = self.data["trigger_group_evaluation"]
         return DetectorEvaluationArtifact(
             triggered=triggered,
             error=error,
@@ -89,7 +90,9 @@ class DetectorEvaluation(
             group_key=self.data["group_key"],
             outcome=self.outcome,
             priority=self.priority.value,
-            trigger_evaluation=self.data["trigger_group_evaluation"].to_artifact(),
+            trigger_evaluation=group_evaluation.to_artifact()
+            if group_evaluation is not None
+            else None,
         )
 
 

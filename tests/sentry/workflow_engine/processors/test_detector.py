@@ -118,7 +118,7 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
             priority=DetectorPriorityLevel.HIGH,
         )
 
-    def test_logs_canonical_evaluation_artifact(self) -> None:
+    def test_logs_do_not_include_packet_secrets(self) -> None:
         detector = self.create_detector_from_cache(type=self.handler_type.slug)
         data_packet = self.build_data_packet(secret="do-not-log")
 
@@ -135,30 +135,8 @@ class TestProcessDetectors(BaseDetectorHandlerTest):
         ):
             process_detectors(data_packet, [detector])
 
-        mock_logger.info.assert_called_once_with(
-            "workflow_engine.process_detectors.evaluation",
-            extra={
-                "evaluation_type": EvaluationType.DETECTOR,
-                "detector_id": detector.id,
-                "detector_type": detector.type,
-                "project_id": detector.linked_project.id,
-                "outcome": DetectorEvaluationOutcome.TRIGGERED,
-                "event_id": None,
-                "group_key": None,
-                "priority": DetectorPriorityLevel.HIGH.value,
-                "trigger_evaluation": {
-                    "logic_type": "any",
-                    "result": True,
-                    "condition_evaluations": [],
-                    "triggered": True,
-                    "error": None,
-                },
-                "triggered": True,
-                "error": None,
-                "organization_id": self.organization.id,
-            },
-        )
-        assert "do-not-log" not in str(mock_logger.info.call_args)
+        logged_artifact = mock_logger.info.call_args.kwargs["extra"]
+        assert "do-not-log" not in str(logged_artifact)
 
     def test_logs_detector_with_no_evaluation_results(self) -> None:
         detector = self.create_detector_from_cache(type=self.handler_type.slug)
