@@ -1,7 +1,9 @@
+import {Fragment} from 'react';
+
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {NoAccess} from 'sentry/components/noAccess';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -10,10 +12,8 @@ import {defined} from 'sentry/utils/defined';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
 import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
-import {SavedQueryEditMenu} from 'sentry/views/explore/savedQueryEditMenu';
-import {StarSavedQueryButton} from 'sentry/views/explore/starSavedQueryButton';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
 
@@ -23,7 +23,6 @@ export default function MultiQueryMode() {
   const title = decodeScalar(location.query.title);
 
   const id = decodeScalar(location.query.id);
-  const {data: savedQuery} = useGetSavedQuery(id);
 
   return (
     <Feature
@@ -32,22 +31,32 @@ export default function MultiQueryMode() {
       renderDisabled={NoAccess}
     >
       <SentryDocumentTitle title={t('Compare Queries')} orgSlug={organization.slug}>
-        <TopBar.Slot name="title">
-          <Breadcrumbs
-            crumbs={[
-              {label: t('Explore')},
-              {
-                label: t('Traces'),
-                to: makeTracesPathname({organization, path: '/'}),
-              },
-              {label: title ? title : t('Compare Queries')},
-            ]}
+        {defined(id) && title ? (
+          <ExploreSavedQueryBreadcrumbs
+            surface="compare"
+            savedQueryId={id}
+            title={title}
           />
-        </TopBar.Slot>
-        <TopBar.Slot name="actions">
-          <StarSavedQueryButton />
-          {defined(id) && savedQuery?.isPrebuilt === false && <SavedQueryEditMenu />}
-        </TopBar.Slot>
+        ) : (
+          <Fragment>
+            <TopBar.Slot name="breadcrumbs">
+              <BreadcrumbList
+                items={[
+                  {
+                    type: 'link',
+                    label: t('Traces'),
+                    to: makeTracesPathname({organization, path: '/'}),
+                  },
+                ]}
+              />
+            </TopBar.Slot>
+            <TopBar.Slot name="title">
+              <BreadcrumbList.Title
+                item={{type: 'page-title', label: title || t('Compare Queries')}}
+              />
+            </TopBar.Slot>
+          </Fragment>
+        )}
         <TopBar.Slot name="feedback">
           <FeedbackButton
             aria-label={t('Give Feedback')}

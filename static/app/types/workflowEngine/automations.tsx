@@ -48,11 +48,6 @@ export interface AutomationFireHistory {
   detector?: Detector;
 }
 
-export type AutomationStats = {
-  count: number;
-  date: string;
-};
-
 /**
  * Warning information about the status of actions in an automation.
  */

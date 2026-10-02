@@ -268,6 +268,18 @@ class TestRedisBuffer:
         (3.14, "float"),
         ({"a": {"i": 0}, "b": {"s": ""}}, "dict"),
         (False, "bool"),
+        ([1, "a", 3.14], "list"),
+        (
+            [
+                {
+                    "parent_group_id": 4889213441,
+                    "should_group": True,
+                    "stacktrace_distance": 0.009,
+                    "message_distance": 0.0,
+                }
+            ],
+            "list_of_dicts",
+        ),
     ],
     ids=lambda input: input[1],
 )

@@ -24,7 +24,7 @@ from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
-from sentry.notifications.types import TEST_NOTIFICATION_ID
+from sentry.notifications.types import TEST_NOTIFICATION_ID, RuleFuture
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.rules.processing.processor import activate_downstream_actions
 from sentry.services.eventstore.models import GroupEvent
@@ -34,7 +34,6 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
 )
 from sentry.types.activity import ActivityType
-from sentry.types.rules import RuleFuture
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector, Workflow
 from sentry.workflow_engine.types import (
     ActionInvocation,
@@ -383,8 +382,6 @@ class BaseIssueAlertHandler(ABC):
 
 
 class TicketingIssueAlertHandler(BaseIssueAlertHandler):
-    # XXX: this label template is used by the WorkflowEngineRuleSerializer to return the same label as the old APIs
-    # once we remove those, we can remove this and all the render_label methods on the IssueAlertHanders
     label_template = "Create a ticket in {integration}"
 
     @classmethod
@@ -459,13 +456,15 @@ class BaseMetricAlertHandler(ABC):
         open_period_context = issue_notification_context.open_period_context
         trigger_status = issue_notification_context.trigger_status
 
+        logged_notification_context = asdict(notification_context)
+        logged_notification_context.pop("notes")
         logger.info(
             "notification_action.execute_via_metric_alert_handler",
             extra={
                 "action_id": invocation.action.id,
                 "detector_id": invocation.detector.id,
                 "event_data": asdict(invocation.event_data),
-                "notification_context": asdict(notification_context),
+                "notification_context": logged_notification_context,
                 "alert_context": asdict(alert_context),
                 "metric_issue_context": asdict(metric_issue_context),
                 "open_period_context": open_period_context.dict(),

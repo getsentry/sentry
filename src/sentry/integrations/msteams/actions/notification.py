@@ -13,7 +13,7 @@ from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.rules.actions import IntegrationEventAction
 from sentry.services.eventstore.models import GroupEvent
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils import metrics
 
 
@@ -62,7 +62,7 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
                 lifecycle.add_extras({"integration_id": integration.id, "channel": channel})
                 try:
                     client.send_card(channel, card)
-                except ApiError as e:
+                except (ApiError, IntegrationError) as e:
                     record_lifecycle_termination_level(lifecycle, e)
             rule = rules[0] if rules else None
             self.record_notification_sent(event, channel, rule, notification_uuid)

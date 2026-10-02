@@ -1,6 +1,7 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Version} from 'sentry/components/version';
@@ -18,10 +19,10 @@ export function AssociatedReleases({
   shouldFormatVersion?: boolean;
 }) {
   return (
-    <ReleasesWrapper>
+    <Stack gap="xs" maxHeight="200px" overflowY="auto">
       {associations.length
         ? associations.map(association => (
-            <AssociatedReleaseWrapper key={association.release}>
+            <Flex key={association.release} wrap="wrap" gap="xs">
               <Tooltip
                 showUnderline={association.exists === false}
                 title={
@@ -37,10 +38,10 @@ export function AssociatedReleases({
                 />
               </Tooltip>
               {`(Dist: ${formatDist(association.dist)})`}
-            </AssociatedReleaseWrapper>
+            </Flex>
           ))
         : t('No releases associated with this upload.')}
-    </ReleasesWrapper>
+    </Stack>
   );
 }
 
@@ -53,20 +54,6 @@ const formatDist = (dist: string | string[] | null) => {
   }
   return dist;
 };
-
-const ReleasesWrapper = styled('pre')`
-  max-height: 200px;
-  overflow-y: auto !important;
-`;
-
-const AssociatedReleaseWrapper = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${p => p.theme.space.xs};
-  :not(:last-child) {
-    margin-bottom: ${p => p.theme.space.xs};
-  }
-`;
 
 const StyledVersion = styled(Version)<{isPending: boolean}>`
   ${p =>
