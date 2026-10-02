@@ -99,8 +99,7 @@ const SEER_EMBED_COMPONENTS: MarkdownProps['components'] = {
       if (level === 'inline') {
         return embed;
       }
-      // Surfaces that float controls over the end of their content (an assistant answer's
-      // actions) target this to leave room below a trailing embed.
+      // `data-seer-embed` lets the surrounding layout style block embeds.
       return <Container data-seer-embed="">{embed}</Container>;
     }
     // Unknown embeds are expected to be registered here; drop them and report
