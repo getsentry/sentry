@@ -54,20 +54,14 @@ export function EventDataSection({
 }: EventDataSectionProps) {
   const titleNode = (
     <Container padding="sm 0">
-      <Heading as="h3" size="md" variant="secondary">
+      <Heading as="h3" size="lg" variant="primary">
         {title}
       </Heading>
     </Container>
   );
 
   return (
-    <Stack
-      gap="md"
-      ref={scrollToSection}
-      className={className}
-      padding={{zero: 'md xl', '3xl': 'lg 3xl'}}
-      {...props}
-    >
+    <Stack gap="md" ref={scrollToSection} className={className} padding="0" {...props}>
       <Flex
         id={type}
         data-test-id={`event-section-${type}`}
