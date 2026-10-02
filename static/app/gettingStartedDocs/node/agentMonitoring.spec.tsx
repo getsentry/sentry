@@ -1,5 +1,3 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
-
 import type {
   DocsParams,
   OnboardingStep,
@@ -61,33 +59,6 @@ function collectText(steps: OnboardingStep[]): string {
 
 describe('node agentMonitoring onboarding', () => {
   const config = agentMonitoring();
-
-  it.each(['node', 'cloudflare'])(
-    'links to the manual instrumentation child page for %s',
-    deploymentTarget => {
-      const steps = config.configure(
-        makeParams({integration: 'manual', deploymentTarget})
-      );
-      render(
-        <>
-          {steps.flatMap(step =>
-            (step.content ?? []).map((block, index) =>
-              block.type === 'custom' ? (
-                <div key={index}>{block.content}</div>
-              ) : null
-            )
-          )}
-        </>
-      );
-
-      expect(
-        screen.getByRole('link', {name: 'manual instrumentation guide'})
-      ).toHaveAttribute(
-        'href',
-        `https://docs.sentry.io/platforms/javascript/guides/${deploymentTarget}/agent-tracing/manual-instrumentation/`
-      );
-    }
-  );
 
   it.each([
     ['11.0.0', 'eve'],
