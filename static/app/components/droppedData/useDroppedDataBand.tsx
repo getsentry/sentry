@@ -35,7 +35,6 @@ const BOX_HEIGHT = 4;
 export const BAND_HEIGHT = BAND_PADDING + BOX_HEIGHT + BAND_PADDING;
 const BOX_BORDER_RADIUS = 2;
 const TOOLTIP_GAP = 8;
-const TRACK_OPACITY = 0.04;
 const BLEND_WIDTH = 0.3;
 const MAX_BLEND_WIDTH = 8;
 
@@ -197,7 +196,7 @@ function droppedDataRenderItem(
   bandOffset: number,
   theme: Theme
 ): CustomSeriesRenderItem {
-  const trackFill = withAlpha(theme.tokens.dataviz.semantic.bad, TRACK_OPACITY);
+  const trackFill = theme.tokens.background.secondary;
 
   return function renderDroppedDataItem(params, api) {
     const bucket = data[params.dataIndex];

@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
@@ -112,79 +112,95 @@ export function ReleaseContext(props: BaseContextProps) {
     );
   };
 
-  const renderReleaseAuthors = () => {
-    return (
-      data && (
-        <ReleaseContextContainer data-test-id="quick-context-release-details-container">
-          <ContextHeader data-test-id="quick-context-release-author-header">
-            <ContextTitle>{getCommitAuthorTitle()}</ContextTitle>
-          </ContextHeader>
-          <ContextBody>
-            {data.commitCount === 0 ? (
-              <IconNot variant="primary" size="md" />
-            ) : (
-              <StyledAvatarList users={authors} maxVisibleAvatars={10} />
-            )}
-          </ContextBody>
-        </ReleaseContextContainer>
-      )
-    );
-  };
-
-  const renderLastCommit = () =>
-    data?.lastCommit && (
-      <ReleaseContextContainer data-test-id="quick-context-release-last-commit-container">
-        <ContextHeader>
-          <ContextTitle>{t('Last Commit')}</ContextTitle>
-        </ContextHeader>
-        <DataSection>
-          <Panel>
-            <QuickContextCommitRow commit={data.lastCommit} />
-          </Panel>
-        </DataSection>
-      </ReleaseContextContainer>
-    );
-
-  const renderReleaseDetails = () =>
-    data && (
-      <ReleaseContextContainer data-test-id="quick-context-release-issues-and-authors-container">
-        <ContextRow>
-          <div>
-            <ContextHeader>
-              <ContextTitle>{t('Created')}</ContextTitle>
-            </ContextHeader>
-            <ReleaseBody>
-              <TimeSince date={data.dateCreated} />
-            </ReleaseBody>
-          </div>
-          <div>
-            <ContextHeader>
-              <ContextTitle>{t('Last Event')}</ContextTitle>
-            </ContextHeader>
-            <ReleaseBody>
-              {data.lastEvent ? <TimeSince date={data.lastEvent} /> : '\u2014'}
-            </ReleaseBody>
-          </div>
-          <div>
-            <ContextHeader>
-              <ContextTitle>{t('New Issues')}</ContextTitle>
-            </ContextHeader>
-            <ContextBody>{data.newGroups}</ContextBody>
-          </div>
-        </ContextRow>
-      </ReleaseContextContainer>
-    );
-
   if (isPending || isError) {
     return <NoContext isLoading={isPending} />;
   }
 
   return (
     <Wrapper data-test-id="quick-context-hover-body">
-      {renderReleaseDetails()}
-      {renderReleaseAuthors()}
-      {renderLastCommit()}
+      {data && (
+        <Fragment>
+          <ReleaseDetails data={data} />
+          <ReleaseAuthors
+            commitCount={data.commitCount}
+            authors={authors}
+            title={getCommitAuthorTitle()}
+          />
+          {data.lastCommit && <LastCommit commit={data.lastCommit} />}
+        </Fragment>
+      )}
     </Wrapper>
+  );
+}
+
+function ReleaseAuthors({
+  commitCount,
+  authors,
+  title,
+}: {
+  authors: Array<Actor | User> | undefined;
+  commitCount: number;
+  title: React.ReactNode;
+}) {
+  return (
+    <ReleaseContextContainer data-test-id="quick-context-release-details-container">
+      <ContextHeader data-test-id="quick-context-release-author-header">
+        <ContextTitle>{title}</ContextTitle>
+      </ContextHeader>
+      <ContextBody>
+        {commitCount === 0 ? (
+          <IconNot variant="primary" size="md" />
+        ) : (
+          <StyledAvatarList users={authors} maxVisibleAvatars={10} />
+        )}
+      </ContextBody>
+    </ReleaseContextContainer>
+  );
+}
+
+function LastCommit({commit}: {commit: NonNullable<ReleaseWithHealth['lastCommit']>}) {
+  return (
+    <ReleaseContextContainer data-test-id="quick-context-release-last-commit-container">
+      <ContextHeader>
+        <ContextTitle>{t('Last Commit')}</ContextTitle>
+      </ContextHeader>
+      <DataSection>
+        <Panel>
+          <QuickContextCommitRow commit={commit} />
+        </Panel>
+      </DataSection>
+    </ReleaseContextContainer>
+  );
+}
+
+function ReleaseDetails({data}: {data: ReleaseWithHealth}) {
+  return (
+    <ReleaseContextContainer data-test-id="quick-context-release-issues-and-authors-container">
+      <ContextRow>
+        <div>
+          <ContextHeader>
+            <ContextTitle>{t('Created')}</ContextTitle>
+          </ContextHeader>
+          <ReleaseBody>
+            <TimeSince date={data.dateCreated} />
+          </ReleaseBody>
+        </div>
+        <div>
+          <ContextHeader>
+            <ContextTitle>{t('Last Event')}</ContextTitle>
+          </ContextHeader>
+          <ReleaseBody>
+            {data.lastEvent ? <TimeSince date={data.lastEvent} /> : '\u2014'}
+          </ReleaseBody>
+        </div>
+        <div>
+          <ContextHeader>
+            <ContextTitle>{t('New Issues')}</ContextTitle>
+          </ContextHeader>
+          <ContextBody>{data.newGroups}</ContextBody>
+        </div>
+      </ContextRow>
+    </ReleaseContextContainer>
   );
 }
 

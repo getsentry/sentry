@@ -137,7 +137,11 @@ dependencies = [
 ]
 
 [tool.uv]
-environments = ["sys_platform == 'darwin' or sys_platform == 'linux'"]
+# only lock for the python we run (.python-version); our internal pypi lacks
+# wheels for some packages on newer pythons, so resolving for them fails
+environments = [
+  "(sys_platform == 'darwin' or sys_platform == 'linux') and python_version < '3.14'",
+]
 
 [[tool.uv.index]]
 # We don't allow using public pypi - submit a PR to
@@ -612,7 +616,6 @@ module = [
     "sentry.api.serializers.models.groupsearchviewstarred",
     "sentry.api.serializers.models.groupseen",
     "sentry.api.serializers.models.grouptombstone",
-    "sentry.api.serializers.models.incidentactivity",
     "sentry.api.serializers.models.organization",
     "sentry.api.serializers.models.organization_access_request",
     "sentry.api.serializers.models.organizationmemberinvite",
@@ -631,7 +634,6 @@ module = [
     "sentry.api.serializers.models.release_threshold",
     "sentry.api.serializers.models.repository",
     "sentry.api.serializers.models.role",
-    "sentry.api.serializers.models.rule",
     "sentry.api.serializers.models.seer_agentic_triage_run",
     "sentry.api.serializers.models.tagvalue",
     "sentry.api.serializers.models.team",
@@ -1217,7 +1219,6 @@ module = [
     "sentry.rules.actions.base",
     "sentry.rules.actions.notify_event_service",
     "sentry.rules.actions.services",
-    "sentry.rules.actions.utils",
     "sentry.rules.age",
     "sentry.rules.base",
     "sentry.rules.filters.*",
@@ -1385,7 +1386,6 @@ module = [
     "sentry.testutils.helpers.redis",
     "sentry.testutils.helpers.response",
     "sentry.testutils.helpers.sdk",
-    "sentry.testutils.helpers.serializer_parity",
     "sentry.testutils.helpers.slack",
     "sentry.testutils.helpers.socket",
     "sentry.testutils.helpers.uptime",

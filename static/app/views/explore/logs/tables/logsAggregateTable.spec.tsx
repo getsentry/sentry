@@ -119,7 +119,7 @@ describe('LogsAggregateTable', () => {
       />,
       {initialRouterConfig}
     );
-    expect(screen.getByTestId('error-indicator')).toBeInTheDocument();
+    expect(screen.getByTestId('loading-error')).toBeInTheDocument();
   });
 
   it('renders a rate limit message and retry button when rate limited', async () => {
