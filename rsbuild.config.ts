@@ -4,12 +4,11 @@ import {createRequire} from 'node:module';
 import path from 'node:path';
 
 import {defineConfig} from '@rsbuild/core';
-import type {ProxyOptions, RsbuildConfig} from '@rsbuild/core';
+import type {ProxyOptions, RsbuildConfig, ServerConfig} from '@rsbuild/core';
 import {pluginBasicSsl} from '@rsbuild/plugin-basic-ssl';
 import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
-  DevServer,
   OptimizationSplitChunksCacheGroup,
   SwcLoaderOptions,
 } from '@rspack/core';
@@ -90,10 +89,6 @@ const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
   githubOrg: env.NOW_GITHUB_COMMIT_ORG,
   githubRepo: env.NOW_GITHUB_COMMIT_REPO,
 };
-
-// Silence proxy logs, they can be noisy and not interesting
-// eslint-disable-next-line no-console
-const proxyLoggerQuiet = {info: () => {}, warn: console.warn, error: console.error};
 
 const require = createRequire(import.meta.url);
 
@@ -668,6 +663,11 @@ if (IS_ACCEPTANCE_TEST) {
   workerConfig.plugins?.push(new LastBuiltPlugin({basePath: import.meta.dirname}));
 }
 
+let serverConfig: ServerConfig = {
+  htmlFallback: false,
+  publicDir: false,
+};
+
 // Dev only! Hot module reloading
 if (
   FORCE_WEBPACK_DEV_SERVER ||
@@ -695,39 +695,13 @@ if (
     }
   }
 
-  appConfig.devServer = {
+  serverConfig = {
+    ...serverConfig,
     headers: {
       'Document-Policy': 'js-profiling',
     },
-    // Cover the various environments we use (vercel, getsentry-dev, localhost)
-    allowedHosts: [
-      '.sentry.dev',
-      '.dev.getsentry.net',
-      '.localhost',
-      '127.0.0.1',
-      '.docker.internal',
-      // SEO: ngrok, hot reload, SENTRY_UI_HOT_RELOAD. Uncomment this to allow hot-reloading when using ngrok. This is disabled by default
-      // since ngrok urls are public and can be accessed by anyone.
-      // '.ngrok.io',
-
-      // Needed if you want to use ngrok w/ backend
-      ...(SENTRY_DEVSERVER_NGROK ? [`.${SENTRY_DEVSERVER_NGROK}`] : []),
-    ],
-    static: {
-      directory: './src/sentry/static/sentry',
-      watch: true,
-    },
     host: SENTRY_WEBPACK_PROXY_HOST,
-    hot: SHOULD_HOT_MODULE_RELOAD ? 'only' : false,
-    liveReload: !SENTRY_DEVSERVER_NGROK,
     port: Number(SENTRY_WEBPACK_PROXY_PORT),
-    client: {
-      overlay: false,
-      // When behind a reverse proxy (ngrok/Coder), the WebSocket client must
-      // derive its URL from window.location instead of the dev server's host.
-      // Without this, HMR tries ws://127.0.0.1:8000/ws which is unreachable.
-      ...(SENTRY_DEVSERVER_NGROK && {webSocketURL: 'auto://0.0.0.0:0/ws'}),
-    },
   };
 
   if (!IS_UI_DEV_ONLY) {
@@ -737,7 +711,7 @@ if (
 
     // If we're running siloed servers we also need to proxy
     // those requests to the right server.
-    let controlSiloProxy: Required<DevServer['proxy']> = [];
+    let controlSiloProxy: ProxyOptions[] = [];
     if (CONTROL_SILO_PORT) {
       // TODO(hybridcloud) We also need to use this URL pattern
       // list to select contro/region when making API requests in non-proxied
@@ -746,7 +720,7 @@ if (
       const controlSiloAddress = `http://127.0.0.1:${CONTROL_SILO_PORT}`;
       controlSiloProxy = [
         {
-          context: [
+          pathFilter: [
             '/auth/**',
             '/account/**',
             '/api/0/users/**',
@@ -764,33 +738,31 @@ if (
             '/api/0/assistant/**',
           ],
           target: controlSiloAddress,
-          logger: proxyLoggerQuiet,
         },
       ];
     }
 
-    appConfig.devServer = {
-      ...appConfig.devServer,
-      static: {
-        ...(appConfig.devServer.static as Record<PropertyKey, unknown>),
-        publicPath: '/_static/dist/sentry',
+    serverConfig = {
+      ...serverConfig,
+      publicDir: {
+        name: 'src/sentry/static/sentry',
+        watch: true,
+        copyOnBuild: false,
       },
       // syntax for matching is using https://www.npmjs.com/package/micromatch
       proxy: [
         ...controlSiloProxy,
         {
-          context: [
+          pathFilter: [
             '/api/store/**',
             '/api/{1..9}*({0..9})/**',
             '/api/0/relays/outcomes/**',
           ],
           target: relayAddress,
-          logger: proxyLoggerQuiet,
         },
         {
-          context: ['!/_static/dist/sentry/**'],
+          pathFilter: ['!/_static/dist/sentry/**'],
           target: backendAddress,
-          logger: proxyLoggerQuiet,
         },
       ],
     };
@@ -837,27 +809,21 @@ if (IS_UI_DEV_ONLY) {
     : // Rsbuild's basic SSL plugin generates a certificate when mkcert is absent.
       {};
 
-  appConfig.devServer = {
-    ...appConfig.devServer,
+  serverConfig = {
+    ...serverConfig,
     // dev.getsentry.net resolves to IPv4; localhost can bind to IPv6 only.
     host: SENTRY_WEBPACK_PROXY_HOST ?? '127.0.0.1',
     compress: true,
-    server: {
-      type: 'https',
-      options: httpsOptions,
-    },
+    https: httpsOptions,
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Credentials': 'true',
       'Document-Policy': 'js-profiling',
       'Service-Worker-Allowed': '/',
     },
-    static: {
-      publicPath: '/_assets/',
-    },
     proxy: [
       {
-        context: [
+        pathFilter: [
           '/api/',
           '/avatar/',
           '/organization-avatar/',
@@ -873,7 +839,6 @@ if (IS_UI_DEV_ONLY) {
           origin: 'https://sentry.io',
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
-        logger: proxyLoggerQuiet,
         router: req => {
           const host = req.headers.host?.split(':')[0];
           const orgSlug = host ? extractSlug(host) : null;
@@ -887,7 +852,7 @@ if (IS_UI_DEV_ONLY) {
         // directly to region servers. These requests would fail because of CORS.
         // Instead Client prefixes region requests with `/region/$name` which
         // we rewrite in the proxy.
-        context: ['/region/'],
+        pathFilter: ['/region/'],
         target: 'https://us.sentry.io',
         secure: false,
         changeOrigin: true,
@@ -897,7 +862,6 @@ if (IS_UI_DEV_ONLY) {
           origin: 'https://sentry.io',
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
-        logger: proxyLoggerQuiet,
         pathRewrite: {
           '^/region/[^/]*': '',
         },
@@ -934,10 +898,6 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
    */
   appConfig.plugins?.push(
     new HtmlWebpackPlugin({
-      // Local dev vs vercel slightly differs...
-      ...(IS_UI_DEV_ONLY
-        ? {devServer: `https://127.0.0.1:${SENTRY_WEBPACK_PROXY_PORT}`}
-        : {}),
       favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon-dev.png'),
       template: path.resolve(staticPrefix, 'index.ejs'),
       mobile: true,
@@ -1036,7 +996,6 @@ if (env.RSPACK_STATS) {
 // Rsbuild owns the dev server and multi-environment lifecycle. Keep the compiler
 // customization here: Django's entrypoint names, asset layout, and the worker's
 // shared output directory are part of the contract with the backend.
-const server = appConfig.devServer || undefined;
 const rsbuildConfig: RsbuildConfig = {
   root: import.meta.dirname,
   mode: WEBPACK_MODE,
@@ -1060,42 +1019,7 @@ const rsbuildConfig: RsbuildConfig = {
     // also works when ngrok/Coder terminates HTTPS in front of the dev server.
     client: {overlay: false},
   },
-  server: {
-    host: server?.host,
-    port: typeof server?.port === 'number' ? server.port : undefined,
-    headers: server?.headers as Record<string, string> | undefined,
-    compress: server?.compress,
-    https:
-      server?.server &&
-      typeof server.server === 'object' &&
-      server.server.type === 'https'
-        ? server.server.options
-        : undefined,
-    historyApiFallback: server?.historyApiFallback as NonNullable<
-      RsbuildConfig['server']
-    >['historyApiFallback'],
-    htmlFallback: false,
-    publicDir:
-      server?.static && !IS_UI_DEV_ONLY
-        ? {
-            name: 'src/sentry/static/sentry',
-            watch: true,
-            copyOnBuild: false,
-          }
-        : false,
-    proxy: Array.isArray(server?.proxy)
-      ? (server.proxy.map(rule => {
-          if (typeof rule === 'function') {
-            return rule() as ProxyOptions;
-          }
-          const {context, logger: _logger, ...options} = rule;
-          return {
-            ...options,
-            pathFilter: context,
-          };
-        }) as ProxyOptions[])
-      : undefined,
-  },
+  server: serverConfig,
   environments: {
     app: {
       source: {
@@ -1111,7 +1035,7 @@ const rsbuildConfig: RsbuildConfig = {
       output: {target: 'web', distPath: {root: distPath}, cleanDistPath: false},
       tools: {
         htmlPlugin: false,
-        rspack: config => ({...config, ...appConfig, devServer: undefined}),
+        rspack: config => ({...config, ...appConfig}),
       },
     },
     'service-worker': {
@@ -1123,7 +1047,7 @@ const rsbuildConfig: RsbuildConfig = {
       output: {target: 'web-worker', distPath: {root: distPath}, cleanDistPath: false},
       tools: {
         htmlPlugin: false,
-        rspack: config => ({...config, ...workerConfig, devServer: undefined}),
+        rspack: config => ({...config, ...workerConfig}),
       },
     },
   },
