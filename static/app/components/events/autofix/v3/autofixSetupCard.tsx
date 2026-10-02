@@ -33,8 +33,10 @@ export function useAutofixSetupStep({seerReposLinked}: {seerReposLinked: boolean
   // Legacy Seer plans are allowed to run Autofix without the SCM integration.
   const isLegacySeerPlan = organization.features.includes('seer-added');
 
+  // A failed onboarding check says nothing about whether Seer is configured, so
+  // it must not send people to setup in place of Autofix.
   let setupType: AutofixSetupType | null = null;
-  if (!isLegacySeerPlan) {
+  if (!isLegacySeerPlan && !isError) {
     if (needOrgSetup) {
       setupType = 'organization';
     } else if (needProjSetup) {
@@ -44,7 +46,6 @@ export function useAutofixSetupStep({seerReposLinked}: {seerReposLinked: boolean
 
   return {
     isPending,
-    isError,
     needOrgSetup,
     needProjSetup,
     setupType,

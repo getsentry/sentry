@@ -100,10 +100,8 @@ function GroupAutofixContent({group, project}: {group: Group; project: Project})
 
   // Until Seer can reach the code, a run has nothing to work from, so point
   // people at setup instead of the start card, the same as the sidebar does.
-  // As with the subscription check, a failed onboarding check is not treated as
-  // a reason to withhold the start card, and an existing run stays visible.
-  const setupType =
-    !setupStep.isError && !aiConfig.isAutofixSetupLoading ? setupStep.setupType : null;
+  // An existing run stays visible.
+  const setupType = aiConfig.isAutofixSetupLoading ? null : setupStep.setupType;
 
   if (setupType && !autofix.isLoading && !autofix.runState) {
     return (
