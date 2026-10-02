@@ -36,6 +36,8 @@ export function ProjectSettingsNavigation({
       features={new Set(organization.features)}
       organization={organization}
       project={project}
+      hookConfigs={[]}
+      hooks={[]}
     />
   );
 }

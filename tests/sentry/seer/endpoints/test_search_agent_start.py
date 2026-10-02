@@ -194,27 +194,26 @@ class SearchAgentStartEndpointTest(APITestCase):
     @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
     @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
     @with_feature("organizations:seer-assisted-query-codemode")
-    def test_code_mode_requires_toggle_and_flag(self, mock_send_request: MagicMock) -> None:
-        """code_mode is False when the request toggle is off, even if the flag is on."""
+    def test_code_mode_enabled_by_flag(self, mock_send_request: MagicMock) -> None:
+        """Code mode follows the flag without callers opting in."""
         mock_send_request.return_value = Mock(seer_run_state_id=42, uuid="run-uuid")
 
         response = self._post()
 
         assert response.status_code == status.HTTP_200_OK
-        assert mock_send_request.call_args.kwargs["code_mode"] is False
+        assert mock_send_request.call_args.kwargs["code_mode"] is True
 
     @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
     @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
-    @with_feature("organizations:seer-assisted-query-codemode")
-    def test_code_mode_toggle_enables_code_mode(self, mock_send_request: MagicMock) -> None:
-        """The toggle rides in `options` alongside model_name/metric_context."""
+    def test_code_mode_option_ignored_without_flag(self, mock_send_request: MagicMock) -> None:
+        """A client-sent code_mode option can't enable code mode without the flag."""
         mock_send_request.return_value = Mock(seer_run_state_id=42, uuid="run-uuid")
 
         response = self._post(options={"code_mode": True, "model_name": "gpt-5"})
 
         assert response.status_code == status.HTTP_200_OK
         kwargs = mock_send_request.call_args.kwargs
-        assert kwargs["code_mode"] is True
+        assert kwargs["code_mode"] is False
         assert kwargs["model_name"] == "gpt-5"
 
     @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")

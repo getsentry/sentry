@@ -7,10 +7,19 @@ from typing import Any
 import rb
 from sentry_redis_tools.clients import RedisCluster
 
+from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
-from sentry.quotas.base import NotRateLimited, Quota, QuotaConfig, QuotaScope, RateLimited
+from sentry.quotas.base import (
+    NotRateLimited,
+    Quota,
+    QuotaConfig,
+    QuotaDimension,
+    QuotaGroupBy,
+    QuotaScope,
+    RateLimited,
+)
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     is_instance_rb_cluster,
@@ -91,6 +100,28 @@ class RedisQuota(Quota):
                         reason_code="monitor_rate_limit",
                     )
                 )
+
+        if options.get("crons.per_monitor_relay_quota.enabled"):
+            from sentry.monitors.rate_limit import PER_MONITOR_MAX_CARDINALITY, QUOTA_WINDOW
+
+            results.append(
+                QuotaConfig(
+                    id="mrl_env",
+                    limit=options.get("crons.per_monitor_rate_limit"),
+                    window=QUOTA_WINDOW,
+                    scope=QuotaScope.PROJECT,
+                    scope_id=project.id,
+                    categories=[DataCategory.MONITOR],
+                    reason_code="monitor_env_rate_limit",
+                    group_by=QuotaGroupBy(
+                        max_cardinality=PER_MONITOR_MAX_CARDINALITY,
+                        dimensions=(
+                            QuotaDimension.CHECK_IN_SLUG,
+                            QuotaDimension.CHECK_IN_ENVIRONMENT,
+                        ),
+                    ),
+                )
+            )
 
         if key and not keys:
             keys = [key]

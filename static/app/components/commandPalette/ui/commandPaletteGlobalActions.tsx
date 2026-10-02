@@ -63,6 +63,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
@@ -292,6 +293,12 @@ export function GlobalCommandPaletteActions() {
     ? projects.filter(p => p.slug === params.projectId)
     : projects.filter(p => queryProjectIds.has(p.id));
   const currentProjectSlugs = new Set(currentProjects.map(p => p.slug));
+  // Included in project picker query keys so starring/unstarring a project
+  // reorders the cached list.
+  const bookmarkedProjectSlugs = projects
+    .filter(p => p.isBookmarked)
+    .map(p => p.slug)
+    .join(',');
   const visibleProjectSettingsNavItems = useMemo(() => {
     const context: Omit<NavigationGroupProps, 'items' | 'name' | 'id'> = {
       access: new Set(organization.access),
@@ -703,11 +710,16 @@ export function GlobalCommandPaletteActions() {
                       organization.slug,
                       suffix,
                       params.projectId ?? [...queryProjectIds].join(','),
+                      bookmarkedProjectSlugs,
                     ],
                     queryFn: () => {
                       const sorted = [
-                        ...projects.filter(p => currentProjectSlugs.has(p.slug)),
-                        ...projects.filter(p => !currentProjectSlugs.has(p.slug)),
+                        ...sortProjects(
+                          projects.filter(p => currentProjectSlugs.has(p.slug))
+                        ),
+                        ...sortProjects(
+                          projects.filter(p => !currentProjectSlugs.has(p.slug))
+                        ),
                       ];
                       return sorted.map(project => ({
                         display: {
@@ -921,7 +933,7 @@ export function GlobalCommandPaletteActions() {
             ),
             enabled: query.length >= 1,
             select: data =>
-              data.json.map(project => ({
+              sortProjects(data.json).map(project => ({
                 display: {
                   label: project.slug,
                   icon: <ProjectAvatar project={project} size={16} />,
@@ -958,18 +970,17 @@ export function GlobalCommandPaletteActions() {
               'cmdk-project-nav',
               organization.slug,
               projects.map(p => p.slug).join(','),
+              bookmarkedProjectSlugs,
             ],
             queryFn: () =>
-              projects
-                .toSorted((a, b) => a.slug.localeCompare(b.slug))
-                .map(project => ({
-                  display: {
-                    label: project.slug,
-                    icon: <ProjectAvatar project={project} size={16} />,
-                  },
-                  keywords: [project.name, project.slug],
-                  to: `/organizations/${organization.slug}/issues/?project=${project.id}`,
-                })),
+              sortProjects(projects).map(project => ({
+                display: {
+                  label: project.slug,
+                  icon: <ProjectAvatar project={project} size={16} />,
+                },
+                keywords: [project.name, project.slug],
+                to: `/organizations/${organization.slug}/issues/?project=${project.id}`,
+              })),
             enabled: state === 'selected',
             staleTime: Infinity,
           })

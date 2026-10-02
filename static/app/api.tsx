@@ -213,7 +213,7 @@ export function hasProjectBeenRenamed(response: ResponseMeta) {
 
 type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
 
-export type RequestCallbacks = {
+type RequestCallbacks = {
   /**
    * Callback for the request completing (success or error)
    */
@@ -669,8 +669,8 @@ export class Client {
     // or handle with a user friendly error message
     const preservedError = new Error('API Request Error');
 
-    return new Promise((resolve, reject) =>
-      this.request(path, {
+    return new Promise((resolve, reject) => {
+      const request = this.request(path, {
         ...options,
         preservedError,
         success: (data, textStatus, resp) => {
@@ -692,7 +692,17 @@ export class Client {
           // potentially be logged by Sentry's unhandled rejection handler
           reject(errorObjectToUse);
         },
-      })
-    );
+      });
+
+      // `request` runs neither callback when the fetch itself rejects (a blocked
+      // request, a network failure), which would leave this promise pending
+      // forever. A cancelled request rejects the same way, but it was abandoned
+      // on purpose, so it stays unsettled rather than surfacing as an error.
+      request.requestPromise.catch(() => {
+        if (request.alive) {
+          reject(new RequestError(options.method, path, preservedError));
+        }
+      });
+    });
   }
 }
