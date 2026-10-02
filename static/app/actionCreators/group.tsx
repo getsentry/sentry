@@ -3,75 +3,50 @@ import {queryOptions} from '@tanstack/react-query';
 import type {RequestCallbacks} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {GroupStore} from 'sentry/stores/groupStore';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import type {Group, Tag as GroupTag, TagValue} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {uniqueId} from 'sentry/utils/guid';
 import {parseActorString} from 'sentry/utils/parseActorString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {QueryParamValue} from 'sentry/utils/useLocation';
 
-type ParamsType = {
+type GroupQueryParams = Partial<PageFilterDatetime> & {
   environment?: string | string[] | null;
   itemIds?: string[];
   project?: number[] | string[] | null;
   query?: string;
+  sort?: string;
 };
 
-type UpdateParams = ParamsType & {
+type UpdateParams = GroupQueryParams & {
   orgId: string;
   projectId?: string;
 };
 
-type QueryArgs =
-  | {
-      query: string;
-      environment?: string | string[];
-      project?: Array<number | string>;
-    }
-  | {
-      id: number[] | string[];
-      environment?: string | string[];
-      project?: Array<number | string>;
-    }
-  | {
-      environment?: string | string[];
-      project?: Array<number | string>;
-    };
-
 /**
  * Converts input parameters to API-compatible query arguments
  */
-export function paramsToQueryArgs(params: ParamsType): QueryArgs {
-  const p: QueryArgs = params.itemIds
-    ? {id: params.itemIds} // items matching array of itemids
-    : params.query
-      ? {query: params.query} // items matching search query
-      : {}; // all items
+export function paramsToQueryArgs(params: GroupQueryParams) {
+  const project = params.project?.length ? params.project : undefined;
 
-  // only include environment if it is not null/undefined
-  if (params.query && params.environment !== null && params.environment !== undefined) {
-    p.environment = params.environment;
+  if (params.itemIds) {
+    return {id: params.itemIds, project};
   }
 
-  // only include projects if it is not null/undefined/an empty array
-  if (params.project?.length) {
-    p.project = params.project;
-  }
-
-  // only include date filters if they are not null/undefined
-  if (params.query) {
-    ['start', 'end', 'period', 'utc'].forEach(prop => {
-      if (
-        params[prop as keyof typeof params] !== null &&
-        params[prop as keyof typeof params] !== undefined
-      ) {
-        (p as any)[prop === 'period' ? 'statsPeriod' : prop] =
-          params[prop as keyof typeof params];
-      }
-    });
-  }
-  return p;
+  return {
+    // Preserve an empty query; omitting it defaults to unresolved issues.
+    query: params.query,
+    project,
+    environment: params.environment ?? undefined,
+    sort: params.sort,
+    start: params.start ? getUtcDateString(params.start) : undefined,
+    end: params.end ? getUtcDateString(params.end) : undefined,
+    statsPeriod: params.period || undefined,
+    utc: params.utc ?? undefined,
+  };
 }
 
 function getUpdateUrl({projectId, orgId}: UpdateParams) {
@@ -93,12 +68,17 @@ export async function bulkDelete(
   const query = paramsToQueryArgs(params);
   const id = uniqueId();
 
-  GroupStore.onDelete(id, itemIds);
-
   let responseMeta: any;
   let statusText: string | undefined;
 
   try {
+    if (itemIds?.length === 0) {
+      options?.success?.(undefined);
+      return;
+    }
+
+    GroupStore.onDelete(id, itemIds);
+
     const [data, status, meta] = await api.requestPromise(path, {
       query,
       method: 'DELETE',
@@ -132,16 +112,21 @@ export async function bulkUpdate(
   const query = paramsToQueryArgs(params);
   const id = uniqueId();
 
-  const optimisticData: Partial<Group> =
-    typeof data.assignedTo === 'string'
-      ? {...data, assignedTo: parseActorString(data.assignedTo) ?? null}
-      : data;
-  GroupStore.onUpdate(id, itemIds, optimisticData);
-
   let responseMeta: any;
   let statusText: string | undefined;
 
   try {
+    if (itemIds?.length === 0) {
+      options?.success?.(undefined);
+      return;
+    }
+
+    const optimisticData: Partial<Group> =
+      typeof data.assignedTo === 'string'
+        ? {...data, assignedTo: parseActorString(data.assignedTo) ?? null}
+        : data;
+    GroupStore.onUpdate(id, itemIds, optimisticData);
+
     const [response, status, meta] = await api.requestPromise(path, {
       query,
       method: 'PUT',
@@ -173,12 +158,17 @@ export async function mergeGroups(
   const query = paramsToQueryArgs(params);
   const id = uniqueId();
 
-  GroupStore.onMerge(id, itemIds);
-
   let responseMeta: any;
   let statusText: string | undefined;
 
   try {
+    if (itemIds?.length === 0) {
+      options?.success?.(undefined);
+      return;
+    }
+
+    GroupStore.onMerge(id, itemIds);
+
     const [response, status, meta] = await api.requestPromise(path, {
       query,
       method: 'PUT',

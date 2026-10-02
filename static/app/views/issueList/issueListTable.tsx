@@ -17,6 +17,7 @@ import {GroupListBody} from 'sentry/views/issueList/groupListBody';
 import {IssueListBulkCommandPaletteActions} from 'sentry/views/issueList/issueListBulkCommandPaletteActions';
 import {NewViewEmptyState} from 'sentry/views/issueList/newViewEmptyState';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
+import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 interface IssueListTableProps {
   allResultsVisible: boolean;
@@ -38,6 +39,7 @@ interface IssueListTableProps {
   queryCount: number;
   refetchGroups: (fetchAllCounts?: boolean) => void;
   selection: PageFilters;
+  sort: IssueSortOptions;
   statsLoading: boolean;
   statsPeriod: string;
 }
@@ -51,6 +53,7 @@ export function IssueListTable({
   query,
   queryCount,
   selection,
+  sort,
   statsPeriod,
   onActionTaken,
   issuesLoading,
@@ -94,6 +97,7 @@ export function IssueListTable({
                 query={query}
                 queryCount={queryCount}
                 selection={selection}
+                sort={sort}
                 groupIds={groupIds}
                 onActionTaken={onActionTaken}
               />
@@ -101,6 +105,7 @@ export function IssueListTable({
                 <HoverOverlayGroupProvider>
                   <IssueListActions
                     selection={selection}
+                    sort={sort}
                     query={query}
                     queryCount={queryCount}
                     onSelectStatsPeriod={onSelectStatsPeriod}
