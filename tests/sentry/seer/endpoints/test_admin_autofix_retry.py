@@ -1,9 +1,12 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.feature.models import FEATURE_ID
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.testutils.cases import APITestCase
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 
 
 def block(step: str | None, referrer: str | None = None) -> MemoryBlock:
@@ -45,16 +48,23 @@ class SeerAdminAutofixRetryTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user(is_staff=True)
-        self.organization = self.create_organization(owner=self.user)
+        self.login_as(user=self.user)
+        self.organization = self.create_organization()
         self.project = self.create_project(organization=self.organization)
         self.group = self.create_group(project=self.project)
-        self.login_as(user=self.user)
 
     def get_response(self, *args, **params):
         with patch("sentry.api.permissions.is_active_staff", return_value=True):
             return super().get_response(*args, **params)
 
-    def test_retries_failed_step(self, mock_fetch: MagicMock, mock_trigger: MagicMock) -> None:
+    def create_autofix_run(self, run_id: int, source: str = FEATURE_ID) -> None:
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=run_id)
+        self.create_seer_agent_run(run=run, source=source, group_id=self.group.id)
+
+    def test_retries_failed_step_as_system(
+        self, mock_fetch: MagicMock, mock_trigger: MagicMock
+    ) -> None:
+        self.create_autofix_run(1)
         mock_fetch.return_value = run_state(
             1,
             [
@@ -65,12 +75,15 @@ class SeerAdminAutofixRetryTest(APITestCase):
             ],
             group_id=self.group.id,
         )
+        viewer_contexts: list[ViewerContext | None] = []
+        mock_trigger.side_effect = lambda **kwargs: viewer_contexts.append(get_viewer_context())
 
-        response = self.get_success_response(organization_id=self.organization.id, run_ids=[1])
+        response = self.get_success_response(run_ids=[1])
 
         assert response.data["results"] == [
             {"run_id": 1, "retried": True, "step": AutofixStep.SOLUTION}
         ]
+        mock_fetch.assert_called_once_with(1, self.organization)
         mock_trigger.assert_called_once_with(
             group=self.group,
             step=AutofixStep.SOLUTION,
@@ -78,11 +91,17 @@ class SeerAdminAutofixRetryTest(APITestCase):
             run_id=1,
             insert_index=2,
         )
+        assert viewer_contexts == [
+            ViewerContext(organization_id=self.organization.id, actor_type=ActorType.SYSTEM)
+        ]
 
     def test_reports_per_run_results(self, mock_fetch: MagicMock, mock_trigger: MagicMock) -> None:
         other_group = self.create_group(
             project=self.create_project(organization=self.create_organization())
         )
+        for run_id in range(1, 8):
+            self.create_autofix_run(run_id)
+        self.create_autofix_run(8, source="chat")
         states = {
             1: run_state(1, [block("root_cause")], group_id=self.group.id),
             2: run_state(2, [block("root_cause")], status="completed", group_id=self.group.id),
@@ -108,12 +127,10 @@ class SeerAdminAutofixRetryTest(APITestCase):
 
         mock_fetch.side_effect = fetch
 
-        response = self.get_success_response(
-            organization_id=self.organization.id, run_ids=[1, 2, 3, 4, 5, 6, 7, 1]
-        )
+        response = self.get_success_response(run_ids=[1, 2, 3, 4, 5, 6, 7, 8, 9, 1])
 
         results = {r["run_id"]: r for r in response.data["results"]}
-        assert len(response.data["results"]) == 7
+        assert len(response.data["results"]) == 9
         assert results[1]["retried"] is True
         assert results[2]["reason"] == "Run status is 'completed', not 'error'"
         assert results[3]["reason"] == "Retrying the pr_iteration step is not supported"
@@ -121,36 +138,35 @@ class SeerAdminAutofixRetryTest(APITestCase):
         assert results[5]["reason"] == "Group not found"
         assert results[6]["reason"] == "Run has a pull request or coding agent"
         assert results[7]["reason"] == "Failed to fetch run state"
+        assert results[8]["reason"] == "Autofix run not found"
+        assert results[9]["reason"] == "Autofix run not found"
         mock_trigger.assert_called_once()
 
     def test_trigger_failure(self, mock_fetch: MagicMock, mock_trigger: MagicMock) -> None:
+        self.create_autofix_run(1)
         mock_fetch.return_value = run_state(1, [block("root_cause")], group_id=self.group.id)
         mock_trigger.side_effect = Exception("boom")
 
-        response = self.get_success_response(organization_id=self.organization.id, run_ids=[1])
+        response = self.get_success_response(run_ids=[1])
 
         assert response.data["results"] == [
             {"run_id": 1, "retried": False, "reason": "Failed to trigger the step"}
         ]
 
     def test_invalid_payload(self, mock_fetch: MagicMock, mock_trigger: MagicMock) -> None:
-        for payload in (
-            {"run_ids": [1]},
-            {"organization_id": self.organization.id},
-            {"organization_id": self.organization.id, "run_ids": []},
-            {"organization_id": self.organization.id, "run_ids": ["abc"]},
-            {"organization_id": self.organization.id, "run_ids": list(range(51))},
-        ):
+        payloads: list[dict[str, Any]] = [
+            {},
+            {"run_ids": []},
+            {"run_ids": ["abc"]},
+            {"run_ids": list(range(51))},
+        ]
+        for payload in payloads:
             response = self.get_response(**payload)
             assert response.status_code == 400, payload
         mock_fetch.assert_not_called()
 
-    def test_unknown_organization(self, mock_fetch: MagicMock, mock_trigger: MagicMock) -> None:
-        response = self.get_response(organization_id=0, run_ids=[1])
-        assert response.status_code == 404
-
     def test_requires_staff(self, mock_fetch: MagicMock, mock_trigger: MagicMock) -> None:
         self.login_as(self.create_user())
-        response = super().get_response(organization_id=self.organization.id, run_ids=[1])
+        response = super().get_response(run_ids=[1])
         assert response.status_code == 403
         mock_fetch.assert_not_called()
