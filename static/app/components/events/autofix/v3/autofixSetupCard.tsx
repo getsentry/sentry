@@ -12,7 +12,7 @@ import type {Project} from 'sentry/types/project';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export type AutofixSetupType = 'organization' | 'project';
+type AutofixSetupType = 'organization' | 'project';
 
 /**
  * Works out whether Seer still has to be connected to code before Autofix is
