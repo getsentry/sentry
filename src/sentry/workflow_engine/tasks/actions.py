@@ -163,5 +163,5 @@ def trigger_action(
         except (Exception, ProcessingDeadlineExceeded) as error:
             # Action triggering is best effort. This raises while attempts remain, but returns
             # after the final attempt so giving up does not count as a task failure.
-            retry_task(error, raise_on_no_retries=False)
+            retry_task(raise_on_no_retries=False)
             sentry_sdk.capture_exception(error)
