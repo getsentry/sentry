@@ -1371,6 +1371,67 @@ describe('Threads', () => {
           `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=true&thread_id=${activeThreadId}&download=1`
         );
       });
+
+      it('selects the minidump thread with a numeric string client ID', async () => {
+        const newEvent = merge({}, event, {
+          entries: [
+            {
+              data: {
+                values: [
+                  {threadId: 0, mechanism: {type: 'minidump', handled: true}},
+                  {threadId: '0'},
+                ],
+              },
+            },
+            {data: {values: [{crashed: false, stacktrace: null}]}},
+          ],
+        });
+        const threadsEntry = newEvent.entries[1]!.data as React.ComponentProps<
+          typeof Threads
+        >['data'];
+        render(<Threads {...props} data={threadsEntry} event={newEvent} />, {
+          organization,
+        });
+
+        expect(await screen.findByTestId('thread-selector')).toHaveTextContent(
+          'Thread #0'
+        );
+        expect(screen.getByText('ViewController.causeCrash')).toBeInTheDocument();
+      });
+
+      it('preserves the client thread selection after minidump processing', async () => {
+        const newEvent = merge({}, event, {
+          entries: [
+            {
+              data: {
+                values: [
+                  {threadId: 2, mechanism: {type: 'minidump', handled: true}},
+                  {threadId: 1},
+                  {threadId: '2'},
+                ],
+              },
+            },
+            {
+              data: {
+                values: [{id: 1}, {id: 2, crashed: false, stacktrace: null}],
+              },
+            },
+          ],
+        });
+        const threadsEntry = newEvent.entries[1]!.data as React.ComponentProps<
+          typeof Threads
+        >['data'];
+        render(<Threads {...props} data={threadsEntry} event={newEvent} />, {
+          organization,
+        });
+
+        expect(
+          await screen.findByRole('button', {name: /Thread #2:/})
+        ).toBeInTheDocument();
+        expect(
+          within(screen.getByTestId('stack-trace')).getByText('ViewController.causeCrash')
+        ).toBeInTheDocument();
+      });
     });
   });
 });
