@@ -57,10 +57,10 @@ from sentry.locks import locks
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.rule import Rule
 from sentry.notifications.services import notifications_service
 from sentry.notifications.types import NotificationRule
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
-from sentry.notifications.utils.rules import get_notification_rules
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.entrypoints.slack.entrypoint import SlackAutofixEntrypoint
 from sentry.seer.entrypoints.slack.messaging import send_not_org_member_message
@@ -137,18 +137,18 @@ def update_group(
     return resp
 
 
-def get_rule(
-    rule_id: int | None, workflow_id: int | None, group: Group
-) -> NotificationRule | None:
+def get_rule(rule_id: int | None, organization_id: int) -> NotificationRule | None:
     """Get the rule that fired"""
-    if not rule_id and not workflow_id:
+    if not rule_id:
         return None
-    rules = get_notification_rules(
-        group.project,
-        legacy_rule_ids=[rule_id] if rule_id else [],
-        workflow_ids=[workflow_id] if workflow_id else [],
-    )
-    return rules[0] if rules else None
+    try:
+        # Scope the callback-provided rule ID to the integration-validated organization.
+        rule = Rule.objects.get(id=rule_id, project__organization_id=organization_id)
+        # The callback contract puns Rule and Workflow IDs, so preserve Rule.id here.
+        rule.data["actions"][0]["legacy_rule_id"] = rule.id
+    except Rule.DoesNotExist:
+        return None
+    return NotificationRule.from_deprecated_legacy_rule(rule)
 
 
 def get_group(slack_request: SlackActionRequest) -> Group | None:
@@ -366,7 +366,7 @@ class SlackActionEndpoint(Endpoint):
 
         rule_id = slack_request.callback_data.get("rule")
         workflow_id = slack_request.callback_data.get("workflow")
-        rule = get_rule(rule_id, workflow_id, group)
+        rule = get_rule(rule_id, group.project.organization_id)
         metrics.incr(
             "integrations.slack.action.rule_lookup",
             tags={

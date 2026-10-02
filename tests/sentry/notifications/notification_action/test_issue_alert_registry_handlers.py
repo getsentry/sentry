@@ -305,6 +305,50 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert notification_rule.is_legacy_rule_only
         assert notification_rule.data == {"actions": legacy_rule.data["actions"]}
 
+    def test_from_deprecated_legacy_rule_normalizes_string_identity(self) -> None:
+        legacy_rule = self.create_project_rule(project=self.project)
+        legacy_rule.data["actions"][0]["legacy_rule_id"] = str(legacy_rule.id)
+        legacy_rule.data["actions"][0]["workflow_id"] = str(self.workflow.id)
+
+        notification_rule = NotificationRule.from_deprecated_legacy_rule(legacy_rule)
+
+        assert notification_rule.legacy_rule_id == legacy_rule.id
+        assert notification_rule.workflow_id == self.workflow.id
+
+    def test_explicit_workflow_uses_authoritative_legacy_rule_id(self) -> None:
+        legacy_rule = self.create_project_rule(project=self.project)
+        legacy_rule.data["actions"][0]["legacy_rule_id"] = legacy_rule.id + 1
+
+        notification_rule = NotificationRule.from_deprecated_legacy_rule(
+            legacy_rule, workflow_id=self.workflow.id
+        )
+
+        assert notification_rule.legacy_rule_id == legacy_rule.id
+        assert notification_rule.workflow_id == self.workflow.id
+
+    def test_test_notification_identity_uses_action_id(self) -> None:
+        data: NotificationRuleData = {"actions": [{"id": "test-action"}]}
+        first = NotificationRule(
+            action_id=1,
+            label="First",
+            data=data,
+            project=self.project,
+            environment_id=None,
+            workflow_id=None,
+            legacy_rule_id=TEST_NOTIFICATION_ID,
+        )
+        second = NotificationRule(
+            action_id=2,
+            label="Second",
+            data=data,
+            project=self.project,
+            environment_id=None,
+            workflow_id=None,
+            legacy_rule_id=TEST_NOTIFICATION_ID,
+        )
+
+        assert first != second
+
     def test_from_deprecated_legacy_rule_without_actions(self) -> None:
         legacy_rule = self.create_project_rule(project=self.project)
         legacy_rule.update(data={})

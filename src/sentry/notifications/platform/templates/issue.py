@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import BaseModel, ConfigDict
 
 from sentry.models.project import Project
@@ -24,7 +26,7 @@ class SerializableRuleProxy(BaseModel):
     id: int
     action_id: int | None = None
     label: str
-    data: NotificationRuleData
+    data: dict[str, Any]
     environment_id: int | None = None
     project_id: int
     workflow_id: int | None = None
@@ -47,22 +49,30 @@ class SerializableRuleProxy(BaseModel):
     def to_notification_rule(self, project: Project) -> NotificationRule:
         workflow_id = self.workflow_id
         legacy_rule_id = self.legacy_rule_id
+        actions = self.data.get("actions")
+        if (
+            not isinstance(actions, list)
+            or not actions
+            or not all(isinstance(action, dict) for action in actions)
+        ):
+            actions = [{}]
+        data: NotificationRuleData = {"actions": [dict(action) for action in actions]}
         if workflow_id is None and legacy_rule_id is None:
             # Compatibility for payloads serialized before identities became top-level fields.
-            actions = self.data["actions"]
-            action = actions[0] if actions else {}
+            action = actions[0]
             workflow_id = action.get("workflow_id")
             legacy_rule_id = action.get("legacy_rule_id")
+            workflow_id = int(workflow_id) if workflow_id is not None else None
+            legacy_rule_id = int(legacy_rule_id) if legacy_rule_id is not None else None
             if workflow_id == TEST_NOTIFICATION_ID or legacy_rule_id == TEST_NOTIFICATION_ID:
                 workflow_id = None
                 legacy_rule_id = TEST_NOTIFICATION_ID
             elif workflow_id is None and legacy_rule_id is None:
                 legacy_rule_id = self.id
-
         return NotificationRule(
             action_id=self.action_id if "action_id" in self.__fields_set__ else self.id,
             label=self.label,
-            data=self.data,
+            data=data,
             environment_id=self.environment_id,
             project=project,
             workflow_id=workflow_id,

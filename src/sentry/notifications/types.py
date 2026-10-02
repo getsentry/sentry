@@ -57,14 +57,16 @@ class NotificationRule:
         first_action = actions[0]
         embedded_workflow_id = first_action.get("workflow_id")
         embedded_legacy_rule_id = first_action.get("legacy_rule_id")
+        if embedded_workflow_id is not None:
+            embedded_workflow_id = int(embedded_workflow_id)
+        if embedded_legacy_rule_id is not None:
+            embedded_legacy_rule_id = int(embedded_legacy_rule_id)
         if embedded_legacy_rule_id == TEST_NOTIFICATION_ID:
             effective_workflow_id = None
             legacy_rule_id = TEST_NOTIFICATION_ID
         elif workflow_id is not None:
             effective_workflow_id = workflow_id
-            legacy_rule_id = (
-                embedded_legacy_rule_id if embedded_legacy_rule_id is not None else rule.id
-            )
+            legacy_rule_id = rule.id
         elif embedded_legacy_rule_id is not None:
             effective_workflow_id = embedded_workflow_id
             legacy_rule_id = embedded_legacy_rule_id
@@ -99,6 +101,8 @@ class NotificationRule:
 
     @property
     def identifier(self) -> str:
+        if self.is_test_notification and self.action_id is not None:
+            return f"test:{self.action_id}"
         if self.workflow_id is not None:
             return f"workflow:{self.workflow_id}"
         assert self.legacy_rule_id is not None

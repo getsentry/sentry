@@ -241,7 +241,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
         rule_to_use = self.rule if self.rule else rule
         # In the NOA, we will store the action id in the rule id field
         action_id = (
-            rule_to_use.action_id
+            rule_to_use.broken_rule_id
             if isinstance(rule_to_use, NotificationRule)
             else rule_to_use.id
             if rule_to_use

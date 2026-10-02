@@ -131,7 +131,8 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
 
         rendered_rule = get_rules_from_workflows(project, {workflow_id})[workflow_id]
 
-        assert rendered_rule.id == rule.id
+        assert rendered_rule.legacy_rule_id == rule.id
+        assert rendered_rule.workflow_id == workflow.id
         assert rendered_rule.environment_id == production.id
 
     def test_get_rules_from_workflows_uses_workflow_environment_for_synthetic_rule(self) -> None:
@@ -143,13 +144,14 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
 
         rendered_rule = get_rules_from_workflows(project, {workflow.id})[workflow.id]
 
-        assert rendered_rule.id == workflow.id
+        assert rendered_rule.legacy_rule_id is None
+        assert rendered_rule.workflow_id == workflow.id
         assert rendered_rule.environment_id == environment.id
 
 
 def assert_rule_ids(digest: Digest, expected_rule_ids: list[int]) -> None:
     for rule, groups in digest.items():
-        assert rule.id in expected_rule_ids
+        assert rule.legacy_rule_id in expected_rule_ids
 
 
 def assert_get_personalized_digests(
