@@ -111,14 +111,18 @@ export function getExpandedProjectIds(
 
 /**
  * The user's existing columns are kept in place and extras are appended with dedup.
- * When hitting the limit, the existing columns are trimmed first.
+ * Limit only applies when there are extras to add. When hitting the limit, the
+ * existing columns are trimmed first.
  */
 export function mergeSeerExtraFields(
-  currentFields: readonly string[],
-  extraFields: readonly string[] | undefined,
+  currentFields: string[],
+  extraFields: string[] | undefined,
   limit = 10
 ): string[] {
   const filteredExtra = extraFields?.filter(field => !currentFields.includes(field));
+  if (!filteredExtra?.length) {
+    return currentFields;
+  }
   const keep = Math.max(0, limit - (filteredExtra?.length ?? 0));
   return [...currentFields.slice(0, keep), ...(filteredExtra ?? []).slice(0, limit)];
 }
