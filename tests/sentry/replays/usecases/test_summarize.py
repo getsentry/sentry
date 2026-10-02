@@ -1206,6 +1206,26 @@ def test_as_log_message_partial_data(
     mock_exception.assert_not_called()
 
 
+@pytest.mark.parametrize("status_code", [0, "0", None])
+def test_as_log_message_network_without_response(status_code: Any) -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1756401153.805,
+        "data": {
+            "tag": "performanceSpan",
+            "payload": {
+                "op": "resource.fetch",
+                "description": "https://example.com/api",
+                "data": {"method": "GET", "statusCode": status_code},
+            },
+        },
+    }
+    assert (
+        as_log_message(event)
+        == 'Fetch request "GET example.com/api" failed with no response at 1756401153805.0'
+    )
+
+
 _MESSAGE_PRODUCING_EVENTS: list[tuple[dict[str, Any], bool]] = [
     (
         {

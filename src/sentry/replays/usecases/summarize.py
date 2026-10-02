@@ -529,7 +529,8 @@ def _network_log_message(
     request_str = _join_words(method, url)
     request_part = f'{label} request "{request_str}"' if request_str else f"{label} request"
 
-    status_str = status_code or "no response"
+    # Browsers report status 0 when no response arrived (CORS, abort, network error).
+    status_str = status_code if status_code not in ("", "0") else "no response"
 
     _, response_size = parse_network_content_lengths(event)
     if response_size is None:
