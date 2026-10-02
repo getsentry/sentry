@@ -234,7 +234,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   if (isRegexOperator(token.operator)) {
     return (
       <Flex align="center" minWidth="0" width="100%">
-        <RegexDelimiter paddingRight="xs" />
+        <RegexDelimiter paddingRight="2xs" />
         <TruncatedFilterDisplayValue
           value={formatFilterValue({token: token.value, valueType})}
           fallbackMaxLength={FILTER_VALUE_FALLBACK_MAX_LENGTH}

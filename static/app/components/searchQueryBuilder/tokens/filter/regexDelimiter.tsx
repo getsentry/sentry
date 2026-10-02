@@ -1,5 +1,4 @@
-import styled from '@emotion/styled';
-
+import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import type {SpaceSize} from 'sentry/utils/theme';
@@ -11,17 +10,13 @@ interface RegexDelimiterProps {
 
 export function RegexDelimiter({onMouseDown, paddingRight}: RegexDelimiterProps) {
   return (
-    <DelimiterText
+    <Container
       aria-hidden
+      as="span"
       onMouseDown={onMouseDown}
       paddingRight={paddingRight}
-      variant="muted"
     >
-      /
-    </DelimiterText>
+      <Text variant="muted">/</Text>
+    </Container>
   );
 }
-
-const DelimiterText = styled(Text)<{paddingRight?: SpaceSize}>`
-  padding-right: ${p => (p.paddingRight ? p.theme.space[p.paddingRight] : undefined)};
-`;

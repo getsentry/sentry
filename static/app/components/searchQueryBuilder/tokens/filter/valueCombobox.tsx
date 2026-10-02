@@ -1478,7 +1478,11 @@ export function SearchQueryBuilderValueCombobox({
     : chips.length;
   const chipRow = isRegexValue
     ? [
-        <RegexDelimiter key="regex-start" onMouseDown={focusInputFromDelimiter} />,
+        <RegexDelimiter
+          key="regex-start"
+          onMouseDown={focusInputFromDelimiter}
+          paddingRight="2xs"
+        />,
         valueInput,
         <RegexDelimiter key="regex-end" onMouseDown={focusInputFromDelimiter} />,
       ]
@@ -1490,7 +1494,7 @@ export function SearchQueryBuilderValueCombobox({
       <ValueComboboxMenuContext.Provider value={menuContextValue}>
         <ValueEditingChips
           align="center"
-          gap="2xs"
+          gap={isRegexValue ? undefined : '2xs'}
           minWidth="0"
           height="100%"
           overflowX={rowScrolls ? 'auto' : undefined}
