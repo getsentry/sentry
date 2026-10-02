@@ -1,3 +1,5 @@
+import {css} from '@emotion/react';
+
 import {Stack} from '@sentry/scraps/layout';
 
 import type {Organization} from 'sentry/types/organization';
@@ -22,7 +24,32 @@ export function isReauthEnabled(organization: Organization | null) {
   );
 }
 
-interface PendingUserInputDockProps {
+/**
+ * Pins the prompt for whatever the run is waiting on between the transcript and the composer,
+ * so scrolling back through the conversation never hides it.
+ */
+export function PendingUserInputDock({children}: {children: React.ReactNode}) {
+  return (
+    <Stack
+      data-test-id="seer-explorer-pending-input"
+      flexShrink={0}
+      maxHeight="50%"
+      overflowY="auto"
+      gap="md"
+      paddingTop="md"
+      // Takes no space when there is no prompt to show.
+      css={css`
+        &:empty {
+          display: none;
+        }
+      `}
+    >
+      {children}
+    </Stack>
+  );
+}
+
+interface PendingUserInputPickerProps {
   isAwaitingUserInput: boolean;
   pendingInput: PendingUserInput | null;
   /** From `usePendingUserInput`, which the composer shares for its question and diff controls. */
@@ -36,18 +63,15 @@ interface PendingUserInputDockProps {
   runId: SeerExplorerRunId | null;
 }
 
-/**
- * The prompt for whatever the run is waiting on, pinned between the transcript and the composer
- * so scrolling back through the conversation never hides it. A run waits on one input at a time.
- */
-export function PendingUserInputDock({
+/** The prompt for the input the run is waiting on. A run waits on one input at a time. */
+export function PendingUserInputPicker({
   isAwaitingUserInput,
   pendingInput,
   pendingUserInputState: state,
   readOnly,
   respondToUserInput,
   runId,
-}: PendingUserInputDockProps) {
+}: PendingUserInputPickerProps) {
   const organization = useOrganization({allowNull: true});
 
   if (!isAwaitingUserInput || !pendingInput) {
@@ -57,14 +81,12 @@ export function PendingUserInputDock({
   // Shown read-only too, so a viewer can see the run is waiting on the owner's approval.
   if (pendingInput.input_type === 'agent_write_approval') {
     return (
-      <DockContainer>
-        <AgentWriteApprovalBlock
-          key={pendingInput.id}
-          pendingInput={pendingInput}
-          readOnly={readOnly}
-          respondToUserInput={respondToUserInput}
-        />
-      </DockContainer>
+      <AgentWriteApprovalBlock
+        key={pendingInput.id}
+        pendingInput={pendingInput}
+        readOnly={readOnly}
+        respondToUserInput={respondToUserInput}
+      />
     );
   }
 
@@ -77,28 +99,24 @@ export function PendingUserInputDock({
     state.fileApprovalIndex < state.fileApprovalTotalPatches
   ) {
     return (
-      <DockContainer>
-        <FileChangeApprovalBlock
-          currentIndex={state.fileApprovalIndex}
-          pendingInput={pendingInput}
-        />
-      </DockContainer>
+      <FileChangeApprovalBlock
+        currentIndex={state.fileApprovalIndex}
+        pendingInput={pendingInput}
+      />
     );
   }
 
   if (pendingInput.input_type === 'ask_user_question' && state.currentQuestion) {
     return (
-      <DockContainer>
-        <AskUserQuestionBlock
-          currentQuestion={state.currentQuestion}
-          customText={state.customText}
-          isOtherSelected={state.isOtherSelected}
-          onCustomTextChange={state.handleQuestionCustomTextChange}
-          onSelectOption={state.handleQuestionSelectOption}
-          questionIndex={state.questionIndex}
-          selectedOption={state.selectedOption}
-        />
-      </DockContainer>
+      <AskUserQuestionBlock
+        currentQuestion={state.currentQuestion}
+        customText={state.customText}
+        isOtherSelected={state.isOtherSelected}
+        onCustomTextChange={state.handleQuestionCustomTextChange}
+        onSelectOption={state.handleQuestionSelectOption}
+        questionIndex={state.questionIndex}
+        selectedOption={state.selectedOption}
+      />
     );
   }
 
@@ -108,32 +126,15 @@ export function PendingUserInputDock({
     state.reauthData
   ) {
     return (
-      <DockContainer>
-        <ReauthMonitoringProviderBlock
-          data={state.reauthData}
-          onComplete={state.handleReauthComplete}
-          returnUrl={
-            runId === null ? undefined : getRelativeExplorerUrl(runId, {resume: true})
-          }
-        />
-      </DockContainer>
+      <ReauthMonitoringProviderBlock
+        data={state.reauthData}
+        onComplete={state.handleReauthComplete}
+        returnUrl={
+          runId === null ? undefined : getRelativeExplorerUrl(runId, {resume: true})
+        }
+      />
     );
   }
 
   return null;
-}
-
-function DockContainer({children}: {children: React.ReactNode}) {
-  return (
-    <Stack
-      data-test-id="seer-explorer-pending-input"
-      flexShrink={0}
-      maxHeight="50%"
-      overflowY="auto"
-      gap="md"
-      paddingTop="md"
-    >
-      {children}
-    </Stack>
-  );
 }

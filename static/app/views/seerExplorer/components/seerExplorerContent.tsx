@@ -57,6 +57,7 @@ import {InputSection} from 'sentry/views/seerExplorer/components/inputSection';
 import {
   isReauthEnabled,
   PendingUserInputDock,
+  PendingUserInputPicker,
 } from 'sentry/views/seerExplorer/components/pendingUserInputDock';
 import {usePRWidgetData} from 'sentry/views/seerExplorer/components/prWidget';
 import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplorerHeader';
@@ -383,7 +384,7 @@ export function SeerExplorerContent({
   );
 
   // - Pending user input (file approval + questions) -------------------------
-  // The prompt itself renders in `PendingUserInputDock`; the composer carries the question and
+  // The prompt itself renders in `PendingUserInputPicker`; the composer carries the question and
   // diff controls.
   const pendingUserInputState = usePendingUserInput({
     isAwaitingUserInput,
@@ -797,14 +798,16 @@ export function SeerExplorerContent({
         )}
         {requestErrorAlert}
         {!showEmptyState && (
-          <PendingUserInputDock
-            isAwaitingUserInput={isAwaitingUserInput}
-            pendingInput={pendingInput}
-            pendingUserInputState={pendingUserInputState}
-            readOnly={readOnly}
-            respondToUserInput={respondToUserInput}
-            runId={runId}
-          />
+          <PendingUserInputDock>
+            <PendingUserInputPicker
+              isAwaitingUserInput={isAwaitingUserInput}
+              pendingInput={pendingInput}
+              pendingUserInputState={pendingUserInputState}
+              readOnly={readOnly}
+              respondToUserInput={respondToUserInput}
+              runId={runId}
+            />
+          </PendingUserInputDock>
         )}
         <InputSection
           blocks={blocks}
