@@ -301,7 +301,16 @@ class SnubaQueryDataSourceType(TypedDict, total=False):
     event_types: list[SnubaQueryEventType.EventType]
 
 
+class DetectorAPIOperation(StrEnum):
+    LIST = "list"
+    GET = "GET"
+    POST = "POST"
+    PUT = "PUT"
+    DELETE = "DELETE"
+
+
 class DetectorSettings:
+    excluded_api_operations: ClassVar[frozenset[DetectorAPIOperation]]
     handler: ClassVar[type[BaseDetectorHandler[Any, Any]] | None] = None
     validator: ClassVar[type[BaseDetectorTypeValidator] | None] = None
     config_schema: ClassVar[dict[str, Any]] = {}
