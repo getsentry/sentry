@@ -1872,7 +1872,7 @@ const syntax = {
   ansi: {
     black: color.neutral.dark.opaque1500,
     red: color.red.dark.opaque1200,
-    green: color.green.dark.opaque1400,
+    green: color.green.dark.opaque1300,
     yellow: color.yellow.dark.opaque1300,
     blue: color.blue.dark.opaque1200,
     magenta: color.pink.dark.opaque1200,
@@ -1880,7 +1880,7 @@ const syntax = {
     white: color.neutral.dark.opaque1500,
     brightBlack: color.neutral.dark.opaque1200,
     brightRed: color.red.dark.opaque1300,
-    brightGreen: color.green.dark.opaque1500,
+    brightGreen: color.green.dark.opaque1400,
     brightYellow: color.yellow.dark.opaque1400,
     brightBlue: color.blue.dark.opaque1300,
     brightMagenta: color.pink.dark.opaque1300,
