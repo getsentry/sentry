@@ -17,7 +17,7 @@ from sentry.db.models import (
 )
 from sentry.utils import metrics
 from sentry.utils.cache import cache
-from sentry.utils.last_seen import try_bump_last_seen
+from sentry.utils.last_seen import BumpResult, try_bump_last_seen
 
 
 class ReleaseStages(str, Enum):
@@ -87,9 +87,9 @@ class ReleaseProjectEnvironment(Model):
 
         metrics_tags["created"] = "true" if created else "false"
 
-        bumped = False
+        bump = BumpResult.THROTTLED
         if not created:
-            bumped = try_bump_last_seen(
+            bump = try_bump_last_seen(
                 model_class=cls,
                 instance=instance,
                 datetime=datetime,
@@ -100,8 +100,7 @@ class ReleaseProjectEnvironment(Model):
         else:
             metrics_tags["bumped"] = "false"
 
-        # A bump is a synchronous UPDATE, so it counts as db_update even on a cache hit.
-        if bumped:
+        if bump in (BumpResult.BUMPED, BumpResult.ERROR):
             metrics_tags["data_access"] = "db_update"
         elif created:
             metrics_tags["data_access"] = "db_create"
