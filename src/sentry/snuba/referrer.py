@@ -622,6 +622,7 @@ class Referrer(StrEnum):
     API_TRACE_VIEW_GET_PARENTS = "api.trace-view.get-parents"
     API_TRACE_VIEW_GET_OCCURRENCE_IDS = "api.trace-view.get-occurrence-ids"
     API_TRACE_VIEW_LINKED_TRACES = "api.trace-view.linked-traces"
+    API_TRACE_VIEW_CACHE_ORIGIN = "api.trace-view.cache-origin"
     API_TRENDS_GET_EVENT_STATS = "api.trends.get-event-stats"
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS = "api.trends.get-event-statsv2.top-events"
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS_PRIMARY = (
