@@ -51,18 +51,17 @@ export function ProjectDetails() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const handleRemoveEmail = (userHash: string) => {
+  const handleRemoveEmail = async (userHash: string) => {
     const endpoint = `/projects/${orgId}/${projectId}/users/${userHash}/`;
 
-    api.request(endpoint, {
-      method: 'DELETE',
-      success: () => {
-        addSuccessMessage('User email has been removed.');
-      },
-      error: () => {
-        addErrorMessage('Failed to remove email.');
-      },
-    });
+    try {
+      await api.requestPromise(endpoint, {
+        method: 'DELETE',
+      });
+      addSuccessMessage('User email has been removed.');
+    } catch {
+      addErrorMessage('Failed to remove email.');
+    }
   };
 
   if (isPending) {

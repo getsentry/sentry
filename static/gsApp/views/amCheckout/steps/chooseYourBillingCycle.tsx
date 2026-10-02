@@ -37,8 +37,8 @@ export function ChooseYourBillingCycle({
       <StepHeader title={t('Pay monthly or yearly, your choice')} />
       <Grid
         columns={{
-          'screen:xs': '1fr',
-          'screen:lg': `repeat(${intervalOptions.length}, 1fr)`,
+          zero: '1fr',
+          '4xl': `repeat(${intervalOptions.length}, 1fr)`,
         }}
         gap="lg"
       >

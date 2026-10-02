@@ -96,6 +96,7 @@ describe('ProgressActivityTooltip', () => {
   it('shows comment text', async () => {
     const noteActivity: GroupActivity = {
       id: 'activity-4',
+      commentId: 'activity-4',
       type: GroupActivityType.NOTE,
       data: {text: 'This is the useful part of the comment.'},
       dateCreated: '2024-01-04T00:00:00.000Z',

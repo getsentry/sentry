@@ -75,6 +75,7 @@ export function AgentSetupCard({
     <Grid
       columns={`${SETUP_CARD_MARKER_PX} 1fr`}
       gap="0 md"
+      background="primary"
       border="primary"
       radius="xl"
       padding="xl"
@@ -82,24 +83,17 @@ export function AgentSetupCard({
         "icon  title"
         ".     meta"
         "steps steps"
+        "feedback feedback"
       `}
     >
       <Flex area="icon" align="center" justify="center">
         <IconBot size={SETUP_CARD_ICON_SIZE} variant="secondary" />
       </Flex>
-      <Flex area="title" align="center" justify="between" gap="md" wrap="wrap">
-        <Flex align="center" gap="md" wrap="wrap">
-          <Heading as="h3" size="lg">
-            {t('Set up with your coding agent')}
-          </Heading>
-          <Tag variant="info">{t('Recommended')}</Tag>
-        </Flex>
-        <FeedbackButton
-          size="xs"
-          feedbackOptions={{
-            tags: {'feedback.source': 'onboarding-agent-setup'},
-          }}
-        />
+      <Flex area="title" align="center" gap="md" wrap="wrap">
+        <Heading as="h3" size="lg">
+          {t('Set up with your coding agent')}
+        </Heading>
+        <Tag variant="info">{t('Recommended')}</Tag>
       </Flex>
 
       <Stack area="meta" gap="xs" paddingTop="md" paddingBottom="2xl">
@@ -174,6 +168,15 @@ export function AgentSetupCard({
           </ListItem>
         </List>
       </Container>
+
+      <Flex area="feedback" justify="end" paddingTop="lg">
+        <FeedbackButton
+          size="xs"
+          feedbackOptions={{
+            tags: {'feedback.source': 'onboarding-agent-setup'},
+          }}
+        />
+      </Flex>
     </Grid>
   );
 }

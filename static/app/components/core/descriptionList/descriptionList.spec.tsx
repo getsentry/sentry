@@ -21,4 +21,16 @@ describe('DescriptionList', () => {
 
     expect(screen.getByTestId('list')).not.toHaveAttribute('gap');
   });
+
+  it('does not forward the nowrap prop to the DOM when one is provided', () => {
+    render(<DescriptionList nowrap data-test-id="list" />);
+
+    expect(screen.getByTestId('list')).not.toHaveAttribute('nowrap');
+  });
+
+  it('does not forward the terms prop to the DOM when one is provided', () => {
+    render(<DescriptionList terms="strong" data-test-id="list" />);
+
+    expect(screen.getByTestId('list')).not.toHaveAttribute('terms');
+  });
 });

@@ -138,6 +138,26 @@ describe('ScmMessagingChannelPicker', () => {
   });
 
   describe('staging a new destination', () => {
+    it('saves on Enter in the channel field once a channel is chosen', async () => {
+      mockChannels('10', [slackChannel]);
+      const {onConfigured} = renderPicker({eligibleIntegrations: [slackIntegration]});
+
+      expect(screen.getByLabelText('Channel')).toHaveFocus();
+      await userEvent.keyboard('{Enter}');
+      expect(onConfigured).not.toHaveBeenCalled();
+
+      await selectEvent.select(screen.getByLabelText('channel'), '#general');
+      // The select helper clicks the option, which drops focus in jsdom; a
+      // browser keeps it on the input after a choice.
+      act(() => screen.getByLabelText('channel').focus());
+      expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+      await userEvent.keyboard('{Enter}');
+
+      expect(onConfigured).toHaveBeenCalledWith(
+        expect.objectContaining({channelName: '#general'})
+      );
+    });
+
     it('stores Slack by display name', async () => {
       mockChannels('10', [slackChannel]);
       const {onConfigured} = renderPicker({eligibleIntegrations: [slackIntegration]});
@@ -319,12 +339,20 @@ describe('ScmMessagingChannelPicker', () => {
       },
     });
 
+    it('focuses the workspace select on open', () => {
+      mockChannels('10', [slackChannel]);
+      mockChannels('11', []);
+      renderPicker({eligibleIntegrations: [slackIntegration, slackIntegration2]});
+
+      expect(screen.getByLabelText('Workspace')).toHaveFocus();
+    });
+
     it('enables the Workspace select when there are multiple eligible integrations', () => {
       mockChannels('10', [slackChannel]);
       mockChannels('11', []);
       renderPicker({eligibleIntegrations: [slackIntegration, slackIntegration2]});
 
-      expect(screen.getByLabelText('workspace')).toBeEnabled();
+      expect(screen.getByLabelText('Workspace')).toBeEnabled();
     });
 
     it('writes the selected workspace integrationId on save', async () => {
@@ -335,7 +363,7 @@ describe('ScmMessagingChannelPicker', () => {
       });
 
       // Switch to the second workspace.
-      await selectEvent.select(screen.getByLabelText('workspace'), 'second-workspace');
+      await selectEvent.select(screen.getByLabelText('Workspace'), 'second-workspace');
       await selectEvent.select(screen.getByLabelText('channel'), '#general');
       await userEvent.click(screen.getByRole('button', {name: 'Confirm and continue'}));
 
@@ -379,7 +407,7 @@ describe('ScmMessagingChannelPicker', () => {
       );
 
       // Switch to the second workspace and pick a channel.
-      await selectEvent.select(screen.getByLabelText('workspace'), 'second-workspace');
+      await selectEvent.select(screen.getByLabelText('Workspace'), 'second-workspace');
       await selectEvent.select(screen.getByLabelText('channel'), '#general');
 
       // The second workspace disappears (e.g. after a refetch).
@@ -466,7 +494,7 @@ describe('ScmMessagingChannelPicker', () => {
       mockChannels('10', [slackChannel]);
       renderPicker({eligibleIntegrations: [slackIntegration]});
 
-      expect(screen.queryByLabelText('workspace')).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Workspace')).not.toBeInTheDocument();
       expect(screen.getByLabelText('channel')).toBeInTheDocument();
     });
   });

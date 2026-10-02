@@ -21,6 +21,13 @@ function asChartPoint(point: [number, number]): {name: number | string; value: n
 
 const EMPTY_STATS: readonly TimeseriesValue[] = [];
 
+/**
+ * The chart is only 36px tall, so its tooltip always overhangs it. Portal it to
+ * the body so a clipping ancestor, such as a Seer issue embed's card, cannot
+ * cut it off.
+ */
+const TOOLTIP_OPTIONS = {appendToBody: true};
+
 type Props = {
   stats: readonly TimeseriesValue[];
   groupStatus?: string;
@@ -118,6 +125,7 @@ export function GroupStatusChart({
             emphasisColors={graphOptions.emphasisColors}
             hideDelay={50}
             showMarkLineLabel
+            tooltip={TOOLTIP_OPTIONS}
           />
         </ChartAnimationWrapper>
         <GraphText>{groupStatus}</GraphText>

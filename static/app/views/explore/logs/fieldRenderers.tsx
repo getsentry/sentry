@@ -19,7 +19,6 @@ import {IconPlay} from 'sentry/icons';
 import {tct} from 'sentry/locale';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
-import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   getFieldRenderer,
@@ -41,6 +40,7 @@ import type {
   TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
+import {LogsAnsiHighlight} from 'sentry/views/explore/logs/logsAnsiHighlight';
 import {LogsTimestampTooltip} from 'sentry/views/explore/logs/logsTimeTooltip';
 import {
   AlignedCellContent,
@@ -49,7 +49,6 @@ import {
   LogBasicRendererContainer,
   LogDate,
   LogsFilteredHelperText,
-  LogsHighlight,
   WrappingText,
   type getLogColors,
 } from 'sentry/views/explore/logs/styles';
@@ -64,9 +63,9 @@ import {
 } from 'sentry/views/explore/logs/utils';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
+import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
 
 const {fmt} = Sentry.logger;
 
@@ -452,7 +451,7 @@ export function SpanIDRenderer(props: LogFieldRendererProps) {
   const location = stripLogParamsFromLocation(props.extra.location);
   const target = getTraceDetailsUrl({
     traceSlug: traceId,
-    spanId,
+    spanId: timestamp ? spanId : undefined,
     timestamp,
     organization: props.extra.organization,
     dateSelection: timestamp ? {} : normalizeDateTimeParams(props.extra.datetime),
@@ -501,12 +500,12 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
       isAppendingTemplate={!!templateText}
     >
       <WrappingText wrapText={props.extra.wrapBody}>
-        <LogsHighlight
+        <LogsAnsiHighlight
           caseSensitive={props.extra.caseSensitiveHighlighting}
           terms={highlightTerms}
         >
-          {stripAnsi(attribute_value)}
-        </LogsHighlight>
+          {attribute_value}
+        </LogsAnsiHighlight>
         {isBodyFiltered && templateText && (
           <FieldReplacementHelper
             replacement={templateText as string}
@@ -522,9 +521,11 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
 function LogTemplateRenderer(props: LogFieldRendererProps) {
   return (
     <span>
-      {typeof props.item.value === 'string'
-        ? stripAnsi(props.item.value)
-        : props.basicRendered}
+      {typeof props.item.value === 'string' ? (
+        <LogsAnsiHighlight>{props.item.value}</LogsAnsiHighlight>
+      ) : (
+        props.basicRendered
+      )}
     </span>
   );
 }

@@ -12,7 +12,7 @@ const SERIES = [
   [1_700_003_600, [{count: 8}]],
 ];
 
-function renderEmbed({
+function ExampleErrorsQueryEmbed({
   data,
   level = 'block',
 }: {
@@ -20,7 +20,7 @@ function renderEmbed({
   level?: 'block' | 'inline';
 }) {
   const tag = `{% errorsQuery %}${JSON.stringify(data)}{% /errorsQuery %}`;
-  return render(<SeerMarkdown raw={level === 'inline' ? `See ${tag}` : tag} />);
+  return <SeerMarkdown raw={level === 'inline' ? `See ${tag}` : tag} />;
 }
 
 describe('errors query embed', () => {
@@ -41,16 +41,18 @@ describe('errors query embed', () => {
       body: {data: SERIES},
     });
 
-    renderEmbed({
-      data: {
-        mode: 'samples',
-        query: 'event.type:error',
-        fields: ['title', 'project', 'timestamp'],
-        sort: '-timestamp',
-        statsPeriod: '24h',
-        title: 'Recent errors',
-      },
-    });
+    render(
+      <ExampleErrorsQueryEmbed
+        data={{
+          mode: 'samples',
+          query: 'event.type:error',
+          fields: ['title', 'project', 'timestamp'],
+          sort: '-timestamp',
+          statsPeriod: '24h',
+          title: 'Recent errors',
+        }}
+      />
+    );
 
     expect(await screen.findByText('Error 1')).toBeInTheDocument();
     expect(screen.getByText('Error 5')).toBeInTheDocument();
@@ -59,7 +61,7 @@ describe('errors query embed', () => {
     expect(screen.getByRole('button', {name: 'Recent errors'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'View Errors'})).toHaveAttribute(
       'href',
-      expect.stringContaining('/explore/discover/results/')
+      expect.stringContaining('/explore/errors/results/')
     );
     expect(screen.getAllByLabelText('event.type:error').length).toBeGreaterThan(0);
 
@@ -116,21 +118,22 @@ describe('errors query embed', () => {
       body: {data: SERIES},
     });
 
-    renderEmbed({
-      data: {
-        mode: 'aggregate',
-        query: '',
-        fields: ['title', 'project', 'count_unique(user)'],
-        sort: '-count_unique_user',
-        statsPeriod: '1h',
-        yAxes: ['count()'],
-        title: 'Errors by title',
-      },
-    });
+    render(
+      <ExampleErrorsQueryEmbed
+        data={{
+          mode: 'aggregate',
+          query: '',
+          fields: ['title', 'project', 'count_unique(user)'],
+          sort: '-count_unique_user',
+          statsPeriod: '1h',
+          yAxes: ['count()'],
+          title: 'Errors by title',
+        }}
+      />
+    );
 
     expect(await screen.findByText('TypeError')).toBeInTheDocument();
     expect(screen.getByText('1,234')).toBeInTheDocument();
-    expect(screen.getByText('Aggregate')).toBeInTheDocument();
     // Grouping fields (title, project) remain alongside the aggregate, so the
     // table is still worth rendering — now beneath the chart.
     expect(screen.getByRole('table')).toBeInTheDocument();
@@ -161,16 +164,18 @@ describe('errors query embed', () => {
       body: {data: SERIES},
     });
 
-    renderEmbed({
-      data: {
-        mode: 'aggregate',
-        query: 'event.type:error',
-        fields: ['title', 'project', 'count()'],
-        sort: '-count',
-        statsPeriod: '24h',
-        title: 'Errors by title',
-      },
-    });
+    render(
+      <ExampleErrorsQueryEmbed
+        data={{
+          mode: 'aggregate',
+          query: 'event.type:error',
+          fields: ['title', 'project', 'count()'],
+          sort: '-count',
+          statsPeriod: '24h',
+          title: 'Errors by title',
+        }}
+      />
+    );
 
     expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
 
@@ -205,15 +210,17 @@ describe('errors query embed', () => {
       body: {data: SERIES},
     });
 
-    renderEmbed({
-      data: {
-        mode: 'aggregate',
-        query: 'event.type:error',
-        fields: ['count()'],
-        statsPeriod: '1h',
-        title: 'Error count',
-      },
-    });
+    render(
+      <ExampleErrorsQueryEmbed
+        data={{
+          mode: 'aggregate',
+          query: 'event.type:error',
+          fields: ['count()'],
+          statsPeriod: '1h',
+          title: 'Error count',
+        }}
+      />
+    );
 
     expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
     expect(screen.getAllByLabelText('event.type:error').length).toBeGreaterThan(0);
@@ -247,13 +254,15 @@ describe('errors query embed', () => {
       body: {data: SERIES},
     });
 
-    const {router} = renderEmbed({
-      data: {
-        mode: 'samples',
-        query: 'event.type:error',
-        fields: ['title', 'project', 'timestamp'],
-      },
-    });
+    const {router} = render(
+      <ExampleErrorsQueryEmbed
+        data={{
+          mode: 'samples',
+          query: 'event.type:error',
+          fields: ['title', 'project', 'timestamp'],
+        }}
+      />
+    );
 
     expect(await screen.findByText('Error 1')).toBeInTheDocument();
 
@@ -287,12 +296,9 @@ describe('errors query embed', () => {
       body: {data: []},
     });
 
-    renderEmbed({
-      // No `mode`, so this also pins the schema default. `errorsQuery` shipped
-      // before the mode existed, and samples is what it used to do.
-      data: {query: 'is:unresolved'},
-      level: 'inline',
-    });
+    // No `mode`, so this also pins the schema default. `errorsQuery` shipped
+    // before the mode existed, and samples is what it used to do.
+    render(<ExampleErrorsQueryEmbed data={{query: 'is:unresolved'}} level="inline" />);
 
     expect(screen.getByRole('link', {name: 'Error search'})).toBeInTheDocument();
     expect(request).not.toHaveBeenCalled();

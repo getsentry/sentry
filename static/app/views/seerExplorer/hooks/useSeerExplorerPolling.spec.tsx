@@ -6,7 +6,7 @@ import {useSeerExplorerPolling} from './useSeerExplorerPolling';
 
 describe('useSeerExplorerPolling', () => {
   const organization = OrganizationFixture({
-    features: ['seer-explorer', 'gen-ai-features'],
+    features: ['seer-explorer'],
     hideAiFeatures: false,
     openMembership: true,
   });

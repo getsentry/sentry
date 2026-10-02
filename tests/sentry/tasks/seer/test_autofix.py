@@ -1,12 +1,14 @@
 from datetime import timedelta
-from unittest.mock import MagicMock, Mock, patch
+from unittest.mock import MagicMock, Mock, call, patch
 
 import pytest
 from django.utils import timezone
 
 from sentry.seer.autofix.constants import SeerAutomationSource
+from sentry.seer.autofix.exceptions import IssueSummaryUnavailable
 from sentry.seer.autofix.utils import get_seer_seat_based_tier_cache_key
 from sentry.seer.models import (
+    IssueSummary,
     SummarizeIssueResponse,
     SummarizeIssueScores,
 )
@@ -19,6 +21,7 @@ from sentry.seer.models.workflow import (
 from sentry.tasks.seer.autofix import (
     configure_seer_for_existing_org,
     generate_issue_summary_only,
+    generate_summary_and_run_automation,
 )
 from sentry.tasks.seer.autofix_issue_data import (
     FEATURE_FLAG,
@@ -31,26 +34,26 @@ from sentry.tasks.seer.autofix_issue_data import (
 from sentry.testutils.cases import TestCase as SentryTestCase
 from sentry.utils import json
 from sentry.utils.cache import cache
+from sentry.utils.locking import UnableToAcquireLock
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 
 
 class TestGenerateIssueSummaryOnly(SentryTestCase):
     @patch("sentry.seer.autofix.issue_summary._generate_fixability_score")
-    @patch("sentry.seer.autofix.issue_summary.get_issue_summary")
+    @patch("sentry.tasks.seer.autofix.get_issue_summary")
     def test_generates_fixability_score_after_summary(
         self, mock_get_issue_summary: MagicMock, mock_generate_fixability: MagicMock
     ) -> None:
         """Test that fixability score is generated after issue summary is fetched."""
         group = self.create_group(project=self.project)
 
-        mock_get_issue_summary.return_value = (
-            {
-                "groupId": str(group.id),
-                "headline": "Test Headline",
-                "whatsWrong": "Test whats wrong",
-                "trace": "Test trace",
-                "possibleCause": "Test cause",
-            },
-            200,
+        mock_get_issue_summary.return_value = IssueSummary(
+            group_id=str(group.id),
+            headline="Test Headline",
+            whats_wrong="Test whats wrong",
+            trace="Test trace",
+            possible_cause="Test cause",
+            event_id="event-id",
         )
         mock_generate_fixability.return_value = SummarizeIssueResponse(
             group_id=str(group.id),
@@ -71,9 +74,77 @@ class TestGenerateIssueSummaryOnly(SentryTestCase):
         group.refresh_from_db()
         assert group.seer_fixability_score == 0.75
 
+    @patch("sentry.tasks.seer.autofix.get_and_update_group_fixability_score")
+    @patch(
+        "sentry.tasks.seer.autofix.get_issue_summary",
+        side_effect=IssueSummaryUnavailable,
+    )
+    def test_does_not_score_when_summary_is_unavailable(
+        self,
+        mock_get_summary: MagicMock,
+        mock_get_score: MagicMock,
+    ) -> None:
+        group = self.create_group(project=self.project)
+
+        generate_issue_summary_only(group.id)
+
+        mock_get_summary.assert_called_once_with(
+            group=group,
+            source=SeerAutomationSource.POST_PROCESS,
+            should_run_automation=False,
+        )
+        mock_get_score.assert_not_called()
+
+    @patch("sentry.tasks.seer.autofix.get_and_update_group_fixability_score")
+    @patch("sentry.tasks.seer.autofix.get_issue_summary", side_effect=UnableToAcquireLock)
+    def test_propagates_transient_summary_failure(
+        self,
+        mock_get_summary: MagicMock,
+        mock_get_score: MagicMock,
+    ) -> None:
+        group = self.create_group(project=self.project)
+
+        with pytest.raises(UnableToAcquireLock):
+            generate_issue_summary_only(group.id)
+
+        mock_get_summary.assert_called_once_with(
+            group=group,
+            source=SeerAutomationSource.POST_PROCESS,
+            should_run_automation=False,
+        )
+        mock_get_score.assert_not_called()
+
+
+class TestGenerateSummaryAndRunAutomation(SentryTestCase):
+    @patch(
+        "sentry.tasks.seer.autofix.get_issue_summary",
+        side_effect=IssueSummaryUnavailable,
+    )
+    def test_stops_when_summary_is_unavailable(self, mock_get_summary: MagicMock) -> None:
+        group = self.create_group(project=self.project)
+
+        generate_summary_and_run_automation(group.id)
+
+        mock_get_summary.assert_called_once_with(
+            group=group,
+            source=SeerAutomationSource.POST_PROCESS,
+        )
+
+    @patch("sentry.tasks.seer.autofix.get_issue_summary", side_effect=UnableToAcquireLock)
+    def test_propagates_transient_summary_failure(self, mock_get_summary: MagicMock) -> None:
+        group = self.create_group(project=self.project)
+
+        with pytest.raises(UnableToAcquireLock):
+            generate_summary_and_run_automation(group.id)
+
+        mock_get_summary.assert_called_once_with(
+            group=group,
+            source=SeerAutomationSource.POST_PROCESS,
+        )
+
 
 class TestAutofixIssueDataJudge(SentryTestCase):
-    def _create_night_shift_run(self, organization, **kwargs):
+    def _create_agentic_triage_run(self, organization, **kwargs):
         config = SeerWorkflowConfig.get_or_create_for_strategy(
             organization.id, SeerWorkflowStrategy.AGENTIC_TRIAGE
         )
@@ -83,22 +154,24 @@ class TestAutofixIssueDataJudge(SentryTestCase):
         return run
 
     @patch("sentry.tasks.seer.autofix_issue_data.schedule_judging_for_org.apply_async")
-    def test_schedule_judging_dispatches_recent_night_shift_orgs(
+    def test_schedule_judging_dispatches_recent_agentic_triage_orgs(
         self, mock_apply_async: MagicMock
     ) -> None:
         recent_org = self.create_organization()
         stale_org = self.create_organization()
         unflagged_org = self.create_organization()
-        self._create_night_shift_run(recent_org)
-        self._create_night_shift_run(stale_org, date_added=timezone.now() - timedelta(hours=49))
-        self._create_night_shift_run(unflagged_org)
+        self._create_agentic_triage_run(recent_org)
+        self._create_agentic_triage_run(stale_org, date_added=timezone.now() - timedelta(hours=49))
+        self._create_agentic_triage_run(unflagged_org)
 
         with self.feature({FEATURE_FLAG: [recent_org.slug, stale_org.slug]}):
             schedule_judging()
 
-        mock_apply_async.assert_called_once_with(
-            args=[recent_org.id], headers={"sentry-propagate-traces": False}
-        )
+        assert mock_apply_async.call_count == 1
+        call_kwargs = mock_apply_async.call_args.kwargs
+        assert call_kwargs["args"] == [recent_org.id]
+        assert call_kwargs["headers"] == {"sentry-propagate-traces": False}
+        assert 0 <= call_kwargs["countdown"] < 3600
 
     def test_selects_bottom_half(self) -> None:
         for index in range(11):
@@ -131,7 +204,10 @@ class TestAutofixIssueDataJudge(SentryTestCase):
         with self.feature(FEATURE_FLAG):
             schedule_judging_for_org(self.organization.id)
 
-        assert mock_apply_async.call_count == 20
+        assert [len(call.kwargs["args"][0]) for call in mock_apply_async.call_args_list] == [
+            10,
+            10,
+        ]
 
     def test_accepts_all_verdicts(self) -> None:
         for verdict in ("fixable", "not_fixable", "uncertain"):
@@ -163,11 +239,27 @@ class TestAutofixIssueDataJudge(SentryTestCase):
             "content": json.dumps({"verdict": verdict, "confidence": "high", "reason": "Evidence"}),
             "model": "claude-opus-4-8@default",
         }
-        mock_request.return_value = response
+        observed_contexts: list[ViewerContext | None] = []
+
+        def record_viewer_context(*_args: object, **_kwargs: object) -> Mock:
+            observed_contexts.append(get_viewer_context())
+            return response
+
+        mock_request.side_effect = record_viewer_context
 
         with self.feature(FEATURE_FLAG):
-            judge_issue_data(issue_data.id, event_id)
+            judge_issue_data([(issue_data.id, event_id)])
 
+        assert observed_contexts == [
+            ViewerContext(
+                organization_id=self.organization.id,
+                actor_type=ActorType.SYSTEM,
+            )
+        ]
+        assert mock_request.call_args.kwargs["viewer_context"] == {
+            "organization_id": self.organization.id
+        }
+        assert get_viewer_context() is None
         prompt = json.loads(mock_request.call_args.args[0]["prompt"])
         assert prompt == {
             "event_id": event_id,
@@ -181,7 +273,7 @@ class TestAutofixIssueDataJudge(SentryTestCase):
         assert issue_data.judge_review["confidence"] == "high"
         assert issue_data.judge_review["reviewed_event_id"] == event_id
         assert issue_data.judge_review["model"] == "claude-opus-4-8@default"
-        assert issue_data.judge_review["prompt_version"] == "1"
+        assert issue_data.judge_review["prompt_version"] == "2"
 
     @patch("sentry.tasks.seer.autofix_issue_data.make_llm_generate_request")
     def test_skips_stale_event(self, mock_request: MagicMock) -> None:
@@ -189,11 +281,20 @@ class TestAutofixIssueDataJudge(SentryTestCase):
         issue_data = self.create_seer_autofix_issue_data(group)
 
         with self.feature(FEATURE_FLAG):
-            judge_issue_data(issue_data.id, "stale-event")
+            judge_issue_data([(issue_data.id, "stale-event")])
 
         mock_request.assert_not_called()
         issue_data.refresh_from_db()
         assert issue_data.judge_review is None
+
+    @patch("sentry.tasks.seer.autofix_issue_data._judge_issue")
+    def test_continues_batch_after_failure_then_raises(self, mock_judge: MagicMock) -> None:
+        mock_judge.side_effect = [ValueError("bad json"), None]
+
+        with pytest.raises(RuntimeError):
+            judge_issue_data([(1, "a"), (2, "b")])
+
+        assert mock_judge.call_args_list == [call(1, "a"), call(2, "b")]
 
 
 class TestConfigureSeerForExistingOrg(SentryTestCase):

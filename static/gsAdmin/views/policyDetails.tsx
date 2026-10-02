@@ -1,3 +1,4 @@
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {DescriptionList} from '@sentry/scraps/descriptionList';
@@ -8,9 +9,8 @@ import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ConfigStore} from 'sentry/stores/configStore';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -25,23 +25,22 @@ export function PolicyDetails() {
   const {openModal} = useModal();
 
   const api = useApi();
+  const queryClient = useQueryClient();
   const {policySlug} = useParams<{policySlug: string}>();
+  const policyQueryOptions = apiOptions.as<Policy>()('/policies/$policySlug/', {
+    path: {policySlug},
+    staleTime: 0,
+  });
+  const revisionsUrl = getApiUrl('/policies/$policySlug/revisions/', {
+    path: {policySlug},
+  });
+  const invalidatePolicyQueries = () =>
+    Promise.all([
+      queryClient.invalidateQueries({queryKey: policyQueryOptions.queryKey}),
+      queryClient.invalidateQueries({queryKey: [revisionsUrl]}),
+    ]);
 
-  const {
-    data: policy,
-    isPending,
-    isError,
-    refetch,
-  } = useApiQuery<Policy>(
-    [
-      getApiUrl('/policies/$policySlug/', {
-        path: {policySlug},
-      }),
-    ],
-    {
-      staleTime: 0,
-    }
-  );
+  const {data: policy, isPending, isError, refetch} = useQuery(policyQueryOptions);
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -60,7 +59,7 @@ export function PolicyDetails() {
         method: 'PUT',
         data,
       });
-      testableWindowLocation.reload();
+      await invalidatePolicyQueries();
     } catch {
       addErrorMessage('There was an error when updating the current policy version.');
     }
@@ -106,9 +105,7 @@ export function PolicyDetails() {
               <PolicyRevisionModal
                 {...deps}
                 policy={policy}
-                onSuccess={(_newRevision: PolicyRevision) => {
-                  window.location.reload();
-                }}
+                onSuccess={invalidatePolicyQueries}
               />
             ));
           },

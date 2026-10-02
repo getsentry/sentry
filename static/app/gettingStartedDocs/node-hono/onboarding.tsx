@@ -3,7 +3,10 @@ import type {
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {getUploadSourceMapsStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
+import {
+  getDataCollectionStep,
+  getUploadSourceMapsStep,
+} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 
@@ -72,12 +75,6 @@ Sentry.init({
   profileLifecycle: 'trace',`
       : ''
   }
-  dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/hono/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: [],
-  },
 });`;
 }
 
@@ -113,12 +110,6 @@ app.use(
     tracesSampleRate: 1.0,`
         : ''
     }
-    dataCollection: {
-      // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-      // https://docs.sentry.io/platforms/javascript/guides/hono/configuration/options/#dataCollection
-      // userInfo: false,
-      // httpBodies: [],
-    },
   }),
 );
 
@@ -144,12 +135,6 @@ app.use(
     tracesSampleRate: 1.0,`
         : ''
     }
-    dataCollection: {
-      // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-      // https://docs.sentry.io/platforms/javascript/guides/hono/configuration/options/#dataCollection
-      // userInfo: false,
-      // httpBodies: [],
-    },
   }),
 );
 
@@ -343,6 +328,10 @@ const runtimeOnboarding: Record<Runtime, OnboardingConfig<PlatformOptions>> = {
         ],
       },
       getSourceMapsStep(params),
+      getDataCollectionStep({
+        docsLink:
+          'https://docs.sentry.io/platforms/javascript/guides/hono/configuration/options/#dataCollection',
+      }),
     ],
     verify: (params: Params) => [getVerifyStep(params)],
   },
@@ -401,6 +390,10 @@ const runtimeOnboarding: Record<Runtime, OnboardingConfig<PlatformOptions>> = {
         ],
       },
       getSourceMapsStep(params),
+      getDataCollectionStep({
+        docsLink:
+          'https://docs.sentry.io/platforms/javascript/guides/hono/configuration/options/#dataCollection',
+      }),
     ],
     verify: (params: Params) => [getVerifyStep(params)],
   },
@@ -433,6 +426,10 @@ const runtimeOnboarding: Record<Runtime, OnboardingConfig<PlatformOptions>> = {
         ],
       },
       getSourceMapsStep(params),
+      getDataCollectionStep({
+        docsLink:
+          'https://docs.sentry.io/platforms/javascript/guides/hono/configuration/options/#dataCollection',
+      }),
     ],
     verify: (params: Params) => [getVerifyStep(params)],
   },
@@ -465,6 +462,10 @@ const runtimeOnboarding: Record<Runtime, OnboardingConfig<PlatformOptions>> = {
         ],
       },
       getSourceMapsStep(params),
+      getDataCollectionStep({
+        docsLink:
+          'https://docs.sentry.io/platforms/javascript/guides/hono/configuration/options/#dataCollection',
+      }),
     ],
     verify: (params: Params) => [getVerifyStep(params)],
   },

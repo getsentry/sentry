@@ -36,20 +36,22 @@ export function BrowserOSIcons({
   return (
     <Tooltip
       title={
-        <DescriptionList gap="md 2xl">
-          {showBrowser && (
-            <Fragment>
-              <DescriptionList.Term>{t('Browser')}</DescriptionList.Term>
-              <DescriptionList.Details>
-                {replayRecord?.browser.name ?? ''} {replayRecord?.browser.version ?? ''}
-              </DescriptionList.Details>
-            </Fragment>
-          )}
-          <DescriptionList.Term>{t('OS')}</DescriptionList.Term>
-          <DescriptionList.Details>
-            {replayRecord?.os.name ?? ''} {replayRecord?.os.version ?? ''}
-          </DescriptionList.Details>
-        </DescriptionList>
+        <Tooltip.Grid>
+          <DescriptionList gap="md 2xl" nowrap terms="strong">
+            {showBrowser && (
+              <Fragment>
+                <DescriptionList.Term>{t('Browser')}</DescriptionList.Term>
+                <DescriptionList.Details>
+                  {replayRecord?.browser.name ?? ''} {replayRecord?.browser.version ?? ''}
+                </DescriptionList.Details>
+              </Fragment>
+            )}
+            <DescriptionList.Term>{t('OS')}</DescriptionList.Term>
+            <DescriptionList.Details>
+              {replayRecord?.os.name ?? ''} {replayRecord?.os.version ?? ''}
+            </DescriptionList.Details>
+          </DescriptionList>
+        </Tooltip.Grid>
       }
     >
       <Flex>
