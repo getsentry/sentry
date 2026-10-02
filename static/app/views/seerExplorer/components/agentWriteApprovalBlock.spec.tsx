@@ -173,6 +173,50 @@ describe('AgentWriteApprovalBlock', () => {
     ).toBeInTheDocument();
   });
 
+  it('sends one rejection for a double click', async () => {
+    const respondToUserInput = jest.fn();
+
+    render(
+      <AgentWriteApprovalBlock
+        pendingInput={createPendingAgentApproval()}
+        readOnly={false}
+        respondToUserInput={respondToUserInput}
+      />
+    );
+
+    await userEvent.dblClick(screen.getByRole('button', {name: 'Reject'}));
+
+    expect(respondToUserInput).toHaveBeenCalledTimes(1);
+  });
+
+  it('sends one approval for a double click', async () => {
+    const organization = OrganizationFixture();
+    const respondToUserInput = jest.fn();
+    const approveRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agent/approve/`,
+      method: 'POST',
+      body: {
+        status: 'approved',
+        scopes: ['project:write'],
+        expiresAt: '2026-08-05T12:00:00Z',
+      },
+    });
+
+    render(
+      <AgentWriteApprovalBlock
+        pendingInput={createPendingAgentApproval()}
+        readOnly={false}
+        respondToUserInput={respondToUserInput}
+      />,
+      {organization}
+    );
+
+    await userEvent.dblClick(screen.getByRole('button', {name: 'Approve'}));
+
+    await waitFor(() => expect(respondToUserInput).toHaveBeenCalledTimes(1));
+    expect(approveRequest).toHaveBeenCalledTimes(1);
+  });
+
   it('rejects without creating a Sentry grant', async () => {
     const organization = OrganizationFixture();
     const respondToUserInput = jest.fn();
