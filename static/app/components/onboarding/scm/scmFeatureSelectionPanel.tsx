@@ -1,5 +1,4 @@
-import {type ReactNode, useCallback, useMemo} from 'react';
-import {motion} from 'framer-motion';
+import {type ReactNode, useCallback, useId, useMemo} from 'react';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -11,7 +10,7 @@ import {
   platformProductAvailability,
 } from 'sentry/components/onboarding/productSelection';
 import {PLATFORM_PRODUCT_INFO} from 'sentry/data/platformProductInfo.generated';
-import {IconBusiness, IconInfo} from 'sentry/icons';
+import {IconInfo} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
@@ -71,6 +70,7 @@ export function ScmFeatureSelectionPanel({
   // on an unknown plan, so we hide that framing rather than show numbers that
   // may not apply.
   const isOnboarding = analyticsFlow === 'onboarding';
+  const productsHeadingId = useId();
   const {meta: featureMeta, isLoading: isFeatureMetaLoading} = useScmFeatureMeta();
 
   const currentFeatures = useMemo(
@@ -82,7 +82,6 @@ export function ScmFeatureSelectionPanel({
     selectedPlatform,
     selectedRepository,
   });
-  const currentPlatformName = getPlatformName(currentPlatformKey);
 
   // Wizard-driven platforms render an informational variant since the wizard CLI
   // owns product configuration and toggles aren't actionable.
@@ -170,6 +169,44 @@ export function ScmFeatureSelectionPanel({
   );
 
   const hasFeatureCards = featureMode !== 'none';
+  const currentPlatformName = getPlatformName(currentPlatformKey);
+  const isInformational = featureMode === 'informational';
+
+  // Project creation renders its own "Products" heading above instead.
+  const sectionHeader = isOnboarding ? (
+    <Stack gap="xs">
+      <Heading as="h3" size="lg" id={productsHeadingId}>
+        {isInformational && currentPlatformName
+          ? tct('What you can track with [platformName]', {
+              platformName: (
+                <Text as="span" bold variant="accent">
+                  {currentPlatformName}
+                </Text>
+              ),
+            })
+          : t('What do you want to track?')}
+      </Heading>
+      {isInformational ? (
+        <Text size="lg" variant="muted" density="comfortable">
+          {t('Your setup wizard will ask which of these to turn on in the next step.')}
+        </Text>
+      ) : null}
+      {isInformational ? null : (
+        <Text size="lg" variant="muted" density="comfortable">
+          {tct(
+            'You’ve got [promo:unlimited volume for 14 days]. After that, free plan volumes apply. No card required.',
+            {
+              promo: (
+                <Text as="span" variant="promotion">
+                  {null}
+                </Text>
+              ),
+            }
+          )}
+        </Text>
+      )}
+    </Stack>
+  ) : null;
 
   let featureCards: ReactNode = null;
   if (featureMode === 'toggleable') {
@@ -182,6 +219,7 @@ export function ScmFeatureSelectionPanel({
         featureMeta={featureMeta}
         isVolumeLoading={isFeatureMetaLoading}
         isOnboarding={isOnboarding}
+        labelledBy={productsHeadingId}
       />
     );
   } else if (featureMode === 'informational') {
@@ -190,7 +228,6 @@ export function ScmFeatureSelectionPanel({
         availableFeatures={availableFeatures}
         disabledProducts={disabledProducts}
         featureMeta={featureMeta}
-        platformName={currentPlatformName}
         isVolumeLoading={isFeatureMetaLoading}
         isOnboarding={isOnboarding}
       />
@@ -203,38 +240,20 @@ export function ScmFeatureSelectionPanel({
   return (
     <ScmCollapsibleReveal open={showSection}>
       <Stack gap="0" width="100%">
-        <MotionStack layout="position" width="100%">
+        <Stack width="100%">
           {/* Padding, unlike a flex gap, is clipped during the card reveal. */}
           <Stack gap="0" paddingTop={isOnboarding ? 'xs' : undefined}>
-            {isOnboarding ? (
-              <Flex
-                padding="lg"
-                background="secondary"
-                border="secondary"
-                radius="md"
-                gap="lg"
-              >
-                <IconBusiness size="lg" variant="accent" />
-                <Text size="md" density="comfortable">
-                  {tct(
-                    'You’ve got [bold:unlimited volume for 14 days] to try out everything. After that, free plan volumes apply ⋅ No credit card required',
-                    {
-                      bold: (
-                        <Text as="span" bold variant="accent">
-                          {null}
-                        </Text>
-                      ),
-                    }
-                  )}
-                </Text>
-              </Flex>
-            ) : null}
-
             {isOnboarding ? null : (
               <Flex justify="between" align="center" gap="md">
-                <Heading as="h4">{t('Products')}</Heading>
+                <Heading as="h4" id={productsHeadingId}>
+                  {t('Products')}
+                </Heading>
                 {currentPlatformKey ? null : (
-                  <Tag variant="muted" icon={<IconInfo />} style={{minWidth: 0}}>
+                  <Tag
+                    variant="muted"
+                    icon={<IconInfo aria-hidden />}
+                    style={{minWidth: 0}}
+                  >
                     <Text ellipsis variant="inherit">
                       {t('Select a platform to configure products')}
                     </Text>
@@ -245,15 +264,16 @@ export function ScmFeatureSelectionPanel({
 
             <ScmCollapsibleReveal open={hasFeatureCards}>
               <Container paddingTop={isOnboarding ? '2xl' : 'lg'}>
-                {featureCards}
+                <Stack gap="lg" width="100%">
+                  {sectionHeader}
+                  {featureCards}
+                </Stack>
               </Container>
             </ScmCollapsibleReveal>
           </Stack>
-        </MotionStack>
+        </Stack>
         {trailing}
       </Stack>
     </ScmCollapsibleReveal>
   );
 }
-
-const MotionStack = motion.create(Stack);

@@ -56,6 +56,7 @@ from sentry.issues.constants import (
 )
 from sentry.issues.derived.check import record_status_consistency
 from sentry.issues.derived.gate import derived_should_be_correct
+from sentry.issues.derived.tasks import reconcile_group_status
 from sentry.issues.endpoints.bases.group import GroupEndpoint, GroupPermission
 from sentry.issues.escalating.escalating_group_forecast import EscalatingGroupForecast
 from sentry.issues.models.groupderiveddata import GroupDerivedData
@@ -135,17 +136,19 @@ class GroupDetailsEndpoint(GroupEndpoint):
         if options.get("issues.derived_data.read_path_checks.killswitch"):
             return
 
-        if not (
-            features.has("projects:issue-status-reconciliation", group.project)
-            or derived_should_be_correct(group.project)
-        ):
+        if not derived_should_be_correct(group.project):
             return
 
         derived = GroupDerivedData.objects.filter(group_id=group.id).first()
         if derived is None:
             return
 
-        record_status_consistency(group, derived, source="read_path")
+        inconsistency = record_status_consistency(group, derived, source="read_path")
+        if inconsistency is not None and options.get(
+            "issues.derived_data.status_reconciliation.enabled"
+        ):
+            # Allow transient inconsistencies to settle before checking again.
+            reconcile_group_status.apply_async(kwargs={"group_id": group.id}, countdown=5 * 60)
 
     @staticmethod
     def __group_hourly_daily_stats(
@@ -241,7 +244,6 @@ class GroupDetailsEndpoint(GroupEndpoint):
             )
 
             # TODO: these probably should be another endpoint
-            activity = Activity.objects.get_activities_for_group(group, 100)
             seen_by = self._get_seen_by(request, group)
 
             if "release" not in collapse:
@@ -342,21 +344,21 @@ class GroupDetailsEndpoint(GroupEndpoint):
                     ).count()
                     data.update({"latestEventHasAttachments": num_attachments > 0})
 
+            activity_items = get_serialized_activity_items(
+                group, request.user, endpoint=activity_read_endpoint(request)
+            )
+            if activity_items is None:
+                activity = Activity.objects.get_activities_for_group(group, 100)
+                activity_items = serialize(activity, request.user)
+
             data.update(
                 {
-                    "activity": serialize(activity, request.user),
+                    "activity": activity_items,
                     "seenBy": seen_by,
                     "userReportCount": user_reports.count(),
                     "count": get_group_global_count(group),
                 }
             )
-
-            # swap action log data in under the activity name
-            activity_items = get_serialized_activity_items(
-                group, request.user, endpoint=activity_read_endpoint(request)
-            )
-            if activity_items is not None:
-                data.update({"activity": activity_items})
 
             if "stats" not in collapse:
                 hourly_stats, daily_stats = self.__group_hourly_daily_stats(group, environment_ids)

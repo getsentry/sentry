@@ -14,6 +14,7 @@ import {
 type LogsDirectExportModalButtonProps = {
   isLoading: boolean;
   tableData: OurLogsResponseItem[];
+  timeseriesIngestDelay: bigint;
   error?: Error | null;
 };
 
@@ -21,6 +22,7 @@ export function LogsDirectExportModalButton({
   error,
   isLoading,
   tableData,
+  timeseriesIngestDelay,
 }: LogsDirectExportModalButtonProps) {
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
@@ -29,7 +31,10 @@ export function LogsDirectExportModalButton({
     field: [...fields],
     sort: sortBys.map(formatExportSort),
   });
-  const estimatedRowCount = useLogsExportEstimatedRowCount(tableData.length);
+  const estimatedRowCount = useLogsExportEstimatedRowCount(
+    tableData.length,
+    timeseriesIngestDelay
+  );
 
   return (
     <LogsExportModalButton

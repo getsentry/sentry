@@ -1,7 +1,7 @@
 {% load sentry_assets %}
 
 <div style="padding: 20px; border-bottom: 1px solid #ddd; background: #fff; margin-bottom: 20px;">
-  <div style="width: 600; margin: 0 auto; display: flex;">
+  <div style="max-width: 600px; margin: 0 auto; display: flex; flex-wrap: wrap; align-items: center; gap: 10px 0;">
     {% if preview.subject %}<h1>{{ preview.subject }}</h1>{% endif %}
     <label for="event" style="margin-right: 10px">Selection:</label>
     <select id="event" style="width: 200px; margin-right: 20px;">

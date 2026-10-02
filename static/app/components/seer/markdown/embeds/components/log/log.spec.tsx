@@ -41,7 +41,7 @@ function mockLogDetails(attributes = ATTRIBUTES) {
 }
 
 /** The row the id-only path has to find before it can ask for details. */
-function mockLogRowLookup() {
+function mockLogRowLookup(routingHint?: string) {
   return MockApiClient.addMockResponse({
     url: '/organizations/org-slug/events/',
     body: {
@@ -58,7 +58,7 @@ function mockLogRowLookup() {
           ),
         },
       ],
-      meta: {fields: {}, units: {}},
+      meta: {fields: {}, units: {}, routingHint},
     },
   });
 }
@@ -226,7 +226,7 @@ describe('Seer log embed', () => {
   });
 
   it('resolves the trace and project from the id alone before fetching details', async () => {
-    const lookup = mockLogRowLookup();
+    const lookup = mockLogRowLookup('seer-log-hint');
     const details = mockLogDetails();
 
     renderEmbed({name: 'log', data: {id: LOG_ID, timestamp: TIMESTAMP}});
@@ -245,6 +245,7 @@ describe('Seer log embed', () => {
       );
     });
     expect(details).toHaveBeenCalled();
+    expect(details.mock.calls[0]![1].query.routing_hint).toBe('seer-log-hint');
   });
 
   it('asks for details at the row timestamp, not the one minted into the id', async () => {

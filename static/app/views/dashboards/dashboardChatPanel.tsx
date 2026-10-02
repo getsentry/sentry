@@ -61,6 +61,7 @@ export function DashboardChatPanel({
     if (chatContainerRef.current) {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [blocks.length, pendingUserInput, widgetErrors?.length]);
 
   const handleSubmit = useCallback(() => {
