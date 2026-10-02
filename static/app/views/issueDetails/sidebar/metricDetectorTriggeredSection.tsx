@@ -806,9 +806,6 @@ function getInvestigationStatusBlock(
       title: t('Seer investigation completed'),
       children: (
         <Stack gap="xs">
-          <Text size="xs" variant="muted" bold>
-            {t('Investigation conclusion')}
-          </Text>
           <Text size="sm" bold>
             {summary}
           </Text>
