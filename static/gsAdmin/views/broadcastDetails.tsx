@@ -4,12 +4,7 @@ import moment from 'moment-timezone';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
+import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -23,6 +18,7 @@ import {DetailLabel} from 'admin/components/detailLabel';
 import {DetailList} from 'admin/components/detailList';
 import type {ActionItem, BadgeItem} from 'admin/components/detailsPage';
 import {DetailsPage} from 'admin/components/detailsPage';
+import type {BroadcastDetailsData} from 'admin/types';
 import {
   ALL_PLANCHOICES,
   CATEGORYCHOICES,
@@ -39,7 +35,7 @@ export function BroadcastDetails() {
   const [isEditing, setIsEditing] = useState(false);
 
   const {data, isPending, isError, refetch} = useQuery(
-    apiOptions.as<Record<string, any>>()('/broadcasts/$broadcastId/', {
+    apiOptions.as<BroadcastDetailsData>()('/broadcasts/$broadcastId/', {
       path: {broadcastId},
       staleTime: 0,
     })
@@ -53,14 +49,12 @@ export function BroadcastDetails() {
         data: params,
       }),
     onSuccess: () => {
-      clearIndicators();
       addSuccessMessage('Broadcast updated.');
       queryClient.invalidateQueries({
         queryKey: [getApiUrl('/broadcasts/$broadcastId/', {path: {broadcastId}})],
       });
     },
     onError: () => {
-      clearIndicators();
       addErrorMessage('There was an internal error updating this broadcast.');
     },
   });
@@ -77,11 +71,10 @@ export function BroadcastDetails() {
   const fromChangelog = Boolean(data.upstreamId);
 
   const onUpdate = (params: Record<string, unknown>) => {
-    addLoadingMessage('Saving Changes...');
     updateMutation.mutate(params);
   };
 
-  const formatData = (item: string[] | string, choices: any) => {
+  const formatData = (item: string[] | string | null | undefined, choices: any) => {
     if (Array.isArray(item)) {
       if (item.length === 0) {
         return '-';

@@ -88,6 +88,8 @@ describe('Broadcast Details', () => {
         message: 'Original message',
         link: 'https://example.com',
         isActive: true,
+        mediaUrl: 'https://example.com/image.png',
+        category: 'blog',
         plans: [],
         roles: [],
         platform: [],
@@ -113,12 +115,23 @@ describe('Broadcast Details', () => {
     await userEvent.click(screen.getByText('Edit Broadcast'));
     await userEvent.clear(screen.getByRole('textbox', {name: 'Title'}));
     await userEvent.type(screen.getByRole('textbox', {name: 'Title'}), 'Updated title');
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Media URL'}));
     await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
     await waitFor(() => expect(update).toHaveBeenCalled());
     expect(update).toHaveBeenCalledWith(
       '/broadcasts/1359/',
-      expect.objectContaining({data: expect.objectContaining({title: 'Updated title'})})
+      expect.objectContaining({
+        data: {
+          title: 'Updated title',
+          message: 'Original message',
+          link: 'https://example.com',
+          mediaUrl: null,
+          category: 'blog',
+          dateExpires: null,
+          isActive: true,
+        },
+      })
     );
   });
 });
