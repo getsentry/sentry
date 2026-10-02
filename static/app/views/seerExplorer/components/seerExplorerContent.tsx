@@ -36,14 +36,17 @@ import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useTimeout} from 'sentry/utils/useTimeout';
 import {useUser} from 'sentry/utils/useUser';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
 import {
   NAVIGATION_MOBILE_CONTENT_HEIGHT,
   PRIMARY_HEADER_HEIGHT,
 } from 'sentry/views/navigation/constants';
+import {getBlockChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
 import {AskUserQuestionBlock} from 'sentry/views/seerExplorer/components/askUserQuestionBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
+import {ChatPromptMessage} from 'sentry/views/seerExplorer/components/chat/chatPrompt';
 import {
   groupTranscript,
   ResponseGroup,
@@ -59,6 +62,10 @@ import {SeerExplorerHeader} from 'sentry/views/seerExplorer/components/seerExplo
 import {UpdateSlackAlert} from 'sentry/views/seerExplorer/components/updateSlackAlert';
 import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import {useSeerExplorer} from 'sentry/views/seerExplorer/hooks/useSeerExplorer';
+import {
+  useSeerExplorerChatDispatch,
+  useSeerExplorerChatState,
+} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import type {
   Block,
   PendingUserInput,
@@ -219,6 +226,7 @@ export function SeerExplorerContent({
     errorStatusCode,
     isTimedOut,
     sendMessage,
+    requestError,
     startNewSession,
     switchToRun,
     respondToUserInput,
@@ -243,6 +251,26 @@ export function SeerExplorerContent({
     ''
   );
 
+  // Put a message that failed to send back in the composer, unless the user has
+  // already started typing something else.
+  useEffect(() => {
+    const failedQuery = requestError?.query;
+    if (failedQuery) {
+      setInputValue(current => (current.trim() ? current : failedQuery));
+    }
+  }, [requestError, setInputValue]);
+
+  const {chatPrompt} = useSeerExplorerChatState();
+  const chatDispatch = useSeerExplorerChatDispatch();
+
+  // Put back the question a failed reply answered, on every failure. The error only exists
+  // for the run on screen, and this panel only exists while Explorer is showing.
+  useEffect(() => {
+    if (requestError?.chatPrompt) {
+      chatDispatch({type: 'restore chat prompt', payload: requestError.chatPrompt});
+    }
+  }, [requestError, chatDispatch]);
+
   const readOnly =
     sessionData?.owner_user_id !== undefined &&
     sessionData.owner_user_id !== null &&
@@ -256,7 +284,11 @@ export function SeerExplorerContent({
     for (let index = blocks.length - 1; index >= 0; index--) {
       const block = blocks[index];
       if (block?.message.role === 'user' && block.message.content?.trim()) {
-        return {insertIndex: index, query: block.message.content};
+        return {
+          insertIndex: index,
+          query: block.message.content,
+          chatPrompt: getBlockChatPrompt(block),
+        };
       }
     }
     return null;
@@ -269,6 +301,15 @@ export function SeerExplorerContent({
   // Only when the error empty state is what's on screen. A live conversation that hits a
   // transient poll error still has its transcript and must keep its composer.
   const showLoadError = isEmptyState && (isError || hasSessionLoadError);
+
+  // A question can't be answered in a run that won't take a reply (someone else's, or one
+  // that failed to load), so it moves to a new chat instead of being lost.
+  useEffect(() => {
+    if (chatPrompt && (readOnly || showLoadError)) {
+      chatDispatch({type: 'set run id', payload: null});
+      chatDispatch({type: 'set chat prompt', payload: chatPrompt});
+    }
+  }, [chatPrompt, readOnly, showLoadError, chatDispatch]);
 
   // Whether the org has an active Slack integration installed. Slack is an
   // org-level integration, so this reflects the organization, not the user.
@@ -376,6 +417,23 @@ export function SeerExplorerContent({
     isReauthPending &&
     !!organization?.features.includes('seer-infra-telemetry') &&
     !!organization?.features.includes('seer-infra-telemetry-user-level-auth');
+
+  // Pending-input blocks rendered at the end of the transcript. When one is showing,
+  // the request error alert sits directly above it instead of above the composer.
+  const showFileApprovalBlock =
+    !readOnly && isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches;
+  const questionToShow = !readOnly && isQuestionPending ? currentQuestion : undefined;
+  const reauthToShow = !readOnly && showReauth ? reauthData : null;
+  const showsPendingInputBlock =
+    showFileApprovalBlock || !!questionToShow || !!reauthToShow;
+
+  const requestErrorAlert = requestError ? (
+    <Container padding="0 xl">
+      <Alert variant="danger">
+        <Text>{t('There was an error sending your message, wait and try again.')}</Text>
+      </Alert>
+    </Container>
+  ) : null;
 
   // - Topbar, menu, and slash command handlers -------------------------------
   const copySessionEnabled = runId !== null && !!organization?.slug;
@@ -536,7 +594,13 @@ export function SeerExplorerContent({
     if (!retryTarget || readOnly) {
       return;
     }
-    sendMessage(retryTarget.query, retryTarget.insertIndex);
+    // Seer rebuilds the retried message from this request, so resend the question it answered.
+    sendMessage(
+      retryTarget.query,
+      retryTarget.insertIndex,
+      undefined,
+      retryTarget.chatPrompt
+    );
     userScrolledUpRef.current = false;
   }, [readOnly, retryTarget, sendMessage]);
 
@@ -562,6 +626,25 @@ export function SeerExplorerContent({
     pendingComposerFocusRef.current = false;
     focusInput();
   }, [readOnly, showLoadError, focusInput]);
+
+  // Bring a new "Ask Seer" question into view and focus the composer. Deferred like the
+  // open effect above, so the drawer has mounted and a closing menu can't steal focus.
+  const {start: revealChatPrompt} = useTimeout({
+    timeMs: 100,
+    onTimeout: () => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      }
+      textareaRef.current?.focus();
+    },
+  });
+  useEffect(() => {
+    if (!chatPrompt) {
+      return;
+    }
+    userScrolledUpRef.current = false;
+    revealChatPrompt();
+  }, [chatPrompt, revealChatPrompt]);
 
   // Auto-scroll to bottom when new blocks are added, but only if user hasn't scrolled up
   useEffect(() => {
@@ -674,7 +757,7 @@ export function SeerExplorerContent({
           <UpdateSlackAlert num_configurations={activeSlackIntegrations.length} />
         )}
         <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
-          {isEmptyState ? (
+          {isEmptyState && (!chatPrompt || showLoadError) ? (
             <EmptyState
               isLoading={isPolling}
               isError={showLoadError}
@@ -701,17 +784,17 @@ export function SeerExplorerContent({
                 respondToUserInput={respondToUserInput}
                 showThinking={showThinking}
               />
-              {!readOnly &&
-                isFileApprovalPending &&
-                fileApprovalIndex < fileApprovalTotalPatches && (
-                  <FileChangeApprovalBlock
-                    currentIndex={fileApprovalIndex}
-                    pendingInput={pendingInput}
-                  />
-                )}
-              {!readOnly && isQuestionPending && currentQuestion && (
+              {chatPrompt ? <ChatPromptMessage text={chatPrompt.text} /> : null}
+              {showsPendingInputBlock && requestErrorAlert}
+              {showFileApprovalBlock && (
+                <FileChangeApprovalBlock
+                  currentIndex={fileApprovalIndex}
+                  pendingInput={pendingInput}
+                />
+              )}
+              {questionToShow && (
                 <AskUserQuestionBlock
-                  currentQuestion={currentQuestion}
+                  currentQuestion={questionToShow}
                   customText={customText}
                   isOtherSelected={isOtherSelected}
                   onCustomTextChange={handleQuestionCustomTextChange}
@@ -720,9 +803,9 @@ export function SeerExplorerContent({
                   selectedOption={selectedOption}
                 />
               )}
-              {!readOnly && showReauth && reauthData && (
+              {reauthToShow && (
                 <ReauthMonitoringProviderBlock
-                  data={reauthData}
+                  data={reauthToShow}
                   onComplete={handleReauthComplete}
                   returnUrl={
                     runId === null
@@ -755,6 +838,7 @@ export function SeerExplorerContent({
             </Alert>
           </Container>
         )}
+        {!showsPendingInputBlock && requestErrorAlert}
         <InputSection
           blocks={blocks}
           enabled={!readOnly && !showLoadError}

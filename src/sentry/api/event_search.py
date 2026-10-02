@@ -256,6 +256,14 @@ MAX_REGEX_PATTERN_LENGTH = 64
 # A newline ends the line a pattern can span, so it's tracked alongside closing delimiters
 REGEX_CLOSING_DELIMITER_OR_NEWLINE = re.compile(r"\n|//(?=[\t\n )]|\Z)")
 
+REGEX_ESCAPE_SEQUENCE = re.compile(r"\\.")
+
+
+def regex_pattern_length(pattern: str) -> int:
+    # An escape like `\.` or `\/` reads as one character, and the search bar adds `\/\/` escapes
+    # of its own, so counting backslashes would reject patterns users see as within the limit
+    return len(REGEX_ESCAPE_SEQUENCE.sub("_", pattern))
+
 
 def regex_pattern_too_long_error(key: str) -> InvalidSearchQuery:
     return InvalidSearchQuery(
@@ -1554,7 +1562,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             literal = self.visit_value(node.children[3], [])
             return self._handle_basic_filter(search_key, operator, SearchValue(literal))
 
-        if len(pattern) > MAX_REGEX_PATTERN_LENGTH:
+        if regex_pattern_length(pattern) > MAX_REGEX_PATTERN_LENGTH:
             raise regex_pattern_too_long_error(search_key.name)
         validate_regex_pattern(search_key.name, pattern)
         # Escape sequences and `*` mean something to the regex engine, so the pattern skips

@@ -1,18 +1,18 @@
 import {type ComponentType, Fragment, type ReactNode, useId} from 'react';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
-import {Tag} from '@sentry/scraps/badge';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
-import {Switch} from '@sentry/scraps/switch';
+import {Checkbox} from '@sentry/scraps/checkbox';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {IconInfo} from 'sentry/icons/iconInfo';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
+import {t} from 'sentry/locale';
+import {ONBOARDING_ENTER} from 'sentry/views/onboarding/animations';
 
-import {ScmCardButton} from './scmCardButton';
-import {ScmSelectableContainer} from './scmSelectableContainer';
+import {ScmSelectableCardButton} from './scmCardButton';
 
 interface ScmFeatureCardProps {
   description: string;
@@ -28,6 +28,11 @@ interface ScmFeatureCardProps {
   showVolume?: boolean;
 }
 
+/**
+ * A product toggle as its own card: icon, label, description, and a checkbox
+ * indicator. Meant to be laid out in a grid alongside its siblings. Selection
+ * lives on the card button; the checkbox only mirrors it.
+ */
 export function ScmFeatureCard({
   icon: Icon,
   label,
@@ -47,67 +52,33 @@ export function ScmFeatureCard({
   return (
     <Fragment>
       {/* The reason a card is disabled hangs off the card itself (not the
-        switch inside it) so it opens on keyboard focus as well as hover. The
+        checkbox inside it) so it opens on keyboard focus as well as hover. The
         tooltip replaces aria-describedby on its trigger, so a card with a
         reason describes that instead of its volume. */}
       <Tooltip title={disabledReason} disabled={!disabledReason} delay={500} skipWrapper>
-        <ScmCardButton
+        <ScmSelectableCardButton
           disabled={disabled}
           onClick={onClick}
           role="checkbox"
           aria-checked={isSelected}
           aria-describedby={hasVolume ? volumeDescriptionId : undefined}
-          style={{width: '100%', height: '100%'}}
+          {...ONBOARDING_ENTER}
         >
-          <ScmSelectableContainer
-            isSelected={isSelected}
-            padding="lg"
-            height="100%"
-            borderCompensation={3}
-          >
-            <Flex align="start">
-              <Grid
-                columns="min-content 1fr min-content"
-                rows="min-content min-content"
-                gap="xs lg"
-                align="center"
-                width="100%"
-                areas={`
-                    "icon label toggle"
-                    ". description ."
-                  `}
-              >
-                <Container area="icon">
-                  {containerProps => (
-                    <Icon
-                      {...containerProps}
-                      size="md"
-                      variant={isSelected ? 'accent' : undefined}
-                      aria-hidden
-                    />
-                  )}
-                </Container>
-
-                <Container area="label">
+          <Container height="100%" radius="lg" padding="xl">
+            <Stack height="100%" gap="md">
+              <Flex align="center" justify="between" gap="md">
+                <Flex align="center" gap="md" minWidth={0}>
+                  <Flex flexShrink={0}>
+                    <Icon size="md" variant="secondary" aria-hidden />
+                  </Flex>
                   <Text bold size="md">
                     {label}
                   </Text>
-                </Container>
-
-                <Flex area="toggle" align="start" gap="sm">
-                  {showVolume &&
-                    (isVolumeLoading ? (
-                      <Placeholder height="22px" width="100px" />
-                    ) : (
-                      <Tooltip title={volumeTooltip} delay={100}>
-                        <Tag variant="muted" icon={<IconInfo size="sm" aria-hidden />}>
-                          {volume}
-                        </Tag>
-                      </Tooltip>
-                    ))}
-                  {/* Visual only: the card button carries the checkbox role and
-                  state, so the switch is hidden from the accessibility tree. */}
-                  <Switch
+                </Flex>
+                {/* Visual only: the card button carries the checkbox role and
+                  state, so the checkbox is hidden from the accessibility tree. */}
+                <Flex flexShrink={0} pointerEvents="none">
+                  <Checkbox
                     checked={isSelected}
                     disabled={disabled}
                     aria-hidden
@@ -115,14 +86,46 @@ export function ScmFeatureCard({
                     readOnly
                   />
                 </Flex>
+              </Flex>
 
-                <Container area="description" column="2 / -1">
-                  <Text variant="secondary">{description}</Text>
-                </Container>
-              </Grid>
-            </Flex>
-          </ScmSelectableContainer>
-        </ScmCardButton>
+              <Stack flexGrow={1}>
+                <Text variant="muted" size="md" density="comfortable" textWrap="pretty">
+                  {description}
+                </Text>
+              </Stack>
+
+              {showVolume ? (
+                <Stack gap="md" width="100%" paddingTop="md">
+                  <Separator orientation="horizontal" border="primary" />
+                  <Flex align="center" justify="between" gap="md">
+                    <Text variant="muted" size="sm">
+                      {t('After 14 days')}
+                    </Text>
+                    {isVolumeLoading ? (
+                      <Placeholder height="18px" width="88px" />
+                    ) : (
+                      // InfoText would be the house component, but it always
+                      // takes tabIndex={0} outside overflow mode, and interactive
+                      // content cannot nest inside the card's button. Tooltip
+                      // draws the same underline without the focus stop.
+                      // eslint-disable-next-line @sentry/scraps/prefer-info-text
+                      <Tooltip
+                        title={volumeTooltip}
+                        delay={100}
+                        skipWrapper
+                        showUnderline
+                      >
+                        <Text variant="primary" size="sm" bold>
+                          {volume}
+                        </Text>
+                      </Tooltip>
+                    )}
+                  </Flex>
+                </Stack>
+              ) : null}
+            </Stack>
+          </Container>
+        </ScmSelectableCardButton>
       </Tooltip>
       {/* The volume tooltip sits inside the card button, so it can never be
         a focus stop of its own. Its text describes the card instead. It sits

@@ -80,6 +80,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
   overrideCodeModeEnable: 'off',
   hasSentInterrupt: false,
   sendMessage: jest.fn(),
+  requestError: null,
   switchToRun: jest.fn(),
   startNewSession: jest.fn(),
   interruptRun: jest.fn(),
@@ -92,7 +93,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
 
 describe('SeerExplorerContent re-renders', () => {
   const organization = OrganizationFixture({
-    features: ['seer-explorer', 'gen-ai-features', 'seer-explorer-code-mode-tools'],
+    features: ['seer-explorer', 'seer-explorer-code-mode-tools'],
     hideAiFeatures: false,
   });
   const getPageReferrer = () => '/issues/';

@@ -4,11 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {
-  InvestigationHypothesisFixture,
-  InvestigationOrchestrationFixture,
-  InvestigationVerificationStepFixture,
-} from 'sentry/views/investigations/fixtures';
+import {InvestigationOrchestrationFixture} from 'sentry/views/investigations/fixtures';
 import {
   InvestigationHypotheses,
   shouldPollInvestigationRun,
@@ -76,62 +72,18 @@ describe('InvestigationHypotheses', () => {
     renderHypotheses();
 
     expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
-    expect(
-      screen.getByRole('heading', {
-        name: 'Database or cache degradation delayed the response',
-      })
-    ).toBeInTheDocument();
-    expect(screen.getByText('Supported')).toBeInTheDocument();
   });
 
-  it('updates the completed check count as verification progresses', async () => {
-    const projection = InvestigationOrchestrationFixture({
-      phase: 'investigating',
-      hypotheses: [
-        InvestigationHypothesisFixture({
-          verificationSteps: [
-            InvestigationVerificationStepFixture({id: 'done', result: null}),
-            InvestigationVerificationStepFixture({
-              id: 'in-progress',
-              status: 'running',
-            }),
-            InvestigationVerificationStepFixture({
-              id: 'failed',
-              status: 'failed',
-            }),
-          ],
-        }),
-        InvestigationHypothesisFixture({
-          id: 'unplanned',
-          verificationSteps: undefined,
-        }),
-      ],
-    });
-    MockApiClient.addMockResponse({url: orchestrationUrl, body: projection});
-    const {queryClient} = renderHypotheses();
-
-    expect(
-      await screen.findByText('2 plausible causes • 1 check completed')
-    ).toBeVisible();
-    const toggle = screen.getByRole('button', {name: /Hypotheses/});
-    expect(toggle).toHaveAttribute('aria-expanded', 'true');
-
+  it('keeps the panel collapsed across refetches once the viewer closes it', async () => {
     MockApiClient.addMockResponse({
       url: orchestrationUrl,
-      body: {
-        ...projection,
-        hypotheses: projection.hypotheses.map(hypothesis => ({
-          ...hypothesis,
-          verificationSteps: hypothesis.verificationSteps?.map(step =>
-            step.id === 'in-progress' ? {...step, status: 'completed'} : step
-          ),
-        })),
-      },
+      body: InvestigationOrchestrationFixture({phase: 'investigating'}),
     });
-    await act(() => queryClient.invalidateQueries());
-    expect(
-      await screen.findByText('2 plausible causes • 2 checks completed')
-    ).toBeVisible();
+    const {queryClient} = renderHypotheses();
+
+    await screen.findAllByTestId('investigation-hypothesis');
+    const toggle = screen.getByRole('button', {name: 'Hypotheses'});
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
 
     await userEvent.click(toggle);
     await act(() => queryClient.invalidateQueries());
@@ -485,7 +437,6 @@ describe('InvestigationHypotheses', () => {
       expect(
         screen.getByTestId('investigation-hypotheses-placeholder')
       ).toBeInTheDocument();
-      expect(screen.queryByText(/plausible cause/)).not.toBeInTheDocument();
     }
   );
 
@@ -504,6 +455,42 @@ describe('InvestigationHypotheses', () => {
     expect(
       screen.queryByTestId('investigation-hypotheses-placeholder')
     ).not.toBeInTheDocument();
+  });
+
+  it('draws no placeholder while the run is awaiting input', async () => {
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({
+        phase: 'intake',
+        status: 'awaiting_input',
+        hypotheses: [],
+      }),
+    });
+
+    renderHypotheses({phase: 'intake', status: 'awaiting_input'});
+
+    expect(
+      screen.queryByTestId('investigation-hypotheses-placeholder')
+    ).not.toBeInTheDocument();
+    expect(await screen.findByTestId('seer-status-block')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('investigation-hypotheses-placeholder')
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: /Hypotheses/})).not.toBeInTheDocument();
+  });
+
+  it('still shows hypotheses that exist while the run is awaiting input', async () => {
+    MockApiClient.addMockResponse({
+      url: orchestrationUrl,
+      body: InvestigationOrchestrationFixture({
+        phase: 'investigating',
+        status: 'awaiting_input',
+      }),
+    });
+
+    renderHypotheses({phase: 'investigating', status: 'awaiting_input'});
+
+    expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
   });
 
   it('hides the status block once the run has completed', async () => {

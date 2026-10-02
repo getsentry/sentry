@@ -175,11 +175,37 @@ GCS_SOURCE_SCHEMA = {
     "additionalProperties": False,
 }
 
+AZURE_SOURCE_SCHEMA = {
+    "type": "object",
+    "properties": dict(
+        type={"type": "string", "enum": ["azure"]},
+        account={"type": "string", "pattern": "^[a-z0-9]{3,24}$"},
+        container={"type": "string"},
+        tenant_id={"type": "string"},
+        client_id={"type": "string"},
+        client_secret={"type": "string"},
+        prefix={"type": "string"},
+        **COMMON_SOURCE_PROPERTIES,
+    ),
+    "required": [
+        "type",
+        "id",
+        "account",
+        "container",
+        "tenant_id",
+        "client_id",
+        "client_secret",
+        "layout",
+    ],
+    "additionalProperties": False,
+}
+
 SOURCE_SCHEMA = {
     "oneOf": [
         HTTP_SOURCE_SCHEMA,
         S3_SOURCE_SCHEMA,
         GCS_SOURCE_SCHEMA,
+        AZURE_SOURCE_SCHEMA,
         APP_STORE_CONNECT_SCHEMA,
     ]
 }
@@ -205,6 +231,7 @@ SOURCES_WITHOUT_APPSTORE_CONNECT = {
             HTTP_SOURCE_SCHEMA,
             S3_SOURCE_SCHEMA,
             GCS_SOURCE_SCHEMA,
+            AZURE_SOURCE_SCHEMA,
         ]
     },
 }
@@ -248,12 +275,14 @@ REDACTED_APP_STORE_CONNECT_SCHEMA = _redact_schema(
 REDACTED_HTTP_SOURCE_SCHEMA = _redact_schema(HTTP_SOURCE_SCHEMA, ["password"])
 REDACTED_S3_SOURCE_SCHEMA = _redact_schema(S3_SOURCE_SCHEMA, ["secret_key"])
 REDACTED_GCS_SOURCE_SCHEMA = _redact_schema(GCS_SOURCE_SCHEMA, ["private_key"])
+REDACTED_AZURE_SOURCE_SCHEMA = _redact_schema(AZURE_SOURCE_SCHEMA, ["client_secret"])
 
 REDACTED_SOURCE_SCHEMA = {
     "oneOf": [
         REDACTED_HTTP_SOURCE_SCHEMA,
         REDACTED_S3_SOURCE_SCHEMA,
         REDACTED_GCS_SOURCE_SCHEMA,
+        REDACTED_AZURE_SOURCE_SCHEMA,
         REDACTED_APP_STORE_CONNECT_SCHEMA,
     ]
 }
@@ -446,6 +475,8 @@ def secret_fields(source_type):
         yield "secret_key"
     elif source_type == "gcs":
         yield "private_key"
+    elif source_type == "azure":
+        yield "client_secret"
     yield from []
 
 
@@ -574,10 +605,12 @@ def get_sources_for_project(project, event_id=None):
     if sources_config:
         try:
             custom_sources = parse_sources(sources_config, filter_appconnect=True)
+            azure_enabled = features.has("organizations:azure-symbol-sources", organization)
             sources.extend(
                 normalize_user_source(source, project.id, event_id)
                 for source in custom_sources
                 if source["type"] != "appStoreConnect"
+                and (source["type"] != "azure" or azure_enabled)
             )
         except InvalidSourcesError:
             # Source configs should be validated when they are saved. If this

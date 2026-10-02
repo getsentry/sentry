@@ -10,13 +10,21 @@ from typing import Any, Self
 
 import psycopg2.errors
 from django import db
-from django.db import DatabaseError, OperationalError, connections, models, router, transaction
+from django.db import (
+    DatabaseError,
+    InterfaceError,
+    OperationalError,
+    connections,
+    models,
+    router,
+    transaction,
+)
 from django.db.models import Count, Max, Min
 from django.db.models.functions import Now
 from django.db.transaction import Atomic
 from django.utils import timezone
+from sentry_sdk import traces
 from sentry_sdk.traces import StreamedSpan
-from sentry_sdk.tracing import Span
 
 from sentry import options
 from sentry.backup.scopes import RelocationScope
@@ -28,6 +36,7 @@ from sentry.db.models import (
     control_silo_model,
     sane_repr,
 )
+from sentry.db.postgres.helpers import can_reconnect
 from sentry.db.postgres.transactions import (
     django_test_transaction_water_mark,
     enforce_constraints,
@@ -40,7 +49,6 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.utils import metrics
 from sentry.utils.env import in_test_environment
-from sentry.utils.tracing import set_span_data, set_span_tag, start_span
 
 THE_PAST = datetime.datetime(2016, 8, 1, 0, 0, 0, 0, tzinfo=datetime.UTC)
 
@@ -357,15 +365,13 @@ class OutboxBase(Model):
 
         logger.error("outbox.unexpected_coalescing", extra=extra)
 
-    def _set_span_data_for_coalesced_message(
-        self, span: Span | StreamedSpan, message: OutboxBase
-    ) -> None:
+    def _set_span_data_for_coalesced_message(self, span: StreamedSpan, message: OutboxBase) -> None:
         tag_for_outbox = OutboxScope.get_tag_name(message.shard_scope)
-        set_span_tag(span, tag_for_outbox, message.shard_identifier)
-        set_span_data(span, "outbox_id", message.id)
-        set_span_data(span, "outbox_shard_id", message.shard_identifier)
-        set_span_tag(span, "outbox_category", OutboxCategory(message.category).name)
-        set_span_tag(span, "outbox_scope", OutboxScope(message.shard_scope).name)
+        span.set_attribute(tag_for_outbox, message.shard_identifier)
+        span.set_attribute("outbox_id", message.id)
+        span.set_attribute("outbox_shard_id", message.shard_identifier)
+        span.set_attribute("outbox_category", OutboxCategory(message.category).name)
+        span.set_attribute("outbox_scope", OutboxScope(message.shard_scope).name)
 
     def process(self, is_synchronous_flush: bool) -> bool:
         with self.process_coalesced(is_synchronous_flush=is_synchronous_flush) as coalesced:
@@ -379,7 +385,9 @@ class OutboxBase(Model):
                             **coalesced._silo_and_type_tags(),
                         },
                     ),
-                    start_span(op="outbox.process", name="outbox.process") as span,
+                    traces.start_span(
+                        name="outbox.process", attributes={"sentry.op": "outbox.process"}
+                    ) as span,
                 ):
                     self._set_span_data_for_coalesced_message(span=span, message=coalesced)
                     try:
@@ -429,28 +437,44 @@ class OutboxBase(Model):
                     return
 
             shard_row: OutboxBase | None
+            retry_on_disconnect = not flush_all and self.shard_scope == OutboxScope.API_TOKEN_SCOPE
             while True:
-                with self.process_shard(latest_shard_row) as shard_row:
-                    if shard_row is None:
-                        break
+                try:
+                    with self.process_shard(latest_shard_row) as shard_row:
+                        if shard_row is None:
+                            break
 
-                    if _test_processing_barrier:
-                        _test_processing_barrier.wait()
+                        if _test_processing_barrier:
+                            _test_processing_barrier.wait()
 
-                    at_last_shard_row = (
-                        shard_row.id == latest_shard_row.id if latest_shard_row else False
-                    )
+                        at_last_shard_row = (
+                            shard_row.id == latest_shard_row.id if latest_shard_row else False
+                        )
 
-                    processed = shard_row.process(is_synchronous_flush=not flush_all)
+                        processed = shard_row.process(is_synchronous_flush=not flush_all)
 
-                    if _test_processing_barrier:
-                        _test_processing_barrier.wait()
+                        if _test_processing_barrier:
+                            _test_processing_barrier.wait()
 
-                    # If we just processed the last designated row with no
-                    # coalescing remaining, we're done. No need to check for more.
-                    if not processed or at_last_shard_row:
-                        break
-        except DatabaseError as e:
+                        # If we just processed the last designated row with no
+                        # coalescing remaining, we're done. No need to check for more.
+                        if not processed or at_last_shard_row:
+                            break
+                except (DatabaseError, InterfaceError) as e:
+                    if not retry_on_disconnect or not can_reconnect(e):
+                        raise
+
+                    connection = connections[router.db_for_write(type(self))]
+                    if connection.in_atomic_block:
+                        raise
+
+                    # The transaction containing the source operation and outbox creation
+                    # has already committed. If the db connection dies during the outbox
+                    # process(), retry the idempotent update once in a new transaction
+                    # so we reacquire the shard lock.
+                    retry_on_disconnect = False
+                    connection.close()
+        except (DatabaseError, InterfaceError) as e:
             raise OutboxDatabaseError(
                 f"Failed to process Outbox, {OutboxCategory(self.category).name} due to database error",
             ) from e
