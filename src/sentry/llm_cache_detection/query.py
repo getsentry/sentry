@@ -24,12 +24,9 @@ from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils.snuba import SnubaTSResult
 
-# `ai_client` is added during ingestion from the op, so it matches an LLM call
-# whichever op the SDK chose; matching an op directly would cover one integration.
-# Agent spans carry their own type, which keeps out invoke_agent's re-aggregated
-# token totals. Embeddings classify as LLM calls but have no prompt cache, so
-# they are excluded by hand -- a model that reports cache tokens only when
-# positive would otherwise read as a genuine 0% hit rate.
+# `ai_client` is derived from the op at ingestion, so it matches LLM calls from
+# every SDK, and excludes agent spans with their re-aggregated token totals.
+# Embeddings have no prompt cache.
 GEN_AI_CALL_FILTER = (
     "gen_ai.operation.type:ai_client "
     "!gen_ai.operation.name:embeddings "
@@ -39,70 +36,45 @@ GEN_AI_CALL_FILTER = (
 INPUT_TOKENS = "gen_ai.usage.input_tokens"
 MODEL = "gen_ai.request.model"
 SPAN_NAME = "span.name"
-# `gen_ai.agent.name` names the agent a call belongs to, which is what a reader
-# can find in their own code; the span name alone is usually the SDK wrapper.
-# It is not universally emitted, so the operation name stands in where it is
-# missing -- see `_agent_label` for why that choice is made per span.
+# The span name is usually just the SDK wrapper; the agent name is what a reader
+# can find in their code. The operation name stands in where it is missing.
 AGENT_NAME = AgentLabelSource.AGENT_NAME.value
 OPERATION_NAME = AgentLabelSource.OPERATION_NAME.value
 
-# Most integrations emit the deprecated aliases (`gen_ai.usage.input_tokens.cached`
-# and `.cache_write`); only langchain writes these names directly. Each alias is
-# declared in `sentry_conventions` as a BACKFILL deprecation of the name below
-# it, and the backfill is applied to the stored item, so querying the canonical
-# names covers both -- and reading either family alongside them would
-# double-count.
+# The deprecated aliases most SDKs emit are backfilled onto these at ingestion,
+# so these cover both; reading the aliases as well would double-count.
 CACHE_READ_TOKENS = "gen_ai.usage.cache_read.input_tokens"
 CACHE_CREATION_TOKENS = "gen_ai.usage.cache_creation.input_tokens"
 CACHE_TOKEN_ATTRIBUTES = (CACHE_READ_TOKENS, CACHE_CREATION_TOKENS)
 
-# `gen_ai.request.messages` is deprecated in favour of `gen_ai.input.messages`
-# and SDKs are part-way through the move, so both are read, current name first.
-# The deprecated name is spelled out rather than read off `ATTRIBUTE_NAMES`,
-# which warns on every import of this module for reading it on purpose.
-# Carrying prompt text at all is opt-in and off by default, so most call sites
-# have neither.
+# SDKs are part-way through moving to `gen_ai.input.messages`, so the deprecated
+# name is read too; spelled out because `ATTRIBUTE_NAMES` warns on access.
 PROMPT_ATTRIBUTES = (
     ATTRIBUTE_NAMES.GEN_AI_INPUT_MESSAGES,
     "gen_ai.request.messages",
 )
 
-# An aggregate column doubles as the key its value comes back under, so the
-# query and the code reading the response share one name.
 SUM_INPUT_TOKENS = f"sum({INPUT_TOKENS})"
 AVG_INPUT_TOKENS = f"avg({INPUT_TOKENS})"
 SUM_CACHE_READ_TOKENS = f"sum({CACHE_READ_TOKENS})"
 SUM_CACHE_CREATION_TOKENS = f"sum({CACHE_CREATION_TOKENS})"
 COUNT = "count()"
-# `count()` is extrapolated to the traffic the spans stand for; this one is not,
-# so the pair says how much evidence each aggregate beside it was computed from.
+# Unlike `count()`, not extrapolated: the evidence the aggregates rest on.
 COUNT_SAMPLE = "count_sample()"
 
-# Sorting by total input tokens keeps the worst offenders inside the cap even
-# when a project has more distinct call sites than this. The cap applies to rows
-# before an agent's operation names are folded together, so a call site split
-# across operations can come back partial; see `CallSiteQueryResult.truncated`.
+# Ordered by input tokens, so the worst offenders fit. Applied before an agent's
+# operation names are folded together, so a call site can come back partial.
 CALL_SITE_GROUPS_LIMIT = 300
 
-# Warmth is read off calls counted per cache TTL, so the timeseries is bucketed
-# at the TTL itself: within a bucket, every call but the first had a predecessor
-# close enough to find the cache warm.
 WARMTH_GRANULARITY_SECS = CACHE_TTL_MINUTES * 60
 SAMPLE_CALLS_LIMIT = 3
-# Sampled rows are deduplicated by trace, so ask for enough of them that a call
-# site repeating within one trace still yields distinct examples.
+# Over-fetched because rows are deduplicated by trace.
 SAMPLE_CALLS_QUERY_LIMIT = SAMPLE_CALLS_LIMIT * 3
 
-# Each sampled prompt is a whole message list, so this is the widest row the
-# detector reads. Four is enough that a field varying only occasionally still
-# shows up, without paying for a long list of very large attribute values.
 PROMPT_SAMPLES_LIMIT = 4
 PROMPT_SAMPLES_QUERY_LIMIT = PROMPT_SAMPLES_LIMIT * 3
-# Prompts are the one thing the detector reads that is customer content rather
-# than a measurement, so how much of it is pulled out of storage is bounded here
-# rather than left to whatever ingest happened to keep. Generous next to the
-# lengths the diagnosis reasons about, which is what keeps the truncation from
-# deciding the answer.
+# Bounds how much customer content is read, generously next to the lengths the
+# diagnosis reasons about.
 PROMPT_MAX_CHARS = 32_768
 
 
@@ -117,22 +89,15 @@ class DroppedRowReason(StrEnum):
 @dataclass(frozen=True)
 class CallSiteQueryResult:
     call_sites: list[CallSiteStats]
-    # Calls the aggregate returned but no call site can be keyed on, by what
-    # they lacked. Extrapolated like `CallSiteStats.call_count`.
+    # Extrapolated calls no call site can be keyed on, by what they lacked.
     dropped_calls: Counter[DroppedRowReason]
-    # The row cap was reached: the call sites with the least input are missing,
-    # and one split across operation names may be missing some of its rows.
+    # `CALL_SITE_GROUPS_LIMIT` was reached.
     truncated: bool
 
 
 @dataclass(frozen=True)
 class SampleCall:
-    """One example call from a flagged call site.
-
-    Carries what a deep link into the trace needs -- the span itself, and the
-    timestamp the trace view resolves the trace by -- alongside the token counts
-    that make the example worth opening.
-    """
+    """One example call from a flagged call site, with what a trace link needs."""
 
     trace_id: str
     span_id: str
@@ -145,29 +110,20 @@ class SampleCall:
 def _escape_filter_value(value: str) -> str:
     """Escape a value for a quoted EAP search term.
 
-    ``*`` must be escaped or OP_EQUALS silently degrades to a LIKE wildcard
-    match; ``"`` would terminate the quoted term. Backslashes are left alone
-    because the grammar preserves them verbatim -- escaping one would change
-    the value being matched.
+    An unescaped ``*`` degrades the match to a wildcard. Backslashes are kept
+    verbatim by the grammar, so escaping one would change the value.
     """
     return value.replace('"', '\\"').replace("*", "\\*")
 
 
 def _is_unexpressible(value: str) -> bool:
-    """Whether the search grammar cannot match this value exactly.
-
-    A trailing backslash escapes the term's own closing quote. A backslash
-    directly before a ``*`` reads as an escaped wildcard whichever way the star
-    is written, so the literal cannot be expressed at all.
-    """
+    """Whether the search grammar cannot match this value exactly: a trailing
+    backslash escapes the closing quote, and ``\\*`` always reads as an escape."""
     return value.endswith("\\") or "\\*" in value
 
 
 def _build_group_filter(stats: CallSiteStats) -> str | None:
-    """Build the exact-match filter for one call-site group.
-
-    Returns None when a group value cannot be expressed in the search grammar.
-    """
+    """Build the exact-match filter for one call site, or None if unexpressible."""
     values = (stats.agent_label, stats.span_name, stats.model)
     if any(_is_unexpressible(value) for value in values):
         return None
@@ -175,10 +131,8 @@ def _build_group_filter(stats: CallSiteStats) -> str | None:
     if stats.agent_label_source is AgentLabelSource.AGENT_NAME:
         agent_terms = [f'{AGENT_NAME}:"{agent_label}"']
     else:
-        # The operation name only stands in for an agent on spans that carry no
-        # agent name, so the absence defines the group as much as the operation
-        # does: without this term the filter would also collect the named spans
-        # sharing the operation, which are a different call site.
+        # Otherwise named spans sharing the operation, a different call site,
+        # would match too.
         agent_terms = [f"!has:{AGENT_NAME}", f'{OPERATION_NAME}:"{agent_label}"']
     return " ".join(
         [
@@ -228,14 +182,8 @@ def _token_count(row: SnubaRow, column: str) -> float:
 def _agent_label(row: SnubaRow) -> tuple[str, AgentLabelSource] | None:
     """Read one row's agent label, falling back to its operation name.
 
-    The fallback is decided per row rather than once for the group because a
-    single (span.name, model) pair can hold spans that carry an agent name and
-    spans that do not, side by side. Those are kept apart: an unnamed span
-    merged into a named sibling would attribute calls to an agent that never
-    made them.
-
-    Returns None when a row carries neither, which leaves nothing to name the
-    call site by.
+    Decided per row, not per group: one (span.name, model) pair can hold named and
+    unnamed spans, and merging them would credit an agent with calls it never made.
     """
     agent_name = row.get(AGENT_NAME)
     if agent_name:
@@ -247,11 +195,7 @@ def _agent_label(row: SnubaRow) -> tuple[str, AgentLabelSource] | None:
 
 
 def _combine(left: CallSiteStats, right: CallSiteStats) -> CallSiteStats:
-    """Add two aggregate rows describing the same call site.
-
-    The average is re-weighted by call count rather than averaged again, so the
-    result is the average over every call in the group.
-    """
+    """Add two aggregate rows of one call site, re-weighting the average by calls."""
     call_count = left.call_count + right.call_count
     weighted_input_tokens = (
         left.avg_input_tokens * left.call_count + right.avg_input_tokens * right.call_count
@@ -274,13 +218,9 @@ def _to_call_sites(
 ) -> tuple[list[CallSiteStats], Counter[DroppedRowReason]]:
     """Fold aggregate rows into call sites keyed by (agent label, span.name, model).
 
-    The query has to group by the agent name and the operation name separately
-    to resolve the fallback, which splits one call site in two whenever spans
-    under one agent report different operation names -- a split the key does not
-    make, so it is undone here.
-
-    Rows missing part of the key are dropped and counted by calls, under the
-    first part they lack.
+    The query groups by operation name too, to resolve the fallback, which splits
+    a named agent reporting several operations; that split is undone here. Rows
+    missing part of the key are counted by calls, under the first part missing.
     """
     call_sites: dict[tuple[str, str, str, str], CallSiteStats] = {}
     dropped_calls: Counter[DroppedRowReason] = Counter()
@@ -350,23 +290,7 @@ def fetch_call_site_stats(project: Project, window: DetectionWindow) -> CallSite
 def fetch_call_site_warmth(
     project: Project, stats: CallSiteStats, window: DetectionWindow
 ) -> CallSiteWarmth | None:
-    """Count one call site's calls per cache-TTL bucket across the window.
-
-    Bucketing is what makes warmth computable at all: EAP has no window function
-    to take the gap between consecutive calls, and reading a timestamp per call
-    would be tens of thousands of rows for a single busy call site.
-
-    The filter selects the call site whole -- every operation name under an
-    agent, as its identity does -- so the counts arrive already folded, and the
-    first call in a bucket is the only cold start in it.
-
-    Each bucket's stored-span count is read alongside its call count, because
-    ``count()`` is extrapolated and bucket occupancy is not: counting a bucket
-    once while counting its calls at full volume would divide two different
-    scales.
-
-    Returns None when the group cannot be queried, meaning warmth is unknowable.
-    """
+    """Count one call site's calls per cache-TTL bucket, or None if unqueryable."""
     group_filter = _build_group_filter(stats)
     if group_filter is None:
         return None
@@ -388,12 +312,8 @@ def fetch_call_site_warmth(
 
 
 def _warmth_buckets(result: SnubaTSResult) -> list[WarmthBucket]:
-    """Pair each timeseries bucket's extrapolated count with its stored-span count.
-
-    ``processed_timeseries`` carries the two as separate lists indexed alike.
-    A bucket missing its sample count is passed through with zero, which
-    ``CallSiteWarmth`` reads as "no evidence of warmth here".
-    """
+    """Pair each bucket's extrapolated count with its stored-span count, which
+    ``processed_timeseries`` carries as separate lists indexed alike."""
     processed = result.data.get("processed_timeseries")
     if processed is None:
         return []
@@ -412,10 +332,8 @@ def _warmth_buckets(result: SnubaTSResult) -> list[WarmthBucket]:
 def count_spans_with_cache_attributes(
     project: Project, stats: CallSiteStats, window: DetectionWindow
 ) -> int | None:
-    """Instrumentation-gap probe: how many of the group's spans carry any cache attribute.
-
-    Returns None when the group cannot be queried, meaning presence is unknowable.
-    """
+    """How many of the call site's spans carry any cache attribute, or None if
+    unqueryable."""
     group_filter = _build_group_filter(stats)
     if group_filter is None:
         return None
@@ -440,11 +358,7 @@ def count_spans_with_cache_attributes(
 def fetch_sample_calls(
     project: Project, stats: CallSiteStats, window: DetectionWindow
 ) -> list[SampleCall]:
-    """Sample the group's largest calls, one per trace.
-
-    Ordering by input tokens surfaces the calls where the wasted spend is most
-    visible, which are also the most useful ones to open and compare.
-    """
+    """Sample the call site's largest calls, one per trace."""
     group_filter = _build_group_filter(stats)
     if group_filter is None:
         return []
@@ -491,17 +405,10 @@ def fetch_sample_calls(
 def fetch_sample_prompts(
     project: Project, stats: CallSiteStats, window: DetectionWindow
 ) -> list[str] | None:
-    """Read the prompt text of a few of the call site's most recent invocations.
+    """Read the prompts of the call site's most recent invocations, one per trace.
 
-    Recency decides which ones rather than size: the shared prefix is a statement
-    about the template the code assembles now, and the largest prompts skew
-    towards whichever path happens to carry the most context. Rows are
-    deduplicated by trace for the reason ``fetch_sample_calls`` does it -- a call
-    site firing repeatedly inside one trace is one invocation's worth of
-    evidence.
-
-    Returns None when the group cannot be queried. An empty list means the spans
-    carry no prompt text, which is the ordinary case.
+    Recent rather than largest, since the template the code assembles now is what
+    matters. None if unqueryable; empty if the spans carry no prompt text.
     """
     group_filter = _build_group_filter(stats)
     if group_filter is None:

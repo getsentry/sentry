@@ -53,9 +53,7 @@ SAMPLE_CALLS = [
 ]
 
 
-# Synthetic prompts, invented for the test: a variable head in front of a stable
-# body, which is the shape the diagnosis exists to name. Real prompt text never
-# goes in a fixture.
+# Invented prompts with a variable head in front of a stable body.
 STABLE_PROMPT_BODY = "Summarize the rows below and cite each one.\n" * 100
 DIVERGING_PROMPTS = [
     f'[{{"role": "system", "content": "As of 2026-08-19T10:15:00Z. {STABLE_PROMPT_BODY}"}}]',
@@ -298,10 +296,6 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         self.mock_fetch_stats = self.enterContext(
             patch("sentry.tasks.llm_cache_issue_detection.fetch_call_site_stats")
         )
-        # Warmth costs a query per candidate, so it is patched here rather than
-        # carried on the stats. Which call sites the floors let through is
-        # settled in the detection tests; these are about what the pipeline does
-        # with one once they have.
         self.mock_fetch_warmth = self.enterContext(
             patch("sentry.tasks.llm_cache_issue_detection.fetch_call_site_warmth")
         )
@@ -320,7 +314,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         )
         self.mock_fetch_prompts.return_value = []
         self.mock_metadata = self.enterContext(
-            patch("sentry.llm_cache_detection.pricing.ai_model_metadata_config")
+            patch("sentry.tasks.llm_cache_issue_detection.ai_model_metadata_config")
         )
         self.mock_metadata.return_value = None
 
@@ -385,9 +379,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         # Both flagged groups have recorded cache activity: no gap probe needed.
         assert not self.mock_count_cache_attrs.called
 
-        # Only the flagged call sites are candidates, ranked by severity: the
-        # not-caching group's uncached tokens dwarf the thrash group's
-        # un-recouped cache writes.
+        # Only flagged call sites are candidates, ranked by severity.
         assert [(c["agent_label"], c["rank"]) for c in self.candidates()] == [
             (NOT_CACHING_STATS.agent_label, 1),
             (THRASH_STATS.agent_label, 2),
@@ -460,7 +452,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
             "not_caching:cache_activity": 1,
             "thrash:cache_activity": 1,
         }
-        assert summary["probes_sent"] == {"warmth": 2, "cache_presence": 0}
+        assert summary["warmth_probes_sent"] == 2
 
     def test_reports_findings_past_the_cap_as_over_cap(self) -> None:
         self.detect(*agents(NOT_CACHING_STATS, FINDINGS_PER_PROJECT_LIMIT + 2))
@@ -513,20 +505,6 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         assert candidate["disposition"] == "would_create"
         assert "spans_with_cache_attributes" not in candidate
 
-    def test_reports_candidates_left_unprobed_once_the_presence_budget_is_spent(self) -> None:
-        # Presence is only asked of candidates warmth already let through, so at
-        # equal budgets warmth runs out first; a smaller one isolates presence.
-        self.mock_count_cache_attrs.return_value = 0
-
-        with patch.object(llm_cache_issue_detection, "MAX_PRESENCE_PROBES_PER_PROJECT", 2):
-            self.detect(*agents(GAP_STATS, 5))
-
-        assert self.mock_count_cache_attrs.call_count == 2
-        assert [(c["outcome"], c["reason"]) for c in self.candidates()] == [
-            ("unknown", "no_cache_attributes")
-        ] * 2 + [("unknown", "budget_exhausted")] * 3
-        assert self.summary()["probes_sent"]["cache_presence"] == 2
-
     def test_reports_candidates_left_unmeasured_once_the_warmth_budget_is_spent(self) -> None:
         self.detect(*agents(NOT_CACHING_STATS, MAX_WARMTH_PROBES_PER_PROJECT + 3))
 
@@ -537,10 +515,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         ] * 3
 
     def test_does_not_flag_a_call_site_whose_calls_arrive_too_far_apart(self) -> None:
-        # Calls arriving alone meet a cold cache every time, so the low hit rate
-        # is arithmetic. Settling that first also spares the call site an
-        # instrumentation-gap probe it would otherwise have earned by reporting
-        # no cache attributes at all.
+        # Settled before the presence probe, which it makes unnecessary.
         self.mock_fetch_warmth.side_effect = lambda project, stats, window: sparse(stats)
 
         self.detect(GAP_STATS)
@@ -560,7 +535,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         candidate = self.candidate(NOT_CACHING_STATS)
         assert candidate["outcome"] == "ineligible"
         assert candidate["reason"] == "unqueryable_call_site"
-        assert self.summary()["probes_sent"]["warmth"] == 0
+        assert self.summary()["warmth_probes_sent"] == 0
 
     def test_carries_on_past_a_probe_that_failed(self) -> None:
         first, second = agents(NOT_CACHING_STATS, 2)
@@ -580,7 +555,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
                 "organization_id": str(self.project.organization_id),
             }
         ]
-        assert self.summary()["probes_sent"]["warmth"] == 2
+        assert self.summary()["warmth_probes_sent"] == 2
 
     def test_files_a_finding_whose_sample_calls_could_not_be_read(self) -> None:
         self.mock_fetch_samples.side_effect = InvalidSearchQuery("bad term")
@@ -634,7 +609,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         candidate = self.candidate(NOT_CACHING_STATS)
         assert candidate["prompt_sample_count"] == 2
         assert candidate["prompt_divergence_kind"] == "iso_timestamp"
-        assert candidate["prompt_shortest_chars"] == len(DIVERGING_PROMPTS[0])
+        assert candidate["prompt_shortest_prompt_chars"] == len(DIVERGING_PROMPTS[0])
         assert candidate["prompt_stable_block_chars"] > candidate["prompt_common_prefix_chars"]
         assert candidate["prompt_template_misordered"] is True
         assert [attributes for _, attributes in self.counted("prompt_diagnosis")] == [
@@ -642,10 +617,8 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         ]
 
     def test_carries_no_prompt_text_into_its_output(self) -> None:
-        # Prompts are customer content. Everything the diagnosis reports about
-        # them is a length, a count or the name of a pattern, and this asserts it
-        # over everything emitted rather than the fields that happen to be read
-        # above -- a leak would arrive through a field nobody thought to check.
+        # Checked over everything emitted: a leak would come through a field
+        # nobody thought to check.
         self.mock_fetch_prompts.return_value = DIVERGING_PROMPTS
 
         self.detect(NOT_CACHING_STATS)
@@ -680,9 +653,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         assert self.candidate(NOT_CACHING_STATS)["prompt_diagnosis_gap"] == "too_few_samples"
 
     def test_keeps_prompt_text_out_of_a_failed_diagnosis(self) -> None:
-        # Whatever goes wrong inside the diagnosis, the prompts it held must not
-        # leave it: not through an exception escaping the task, whose traceback
-        # would record them, and not through what gets logged about the failure.
+        # Neither an escaping traceback nor the failure log may carry the prompts.
         self.mock_fetch_prompts.return_value = DIVERGING_PROMPTS
 
         with patch(

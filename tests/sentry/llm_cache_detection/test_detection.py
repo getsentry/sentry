@@ -151,9 +151,7 @@ def make_stats(
             id="sample-floor-inclusive",
         ),
         pytest.param(
-            # A burst workload: dozens of calls inside a minute and then nothing
-            # for hours. It averages far under one call per cache TTL across the
-            # window, which says nothing about whether its cache stays warm.
+            # Bursty traffic averages under one call per TTL yet can stay warm.
             make_stats(call_count=600, avg_input_tokens=8_000),
             Classification(CacheOutcome.NOT_CACHING, OutcomeReason.ZERO_CACHE_TOKENS),
             id="bursty-traffic-is-evaluated",
@@ -230,11 +228,8 @@ def test_warmth_of_a_call_site_that_never_called() -> None:
 
 
 def test_sampling_does_not_manufacture_warmth() -> None:
-    # A call site making one call every TTL is cold on every one of them. Stored
-    # at 10%, the calls that survive land one per bucket and each stands for the
-    # ten the bucket extrapolates to -- all of which are cold too. Counting the
-    # bucket once instead would read this as 90% cacheable, which is the sampling
-    # rate wearing the shape of a verdict.
+    # One call per TTL, stored at 10%: counting each bucket once would read the
+    # sampling rate as 90% cacheable.
     warmth = CallSiteWarmth.from_buckets(
         [WarmthBucket(call_count=10, sample_count=1) for _ in range(200)]
     )
@@ -245,9 +240,7 @@ def test_sampling_does_not_manufacture_warmth() -> None:
 
 
 def test_sampling_understates_warmth_rather_than_inventing_it() -> None:
-    # Genuinely dense traffic: 10 calls a bucket, 9 of them warm. Only 2 spans
-    # per bucket are stored, which cannot show that, so warmth reads as half of
-    # what it is. Wrong in the direction that costs a finding.
+    # 9 of 10 calls a bucket are warm, but 2 stored spans can only show half.
     warmth = CallSiteWarmth.from_buckets(
         [WarmthBucket(call_count=10, sample_count=2) for _ in range(200)]
     )
@@ -358,9 +351,7 @@ def test_gap_guard_skips_probe_for_positive_only_reporters() -> None:
     ids=lambda model: model,
 )
 def test_gap_guard_skips_probe_for_openai_reasoning_models(model: str) -> None:
-    # The reasoning models go through the same OpenAI integration as the `gpt`
-    # ones, which drops zero cache-token values before recording them, so their
-    # absent attributes are a genuine 0% hit rate rather than a gap.
+    # Same OpenAI integration as `gpt`, which drops zero cache-token values.
     stats = make_stats(model=model, call_count=62_553, avg_input_tokens=35_225)
     classification = classify_call_site(stats)
     assert classification.reason == OutcomeReason.POSITIVE_ONLY_REPORTER
@@ -616,9 +607,7 @@ def test_hit_rate_and_ratio_handle_zero_denominators() -> None:
     assert stats.write_read_ratio is None
 
 
-# Every prompt in these tests is invented. Real prompt text never enters a
-# fixture: the detector only ever reports lengths and a kind, and the tests hold
-# themselves to the same line.
+# Every prompt in these tests is invented; real prompt text never enters a fixture.
 STABLE_BLOCK = "Rank the candidate rows and explain the ranking briefly.\n" * 200
 SHORT_BLOCK = "Answer in one sentence.\n"
 
@@ -756,9 +745,7 @@ def test_flags_a_template_holding_its_stable_content_behind_the_variable_part() 
 
 
 def test_does_not_call_it_misordered_when_the_stable_content_already_comes_first() -> None:
-    # The stable content is in front of the divergence, which is where a cache
-    # reads from; that the tail varies after it is ordinary, not a template
-    # someone put together backwards.
+    # Stable content up front, variable tail: the shape a cache wants.
     shared = "A" * (MIN_STABLE_BLOCK_CHARS + 1)
     divergence = diagnose_prompt_divergence(
         [f"{shared}{STABLE_BLOCK}pears", f"{shared}{STABLE_BLOCK}apples"]
@@ -785,9 +772,7 @@ def test_does_not_call_it_misordered_when_too_little_follows_the_divergence() ->
 
 
 def test_flags_a_stranded_block_too_small_to_have_cached_on_its_own() -> None:
-    # A block does not have to clear a provider's minimum by itself to be worth
-    # moving, because ahead of the changing part it joins the prefix rather than
-    # standing alone.
+    # Moved ahead of the changing part, a small block joins the prefix.
     modest_block = "Rank the candidate rows and explain the ranking briefly.\n" * 8
     divergence = diagnose_prompt_divergence(
         [
@@ -804,11 +789,8 @@ def test_flags_a_stranded_block_too_small_to_have_cached_on_its_own() -> None:
 
 
 def test_finds_stable_content_stranded_between_two_variable_parts() -> None:
-    # The shape a template usually breaks in: something variable up front, the
-    # stable body behind it, and the caller's own text last -- so the content
-    # worth moving is neither the prefix nor the suffix. The heads differ in
-    # length, so the block sits at a different offset in each sample and can
-    # only be found by aligning on content.
+    # Variable head, stable body, caller's text last; heads of different lengths
+    # put the body at different offsets, so it is found by aligning on content.
     divergence = diagnose_prompt_divergence(
         [
             make_prompt("Session 41. ", tail="how do I rotate a key?"),

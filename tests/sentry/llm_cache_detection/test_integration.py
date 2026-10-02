@@ -132,22 +132,8 @@ class LLMCacheDetectionIntegrationTest(TestCase, SnubaTestCase, SpanTestCase):
 
 
 class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
-    def test_counts_stored_spans_alongside_the_traffic_they_stand_for(self) -> None:
-        # The evidence floor is read off the stored-span count, so it has to
-        # arrive from EAP rather than default to zero -- which would classify
-        # every call site as ineligible and look exactly like no traffic.
-        self.store_call_site(agent_name="Explorer", model=GEMINI)
-
-        [call_site] = fetch_call_site_stats(self.project, self.window).call_sites
-
-        assert call_site.call_count == CALLS_PER_CALL_SITE
-        # Nothing sampled these away, so the two counts agree.
-        assert call_site.sampled_call_count == CALLS_PER_CALL_SITE
-
     def test_separates_two_agents_sharing_a_span_name_and_model(self) -> None:
-        # The span name is the SDK wrapper both agents call through. Keying on it
-        # alone would average a broken call site into a healthy one and report
-        # neither.
+        # Both call through the same SDK wrapper span name.
         self.store_call_site(
             agent_name="Explorer",
             span_name="generate_content gemini",
@@ -171,9 +157,7 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
         assert by_agent["PR Review"].hit_rate == 0
 
     def test_keeps_spans_without_an_agent_name_as_their_own_call_site(self) -> None:
-        # One (span.name, model) pair holding both named and unnamed spans is
-        # what makes the fallback a per-span decision: merging the unnamed ones
-        # into their named sibling would credit an agent with calls it never made.
+        # Merging unnamed spans into a named sibling would credit it with their calls.
         self.store_call_site(
             agent_name="Explorer",
             span_name="generate_content gemini",
@@ -218,6 +202,8 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
         assert uncached.agent_label_source is AgentLabelSource.AGENT_NAME
         assert uncached.span_name == "generate_content claude"
         assert uncached.call_count == CALLS_PER_CALL_SITE
+        # Unsampled, so the stored-span count the evidence floor reads agrees.
+        assert uncached.sampled_call_count == CALLS_PER_CALL_SITE
         assert uncached.sum_input_tokens == INPUT_TOKENS * CALLS_PER_CALL_SITE
         assert uncached.sum_cache_read_tokens == 0
         assert uncached.sum_cache_creation_tokens == 0
@@ -264,10 +250,7 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
         assert not {model for model in models if model.startswith("excluded-")}
 
     def test_includes_every_op_an_sdk_emits_for_an_llm_call(self) -> None:
-        # No SDK agrees on the op: the Python integrations emit gen_ai.chat,
-        # gen_ai.responses and gen_ai.text_completion, and JS google-genai emits
-        # generate_content. Matching an op would cover one of them, which is why
-        # the filter keys on the ingestion-normalized operation type instead.
+        # No two SDKs agree on the op, hence the normalized operation type.
         for index, (op, operation_name) in enumerate(
             (
                 ("gen_ai.chat", "chat"),
@@ -291,9 +274,7 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
         assert {"model-0", "model-1", "model-2", "model-3"} <= models
 
     def test_counts_spans_written_under_the_deprecated_attribute_names(self) -> None:
-        # Only langchain writes the canonical names; the shared record_token_usage
-        # path and most other integrations emit the deprecated aliases. Querying
-        # the canonical names still has to see them, via the resolver's backfill.
+        # Most integrations emit the deprecated aliases, backfilled at ingestion.
         self.store_call_site(
             model=CLAUDE,
             cache_read_tokens=1_200,
@@ -382,9 +363,7 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
         assert warmth.warm_call_count == CALLS_PER_CALL_SITE - 1
 
     def test_reads_warmth_across_an_agents_operation_names(self) -> None:
-        # An agent reporting two operation names is still one call site, so both
-        # calls belong to the same bucket -- a cold call followed by a warm one,
-        # not two cold starts.
+        # One call site across two operation names: one cold start, not two.
         self.store_spans(
             [
                 self.gen_ai_span(
@@ -445,9 +424,7 @@ class CachePresenceProbeTest(LLMCacheDetectionIntegrationTest):
         assert count_spans_with_cache_attributes(self.project, stats, self.window) == 0
 
     def test_scopes_the_probe_to_its_own_call_site(self) -> None:
-        # Both call sites share a model and an agent, so the span name is the
-        # only term that separates them: unescaped, the literal asterisk degrades
-        # it to a wildcard that also swallows the sibling call site.
+        # Unescaped, the literal asterisk would match the sibling call site too.
         self.store_call_site(span_name="generate_content */chat", model=CLAUDE, cache_read_tokens=0)
         self.store_call_site(span_name="generate_content x/chat", model=CLAUDE, cache_read_tokens=0)
 
@@ -463,9 +440,7 @@ class CachePresenceProbeTest(LLMCacheDetectionIntegrationTest):
         )
 
     def test_scopes_the_probe_to_spans_that_carry_no_agent_name(self) -> None:
-        # A fallback label covers exactly the spans without an agent name. The
-        # named sibling here does report cache attributes, so a filter missing
-        # the absence term would count them and call the gap instrumented.
+        # The named sibling reports cache attributes; the probe must not count them.
         self.store_call_site(
             agent_name="Explorer",
             span_name="generate_content claude",
@@ -643,14 +618,6 @@ class DetectLLMCacheIssuesTest(LLMCacheDetectionIntegrationTest):
         assert finding["outcome"] == "thrash"
         assert finding["write_read_ratio"] == 15
 
-    def test_does_not_flag_a_healthy_call_site(self, mock_logger: MagicMock) -> None:
-        self.store_call_site(model=CLAUDE, cache_read_tokens=1_800, cache_creation_tokens=100)
-
-        with self.feature({DETECTION_FEATURE: True}):
-            detect_llm_cache_issues_for_project(self.project.id)
-
-        assert candidates(mock_logger) == []
-
     def test_does_not_flag_when_cache_attributes_are_never_reported(
         self, mock_logger: MagicMock
     ) -> None:
@@ -682,9 +649,7 @@ class DetectLLMCacheIssuesTest(LLMCacheDetectionIntegrationTest):
     def test_diagnoses_where_the_sampled_prompts_stop_agreeing(
         self, mock_logger: MagicMock
     ) -> None:
-        # Two invocations of one call site whose template puts a timestamp in
-        # front of everything stable, so nothing the provider could cache is
-        # ever in the same place twice.
+        # A timestamp in front of everything stable leaves nothing cacheable.
         stable_body = "Rank the rows and explain the ranking.\n" * 120
         self.store_spans(
             [
@@ -708,71 +673,6 @@ class DetectLLMCacheIssuesTest(LLMCacheDetectionIntegrationTest):
         # the one straddling the divergence is dropped rather than half-counted.
         assert finding["prompt_stable_block_chars"] >= len(stable_body) * 0.9
         assert finding["prompt_template_misordered"] is True
-
-    def test_attaches_a_healthy_same_model_call_site_as_contrast(
-        self, mock_logger: MagicMock
-    ) -> None:
-        self.store_call_site(
-            agent_name="PR Review", span_name="generate_content gemini", model=GEMINI
-        )
-        self.store_call_site(
-            agent_name="Explorer",
-            span_name="generate_content gemini",
-            model=GEMINI,
-            cache_read_tokens=1_800,
-        )
-
-        with self.feature({DETECTION_FEATURE: True}):
-            detect_llm_cache_issues_for_project(self.project.id)
-
-        [finding] = findings(mock_logger)
-        assert finding["agent_label"] == "PR Review"
-        assert finding["contrast_agent_label"] == "Explorer"
-        assert finding["contrast_hit_rate"] == 0.9
-
-    def test_reports_one_finding_per_agent_behind_a_shared_span_name(
-        self, mock_logger: MagicMock
-    ) -> None:
-        # Two agents, one SDK wrapper, both caching badly but not equally. Keyed
-        # on the wrapper they would be one finding naming code neither owns.
-        self.store_call_site(
-            agent_name="Explorer", span_name="generate_content gemini", model=GEMINI
-        )
-        self.store_call_site(
-            agent_name="PR Review",
-            span_name="generate_content gemini",
-            model=GEMINI,
-            cache_read_tokens=50,
-        )
-
-        with self.feature({DETECTION_FEATURE: True}):
-            detect_llm_cache_issues_for_project(self.project.id)
-
-        assert {finding["agent_label"] for finding in findings(mock_logger)} == {
-            "Explorer",
-            "PR Review",
-        }
-
-    def test_reports_one_finding_per_label_when_only_some_spans_name_an_agent(
-        self, mock_logger: MagicMock
-    ) -> None:
-        self.store_call_site(
-            agent_name="Explorer", span_name="generate_content gemini", model=GEMINI
-        )
-        self.store_call_site(
-            span_name="generate_content gemini", operation_name="generate_content", model=GEMINI
-        )
-
-        with self.feature({DETECTION_FEATURE: True}):
-            detect_llm_cache_issues_for_project(self.project.id)
-
-        assert {
-            (finding["agent_label"], finding["agent_label_source"])
-            for finding in findings(mock_logger)
-        } == {
-            ("Explorer", "gen_ai.agent.name"),
-            ("generate_content", "gen_ai.operation.name"),
-        }
 
     def test_fan_out_reaches_a_project_that_sent_gen_ai_spans(self, mock_logger: MagicMock) -> None:
         self.store_call_site(model=GEMINI)

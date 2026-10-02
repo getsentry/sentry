@@ -27,7 +27,7 @@ from sentry.llm_cache_detection.detection import (
     resolve_with_cache_presence,
     resolve_with_warmth,
 )
-from sentry.llm_cache_detection.pricing import ModelPricebook
+from sentry.llm_cache_detection.pricing import estimate_savings
 from sentry.llm_cache_detection.query import (
     SampleCall,
     count_spans_with_cache_attributes,
@@ -47,6 +47,7 @@ from sentry.llm_cache_detection.reporting import (
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.relay.config.ai_model_costs import ai_model_metadata_config
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
 from sentry.utils.query import RangeQuerySetWrapper
@@ -56,17 +57,11 @@ logger = logging.getLogger("sentry.tasks.llm_cache_issue_detection")
 
 LLM_CACHE_DETECTION_FEATURE = "organizations:llm-cache-detection"
 
-# Mirrors the creation quota the issue type will have (5/hour/project): findings
-# ranked past it would be rate-limit-dropped once detection files them.
+# Mirrors the creation quota the issue type will have (5/hour/project).
 FINDINGS_PER_PROJECT_LIMIT = 5
-# Bound the sequential EAP probe queries so the task fits its processing
-# deadline. Warmth is asked of every candidate and presence only of the
-# ambiguous ones, so each gets a budget of its own rather than sharing a pool
-# that whichever ran first would drain.
+# Keeps the sequential probe queries inside the processing deadline. Presence is
+# only probed after a warmth probe answered, so this bounds it as well.
 MAX_WARMTH_PROBES_PER_PROJECT = 20
-MAX_PRESENCE_PROBES_PER_PROJECT = 20
-# Caps how many projects the fan-out holds in memory and how many organizations
-# a single dispatch round resolves.
 PROJECTS_PER_BATCH = 1_000
 
 # Failures scoped to the call site a query was about, so the run goes on.
@@ -75,14 +70,8 @@ PROBE_ERRORS = (SnubaRPCError, InvalidSearchQuery)
 
 @dataclass
 class ProbeBudget:
-    """How many more queries of one kind a project's run may send."""
-
-    remaining: int
+    limit: int
     sent: int = 0
-
-    def spend(self) -> None:
-        self.remaining -= 1
-        self.sent += 1
 
 
 def _probe[T](
@@ -96,13 +85,13 @@ def _probe[T](
     Only a query that reached EAP is charged: charging for the rest would let a
     handful of unexpressible call sites spend the whole budget.
     """
-    if budget is not None and budget.remaining <= 0:
+    if budget is not None and budget.sent >= budget.limit:
         return ProbeGap.BUDGET_EXHAUSTED
     try:
         answer = query()
     except PROBE_ERRORS as error:
         if budget is not None:
-            budget.spend()
+            budget.sent += 1
         report_probe_failed(project, name, error)
         logger.warning(
             "llm_cache_issue_detection.probe_failed",
@@ -113,7 +102,7 @@ def _probe[T](
     if answer is None:
         return ProbeGap.UNQUERYABLE
     if budget is not None:
-        budget.spend()
+        budget.sent += 1
     return answer
 
 
@@ -149,15 +138,9 @@ def _resolve_candidate(
     candidate: CacheFinding,
     window: DetectionWindow,
     warmth_budget: ProbeBudget,
-    presence_budget: ProbeBudget,
 ) -> CacheFinding:
-    """Settle what the token sums could not: whether the cache could warm, and
-    whether zero cache tokens are a real zero.
-
-    Warmth is asked first because it can reject outright -- a call site whose
-    calls arrive too far apart to meet a warm cache is not a finding -- which
-    spares the rejected ones a presence probe as well.
-    """
+    """Settle what the token sums could not: whether the cache could warm, then
+    whether zero cache tokens are a real zero."""
     warmth = _probe(
         project,
         "warmth",
@@ -176,7 +159,6 @@ def _resolve_candidate(
         project,
         "cache_presence",
         partial(count_spans_with_cache_attributes, project, finding.stats, window),
-        presence_budget,
     )
     return replace(
         finding,
@@ -186,11 +168,8 @@ def _resolve_candidate(
 
 
 def _is_scheduled_run(now: datetime) -> bool:
-    """Whether this hourly tick is one the configured interval runs on.
-
-    Counted in hours since the epoch rather than hours of the day, so that an
-    interval that does not divide 24 still runs evenly spaced.
-    """
+    """Whether this hourly tick is one the configured interval runs on, counted
+    since the epoch so intervals that do not divide 24 stay evenly spaced."""
     interval_hours = max(options.get("issue-detection.llm-cache-detection.interval-hours"), 1)
     return int(now.timestamp() // 3600) % interval_hours == 0
 
@@ -204,9 +183,7 @@ def _projects_with_agent_spans(skipped: Counter[str]) -> Generator[tuple[int, in
         result_value_getter=lambda item: item[0],
     )
     for project_id, organization_id, flags in active_projects:
-        # Ingest sets this flag for any span whose op starts with `gen_ai`, so it
-        # is a superset of the generate_content spans detection reads: a project
-        # without it cannot produce a finding.
+        # Set by ingest for any `gen_ai` span op, a superset of what detection reads.
         if flags & Project.flags.has_insights_agent_monitoring:
             yield project_id, organization_id
         else:
@@ -230,9 +207,7 @@ def run_llm_cache_issue_detection() -> None:
 
     for batch in batched(_projects_with_agent_spans(skipped), PROJECTS_PER_BATCH):
         candidate_count += len(batch)
-        # A batch is dominated by projects sharing an organization, so resolve and
-        # flag-evaluate each one once: the cost scales with organizations in the
-        # batch rather than with projects.
+        # Evaluated once per organization in the batch, not per project.
         enabled_organization_ids = {
             organization.id
             for organization in Organization.objects.filter(
@@ -247,9 +222,7 @@ def run_llm_cache_issue_detection() -> None:
             detect_llm_cache_issues_for_project.delay(project_id)
             dispatched_count += 1
 
-    # Reason tallies are only emitted when they happened; a zero for a reason is
-    # noise. The dispatch count is emitted unconditionally: it is the fan-out's
-    # headline output, and a zero there is the signal that nothing went out.
+    # A zero dispatch count is the signal that nothing went out; zero skips are noise.
     for reason, amount in (
         ("no_agent_spans", skipped["no_agent_spans"]),
         ("detection_disabled", candidate_count - dispatched_count),
@@ -285,8 +258,6 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
         report_projects_skipped("detection_disabled")
         return
 
-    # One window for the whole run so the aggregates, the probes and the sampled
-    # calls all describe the same stretch of time.
     window = DetectionWindow.ending_now()
     query_result = fetch_call_site_stats(project, window)
 
@@ -305,20 +276,17 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
         else:
             non_candidates.append((stats, classification))
 
-    # Consider candidates in severity order so both the probe budgets and the
-    # findings cap are spent on the worst offenders first.
+    # The probe budget and the findings cap go to the worst offenders first.
     candidates.sort(key=lambda finding: finding.severity, reverse=True)
 
     warmth_budget = ProbeBudget(MAX_WARMTH_PROBES_PER_PROJECT)
-    presence_budget = ProbeBudget(MAX_PRESENCE_PROBES_PER_PROJECT)
-    # Prices come from a single cache entry covering every model, so one load
-    # prices every finding in the run against the same snapshot.
-    pricebook = ModelPricebook.load()
+    # One snapshot of every model's prices, so all findings are priced alike.
+    model_metadata = ai_model_metadata_config()
 
     reports: list[CandidateReport] = []
     findings_count = 0
     for rank, candidate in enumerate(candidates, start=1):
-        finding = _resolve_candidate(project, candidate, window, warmth_budget, presence_budget)
+        finding = _resolve_candidate(project, candidate, window, warmth_budget)
         if finding.outcome not in FLAGGED_OUTCOMES:
             reports.append(
                 CandidateReport(finding=finding, initial=candidate.classification, rank=rank)
@@ -347,7 +315,7 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
                 initial=candidate.classification,
                 rank=rank,
                 disposition=disposition,
-                pricing=pricebook.estimate(finding),
+                pricing=estimate_savings(finding, model_metadata),
                 sample_calls=sample_calls,
                 prompt_diagnosis=prompt_diagnosis,
             )
@@ -359,5 +327,5 @@ def detect_llm_cache_issues_for_project(project_id: int) -> None:
         query_result,
         non_candidates,
         reports,
-        probes_sent={"warmth": warmth_budget.sent, "cache_presence": presence_budget.sent},
+        warmth_probes_sent=warmth_budget.sent,
     )

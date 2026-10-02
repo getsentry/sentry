@@ -12,7 +12,7 @@ from sentry.llm_cache_detection.detection import (
     Classification,
     OutcomeReason,
 )
-from sentry.llm_cache_detection.pricing import ModelPricebook, PricingGap, SavingsEstimate
+from sentry.llm_cache_detection.pricing import PricingGap, SavingsEstimate, estimate_savings
 from sentry.relay.config.ai_model_costs import AIModelMetadataConfig, model_costs
 
 # Order-of-magnitude realistic: a cached input token is far cheaper than a fresh
@@ -115,149 +115,128 @@ class TestModelCostsLookup:
         assert model_costs("some-self-hosted-model", config({"claude-sonnet-4": costs()})) is None
 
 
-class TestSavingsEstimate:
-    def test_prices_uncached_volume_at_the_difference_it_could_have_paid(self) -> None:
-        stats = make_stats(sum_input_tokens=10_000_000)
-        pricebook = ModelPricebook(config({"claude-sonnet-4": costs()}))
+PRICED = config({"claude-sonnet-4": costs()})
+THRASHING = make_stats(
+    sum_input_tokens=10_000_000,
+    sum_cache_read_tokens=200_000,
+    sum_cache_creation_tokens=8_000_000,
+)
 
-        estimate = pricebook.estimate(make_finding(CacheOutcome.NOT_CACHING, stats))
 
-        assert isinstance(estimate, SavingsEstimate)
-        assert estimate.estimated_savings_usd == pytest.approx(
-            10_000_000 * (INPUT_PRICE - CACHED_INPUT_PRICE)
-        )
-        assert estimate.price_per_input_token == INPUT_PRICE
-        assert estimate.price_per_cached_input_token == CACHED_INPUT_PRICE
-        assert estimate.price_per_cache_write_token == CACHE_WRITE_PRICE
-        # Only thrash can cost more than not caching at all.
-        assert estimate.overpay_vs_no_cache_usd is None
+def test_prices_uncached_volume_at_the_difference_it_could_have_paid() -> None:
+    stats = make_stats(sum_input_tokens=10_000_000)
 
-    def test_prices_thrash_as_writes_that_should_have_been_reads(self) -> None:
-        stats = make_stats(
-            sum_input_tokens=10_000_000,
-            sum_cache_read_tokens=200_000,
-            sum_cache_creation_tokens=8_000_000,
-        )
-        pricebook = ModelPricebook(config({"claude-sonnet-4": costs()}))
+    estimate = estimate_savings(make_finding(CacheOutcome.NOT_CACHING, stats), PRICED)
 
-        estimate = pricebook.estimate(make_finding(CacheOutcome.THRASH, stats))
-
-        assert isinstance(estimate, SavingsEstimate)
-        assert estimate.estimated_savings_usd == pytest.approx(
-            8_000_000 * (CACHE_WRITE_PRICE - CACHED_INPUT_PRICE)
-        )
-        # Writes bill above the plain input rate, and the few reads recoup very
-        # little of it, so caching here is worse than not caching.
-        assert estimate.overpay_vs_no_cache_usd == pytest.approx(
-            8_000_000 * (CACHE_WRITE_PRICE - INPUT_PRICE)
-            - 200_000 * (INPUT_PRICE - CACHED_INPUT_PRICE)
-        )
-
-    def test_omits_the_overpay_figure_when_the_reads_cover_the_premium(self) -> None:
-        # Enough reads to pay back the write premium: the call site still trips
-        # the ratio thresholds, but "worse than no cache" would be false.
-        stats = make_stats(
-            sum_input_tokens=10_000_000,
-            sum_cache_read_tokens=6_000_000,
-            sum_cache_creation_tokens=1_000_000,
-        )
-        pricebook = ModelPricebook(config({"claude-sonnet-4": costs()}))
-
-        estimate = pricebook.estimate(make_finding(CacheOutcome.THRASH, stats))
-
-        assert isinstance(estimate, SavingsEstimate)
-        assert estimate.overpay_vs_no_cache_usd is None
-
-    def test_declines_when_there_is_nothing_left_to_recover(self) -> None:
-        # Providers that report input tokens exclusive of cached ones drive
-        # uncached_tokens to zero rather than negative, leaving no volume to
-        # price. A zero here would render as a measured amount rather than as
-        # the absence of one, so no estimate is made at all.
-        stats = make_stats(
-            sum_input_tokens=1_000_000,
-            sum_cache_read_tokens=900_000,
-            sum_cache_creation_tokens=900_000,
-        )
-        pricebook = ModelPricebook(config({"claude-sonnet-4": costs()}))
-
-        assert (
-            pricebook.estimate(make_finding(CacheOutcome.NOT_CACHING, stats))
-            == PricingGap.NOTHING_TO_RECOVER
-        )
-
-    def test_names_an_unpriced_model(self) -> None:
-        pricebook = ModelPricebook(config({"claude-sonnet-4": costs()}))
-
-        assert (
-            pricebook.estimate(make_finding(CacheOutcome.NOT_CACHING, make_stats(model="x")))
-            == PricingGap.UNKNOWN_MODEL
-        )
-
-    def test_names_missing_metadata(self) -> None:
-        # Air-gapped installs and a cold cache both land here, so an absent
-        # estimate has to be ordinary rather than an error.
-        pricebook = ModelPricebook(None)
-
-        assert (
-            pricebook.estimate(make_finding(CacheOutcome.NOT_CACHING, make_stats()))
-            == PricingGap.NO_METADATA
-        )
-
-    def test_declines_when_the_model_has_no_input_price(self) -> None:
-        # A zero input price means the feed carries no pricing for this model at
-        # all, not that the model is free.
-        pricebook = ModelPricebook(config({"claude-sonnet-4": costs(input_price=0)}))
-
-        assert (
-            pricebook.estimate(make_finding(CacheOutcome.NOT_CACHING, make_stats()))
-            == PricingGap.NO_INPUT_PRICE
-        )
-
-    def test_declines_when_the_cached_price_is_missing(self) -> None:
-        pricebook = ModelPricebook(config({"claude-sonnet-4": costs(cached_input_price=0)}))
-
-        assert (
-            pricebook.estimate(make_finding(CacheOutcome.NOT_CACHING, make_stats()))
-            == PricingGap.NO_CACHED_PRICE
-        )
-
-    def test_prices_an_uncached_finding_without_a_cache_write_price(self) -> None:
-        # Most models the feed prices carry no cache-write price, and the
-        # uncached formula never uses one -- refusing to price on its account
-        # would leave the common case unpriced for no reason.
-        stats = make_stats(sum_input_tokens=1_000_000)
-        pricebook = ModelPricebook(config({"claude-sonnet-4": costs(cache_write_price=0)}))
-
-        estimate = pricebook.estimate(make_finding(CacheOutcome.NOT_CACHING, stats))
-
-        assert isinstance(estimate, SavingsEstimate)
-        assert estimate.estimated_savings_usd == pytest.approx(
-            1_000_000 * (INPUT_PRICE - CACHED_INPUT_PRICE)
-        )
-
-    @pytest.mark.parametrize(
-        "write_price",
-        [
-            pytest.param(0, id="no-write-price"),
-            pytest.param(CACHED_INPUT_PRICE, id="write-price-not-above-the-cached-rate"),
-        ],
+    assert isinstance(estimate, SavingsEstimate)
+    assert estimate.estimated_savings_usd == pytest.approx(
+        10_000_000 * (INPUT_PRICE - CACHED_INPUT_PRICE)
     )
-    def test_leaves_thrash_unpriced_without_a_credible_write_price(
-        self, write_price: float
-    ) -> None:
-        # Thrash *is* the write premium. Without a price for it there is nothing
-        # to quantify, and pricing the uncached remainder instead would report a
-        # small number for a call site whose input is mostly cache traffic.
-        stats = make_stats(
-            sum_input_tokens=10_000_000,
-            sum_cache_read_tokens=200_000,
-            sum_cache_creation_tokens=8_000_000,
-        )
-        pricebook = ModelPricebook(
-            config({"claude-sonnet-4": costs(cache_write_price=write_price)})
-        )
+    assert estimate.price_per_input_token == INPUT_PRICE
+    assert estimate.price_per_cached_input_token == CACHED_INPUT_PRICE
+    assert estimate.price_per_cache_write_token == CACHE_WRITE_PRICE
+    assert estimate.overpay_vs_no_cache_usd is None
 
-        assert (
-            pricebook.estimate(make_finding(CacheOutcome.THRASH, stats))
-            == PricingGap.NO_WRITE_PREMIUM
-        )
+
+def test_prices_an_uncached_finding_without_a_cache_write_price() -> None:
+    # Most models the feed prices carry none, and this formula never uses it.
+    stats = make_stats(sum_input_tokens=1_000_000)
+    metadata = config({"claude-sonnet-4": costs(cache_write_price=0)})
+
+    estimate = estimate_savings(make_finding(CacheOutcome.NOT_CACHING, stats), metadata)
+
+    assert isinstance(estimate, SavingsEstimate)
+    assert estimate.estimated_savings_usd == pytest.approx(
+        1_000_000 * (INPUT_PRICE - CACHED_INPUT_PRICE)
+    )
+
+
+def test_prices_thrash_as_writes_that_should_have_been_reads() -> None:
+    estimate = estimate_savings(make_finding(CacheOutcome.THRASH, THRASHING), PRICED)
+
+    assert isinstance(estimate, SavingsEstimate)
+    assert estimate.estimated_savings_usd == pytest.approx(
+        8_000_000 * (CACHE_WRITE_PRICE - CACHED_INPUT_PRICE)
+    )
+    # The few reads recoup little of the write premium: worse than not caching.
+    assert estimate.overpay_vs_no_cache_usd == pytest.approx(
+        8_000_000 * (CACHE_WRITE_PRICE - INPUT_PRICE) - 200_000 * (INPUT_PRICE - CACHED_INPUT_PRICE)
+    )
+
+
+def test_omits_the_overpay_figure_when_the_reads_cover_the_premium() -> None:
+    stats = make_stats(
+        sum_input_tokens=10_000_000,
+        sum_cache_read_tokens=6_000_000,
+        sum_cache_creation_tokens=1_000_000,
+    )
+
+    estimate = estimate_savings(make_finding(CacheOutcome.THRASH, stats), PRICED)
+
+    assert isinstance(estimate, SavingsEstimate)
+    assert estimate.overpay_vs_no_cache_usd is None
+
+
+@pytest.mark.parametrize(
+    ("outcome", "stats", "metadata", "gap"),
+    [
+        pytest.param(
+            CacheOutcome.NOT_CACHING, make_stats(), None, PricingGap.NO_METADATA, id="no-metadata"
+        ),
+        pytest.param(
+            CacheOutcome.NOT_CACHING,
+            make_stats(model="x"),
+            PRICED,
+            PricingGap.UNKNOWN_MODEL,
+            id="unknown-model",
+        ),
+        # The feed's zero means "no price", not "free".
+        pytest.param(
+            CacheOutcome.NOT_CACHING,
+            make_stats(),
+            config({"claude-sonnet-4": costs(input_price=0)}),
+            PricingGap.NO_INPUT_PRICE,
+            id="no-input-price",
+        ),
+        pytest.param(
+            CacheOutcome.NOT_CACHING,
+            make_stats(),
+            config({"claude-sonnet-4": costs(cached_input_price=0)}),
+            PricingGap.NO_CACHED_PRICE,
+            id="no-cached-price",
+        ),
+        pytest.param(
+            CacheOutcome.THRASH,
+            THRASHING,
+            config({"claude-sonnet-4": costs(cache_write_price=0)}),
+            PricingGap.NO_WRITE_PREMIUM,
+            id="thrash-without-write-price",
+        ),
+        pytest.param(
+            CacheOutcome.THRASH,
+            THRASHING,
+            config({"claude-sonnet-4": costs(cache_write_price=CACHED_INPUT_PRICE)}),
+            PricingGap.NO_WRITE_PREMIUM,
+            id="thrash-write-price-not-above-cached",
+        ),
+        # Input reported exclusive of cached tokens leaves nothing uncached.
+        pytest.param(
+            CacheOutcome.NOT_CACHING,
+            make_stats(
+                sum_input_tokens=1_000_000,
+                sum_cache_read_tokens=900_000,
+                sum_cache_creation_tokens=900_000,
+            ),
+            PRICED,
+            PricingGap.NOTHING_TO_RECOVER,
+            id="nothing-to-recover",
+        ),
+    ],
+)
+def test_names_why_a_finding_cannot_be_priced(
+    outcome: CacheOutcome,
+    stats: CallSiteStats,
+    metadata: AIModelMetadataConfig | None,
+    gap: PricingGap,
+) -> None:
+    assert estimate_savings(make_finding(outcome, stats), metadata) == gap
