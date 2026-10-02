@@ -5,7 +5,7 @@ import process from 'node:process';
 import type {Config} from '@jest/types';
 import type {Options as SwcOptions} from '@swc/core';
 
-import {getReactRouterVersion} from './config/reactRouterVersion.ts';
+import {getReactRouterVersion} from './build-utils/reactRouterVersion.ts';
 
 const REACT_ROUTER_VERSION = getReactRouterVersion(process.env);
 
@@ -320,7 +320,7 @@ const config: Config.InitialOptions = {
     ? testMatch
     : [
         '<rootDir>/(static|tests/js)/**/?(*.)+(spec|test).[jt]s?(x)',
-        '<rootDir>/config/reactRouterVersion.spec.ts',
+        '<rootDir>/build-utils/reactRouterVersion.spec.ts',
       ],
   testPathIgnorePatterns: [
     '<rootDir>/tests/sentry/lang/javascript/',

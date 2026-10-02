@@ -19,8 +19,8 @@ import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
 import {rehypePlugins, remarkPlugins} from './build-utils/mdx-plugins.ts';
+import {getReactRouterVersion} from './build-utils/reactRouterVersion.ts';
 import {StoryManifestPlugin} from './build-utils/story-manifest.ts';
-import {getReactRouterVersion} from './config/reactRouterVersion.ts';
 import packageJson from './package.json' with {type: 'json'};
 
 const {env} = process;
