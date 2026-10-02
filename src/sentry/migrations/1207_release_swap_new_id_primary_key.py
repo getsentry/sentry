@@ -30,6 +30,9 @@ BEGIN
     IF id_sequence IS NULL THEN
         RAISE EXCEPTION 'sentry_release.id has no sequence to carry over';
     END IF;
+    -- Any ALTER SEQUENCE blocks nextval until commit, so reserve_ids cannot claim an id
+    -- between the snapshot and the drop; the sequence is dropped below regardless.
+    EXECUTE format('ALTER SEQUENCE %s CACHE 1', id_sequence);
     EXECUTE format(
         'SELECT CASE WHEN is_called THEN last_value + 1 ELSE last_value END FROM %s', id_sequence
     ) INTO next_id;
@@ -122,6 +125,7 @@ BEGIN
     LOCK TABLE "sentry_release" IN ACCESS EXCLUSIVE MODE;
 
     id_sequence := pg_get_serial_sequence('sentry_release', 'id');
+    EXECUTE format('ALTER SEQUENCE %s CACHE 1', id_sequence);
     EXECUTE format(
         'SELECT CASE WHEN is_called THEN last_value + 1 ELSE last_value END FROM %s', id_sequence
     ) INTO next_id;
