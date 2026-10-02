@@ -486,7 +486,10 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
         ):
             return False
 
-        return self.context.get("widget_id") is not None or features.has(
+        return self.context.get("widget_id") is not None or self._has_tracemetrics_table_feature()
+
+    def _has_tracemetrics_table_feature(self) -> bool:
+        return features.has(
             "organizations:tracemetrics-dashboard-table",
             self.context["organization"],
             actor=self.context["request"].user,
@@ -568,7 +571,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         return data
 
-    def _validate_tracemetrics_equation_constraints(self, data) -> dict[str, Any]:
+    def _validate_tracemetrics_constraints(self, data) -> dict[str, Any]:
         if not data.get("widget_type") == DashboardWidgetTypes.TRACEMETRICS:
             return data
 
@@ -591,6 +594,19 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
                     raise serializers.ValidationError(
                         {"queries": "Heatmap widgets don't support equations."}
                     )
+        elif (
+            data.get("display_type") == DashboardWidgetDisplayTypes.TABLE
+            and self._has_tracemetrics_table_feature()
+            and all(
+                not any(is_aggregate(field) for field in query.get("fields", []))
+                for query in data.get("queries")
+            )
+        ):
+            raise serializers.ValidationError(
+                {
+                    "queries": "Application Metrics table widgets require at least one aggregate. Add an aggregate or remove this widget."
+                }
+            )
 
         return data
 
@@ -643,7 +659,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
 
         if data.get("queries"):
             if data.get("widget_type") == DashboardWidgetTypes.TRACEMETRICS:
-                self._validate_tracemetrics_equation_constraints(data)
+                self._validate_tracemetrics_constraints(data)
 
             if data.get("display_type") == DashboardWidgetDisplayTypes.HEATMAP:
                 if len(data.get("queries")) > 1:
@@ -867,6 +883,20 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             if preferred_polarity is not None and preferred_polarity not in ("+", "-", ""):
                 raise serializers.ValidationError(
                     {"thresholds": {"preferred_polarity": "Must be '+', '-', or empty string."}}
+                )
+            time_window = thresholds.get("time_window")
+            parsed_time_window = (
+                parse_stats_period(time_window) if isinstance(time_window, str) else None
+            )
+            if time_window is not None and (
+                parsed_time_window is None or parsed_time_window <= timedelta(0)
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "thresholds": {
+                            "time_window": "Time window must be a positive stats period, such as '5m', '1h', or '1d'."
+                        }
+                    }
                 )
         if len(all_columns) > 0:
             field_cardinality = check_field_cardinality(

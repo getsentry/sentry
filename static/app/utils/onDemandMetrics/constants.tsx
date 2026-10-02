@@ -35,5 +35,3 @@ export const ON_DEMAND_METRICS_UNSUPPORTED_TAGS = new Set([
   ...Object.values(StackTags),
   ...Object.values(ErrorTags),
 ]) as Set<FieldKey>;
-
-export const ERROR_ONLY_TAGS = new Set(Object.values(ErrorTags));

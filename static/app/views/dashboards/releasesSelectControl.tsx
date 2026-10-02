@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
+import {useDebouncer} from '@tanstack/react-pacer';
 import isEqual from 'lodash/isEqual';
 
 import {Badge} from '@sentry/scraps/badge';
@@ -50,6 +50,9 @@ export function ReleasesSelectControl({
   const [searchTerm, setSearchTerm] = useState('');
   const [activeReleases, setActiveReleases] = useState(selectedReleases);
   const [isReleasesDropdownOpen, setIsReleasesDropdownOpen] = useState(false);
+  const searchDebouncer = useDebouncer(setSearchTerm, {
+    wait: DEFAULT_DEBOUNCE_DURATION,
+  });
 
   // Event counts are lazy-loaded only when the dropdown is open to reduce API calls
   const {data: releases, isLoading: loading} = useReleases(
@@ -59,11 +62,12 @@ export function ReleasesSelectControl({
   );
 
   function resetSearch() {
+    searchDebouncer.cancel();
     setSearchTerm('');
   }
 
   useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect, react/no-deriving-state-in-effects
     setActiveReleases(selectedReleases);
   }, [selectedReleases]);
 
@@ -79,11 +83,7 @@ export function ReleasesSelectControl({
     <StyledCompactSelect
       multiple
       clearable
-      search={{
-        onChange: debounce(val => {
-          setSearchTerm(val);
-        }, DEFAULT_DEBOUNCE_DURATION),
-      }}
+      search={{onChange: searchDebouncer.maybeExecute}}
       id={id}
       disabled={isDisabled}
       loading={loading}

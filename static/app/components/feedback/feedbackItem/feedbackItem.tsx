@@ -52,6 +52,7 @@ export function FeedbackItem({feedbackItem, eventData, onBackToList}: Props) {
         behavior: 'smooth',
       });
     }, 100);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [feedbackItem.id, overflowRef]);
 
   const tagsWithoutAi = useMemo(

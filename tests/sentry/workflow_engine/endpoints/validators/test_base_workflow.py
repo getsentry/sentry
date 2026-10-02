@@ -380,6 +380,15 @@ class TestWorkflowValidatorCreate(TestCase):
         assert workflow.name == "test"
         assert workflow.config == {}
 
+    def test_create__without_triggers(self) -> None:
+        del self.valid_data["triggers"]
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+        assert validator.is_valid() is True
+        workflow = validator.create(validator.validated_data)
+
+        assert workflow.when_condition_group is not None
+        assert workflow.when_condition_group.conditions.count() == 0
+
     def test_create__without_action_filters(self) -> None:
         data_without_action_filters = {
             "name": "test",

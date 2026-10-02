@@ -1032,7 +1032,6 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         )
 
         with (
-            self.options({"preprod.snapshots.auto-approve-sibling-diffs.enabled": True}),
             patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch(
                 "sentry.preprod.snapshots.tasks._find_approved_sibling", return_value=sibling
@@ -1062,94 +1061,6 @@ class CompareSnapshotsOrchestratorTest(TestCase):
         called_head, called_session = mock_find_sibling.call_args.args
         assert called_head.id == head_artifact.id
         assert called_session is session
-
-    def test_orchestrator_records_sibling_without_candidates_when_disabled(self):
-        import orjson
-
-        from sentry.preprod.snapshots.manifest import (
-            ComparisonImageResult,
-            ComparisonManifest,
-            ComparisonPlan,
-            ComparisonSummary,
-            ImageMetadata,
-            SnapshotManifest,
-        )
-        from sentry.preprod.snapshots.tasks import (
-            SiblingComparison,
-            _plan_key,
-            compare_snapshots,
-        )
-
-        head_artifact, base_artifact = self._setup()
-        head_manifest = SnapshotManifest(
-            images={"changed.png": ImageMetadata(content_hash="h1", width=100, height=100)},
-            diff_threshold=None,
-        )
-        base_manifest = SnapshotManifest(
-            images={"changed.png": ImageMetadata(content_hash="h0", width=100, height=100)},
-            diff_threshold=None,
-        )
-        stored = {
-            "head_manifest": orjson.dumps(head_manifest.dict()),
-            "base_manifest": orjson.dumps(base_manifest.dict()),
-        }
-        session = _dict_backed_session(stored)
-
-        sibling_manifest = ComparisonManifest(
-            head_artifact_id=77,
-            base_artifact_id=0,
-            summary=ComparisonSummary(
-                total=1,
-                changed=1,
-                unchanged=0,
-                added=0,
-                removed=0,
-                errored=0,
-                renamed=0,
-                skipped=0,
-            ),
-            images={
-                "changed.png": ComparisonImageResult(
-                    status="changed", head_hash="hsib", base_hash="hsib_base"
-                )
-            },
-        )
-        sibling_snapshot_manifest = SnapshotManifest(
-            images={"changed.png": ImageMetadata(content_hash="hsib", width=100, height=100)},
-            diff_threshold=None,
-        )
-        sibling = SiblingComparison(
-            77, "sib/comparison.json", sibling_manifest, sibling_snapshot_manifest
-        )
-
-        with (
-            self.options({"preprod.snapshots.auto-approve-sibling-diffs.enabled": False}),
-            patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
-            patch(
-                "sentry.preprod.snapshots.tasks._find_approved_sibling", return_value=sibling
-            ) as mock_find_sibling,
-            patch("sentry.preprod.snapshots.tasks.process_snapshot_comparison_chunk.apply_async"),
-            patch("sentry.preprod.snapshots.tasks.update_preprod_snapshot_vcs"),
-        ):
-            compare_snapshots(
-                project_id=self.project.id,
-                org_id=self.organization.id,
-                head_artifact_id=head_artifact.id,
-                base_artifact_id=base_artifact.id,
-            )
-
-        mock_find_sibling.assert_called_once()
-
-        plan_key = _plan_key(
-            self.organization.id, self.project.id, head_artifact.id, base_artifact.id
-        )
-        plan = ComparisonPlan(**orjson.loads(stored[plan_key]))
-        assert plan.sibling_artifact_id == sibling.artifact_id
-        assert plan.sibling_comparison_key == sibling.comparison_key
-        sibling_candidates = [
-            c for chunk in plan.chunks for c in chunk.candidates if c.kind == "sibling"
-        ]
-        assert sibling_candidates == []
 
     def test_orchestrator_finalizes_when_no_diff_chunks(self):
         import orjson
@@ -2203,7 +2114,6 @@ class EndToEndFanoutTest(TestCase):
         )
 
         with (
-            self.options({"preprod.snapshots.auto-approve-sibling-diffs.enabled": True}),
             patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks._find_approved_sibling", return_value=sibling),
             patch(
@@ -2251,7 +2161,7 @@ class EndToEndFanoutTest(TestCase):
         assert approval.extras["prev_approved_artifact_id"] == 777
         assert approval.extras["threshold_matched_image_count"] == 1
 
-    def test_full_flow_auto_approves_exact_match_when_disabled(self):
+    def test_full_flow_auto_approves_exact_match(self):
         from sentry.preprod.models import PreprodComparisonApproval
         from sentry.preprod.snapshots.image_diff.types import DiffResult
         from sentry.preprod.snapshots.manifest import (
@@ -2344,7 +2254,6 @@ class EndToEndFanoutTest(TestCase):
         )
 
         with (
-            self.options({"preprod.snapshots.auto-approve-sibling-diffs.enabled": False}),
             patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
             patch("sentry.preprod.snapshots.tasks._find_approved_sibling", return_value=sibling),
             patch(

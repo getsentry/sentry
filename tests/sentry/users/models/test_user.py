@@ -12,14 +12,12 @@ from sentry.backup.dependencies import (
 )
 from sentry.db.models.base import Model
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
-from sentry.incidents.models.incident import IncidentActivity
+from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.activity import Activity
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
-    DashboardHiddenUser,
     DashboardLastVisited,
     DashboardRevision,
 )
@@ -473,10 +471,8 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         ORG_MEMBER_MERGE_TESTED,
         Activity,
         AlertRule,
-        AlertRuleActivity,
         Dashboard,
         DashboardFavoriteUser,
-        DashboardHiddenUser,
         DashboardLastVisited,
         DashboardRevision,
         GroupAssignee,
@@ -487,7 +483,6 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         GroupSearchViewLastVisited,
         GroupSearchViewStarred,
         GroupSubscription,
-        IncidentActivity,
         Monitor,
         OrganizationAccessRequest,
         OrganizationMember,
@@ -518,10 +513,8 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         ORG_MEMBER_MERGE_TESTED,
         Activity,
         AlertRule,
-        AlertRuleActivity,
         Dashboard,
         DashboardFavoriteUser,
-        DashboardHiddenUser,
         DashboardLastVisited,
         DashboardRevision,
         GroupAssignee,
@@ -532,7 +525,6 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         GroupSearchViewLastVisited,
         GroupSearchViewStarred,
         GroupSubscription,
-        IncidentActivity,
         Monitor,
         OrganizationAccessRequest,
         OrganizationMember,

@@ -8,6 +8,7 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
+from sentry.notifications.types import NotificationSettingEnum
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Action
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -34,7 +35,7 @@ class TestEmailActivityHandler(BaseWorkflowTest):
     @mock.patch(
         "sentry.notifications.notification_action.activity_registry.email.send_activity_notification"
     )
-    def test_invoke_action(self, mock_send: mock.MagicMock) -> None:
+    def test_invoke_action_user(self, mock_send: mock.MagicMock) -> None:
         activity = self.create_group_activity(
             group=self.group,
             type=ActivityType.SEER_RCA_STARTED.value,
@@ -58,13 +59,70 @@ class TestEmailActivityHandler(BaseWorkflowTest):
         assert isinstance(target, GenericNotificationTarget)
         assert target.provider_key == NotificationProviderKey.EMAIL
         assert target.resource_type == NotificationTargetResourceType.EMAIL
-        assert target.resource_id == str(self.user.id)
+        assert target.resource_id == self.user.email
+        assert target.specific_data == {"user_id": self.user.id}
 
     @mock.patch(
-        "sentry.notifications.notification_action.activity_registry.email.NotificationService"
+        "sentry.notifications.notification_action.activity_registry.email.send_activity_notification"
     )
+    def test_invoke_action_user_no_longer_in_organization(self, mock_send: mock.MagicMock) -> None:
+        former_member = self.create_user(email="former-member@example.com")
+        self.action.config["target_identifier"] = str(former_member.id)
+        self.action.save()
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.SEER_RCA_STARTED.value,
+        )
+        invocation = self.create_action_invocation(
+            event=activity,
+            group=self.group,
+            action=self.action,
+            detector=self.detector,
+            workflow_id=self.workflow.id,
+        )
+
+        EmailActivityHandler.invoke_action(invocation=invocation, activity=activity)
+
+        mock_send.assert_not_called()
+
     @mock.patch(
-        "sentry.notifications.notification_action.activity_registry.email.build_activity_notification_data"
+        "sentry.notifications.notification_action.activity_registry.email.send_activity_notification"
+    )
+    def test_invoke_action_team(self, mock_send: mock.MagicMock) -> None:
+        user_a = self.create_user(email="a@example.com")
+        user_b = self.create_user(email="b@example.com")
+        team = self.create_team(organization=self.organization)
+        self.create_team_membership(team=team, user=user_a)
+        self.create_team_membership(team=team, user=user_b)
+        self.action.config = {
+            "target_type": ActionTarget.TEAM,
+            "target_identifier": str(team.id),
+        }
+        self.action.save()
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.SEER_RCA_STARTED.value,
+        )
+        invocation = self.create_action_invocation(
+            event=activity,
+            group=self.group,
+            action=self.action,
+            detector=self.detector,
+            workflow_id=self.workflow.id,
+        )
+
+        EmailActivityHandler.invoke_action(invocation=invocation, activity=activity)
+
+        assert mock_send.call_count == 2
+        targets = [call.args[2] for call in mock_send.call_args_list]
+        assert {target.resource_id for target in targets} == {"a@example.com", "b@example.com"}
+        assert {target.specific_data["user_id"] for target in targets} == {
+            user_a.id,
+            user_b.id,
+        }
+
+    @mock.patch(
+        "sentry.notifications.notification_action.activity_registry.email.send_activity_notification"
     )
     @mock.patch(
         "sentry.notifications.notification_action.activity_registry.email.IssueOwnersActivityAlertStrategy"
@@ -72,8 +130,7 @@ class TestEmailActivityHandler(BaseWorkflowTest):
     def test_invoke_action_issue_owners(
         self,
         mock_strategy_cls: mock.MagicMock,
-        mock_build_data: mock.MagicMock,
-        mock_notification_service: mock.MagicMock,
+        mock_send: mock.MagicMock,
     ) -> None:
         self.action.config = {
             "target_type": ActionTarget.ISSUE_OWNERS,
@@ -98,8 +155,36 @@ class TestEmailActivityHandler(BaseWorkflowTest):
         EmailActivityHandler.invoke_action(invocation=invocation, activity=activity)
 
         mock_strategy_cls.assert_called_once_with(group=activity.group)
-        mock_build_data.assert_called_once_with(
-            activity, workflow_id=self.workflow.id, target=mock_target
+        mock_send.assert_called_once_with(invocation, activity, mock_target)
+
+    @mock.patch(
+        "sentry.notifications.notification_action.activity_registry.email.send_activity_notification"
+    )
+    def test_pr_ready_issue_owner_with_issue_alerts_disabled(
+        self, mock_send: mock.MagicMock
+    ) -> None:
+        self.create_group_owner(group=self.group, user_id=self.user.id)
+        self.create_notification_setting_option(
+            user_id=self.user.id,
+            scope_type="user",
+            scope_identifier=self.user.id,
+            type=NotificationSettingEnum.ISSUE_ALERTS.value,
+            value="never",
         )
-        mock_service_instance = mock_notification_service.__getitem__.return_value.return_value
-        mock_service_instance.notify_target.assert_called_once_with(target=mock_target)
+        self.action.config = {"target_type": ActionTarget.ISSUE_OWNERS}
+        self.action.save()
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.SEER_PR_READY_FOR_REVIEW.value,
+        )
+        invocation = self.create_action_invocation(
+            event=activity,
+            group=self.group,
+            action=self.action,
+            detector=self.detector,
+            workflow_id=self.workflow.id,
+        )
+
+        EmailActivityHandler.invoke_action(invocation=invocation, activity=activity)
+
+        mock_send.assert_not_called()

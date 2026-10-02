@@ -44,6 +44,7 @@ from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageB
 from sentry.integrations.msteams.card_builder.notifications import (
     MSTeamsNotificationsMessageBuilder,
 )
+from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
@@ -389,6 +390,21 @@ class MSTeamsMessageBuilderTest(TestCase):
         # Check if card is serializable to json
         card_json = orjson.dumps(issue_card).decode()
         assert card_json[0] == "{" and card_json[-1] == "}"
+
+    def test_issue_action_payload_includes_rule_and_workflow_ids(self) -> None:
+        self.rules[0].data["actions"][0].update(
+            {"legacy_rule_id": self.rules[0].id, "workflow_id": 123}
+        )
+
+        payload = MSTeamsIssueMessageBuilder(
+            group=self.group1,
+            event=self.event1,
+            rules=[self.rules[0]],
+            integration=self.integration,
+        ).generate_action_payload(ACTION_TYPE.RESOLVE)["payload"]
+
+        assert payload["rules"] == [self.rules[0].id]
+        assert payload["workflows"] == [123]
 
     def test_issue_without_description(self) -> None:
         issue_card = MSTeamsIssueMessageBuilder(

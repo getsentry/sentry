@@ -26,6 +26,8 @@ class GitLabWebhookUpdateHaltReason(StrEnum):
     NO_REPOSITORIES = "no_repositories"
     REPOSITORY_NOT_FOUND = "repository_not_found"
     MISSING_WEBHOOK_CONFIG = "missing_webhook_config"
+    DEBOUNCED = "debounced"
+    REPOSITORY_CHANGED = "repository_changed"
 
 
 @dataclass

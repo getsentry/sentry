@@ -355,115 +355,108 @@ export function RelocationDetails() {
     return actions;
   };
 
-  const renderOverview = () => {
-    return (
-      <DetailsContainer>
-        <DetailList>
-          <DetailLabel title="Provenance">
-            <code>{relocationData.provenance}</code>
-          </DetailLabel>
-          <DetailLabel title="Region">
-            <code>{regionName}</code>
-          </DetailLabel>
-          <DetailLabel title="Status">
-            <RelocationBadge data={relocationData} />
-          </DetailLabel>
-          <DetailLabel title="Owner">
-            {relocationData.owner ? (
-              <Link aria-label="Owner" to={`/_admin/users/${relocationData.owner.id}/`}>
-                {relocationData.owner.email}
-              </Link>
-            ) : (
-              <i>&lt;deleted&gt;</i>
-            )}
-          </DetailLabel>
-          <DetailLabel title="Creator">
-            {relocationData.creator ? (
-              <Link
-                aria-label="Creator"
-                to={`/_admin/users/${relocationData.creator.id}/`}
-              >
-                {relocationData.creator.email}
-              </Link>
-            ) : (
-              <i>&lt;deleted&gt;</i>
-            )}
-          </DetailLabel>
-        </DetailList>
-        <DetailList>
-          <DetailLabel title="Started">
-            {moment(relocationData.dateAdded).fromNow()}
-          </DetailLabel>
-          <DetailLabel title="Updated">
-            {moment(relocationData.dateUpdated).fromNow()}
-          </DetailLabel>
-          <DetailLabel title="Autopause">
-            {relocationData.scheduledPauseAtStep
-              ? titleCase(relocationData.scheduledPauseAtStep)
-              : '--'}
-          </DetailLabel>
-          <DetailLabel title="Owner Notified Of">
-            {relocationData.latestNotified
-              ? titleCase(relocationData.latestNotified)
-              : '--'}
-          </DetailLabel>
-          <DetailLabel title="Unclaimed Users Last Notified">
-            {relocationData.latestUnclaimedEmailsSentAt
-              ? moment(relocationData.latestUnclaimedEmailsSentAt).fromNow()
-              : '--'}
-          </DetailLabel>
-        </DetailList>
-      </DetailsContainer>
-    );
-  };
-
-  const renderSummary = () => {
-    const current_step = RelocationSteps[relocationData.step];
-    const steps: React.ReactElement[] = [];
-    Object.keys(RelocationSteps)
-      .filter(step => Number.isNaN(Number(step)))
-      .reduce((acc, step, key) => {
-        if (acc.length > 0) {
-          acc.push();
-        }
-
-        let text = <span>{`${key + 1}: ${titleCase(step)}`}</span>;
-        if (RelocationSteps[step as keyof typeof RelocationSteps] === current_step) {
-          text = <b>{text}</b>;
-        }
-        if (
-          step === relocationData.scheduledPauseAtStep ||
-          relocationData.status === 'PAUSE'
-        ) {
-          text = <i>{text}</i>;
-        }
-
-        acc.push(
-          <span key={step}>
-            {acc.length > 0 ? <span> | </span> : null}
-            {text}
-          </span>
-        );
-        return acc;
-      }, steps);
-
-    return (
+  const overview = (
+    <DetailsContainer>
       <DetailList>
-        <DetailLabel title="Progress">{steps}</DetailLabel>
-        <DetailLabel title="Requested Slugs">
-          {relocationData.wantOrgSlugs.join(', ')}
+        <DetailLabel title="Provenance">
+          <code>{relocationData.provenance}</code>
         </DetailLabel>
-        {relocationData.wantUsernames ? (
-          <DetailLabel title="Requested Usernames">
-            {relocationData.wantUsernames.join(', ')}
-          </DetailLabel>
-        ) : null}
-        {relocationData.failureReason ? (
-          <DetailLabel title="Notes">{relocationData.failureReason}</DetailLabel>
-        ) : null}
+        <DetailLabel title="Region">
+          <code>{regionName}</code>
+        </DetailLabel>
+        <DetailLabel title="Status">
+          <RelocationBadge data={relocationData} />
+        </DetailLabel>
+        <DetailLabel title="Owner">
+          {relocationData.owner ? (
+            <Link aria-label="Owner" to={`/_admin/users/${relocationData.owner.id}/`}>
+              {relocationData.owner.email}
+            </Link>
+          ) : (
+            <i>&lt;deleted&gt;</i>
+          )}
+        </DetailLabel>
+        <DetailLabel title="Creator">
+          {relocationData.creator ? (
+            <Link aria-label="Creator" to={`/_admin/users/${relocationData.creator.id}/`}>
+              {relocationData.creator.email}
+            </Link>
+          ) : (
+            <i>&lt;deleted&gt;</i>
+          )}
+        </DetailLabel>
       </DetailList>
-    );
-  };
+      <DetailList>
+        <DetailLabel title="Started">
+          {moment(relocationData.dateAdded).fromNow()}
+        </DetailLabel>
+        <DetailLabel title="Updated">
+          {moment(relocationData.dateUpdated).fromNow()}
+        </DetailLabel>
+        <DetailLabel title="Autopause">
+          {relocationData.scheduledPauseAtStep
+            ? titleCase(relocationData.scheduledPauseAtStep)
+            : '--'}
+        </DetailLabel>
+        <DetailLabel title="Owner Notified Of">
+          {relocationData.latestNotified
+            ? titleCase(relocationData.latestNotified)
+            : '--'}
+        </DetailLabel>
+        <DetailLabel title="Unclaimed Users Last Notified">
+          {relocationData.latestUnclaimedEmailsSentAt
+            ? moment(relocationData.latestUnclaimedEmailsSentAt).fromNow()
+            : '--'}
+        </DetailLabel>
+      </DetailList>
+    </DetailsContainer>
+  );
+
+  const current_step = RelocationSteps[relocationData.step];
+  const steps: React.ReactElement[] = [];
+  Object.keys(RelocationSteps)
+    .filter(step => Number.isNaN(Number(step)))
+    .reduce((acc, step, key) => {
+      if (acc.length > 0) {
+        acc.push();
+      }
+
+      let text = <span>{`${key + 1}: ${titleCase(step)}`}</span>;
+      if (RelocationSteps[step as keyof typeof RelocationSteps] === current_step) {
+        text = <b>{text}</b>;
+      }
+      if (
+        step === relocationData.scheduledPauseAtStep ||
+        relocationData.status === 'PAUSE'
+      ) {
+        text = <i>{text}</i>;
+      }
+
+      acc.push(
+        <span key={step}>
+          {acc.length > 0 ? <span> | </span> : null}
+          {text}
+        </span>
+      );
+      return acc;
+    }, steps);
+
+  const summary = (
+    <DetailList>
+      <DetailLabel title="Progress">{steps}</DetailLabel>
+      <DetailLabel title="Requested Slugs">
+        {relocationData.wantOrgSlugs.join(', ')}
+      </DetailLabel>
+      {relocationData.wantUsernames ? (
+        <DetailLabel title="Requested Usernames">
+          {relocationData.wantUsernames.join(', ')}
+        </DetailLabel>
+      ) : null}
+      {relocationData.failureReason ? (
+        <DetailLabel title="Notes">{relocationData.failureReason}</DetailLabel>
+      ) : null}
+    </DetailList>
+  );
 
   const renderArtifactsSection = () => {
     if (artifactsState === ArtifactsState.DISABLED) {
@@ -545,58 +538,9 @@ export function RelocationDetails() {
     };
   };
 
-  const renderImportedOrgs = (importedOrgIds: number[]) => {
-    return (
-      <ResultGrid
-        key="orgs"
-        inPanel
-        panelTitle="Relocated Customers"
-        path={`/_admin/relocations/${relocationData.uuid}/`}
-        api={regionApi}
-        endpoint={`/_admin/cells/${regionName}/customers/`}
-        columns={[
-          <th key="customer">Customer</th>,
-          <th key="joined" style={{width: 150, textAlign: 'right'}}>
-            Joined
-          </th>,
-        ]}
-        columnsForRow={getOrgRow}
-        defaultParams={{query: importedOrgIds.map(id => `id:${id.toString()}`).join(' ')}}
-      />
-    );
-  };
-
-  const renderImportedUsers = (importedUserIds: number[]) => {
-    return (
-      <ResultGrid
-        key="users"
-        inPanel
-        panelTitle="Relocated Users"
-        path={`/_admin/relocations/${relocationData.uuid}/`}
-        endpoint="/users/"
-        columns={[
-          <th key="user">User</th>,
-          <th key="email" style={{width: 100, textAlign: 'center'}}>
-            Email
-          </th>,
-          <th key="status" style={{width: 100, textAlign: 'center'}}>
-            Status
-          </th>,
-          <th key="joined" style={{width: 200, textAlign: 'right'}}>
-            Joined
-          </th>,
-        ]}
-        columnsForRow={getUserRow}
-        defaultParams={{
-          query: importedUserIds.map(id => `id:${id.toString()}`).join(' '),
-        }}
-      />
-    );
-  };
-
   const sections = [
-    {noPanel: false, content: renderOverview()},
-    {noPanel: false, content: renderSummary()},
+    {noPanel: false, content: overview},
+    {noPanel: false, content: summary},
   ];
 
   // If we are not sufficiently far along in the relocation step-wise, ignore this bit.
@@ -608,13 +552,60 @@ export function RelocationDetails() {
     if (relocationData.importedOrgIds) {
       sections.push({
         noPanel: true,
-        content: renderImportedOrgs(relocationData.importedOrgIds),
+        content: (
+          <ResultGrid
+            key="orgs"
+            inPanel
+            panelTitle="Relocated Customers"
+            path={`/_admin/relocations/${relocationData.uuid}/`}
+            api={regionApi}
+            endpoint={`/_admin/cells/${regionName}/customers/`}
+            columns={[
+              <th key="customer">Customer</th>,
+              <th key="joined" style={{width: 150, textAlign: 'right'}}>
+                Joined
+              </th>,
+            ]}
+            columnsForRow={getOrgRow}
+            defaultParams={{
+              query: relocationData.importedOrgIds
+                .map(id => `id:${id.toString()}`)
+                .join(' '),
+            }}
+          />
+        ),
       });
     }
     if (relocationData.importedUserIds) {
       sections.push({
         noPanel: true,
-        content: renderImportedUsers(relocationData.importedUserIds),
+        content: (
+          <ResultGrid
+            key="users"
+            inPanel
+            panelTitle="Relocated Users"
+            path={`/_admin/relocations/${relocationData.uuid}/`}
+            endpoint="/users/"
+            columns={[
+              <th key="user">User</th>,
+              <th key="email" style={{width: 100, textAlign: 'center'}}>
+                Email
+              </th>,
+              <th key="status" style={{width: 100, textAlign: 'center'}}>
+                Status
+              </th>,
+              <th key="joined" style={{width: 200, textAlign: 'right'}}>
+                Joined
+              </th>,
+            ]}
+            columnsForRow={getUserRow}
+            defaultParams={{
+              query: relocationData.importedUserIds
+                .map(id => `id:${id.toString()}`)
+                .join(' '),
+            }}
+          />
+        ),
       });
     }
   }

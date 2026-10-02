@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import type {Organization} from 'sentry/types/organization';
 import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {UptimeMonitorMode} from 'sentry/views/detectors/components/uptime/types';
 
@@ -54,6 +55,20 @@ export function isValidDetectorType(detectorType: DetectorType) {
 
 export function detectorTypeIsUserCreateable(detectorType: DetectorType) {
   return DETECTOR_TYPE_CONFIG[detectorType]?.userCreateable ?? false;
+}
+
+export function detectorTypeIsAvailableForCreation(
+  detectorType: DetectorType,
+  organization: Organization
+) {
+  if (!detectorTypeIsUserCreateable(detectorType)) {
+    return false;
+  }
+
+  return (
+    detectorType !== 'preprod_size_analysis' ||
+    organization.features.includes('preprod-size-monitors-frontend')
+  );
 }
 
 export function getDetectorSystemCreatedNotice(detector: Detector) {
