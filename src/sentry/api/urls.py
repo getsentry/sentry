@@ -549,6 +549,7 @@ from sentry.replays.endpoints.project_replay_video_details import ProjectReplayV
 from sentry.replays.endpoints.project_replay_viewed_by import ProjectReplayViewedByEndpoint
 from sentry.scm.endpoints.scm_rpc import ScmRpcServiceEndpoint
 from sentry.seer.endpoints.admin_agentic_triage_trigger import SeerAdminAgenticTriageTriggerEndpoint
+from sentry.seer.endpoints.admin_autofix_retry import SeerAdminAutofixRetryEndpoint
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_repos import GroupAutofixReposEndpoint
@@ -3758,6 +3759,11 @@ INTERNAL_URLS = [
         r"^seer/night-shift/trigger/$",
         SeerAdminAgenticTriageTriggerEndpoint.as_view(),
         name="sentry-admin-seer-night-shift-trigger",
+    ),
+    re_path(
+        r"^seer/autofix/retry/$",
+        SeerAdminAutofixRetryEndpoint.as_view(),
+        name="sentry-admin-seer-autofix-retry",
     ),
 ]
 
