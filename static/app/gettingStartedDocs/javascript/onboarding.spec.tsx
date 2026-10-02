@@ -89,7 +89,7 @@ describe('javascript onboarding docs', () => {
     ).toBeInTheDocument();
   });
 
-  it('enables profiling by setting profiling sample rates', () => {
+  it('enables automatic profiling and tracing when only profiling is selected', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.PROFILING],
       selectedOptions: {
@@ -102,6 +102,29 @@ describe('javascript onboarding docs', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher(/profileSessionSampleRate: 1\.0/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profileLifecycle: "trace"/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/Sentry.browserTracingIntegration\(\)/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/tracesSampleRate: 1\.0/))
+    ).toBeInTheDocument();
+  });
+
+  it('enables automatic profiling in the standalone profiling guide', () => {
+    renderWithOnboardingLayout({
+      ...docs,
+      onboarding: docs.profilingOnboarding!,
+    });
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profileSessionSampleRate: 1\.0/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/profileLifecycle: "trace"/))
     ).toBeInTheDocument();
   });
 

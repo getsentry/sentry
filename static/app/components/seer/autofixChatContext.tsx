@@ -7,6 +7,15 @@ export type SendMessageOptions = {
 
 type AutofixChatContextValue = {
   /**
+   * Whether the agent is still working on the message it was last sent.
+   *
+   * Autofix run state is the slower signal — the agent works through the
+   * backend, so nothing here learns of it until a poll, and an idle run is not
+   * polled at all. Controls that drive the agent read this, so they all settle
+   * the moment any one of them is used.
+   */
+  isBusy?: boolean;
+  /**
    * Undefined when no provider is above the caller, or the run is read-only —
    * render the entry point disabled rather than silently doing nothing.
    */
@@ -24,13 +33,15 @@ const AutofixChatContext = createContext<AutofixChatContextValue>({});
  */
 export function AutofixChatProvider({
   children,
+  isBusy = false,
   sendMessage,
 }: {
   children: ReactNode;
+  isBusy?: boolean;
   sendMessage?: (query: string, options?: SendMessageOptions) => void;
 }) {
   // The page re-renders on every poll; don't invalidate every consumer.
-  const value = useMemo(() => ({sendMessage}), [sendMessage]);
+  const value = useMemo(() => ({isBusy, sendMessage}), [isBusy, sendMessage]);
 
   return (
     <AutofixChatContext.Provider value={value}>{children}</AutofixChatContext.Provider>

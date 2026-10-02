@@ -8,9 +8,9 @@ from rest_framework import status
 
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.cursor_origin.constants import CURSOR_ORIGIN_WEBHOOK_SIGNATURE_PREFIX
-from sentry.integrations.cursor_origin.handlers import HANDLERS
 from sentry.integrations.cursor_origin.webhook import (
     DELIVERY_ID_HEADER,
+    HANDLERS,
     SIGNATURE_HEADER,
     TIMESTAMP_HEADER,
     timestamp_is_fresh,

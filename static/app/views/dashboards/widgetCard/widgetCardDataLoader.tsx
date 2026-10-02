@@ -30,6 +30,7 @@ type Results = {
   pageLinks?: string;
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
+  timeseriesInterval?: string;
   timeseriesResults?: Series[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
@@ -122,9 +123,21 @@ export function WidgetCardDataLoader({
         onDataFetchStart={onDataFetchStart}
         widgetInterval={widgetInterval}
       >
-        {({tableResults, timeseriesResults, errorMessage, loading}) => (
+        {({
+          tableResults,
+          timeseriesResults,
+          timeseriesInterval,
+          errorMessage,
+          loading,
+        }) => (
           <Fragment>
-            {children({tableResults, timeseriesResults, errorMessage, loading})}
+            {children({
+              tableResults,
+              timeseriesResults,
+              timeseriesInterval,
+              errorMessage,
+              loading,
+            })}
           </Fragment>
         )}
       </ReleaseWidgetQueries>

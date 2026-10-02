@@ -1,7 +1,7 @@
 import type {Dispatch, ReactNode} from 'react';
 import {createContext, useCallback, useContext, useReducer} from 'react';
-import type {PlayerState, Replayer, SpeedState} from '@sentry-internal/rrweb';
-import {ReplayerEvents} from '@sentry-internal/rrweb';
+import type {PlayerState, Replayer, SpeedState} from '@sentry/rrweb';
+import {ReplayerEvents} from '@sentry/rrweb';
 
 import type {ReplayPrefs} from 'sentry/components/replays/preferences/replayPreferences';
 import {uniq} from 'sentry/utils/array/uniq';

@@ -81,7 +81,6 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         open_period.update(
             date_started=before_now(minutes=1),
             date_ended=before_now(minutes=1),
-            resolution_activity=activity,
         )
         open_period.save()
         GroupAssignee.objects.create(group=group, project=project, user_id=self.user.id)
