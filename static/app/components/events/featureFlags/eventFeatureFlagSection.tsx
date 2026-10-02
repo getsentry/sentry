@@ -3,7 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
 
@@ -310,13 +310,13 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
             <KeyValueTableCard expandLeft contentItems={columnTwo} />
           </CardContainer>
         ) : (
-          <Stack border="primary" radius="md" align="center">
-            {stackProps => (
-              <EmptyStateWarning {...stackProps} withIcon small>
+          <Container border="primary" radius="md">
+            {containerProps => (
+              <EmptyStateWarning {...containerProps} withIcon small>
                 {t('No feature flags were found for this event')}
               </EmptyStateWarning>
             )}
-          </Stack>
+          </Container>
         )}
       </Container>
       {extraFlags > 0 && (
