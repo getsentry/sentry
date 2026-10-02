@@ -17,7 +17,10 @@ import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerC
 import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchListBox';
 import {AskSeerSearchPopover} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchPopover';
 import {QueryTokens} from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
-import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import type {
+  AskSeerStrategy,
+  QueryTokensProps,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
   generateQueryTokensString,
   stringifyQueryForFeedback,
@@ -97,6 +100,8 @@ export interface BaseAskSeerComboBoxProps<T extends QueryTokensProps> {
   additionalFeedbackTags?: Record<string, Primitive>;
   className?: string;
   onReset?: () => void;
+  /** Seer strategy for the surface, forwarded to QueryTokens to hide chips it can't apply. */
+  strategy?: AskSeerStrategy;
   unsupportedReason?: string | null;
 }
 
@@ -112,6 +117,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   onSearchQueryChange,
   queries,
   searchQuery,
+  strategy,
   submitQuery,
   unsupportedReason,
   additionalFeedbackTags,
@@ -207,6 +213,8 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
             expandedProjectIds={item?.expandedProjectIds}
             interval={item?.interval}
             crossEvents={item?.crossEvents}
+            extraFields={item?.extraFields}
+            strategy={strategy}
           />
         </Item>
       );

@@ -9,7 +9,10 @@ import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {AskSeerSearchHeader} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchHeader';
 import {AskSeerSearchSkeleton} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchSkeleton';
 import {BaseAskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/baseAskSeerComboBox';
-import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import type {
+  AskSeerStrategy,
+  QueryTokensProps,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {formatQueryToNaturalLanguage} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -27,6 +30,8 @@ export interface AskSeerComboBoxProps<T extends QueryTokensProps> {
   askSeerMutationOptions: MutationOptions<AskSeerMutationResult<T>, Error, string>;
   initialQuery: string;
   className?: string;
+  /** Seer strategy for the surface, forwarded to the result chips. */
+  strategy?: AskSeerStrategy;
 }
 
 export function AskSeerComboBox<T extends QueryTokensProps>({

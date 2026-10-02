@@ -115,16 +115,16 @@ export function getExpandedProjectIds(
  * existing columns are trimmed first.
  */
 export function mergeSeerExtraFields(
-  currentFields: string[],
-  extraFields: string[] | undefined,
+  currentFields: readonly string[],
+  extraFields: readonly string[] | undefined,
   limit = 10
 ): string[] {
   const filteredExtra = extraFields?.filter(field => !currentFields.includes(field));
   if (!filteredExtra?.length) {
-    return currentFields;
+    return [...currentFields];
   }
-  const keep = Math.max(0, limit - (filteredExtra?.length ?? 0));
-  return [...currentFields.slice(0, keep), ...(filteredExtra ?? []).slice(0, limit)];
+  const keep = Math.max(0, limit - filteredExtra.length);
+  return [...currentFields.slice(0, keep), ...filteredExtra.slice(0, limit)];
 }
 
 /**
