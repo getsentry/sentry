@@ -20,6 +20,7 @@ testable_rules_changed: &testable_rules_changed
   - added|modified: '.github/file-filters.yml'
   - added|modified: 'jest.config.ts'
   - added|modified: 'build-utils/reactRouterVersion*.ts'
+  - added|modified: 'build-utils/reactRouterResolver.ts'
 
 # Trigger whether to run TypeScript typechecking or not
 # There's no "rules_changed" for this, because we run it for all files always
