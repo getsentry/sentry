@@ -321,7 +321,7 @@ def emit_evaluation_to_eap(
             triggered: bool
             group_key?: str
             priority: int
-            trigger_evaluation: str  # JSON[ConditionGroup]
+            trigger_evaluation?: str  # JSON[ConditionGroup], absent for group-free detectors
 
         WorkflowAttributes(CommonAttributes):
             evaluation_phase: "initial" | "delayed"
