@@ -21,8 +21,8 @@ type Props = {
   onSaved: () => void;
 };
 
-const toOptions = (choices: ReadonlyArray<readonly string[]>) =>
-  choices.map(choice => ({value: choice[0]!, label: choice[1]!}));
+const toOptions = (choices: ReadonlyArray<readonly [string, string]>) =>
+  choices.map(([value, label]) => ({value, label}));
 
 const formSchema = z.object({
   title: z
