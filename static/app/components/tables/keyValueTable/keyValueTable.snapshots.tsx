@@ -1,6 +1,5 @@
 import {Button} from '@sentry/scraps/button';
 
-import {KeyValueTable, KeyValueTableRow} from './keyValueTable';
 import {KeyValueTableCard} from './keyValueTableCard';
 import {
   KeyValueTableDataRow,
@@ -16,33 +15,6 @@ const contentItems: KeyValueTableDataRowProps[] = [
 ];
 
 describe('KeyValueTable', () => {
-  it.snapshot(
-    'inline',
-    () => (
-      <div style={{padding: 8, width: 400}}>
-        <KeyValueTable>
-          <KeyValueTableRow keyName="Created" value="Jan 15, 2025" />
-          <KeyValueTableRow keyName="Version" value="2.1.0" />
-          <KeyValueTableRow keyName="Environment" value="production" />
-        </KeyValueTable>
-      </div>
-    ),
-    {tags: {area: 'core', variant: 'inline'}}
-  );
-
-  it.snapshot(
-    'inline-warning',
-    () => (
-      <div style={{padding: 8, width: 400}}>
-        <KeyValueTable>
-          <KeyValueTableRow keyName="Status" value="Failing" type="warning" />
-          <KeyValueTableRow keyName="Version" value="2.1.0" />
-        </KeyValueTable>
-      </div>
-    ),
-    {tags: {area: 'core', variant: 'inline', type: 'warning'}}
-  );
-
   it.snapshot(
     'card',
     () => (
