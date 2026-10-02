@@ -16,7 +16,7 @@ import {
 import type {SelectKey} from '@sentry/scraps/compactSelect';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {Container} from '@sentry/scraps/layout';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import type {FormSize} from 'sentry/utils/theme';
 
@@ -230,6 +230,7 @@ export function ListBox<T extends ListItemBase>({
       virtualizer.scrollElementRef,
       scrollContainerRef
     );
+    // oxlint-disable-next-line react/memo-dependencies
   }, [hasEverOverflowed, virtualizer.scrollElementRef, listItems, scrollContainerRef]);
 
   return (

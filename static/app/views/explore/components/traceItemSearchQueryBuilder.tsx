@@ -15,6 +15,7 @@ import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {getHasTag} from 'sentry/utils/tag';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeTagKeys} from 'sentry/views/explore/hooks/useGetTraceItemAttributeTagKeys';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
@@ -48,6 +49,7 @@ export type TraceItemSearchQueryBuilderProps = {
   invalidFilterKeys?: string[];
   invalidMessages?: SearchQueryBuilderProps['invalidMessages'];
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
+  menuPresentation?: SearchQueryBuilderProps['menuPresentation'];
   namespace?: string;
   onCaseInsensitiveClick?: SearchQueryBuilderProps['onCaseInsensitiveClick'];
   replaceRawSearchKeys?: string[];
@@ -139,7 +141,11 @@ export function useTraceItemSearchQueryBuilderProps({
   invalidMessages,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = placeholder ?? itemTypeToDefaultPlaceholder(itemType);
+  const organization = useOrganization();
   const {selection} = usePageFilters();
+  const allowRegexOperators =
+    itemType === TraceItemDataset.LOGS &&
+    organization.features.includes('ourlogs-regex-searches');
   const effectiveProjects = projects ?? selection.projects;
   const effectiveDatetime = datetime ?? selection.datetime;
 
@@ -214,6 +220,7 @@ export function useTraceItemSearchQueryBuilderProps({
   return useMemo(
     () => ({
       placeholder: placeholderText,
+      allowRegexOperators,
       asyncFilterKeyRegistryQueryKey,
       filterKeys: filterTags,
       initialQuery,
@@ -253,6 +260,7 @@ export function useTraceItemSearchQueryBuilderProps({
       invalidMessages,
     }),
     [
+      allowRegexOperators,
       asyncFilterKeyRegistryQueryKey,
       booleanSecondaryAliases,
       caseInsensitive,
@@ -330,6 +338,7 @@ export function TraceItemSearchQueryBuilder({
   invalidMessages,
   showSearchIcon,
   disableFullWidthFilterKeyMenu,
+  menuPresentation,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -376,6 +385,7 @@ export function TraceItemSearchQueryBuilder({
       autoFocus={autoFocus}
       showSearchIcon={showSearchIcon}
       disableFullWidthFilterKeyMenu={disableFullWidthFilterKeyMenu}
+      menuPresentation={menuPresentation}
       {...searchQueryBuilderProps}
     />
   );

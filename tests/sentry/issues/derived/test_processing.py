@@ -3,7 +3,9 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import Mock, patch
 
 import pytest
+import time_machine
 from django.db import connection, router, transaction
+from django.db.models.functions import Now
 from django.utils import timezone as django_timezone
 
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -747,6 +749,31 @@ class ProcessGroupLogTest(TestCase):
         derived.refresh_from_db()
         assert derived.pipeline_hash is None
         assert derived.generated_at > before
+
+    def test_invalidate_soft_uses_database_clock(self) -> None:
+        group = self.create_group()
+        derived = self.create_group_derived_data(group, generated_at=EPOCH)
+        before = Group.objects.filter(id=group.id).values_list(Now(), flat=True).get()
+
+        with time_machine.travel(before - timedelta(hours=1)), self.assertNumQueries(1):
+            invalidate_group_derived_data(group.id, trigger_regenerate=False)
+
+        after = Group.objects.filter(id=group.id).values_list(Now(), flat=True).get()
+        derived.refresh_from_db()
+        assert before <= derived.generated_at <= after
+        assert derived.pipeline_hash is None
+
+    def test_invalidate_soft_placeholder_uses_database_clock(self) -> None:
+        group = self.create_group()
+        before = Group.objects.filter(id=group.id).values_list(Now(), flat=True).get()
+
+        with time_machine.travel(before + timedelta(hours=1)):
+            invalidate_group_derived_data(group.id, trigger_regenerate=False)
+
+        after = Group.objects.filter(id=group.id).values_list(Now(), flat=True).get()
+        derived = GroupDerivedData.objects.get(group_id=group.id)
+        assert before <= derived.generated_at <= after
+        assert derived.pipeline_hash is None
 
     def test_invalidate_matches_null_hash_row_regardless_of_cursor(self) -> None:
         # A null-hash row is already stale — a subsequent invalidation whose

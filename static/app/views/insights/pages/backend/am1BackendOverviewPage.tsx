@@ -1,4 +1,3 @@
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
@@ -93,7 +92,6 @@ interface AM1BackendOverviewPageProps {
 export function Am1BackendOverviewPage({
   datePageFilterProps,
 }: AM1BackendOverviewPageProps) {
-  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
   const {setPageDanger} = usePageAlert();
@@ -284,7 +282,6 @@ export function Am1BackendOverviewPage({
                       {...sharedProps}
                     />
                     <Table
-                      theme={theme}
                       projects={projects}
                       columnTitles={BACKEND_COLUMN_TITLES}
                       setError={setPageDanger}

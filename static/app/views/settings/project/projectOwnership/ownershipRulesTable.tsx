@@ -288,12 +288,10 @@ const RulesTableWrapper = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space.xl};
-  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 const StyledSimpleTable = styled(SimpleTable)`
   font-size: ${p => p.theme.font.size.md};
-  margin-bottom: 0;
 
   [role='cell'] {
     padding: ${p => p.theme.space.lg} ${p => p.theme.space.xl};

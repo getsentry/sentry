@@ -14,6 +14,7 @@ import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {DemoTourStep, SharedTourElement} from 'sentry/utils/demoMode/demoTours';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
@@ -29,7 +30,6 @@ import {FirstLastSeenSection} from 'sentry/views/issueDetails/sidebar/firstLastS
 import {MergedIssuesSidebarSection} from 'sentry/views/issueDetails/sidebar/mergedSidebarSection';
 import {PeopleSection} from 'sentry/views/issueDetails/sidebar/peopleSection';
 import {SimilarIssuesSidebarSection} from 'sentry/views/issueDetails/sidebar/similarIssuesSidebarSection';
-import {SupergroupSection} from 'sentry/views/issueDetails/sidebar/supergroupSection';
 
 type Props = {group: Group; project: Project; event?: Event};
 
@@ -61,8 +61,7 @@ export function IssueDetailsSidebar({group, event, project}: Props) {
   // Check if Seer (AI features) will be shown - must match SeerSection's logic
   // SeerSection shows "Seer" title when the issue type supports it AND AI features are allowed
   const hasSeerFeatures =
-    organization.features.includes('gen-ai-features') &&
-    !organization.hideAiFeatures &&
+    areAiFeaturesAllowed(organization) &&
     (issueTypeConfig.issueSummary.enabled || issueTypeConfig.autofix);
   const showSeerSection = hasSeerFeatures || issueTypeConfig.resources;
 
@@ -129,9 +128,6 @@ export function IssueDetailsSidebar({group, event, project}: Props) {
           {issueTypeConfig.detector.enabled && (
             <DetectorSection group={group} project={project} />
           )}
-          <ErrorBoundary mini>
-            <SupergroupSection group={group} />
-          </ErrorBoundary>
         </Side>
       )}
     </SharedTourElement>

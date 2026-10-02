@@ -122,6 +122,7 @@ export function FlamegraphChart({
 
   useEffect(() => {
     drawchart();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [drawchart, configSpaceCursor]);
 
   useEffect(() => {

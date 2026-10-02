@@ -69,6 +69,7 @@ export function useTraceExploreAiQuerySetup({
       }
     })();
   }, [
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     client,
     enableAISearch,
     memberProjects,

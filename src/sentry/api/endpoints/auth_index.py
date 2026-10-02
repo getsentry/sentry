@@ -23,7 +23,7 @@ from sentry.api.validators.auth import MISSING_PASSWORD_OR_U2F_CODE
 from sentry.auth.authenticators.u2f import U2fInterface
 from sentry.auth.providers.saml2.provider import handle_saml_single_logout
 from sentry.auth.services.auth.impl import promote_request_rpc_user
-from sentry.auth.superuser import SUPERUSER_ORG_ID
+from sentry.auth.superuser import SUPERUSER_ORG_ID, SuperuserAccessSerializer
 from sentry.demo_mode.utils import is_demo_user
 from sentry.organizations.services.organization import organization_service
 from sentry.ratelimits.config import RateLimitConfig
@@ -33,6 +33,7 @@ from sentry.users.models.authenticator import Authenticator
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import DISABLE_SSO_CHECK_FOR_LOCAL_DEV, has_completed_sso, initiate_login
 from sentry.utils.settings import is_self_hosted
+from sudo.utils import grant_sudo_privileges
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -150,8 +151,8 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         limit_overrides={
             "PUT": {
                 RateLimitCategory.USER: RateLimit(
-                    limit=5, window=60 * 60
-                ),  # 5 PUT requests per hour per user
+                    limit=20, window=60 * 60
+                ),  # 20 PUT requests per hour per user
             }
         }
     )
@@ -255,6 +256,34 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
+
+        if request.data.get("isSuperuserOrgAuth") and request.user.is_superuser:
+            su = getattr(request, "superuser", None)
+            if not su or not su.is_active:
+                return Response(
+                    {"detail": {"code": "superuser-required"}},
+                    status=status.HTTP_403_FORBIDDEN,
+                )
+            org_slug = request.data.get("orgSlug")
+            if not org_slug:
+                return Response(
+                    {"detail": "orgSlug is required"}, status=status.HTTP_400_BAD_REQUEST
+                )
+            if not organization_service.check_organization_by_slug(
+                slug=org_slug, only_visible=False
+            ):
+                return Response(
+                    {"detail": "Organization not found"}, status=status.HTTP_404_NOT_FOUND
+                )
+            serializer = SuperuserAccessSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
+            su.authorize_org(
+                org_slug,
+                serializer.validated_data["superuserAccessCategory"],
+                serializer.validated_data["superuserReason"],
+            )
+            return Response(status=status.HTTP_200_OK)
+
         validator = AuthVerifyValidator(data=request.data)
 
         if not (request.user.is_superuser and request.data.get("isSuperuserModal")):
@@ -296,13 +325,8 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
         if not authenticated:
             return Response({"detail": {"code": "ignore"}}, status=status.HTTP_403_FORBIDDEN)
 
-        try:
-            # Must use the httprequest object instead of request
-            auth.login(request._request, promote_request_rpc_user(request))
-            metrics.incr(
-                "sudo_modal.success",
-            )
-        except auth.AuthUserPasswordExpired:
+        user = promote_request_rpc_user(request)
+        if user.is_password_expired:
             metrics.incr(
                 "sudo_modal.failure",
             )
@@ -314,8 +338,23 @@ class AuthIndexEndpoint(BaseAuthIndexEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
+        # Must use the HttpRequest so SudoMiddleware can set the sudo cookie.
+        grant_sudo_privileges(request._request)
+        metrics.incr(
+            "sudo_modal.success",
+        )
+
         if request.user.is_superuser and request.data.get("isSuperuserModal"):
             request.superuser.set_logged_in(request.user)
+            org_slug = request.data.get("superuserOrgSlug")
+            if org_slug:
+                serializer = SuperuserAccessSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                request.superuser.authorize_org(
+                    org_slug,
+                    serializer.validated_data["superuserAccessCategory"],
+                    serializer.validated_data["superuserReason"],
+                )
 
         request.user = request._request.user
 
