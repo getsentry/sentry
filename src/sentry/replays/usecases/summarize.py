@@ -12,7 +12,6 @@ from sentry.api.utils import default_start_end_dates
 from sentry.constants import ObjectStatus
 from sentry.issues.grouptype import FeedbackGroup
 from sentry.models.project import Project
-from sentry.replays.lib.safe_dict import SafeDict, SafeText, safe_view
 from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance, query_trace_connected_events
 from sentry.replays.usecases.ingest.event_parser import (
@@ -29,6 +28,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils import json, metrics
 from sentry.utils.dates import outside_retention_with_modified_start
 from sentry.utils.platform_categories import MOBILE
+from sentry.utils.safe import get_path
 from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
@@ -271,7 +271,7 @@ def get_summary_logs(
 def _get_event_timestamp_ms(event: Any, event_type: EventType) -> float | None:
     """Return the event timestamp in milliseconds, or None if it is missing or malformed."""
     try:
-        timestamp = float(str(safe_view(event)["timestamp"]))
+        timestamp = float(_text(get_path(event, "timestamp")))
     except ValueError:
         return None
     if not math.isfinite(timestamp):
@@ -330,7 +330,9 @@ def generate_summary_logs(
 
             # Yield the current event's log message
             if event_type == EventType.FEEDBACK:
-                feedback_id = str(safe_view(event)["data"]["payload"]["data"]["feedbackId"]) or None
+                feedback_id = (
+                    _text(get_path(event, "data", "payload", "data", "feedbackId")) or None
+                )
                 # Filter out duplicate feedback events.
                 if feedback_id not in seen_feedback_ids:
                     feedback = fetch_feedback_details(feedback_id, project_id)
@@ -360,28 +362,28 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
     to the AI use case. In later iterations, if more or all log messages are desired, this function
     should be forked.
 
-    Every field is read through `SafeDict`, so a missing or malformed field degrades the message
-    instead of discarding the event.
+    Every field is read with `get_path` and `_text`, so a missing or malformed field degrades the
+    message instead of discarding the event.
     """
     event_type = which(event)
     when = _format_when(_get_event_timestamp_ms(event, event_type))
-    payload = safe_view(event)["data"]["payload"]
-    data = payload["data"]
+    payload = get_path(event, "data", "payload")
+    data = get_path(payload, "data")
 
     trunc_length = 200  # used for CONSOLE logs and RESOURCE_* urls.
 
     try:
         match event_type:
             case EventType.CLICK:
-                target = payload["message"] or "an element"
+                target = _text(get_path(payload, "message")) or "an element"
                 return f"User clicked on {target} {when}"
             case EventType.DEAD_CLICK:
-                target = payload["message"] or "an element"
+                target = _text(get_path(payload, "message")) or "an element"
                 return (
                     f"User clicked on {target} but the triggered action was slow to complete {when}"
                 )
             case EventType.RAGE_CLICK:
-                target = payload["message"] or "an element"
+                target = _text(get_path(payload, "message")) or "an element"
                 return f"User rage clicked on {target} but the triggered action was slow to complete {when}"
             case EventType.NAVIGATION_SPAN:
                 # for web replays, we favor NAVIGATION_SPAN
@@ -389,12 +391,12 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
                 # for mobile replays, we only have access to NAVIGATION events.
                 if is_mobile_replay:
                     return None
-                to = payload["description"]
+                to = _text(get_path(payload, "description"))
                 if to:
                     return f"User navigated to: {to} {when}"
                 return f"User navigated {when}"
             case EventType.CONSOLE:
-                message = str(payload["message"])
+                message = _text(get_path(payload, "message"))
                 if not message:
                     return f"Logged a console message {when}"
                 if len(message) > trunc_length:
@@ -405,8 +407,8 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
             case EventType.RESOURCE_XHR:
                 return _network_log_message("XHR", event, payload, when, trunc_length)
             case EventType.LCP:
-                size = data["size"]
-                rating = data["rating"]
+                size = _text(get_path(data, "size"))
+                rating = _text(get_path(data, "rating"))
                 if size and rating:
                     return f"Application largest contentful paint: {size} ms and has a {rating} rating {when}"
                 if size:
@@ -417,12 +419,12 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
             case EventType.HYDRATION_ERROR:
                 return f"There was a hydration error on the page {when}"
             case EventType.TAP:
-                target = payload["message"] or "an element"
+                target = _text(get_path(payload, "message")) or "an element"
                 return f"User tapped on {target} {when}"
             case EventType.DEVICE_BATTERY:
-                level = data["level"]
+                level = _text(get_path(data, "level"))
                 # `charging` is a boolean, so read the raw value rather than its text.
-                charging = data.get("charging")
+                charging = get_path(data, "charging")
                 charging_str = None
                 if isinstance(charging, bool):
                     charging_str = "charging" if charging else "not charging"
@@ -434,19 +436,29 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
                     return f"Device battery was {charging_str} {when}"
                 return f"Device battery event occurred {when}"
             case EventType.DEVICE_ORIENTATION:
-                position = data["position"]
+                position = _text(get_path(data, "position"))
                 if position:
                     return f"Device orientation was changed to {position} {when}"
                 return f"Device orientation was changed {when}"
             case EventType.DEVICE_CONNECTIVITY:
-                state = data["state"]
+                state = _text(get_path(data, "state"))
                 if state:
                     return f"Device connectivity was changed to {state} {when}"
                 return f"Device connectivity was changed {when}"
             case EventType.SCROLL:
-                return _join_words("User scrolled", data["view.id"], data["direction"], when)
+                return _join_words(
+                    "User scrolled",
+                    _text(get_path(data, "view.id")),
+                    _text(get_path(data, "direction")),
+                    when,
+                )
             case EventType.SWIPE:
-                return _join_words("User swiped", data["view.id"], data["direction"], when)
+                return _join_words(
+                    "User swiped",
+                    _text(get_path(data, "view.id")),
+                    _text(get_path(data, "direction")),
+                    when,
+                )
             case EventType.BACKGROUND:
                 return f"User moved the app to the background {when}"
             case EventType.FOREGROUND:
@@ -478,7 +490,7 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
             case EventType.NAVIGATION:
                 if not is_mobile_replay:
                     return None
-                to = data["to"]
+                to = _text(get_path(data, "to"))
                 if to:
                     return f"User navigated to: {to} {when}"
                 return f"User navigated {when}"
@@ -496,22 +508,33 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
         return None
 
 
+def _text(value: Any) -> str:
+    """Return a JSON value as display text, or "" if it isn't a non-blank string or a number."""
+    if isinstance(value, bool):
+        return ""
+    if isinstance(value, str):
+        return value if value.strip() else ""
+    if isinstance(value, (int, float)):
+        return str(value)
+    return ""
+
+
 def _join_words(*parts: object) -> str:
     return " ".join(str(part) for part in parts if part)
 
 
 def _network_log_message(
-    label: str, event: dict[str, Any], payload: SafeDict | SafeText, when: str, trunc_length: int
+    label: str, event: dict[str, Any], payload: Any, when: str, trunc_length: int
 ) -> str | None:
-    data = payload["data"]
-    method = data["method"]
-    status_code = str(data["statusCode"])
+    data = get_path(payload, "data")
+    method = _text(get_path(data, "method"))
+    status_code = _text(get_path(data, "statusCode"))
 
     # Skip successful requests
     if status_code.startswith("2"):
         return None
 
-    description = str(payload["description"])
+    description = _text(get_path(payload, "description"))
     url = _parse_url(description, trunc_length) if description else None
     request_str = _join_words(method, url)
     request_part = f'{label} request "{request_str}"' if request_str else f"{label} request"

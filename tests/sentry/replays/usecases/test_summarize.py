@@ -17,6 +17,7 @@ from sentry.replays.usecases.ingest.event_parser import get_timestamp_unit, whic
 from sentry.replays.usecases.summarize import (
     EventDict,
     _parse_iso_timestamp_to_ms,
+    _text,
     as_log_message,
     get_summary_logs,
     rpc_get_replay_summary_logs,
@@ -24,6 +25,26 @@ from sentry.replays.usecases.summarize import (
 from sentry.testutils.cases import SnubaTestCase, TransactionTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
+
+
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("value", "value"),
+        ("[Filtered]", "[Filtered]"),
+        (0, "0"),
+        (1.5, "1.5"),
+        (" ", ""),
+        (True, ""),
+        ([1], ""),
+        ({"a": 1}, ""),
+        ({}, ""),
+        (None, ""),
+    ],
+)
+def test_text(value: Any, expected: str) -> None:
+    assert _text(value) == expected
+
 
 """
 Tests for event types that do not return None for the log message
