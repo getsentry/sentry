@@ -110,55 +110,6 @@ function findCacheOriginLink(
   );
 }
 
-interface CacheOrigin {
-  fillDurationMs: number | undefined;
-  fillOperation: string | undefined;
-  isLoading: boolean;
-  sourceFilePath: string | undefined;
-  transactionName: string | undefined;
-}
-
-/**
- * Fetches the linked fill span to show where the entry came from. The link
- * carries only a trace and a span id.
- *
- * TODO(cache): backend needs:
- * - A registered referrer for this query (sentry/snuba/referrer.py). Until
- *   then, borrow the log-details referrer.
- */
-function useCacheOrigin({
-  node,
-  link,
-  itemAgeSeconds,
-}: {
-  itemAgeSeconds: number | undefined;
-  link: TraceItemResponseLink | undefined;
-  node: EapSpanNode;
-}): CacheOrigin {
-  const {data, isLoading} = useTraceItemDetails({
-    traceItemId: link?.itemId ?? '',
-    projectId: node.value.project_id.toString(),
-    traceId: link?.traceId ?? '',
-    traceItemType: TraceItemDataset.SPANS,
-    referrer: 'api.explore.log-item-details',
-    // The fill happened `cache.item_age` seconds before this read.
-    timestamp: node.value.start_timestamp - (itemAgeSeconds ?? 0),
-    enabled: !!link,
-  });
-
-  const originAttributes = data?.attributes ?? [];
-
-  return {
-    isLoading: !!link && isLoading,
-    transactionName: getAttributeValue(originAttributes, 'transaction', 'string'),
-    fillOperation: getAttributeValue(originAttributes, 'span.op', 'string'),
-    fillDurationMs: toFiniteNumber(
-      getAttributeValue(originAttributes, 'span.duration', 'number')
-    ),
-    sourceFilePath: getAttributeValue(originAttributes, 'code.file.path', 'string'),
-  };
-}
-
 function useOpenOriginSpan({
   tree,
   node,
@@ -258,10 +209,6 @@ function formatMs(ms: number): string {
 }
 
 export function CacheLifecycleSection(props: CacheLifecycleSectionProps) {
-  if (!props.organization.features.includes('performance-trace-cache-lifecycle')) {
-    return null;
-  }
-
   switch (getCacheOperation(props.node, props.attributes)) {
     case 'get':
       return <CacheReadLifecycleSection {...props} />;
@@ -364,7 +311,36 @@ function CacheReadLifecycleSection(props: CacheLifecycleSectionProps) {
     key: cacheKey,
   } = getCacheSpanSummary(props.attributes);
   const link = findCacheOriginLink(props.links);
-  const origin = useCacheOrigin({node: props.node, link, itemAgeSeconds});
+
+  // Fetch the linked fill span to show where the entry came from. The link
+  // carries only a trace and a span id.
+  // TODO(cache): backend needs:
+  // - A project id on span links. Until then, assume the fill span is in the
+  //   read span's project. This is wrong for caches shared across services.
+  // - A registered referrer for this query (sentry/snuba/referrer.py). Until
+  //   then, borrow the log-details referrer.
+  const {data: originData, isLoading: isOriginLoading} = useTraceItemDetails({
+    traceItemId: link?.itemId ?? '',
+    projectId: props.node.value.project_id.toString(),
+    traceId: link?.traceId ?? '',
+    traceItemType: TraceItemDataset.SPANS,
+    referrer: 'api.explore.log-item-details',
+    // The fill happened `cache.item_age` seconds before this read.
+    timestamp: props.node.value.start_timestamp - (itemAgeSeconds ?? 0),
+    enabled: !!link,
+  });
+
+  const originAttributes = originData?.attributes ?? [];
+  const origin = {
+    isLoading: !!link && isOriginLoading,
+    transactionName: getAttributeValue(originAttributes, 'transaction', 'string'),
+    fillOperation: getAttributeValue(originAttributes, 'span.op', 'string'),
+    fillDurationMs: toFiniteNumber(
+      getAttributeValue(originAttributes, 'span.duration', 'number')
+    ),
+    sourceFilePath: getAttributeValue(originAttributes, 'code.file.path', 'string'),
+  };
+
   const openOriginSpan = useOpenOriginSpan({...props, link, itemAgeSeconds});
   const outcome = getReadOutcome(hit, colors);
 

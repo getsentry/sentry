@@ -371,16 +371,18 @@ function EAPSpanNodeDetailsContent({
           avgSpanDuration={avgSpanDuration}
           hideNodeActions={hideNodeActions}
         />
-        <CacheLifecycleSection
-          node={node}
-          attributes={attributes}
-          links={links}
-          location={location}
-          organization={organization}
-          traceId={node.extra?.replayTraceSlug ?? traceId}
-          tree={tree}
-          onTabScrollToNode={onTabScrollToNode}
-        />
+        {organization.features.includes('performance-trace-cache-lifecycle') ? (
+          <CacheLifecycleSection
+            node={node}
+            attributes={attributes}
+            links={links}
+            location={location}
+            organization={organization}
+            traceId={node.extra?.replayTraceSlug ?? traceId}
+            tree={tree}
+            onTabScrollToNode={onTabScrollToNode}
+          />
+        ) : null}
         <AIIOAlert node={node} attributes={attributes} />
         <AIInputSection
           node={node}
