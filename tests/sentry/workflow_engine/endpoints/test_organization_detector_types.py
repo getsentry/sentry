@@ -19,6 +19,7 @@ from sentry.workflow_engine.types import (
     DetectorAPIOperation,
     DetectorPriorityLevel,
     DetectorSettings,
+    FeatureGate,
 )
 
 
@@ -123,7 +124,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             released = True
 
         class MockDetectorSettings(DetectorSettings):
-            excluded_api_operations = frozenset()
+            api_availability = {}
             handler = MockDetectorHandler
 
         for group_type in (TestMetricGroupType, TestCronsGroupType, TestUptimeGroupType):
@@ -148,7 +149,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
 
         class ExcludedDetectorSettings(DetectorSettings):
             handler = settings.handler
-            excluded_api_operations = frozenset({DetectorAPIOperation.GET})
+            api_availability = {DetectorAPIOperation.GET: False}
 
         with patch.dict(
             detector_settings_registry.registrations, {excluded_slug: ExcludedDetectorSettings}
@@ -162,10 +163,75 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
 
         class ExcludedDetectorSettings(DetectorSettings):
             handler = settings.handler
-            excluded_api_operations = frozenset({DetectorAPIOperation.LIST})
+            api_availability = {DetectorAPIOperation.LIST: False}
 
         with patch.dict(
             detector_settings_registry.registrations, {excluded_slug: ExcludedDetectorSettings}
         ):
             response = self.get_success_response(self.organization.slug)
             assert response.data == self.expected_type_slugs
+
+    def test_global_denial_overrides_allowed_get(self) -> None:
+        excluded_slug = self.expected_type_slugs[0]
+        settings = detector_settings_registry.get(excluded_slug)
+
+        class DisabledDetectorSettings(DetectorSettings):
+            handler = settings.handler
+            api_enabled = False
+            api_availability = {DetectorAPIOperation.GET: True}
+
+        with patch.dict(
+            detector_settings_registry.registrations, {excluded_slug: DisabledDetectorSettings}
+        ):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data == self.expected_type_slugs[1:]
+
+    def test_list_feature_gate_does_not_affect_type_discovery(self) -> None:
+        feature_name = "organizations:workflow-engine-log-evaluations"
+        gated_slug = self.expected_type_slugs[0]
+        settings = detector_settings_registry.get(gated_slug)
+
+        class GatedDetectorSettings(DetectorSettings):
+            handler = settings.handler
+            api_availability = {
+                DetectorAPIOperation.GET: True,
+                DetectorAPIOperation.LIST: FeatureGate(feature_name),
+            }
+
+        with (
+            self.feature({feature_name: False}),
+            patch.dict(
+                detector_settings_registry.registrations, {gated_slug: GatedDetectorSettings}
+            ),
+        ):
+            response = self.get_success_response(self.organization.slug)
+            assert response.data == self.expected_type_slugs
+
+    def test_get_feature_gate_is_scoped_to_each_organization_request(self) -> None:
+        other_org = self.create_organization(owner=self.user)
+        feature_name = "organizations:workflow-engine-log-evaluations"
+        gated_slug = self.expected_type_slugs[0]
+        settings = detector_settings_registry.get(gated_slug)
+
+        class GatedDetectorSettings(DetectorSettings):
+            handler = settings.handler
+            api_availability = {
+                DetectorAPIOperation.GET: FeatureGate(feature_name),
+                DetectorAPIOperation.LIST: True,
+            }
+
+        with (
+            self.feature({feature_name: [self.organization.slug]}),
+            patch.dict(
+                detector_settings_registry.registrations, {gated_slug: GatedDetectorSettings}
+            ),
+        ):
+            for organization in (self.organization, other_org, self.organization, other_org):
+                with self.subTest(organization=organization.slug):
+                    response = self.get_success_response(organization.slug)
+                    expected_slugs = (
+                        self.expected_type_slugs
+                        if organization.id == self.organization.id
+                        else self.expected_type_slugs[1:]
+                    )
+                    assert response.data == expected_slugs

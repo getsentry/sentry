@@ -61,7 +61,7 @@ class ErrorGroupType(GroupType):
 
 @detector_settings_registry.register(ErrorGroupType.slug)
 class ErrorDetectorSettings(DetectorSettings):
-    excluded_api_operations = frozenset()
+    api_availability = {}
     handler = ErrorDetectorHandler
     validator = ErrorDetectorValidator
     config_schema = {"type": "object", "additionalProperties": False}

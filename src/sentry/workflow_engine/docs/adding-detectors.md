@@ -388,12 +388,12 @@ The group type describes the issue. The detector components live in a
 
 ```python
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import DetectorAPIOperation, DetectorSettings
+from sentry.workflow_engine.types import DetectorAPIOperation, DetectorSettings, FeatureGate
 
 
 @detector_settings_registry.register(ExampleGroupType.slug)
 class ExampleDetectorSettings(DetectorSettings):
-    excluded_api_operations = frozenset()
+    api_availability = {}
     handler = ExampleDetectorHandler
     validator = ExampleDetectorValidator
     config_schema = {
@@ -413,34 +413,50 @@ imported during application startup.
 
 [`DetectorSettings`](../types.py) fields are:
 
-| Field                     | Purpose                                                                 |
-| ------------------------- | ----------------------------------------------------------------------- |
-| `excluded_api_operations` | Required immutable set of `DetectorAPIOperation` exclusions             |
-| `handler`                 | Runtime `DetectorHandler` class                                         |
-| `validator`               | Native detector API validator                                           |
-| `config_schema`           | Save-time JSON schema for `Detector.config`                             |
-| `filter`                  | Optional `Q` filter controlling user-visible detector rows of this type |
+| Field              | Purpose                                                                       |
+| ------------------ | ----------------------------------------------------------------------------- |
+| `api_availability` | Required mapping of `DetectorAPIOperation` to `bool` or `FeatureGate`         |
+| `api_enabled`      | Global `bool` or `FeatureGate` for detector-platform APIs; defaults to `True` |
+| `handler`          | Runtime `DetectorHandler` class                                               |
+| `validator`        | Native detector API validator                                                 |
+| `config_schema`    | Save-time JSON schema for `Detector.config`                                   |
+| `filter`           | Optional `Q` filter controlling user-visible detector rows of this type       |
 
-Every settings class must explicitly define `excluded_api_operations`; the base class
-has no default. Use `frozenset()` to allow every API operation. The supported enum
-members are `LIST`, `GET`, `POST`, `PUT`, and `DELETE`.
+Every settings class must explicitly define `api_availability`; the base class has no
+default. Use `{}` to allow every operation. Missing entries default to `True`. The
+supported enum members are `LIST`, `GET`, `POST`, `PUT`, and `DELETE`.
 
-To omit a type from the organization detector list API, opt out of `LIST`:
+Each gate is either `True`, `False`, or `FeatureGate("organizations:feature-name")`.
+`FeatureGate` checks a registered organization-scoped feature at request time using the
+authorized organization and actor. Feature names remain strings, but raw strings are not
+valid gate values.
+
+To hide a type from the list and its counts without disabling other operations:
 
 ```python
-excluded_api_operations = frozenset({DetectorAPIOperation.LIST})
+api_availability = {DetectorAPIOperation.LIST: False}
 ```
 
-Opting out of `GET` also excludes the type from listing. Exclusions are independent of
-the group type's `released` state and the detector's `enabled` state. The list API filters
-excluded types before pagination and hit counting, including requests that filter by
-detector ID or type.
+For a rollout across all detector-platform APIs, optionally configure `api_enabled`:
 
-Generic detector-platform APIs enforce HTTP-method exclusions through
-`get_excluded_detector_types`, which reads registered settings without fetching detector
-rows. `GET` exclusions also apply to detail retrieval and type discovery. Detector counts
-use the same `LIST` policy as the organization detector list, including its implied `GET`
-exclusions. `LIST` alone does not restrict those other reads.
+```python
+api_enabled = FeatureGate("organizations:example-detector-api")
+api_availability = {
+    DetectorAPIOperation.LIST: FeatureGate("organizations:example-detector-list"),
+    DetectorAPIOperation.DELETE: False,
+}
+```
+
+The global `api_enabled` gate must pass before any operation is available. An operation's
+`True` cannot override a denied global gate. `LIST` additionally requires `GET`, so a denied
+`GET` gate hides a type from both listing and counts even when `LIST` is explicitly allowed.
+
+Generic detector-platform APIs evaluate these gates through `get_excluded_detector_types`,
+which reads registered settings without fetching detector rows. List filtering happens
+before pagination and hit counting, including requests that filter by detector ID or type.
+Counts use the same `LIST` policy. `GET` also controls detail retrieval and type discovery;
+`LIST` alone does not restrict those other reads. Gates are independent of the group type's
+`released` state and the detector's `enabled` state.
 
 Product-specific APIs, such as anomaly-data retrieval, do not inherit these platform API
 exclusions.

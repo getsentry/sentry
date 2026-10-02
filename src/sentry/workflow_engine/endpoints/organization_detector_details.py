@@ -74,6 +74,7 @@ def _check_metric_detector_allowed(detector: Detector, organization: Organizatio
 
 
 
+
 @cell_silo_endpoint
 @extend_schema(tags=["Monitors"])
 class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
@@ -87,7 +88,11 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
             detector = (
                 Detector.objects.by_organization(organization.id)
                 .with_type_filters()
-                .exclude(type__in=get_excluded_detector_types(request.method))
+                .exclude(
+                    type__in=get_excluded_detector_types(
+                        request.method, organization, actor=request.user
+                    )
+                )
                 .select_related("project")
                 .get(id=validated_detector_id)
             )

@@ -151,7 +151,9 @@ def get_detector_validator(
     if type.detector_settings is None or type.detector_settings.validator is None:
         raise ValidationError({"type": ["Detector type not compatible with detectors"]})
 
-    if detector_type_slug in get_excluded_detector_types(request.method):
+    if detector_type_slug in get_excluded_detector_types(
+        request.method, project.organization, actor=request.user
+    ):
         raise ValidationError(
             {"type": [f"Detector type does not support {request.method} requests"]}
         )
@@ -324,7 +326,11 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             return self.respond(status=status.HTTP_401_UNAUTHORIZED)
 
         queryset = self.filter_detectors(request, organization)
-        queryset = queryset.exclude(type__in=get_excluded_detector_types(DetectorAPIOperation.LIST))
+        queryset = queryset.exclude(
+            type__in=get_excluded_detector_types(
+                DetectorAPIOperation.LIST, organization, actor=request.user
+            )
+        )
 
         if detector_types := request.GET.getlist("type"):
             detector_types = [DETECTOR_TYPE_ALIASES.get(value, value) for value in detector_types]
@@ -430,7 +436,11 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         enabled = validator.validated_data.get("enabled", True)
 
         queryset = self.filter_detectors(request, organization)
-        queryset = queryset.exclude(type__in=get_excluded_detector_types(DetectorAPIOperation.PUT))
+        queryset = queryset.exclude(
+            type__in=get_excluded_detector_types(
+                DetectorAPIOperation.PUT, organization, actor=request.user
+            )
+        )
         queryset = exclude_disallowed_metric_detectors(queryset, organization)
         queryset = queryset.exclude(type=IssueStreamGroupType.slug)
 
@@ -560,7 +570,9 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         queryset = self.filter_detectors(request, organization)
         queryset = queryset.exclude(
-            type__in=get_excluded_detector_types(DetectorAPIOperation.DELETE)
+            type__in=get_excluded_detector_types(
+                DetectorAPIOperation.DELETE, organization, actor=request.user
+            )
         )
 
         # If explicitly filtering by IDs and some were not found, return 400

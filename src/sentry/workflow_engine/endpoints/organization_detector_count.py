@@ -73,7 +73,11 @@ class OrganizationDetectorCountEndpoint(OrganizationEndpoint):
                 project__organization_id=organization.id,
                 project_id__in=filter_params["project_id"],
             )
-            .exclude(type__in=get_excluded_detector_types(DetectorAPIOperation.LIST))
+            .exclude(
+                type__in=get_excluded_detector_types(
+                    DetectorAPIOperation.LIST, organization, actor=request.user
+                )
+            )
         )
 
         # Filter by detector types if specified
