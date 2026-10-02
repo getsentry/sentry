@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
+from datetime import datetime
+from datetime import timezone as datetime_timezone
 from typing import Any, cast
 
 from django.utils import timezone
@@ -23,12 +25,10 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
-from sentry.auth.superuser import create_superuser_access, resolve_superuser_access
 from sentry.models.organization import Organization
-from sentry.organizations.services.organization import organization_service
 from sentry.seer import agent_token
 from sentry.seer.endpoints.agent_request import AgentTokenRequestData, AgentTokenRequestSerializer
-from sentry.users.services.user.service import user_service
+from sentry.viewer_context import get_viewer_context
 
 
 class AgentTokenResponseSerializer(serializers.Serializer):
@@ -104,27 +104,24 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
             requested_scopes=requested_scopes,
         )
 
+        viewer = get_viewer_context()
         superuser_access_expires_at = (
-            request.auth.superuser_access_expires_at
-            if request.auth is not None
-            else create_superuser_access(request, organization)
+            viewer.superuser_access_expires_at
+            if viewer is not None
+            and viewer.user_id == user_id
+            and viewer.organization_id == organization.id
+            else None
         )
         ttl = agent_token.DEFAULT_TOKEN_TTL
         if superuser_access_expires_at is not None:
-            users = user_service.get_many(filter={"user_ids": [user_id]})
-            org_context = organization_service.get_organization_by_id(
-                id=organization.id, user_id=user_id
+            scopes = sorted(set(scopes) & agent_token.readonly_scopes())
+            ttl = min(
+                ttl,
+                datetime.fromtimestamp(superuser_access_expires_at, datetime_timezone.utc)
+                - timezone.now(),
             )
-            delegated = (
-                resolve_superuser_access(superuser_access_expires_at, users[0], org_context)
-                if users and org_context is not None
-                else None
-            )
-            if delegated is None:
+            if ttl.total_seconds() <= 0:
                 raise PermissionDenied("Elevated session expired.")
-            allowed_scopes, session_expires_at = delegated
-            scopes = sorted(set(scopes) & allowed_scopes)
-            ttl = min(ttl, session_expires_at - timezone.now())
         token, expires_at = agent_token.encode_agent_token(
             user_id=user_id,
             organization_id=organization.id,
