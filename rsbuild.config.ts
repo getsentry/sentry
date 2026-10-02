@@ -5,6 +5,7 @@ import path from 'node:path';
 
 import {defineConfig} from '@rsbuild/core';
 import type {ProxyOptions, RsbuildConfig} from '@rsbuild/core';
+import {pluginBasicSsl} from '@rsbuild/plugin-basic-ssl';
 import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
 import type {
   Configuration,
@@ -833,7 +834,7 @@ if (IS_UI_DEV_ONLY) {
         key: fs.readFileSync(path.join(certPath, 'localhost-key.pem')),
         cert: fs.readFileSync(path.join(certPath, 'localhost.pem')),
       }
-    : // Will attempt to self sign via the selfsigned package
+    : // Rsbuild's basic SSL plugin generates a certificate when mkcert is absent.
       {};
 
   appConfig.devServer = {
@@ -1039,6 +1040,15 @@ const server = appConfig.devServer || undefined;
 const rsbuildConfig: RsbuildConfig = {
   root: import.meta.dirname,
   mode: WEBPACK_MODE,
+  plugins:
+    IS_UI_DEV_ONLY &&
+    !fs.existsSync(path.join(import.meta.dirname, 'config', 'localhost.pem'))
+      ? [
+          pluginBasicSsl({
+            outputPath: path.join(import.meta.dirname, 'node_modules/.cache/basic-ssl'),
+          }),
+        ]
+      : [],
   dev: {
     assetPrefix:
       typeof appConfig.output?.publicPath === 'string'

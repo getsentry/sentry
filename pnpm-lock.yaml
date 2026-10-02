@@ -567,6 +567,9 @@ importers:
       '@mdx-js/mdx':
         specifier: 3.1.1
         version: 3.1.1
+      '@rsbuild/plugin-basic-ssl':
+        specifier: ^1.2.3
+        version: 1.2.3(@rsbuild/core@2.2.4(core-js@3.45.0))
       '@sentry/jest-environment':
         specifier: 8.0.0
         version: 8.0.0(@jest/environment-jsdom-abstract@30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.1))(@sentry/node@11.0.0)(jest-environment-node@30.5.1)(jest@30.5.1(@types/node@24.13.2)(babel-plugin-macros@3.1.0)(ts-node@10.9.2(@swc/core@1.16.2(@swc/helpers@0.5.23))(@types/node@24.13.2)(@typescript/typescript6@6.0.2)))(jsdom@30.1.1)
@@ -3225,6 +3228,14 @@ packages:
       core-js: '>= 3.0.0'
     peerDependenciesMeta:
       core-js:
+        optional: true
+
+  '@rsbuild/plugin-basic-ssl@1.2.3':
+    resolution: {integrity: sha512-t3sAoDaqMn3EMmP7PBLc2flVf5fTA61cMUXB7vzDwIdTfoftiwJ0+WZhUoFRLGeGYWN6ooq1p2yaOIfooH5Pvg==}
+    peerDependencies:
+      '@rsbuild/core': ^1.0.0 || ^2.0.0-0
+    peerDependenciesMeta:
+      '@rsbuild/core':
         optional: true
 
   '@rsbuild/plugin-check-syntax@1.6.1':
@@ -7677,6 +7688,10 @@ packages:
       encoding:
         optional: true
 
+  node-forge@1.4.0:
+    resolution: {integrity: sha512-LarFH0+6VfriEhqMMcLX2F7SwSXeWwnEAJEsYm5QKWchiVYVvJyV9v7UDvUv+w5HO23ZpQTXDv/GxdDdMyOuoQ==}
+    engines: {node: '>= 6.13.0'}
+
   node-int64@0.4.0:
     resolution: {integrity: sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw==}
 
@@ -8542,6 +8557,10 @@ packages:
   scslre@0.3.0:
     resolution: {integrity: sha512-3A6sD0WYP7+QrjbfNA2FN3FsOaGGFoekCVgTyypy53gPxhbkCIjtO6YWgdrfM+n/8sI8JeXZOIxsHjMTNxQ4nQ==}
     engines: {node: ^14.0.0 || >=16.0.0}
+
+  selfsigned@3.0.1:
+    resolution: {integrity: sha512-6U6w6kSLrM9Zxo0D7mC7QdGS6ZZytMWBnj/vhF9p+dAHx6CwGezuRcO4VclTbrrI7mg7SD6zNiqXUuBHOVopNQ==}
+    engines: {node: '>=10'}
 
   semver@6.3.1:
     resolution: {integrity: sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==}
@@ -11697,6 +11716,12 @@ snapshots:
       core-js: 3.45.0
     transitivePeerDependencies:
       - '@module-federation/runtime-tools'
+
+  '@rsbuild/plugin-basic-ssl@1.2.3(@rsbuild/core@2.2.4(core-js@3.45.0))':
+    dependencies:
+      selfsigned: 3.0.1
+    optionalDependencies:
+      '@rsbuild/core': 2.2.4(core-js@3.45.0)
 
   '@rsbuild/plugin-check-syntax@1.6.1(@rsbuild/core@2.2.4(core-js@3.45.0))':
     dependencies:
@@ -16917,6 +16942,8 @@ snapshots:
     optionalDependencies:
       encoding: 0.1.13
 
+  node-forge@1.4.0: {}
+
   node-int64@0.4.0: {}
 
   node-releases@2.0.55: {}
@@ -18031,6 +18058,10 @@ snapshots:
       '@eslint-community/regexpp': 4.12.2
       refa: 0.12.1
       regexp-ast-analysis: 0.7.1
+
+  selfsigned@3.0.1:
+    dependencies:
+      node-forge: 1.4.0
 
   semver@6.3.1: {}
 
