@@ -503,6 +503,11 @@ class BaseRequestParser(ABC):
             )
 
             if not organization_ids:
+                metrics.incr(
+                    "integrations.webhook.no_organization_integration",
+                    tags={"provider": self.provider},
+                    sample_rate=1.0,
+                )
                 lifecycle.record_halt(
                     halt_reason=MiddlewareHaltReason.ORG_INTEGRATION_DOES_NOT_EXIST
                 )

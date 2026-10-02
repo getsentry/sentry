@@ -12,6 +12,8 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.action_log import action_log_activity_enabled
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.types.activity import ActivityType
+from sentry.utils.action_log.activity_translator import activity_to_action
 
 
 class GroupActionLogEntrySerializerTestCase(TestCase):
@@ -94,18 +96,27 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             organization_id=self.org.id, repository_id=repo.id, key="11111111", message="gemuse"
         )
 
-        entry = self.create_group_action_log_entry(
-            group=group,
-            type=GroupActionType.SET_RESOLVED_IN_COMMIT,
-            actor_type=GroupActorType.USER,
-            actor_id=user.id,
-            data={"commit": commit.id},
-        )
+        for activity_type in (
+            ActivityType.SET_RESOLVED_IN_COMMIT,
+            ActivityType.SET_RESOLVED_IN_RELEASE,
+        ):
+            activity = self.create_group_activity(
+                group=group, type=activity_type.value, data={"commit": commit.id}
+            )
+            action = activity_to_action(activity)
+            assert action is not None
+            entry = self.create_group_action_log_entry(
+                group=group,
+                type=action.get_type(),
+                actor_type=GroupActorType.USER,
+                actor_id=user.id,
+                data=action.dict(),
+            )
 
-        result = serialize([entry], user)[0]["data"]
-        commit_data = result["commit"]
-        assert commit_data["repository"]["name"] == "organization-bar"
-        assert commit_data["message"] == "gemuse"
+            result = serialize([entry], user)[0]["data"]
+            commit_data = result["commit"]
+            assert commit_data["repository"]["name"] == "organization-bar"
+            assert commit_data["message"] == "gemuse"
 
     def test_referenced_in_commit_entry(self) -> None:
         self.org = self.create_organization(name="Rowdy Tiger")
@@ -326,7 +337,7 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         result = serialize(entry, user)
         assert result["data"] == {"issues": [{"id": "2"}, {"id": "3"}]}
 
-    def test_comment_entry_serializes_the_activity_id(self) -> None:
+    def test_comment_entry_serializes_its_own_id_and_comment_reference(self) -> None:
         user = self.create_user()
         group = self.create_group(status=GroupStatus.UNRESOLVED)
 
@@ -340,7 +351,7 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         )
 
         result = serialize(entry, user)
-        assert result["id"] == "123"
+        assert result["id"] == "456"
         assert result["commentId"] == "123"
         assert result["type"] == "note"
 
@@ -386,7 +397,7 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         items = self._activity_items()
 
         assert [item["type"] for item in items] == ["note", "first_seen"]
-        assert items[0]["id"] == "123"
+        assert items[0]["id"] == str(comment.id)
         assert items[0]["commentId"] == "123"
         assert items[0]["data"]["text"] == "edited"
         assert items[1]["id"] == "0"
@@ -415,7 +426,7 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         assert [item["id"] for item in items] == [
             str(newer_action.id),
             str(older_action.id),
-            "123",
+            str(comment.id),
             "0",
         ]
         assert items[:2] == before[:2]
@@ -441,7 +452,7 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             str(newest_action.id),
             str(newer_action.id),
             str(older_action.id),
-            "123",
+            str(comment.id),
             "0",
         ]
         assert items[3]["data"]["text"] == "edited"
@@ -465,12 +476,13 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
 
         assert [call.args[1] for call in fetch.call_args_list] == [3, 6, 12, 24]
         assert [item["type"] for item in items] == ["note", "first_seen"]
-        assert items[0]["id"] == "123"
+        assert items[0]["id"] == str(kept.id)
         assert items[0]["data"]["text"] == "edited"
 
     def test_full_page_without_mutations_needs_only_one_fetch(self) -> None:
-        self._comment(123, "comment")
-        self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
+        action = self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
+        # A comment reference can match another action's id without colliding in the feed.
+        comment = self._comment(action.id, "comment")
 
         with patch.object(
             GroupActionLogEntry.objects,
@@ -480,7 +492,9 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             items = self._activity_items(limit=2)
 
         fetch.assert_called_once_with(self.group, 2)
-        assert [item["type"] for item in items] == ["set_resolved", "note", "first_seen"]
+        assert [item["type"] for item in items] == ["note", "set_resolved", "first_seen"]
+        assert [item["id"] for item in items] == [str(comment.id), str(action.id), "0"]
+        assert items[0]["commentId"] == str(action.id)
 
     def test_deleted_comment_is_replaced_by_older_action(self) -> None:
         oldest_action = self.create_group_action_log_entry(type=GroupActionType.RESOLVE)
@@ -501,25 +515,25 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         assert items[-1]["type"] == "first_seen"
 
     def test_deleted_comment_is_replaced_by_older_comment(self) -> None:
-        self._comment(123, "oldest")
-        self._comment(456, "middle")
+        oldest = self._comment(123, "oldest")
+        middle = self._comment(456, "middle")
         deleted = self._comment(789, "newest")
         self._comment_mutation(GroupActionType.COMMENT_DELETE, deleted)
 
         items = self._activity_items(limit=2)
 
-        assert [item["id"] for item in items] == ["456", "123", "0"]
+        assert [item["id"] for item in items] == [str(middle.id), str(oldest.id), "0"]
 
     def test_comment_history_is_truncated_after_folding(self) -> None:
         oldest = self._comment(123, "oldest")
-        self._comment(456, "middle")
+        middle = self._comment(456, "middle")
         newest = self._comment(789, "newest")
         self._comment_mutation(GroupActionType.COMMENT_EDIT, newest, text="edited")
         self._comment_mutation(GroupActionType.COMMENT_EDIT, oldest, text="still outside the page")
 
         items = self._activity_items(limit=2)
 
-        assert [item["id"] for item in items] == ["789", "456", "0"]
+        assert [item["id"] for item in items] == [str(newest.id), str(middle.id), "0"]
         assert items[0]["data"]["text"] == "edited"
         assert items[-1]["type"] == "first_seen"
 
@@ -558,7 +572,7 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
         assert [item["type"] for item in items] == ["first_seen"]
 
     def test_only_the_named_comment_is_folded(self) -> None:
-        self._comment(123, "untouched")
+        untouched = self._comment(123, "untouched")
         edited = self._comment(456, "original")
         self._comment_mutation(GroupActionType.COMMENT_EDIT, edited, text="edited")
         deleted = self._comment(789, "doomed")
@@ -578,9 +592,9 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
             "note",
             "first_seen",
         ]
-        assert items[1]["id"] == "456"
+        assert items[1]["id"] == str(edited.id)
         assert items[1]["data"]["text"] == "edited"
-        assert items[2]["id"] == "123"
+        assert items[2]["id"] == str(untouched.id)
         assert items[2]["data"]["text"] == "untouched"
 
     def test_comment_mutations_are_dropped_without_their_comment(self) -> None:

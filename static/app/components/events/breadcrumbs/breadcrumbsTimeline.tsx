@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {useVirtualizer} from '@tanstack/react-virtual';
 import moment from 'moment-timezone';
 
 import {useTimezone} from '@sentry/scraps/datetime';
@@ -14,6 +13,7 @@ import {Duration} from 'sentry/components/duration';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {BreadcrumbItemContent} from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
 import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {Timeline} from 'sentry/components/timeline';
 import {t} from 'sentry/locale';
 import {isValidDate} from 'sentry/utils/date/isValidDate';
@@ -24,27 +24,29 @@ function BreadcrumbTimestampTooltipBody({timestamp}: {timestamp: Date}) {
   const isUTCLocalTimezone = currentTimezone === 'UTC';
 
   return (
-    <DescriptionList>
-      <DescriptionList.Term>{t('Occurred')}</DescriptionList.Term>
-      <DescriptionList.Details>
-        <TimestampValues>
-          <DateTime date={timestamp} seconds milliseconds timeZone />
-          {!isUTCLocalTimezone && (
-            <DateTime date={timestamp} seconds milliseconds timeZone utc />
-          )}
-        </TimestampValues>
-      </DescriptionList.Details>
-      {isUTCLocalTimezone && (
-        <Fragment>
-          <DescriptionList.Term />
-          <DescriptionList.Details>
-            <TimezoneLink to="/settings/account/details/#timezone">
-              {t('Add your local timezone')}
-            </TimezoneLink>
-          </DescriptionList.Details>
-        </Fragment>
-      )}
-    </DescriptionList>
+    <Tooltip.Grid>
+      <DescriptionList terms="strong">
+        <DescriptionList.Term>{t('Occurred')}</DescriptionList.Term>
+        <DescriptionList.Details>
+          <TimestampValues>
+            <DateTime date={timestamp} seconds milliseconds timeZone />
+            {!isUTCLocalTimezone && (
+              <DateTime date={timestamp} seconds milliseconds timeZone utc />
+            )}
+          </TimestampValues>
+        </DescriptionList.Details>
+        {isUTCLocalTimezone && (
+          <Fragment>
+            <DescriptionList.Term />
+            <DescriptionList.Details>
+              <TimezoneLink to="/settings/account/details/#timezone">
+                {t('Add your local timezone')}
+              </TimezoneLink>
+            </DescriptionList.Details>
+          </Fragment>
+        )}
+      </DescriptionList>
+    </Tooltip.Grid>
   );
 }
 
@@ -88,7 +90,7 @@ export function BreadcrumbsTimeline({
   fullyExpanded = true,
   showLastLine = false,
 }: BreadcrumbsTimelineProps) {
-  const virtualizer = useVirtualizer({
+  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
     count: breadcrumbs.length,
     getScrollElement: () => containerElement,
     estimateSize: () => 35,
@@ -101,7 +103,6 @@ export function BreadcrumbsTimeline({
     return null;
   }
 
-  const virtualItems = virtualizer.getVirtualItems();
   const items = virtualItems.map(virtualizedRow => {
     const {breadcrumb, raw, title, meta, iconComponent, colorConfig, levelComponent} =
       breadcrumbs[virtualizedRow.index]!;
@@ -166,7 +167,7 @@ export function BreadcrumbsTimeline({
   return (
     <div
       style={{
-        height: virtualizer.getTotalSize(),
+        height: totalSize,
         position: 'relative',
       }}
     >

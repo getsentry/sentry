@@ -69,6 +69,7 @@ export function VisualizeEquation({
       numberTags={numberTags}
       stringTags={stringTags}
       booleanTags={booleanTags}
+      menuPresentation={hasConditionalAggregates ? 'panel' : undefined}
     />
   );
 

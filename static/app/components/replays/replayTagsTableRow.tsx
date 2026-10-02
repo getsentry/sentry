@@ -6,6 +6,7 @@ import type {LocationDescriptor} from 'history';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -123,11 +124,14 @@ export function ReplayTagsTableRow({name, values, generateUrl}: Props) {
           <ValueContainer>
             <StyledTooltip
               disabled={releaseKeys.includes(name)}
-              overlayStyle={
-                expandedViewKeys.includes(name) ? {textAlign: 'left'} : undefined
-              }
               title={
-                expandedViewKeys.includes(name) ? renderValueList(values) : renderTagValue
+                expandedViewKeys.includes(name) ? (
+                  <Text as="div" align="left">
+                    {renderValueList(values)}
+                  </Text>
+                ) : (
+                  renderTagValue
+                )
               }
               showOnlyOnOverflow
             >

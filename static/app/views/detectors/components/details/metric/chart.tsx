@@ -151,11 +151,15 @@ function createTriggerIntervalMarkerData({
 }
 
 function createOpenPeriodMarkerData({
+  chartEndTimestampMs,
   period,
 }: {
+  chartEndTimestampMs: number | undefined;
   period: GroupOpenPeriod;
 }): IncidentPeriod[] {
-  const endDate = period.end ? new Date(period.end).getTime() : Date.now();
+  const endDate = period.end
+    ? new Date(period.end).getTime()
+    : (chartEndTimestampMs ?? Date.now());
 
   const segments = period.activities
     .filter(activity => activity.type !== 'closed')
@@ -249,6 +253,10 @@ export function useMetricDetectorChart({
     options: {enabled},
   });
 
+  const chartSeries = useMemo(
+    () => shiftSeriesToBucketEnd(series, snubaQuery.timeWindow),
+    [series, snubaQuery.timeWindow]
+  );
   const metricTimestamps = useMetricTimestamps(series);
 
   const {maxValue: thresholdMaxValue, additionalSeries: thresholdAdditionalSeries} =
@@ -273,14 +281,25 @@ export function useMetricDetectorChart({
   });
 
   const incidentPeriods = useMemo(() => {
+    const lastChartTimestamp = chartSeries[0]?.data.at(-1)?.name;
+    let chartEndTimestampMs: number | undefined;
+    if (lastChartTimestamp !== undefined) {
+      chartEndTimestampMs =
+        typeof lastChartTimestamp === 'number'
+          ? lastChartTimestamp
+          : new Date(lastChartTimestamp).getTime();
+    } else if (end) {
+      chartEndTimestampMs = new Date(end).getTime();
+    }
+
     return openPeriods.flatMap<IncidentPeriod>(period => [
       createTriggerIntervalMarkerData({
         period,
         intervalMs: snubaQuery.timeWindow * 1000,
       }),
-      ...createOpenPeriodMarkerData({period}),
+      ...createOpenPeriodMarkerData({chartEndTimestampMs, period}),
     ]);
-  }, [openPeriods, snubaQuery.timeWindow]);
+  }, [chartSeries, end, openPeriods, snubaQuery.timeWindow]);
 
   const openPeriodMarkerResult = useIncidentMarkers({
     incidents: incidentPeriods,
@@ -423,7 +442,7 @@ export function useMetricDetectorChart({
       showTimeInTooltip: true,
       height,
       stacked: false,
-      series: shiftSeriesToBucketEnd(series, snubaQuery.timeWindow),
+      series: chartSeries,
       additionalSeries,
       yAxes: yAxes.length > 1 ? yAxes : undefined,
       yAxis: yAxes.length === 1 ? yAxes[0] : undefined,
@@ -498,6 +517,7 @@ export function useMetricDetectorChart({
     additionalSeries,
     aggregate,
     aggregateSummary,
+    chartSeries,
     chartZoomProps,
     detectionType,
     error,
@@ -507,7 +527,6 @@ export function useMetricDetectorChart({
     openPeriodMarkerResult,
     query,
     renderToString,
-    series,
     serverOutputType,
     snubaQuery.timeWindow,
     unit,

@@ -9,6 +9,9 @@ from django.utils.http import urlencode
 from sentry.utils import json
 from sentry.utils.strings import truncatechars
 
+logger = logging.getLogger(__name__)
+
+
 PathSearchable = Union[Mapping[str, Any], Sequence[Any], None]
 
 P = ParamSpec("P")
@@ -87,6 +90,338 @@ def trim(
         result = value
 
     return result
+
+
+def strict_trim(
+    value: Any,
+    max_bytes: int = settings.SENTRY_MAX_VARIABLE_SIZE,
+    max_recursion_depth: int = 6,
+    treat_as_dict_entries: bool = False,
+) -> Any:
+    """
+    Recursively trim a value so that the end result, once JSONified and ASCII-encoded, is at or
+    below the given maximum byte size.
+
+    Any values nested more deeply than `max_recursion_depth` will be stringified whole.
+
+    Values nested inside of a list, tuple, or dictionary which end up trimmed all the way down to
+    nothing are omitted entirely, rather than being included as empty values. This applies
+    recursively, so for example:
+        original value:                                             [["dogs"], ["are great"]]
+    Assuming a limit too small for `[["dogs"], ["a..."]]`:
+        naively trimmed value:                                      [["dogs"], [""]]
+        value after omitting empty string:                          [["dogs"], []]
+        final value, after omitting the now-empty second list:      [["dogs"]]
+    This does not apply to values which start out empty, however - those are kept as is.
+
+    Relatedly, no string is ever trimmed to a bare "...", since that carries no more of the original
+    value than "" does. If there's no room for at least one character of the original alongside the
+    ellipsis, the result is the empty string, and is therefore subject to the omission described
+    above.
+
+    Finally, setting `treat_as_dict_entries` to True marks the given value as a flattened dict - a
+    sequence of key-value pairs - rather than a list of unrelated elements. Each pair is then
+    trimmed the way a dictionary entry would be, which prevents the two ways a naively trimmed pair
+    can misrepresent the original data:
+        original value:                            [["dog", "maisey"], ["cat", "piper"]]
+        naively trimmed, no room for the value:    [["dog", "maisey"], ["cat"]]
+        naively trimmed, no room for the key:      [["dog", "maisey"], ["c..."]]
+        final value, trimmed as dict entries:      [["dog", "maisey"]]
+    In other words, a pair's key is never truncated, and unless there's room for that whole key
+    alongside at least one character of its value, the pair is left out entirely.
+
+    This applies only to the pairs themselves - values nested inside of them are trimmed normally -
+    and only at the top level of the given value, rather than to any pair-shaped list found at any
+    depth. Entries which aren't a list or tuple of exactly two elements are skipped.
+
+    Compared to `trim`, this implementation is stricter in three ways:
+        - it includes key size when trimming dictionaries, which the original does not,
+        - it never exceeds the given limit, whereas the original keeps the first item to push it
+          over the limit, and
+        - it trims based on the eventual ASCII-encoded and JSONified length, which in the case of
+          non-ASCII characters can far exceed its Python string length.
+    """
+    trimmed, _ = _strict_trim_inner(
+        value,
+        incoming_budget=max_bytes,
+        max_recursion_depth=max_recursion_depth,
+        current_depth=0,
+        treat_as_dict_entries=treat_as_dict_entries,
+    )
+    return trimmed
+
+
+def get_json_bytes(value: Any) -> int:
+    # Force the encoding before taking the length so that characters and bytes are 1-to-1. (For
+    # ASCII characters they always are, but non-ASCII characters can take 4, 8, or even more bytes
+    # to represent.)
+    return len(json.dumps(value).encode("utf-8"))
+
+
+def _strict_trim_inner(
+    value_to_trim: Any,
+    incoming_budget: int,
+    max_recursion_depth: int,
+    current_depth: int,
+    treat_as_dict_entries: bool = False,
+) -> tuple[Any, int]:
+    current_budget = incoming_budget
+
+    # Note that `treat_as_dict_entries` is deliberately not included here, because it describes the
+    # full value passed to `strict_trim`, not the values nested inside of it, so shouldn't be passed
+    # down recursively
+    options = {
+        "max_recursion_depth": max_recursion_depth,
+        "current_depth": current_depth + 1,
+    }
+
+    # If we've gone as deep as we're going to go, just stringify whatever's left before continuing
+    if current_depth > max_recursion_depth and not isinstance(value_to_trim, str):
+        value_to_trim = json.dumps(value_to_trim)
+
+    if isinstance(value_to_trim, dict):
+        result: Any = {}
+        current_budget -= 2  # 2 for the outer `{}`
+
+        sort_by_entry_size = lambda key: (
+            # Doing string length here is less exact than jsonsifying, because it doesn't
+            # encode/escape anything, but since it's just for comparison, it's fine to use the
+            # faster string cast
+            len(str(key)) + len(str(value_to_trim[key])),
+            str(key),
+        )
+        sorted_keys = sorted(value_to_trim.keys(), key=sort_by_entry_size)
+
+        for key in sorted_keys:
+            # Comma between this pair and the previously added one (if any)
+            punctuation_size = 1 if result else 0
+            # Quotes added to non-string keys when jsonified
+            punctuation_size += 2 if not isinstance(key, str) else 0
+            # Colon between key and value
+            punctuation_size += 1
+
+            trimmed_value, full_pair_size = _trim_key_value_pair(
+                key, value_to_trim[key], punctuation_size, current_budget, **options
+            )
+
+            if full_pair_size == 0:  # The helper ran out of room
+                break
+
+            result[key] = trimmed_value
+            current_budget -= full_pair_size
+
+    elif isinstance(value_to_trim, (list, tuple)):
+        # Use a list to collect trimmed values, regardless of `value_to_trim`'s type, since tuples
+        # are immutatble. If `value_to_trim` is in fact a tuple, we'll convert it back after we're
+        # done adding elements to it.
+        result = []
+        malformed_entries = []  # Only applies to dict-entries mode
+        current_budget -= 2  # 2 for the outer `()` or `[]`
+
+        for element in value_to_trim:
+            # Comma between this pair and the previously added one (if any)
+            punctuation_size = 1 if result else 0
+
+            # In dict-entries mode, we assume the elements are key-value pairs and apply stricter
+            # rules (never trim key, only include pair if at least part of the value fits)
+            if treat_as_dict_entries:
+                # Skip malformed key-value pairs
+                if not isinstance(element, (list, tuple)) or len(element) != 2:
+                    malformed_entries.append(element)
+                    continue
+
+                # The pair's parens/brackets (2 chars) and the comma between key and value (1 char)
+                punctuation_size += 3
+
+                key, raw_value = element
+                trimmed_value, full_pair_size = _trim_key_value_pair(
+                    key, raw_value, punctuation_size, current_budget, **options
+                )
+
+                trimmed_element = (
+                    [key, trimmed_value] if isinstance(element, list) else (key, trimmed_value)
+                )
+                full_element_size = full_pair_size
+            # Default list/tuple-handling behavior (no restriction on trimming and/or dropping
+            # nested values)
+            else:
+                trimmed_element, full_element_size = _trim_single_element(
+                    element, punctuation_size, current_budget, **options
+                )
+
+            if full_element_size == 0:  # The helper ran out of room
+                break
+
+            result.append(trimmed_element)
+            current_budget -= full_element_size
+
+        # Both tuples and lists produce a list result; convert back to a tuple if that's what we
+        # originally had
+        if isinstance(value_to_trim, tuple):
+            result = tuple(result)
+
+        if malformed_entries:
+            logger.error("`strict_trim` option `treat_as_dict_entries` used with invalid entries")
+
+    elif isinstance(value_to_trim, str):
+        # Trim the string to something which jsonifies within our budget. (Because jsonifying also
+        # escapes and encodes, the jsonified version of a string can end up longer - in some cases
+        # much longer - than the string itself.)
+        result = _trim_to_json_size(value_to_trim, current_budget)
+        current_budget -= get_json_bytes(result)
+
+    else:
+        result = value_to_trim
+        current_budget -= get_json_bytes(result)
+
+    # We can derive `result`'s size by seeing how much of the budget we used up
+    current_value_size = incoming_budget - current_budget
+    return (result, current_value_size)
+
+
+def _trim_single_element(
+    element: Any,
+    punctuation_size: int,
+    current_budget: int,
+    max_recursion_depth: int,
+    current_depth: int,
+) -> tuple[Any, int]:
+    """
+    Trim a sequence element to fit the remaining budget.
+
+    Returns the trimmed element, along with its total size, including punctuation. If total size
+    exceeds the current budget, or if trimming would remove all of the element's contents, a total
+    size of 0 is returned instead, so we know not to add the element (or any others after it) to the
+    final result.
+    """
+    trimmed_element, trimmed_element_size = _strict_trim_inner(
+        element,
+        incoming_budget=current_budget - punctuation_size,
+        max_recursion_depth=max_recursion_depth,
+        current_depth=current_depth,
+    )
+    full_element_size = trimmed_element_size + punctuation_size
+
+    if full_element_size > current_budget or _was_emptied_by_trimming(element, trimmed_element):
+        full_element_size = 0  # Signal to the caller to stop
+
+    return (trimmed_element, full_element_size)
+
+
+def _trim_key_value_pair(
+    key: Any,
+    orig_value: Any,
+    punctuation_size: int,
+    current_budget: int,
+    max_recursion_depth: int,
+    current_depth: int,
+) -> tuple[Any, int]:
+    """
+    Trim the value of a key-value pair to fit the remaining budget.
+
+    Used both for dictionary entries and for entries in a list of key-value pairs. Because the two
+    shapes punctuate their entries differently, the caller is the one to supply the total size of
+    the punctuation for the pair.
+
+    The key is never trimmed, and the caller already has it, so returns just the trimmed value,
+    along with the total size of the pair, including punctuation. If total pair size exceeds the
+    current budget, or if trimming would remove all of the value's contents, a total pair size of 0
+    is returned instead, so we know not to add the pair (or any others after it) to the final
+    result.
+    """
+    key_size = get_json_bytes(key)
+    key_and_punctuation_size = key_size + punctuation_size
+    value_budget = current_budget - key_and_punctuation_size
+
+    if value_budget <= 0:
+        return (None, 0)  # Signal the caller to stop
+
+    trimmed_value, trimmed_value_size = _strict_trim_inner(
+        orig_value,
+        incoming_budget=value_budget,
+        max_recursion_depth=max_recursion_depth,
+        current_depth=current_depth,
+    )
+    full_pair_size = key_and_punctuation_size + trimmed_value_size
+
+    if full_pair_size > current_budget or _was_emptied_by_trimming(orig_value, trimmed_value):
+        full_pair_size = 0  # Signal the caller to stop
+
+    return (trimmed_value, full_pair_size)
+
+
+def _is_empty_string_or_collection(value: Any) -> bool:
+    return isinstance(value, (str, list, tuple, dict)) and len(value) == 0
+
+
+def _was_emptied_by_trimming(orig_value: Any, trimmed_value: Any) -> bool:
+    """
+    Determine whether trimming reduced a non-empty string or collection to an empty one.
+
+    This happens when there's just enough budget left to represent a value's container (its quotes,
+    brackets, or parentheses) but not any of its contents, at which point there's no point in
+    including the value in the trimmed result, since it carries no information.
+    """
+    # It can't have *become* empty if it started out that way
+    if _is_empty_string_or_collection(orig_value):
+        return False
+
+    return _is_empty_string_or_collection(trimmed_value)
+
+
+def _trim_to_json_size(string_to_trim: str, max_json_bytes: int) -> str:
+    """
+    Trim the given string, if necessary, such that when JSONified, it's no longer than the given max
+    length.
+
+    Any trimmed result ends in "...", and always includes at least one character of the original
+    string. If there isn't room for both, the empty string is returned instead, since a bare "..."
+    carries no more of the original value than "" does, at two and a half times the size.
+    """
+    if not string_to_trim:
+        return ""
+
+    # Handle the easy case, where the string is already short enough
+    if get_json_bytes(string_to_trim) <= max_json_bytes:
+        return string_to_trim
+
+    # Also handle the degenerate trimming case, where there's not enough room for at least one
+    # character of the original string alongside the trailing "...". (Non-ASCII characters require
+    # multiple bytes to express, so this limit depends on what we have.)
+    shortest_valid_result = string_to_trim[0] + "..."
+    if max_json_bytes < get_json_bytes(shortest_valid_result):
+        return ""
+
+    # Now that we know we're going to have to trim, account for the "..." we'll add at the end
+    max_json_bytes -= 3
+
+    # Start by getting rid of the part we know we can't use - even with nothing but ASCII
+    # characters, we'll never drop below one byte per character
+    if len(string_to_trim) > max_json_bytes:
+        string_to_trim = string_to_trim[:max_json_bytes]
+
+    # Try jsonifying again, in case that was enough to get us under the limit
+    if get_json_bytes(string_to_trim) <= max_json_bytes:
+        return string_to_trim + "..."
+
+    # Run a binary search to find the longest substring we can use
+    lower_boundary = 0
+    upper_boundary = len(string_to_trim)
+    longest_okay_slice = ""
+
+    while lower_boundary <= upper_boundary:
+        slice_point = (lower_boundary + upper_boundary) // 2
+        sliced = string_to_trim[:slice_point]
+
+        # Our result can be at least this long - try going higher
+        if get_json_bytes(sliced) <= max_json_bytes:
+            longest_okay_slice = sliced
+            lower_boundary = slice_point + 1
+        # Too long - try a shorter slice
+        else:
+            upper_boundary = slice_point - 1
+
+    return longest_okay_slice + "..."
 
 
 def get_path(data: PathSearchable, *path, should_log=False, **kwargs):

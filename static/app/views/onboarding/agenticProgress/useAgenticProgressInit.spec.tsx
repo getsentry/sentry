@@ -1,14 +1,17 @@
 import {AgenticProgressRunFixture} from 'sentry-fixture/agenticProgressRun';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {RequestOptions} from 'sentry/api';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 
-import {useAgenticProgressInit} from './useAgenticProgressInit';
+import {
+  useOnboardingAgenticProgressInit,
+  useRestartAgenticRun,
+} from './useAgenticProgressInit';
 
-describe('useAgenticProgressInit', () => {
+describe('useOnboardingAgenticProgressInit', () => {
   const organization = OrganizationFixture();
   const endpoint = `/organizations/${organization.slug}/onboarding/agent/runs/`;
 
@@ -24,7 +27,7 @@ describe('useAgenticProgressInit', () => {
       body: AgenticProgressRunFixture(),
     });
 
-    renderHookWithProviders(() => useAgenticProgressInit({enabled: false}), {
+    renderHookWithProviders(() => useOnboardingAgenticProgressInit({enabled: false}), {
       organization,
     });
 
@@ -40,7 +43,7 @@ describe('useAgenticProgressInit', () => {
     });
 
     const {result, rerender} = renderHookWithProviders(
-      () => useAgenticProgressInit({enabled: true}),
+      () => useOnboardingAgenticProgressInit({enabled: true}),
       {organization}
     );
 
@@ -65,7 +68,7 @@ describe('useAgenticProgressInit', () => {
     };
 
     const firstRender = renderHookWithProviders(
-      () => useAgenticProgressInit({enabled: true}),
+      () => useOnboardingAgenticProgressInit({enabled: true}),
       options
     );
 
@@ -83,7 +86,7 @@ describe('useAgenticProgressInit', () => {
     firstRender.unmount();
 
     const secondRender = renderHookWithProviders(
-      () => useAgenticProgressInit({enabled: true}),
+      () => useOnboardingAgenticProgressInit({enabled: true}),
       options
     );
 
@@ -129,7 +132,7 @@ describe('useAgenticProgressInit', () => {
     );
 
     const {result} = renderHookWithProviders(
-      () => useAgenticProgressInit({enabled: true}),
+      () => useOnboardingAgenticProgressInit({enabled: true}),
       {organization, additionalWrapper: OnboardingContextProvider}
     );
 
@@ -155,5 +158,43 @@ describe('useAgenticProgressInit', () => {
         })
       )
     );
+  });
+
+  it('persists a fresh run on restart while preserving other onboarding choices', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: endpoint,
+      method: 'POST',
+      body: (_url: string, options: RequestOptions) =>
+        AgenticProgressRunFixture(options.data),
+    });
+    const selectedPlatform = {key: 'javascript-react', name: 'React'};
+    sessionStorage.setItem('onboarding', JSON.stringify({selectedPlatform}));
+
+    const {result} = renderHookWithProviders(
+      () => ({
+        initialization: useOnboardingAgenticProgressInit({enabled: true}),
+        restartRun: useRestartAgenticRun(),
+      }),
+      {organization, additionalWrapper: OnboardingContextProvider}
+    );
+
+    await waitFor(() => expect(result.current.initialization.isSuccess).toBe(true));
+    const originalSession = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
+
+    act(() => result.current.restartRun());
+
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
+    const nextSession = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
+    expect(nextSession.selectedPlatform).toEqual(selectedPlatform);
+    expect(nextSession.agenticProgressClientRunId).not.toBe(
+      originalSession.agenticProgressClientRunId
+    );
+    expect(nextSession.agenticProgressOnboardingCode).not.toBe(
+      originalSession.agenticProgressOnboardingCode
+    );
+    expect(request.mock.calls[1]?.[1]?.data).toEqual({
+      clientRunId: nextSession.agenticProgressClientRunId,
+      onboardingCode: nextSession.agenticProgressOnboardingCode,
+    });
   });
 });

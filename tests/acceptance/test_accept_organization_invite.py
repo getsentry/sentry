@@ -1,11 +1,17 @@
+from django.conf import settings
 from django.db.models import F
-from django.test import override_settings
-from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.support.wait import WebDriverWait
 
-from sentry.models.authprovider import AuthProvider
+from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.organization import Organization
 from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import no_silo_test
+from sentry.users.models.user import User
+from sentry.utils.otp import TOTP
+
+PASSWORD = "correct-password"
 
 
 # When we want to set this @cell_silo_test, we'll need to configure regions in order for invites to work.
@@ -25,158 +31,186 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
             teams=[self.team],
         )
 
-    def _sign_in_user(self, email: str, password: str) -> None:
-        """
-        Helper method to sign in a user with given email and password.
-        """
-        self.browser.find_element(By.ID, "id_username").send_keys(email)
-        self.browser.find_element(By.ID, "id_password").send_keys(password)
-        self.browser.find_element(By.XPATH, "//button[contains(text(), 'Sign In')]").click()
+    def open_invite(self) -> str:
+        invite_path = self.member.get_invite_link().split("/", 3)[-1]
+        self.browser.get(invite_path)
+        self.browser.wait_until(xpath="//h1[normalize-space(.)='Accept Invitation']")
+        return f"/{invite_path}"
 
-    def test_invite_simple(self) -> None:
-        self.login_as(self.user)
-        self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
-        self.browser.wait_until('[data-test-id="accept-invite"]')
-        assert self.browser.element_exists('[data-test-id="join-organization"]')
+    def create_login_user(self) -> User:
+        user = self.create_user(self.member.email)
+        user.set_password(PASSWORD)
+        user.save()
+        return user
 
-    def test_invite_not_authenticated(self) -> None:
-        self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
-        self.browser.wait_until('[data-test-id="accept-invite"]')
-        assert self.browser.element_exists('[data-test-id="create-account"]')
+    def sign_in(self, user: User) -> None:
+        self.browser.click_when_visible(xpath="//button[normalize-space(.)='Sign in']")
+        self.browser.element('[aria-label="Email"]').send_keys(user.email)
+        self.browser.element('[aria-label="Password"]').send_keys(PASSWORD)
+        self.browser.click_when_visible(xpath="//button[normalize-space(.)='Log in to Sentry']")
 
-    def test_invite_2fa_enforced_org(self) -> None:
-        self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
-        self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
-        self.browser.wait_until('[data-test-id="accept-invite"]')
-        assert not self.browser.element_exists_by_test_id("2fa-warning")
+    def complete_dummy_sso(self, email: str) -> None:
+        csrf_cookie = self.browser.driver.get_cookie(settings.CSRF_COOKIE_NAME)
+        assert csrf_cookie is not None
 
-        self.login_as(self.user)
-        self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
-        self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
-        self.browser.wait_until('[data-test-id="accept-invite"]')
-        assert self.browser.element_exists_by_test_id("2fa-warning")
-
-    def test_invite_sso_org(self) -> None:
-        AuthProvider.objects.create(organization_id=self.org.id, provider="google")
-        self.browser.get(self.member.get_invite_link().split("/", 3)[-1])
-        self.browser.wait_until('[data-test-id="accept-invite"]')
-        assert self.browser.element_exists_by_test_id("action-info-sso")
-        assert self.browser.element_exists('[data-test-id="sso-login"]')
-
-    @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
-    def test_authenticated_user_already_member_of_an_org_accept_invite_other_org(self) -> None:
-        """
-        Test that an authenticated user already part of an organization can accept an invite to another organization.
-        """
-
-        # Setup: Create a second user and make them a member of an organization
-        email = "dummy@example.com"
-        password = "dummy"
-        user2 = self.create_user(email=email)
-        user2.set_password(password)
-        user2.save()
-        self.create_organization(name="Second Org", owner=user2)
-
-        # Action: Invite User2 to the first organization
-        new_member = self.create_member(
-            user=None,
-            email=user2.email,
-            organization=self.org,
-            role="owner",
-            teams=[self.team],
-        )
-
-        self.login_as(user2)
-
-        # Simulate the user accessing the invite link
-        self.browser.get(new_member.get_invite_link().split("/", 3)[-1])
-        self.browser.wait_until('[data-test-id="accept-invite"]')
-
-        self.browser.click('button[data-test-id="join-organization"]')
-        assert self.browser.wait_until('[aria-label="Create project"]')
-
-    @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
-    def test_not_authenticated_user_already_member_of_an_org_accept_invite_other_org(self) -> None:
-        """
-        Test that a not authenticated user already part of an organization can accept an invite to another organization.
-        """
-
-        # Setup: Create a second user and make them a member of an organization
-        email = "dummy@example.com"
-        password = "dummy"
-        user2 = self.create_user(email=email)
-        user2.set_password(password)
-        user2.save()
-        self.create_organization(name="Second Org", owner=user2)
-
-        # Action: Invite User2 to the first organization
-        new_member = self.create_member(
-            user=None,
-            email=user2.email,
-            organization=self.org,
-            role="member",
-            teams=[self.team],
-        )
-
-        # Simulate the user accessing the invite link
-        self.browser.get(new_member.get_invite_link().split("/", 3)[-1])
-        self.browser.wait_until('[data-test-id="accept-invite"]')
-
-        # Choose to login with existing account
-        self.browser.click('a[data-test-id="link-with-existing"]')
-        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-
-        # Handle form validation: Prevent default invalid event blocking
         self.browser.driver.execute_script(
-            "document.addEventListener('invalid', function(e) { e.preventDefault(); }, true);"
+            """
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '/auth/sso/';
+
+            const input = document.createElement('input');
+            input.name = 'email';
+            input.value = arguments[0];
+            form.appendChild(input);
+
+            const csrfInput = document.createElement('input');
+            csrfInput.name = 'csrfmiddlewaretoken';
+            csrfInput.value = arguments[1];
+            form.appendChild(csrfInput);
+
+            document.body.appendChild(form);
+            form.submit();
+            """,
+            email,
+            csrf_cookie["value"],
         )
 
-        # Login
-        self._sign_in_user(email, password)
-        self.browser.wait_until('[data-test-id="join-organization"]')
-
-        # Display the acceptance view for the invitation to join a new organization
-        assert self.browser.element_exists(f"[aria-label='Join the {self.org.slug} organization']")
-
-    @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
-    def test_existing_user_invite_2fa_enforced_org(self) -> None:
-        """
-        Test that a user who has an existing Sentry account can accept an invite to another organization
-        and is required to go through the 2FA configuration view.
-        """
-        self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
-        # Setup: Create a second user and make them a member of an organization
-        email = "dummy@example.com"
-        password = "dummy"
-        user2 = self.create_user(email=email)
-        user2.set_password(password)
-        user2.save()
-        self.create_organization(name="Second Org", owner=user2)
-
-        # Action: Invite User2 to the first organization
-        new_member = self.create_member(
-            user=None,
-            email=user2.email,
-            organization=self.org,
-            role="owner",
-            teams=[self.team],
+    def accept_invitation(self, invite_path: str, user: User) -> None:
+        self.assert_invite_pending()
+        assert self.browser.driver.execute_script("return window.location.pathname") == invite_path
+        self.browser.wait_until(xpath=f"//*[normalize-space(.)='{user.email}']")
+        self.browser.click_when_visible(xpath="//button[normalize-space(.)='Accept invitation']")
+        self.browser.wait_until_script_execution(
+            f"return window.location.pathname !== '{invite_path}'"
         )
-        # Simulate the user accessing the invite link
-        self.browser.get(new_member.get_invite_link().split("/", 3)[-1])
-        self.browser.wait_until('[data-test-id="accept-invite"]')
+        self.member.refresh_from_db()
+        assert self.member.user_id == user.id
+        assert self.member.token is None
 
-        # Accept the invitation using the existing account
-        self.browser.click('a[data-test-id="link-with-existing"]')
-        self.browser.wait_until_not('[data-test-id="loading-indicator"]')
+    def assert_invite_pending(self) -> None:
+        self.member.refresh_from_db()
+        assert self.member.user_id is None
+        assert self.member.get_invite_link() is not None
 
-        # Handle form validation: Prevent default invalid event blocking
-        self.browser.driver.execute_script(
-            "document.addEventListener('invalid', function(e) { e.preventDefault(); }, true);"
+    def test_authenticated_user_accepts_invite(self) -> None:
+        self.login_as(self.user)
+        invite_path = self.open_invite()
+
+        self.accept_invitation(invite_path, self.user)
+
+    @override_options({"auth.allow-registration": False})
+    def test_create_account_and_accept_invite(self) -> None:
+        invite_path = self.open_invite()
+        self.browser.element('input[name="name"]').send_keys("New User")
+        email_input = self.browser.element('input[name="email"]')
+        assert email_input.get_attribute("value") == self.member.email
+        self.browser.element('input[name="password"]').send_keys(PASSWORD)
+        self.browser.click_when_visible(xpath="//button[normalize-space(.)='Create account']")
+
+        self.browser.wait_until(xpath="//button[normalize-space(.)='Accept invitation']")
+        user = User.objects.get(email=self.member.email)
+        self.accept_invitation(invite_path, user)
+
+    def test_sign_in_and_accept_invite(self) -> None:
+        user = self.create_login_user()
+        invite_path = self.open_invite()
+
+        self.sign_in(user)
+        self.browser.wait_until(xpath="//button[normalize-space(.)='Accept invitation']")
+        self.accept_invitation(invite_path, user)
+
+    def test_sign_in_with_mfa_and_accept_invite(self) -> None:
+        user = self.create_login_user()
+        totp = TotpInterface()
+        totp.enroll(user)
+        invite_path = self.open_invite()
+
+        self.sign_in(user)
+        self.browser.element('[aria-label="One-time password"]').send_keys(
+            totp.make_otp().generate_otp()
+        )
+        self.browser.wait_until(xpath="//button[normalize-space(.)='Accept invitation']")
+        self.accept_invitation(invite_path, user)
+
+    def test_accept_invite_with_sso(self) -> None:
+        user = self.create_login_user()
+        auth_provider = self.create_auth_provider(organization_id=self.org.id, provider="dummy")
+        self.create_auth_identity(auth_provider=auth_provider, user_id=user.id, ident=user.email)
+        self.open_invite()
+
+        self.browser.click_when_visible(xpath="//button[normalize-space(.)='SSO']")
+        self.browser.wait_until('form > input[type="email"][name="email"]:only-child')
+        self.complete_dummy_sso(user.email)
+
+        self.browser.wait_until_script_execution(
+            f"return !window.location.pathname.startsWith('/accept/') && "
+            f"window.location.pathname.includes('/{self.org.slug}/')"
+        )
+        self.member.refresh_from_db()
+        assert self.member.user_id == user.id
+        assert self.member.token is None
+
+    def test_switch_account_and_accept_invite(self) -> None:
+        user = self.create_login_user()
+        self.login_as(self.user)
+        invite_path = self.open_invite()
+        self.browser.wait_until(xpath=f"//*[normalize-space(.)='{self.user.email}']")
+
+        self.browser.click_when_visible(xpath="//button[normalize-space(.)='Switch account']")
+        self.browser.wait_until('input[name="email"]')
+        assert self.browser.element('input[name="email"]').get_attribute("value") == user.email
+        self.sign_in(user)
+
+        self.browser.wait_until(xpath="//button[normalize-space(.)='Accept invitation']")
+        self.accept_invitation(invite_path, user)
+
+    def test_resume_mfa_sign_in_after_refresh(self) -> None:
+        user = self.create_login_user()
+        totp = TotpInterface()
+        totp.enroll(user)
+        invite_path = self.open_invite()
+        self.sign_in(user)
+        self.browser.wait_until('[aria-label="One-time password"]')
+
+        self.browser.driver.refresh()
+        self.browser.element('[aria-label="One-time password"]').send_keys(
+            totp.make_otp().generate_otp()
         )
 
-        # Login using existing credentials
-        self._sign_in_user(email, password)
-        self.browser.wait_until('[data-test-id="2fa-warning"]')
+        self.browser.wait_until(xpath="//button[normalize-space(.)='Accept invitation']")
+        self.accept_invitation(invite_path, user)
 
-        # Display the 2FA configuration view
-        assert self.browser.element_exists("[aria-label='Configure Two-Factor Auth']")
+    def test_invite_requires_account_2fa(self) -> None:
+        with self.options({"system.url-prefix": self.browser.live_server_url}):
+            self.org.update(flags=F("flags").bitor(Organization.flags.require_2fa))
+            user = self.create_login_user()
+            invite_path = self.open_invite()
+            self.sign_in(user)
+
+            self.browser.wait_until('[aria-label="Configure Two-Factor Auth"]')
+            driver = self.browser.driver
+            invitation_window = driver.current_window_handle
+            self.browser.click_when_visible('[aria-label="Configure Two-Factor Auth"]')
+            WebDriverWait(driver, 10).until(expected_conditions.number_of_windows_to_be(2))
+            enrollment_window = next(
+                window for window in driver.window_handles if window != invitation_window
+            )
+            driver.switch_to.window(enrollment_window)
+
+            self.browser.wait_until('a[href="/settings/account/security/mfa/totp/enroll/"]')
+            self.browser.click_when_visible('a[href="/settings/account/security/mfa/totp/enroll/"]')
+            secret = self.browser.element("input[readonly]").get_attribute("value")
+            assert secret is not None
+            self.browser.element("input:not([readonly])").send_keys(TOTP(secret).generate_otp())
+            self.browser.click_when_visible(xpath="//button[normalize-space(.)='Confirm']")
+            self.browser.wait_until_script_execution(
+                "return window.location.pathname === '/settings/account/security/'"
+            )
+            assert user.has_2fa()
+            self.assert_invite_pending()
+
+            driver.close()
+            driver.switch_to.window(invitation_window)
+            self.browser.wait_until(xpath="//button[normalize-space(.)='Accept invitation']")
+            self.accept_invitation(invite_path, user)

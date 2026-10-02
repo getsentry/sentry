@@ -540,7 +540,7 @@ describe('Dashboards > Detail', () => {
       expect(mockVisit).toHaveBeenCalledTimes(1);
     });
 
-    it('updates the starred dashboard title after renaming', async () => {
+    it('renames from the actions menu without touching widgets', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/',
         body: [DashboardFixture([], {id: '1', title: 'Custom Errors'})],
@@ -565,12 +565,9 @@ describe('Dashboards > Detail', () => {
         );
       });
 
-      await activateDashboardEditMode();
-      const titleInput = screen.getByRole('textbox');
-      await userEvent.clear(titleInput);
-      await userEvent.type(titleInput, 'Renamed Dashboard');
+      renderGlobalModal({organization: initialData.organization});
 
-      MockApiClient.addMockResponse({
+      const renameMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/dashboards/1/',
         method: 'PUT',
         body: DashboardFixture(widgets, {id: '1', title: 'Renamed Dashboard'}),
@@ -581,13 +578,28 @@ describe('Dashboards > Detail', () => {
         match: [MockApiClient.matchQuery({filter: 'onlyFavorites'})],
       });
 
-      await userEvent.click(screen.getByRole('button', {name: 'Save and Finish'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Dashboard actions'}));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Rename'}));
 
-      await waitFor(() => {
-        expect(screen.getByLabelText('Starred dashboard title')).toHaveTextContent(
-          'Renamed Dashboard'
-        );
-      });
+      const dialog = await screen.findByRole('dialog');
+      await userEvent.clear(within(dialog).getByRole('textbox'));
+      await userEvent.type(within(dialog).getByRole('textbox'), 'Renamed Dashboard');
+      await userEvent.click(within(dialog).getByRole('button', {name: 'Save Changes'}));
+
+      await waitFor(() => expect(renameMock).toHaveBeenCalled());
+
+      // Renaming never enters an edit session, so it must not carry widgets.
+      expect(renameMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          method: 'PUT',
+          data: {title: 'Renamed Dashboard'},
+        })
+      );
+
+      // `onRename` feeds the new title back through `onDashboardUpdate`, so the
+      // header reflects it without a refetch.
+      expect(await screen.findByText('Renamed Dashboard')).toBeInTheDocument();
     });
 
     it('appends dashboard-level filters to series request', async () => {
@@ -720,9 +732,7 @@ describe('Dashboards > Detail', () => {
         screen.getByRole('menuitemradio', {name: 'Show version history'})
       ).toBeVisible();
       expect(screen.getByRole('menuitemradio', {name: 'Export'})).toBeVisible();
-      expect(
-        screen.queryByRole('menuitemradio', {name: 'Duplicate'})
-      ).not.toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Duplicate'})).toBeVisible();
 
       // The redesigned BreadcrumbList hides its slash dividers from the a11y tree
       // (unlike the legacy breadcrumbs, whose divider surfaced as a visible img),
@@ -882,7 +892,7 @@ describe('Dashboards > Detail', () => {
       );
 
       const edit = await screen.findByRole('button', {name: 'Edit'});
-      expect(edit).toBeDisabled();
+      expect(edit).toHaveAttribute('aria-disabled', 'true');
       await userEvent.hover(edit);
       expect(await screen.findByText(UNSAVED_FILTERS_MESSAGE)).toBeVisible();
     });
@@ -1582,7 +1592,10 @@ describe('Dashboards > Detail', () => {
 
       expect(await screen.findByText('Save')).toBeInTheDocument();
       expect(screen.getByTestId('filter-bar-cancel')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Edit'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Edit'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
 
     it('ignores the order of selection of page filters to render unsaved filters', async () => {
@@ -2064,7 +2077,10 @@ describe('Dashboards > Detail', () => {
         await screen.findByRole('button', {name: 'Dashboard actions'})
       ).toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Edit'})).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Add Widget'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
 
     it('disables widget edit, duplicate, and delete button when user does not have edit perms', async () => {
@@ -2119,7 +2135,10 @@ describe('Dashboards > Detail', () => {
         await screen.findByRole('button', {name: 'Dashboard actions'})
       ).toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Edit'})).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Add Widget'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Add Widget'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
       await userEvent.click(await screen.findByLabelText('Widget actions'));
       expect(
         screen.getByRole('menuitemradio', {name: 'Duplicate Widget'})

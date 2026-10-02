@@ -15,6 +15,7 @@ import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {
   DisableDetectorAction,
+  DuplicateDetectorAction,
   EditDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
@@ -69,6 +70,7 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
             <DatePageFilter />
             <Flex align="center" gap="sm" marginLeft="auto">
               <DisableDetectorAction detector={detector} />
+              <DuplicateDetectorAction detector={detector} />
               <EditDetectorAction detector={detector} />
             </Flex>
           </Flex>
