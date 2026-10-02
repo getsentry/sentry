@@ -48,7 +48,8 @@ class SentryManagerTest(TestCase):
         assert set(affected_groups) == {group}
 
     def test_get_groups_by_external_issue_reads_only_the_given_organizations(self) -> None:
-        # Loading every organization's install of a widely shared integration is expensive.
+        # Callers already resolved which organizations have the integration installed, and
+        # re-reading the installs of a widely shared integration is expensive.
         external_issue_key = "api-123"
         group = self.create_group()
         integration_model, _ = self.create_provider_integration_for(
@@ -73,10 +74,7 @@ class SentryManagerTest(TestCase):
         )
 
         with patch.object(
-            DatabaseBackedIntegrationService,
-            "get_organization_integrations",
-            autospec=True,
-            side_effect=DatabaseBackedIntegrationService.get_organization_integrations,
+            DatabaseBackedIntegrationService, "get_organization_integrations"
         ) as get_organization_integrations:
             affected_groups = Group.objects.get_groups_by_external_issue(
                 integration,
@@ -85,7 +83,4 @@ class SentryManagerTest(TestCase):
             )
 
             assert set(affected_groups) == {group}
-        assert [
-            call.kwargs.get("organization_ids")
-            for call in get_organization_integrations.call_args_list
-        ] == [[group.organization.id]]
+        get_organization_integrations.assert_not_called()

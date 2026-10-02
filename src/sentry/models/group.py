@@ -680,20 +680,17 @@ class GroupManager(BaseManager["Group"]):
         organizations: Iterable[Organization],
         external_issue_key: str | None,
     ) -> QuerySet[Group]:
+        """
+        `organizations` must already be limited to those with `integration` installed;
+        this does not re-check the installs.
+        """
         from sentry.integrations.models.external_issue import ExternalIssue
-        from sentry.integrations.services.integration import integration_service
         from sentry.models.grouplink import GroupLink
 
-        org_ids_with_integration = list(
-            i.organization_id
-            for i in integration_service.get_organization_integrations(
-                organization_ids=[o.id for o in organizations],
-                integration_id=integration.id,
-            )
-        )
+        organization_ids = [o.id for o in organizations]
 
         external_issues = ExternalIssue.objects.filter(
-            integration_id=integration.id, organization_id__in=org_ids_with_integration
+            integration_id=integration.id, organization_id__in=organization_ids
         )
         if external_issue_key is not None:
             external_issues = external_issues.filter(key=external_issue_key)
@@ -704,7 +701,7 @@ class GroupManager(BaseManager["Group"]):
 
         return self.filter(
             id__in=group_link_subquery,
-            project__organization_id__in=org_ids_with_integration,
+            project__organization_id__in=organization_ids,
         ).select_related("project")
 
     def update_group_status(
