@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-import {useNavigate} from 'react-router';
 import styled from '@emotion/styled';
 import seerConfigBug1 from 'getsentry-images/spot/seer-config-bug-1.svg';
 import seerConfigCheck from 'getsentry-images/spot/seer-config-check.svg';
@@ -18,6 +17,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {AnalyticsArea, useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {IconUpgrade} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {useNavigate} from 'sentry/router/reactRouter';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {orgNeedsSeerTrial} from 'sentry/utils/seer/orgNeedsSeerTrial';
 import {showNewSeer} from 'sentry/utils/seer/showNewSeer';

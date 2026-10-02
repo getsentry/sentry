@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {useMatches} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -14,6 +13,7 @@ import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/u
 import {Truncate} from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useMatches} from 'sentry/router/reactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';

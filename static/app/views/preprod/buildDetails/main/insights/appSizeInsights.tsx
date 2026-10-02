@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-import {useSearchParams} from 'react-router';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -7,6 +6,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useSearchParams} from 'sentry/router/reactRouter';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {useOrganization} from 'sentry/utils/useOrganization';

@@ -1,5 +1,4 @@
 import {useCallback, useMemo, useState} from 'react';
-import {Outlet} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {isString} from '@sentry/core';
@@ -18,6 +17,7 @@ import {PickProjectToContinue} from 'sentry/components/pickProjectToContinue';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
+import {Outlet} from 'sentry/router/reactRouter';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';

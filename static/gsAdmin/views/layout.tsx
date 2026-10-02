@@ -1,6 +1,5 @@
 import type React from 'react';
 import {useEffect, useState} from 'react';
-import {Outlet, useLocation} from 'react-router';
 import {ThemeProvider} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -11,6 +10,7 @@ import {GlobalModal} from '@sentry/scraps/modal';
 
 import {ListLink} from 'sentry/components/links/listLink';
 import {IconChevron, IconMenu, IconSentry, IconSliders} from 'sentry/icons';
+import {Outlet, useLocation} from 'sentry/router/reactRouter';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';

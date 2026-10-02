@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
-import {useHref} from 'react-router';
 import {RouterProvider as AriaRouterProvider} from '@react-aria/utils';
 
+import {useHref} from 'sentry/router/reactRouter';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 /**

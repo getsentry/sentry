@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Link} from '@sentry/scraps/link';
@@ -9,6 +8,7 @@ import {ErrorCounts} from 'sentry/components/replays/header/errorCounts';
 import {ReplayViewers} from 'sentry/components/replays/header/replayViewers';
 import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useMatches} from 'sentry/router/reactRouter';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';

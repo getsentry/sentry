@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
-import {Outlet, useMatches} from 'react-router';
 
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {Outlet, useMatches} from 'sentry/router/reactRouter';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';

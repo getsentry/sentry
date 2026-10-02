@@ -1,5 +1,4 @@
 import {lazy, Suspense, useCallback, useEffect} from 'react';
-import {Outlet} from 'react-router';
 import styled from '@emotion/styled';
 
 import {GlobalModal} from '@sentry/scraps/modal';
@@ -13,6 +12,7 @@ import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Override} from 'sentry/components/override';
 import {getOverride} from 'sentry/overrideRegistry';
+import {Outlet} from 'sentry/router/reactRouter';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GuideStore} from 'sentry/stores/guideStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';

@@ -1,5 +1,4 @@
 import {useCallback, useMemo, useRef} from 'react';
-import {useMatches} from 'react-router';
 import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
 
@@ -18,6 +17,7 @@ import {getAvailableEnvironments} from 'sentry/components/pageFilters/environmen
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
 import {t, tct} from 'sentry/locale';
+import {useMatches} from 'sentry/router/reactRouter';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {useLocation} from 'sentry/utils/useLocation';

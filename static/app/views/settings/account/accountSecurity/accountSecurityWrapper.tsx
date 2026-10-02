@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-import {Outlet, useOutletContext} from 'react-router';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
@@ -7,6 +6,7 @@ import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {Outlet, useOutletContext} from 'sentry/router/reactRouter';
 import type {Authenticator} from 'sentry/types/auth';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import type {UserEmail} from 'sentry/types/user';

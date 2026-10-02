@@ -1,10 +1,10 @@
 import {lazy, Suspense, useRef} from 'react';
-import {Outlet, useSearchParams} from 'react-router';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Link} from '@sentry/scraps/link';
 
+import {Outlet, useSearchParams} from 'sentry/router/reactRouter';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';

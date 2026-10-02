@@ -1,5 +1,4 @@
-import {Outlet} from 'react-router';
-
+import {Outlet} from 'sentry/router/reactRouter';
 import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
 
 export default function AccountSettingsLayout() {

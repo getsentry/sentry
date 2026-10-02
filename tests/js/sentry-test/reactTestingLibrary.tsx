@@ -1,17 +1,5 @@
 import {Fragment} from 'react';
 import {createPortal} from 'react-dom';
-import {
-  Outlet,
-  UNSAFE_createMemoryHistory as createMemoryHistory,
-  UNSAFE_createRouter as createRouter,
-  type DataRouter as Router,
-  type InitialEntry,
-  type RouterNavigateOptions,
-  useRouteError,
-  type RouteObject,
-  type To,
-} from 'react-router';
-import {RouterProvider} from 'react-router/dom';
 import {cache} from '@emotion/css'; // eslint-disable-line @sentry/no-vanilla-emotion
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import {QueryClientProvider} from '@tanstack/react-query';
@@ -23,11 +11,25 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {instrumentUserEvent} from 'sentry-test/instrumentedEnv/userEventIntegration';
+import {
+  createMemoryHistory,
+  createRouter,
+  type InitialEntry,
+  type Router,
+  type RouterNavigateOptions,
+} from 'sentry-test/router';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {GlobalModal} from '@sentry/scraps/modal';
 
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
+import {
+  Outlet,
+  useRouteError,
+  type RouteObject,
+  type To,
+  RouterProvider,
+} from 'sentry/router/reactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';

@@ -1,5 +1,4 @@
-import {Navigate} from 'react-router';
-
+import {Navigate} from 'sentry/router/reactRouter';
 import {useLocation} from 'sentry/utils/useLocation';
 
 export default function LegacyStoriesRedirect() {

@@ -7,8 +7,8 @@ import {
   useMemo,
   useRef,
 } from 'react';
-import {useMatches} from 'react-router';
 
+import {useMatches} from 'sentry/router/reactRouter';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {useParams} from 'sentry/utils/useParams';
 

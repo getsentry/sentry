@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router';
 import {useTheme} from '@emotion/react';
 
 import {Container, Stack, type ContainerProps} from '@sentry/scraps/layout';
@@ -7,6 +6,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {Link} from 'sentry/router/reactRouter';
 import type {PageFilters} from 'sentry/types/core';
 import type {EChartDataZoomHandler, Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';

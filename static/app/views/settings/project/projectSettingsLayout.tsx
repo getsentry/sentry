@@ -1,5 +1,4 @@
 import {useContext, useEffect, useEffectEvent} from 'react';
-import {Outlet, useOutletContext} from 'react-router';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -9,6 +8,7 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {IconProject} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {Outlet, useOutletContext} from 'sentry/router/reactRouter';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';

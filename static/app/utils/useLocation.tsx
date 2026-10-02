@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
-import {useLocation as useReactRouter6Location} from 'react-router';
 import type {Location, Query} from 'history';
+
+import {useLocation as useReactRouter6Location} from 'sentry/router/reactRouter';
 
 import {location6ToLocation3} from './reactRouter6Compat/location';
 

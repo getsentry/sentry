@@ -1,5 +1,4 @@
-import type {RouteObject} from 'react-router';
-
+import type {RouteObject} from 'sentry/router/reactRouter';
 import {
   dedupeRoutes,
   extractModulePath,

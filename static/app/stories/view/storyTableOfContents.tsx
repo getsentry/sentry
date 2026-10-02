@@ -1,10 +1,11 @@
 import {useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
-import {useLocation} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
+
+import {useLocation} from 'sentry/router/reactRouter';
 
 type Entry = {
   ref: HTMLElement;

@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router';
 import {useQuery} from '@tanstack/react-query';
 
 import {tct} from 'sentry/locale';
+import {Link} from 'sentry/router/reactRouter';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 

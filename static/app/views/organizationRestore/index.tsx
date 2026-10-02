@@ -1,4 +1,3 @@
-import {Navigate} from 'react-router';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
@@ -11,6 +10,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
+import {Navigate} from 'sentry/router/reactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';

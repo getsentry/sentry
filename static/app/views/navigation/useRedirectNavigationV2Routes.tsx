@@ -1,8 +1,8 @@
 import {useEffect} from 'react';
-import {useMatches} from 'react-router';
 import * as Sentry from '@sentry/react';
 
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
+import {useMatches} from 'sentry/router/reactRouter';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';

@@ -1,6 +1,7 @@
 import {createContext, useContext, type FunctionComponent} from 'react';
-import {Link as RouterLink} from 'react-router';
 import * as Sentry from '@sentry/react';
+
+import {Link as RouterLink} from 'sentry/router/reactRouter';
 
 import type {LinkProps} from './link';
 

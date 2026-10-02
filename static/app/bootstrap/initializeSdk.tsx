@@ -1,10 +1,4 @@
 import {useEffect} from 'react';
-import {
-  createRoutesFromChildren,
-  matchRoutes,
-  useLocation,
-  useNavigationType,
-} from 'react-router';
 import {type Event, type Log} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 
@@ -17,6 +11,12 @@ import {
   SPA_MODE_ALLOW_URLS,
   SPA_MODE_TRACE_PROPAGATION_TARGETS,
 } from 'sentry/constants/sdk';
+import {
+  createRoutesFromChildren,
+  matchRoutes,
+  useLocation,
+  useNavigationType,
+} from 'sentry/router/reactRouter';
 import type {Config} from 'sentry/types/system';
 import {addUIElementTagToSegmentSpan} from 'sentry/utils/performanceForSentry';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';

@@ -1,5 +1,4 @@
-import type {UIMatch} from 'react-router';
-
+import type {UIMatch} from 'sentry/router/reactRouter';
 import type {PlainRoute} from 'sentry/types/legacyReactRouter';
 
 type RouteWithPath = Omit<PlainRoute, 'path'> & Required<Pick<PlainRoute, 'path'>>;

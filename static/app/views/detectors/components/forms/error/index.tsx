@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router';
 import {useTheme} from '@emotion/react';
 import {z} from 'zod';
 
@@ -16,6 +15,7 @@ import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t, tct} from 'sentry/locale';
+import {Link} from 'sentry/router/reactRouter';
 import type {Project} from 'sentry/types/project';
 import type {ErrorDetector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';

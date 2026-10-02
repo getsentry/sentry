@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
-import {useParams as useReactRouter6Params} from 'react-router';
 
 import {CUSTOMER_DOMAIN, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
+import {useParams as useReactRouter6Params} from 'sentry/router/reactRouter';
 
 /**
  * List of keys used in routes.tsx `/example/:paramKey/...`

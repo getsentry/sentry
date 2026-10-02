@@ -1,5 +1,4 @@
 import {useCallback} from 'react';
-import {useSearchParams} from 'react-router';
 import styled from '@emotion/styled';
 import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
 
@@ -13,6 +12,7 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {IconClose, IconGrid, IconRefresh, IconSearch} from 'sentry/icons';
 import {IconGraphCircle} from 'sentry/icons/iconGraphCircle';
 import {t} from 'sentry/locale';
+import {useSearchParams} from 'sentry/router/reactRouter';
 import {parseApiError} from 'sentry/utils/parseApiError';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';

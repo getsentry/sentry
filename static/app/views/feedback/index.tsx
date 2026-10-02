@@ -1,10 +1,9 @@
-import {Outlet} from 'react-router';
-
 import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {Redirect} from 'sentry/components/redirect';
+import {Outlet} from 'sentry/router/reactRouter';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useRedirectNavigationV2Routes} from 'sentry/views/navigation/useRedirectNavigationV2Routes';
 

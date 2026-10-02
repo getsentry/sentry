@@ -1,6 +1,6 @@
-import {MemoryRouter} from 'react-router';
-
 import {TabList, Tabs} from '@sentry/scraps/tabs';
+
+import {MemoryRouter} from 'sentry/router/reactRouter';
 
 const TABS = [
   {key: 'details', label: 'Details'},

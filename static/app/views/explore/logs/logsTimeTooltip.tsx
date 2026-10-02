@@ -1,5 +1,4 @@
 import React, {Fragment} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import {useTimezone} from '@sentry/scraps/datetime';
@@ -10,6 +9,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration/duration';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {Link} from 'sentry/router/reactRouter';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';

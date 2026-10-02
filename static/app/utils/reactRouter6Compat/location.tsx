@@ -1,7 +1,8 @@
-import type {Location as Location6, To} from 'react-router';
 import * as Sentry from '@sentry/react';
 import type {Location as Location3, LocationDescriptor, Query} from 'history';
 import * as qs from 'query-string';
+
+import type {Location as Location6, To} from 'sentry/router/reactRouter';
 
 /**
  * Translates a react-router 3 LocationDescriptor to a react-router 6 To.

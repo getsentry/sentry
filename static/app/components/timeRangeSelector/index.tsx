@@ -1,6 +1,5 @@
 import {Fragment, useCallback, useState} from 'react';
 import * as React from 'react';
-import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 
@@ -14,6 +13,7 @@ import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {DEFAULT_RELATIVE_PERIODS, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useMatches} from 'sentry/router/reactRouter';
 import type {DateString} from 'sentry/types/core';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {

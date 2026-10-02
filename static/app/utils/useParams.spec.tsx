@@ -1,7 +1,6 @@
-import {useParams as useReactRouter6Params} from 'react-router';
-
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {useParams as useReactRouter6Params} from 'sentry/router/reactRouter';
 import {useParams} from 'sentry/utils/useParams';
 
 const mockUsingCustomerDomain = jest.fn();

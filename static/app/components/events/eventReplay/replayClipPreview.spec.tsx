@@ -17,8 +17,8 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import ReplayClipPreview from './replayClipPreview';
 
-jest.mock('react-router', () => ({
-  ...jest.requireActual('react-router'),
+jest.mock('sentry/router/reactRouter', () => ({
+  ...jest.requireActual('sentry/router/reactRouter'),
   useMatches: jest.fn(() => [
     {
       id: '0',

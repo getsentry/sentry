@@ -1,10 +1,11 @@
-import type {UIMatch} from 'react-router';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {ProjectFixture} from 'getsentry-test/fixtures/project';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
+
+import type {UIMatch} from 'sentry/router/reactRouter';
 
 import {
   DELAY_TIME_MS,
@@ -19,7 +20,7 @@ const HALF_ADVANCE_PERIOD = DELAY_TIME_MS * 0.6;
 jest.mock('getsentry/utils/rawTrackAnalyticsEvent');
 
 function makeMatch(path: string): UIMatch {
-  return {id: path, pathname: path, params: {}, loaderData: undefined, handle: {path}};
+  return {id: path, pathname: path, params: {}, data: undefined, handle: {path}};
 }
 
 const SETTINGS_MATCHES = [makeMatch('/settings/:orgId/projects/:projectId/')];

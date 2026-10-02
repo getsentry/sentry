@@ -1,7 +1,7 @@
-import {useMatches} from 'react-router';
 import * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
+import {useMatches} from 'sentry/router/reactRouter';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';

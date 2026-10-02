@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import {useMatches} from 'react-router';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
@@ -26,6 +25,7 @@ import {IconCursorArrow} from 'sentry/icons/iconCursorArrow';
 import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPlay} from 'sentry/icons/iconPlay';
 import {t, tct} from 'sentry/locale';
+import {useMatches} from 'sentry/router/reactRouter';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';

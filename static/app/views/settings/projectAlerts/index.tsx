@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
-import {Outlet, useOutletContext} from 'react-router';
 
 import {Access} from 'sentry/components/acl/access';
+import {Outlet, useOutletContext} from 'sentry/router/reactRouter';
 import type {DetailedProject} from 'sentry/types/project';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 

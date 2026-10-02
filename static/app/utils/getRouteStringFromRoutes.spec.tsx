@@ -1,5 +1,4 @@
-import type {UIMatch} from 'react-router';
-
+import type {UIMatch} from 'sentry/router/reactRouter';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 
 describe('getRouteStringFromRoutes', () => {
@@ -9,42 +8,42 @@ describe('getRouteStringFromRoutes', () => {
       id: '1',
       pathname: '/',
       params: {},
-      loaderData: {},
+      data: {},
     },
     {
       handle: {path: '/:orgId/'},
       id: '2',
       pathname: '/:orgId/',
       params: {},
-      loaderData: {},
+      data: {},
     },
     {
       handle: undefined,
       id: '3',
       pathname: 'this should be skipped',
       params: {},
-      loaderData: {},
+      data: {},
     },
     {
       handle: {path: '/organizations/:orgId/'},
       id: '4',
       pathname: '/organizations/:orgId/',
       params: {},
-      loaderData: {},
+      data: {},
     },
     {
       id: '6',
       handle: undefined,
       pathname: 'also skipped',
       params: {},
-      loaderData: {},
+      data: {},
     },
     {
       handle: {path: 'api-keys/', name: 'API Key'},
       id: '5',
       pathname: 'api-keys/',
       params: {},
-      loaderData: {},
+      data: {},
     },
   ];
 

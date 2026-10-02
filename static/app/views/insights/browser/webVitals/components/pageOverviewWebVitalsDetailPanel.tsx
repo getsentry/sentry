@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import {useMatches} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -15,6 +14,7 @@ import type {
 } from 'sentry/components/tables/gridEditable';
 import {COL_WIDTH_UNDEFINED, GridEditable} from 'sentry/components/tables/gridEditable';
 import {t} from 'sentry/locale';
+import {useMatches} from 'sentry/router/reactRouter';
 import {defined} from 'sentry/utils/defined';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getDuration} from 'sentry/utils/duration/getDuration';

@@ -1,10 +1,10 @@
-import type {RouteObject} from 'react-router';
-import {Outlet} from 'react-router';
 import memoize from 'lodash/memoize';
 
 import {t} from 'sentry/locale';
 import {makeLazyloadComponent as make} from 'sentry/makeLazyloadComponent';
 import {getOverride} from 'sentry/overrideRegistry';
+import type {RouteObject} from 'sentry/router/reactRouter';
+import {Outlet} from 'sentry/router/reactRouter';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import type {OverrideName} from 'sentry/types/overrides';
 import {errorHandler} from 'sentry/utils/errorHandler';

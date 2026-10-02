@@ -1,8 +1,8 @@
-import type {UIMatch} from 'react-router';
 import type {Location} from 'history';
 import capitalize from 'lodash/capitalize';
 import snakeCase from 'lodash/snakeCase';
 
+import type {UIMatch} from 'sentry/router/reactRouter';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 
 /**

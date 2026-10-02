@@ -1,6 +1,6 @@
 import {createContext, useContext, useEffect, useRef} from 'react';
-import {useMatches} from 'react-router';
 
+import {useMatches} from 'sentry/router/reactRouter';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 
 interface Props {

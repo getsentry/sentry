@@ -1,7 +1,5 @@
 import {useState} from 'react';
 import {createRoot} from 'react-dom/client';
-import {createBrowserRouter} from 'react-router';
-import {RouterProvider} from 'react-router/dom';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import throttle from 'lodash/throttle';
 
@@ -9,6 +7,7 @@ import {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
 import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
+import {createBrowserRouter, RouterProvider} from 'sentry/router/reactRouter';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import type {OnSentryInitConfiguration} from 'sentry/types/system';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';

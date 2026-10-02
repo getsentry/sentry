@@ -1,9 +1,6 @@
 import {lazy, Suspense, useEffect, useState} from 'react';
-import {createBrowserRouter} from 'react-router';
-import {RouterProvider} from 'react-router/dom';
 import {wrapCreateBrowserRouter} from '@sentry/react';
 import {MotionConfig} from 'framer-motion';
-import {NuqsAdapter} from 'nuqs/adapters/react-router/v8';
 
 import {setApiNavigate} from 'sentry/api';
 import {AppQueryClientProvider} from 'sentry/appQueryClient';
@@ -14,6 +11,11 @@ import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {USE_TANSTACK_DEVTOOL} from 'sentry/constants';
 import {SENTRY_RELEASE_VERSION} from 'sentry/constants/sdk';
 import {preload} from 'sentry/router/preload';
+import {
+  createBrowserRouter,
+  RouterProvider,
+  NuqsAdapter,
+} from 'sentry/router/reactRouter';
 import {RouteConfigProvider} from 'sentry/router/routeConfigContext';
 import {routes} from 'sentry/router/routes';
 import {ServiceWorkerProvider} from 'sentry/serviceWorker/client/serviceWorkerContext';

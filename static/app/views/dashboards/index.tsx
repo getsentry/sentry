@@ -1,5 +1,4 @@
-import {Outlet} from 'react-router';
-
+import {Outlet} from 'sentry/router/reactRouter';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {DashboardBasicFeature} from './view';

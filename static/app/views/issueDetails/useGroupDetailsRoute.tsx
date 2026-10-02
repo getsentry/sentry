@@ -1,5 +1,4 @@
-import {useMatches, type UIMatch} from 'react-router';
-
+import {useMatches, type UIMatch} from 'sentry/router/reactRouter';
 import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
