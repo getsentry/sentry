@@ -663,11 +663,21 @@ export type AutofixArtifact =
   | RepoPRState[]
   | ExplorerCodingAgentState[];
 
+/**
+ * Step results (root cause, solution, code changes) are only usable once the run
+ * that produced them finished cleanly. A turn that wrote patches and then errored
+ * leaves them in state, so callers must gate on status rather than presence.
+ */
+export function canUseAutofixStepResult(
+  status: AutofixSection['status'] | ExplorerAutofixState['status']
+): boolean {
+  return status === 'completed';
+}
+
 export function getAutofixArtifactFromSection(
   section: AutofixSection
 ): AutofixArtifact | null {
-  if (section.status === 'completed') {
-    // these artifacts are only usable once the section has completed running
+  if (canUseAutofixStepResult(section.status)) {
     if (isRootCauseSection(section)) {
       return section.artifacts.findLast(isRootCauseArtifact) ?? null;
     }
