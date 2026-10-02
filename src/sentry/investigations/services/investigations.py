@@ -5,7 +5,6 @@ from collections import defaultdict, deque
 from collections.abc import Iterable
 from collections.abc import Set as AbstractSet
 from copy import deepcopy
-from datetime import UTC, datetime
 from typing import Any
 
 from django.db import IntegrityError, router, transaction
@@ -42,7 +41,7 @@ from sentry.utils import json
 
 UPDATABLE_INVESTIGATION_FIELDS = frozenset({"title", "status", "filters"})
 MAX_INVESTIGATION_TITLE_LENGTH = 255
-# Placeholder used before titles were derived from the source and start time.
+# Placeholder used before titles were derived from the investigation type.
 DEFAULT_INVESTIGATION_TITLE = "Untitled investigation"
 LEGACY_BREACHED_METRIC_FILTER = "breachedMetric"
 
@@ -51,24 +50,23 @@ UPDATABLE_BLOCK_FIELDS = CREATABLE_BLOCK_FIELDS - {"kind"}
 
 
 _INVESTIGATION_TYPE_LABELS: dict[str, str] = {
-    InvestigationSourceType.MANUAL: "Manual",
-    InvestigationSourceType.BREACHED_METRIC: "Breached metrics",
-    InvestigationSourceType.METRIC_OPEN_PERIOD: "Breached metrics",
+    InvestigationSourceType.MANUAL: "manual",
+    InvestigationSourceType.BREACHED_METRIC: "breached metrics",
+    InvestigationSourceType.METRIC_OPEN_PERIOD: "breached metrics",
 }
 
 
-def default_investigation_title(source_type: str, started_at: datetime) -> str:
+def default_investigation_title(source_type: str) -> str:
     """Placeholder title shown until Seer names the investigation."""
 
-    label = _INVESTIGATION_TYPE_LABELS.get(source_type, "Manual")
-    started_at = started_at.astimezone(UTC)
-    return f"{label} investigation - {started_at:%b} {started_at.day}, {started_at:%Y %H:%M} UTC"
+    label = _INVESTIGATION_TYPE_LABELS.get(source_type, "manual")
+    return f"New {label} investigation"
 
 
 def has_default_investigation_title(investigation: Investigation) -> bool:
     return investigation.title in {
         DEFAULT_INVESTIGATION_TITLE,
-        default_investigation_title(investigation.source_type, investigation.date_added),
+        default_investigation_title(investigation.source_type),
     }
 
 
@@ -436,9 +434,8 @@ def _create_template_investigation(
             accessible_project_ids=accessible_project_ids,
         )
         project_ids = [resolved_source.project_id]
-        started_at = timezone.now()
         resolved_title = title or default_investigation_title(
-            InvestigationSourceType.BREACHED_METRIC, started_at
+            InvestigationSourceType.BREACHED_METRIC
         )
         normalized_source = resolved_source.source
         lineage_key = investigation_lineage_key(template.key, normalized_source)
@@ -479,7 +476,6 @@ def _create_template_investigation(
             organization=organization,
             created_by_id=user_id,
             title=resolved_title,
-            date_added=started_at,
             template_key=template.key,
             template_version=template.version,
             source_type=InvestigationSourceType.BREACHED_METRIC,

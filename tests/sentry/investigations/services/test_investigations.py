@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import threading
-from datetime import UTC, datetime
 from unittest import mock
 from uuid import UUID, uuid4
 
@@ -41,7 +40,6 @@ from sentry.investigations.services.orchestration import (
 )
 from sentry.seer.models.run import SeerRunType
 from sentry.testutils.cases import TestCase, TransactionTestCase
-from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 TEMPLATE_KWARGS = {
@@ -233,25 +231,19 @@ class BreachedMetricSourceRefTest(TestCase):
             )
 
 
-def test_default_title_names_the_investigation_type_and_start_time() -> None:
-    started_at = datetime(2026, 10, 2, 9, 5, tzinfo=UTC)
-
+def test_default_title_names_the_investigation_type() -> None:
     assert (
-        default_investigation_title(InvestigationSourceType.METRIC_OPEN_PERIOD, started_at)
-        == "Breached metrics investigation - Oct 2, 2026 09:05 UTC"
+        default_investigation_title(InvestigationSourceType.METRIC_OPEN_PERIOD)
+        == "New breached metrics investigation"
     )
     assert (
-        default_investigation_title(InvestigationSourceType.BREACHED_METRIC, started_at)
-        == "Breached metrics investigation - Oct 2, 2026 09:05 UTC"
+        default_investigation_title(InvestigationSourceType.BREACHED_METRIC)
+        == "New breached metrics investigation"
     )
-    assert (
-        default_investigation_title(InvestigationSourceType.MANUAL, started_at)
-        == "Manual investigation - Oct 2, 2026 09:05 UTC"
-    )
+    assert default_investigation_title(InvestigationSourceType.MANUAL) == "New manual investigation"
 
 
 class DefaultTitleTest(TestCase):
-    @freeze_time("2026-10-02 14:30:00")
     def test_untitled_agentic_investigation_gets_a_default_title(self) -> None:
         investigation, _ = create_agentic_manual_investigation(
             organization=self.organization,
@@ -262,9 +254,8 @@ class DefaultTitleTest(TestCase):
             filters={},
         )
 
-        assert investigation.title == "Manual investigation - Oct 2, 2026 14:30 UTC"
+        assert investigation.title == "New manual investigation"
 
-    @freeze_time("2026-10-02 14:30:00")
     def test_untitled_template_investigation_gets_a_default_title(self) -> None:
         source = {
             "type": InvestigationSourceType.METRIC_OPEN_PERIOD,
@@ -289,7 +280,7 @@ class DefaultTitleTest(TestCase):
 
         assert created
         investigation.refresh_from_db()
-        assert investigation.title == "Breached metrics investigation - Oct 2, 2026 14:30 UTC"
+        assert investigation.title == "New breached metrics investigation"
 
 
 class SourceTransitionCompatibilityTest(TestCase):

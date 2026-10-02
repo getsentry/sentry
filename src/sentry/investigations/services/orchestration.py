@@ -148,13 +148,11 @@ def _create_agentic_investigation(
 ) -> tuple[Investigation, InvestigationOrchestrationRun]:
     """Create the notebook and its parent control-plane aggregate atomically."""
 
-    started_at = timezone.now()
     with transaction.atomic(using=router.db_for_write(Investigation)):
         investigation = Investigation.objects.create(
             organization=organization,
             created_by_id=user_id,
-            title=title or default_investigation_title(source_type, started_at),
-            date_added=started_at,
+            title=title or default_investigation_title(source_type),
             source_type=source_type,
             source_ref=deepcopy(source_ref or {}),
             source_key=source_key,

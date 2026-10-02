@@ -1217,9 +1217,7 @@ class InvestigationAgentTest(TestCase):
         record_investigation_completed.assert_called_once_with(self.investigation)
 
     def test_title_replaces_a_derived_default_title(self) -> None:
-        self.investigation.title = default_investigation_title(
-            self.investigation.source_type, self.investigation.date_added
-        )
+        self.investigation.title = default_investigation_title(self.investigation.source_type)
         self.investigation.title_generation_status = "running"
         self.investigation.save(update_fields=["title", "title_generation_status"])
         run_state = state(
