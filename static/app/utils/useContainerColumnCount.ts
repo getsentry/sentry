@@ -16,27 +16,15 @@ const COLUMN_BREAKPOINTS = [
 export function useContainerColumnCount(
   elementRef: RefObject<HTMLElement | null>
 ): number {
-  const calculateColumnCount = useCallback(() => {
-    const width = elementRef.current?.clientWidth || 0;
-    const breakpoint = COLUMN_BREAKPOINTS.find(({minWidth}) => width >= minWidth);
-    return breakpoint?.columnCount ?? 1;
-  }, [elementRef]);
-
-  // oxlint-disable-next-line react/refs
-  const [columnCount, setColumnCount] = useState(calculateColumnCount());
-
-  // If the ref was undefined, calculate the column count again
-  useLayoutEffect(() => {
-    if (elementRef.current) {
-      setColumnCount(calculateColumnCount());
-    }
-  }, [calculateColumnCount, elementRef]);
+  const [columnCount, setColumnCount] = useState(1);
 
   const onResize = useCallback(() => {
-    const count = calculateColumnCount();
-    setColumnCount(count);
-  }, [calculateColumnCount]);
+    const width = elementRef.current?.clientWidth ?? 0;
+    const breakpoint = COLUMN_BREAKPOINTS.find(({minWidth}) => width >= minWidth);
+    setColumnCount(breakpoint?.columnCount ?? 1);
+  }, [elementRef]);
 
+  useLayoutEffect(onResize, [onResize]);
   useResizeObserver({ref: elementRef, onResize});
 
   return columnCount;

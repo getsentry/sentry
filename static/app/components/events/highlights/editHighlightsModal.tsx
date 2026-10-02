@@ -124,11 +124,10 @@ function EditPreviewHighlightSection({
   return (
     <EditHighlightPreview {...props}>
       <Grid align="start" columns={`repeat(${previewColumnCount}, minmax(0, 1fr))`}>
-        {rows.length > 0 ? (
-          splitIntoColumns(rows, previewColumnCount).map((column, index) => (
-            <EditPreviewColumn key={index}>{column}</EditPreviewColumn>
-          ))
-        ) : (
+        {splitIntoColumns(rows, previewColumnCount).map((column, index) => (
+          <EditPreviewColumn key={index}>{column}</EditPreviewColumn>
+        ))}
+        {rows.length === 0 && (
           <EmptyHighlightMessage data-test-id="highlights-empty-preview">
             {t('Promote tags or context keys to highlights for quicker debugging!')}
           </EmptyHighlightMessage>
@@ -514,7 +513,6 @@ const EditHighlightSection = styled('div')`
 `;
 
 const EditHighlightColumn = styled('div')`
-  grid-column: span 1;
   &:not(:first-child) {
     border-left: 1px solid ${p => p.theme.tokens.border.secondary};
     padding-left: ${p => p.theme.space.xl};

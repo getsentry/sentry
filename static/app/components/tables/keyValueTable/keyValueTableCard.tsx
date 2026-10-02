@@ -100,9 +100,7 @@ export function KeyValueTableCardGrid({children}: {children: React.ReactNode}) {
       ref={containerRef}
     >
       {splitIntoColumns(cards, columnCount).map((column, index) => (
-        <LayoutContainer column="span 1" key={index}>
-          {column}
-        </LayoutContainer>
+        <LayoutContainer key={index}>{column}</LayoutContainer>
       ))}
     </Grid>
   );
