@@ -333,14 +333,14 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     )
 
     # Remove legacy keys to avoid cross-deploy problems.
-    sdk_options.pop("dsn", None)
-    sdk_options.pop("relay_dsn", None)
+    sdk_options.pop("dsn", None)  # type: ignore[typeddict-item]
+    sdk_options.pop("relay_dsn", None)  # type: ignore[typeddict-item]
+    sdk_options.pop("sentry_mirror_dsn", None)  # type: ignore[typeddict-item]
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
     backend_dsn = sdk_options.pop("backend_dsn", None)
-    mirror_dsn = sdk_options.pop("sentry_mirror_dsn", None)
 
-    dsns = Dsns(backend=backend_dsn or mirror_dsn)
+    dsns = Dsns(backend=backend_dsn)
 
     return sdk_options, dsns
 
@@ -415,7 +415,7 @@ def configure_sdk():
 
     warnings.warn(
         "Sentry SDK not initialized: no DSN available. "
-        "Set `sentry_mirror_dsn` in SENTRY_SDK_CONFIG or ensure an internal project key exists."
+        "Set `backend_dsn` in SENTRY_SDK_CONFIG or ensure an internal project key exists."
     )
 
 
