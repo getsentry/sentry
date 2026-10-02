@@ -57,8 +57,7 @@ describe('ErrorsConfig', () => {
         '/organizations/org-slug/dashboards/trace/abcd/'
       );
       expect(router.location.query).toEqual({
-        pageEnd: undefined,
-        pageStart: undefined,
+        source: 'dashboards',
         statsPeriod: '14d',
       });
     });
@@ -85,7 +84,7 @@ describe('ErrorsConfig', () => {
 
       await userEvent.click(await screen.findByText('defg'));
       expect(router.location.pathname).toBe(
-        `/organizations/org-slug/explore/discover/${project.slug}:defg/`
+        `/organizations/org-slug/explore/errors/${project.slug}:defg/`
       );
       expect(router.location.query).toEqual({
         display: undefined,

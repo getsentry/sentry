@@ -3,7 +3,6 @@ import {Fragment} from 'react';
 import {FeatureBadge} from '@sentry/scraps/badge';
 
 import {t} from 'sentry/locale';
-import {orgHasSeerAccess} from 'sentry/utils/seer/orgHasSeerAccess';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useInboxIssueCount} from 'sentry/views/issueList/pages/inbox/useInboxIssueCount';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
@@ -35,7 +34,6 @@ function IssuesSecondaryNavigationImpl() {
   const organization = useOrganization();
   const baseUrl = `/organizations/${organization.slug}/issues`;
   const hasIssueInbox = organization.features.includes('issue-inbox');
-  const hasInbox = hasIssueInbox && orgHasSeerAccess(organization);
   const hasSeerNightShift = organization.features.includes('seer-night-shift-ui');
   const hasAutofixSection = hasSeerNightShift || !hasIssueInbox;
 
@@ -52,7 +50,7 @@ function IssuesSecondaryNavigationImpl() {
       '(a nested "issues-starred-views" node holds those, each with its own ' +
       'live issue count as a further-nested child). When present, a nested ' +
       '"Inbox" child node reports the live inbox count.',
-    hasInbox,
+    hasInbox: hasIssueInbox,
     hasAutofixSection,
     hasAutofixOverview: hasSeerNightShift,
     issueTypes: visibleIssueTypes.map(({key, label, badge}) => ({key, label, badge})),
@@ -73,7 +71,7 @@ function IssuesSecondaryNavigationImpl() {
                 {t('Feed')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
-            {hasInbox && (
+            {hasIssueInbox && (
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
                   to={`${baseUrl}/inbox/`}

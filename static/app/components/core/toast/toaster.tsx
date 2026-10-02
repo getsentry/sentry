@@ -3,7 +3,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {Toaster} from 'sonner';
 
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {DEFAULT_TOAST_DURATION} from './types';
 

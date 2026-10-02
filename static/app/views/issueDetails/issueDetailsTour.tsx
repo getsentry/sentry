@@ -122,6 +122,7 @@ function useIssueDetailsTourModal() {
     };
   }, [
     endTour,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     forceShowTourModal,
     isRegistered,
     mutateAssistant,

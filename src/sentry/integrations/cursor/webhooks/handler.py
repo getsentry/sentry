@@ -32,6 +32,16 @@ from sentry.seer.autofix.utils import CodingAgentResult
 logger = logging.getLogger(__name__)
 
 
+def _is_https_url(url: object) -> bool:
+    if not isinstance(url, str):
+        return False
+    try:
+        parsed = urlparse(url)
+    except ValueError:
+        return False
+    return parsed.scheme == "https" and bool(parsed.hostname)
+
+
 @cell_silo_endpoint
 class CursorWebhookEndpoint(Endpoint):
     owner = ApiOwner.ML_AI
@@ -232,6 +242,13 @@ class CursorWebhookEndpoint(Endpoint):
                 extra={"agent_id": agent_id, "pr_url": pr_url},
             )
             pr_url = None
+
+        if agent_url is not None and not _is_https_url(agent_url):
+            logger.warning(
+                "cursor_webhook.invalid_agent_url",
+                extra={"agent_id": agent_id, "agent_url": agent_url},
+            )
+            agent_url = None
 
         # Only a completed agent has a result to point at.
         is_completed = status == CodingAgentStatus.COMPLETED

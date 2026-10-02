@@ -620,6 +620,7 @@ class OrganizationSCIMMemberIndex(SCIMEndpoint):
             data={
                 "email": request.data.get("userName"),
                 "role": roles.get(role).id,
+                "sendInvite": False,
             },
             context={
                 "organization": organization,

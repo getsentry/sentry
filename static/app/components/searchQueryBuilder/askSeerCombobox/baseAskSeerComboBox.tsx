@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
+import type {Primitive} from 'type-fest';
 
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
@@ -17,7 +18,10 @@ import {AskSeerSearchListBox} from 'sentry/components/searchQueryBuilder/askSeer
 import {AskSeerSearchPopover} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerSearchPopover';
 import {QueryTokens} from 'sentry/components/searchQueryBuilder/askSeerCombobox/queryTokens';
 import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
-import {generateQueryTokensString} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
+import {
+  generateQueryTokensString,
+  stringifyQueryForFeedback,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {IconClose, IconMegaphone, IconSearch, IconSync} from 'sentry/icons';
@@ -75,6 +79,7 @@ function useUpdateOverlayPositionOnContentChange({
     return () => {
       resizeObserverRef.current?.disconnect();
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [contentRef, isOpen, updateOverlayPosition]);
 }
 
@@ -89,6 +94,7 @@ export interface BaseAskSeerComboBoxProps<T extends QueryTokensProps> {
   queries: T[];
   searchQuery: string;
   submitQuery: (query: string) => void;
+  additionalFeedbackTags?: Record<string, Primitive>;
   className?: string;
   onReset?: () => void;
   unsupportedReason?: string | null;
@@ -108,6 +114,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   searchQuery,
   submitQuery,
   unsupportedReason,
+  additionalFeedbackTags,
   ...props
 }: BaseAskSeerComboBoxProps<T>) {
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -500,6 +507,12 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
                       tags: {
                         'feedback.source': `ai_query.${analyticsArea}`,
                         'feedback.owner': 'ml-ai',
+                        'feedback.natural_language_query': searchQuery.trim(),
+                        'feedback.raw_result': queries
+                          .map(query => stringifyQueryForFeedback(query))
+                          .join('\n\n'),
+                        'feedback.num_queries_returned': queries.length,
+                        ...additionalFeedbackTags,
                       },
                     })
                   }

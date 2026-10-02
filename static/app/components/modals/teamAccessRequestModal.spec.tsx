@@ -32,10 +32,6 @@ describe('TeamAccessRequestModal', () => {
     api: new MockApiClient(),
   };
 
-  function renderComponent() {
-    return render(<TeamAccessRequestModal {...modalRenderProps} />);
-  }
-
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     createMock = MockApiClient.addMockResponse({
@@ -45,7 +41,7 @@ describe('TeamAccessRequestModal', () => {
   });
 
   it('renders', () => {
-    const {container} = renderComponent();
+    const {container} = render(<TeamAccessRequestModal {...modalRenderProps} />);
 
     expect(container).toHaveTextContent(
       `You do not have permission to add members to the #${teamId} team, but we will send a request to your organization admins for approval.`
@@ -53,14 +49,14 @@ describe('TeamAccessRequestModal', () => {
   });
 
   it('creates access request on continue', async () => {
-    renderComponent();
+    render(<TeamAccessRequestModal {...modalRenderProps} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
     expect(createMock).toHaveBeenCalled();
   });
 
   it('closes modal on cancel', async () => {
-    renderComponent();
+    render(<TeamAccessRequestModal {...modalRenderProps} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
     expect(createMock).not.toHaveBeenCalled();

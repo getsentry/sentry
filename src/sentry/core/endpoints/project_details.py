@@ -49,6 +49,7 @@ from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingConfig
 from sentry.grouping.fingerprinting.exceptions import InvalidFingerprintingConfig
 from sentry.ingest.inbound_filters import FilterTypes
+from sentry.ingest.legacy_filter_lists import set_list
 from sentry.issues.highlights import HighlightContextField
 from sentry.lang.native.sources import (
     InvalidSourcesError,
@@ -497,6 +498,11 @@ E.g. `['release', 'environment']`""",
         added_or_modified_sources = [s for s in sources if s not in orig_sources]
         if not added_or_modified_sources:
             return orjson.dumps(sources).decode() if sources else ""
+
+        if any(s.get("type") == "azure" for s in added_or_modified_sources) and not features.has(
+            "organizations:azure-symbol-sources", organization, actor=request.user
+        ):
+            raise serializers.ValidationError("Azure symbol sources are not enabled.")
 
         # All modified sources should get a new UUID, as a way to invalidate caches.
         # Downstream symbolicator uses this ID as part of a cache key, so assigning
@@ -1226,6 +1232,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "sentry:toolbar_allowed_origins",
                     clean_newline_inputs(options["sentry:toolbar_allowed_origins"]),
                 )
+            if "sentry:relay_automatic_json_expansion" in options:
+                project.update_option(
+                    "sentry:relay_automatic_json_expansion",
+                    bool(options["sentry:relay_automatic_json_expansion"]),
+                )
             if "filters:react-hydration-errors" in options:
                 project.update_option(
                     "filters:react-hydration-errors",
@@ -1243,16 +1254,18 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
             if f"filters:{FilterTypes.RELEASES}" in options:
                 if features.has("projects:custom-inbound-filters", project, actor=request.user):
-                    project.update_option(
-                        f"sentry:{FilterTypes.RELEASES}",
+                    set_list(
+                        project,
+                        FilterTypes.RELEASES,
                         clean_newline_inputs(options[f"filters:{FilterTypes.RELEASES}"]),
                     )
                 else:
                     return Response({"detail": "You do not have that feature enabled"}, status=400)
             if f"filters:{FilterTypes.ERROR_MESSAGES}" in options:
                 if features.has("projects:custom-inbound-filters", project, actor=request.user):
-                    project.update_option(
-                        f"sentry:{FilterTypes.ERROR_MESSAGES}",
+                    set_list(
+                        project,
+                        FilterTypes.ERROR_MESSAGES,
                         clean_newline_inputs(
                             options[f"filters:{FilterTypes.ERROR_MESSAGES}"],
                             case_insensitive=False,
@@ -1266,8 +1279,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 ) and features.has(
                     "organizations:ourlogs-ingestion", project.organization, actor=request.user
                 ):
-                    project.update_option(
-                        f"sentry:{FilterTypes.LOG_MESSAGES}",
+                    set_list(
+                        project,
+                        FilterTypes.LOG_MESSAGES,
                         clean_newline_inputs(
                             options[f"filters:{FilterTypes.LOG_MESSAGES}"],
                             case_insensitive=False,
@@ -1281,8 +1295,9 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 ) and features.has(
                     "organizations:tracemetrics-ingestion", project.organization, actor=request.user
                 ):
-                    project.update_option(
-                        f"sentry:{FilterTypes.TRACE_METRIC_NAMES}",
+                    set_list(
+                        project,
+                        FilterTypes.TRACE_METRIC_NAMES,
                         clean_newline_inputs(
                             options[f"filters:{FilterTypes.TRACE_METRIC_NAMES}"],
                             case_insensitive=False,

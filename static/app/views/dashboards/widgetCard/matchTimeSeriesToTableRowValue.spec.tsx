@@ -112,6 +112,26 @@ describe('matchTimeSeriesToTableRowValue', () => {
     expect(result).toBe(20);
   });
 
+  it('matches when a groupBy value contains commas', () => {
+    // Series names join group values with commas, so a comma inside a value
+    // shifts the parsed split point between keys
+    const result = matchTimeSeriesToTableRowValue({
+      tableDataRows: [
+        {id: '1', model: 'gpt', error: 'Proxy returned 404: {"a", "b"}', 'count()': 67},
+        {id: '2', model: 'gpt', error: 'Timeout', 'count()': 20},
+      ],
+      timeSeries: TimeSeriesFixture({
+        yAxis: 'count()',
+        groupBy: [
+          {key: 'model', value: 'gpt,Proxy returned 404: {"a"'},
+          {key: 'error', value: ' "b"}'},
+        ],
+      }),
+    });
+
+    expect(result).toBe(67);
+  });
+
   it('returns the first row value when groupBy is an empty array', () => {
     const result = matchTimeSeriesToTableRowValue({
       tableDataRows: [{id: '1', 'count()': 42}],

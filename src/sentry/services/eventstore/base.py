@@ -207,6 +207,9 @@ class EventStorage(Service):
         referrer: str = "eventstore.get_events_snql",
         dataset: Dataset = Dataset.Events,
         tenant_ids: Mapping[str, Any] | None = None,
+        *,
+        eager_load_bodies: bool = True,
+        extra_columns: Sequence[str] = (),
     ) -> list[Event]:
         raise NotImplementedError
 
