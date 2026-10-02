@@ -446,6 +446,7 @@ class EventManager:
         assume_normalized: bool = False,
         start_time: float | None = None,
         cache_key: str | None = None,
+        unprocessed_key: str | None = None,
         skip_send_first_transaction: bool = False,
         attachments: list[CachedAttachment] | None = None,
     ) -> Event:
@@ -483,6 +484,7 @@ class EventManager:
             "project_id": project.id,
             "raw": raw,
             "start_time": start_time,
+            "unprocessed_key": unprocessed_key,
         }
 
         # After calling _pull_out_data we get some keys in the job like the platform
@@ -1089,10 +1091,14 @@ def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
         event = job["event"]
         # We only care about `unprocessed` for error events
         if event.get_event_type() not in ("transaction", "generic") and job["groups"]:
-            unprocessed = event_processing_store.get(
-                cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
-                unprocessed=True,
-            )
+            unprocessed_key = job.get("unprocessed_key")
+            if unprocessed_key is None:
+                unprocessed = event_processing_store.get(
+                    cache_key_for_event({"project": event.project_id, "event_id": event.event_id}),
+                    unprocessed=True,
+                )
+            else:
+                unprocessed = event_processing_store.get(unprocessed_key)
             if unprocessed is not None:
                 subkeys["unprocessed"] = unprocessed
 

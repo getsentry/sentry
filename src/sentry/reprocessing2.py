@@ -162,7 +162,7 @@ class CannotReprocess(Exception):
         Exception.__init__(self, reason)
 
 
-def backup_unprocessed_event(data: Mapping[str, Any]) -> None:
+def backup_unprocessed_event(data: Mapping[str, Any]) -> str | None:
     """
     Backup unprocessed event payload into redis. Only call if event should be
     able to be reprocessed.
@@ -171,7 +171,7 @@ def backup_unprocessed_event(data: Mapping[str, Any]) -> None:
     if options.get("store.reprocessing-force-disable"):
         return
 
-    event_processing_store.store(dict(data), unprocessed=True)
+    return event_processing_store.store(dict(data), unprocessed=True)
 
 
 @dataclass
