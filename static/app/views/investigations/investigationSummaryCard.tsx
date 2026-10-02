@@ -22,7 +22,7 @@ export function InvestigationSummaryCard({
 
   return (
     <Stack className={className} gap="md" data-test-id="investigation-summary">
-      <Text size="sm" variant="muted" bold>
+      <Text size="md" variant="muted" bold>
         {t('Investigation conclusion')}
       </Text>
       <Stack gap="xs">
