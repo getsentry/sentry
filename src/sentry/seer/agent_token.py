@@ -10,7 +10,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import StrEnum
-from typing import TypedDict, TypeGuard
+from typing import NotRequired, TypedDict, TypeGuard
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -76,6 +76,7 @@ class AgentTokenClaims(TypedDict):
     sid: str
     iat: int
     exp: int
+    superuser_access_expires_at: NotRequired[int]
 
 
 def _signing_key() -> str:
@@ -170,6 +171,7 @@ def encode_agent_token(
     scopes: Iterable[str],
     session_id: str,
     ttl: timedelta = DEFAULT_TOKEN_TTL,
+    superuser_access_expires_at: int | None = None,
 ) -> tuple[str, datetime]:
     """Mint a signed agent token. Returns the JWT and its expiry. No DB write."""
     now = timezone.now()
@@ -186,6 +188,8 @@ def encode_agent_token(
         "iat": int(now.timestamp()),
         "exp": int(expires_at.timestamp()),
     }
+    if superuser_access_expires_at is not None:
+        payload["superuser_access_expires_at"] = superuser_access_expires_at
     token = jwt.encode(
         payload,
         _signing_key(),
@@ -274,7 +278,7 @@ def _validate_claims(claims: Mapping[str, object]) -> AgentTokenClaims:
     if expires_at <= issued_at:
         raise jwt.DecodeError("invalid agent token lifetime")
 
-    return AgentTokenClaims(
+    result = AgentTokenClaims(
         ver=version,
         aud=audience,
         sub=subject,
@@ -284,6 +288,12 @@ def _validate_claims(claims: Mapping[str, object]) -> AgentTokenClaims:
         iat=issued_at,
         exp=expires_at,
     )
+    if "superuser_access_expires_at" in claims:
+        superuser_access_expires_at = claims["superuser_access_expires_at"]
+        if type(superuser_access_expires_at) is not int:
+            raise jwt.DecodeError("invalid agent superuser access expiry")
+        result["superuser_access_expires_at"] = superuser_access_expires_at
+    return result
 
 
 def decode_agent_token(token_str: str) -> AgentTokenClaims:
@@ -313,6 +323,7 @@ def build_authenticated_token(claims: AgentTokenClaims) -> AuthenticatedToken:
         scopes=claims["scopes"],
         user_id=principal.id,
         organization_id=claims["org"],
+        superuser_access_expires_at=claims.get("superuser_access_expires_at"),
     )
 
 
