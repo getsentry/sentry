@@ -1,5 +1,4 @@
 import logging
-import math
 from collections.abc import Generator, Iterator
 from datetime import datetime, timedelta
 from typing import Any, TypedDict
@@ -16,9 +15,11 @@ from sentry.replays.post_process import process_raw_response
 from sentry.replays.query import query_replay_instance, query_trace_connected_events
 from sentry.replays.usecases.ingest.event_parser import (
     EventType,
-    get_timestamp_unit,
     parse_network_content_lengths,
     which,
+)
+from sentry.replays.usecases.ingest.event_parser import (
+    get_timestamp_ms as get_replay_event_timestamp_ms,
 )
 from sentry.replays.usecases.reader import fetch_segments_metadata, iter_segment_data
 from sentry.search.events.types import SnubaParams
@@ -268,17 +269,6 @@ def get_summary_logs(
     )
 
 
-def _get_event_timestamp_ms(event: Any, event_type: EventType) -> float | None:
-    """Return the event timestamp in milliseconds, or None if it is missing or malformed."""
-    try:
-        timestamp = float(_text(get_path(event, "timestamp")))
-    except ValueError:
-        return None
-    if not math.isfinite(timestamp):
-        return None
-    return timestamp * 1000 if get_timestamp_unit(event_type) == "s" else timestamp
-
-
 def _format_when(timestamp: float | None) -> str:
     return f"at {timestamp}" if timestamp is not None else "at an unknown time"
 
@@ -307,7 +297,7 @@ def generate_summary_logs(
         events = json.loads(segment.tobytes().decode("utf-8"))
         for event in events:
             event_type = which(event)
-            timestamp = _get_event_timestamp_ms(event, event_type)
+            timestamp = get_replay_event_timestamp_ms(event, event_type)
 
             # Events without a usable timestamp can't be placed relative to the replay start or
             # to errors, so they are kept in segment order rather than dropped.
@@ -366,7 +356,7 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
     message instead of discarding the event.
     """
     event_type = which(event)
-    when = _format_when(_get_event_timestamp_ms(event, event_type))
+    when = _format_when(get_replay_event_timestamp_ms(event, event_type))
     payload = get_path(event, "data", "payload")
     data = get_path(payload, "data")
 
