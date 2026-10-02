@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
 
-import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -38,7 +37,7 @@ export type SeerStatusBlockVariant =
 /**
  * Only a state that has stopped and needs attention colours its title. A run
  * that is simply working, or has finished cleanly, leaves the sentence in the
- * ordinary heading colour and lets the chip carry the state — otherwise every
+ * ordinary heading colour and lets the header badge carry the state — otherwise every
  * status block on the page shouts.
  */
 const TITLE_VARIANT = {
@@ -46,16 +45,6 @@ const TITLE_VARIANT = {
   awaitingInput: 'warning',
   failed: 'danger',
   complete: undefined,
-  cancelled: 'muted',
-} as const;
-
-const TAG_VARIANT = {
-  // `info` is the accent-purple pill: `content.accent` on
-  // `background.transparent.accent.muted`, which is what the design names.
-  running: 'info',
-  awaitingInput: 'warning',
-  failed: 'danger',
-  complete: 'success',
   cancelled: 'muted',
 } as const;
 
@@ -81,8 +70,6 @@ function StatusIcon({variant}: {variant: SeerStatusBlockVariant}) {
 }
 
 type SeerStatusBlockProps = {
-  /** The short pill on the right, e.g. "Running…", "Awaiting input". */
-  statusLabel: string;
   /** The sentence the block leads with, in the agent's voice. */
   title: string;
   variant: SeerStatusBlockVariant;
@@ -92,6 +79,11 @@ type SeerStatusBlockProps = {
    * otherwise.
    */
   action?: ReactNode;
+  /**
+   * Content under the description that a plain sentence can't carry, such as
+   * the conclusion of a finished investigation.
+   */
+  children?: ReactNode;
   className?: string;
   /** The paragraph under the title. */
   description?: string;
@@ -107,14 +99,19 @@ type SeerStatusBlockProps = {
    * something to count.
    */
   meta?: string;
+  /**
+   * A control on the right edge of the block, such as a link to open the
+   * investigation. Unlike `action`, it is not a request for input.
+   */
+  trailing?: ReactNode;
 };
 
 /**
  * The status line above an agentic investigation's hypotheses.
  *
  * One component covers the whole run lifecycle because the shape never changes
- * — icon, sentence, chip, elapsed time — only the words and the colour do. That
- * is deliberate: the block sits in a fixed spot at the top of the panel, and a
+ * — icon, sentence, elapsed time — only the words and the colour do. That
+ * is deliberate: the block sits in a fixed spot above the hypotheses panel, and a
  * reader who has learned where to look for "what is Seer doing" should not have
  * to relearn it when the run changes state.
  *
@@ -123,12 +120,13 @@ type SeerStatusBlockProps = {
  */
 export function SeerStatusBlock({
   action,
+  children,
   className,
   description,
   elapsed,
   meta,
-  statusLabel,
   title,
+  trailing,
   variant,
 }: SeerStatusBlockProps) {
   return (
@@ -141,63 +139,63 @@ export function SeerStatusBlock({
       data-test-id="seer-status-block"
       data-variant={variant}
     >
-      <Flex gap="md" align="start">
-        {/*
-         * A fixed column so the title, the description and the action all line
-         * up on the same left edge regardless of which icon is showing. `16px`
-         * is the title's line height, which centres the icon against the first
-         * line rather than the block.
-         */}
-        <Flex height="16px" align="center" justify="center" flex="0 0 auto">
-          <StatusIcon variant={variant} />
-        </Flex>
+      {/*
+       * The content and the trailing control centre against each other, so a
+       * one-line status sits level with a button taller than it.
+       */}
+      <Flex gap="md" align="center">
+        <Flex gap="md" align="start" flex="1 1 auto" minWidth="0">
+          {/*
+           * A fixed column so the title, the description and the action all line
+           * up on the same left edge regardless of which icon is showing. `16px`
+           * is the title's line height, which centres the icon against the first
+           * line rather than the block.
+           */}
+          <Flex height="16px" align="center" justify="center" flex="0 0 auto">
+            <StatusIcon variant={variant} />
+          </Flex>
 
-        <Stack gap="xs" flex="1 1 auto" minWidth="0">
-          <Flex justify="between" align="center" gap="md">
-            <Text size="md" bold variant={TITLE_VARIANT[variant]}>
-              {title}
-            </Text>
-            {/*
-             * The chip and the clock never wrap under the sentence: they are
-             * the part a viewer glances at, so they hold the top-right corner
-             * and the title wraps around them instead.
-             */}
-            <Flex gap="md" align="center" flex="0 0 auto">
-              <Tag variant={TAG_VARIANT[variant]}>{statusLabel}</Tag>
+          <Stack gap="xs" flex="1 1 auto" minWidth="0">
+            <Flex justify="between" align="center" gap="md">
+              <Text size="md" bold variant={TITLE_VARIANT[variant]}>
+                {title}
+              </Text>
               {elapsed ? (
-                // Monospace and tabular so a ticking counter does not shuffle
-                // the chip sideways on every update.
-                <Text size="sm" variant="muted" monospace tabular>
+                <Text size="sm" variant="muted" monospace tabular wrap="nowrap">
                   {elapsed}
                 </Text>
               ) : null}
             </Flex>
-          </Flex>
 
-          {meta ? (
-            <Text size="sm" variant="muted">
-              {meta}
-            </Text>
-          ) : null}
+            {meta ? (
+              <Text size="sm" variant="muted">
+                {meta}
+              </Text>
+            ) : null}
 
-          {description ? (
-            <Text size="sm" density="comfortable">
-              {description}
-            </Text>
-          ) : null}
+            {description ? (
+              <Text size="sm" density="comfortable">
+                {description}
+              </Text>
+            ) : null}
 
-          {action ? (
-            <Container
-              background="secondary"
-              radius="md"
-              padding="lg"
+            {children}
 
-              data-test-id="seer-status-block-action"
-            >
-              {action}
-            </Container>
-          ) : null}
-        </Stack>
+            {action ? (
+              <Container
+                background="secondary"
+                radius="md"
+                padding="lg"
+
+                data-test-id="seer-status-block-action"
+              >
+                {action}
+              </Container>
+            ) : null}
+          </Stack>
+        </Flex>
+
+        {trailing ? <Flex flex="0 0 auto">{trailing}</Flex> : null}
       </Flex>
     </Container>
   );

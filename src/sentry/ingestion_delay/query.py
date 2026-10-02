@@ -4,6 +4,7 @@ import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 
+from django.core.cache import cache
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.snuba.v1.attribute_conditional_aggregation_pb2 import (
     AttributeConditionalAggregation,
@@ -22,10 +23,11 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     Function,
 )
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.snuba.referrer import Referrer
-from sentry.utils import snuba_rpc
+from sentry.utils import metrics, snuba_rpc
 
 logger = logging.getLogger(__name__)
 
@@ -38,8 +40,10 @@ DELAY_AGGREGATE = Function.FUNCTION_P99
 
 LAST_INGESTED_LABEL = "last_ingested_at"
 
-# How far back the measurement window reaches.
-MEASUREMENT_LOOKBACK = timedelta(minutes=60)
+
+def get_measurement_lookback() -> timedelta:
+    """How far back the measurement window reaches."""
+    return timedelta(minutes=options.get("ingestion-delay.measurement-lookback-minutes"))
 
 
 def build_delay_expression() -> AttributeKeyExpression:
@@ -136,7 +140,8 @@ def measure_ingestion_delay(
     now: datetime,
 ) -> IngestionDelayMeasurement:
     """
-    The p99 ingestion delay and the most recent write, in the last 60 minutes for the given organization and item type.
+    The p99 ingestion delay and the most recent write, over the measurement window
+    for the given organization and item type.
     """
     project_ids = list(
         Project.objects.filter(organization_id=organization_id, status=ObjectStatus.ACTIVE)
@@ -150,7 +155,7 @@ def measure_ingestion_delay(
         organization_id=organization_id,
         project_ids=project_ids,
         item_type=item_type,
-        start=now - MEASUREMENT_LOOKBACK,
+        start=now - get_measurement_lookback(),
         end=now,
     )
 
@@ -184,3 +189,51 @@ def measure_ingestion_delay(
     last_ingested_at = datetime.fromtimestamp(last_ingested_ms / MILLISECONDS_PER_SECOND, tz=UTC)
 
     return IngestionDelayMeasurement(delay_seconds=delay_seconds, last_ingested_at=last_ingested_at)
+
+
+def _measurement_cache_key(organization_id: int, item_type: TraceItemType.ValueType) -> str:
+    return f"ingestion-delay:measurement:{organization_id}:{item_type}"
+
+
+def get_ingestion_delay_measurement(
+    organization_id: int,
+    item_type: TraceItemType.ValueType,
+    now: datetime,
+) -> IngestionDelayMeasurement:
+    """
+    Wrapper around `measure_ingestion_delay` cached by organization and item type.
+    """
+    ttl = options.get("ingestion-delay.measurement-cache-seconds")
+    if ttl <= 0:
+        return measure_ingestion_delay(organization_id, item_type, now)
+
+    key = _measurement_cache_key(organization_id, item_type)
+    cached = cache.get(key)
+    if cached is not None:
+        metrics.incr("ingestion_delay.measurement_cache", tags={"result": "hit"})
+        last_ingested_at = cached["last_ingested_at"]
+        return IngestionDelayMeasurement(
+            delay_seconds=cached["delay_seconds"],
+            last_ingested_at=(
+                None
+                if last_ingested_at is None
+                else datetime.fromtimestamp(last_ingested_at, tz=UTC)
+            ),
+        )
+
+    metrics.incr("ingestion_delay.measurement_cache", tags={"result": "miss"})
+    measurement = measure_ingestion_delay(organization_id, item_type, now)
+    if measurement.succeeded:
+        cache.set(
+            key,
+            {
+                "delay_seconds": measurement.delay_seconds,
+                "last_ingested_at": (
+                    None
+                    if measurement.last_ingested_at is None
+                    else measurement.last_ingested_at.timestamp()
+                ),
+            },
+            ttl,
+        )
+    return measurement

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import timedelta
 from typing import Any
 from unittest import mock
 from uuid import uuid4
@@ -70,6 +71,42 @@ class OrganizationInvestigationOrchestrationTest(APITestCase):
         assert response.data["pendingInput"] is None
         assert response.data["report"]["revision"] == 0
         assert response.data["report"]["notebookRevision"] == 0
+        assert "startedAt" not in response.data
+        assert "activeTimeElapsedSeconds" not in response.data
+
+    def test_timing_survives_reads_with_a_fresh_server_anchor(self) -> None:
+        investigation, run = self.create_agentic()
+        start = timezone.now() - timedelta(seconds=30)
+        timing = {
+            "startedAt": start.isoformat(),
+            "finishedAt": None,
+            "activeSince": (start + timedelta(seconds=20)).isoformat(),
+            "activeTimeElapsedSeconds": 5.5,
+        }
+        run.update(status="processing", projection={**run.projection, **timing})
+        url = self.orchestration_url(investigation.id)
+        first = self.client.get(url)
+        second = self.client.get(url)
+        assert first.status_code == second.status_code == 200
+        assert {key: second.data[key] for key in timing} == timing
+        assert second.data["serverTime"] > first.data["serverTime"]
+        run.refresh_from_db()
+        assert "serverTime" not in run.projection
+
+    def test_terminal_timing_is_not_replaced_by_update_time(self) -> None:
+        investigation, run = self.create_agentic()
+        finished = "2025-01-01T00:05:00Z"
+        timing = {
+            "startedAt": "2025-01-01T00:00:00Z",
+            "finishedAt": finished,
+            "activeSince": None,
+            "activeTimeElapsedSeconds": 72.5,
+        }
+        run.update(status="completed", projection={**run.projection, **timing})
+        response = self.client.get(self.orchestration_url(investigation.id))
+        assert response.status_code == 200
+        assert {key: response.data[key] for key in timing} == timing
+        assert response.data["updatedAt"] != finished
 
     def test_prefers_the_run_columns_over_the_stored_projection(self) -> None:
         investigation, run = self.create_agentic()

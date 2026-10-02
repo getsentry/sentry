@@ -71,23 +71,6 @@ type BaseSpanType = RawSpanType & {
   type?: undefined;
 };
 
-export const rawSpanKeys = new Set<keyof RawSpanType>([
-  'trace_id',
-  'parent_span_id',
-  'span_id',
-  'start_timestamp',
-  'timestamp',
-  'same_process_as_parent',
-  'op',
-  'origin',
-  'description',
-  'status',
-  'data',
-  'tags',
-  'hash',
-  'exclusive_time',
-]);
-
 export type OrphanSpanType = RawSpanType & {
   type: 'orphan';
 };

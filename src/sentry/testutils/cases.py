@@ -811,28 +811,6 @@ class RuleTestCase(TestCase):
         kwargs.setdefault("data", {})
         return self.rule_cls(**kwargs)
 
-    def get_state(self, **kwargs):
-        from sentry.rules import EventState
-
-        kwargs.setdefault("is_new", True)
-        kwargs.setdefault("is_regression", True)
-        kwargs.setdefault("is_new_group_environment", True)
-        kwargs.setdefault("has_reappeared", True)
-        kwargs.setdefault("has_escalated", False)
-        return EventState(**kwargs)
-
-    def assertPasses(self, rule, event=None, **kwargs):
-        if event is None:
-            event = self.event
-        state = self.get_state(**kwargs)
-        assert rule.passes(event, state) is True
-
-    def assertDoesNotPass(self, rule, event=None, **kwargs):
-        if event is None:
-            event = self.event
-        state = self.get_state(**kwargs)
-        assert rule.passes(event, state) is False
-
 
 class DRFPermissionTestCase(TestCase):
     def make_request(self, *arg, **kwargs) -> Request:

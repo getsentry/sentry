@@ -2,9 +2,12 @@ import {Fragment} from 'react';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {
   DisableDetectorAction,
   EditDetectorAction,
@@ -42,6 +45,24 @@ function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
   );
 }
 
+function DetectorDetailsTitle({detector}: {detector: Detector}) {
+  const project = useProjectFromId({project_id: detector.projectId ?? undefined});
+
+  return (
+    <BreadcrumbList.Title
+      item={{
+        type: 'page-title',
+        label: detector.name,
+        leadingGraphic: project ? (
+          <ProjectBadge disableLink hideName project={project} avatarSize={16} />
+        ) : (
+          <Placeholder width="16px" height="16px" />
+        ),
+      }}
+    />
+  );
+}
+
 function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
   return (
     <Fragment>
@@ -49,7 +70,7 @@ function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
         <DetectorDetailsBreadcrumbs detector={detector} />
       </TopBar.Slot>
       <TopBar.Slot name="title">
-        <BreadcrumbList.Title item={{type: 'page-title', label: detector.name}} />
+        <DetectorDetailsTitle detector={detector} />
       </TopBar.Slot>
     </Fragment>
   );
