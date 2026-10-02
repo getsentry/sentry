@@ -95,7 +95,7 @@ const AutomationSimpleTableRow = styled(SimpleTable.Row)`
   }
 
   @media (hover: hover) {
-    &:not(:has(:hover)):not(:has(input:checked)) {
+    &:not(:has(:hover)):not(:has(input:checked)):not(:focus-within) {
       .select-row {
         ${p => p.theme.visuallyHidden}
       }

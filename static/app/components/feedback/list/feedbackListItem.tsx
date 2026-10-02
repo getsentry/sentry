@@ -69,7 +69,7 @@ export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
       >
         <InteractionStateLayer />
 
-        <Row
+        <CheckboxRow
           area="checkbox"
           onClick={e => {
             e.stopPropagation();
@@ -82,7 +82,7 @@ export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
               toggleSelected(feedbackItem.id);
             }}
           />
-        </Row>
+        </CheckboxRow>
 
         <ContactRow>
           {feedbackItem.metadata.name ??
@@ -93,11 +93,11 @@ export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
         <StyledTimeSince date={feedbackItem.firstSeen} />
 
         {feedbackItem.hasSeen ? null : (
-          <DotRow area="unread">
+          <Row area="unread" justify="center">
             <Tooltip title={t('Unread')} skipWrapper>
               <UnreadIndicator />
             </Tooltip>
-          </DotRow>
+          </Row>
         )}
 
         <PreviewRow align="start" justify="start" area="message">
@@ -176,8 +176,8 @@ const LinkedFeedbackCard = styled(Link)`
   grid-template-columns: max-content 1fr max-content;
   grid-template-rows: max-content 1fr max-content;
   grid-template-areas:
-    'checkbox user time'
-    'unread message message'
+    'unread user time'
+    'checkbox message message'
     '. bottom bottom';
   gap: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   place-items: stretch;
@@ -208,10 +208,12 @@ const PreviewRow = styled(Row)`
   padding-bottom: ${p => p.theme.space.sm};
 `;
 
-const DotRow = styled(Row)`
-  height: 1.1em;
-  align-items: flex-start;
-  justify-content: center;
+const CheckboxRow = styled(Row)`
+  @media (hover: hover) {
+    ${LinkedFeedbackCard}:not(:hover):not(:focus-within):not(:has(input:checked)) & {
+      opacity: 0;
+    }
+  }
 `;
 
 const UnreadIndicator = styled('div')`

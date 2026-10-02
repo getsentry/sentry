@@ -62,9 +62,9 @@ export function SeerRepoTableRow({
       borderBottom="muted"
     >
       <SimpleTable.RowCell>
-        <CheckboxClickTarget htmlFor={`replay-table-select-${repository.id}`}>
+        <CheckboxClickTarget htmlFor={`seer-repo-table-select-${repository.id}`}>
           <Checkbox
-            id={`replay-table-select-${repository.id}`}
+            id={`seer-repo-table-select-${repository.id}`}
             disabled={isSelected(repository.id) === 'all-selected'}
             checked={isSelected(repository.id) !== false}
             onChange={() => {

@@ -421,6 +421,10 @@ export const ReplaySelectColumn: ReplayTableColumn = {
     return (
       <CheckboxClickCapture onClick={e => e.stopPropagation()}>
         <CheckboxCellContainer>
+          <Tooltip title={t('Unread')} skipWrapper disabled={Boolean(replay.has_viewed)}>
+            <UnreadIndicator data-has-viewed={replay.has_viewed} />
+          </Tooltip>
+
           <CheckboxClickTarget htmlFor={`replay-table-select-${replay.id}`}>
             <Checkbox
               id={`replay-table-select-${replay.id}`}
@@ -431,10 +435,6 @@ export const ReplaySelectColumn: ReplayTableColumn = {
               }}
             />
           </CheckboxClickTarget>
-
-          <Tooltip title={t('Unread')} skipWrapper disabled={Boolean(replay.has_viewed)}>
-            <UnreadIndicator data-has-viewed={replay.has_viewed} />
-          </Tooltip>
         </CheckboxCellContainer>
       </CheckboxClickCapture>
     );
@@ -567,8 +567,6 @@ const CheckboxCellContainer = styled('div')`
   justify-content: center;
   align-items: center;
   gap: ${p => p.theme.space.xs};
-
-  padding: ${p => p.theme.space.xs} 0 0 0;
 `;
 
 const CheckboxClickTarget = styled('label')`
@@ -578,6 +576,12 @@ const CheckboxClickTarget = styled('label')`
   padding: ${p => p.theme.space.md};
   max-width: unset;
   line-height: 0;
+
+  @media (hover: hover) {
+    [role='row']:not(:hover):not(:focus-within):not(:has(input:checked)) & {
+      opacity: 0;
+    }
+  }
 `;
 
 const UnreadIndicator = styled('div')`
