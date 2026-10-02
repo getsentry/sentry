@@ -37,7 +37,7 @@ describe('SeerAdminPage', () => {
       name: 'Dry run (triage only, no autofix triggered)',
     });
 
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Region'}), 'EU');
+    await selectEvent.select(screen.getAllByRole('textbox', {name: 'Region'})[0]!, 'EU');
     await userEvent.type(organizationId, '123');
     await userEvent.type(maxCandidates, '5');
     await userEvent.click(dryRun);
@@ -48,5 +48,61 @@ describe('SeerAdminPage', () => {
     expect(maxCandidates).toHaveValue(5);
     expect(dryRun).toBeChecked();
     expect(screen.getByText('EU')).toBeInTheDocument();
+  });
+
+  it('retries autofix runs and shows per-run results', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: '/internal/seer/autofix/retry/',
+      method: 'POST',
+      body: {
+        organization_id: 123,
+        results: [
+          {run_id: 1, retried: true, step: 'root_cause'},
+          {run_id: 2, retried: false, reason: "Run status is 'completed', not 'error'"},
+        ],
+      },
+    });
+
+    render(<SeerAdminPage />);
+
+    await userEvent.type(
+      screen.getByRole('spinbutton', {name: 'Organization ID'}),
+      '123'
+    );
+    await userEvent.type(screen.getByRole('textbox', {name: 'Run IDs'}), '1, 2');
+    await userEvent.click(screen.getByRole('button', {name: 'Retry Runs'}));
+
+    await waitFor(() =>
+      expect(request).toHaveBeenCalledWith(
+        '/internal/seer/autofix/retry/',
+        expect.objectContaining({data: {organization_id: 123, run_ids: [1, 2]}})
+      )
+    );
+    expect(await screen.findByText('Retried root_cause')).toBeInTheDocument();
+    expect(
+      screen.getByText("Skipped: Run status is 'completed', not 'error'")
+    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Run IDs'})).toHaveValue('');
+  });
+
+  it('does not retry autofix runs with invalid run IDs', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: '/internal/seer/autofix/retry/',
+      method: 'POST',
+    });
+
+    render(<SeerAdminPage />);
+
+    await userEvent.type(
+      screen.getByRole('spinbutton', {name: 'Organization ID'}),
+      '123'
+    );
+    await userEvent.type(screen.getByRole('textbox', {name: 'Run IDs'}), '1, abc');
+    await userEvent.click(screen.getByRole('button', {name: 'Retry Runs'}));
+
+    expect(
+      await screen.findByText('Enter 1-50 run IDs separated by commas or whitespace')
+    ).toBeInTheDocument();
+    expect(request).not.toHaveBeenCalled();
   });
 });
