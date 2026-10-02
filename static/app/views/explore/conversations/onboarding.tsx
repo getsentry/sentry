@@ -810,9 +810,7 @@ function NoDocsOnboarding({
           {tct(
             'Follow our [link:documentation] to get started, or let an AI coding agent handle the setup for you.',
             {
-              link: (
-                <ExternalLink href={AI_AGENTS_GETTING_STARTED_DOCS_LINK} />
-              ),
+              link: <ExternalLink href={AI_AGENTS_GETTING_STARTED_DOCS_LINK} />,
             }
           )}
         </Text>

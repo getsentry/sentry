@@ -453,9 +453,7 @@ export function NoDocsOnboarding({project}: {project: Project}) {
           {tct(
             'You can set up the Sentry SDK by following our [link:documentation], or click [bold:Copy instructions] to have an AI coding agent do it for you.',
             {
-              link: (
-                <ExternalLink href={AI_AGENTS_GETTING_STARTED_DOCS_LINK} />
-              ),
+              link: <ExternalLink href={AI_AGENTS_GETTING_STARTED_DOCS_LINK} />,
               bold: <strong />,
             }
           )}
