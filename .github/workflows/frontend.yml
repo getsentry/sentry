@@ -146,7 +146,19 @@ jobs:
         id: jest_test_config
         env:
           FRONTEND_ALL_FILES: ${{ needs.files-changed.outputs.frontend_all_files }}
-        run: ./.github/workflows/scripts/jest-test-config.sh
+        run: |
+          config_dir=$(mktemp -d)
+          for router_version in 6 8; do
+            SENTRY_REACT_ROUTER_VERSION="$router_version" \
+              GITHUB_OUTPUT="$config_dir/matrix-$router_version" \
+              ./.github/workflows/scripts/jest-test-config.sh
+            mv jest-test-files.json "$config_dir/tests-$router_version.json"
+          done
+
+          jq -s 'add | unique' "$config_dir"/tests-*.json > jest-test-files.json
+          # Use the larger shard matrix for the combined test list.
+          matrix=$(sed 's/^jest_test_matrix=//' "$config_dir"/matrix-* | jq -sc 'max_by(.total[0])')
+          echo "jest_test_matrix=$matrix" >> "$GITHUB_OUTPUT"
 
       - name: Upload jest test file list
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # 4.6.2
@@ -168,7 +180,10 @@ jobs:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
-      matrix: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix) }}
+      matrix:
+        index: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix).index }}
+        total: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix).total }}
+        router: ['6', '8']
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7

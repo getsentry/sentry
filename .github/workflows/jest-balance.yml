@@ -3,6 +3,8 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 0 * * 0'
+env:
+  SENTRY_REACT_ROUTER_VERSION: '6'
 jobs:
   jest-config:
     name: Configure Jest
