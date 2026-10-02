@@ -138,6 +138,11 @@ class Access(abc.ABC):
         check_scope_declaration(scope)
         return False
 
+    def would_have_project_scope_with_added_auth_scope(self, project: Project, scope: str) -> bool:
+        """Whether adding ``scope`` to the current auth scope cap would grant it for a project."""
+        check_scope_declaration(scope)
+        return False
+
     def get_organization_role(self) -> OrganizationRole | None:
         if self.role is not None:
             return organization_roles.get(self.role)

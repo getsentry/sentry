@@ -66,18 +66,20 @@ def enforce_scope(
         return
     if required_scope in add_scope_hierarchy(list(request.access.scopes)):
         return
-    scope_can_be_granted = request.access.would_have_scope_with_added_auth_scope(required_scope)
-    if projects:
-        scope_can_be_granted = all(
-            request.access.would_have_project_scope_with_added_auth_scope(project, required_scope)
-            for project in projects
-        )
     if (
         agent_token.is_agent_auth(request.auth)
         and required_scope not in settings.SENTRY_TOKEN_ONLY_SCOPES
-        and scope_can_be_granted
     ):
-        raise InsufficientScope([required_scope])
+        scope_can_be_granted = request.access.would_have_scope_with_added_auth_scope(required_scope)
+        if projects:
+            scope_can_be_granted = all(
+                request.access.would_have_project_scope_with_added_auth_scope(
+                    project, required_scope
+                )
+                for project in projects
+            )
+        if scope_can_be_granted:
+            raise InsufficientScope([required_scope])
     raise PermissionDenied
 
 
