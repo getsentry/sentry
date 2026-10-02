@@ -15,6 +15,7 @@ import {
 import {supportsAppleCrashReport} from 'sentry/components/stackTrace/native/appleCrashReport';
 import {NativeAppleCrashReportContent} from 'sentry/components/stackTrace/native/nativeAppleCrashReportContent';
 import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
+import {StackTraceFrameList} from 'sentry/components/stackTrace/stackTraceFrameList';
 import {t} from 'sentry/locale';
 import type {ExceptionValue} from 'sentry/types/event';
 import {isNativePlatform} from 'sentry/utils/platform';
@@ -24,6 +25,7 @@ import {useIssueThreadStackTraceContext} from './context';
 export function ActiveThreadStackTrace() {
   const {
     activeThreadModel,
+    isShared,
     event,
     groupingCurrentLevel,
     hasScmSourceContext,
@@ -40,11 +42,14 @@ export function ActiveThreadStackTrace() {
   const {view} = useStackTraceViewState();
   const isNativeStackTrace = isNativePlatform(activeThreadModel.platform);
   const showAppleCrashReport =
+    !isShared &&
     view === 'raw' &&
     !!exception &&
     !!stacktrace &&
     isNativeStackTrace &&
     supportsAppleCrashReport(event.platform);
+
+  const FrameList = isShared ? StackTraceFrameList : IssueStackTraceFrameList;
 
   if (exception?.values.length && !showAppleCrashReport) {
     return (
@@ -54,7 +59,8 @@ export function ActiveThreadStackTrace() {
         event={event}
         groupingCurrentLevel={groupingCurrentLevel}
         hasScmSourceContext={hasScmSourceContext}
-        frameListComponent={IssueStackTraceFrameList}
+        frameListComponent={FrameList}
+        showBanners={!isShared}
       />
     );
   }
@@ -66,7 +72,7 @@ export function ActiveThreadStackTrace() {
   return (
     <Stack gap="lg">
       <ExceptionDetails exception={activeException} />
-      {activeException?.stacktrace ? (
+      {!isShared && activeException?.stacktrace ? (
         <ErrorBoundary customComponent={null}>
           <StacktraceBanners event={event} stacktrace={activeException.stacktrace} />
         </ErrorBoundary>
@@ -79,7 +85,7 @@ export function ActiveThreadStackTrace() {
           threadId={activeThread?.id}
         />
       ) : (
-        <IssueStackTraceFrameList
+        <FrameList
           key={activeThread?.id}
           event={event}
           stacktrace={stacktrace}
@@ -94,9 +100,9 @@ export function ActiveThreadStackTrace() {
 }
 
 export function IssueThreadStackTraceSuspectCommits() {
-  const {event, group, projectSlug} = useIssueThreadStackTraceContext();
+  const {event, group, projectSlug, isShared} = useIssueThreadStackTraceContext();
 
-  if (!group) {
+  if (!group || isShared) {
     return null;
   }
 

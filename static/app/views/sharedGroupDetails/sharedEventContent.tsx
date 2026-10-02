@@ -8,10 +8,10 @@ import {Csp} from 'sentry/components/events/interfaces/csp';
 import {Message} from 'sentry/components/events/interfaces/message';
 import {Request} from 'sentry/components/events/interfaces/request';
 import {Template} from 'sentry/components/events/interfaces/template';
-import {Threads} from 'sentry/components/events/interfaces/threads';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import {SharedIssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace/sharedIssueStackTrace';
+import {IssueThreadStackTrace} from 'sentry/components/stackTrace/issueThreadStackTrace';
 import {t} from 'sentry/locale';
 import type {Entry, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -99,7 +99,8 @@ function SharedEventEntry({
       return <Csp event={event} data={entry.data} />;
     case EntryType.THREADS:
       return (
-        <Threads
+        <IssueThreadStackTrace
+          isShared
           event={event}
           group={group}
           data={entry.data}

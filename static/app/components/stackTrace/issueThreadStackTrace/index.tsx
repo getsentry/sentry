@@ -23,6 +23,7 @@ type Props = {
   group: Group | undefined;
   groupingCurrentLevel: Group['metadata']['current_level'];
   projectSlug: Project['slug'];
+  isShared?: boolean;
 };
 
 export function IssueThreadStackTrace({
@@ -31,6 +32,7 @@ export function IssueThreadStackTrace({
   projectSlug,
   groupingCurrentLevel,
   group,
+  isShared = false,
 }: Props) {
   const threads = useMemo(
     () => (data.values ?? []).toSorted((a, b) => Number(b.crashed) - Number(a.crashed)),
@@ -41,6 +43,7 @@ export function IssueThreadStackTrace({
   return (
     <IssueThreadStackTraceProviders
       key={event.id}
+      isShared={isShared}
       event={event}
       group={group}
       groupingCurrentLevel={groupingCurrentLevel}

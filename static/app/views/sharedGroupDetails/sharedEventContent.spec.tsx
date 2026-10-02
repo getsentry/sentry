@@ -1,11 +1,14 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {EventEntryFixture} from 'sentry-fixture/eventEntry';
+import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
+import {FrameFixture} from 'sentry-fixture/frame';
 import {GroupFixture} from 'sentry-fixture/group';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {SharedViewOrganization} from 'sentry/types/organization';
+import type {Organization, SharedViewOrganization} from 'sentry/types/organization';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
 
 import {SharedEventContent} from './sharedEventContent';
 
@@ -13,6 +16,75 @@ describe('SharedEventContent', () => {
   const organization: SharedViewOrganization = {slug: 'test-org', features: []};
   const project = ProjectFixture();
   const group = GroupFixture();
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('routes native thread entries through the public renderer with limited organization context', async () => {
+    const stacktrace = {
+      ...EventEntryStacktraceFixture().data,
+      frames: [
+        FrameFixture({
+          platform: 'cocoa',
+          function: 'causeCrash',
+          rawFunction: null,
+          module: null,
+        }),
+      ],
+    };
+    const request = jest.spyOn(MockApiClient.prototype, 'request');
+    render(
+      <OrganizationContext value={organization as Organization}>
+        <SharedEventContent
+          organization={organization}
+          project={project}
+          group={group}
+          event={EventFixture({
+            platform: 'cocoa',
+            entries: [
+              {
+                type: 'exception',
+                data: {
+                  values: [
+                    {
+                      type: 'EXC_BAD_ACCESS',
+                      value: 'invalid address',
+                      module: null,
+                      mechanism: null,
+                      threadId: 1,
+                      rawStacktrace: null,
+                      stacktrace,
+                    },
+                  ],
+                },
+              },
+              {
+                type: 'threads',
+                data: {
+                  values: [
+                    {
+                      id: 1,
+                      crashed: true,
+                      current: true,
+                      stacktrace,
+                      rawStacktrace: null,
+                    },
+                  ],
+                },
+              },
+            ],
+          })}
+        />
+      </OrganizationContext>
+    );
+
+    expect(await screen.findByTestId('native-stack-trace-frame-title')).toHaveTextContent(
+      'causeCrash'
+    );
+    expect(screen.getAllByRole('heading', {name: 'EXC_BAD_ACCESS'})).toHaveLength(1);
+    expect(request).not.toHaveBeenCalled();
+  });
 
   it('renders event entries', () => {
     render(
