@@ -1,7 +1,5 @@
-import {css} from '@emotion/react';
-
 import {InfoTip} from '@sentry/scraps/info';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {getSpanHash} from 'sentry/components/events/interfaces/performance/utils';
@@ -88,21 +86,15 @@ export function GroupingVariant({
     if (variant.hash !== null) {
       data.push([
         t('Hash'),
-        <Text
-          as="span"
+        <Container
           key="hash"
-          css={theme => css`
-            @container (max-width: ${theme.container.xl}) {
-              display: block;
-              white-space: nowrap;
-              overflow: hidden;
-              text-overflow: ellipsis;
-              width: 210px;
-            }
-          `}
+          display={{zero: 'block', xl: 'inline-block'}}
+          width={{zero: '210px', xl: 'auto'}}
         >
-          {variant.hash}
-        </Text>,
+          <Text as="span" ellipsis>
+            {variant.hash}
+          </Text>
+        </Container>,
       ]);
     }
 

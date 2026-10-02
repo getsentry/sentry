@@ -1,10 +1,5 @@
-import {css} from '@emotion/react';
-
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
-
-import {IconLink} from 'sentry/icons';
 
 interface EventDataSectionProps {
   children: React.ReactNode;
@@ -13,7 +8,7 @@ interface EventDataSectionProps {
    */
   title: React.ReactNode;
   /**
-   * Used as the `id` of the section. This powers the permalink
+   * Used as the `id` of the section for hash navigation.
    */
   type: string;
   /**
@@ -52,62 +47,15 @@ export function EventDataSection({
   actions,
   ...props
 }: EventDataSectionProps) {
-  const titleNode = (
-    <Container padding="sm 0">
-      <Heading as="h3" size="lg" variant="primary">
-        {title}
-      </Heading>
-    </Container>
-  );
-
   return (
     <Stack gap="md" ref={scrollToSection} className={className} padding="0" {...props}>
       <Flex id={type} align="center" gap="xs" wrap="wrap">
         {title && (
-          <Grid
-            columns="max-content 1fr"
-            align="center"
-            gap="xs"
-            position="relative"
-            flexGrow={1}
-          >
-            <Container as="span" width="100%" position="relative" className="permalink">
-              <Flex
-                position="absolute"
-                top="0"
-                left="0"
-                height="100%"
-                paddingLeft="xs"
-                align="center"
-              >
-                {linkProps => (
-                  <ExternalLink
-                    {...linkProps}
-                    href={`#${type}`}
-                    openInNewTab={false}
-                    css={theme => css`
-                      width: calc(100% + ${theme.space['2xl']});
-                      transform: translateX(-${theme.space['2xl']});
-
-                      .permalink-icon {
-                        opacity: 0;
-                        transform: translateY(-1px);
-                        transition: opacity 100ms;
-                      }
-
-                      :hover .permalink-icon,
-                      :focus .permalink-icon {
-                        opacity: 1;
-                      }
-                    `}
-                  >
-                    <IconLink size="xs" variant="muted" className="permalink-icon" />
-                  </ExternalLink>
-                )}
-              </Flex>
-              {titleNode}
-            </Container>
-          </Grid>
+          <Container flexGrow={1} padding="sm 0">
+            <Heading as="h3" size="lg" variant="primary">
+              {title}
+            </Heading>
+          </Container>
         )}
         {actions && (
           <Container flexShrink={0} maxWidth="100%">
