@@ -791,6 +791,29 @@ describe('ArtifactCard', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('hides an unclosed embed tag in a block that is still loading', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'processing',
+            [],
+            [
+              {
+                ...makeAssistantBlock('Looking at {% issue %}{"id":"1"'),
+                loading: true,
+              },
+            ]
+          )}
+        />
+      );
+
+      expect(screen.getByText(/Looking at/)).toBeInTheDocument();
+      expect(screen.queryByText(/\{%/)).not.toBeInTheDocument();
+    });
+
     it('does not render file diff viewers in error state', () => {
       render(
         <CodeChangesCard

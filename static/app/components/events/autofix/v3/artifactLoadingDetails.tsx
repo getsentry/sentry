@@ -35,12 +35,24 @@ export function ArtifactLoadingDetails({
             return null;
           }
 
+          // A block still being written can end mid-embed; streaming hides the
+          // unclosed tag until its closer arrives instead of flashing raw syntax.
+          const variant = block.loading ? 'streaming' : 'static';
+
           if (block.message.content && block.message.content !== 'Thinking...') {
-            return <SeerMarkdown key={index} raw={block.message.content} />;
+            return (
+              <SeerMarkdown key={index} raw={block.message.content} variant={variant} />
+            );
           }
 
           if (block.message.thinking_content) {
-            return <SeerMarkdown key={index} raw={block.message.thinking_content} />;
+            return (
+              <SeerMarkdown
+                key={index}
+                raw={block.message.thinking_content}
+                variant={variant}
+              />
+            );
           }
 
           return null;
