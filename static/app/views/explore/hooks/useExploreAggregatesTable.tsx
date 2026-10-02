@@ -33,6 +33,11 @@ interface UseExploreAggregatesTableOptions {
   queryExtras?: RPCQueryExtras;
 }
 
+export const AGGREGATES_SAMPLE_FIELDS = [
+  `any(${SpanFields.TRACE})`,
+  `any(${SpanFields.TIMESTAMP})`,
+];
+
 export interface AggregatesTableResult {
   eventView: EventView;
   fields: string[];
@@ -56,7 +61,7 @@ export function useExploreAggregatesTable({
     []
   );
   return useProgressiveQuery<typeof useExploreAggregatesTableImp>({
-    queryHookImplementation: useExploreAggregatesTableImp,
+    queryHookImplementation: useExploreAggregatesTableImp, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {enabled, limit, query, queryExtras},
     queryOptions: {
       canTriggerHighAccuracy,
@@ -82,10 +87,7 @@ function useExploreAggregatesTableImp({
   const fields = useMemo(() => {
     // When rendering the table, we want the group bys first
     // then the aggregates.
-    const allFields: string[] = [
-      `any(${SpanFields.TRACE})`,
-      `any(${SpanFields.TIMESTAMP})`,
-    ];
+    const allFields: string[] = [...AGGREGATES_SAMPLE_FIELDS];
 
     for (const aggregateField of aggregateFields) {
       if (isGroupBy(aggregateField)) {

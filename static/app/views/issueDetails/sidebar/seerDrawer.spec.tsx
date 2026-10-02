@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -59,7 +60,6 @@ function makeExplorerAutofixData({
 describe('SeerDrawer', () => {
   const organization = OrganizationFixture({
     hideAiFeatures: false,
-    features: ['gen-ai-features'],
   });
 
   const mockGroup = GroupFixture();
@@ -173,7 +173,7 @@ describe('SeerDrawer', () => {
       name: 'Start a new analysis from scratch',
     });
     expect(resetButton).toBeInTheDocument();
-    expect(resetButton).toBeEnabled();
+    expect(resetButton).not.toHaveAttribute('aria-disabled', 'true');
   });
 
   it('shows copy button disabled when no autofix run exists', async () => {
@@ -194,7 +194,7 @@ describe('SeerDrawer', () => {
       name: 'Copy analysis as Markdown',
     });
     expect(copyButton).toBeInTheDocument();
-    expect(copyButton).toBeDisabled();
+    expect(copyButton).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('shows copy button enabled when autofix run exists', async () => {
@@ -217,7 +217,7 @@ describe('SeerDrawer', () => {
       name: 'Copy analysis as Markdown',
     });
     expect(copyButton).toBeInTheDocument();
-    expect(copyButton).toBeEnabled();
+    expect(copyButton).not.toHaveAttribute('aria-disabled', 'true');
   });
 
   it('renders reset button enabled with autofix data', async () => {
@@ -240,7 +240,7 @@ describe('SeerDrawer', () => {
       name: 'Start a new analysis from scratch',
     });
     expect(resetButton).toBeInTheDocument();
-    expect(resetButton).toBeEnabled();
+    expect(resetButton).not.toHaveAttribute('aria-disabled', 'true');
   });
 
   it('clicking reset triggers a new root cause analysis', async () => {
@@ -365,6 +365,14 @@ describe('SeerDrawer', () => {
   describe('PR polling', () => {
     const autofixUrl = `/organizations/${DetailedProjectFixture().organization.slug}/issues/${GroupFixture().id}/autofix/`;
 
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
     function mockAutofixWithPr() {
       return MockApiClient.addMockResponse({
         url: autofixUrl,
@@ -389,7 +397,10 @@ describe('SeerDrawer', () => {
       );
 
       const callsAfterLoad = getMock.mock.calls.length;
-      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(10_000);
+      });
 
       expect(getMock.mock.calls).toHaveLength(callsAfterLoad);
     });
@@ -402,7 +413,7 @@ describe('SeerDrawer', () => {
         render(<SeerDrawer group={mockGroup} project={mockProject} />, {
           organization: OrganizationFixture({
             hideAiFeatures: false,
-            features: ['gen-ai-features', feature],
+            features: [feature],
           }),
         });
 
@@ -412,14 +423,12 @@ describe('SeerDrawer', () => {
 
         const callsAfterLoad = getMock.mock.calls.length;
 
-        await waitFor(
-          () => {
-            expect(getMock.mock.calls.length).toBeGreaterThan(callsAfterLoad);
-          },
-          {timeout: 15_000}
-        );
-      },
-      20_000
+        await act(async () => {
+          await jest.advanceTimersByTimeAsync(10_000);
+        });
+
+        expect(getMock.mock.calls.length).toBeGreaterThan(callsAfterLoad);
+      }
     );
   });
 });

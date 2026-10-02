@@ -1519,6 +1519,77 @@ class OrganizationAIConversationsEndpointTest(BaseAIConversationsTestCase):
             '{"type": "object", "data": {"question": "Weather in Paris?"}}'
         )
 
+    def _store_agent_turn(
+        self,
+        conversation_id: str,
+        timestamp: Any,
+        generation_output: list[dict[str, Any]] | None = None,
+    ) -> None:
+        trace_id = uuid4().hex
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=timestamp,
+            op="gen_ai.invoke_agent",
+            operation_type="agent",
+            trace_id=trace_id,
+            input_messages=[
+                {"role": "user", "parts": [{"type": "text", "content": "Weather in Vienna?"}]}
+            ],
+            output_messages=[
+                {
+                    "role": "assistant",
+                    "parts": [
+                        {"type": "text", "content": "I'll look it up."},
+                        {"type": "tool_call", "id": "tc1", "name": "web_fetch"},
+                    ],
+                },
+                {"role": "tool", "parts": [{"type": "tool_call_response", "id": "tc1"}]},
+                {"role": "assistant", "parts": [{"type": "text", "content": "Sunny, 20°C"}]},
+            ],
+        )
+        self.store_ai_span(
+            conversation_id=conversation_id,
+            timestamp=timestamp + timedelta(milliseconds=100),
+            op="gen_ai.chat",
+            operation_type="ai_client",
+            trace_id=trace_id,
+            output_messages=generation_output,
+        )
+
+    def _request_conversation(self, now: Any) -> dict[str, Any]:
+        response = self.do_request(
+            {
+                "project": [self.project.id],
+                "start": (now - timedelta(hours=1)).isoformat(),
+                "end": (now + timedelta(hours=1)).isoformat(),
+            }
+        )
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        return response.data[0]
+
+    def test_agent_messages_populate_input_and_output(self) -> None:
+        now = before_now(days=20).replace(microsecond=0)
+        self._store_agent_turn(uuid4().hex, now - timedelta(seconds=1))
+
+        conversation = self._request_conversation(now)
+        assert conversation["firstInput"] == "Weather in Vienna?"
+        # Only the turn's final assistant step, not every step joined together.
+        assert conversation["lastOutput"] == "Sunny, 20°C"
+
+    def test_generation_messages_take_priority_over_agent(self) -> None:
+        now = before_now(days=20).replace(microsecond=0)
+        self._store_agent_turn(
+            uuid4().hex,
+            now - timedelta(seconds=1),
+            generation_output=[{"role": "assistant", "content": "From the generation"}],
+        )
+
+        conversation = self._request_conversation(now)
+        assert conversation["lastOutput"] == "From the generation"
+        # The generation has no input of its own, so input still falls back.
+        assert conversation["firstInput"] == "Weather in Vienna?"
+
     def test_tool_names_populated(self) -> None:
         """Test that toolNames is populated with distinct tool names from tool spans"""
         now = before_now(days=21).replace(microsecond=0)

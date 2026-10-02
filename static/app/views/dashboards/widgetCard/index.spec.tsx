@@ -14,7 +14,6 @@ import {
 import * as modal from 'sentry/actionCreators/modal';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {FieldKind} from 'sentry/utils/fields';
-import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {
   DashboardFilterKeys,
@@ -25,8 +24,6 @@ import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import {TableWidgetVisualization} from 'sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization';
-
-import {DashboardsMEPProvider} from './dashboardsMEPContext';
 
 jest.mock('sentry/views/dashboards/widgets/tableWidget/tableWidgetVisualization', () => ({
   TableWidgetVisualization: jest.fn(() => <div />),
@@ -40,24 +37,19 @@ describe('Dashboards > WidgetCard', () => {
     }),
   });
 
-  const renderWithProviders = (component: React.ReactNode, features: string[] = []) =>
-    render(
-      <DashboardsMEPProvider>
-        <MEPSettingProvider forceTransactions={false}>{component}</MEPSettingProvider>
-      </DashboardsMEPProvider>,
-      {
-        organization: {
-          ...organization,
-          features: [...organization.features, ...features],
+  const renderWithProviders = (component: React.ReactElement, features: string[] = []) =>
+    render(component, {
+      organization: {
+        ...organization,
+        features: [...organization.features, ...features],
+      },
+      initialRouterConfig: {
+        route: '/organizations/:orgId/dashboard/:dashboardId/',
+        location: {
+          pathname: '/organizations/org-slug/dashboard/42/',
         },
-        initialRouterConfig: {
-          route: '/organizations/:orgId/dashboard/:dashboardId/',
-          location: {
-            pathname: '/organizations/org-slug/dashboard/42/',
-          },
-        },
-      }
-    );
+      },
+    });
 
   const multipleQueryWidget: Widget = {
     title: 'Errors',
@@ -140,7 +132,7 @@ describe('Dashboards > WidgetCard', () => {
     PageFiltersStore.onInitializeUrlState(selection);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: {meta: {isMetricsData: false}},
+      body: {meta: {}},
     });
     eventsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -159,7 +151,7 @@ describe('Dashboards > WidgetCard', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders with Open in Discover button and opens the Query Selector Modal when clicked', async () => {
+  it('renders with Open in Explore button and opens the Query Selector Modal when clicked', async () => {
     const spy = jest.spyOn(modal, 'openDashboardWidgetQuerySelectorModal');
     renderWithProviders(
       <WidgetCard
@@ -176,14 +168,14 @@ describe('Dashboards > WidgetCard', () => {
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Discover'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Explore'}));
     expect(spy).toHaveBeenCalledWith({
       organization,
       widget: multipleQueryWidget,
     });
   });
 
-  it('renders with Open in Discover button', async () => {
+  it('renders with Open in Explore button', async () => {
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -199,9 +191,9 @@ describe('Dashboards > WidgetCard', () => {
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
+    expect(screen.getByRole('menuitemradio', {name: 'Open in Explore'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/discover/results/?environment=prod&field=count%28%29&field=failure_count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
+      '/organizations/org-slug/explore/errors/results/?environment=prod&field=count%28%29&field=failure_count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29&yAxis=failure_count%28%29'
     );
   });
 
@@ -224,7 +216,7 @@ describe('Dashboards > WidgetCard', () => {
     expect(await screen.findByText('Valid widget description')).toBeInTheDocument();
   });
 
-  it('renders Discover button with prepended fields pulled from equations', async () => {
+  it('renders Open in Explore button with prepended fields pulled from equations', async () => {
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -254,13 +246,13 @@ describe('Dashboards > WidgetCard', () => {
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
+    expect(screen.getByRole('menuitemradio', {name: 'Open in Explore'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/discover/results/?environment=prod&field=count_if%28transaction.duration%2Cequals%2C300%29&field=failure_count%28%29&field=count%28%29&field=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29'
+      '/organizations/org-slug/explore/errors/results/?environment=prod&field=count_if%28transaction.duration%2Cequals%2C300%29&field=failure_count%28%29&field=count%28%29&field=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=equation%7C%28count%28%29%20%2B%20failure_count%28%29%29%20%2F%20count_if%28transaction.duration%2Cequals%2C300%29'
     );
   });
 
-  it('renders button to open Discover with Top N', async () => {
+  it('renders button to open Explore with Top N', async () => {
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -288,13 +280,13 @@ describe('Dashboards > WidgetCard', () => {
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     // TOP_N is converted to AREA, so the discover URL no longer has display=top5
-    expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
+    expect(screen.getByRole('menuitemradio', {name: 'Open in Explore'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/discover/results/?environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29'
+      '/organizations/org-slug/explore/errors/results/?environment=prod&field=transaction&field=count%28%29&name=Errors&project=1&query=event.type%3Aerror&queryDataset=error-events&statsPeriod=14d&yAxis=count%28%29'
     );
   });
 
-  it('allows Open in Discover when the widget contains custom measurements', async () => {
+  it('allows Open in Explore when the widget contains custom measurements', async () => {
     renderWithProviders(
       <WidgetCard
         api={api}
@@ -322,9 +314,9 @@ describe('Dashboards > WidgetCard', () => {
     );
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
-    expect(screen.getByRole('menuitemradio', {name: 'Open in Discover'})).toHaveAttribute(
+    expect(screen.getByRole('menuitemradio', {name: 'Open in Explore'})).toHaveAttribute(
       'href',
-      '/organizations/org-slug/explore/discover/results/?environment=prod&field=p99%28measurements.custom.measurement%29&name=Errors&project=1&query=&queryDataset=error-events&statsPeriod=14d&yAxis=p99%28measurements.custom.measurement%29'
+      '/organizations/org-slug/explore/errors/results/?environment=prod&field=p99%28measurements.custom.measurement%29&name=Errors&project=1&query=&queryDataset=error-events&statsPeriod=14d&yAxis=p99%28measurements.custom.measurement%29'
     );
   });
 
@@ -505,7 +497,7 @@ describe('Dashboards > WidgetCard', () => {
       title: 'Table Widget',
       interval: '5m',
       displayType: DisplayType.TABLE,
-      widgetType: WidgetType.DISCOVER,
+      widgetType: WidgetType.TRANSACTIONS,
       queries: [
         {
           conditions: '',
@@ -583,7 +575,7 @@ describe('Dashboards > WidgetCard', () => {
       title: 'Widget',
       interval: '5m',
       displayType: DisplayType.LINE,
-      widgetType: WidgetType.DISCOVER,
+      widgetType: WidgetType.ERRORS,
       queries: [
         {
           conditions: '',

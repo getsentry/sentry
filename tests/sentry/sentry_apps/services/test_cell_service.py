@@ -1,5 +1,7 @@
 import logging
 from datetime import timedelta
+from typing import Any
+from unittest.mock import patch
 
 import orjson
 import responses
@@ -8,6 +10,7 @@ from responses.matchers import query_string_matcher
 
 from sentry.auth.services.auth.model import AuthenticationContext
 from sentry.issues.action_log import ActionSource
+from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
@@ -15,11 +18,13 @@ from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProjec
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_rpc_user
+from sentry.utils.locking.lock import Lock
 
 
 @all_silo_test
@@ -419,6 +424,69 @@ class TestSentryAppCellService(TestCase):
         assert result.success is False
         assert result.error is not None
         assert result.error.status_code == 404
+
+    def test_delete_external_issue_link_in_progress(self) -> None:
+        external_issue = self.create_platform_external_issue(
+            group=self.group,
+            service_type=self.sentry_app.slug,
+            display_name="Test#123",
+            web_url="https://example.com/issue/123",
+        )
+        with (
+            capture_action_log() as log,
+            locks.get(
+                f"platform-external-issue-link:{self.group.id}:{self.sentry_app.slug}",
+                duration=300,
+            ).acquire(),
+        ):
+            result = sentry_app_cell_service.delete_external_issue(
+                organization_id=self.org.id,
+                installation=self.rpc_installation,
+                external_issue_id=external_issue.id,
+                user=serialize_rpc_user(self.user),
+            )
+
+        assert result.success is False
+        assert result.error is not None
+        assert result.error.status_code == 409
+        log.assert_not_logged()
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert PlatformExternalIssue.objects.filter(id=external_issue.id).exists()
+
+    def test_delete_external_issue_removed_before_lock(self) -> None:
+        external_issue = self.create_platform_external_issue(
+            group=self.group,
+            service_type=self.sentry_app.slug,
+            display_name="Test#123",
+            web_url="https://example.com/issue/123",
+        )
+        lock = locks.get(
+            f"platform-external-issue-link:{self.group.id}:{self.sentry_app.slug}", duration=300
+        )
+
+        def unlink_before_lock(*args: Any, **kwargs: Any) -> Lock:
+            with assume_test_silo_mode_of(PlatformExternalIssue):
+                PlatformExternalIssue.objects.filter(id=external_issue.id).delete()
+            return lock
+
+        with (
+            capture_action_log() as log,
+            patch(
+                "sentry.sentry_apps.services.cell.impl.locks.get",
+                side_effect=unlink_before_lock,
+            ) as get_lock,
+        ):
+            result = sentry_app_cell_service.delete_external_issue(
+                organization_id=self.org.id,
+                installation=self.rpc_installation,
+                external_issue_id=external_issue.id,
+                user=serialize_rpc_user(self.user),
+            )
+
+        get_lock.assert_called_once()
+        assert result.success is True
+        assert result.error is None
+        log.assert_not_logged()
 
     @responses.activate
     def test_create_issue_link_records_action_log(self) -> None:
