@@ -17,14 +17,22 @@ describe('SamplingModeSwitch', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('renders correctly in organization mode', () => {
+  it('cannot enter advanced mode from organization mode', async () => {
     render(<SamplingModeSwitch />, {
       organization,
     });
 
-    expect(screen.getByRole('checkbox')).toBeEnabled();
     expect(screen.getByText('Advanced Mode')).toBeInTheDocument();
     expect(screen.getByRole('checkbox')).not.toBeChecked();
+    expect(screen.getByRole('checkbox')).toBeDisabled();
+
+    await userEvent.hover(screen.getByRole('checkbox'));
+    expect(
+      await screen.findByText(
+        'Advanced Mode is no longer available. Sample rates are configured for the whole organization.'
+      )
+    ).toBeInTheDocument();
+    expect(openSamplingModeSwitchModal).not.toHaveBeenCalled();
   });
 
   it('renders correctly in project mode', () => {
@@ -33,25 +41,26 @@ describe('SamplingModeSwitch', () => {
     });
 
     expect(screen.getByRole('checkbox')).toBeChecked();
+    expect(screen.getByRole('checkbox')).toBeEnabled();
   });
 
-  it('opens modal when switch is clicked', async () => {
+  it('opens the modal to leave advanced mode when the switch is clicked', async () => {
     render(<SamplingModeSwitch initialTargetRate={0.3} />, {
-      organization,
+      organization: {...organization, samplingMode: 'project'},
     });
 
     await userEvent.click(screen.getByRole('checkbox'));
 
     expect(openSamplingModeSwitchModal).toHaveBeenCalledWith({
-      samplingMode: 'project',
+      samplingMode: 'organization',
       initialTargetRate: 0.3,
     });
   });
 
-  it('disables switch when user lacks permission', () => {
+  it('disables switch when user lacks permission', async () => {
     const orgWithoutAccess = OrganizationFixture({
       access: [], // No project:write access
-      samplingMode: 'organization',
+      samplingMode: 'project',
     });
 
     render(<SamplingModeSwitch />, {
@@ -59,5 +68,10 @@ describe('SamplingModeSwitch', () => {
     });
 
     expect(screen.getByRole('checkbox')).toBeDisabled();
+
+    await userEvent.hover(screen.getByRole('checkbox'));
+    expect(
+      await screen.findByText('You do not have permission to change this setting.')
+    ).toBeInTheDocument();
   });
 });

@@ -376,7 +376,7 @@ function quoteIfNeeded(value: string): string {
   if (VALUE_IS_LIST_RE.test(value) || VALUE_IS_QUOTED_RE.test(value)) {
     return value;
   }
-  if (NEEDS_QUOTING_RE.test(value)) {
+  if (NEEDS_QUOTING_RE.test(value) || /^\/\//.test(value)) {
     return '"' + escapeDoubleQuotes(value) + '"';
   }
   return value;
@@ -443,18 +443,6 @@ export class MutableSearch {
       .map(t => t.text)
       .join(' ')
       .trim();
-  }
-
-  /**
-   * Adds the filters from a string query to the current MutableSearch query.
-   * The string query may consist of multiple key:value pairs separated
-   * by spaces.
-   */
-  addStringMultiFilter(multiFilter: string, shouldEscape = true): void {
-    const tmp = new MutableSearch(multiFilter);
-    Object.entries(tmp.getFilters()).forEach(([key, values]) => {
-      this.addFilterValues(key, values, shouldEscape);
-    });
   }
 
   /**

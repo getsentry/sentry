@@ -22,15 +22,15 @@ export function useQueryBasedColumnResize<Col extends GridColumnOrder<unknown>>(
   const columnsWidthWidths = useMemo(() => {
     const widths = decodeList(queryParam);
 
-    return columns.map((column, i) => {
-      column.width = decodeInteger(widths[i], COL_WIDTH_UNDEFINED);
-      return column;
-    });
+    return columns.map((column, i) => ({
+      ...column,
+      width: decodeInteger(widths[i], column.width ?? COL_WIDTH_UNDEFINED),
+    }));
   }, [columns, queryParam]);
 
   const handleResizeColumn = useCallback(
     (columnIndex: number, resizedColumn: Col) => {
-      const widths = columns.map(
+      const widths = columnsWidthWidths.map(
         (column, i) =>
           (i === columnIndex ? resizedColumn.width : column.width) ?? COL_WIDTH_UNDEFINED
       );
@@ -45,7 +45,7 @@ export function useQueryBasedColumnResize<Col extends GridColumnOrder<unknown>>(
         {replace: true}
       );
     },
-    [columns, location.pathname, location.query, paramName, navigate]
+    [columnsWidthWidths, location.pathname, location.query, paramName, navigate]
   );
 
   return {

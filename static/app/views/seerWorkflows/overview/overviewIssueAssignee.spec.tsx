@@ -65,6 +65,10 @@ describe('OverviewIssueAssignee', () => {
         assignedTo: {id: assignee.id, name: assignee.name, type: 'user'},
       },
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [{user: assignee}],
+    });
 
     const queryClient = makeTestQueryClient();
     const overviewOptions = apiOptions.as<AutofixOverviewResponse>()(
@@ -82,7 +86,6 @@ describe('OverviewIssueAssignee', () => {
           groupId={group.id}
           projectId={group.project.id}
           projectSlug={group.project.slug}
-          memberList={[assignee]}
         />
       </QueryClientProvider>,
       {organization}

@@ -1,22 +1,34 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {CodeOwner, CodeownersFile} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getCodeOwnerIcon} from 'sentry/utils/integrationUtil';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {modalCss, ViewCodeOwnerModal} from './viewCodeOwnerModal';
+
+const CODEOWNER_COLUMNS: TableColumnConfig[] = [
+  {key: 'codeowners', width: '1fr'},
+  {key: 'stackRoot', width: '1fr'},
+  {key: 'sourceRoot', width: '1fr'},
+  {key: 'lastSynced', width: 'auto'},
+  {key: 'file', width: 'min-content'},
+  {key: 'actions', width: 'min-content'},
+];
 
 interface CodeOwnerFileTableProps {
   codeowners: CodeOwner[];
@@ -58,14 +70,31 @@ export function CodeOwnerFileTable({
   const handleSync = (codeowner: CodeOwner) => async () => {
     try {
       const codeownerFile: CodeownersFile = await api.requestPromise(
-        `/organizations/${organization.slug}/code-mappings/${codeowner.codeMappingId}/codeowners/`,
+        getApiUrl(
+          '/organizations/$organizationIdOrSlug/code-mappings/$configId/codeowners/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              configId: codeowner.codeMappingId,
+            },
+          }
+        ),
         {
           method: 'GET',
         }
       );
 
       const data = await api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/codeowners/${codeowner.id}/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/codeowners/$codeownersId/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+              codeownersId: codeowner.id,
+            },
+          }
+        ),
         {
           method: 'PUT',
           data: {raw: codeownerFile.raw},
@@ -81,7 +110,16 @@ export function CodeOwnerFileTable({
   const handleDelete = (codeowner: CodeOwner) => async () => {
     try {
       await api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/codeowners/${codeowner.id}/`,
+        getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/codeowners/$codeownersId/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+              codeownersId: codeowner.id,
+            },
+          }
+        ),
         {
           method: 'DELETE',
         }
@@ -96,6 +134,7 @@ export function CodeOwnerFileTable({
 
   return (
     <StyledSimpleTable
+      columns={CODEOWNER_COLUMNS}
       header={
         <SimpleTable.HeaderRow>
           <SimpleTable.HeaderCell>{t('codeowners')}</SimpleTable.HeaderCell>
@@ -154,13 +193,15 @@ export function CodeOwnerFileTable({
                 },
               ]}
               position="bottom-end"
-              triggerProps={{
-                'aria-label': t('Actions'),
-                size: 'xs',
-                icon: <IconEllipsis />,
-                showChevron: false,
-                disabled,
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.IconButton
+                  {...triggerProps}
+                  aria-label={t('Actions')}
+                  size="xs"
+                  icon={<IconEllipsis />}
+                  disabled={disabled}
+                />
+              )}
               disabledKeys={disabled ? ['sync', 'delete'] : []}
             />
           </SimpleTable.RowCell>
@@ -171,7 +212,6 @@ export function CodeOwnerFileTable({
 }
 
 const StyledSimpleTable = styled(SimpleTable)`
-  grid-template-columns: 1fr 1fr 1fr auto min-content min-content;
   position: static;
   overflow: auto;
   white-space: nowrap;

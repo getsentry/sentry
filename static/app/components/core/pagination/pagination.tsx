@@ -5,7 +5,7 @@ import type {Query} from 'history';
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {IconChevron} from 'sentry/icons';
 import {parseCursor} from 'sentry/utils/cursor';
@@ -36,11 +36,9 @@ type Props = {
   pageLinks?: string | null;
   paginationAnalyticsEvent?: (direction: string) => void;
   size?: ButtonProps['size'];
-  to?: string;
 };
 
 export function Pagination({
-  to,
   className,
   onCursor,
   paginationAnalyticsEvent,
@@ -61,7 +59,7 @@ export function Pagination({
     return null;
   }
 
-  const path = to ?? location.pathname;
+  const path = location.pathname;
   const query = location.query;
   const links = parseLinkHeader(pageLinks);
   const previousDisabled = disabled || links.previous?.results === false;

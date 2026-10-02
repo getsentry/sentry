@@ -6,6 +6,8 @@ import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge
 import {t, tct} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
+import {getDuration} from 'sentry/utils/duration/getDuration';
+import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {
   CountBranch,
   PercentBranch,
@@ -26,15 +28,25 @@ import {
   useDataConditionNodeContext,
 } from 'sentry/views/automations/components/dataConditionNodes';
 
+function getIntervalLabel(interval: string): string {
+  const label = INTERVAL_CHOICES.find(choice => choice.value === interval)?.label;
+  if (label) {
+    return label;
+  }
+
+  const intervalMilliseconds = intervalToMilliseconds(interval);
+  return intervalMilliseconds
+    ? t('in %s', getDuration(intervalMilliseconds / 1000))
+    : interval;
+}
+
 export function EventFrequencyCountDetails({condition}: {condition: DataCondition}) {
   const hasSubfilters = condition.comparison.filters?.length > 0;
   return (
     <div>
       {tct('Number of events in an issue is more than [value] [interval] [where]', {
         value: condition.comparison.value,
-        interval:
-          INTERVAL_CHOICES.find(choice => choice.value === condition.comparison.interval)
-            ?.label || condition.comparison.interval,
+        interval: getIntervalLabel(condition.comparison.interval),
         where: hasSubfilters ? t('where') : null,
       })}
       {hasSubfilters && (
@@ -52,10 +64,7 @@ export function EventFrequencyPercentDetails({condition}: {condition: DataCondit
         'Number of events in an issue is [value]% higher [interval] compared to [comparisonInterval] [where]',
         {
           value: condition.comparison.value,
-          interval:
-            INTERVAL_CHOICES.find(
-              choice => choice.value === condition.comparison.interval
-            )?.label || condition.comparison.interval,
+          interval: getIntervalLabel(condition.comparison.interval),
           comparisonInterval:
             COMPARISON_INTERVAL_CHOICES.find(
               choice => choice.value === condition.comparison.comparisonInterval

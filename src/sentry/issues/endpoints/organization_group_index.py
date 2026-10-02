@@ -58,15 +58,17 @@ from sentry.apidocs.parameters import (
 from sentry.apidocs.response_types import DetailResponse, ValidationErrorResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ALLOWED_FUTURE_DELTA
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.groupinbox import GroupInbox
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.snuba.backend import assigned_or_suggested_filter
 from sentry.search.snuba.executors import get_search_filter
+from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.tracing import start_span
 from sentry.utils.validators import normalize_event_id
@@ -270,6 +272,16 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
 
+    rate_limits = RateLimitConfig(
+        limit_overrides={
+            "GET": {
+                RateLimitCategory.IP: RateLimit(limit=10, window=1),
+                RateLimitCategory.USER: RateLimit(limit=10, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1),
+            }
+        }
+    )
+
     def _search(
         self,
         request: Request,
@@ -278,7 +290,18 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         environments: Sequence[Environment],
         extra_query_kwargs: None | Mapping[str, Any] = None,
     ) -> tuple[CursorResult[Group], Mapping[str, Any]]:
-        return search_issues(request, organization, projects, environments, extra_query_kwargs)
+        try:
+            start, end = get_date_range_from_stats_period(request.GET, optional=True)
+        except InvalidParams as exc:
+            raise ValidationError(str(exc)) from exc
+
+        return search_issues(
+            request,
+            organization,
+            projects,
+            environments,
+            {"date_from": start, "date_to": end, **(extra_query_kwargs or {})},
+        )
 
     @extend_schema(
         operation_id="listOrganizationIssues",
@@ -491,6 +514,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ENVIRONMENT,
             OrganizationParams.PROJECT,
             IssueParams.MUTATE_ISSUE_ID_LIST,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
             IssueParams.DEFAULT_QUERY,
             IssueParams.VIEW_ID,
             IssueParams.ORGANIZATION_VIEW_SORT,
@@ -510,8 +536,12 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         examples=IssueExamples.ORGANIZATION_GROUP_INDEX_PUT,
     )
     @track_slo_response("workflow")
-    def put(self, request: Request, organization: Organization) -> Response[MutateIssueResponse]:
+    def put(
+        self, request: Request, organization: Organization
+    ) -> Response[MutateIssueResponse] | Response[None]:
         projects = self.get_projects(request, organization)
+        if not projects:
+            return Response(status=204)
 
         search_fn = functools.partial(
             self._search,
@@ -538,6 +568,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             GlobalParams.ENVIRONMENT,
             OrganizationParams.PROJECT,
             IssueParams.DELETE_ISSUE_ID_LIST,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
             IssueParams.DEFAULT_QUERY,
             IssueParams.VIEW_ID,
             IssueParams.ORGANIZATION_VIEW_SORT,
@@ -556,6 +589,8 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         self, request: Request, organization: Organization
     ) -> Response[None] | Response[DetailResponse] | Response[ValidationErrorResponse]:
         projects = self.get_projects(request, organization)
+        if not projects:
+            return Response(status=204)
 
         search_fn = functools.partial(
             self._search,

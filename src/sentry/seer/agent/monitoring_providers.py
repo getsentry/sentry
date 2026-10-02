@@ -153,7 +153,10 @@ def get_monitoring_provider_connections(
         return []
 
     personal_connections = (
-        _get_personal_monitoring_connections(organization, user_id) if user_id is not None else []
+        _get_personal_monitoring_connections(organization, user_id)
+        if features.has("organizations:seer-infra-telemetry-user-level-auth", organization)
+        and user_id is not None
+        else []
     )
     connected_families = {provider_family(c.provider_key) for c in personal_connections}
     org_connections = [

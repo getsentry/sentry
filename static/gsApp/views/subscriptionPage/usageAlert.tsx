@@ -1,3 +1,4 @@
+import type {ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Stack} from '@sentry/scraps/layout';
@@ -36,6 +37,99 @@ type Props = {
   subscription: Subscription;
   usage: CustomerUsage;
 };
+
+type ExceededInfoProps = {
+  getActionSentence: () => string;
+  primaryCTA: ReactNode;
+  subscription: Subscription;
+};
+
+function ExceededInfo({getActionSentence, primaryCTA, subscription}: ExceededInfoProps) {
+  const exceededList = sortCategoriesWithKeys(subscription.categories)
+    .filter(
+      ([category]) =>
+        category !== DataCategory.SPANS_INDEXED || subscription.hadCustomDynamicSampling
+    )
+    .reduce<string[]>((acc, [category, currentHistory]) => {
+      if (currentHistory.usageExceeded) {
+        acc.push(
+          getPlanCategoryName({
+            plan: subscription.planDetails,
+            category: category as DataCategory,
+            capitalize: false,
+            hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+          })
+        );
+      }
+      return acc;
+    }, []);
+
+  const quotasExceeded =
+    exceededList.length > 0
+      ? oxfordizeArray(exceededList)
+      : getPlanCategoryName({
+          plan: subscription.planDetails,
+          category: DataCategory.ERRORS,
+          capitalize: false,
+          hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
+        });
+
+  return (
+    <Container
+      background="primary"
+      border="primary"
+      radius="md"
+      data-test-id="usage-exceeded-alert"
+    >
+      <SubscriptionBody withPadding>
+        <UsageInfo>
+          <IconFire size="md" variant="danger" />
+          <div>
+            <h3>{t('Usage Exceeded')}</h3>
+            <Description>
+              {tct(
+                'Your organization has depleted its [quotasExceeded] capacity for the current usage period.',
+                {quotasExceeded}
+              )}{' '}
+              {getActionSentence()}
+            </Description>
+          </div>
+        </UsageInfo>
+        {primaryCTA}
+      </SubscriptionBody>
+    </Container>
+  );
+}
+
+function PrimaryCTA({
+  alertType,
+  organization,
+  subscription,
+}: {
+  alertType: string;
+  organization: NonNullable<ReturnType<typeof useOrganization>>;
+  subscription: Subscription;
+}) {
+  if (!subscription.canSelfServe) {
+    return null;
+  }
+
+  return (
+    <ButtonWrapper gap="0">
+      <AddEventsCTA
+        {...{
+          organization,
+          subscription,
+          source: `subscription-usage-alert-${alertType}`,
+          referrer: `subscription-usage-alert-${alertType}`,
+          buttonProps: {
+            size: 'sm',
+          },
+        }}
+      />
+    </ButtonWrapper>
+  );
+}
 
 export function UsageAlert({subscription, usage}: Props) {
   const organization = useOrganization();
@@ -116,136 +210,6 @@ export function UsageAlert({subscription, usage}: Props) {
     return projectedCategoryOverages();
   }
 
-  function renderProjectedInfo(projectedOverages: ProjectedOverages) {
-    if (!projectedOverages) {
-      return null;
-    }
-
-    return (
-      <Container
-        background="primary"
-        border="primary"
-        radius="md"
-        data-test-id="projected-overage-alert"
-      >
-        <SubscriptionBody withPadding>
-          <UsageInfo>
-            <IconStats size="md" variant="accent" />
-            <div>
-              <h3>{t('Projected Overage')}</h3>
-              <Description>
-                {tct(
-                  'Based on your previous usage, we predict your organization will need at least [totals].',
-                  {totals: oxfordizeArray(projectedOverages)}
-                )}{' '}
-                {getActionSentence()}
-              </Description>
-            </div>
-          </UsageInfo>
-          {renderPrimaryCTA('projected-overage')}
-        </SubscriptionBody>
-      </Container>
-    );
-  }
-
-  function renderExceededInfo() {
-    const exceededList = sortCategoriesWithKeys(subscription.categories)
-      .filter(
-        ([category]) =>
-          category !== DataCategory.SPANS_INDEXED || subscription.hadCustomDynamicSampling
-      )
-      .reduce<string[]>((acc, [category, currentHistory]) => {
-        if (currentHistory.usageExceeded) {
-          acc.push(
-            getPlanCategoryName({
-              plan: subscription.planDetails,
-              category: category as DataCategory,
-              capitalize: false,
-              hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-            })
-          );
-        }
-        return acc;
-      }, []);
-
-    const quotasExceeded =
-      exceededList.length > 0
-        ? oxfordizeArray(exceededList)
-        : getPlanCategoryName({
-            plan: subscription.planDetails,
-            category: DataCategory.ERRORS,
-            capitalize: false,
-            hadCustomDynamicSampling: subscription.hadCustomDynamicSampling,
-          });
-
-    return (
-      <Container
-        background="primary"
-        border="primary"
-        radius="md"
-        data-test-id="usage-exceeded-alert"
-      >
-        <SubscriptionBody withPadding>
-          <UsageInfo>
-            <IconFire size="md" variant="danger" />
-            <div>
-              <h3>{t('Usage Exceeded')}</h3>
-              <Description>
-                {tct(
-                  'Your organization has depleted its [quotasExceeded] capacity for the current usage period.',
-                  {quotasExceeded}
-                )}{' '}
-                {getActionSentence()}
-              </Description>
-            </div>
-          </UsageInfo>
-          {renderPrimaryCTA('exceded-quota')}
-        </SubscriptionBody>
-      </Container>
-    );
-  }
-
-  function renderDefaultEventCTA() {
-    // allow business plan members to request events even if no overages
-    // every other user will have another type of CTA
-    if (
-      getBestActionToIncreaseEventLimits(organization, subscription) ===
-        'request_add_events' &&
-      isBizPlanFamily(subscription.planDetails) &&
-      hasPerformance(subscription.planDetails)
-    ) {
-      return (
-        <OrgStatsBanner
-          organization={organization}
-          referrer="subscription-default-event-cta"
-        />
-      );
-    }
-    return null;
-  }
-
-  function renderPrimaryCTA(alertType: string) {
-    if (!subscription.canSelfServe) {
-      return null;
-    }
-
-    return (
-      <ButtonWrapper gap="0">
-        <AddEventsCTA
-          {...{
-            organization,
-            subscription,
-            source: `subscription-usage-alert-${alertType}`,
-            referrer: `subscription-usage-alert-${alertType}`,
-            buttonProps: {
-              size: 'sm',
-            },
-          }}
-        />
-      </ButtonWrapper>
-    );
-  }
-
   if (!subscription || !usage) {
     return null;
   }
@@ -258,15 +222,64 @@ export function UsageAlert({subscription, usage}: Props) {
 
   // if no overage, we can still have a CTA
   if (!hasOverage) {
-    return renderDefaultEventCTA();
+    return getBestActionToIncreaseEventLimits(organization, subscription) ===
+      'request_add_events' &&
+      isBizPlanFamily(subscription.planDetails) &&
+      hasPerformance(subscription.planDetails) ? (
+      <OrgStatsBanner
+        organization={organization}
+        referrer="subscription-default-event-cta"
+      />
+    ) : null;
   }
 
   const showProjected = !hasExceeded;
+  const projectedInfo = (
+    <Container
+      background="primary"
+      border="primary"
+      radius="md"
+      data-test-id="projected-overage-alert"
+    >
+      <SubscriptionBody withPadding>
+        <UsageInfo>
+          <IconStats size="md" variant="accent" />
+          <div>
+            <h3>{t('Projected Overage')}</h3>
+            <Description>
+              {tct(
+                'Based on your previous usage, we predict your organization will need at least [totals].',
+                {totals: oxfordizeArray(projectedOverages)}
+              )}{' '}
+              {getActionSentence()}
+            </Description>
+          </div>
+        </UsageInfo>
+        <PrimaryCTA
+          alertType="projected-overage"
+          organization={organization}
+          subscription={subscription}
+        />
+      </SubscriptionBody>
+    </Container>
+  );
 
   return (
     <Stack gap="xl" data-test-id="usage-alert">
-      {hasExceeded && renderExceededInfo()}
-      {showProjected && renderProjectedInfo(projectedOverages)}
+      {hasExceeded && (
+        <ExceededInfo
+          getActionSentence={getActionSentence}
+          primaryCTA={
+            <PrimaryCTA
+              alertType="exceded-quota"
+              organization={organization}
+              subscription={subscription}
+            />
+          }
+          subscription={subscription}
+        />
+      )}
+      {showProjected && projectedInfo}
     </Stack>
   );
 }

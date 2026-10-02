@@ -5,6 +5,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -102,8 +103,10 @@ describe('LogsAggregateExportModalButton', () => {
     });
 
     renderButton();
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
-    await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+    await userEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {name: 'Export'})
+    );
 
     await waitFor(() => {
       expect(mockDownloadFromHref).toHaveBeenCalled();
@@ -119,11 +122,20 @@ describe('LogsAggregateExportModalButton', () => {
     });
 
     renderButton(nextPageLink);
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
-    await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+    await userEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {name: 'Export'})
+    );
 
     await waitFor(() => {
-      expect(exportRequest).toHaveBeenCalled();
+      expect(exportRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/data-export/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            query_info: expect.objectContaining({sampling: 'HIGHEST_ACCURACY'}),
+          }),
+        })
+      );
     });
   });
 
@@ -135,8 +147,10 @@ describe('LogsAggregateExportModalButton', () => {
     });
 
     renderButton(lastPageLinks);
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
-    await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+    await userEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {name: 'Export'})
+    );
 
     await waitFor(() => {
       expect(exportRequest).toHaveBeenCalled();

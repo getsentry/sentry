@@ -25,27 +25,31 @@ import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnaly
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
-import {ExploreBreadcrumb} from 'sentry/views/explore/components/breadcrumb';
+import {ExploreSavedQueryBreadcrumbs} from 'sentry/views/explore/components/exploreSavedQueryBreadcrumbs';
 import {
   ExploreBodyContent,
   ExploreBodySearch,
   ExploreContentSection,
 } from 'sentry/views/explore/components/styles';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {
   useQueryParamsId,
   useQueryParamsTitle,
+  useQueryParamsSearch,
 } from 'sentry/views/explore/queryParams/context';
-import {useQueryParamsSearch} from 'sentry/views/explore/queryParams/context';
 import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
 import {ReplayIndexContainer} from 'sentry/views/explore/replays/list/replayIndexContainer';
 import {ReplayListControls} from 'sentry/views/explore/replays/list/replayListControls';
 import {ReplayOnboardingPanel} from 'sentry/views/explore/replays/list/replayOnboardingPanel';
 import {ReplayQueryParamsProvider} from 'sentry/views/explore/replays/list/replayQueryParamsProvider';
-import {TraceItemDataset} from 'sentry/views/explore/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 const ReplayListPageHeaderHook = OverrideOrDefault({
   overrideName: 'component:replay-list-page-header',
@@ -58,22 +62,10 @@ function ReplaysHeader() {
   const organization = useOrganization();
   const {data: savedQuery} = useGetSavedQuery(pageId);
 
+  useVisitQuery(pageId);
+
   const hasSavedQueryTitle =
     defined(pageId) && defined(savedQuery) && savedQuery.name.length > 0;
-
-  const titleContent = title ? (
-    title
-  ) : (
-    <Fragment>
-      {t('Session Replay')}
-      <PageHeadingQuestionTooltip
-        title={t(
-          'Video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.'
-        )}
-        docsUrl="https://docs.sentry.io/product/session-replay/"
-      />
-    </Fragment>
-  );
 
   return (
     <Fragment>
@@ -83,16 +75,29 @@ function ReplaysHeader() {
           orgSlug={organization?.slug}
         />
       ) : null}
-      <TopBar.Slot name="title">
-        {title && defined(pageId) ? (
-          <ExploreBreadcrumb
-            traceItemDataset={TraceItemDataset.REPLAYS}
-            savedQueryName={savedQuery?.name}
-          />
-        ) : (
-          titleContent
-        )}
-      </TopBar.Slot>
+      {defined(pageId) && title ? (
+        <ExploreSavedQueryBreadcrumbs
+          surface="replays"
+          savedQueryId={pageId}
+          title={title}
+        />
+      ) : (
+        <TopBar.Slot name="title">
+          {title ? (
+            title
+          ) : (
+            <Fragment>
+              {t('Session Replay')}
+              <PageHeadingQuestionTooltip
+                title={t(
+                  'Video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.'
+                )}
+                docsUrl="https://docs.sentry.io/product/session-replay/"
+              />
+            </Fragment>
+          )}
+        </TopBar.Slot>
+      )}
     </Fragment>
   );
 }
@@ -106,14 +111,18 @@ function useReplayListLLMContextData({
 }) {
   const searchQuery = useQueryParamsSearch().formatString();
   const pageFilters = usePageFilters();
+  const selectedProjects = useSelectedProjectsForLLMContext();
   const {sortType} = useReplayTableSort();
   useLLMContext({
     contextHint:
-      'Sentry session replay list page. Users search and filter recorded browser sessions by attributes like error count, rage clicks, dead clicks, browser, OS, and user. You can search events with a replays filter to find sessions matching specific criteria, or look up an individual replay by its ID for full session details.',
+      'Sentry session replay list page. Users search and filter recorded browser sessions by attributes like error count, rage clicks, dead clicks, browser, OS, and user. You can search events with a replays filter to find sessions matching specific criteria, or look up an individual replay by its ID for full session details. ' +
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     searchQuery,
     sort: `${sortType.kind === 'desc' ? '-' : ''}${sortType.field}`,
     currentSelectedDateRange: pageFilters.selection.datetime,
     deadRageClickWidgetsVisible: showDeadRageClickCards && widgetIsOpen,
+    ...toLLMContextProjectFields(selectedProjects),
   });
 }
 

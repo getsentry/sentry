@@ -47,6 +47,10 @@ import {Onboarding} from 'sentry/views/explore/profiling/onboarding';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
+import {
+  toLLMContextProjectFields,
+  useSelectedProjectsForLLMContext,
+} from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
 import type {DataState} from './useLandingAnalytics';
@@ -112,14 +116,18 @@ function ProfilingContentInner() {
   }, [selection, projects]);
 
   const tab = decodeTab(location.query.tab);
+  const selectedProjects = useSelectedProjectsForLLMContext();
 
   useLLMContext({
     contextHint:
-      'Sentry profiling explorer page. Users browse transaction profiles and aggregate flamegraphs to identify performance bottlenecks and hot code paths. You can search profiling data by transaction name, view aggregate flamegraphs, and analyze individual profile samples.',
+      'Sentry profiling explorer page. Users browse transaction profiles and aggregate flamegraphs to identify performance bottlenecks and hot code paths. You can search profiling data by transaction name, view aggregate flamegraphs, and analyze individual profile samples. ' +
+      'projectSelectionInstruction describes the page-filter project scope (explicit pins vs My/All Projects). ' +
+      'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     currentTab: tab,
     searchQuery: decodeScalar(location.query.query, ''),
     sort: decodeScalar(location.query.sort, ''),
     currentSelectedDateRange: selection.datetime,
+    ...toLLMContextProjectFields(selectedProjects),
   });
 
   const onTabChange = (newTab: 'flamegraph' | 'transactions') => {

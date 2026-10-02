@@ -23,6 +23,7 @@ import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -72,7 +73,16 @@ export default function TeamProjects() {
   const {mutate: mutateLinkProject} = useMutation({
     mutationFn: ({project, action}: {action: string; project: Project}) =>
       fetchMutation<Project>({
-        url: `/projects/${organization.slug}/${project.slug}/teams/${team.slug}/`,
+        url: getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/teams/$teamIdOrSlug/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: project.slug,
+              teamIdOrSlug: team.slug,
+            },
+          }
+        ),
         method: action === 'add' ? 'POST' : 'DELETE',
       }),
     onSuccess: (resp, {action}) => {

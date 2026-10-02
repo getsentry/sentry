@@ -1,17 +1,20 @@
 import {Component} from 'react';
 
-import type {ControlProps} from '@sentry/scraps/select';
-import {Select, SelectOption} from '@sentry/scraps/select';
-import type {SelectValue} from '@sentry/scraps/select';
-import {Tooltip} from '@sentry/scraps/tooltip';
-
-import {openConfirmModal} from 'sentry/components/confirm';
 import type {
+  ControlProps,
+  SelectValue,
   OptionsType,
   OptionTypeBase,
   ValueType,
-} from 'sentry/components/forms/controls/reactSelectWrapper';
-import {components as SelectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
+} from '@sentry/scraps/select';
+import {
+  Select,
+  SelectOption,
+  components as SelectComponents,
+} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
+
+import {openConfirmModal} from 'sentry/components/confirm';
 import {FormField} from 'sentry/components/forms/formField';
 import {FormFieldControlState} from 'sentry/components/forms/formField/controlState';
 import {t} from 'sentry/locale';

@@ -17,7 +17,7 @@ function ControlledCheckbox() {
 
 describe('Checkbox', () => {
   it('default is unchecked', () => {
-    render(<Checkbox checked={false} onChange={jest.fn()} />);
+    render(<Checkbox onChange={jest.fn()} />);
 
     expect(screen.getByRole('checkbox')).not.toBeChecked();
   });

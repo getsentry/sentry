@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
@@ -8,11 +7,11 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useRole} from 'sentry/components/acl/useRole';
 import {FileSize} from 'sentry/components/fileSize';
-import {Panel} from 'sentry/components/panels/panel';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -68,7 +67,7 @@ function ArtifactsTableRow({
 
   return (
     <SimpleTable.Row>
-      <ArtifactColumn>
+      <ArtifactColumn align="stretch" direction="column" justify="center">
         <Flex justify="start" align="center">
           {name || `(${t('empty')})`}
         </Flex>
@@ -78,7 +77,7 @@ function ArtifactsTableRow({
       <AlignedRightColumn>
         <FileSize bytes={size} />
       </AlignedRightColumn>
-      <ActionsColumn>
+      <SimpleTable.RowCell justify="end">
         <Tooltip
           title={tct(
             'Artifacts can only be downloaded by users with organization [downloadRole] role[orHigher]. This can be changed in [settingsLink:Debug Files Access] settings.',
@@ -89,7 +88,6 @@ function ArtifactsTableRow({
             }
           )}
           disabled={hasRole}
-          isHoverable
         >
           <LinkButton
             size="sm"
@@ -100,7 +98,7 @@ function ArtifactsTableRow({
             aria-label={t('Download Artifact')}
           />
         </Tooltip>
-      </ActionsColumn>
+      </SimpleTable.RowCell>
     </SimpleTable.Row>
   );
 }
@@ -239,20 +237,18 @@ export function SourceMapsDetails({bundleId, project}: Props) {
         }
       />
       {isDebugIdBundle && debugIdBundlesArtifactsData && (
-        <DetailsPanel>
-          <DebugIdBundleDetails
-            debugIdBundle={debugIdBundlesArtifactsData}
-            projectId={project.id}
-          />
-        </DetailsPanel>
+        <DebugIdBundleDetails
+          debugIdBundle={debugIdBundlesArtifactsData}
+          projectId={project.id}
+        />
       )}
       <SearchBarWithMarginBottom
         placeholder={isDebugIdBundle ? t('Filter by Path or ID') : t('Filter by Path')}
         onSearch={handleSearch}
         query={query}
       />
-      <StyledSimpleTable
-        hasTypeColumn={isDebugIdBundle}
+      <SimpleTable
+        columns={isDebugIdBundle ? ARTIFACT_COLUMNS : ARTIFACT_COLUMNS_WITHOUT_TYPE}
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>{t('Artifact')}</SimpleTable.HeaderCell>
@@ -342,7 +338,7 @@ export function SourceMapsDetails({bundleId, project}: Props) {
                 />
               );
             })}
-      </StyledSimpleTable>
+      </SimpleTable>
       <Pagination
         pageLinks={
           isDebugIdBundle
@@ -354,45 +350,25 @@ export function SourceMapsDetails({bundleId, project}: Props) {
   );
 }
 
-const StyledSimpleTable = styled(SimpleTable, {
-  shouldForwardProp: prop => prop !== 'hasTypeColumn',
-})<{hasTypeColumn: boolean}>`
-  grid-template-columns: minmax(220px, 1fr) minmax(120px, max-content) minmax(
-      74px,
-      max-content
-    );
-  ${p =>
-    p.hasTypeColumn &&
-    css`
-      grid-template-columns:
-        minmax(220px, 1fr) minmax(120px, max-content) minmax(120px, max-content)
-        minmax(74px, max-content);
-    `}
-`;
+const ARTIFACT_COLUMNS: TableColumnConfig[] = [
+  {key: 'artifact', width: 'minmax(220px, 1fr)'},
+  {key: 'type', width: 'minmax(120px, max-content)'},
+  {key: 'fileSize', width: 'minmax(120px, max-content)'},
+  {key: 'actions', width: 'minmax(74px, max-content)'},
+];
 
-const Column = styled(SimpleTable.RowCell)`
-  overflow: hidden;
-`;
-
-const ActionsColumn = styled(Column)`
-  justify-content: flex-end;
-`;
+const ARTIFACT_COLUMNS_WITHOUT_TYPE = ARTIFACT_COLUMNS.filter(
+  column => column.key !== 'type'
+);
 
 const SearchBarWithMarginBottom = styled(SearchBar)`
   margin-bottom: ${p => p.theme.space['2xl']};
-`;
-
-const DetailsPanel = styled(Panel)`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
 `;
 
 const ArtifactColumn = styled(SimpleTable.RowCell)`
   overflow-wrap: break-word;
   word-break: break-all;
   line-height: 140%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
 `;
 
 const AlignedRightColumn = styled(SimpleTable.RowCell)`

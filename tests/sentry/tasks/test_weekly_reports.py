@@ -885,7 +885,6 @@ class WeeklyReportsTest(
             )
             assert has_nonzero_issue_day
 
-    @with_feature("organizations:weekly-report-week-over-week-metric")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_issue_pct_change_with_previous_week(self, message_builder: mock.MagicMock) -> None:
         """Verify issue WoW percentage change uses non-zero values from both weeks."""
@@ -943,7 +942,6 @@ class WeeklyReportsTest(
                 "text_color": "#A45200",
             }
 
-    @with_feature("organizations:weekly-report-week-over-week-metric")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_pct_change_partial_cache_falls_back_per_key(
         self, message_builder: mock.MagicMock
@@ -1092,7 +1090,6 @@ class WeeklyReportsTest(
             )
             assert legend_substatus_total == 3
 
-    @with_feature("organizations:weekly-report-week-over-week-metric")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_issue_cache_round_trip(self, message_builder: mock.MagicMock) -> None:
         """Verify the 'i' key in cache is written and read correctly for WoW."""
@@ -1801,7 +1798,6 @@ class WeeklyReportsTest(
             assert "enhanced privacy" in html.lower()
             assert "Total Errors" in html
 
-    @with_feature("organizations:weekly-report-week-over-week-metric")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_pct_change_with_previous_week(self, message_builder: mock.MagicMock) -> None:
         user = self.create_user()
@@ -1826,9 +1822,7 @@ class WeeklyReportsTest(
                 "bg_color": "#F9F0D2",
                 "text_color": "#A45200",
             }
-            assert context["show_week_over_week_metric"] is True
 
-    @with_feature("organizations:weekly-report-week-over-week-metric")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_pct_change_no_previous_week(self, message_builder: mock.MagicMock) -> None:
         user = self.create_user()
@@ -1845,30 +1839,7 @@ class WeeklyReportsTest(
         for call_args in message_builder.call_args_list:
             context = call_args.kwargs["context"]
             assert context["trends"]["error_pct_change"] is None
-            assert context["show_week_over_week_metric"] is True
 
-    @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
-    def test_pct_change_hidden_without_feature_flag(self, message_builder: mock.MagicMock) -> None:
-        user = self.create_user()
-        self.create_member(teams=[self.team], user=user, organization=self.organization)
-
-        self.store_event_outcomes(
-            self.organization.id, self.project.id, self.three_days_ago, num_times=10
-        )
-
-        prev_week = self.three_days_ago - timedelta(days=7)
-        self.store_event_outcomes(self.organization.id, self.project.id, prev_week, num_times=5)
-
-        prepare_organization_report(
-            self.timestamp, ONE_DAY * 7, self.organization.id, self._dummy_batch_id
-        )
-
-        for call_args in message_builder.call_args_list:
-            context = call_args.kwargs["context"]
-            assert context["trends"]["error_pct_change"] is None
-            assert context["show_week_over_week_metric"] is False
-
-    @with_feature("organizations:weekly-report-week-over-week-metric")
     @mock.patch("sentry.tasks.summaries.weekly_reports.MessageBuilder")
     def test_pct_change_from_cache(self, message_builder: mock.MagicMock) -> None:
         from sentry.tasks.summaries.weekly_report_cache import cache_project_metrics

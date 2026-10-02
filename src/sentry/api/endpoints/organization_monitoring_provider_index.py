@@ -39,7 +39,11 @@ class OrganizationMonitoringProviderIndexEndpoint(ControlSiloOrganizationEndpoin
     permission_classes = (MonitoringProviderPermission,)
 
     def get(self, request: Request, organization: RpcOrganization, **kwargs: object) -> Response:
-        if not features.has("organizations:seer-infra-telemetry", organization, actor=request.user):
+        if not features.has(
+            "organizations:seer-infra-telemetry", organization, actor=request.user
+        ) or not features.has(
+            "organizations:seer-infra-telemetry-user-level-auth", organization, actor=request.user
+        ):
             return Response(status=404)
 
         connected_providers = set(

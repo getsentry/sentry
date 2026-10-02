@@ -93,14 +93,6 @@ class DummyTSDB(BaseTSDB):
     ):
         self.validate_arguments(models, _environment_ids(environment_ids))
 
-    def record_frequency_multi(
-        self,
-        requests: Sequence[tuple[TSDBModel, Mapping[str, Mapping[str, int | float]]]],
-        timestamp=None,
-        environment_id=None,
-    ):
-        self.validate_arguments([model for model, request in requests], [environment_id])
-
     def get_frequency_series(
         self,
         model: TSDBModel,
@@ -119,21 +111,6 @@ class DummyTSDB(BaseTSDB):
             key: [(timestamp, {k: 0.0 for k in members}) for timestamp in series]
             for key, members in items.items()
         }
-
-    def merge_frequencies(
-        self,
-        model: TSDBModel,
-        destination: str,
-        sources: Sequence[TSDBKey],
-        timestamp: datetime | None = None,
-        environment_ids: Iterable[int] | None = None,
-    ) -> None:
-        self.validate_arguments([model], _environment_ids(environment_ids))
-
-    def delete_frequencies(
-        self, models, keys, start=None, end=None, timestamp=None, environment_ids=None
-    ):
-        self.validate_arguments(models, _environment_ids(environment_ids))
 
     def flush(self):
         pass

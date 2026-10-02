@@ -21,13 +21,10 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {ReplayDetailsProviders} from 'sentry/views/explore/replays/detail/body/replayDetailsProviders';
-import {ReplayDetailsHeaderActions} from 'sentry/views/explore/replays/detail/header/replayDetailsHeaderActions';
 import {ReplayDetailsMetadata} from 'sentry/views/explore/replays/detail/header/replayDetailsMetadata';
 import {ReplayDetailsPageBreadcrumbs} from 'sentry/views/explore/replays/detail/header/replayDetailsPageBreadcrumbs';
 import {ReplayDetailsUserBadge} from 'sentry/views/explore/replays/detail/header/replayDetailsUserBadge';
 import {ReplayDetailsPage} from 'sentry/views/explore/replays/detail/page';
-import {TopBar} from 'sentry/views/navigation/topBar';
-import {useHasNewBreadcrumbs} from 'sentry/views/navigation/useHasNewBreadcrumbs';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
@@ -43,7 +40,7 @@ function ReplayDetailsInner() {
               align="center"
               gap="md"
               wrap="wrap"
-              padding={{'screen:sm': 'sm lg', 'screen:md': 'md xl'}}
+              padding={{zero: 'sm lg', '3xl': 'md xl'}}
             >
               {t('Replay Details')}
             </Flex>
@@ -63,7 +60,6 @@ function ReplayDetailsContent() {
   const user = useUser();
   const location = useLocation();
   const organization = useOrganization();
-  const hasNewBreadcrumbs = useHasNewBreadcrumbs();
   const {replaySlug} = useParams();
   invariant(replaySlug, '`replaySlug` is required as part of the route params');
 
@@ -111,28 +107,20 @@ function ReplayDetailsContent() {
 
   const pageContent = (
     <Fragment>
-      {hasNewBreadcrumbs ? (
-        <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
-      ) : (
-        <TopBar.Slot name="title">
-          <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
-        </TopBar.Slot>
-      )}
-      <ReplayDetailsHeaderActions readerResult={readerResult} />
-      <Flex
-        justify="between"
-        align="center"
-        gap="md"
-        wrap="wrap"
-        padding={{'screen:sm': 'md lg', 'screen:md': 'md xl'}}
-        borderBottom="secondary"
-      >
-        <ReplayDetailsUserBadge readerResult={readerResult} />
-        <ReplayDetailsMetadata readerResult={readerResult} />
-      </Flex>
-      <Stack flex={1} minHeight="0" overflow="hidden" padding="lg xl">
-        <ReplayDetailsPage readerResult={readerResult} />
-      </Stack>
+      <ReplayDetailsPageBreadcrumbs readerResult={readerResult} />
+      <Layout.Header>
+        <Layout.HeaderContent>
+          <Flex justify="between" align="center" gap="md" wrap="wrap">
+            <ReplayDetailsUserBadge readerResult={readerResult} />
+            <ReplayDetailsMetadata readerResult={readerResult} />
+          </Flex>
+        </Layout.HeaderContent>
+      </Layout.Header>
+      <Layout.Body noRowGap minHeight="0" overflow="hidden" alignContent="stretch">
+        <Layout.Main width="full" display="flex" minHeight="0" overflow="hidden">
+          <ReplayDetailsPage readerResult={readerResult} />
+        </Layout.Main>
+      </Layout.Body>
     </Fragment>
   );
 

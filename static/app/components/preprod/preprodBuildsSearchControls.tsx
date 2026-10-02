@@ -95,6 +95,7 @@ export function PreprodBuildsSearchControls({
           onChange={onChange}
           onSearch={onSearch}
           projects={projects}
+          disallowLogicalOperators
         />
       </Container>
       {onExportCsv && (

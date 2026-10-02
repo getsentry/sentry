@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import importlib.resources
+import inspect
 import logging
+from collections.abc import Generator
 from copy import deepcopy
 from threading import Lock
-from typing import Any, Literal, TypeGuard, TypeVar, overload
+from typing import Any, Literal, TypeGuard, TypeVar, cast, overload
 
 import rb
 from django.utils.functional import SimpleLazyObject
@@ -15,9 +17,12 @@ from sentry_redis_tools.failover_redis import FailoverRedis
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
 from sentry import options
+from sentry.db.postgres.transactions import in_test_assert_no_transaction
 from sentry.exceptions import InvalidConfiguration
 from sentry.options import OptionsManager
 from sentry.utils import warnings
+from sentry.utils.env import in_test_environment
+from sentry.utils.redis_key_specs import COMMAND_KEY_SPECS
 from sentry.utils.versioning import Version, check_versions
 from sentry.utils.warnings import DeprecatedSettingWarning
 
@@ -128,6 +133,7 @@ class RedisClusterManager:
         readonly_mode: bool = False,
         hosts: list[dict[Any, Any]] | dict[Any, Any] | None = None,
         client_args: dict[str, Any] | None = None,
+        key_prefix: str | None = None,
         **config: Any,
     ) -> RedisCluster[bytes] | StrictRedis[bytes]: ...
 
@@ -140,6 +146,7 @@ class RedisClusterManager:
         readonly_mode: bool = False,
         hosts: list[dict[Any, Any]] | dict[Any, Any] | None = None,
         client_args: dict[str, Any] | None = None,
+        key_prefix: str | None = None,
         **config: Any,
     ) -> RedisCluster[str] | StrictRedis[str]: ...
 
@@ -151,8 +158,15 @@ class RedisClusterManager:
         readonly_mode: bool = False,
         hosts: list[dict[Any, Any]] | dict[Any, Any] | None = None,
         client_args: dict[str, Any] | None = None,
+        key_prefix: str | None = None,
         **config: Any,
     ) -> RedisCluster[bytes] | StrictRedis[bytes] | RedisCluster[str] | StrictRedis[str]:
+        if key_prefix is not None:
+            if not is_redis_cluster or "{" in key_prefix:
+                raise InvalidConfiguration(
+                    "key_prefix needs is_redis_cluster and must not contain '{'"
+                )
+
         # StrictRedisCluster expects a list of { host, port } dicts. Coerce the
         # configuration into the correct format if necessary.
         if not hosts:
@@ -173,27 +187,32 @@ class RedisClusterManager:
             RedisCluster[bytes] | StrictRedis[bytes] | RedisCluster[str] | StrictRedis[str]
         ):
             if is_redis_cluster:
-                return RetryingRedisCluster(
-                    # Intentionally copy hosts here because redis-cluster-py
-                    # mutates the inner dicts and this closure can be run
-                    # concurrently, as SimpleLazyObject is not threadsafe. This
-                    # is likely triggered by RetryingRedisCluster running
-                    # reset() after startup
-                    #
-                    # https://github.com/Grokzen/redis-py-cluster/blob/73f27edf7ceb4a408b3008ef7d82dac570ab9c6a/rediscluster/nodemanager.py#L385
-                    startup_nodes=deepcopy(hosts_list),
-                    decode_responses=decode_responses,
-                    skip_full_coverage_check=True,
-                    max_connections=16,
-                    max_connections_per_node=True,
-                    readonly_mode=readonly_mode,
-                    **client_args,
+                cluster = _add_transaction_checks(
+                    RetryingRedisCluster(
+                        # Intentionally copy hosts here because redis-cluster-py
+                        # mutates the inner dicts and this closure can be run
+                        # concurrently, as SimpleLazyObject is not threadsafe. This
+                        # is likely triggered by RetryingRedisCluster running
+                        # reset() after startup
+                        #
+                        # https://github.com/Grokzen/redis-py-cluster/blob/73f27edf7ceb4a408b3008ef7d82dac570ab9c6a/rediscluster/nodemanager.py#L385
+                        startup_nodes=deepcopy(hosts_list),
+                        decode_responses=decode_responses,
+                        skip_full_coverage_check=True,
+                        max_connections=16,
+                        max_connections_per_node=True,
+                        readonly_mode=readonly_mode,
+                        **client_args,
+                    )
                 )
-            else:
-                assert len(hosts_list) > 0, "Hosts should have at least 1 entry"
-                host = dict(hosts_list[0])
-                host["decode_responses"] = decode_responses
-                return FailoverRedis(**host, **client_args)
+                if key_prefix is not None:
+                    return _add_key_prefix(cluster, key_prefix)
+                return cluster
+
+            assert len(hosts_list) > 0, "Hosts should have at least 1 entry"
+            host = dict(hosts_list[0])
+            host["decode_responses"] = decode_responses
+            return _add_transaction_checks(FailoverRedis(**host, **client_args))
 
         # losing some type safety: SimpleLazyObject acts like the underlying type
         return SimpleLazyObject(cluster_factory)
@@ -219,6 +238,291 @@ class RedisClusterManager:
         # setup/init of lazy objects.
         ret = self._clusters_bytes[key] = self._factory(**self._cfg(key), decode_responses=False)
         return ret
+
+
+# INC-2410: Existing violations of Redis calls happening during DB transactions at the time the check was added.
+# New entries are not allowed and we should burn this down over time.
+_REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET = frozenset(
+    {
+        (
+            "getsentry.billing.usagebuffer.redis.RedisUsageBuffer.fetch_pop",
+            "getsentry.billing.tasks.usagebuffer.flush_usage_buffer",
+        ),
+        (
+            "getsentry.models.billingseatassignment.BillingSeatAssignment.schedule_redis_key_sync.<locals>._sync_redis_key",
+        ),
+        (
+            "sentry.dynamic_sampling.rules.helpers.latest_releases.ProjectBoostedReleases.has_boosted_releases",
+            "sentry.models.releases.release_project.ReleaseProjectModelManager._on_post",
+        ),
+        ("sentry.event_manager._get_severity_metadata_for_group",),
+        (
+            "sentry.models.counter.increment_project_counter_in_cache",
+            "sentry.models.counter.Counter.increment",
+            "sentry.models.project.Project.next_short_id",
+            "sentry.event_manager._get_next_short_id",
+        ),
+        ("sentry.models.counter.refill_cached_short_ids",),
+        ("sentry.notifications.notifications.activity.base.GroupActivityNotification.__init__",),
+        (
+            "sentry.ratelimits.redis.RedisRateLimiter.reset",
+            "sentry.auth.twofactor.reset_2fa_rate_limits",
+            "sentry.users.web.accounts.recover_confirm",
+        ),
+        ("sentry.rules.actions.integrations.create_ticket.utils.create_issue",),
+        (
+            "sentry.services.eventstore.reprocessing.redis.RedisReprocessingStore.get_pending",
+            "sentry.reprocessing2.get_progress",
+        ),
+        (
+            "sentry.services.eventstore.reprocessing.redis.RedisReprocessingStore.get_pending",
+            "sentry.reprocessing2.is_reprocessing_active",
+        ),
+        ("sentry.tasks.assemble.delete_assemble_status",),
+        (
+            "sentry.uptime.config_producer._send_to_redis",
+            "sentry.uptime.config_producer.produce_config",
+        ),
+        (
+            "sentry.uptime.config_producer._send_to_redis",
+            "sentry.uptime.config_producer.produce_config_removal",
+        ),
+        ("sentry.uptime.subscriptions.subscriptions.disable_uptime_detector",),
+        ("sentry.utils.snowflake.get_sequence_value_from_redis",),
+        (
+            "sentry.utils.sentry_apps.request_buffer.SentryAppWebhookRequestsBuffer.add_request",
+            "sentry.sentry_apps.external_requests.utils.send_and_save_sentry_app_request",
+        ),
+        (
+            "sentry.utils.sentry_apps.request_buffer.SentryAppWebhookRequestsBuffer.add_request",
+            "sentry.utils.sentry_apps.webhooks.send_and_save_webhook_request",
+        ),
+    }
+)
+
+
+def _add_transaction_checks(
+    client: RedisCluster[T] | StrictRedis[T],
+) -> RedisCluster[T] | StrictRedis[T]:
+    """No-ops in production. In testing environments, wraps Redis calls to assert it's not inside a transaction."""
+    if not in_test_environment():
+        return client
+
+    mutable_client = cast(Any, client)
+    execute_command = mutable_client.execute_command
+
+    def execute_command_outside_transaction(*args: Any, **kwargs: Any) -> Any:
+        _assert_redis_transaction_allowed("Redis commands must run outside database transactions")
+        return execute_command(*args, **kwargs)
+
+    pipeline_factory = mutable_client.pipeline
+
+    def pipeline(*args: Any, **kwargs: Any) -> Any:
+        redis_pipeline = pipeline_factory(*args, **kwargs)
+        execute_pipeline = redis_pipeline.execute
+
+        def execute_pipeline_outside_transaction(*args: Any, **kwargs: Any) -> Any:
+            _assert_redis_transaction_allowed(
+                "Redis pipeline commands must run outside database transactions"
+            )
+            return execute_pipeline(*args, **kwargs)
+
+        redis_pipeline.execute = execute_pipeline_outside_transaction
+        return redis_pipeline
+
+    mutable_client.execute_command = execute_command_outside_transaction
+    mutable_client.pipeline = pipeline
+    return client
+
+
+def _assert_redis_transaction_allowed(message: str) -> None:
+    try:
+        in_test_assert_no_transaction(message)
+    except AssertionError:
+        callers = _redis_transaction_callers()
+        caller = callers[0] if callers else None
+        if caller is not None and caller.startswith(
+            ("getsentry.testutils.", "sentry.testutils.", "tests.")
+        ):
+            return
+        if _matches_redis_transaction_ratchet(callers):
+            return
+        raise AssertionError(f"{message} (Redis caller: {caller or 'unknown'})") from None
+
+
+def _matches_redis_transaction_ratchet(callers: tuple[str, ...]) -> bool:
+    for signature in _REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET:
+        remaining_callers = iter(callers)
+        if all(caller in remaining_callers for caller in signature):
+            return True
+    return False
+
+
+def _redis_transaction_callers() -> tuple[str, ...]:
+    callers = []
+    frame = inspect.currentframe()
+    while frame is not None:
+        module = frame.f_globals.get("__name__", "")
+        if module in ("_pytest", "pytest", "unittest.case") or module.startswith(
+            ("_pytest.", "pytest.", "unittest.case.")
+        ):
+            break
+        is_redis_internal = module == __name__ or any(
+            module == prefix or module.startswith(f"{prefix}.")
+            for prefix in ("django.utils.functional", "redis", "rediscluster", "sentry_redis_tools")
+        )
+        if module and not is_redis_internal:
+            callers.append(f"{module}.{frame.f_code.co_qualname}")
+        frame = frame.f_back
+    return tuple(callers)
+
+
+# for commands with a `numkeys` argument: the index of that argument
+_SCRIPT_COMMANDS = ("eval", "evalsha", "eval_ro", "evalsha_ro", "fcall", "fcall_ro")
+_NUMKEYS_INDEX = {
+    **dict.fromkeys(_SCRIPT_COMMANDS, 2),
+    **dict.fromkeys(("zunionstore", "zinterstore", "zdiffstore", "blmpop", "bzmpop"), 2),
+    **dict.fromkeys(("zunion", "zinter", "zdiff", "zintercard", "sintercard", "lmpop", "zmpop"), 1),
+}
+
+# commands that see the keys of all workers
+_UNSUPPORTED_WITH_KEY_PREFIX = frozenset(("scan", "randomkey", "flushdb", "flushall"))
+
+# prefixed clients that ran a command since the last call to `pop_used_key_prefix_clients`
+_used_key_prefix_clients: dict[int, RedisCluster[Any] | StrictRedis[Any]] = {}
+
+
+def pop_used_key_prefix_clients() -> list[RedisCluster[Any] | StrictRedis[Any]]:
+    used = list(_used_key_prefix_clients.values())
+    _used_key_prefix_clients.clear()
+    return used
+
+
+def _to_str(value: Any) -> str:
+    return value.decode(errors="replace") if isinstance(value, bytes) else str(value)
+
+
+def _key_positions(args: tuple[Any, ...]) -> list[int]:
+    # redis-py sends some commands as one argument with a space, such as "XGROUP CREATE". Split
+    # the name so that the arguments have the same shape as the table
+    head = _to_str(args[0]).lower().split()
+    offset = len(head) - 1
+    args = (*head, *args[1:])
+
+    name = head[0]
+    if len(args) > 1 and f"{name}|{_to_str(args[1]).lower()}" in COMMAND_KEY_SPECS:
+        name = f"{name}|{_to_str(args[1]).lower()}"
+    # Names that are not in the table have no keys, such as "SCRIPT LOAD".
+    spec = COMMAND_KEY_SPECS.get(name)
+    if spec is None:
+        return []
+
+    positions: list[int] = []
+    if spec.first > 0:
+        last = spec.last if spec.last >= 0 else len(args) + spec.last
+        positions.extend(range(spec.first, min(last, len(args) - 1) + 1, spec.step))
+    if spec.movable:
+        if name in _NUMKEYS_INDEX:
+            index = _NUMKEYS_INDEX[name]
+            positions.extend(range(index + 1, index + 1 + int(args[index])))
+        elif name in ("xread", "xreadgroup"):
+            streams = [_to_str(arg).upper() for arg in args].index("STREAMS")
+            positions.extend(range(streams + 1, streams + 1 + (len(args) - streams - 1) // 2))
+        else:
+            raise NotImplementedError(f"The Redis key prefix does not support {name}")
+    return [position - offset for position in positions]
+
+
+def _add_key_prefix(
+    client: RedisCluster[T] | StrictRedis[T], key_prefix: str
+) -> RedisCluster[T] | StrictRedis[T]:
+    """
+    Adds `key_prefix` to each key that the client sends, and removes it from the key names
+    that the client returns. Tests use this to isolate parallel workers that share a cluster.
+    """
+    mutable_client = cast(Any, client)
+    prefix_bytes = key_prefix.encode()
+
+    def add_prefix(key: Any) -> Any:
+        if isinstance(key, (bytes, memoryview)):
+            return prefix_bytes + bytes(key)
+        return f"{key_prefix}{key}"
+
+    def remove_prefix(key: Any) -> Any:
+        if isinstance(key, bytes) and key.startswith(prefix_bytes):
+            return key[len(prefix_bytes) :]
+        if isinstance(key, str) and key.startswith(key_prefix):
+            return key[len(key_prefix) :]
+        return key
+
+    def prefix_args(args: tuple[Any, ...]) -> tuple[Any, ...]:
+        name = _to_str(args[0]).lower()
+        if name in _UNSUPPORTED_WITH_KEY_PREFIX:
+            raise NotImplementedError(f"The Redis key prefix does not support {name}")
+        if name == "keys":
+            return (args[0], add_prefix(args[1]), *args[2:])
+        positions = set(_key_positions(args))
+        return tuple(add_prefix(arg) if i in positions else arg for i, arg in enumerate(args))
+
+    def unprefix_reply(args: tuple[Any, ...], reply: Any) -> Any:
+        name = _to_str(args[0]).lower()
+        if not reply or isinstance(reply, Exception):
+            return reply
+        if name == "keys":
+            return [remove_prefix(key) for key in reply]
+        if name in ("blpop", "brpop", "bzpopmin", "bzpopmax", "lmpop", "blmpop", "zmpop", "bzmpop"):
+            return type(reply)([remove_prefix(reply[0]), *reply[1:]])
+        if name in ("xread", "xreadgroup"):
+            return [[remove_prefix(stream), *rest] for stream, *rest in reply]
+        if name in _SCRIPT_COMMANDS:
+            return remove_prefix_from_script_reply(reply)
+        return reply
+
+    def remove_prefix_from_script_reply(reply: Any) -> Any:
+        if isinstance(reply, list):
+            return [remove_prefix_from_script_reply(item) for item in reply]
+        return remove_prefix(reply)
+
+    execute_command = mutable_client.execute_command
+    scan_iter = mutable_client.scan_iter
+    pipeline_factory = mutable_client.pipeline
+
+    def execute_prefixed_command(*args: Any, **kwargs: Any) -> Any:
+        # Other workers share the cluster, so a flush deletes only the keys with this prefix.
+        if _to_str(args[0]).lower() in ("flushdb", "flushall"):
+            for key in scan_iter(match=add_prefix("*")):
+                execute_command("DEL", key)
+            return True
+        _used_key_prefix_clients[id(client)] = client
+        return unprefix_reply(args, execute_command(*prefix_args(args), **kwargs))
+
+    def scan_prefixed_keys(match: Any = None, **kwargs: Any) -> Generator[Any]:
+        _used_key_prefix_clients[id(client)] = client
+        for key in scan_iter(match=add_prefix("*" if match is None else match), **kwargs):
+            yield remove_prefix(key)
+
+    def pipeline(*args: Any, **kwargs: Any) -> Any:
+        redis_pipeline = pipeline_factory(*args, **kwargs)
+        queue_command = redis_pipeline.execute_command
+        execute_pipeline = redis_pipeline.execute
+
+        def queue_prefixed_command(*args: Any, **kwargs: Any) -> Any:
+            _used_key_prefix_clients[id(client)] = client
+            return queue_command(*prefix_args(args), **kwargs)
+
+        def execute_prefixed_pipeline(*args: Any, **kwargs: Any) -> Any:
+            commands = [command.args for command in redis_pipeline.command_stack]
+            results = execute_pipeline(*args, **kwargs)
+            return [unprefix_reply(c, result) for c, result in zip(commands, results)]
+
+        redis_pipeline.execute_command = queue_prefixed_command
+        redis_pipeline.execute = execute_prefixed_pipeline
+        return redis_pipeline
+
+    mutable_client.execute_command = execute_prefixed_command
+    mutable_client.scan_iter = scan_prefixed_keys
+    mutable_client.pipeline = pipeline
+    return client
 
 
 # TODO(epurkhiser): When migration of all rb cluster to true redis clusters has

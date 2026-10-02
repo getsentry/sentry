@@ -25,7 +25,7 @@ class ApiOwner(Enum):
     INFRA_ENG = "sre-infrastructure-engineering"
     INTEGRATION_PLATFORM = "integration-platform"
     ISSUE_DETECTION_BACKEND = "issue-detection-backend"
-    ISSUES = "issue-workflow"
+    ISSUES = "issues-feed"  # Most of these endpoints are owned but all 3 issues teams but APIOwner doesn't allow multiple owners now
     MESSAGING_INTEGRATIONS = "messaging-integrations"
     ML_AI = "machine-learning-ai"
     NOTIFICATIONS = "notifications"

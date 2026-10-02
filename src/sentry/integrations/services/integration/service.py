@@ -81,6 +81,7 @@ class IntegrationService(RpcService):
         organization_id: int | None = None,
         organization_integration_id: int | None = None,
         status: int | None = None,
+        using_replica: bool = False,
     ) -> RpcIntegration | None:
         """
         Returns an RpcIntegration using either the id or a combination of the provider and external_id
@@ -101,6 +102,7 @@ class IntegrationService(RpcService):
         grace_period_expired: bool | None = None,
         limit: int | None = None,
         name: str | None = None,
+        using_replica: bool = False,
     ) -> list[RpcOrganizationIntegration]:
         """
         Returns all RpcOrganizationIntegrations from the matching kwargs.
@@ -316,6 +318,36 @@ class IntegrationService(RpcService):
     def refresh_github_access_token(
         self, *, integration_id: int, organization_id: int
     ) -> RpcIntegration | None:
+        pass
+
+    @rpc_method
+    @abstractmethod
+    def refresh_github_permissions(
+        self, *, integration_id: int, organization_id: int
+    ) -> RpcIntegration | None:
+        """Re-read what a GitHub App installation grants, from any silo.
+
+        Reads ``GET /app/installations/{id}`` with the app's JWT, without minting
+        or rotating the installation token, and returns the integration with
+        the new ``metadata["permissions"]`` and ``metadata["last_refresh_at"]``.
+
+        Org-scoped like ``refresh_github_access_token``: the caller has to name
+        an organization the install is actually linked to. The read itself is
+        authed with the app's own JWT and would work without one, but reaching
+        an installation through an integration id alone is not a door we want
+        open.
+
+        None when the integration is missing, not GitHub, not active, or not
+        installed on that organization.
+        """
+
+    @rpc_method
+    @abstractmethod
+    def get_gcp_service_account_email(
+        self,
+        *,
+        organization_id: int,
+    ) -> str | None:
         pass
 
 

@@ -22,7 +22,10 @@ from sentry.notifications.platform.service import (
 )
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.slack.renderers.seer import SeerSlackRenderer
-from sentry.notifications.platform.templates.seer import SeerAutofixUpdate
+from sentry.notifications.platform.templates.seer import (
+    SeerAgentWriteApproval,
+    SeerAutofixUpdate,
+)
 from sentry.notifications.platform.types import NotificationData, NotificationProviderKey
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.entrypoints.metrics import (
@@ -77,12 +80,13 @@ def send_thread_update(
         )
         try:
             if ephemeral_user_id:
-                install.send_threaded_ephemeral_message(
+                response = install.send_threaded_ephemeral_message(
                     channel_id=thread["channel_id"],
                     thread_ts=thread["thread_ts"],
                     renderable=renderable,
                     slack_user_id=ephemeral_user_id,
                 )
+                message_ts = response.get("message_ts") if response else None
             else:
                 response = install.send_threaded_message(
                     channel_id=thread["channel_id"],
@@ -90,19 +94,29 @@ def send_thread_update(
                     renderable=renderable,
                 )
                 message_ts = response.get("ts") if response else None
-                run_id = getattr(data, "run_id", None)
-                if message_ts and run_id is not None:
-                    SlackSeerAgentMessageCache.set(
-                        integration_id=install.model.id,
-                        channel_id=thread["channel_id"],
-                        message_ts=message_ts,
-                        payload=SlackSeerAgentMessageCachePayload(
-                            thread_ts=thread["thread_ts"],
-                            run_id=run_id,
-                        ),
-                    )
+            run_id = getattr(data, "run_id", None)
+            if (
+                message_ts
+                and run_id is not None
+                and (not ephemeral_user_id or isinstance(data, SeerAgentWriteApproval))
+            ):
+                cache_payload = SlackSeerAgentMessageCachePayload(
+                    thread_ts=thread["thread_ts"],
+                    run_id=run_id,
+                )
+                if isinstance(data, SeerAgentWriteApproval):
+                    cache_payload["input_id"] = data.input_id
+                SlackSeerAgentMessageCache.set(
+                    integration_id=install.model.id,
+                    channel_id=thread["channel_id"],
+                    message_ts=message_ts,
+                    payload=cache_payload,
+                )
         except IntegrationConfigurationError as e:
             lifecycle.record_halt(halt_reason=e)
+        except TimeoutError as e:
+            lifecycle.record_failure(failure_reason=e)
+            raise IntegrationError("Slack request timed out") from e
         except IntegrationError as e:
             lifecycle.record_failure(failure_reason=e)
             # Retry, hopefully it's transient
@@ -354,6 +368,9 @@ def send_halt_message(
             # This assumes the slack event is malformed, or unexpected.
             # Avoid sending irrelevant messages for what could be inconsequential.
             return
+        case SeerSlackHaltReason.EMPTY_PROMPT:
+            # Answered at the webhook by send_empty_prompt_message.
+            return
         case _:
             assert_never(halt_reason)
 
@@ -376,6 +393,34 @@ def send_halt_message(
         logger.exception("send_halt_message.error", extra=logging_ctx)
     else:
         logger.info("send_halt_message.success", extra=logging_ctx)
+
+
+@all_silo_function
+def send_empty_prompt_message(
+    *,
+    integration_id: int,
+    slack_user_id: str,
+    channel_id: str,
+    thread_ts: str | None,
+) -> None:
+    """Send an ephemeral nudge when someone mentions us without asking anything."""
+    from sentry.integrations.slack.workspace import send_threaded_ephemeral_message
+
+    message = "Looks like your message came through empty — mention me again with a question and I'll take it from there."
+    renderable = SlackRenderable(
+        blocks=[MarkdownBlock(text=message)],
+        text=message,
+    )
+    try:
+        send_threaded_ephemeral_message(
+            integration_id=integration_id,
+            channel_id=channel_id,
+            thread_ts=thread_ts,
+            renderable=renderable,
+            slack_user_id=slack_user_id,
+        )
+    except Exception as e:
+        logger.warning("seer.slack.send_empty_prompt_message_failed", exc_info=e)
 
 
 @all_silo_function

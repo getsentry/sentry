@@ -119,6 +119,7 @@ describe('PageFiltersContainer', () => {
     await waitFor(() =>
       expect(PageFiltersStore.getState()).toEqual({
         isReady: true,
+        adjustments: {},
         pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         shouldPersist: true,
         selection: {
@@ -150,6 +151,7 @@ describe('PageFiltersContainer', () => {
     await waitFor(() =>
       expect(PageFiltersStore.getState()).toEqual({
         isReady: true,
+        adjustments: {},
         pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         shouldPersist: true,
         selection: {
@@ -184,6 +186,7 @@ describe('PageFiltersContainer', () => {
     await waitFor(() =>
       expect(PageFiltersStore.getState()).toEqual({
         isReady: true,
+        adjustments: {},
         pinnedFilters: new Set(['projects', 'environments', 'datetime']),
         shouldPersist: true,
         selection: {
@@ -229,6 +232,7 @@ describe('PageFiltersContainer', () => {
 
     expect(PageFiltersStore.getState()).toEqual({
       isReady: true,
+      adjustments: {},
       pinnedFilters: new Set(['projects', 'environments', 'datetime']),
       shouldPersist: true,
       selection: {
@@ -458,6 +462,30 @@ describe('PageFiltersContainer', () => {
           utc: null,
           start: null,
           end: null,
+        })
+      );
+    });
+
+    it('records an adjustment when the period is reset by a maxPickableDays decrease', async () => {
+      const {rerender} = render(<PageFiltersContainer maxPickableDays={30} />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/test/',
+            query: {statsPeriod: '14d'},
+          },
+          route: '/organizations/:orgId/test/',
+        },
+      });
+
+      await waitFor(() => expect(PageFiltersStore.getState().isReady).toBe(true));
+      expect(PageFiltersStore.getState().adjustments).toEqual({});
+
+      rerender(<PageFiltersContainer maxPickableDays={7} />);
+
+      await waitFor(() =>
+        expect(PageFiltersStore.getState().adjustments).toEqual({
+          datetime: {reason: 'max_pickable_days', days: 7},
         })
       );
     });

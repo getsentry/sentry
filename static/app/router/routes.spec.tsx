@@ -91,6 +91,17 @@ function getRedirectTarget(routes: RouteObject[], url: string): string | undefin
 }
 
 describe('buildRoutes()', () => {
+  it.each([
+    ['/manage/settings/', ['Settings', 'Settings']],
+    ['/manage/status/mail/', ['Settings', 'Mail']],
+    ['/manage/users/', ['Settings', 'Users']],
+  ])('shows the admin breadcrumb for %s', (url, names) => {
+    const matches = matchRoutes(buildRoutes(), url);
+    expect(
+      matches?.flatMap(match => (match.route.handle as {name?: string})?.name ?? [])
+    ).toEqual(names);
+  });
+
   // Until customer-domains is enabled for single-tenant, self-hosted and path
   // based slug routes are removed we need to ensure
   // that each orgId route also has slugless path.
@@ -136,6 +147,26 @@ describe('buildRoutes()', () => {
   });
 
   describe('explore route catch-all', () => {
+    it('matches investigation details before the catch-all', () => {
+      const spy = jest.spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get');
+
+      spy.mockReturnValue(true);
+      let matchedPaths = getMatchedPaths(
+        buildRoutes(),
+        '/explore/investigations/investigation-1/'
+      );
+      expect(matchedPaths).toContain('investigations/:investigationId/');
+      expect(matchedPaths).not.toContain('*');
+
+      spy.mockReturnValue(false);
+      matchedPaths = getMatchedPaths(
+        buildRoutes(),
+        '/organizations/test-org/explore/investigations/investigation-1/'
+      );
+      expect(matchedPaths).toContain('investigations/:investigationId/');
+      expect(matchedPaths).not.toContain('*');
+    });
+
     it('catches unknown subpaths under /explore/', () => {
       const spy = jest.spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get');
 
@@ -179,6 +210,7 @@ describe('buildRoutes()', () => {
     expect(matchedPaths).toEqual([
       '(layout)',
       '/',
+      '(layout)',
       '(layout)',
       '/:orgId/:projectId/',
       'events/:eventId/',

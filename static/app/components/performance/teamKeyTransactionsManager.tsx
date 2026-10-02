@@ -1,4 +1,4 @@
-import {createContext, useCallback, useEffect, useState} from 'react';
+import {createContext, useCallback, useContext, useEffect, useState} from 'react';
 
 import type {TeamKeyTransactions} from 'sentry/actionCreators/performance';
 import {
@@ -213,3 +213,7 @@ export function Provider({
 }
 
 export const Consumer = TeamKeyTransactionsManagerContext.Consumer;
+
+export function useTeamKeyTransactions() {
+  return useContext(TeamKeyTransactionsManagerContext);
+}

@@ -11,8 +11,7 @@ import logging
 import re
 import time
 from collections.abc import Callable, Mapping, Sequence
-from datetime import datetime
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 import orjson
 from django.conf import settings
@@ -38,7 +37,7 @@ from sentry.net.http import connection_from_url
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.utils import bulk_read_preferences_from_sentry_db
-from sentry.seer.models import SeerApiError
+from sentry.seer.models import SeerApiError, SeerUnavailableError
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
@@ -66,6 +65,29 @@ class RunsByIdsRequest(TypedDict):
     run_ids: list[int]
 
 
+class UserOrgContextTeam(TypedDict):
+    id: int
+    slug: str
+
+
+class UserOrgContextProject(TypedDict):
+    id: int
+    slug: str
+    repos: list[dict[str, Any]]
+
+
+class UserOrgContext(TypedDict):
+    org_slug: str
+    user_id: NotRequired[int]
+    user_ip: NotRequired[str | None]
+    user_name: NotRequired[str | None]
+    user_email: NotRequired[str | None]
+    user_timezone: NotRequired[str | None]
+    user_teams: NotRequired[list[UserOrgContextTeam]]
+    user_projects: NotRequired[list[UserOrgContextProject]]
+    all_org_projects: NotRequired[list[UserOrgContextProject]]
+
+
 class AgentChatRequest(TypedDict):
     organization_id: int
     query: str
@@ -76,7 +98,7 @@ class AgentChatRequest(TypedDict):
     page_name: NotRequired[str | None]
     page_location: NotRequired[dict[str, Any] | None]
     sent_at: NotRequired[list[str] | None]
-    user_org_context: NotRequired[dict[str, Any] | None]
+    user_org_context: NotRequired[UserOrgContext | None]
     intelligence_level: NotRequired[str]
     reasoning_effort: NotRequired[str]
     is_interactive: NotRequired[bool]
@@ -97,20 +119,6 @@ class AgentChatRequest(TypedDict):
     available_monitoring_providers: NotRequired[list[dict[str, Any]]]
 
 
-class AgentRunsRequest(TypedDict):
-    organization_id: int
-    user_id: NotRequired[int]
-    category_key: NotRequired[str]
-    category_value: NotRequired[str]
-    offset: NotRequired[int]
-    project_ids: NotRequired[list[int]]
-    limit: NotRequired[int]
-    expand: NotRequired[str]
-    start: NotRequired[datetime]
-    end: NotRequired[datetime]
-    query: NotRequired[str]
-
-
 class AgentUpdateRequest(TypedDict):
     run_id: int
     organization_id: int
@@ -120,15 +128,28 @@ class AgentUpdateRequest(TypedDict):
 class AgentPrStateRequest(TypedDict):
     organization_id: int
     provider: str
-    pr_id: int
+    pr_id: str
+
+
+class AgentRunOptions(TypedDict):
+    enable_code_mode_tools: NotRequired[Literal["off", "on", "only"]]
+    enable_assisted_query_code_mode: NotRequired[bool]
+    enable_frontend_code_search: NotRequired[bool | None]
+    is_context_engine_enabled: NotRequired[bool]
+    enable_bash_mode: NotRequired[bool]
+    enable_coding: NotRequired[bool]
+    enable_tool_summary: NotRequired[bool]
+    embed_widgets: NotRequired[list[dict[str, Any]] | None]
+    enable_streaming: NotRequired[bool]
 
 
 class SeerFeatureRunRequest(TypedDict):
-    """The feature-run body as enqueued onto the SEER_RUN_CREATE outbox."""
-
     feature_id: str
     payload: dict[str, Any]
-    agent_run_options: NotRequired[dict[str, Any]]
+    agent_run_options: NotRequired[AgentRunOptions]
+    user_org_context: NotRequired[UserOrgContext]
+    proxy_headers: NotRequired[dict[str, str] | None]
+    referrer: str
 
 
 class SeerFeatureRunWireRequest(SeerFeatureRunRequest):
@@ -190,19 +211,6 @@ def make_agent_chat_request(
     return make_signed_seer_api_request(
         connection_pool or agent_connection_pool,
         "/v1/automation/explorer/chat",
-        body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
-        viewer_context=viewer_context,
-    )
-
-
-def make_agent_runs_request(
-    body: AgentRunsRequest,
-    connection_pool: HTTPConnectionPool | None = None,
-    viewer_context: SeerViewerContext | None = None,
-) -> BaseHTTPResponse:
-    return make_signed_seer_api_request(
-        connection_pool or agent_connection_pool,
-        "/v1/automation/explorer/runs",
         body=orjson.dumps(body, option=orjson.OPT_NON_STR_KEYS),
         viewer_context=viewer_context,
     )
@@ -341,22 +349,40 @@ def enqueue_seer_run(
 
 
 def get_agent_state_from_pr_id(
-    organization_id: int, provider: str, pr_id: int
+    organization_id: int, provider: str, pr_id: int | str
 ) -> SeerRunState | None:
-    body = AgentPrStateRequest(organization_id=organization_id, provider=provider, pr_id=pr_id)
+    """
+    Look up the Seer run that owns a pull request, or None if there isn't one.
+
+    A server error raises ``SeerUnavailableError`` so the calling task can try
+    again later.
+    """
+    body = AgentPrStateRequest(organization_id=organization_id, provider=provider, pr_id=str(pr_id))
     response = make_agent_state_pr_request(body)
 
+    if response.status >= 500:
+        metrics.incr("seer.agent.state_from_pr", tags={"outcome": "unavailable"})
+        raise SeerUnavailableError("Seer request failed", response.status)
+
+    if response.status == 404:
+        metrics.incr("seer.agent.state_from_pr", tags={"outcome": "no_run_for_org"})
+        return None
+
     if response.status >= 400:
+        metrics.incr("seer.agent.state_from_pr", tags={"outcome": "error"})
         raise SeerApiError("Seer request failed", response.status)
 
     result = response.json()
     if not result:
+        metrics.incr("seer.agent.state_from_pr", tags={"outcome": "empty_response"})
         return None
 
     session = result.get("session")
     if session is None:
+        metrics.incr("seer.agent.state_from_pr", tags={"outcome": "no_run_for_pr"})
         return None
 
+    metrics.incr("seer.agent.state_from_pr", tags={"outcome": "found"})
     return SeerRunState(**session)
 
 
@@ -373,8 +399,7 @@ def has_seer_agent_access_with_detail(
     Returns:
         tuple[bool, str | None]: (has_access, error_message)
     """
-    # Check base Seer access (gen-ai-features, hide_ai_features, acknowledgement)
-    has_access, error = has_seer_access_with_detail(organization, actor)
+    has_access, error = has_seer_access_with_detail(organization)
     if not has_access:
         return False, error
 
@@ -395,7 +420,7 @@ def collect_user_org_context(
     user: SentryUser | RpcUser | AnonymousUser | None,
     organization: Organization,
     request: Request | None = None,
-) -> dict[str, Any]:
+) -> UserOrgContext:
     """Collect user and organization context for a new agent run."""
     all_projects = Project.objects.filter(
         organization=organization, status=ObjectStatus.ACTIVE
@@ -408,7 +433,7 @@ def collect_user_org_context(
         str(pid): [repo.dict() for repo in pref.repositories] for pid, pref in prefs_by_pid.items()
     }
 
-    all_org_projects = [
+    all_org_projects: list[UserOrgContextProject] = [
         {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
         for p in all_projects
     ]
@@ -435,7 +460,9 @@ def collect_user_org_context(
             "org_slug": organization.slug,
             "all_org_projects": all_org_projects,
         }
-    user_teams = [{"id": t.id, "slug": t.slug} for t in member.get_teams()]
+    user_teams: list[UserOrgContextTeam] = [
+        {"id": t.id, "slug": t.slug} for t in member.get_teams()
+    ]
     my_projects = (
         Project.objects.filter(
             organization=organization,
@@ -445,7 +472,7 @@ def collect_user_org_context(
         .distinct()
         .values("id", "slug")
     )
-    user_projects = [
+    user_projects: list[UserOrgContextProject] = [
         {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
         for p in my_projects
     ]
@@ -672,3 +699,18 @@ def snapshot_to_markdown(snapshot: dict[str, Any]) -> str:
     )
     result = location + preamble + "\n".join(_render_node(node, 0) for node in selected)
     return _normalize_wildcard_operators(result)
+
+
+def chat_prompt_to_markdown(chat_prompt: str, context: Any) -> str:
+    """Render an "Ask Seer" prompt and its context as a page-context section.
+
+    It is appended to `on_page_context`, so it reaches the agent as untrusted page data.
+    """
+    lines = [
+        "## Chat Prompt",
+        "The user was shown this question in the UI and is replying to it:",
+        *(f"> {line}" for line in chat_prompt.splitlines()),
+    ]
+    if context is not None:
+        lines.append(_render_node({"nodeType": "chat prompt context", "data": context}, 2))
+    return "\n".join(lines)

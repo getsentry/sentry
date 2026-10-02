@@ -17,6 +17,7 @@ import type {
   MetricCondition,
   MetricConditionGroup,
   MetricDetector,
+  PreprodDetector,
   SnubaQueryDataSource,
   UptimeDetector,
   UptimeSubscriptionDataSource,
@@ -124,6 +125,23 @@ export function ErrorDetectorFixture(params: Partial<ErrorDetector> = {}): Error
     name: 'Error Detector',
     id: '2',
     type: 'error',
+    ...params,
+  };
+}
+
+export function PreprodDetectorFixture(
+  params: Partial<PreprodDetector> = {}
+): PreprodDetector {
+  return {
+    ...BASE_DETECTOR,
+    id: '5',
+    name: 'Mobile Build Detector',
+    type: 'preprod_size_analysis',
+    config: {
+      measurement: 'install_size',
+      thresholdType: 'absolute',
+    },
+    conditionGroup: params.conditionGroup ?? DataConditionGroupFixture(),
     ...params,
   };
 }

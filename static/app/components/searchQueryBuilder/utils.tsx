@@ -127,23 +127,46 @@ function getSearchConfigFromKeys({
   return config;
 }
 
+/**
+ * True when the filter key matches an entry in `invalidFilterKeys`.
+ *
+ * Aggregate filters are compared by both the full key (`p95(span.duration)`) and the
+ * bare function name (`p95`), so callers can mark aggregates invalid the same way
+ * metrics does via validate → `invalidFilterKeys` (which returns bare names).
+ */
+export function isInvalidFilterKey(
+  key: TokenResult<Token.FILTER>['key'],
+  invalidFilterKeys: readonly string[] | undefined
+): boolean {
+  if (!invalidFilterKeys?.length) {
+    return false;
+  }
+
+  const keyWithArgs = getKeyName(key, {aggregateWithArgs: true});
+  if (invalidFilterKeys.includes(keyWithArgs)) {
+    return true;
+  }
+
+  // KEY_AGGREGATE: also match bare name so `invalidFilterKeys: ['p95']` catches `p95(...)`.
+  const bareKey = getKeyName(key);
+  return bareKey !== keyWithArgs && invalidFilterKeys.includes(bareKey);
+}
+
 function markInvalidFilterKeys(
   tokens: ParseResult | null,
-  invalidFilterKeys: string[] | undefined
+  invalidFilterKeys: string[] | undefined,
+  invalidKeyMessage?: string
 ): ParseResult | null {
   if (!tokens || !invalidFilterKeys?.length) {
     return tokens;
   }
-
-  const invalidFilterKeySet = new Set(invalidFilterKeys);
 
   return tokens.map(token => {
     if (token.type !== Token.FILTER) {
       return token;
     }
 
-    const keyName = getKeyName(token.key, {aggregateWithArgs: true});
-    if (!invalidFilterKeySet.has(keyName) || token.invalid) {
+    if (!isInvalidFilterKey(token.key, invalidFilterKeys)) {
       return token;
     }
 
@@ -151,7 +174,9 @@ function markInvalidFilterKeys(
       ...token,
       invalid: {
         type: InvalidReason.INVALID_KEY,
-        reason: t('Invalid key. "%s" is not a supported search key.', token.key.text),
+        reason:
+          invalidKeyMessage ??
+          t('Invalid key. "%s" is not a supported search key.', token.key.text),
       },
     };
   });
@@ -162,6 +187,7 @@ export function parseQueryBuilderValue(
   getFieldDefinition: FieldDefinitionGetter,
   options?: {
     filterKeys: TagCollection;
+    allowRegexOperators?: boolean;
     disallowFreeText?: boolean;
     disallowLogicalOperators?: boolean;
     disallowNegation?: boolean;
@@ -171,12 +197,15 @@ export function parseQueryBuilderValue(
     getFilterTokenWarning?: (key: string) => React.ReactNode;
     invalidFilterKeys?: string[];
     invalidMessages?: SearchConfig['invalidMessages'];
+    validateRegexPattern?: SearchConfig['validateRegexPattern'];
   }
 ): ParseResult | null {
   return markInvalidFilterKeys(
     collapseTextTokens(
       parseSearch(value || ' ', {
         flattenParenGroups: true,
+        allowRegex: options?.allowRegexOperators,
+        validateRegexPattern: options?.validateRegexPattern,
         disallowFreeText: options?.disallowFreeText,
         getFilterTokenWarning: options?.getFilterTokenWarning,
         validateKeys: options?.disallowUnsupportedFilters,
@@ -200,7 +229,8 @@ export function parseQueryBuilderValue(
         },
       })
     ),
-    options?.invalidFilterKeys
+    options?.invalidFilterKeys,
+    options?.invalidMessages?.[InvalidReason.INVALID_KEY]
   );
 }
 

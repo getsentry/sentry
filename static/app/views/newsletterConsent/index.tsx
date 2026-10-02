@@ -9,6 +9,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {t, tct} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 const consentChoiceSchema = z.enum(['true', 'false']);
@@ -26,7 +27,11 @@ type Props = {
 function NewsletterConsent({onSubmitSuccess}: Props) {
   const mutation = useMutation({
     mutationFn: (data: z.infer<typeof schema>) =>
-      fetchMutation({url: '/users/me/subscriptions/', method: 'POST', data}),
+      fetchMutation({
+        url: getApiUrl('/users/$userId/subscriptions/', {path: {userId: 'me'}}),
+        method: 'POST',
+        data,
+      }),
     onSuccess: onSubmitSuccess,
   });
   const form = useScrapsForm({

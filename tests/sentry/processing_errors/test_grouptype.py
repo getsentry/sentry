@@ -75,7 +75,7 @@ class TestSourcemapDetectorHandler(TestCase):
         self, detector: Detector, data_packet: DataPacket[ProcessingErrorPacketValue]
     ) -> DetectorEvaluation | None:
         handler = SourcemapDetectorHandler(detector)
-        evaluation = handler.evaluate(data_packet)
+        evaluation = handler._evaluate(data_packet)
         if None not in evaluation:
             return None
         return evaluation[None]

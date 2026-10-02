@@ -20,32 +20,40 @@ describe('WidgetPreview', () => {
     filters: {},
   };
 
-  function renderPreview(
-    previewStatus: Parameters<typeof WidgetPreview>[0]['previewStatus']
-  ) {
-    render(
+  const renderOptions = {
+    organization: OrganizationFixture(),
+    additionalWrapper: WidgetBuilderProvider,
+    initialRouterConfig: {
+      location: {pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME},
+    },
+  };
+
+  function ExampleWidgetPreview({
+    previewStatus,
+  }: {
+    previewStatus: Parameters<typeof WidgetPreview>[0]['previewStatus'];
+  }) {
+    return (
       <WidgetPreview
         dashboard={dashboard}
         dashboardFilters={{}}
         previewStatus={previewStatus}
-      />,
-      {
-        organization: OrganizationFixture(),
-        additionalWrapper: WidgetBuilderProvider,
-        initialRouterConfig: {
-          location: {pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME},
-        },
-      }
+      />
     );
   }
 
   it('renders a loading state when the preview status is loading', () => {
-    renderPreview({status: 'loading'});
+    render(<ExampleWidgetPreview previewStatus={{status: 'loading'}} />, renderOptions);
     expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
   });
 
   it('renders the error message when the preview status is invalid', () => {
-    renderPreview({status: 'invalid', message: 'This widget is broken.'});
+    render(
+      <ExampleWidgetPreview
+        previewStatus={{status: 'invalid', message: 'This widget is broken.'}}
+      />,
+      renderOptions
+    );
     expect(screen.getByText('This widget is broken.')).toBeInTheDocument();
   });
 });

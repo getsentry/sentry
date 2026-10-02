@@ -1,7 +1,7 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import type {XAxisProps} from 'sentry/components/charts/components/xAxis';
-import {XAxis} from 'sentry/components/charts/components/xAxis';
+import {createXAxisOptions} from 'sentry/components/charts/components/xAxis';
 
 const theme = ThemeFixture();
 
@@ -13,7 +13,7 @@ jest.mock('moment-timezone', () => {
 
 describe('Chart XAxis', () => {
   let axisLabelFormatter: (value: string | number, index: number) => string;
-  let xAxisObj!: ReturnType<typeof XAxis>;
+  let xAxisObj!: ReturnType<typeof createXAxisOptions>;
   const props: XAxisProps = {
     isGroupedByDate: true,
     theme,
@@ -24,7 +24,7 @@ describe('Chart XAxis', () => {
     describe('With Period > 24h', () => {
       describe('Local timezone', () => {
         beforeEach(() => {
-          xAxisObj = XAxis({
+          xAxisObj = createXAxisOptions({
             ...props,
             period: '7d',
             utc: false,
@@ -45,7 +45,7 @@ describe('Chart XAxis', () => {
 
       describe('UTC', () => {
         beforeEach(() => {
-          xAxisObj = XAxis({
+          xAxisObj = createXAxisOptions({
             ...props,
             period: '7d',
             utc: true,
@@ -66,7 +66,7 @@ describe('Chart XAxis', () => {
 
       describe('Multiline', () => {
         beforeEach(() => {
-          xAxisObj = XAxis({
+          xAxisObj = createXAxisOptions({
             ...props,
             useMultilineDate: true,
             period: '7d',
@@ -89,7 +89,7 @@ describe('Chart XAxis', () => {
     describe('With Period <= 24h', () => {
       describe('Local timezone', () => {
         beforeEach(() => {
-          xAxisObj = XAxis({
+          xAxisObj = createXAxisOptions({
             ...props,
             period: '24h',
             utc: false,
@@ -110,7 +110,7 @@ describe('Chart XAxis', () => {
 
       describe('UTC', () => {
         beforeEach(() => {
-          xAxisObj = XAxis({
+          xAxisObj = createXAxisOptions({
             ...props,
             period: '24h',
             utc: true,
@@ -131,7 +131,7 @@ describe('Chart XAxis', () => {
 
       describe('Multiline', () => {
         beforeEach(() => {
-          xAxisObj = XAxis({
+          xAxisObj = createXAxisOptions({
             ...props,
             useMultilineDate: true,
             period: '24h',

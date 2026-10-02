@@ -200,7 +200,6 @@ export const SENTRY_APP_PERMISSIONS: PermissionObj[] = [
   },
 ];
 
-export const DEFAULT_TOAST_DURATION = 6000;
 export const DEFAULT_DEBOUNCE_DURATION = 300;
 
 // sentry.io project ID for seer-agents.
@@ -716,7 +715,3 @@ export const SPAN_PROPS_DOCS_URL =
 
 export {IS_ACCEPTANCE_TEST, NODE_ENV} from './env';
 export const USE_TANSTACK_DEVTOOL = process.env.USE_TANSTACK_DEVTOOL;
-
-export const DEFAULT_ERROR_JSON = {
-  detail: t('Unknown error. Please try again.'),
-};

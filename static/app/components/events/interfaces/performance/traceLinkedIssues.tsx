@@ -41,7 +41,6 @@ export function TraceLinkedIssues({
       queryParams={queryParams}
       source={source}
       canSelectGroups={false}
-      withChart
       withColumns={['event', 'firstSeen', 'lastSeen']}
       withPagination={false}
       numPlaceholderRows={3}

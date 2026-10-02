@@ -57,9 +57,12 @@ class PullRequestStatusClientFake(PullRequestStatusClient):
         }
 
 
-def _root_cause_state(description):
+def _root_cause_state(description, headline=None):
     from sentry.seer.agent.client_models import Artifact, MemoryBlock, Message, SeerRunState
 
+    data = {"one_line_description": description}
+    if headline is not None:
+        data["headline"] = headline
     return SeerRunState(
         run_id=1,
         blocks=[
@@ -67,11 +70,7 @@ def _root_cause_state(description):
                 id="b",
                 message=Message(role="assistant", content="c"),
                 timestamp="2026-02-10T00:00:00Z",
-                artifacts=[
-                    Artifact(
-                        key="root_cause", data={"one_line_description": description}, reason="r"
-                    )
-                ],
+                artifacts=[Artifact(key="root_cause", data=data, reason="r")],
             )
         ],
         status="completed",
@@ -86,10 +85,10 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def _run_for_group(self, group, description):
+    def _run_for_group(self, group, description, headline=None):
         run = self.create_seer_run(organization=self.organization)
         self.create_seer_agent_run(run, source="autofix", group=group, project=group.project)
-        reconcile_milestones(run, _root_cause_state(description))
+        reconcile_milestones(run, _root_cause_state(description, headline))
         return run
 
     def _group_with_events(self, fingerprint, *, events, users=1, minutes_ago=1):
@@ -115,7 +114,15 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         assert len(runs) == 1
         assert runs[0]["shortId"] == group.qualified_short_id
         assert runs[0]["rootCause"]["oneLineDescription"] == "the boom"
+        assert runs[0]["rootCause"]["headline"] is None
         assert runs[0]["proposedFix"] is None
+
+    def test_root_cause_exposes_headline(self):
+        group = self.create_group()
+        self._run_for_group(group, "the boom", headline="Checkout crashes on empty cart")
+        resp = self.get_success_response(self.organization.slug)
+        runs = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE]
+        assert runs[0]["rootCause"]["headline"] == "Checkout crashes on empty cart"
 
     def _root_cause_short_ids(self, resp):
         return [r["shortId"] for r in resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE]]
@@ -197,6 +204,72 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         resp = self.get_success_response(self.organization.slug, qs_params={"sort": "events"})
 
         assert self._root_cause_short_ids(resp) == [high.qualified_short_id]
+
+    def test_sort_recommended_orders_by_fixability_boost(self):
+        plain = self._group_with_events("plain", events=1)
+        fixable = self._group_with_events("fixable", events=1)
+        fixable.update(seer_fixability_score=1.0)
+        self._run_for_group(plain, "plain")
+        self._run_for_group(fixable, "fixable")
+
+        with self.feature("organizations:issue-stream-recommended-sort-experimental"):
+            resp = self.get_success_response(
+                self.organization.slug, qs_params={"sort": "recommended"}
+            )
+
+        assert self._root_cause_short_ids(resp) == [
+            fixable.qualified_short_id,
+            plain.qualified_short_id,
+        ]
+
+    def test_sort_recommended_keeps_candidates_without_window_events_sorted_last(self):
+        # `stale` has no events inside the requested window, so it is absent from
+        # the scored search results and must be appended last rather than dropped.
+        stale = self._group_with_events("stale", events=1, minutes_ago=120)
+        active = self._group_with_events("active", events=1)
+        self._run_for_group(stale, "stale")
+        self._run_for_group(active, "active")
+
+        with self.feature("organizations:issue-stream-recommended-sort-experimental"):
+            resp = self.get_success_response(
+                self.organization.slug,
+                qs_params={"sort": "recommended", "statsPeriod": "1h"},
+            )
+
+        assert self._root_cause_short_ids(resp) == [
+            active.qualified_short_id,
+            stale.qualified_short_id,
+        ]
+
+    def test_sort_recommended_uses_v2_scorer_and_viewer_actor(self):
+        group = self._group_with_events("boom", events=1)
+        self._run_for_group(group, "boom")
+
+        with (
+            self.feature("organizations:issue-stream-recommended-sort-experimental"),
+            mock.patch(
+                "sentry.seer.endpoints.organization_seer_autofix_overview.search.backend.query",
+                wraps=search.backend.query,
+            ) as mock_query,
+        ):
+            self.get_success_response(self.organization.slug, qs_params={"sort": "recommended"})
+
+        assert mock_query.call_count == 1
+        assert mock_query.call_args.kwargs["sort_by"] == "recommended_v2"
+        assert mock_query.call_args.kwargs["actor"].id == self.user.id
+
+    def test_sort_recommended_without_experimental_flag_uses_v1_scorer(self):
+        group = self._group_with_events("boom", events=1)
+        self._run_for_group(group, "boom")
+
+        with mock.patch(
+            "sentry.seer.endpoints.organization_seer_autofix_overview.search.backend.query",
+            wraps=search.backend.query,
+        ) as mock_query:
+            self.get_success_response(self.organization.slug, qs_params={"sort": "recommended"})
+
+        assert mock_query.call_count == 1
+        assert mock_query.call_args.kwargs["sort_by"] == "recommended"
 
     def test_issue_sort_raises_paginator_cap_to_candidate_count(self):
         # Without the max_limit override the paginator silently caps at 100 and
@@ -629,6 +702,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
             "id": str(self.project.id),
             "slug": self.project.slug,
             "hasReposConnected": False,
+            "hasNonGithubRepo": False,
         }
 
     def test_project_config_includes_project_without_runs(self):

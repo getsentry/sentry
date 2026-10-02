@@ -17,11 +17,8 @@ import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
 import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
-// @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
-// @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import {rehypePlugins, remarkPlugins} from './build-utils/mdx-plugins.ts';
-// @ts-expect-error: ts(5097) importing `.ts` extension is required for resolution, but not enabled until `allowImportingTsExtensions` is added to tsconfig
 import {StoryManifestPlugin} from './build-utils/story-manifest.ts';
 import packageJson from './package.json' with {type: 'json'};
 
@@ -57,11 +54,6 @@ const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
 // features in the Sentry UI.
 // TanStack devtools are disabled by default, but can be enabled by setting the USE_TANSTACK_DEVTOOL env var to 'true'
 const USE_TANSTACK_DEVTOOL = !!env.USE_TANSTACK_DEVTOOL;
-// Sentry toolbar is enabled by default, but can be disabled by setting the DISABLE_SENTRY_TOOLBAR env var to 'true'
-const ENABLE_SENTRY_TOOLBAR =
-  env.ENABLE_SENTRY_TOOLBAR === undefined
-    ? true
-    : Boolean(JSON.parse(env.ENABLE_SENTRY_TOOLBAR));
 
 // Environment variables that are used by other tooling and should
 // not be user configurable.
@@ -198,7 +190,6 @@ const DEFINED_ENV_VARS = {
   'process.env.SPA_DSN': JSON.stringify(SENTRY_SPA_DSN),
   'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(SENTRY_RELEASE_VERSION),
   'process.env.USE_TANSTACK_DEVTOOL': JSON.stringify(USE_TANSTACK_DEVTOOL),
-  'process.env.ENABLE_SENTRY_TOOLBAR': JSON.stringify(ENABLE_SENTRY_TOOLBAR),
 };
 
 const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptions => ({
@@ -392,7 +383,7 @@ const appConfig: Configuration = {
         ],
       },
       {
-        test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpe?g|avif|mp4)$/,
+        test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpe?g|avif|webp|mp4)$/,
         type: 'asset',
       },
     ],
@@ -504,7 +495,18 @@ const appConfig: Configuration = {
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
 
-      '@sentry/scraps': path.join(staticPrefix, 'app', 'components', 'core'),
+      // Keep Prose available until the text barrel is fully isolated.
+      '@sentry/scraps/text$': path.join(
+        staticPrefix,
+        'app',
+        'components',
+        'core',
+        'text'
+      ),
+      '@sentry/scraps': [
+        path.join(staticPrefix, 'packages', 'scraps', 'src'),
+        path.join(staticPrefix, 'app', 'components', 'core'),
+      ],
 
       getsentry: path.join(staticPrefix, 'gsApp'),
       'getsentry-images': path.join(staticPrefix, 'images'),
@@ -540,6 +542,9 @@ const appConfig: Configuration = {
   },
   output: {
     crossOriginLoading: 'anonymous',
+    // 'continue' rather than the default 'stop': if the policy name is missing
+    // from the CSP allowlist, keep loading chunks instead of failing to boot.
+    trustedTypes: {policyName: 'sentry-bundler', onPolicyCreationFailure: 'continue'},
     // Clean the output dir before emit, but keep the service-worker assets
     // emitted by the separate `workerConfig` compiler below. Both compilers
     // write to this same `dist` path and run in parallel, so without `keep`
@@ -553,8 +558,8 @@ const appConfig: Configuration = {
     assetModuleFilename: 'assets/[name].[contenthash][ext]',
   },
   optimization: {
-    chunkIds: IS_PRODUCTION ? 'deterministic' : 'named',
-    moduleIds: IS_PRODUCTION ? 'deterministic' : 'named',
+    chunkIds: IS_PRODUCTION ? 'compact-hashed' : 'named',
+    moduleIds: IS_PRODUCTION ? 'compact-hashed' : 'named',
     splitChunks: {
       // Only affect async chunks, otherwise webpack could potentially split our initial chunks
       // Which means the app will not load because we'd need these additional chunks to be loaded in our
@@ -993,4 +998,28 @@ if (env.WEBPACK_CACHE_PATH) {
 }
 
 const configs = [appConfig, workerConfig];
+
+// Configure JSON stats explicitly; the CLI defaults to errors and warnings.
+// Keep module detail for bundle analysis without embedding source text.
+if (env.RSPACK_STATS) {
+  for (const config of configs) {
+    config.stats = {
+      all: false,
+      modules: true,
+      nestedModules: true,
+      source: false,
+      assets: true,
+      chunks: true,
+      chunkRelations: true,
+      chunkGroups: true,
+      entrypoints: true,
+      hash: true,
+      timings: true,
+      version: true,
+      errors: true,
+      warnings: true,
+    };
+  }
+}
+
 export default configs;

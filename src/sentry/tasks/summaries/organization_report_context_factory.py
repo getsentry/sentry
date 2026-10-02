@@ -313,8 +313,7 @@ class OrganizationReportContextFactory:
             self._append_user_project_ownership(ctx)
             self._append_project_event_counts(ctx)
             self._append_organization_project_issue_summaries(ctx)
-            if features.has("organizations:weekly-report-week-over-week-metric", self.organization):
-                self._append_previous_week_counts(ctx)
+            self._append_previous_week_counts(ctx)
 
             # Enhanced privacy flag hides issue titles, transaction names, and source details
             if not self.organization.flags.enhanced_privacy:

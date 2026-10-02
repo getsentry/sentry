@@ -5,9 +5,9 @@ describe('formatPercentage()', () => {
     expect(formatPercentage(0, 0)).toBe('0%');
     // eslint-disable-next-line unicorn/no-zero-fractions
     expect(formatPercentage(0.0, 0)).toBe('0%');
-    expect(formatPercentage(0, 2)).toBe('0%');
+    expect(formatPercentage(0)).toBe('0%');
     // eslint-disable-next-line unicorn/no-zero-fractions
-    expect(formatPercentage(0.0, 2)).toBe('0%');
+    expect(formatPercentage(0.0)).toBe('0%');
     expect(formatPercentage(0.10513434, 1)).toBe('10.5%');
     expect(formatPercentage(0.10513494, 3)).toBe('10.513%');
     expect(formatPercentage(0.10513494, 4)).toBe('10.5135%');
@@ -26,12 +26,5 @@ describe('formatPercentage()', () => {
     expect(formatPercentage(null)).toBe('0%');
     // @ts-expect-error we are testing invalid inputs
     expect(formatPercentage(undefined)).toBe('0%');
-  });
-
-  it('handles null and undefined inputs with a custom null value', () => {
-    // @ts-expect-error we are testing invalid inputs
-    expect(formatPercentage(null, 0, {nullValue: 'N/A'})).toBe('N/A');
-    // @ts-expect-error we are testing invalid inputs
-    expect(formatPercentage(undefined, 0, {nullValue: '-'})).toBe('-');
   });
 });

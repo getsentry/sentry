@@ -75,6 +75,7 @@ class EventsMeta(TypedDict):
     debug_info: NotRequired[dict[str, Any]]
     full_scan: NotRequired[bool]
     bytes_scanned: NotRequired[int | None]
+    routing_hint: NotRequired[str]
 
 
 class EventsResponse(TypedDict):

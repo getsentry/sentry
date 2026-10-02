@@ -91,7 +91,7 @@ class SsoRequired(SentryAPIException):
             query_params = {REDIRECT_FIELD_NAME: after_login_redirect}
             login_url = construct_link_with_query(path=login_url, query_params=query_params)
 
-        super().__init__(loginUrl=login_url)
+        super().__init__(loginUrl=login_url, organizationSlug=organization.slug)
 
 
 class MemberDisabledOverLimit(SentryAPIException):

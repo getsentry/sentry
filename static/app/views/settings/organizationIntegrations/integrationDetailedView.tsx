@@ -21,10 +21,15 @@ import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
-import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
+import type {
+  Integration,
+  IntegrationProvider,
+  OrganizationIntegration,
+} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getSlackUpgradeModalParams} from 'sentry/utils/integrations/slackUpgradeModalParams';
 import {
   openGithubPermissionsUpdateModal,
   useAutoOpenPermissionsModal,
@@ -69,6 +74,70 @@ const FirstPartyIntegrationAdditionalCTA = OverrideOrDefault({
   overrideName: 'component:first-party-integration-additional-cta',
   defaultComponent: () => null,
 });
+
+function IntegrationUpgradeButton({
+  onInstall,
+  onSelectConfigurations,
+  organization,
+  outdatedConfigurations,
+  provider,
+}: {
+  onInstall: (integration: Integration) => void;
+  onSelectConfigurations: () => void;
+  organization: Organization;
+  outdatedConfigurations: OrganizationIntegration[];
+  provider?: IntegrationProvider;
+}) {
+  if (!canManageIntegrations(organization)) {
+    return (
+      <Tooltip title={t('You must be an organization owner, manager or admin to update')}>
+        <Button size="xs" variant="primary" disabled>
+          {t('Update')}
+        </Button>
+      </Tooltip>
+    );
+  }
+
+  const [outdatedConfiguration] = outdatedConfigurations;
+
+  if (outdatedConfigurations.length !== 1 || !provider || !outdatedConfiguration) {
+    return (
+      <Button size="xs" variant="primary" onClick={onSelectConfigurations}>
+        {t('Update')}
+      </Button>
+    );
+  }
+
+  return provider.key === 'github' ? (
+    <Button
+      size="xs"
+      variant="primary"
+      onClick={() => openGithubPermissionsUpdateModal(outdatedConfiguration)}
+      data-test-id="integration-upgrade-button"
+    >
+      {t('Update now')}
+    </Button>
+  ) : (
+    <AddIntegrationButton
+      provider={provider}
+      organization={organization}
+      onAddIntegration={onInstall}
+      modalParams={
+        provider.key === 'slack'
+          ? getSlackUpgradeModalParams(outdatedConfiguration.missingFeatures)
+          : undefined
+      }
+      analyticsParams={{
+        view: 'integrations_directory_integration_detail',
+        already_installed: true,
+      }}
+      buttonText={t('Update now')}
+      variant="primary"
+      size="xs"
+      data-test-id="integration-upgrade-button"
+    />
+  );
+}
 
 const slackFeaturesSchema = z.object({
   issueAlertsThreadFlag: z.boolean(),
@@ -155,7 +224,7 @@ export default function IntegrationDetailedView() {
     isPending: isConfigurationsPending,
     isFetching: isConfigurationsFetching,
     isError: isConfigurationsError,
-  } = useApiQuery<Integration[]>(
+  } = useApiQuery<OrganizationIntegration[]>(
     makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
     {
       staleTime: 0,
@@ -286,10 +355,13 @@ export default function IntegrationDetailedView() {
   );
 
   const {mutate: onRemove} = useMutation({
-    mutationFn: (integration: Integration) =>
+    mutationFn: (integration: OrganizationIntegration) =>
       fetchMutation({
         method: 'DELETE',
-        url: `/organizations/${organization.slug}/integrations/${integration.id}/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
+          {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
+        ),
       }),
     onMutate: async integration => {
       const queryKey = makeIntegrationQueryKey({
@@ -299,12 +371,12 @@ export default function IntegrationDetailedView() {
       // Cancel in-flight refetches so they can't clobber the optimistic update.
       await queryClient.cancelQueries({queryKey});
 
-      const previousConfigurations = getApiQueryData<Integration[]>(
+      const previousConfigurations = getApiQueryData<OrganizationIntegration[]>(
         queryClient,
         queryKey
       );
 
-      setApiQueryData<Integration[]>(queryClient, queryKey, current =>
+      setApiQueryData<OrganizationIntegration[]>(queryClient, queryKey, current =>
         (current ?? []).map(config =>
           config.id === integration.id
             ? {
@@ -319,7 +391,7 @@ export default function IntegrationDetailedView() {
     },
     onError: (_error, _integration, context) => {
       if (context?.previousConfigurations) {
-        setApiQueryData<Integration[]>(
+        setApiQueryData<OrganizationIntegration[]>(
           queryClient,
           makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
           context.previousConfigurations
@@ -335,7 +407,7 @@ export default function IntegrationDetailedView() {
     },
   });
 
-  const onDisable = useCallback((integration: Integration) => {
+  const onDisable = useCallback((integration: OrganizationIntegration) => {
     let url: string;
 
     if (!integration.domainName) {
@@ -375,6 +447,8 @@ export default function IntegrationDetailedView() {
               provider,
               type: integrationType,
               installStatus: installationStatus,
+              // Auto-open must wait for fresh workspaces, not consume stale cache data.
+              configurations: isConfigurationsFetching ? undefined : configurations,
               analyticsParams: {
                 view: 'integrations_directory_integration_detail',
                 already_installed: installationStatus !== 'Not Installed',
@@ -409,6 +483,8 @@ export default function IntegrationDetailedView() {
       organization,
       integrationSlug,
       location.search,
+      configurations,
+      isConfigurationsFetching,
     ]
   );
 
@@ -552,59 +628,6 @@ export default function IntegrationDetailedView() {
     return <LoadingError message={t('There was an error loading this integration.')} />;
   }
 
-  const renderUpgradeButton = () => {
-    if (!canManageIntegrations(organization)) {
-      return (
-        <Tooltip
-          title={t('You must be an organization owner, manager or admin to update')}
-        >
-          <Button size="xs" variant="primary" disabled>
-            {t('Update')}
-          </Button>
-        </Tooltip>
-      );
-    }
-
-    const [outdatedConfiguration] = outdatedConfigurations;
-
-    if (outdatedConfigurations.length !== 1 || !provider || !outdatedConfiguration) {
-      return (
-        <Button
-          size="xs"
-          variant="primary"
-          onClick={() => setActiveTab('configurations')}
-        >
-          {t('Update')}
-        </Button>
-      );
-    }
-
-    return provider.key === 'github' ? (
-      <Button
-        size="xs"
-        variant="primary"
-        onClick={() => openGithubPermissionsUpdateModal(outdatedConfiguration)}
-        data-test-id="integration-upgrade-button"
-      >
-        {t('Update now')}
-      </Button>
-    ) : (
-      <AddIntegrationButton
-        provider={provider}
-        organization={organization}
-        onAddIntegration={onInstall}
-        analyticsParams={{
-          view: 'integrations_directory_integration_detail',
-          already_installed: true,
-        }}
-        buttonText={t('Update now')}
-        variant="primary"
-        size="xs"
-        data-test-id="integration-upgrade-button"
-      />
-    );
-  };
-
   return (
     <SentryDocumentTitle title={integrationName}>
       {navigationTabTitle}
@@ -640,7 +663,18 @@ export default function IntegrationDetailedView() {
               upgradeAlert={
                 alertText && (
                   <Alert.Container>
-                    <Alert variant="warning" trailingItems={renderUpgradeButton()}>
+                    <Alert
+                      variant="warning"
+                      trailingItems={
+                        <IntegrationUpgradeButton
+                          onInstall={onInstall}
+                          onSelectConfigurations={() => setActiveTab('configurations')}
+                          organization={organization}
+                          outdatedConfigurations={outdatedConfigurations}
+                          provider={provider}
+                        />
+                      }
+                    >
                       {alertText}
                     </Alert>
                   </Alert.Container>

@@ -109,11 +109,10 @@ class IssueDetailsPage(BasePage):
 
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def find_comment_form(self):
-        self.browser.wait_until_test_id("note-input-form")
-        return self.browser.find_element(
-            by=By.CSS_SELECTOR, value='[data-test-id="note-input-form"]'
-        )
+    def find_comment_editor(self):
+        selector = '[role="combobox"][aria-label="Add a comment"]'
+        self.browser.wait_until(selector)
+        return self.browser.find_element(by=By.CSS_SELECTOR, value=selector)
 
     def has_comment(self, text):
         element = self.browser.element('[data-test-id="activity-note-body"]')

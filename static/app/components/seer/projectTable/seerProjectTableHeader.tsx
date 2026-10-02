@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {useIsMutating, type UseMutationResult} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {InfoTip} from '@sentry/scraps/info';
@@ -10,21 +10,28 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
 import type {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {PreferredAgentDropdownMenu} from 'sentry/components/seer/preferredAgentDropdownMenu';
+import {PrIterationDropdownMenu} from 'sentry/components/seer/prIterationDropdownMenu';
 import {StoppingPointDropdownMenu} from 'sentry/components/seer/stoppingPointDropdownMenu';
+import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {ListItemSelectedState} from 'sentry/utils/list/listItemSelectedState';
 import {ListSelectAllCheckbox} from 'sentry/utils/list/listSelectAllCheckbox';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {useProjectsById} from 'sentry/utils/project/useProjectsById';
-import {knownAgentIntegrationsQueryOptions} from 'sentry/utils/seer/preferredAgent';
-import {getMutateSeerProjectsSettingsOptions} from 'sentry/utils/seer/seerProjectSettings';
+import {
+  getSeerProjectSettingsMutationKey,
+  type SeerBulkEditVariables,
+} from 'sentry/utils/seer/seerProjectSettings';
 import type {SeerProjectSettingResponse} from 'sentry/utils/seer/types';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface Props {
+  /**
+   * The bulk save, owned by the table so it can lock and refresh the rows.
+   */
+  bulkEdit: UseMutationResult<unknown, Error, SeerBulkEditVariables>;
   mutableSearch: MutableSearch;
   onSortClick: (key: Sort) => void;
   settings: SeerProjectSettingResponse[];
@@ -74,19 +81,38 @@ const COLUMNS = [
     key: 'automation_steps',
     sortKey: 'stoppingPoint',
   },
+  {
+    title: (
+      <Flex gap="sm" align="center">
+        {t('Auto-Iterate on PRs')}
+        <InfoTip
+          title={t(
+            'After opening a PR, Seer automatically pushes fixes when CI checks fail. You can still ask Seer to iterate on a PR yourself.'
+          )}
+        />
+      </Flex>
+    ),
+    key: 'pr_iteration',
+    sortKey: undefined,
+  },
 ];
 
-export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}: Props) {
-  const queryClient = useQueryClient();
+export function ProjectTableHeader({
+  bulkEdit,
+  mutableSearch,
+  onSortClick,
+  settings,
+  sort,
+}: Props) {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
 
   const listItemCheckboxState = useListItemCheckboxContext();
-  const {countSelected, endpointOptionsRef, selectAll, selectedIds} =
-    listItemCheckboxState;
-  const endpointOptions = endpointOptionsRef.current;
-  const rawQuery = endpointOptions?.query?.query;
-  const queryString = typeof rawQuery === 'string' ? rawQuery : undefined;
+  const {countSelected, selectAll, selectedIds} = listItemCheckboxState;
+  // The table always filters to projects with repos. Leave that filter out of
+  // the selection banner so it only shows the filters the user set.
+  const queryString =
+    mutableSearch.copy().removeFilter('reposCount').formatString() || undefined;
 
   const projectIds = useMemo(
     () =>
@@ -94,19 +120,19 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
     [settings, selectedIds]
   );
 
-  const projectsById = useProjectsById();
-  const {data: knownAgents} = useQuery(
-    knownAgentIntegrationsQueryOptions({organization})
-  );
+  // A bulk edit rebuilds every row control when it finishes. Wait for any
+  // single-row save to finish first, so a row isn't rebuilt in the middle of
+  // its own save.
+  const isRowSaving =
+    useIsMutating({
+      mutationKey: getSeerProjectSettingsMutationKey(organization.slug),
+    }) > 0;
 
-  const {mutate} = useMutation(
-    getMutateSeerProjectsSettingsOptions({
-      organization,
-      projectsById,
-      queryClient,
-      knownAgents,
-    })
-  );
+  const {mutate, isPending: isBulkSaving} = bulkEdit;
+
+  // Only one bulk edit runs at a time, so two can't race to be the last one
+  // the server saves.
+  const isDisabled = !canWrite || isRowSaving || isBulkSaving;
 
   return (
     <InfiniteTable.Head sticky>
@@ -122,18 +148,7 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
             <InfiniteTable.HeaderCell
               key={key}
               handleSortClick={
-                sortKey
-                  ? () =>
-                      onSortClick({
-                        field: sortKey,
-                        kind:
-                          sortKey === sort.field
-                            ? sort.kind === 'asc'
-                              ? 'desc'
-                              : 'asc'
-                            : 'desc',
-                      })
-                  : undefined
+                sortKey ? () => onSortClick(getNextSort(sortKey, sort)) : undefined
               }
               sort={sort?.field === sortKey ? sort.kind : undefined}
             >
@@ -153,7 +168,7 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
           </InfiniteTable.HeaderCell>
           <InfiniteTable.HeaderCellRemaining>
             <PreferredAgentDropdownMenu
-              isDisabled={!canWrite}
+              isDisabled={isDisabled}
               onChange={value => {
                 mutate(
                   {
@@ -170,20 +185,21 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
                           projectIds.length
                         )
                       ),
-                    onSuccess: () =>
+                    onSuccess: () => {
                       addSuccessMessage(
                         tn(
                           'Agent updated for %s project',
                           'Agent updated for %s projects',
                           projectIds.length
                         )
-                      ),
+                      );
+                    },
                   }
                 );
               }}
             />
             <StoppingPointDropdownMenu
-              isDisabled={!canWrite}
+              isDisabled={isDisabled}
               onChange={value => {
                 mutate(
                   {
@@ -200,14 +216,52 @@ export function ProjectTableHeader({mutableSearch, onSortClick, settings, sort}:
                           projectIds.length
                         )
                       ),
-                    onSuccess: () =>
+                    onSuccess: () => {
                       addSuccessMessage(
                         tn(
                           'Stopping point updated for %s project',
                           'Stopping point updated for %s projects',
                           projectIds.length
                         )
+                      );
+                    },
+                  }
+                );
+              }}
+            />
+            <PrIterationDropdownMenu
+              isDisabled={isDisabled}
+              onChange={prIteration => {
+                mutate(
+                  {
+                    query: mutableSearch.formatString(),
+                    selectedIds,
+                    prIteration,
+                  },
+                  {
+                    onError: () =>
+                      addErrorMessage(
+                        tn(
+                          'Failed to update PR iteration for %s project',
+                          'Failed to update PR iteration for %s projects',
+                          projectIds.length
+                        )
                       ),
+                    onSuccess: () => {
+                      addSuccessMessage(
+                        prIteration
+                          ? tn(
+                              'PR iteration enabled for %s project',
+                              'PR iteration enabled for %s projects',
+                              projectIds.length
+                            )
+                          : tn(
+                              'PR iteration disabled for %s project',
+                              'PR iteration disabled for %s projects',
+                              projectIds.length
+                            )
+                      );
+                    },
                   }
                 );
               }}

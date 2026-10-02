@@ -37,10 +37,9 @@ export function SharedGroupHeader({group}: Props) {
               {t('Last seen ')}
               <EventTimeLabel>
                 <Tooltip
-                  isHoverable
                   showUnderline
                   title={<EventCreatedTooltip event={event} />}
-                  overlayStyle={{maxWidth: 300}}
+                  maxWidth={300}
                 >
                   <DateTime date={date} />
                 </Tooltip>

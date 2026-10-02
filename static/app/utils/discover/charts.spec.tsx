@@ -1,5 +1,3 @@
-import type {LegendComponentOption} from 'echarts';
-
 import type {Series} from 'sentry/types/echarts';
 import {
   axisLabelFormatter,
@@ -303,34 +301,6 @@ describe('findRangeOfMultiSeries()', () => {
     ];
     expect(findRangeOfMultiSeries(noDataSeries)).toStrictEqual({max: 2300, min: 1900});
   });
-
-  it('should not find range if no items selected', () => {
-    const legend: LegendComponentOption = {
-      selected: {'p100()': false, 'p95()': false, 'p50()': false},
-    };
-    expect(findRangeOfMultiSeries(series, legend)).toBeUndefined();
-  });
-
-  it('should ignore p100 series if not selected', () => {
-    const legend: LegendComponentOption = {
-      selected: {'p100()': false},
-    };
-    expect(findRangeOfMultiSeries(series, legend)).toStrictEqual({max: 300, min: 50});
-  });
-
-  it('should ignore p50 series if not selected', () => {
-    const legend: LegendComponentOption = {
-      selected: {'p50()': false},
-    };
-    expect(findRangeOfMultiSeries(series, legend)).toStrictEqual({max: 2300, min: 280});
-  });
-
-  it('should display p100 value if selected and in legend object', () => {
-    const legend: LegendComponentOption = {
-      selected: {'p100()': true},
-    };
-    expect(findRangeOfMultiSeries(series, legend)).toStrictEqual({max: 2300, min: 50});
-  });
 });
 
 describe('getDurationUnit()', () => {
@@ -386,23 +356,5 @@ describe('getDurationUnit()', () => {
     const series = generateSeries([0, 0, 0]);
     const durationUnit = getDurationUnit(series);
     expect(durationUnit).toBe(MILLISECOND);
-  });
-
-  it('should convert values using dataUnit before categorizing', () => {
-    // Values [1, 2, 3, 4, 5] in days → range = 4 days = 345600000ms
-    // /5 = 69120000ms (~19.2hr) → categorizes tick interval as HOUR
-    const series = generateSeries([1, 2, 3, 4, 5]);
-    expect(getDurationUnit(series, undefined, DurationUnit.DAY)).toBe(HOUR);
-    // Without the unit, same values [1..5] are treated as ms → MILLISECOND
-    expect(getDurationUnit(series)).toBe(MILLISECOND);
-  });
-
-  it('should categorize correctly for hour-scale data with dataUnit', () => {
-    // Values [1, 2, 3, 4] in hours → range = 3hr = 10800000ms
-    // /5 = 2160000ms (~36min) → categorizes tick interval as MINUTE
-    const series = generateSeries([1, 2, 3, 4]);
-    expect(getDurationUnit(series, undefined, DurationUnit.HOUR)).toBe(MINUTE);
-    // Without the unit, same values [1..4] are treated as ms → MILLISECOND
-    expect(getDurationUnit(series)).toBe(MILLISECOND);
   });
 });

@@ -20,25 +20,25 @@ def _create_mocks():
     explicit_rates = {"t1": 0.1, "t2": 0.2}
     implicit_rate = 0.01
 
-    def get_transactions_resampling_rates(org_id, proj_id, default_rate):
-        if org_id == org.id and proj_id == proj.id:
+    def get_transaction_sample_rates(org_id, project_id, default_rate):
+        if org_id == org.id and project_id == proj.id:
             return explicit_rates, implicit_rate
         return {}, default_rate
 
-    return proj, get_transactions_resampling_rates, explicit_rates, implicit_rate
+    return proj, get_transaction_sample_rates, explicit_rates, implicit_rate
 
 
 @patch(
-    "sentry.dynamic_sampling.rules.biases.boost_low_volume_transactions_bias.get_transactions_resampling_rates"
+    "sentry.dynamic_sampling.rules.biases.boost_low_volume_transactions_bias.get_transaction_sample_rates"
 )
-def test_transaction_boost_known_projects(get_transactions_resampling_rates: MagicMock) -> None:
+def test_transaction_boost_known_projects(get_transaction_sample_rates: MagicMock) -> None:
     """
     Test that when there is information available about project transactions it
     generates rules for boosting low volume transactions
     """
     project, fake_get_trans_res_rates, explicit_rates, implicit_rate = _create_mocks()
     rate = 0.2
-    get_transactions_resampling_rates.side_effect = fake_get_trans_res_rates
+    get_transaction_sample_rates.side_effect = fake_get_trans_res_rates
 
     # the raw rates
     t1_rate = explicit_rates["t1"]
@@ -96,13 +96,17 @@ def test_transaction_boost_known_projects(get_transactions_resampling_rates: Mag
     assert rules == expected
 
 
-def test_transaction_boost_unknown_projects() -> None:
+@patch(
+    "sentry.dynamic_sampling.rules.biases.boost_low_volume_transactions_bias.get_transaction_sample_rates"
+)
+def test_transaction_boost_unknown_projects(get_transaction_sample_rates: MagicMock) -> None:
     """
     Tests that when there is no information available for the project transactions
     it returns an empty set of rules.
     """
-    project, fake_get_trans_res_rates, _explicit_rates, _implicit_rate = _create_mocks()
+    project, _fake_get_trans_res_rates, _explicit_rates, _implicit_rate = _create_mocks()
     rate = 0.2
+    get_transaction_sample_rates.return_value = ({}, rate)
 
     rules = BoostLowVolumeTransactionsBias().generate_rules(project=project, base_sample_rate=rate)
     assert rules == []

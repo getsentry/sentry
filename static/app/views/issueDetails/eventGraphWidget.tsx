@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {useFetchGroupAndEvent} from 'sentry/components/featureFlags/hooks/useFetchGroupAndEvent';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -7,8 +8,6 @@ import type {PageFilters} from 'sentry/types/core';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useParams} from 'sentry/utils/useParams';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
@@ -22,11 +21,10 @@ export default function EventGraphWidget({
   chartRef,
 }: LoadableChartWidgetProps) {
   const {groupId} = useParams();
-  const {[ReleasesDrawerFields.EVENT_ID]: eventId} = useLocationQuery({
-    fields: {
-      [ReleasesDrawerFields.EVENT_ID]: decodeScalar,
-    },
-  });
+  const [eventId] = useQueryState(
+    ReleasesDrawerFields.EVENT_ID,
+    parseAsString.withDefault('')
+  );
 
   const {
     event,

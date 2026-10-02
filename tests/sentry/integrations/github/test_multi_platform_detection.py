@@ -19,7 +19,6 @@ from sentry.integrations.github.multi_platform_detection import (
     _parse_package_manifest,
     _parse_pubspec_yaml,
     _rule_parent_dirs,
-    _segments_are_ignored,
     _select_active_platforms,
     detect_platforms_multi,
 )
@@ -65,7 +64,7 @@ def _mock_client(
     """Build a mock GitHub client for detect_platforms_multi.
 
     ``tree_paths`` are file paths (blobs). ``dirs`` are directory paths (trees).
-    ``contents`` maps full path -> file content string for /contents/ reads.
+    ``contents`` maps full path -> file content string for get_contents reads.
     """
     client = mock.MagicMock()
     client.get_languages.return_value = languages
@@ -79,12 +78,15 @@ def _mock_client(
     def get_side_effect(path: str, params: Any = None) -> Any:
         if "/git/trees/" in path:
             return {"tree": tree, "truncated": False}
-        for file_path, content in content_map.items():
-            if path.endswith(f"/contents/{file_path}"):
-                return _make_b64_response(content)
+        raise ApiError("Not Found", code=404)
+
+    def get_contents_side_effect(repo: str, path: str, ref: str | None = None) -> Any:
+        if path in content_map:
+            return _make_b64_response(content_map[path])
         raise ApiError("Not Found", code=404)
 
     client.get.side_effect = get_side_effect
+    client.get_contents.side_effect = get_contents_side_effect
     return client
 
 
@@ -460,13 +462,15 @@ def _make_client(
     def get_side_effect(path: str, params: dict | None = None) -> Any:
         if "/git/trees/" in path:
             return {"tree": tree, "truncated": truncated}
-        # contents endpoint: /repos/{owner/repo}/contents/{rel_path}
-        rel = path.split("/contents/", 1)[1]
-        if rel in contents:
-            return {"content": b64encode(contents[rel].encode()).decode()}
+        raise ApiError("Not Found", code=404)
+
+    def get_contents_side_effect(repo: str, path: str, ref: str | None = None) -> Any:
+        if path in contents:
+            return {"content": b64encode(contents[path].encode()).decode()}
         raise ApiError("Not Found", code=404)
 
     client.get.side_effect = get_side_effect
+    client.get_contents.side_effect = get_contents_side_effect
     return client
 
 
@@ -517,11 +521,7 @@ class TestDetectPlatformsMulti:
         )
         result = detect_platforms_multi(client, "owner/repo")
 
-        fetched = [
-            call.args[0].split("/contents/", 1)[1]
-            for call in client.get.call_args_list
-            if "/contents/" in call.args[0]
-        ]
+        fetched = [call.args[1] for call in client.get_contents.call_args_list]
         last_deep = f"packages/{deep_letters[-1]}/package.json"
         assert "package.json" in fetched
         assert last_deep not in fetched
@@ -556,7 +556,7 @@ class TestDetectPlatformsMulti:
         platforms = {p["platform"] for p in result["platforms"]}
         assert platforms == {"python"}
         # No /contents/ call should have been issued
-        contents_calls = [c for c in client.get.call_args_list if "/contents/" in c.args[0]]
+        contents_calls = client.get_contents.call_args_list
         assert contents_calls == []
 
     def test_existence_only_pass1_high_match_no_content_reads(self) -> None:
@@ -572,7 +572,7 @@ class TestDetectPlatformsMulti:
         platforms = {p["platform"]: p for p in result["platforms"]}
         assert "python-django" in platforms
         assert platforms["python-django"]["confidence"] == "high"
-        contents_calls = [c for c in client.get.call_args_list if "/contents/" in c.args[0]]
+        contents_calls = client.get_contents.call_args_list
         assert contents_calls == []
 
     def test_colocation_prevents_false_positive_end_to_end(self) -> None:
@@ -665,28 +665,6 @@ class TestSelectActivePlatforms:
         assert first_platform == "python"
 
 
-class TestSegmentsAreIgnored:
-    def test_node_modules_segment_ignored(self) -> None:
-        assert _segments_are_ignored(["node_modules", "react", "index.js"]) is True
-
-    def test_nested_ignored_segment(self) -> None:
-        assert _segments_are_ignored(["a", "b", "vendor", "c", "util.py"]) is True
-
-    def test_build_gradle_file_not_ignored(self) -> None:
-        # "build" is an ignored *directory* segment, but "build.gradle" as a
-        # single segment is not the bare string "build", so must NOT be ignored.
-        assert _segments_are_ignored(["build.gradle"]) is False
-
-    def test_clean_path_not_ignored(self) -> None:
-        assert _segments_are_ignored(["src", "app", "main.py"]) is False
-
-    def test_root_level_file_not_ignored(self) -> None:
-        assert _segments_are_ignored(["manage.py"]) is False
-
-    def test_dist_dir_ignored(self) -> None:
-        assert _segments_are_ignored(["dist", "bundle.js"]) is True
-
-
 class TestDetectPlatformsMultiConcurrency:
     def test_isolated_content_read_failure_does_not_abort_detection(self) -> None:
         """If one content read raises ApiError the other reads must still
@@ -704,12 +682,15 @@ class TestDetectPlatformsMultiConcurrency:
         def get_side_effect(path: str, params: dict | None = None) -> Any:
             if "/git/trees/" in path:
                 return {"tree": tree, "truncated": False}
-            rel = path.split("/contents/", 1)[1]
-            if rel == "requirements.txt":
+            raise ApiError("Not Found", code=404)
+
+        def get_contents_side_effect(repo: str, path: str, ref: str | None = None) -> Any:
+            if path == "requirements.txt":
                 return {"content": b64encode(b"Django==4.2\n").decode()}
             raise ApiError("Not Found", code=404)
 
         client.get.side_effect = get_side_effect
+        client.get_contents.side_effect = get_contents_side_effect
         # Must not raise; ApiError on a single file is swallowed by
         # _get_repo_file_content and should not abort the pool.
         result = detect_platforms_multi(client, "owner/repo")
@@ -883,7 +864,7 @@ class TestParseGemfile:
 class TestGetRepoFileContent:
     def test_returns_decoded_content(self) -> None:
         client = mock.MagicMock()
-        client.get.return_value = _make_b64_response("hello world")
+        client.get_contents.return_value = _make_b64_response("hello world")
 
         result = _get_repo_file_content(client, "owner/repo", "README.md")
 
@@ -891,33 +872,33 @@ class TestGetRepoFileContent:
 
     def test_returns_none_on_api_error(self) -> None:
         client = mock.MagicMock()
-        client.get.side_effect = ApiError("Not Found", code=404)
+        client.get_contents.side_effect = ApiError("Not Found", code=404)
 
         assert _get_repo_file_content(client, "owner/repo", "missing.txt") is None
 
     def test_returns_none_on_missing_content_key(self) -> None:
         client = mock.MagicMock()
-        client.get.return_value = {"name": "file.txt"}
+        client.get_contents.return_value = {"name": "file.txt"}
 
         assert _get_repo_file_content(client, "owner/repo", "file.txt") is None
 
     def test_returns_none_on_invalid_base64(self) -> None:
         client = mock.MagicMock()
-        client.get.return_value = {"content": "not-valid-base64!!!"}
+        client.get_contents.return_value = {"content": "not-valid-base64!!!"}
 
         assert _get_repo_file_content(client, "owner/repo", "file.txt") is None
 
     def test_returns_none_on_binary_content(self) -> None:
         client = mock.MagicMock()
         # Valid base64 but decodes to invalid UTF-8
-        client.get.return_value = {"content": b64encode(b"\x80\x81\x82").decode()}
+        client.get_contents.return_value = {"content": b64encode(b"\x80\x81\x82").decode()}
 
         assert _get_repo_file_content(client, "owner/repo", "binary.bin") is None
 
     def test_returns_none_on_directory_listing(self) -> None:
         client = mock.MagicMock()
         # GitHub returns a list (not a dict) when path is a directory
-        client.get.return_value = [{"name": "file.txt", "type": "file"}]
+        client.get_contents.return_value = [{"name": "file.txt", "type": "file"}]
 
         assert _get_repo_file_content(client, "owner/repo", "some-dir") is None
 
@@ -1489,7 +1470,21 @@ class TestDetectPlatformsMultiFrameworks:
         platforms = [r["platform"] for r in result]
         assert "node-cloudflare-workers" in platforms
 
-    def test_cloudflare_pages_supersedes_workers(self) -> None:
+    def test_cloudflare_detected_from_wrangler_jsonc(self) -> None:
+        client = _mock_client(
+            {"JavaScript": 50000},
+            tree_paths=["wrangler.jsonc", "package.json"],
+            contents={
+                "package.json": json.dumps({"dependencies": {}}),
+            },
+        )
+
+        result = detect_platforms_multi(client, "owner/repo")["platforms"]
+
+        platforms = [r["platform"] for r in result]
+        assert "node-cloudflare-workers" in platforms
+
+    def test_cloudflare_pages_repo_detects_the_merged_platform(self) -> None:
         client = _mock_client(
             {"JavaScript": 50000},
             tree_paths=["wrangler.toml", "package.json"],
@@ -1502,8 +1497,8 @@ class TestDetectPlatformsMultiFrameworks:
         result = detect_platforms_multi(client, "owner/repo")["platforms"]
 
         platforms = [r["platform"] for r in result]
-        assert "node-cloudflare-pages" in platforms
-        assert "node-cloudflare-workers" not in platforms
+        assert "node-cloudflare-workers" in platforms
+        assert "node-cloudflare-pages" not in platforms
 
     def test_azurefunctions_detected_from_host_json(self) -> None:
         host_json = '{"version": "2.0", "extensionBundle": {"id": "Microsoft.Azure.Functions.ExtensionBundle"}}'

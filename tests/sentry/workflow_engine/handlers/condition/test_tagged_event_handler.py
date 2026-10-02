@@ -110,6 +110,16 @@ class TestTaggedEventCondition(ConditionTestCase):
         )
         self.dc.save()
 
+        self.dc.comparison.update(
+            {
+                "match": MatchType.GREATER_OR_EQUAL,
+                "key": "LOGGER",
+                "value": "sentry.example",
+            }
+        )
+        with pytest.raises(ValidationError):
+            self.dc.save()
+
         self.dc.comparison.update({"hello": "world"})
         with pytest.raises(ValidationError):
             self.dc.save()

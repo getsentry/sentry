@@ -21,7 +21,7 @@ import ChartZoom from 'sentry/components/charts/chartZoom';
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import ReleaseSeries from 'sentry/components/charts/releaseSeries';
+import {useReleaseSeries} from 'sentry/components/charts/releaseSeries';
 import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {getInterval, RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
@@ -36,7 +36,6 @@ import {
   axisLabelFormatterUsingAggregateOutputType,
   tooltipFormatter,
 } from 'sentry/utils/discover/charts';
-import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 import type {AggregationOutputType} from 'sentry/utils/discover/fields';
 import {
   aggregateMultiPlotType,
@@ -61,7 +60,6 @@ type ChartProps = {
   previousSeriesNames: string[];
   reloading: boolean;
   stacked: boolean;
-  tableData: TableDataWithTitle[];
   theme: Theme;
   timeseriesData: Series[];
   yAxis: string;
@@ -247,7 +245,7 @@ function Chart({
             ? tooltipFormatter(value, timeseriesResultsTypes[aggregateName])
             : tooltipFormatter(value, aggregateOutputType(aggregateName));
         }
-        return tooltipFormatter(value, 'number');
+        return tooltipFormatter(value);
       },
     },
     xAxis: timeframe
@@ -300,7 +298,6 @@ const ThemedChart = memo(withTheme(Chart), (prevProps, nextProps) => {
     isEqual(prevProps.timeseriesData, nextProps.timeseriesData) &&
     isEqual(prevProps.releaseSeries, nextProps.releaseSeries) &&
     isEqual(prevProps.previousTimeseriesData, nextProps.previousTimeseriesData) &&
-    isEqual(prevProps.tableData, nextProps.tableData) &&
     isEqual(prevProps.additionalSeries, nextProps.additionalSeries)
   ) {
     return true;
@@ -429,21 +426,6 @@ export type EventsChartProps = {
   | 'fromDiscover'
 >;
 
-type ChartDataProps = {
-  errored: boolean;
-  loading: boolean;
-  reloading: boolean;
-  zoomRenderProps: ZoomRenderProps;
-  previousTimeseriesData?: Series[] | null;
-  releaseSeries?: Series[];
-  results?: Series[];
-  tableData?: TableDataWithTitle[];
-  timeframe?: {end: number; start: number};
-  timeseriesData?: Series[];
-  timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-  topEvents?: number;
-};
-
 export function EventsChart(props: EventsChartProps) {
   const {
     api,
@@ -511,90 +493,18 @@ export function EventsChart(props: EventsChartProps) {
 
   const intervalVal = showDaily ? '1d' : interval || getInterval(props, 'high');
 
-  let chartImplementation = ({
-    zoomRenderProps,
-    releaseSeries,
-    errored,
-    loading,
-    reloading,
-    results,
-    timeseriesData,
-    previousTimeseriesData,
-    timeframe,
-    tableData,
-    timeseriesResultsTypes,
-  }: ChartDataProps) => {
-    if (errored) {
-      return (
-        <ErrorPanel>
-          <IconWarning variant="muted" size="lg" />
-        </ErrorPanel>
-      );
-    }
-    const seriesData = results ? results : timeseriesData;
-
-    return (
-      <TransitionChart
-        loading={loading}
-        reloading={reloading || !!reloadingAdditionalSeries}
-        height={height ? `${height}px` : undefined}
-      >
-        <TransparentLoadingMask visible={reloading || !!reloadingAdditionalSeries} />
-
-        {isValidElement(chartHeader) && chartHeader}
-
-        <ThemedChart
-          forceChartType={forceChartType}
-          zoomRenderProps={zoomRenderProps}
-          loading={loading || !!loadingAdditionalSeries}
-          reloading={reloading || !!reloadingAdditionalSeries}
-          showLegend={showLegend}
-          minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
-          releaseSeries={releaseSeries || []}
-          timeseriesData={seriesData ?? []}
-          previousTimeseriesData={previousTimeseriesData}
-          currentSeriesNames={currentSeriesNames}
-          previousSeriesNames={previousSeriesNames}
-          seriesTransformer={seriesTransformer}
-          additionalSeries={additionalSeries}
-          previousSeriesTransformer={previousSeriesTransformer}
-          stacked={isStacked}
-          yAxis={yAxisArray[0]!}
-          showDaily={showDaily}
-          colors={colors}
-          legendOptions={legendOptions}
-          chartOptions={chartOptions}
-          disableableSeries={disableableSeries}
-          chartComponent={chartComponent}
-          height={height}
-          timeframe={timeframe}
-          topEvents={topEvents}
-          tableData={tableData ?? []}
-          fromDiscover={fromDiscover}
-          timeseriesResultsTypes={timeseriesResultsTypes}
-        />
-      </TransitionChart>
-    );
-  };
-
-  if (!disableReleases) {
-    const previousChart = chartImplementation;
-    chartImplementation = chartProps => (
-      <ReleaseSeries
-        utc={utc}
-        period={period}
-        start={start}
-        end={end}
-        projects={projects}
-        environments={environments}
-        emphasizeReleases={emphasizeReleases}
-        preserveQueryParams={preserveReleaseQueryParams}
-        queryExtra={releaseQueryExtra}
-      >
-        {({releaseSeries}) => previousChart({...chartProps, releaseSeries})}
-      </ReleaseSeries>
-    );
-  }
+  const {releaseSeries} = useReleaseSeries({
+    utc,
+    period,
+    start,
+    end,
+    projects,
+    environments,
+    emphasizeReleases,
+    preserveQueryParams: preserveReleaseQueryParams,
+    queryExtra: releaseQueryExtra,
+    enabled: !disableReleases,
+  });
 
   return (
     <ChartZoom
@@ -630,10 +540,70 @@ export function EventsChart(props: EventsChartProps) {
             dataset={dataset}
           >
             {eventData => {
-              return chartImplementation({
-                ...eventData,
-                zoomRenderProps,
-              });
+              const {
+                errored,
+                loading,
+                reloading,
+                results,
+                timeseriesData,
+                previousTimeseriesData,
+                timeframe,
+                timeseriesResultsTypes,
+              } = eventData;
+
+              if (errored) {
+                return (
+                  <ErrorPanel>
+                    <IconWarning variant="muted" size="lg" />
+                  </ErrorPanel>
+                );
+              }
+
+              const seriesData = results ?? timeseriesData;
+
+              return (
+                <TransitionChart
+                  loading={loading}
+                  reloading={reloading || !!reloadingAdditionalSeries}
+                  height={height ? `${height}px` : undefined}
+                >
+                  <TransparentLoadingMask
+                    visible={reloading || !!reloadingAdditionalSeries}
+                  />
+
+                  {isValidElement(chartHeader) && chartHeader}
+
+                  <ThemedChart
+                    forceChartType={forceChartType}
+                    zoomRenderProps={zoomRenderProps}
+                    loading={loading || !!loadingAdditionalSeries}
+                    reloading={reloading || !!reloadingAdditionalSeries}
+                    showLegend={showLegend}
+                    minutesThresholdToDisplaySeconds={minutesThresholdToDisplaySeconds}
+                    releaseSeries={releaseSeries}
+                    timeseriesData={seriesData ?? []}
+                    previousTimeseriesData={previousTimeseriesData}
+                    currentSeriesNames={currentSeriesNames}
+                    previousSeriesNames={previousSeriesNames}
+                    seriesTransformer={seriesTransformer}
+                    additionalSeries={additionalSeries}
+                    previousSeriesTransformer={previousSeriesTransformer}
+                    stacked={isStacked}
+                    yAxis={yAxisArray[0]!}
+                    showDaily={showDaily}
+                    colors={colors}
+                    legendOptions={legendOptions}
+                    chartOptions={chartOptions}
+                    disableableSeries={disableableSeries}
+                    chartComponent={chartComponent}
+                    height={height}
+                    timeframe={timeframe}
+                    topEvents={topEvents}
+                    fromDiscover={fromDiscover}
+                    timeseriesResultsTypes={timeseriesResultsTypes}
+                  />
+                </TransitionChart>
+              );
             }}
           </EventsRequest>
         );

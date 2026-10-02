@@ -162,16 +162,12 @@ Generally, the default tooltip should suffice, but if your special feature requi
 The `AlertBadge` component displays an indicator for all Alert types that Sentry supports.
 
 - For metric alerts, set the `status` prop to the `IncidentStatus` enum (from `sentry/views/alerts/types`).
-- For issue alerts, set the `isIssue` prop. `isIssue` overrides the `status`.
-- For alerts that are disabled/paused, set the `isDisabled` prop. `isDisabled` overrides the `status`.
 
 <Storybook.Demo>
   <AlertBadge status={IncidentStatus.OPENED} />
   <AlertBadge status={IncidentStatus.CLOSED} />
   <AlertBadge status={IncidentStatus.WARNING} />
   <AlertBadge status={IncidentStatus.CRITICAL} />
-  <AlertBadge isIssue />
-  <AlertBadge isDisabled />
 </Storybook.Demo>
 ```jsx import {AlertBadge} from '@sentry/scraps/badge';
 
@@ -179,29 +175,6 @@ The `AlertBadge` component displays an indicator for all Alert types that Sentry
 <AlertBadge status={IncidentStatus.CLOSED} />
 <AlertBadge status={IncidentStatus.WARNING} />
 <AlertBadge status={IncidentStatus.CRITICAL} />
-<AlertBadge isIssue />
-<AlertBadge isDisabled />
-```
-
-### Labels
-
-The `withText` prop displays a label for each status.
-
-<Storybook.Demo>
-  <AlertBadge withText status={IncidentStatus.OPENED} />
-  <AlertBadge withText status={IncidentStatus.CLOSED} />
-  <AlertBadge withText status={IncidentStatus.WARNING} />
-  <AlertBadge withText status={IncidentStatus.CRITICAL} />
-  <AlertBadge withText isIssue />
-  <AlertBadge withText isDisabled />
-</Storybook.Demo>
-```jsx
-<AlertBadge withText status={IncidentStatus.OPENED} />
-<AlertBadge withText status={IncidentStatus.CLOSED} />
-<AlertBadge withText status={IncidentStatus.WARNING} />
-<AlertBadge withText status={IncidentStatus.CRITICAL} />
-<AlertBadge withText isIssue />
-<AlertBadge withText isDisabled />
 ```
 
 ## DeployBadge

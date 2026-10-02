@@ -1,19 +1,34 @@
+import {focusManager} from '@tanstack/react-query';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DiffFileType, DiffLineType} from 'sentry/components/events/autofix/types';
 import type {
   AutofixSection,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
+import {AutofixChatProvider} from 'sentry/components/seer/autofixChatContext';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ExplorerFilePatch} from 'sentry/views/seerExplorer/types';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
 import {SeerDrawerNextStep} from './nextStep';
 
 jest.mock('sentry/utils/analytics');
+jest.mock('sentry/views/seerExplorer/useSeerExplorerContext', () => ({
+  ...jest.requireActual('sentry/views/seerExplorer/useSeerExplorerContext'),
+  useSeerExplorerContext: jest.fn(),
+}));
+
+// The agent is only reachable when the Explorer is, so code mode needs the
+// Explorer's own prerequisites on top of its flag.
+const codeModeOrganization = OrganizationFixture({
+  features: ['seer-explorer-code-mode-tools', 'seer-explorer'],
+  openMembership: true,
+  hideAiFeatures: false,
+});
 
 function makeAutofix(
   overrides: Partial<ReturnType<typeof useExplorerAutofix>> = {}
@@ -106,6 +121,135 @@ function makeSection(
 }
 
 describe('SeerDrawerNextStep', () => {
+  const openChatPrompt = jest.fn();
+
+  beforeEach(() => {
+    openChatPrompt.mockClear();
+    jest.mocked(useSeerExplorerContext).mockReturnValue({
+      closeSeerExplorer: jest.fn(),
+      isOpen: false,
+      openChatPrompt,
+      openSeerExplorer: jest.fn(),
+      sessionState: 'inactive',
+      sidebarContainerRef: {current: null},
+      setSidebarPosition: jest.fn(),
+      sidebarAppendInitialQuery: false,
+      sidebarInitialQuery: undefined,
+      sidebarKey: 0,
+      sidebarPosition: 'auto',
+      toggleSeerExplorer: jest.fn(),
+      unreadCount: 0,
+    });
+  });
+
+  describe('on the Autofix page', () => {
+    const autofixPageOrganization = OrganizationFixture({
+      features: ['autofix-page', 'seer-explorer-chat-prompts', 'seer-explorer'],
+      openMembership: true,
+      hideAiFeatures: false,
+    });
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        body: {integrations: []},
+      });
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/seer/repos/',
+        body: [{provider: 'github'}],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/1/autofix/repos/',
+        body: {repos: [{has_write_access: true}]},
+      });
+    });
+
+    it.each([
+      ['root_cause', 'How can this root cause be improved?'],
+      ['solution', 'How can this plan be improved?'],
+      ['code_changes', 'How can this code change be improved?'],
+    ])(
+      'asks for changes to %s in Seer Agent instead of the textarea',
+      async (step, question) => {
+        const autofix = makeAutofix();
+        render(
+          <SeerDrawerNextStep
+            group={GroupFixture()}
+            sections={[makeSection(step)]}
+            autofix={autofix}
+          />,
+          {organization: autofixPageOrganization}
+        );
+
+        await userEvent.click(await screen.findByRole('button', {name: 'No'}));
+
+        expect(openChatPrompt).toHaveBeenCalledWith({
+          prompt: question,
+          context: {autofixStep: step},
+        });
+        expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+        expect(autofix.startStep).not.toHaveBeenCalled();
+      }
+    );
+
+    it('asks through the rethink chat from Ask Seer in code mode', async () => {
+      const autofix = makeAutofix();
+      const sendMessage = jest.fn();
+      render(
+        <AutofixChatProvider sendMessage={sendMessage}>
+          <SeerDrawerNextStep
+            group={GroupFixture()}
+            sections={[makeSection('root_cause')]}
+            autofix={autofix}
+          />
+        </AutofixChatProvider>,
+        {
+          organization: OrganizationFixture({
+            features: [
+              'autofix-page',
+              'seer-explorer-chat-prompts',
+              'seer-explorer-code-mode-tools',
+              'seer-explorer',
+            ],
+            openMembership: true,
+            hideAiFeatures: false,
+          }),
+        }
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Ask Seer'}));
+
+      expect(openChatPrompt).toHaveBeenCalledWith({
+        prompt: 'How can this root cause be improved?',
+        context: {autofixStep: 'root_cause'},
+      });
+      expect(sendMessage).not.toHaveBeenCalled();
+      expect(autofix.startStep).not.toHaveBeenCalled();
+    });
+
+    it('keeps the textarea without chat prompts', async () => {
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('root_cause')]}
+          autofix={makeAutofix()}
+        />,
+        {
+          organization: OrganizationFixture({
+            features: ['autofix-page', 'seer-explorer'],
+            openMembership: true,
+            hideAiFeatures: false,
+          }),
+        }
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'No'}));
+
+      expect(openChatPrompt).not.toHaveBeenCalled();
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+    });
+  });
+
   it('returns null when no runId', () => {
     const autofix = makeAutofix({runState: null});
     const {container} = render(
@@ -182,6 +326,68 @@ describe('SeerDrawerNextStep', () => {
       expect(screen.getByText('Are you happy with this root cause?')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'No'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeInTheDocument();
+    });
+
+    describe('code mode', () => {
+      function renderCodeMode(
+        autofix: ReturnType<typeof makeAutofix>,
+        sendMessage: undefined | ((query: string) => void)
+      ) {
+        return render(
+          <AutofixChatProvider sendMessage={sendMessage}>
+            <SeerDrawerNextStep
+              group={GroupFixture()}
+              sections={[makeSection('root_cause')]}
+              autofix={autofix}
+            />
+          </AutofixChatProvider>,
+          {organization: codeModeOrganization}
+        );
+      }
+
+      it('relabels no as Ask Seer and hands the rethink to the agent', async () => {
+        const autofix = makeAutofix();
+        const sendMessage = jest.fn();
+        renderCodeMode(autofix, sendMessage);
+
+        expect(screen.queryByRole('button', {name: 'No'})).not.toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', {name: 'Ask Seer'}));
+
+        expect(sendMessage).toHaveBeenCalledWith('Rethink root cause');
+
+        // The agent takes the question, so no further Autofix step is started
+        // and the context textarea never appears.
+        expect(autofix.startStep).not.toHaveBeenCalled();
+        expect(
+          screen.queryByPlaceholderText(
+            'Give seer additional context to improve this root cause.'
+          )
+        ).not.toBeInTheDocument();
+      });
+
+      it('still starts the next step on yes', async () => {
+        const autofix = makeAutofix();
+        const sendMessage = jest.fn();
+        renderCodeMode(autofix, sendMessage);
+
+        await userEvent.click(screen.getByRole('button', {name: 'Yes, make a plan'}));
+
+        expect(autofix.startStep).toHaveBeenCalledWith('solution', {runId: 1});
+        expect(sendMessage).not.toHaveBeenCalled();
+      });
+
+      it('keeps the ordinary buttons when no chat is reachable', async () => {
+        const autofix = makeAutofix();
+        renderCodeMode(autofix, undefined);
+
+        // Offering "Ask Seer" with nowhere to ask would strand the reader on a
+        // step they can neither advance nor redo.
+        expect(screen.queryByRole('button', {name: 'Ask Seer'})).not.toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'No'})).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', {name: 'Yes, make a plan'}));
+        expect(autofix.startStep).toHaveBeenCalledWith('solution', {runId: 1});
+      });
     });
 
     it('calls startStep with solution on yes click', async () => {
@@ -341,7 +547,7 @@ describe('SeerDrawerNextStep', () => {
       const dropdownButton = await screen.findByRole('button', {
         name: 'More code fix options',
       });
-      expect(dropdownButton).toBeDisabled();
+      expect(dropdownButton).toHaveAttribute('aria-disabled', 'true');
       await userEvent.hover(dropdownButton);
       expect(
         await screen.findByText(/requires a connected GitHub repository/)
@@ -374,7 +580,7 @@ describe('SeerDrawerNextStep', () => {
       const dropdownButton = await screen.findByRole('button', {
         name: 'More code fix options',
       });
-      expect(dropdownButton).toBeDisabled();
+      expect(dropdownButton).toHaveAttribute('aria-disabled', 'true');
       await userEvent.hover(dropdownButton);
       expect(
         await screen.findByText(
@@ -538,11 +744,52 @@ describe('SeerDrawerNextStep', () => {
   });
 
   describe('CodeChangesNextStep', () => {
+    const reposUrl = '/organizations/org-slug/issues/1/autofix/repos/';
+
+    function addRepoPermissionsResponse(
+      writeAccess: boolean | boolean[],
+      asyncDelay?: Promise<unknown>
+    ) {
+      const writeAccessByRepo = Array.isArray(writeAccess) ? writeAccess : [writeAccess];
+
+      return MockApiClient.addMockResponse({
+        url: reposUrl,
+        body: {
+          repos: writeAccessByRepo.map(hasWriteAccess => ({
+            has_write_access: hasWriteAccess,
+            has_read_access: true,
+            integration_id: 123,
+          })),
+        },
+        asyncDelay,
+      });
+    }
+
+    function addGithubIntegrationResponse({
+      providerKey = 'github',
+      providerName = 'GitHub',
+    } = {}) {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/123/',
+        body: {
+          id: '123',
+          externalId: '456',
+          accountType: 'Organization',
+          domainName: 'github.com/test-org',
+          provider: {key: providerKey, name: providerName},
+        },
+      });
+    }
+
     beforeEach(() => {
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/issues/1/autofix/repos/',
+        url: reposUrl,
         body: {repos: [{has_write_access: true}]},
       });
+    });
+
+    afterEach(() => {
+      focusManager.setFocused(undefined);
     });
 
     it('returns null when section has no artifacts', () => {
@@ -584,6 +831,244 @@ describe('SeerDrawerNextStep', () => {
       );
       await userEvent.click(await screen.findByRole('button', {name: 'Yes, draft a PR'}));
       expect(autofix.createPR).toHaveBeenCalledWith(1);
+    });
+
+    it('keeps the write-access gate in code mode', async () => {
+      addRepoPermissionsResponse(false);
+      addGithubIntegrationResponse();
+      const autofix = makeAutofix();
+      const sendMessage = jest.fn();
+
+      // "Yes" opens a pull request in code mode too, so missing write access
+      // still needs the permissions check in front of it.
+      render(
+        <AutofixChatProvider sendMessage={sendMessage}>
+          <SeerDrawerNextStep
+            group={GroupFixture()}
+            sections={[makeSection('code_changes')]}
+            autofix={autofix}
+          />
+        </AutofixChatProvider>,
+        {organization: codeModeOrganization}
+      );
+
+      expect(
+        await screen.findByRole('button', {name: 'Yes, view GitHub permissions'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Yes, draft a PR'})
+      ).not.toBeInTheDocument();
+      expect(autofix.createPR).not.toHaveBeenCalled();
+      expect(sendMessage).not.toHaveBeenCalled();
+    });
+
+    it('checks provider permissions on refocus and proceeds when access is granted', async () => {
+      addRepoPermissionsResponse(false);
+      addGithubIntegrationResponse({
+        providerKey: 'github_enterprise',
+        providerName: 'GitHub Enterprise',
+      });
+      const autofix = makeAutofix();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('code_changes')]}
+          autofix={autofix}
+        />
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {
+          name: 'Yes, view GitHub Enterprise permissions',
+        })
+      );
+      act(() => focusManager.setFocused(false));
+
+      let resolvePermissionsRequest!: () => void;
+      const permissionsRequestDelay = new Promise<void>(resolve => {
+        resolvePermissionsRequest = resolve;
+      });
+      const permissionsRequest = addRepoPermissionsResponse(
+        true,
+        permissionsRequestDelay
+      );
+
+      act(() => focusManager.setFocused(true));
+
+      const checkingButton = screen.getByRole('button', {
+        name: 'Checking GitHub Enterprise permissions',
+      });
+      expect(checkingButton).toHaveAttribute('aria-busy', 'true');
+      expect(permissionsRequest).toHaveBeenCalledTimes(1);
+
+      resolvePermissionsRequest();
+
+      expect(
+        await screen.findByRole('button', {name: 'Yes, draft a PR'})
+      ).toBeInTheDocument();
+    });
+
+    it('offers a retry when the permission check fails', async () => {
+      addRepoPermissionsResponse(false);
+      addGithubIntegrationResponse();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('code_changes')]}
+          autofix={makeAutofix()}
+        />
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Yes, view GitHub permissions'})
+      );
+      act(() => focusManager.setFocused(false));
+      const permissionsRequest = MockApiClient.addMockResponse({
+        url: reposUrl,
+        statusCode: 500,
+        body: {detail: 'Internal Error'},
+      });
+
+      act(() => focusManager.setFocused(true));
+
+      await waitFor(() => expect(permissionsRequest).toHaveBeenCalledTimes(1));
+      expect(
+        await screen.findByRole('button', {name: 'Check access again'})
+      ).toBeInTheDocument();
+    });
+
+    it('requires write access to every repository in the integration', async () => {
+      addRepoPermissionsResponse([false, false]);
+      addGithubIntegrationResponse();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('code_changes')]}
+          autofix={makeAutofix()}
+        />
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Yes, view GitHub permissions'})
+      );
+      act(() => focusManager.setFocused(false));
+      const permissionsRequest = addRepoPermissionsResponse([true, false]);
+
+      act(() => focusManager.setFocused(true));
+
+      await waitFor(() => expect(permissionsRequest).toHaveBeenCalledTimes(1));
+      expect(
+        await screen.findByRole('button', {name: 'Check access again'})
+      ).toBeInTheDocument();
+    });
+
+    it('cancels the pending permission check when switching to feedback', async () => {
+      addRepoPermissionsResponse(false);
+      addGithubIntegrationResponse();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('code_changes')]}
+          autofix={makeAutofix()}
+        />
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Yes, view GitHub permissions'})
+      );
+      const permissionsRequest = addRepoPermissionsResponse(true);
+      act(() => focusManager.setFocused(true));
+      expect(permissionsRequest).not.toHaveBeenCalled();
+
+      await userEvent.click(screen.getByRole('button', {name: 'No'}));
+      await userEvent.type(screen.getByRole('textbox'), 'Keep this feedback');
+
+      act(() => focusManager.setFocused(false));
+      act(() => focusManager.setFocused(true));
+
+      expect(permissionsRequest).not.toHaveBeenCalled();
+      expect(screen.getByRole('textbox')).toHaveValue('Keep this feedback');
+    });
+
+    it('preserves feedback when write access is granted', async () => {
+      addRepoPermissionsResponse(false);
+      addGithubIntegrationResponse();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('code_changes')]}
+          autofix={makeAutofix()}
+        />
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'No'}));
+      await userEvent.type(screen.getByRole('textbox'), 'Keep this feedback');
+      await userEvent.click(
+        screen.getByRole('button', {name: 'View GitHub permissions'})
+      );
+      act(() => focusManager.setFocused(false));
+      const permissionsRequest = addRepoPermissionsResponse(true);
+
+      act(() => focusManager.setFocused(true));
+
+      await waitFor(() => expect(permissionsRequest).toHaveBeenCalledTimes(1));
+      expect(
+        await screen.findByRole('button', {name: 'Nevermind, draft a PR'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('textbox')).toHaveValue('Keep this feedback');
+    });
+
+    it('rechecks after revisiting permissions and supports a manual retry', async () => {
+      addRepoPermissionsResponse(false);
+      addGithubIntegrationResponse();
+      const autofix = makeAutofix();
+      render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('code_changes')]}
+          autofix={autofix}
+        />
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Yes, view GitHub permissions'})
+      );
+      act(() => focusManager.setFocused(false));
+      const refocusRequest = addRepoPermissionsResponse(false);
+
+      act(() => focusManager.setFocused(true));
+      await waitFor(() => expect(refocusRequest).toHaveBeenCalledTimes(1));
+      expect(
+        await screen.findByRole('button', {name: 'Check access again'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', {name: 'View GitHub permissions'})
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Yes, view GitHub permissions'})
+      ).not.toBeInTheDocument();
+
+      act(() => {
+        focusManager.setFocused(false);
+        focusManager.setFocused(true);
+      });
+      expect(refocusRequest).toHaveBeenCalledTimes(1);
+
+      const retryLinkRequest = addRepoPermissionsResponse(false);
+      await userEvent.click(screen.getByRole('link', {name: 'View GitHub permissions'}));
+      act(() => focusManager.setFocused(false));
+      act(() => focusManager.setFocused(true));
+      await waitFor(() => expect(retryLinkRequest).toHaveBeenCalledTimes(1));
+
+      const retryRequest = addRepoPermissionsResponse(true);
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Check access again'})
+      );
+
+      expect(retryRequest).toHaveBeenCalledTimes(1);
+      expect(
+        await screen.findByRole('button', {name: 'Yes, draft a PR'})
+      ).toBeInTheDocument();
     });
 
     it('shows feedback UI on no click', async () => {
@@ -677,6 +1162,39 @@ describe('SeerDrawerNextStep', () => {
 
     beforeEach(() => {
       jest.mocked(trackAnalytics).mockClear();
+    });
+
+    it('does not show a next step when PR creation failed', () => {
+      const autofix = makePrIterationAutofix({
+        runState: {
+          run_id: 1,
+          blocks: [],
+          status: 'completed',
+          updated_at: '2026-01-01T00:00:00Z',
+          repo_pr_states: {
+            'org/repo': {
+              repo_name: 'org/repo',
+              branch_name: null,
+              commit_sha: null,
+              pr_creation_error: 'Failed to create pull request',
+              pr_creation_status: 'error',
+              pr_id: null,
+              pr_number: null,
+              pr_url: null,
+              title: null,
+            },
+          },
+        } as any,
+      });
+      const {container} = render(
+        <SeerDrawerNextStep
+          group={GroupFixture()}
+          sections={[makeSection('code_changes'), makeSection('pull_request')]}
+          autofix={autofix}
+        />,
+        {organization: prIterationOrganization}
+      );
+      expect(container).toBeEmptyDOMElement();
     });
 
     it('returns null when the run is not valid for PR iteration', () => {

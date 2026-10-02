@@ -2,12 +2,13 @@ import logging
 import re
 
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
+from drf_spectacular.utils import extend_schema_field
 from jsonschema.exceptions import ValidationError as SchemaValidationError
 from rest_framework import serializers
 from rest_framework.serializers import Serializer, ValidationError
 
 from sentry.api.serializers.rest_framework.base import camel_to_snake_case
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import build_typed_list
 from sentry.integrations.models.integration_feature import Feature
 from sentry.models.apiscopes import ApiScopes
@@ -103,7 +104,13 @@ class URLField(serializers.URLField):
         return url
 
 
-@extend_schema_serializer(exclude_fields=["popularity", "features", "status", "isDisabled"])
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "popularity": "Internal ranking value used to order integrations in the directory.",
+        "isDisabled": "Set by Sentry when an integration is disabled; not client-settable.",
+        "status": "Only applied for elevated Sentry staff; ignored for everyone else.",
+    }
+)
 class SentryAppParser(Serializer):
     name = serializers.CharField(help_text="The name of the custom integration.")
     author = serializers.CharField(
@@ -246,11 +253,21 @@ class SentryAppParser(Serializer):
             # Reject CR/LF to prevent header injection / request splitting.
             if "\n" in header or "\r" in header:
                 raise ValidationError("Webhook headers cannot contain newlines.")
-            name, separator, _header_value = header.partition(":")
+            name, separator, header_value = header.partition(":")
             name = name.strip()
+            header_value = header_value.strip()
             if not separator or not name:
                 raise ValidationError(
                     f"Invalid webhook header '{header}'. Use the format 'Header-Name: value'."
+                )
+            # HTTP header fields are latin-1; reject unsupported characters on write.
+            try:
+                name.encode("latin-1")
+                header_value.encode("latin-1")
+            except UnicodeEncodeError:
+                raise ValidationError(
+                    "Webhook header contains unsupported characters and cannot be "
+                    "sent as an HTTP header."
                 )
             if not _HTTP_TOKEN_RE.match(name):
                 raise ValidationError(

@@ -506,6 +506,11 @@ urlpatterns += [
     ),
     # Story book
     re_path(
+        r"^scraps/",
+        react_page_view,
+        name="scraps",
+    ),
+    re_path(
         r"^stories/",
         react_page_view,
         name="stories",
@@ -532,11 +537,6 @@ urlpatterns += [
         r"^docs/api/?$",
         RedirectView.as_view(url="https://docs.sentry.io/api/", permanent=False),
         name="sentry-api-docs-redirect",
-    ),
-    re_path(
-        r"^scraps/?$",
-        RedirectView.as_view(pattern_name="stories", permanent=False),
-        name="sentry-scraps-redirect",
     ),
     re_path(
         r"^api/$",
@@ -1268,6 +1268,11 @@ urlpatterns += [
         name="sentry-robots-txt",
     ),
     re_path(
+        r"^\.well-known/change-password$",
+        RedirectView.as_view(pattern_name="sentry-account-settings-security", permanent=False),
+        name="sentry-change-password-redirect",
+    ),
+    re_path(
         r"^\.well-known/security\.txt$",
         api.security_txt,
         name="sentry-security-txt",
@@ -1341,6 +1346,10 @@ urlpatterns += [
                 re_path(
                     r"^slack-staging/",
                     include("sentry.integrations.slack.staging.urls"),
+                ),
+                re_path(
+                    r"^cursor_origin/",
+                    include("sentry.integrations.cursor_origin.urls"),
                 ),
                 re_path(
                     r"^github/",

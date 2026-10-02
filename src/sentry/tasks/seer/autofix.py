@@ -17,6 +17,11 @@ from sentry.seer.autofix.constants import (
     AutofixAutomationTuningSettings,
     SeerAutomationSource,
 )
+from sentry.seer.autofix.exceptions import IssueSummaryUnavailable
+from sentry.seer.autofix.issue_summary import (
+    get_and_update_group_fixability_score,
+    get_issue_summary,
+)
 from sentry.seer.autofix.utils import (
     SEAT_BASED_STOPPING_POINTS,
     AutofixStoppingPoint,
@@ -62,8 +67,6 @@ def _get_group_or_log(group_id: int, task_name: str) -> Group | None:
     retry=Retry(times=1),
 )
 def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
-    from sentry.seer.autofix.issue_summary import get_issue_summary
-
     trigger_path = kwargs.get("trigger_path", "unknown")
     sentry_sdk.set_tag("trigger_path", trigger_path)
     sentry_sdk.set_attribute("trigger_path", trigger_path)
@@ -87,7 +90,10 @@ def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
             )
         )
 
-    get_issue_summary(group=group, source=SeerAutomationSource.POST_PROCESS)
+    try:
+        get_issue_summary(group=group, source=SeerAutomationSource.POST_PROCESS)
+    except IssueSummaryUnavailable:
+        return
 
 
 @instrumented_task(
@@ -99,13 +105,8 @@ def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
 def generate_issue_summary_only(group_id: int) -> None:
     """
     Generate issue summary WITHOUT triggering automation.
-    Used for triage signals flow when event count < AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD or when summary doesn't exist yet.
+    Used for the triage signals flow when a summary doesn't exist yet.
     """
-    from sentry.seer.autofix.issue_summary import (
-        get_and_update_group_fixability_score,
-        get_issue_summary,
-    )
-
     group = _get_group_or_log(group_id, "generate_issue_summary_only")
     if group is None:
         return
@@ -125,10 +126,12 @@ def generate_issue_summary_only(group_id: int) -> None:
             )
         )
 
-    # Generate and cache the summary
-    get_issue_summary(
-        group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
-    )
+    try:
+        get_issue_summary(
+            group=group, source=SeerAutomationSource.POST_PROCESS, should_run_automation=False
+        )
+    except IssueSummaryUnavailable:
+        return
 
     get_and_update_group_fixability_score(group, force_generate=True)
 
@@ -142,7 +145,7 @@ def generate_issue_summary_only(group_id: int) -> None:
 def run_automation_only_task(group_id: int) -> None:
     """
     Run automation directly for a group (assumes summary and fixability already exist).
-    Used for triage signals flow when event count >= AUTOFIX_AUTOMATION_OCCURRENCE_THRESHOLD and summary exists.
+    Used for the triage signals flow when a summary already exists.
     """
     from django.contrib.auth.models import AnonymousUser
 

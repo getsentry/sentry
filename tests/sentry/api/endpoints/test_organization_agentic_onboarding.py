@@ -50,7 +50,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
                     "stage": "create_project",
                     "status": "completed",
                     "eventNote": "Project already existed.",
-                    "projectSlugs": ["frontend", "backend"],
+                    "extra": {"projectSlugs": ["frontend", "backend"]},
                 },
             )
 
@@ -59,8 +59,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
         assert response.data["stages"][0]["status"] == "bypassed"
         assert response.data["stages"][1]["status"] == "bypassed"
         assert response.data["stages"][2]["status"] == "completed"
-        assert response.data["projectSlugs"] == ["frontend", "backend"]
-        assert response.data["issueIds"] == []
+        assert response.data["stages"][2]["extra"] == {"projectSlugs": ["frontend", "backend"]}
 
     def test_status_rejects_unknown_run(self) -> None:
         path = reverse(
@@ -272,3 +271,142 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
 
         assert response.status_code == 400
         assert response.data == {"detail": "Invalid onboarding progress update"}
+
+    def test_records_each_stage_status_once(self) -> None:
+        run, token = self.service.create_or_resume(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            client_run_id=str(uuid4()),
+            onboarding_code="abcdefghij",
+        )
+        skipped_run, skipped_token = self.service.create_or_resume(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            client_run_id=str(uuid4()),
+            onboarding_code="klmnopqrst",
+        )
+        path = reverse(
+            "sentry-api-0-organization-agentic-onboarding-status",
+            args=[self.organization.slug],
+        )
+        service_path = (
+            "sentry.api.endpoints.organization_agentic_onboarding.get_onboarding_progress_service"
+        )
+        payloads = [
+            {"schemaVersion": 1, "runToken": token, "stage": "create_project", "status": "active"},
+            {"schemaVersion": 1, "runToken": token, "stage": "create_project", "status": "active"},
+            {"schemaVersion": 1, "runToken": token, "stage": "create_project", "status": "waiting"},
+            {
+                "schemaVersion": 1,
+                "runToken": token,
+                "stage": "create_project",
+                "status": "failed",
+                "eventNote": "The stage failed.",
+            },
+            {
+                "schemaVersion": 1,
+                "runToken": token,
+                "stage": "create_project",
+                "status": "completed",
+                "extra": {"projectSlugs": ["frontend"]},
+            },
+            {
+                "schemaVersion": 1,
+                "runToken": token,
+                "stage": "create_project",
+                "status": "completed",
+                "extra": {"projectSlugs": ["backend"]},
+            },
+            {
+                "schemaVersion": 1,
+                "runToken": skipped_token,
+                "stage": "check_stack_trace_quality",
+                "status": "skipped",
+            },
+        ]
+
+        with (
+            patch(service_path, return_value=self.service),
+            patch("sentry.analytics.record") as record_analytics,
+        ):
+            responses = [self.client.post(path, payload) for payload in payloads]
+
+        assert [response.status_code for response in responses] == [200] * 7
+        assert [response.data["sequence"] for response in responses] == [1, 1, 2, 3, 4, 5, 1]
+        assert [call.args[0].type for call in record_analytics.call_args_list] == [
+            "agentic_onboarding.stage_status_changed",
+            "agentic_onboarding.stage_status_changed",
+            "agentic_onboarding.stage_status_changed",
+            "agentic_onboarding.stage_status_changed",
+            "agentic_onboarding.stage_completed",
+            "agentic_onboarding.stage_status_changed",
+        ]
+        assert [call.args[0].serialize() for call in record_analytics.call_args_list] == [
+            {
+                "user_id": self.user.id,
+                "organization_id": self.organization.id,
+                "run_id": run.run_id,
+                "stage": "create_project",
+                "status": status_value,
+            }
+            for status_value in ["active", "waiting", "failed", "completed", "completed"]
+        ] + [
+            {
+                "user_id": self.user.id,
+                "organization_id": self.organization.id,
+                "run_id": skipped_run.run_id,
+                "stage": "check_stack_trace_quality",
+                "status": "skipped",
+            }
+        ]
+
+    def test_records_completed_run_once(self) -> None:
+        run, token = self.service.create_or_resume(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            client_run_id=str(uuid4()),
+            onboarding_code="abcdefghij",
+        )
+        self.service.update(
+            token=token,
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            update=ProgressUpdate(
+                stage=Stage.CHECK_STACK_TRACE_QUALITY,
+                status=StageStatus.COMPLETED,
+            ),
+        )
+        path = reverse(
+            "sentry-api-0-organization-agentic-onboarding-status",
+            args=[self.organization.slug],
+        )
+        payload = {
+            "schemaVersion": 1,
+            "runToken": token,
+            "stage": "check_stack_trace_quality",
+            "status": "completed",
+            "runStatus": "completed",
+        }
+
+        with (
+            patch(
+                "sentry.api.endpoints.organization_agentic_onboarding."
+                "get_onboarding_progress_service",
+                return_value=self.service,
+            ),
+            patch("sentry.analytics.record") as record_analytics,
+        ):
+            response = self.client.post(path, payload)
+            duplicate_response = self.client.post(path, payload)
+
+        assert response.status_code == 200
+        assert duplicate_response.status_code == 200
+        record_analytics.assert_called_once()
+        event = record_analytics.call_args.args[0]
+        assert event.type == "agentic_onboarding.run_completed"
+        assert event.serialize() == {
+            "user_id": self.user.id,
+            "organization_id": self.organization.id,
+            "run_id": run.run_id,
+            "status": "completed",
+        }

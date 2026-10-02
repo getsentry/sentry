@@ -1,25 +1,26 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {PageFilterStateFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DatabaseSpanDescription} from 'sentry/views/insights/common/components/spanDescription';
-
-jest.mock('sentry/components/pageFilters/usePageFilters');
 
 describe('DatabaseSpanDescription', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
+  });
+
+  afterEach(() => {
+    PageFiltersStore.reset();
   });
 
   const organization = OrganizationFixture();
 
   const project = ProjectFixture();
-
-  jest.mocked(usePageFilters).mockReturnValue(PageFilterStateFixture());
 
   const groupId = '2ed2abf6ce7e3577';
   const spanId = 'abfed2aabf';
@@ -121,7 +122,7 @@ describe('DatabaseSpanDescription', () => {
             project: project.slug,
             span_id: spanId,
             'span.description': sampleMongoDBQuery,
-            'db.system': 'mongodb',
+            'db.system.name': 'mongodb',
           },
         ],
       },

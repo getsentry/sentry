@@ -138,13 +138,19 @@ export type TeamInsightsEventParameters = {
   'issue_details.tab_changed': IssueDetailsWithAlert & {
     tab: Tab;
   };
+  'issue_inbox.resolve_clicked': IssueDetailsWithAlert & {
+    action_type: GroupStatus;
+    org_streamline_only: boolean | undefined;
+    action_status_details?: string;
+    action_substatus?: string;
+  };
   'issue_stream.updated_empty_state_viewed': {platform: string};
   'project_creation_page.created': {
     issue_alert: 'Default' | 'Custom' | 'No Rule';
     notification_rule_created: boolean;
     platform: string;
     project_id: string;
-    rule_ids: string[];
+    workflow_ids: string[];
     // 'legacy' from CreateProject, 'scm' from the SCM wizard. Both variants
     // populate the same payload; only this discriminator differs.
     variant?: ProjectCreationVariant;
@@ -160,14 +166,6 @@ export type TeamInsightsEventParameters = {
   'release_detail.pagination': {direction: string};
   'releases_list.click_add_release_health': {
     project_id: number;
-  };
-  'supergroup.drawer_opened': {
-    supergroup_id: number;
-  };
-  'supergroup.feedback_submitted': {
-    choice_selected: boolean;
-    supergroup_id: number;
-    user_id: string;
   };
   'suspect_commit.feedback_submitted': {
     choice_selected: boolean;
@@ -192,6 +190,7 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'alert_stream.viewed': 'Alert Stream: Viewed',
   'edit_alert_rule.viewed': 'Edit Alert Rule: Viewed',
   'issue_details.action_clicked': 'Issue Details: Action Clicked',
+  'issue_inbox.resolve_clicked': 'Issue Inbox: Resolve Action Clicked',
   'issue_details.attachment_tab.screenshot_modal_deleted':
     'Attachment Tab: Screenshot deleted from modal',
   'issue_details.attachment_tab.screenshot_modal_download':
@@ -236,7 +235,5 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
   'releases_list.click_add_release_health': 'Releases List: Click Add Release Health',
   trace_timeline_clicked: 'Trace Timeline Clicked',
   trace_timeline_more_events_clicked: 'Trace Timeline More Events Clicked',
-  'supergroup.drawer_opened': 'Supergroup Drawer Opened',
-  'supergroup.feedback_submitted': 'Supergroup Feedback Submitted',
   'suspect_commit.feedback_submitted': 'Suspect Commit Feedback Submitted',
 };

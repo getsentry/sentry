@@ -39,44 +39,33 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
   const prUrl = getPrUrl(vcs_info);
   const branchUrl = getBranchUrl(vcs_info, vcs_info.head_ref);
 
-  function renderVcsRef() {
-    if (vcs_info.pr_number && prUrl) {
-      return (
-        <Flex align="center" gap="xs" flexShrink={0}>
-          <IconPullRequest size="xs" />
-          <ExternalLink href={prUrl}>
-            <Text size="sm" variant="accent" wrap="nowrap">
-              #{vcs_info.pr_number}
-              {vcs_info.head_ref ? ` (${vcs_info.head_ref})` : ''}
-            </Text>
-          </ExternalLink>
-        </Flex>
-      );
-    }
-
-    if (vcs_info.head_ref) {
-      const branchLabel = branchUrl ? (
-        <ExternalLink href={branchUrl}>
+  const vcsRef =
+    vcs_info.pr_number && prUrl ? (
+      <Flex align="center" gap="xs" flexShrink={0}>
+        <IconPullRequest size="xs" />
+        <ExternalLink href={prUrl}>
           <Text size="sm" variant="accent" wrap="nowrap">
-            {vcs_info.head_ref}
+            #{vcs_info.pr_number}
+            {vcs_info.head_ref ? ` (${vcs_info.head_ref})` : ''}
           </Text>
         </ExternalLink>
-      ) : (
-        <Text size="sm" wrap="nowrap">
-          {vcs_info.head_ref}
-        </Text>
-      );
-
-      return (
-        <Flex align="center" gap="xs" flexShrink={0}>
-          <IconStack size="xs" />
-          {branchLabel}
-        </Flex>
-      );
-    }
-
-    return null;
-  }
+      </Flex>
+    ) : vcs_info.head_ref ? (
+      <Flex align="center" gap="xs" flexShrink={0}>
+        <IconStack size="xs" />
+        {branchUrl ? (
+          <ExternalLink href={branchUrl}>
+            <Text size="sm" variant="accent" wrap="nowrap">
+              {vcs_info.head_ref}
+            </Text>
+          </ExternalLink>
+        ) : (
+          <Text size="sm" wrap="nowrap">
+            {vcs_info.head_ref}
+          </Text>
+        )}
+      </Flex>
+    ) : null;
 
   return (
     <Layout.Title>
@@ -89,7 +78,7 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
         {...{[TITLE_MARKER_ATTR]: ''}}
       >
         {t('Snapshots')}
-        <Container display={{'screen:2xs': 'none', 'screen:xs': 'flex'}}>
+        <Container display={{zero: 'none', '3xs': 'flex'}}>
           <PageHeadingQuestionTooltip
             docsUrl="https://docs.sentry.io/product/snapshots/"
             title={t('Catch visual regressions before they reach users.')}
@@ -97,7 +86,7 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
         </Container>
 
         {project && (
-          <Container display={{'screen:2xs': 'none', 'screen:lg': 'block'}}>
+          <Container display={{zero: 'none', md: 'block'}}>
             <Text as="div" size="sm">
               <IdBadge project={project} avatarSize={16} />
             </Text>
@@ -110,7 +99,7 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
           flexShrink={1}
           minWidth={0}
           overflow="hidden"
-          display={{'screen:2xs': 'none', 'screen:xs': 'none', 'screen:sm': 'flex'}}
+          display={{zero: 'none', xs: 'flex'}}
         >
           {shortSha && shaUrl && (
             <Flex align="center" gap="xs" flexShrink={0}>
@@ -123,7 +112,7 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
             </Flex>
           )}
 
-          {renderVcsRef()}
+          {vcsRef}
 
           {appId && (
             <Flex align="center" gap="xs" minWidth={0}>

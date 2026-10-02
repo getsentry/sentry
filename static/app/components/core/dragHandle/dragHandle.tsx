@@ -1,6 +1,7 @@
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {Container} from '@sentry/scraps/layout';
 
 import {useDragSeparator} from './useDragSeparator';
@@ -83,7 +84,7 @@ export function DragHandle({
   );
 }
 
-const DragHandleLine = styled('div')<{$cursor: React.CSSProperties['cursor']}>`
+const DragHandleLine = styled('div')<{$cursor: CSS['cursor']}>`
   user-select: none;
   touch-action: none;
   pointer-events: none;

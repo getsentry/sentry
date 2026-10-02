@@ -1,4 +1,4 @@
-jest.unmock('lodash/debounce');
+jest.unmock('@tanstack/react-pacer');
 
 jest.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: ({count}: {count: number}) => {

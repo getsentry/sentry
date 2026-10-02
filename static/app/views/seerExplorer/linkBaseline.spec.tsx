@@ -262,7 +262,8 @@ const BUS_CASES: BusCase[] = [
       query: {
         project: null,
         logsQuery: 'foo',
-        logsSortBys: '-timestamp',
+        // Aggregate mode reads its own sort key; the sample sort was previously ignored.
+        logsAggregateSortBys: '-timestamp',
         logsGroupBy: ['severity'],
         mode: 'aggregate',
       },
@@ -428,13 +429,18 @@ const RECORD_CASES: RecordCase[] = [
     },
   ],
   [
-    'a route about something other than its own subject does not link',
+    // Re-pinned: longest-prefix inheritance sends nested issue routes to the issue page rather than
+    // leaving them unlinked. There is still no tags UI destination of its own.
+    'a nested issue subresource inherits the issue page',
     record({
       path: '/api/0/organizations/{organization_id_or_slug}/issues/{issue_id}/tags/',
       path_params: {organization_id_or_slug: 'org-slug', issue_id: '54'},
       title: 'List an Issue’s Tags',
     }),
-    null,
+    {
+      kind: 'get_issue_details',
+      url: {pathname: '/organizations/org-slug/issues/54/', query: {}},
+    },
   ],
 ];
 

@@ -1,12 +1,11 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import LazyLoad, {forceCheck} from 'react-lazyload';
-import styled from '@emotion/styled';
 import {withProfiler} from '@sentry/react';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import uniqBy from 'lodash/uniqBy';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -37,6 +36,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {useIsSeerExplorerSidebarEnabled} from 'sentry/views/seerExplorer/utils';
 
 import {ProjectCard} from './projectCard';
 import {Resources} from './resources';
@@ -45,20 +45,30 @@ import {getTeamParams} from './utils';
 function ProjectCardList({projects}: {projects: Project[]}) {
   const organization = useOrganization();
   const hasProjectAccess = organization.access.includes('project:read');
+  // Sidebar mode scrolls the content pane instead of the window, even when Seer is closed.
+  const isSidebarMode = useIsSeerExplorerSidebarEnabled();
 
   // By default react-lazyload will only check for intesecting components on scroll
   // This forceCheck call is necessary to recalculate when filtering projects
   useEffect(() => {
     forceCheck();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [projects]);
 
   return (
-    <ProjectCards>
+    <Grid
+      gap="2xl"
+      columns={{
+        zero: 'repeat(auto-fill, minmax(min(400px, 100%), 1fr))',
+        lg: 'repeat(auto-fill, minmax(350px, 1fr))',
+      }}
+    >
       {sortProjects(projects).map(project => (
         <LazyLoad
           debounce={50}
           height={330}
           offset={400}
+          overflow={isSidebarMode}
           unmountIfInvisible
           key={project.slug}
         >
@@ -69,7 +79,7 @@ function ProjectCardList({projects}: {projects: Project[]}) {
           />
         </LazyLoad>
       ))}
-    </ProjectCards>
+    </Grid>
   );
 }
 
@@ -236,20 +246,27 @@ function Dashboard() {
       </TopBar.Slot>
       <Layout.Body>
         <Layout.Main width="full">
-          <SearchAndSelectorWrapper>
+          <Flex
+            direction={{zero: 'column', xl: 'row'}}
+            gap={{zero: 'md', xl: 'xl'}}
+            justify="end"
+            align={{zero: 'stretch', xl: 'end'}}
+            marginBottom="xl"
+          >
             <TeamFilter
               selectedTeams={selectedTeams}
               handleChangeFilter={handleChangeFilter}
               hideUnassigned
               hideOtherTeams={!showNonMemberProjects}
             />
-            <StyledSearchBar
-              defaultQuery=""
-              placeholder={t('Search for projects by name')}
-              onChange={setProjectQuery}
-              query={projectQuery}
-            />
-          </SearchAndSelectorWrapper>
+            <Container flexGrow={1}>
+              <SearchBar
+                placeholder={t('Search for projects by name')}
+                onChange={setProjectQuery}
+                query={projectQuery}
+              />
+            </Container>
+          </Flex>
 
           <Profiler id="ProjectCardList" onRender={onRenderCallback}>
             <ProjectCardList projects={filteredProjects} />
@@ -271,43 +288,5 @@ function OrganizationDashboard() {
     </Stack>
   );
 }
-
-const SearchAndSelectorWrapper = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.xl};
-  justify-content: flex-end;
-  align-items: flex-end;
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: block;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    display: flex;
-  }
-`;
-
-const StyledSearchBar = styled(SearchBar)`
-  flex-grow: 1;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    margin-top: ${p => p.theme.space.md};
-  }
-`;
-
-const ProjectCards = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space['2xl']};
-  grid-template-columns: repeat(auto-fill, minmax(1fr, 400px));
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: repeat(auto-fill, minmax(470px, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    grid-template-columns: repeat(auto-fill, minmax(450px, 1fr));
-  }
-`;
 
 export default withProfiler(OrganizationDashboard);

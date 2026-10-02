@@ -4,6 +4,7 @@ import {Outlet} from 'react-router-dom';
 import {Stack} from '@sentry/scraps/layout';
 
 import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
+import {t} from 'sentry/locale';
 import type {RequestState} from 'sentry/types/core';
 import {
   isEventedProfile,
@@ -51,15 +52,30 @@ export default function ProfileAndTransactionProvider(): React.ReactElement {
       <ProfileTransactionContext value={transactionResult}>
         <Stack flex={1}>
           <ProfileHeader
-            eventId={params.eventId!}
+            profileId={params.eventId!}
             projectId={projectSlug}
+            transactionName={
+              profile.type === 'resolved' ? getTransactionName(profile.data) : ''
+            }
             transactionSpan={transactionResult.data.transactionSpan}
+            variant="transaction"
           />
           <Outlet />
         </Stack>
       </ProfileTransactionContext>
     </TransactionProfileProvider>
   );
+}
+
+function getTransactionName(input: Profiling.ProfileInput): string {
+  if (isSchema(input)) {
+    return input.metadata.transactionName;
+  }
+  if (isSentrySampledProfile(input)) {
+    return input.transaction.name || t('Unknown Transaction');
+  }
+
+  return t('Unknown Transaction');
 }
 
 function paramsForUseTransaction(input: Profiling.ProfileInput) {

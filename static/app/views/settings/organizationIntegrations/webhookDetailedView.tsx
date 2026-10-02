@@ -15,6 +15,7 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -110,7 +111,15 @@ export default function WebhookDetailedView() {
             if (projectSlug) {
               fetchMutation({
                 method: 'POST',
-                url: `/projects/${organization.slug}/${projectSlug}/legacy-webhooks/`,
+                url: getApiUrl(
+                  '/projects/$organizationIdOrSlug/$projectIdOrSlug/legacy-webhooks/',
+                  {
+                    path: {
+                      organizationIdOrSlug: organization.slug,
+                      projectIdOrSlug: projectSlug,
+                    },
+                  }
+                ),
                 data: {enabled: true},
               })
                 .then(() => {

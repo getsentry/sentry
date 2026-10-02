@@ -8,7 +8,7 @@ import {
 
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {inputStyles} from './inputStyles';
 
@@ -134,7 +134,7 @@ export function OTPInput<const Format extends string>({
 }
 
 const OTPInputSlot = styled(Flex)<{$isActive: boolean}>`
-  ${p => inputStyles({theme: p.theme, size: 'md'})};
+  ${p => inputStyles({theme: p.theme})};
   display: flex;
   min-width: ${p => p.theme.form.md.height};
   padding: 0;

@@ -44,10 +44,9 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
             ]
         )
 
-    def create_context(self, value, metric_type=TraceMetricTypes.COUNTER, project=..., **kwargs):
+    def create_context(self, value, metric_type=TraceMetricTypes.COUNTER, **kwargs):
         return TraceItemAttributeValueContext.objects.create(
             organization=self.organization,
-            project=self.project if project is ... else project,
             attribute_name="metric.name",
             attribute_value=value,
             attribute_type=metric_type,
@@ -126,7 +125,7 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
     def test_context_only_filters_to_metrics_with_context(self) -> None:
         self.store_metric("has.context", "counter")
         self.store_metric("no.context", "counter")
-        self.create_context("has.context", project=None, brief="Described")
+        self.create_context("has.context", brief="Described")
 
         response = self.do_request(query={"project": self.project.id, "contextOnly": "1"})
 
@@ -146,7 +145,7 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         # A unicode metric name must still match the IN filter (regression: json
         # escaping would emit \uXXXX, which the search grammar doesn't decode).
         self.store_metric("café.requests", "counter")
-        self.create_context("café.requests", project=None, brief="Café")
+        self.create_context("café.requests", brief="Café")
 
         response = self.do_request(query={"project": self.project.id, "contextOnly": "1"})
 
@@ -159,7 +158,7 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         self.store_metric("checkout.requests", "counter")
         self.store_metric("checkout.requests", "gauge")
         self.create_context(
-            "checkout.requests", metric_type=TraceMetricTypes.COUNTER, project=None, brief="Counter"
+            "checkout.requests", metric_type=TraceMetricTypes.COUNTER, brief="Counter"
         )
 
         response = self.do_request(query={"project": self.project.id, "contextOnly": "1"})
@@ -170,7 +169,7 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
     def test_context_only_ignored_without_feature(self) -> None:
         self.store_metric("has.context", "counter")
         self.store_metric("no.context", "counter")
-        self.create_context("has.context", project=None, brief="Described")
+        self.create_context("has.context", brief="Described")
 
         response = self.do_request(
             query={"project": self.project.id, "contextOnly": "1"},
@@ -187,7 +186,6 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         self.store_metric("checkout.requests", "counter")
         self.create_context(
             "checkout.requests",
-            project=None,
             brief="Checkout requests",
             additional_context="Longer notes.",
         )
@@ -210,7 +208,6 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
         self.create_context(
             "checkout.requests",
             metric_type=TraceMetricTypes.GAUGE,
-            project=None,
             brief="Gauge brief",
         )
 
@@ -223,7 +220,7 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
 
     def test_context_requires_expand(self) -> None:
         self.store_metric("checkout.requests", "counter")
-        self.create_context("checkout.requests", project=None, brief="Checkout requests")
+        self.create_context("checkout.requests", brief="Checkout requests")
 
         response = self.do_request(query={"project": self.project.id})
 
@@ -232,7 +229,7 @@ class OrganizationTraceItemMetricsEndpointTest(APITestCase, TraceMetricsTestCase
 
     def test_context_requires_feature_flag(self) -> None:
         self.store_metric("checkout.requests", "counter")
-        self.create_context("checkout.requests", project=None, brief="Checkout requests")
+        self.create_context("checkout.requests", brief="Checkout requests")
 
         response = self.do_request(
             query={"project": self.project.id, "expand": "context"},

@@ -15,6 +15,7 @@ import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {getHasTag} from 'sentry/utils/tag';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeTagKeys} from 'sentry/views/explore/hooks/useGetTraceItemAttributeTagKeys';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
@@ -37,6 +38,7 @@ export type TraceItemSearchQueryBuilderProps = {
   attributeQuery?: string;
   caseInsensitive?: CaseInsensitive;
   defaultToAskSeerOnFreeTextSearch?: SearchQueryBuilderProps['defaultToAskSeerOnFreeTextSearch'];
+  disableFullWidthFilterKeyMenu?: SearchQueryBuilderProps['disableFullWidthFilterKeyMenu'];
   disableRecentSearches?: boolean;
   disabled?: boolean;
   disallowFreeText?: boolean;
@@ -45,10 +47,13 @@ export type TraceItemSearchQueryBuilderProps = {
   disallowNegation?: boolean;
   hiddenAttributeKeys?: string[];
   invalidFilterKeys?: string[];
+  invalidMessages?: SearchQueryBuilderProps['invalidMessages'];
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
+  menuPresentation?: SearchQueryBuilderProps['menuPresentation'];
   namespace?: string;
   onCaseInsensitiveClick?: SearchQueryBuilderProps['onCaseInsensitiveClick'];
   replaceRawSearchKeys?: string[];
+  showSearchIcon?: SearchQueryBuilderProps['showSearchIcon'];
 } & Omit<SpanSearchQueryBuilderProps, 'numberTags' | 'stringTags'>;
 
 const getFunctionTags = (supportedAggregates?: AggregationKey[]) => {
@@ -133,9 +138,14 @@ export function useTraceItemSearchQueryBuilderProps({
   allowedAttributeKeys,
   placeholder,
   invalidFilterKeys,
+  invalidMessages,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = placeholder ?? itemTypeToDefaultPlaceholder(itemType);
+  const organization = useOrganization();
   const {selection} = usePageFilters();
+  const allowRegexOperators =
+    itemType === TraceItemDataset.LOGS &&
+    organization.features.includes('ourlogs-regex-searches');
   const effectiveProjects = projects ?? selection.projects;
   const effectiveDatetime = datetime ?? selection.datetime;
 
@@ -210,6 +220,7 @@ export function useTraceItemSearchQueryBuilderProps({
   return useMemo(
     () => ({
       placeholder: placeholderText,
+      allowRegexOperators,
       asyncFilterKeyRegistryQueryKey,
       filterKeys: filterTags,
       initialQuery,
@@ -246,8 +257,10 @@ export function useTraceItemSearchQueryBuilderProps({
       disabled,
       onCaseInsensitiveClick,
       invalidFilterKeys,
+      invalidMessages,
     }),
     [
+      allowRegexOperators,
       asyncFilterKeyRegistryQueryKey,
       booleanSecondaryAliases,
       caseInsensitive,
@@ -265,6 +278,7 @@ export function useTraceItemSearchQueryBuilderProps({
       getTraceItemAttributeValues,
       initialQuery,
       invalidFilterKeys,
+      invalidMessages,
       itemType,
       matchKeySuggestions,
       namespace,
@@ -321,6 +335,10 @@ export function TraceItemSearchQueryBuilder({
   allowedAttributeKeys,
   placeholder,
   invalidFilterKeys,
+  invalidMessages,
+  showSearchIcon,
+  disableFullWidthFilterKeyMenu,
+  menuPresentation,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -359,9 +377,18 @@ export function TraceItemSearchQueryBuilder({
     allowedAttributeKeys,
     datetime,
     invalidFilterKeys,
+    invalidMessages,
   });
 
-  return <SearchQueryBuilder autoFocus={autoFocus} {...searchQueryBuilderProps} />;
+  return (
+    <SearchQueryBuilder
+      autoFocus={autoFocus}
+      showSearchIcon={showSearchIcon}
+      disableFullWidthFilterKeyMenu={disableFullWidthFilterKeyMenu}
+      menuPresentation={menuPresentation}
+      {...searchQueryBuilderProps}
+    />
+  );
 }
 
 function useFunctionTags(

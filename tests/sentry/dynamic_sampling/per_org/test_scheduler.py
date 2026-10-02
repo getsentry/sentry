@@ -9,13 +9,12 @@ from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.per_org.configuration import BaseDynamicSamplingConfiguration
 from sentry.dynamic_sampling.per_org.gate import is_org_in_rollout
-from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts
+from sentry.dynamic_sampling.per_org.queries import OrganizationDataVolume, ProjectTransactionCounts
 from sentry.dynamic_sampling.per_org.scheduler import (
     run_calculations_per_org_task,
     schedule_per_org_calculations,
 )
 from sentry.dynamic_sampling.per_org.telemetry import DynamicSamplingStatus
-from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
 from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
@@ -33,13 +32,11 @@ PROJECT_VOLUMES = f"{SCHEDULER}.get_eap_project_volumes"
 TRANSACTION_VOLUMES = f"{SCHEDULER}.get_eap_transaction_volumes"
 PROJECT_BALANCING = f"{SCHEDULER}.run_project_balancing"
 TRANSACTION_BALANCING = f"{SCHEDULER}.run_transaction_balancing"
-RECALIBRATION_VOLUME = f"{SCHEDULER}.get_recalibration_organization_volume"
-EMIT_COMPARISONS = f"{SCHEDULER}.emit_comparisons"
 WRITE_CACHES = f"{SCHEDULER}.write_caches"
 
-# The pass records its results on the configuration and hands it to both end-of-pass steps,
-# so patching them out leaves the calculations themselves untouched.
-END_OF_PASS = {EMIT_COMPARISONS: DEFAULT, WRITE_CACHES: DEFAULT}
+# The pass records its results on the configuration and hands it to the cache write at the
+# end of the pass, so patching that out leaves the calculations themselves untouched.
+END_OF_PASS = {WRITE_CACHES: DEFAULT}
 
 
 def _assert_called_once_with_config(
@@ -51,6 +48,13 @@ def _assert_called_once_with_config(
     assert isinstance(config, BaseDynamicSamplingConfiguration)
     assert config.organization.id == organization_id
     return config
+
+
+def _assert_called_once_with_organization(mock: Mock, organization_id: int) -> None:
+    mock.assert_called_once()
+    organization = mock.call_args.args[0]
+    assert isinstance(organization, Organization)
+    assert organization.id == organization_id
 
 
 def _transaction_volumes(org: Organization, project_id: int) -> list[ProjectTransactionCounts]:
@@ -198,7 +202,6 @@ class RunCalculationsPerOrgTest(TestCase):
     @override_options(
         {
             "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
         }
     )
     def test_run_calculations_per_org_returns_no_volume_without_traffic(self) -> None:
@@ -210,26 +213,22 @@ class RunCalculationsPerOrgTest(TestCase):
                 BLENDED_SAMPLE_RATE: 1.0,
                 ORG_VOLUME: None,
                 PROJECT_VOLUMES: DEFAULT,
-                RECALIBRATION_VOLUME: DEFAULT,
                 **END_OF_PASS,
             }
         ) as mocks:
             result = run_calculations_per_org_task(org.id)
 
         assert result == DynamicSamplingStatus.NO_ORG_VOLUME
-        _assert_called_once_with_config(mocks[ORG_VOLUME], org.id)
+        _assert_called_once_with_organization(mocks[ORG_VOLUME], org.id)
         mocks[BLENDED_SAMPLE_RATE].assert_called_once_with(organization_id=org.id)
         mocks[PROJECT_VOLUMES].assert_not_called()
-        mocks[RECALIBRATION_VOLUME].assert_not_called()
-        # A pass that bails out still reaches both end-of-pass steps, which find an
-        # untouched result and emit nothing.
-        _assert_called_once_with_config(mocks[EMIT_COMPARISONS], org.id)
+        # A pass that bails out still reaches the cache write, which finds an untouched
+        # result and writes nothing.
         _assert_called_once_with_config(mocks[WRITE_CACHES], org.id)
 
     @override_options(
         {
             "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
         }
     )
     def test_run_calculations_per_org_skips_transaction_volumes_at_full_sample_rate(self) -> None:
@@ -247,25 +246,23 @@ class RunCalculationsPerOrgTest(TestCase):
                 PROJECT_BALANCING: rebalanced_projects,
                 TRANSACTION_VOLUMES: DEFAULT,
                 TRANSACTION_BALANCING: DEFAULT,
-                RECALIBRATION_VOLUME: DEFAULT,
                 **END_OF_PASS,
             }
         ) as mocks:
             result = run_calculations_per_org_task(org.id)
 
         assert result == DynamicSamplingStatus.ALL_PROJECTS_AT_FULL_SAMPLE_RATE
-        _assert_called_once_with_config(mocks[ORG_VOLUME], org.id)
+        _assert_called_once_with_organization(mocks[ORG_VOLUME], org.id)
         mocks[BLENDED_SAMPLE_RATE].assert_called_once_with(organization_id=org.id)
         config = _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
         mocks[PROJECT_BALANCING].assert_called_once_with(config, project_volumes)
         mocks[TRANSACTION_VOLUMES].assert_not_called()
         mocks[TRANSACTION_BALANCING].assert_not_called()
         # Recalibration is the last stage, so a full-sample-rate org returns before it runs.
-        mocks[RECALIBRATION_VOLUME].assert_not_called()
+        assert config.results.recalibration_factor is None
         # The project rates the pass did compute are still reported.
         assert config.results.rebalanced_projects == rebalanced_projects
         assert config.results.projects_to_balance == []
-        _assert_called_once_with_config(mocks[EMIT_COMPARISONS], org.id)
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_returns_no_volume_without_project_volumes(self) -> None:
@@ -287,7 +284,7 @@ class RunCalculationsPerOrgTest(TestCase):
 
         assert result == DynamicSamplingStatus.NO_PROJECT_VOLUMES
         mocks[BLENDED_SAMPLE_RATE].assert_called_once_with(organization_id=org.id)
-        _assert_called_once_with_config(mocks[ORG_VOLUME], org.id)
+        _assert_called_once_with_organization(mocks[ORG_VOLUME], org.id)
         config = _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
         mocks[PROJECT_BALANCING].assert_not_called()
         mocks[TRANSACTION_VOLUMES].assert_not_called()
@@ -315,7 +312,7 @@ class RunCalculationsPerOrgTest(TestCase):
 
         assert result == DynamicSamplingStatus.NO_TRANSACTION_VOLUMES
         mocks[BLENDED_SAMPLE_RATE].assert_called_once_with(organization_id=org.id)
-        _assert_called_once_with_config(mocks[ORG_VOLUME], org.id)
+        _assert_called_once_with_organization(mocks[ORG_VOLUME], org.id)
         config = _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
         mocks[PROJECT_BALANCING].assert_called_once_with(config, project_volumes)
         _assert_called_once_with_config(mocks[TRANSACTION_VOLUMES], org.id)
@@ -350,7 +347,7 @@ class RunCalculationsPerOrgTest(TestCase):
 
         assert result is None
         mocks[BLENDED_SAMPLE_RATE].assert_not_called()
-        _assert_called_once_with_config(mocks[ORG_VOLUME], org.id)
+        _assert_called_once_with_organization(mocks[ORG_VOLUME], org.id)
         _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
         mocks[PROJECT_BALANCING].assert_not_called()
         config = _assert_called_once_with_config(mocks[TRANSACTION_VOLUMES], org.id)
@@ -359,18 +356,12 @@ class RunCalculationsPerOrgTest(TestCase):
         )
         assert config.results.rebalanced_projects == []
 
-    @override_options(
-        {
-            "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
-        }
-    )
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_queries_projects_for_am3_org_mode(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         org.update_option("sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION)
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
-        recalibration_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
         project_volumes = [make_project_volume(project.id)]
         rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)]
         transaction_volumes = _transaction_volumes(org, project.id)
@@ -385,9 +376,7 @@ class RunCalculationsPerOrgTest(TestCase):
                     PROJECT_BALANCING: rebalanced_projects,
                     TRANSACTION_VOLUMES: transaction_volumes,
                     TRANSACTION_BALANCING: {},
-                    RECALIBRATION_VOLUME: recalibration_volume,
                     SET_FACTOR: DEFAULT,
-                    EMIT_COMPARISONS: DEFAULT,
                 }
             ) as mocks,
         ):
@@ -395,7 +384,7 @@ class RunCalculationsPerOrgTest(TestCase):
 
         assert result is None
         mocks[BLENDED_SAMPLE_RATE].assert_not_called()
-        _assert_called_once_with_config(mocks[ORG_VOLUME], org.id)
+        _assert_called_once_with_organization(mocks[ORG_VOLUME], org.id)
         config = _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
         mocks[PROJECT_BALANCING].assert_called_once_with(config, project_volumes)
         _assert_called_once_with_config(mocks[TRANSACTION_VOLUMES], org.id)
@@ -427,21 +416,14 @@ class RunCalculationsPerOrgTest(TestCase):
         mocks[BLENDED_SAMPLE_RATE].assert_not_called()
         mocks[ORG_VOLUME].assert_not_called()
         mocks[PROJECT_VOLUMES].assert_not_called()
-        # An organization without dynamic sampling has nothing to report or store.
-        mocks[EMIT_COMPARISONS].assert_not_called()
+        # An organization without dynamic sampling has nothing to store.
         mocks[WRITE_CACHES].assert_not_called()
 
-    @override_options(
-        {
-            "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
-        }
-    )
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_queries_projects_for_am2(self) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
         org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
-        recalibration_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
         project_volumes = [make_project_volume(project.id)]
         rebalanced_projects = [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)]
         transaction_volumes = _transaction_volumes(org, project.id)
@@ -454,16 +436,14 @@ class RunCalculationsPerOrgTest(TestCase):
                 PROJECT_BALANCING: rebalanced_projects,
                 TRANSACTION_VOLUMES: transaction_volumes,
                 TRANSACTION_BALANCING: {},
-                RECALIBRATION_VOLUME: recalibration_volume,
                 SET_FACTOR: DEFAULT,
-                EMIT_COMPARISONS: DEFAULT,
             }
         ) as mocks:
             result = run_calculations_per_org_task(org.id)
 
         assert result is None
         mocks[BLENDED_SAMPLE_RATE].assert_called_once_with(organization_id=org.id)
-        _assert_called_once_with_config(mocks[ORG_VOLUME], org.id)
+        _assert_called_once_with_organization(mocks[ORG_VOLUME], org.id)
         config = _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
         mocks[PROJECT_BALANCING].assert_called_once_with(config, project_volumes)
         _assert_called_once_with_config(mocks[TRANSACTION_VOLUMES], org.id)
@@ -474,27 +454,18 @@ class RunCalculationsPerOrgTest(TestCase):
         mocks[TRANSACTION_BALANCING].assert_called_once_with(
             config, project_volumes, transaction_volumes
         )
-        # The 5-minute organization volume is handed to the recalibration volume query, so its
-        # stored count is reused rather than fetched again.
-        assert mocks[RECALIBRATION_VOLUME].call_args.args[1] is org_volume
-        assert config.results.recalibration_volume is recalibration_volume
+        # Both sides of the effective sample rate come from the one EAP organization volume.
+        assert config.results.organization_volume is org_volume
         assert config.results.recalibration_factor == 4.0
         mocks[SET_FACTOR].assert_called_once_with(org.id, 4.0)
-        # The comparison reads the same results, so it runs after the last stage.
-        _assert_called_once_with_config(mocks[EMIT_COMPARISONS], org.id)
 
-    @override_options(
-        {
-            "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.recalibration-rollout-rate": 1.0,
-        }
-    )
-    def test_run_calculations_per_org_skips_the_factor_without_a_recalibration_volume(
+    @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
+    def test_run_calculations_per_org_skips_the_factor_without_stored_segments(
         self,
     ) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
-        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
+        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=0)
         project_volumes = [make_project_volume(project.id)]
 
         with patch_configuration(
@@ -505,51 +476,16 @@ class RunCalculationsPerOrgTest(TestCase):
                 PROJECT_BALANCING: [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)],
                 TRANSACTION_VOLUMES: _transaction_volumes(org, project.id),
                 TRANSACTION_BALANCING: {},
-                RECALIBRATION_VOLUME: None,
                 SET_FACTOR: DEFAULT,
-                EMIT_COMPARISONS: DEFAULT,
             }
         ) as mocks:
             result = run_calculations_per_org_task(org.id)
 
         assert result is None
         config = _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
-        # One missing source leaves no effective sample rate, so there is no factor.
+        # An org that stored nothing has no effective sample rate, so there is no factor.
         assert config.results.recalibration_factor is None
         mocks[SET_FACTOR].assert_not_called()
-        # The comparison still runs, so the legacy factor is reported next to no EAP factor.
-        _assert_called_once_with_config(mocks[EMIT_COMPARISONS], org.id)
-
-    @override_options(
-        {
-            "dynamic-sampling.per_org.rollout-rate": 1.0,
-            "dynamic-sampling.per_org.recalibration-rollout-rate": 0.0,
-        }
-    )
-    def test_run_calculations_per_org_skips_recalibration_outside_its_rollout(self) -> None:
-        org = self.create_organization()
-        project = self.create_project(organization=org)
-        org_volume = OrganizationDataVolume(org_id=org.id, total=100, indexed=25)
-        project_volumes = [make_project_volume(project.id)]
-
-        with patch_configuration(
-            {
-                BLENDED_SAMPLE_RATE: 0.5,
-                ORG_VOLUME: org_volume,
-                PROJECT_VOLUMES: project_volumes,
-                PROJECT_BALANCING: [RebalancedItem(id=project.id, count=100, new_sample_rate=0.5)],
-                TRANSACTION_VOLUMES: _transaction_volumes(org, project.id),
-                TRANSACTION_BALANCING: {},
-                RECALIBRATION_VOLUME: DEFAULT,
-                **END_OF_PASS,
-            }
-        ) as mocks:
-            result = run_calculations_per_org_task(org.id)
-
-        assert result is None
-        config = _assert_called_once_with_config(mocks[PROJECT_VOLUMES], org.id)
-        assert config.results.recalibration_factor is None
-        mocks[RECALIBRATION_VOLUME].assert_not_called()
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_still_reports_when_a_stage_raises(self) -> None:
@@ -571,9 +507,8 @@ class RunCalculationsPerOrgTest(TestCase):
                     pass
 
         # The failure propagates, but what the pass computed before it is not thrown away.
-        config = _assert_called_once_with_config(mocks[EMIT_COMPARISONS], org.id)
+        config = _assert_called_once_with_config(mocks[WRITE_CACHES], org.id)
         assert config.results.organization_volume is org_volume
-        _assert_called_once_with_config(mocks[WRITE_CACHES], org.id)
 
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     def test_run_calculations_per_org_skips_org_without_transaction_sample_rate(self) -> None:

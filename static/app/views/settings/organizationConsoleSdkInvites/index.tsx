@@ -5,12 +5,11 @@ import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
-import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {CONSOLE_PLATFORM_METADATA} from 'sentry/constants/consolePlatforms';
@@ -21,6 +20,11 @@ import {useUser} from 'sentry/utils/useUser';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {useConsoleSdkInvites, useRevokeConsoleSdkPlatformInvite} from './hooks';
+
+const INVITE_COLUMNS: TableColumnConfig[] = [
+  {key: 'users', width: '1fr'},
+  {key: 'platforms', width: '2fr'},
+];
 
 export default function ConsoleSDKInvitesSettings() {
   const organization = useOrganization();
@@ -70,6 +74,7 @@ export default function ConsoleSDKInvitesSettings() {
         <NoQuotaRemaining organization={organization} />
       )}
       <InvitesTable
+        columns={INVITE_COLUMNS}
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>{t('Users')}</SimpleTable.HeaderCell>
@@ -77,17 +82,9 @@ export default function ConsoleSDKInvitesSettings() {
           </SimpleTable.HeaderRow>
         }
       >
-        {isPending && (
-          <SimpleTable.Empty>
-            <LoadingIndicator />
-          </SimpleTable.Empty>
-        )}
+        {isPending && <SimpleTable.Loading />}
 
-        {isError && (
-          <SimpleTable.Empty>
-            <LoadingError onRetry={refetch} />
-          </SimpleTable.Empty>
-        )}
+        {isError && <SimpleTable.Error onRetry={refetch} />}
 
         {!isPending && !isError && invites?.length === 0 && (
           <SimpleTable.Empty>{t('No invites found')}</SimpleTable.Empty>
@@ -200,5 +197,4 @@ function NoQuotaRemaining({organization}: {organization: Organization}) {
 
 const InvitesTable = styled(SimpleTable)`
   margin-top: 1em;
-  grid-template-columns: 1fr 2fr;
 `;

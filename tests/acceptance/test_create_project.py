@@ -58,7 +58,7 @@ class CreateProjectTest(AcceptanceTestCase):
         project2 = Project.objects.get(organization=self.org, slug="javascript-nextjs")
         self.browser.back()
         self.browser.get("/organizations/%s/projects/" % self.org.slug)
-        self.browser.wait_until(xpath='//h1[text()="Remain Calm"]')
+        self.browser.wait_until(xpath='//*[text()="Remain Calm"]')
         assert_existing_projects_status(
             self.org, active_project_ids=[], deleted_project_ids=[project1.id, project2.id]
         )
@@ -118,7 +118,7 @@ class ScmCreateProjectTest(AcceptanceTestCase):
         repository_input.send_keys("sentry")
         self.browser.wait_until('[data-test-id="menu-list-item-label"]')
         self.browser.click('[data-test-id="menu-list-item-label"]')
-        self.browser.wait_until(xpath='//*[contains(text(), "Auto-detected from your repository")]')
+        self.browser.wait_until(xpath='//*[contains(text(), "Detected from")]')
         self.browser.wait_until(
             xpath='//*[@role="radiogroup"]//*[@role="radio" and @aria-checked="true"]'
             '[contains(., "Django")]'

@@ -1,8 +1,10 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import Feature from 'sentry/components/acl/feature';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -15,6 +17,7 @@ import {
   isVisualizeEquation,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
+import {hasConditionalAggregateFilter} from 'sentry/views/explore/utils/conditionalAggregate';
 import {
   getCreateAlertForLabel,
   getSaveAsAlertMenuItem,
@@ -50,7 +53,9 @@ export function ChartContextMenu({
       const yAxis = visualizeYAxes[0]!.yAxis;
       menuItems.push(
         getSaveAsAlertMenuItem({
-          disabled: isVisualizeEquation(visualizeYAxes[0]!),
+          disabled:
+            isVisualizeEquation(visualizeYAxes[0]!) ||
+            hasConditionalAggregateFilter(yAxis),
           to: getAlertsUrl({
             project,
             query,
@@ -74,7 +79,9 @@ export function ChartContextMenu({
       const alertsUrls = visualizeYAxes.map((visualizeYAxis, index) => ({
         key: `${visualizeYAxis.yAxis}-${index}`,
         label: visualizeYAxis.yAxis,
-        disabled: isVisualizeEquation(visualizeYAxis),
+        disabled:
+          isVisualizeEquation(visualizeYAxis) ||
+          hasConditionalAggregateFilter(visualizeYAxis.yAxis),
         to: getAlertsUrl({
           project,
           query,
@@ -148,12 +155,15 @@ export function ChartContextMenu({
 
   return (
     <DropdownMenu
-      triggerProps={{
-        size: 'xs',
-        variant: 'transparent',
-        showChevron: false,
-        icon: <IconEllipsis />,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          size="xs"
+          variant="transparent"
+          icon={<IconEllipsis />}
+          aria-label={t('Chart actions')}
+        />
+      )}
       position="bottom-end"
       items={items}
     />

@@ -15,7 +15,7 @@ export default Storybook.story('ReplayCurrentTime', story => {
           <ReplayPlayPauseButton />
           <ReplayCurrentTime />
           <NegativeSpaceContainer style={{height: 300}}>
-            <ReplayPlayerMeasurer measure="both">
+            <ReplayPlayerMeasurer>
               {style => <ReplayPlayer style={style} />}
             </ReplayPlayerMeasurer>
           </NegativeSpaceContainer>
@@ -38,7 +38,7 @@ export default Storybook.story('ReplayCurrentTime', story => {
           <JumpToOffsetButtonBar intervals={['0m', '1m', '12m']} />
 
           <NegativeSpaceContainer style={{height: 300}}>
-            <ReplayPlayerMeasurer measure="both">
+            <ReplayPlayerMeasurer>
               {style => <ReplayPlayer style={style} />}
             </ReplayPlayerMeasurer>
           </NegativeSpaceContainer>

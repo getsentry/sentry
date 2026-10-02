@@ -2,11 +2,10 @@ import {
   Fragment,
   useCallback,
   useEffect,
+  useEffectEvent,
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
-  type RefObject,
 } from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
@@ -19,9 +18,9 @@ import {FileSize} from 'sentry/components/fileSize';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
-import {GridStatus} from 'sentry/components/tables/gridEditable/styles';
+import {DataTable} from 'sentry/components/tables/dataTable';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
-import {IconArrow, IconWarning} from 'sentry/icons';
+import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
@@ -35,7 +34,6 @@ import {isRateLimitError} from 'sentry/utils/requestError/requestError';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useElementOffset} from 'sentry/utils/useElementOffset';
 import {useLocation} from 'sentry/utils/useLocation';
-import {TableBodyCell, TableHead, TableRow} from 'sentry/views/explore/components/table';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageDataQueryResult} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {LOGS_ROW_ID_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
@@ -115,7 +113,7 @@ type LogsTableProps = {
   };
   numberAttributes?: TagCollection;
   showCellActions?: boolean;
-  showExploreSimilarSpansLink?: boolean;
+  showExploreConnectedSpansLink?: boolean;
   stringAttributes?: TagCollection;
   validatedFieldTypes?: Partial<Record<string, FieldValueType>>;
 };
@@ -137,7 +135,7 @@ export function LogsInfiniteTable({
   additionalData,
   injectedErrorRows,
   showCellActions,
-  showExploreSimilarSpansLink,
+  showExploreConnectedSpansLink,
   validatedFieldTypes = {},
 }: LogsTableProps) {
   const location = useLocation();
@@ -151,6 +149,7 @@ export function LogsInfiniteTable({
     isEmpty,
     meta: rawMeta,
     data: originalData,
+    routingHintsByRow,
     isError,
     error,
     refetch,
@@ -175,7 +174,6 @@ export function LogsInfiniteTable({
   );
 
   const baseData = localOnlyItemFilters?.filteredItems ?? originalData;
-  const baseDataLength = useBox(baseData.length);
 
   const sortBys = useQueryParamsSortBys();
   const hasInjectedErrorRows =
@@ -216,8 +214,7 @@ export function LogsInfiniteTable({
       withEvent = baseData || [];
     } else {
       withEvent = [...baseData];
-      const newSelectedIndex =
-        pseudoRowIndex === -2 ? baseDataLength.current : pseudoRowIndex;
+      const newSelectedIndex = pseudoRowIndex === -2 ? baseData.length : pseudoRowIndex;
       withEvent.splice(
         newSelectedIndex,
         0,
@@ -239,7 +236,6 @@ export function LogsInfiniteTable({
     isPending,
     isError,
     pseudoRowIndex,
-    baseDataLength,
     hasInjectedErrorRows,
     injectedErrorRows,
   ]);
@@ -361,28 +357,28 @@ export function LogsInfiniteTable({
     [virtualizer]
   );
 
+  // The -2 sentinel means the pseudo row sits after every loaded row. Reading the
+  // row count from an effect event keeps it out of the effect deps, so scrolling
+  // does not repeat each time the infinite table loads another page.
+  const scrollToPseudoRow = useEffectEvent(() => {
+    const scrollToIndex = pseudoRowIndex === -2 ? baseData.length : pseudoRowIndex;
+    virtualizer.scrollToIndex(scrollToIndex, {
+      behavior: 'smooth',
+      align: 'center',
+    });
+  });
+
   useEffect(() => {
     if (
-      pseudoRowIndex !== -1 &&
-      tableBodyRef?.current &&
-      !additionalData?.scrollToDisabled
+      pseudoRowIndex === -1 ||
+      !tableBodyRef?.current ||
+      additionalData?.scrollToDisabled
     ) {
-      setTimeout(() => {
-        const scrollToIndex =
-          pseudoRowIndex === -2 ? baseDataLength.current : pseudoRowIndex;
-        virtualizer.scrollToIndex(scrollToIndex, {
-          behavior: 'smooth',
-          align: 'center',
-        });
-      }, 100);
+      return;
     }
-  }, [
-    pseudoRowIndex,
-    virtualizer,
-    tableBodyRef,
-    baseDataLength,
-    additionalData?.scrollToDisabled,
-  ]);
+    const timeoutId = setTimeout(() => scrollToPseudoRow(), 100);
+    return () => clearTimeout(timeoutId);
+  }, [pseudoRowIndex, virtualizer, tableBodyRef, additionalData?.scrollToDisabled]);
 
   const hasReplay = !!embeddedOptions?.replay;
 
@@ -408,6 +404,7 @@ export function LogsInfiniteTable({
     isPending,
     isScrolling,
     dataLength: data?.length ?? 0,
+    tableWidth,
   });
 
   useEffect(() => {
@@ -525,6 +522,11 @@ export function LogsInfiniteTable({
       return (
         <LogRowContent
           dataRow={dataRow}
+          routingHint={
+            routingHintsByRow.has(dataRow)
+              ? routingHintsByRow.get(dataRow)
+              : pinnedLogsQuery.routingHintsById.get(rowId)
+          }
           meta={meta}
           highlightTerms={highlightTerms}
           embedded={false}
@@ -555,6 +557,8 @@ export function LogsInfiniteTable({
       logStart,
       logsPinning,
       meta,
+      routingHintsByRow,
+      pinnedLogsQuery.routingHintsById,
     ]
   );
 
@@ -628,11 +632,11 @@ export function LogsInfiniteTable({
           disableBodyPadding={embeddedStyling?.disableBodyPadding}
         >
           {paddingTop > 0 && (
-            <TableRow>
+            <DataTable.Row>
               {fields.map(field => (
-                <TableBodyCell key={field} style={{height: paddingTop}} />
+                <DataTable.Cell key={field} style={{height: paddingTop}} />
               ))}
-            </TableRow>
+            </DataTable.Row>
           )}
           {/* Only render these in table for non-replay contexts */}
           {!hasReplay && isPending && (
@@ -674,6 +678,11 @@ export function LogsInfiniteTable({
               <Fragment key={virtualRow.key}>
                 <LogRowContent
                   dataRow={dataRow as OurLogsResponseItem}
+                  routingHint={
+                    isRegularLogResponseItem(dataRow)
+                      ? routingHintsByRow.get(dataRow)
+                      : undefined
+                  }
                   errorRow={isErrorLogRow(dataRow) ? dataRow.__error : undefined}
                   meta={meta}
                   highlightTerms={highlightTerms}
@@ -689,7 +698,7 @@ export function LogsInfiniteTable({
                   isExpanded={expandedLogRows.has(rowId)}
                   onExpandHeight={handleExpandHeight}
                   showCellActions={showCellActions}
-                  showExploreSimilarSpansLink={showExploreSimilarSpansLink}
+                  showExploreConnectedSpansLink={showExploreConnectedSpansLink}
                   isPinned={logsPinning?.hasPinnedRow?.(rowId)}
                   isHighlighted={!!linkedRowId && rowId === linkedRowId}
                   isHoverLinked={hoveredRowId === rowId}
@@ -700,11 +709,11 @@ export function LogsInfiniteTable({
             );
           })}
           {paddingBottom > 0 && (
-            <TableRow>
+            <DataTable.Row>
               {fields.map(field => (
-                <TableBodyCell key={field} style={{height: paddingBottom}} />
+                <DataTable.Cell key={field} style={{height: paddingBottom}} />
               ))}
-            </TableRow>
+            </DataTable.Row>
           )}
           {!autoRefresh && !isPending && isFetchingNextPage && (
             <HoveringRowLoadingRenderer position="bottom" isEmbedded={embedded} />
@@ -762,7 +771,7 @@ function LogsTableHeader({
   );
   const pinningEnabled = !!useLogsPinning();
   return (
-    <TableHead>
+    <DataTable.Head>
       <LogTableRow>
         <FirstTableHeadCell isFirst align="left" />
         {fields.map((field, index) => {
@@ -816,19 +825,19 @@ function LogsTableHeader({
           );
         })}
       </LogTableRow>
-    </TableHead>
+    </DataTable.Head>
   );
 }
 
 function ErrorRenderer({error, onRetry}: {error?: unknown; onRetry?: () => void}) {
+  if (!isRateLimitError(error)) {
+    return <DataTable.Error onRetry={onRetry} />;
+  }
+
   return (
-    <GridStatus>
-      {isRateLimitError(error) ? (
-        <LogsRateLimitError onRetry={onRetry} />
-      ) : (
-        <IconWarning variant="muted" size="lg" />
-      )}
-    </GridStatus>
+    <DataTable.Empty>
+      <LogsRateLimitError onRetry={onRetry} />
+    </DataTable.Empty>
   );
 }
 
@@ -845,7 +854,7 @@ export function LoadingRenderer({
   );
 
   return (
-    <GridStatus>
+    <DataTable.Empty>
       <Stack align="center">
         <EmptyStateText size="md" textAlign="center">
           <StyledLoadingIndicator margin="1em auto" />
@@ -867,7 +876,7 @@ export function LoadingRenderer({
           )}
         </EmptyStateText>
       </Stack>
-    </GridStatus>
+    </DataTable.Empty>
   );
 }
 
@@ -903,7 +912,7 @@ function fieldValueTypeToColumnType(fieldType?: FieldValueType): ColumnType | un
 }
 
 const StyledLoadingIndicator = styled(LoadingIndicator)<{
-  margin: CSSProperties['margin'];
+  margin: string;
 }>`
   ${p => p.margin && `margin: ${p.margin}`};
 `;
@@ -952,13 +961,7 @@ function BackToTopButton({
       }}
       aria-label="Back to top"
     >
-      <IconArrow direction="up" size="md" />
+      <IconArrow size="md" />
     </Button>
   );
-}
-
-function useBox<T>(value: T): RefObject<T> {
-  const box = useRef(value);
-  box.current = value;
-  return box;
 }

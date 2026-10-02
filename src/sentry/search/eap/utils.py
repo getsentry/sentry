@@ -1,12 +1,31 @@
+import math
+import re
+from collections.abc import Collection, Mapping
 from datetime import datetime
-from typing import Literal
+from typing import Any, Callable, Literal
 
+from django.db.models import Q
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_conventions.attributes import ATTRIBUTE_METADATA as ATTRIBUTE_METADATA
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
+from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import TraceItemAttributeNamesRequest
+from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import ExistsFilter, OrFilter, TraceItemFilter
 
+from sentry.discover.arithmetic import ArithmeticError, parse_arithmetic, resolve_arithmetic
+from sentry.exceptions import InvalidSearchQuery
+from sentry.explore.models import ExploreSavedFormula, KindItemTypes, ParamItemTypes
+from sentry.models.organization import Organization
 from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute
-from sentry.search.eap.constants import SENTRY_INTERNAL_PREFIXES
+from sentry.search.eap.constants import (
+    ARRAY,
+    BOOLEAN,
+    SENTRY_INTERNAL_PREFIXES,
+    STRING,
+    TYPE_MAP,
+    SearchType,
+)
 from sentry.search.eap.occurrences.attributes import (
     OCCURRENCE_ATTRIBUTE_DEFINITIONS,
     OCCURRENCE_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS,
@@ -66,6 +85,9 @@ from sentry.search.eap.types import (
     ColumnType,
     SupportedTraceItemType,
 )
+from sentry.search.events.fields import is_function, parse_arguments
+from sentry.utils import snuba_rpc
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 
 def add_start_end_conditions(
@@ -160,6 +182,18 @@ TRACE_ITEM_TYPE_DEFINITIONS: dict[SupportedTraceItemType, ColumnDefinitions] = {
     SupportedTraceItemType.PROFILE_FUNCTIONS: PROFILE_FUNCTIONS_DEFINITIONS,
     SupportedTraceItemType.OCCURRENCES: OCCURRENCE_DEFINITIONS,
 }
+
+
+def serialize_search_type(search_type: SearchType) -> str:
+    proto_type = TYPE_MAP.get(search_type)
+    if proto_type == STRING:
+        return "string"
+    if proto_type == BOOLEAN:
+        return "boolean"
+    if proto_type == ARRAY:
+        return "array"
+    # DOUBLE, INT, or anything else numeric
+    return "number"
 
 
 def translate_search_type_for_internal_column(
@@ -334,3 +368,241 @@ def get_deprecated_source_internal_names(
     replacement: str, item_type: SupportedTraceItemType
 ) -> set[str]:
     return SENTRY_CONVENTIONS_REVERSE_REPLACEMENT_MAP.get(item_type, {}).get(replacement, set())
+
+
+# We want to limit the number of threads to avoid overwhelming the RPC server.
+MAX_ATTRIBUTE_VALIDATION_THREADS = 3
+ATTRIBUTE_NAME_LIMIT = 10_000
+# Past this many pages we give up and report the name as missing rather than keep
+# spending RPCs on an org whose attributes dwarf the limit.
+MAX_ATTRIBUTE_NAME_PAGES = 3
+
+
+def _attribute_names_request(
+    meta: RequestMeta,
+    attr_type: AttributeKey.Type.ValueType,
+    names: Collection[str],
+    value_substring_match: str = "",
+    offset: int = 0,
+) -> TraceItemAttributeNamesRequest:
+    # TODO(wmak): Need to update snuba here so we can pass the list of attributes, snuba currently does a hasAll if we
+    # pass names in a OrFilter which means only rows with _all_ attributes will return
+    return TraceItemAttributeNamesRequest(
+        meta=meta,
+        limit=ATTRIBUTE_NAME_LIMIT,
+        page_token=PageToken(offset=offset),
+        type=attr_type,
+        value_substring_match=value_substring_match,
+        match_mode=TraceItemAttributeNamesRequest.MatchMode.MATCH_MODE_ANY,
+        # Selects which items snuba scans, not which names come back from them: every
+        # attribute co-occurring on a matching item is returned, so a wide filter can
+        # collect far more names than were asked about
+        intersecting_attributes_filter=TraceItemFilter(
+            or_filter=OrFilter(
+                filters=[
+                    TraceItemFilter(
+                        exists_filter=ExistsFilter(key=AttributeKey(type=attr_type, name=name))
+                    )
+                    for name in names
+                ]
+            )
+        ),
+    )
+
+
+def attribute_name_exists(
+    meta: RequestMeta,
+    attr_type: AttributeKey.Type.ValueType,
+    name: str,
+) -> bool:
+    """Check a single typed attribute name, matching on the name to narrow what we page through."""
+    for page in range(MAX_ATTRIBUTE_NAME_PAGES):
+        response = snuba_rpc.attribute_names_rpc(
+            _attribute_names_request(
+                meta,
+                attr_type,
+                [name],
+                value_substring_match=name,
+                offset=page * ATTRIBUTE_NAME_LIMIT,
+            )
+        )
+        if any(attribute.name == name for attribute in response.attributes):
+            return True
+        # The substring match still returns every name containing this one, so a
+        # short enough name can page itself out
+        if len(response.attributes) < ATTRIBUTE_NAME_LIMIT:
+            break
+
+    return False
+
+
+def _attribute_names_page(
+    meta: RequestMeta,
+    attr_type: AttributeKey.Type.ValueType,
+    names: Collection[str],
+    offset: int = 0,
+) -> tuple[set[str], bool]:
+    """One page of typed names matching the filter, and whether more pages remain."""
+    requested_names = set(names)
+    response = snuba_rpc.attribute_names_rpc(
+        _attribute_names_request(meta, attr_type, requested_names, offset=offset)
+    )
+    found = {
+        attribute.name for attribute in response.attributes if attribute.name in requested_names
+    }
+    return found, len(response.attributes) >= ATTRIBUTE_NAME_LIMIT
+
+
+def _check_attribute_names_by_type(
+    meta: RequestMeta,
+    attr_type: AttributeKey.Type.ValueType,
+    names: Collection[str],
+) -> set[str]:
+    """Check which of the typed names exist in storage for the meta's window."""
+    if not names:
+        return set()
+
+    requested_names = set(names)
+    found, more = _attribute_names_page(meta, attr_type, requested_names)
+    if found == requested_names or not more:
+        return found
+
+    # Refiltering on just the missing names shrinks the set of items snuba scans, and
+    # so the co-occurring names it collects, often back under the limit
+    filter_names = requested_names - found
+    if filter_names != requested_names:
+        retry_found, more = _attribute_names_page(meta, attr_type, filter_names)
+        found |= retry_found
+        if found == requested_names or not more:
+            return found
+
+    for page in range(1, MAX_ATTRIBUTE_NAME_PAGES):
+        page_found, more = _attribute_names_page(
+            meta, attr_type, filter_names, offset=page * ATTRIBUTE_NAME_LIMIT
+        )
+        found |= page_found
+        if found == requested_names or not more:
+            break
+
+    return found
+
+
+def check_attribute_names_exist(
+    meta: RequestMeta,
+    names_by_type: Mapping[AttributeKey.Type.ValueType, Collection[str]],
+) -> set[tuple[AttributeKey.Type.ValueType, str]]:
+    """Check which typed attribute names exist in storage for the meta's window."""
+    if not names_by_type:
+        return set()
+
+    found: set[tuple[AttributeKey.Type.ValueType, str]] = set()
+    with ContextPropagatingThreadPoolExecutor(
+        thread_name_prefix="attr_validate",
+        max_workers=MAX_ATTRIBUTE_VALIDATION_THREADS,
+    ) as pool:
+        futures = {
+            attr_type: pool.submit(_check_attribute_names_by_type, meta, attr_type, names)
+            for attr_type, names in names_by_type.items()
+        }
+        for attr_type, future in futures.items():
+            found.update((attr_type, name) for name in future.result())
+
+    return found
+
+
+FORMAT_RE = r"\{((?:\w|\.)+)\}"
+
+
+def parse_formula(
+    formula: str, organization: Organization, resolve_column: Callable[[str], Any]
+) -> str:
+    """Given a formula, parse its parameters and create its rpc definition"""
+    match = is_function(formula)
+    if not match:
+        raise InvalidSearchQuery(f"{formula} is not a valid function")
+    formula_name = match.group("function")
+    arguments = parse_arguments(formula_name, match.group("columns"))
+
+    saved_formula = ExploreSavedFormula.objects.filter(
+        organization=organization, name=formula_name
+    ).first()
+    if saved_formula is None:
+        raise InvalidSearchQuery(f"Unknown formula {formula_name}")
+
+    saved_variables = saved_formula.variables.order_by("order")
+    parameters = saved_variables.filter(kind=KindItemTypes.PARAM)
+    saved_args = parameters.filter(~Q(param_type=ParamItemTypes.CALCULATION))
+    if len(saved_args) != len(arguments):
+        raise InvalidSearchQuery(
+            f"{formula_name} expected {len(saved_args)} arguments got {len(arguments)} instead"
+        )
+
+    # Create a dict of param name -> the arg the user passed
+    variables = {}
+    for saved_arg, arg in zip(saved_args, arguments):
+        if saved_arg.param_type == ParamItemTypes.NUMBER:
+            # Ensure that the user arg is a valid number
+            try:
+                float_value = float(arg)
+                if not math.isfinite(float_value):
+                    raise InvalidSearchQuery(
+                        f"{saved_arg.name} resolved to {float_value}, which is outside the supported number range"
+                    )
+                arg = str(float_value)
+            except ValueError:
+                raise InvalidSearchQuery(
+                    f"{saved_arg.name} expected a number but got '{arg}' instead"
+                )
+            if "e" in arg or "E" in arg:
+                raise InvalidSearchQuery(
+                    f"{saved_arg.name} resolved to {arg}, which is outside the supported number range"
+                )
+        elif saved_arg.param_type == ParamItemTypes.COLUMN:
+            try:
+                resolve_column(arg)
+            except InvalidSearchQuery:
+                raise InvalidSearchQuery(
+                    f"{saved_arg.name} expected a valid column but got '{arg}'"
+                )
+        variables[saved_arg.name] = arg
+
+    # Resolve all the calculations
+    saved_calculations = parameters.filter(param_type=ParamItemTypes.CALCULATION)
+    calculations = {}
+    for calculation in saved_calculations:
+        value = calculation.value
+        for param_name, user_arg in variables.items():
+            value = value.replace(f"{{{param_name}}}", user_arg)
+        if unmatched := re.findall(FORMAT_RE, value):
+            raise InvalidSearchQuery(
+                f"Missing parameters for {calculation.name}; {', '.join(unmatched)}"
+            )
+        try:
+            parsed, _, _ = parse_arithmetic(value)
+        except ArithmeticError as e:
+            raise InvalidSearchQuery(e)
+        calculations[calculation.name] = resolve_arithmetic(parsed)
+    # Do this at the end so that calculations aren't accidentally used within each other
+    variables.update(calculations)
+
+    # Resolve all the references
+    saved_references = saved_variables.filter(kind=KindItemTypes.REFERENCE)
+    references = {}
+    for reference in saved_references:
+        value = reference.value
+        for param_name, user_arg in variables.items():
+            value = value.replace(f"{{{param_name}}}", str(user_arg))
+        if unmatched := re.findall(FORMAT_RE, value):
+            raise InvalidSearchQuery(
+                f"Missing parameters for {reference.name}; {', '.join(unmatched)}"
+            )
+        references[reference.name] = value
+    variables.update(references)
+
+    final_equation = saved_formula.formula
+    for param_name, user_arg in variables.items():
+        final_equation = final_equation.replace(f"{{{param_name}}}", str(user_arg))
+    if unmatched := re.findall(FORMAT_RE, final_equation):
+        raise InvalidSearchQuery(f"Missing parameters for formula; {', '.join(unmatched)}")
+
+    return f"equation|{final_equation}"

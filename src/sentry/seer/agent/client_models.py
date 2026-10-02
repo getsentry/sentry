@@ -108,7 +108,7 @@ class RepoPRState(BaseModel):
     branch_name: str | None = None
     pr_number: int | None = None
     pr_url: str | None = None
-    pr_id: int | None = None
+    pr_id: str | None = None
     commit_sha: str | None = None
     pr_creation_status: Literal["creating", "completed", "error"] | None = None
     pr_creation_error: str | None = None
@@ -174,6 +174,8 @@ class MemoryBlock(BaseModel):
     todos: list[TodoItem] | None = None
     tool_links: list[ToolLink | None] | None = None
     tool_results: list[ToolResult | None] | None = None
+    live_calls: list[dict[str, Any]] | None = None
+    progress: list[dict[str, Any]] | None = None
 
     class Config:
         extra = "ignore"
@@ -263,18 +265,41 @@ class SeerRunState(BaseModel):
     run_id: int
     blocks: list[MemoryBlock]
     status: Literal["processing", "completed", "error", "awaiting_user_input"]
+    # Set only for the failures Seer can classify (currently "timeout" and
+    # "stalled"); every other failure leaves it None, so `status` is the signal
+    # for whether a run failed and this is only ever extra detail. Kept as a
+    # plain str so a new Seer reason does not fail validation mid-deploy.
+    failure_reason: str | None = None
     updated_at: str
     owner_user_id: int | None = None
     pending_user_input: PendingUserInput | None = None
     repo_pr_states: dict[str, RepoPRState] = Field(default_factory=dict)
     # exclude=True omits these from .dict() so they're not exposed via the public
-    # chat API. Internal callers (autofix, night shift) still access them directly.
+    # chat API. Internal callers (autofix, agentic triage) still access them directly.
     metadata: dict[str, Any] | None = Field(default=None, exclude=True)
     coding_agents: dict[str, CodingAgentState] = Field(default_factory=dict, exclude=True)
     usage: UsageAccumulator = Field(default_factory=UsageAccumulator, exclude=True)
 
     class Config:
         extra = "ignore"
+
+    def get_created_pull_request_states(self) -> list[RepoPRState]:
+        """
+        The repos this run actually got a pull request onto.
+
+        ``repo_pr_states`` also holds repos whose push failed, so a plain
+        truthiness check treats a failed run as one that opened PRs — which
+        would, for instance, refuse to re-run a step that stranded nothing.
+
+        ``pr_number`` is what says the PR exists: seer only ever sets it from a
+        created pull request, so an errored state that carries one is a PR that
+        opened and then took a failed push, not a creation that never landed.
+        """
+        return [
+            pr_state
+            for pr_state in self.repo_pr_states.values()
+            if pr_state.pr_creation_status != "error" or pr_state.pr_number is not None
+        ]
 
     def get_artifacts(self) -> dict[str, Artifact]:
         """
@@ -385,10 +410,3 @@ class AgentRun(BaseModel):
 
     class Config:
         extra = "allow"
-
-
-class AgentRunWithPrs(AgentRun):
-    """A single agent run record with PR metadata."""
-
-    group_id: int | None = None
-    repo_pr_states: dict[str, RepoPRState] | None = None

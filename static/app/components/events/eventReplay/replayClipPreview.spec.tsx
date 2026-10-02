@@ -1,9 +1,13 @@
 import {duration} from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
+import {
+  RRWebFullSnapshotFrameEventFixture,
+  RRWebInitFrameEventsFixture,
+} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
+import {stubIframeScrollTo} from 'sentry-test/iframeScrollTo';
 import {render as baseRender, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {ResponseMeta} from 'sentry/types/api';
@@ -51,9 +55,14 @@ const mockReplay = ReplayReader.factory({
   }),
   errors: [],
   fetching: false,
-  attachments: RRWebInitFrameEventsFixture({
-    timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
-  }),
+  attachments: [
+    ...RRWebInitFrameEventsFixture({
+      timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
+    }),
+    RRWebFullSnapshotFrameEventFixture({
+      timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
+    }),
+  ],
   clipWindow: {
     startTimestampMs: mockEventTimestampMs - 5_000,
     endTimestampMs: mockEventTimestampMs + 5_000,
@@ -109,6 +118,8 @@ jest.mock('screenfull', () => ({
 }));
 
 describe('ReplayClipPreview', () => {
+  beforeAll(stubIframeScrollTo);
+
   beforeEach(() => {
     mockIsFullscreen.mockReturnValue(false);
 

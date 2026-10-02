@@ -65,6 +65,7 @@ import {getSortField} from './fieldRenderers';
 export type MetaType = Record<string, any> & {
   isMetricsData?: boolean;
   isMetricsExtractedData?: boolean;
+  routingHint?: string;
   tips?: {columns: string; query: string};
   units?: Record<string, string>;
 };
@@ -76,6 +77,7 @@ export type EventsMetaType = {fields: Record<string, ColumnType>} & {
   discoverSplitDecision?: WidgetType;
   isMetricsData?: boolean;
   isMetricsExtractedData?: boolean;
+  routingHint?: string;
 };
 
 // Data in discover results.
@@ -1243,14 +1245,14 @@ export class EventView {
     isHomepage = false,
     queryDataset?: SavedQueryDatasets
   ): {pathname: string; query: Query} {
-    const target = isHomepage ? 'homepage' : 'results';
+    const target = isHomepage ? undefined : 'results';
     const query = this.generateQueryStringObject();
     if (queryDataset) {
       query.queryDataset = queryDataset;
     }
     return {
       pathname: makeDiscoverPathname({
-        path: `/${target}/`,
+        path: target ? `/${target}/` : '/',
         organization,
       }),
       query,

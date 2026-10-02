@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -11,6 +13,7 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationInte
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.repository import RepositorySerializer as RepositoryApiSerializer
+from sentry.api.utils import to_valid_int_id
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.models.commit import Commit
@@ -27,7 +30,14 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
     }
     permission_classes = (OrganizationIntegrationsPermission,)
 
-    def get(self, request: Request, organization: Organization, repo_id) -> Response:
+    def convert_args(
+        self, request: Request, repo_id: str, *args: Any, **kwargs: Any
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        args, kwargs = super().convert_args(request, *args, **kwargs)
+        kwargs["repo_id"] = to_valid_int_id("repo_id", repo_id, raise_404=True)
+        return args, kwargs
+
+    def get(self, request: Request, organization: Organization, repo_id: int) -> Response:
         try:
             repo = Repository.objects.get(id=repo_id, organization_id=organization.id)
         except Repository.DoesNotExist:
@@ -36,7 +46,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
         expand = request.GET.getlist("expand", [])
         return Response(serialize(repo, request.user, RepositoryApiSerializer(expand=expand)))
 
-    def delete(self, request: Request, organization, repo_id) -> Response:
+    def delete(self, request: Request, organization: Organization, repo_id: int) -> Response:
         if not request.user.is_authenticated:
             return Response(status=401)
 

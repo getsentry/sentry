@@ -15,6 +15,7 @@ import {Text} from '@sentry/scraps/text';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+import {getAvailableEnvironments} from 'sentry/components/pageFilters/environment/getAvailableEnvironments';
 import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
@@ -30,6 +31,7 @@ import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -50,10 +52,6 @@ export interface ProjectPageFilterProps extends Partial<
    */
   onChange?: (selected: number[]) => void;
   /**
-   * Called when the reset button is clicked
-   */
-  onReset?: () => void;
-  /**
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
@@ -66,7 +64,6 @@ export interface ProjectPageFilterProps extends Partial<
 
 export function ProjectPageFilter({
   onChange,
-  onReset,
   disabled,
   menuTitle,
   menuWidth,
@@ -82,7 +79,7 @@ export function ProjectPageFilter({
   // Project data s
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const {
-    selection: {projects: urlProjectSelection},
+    selection: {projects: urlProjectSelection, environments: urlEnvironmentSelection},
     isReady: pageFilterIsReady,
   } = usePageFilters();
 
@@ -364,10 +361,12 @@ export function ProjectPageFilter({
 
     const projectItems = sortBy(
       [...memberProjectList, ...nonMemberProjectList],
+      // oxlint-disable-next-line react/refs
       listSort
     ).map(getProjectItem);
 
     return [...specialItems, ...projectItems];
+    // oxlint-disable-next-line react/memo-dependencies
   }, [
     projects,
     stagedValue,
@@ -438,23 +437,25 @@ export function ProjectPageFilter({
       multi: resolvedValue.length > 1,
     });
 
-    updateProjects(
-      toURLSelection({
-        projects,
-        // Preserve the ALL_ACCESS_PROJECTS sentinel before it gets expanded to []
-        // so toURLSelection can distinguish "All Projects selected" from "nothing selected".
-        value: newValue.includes(ALL_ACCESS_PROJECTS) ? newValue : resolvedValue,
-      }),
-      location,
-      navigate,
-      {
-        save: true,
-        resetParams: resetParamsOnChange,
-        // Why are we clearing the environments when switching projects?
-        environments: [],
-        storageNamespace,
-      }
+    const urlSelection = toURLSelection({
+      projects,
+      // Preserve the ALL_ACCESS_PROJECTS sentinel before it gets expanded to []
+      // so toURLSelection can distinguish "All Projects selected" from "nothing selected".
+      value: newValue.includes(ALL_ACCESS_PROJECTS) ? newValue : resolvedValue,
+    });
+    const availableEnvironments = getAvailableEnvironments(
+      projects,
+      new Set(urlSelection)
     );
+
+    updateProjects(urlSelection, location, navigate, {
+      save: true,
+      resetParams: resetParamsOnChange,
+      environments: urlEnvironmentSelection.filter(environment =>
+        availableEnvironments.has(environment)
+      ),
+      storageNamespace,
+    });
   };
 
   const filterOptionsOnSearch = useCallback(
@@ -477,7 +478,9 @@ export function ProjectPageFilter({
 
   // Wire up refs after stagedSelect is created to break the circular dependency between
   // options (which need toggleOption/dispatch) and useStagedCompactSelect (which needs options).
+  // oxlint-disable-next-line react/refs
   toggleOptionRef.current = stagedSelect.toggleOption;
+  // oxlint-disable-next-line react/refs
   dispatchRef.current = stagedSelect.dispatch;
 
   // Derived intent and UI actions
@@ -497,7 +500,6 @@ export function ProjectPageFilter({
   const handleReset = () => {
     clearDraftSelectionState();
     commitSelection(memberProjectIds(projects));
-    onReset?.();
 
     trackAnalytics('projectselector.clear', {
       path: routePath,
@@ -528,49 +530,55 @@ export function ProjectPageFilter({
     }, 0);
   };
 
+  // React Compiler could not prove this memoization is preserved; it bails out on
+  // code this callback depends on. Revisit once those bailouts are fixed.
+  // oxlint-disable-next-line react/preserve-manual-memoization
   const defaultMenuWidth = useMemo(() => computeMenuWidth(options), [options]);
 
-  const canWrite = organization.access.includes('project:write');
+  const canCreateProject = useCanCreateProject();
 
   const hasUnstaggedChanges =
     xor(stagedSelect.value, committedSelectionIntent.ids).length > 0;
 
-  const menuFooterContent =
-    selectionLimitExceeded || canWrite || hasUnstaggedChanges ? (
-      <Stack gap="md" direction="column">
-        {selectionLimitExceeded && (
-          <MenuComponents.Alert variant="warning">
-            {tct(
-              "You've selected [count] projects, but only up to [limit] can be selected at a time. Select All Projects to view all projects.",
-              {
-                limit: SELECTION_COUNT_LIMIT,
-                count: stagedSelect.value.length,
-              }
-            )}
-          </MenuComponents.Alert>
-        )}
-        <Flex gap="md" align="center" justify={canWrite ? 'between' : 'end'}>
-          {canWrite ? (
-            <MenuComponents.CTALinkButton
-              icon={<IconAdd />}
-              to={makeProjectsPathname({path: '/new/', organization})}
+  const menuFooterContent = (
+    <Stack gap="md" direction="column">
+      {selectionLimitExceeded && (
+        <MenuComponents.Alert variant="warning">
+          {tct(
+            "You've selected [count] projects, but only up to [limit] can be selected at a time. Select All Projects to view all projects.",
+            {
+              limit: SELECTION_COUNT_LIMIT,
+              count: stagedSelect.value.length,
+            }
+          )}
+        </MenuComponents.Alert>
+      )}
+      <Flex gap="md" align="center" justify="between">
+        <MenuComponents.CTALinkButton
+          icon={<IconAdd />}
+          to={makeProjectsPathname({path: '/new/', organization})}
+          onClick={handleApply}
+          disabled={!canCreateProject}
+          tooltipProps={{
+            title: canCreateProject
+              ? undefined
+              : t('Only project or team admins can create projects'),
+          }}
+        >
+          {t('Create Project')}
+        </MenuComponents.CTALinkButton>
+        {hasUnstaggedChanges ? (
+          <Flex gap="md" align="center" justify="end">
+            <MenuComponents.CancelButton onClick={handleCancel} />
+            <MenuComponents.ApplyButton
+              disabled={selectionLimitExceeded}
               onClick={handleApply}
-            >
-              {t('Create Project')}
-            </MenuComponents.CTALinkButton>
-          ) : undefined}
-          {hasUnstaggedChanges ? (
-            <Flex gap="md" align="center" justify="end">
-              <MenuComponents.CancelButton onClick={handleCancel} />
-              <MenuComponents.ApplyButton
-                disabled={selectionLimitExceeded}
-                onClick={handleApply}
-              />
-            </Flex>
-          ) : null}
-        </Flex>
-      </Stack>
-    ) : null;
+            />
+          </Flex>
+        ) : null}
+      </Flex>
+    </Stack>
+  );
 
   return (
     <CompactSelect

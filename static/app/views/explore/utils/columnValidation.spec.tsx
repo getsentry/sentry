@@ -157,4 +157,63 @@ describe('getValidatedColumnData', () => {
     expect(result.attributes.array['custom.tags']?.kind).toBe(FieldKind.ARRAY);
     expect(result.attributes.number['custom.tags']).toBeUndefined();
   });
+
+  it('keeps a series whose `_if` filter fails validation', () => {
+    const yAxis = 'count_if(`span.op:`,span.duration)';
+    const validationData: EventValidationData = {
+      dataset: [],
+      environment: [],
+      field: [
+        {attrType: 'number', error: null, name: 'span.duration', valid: true},
+        {
+          attrType: null,
+          error: 'Invalid query: expected a value',
+          name: yAxis,
+          valid: false,
+        },
+      ],
+      orderby: [],
+      projects: [],
+      query: {error: null, fields: [], valid: true},
+      valid: false,
+    };
+
+    const result = getValidatedColumnData({
+      aggregateFields: [new VisualizeFunction(yAxis)],
+      attributes: {boolean: {}, number: {}, string: {}},
+      fields: [],
+      validationData,
+    });
+
+    expect(
+      result.aggregateFields.map(aggregateField =>
+        'groupBy' in aggregateField ? aggregateField.groupBy : aggregateField.yAxis
+      )
+    ).toEqual([yAxis]);
+  });
+
+  it('removes a series with an `_if` filter whose attribute is invalid', () => {
+    const yAxis = 'count_if(`span.op:db`,missing.field)';
+    const validationData: EventValidationData = {
+      dataset: [],
+      environment: [],
+      field: [
+        {attrType: null, error: 'Unknown attribute', name: 'missing.field', valid: false},
+        {attrType: null, error: 'Unknown attribute', name: yAxis, valid: false},
+      ],
+      orderby: [],
+      projects: [],
+      query: {error: null, fields: [], valid: true},
+      valid: false,
+    };
+
+    const result = getValidatedColumnData({
+      aggregateFields: [new VisualizeFunction(yAxis)],
+      attributes: {boolean: {}, number: {}, string: {}},
+      fields: [],
+      validationData,
+    });
+
+    expect(result.aggregateFields).toEqual([]);
+  });
 });

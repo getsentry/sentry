@@ -5,9 +5,10 @@ import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 
+import {ResultGrid} from 'sentry/components/resultGrid';
+
 import {PageHeader} from 'admin/components/pageHeader';
 import {AddPromoCodeModal as PromoCodeModal} from 'admin/components/promoCodes/promoCodeModal';
-import {ResultGrid} from 'admin/components/resultGrid';
 import {titleCase} from 'getsentry/utils/titleCase';
 
 const getRow = (row: any) => [
@@ -61,7 +62,6 @@ export function PromoCodes() {
         inPanel
         path="/_admin/promocodes/"
         endpoint="/promocodes/"
-        method="GET"
         columns={[
           <th key="code">Code</th>,
           <th key="value" style={{width: 100, textAlign: 'center'}}>

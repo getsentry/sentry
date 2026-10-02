@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {useVirtualizer} from '@tanstack/react-virtual';
 import moment from 'moment-timezone';
 
+import {useTimezone} from '@sentry/scraps/datetime';
 import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -12,8 +12,8 @@ import {Duration} from 'sentry/components/duration';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {BreadcrumbItemContent} from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
 import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {Timeline} from 'sentry/components/timeline';
-import {useTimezone} from 'sentry/components/timezoneProvider';
 import {t} from 'sentry/locale';
 import {isValidDate} from 'sentry/utils/date/isValidDate';
 import {defined} from 'sentry/utils/defined';
@@ -87,7 +87,7 @@ export function BreadcrumbsTimeline({
   fullyExpanded = true,
   showLastLine = false,
 }: BreadcrumbsTimelineProps) {
-  const virtualizer = useVirtualizer({
+  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
     count: breadcrumbs.length,
     getScrollElement: () => containerElement,
     estimateSize: () => 35,
@@ -100,7 +100,6 @@ export function BreadcrumbsTimeline({
     return null;
   }
 
-  const virtualItems = virtualizer.getVirtualItems();
   const items = virtualItems.map(virtualizedRow => {
     const {breadcrumb, raw, title, meta, iconComponent, colorConfig, levelComponent} =
       breadcrumbs[virtualizedRow.index]!;
@@ -113,7 +112,6 @@ export function BreadcrumbsTimeline({
       <Timestamp>
         <Tooltip
           title={<BreadcrumbTimestampTooltipBody timestamp={timestamp} />}
-          isHoverable
           maxWidth={400}
         >
           {isValidDate(startTimeDate) ? (
@@ -166,7 +164,7 @@ export function BreadcrumbsTimeline({
   return (
     <div
       style={{
-        height: virtualizer.getTotalSize(),
+        height: totalSize,
         position: 'relative',
       }}
     >

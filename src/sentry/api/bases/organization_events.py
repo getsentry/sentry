@@ -156,9 +156,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             and not EAPOccurrencesComparator.should_use_experimental_data("api.events.endpoints")
         ):
             raise ParseError(detail=f"{dataset_label} is not supported currently")
-        elif dataset_label == SupportedTraceItemType.REPLAYS.value and not features.has(
-            "organizations:events-use-replays-dataset", organization, actor=request.user
-        ):
+        elif dataset_label == SupportedTraceItemType.REPLAYS.value:
             raise ParseError(detail=f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}")
         result = get_dataset(dataset_label)
         if result is None:
@@ -433,6 +431,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 full_scan = meta.pop("full_scan", None)
                 bytes_scanned = meta.pop("bytes_scanned", None)
                 debug_info = meta.pop("debug_info", None)
+                routing_hint = meta.pop("routing_hint", None)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
                     "fields": fields,
@@ -456,6 +455,9 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
 
                 if bytes_scanned is not None:
                     meta["bytesScanned"] = bytes_scanned
+
+                if routing_hint:
+                    meta["routingHint"] = routing_hint
 
                 # Only appears in meta when debug is passed to the endpoint
                 if debug_info:

@@ -56,10 +56,12 @@ class ErrorEvent(BaseEvent):
             return {}
         rv = {"value": trim(get_path(exception, "value", default=""), 1024)}
 
-        # If the exception mechanism indicates a synthetic exception we do not
-        # want to record the type and value into the metadata.
-        if not get_path(exception, "mechanism", "synthetic"):
-            rv["type"] = trim(get_path(exception, "type", default="Error"), 128)
+        # A synthetic exception's type is a platform label (`SIGSEGV`, `AppHang`), not the identity
+        # of what went wrong. Keep it as a last-resort title, flagged so readers can tell it apart.
+        # (We record a value for `synthetic` even for non-synthetic errors so even a missing flag
+        # updates the data.)
+        rv["type"] = trim(get_path(exception, "type", default="Error"), 128)
+        rv["synthetic"] = bool(get_path(exception, "mechanism", "synthetic"))
 
         # Attach crash location if available
         loc = get_crash_location(data)
@@ -72,12 +74,18 @@ class ErrorEvent(BaseEvent):
 
         return rv
 
-    def compute_title(self, metadata: Mapping[str, str | None]) -> str:
+    def compute_title(self, metadata: Mapping[str, Any]) -> str:
         title = metadata.get("type")
         if title is not None:
             value = metadata.get("value")
             if value:
                 title += f": {truncatechars(value.splitlines()[0], 256)}"
+
+        # Synthetic exceptions (dummy exceptions created by the SDK to carry a stacktrace)
+        # have types which are platform-specific and not reflective of what actually went
+        # wrong, so prefer function name if we have it
+        if metadata.get("synthetic"):
+            return metadata.get("function") or title or "<unknown>"
 
         return title or metadata.get("function") or "<unknown>"
 

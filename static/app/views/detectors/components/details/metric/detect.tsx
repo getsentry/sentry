@@ -21,6 +21,7 @@ import type {
   MetricDetector,
 } from 'sentry/types/workflowEngine/detectors';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
+import {AggregateSummaryTable} from 'sentry/views/detectors/components/details/metric/aggregateSummaryTable';
 import {PriorityDot} from 'sentry/views/detectors/components/priorityDot';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
@@ -186,6 +187,11 @@ export function MetricDetectorDetailsDetect({detector}: {detector: MetricDetecto
   );
   const query = datasetConfig.toSnubaQueryString(dataSource.queryObj.snubaQuery);
 
+  const {aggregate} = dataSource.queryObj.snubaQuery;
+  const aggregateText = datasetConfig.fromApiAggregate(aggregate);
+  // Datasets may summarize the aggregate (e.g. "A + B"), broken out on hover.
+  const aggregateSummary = datasetConfig.getAggregateSummary?.(aggregate);
+
   return (
     <Container>
       <Stack gap="md">
@@ -200,9 +206,16 @@ export function MetricDetectorDetailsDetect({detector}: {detector: MetricDetecto
           </Label>
           <Value>
             <Flex>
-              <FilterWrapper>
-                {datasetConfig.fromApiAggregate(dataSource.queryObj.snubaQuery.aggregate)}
-              </FilterWrapper>
+              {aggregateSummary ? (
+                <Tooltip
+                  title={<AggregateSummaryTable summary={aggregateSummary} />}
+                  maxWidth={400}
+                >
+                  <FilterWrapper>{aggregateSummary.expression}</FilterWrapper>
+                </Tooltip>
+              ) : (
+                <FilterWrapper>{aggregateText}</FilterWrapper>
+              )}
             </Flex>
           </Value>
           {query && (

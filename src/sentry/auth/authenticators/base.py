@@ -23,15 +23,21 @@ class ActivationResult:
     type: str
 
 
+class ActivationRateLimited(Exception):
+    pass
+
+
 class ActivationMessageResult(ActivationResult):
     def __init__(
         self,
         message: str | _StrPromise,
         type: Literal["error", "warning", "info"] = "info",
+        expires_in: int | None = None,
     ) -> None:
         assert type in ("error", "warning", "info")
         self.type = type
         self.message = message
+        self.expires_in = expires_in
 
     def __str__(self) -> str:
         return str(self.message)

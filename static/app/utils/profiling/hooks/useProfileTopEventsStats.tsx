@@ -3,7 +3,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
+import type {PageFilters} from 'sentry/types/core';
 import type {EventsStatsSeries} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
@@ -17,18 +17,14 @@ interface UseProfileTopEventsStatsOptions<F> {
   referrer: string;
   topEvents: number;
   yAxes: readonly F[];
-  datetime?: PageFilterDatetime;
   enabled?: boolean;
-  interval?: string;
   projects?: PageFilters['projects'];
   query?: string;
 }
 
 export function useProfileTopEventsStats<F extends string>({
   dataset,
-  datetime,
   fields,
-  interval,
   others,
   query,
   projects,
@@ -49,9 +45,8 @@ export function useProfileTopEventsStats<F extends string>({
         referrer,
         project: projects ?? selection.projects,
         environment: selection.environments,
-        ...normalizeDateTimeParams(datetime ?? selection.datetime),
+        ...normalizeDateTimeParams(selection.datetime),
         yAxis: yAxes,
-        interval,
         query,
         topEvents,
         excludeOther: others ? '0' : '1',

@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
+import {expectTypeOf} from 'expect-type';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {Markdown} from '@sentry/scraps/markdown';
 
@@ -177,6 +178,57 @@ describe('Markdown', () => {
   });
 
   describe('component overrides', () => {
+    it('hands a Table override the parsed columns, header, and rows', () => {
+      render(
+        <Markdown
+          raw={'| Name | Count |\n| --- | ---: |\n| **alpha** | 1 |\n| beta | 2 |'}
+          components={{
+            Table: ({columns, header, rows}) => (
+              <div
+                data-test-id="custom-table"
+                data-aligns={columns.map(column => column.align ?? 'none').join(',')}
+              >
+                <div role="row">
+                  {header.map((cell, index) => (
+                    <span key={index} role="columnheader">
+                      {cell}
+                    </span>
+                  ))}
+                </div>
+                {rows.map((row, rowIndex) => (
+                  <div key={rowIndex} role="row">
+                    {row.map((cell, cellIndex) => (
+                      <span key={cellIndex} role="cell">
+                        {cell}
+                      </span>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            ),
+          }}
+        />
+      );
+
+      expect(screen.getByTestId('custom-table')).toHaveAttribute(
+        'data-aligns',
+        'none,right'
+      );
+      expect(screen.getAllByRole('columnheader').map(cell => cell.textContent)).toEqual([
+        'Name',
+        'Count',
+      ]);
+
+      const [, firstRow, secondRow] = screen.getAllByRole('row');
+      // Cells arrive rendered, inline Markdown included.
+      expect(within(firstRow!).getByText('alpha').tagName).toBe('STRONG');
+      expect(
+        within(secondRow!)
+          .getAllByRole('cell')
+          .map(cell => cell.textContent)
+      ).toEqual(['beta', '2']);
+    });
+
     it('overrides Paragraph component', () => {
       render(
         <Markdown
@@ -330,18 +382,19 @@ describe('Markdown', () => {
     });
 
     it('custom Html receives sanitized content', () => {
-      let receivedHtml = '';
+      let receivedHtml: TrustedHTML | undefined;
       render(
         <Markdown
           raw="<script>alert(1)</script>"
           components={{
-            Html: ({html}: {html: string}) => {
+            Html: ({html}) => {
               receivedHtml = html;
               return <span data-test-id="custom-html" />;
             },
           }}
         />
       );
+      expectTypeOf(receivedHtml).toEqualTypeOf<TrustedHTML | undefined>();
       expect(receivedHtml).not.toContain('<script');
     });
 
@@ -352,11 +405,17 @@ describe('Markdown', () => {
   });
 
   describe('tags', () => {
-    it('renders nothing for tags by default', () => {
-      const {container} = render(
-        <Markdown raw='{% ref type="issue" id="PROJ-123" /%}' />
-      );
-      expect(container).toHaveTextContent('');
+    it('echoes the original tag source by default', () => {
+      const raw = '{% ref type="issue" id="PROJ-123" /%}';
+      const {container} = render(<Markdown raw={raw} />);
+      expect(container).toHaveTextContent(raw);
+    });
+
+    it('echoes block tag source including the body by default', () => {
+      const raw =
+        '{% artifact type="root-cause" %}{"description":"Race condition"}{% /artifact %}';
+      const {container} = render(<Markdown raw={raw} />);
+      expect(container).toHaveTextContent(raw);
     });
 
     it('renders custom Tag component with attrs', () => {
@@ -393,6 +452,91 @@ describe('Markdown', () => {
       const {container} = render(<Markdown raw='Some text {% ref type="issue"' />);
       expect(container).toHaveTextContent(/Some text/);
       expect(container).not.toHaveTextContent(/\{%/);
+    });
+  });
+
+  describe('tag index', () => {
+    function IndexProbe({name, index}: {name: string; index?: number}) {
+      return <output role="log">{`${name}=${index}`}</output>;
+    }
+
+    const indexes = () => screen.getAllByRole('log').map(el => el.textContent);
+
+    it('numbers tags in document order across blocks', () => {
+      render(
+        <Markdown
+          raw={'{% a /%}\n\n## Heading\n\n{% b /%}\n\n{% c /%}'}
+          components={{Tag: IndexProbe}}
+        />
+      );
+      expect(indexes()).toEqual(['a=0', 'b=1', 'c=2']);
+    });
+
+    it('numbers two inline tags in the same paragraph separately', () => {
+      render(
+        <Markdown
+          raw="See {% a /%} and also {% b /%} here"
+          components={{Tag: IndexProbe}}
+        />
+      );
+      expect(indexes()).toEqual(['a=0', 'b=1']);
+    });
+
+    it('numbers identical tags separately', () => {
+      render(
+        <Markdown
+          raw={'{% a %}{"id":"1"}{% /a %}\n\n{% a %}{"id":"1"}{% /a %}'}
+          components={{Tag: IndexProbe}}
+        />
+      );
+      expect(indexes()).toEqual(['a=0', 'a=1']);
+    });
+
+    it('numbers tags nested in lists', () => {
+      render(
+        <Markdown
+          raw={'- first {% a /%}\n- second {% b /%}'}
+          components={{Tag: IndexProbe}}
+        />
+      );
+      expect(indexes()).toEqual(['a=0', 'b=1']);
+    });
+
+    it('numbers tags in table headers before table rows', () => {
+      render(
+        <Markdown
+          raw={'| {% a /%} |\n| --- |\n| {% b /%} |'}
+          components={{Tag: IndexProbe}}
+        />
+      );
+      expect(indexes()).toEqual(['a=0', 'b=1']);
+    });
+
+    it('keeps existing indexes when content is appended', () => {
+      const {rerender} = render(
+        <Markdown raw="Start {% a /%}" components={{Tag: IndexProbe}} />
+      );
+      expect(indexes()).toEqual(['a=0']);
+
+      rerender(
+        <Markdown raw="Start {% a /%} then {% b /%}" components={{Tag: IndexProbe}} />
+      );
+      expect(indexes()).toEqual(['a=0', 'b=1']);
+    });
+
+    it('does not count a tag whose closing marker has not arrived', () => {
+      const {rerender} = render(
+        <Markdown raw='{% a /%} then {% b %}{"id"' components={{Tag: IndexProbe}} />
+      );
+      expect(indexes()).toEqual(['a=0']);
+
+      rerender(
+        <Markdown
+          raw='{% a /%} then {% b %}{"id":"1"}{% /b %}'
+          components={{Tag: IndexProbe}}
+        />
+      );
+      expect(indexes()).toEqual(['a=0', 'b=1']);
     });
   });
 

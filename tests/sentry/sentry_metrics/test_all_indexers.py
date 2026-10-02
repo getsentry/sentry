@@ -27,7 +27,7 @@ BACKENDS = [
     pytest.param(PGStringIndexerV2, marks=pytest.mark.django_db),
 ]
 
-USE_CASE_IDS = [UseCaseID.SESSIONS, UseCaseID.TRANSACTIONS]
+USE_CASE_IDS = [UseCaseID.SESSIONS]
 
 
 @pytest.fixture(params=BACKENDS)
@@ -59,9 +59,7 @@ def use_case_id(request):
 
 @pytest.fixture
 def writes_limiter_option_name(use_case_id):
-    if use_case_id is UseCaseID.SESSIONS:
-        return "sentry-metrics.writes-limiter.limits.releasehealth"
-    return "sentry-metrics.writes-limiter.limits.performance"
+    return "sentry-metrics.writes-limiter.limits.releasehealth"
 
 
 def assert_fetch_type_for_tag_string_set(
@@ -98,111 +96,6 @@ def test_static_and_non_static_strings_release_health(indexer, use_case_id) -> N
     )
     assert_fetch_type_for_tag_string_set(meta[use_case_id][2], FetchType.FIRST_SEEN, {"1.0.0"})
     assert_fetch_type_for_tag_string_set(meta[use_case_id][3], FetchType.FIRST_SEEN, {"2.0.0"})
-
-
-def test_static_and_non_static_strings_generic_metrics(indexer) -> None:
-    static_indexer = StaticStringIndexer(indexer)
-    strings = {
-        UseCaseID.TRANSACTIONS: {
-            1: {"production", "environment", "BBB", "CCC"},
-            2: {"AAA", "release", "1.0.0"},
-            3: {"production", "environment", "release", "AAA", "BBB"},
-            4: {"EEE"},
-        },
-        UseCaseID.SPANS: {
-            3: {"production", "environment", "BBB", "CCC"},
-            4: {"AAA", "release", "1.0.0"},
-            5: {"production", "environment", "release", "AAA", "BBB"},
-            6: {"EEE"},
-        },
-    }
-    static_string_params = [
-        (UseCaseID.TRANSACTIONS, 1, "production"),
-        (UseCaseID.TRANSACTIONS, 1, "environment"),
-        (UseCaseID.TRANSACTIONS, 2, "release"),
-        (UseCaseID.TRANSACTIONS, 3, "production"),
-        (UseCaseID.TRANSACTIONS, 3, "environment"),
-        (UseCaseID.TRANSACTIONS, 3, "release"),
-        (UseCaseID.SPANS, 3, "production"),
-        (UseCaseID.SPANS, 3, "environment"),
-        (UseCaseID.SPANS, 4, "release"),
-        (UseCaseID.SPANS, 5, "production"),
-        (UseCaseID.SPANS, 5, "environment"),
-        (UseCaseID.SPANS, 5, "release"),
-    ]
-    first_seen_strings_params = [
-        (UseCaseID.TRANSACTIONS, 1, "BBB"),
-        (UseCaseID.TRANSACTIONS, 1, "CCC"),
-        (UseCaseID.TRANSACTIONS, 2, "AAA"),
-        (UseCaseID.TRANSACTIONS, 2, "1.0.0"),
-        (UseCaseID.TRANSACTIONS, 3, "AAA"),
-        (UseCaseID.TRANSACTIONS, 3, "BBB"),
-        (UseCaseID.TRANSACTIONS, 4, "EEE"),
-        (UseCaseID.SPANS, 3, "BBB"),
-        (UseCaseID.SPANS, 3, "CCC"),
-        (UseCaseID.SPANS, 4, "AAA"),
-        (UseCaseID.SPANS, 4, "1.0.0"),
-        (UseCaseID.SPANS, 5, "AAA"),
-        (UseCaseID.SPANS, 5, "BBB"),
-        (UseCaseID.SPANS, 6, "EEE"),
-    ]
-    with override_options(
-        {
-            "sentry-metrics.writes-limiter.limits.spans.global": [],
-            "sentry-metrics.writes-limiter.limits.spans.per-org": [],
-        },
-    ):
-        results = static_indexer.bulk_record(strings=strings)
-
-    first_seen_strings = {}
-    for params in first_seen_strings_params:
-        first_seen_strings[params] = static_indexer.resolve(*params)
-
-    for use_case_id, org_id, string in static_string_params:
-        assert results[use_case_id][org_id][string] == SHARED_STRINGS[string]
-
-    for (use_case_id, org_id, string), id in first_seen_strings.items():
-        assert results[use_case_id][org_id][string] == id
-
-    meta = results.get_fetch_metadata()
-
-    assert_fetch_type_for_tag_string_set(
-        meta[UseCaseID.TRANSACTIONS][1], FetchType.HARDCODED, {"production", "environment"}
-    )
-    assert_fetch_type_for_tag_string_set(
-        meta[UseCaseID.TRANSACTIONS][2],
-        FetchType.HARDCODED,
-        {"release"},
-    )
-    assert_fetch_type_for_tag_string_set(
-        meta[UseCaseID.TRANSACTIONS][3],
-        FetchType.HARDCODED,
-        {"release", "production", "environment"},
-    )
-    assert_fetch_type_for_tag_string_set(
-        meta[UseCaseID.TRANSACTIONS][3],
-        FetchType.HARDCODED,
-        set(),
-    )
-
-    assert_fetch_type_for_tag_string_set(
-        meta[UseCaseID.TRANSACTIONS][1], FetchType.FIRST_SEEN, {"BBB", "CCC"}
-    )
-    assert_fetch_type_for_tag_string_set(
-        meta[UseCaseID.TRANSACTIONS][2],
-        FetchType.FIRST_SEEN,
-        {"AAA", "1.0.0"},
-    )
-    assert_fetch_type_for_tag_string_set(
-        meta[UseCaseID.TRANSACTIONS][3],
-        FetchType.FIRST_SEEN,
-        {"AAA", "BBB"},
-    )
-    assert_fetch_type_for_tag_string_set(
-        meta[UseCaseID.TRANSACTIONS][4],
-        FetchType.FIRST_SEEN,
-        {"EEE"},
-    )
 
 
 def test_indexer(indexer, indexer_cache, use_case_id) -> None:
@@ -358,7 +251,7 @@ def test_invalid_timestamp_in_indexer_cache(indexer, indexer_cache) -> None:
     ):
         indexer = CachingIndexer(indexer_cache, indexer)
 
-        use_case_id = UseCaseID.SPANS
+        use_case_id = UseCaseID.SESSIONS
         org_id = 1
         s = "str"
 

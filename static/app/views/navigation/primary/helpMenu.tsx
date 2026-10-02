@@ -1,9 +1,9 @@
 import {Fragment, useEffect} from 'react';
 
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   IconBroadcast,
@@ -104,17 +104,6 @@ export function PrimaryNavigationHelpMenu({
             </MenuIcon>
           ),
         },
-        {
-          key: 'support',
-          label: t('Contact Support'),
-          ...contactSupportItem,
-          leadingItems: (
-            <MenuIcon>
-              <IconSupport />
-            </MenuIcon>
-          ),
-          hidden: !contactSupportItem,
-        },
       ],
     },
     {
@@ -181,6 +170,23 @@ export function PrimaryNavigationHelpMenu({
               <IconOpen />
             </MenuIcon>
           ),
+        },
+      ],
+    },
+    {
+      key: 'contact-support',
+      hidden: !contactSupportItem,
+      children: [
+        {
+          key: 'support',
+          label: t('Contact Support'),
+          ...contactSupportItem,
+          leadingItems: (
+            <MenuIcon>
+              <IconSupport />
+            </MenuIcon>
+          ),
+          hidden: !contactSupportItem,
         },
       ],
     },

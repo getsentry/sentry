@@ -85,7 +85,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -267,6 +267,37 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     expect(screen.getByRole('option', {name: 'project-b'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'project-c'})).toBeInTheDocument();
   });
+
+  it('places starred projects before other projects', async () => {
+    ProjectsStore.loadInitialData([
+      projectA,
+      projectB,
+      ProjectFixture({...projectC, isBookmarked: true}),
+    ]);
+
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: `/organizations/${organization.slug}/issues/`},
+        },
+      }
+    );
+
+    await drillIntoGeneralSettings();
+
+    await screen.findByRole('option', {name: 'project-c'});
+    const projectOptions = screen
+      .getAllByRole('option')
+      .filter(el => !el.hasAttribute('aria-disabled'))
+      .map(el => el.textContent);
+    expect(projectOptions).toEqual(['project-c', 'project-a', 'project-b']);
+  });
 });
 
 describe('GlobalCommandPaletteActions - search recall', () => {
@@ -295,7 +326,7 @@ describe('GlobalCommandPaletteActions - search recall', () => {
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/explore/saved/`,
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
       body: [],
     });
     MockApiClient.addMockResponse({
@@ -489,5 +520,84 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     expect(
       await screen.findByRole('option', {name: 'Query Performance'})
     ).toBeInTheDocument();
+  });
+});
+
+describe('GlobalCommandPaletteActions - Seer XRay Mode gating', () => {
+  function mockOrgApis(organization: ReturnType<typeof OrganizationFixture>) {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/group-search-views/starred/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/dashboards/starred/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/dashboards/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/explore/all-queries/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/members/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+  }
+
+  function renderPalette(organization: ReturnType<typeof OrganizationFixture>) {
+    render(
+      <CommandPaletteProvider>
+        <GlobalCommandPaletteActions />
+        <SlotOutlets />
+        <CommandPalette {...makeRenderProps(jest.fn())} />
+      </CommandPaletteProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: `/organizations/${organization.slug}/issues/`},
+        },
+      }
+    );
+  }
+
+  it('shows the toggle when the org has the seer-xray feature', async () => {
+    const organization = OrganizationFixture({features: ['seer-xray']});
+    mockOrgApis(organization);
+    renderPalette(organization);
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'xray');
+
+    expect(
+      await screen.findByRole('option', {name: /Enable Seer XRay Mode/})
+    ).toBeInTheDocument();
+  });
+
+  it('hides the toggle without the seer-xray feature', async () => {
+    const organization = OrganizationFixture({features: []});
+    mockOrgApis(organization);
+    renderPalette(organization);
+
+    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    await userEvent.type(input, 'xray');
+
+    expect(
+      screen.queryByRole('option', {name: /Seer XRay Mode/})
+    ).not.toBeInTheDocument();
   });
 });

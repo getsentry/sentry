@@ -8,8 +8,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/context';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {stringifyToken} from 'sentry/components/searchSyntax/utils';
-import type {DateString} from 'sentry/types/core';
-import type {PageFilterDatetime} from 'sentry/types/core';
+import type {DateString, PageFilterDatetime} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useProjects} from 'sentry/utils/useProjects';
 import {parseTraceMetricFromQuery} from 'sentry/views/explore/metrics/utils';
@@ -43,6 +42,7 @@ export function useInitialSeerQuery(): string {
     return {parsedQuery, queryToUse};
   }, [committedQuery, isAutoSubmittingCurrentQuery, parseQuery, query]);
 
+  // oxlint-disable-next-line react/refs
   const inputValue = currentInputValueRef.current.trim();
 
   // Only filter out FREE_TEXT tokens if there's actual input value to filter by

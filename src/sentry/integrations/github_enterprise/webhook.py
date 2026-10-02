@@ -103,6 +103,7 @@ def get_installation_metadata(event, host):
         external_id=external_id,
         provider=IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
         status=ObjectStatus.ACTIVE,
+        using_replica=options.get("integration_service.get_integration.using_replica"),
     )
     if integration is None:
         metrics.incr("integrations.github_enterprise.does_not_exist")
@@ -401,9 +402,9 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             ).capture():
                 event_handler(event, host=host, github_event=webhook_type)
 
-        # Publish the request to the unified SCM (source control management) subscription's
-        # platform. This is a replacement for the handlers defined above. Handlers should be
-        # defined as consumers of the SCM subscriptions Kafka topic.
+        # Publish the request to the unified SCM event stream, which normalizes the event
+        # and dispatches a Taskbroker task for each registered listener. New handlers should
+        # register with scm_event_stream and be imported in sentry/scm/stream.py.
         #
         # NOTE: Publication of the event assumes the event has been properly authorized (as it has
         #       been above).

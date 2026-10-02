@@ -47,8 +47,10 @@ export function useCleanQueryParamsOnRouteLeave<Q>({
   const previousPathnameRef = useRef(location.pathname);
 
   const fieldsToCleanRef = useRef(fieldsToClean);
+  // oxlint-disable-next-line react/refs
   fieldsToCleanRef.current = fieldsToClean;
   const shouldCleanRef = useRef(shouldClean);
+  // oxlint-disable-next-line react/refs
   shouldCleanRef.current = shouldClean;
 
   useEffect(() => {

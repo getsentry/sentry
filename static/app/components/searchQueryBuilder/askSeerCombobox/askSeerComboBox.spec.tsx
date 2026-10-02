@@ -13,7 +13,9 @@ import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilderAI,
 } from 'sentry/components/searchQueryBuilder/context';
+import {ConfigStore} from 'sentry/stores/configStore';
 import * as analytics from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {
@@ -36,7 +38,9 @@ const askSeerMutationOptions = mutationOptions({
       status: string;
       unsupported_reason: string | null;
     }>({
-      url: '/organizations/org-slug/trace-explorer-ai/query/',
+      url: getApiUrl('/organizations/$organizationIdOrSlug/trace-explorer-ai/query/', {
+        path: {organizationIdOrSlug: 'org-slug'},
+      }),
       method: 'POST',
       data: {},
     });
@@ -44,7 +48,7 @@ const askSeerMutationOptions = mutationOptions({
 });
 
 const {organization} = initializeOrg({
-  organization: {features: ['gen-ai-features'], hideAiFeatures: false},
+  organization: {hideAiFeatures: false},
 });
 
 const feedbackIntegration = {
@@ -74,6 +78,8 @@ describe('AskSeerComboBox', () => {
   beforeEach(() => {
     // Combobox announcements will pollute the test output if we don't clear them
     destroyAnnouncer();
+
+    ConfigStore.set('isSelfHosted', false);
 
     MockApiClient.clearMockResponses();
 
@@ -583,7 +589,8 @@ describe('AskSeerComboBox', () => {
     await waitFor(() => expect(queryRequest).toHaveBeenCalledTimes(2));
   });
 
-  it('does not render if the organization does not have the gen-ai-features feature', () => {
+  it('does not render when self-hosted', () => {
+    ConfigStore.set('isSelfHosted', true);
     const {container} = render(
       <SearchQueryBuilderProvider {...defaultProps}>
         <AskSeerComboBox

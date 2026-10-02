@@ -34,6 +34,7 @@ import {getStateContextData} from 'sentry/components/events/contexts/knownContex
 import {getThreadPoolInfoContext} from 'sentry/components/events/contexts/knownContext/threadPoolInfo';
 import {getTraceContextData} from 'sentry/components/events/contexts/knownContext/trace';
 import {getUserContextData} from 'sentry/components/events/contexts/knownContext/user';
+import {getWERContextData} from 'sentry/components/events/contexts/knownContext/wer';
 import {
   getPlatformContextData,
   getPlatformContextIcon,
@@ -41,7 +42,6 @@ import {
   PLATFORM_CONTEXT_KEYS,
 } from 'sentry/components/events/contexts/platformContext/utils';
 import {userContextToActor} from 'sentry/components/events/interfaces/utils';
-import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -107,8 +107,7 @@ export function generateIconName(
 
 export function getRelativeTimeFromEventDateCreated(
   eventDateCreated: string | undefined,
-  timestamp?: string,
-  showTimestamp = true
+  timestamp?: string
 ) {
   if (!defined(timestamp)) {
     return timestamp;
@@ -130,10 +129,6 @@ export function getRelativeTimeFromEventDateCreated(
   const relativeTime = `(${dateTime.from(referenceDate, true)} ${t(
     'before this event'
   )})`;
-
-  if (!showTimestamp) {
-    return <RelativeTime>{relativeTime}</RelativeTime>;
-  }
 
   return (
     <Fragment>
@@ -191,18 +186,6 @@ export function getKnownData<Data, DataType>({
     .filter(defined);
 }
 
-export function getKnownStructuredData(
-  knownData: KeyValueListData,
-  meta: Record<string, any>
-): KeyValueListData {
-  return knownData.map(kd => ({
-    ...kd,
-    value: (
-      <StructuredEventData data={kd.value} meta={meta?.[kd.key]} withAnnotatedText />
-    ),
-  }));
-}
-
 /**
  * Returns the type of a given context, after coercing from its type and alias.
  * - 'type' refers to the `type` key on it's data blob. This is usually overridden by the SDK for known types, but not always.
@@ -230,6 +213,35 @@ export function getContextKeys({
   return Object.keys(data).filter(
     ctxKey => ctxKey !== 'type' && !hiddenKeySet.has(ctxKey)
   );
+}
+
+/**
+ * Registry field names for context keys the SDKs spell differently. A key only
+ * belongs here when its field definition describes the same value: `trace.span_id`
+ * is absent because `trace.span` documents the root span, not the event's own span.
+ */
+const CONTEXT_ATTRIBUTE_KEYS: Record<string, string> = {
+  'trace.parent_span_id': 'trace.parent_span',
+  'trace.trace_id': 'trace',
+  'user.ip_address': 'user.ip',
+};
+
+/**
+ * The key a context row's field definition is registered under. Built from the
+ * context's type rather than its alias, since an alias can be renamed by the SDK
+ * or the user (`client_os` for an `os` context) while the type stays canonical.
+ */
+export function getContextAttributeKey({
+  alias,
+  contextKey,
+  type,
+}: {
+  alias: string;
+  contextKey: string;
+  type?: string;
+}): string {
+  const attributeKey = `${getContextType({alias, type})}.${contextKey}`;
+  return CONTEXT_ATTRIBUTE_KEYS[attributeKey] ?? attributeKey;
 }
 
 export function getContextTitle({
@@ -271,6 +283,8 @@ export function getContextTitle({
       return t('Feedback');
     case 'os':
       return t('Operating System');
+    case 'wer':
+      return t('Windows Error Reporting');
     case 'user':
       return t('User');
     case 'gpu':
@@ -382,6 +396,9 @@ export function getContextIcon({
       iconName = generateIconName(value?.vendor_name ? value?.vendor_name : value?.name);
       break;
   }
+  if (contextType === 'wer') {
+    iconName = 'windows';
+  }
   if (iconName.length === 0) {
     return null;
   }
@@ -429,6 +446,8 @@ export function getFormattedContextData({
       return getOperatingSystemContextData({data: contextValue, meta});
     case 'runtime':
       return getRuntimeContextData({data: contextValue, meta});
+    case 'wer':
+      return getWERContextData({data: contextValue, meta});
     case 'user':
       return getUserContextData({data: contextValue, meta});
     case 'gpu':

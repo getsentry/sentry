@@ -9,8 +9,7 @@ import {
 } from 'react';
 import * as React from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import {useTheme} from '@emotion/react';
-import {css} from '@emotion/react';
+import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {useKeyboard} from '@react-aria/interactions';
@@ -23,7 +22,7 @@ import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
@@ -568,7 +567,8 @@ export function Control<Value extends SelectKey>({
     <ControlContext value={contextValue}>
       <Container width="max-content" position="relative" {...wrapperProps}>
         {trigger ? (
-          trigger(mergedTriggerProps, overlayIsOpen)
+          // TriggerProps constrains ref forwarding; the runtime element is a button.
+          trigger(mergedTriggerProps as TriggerProps, overlayIsOpen)
         ) : (
           <OverlayTrigger.Button {...mergedTriggerProps} />
         )}

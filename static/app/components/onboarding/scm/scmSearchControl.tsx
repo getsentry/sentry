@@ -1,6 +1,6 @@
 import {Container} from '@sentry/scraps/layout';
+import {components as selectComponents} from '@sentry/scraps/select';
 
-import {components as selectComponents} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {IconSearch} from 'sentry/icons';
 
 /**
@@ -17,7 +17,7 @@ export function ScmSearchControl({children, ...props}: any) {
   return (
     <selectComponents.Control {...props}>
       <Container paddingLeft="lg" flexShrink={0}>
-        <IconSearch size="sm" variant="muted" />
+        <IconSearch size="sm" variant="muted" aria-hidden />
       </Container>
       {children}
     </selectComponents.Control>

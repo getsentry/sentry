@@ -10,6 +10,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import type {ResponseMeta} from 'sentry/types/api';
@@ -54,7 +55,6 @@ function makeQueryResult(
   >(queryClient, {queryKey, enabled: false}).getCurrentResult();
 
   return {
-    // eslint-disable-next-line @tanstack/query/no-rest-destructuring
     ...base,
     data: error ? undefined : data,
     error,
@@ -114,7 +114,7 @@ describe('TracesExportModalButton', () => {
   it('does not render the All Columns switch when the modal is opened', async () => {
     renderButton();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
 
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Traces Export'})).toBeInTheDocument();
@@ -145,7 +145,7 @@ describe('TracesExportModalButton', () => {
       }
     );
 
-    expect(screen.getByRole('button', {name: 'Export Data'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Export'})).toBeDisabled();
   });
 
   it('does not surface the aggregates table state in the tooltip on a non-exportable tab', async () => {
@@ -170,7 +170,7 @@ describe('TracesExportModalButton', () => {
       }
     );
 
-    const button = screen.getByRole('button', {name: 'Export Data'});
+    const button = screen.getByRole('button', {name: 'Export'});
     expect(button).toBeDisabled();
 
     await userEvent.hover(button);
@@ -215,14 +215,20 @@ describe('TracesExportModalButton', () => {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
-    await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+    await userEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {name: 'Export'})
+    );
 
     await waitFor(() => {
       expect(dataExportMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/data-export/`,
         expect.objectContaining({
-          data: expect.objectContaining({query_type: 'Explore', limit: 500}),
+          data: expect.objectContaining({
+            query_type: 'Explore',
+            limit: 500,
+            query_info: expect.objectContaining({sampling: 'HIGHEST_ACCURACY'}),
+          }),
         })
       );
     });
@@ -257,11 +263,107 @@ describe('TracesExportModalButton', () => {
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
-    await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+    await userEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {name: 'Export'})
+    );
 
     await waitFor(() => {
       expect(downloadAsCsv).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('with the aggregate sample fields in the query', () => {
+    const aggregateEventView = EventView.fromNewQueryWithLocation(
+      {
+        name: 'Traces',
+        fields: ['any(trace)', 'any(timestamp)', 'transaction', 'count(span.duration)'],
+        version: 2,
+        query: '',
+      },
+      LocationFixture()
+    );
+
+    function renderAggregates({pageLinks}: {pageLinks?: string} = {}) {
+      render(
+        <TracesExportModalButton
+          aggregatesTableResult={{
+            eventView: aggregateEventView,
+            fields: [],
+            result: makeQueryResult(
+              [
+                {
+                  'any(trace)': 'abc',
+                  'any(timestamp)': '2026-09-14T00:00:00',
+                  transaction: '/api',
+                  'count(span.duration)': 5,
+                },
+              ],
+              {pageLinks}
+            ),
+          }}
+          spansTableResult={{eventView, result: makeQueryResult([])}}
+          rawSpanCounts={{
+            normal: {count: 0, isLoading: false},
+            total: {count: 0, isLoading: false},
+          }}
+        />,
+        {
+          organization,
+          additionalWrapper: Wrapper,
+          initialRouterConfig: {location: {pathname: '/', query: {mode: 'aggregate'}}},
+        }
+      );
+      renderGlobalModal();
+    }
+
+    it('omits them from the server export fields', async () => {
+      const dataExportMock = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/data-export/`,
+        method: 'POST',
+        statusCode: 201,
+        body: {id: 10},
+      });
+
+      renderAggregates({pageLinks: HAS_MORE_ROWS_LINK});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+      await userEvent.click(
+        within(await screen.findByRole('dialog')).getByRole('button', {name: 'Export'})
+      );
+
+      await waitFor(() => {
+        expect(dataExportMock).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/data-export/`,
+          expect.objectContaining({
+            data: expect.objectContaining({
+              query_info: expect.objectContaining({
+                field: ['transaction', 'count(span.duration)'],
+              }),
+            }),
+          })
+        );
+      });
+    });
+
+    it('omits them from the local CSV columns', async () => {
+      renderAggregates();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+      await userEvent.click(
+        within(await screen.findByRole('dialog')).getByRole('button', {name: 'Export'})
+      );
+
+      await waitFor(() => {
+        expect(downloadAsCsv).toHaveBeenCalledWith(
+          expect.anything(),
+          [
+            expect.objectContaining({key: 'transaction'}),
+            expect.objectContaining({key: 'count(span.duration)'}),
+          ],
+          'Traces'
+        );
+      });
     });
   });
 
@@ -274,8 +376,10 @@ describe('TracesExportModalButton', () => {
       totalCount: 2,
     });
 
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
-    await userEvent.click(await screen.findByRole('button', {name: 'Export'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+    await userEvent.click(
+      within(await screen.findByRole('dialog')).getByRole('button', {name: 'Export'})
+    );
 
     await waitFor(() => {
       expect(downloadAsCsv).toHaveBeenCalledTimes(1);
@@ -292,10 +396,12 @@ describe('TracesExportModalButton', () => {
 
     renderButton();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Number of rows'}));
     await userEvent.click(await screen.findByRole('option', {name: /\(All\)$/}));
-    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {name: 'Export'})
+    );
 
     await waitFor(() => {
       expect(dataExportMock).toHaveBeenCalled();
@@ -323,10 +429,12 @@ describe('TracesExportModalButton', () => {
 
     renderButton({totalCount: null});
 
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Number of rows'}));
     await userEvent.click(await screen.findByRole('option', {name: '10,000'}));
-    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+    await userEvent.click(
+      within(screen.getByRole('dialog')).getByRole('button', {name: 'Export'})
+    );
 
     await waitFor(() => {
       expect(dataExportMock).toHaveBeenCalledWith(

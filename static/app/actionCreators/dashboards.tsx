@@ -28,10 +28,12 @@ import {getResultsLimit} from 'sentry/views/dashboards/widgetBuilder/utils';
 export function fetchDashboards(
   api: Client,
   orgSlug: string,
-  query?: {filter?: DashboardFilter; sort?: string}
+  query?: {filter?: DashboardFilter}
 ) {
   const promise: Promise<DashboardListItem[]> = api.requestPromise(
-    `/organizations/${orgSlug}/dashboards/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
     {
       method: 'GET',
       query: {sort: 'myDashboardsAndRecentlyViewed', ...query},
@@ -62,7 +64,9 @@ export function createDashboard(
     newDashboard;
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
-    `/organizations/${orgSlug}/dashboards/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
+      path: {organizationIdOrSlug: orgSlug},
+    }),
     {
       method: 'POST',
       data: {
@@ -139,7 +143,9 @@ export function updateDashboardVisit(
   dashboardId: string | string[]
 ): Promise<void> {
   const promise = api.requestPromise(
-    `/organizations/${orgId}/dashboards/${dashboardId}/visit/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/visit/', {
+      path: {organizationIdOrSlug: orgId, dashboardId: String(dashboardId)},
+    }),
     {
       method: 'POST',
     }
@@ -157,7 +163,15 @@ export async function updateDashboardFavorite(
 ): Promise<void> {
   try {
     await api.requestPromise(
-      `/organizations/${organization.slug}/dashboards/${dashboardId}/favorite/`,
+      getApiUrl(
+        '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/favorite/',
+        {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            dashboardId: String(dashboardId),
+          },
+        }
+      ),
       {
         method: 'PUT',
         data: {
@@ -190,7 +204,9 @@ export function fetchDashboard(
   dashboardId: string
 ): Promise<DashboardDetails> {
   const promise: Promise<DashboardDetails> = api.requestPromise(
-    `/organizations/${orgId}/dashboards/${dashboardId}/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+      path: {organizationIdOrSlug: orgId, dashboardId},
+    }),
     {
       method: 'GET',
     }
@@ -248,7 +264,9 @@ export function updateDashboard(
   }
 
   const promise = fetchMutation<DashboardDetails>({
-    url: `/organizations/${orgId}/dashboards/${dashboard.id}/`,
+    url: getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+      path: {organizationIdOrSlug: orgId, dashboardId: dashboard.id},
+    }),
     method: 'PUT',
     data,
     options: {
@@ -291,7 +309,9 @@ export function deleteDashboard(
   organization: Organization
 ): Promise<undefined> {
   const promise: Promise<undefined> = api.requestPromise(
-    `/organizations/${organization.slug}/dashboards/${dashboardId}/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+      path: {organizationIdOrSlug: organization.slug, dashboardId},
+    }),
     {
       method: 'DELETE',
     }
@@ -318,11 +338,7 @@ export function deleteDashboard(
   return promise;
 }
 
-export function validateWidgetRequest(
-  orgId: string,
-  widget: Widget,
-  selection: PageFilters
-) {
+function validateWidgetRequest(orgId: string, widget: Widget, selection: PageFilters) {
   return [
     getApiUrl('/organizations/$organizationIdOrSlug/dashboards/widgets/', {
       path: {organizationIdOrSlug: orgId},
@@ -341,6 +357,42 @@ export function validateWidgetRequest(
   ] as const;
 }
 
+/**
+ * Renames a dashboard without touching anything else on it.
+ *
+ * Deliberately narrow: the endpoint only rewrites widgets when the payload
+ * carries a `widgets` key, so omitting it leaves them alone. Sending the whole
+ * dashboard instead would make a rename race any concurrent edit and risk
+ * clobbering widgets with a stale copy.
+ */
+export function updateDashboardTitle(
+  orgId: string,
+  dashboardId: string,
+  title: string
+): Promise<DashboardDetails> {
+  const promise = fetchMutation<DashboardDetails>({
+    url: getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+      path: {organizationIdOrSlug: orgId, dashboardId},
+    }),
+    method: 'PUT',
+    data: {title},
+  });
+
+  promise.catch(response => {
+    const errorResponse =
+      response instanceof RequestError ? response?.responseJSON : null;
+
+    if (errorResponse) {
+      const errors = flattenErrors(errorResponse, {});
+      addErrorMessage(errors[Object.keys(errors)[0]!]! as string);
+    } else {
+      addErrorMessage(t('Unable to rename dashboard'));
+    }
+  });
+
+  return promise;
+}
+
 export function updateDashboardPermissions(
   api: Client,
   orgId: string,
@@ -351,7 +403,9 @@ export function updateDashboardPermissions(
     permissions,
   };
   const promise: Promise<DashboardDetails> = api.requestPromise(
-    `/organizations/${orgId}/dashboards/${dashboard.id}/`,
+    getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
+      path: {organizationIdOrSlug: orgId, dashboardId: dashboard.id},
+    }),
     {
       method: 'PUT',
       data,

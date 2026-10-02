@@ -1,14 +1,18 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {ThemeFixture} from 'sentry-fixture/theme';
+
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
+
+const theme = ThemeFixture();
 
 function renderWithTracking(ui: React.ReactElement) {
   const tracking = jest.fn();
   function TrackingWrapper({children}: {children: React.ReactNode}) {
-    return (
-      <TrackingContextProvider value={() => tracking}>{children}</TrackingContextProvider>
-    );
+    return <TrackingContextProvider value={tracking}>{children}</TrackingContextProvider>;
   }
 
   return {tracking, ...render(ui, {additionalWrapper: TrackingWrapper})};
@@ -17,6 +21,106 @@ function renderWithTracking(ui: React.ReactElement) {
 describe('Button', () => {
   it('renders', () => {
     render(<Button variant="primary">Button</Button>);
+  });
+
+  it('uses aria-disabled instead of disabled when a tooltip is present', async () => {
+    const onClick = jest.fn();
+    render(
+      <Button disabled onClick={onClick} tooltipProps={{title: 'Not available'}}>
+        Save
+      </Button>
+    );
+
+    const button = screen.getByRole('button', {name: 'Save'});
+    expect(button).toHaveAttribute('aria-disabled', 'true');
+    expect(button).toBeEnabled();
+
+    await userEvent.click(button);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it('prevents keyboard activation when aria-disabled with tooltip', async () => {
+    const onClick = jest.fn();
+    render(
+      <Button disabled onClick={onClick} tooltipProps={{title: 'Not available'}}>
+        Save
+      </Button>
+    );
+
+    const button = screen.getByRole('button', {name: 'Save'});
+    await userEvent.tab();
+    expect(button).toHaveFocus();
+    await userEvent.keyboard('{Enter}');
+    await userEvent.keyboard(' ');
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it('prevents form submission when disabled with tooltip', async () => {
+    const onSubmit = jest.fn(e => e.preventDefault());
+    render(
+      <form onSubmit={onSubmit}>
+        <Button disabled type="submit" tooltipProps={{title: 'Not available'}}>
+          Submit
+        </Button>
+      </form>
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+    expect(onSubmit).not.toHaveBeenCalled();
+  });
+
+  it('uses native disabled when no tooltip is present', () => {
+    render(<Button disabled>Save</Button>);
+
+    const button = screen.getByRole('button', {name: 'Save'});
+    expect(button).toBeDisabled();
+  });
+
+  describe('responsive sizing', () => {
+    let resizeCallback: ResizeObserverCallback | undefined;
+    let originalResizeObserver: typeof window.ResizeObserver;
+
+    beforeEach(() => {
+      originalResizeObserver = window.ResizeObserver;
+      window.ResizeObserver = class {
+        constructor(callback: ResizeObserverCallback) {
+          resizeCallback = callback;
+        }
+
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      };
+      jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(0);
+    });
+
+    afterEach(() => {
+      window.ResizeObserver = originalResizeObserver;
+      jest.restoreAllMocks();
+    });
+
+    it('updates its size at container breakpoints', () => {
+      render(
+        <Container containerType="inline-size">
+          <Button size={{zero: 'xs', lg: 'sm'}}>Button</Button>
+        </Container>
+      );
+
+      const button = screen.getByRole('button', {name: 'Button'});
+      expect(getEmotionRules(button).join('')).toContain(
+        `height: ${theme.form.xs.height}`
+      );
+
+      act(() => {
+        resizeCallback?.(
+          [{contentBoxSize: [{inlineSize: 800}]} as unknown as ResizeObserverEntry],
+          {} as ResizeObserver
+        );
+      });
+      expect(getEmotionRules(button).join('')).toContain(
+        `height: ${theme.form.sm.height}`
+      );
+    });
   });
 
   it('calls `onClick` callback', async () => {

@@ -5,11 +5,11 @@ import {PlatformIcon} from 'platformicons';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {CopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {simpleHtmlToMarkdown} from 'sentry/components/onboarding/utils/stepsToMarkdown';
 import {Container as WorkflowEngineContainer} from 'sentry/components/workflowEngine/ui/container';
@@ -165,12 +165,18 @@ export function InstrumentationGuide() {
             <DropdownMenu
               size="sm"
               items={menuItems}
-              triggerLabel={selectedLabel}
-              triggerProps={{
-                icon: platformKey ? (
-                  <PlatformIcon platform={platformKey} size={16} />
-                ) : undefined,
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  icon={
+                    platformKey ? (
+                      <PlatformIcon platform={platformKey} size={16} />
+                    ) : undefined
+                  }
+                >
+                  {selectedLabel}
+                </OverlayTrigger.Button>
+              )}
             />
             {showAutoInstrumentationGuide && (
               <Fragment>

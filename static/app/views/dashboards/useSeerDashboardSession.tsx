@@ -133,6 +133,7 @@ export function useSeerDashboardSession({
     // Update states when transitioning from non-terminal to terminal session
     if (prevUpdatedAt !== sessionUpdatedAt && isTerminal && !wasTerminal) {
       if (isUpdating) {
+        // oxlint-disable-next-line react/set-state-in-effect
         setIsUpdating(false);
       }
       const dashboardData = extractDashboardFromSession(session);

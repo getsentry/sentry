@@ -184,7 +184,29 @@ describe('ActionNodeList', () => {
 
     expect(
       await screen.findByText(
-        'The Slack action is no longer available. Please remove and reconfigure this action.'
+        'This action is no longer available. Remove it to save changes.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Delete row'})).toBeInTheDocument();
+  });
+
+  it('flags actions the plan does not include', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/available-actions/`,
+      body: [ActionHandlerFixture({disabledReason: 'plan'})],
+    });
+
+    const slackAction = ActionFixture();
+    render(
+      <AutomationBuilderTestProvider>
+        <ActionNodeList {...defaultProps} actions={[slackAction]} />
+      </AutomationBuilderTestProvider>,
+      {organization}
+    );
+
+    expect(
+      await screen.findByText(
+        'This action is no longer available. Remove it to save changes.'
       )
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Delete row'})).toBeInTheDocument();
@@ -209,7 +231,7 @@ describe('ActionNodeList', () => {
               {
                 id: 'condition-1',
                 type: DataConditionType.SEER_ACTIVITY_TRIGGER,
-                comparison: ['pr_created'],
+                comparison: ['pr_ready_for_review'],
                 conditionResult: true,
               },
             ],

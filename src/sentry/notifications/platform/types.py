@@ -70,6 +70,7 @@ class NotificationSource(StrEnum):
     SEER_AUTOFIX_SUCCESS = "seer-autofix-success"
     SEER_AGENT_RESPONSE = "seer-agent-response"
     SEER_AGENT_ERROR = "seer-agent-error"
+    SEER_AGENT_WRITE_APPROVAL = "seer-agent-write-approval"
 
     # SENTRY_APP
     SENTRY_APP_WEBHOOK_DISABLED = "sentry-app-webhook-disabled"
@@ -85,6 +86,7 @@ class NotificationSource(StrEnum):
     ACTIVITY_SEER_CODING_STARTED = "activity-seer-coding-started"
     ACTIVITY_SEER_CODING_COMPLETED = "activity-seer-coding-completed"
     ACTIVITY_SEER_PR_CREATED = "activity-seer-pr-created"
+    ACTIVITY_SEER_PR_READY_FOR_REVIEW = "activity-seer-pr-ready-for-review"
     ACTIVITY_SEER_ITERATION_STARTED = "activity-seer-iteration-started"
     ACTIVITY_SEER_ITERATION_COMPLETED = "activity-seer-iteration-completed"
     ACTIVITY_SET_RESOLVED = "activity-set-resolved"
@@ -132,6 +134,7 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.SEER_AUTOFIX_UPDATE,
         NotificationSource.SEER_AGENT_RESPONSE,
         NotificationSource.SEER_AGENT_ERROR,
+        NotificationSource.SEER_AGENT_WRITE_APPROVAL,
     ],
     NotificationCategory.SENTRY_APP: [
         NotificationSource.SENTRY_APP_WEBHOOK_DISABLED,
@@ -147,6 +150,7 @@ NOTIFICATION_SOURCE_MAP: dict[NotificationCategory, list[NotificationSource]] = 
         NotificationSource.ACTIVITY_SEER_CODING_STARTED,
         NotificationSource.ACTIVITY_SEER_CODING_COMPLETED,
         NotificationSource.ACTIVITY_SEER_PR_CREATED,
+        NotificationSource.ACTIVITY_SEER_PR_READY_FOR_REVIEW,
         NotificationSource.ACTIVITY_SEER_ITERATION_STARTED,
         NotificationSource.ACTIVITY_SEER_ITERATION_COMPLETED,
         NotificationSource.ACTIVITY_SET_RESOLVED,
@@ -317,6 +321,13 @@ class NotificationRenderedTemplate:
     @property
     def footer_text(self) -> str:
         return self.render_text_blocks(self.footer_blocks)
+
+    # The following are option, but may need to be included in order to preserve existing user
+    # preferences when porting legacy notifications to the platform.
+    email_headers: dict[str, str] | None = None
+    """Additional headers to include when this notification is rendered as email."""
+    email_subject_prefix: str | None = None
+    """A prefix to prepend when this notification is rendered as email."""
 
     # The following are optional, as omitting them will use a default email template which expects
     # the required fields above to be present instead.

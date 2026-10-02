@@ -27,6 +27,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/types';
 import {queryIsValid} from 'sentry/components/searchQueryBuilder/utils';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
+import {QueryBuilderPanel} from 'sentry/components/tokenizedInput/token/queryBuilderPanel';
 import {IconCase, IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
@@ -71,6 +72,11 @@ export interface SearchQueryBuilderProps {
    */
   searchSource: string;
   /**
+   * When true, the regex operators ("matches regex", "does not match regex") are
+   * offered for string filters, and key://pattern// values are parsed as regexes.
+   */
+  allowRegexOperators?: boolean;
+  /**
    * Query key used to scope async filter key metadata. When omitted, metadata is
    * scoped to this query builder instance.
    */
@@ -88,6 +94,14 @@ export interface SearchQueryBuilderProps {
    * and submit the full query. Requires AI search to be enabled.
    */
   defaultToAskSeerOnFreeTextSearch?: boolean;
+  /**
+   * When true, disables the wide two-pane filter key menu.
+   *
+   * That menu measures and positions itself against the search bar, so it does not
+   * honor `portalTarget`. Set this when menus must portal (for example to escape a
+   * clipping or stacking ancestor).
+   */
+  disableFullWidthFilterKeyMenu?: boolean;
   disabled?: boolean;
   /**
    * When true, free text will be marked as invalid.
@@ -180,6 +194,8 @@ export interface SearchQueryBuilderProps {
    * ```
    */
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
+  /** Render the input and suggestions together in one panel. */
+  menuPresentation?: 'floating' | 'panel';
   /**
    * If provided, filters recent searches by this query string on the backend.
    * This query will not be displayed in the UI because it is stripped from the
@@ -208,6 +224,17 @@ export interface SearchQueryBuilderProps {
    * a scrollable container.
    */
   portalTarget?: HTMLElement | null;
+  /**
+   * Keys that should be sorted above all other keys in the filter key
+   * autocomplete, regardless of how they score against the typed value.
+   * Relative ordering within the prioritized group still follows the search
+   * score.
+   *
+   * Useful when a subset of keys maps to what the user already sees on the
+   * page (e.g. table headers), so those should win over raw attributes that
+   * happen to match the input more literally.
+   */
+  prioritizedFilterKeys?: string[];
   queryInterface?: QueryInterfaceType;
 
   /**
@@ -224,6 +251,11 @@ export interface SearchQueryBuilderProps {
    * as an option, and so on with any other provided keys.
    */
   replaceRawSearchKeys?: string[];
+  /**
+   * When false, hides the leading magnifying glass icon and the padding reserved for it.
+   * Defaults to true.
+   */
+  showSearchIcon?: boolean;
   /**
    * Render custom content in the trailing section of the search bar, located
    * to the left of the clear button.
@@ -288,13 +320,16 @@ function SearchQueryBuilderUI({
   initialQuery,
   onBlur,
   queryInterface = QueryInterfaceType.TOKENIZED,
+  showSearchIcon = true,
   trailingItems,
   onChange,
 }: SearchQueryBuilderProps) {
   const {parsedQuery, query, dispatch} = useSearchQueryBuilderState();
-  const {wrapperRef, actionBarRef, size} = useSearchQueryBuilderLayout();
+  const {wrapperRef, actionBarRef, size, menuPresentation, panelRef, setMenuContainer} =
+    useSearchQueryBuilderLayout();
   const {skipNextSearchQueryBuilderAutoFocusRef} = useSearchQueryBuilderAI();
   const autoFocusOnMount = useRef(
+    // oxlint-disable-next-line react/refs
     Boolean(autoFocus) && !skipNextSearchQueryBuilderAutoFocusRef.current
   );
 
@@ -315,7 +350,7 @@ function SearchQueryBuilderUI({
 
   const {width: actionBarWidth} = useDimensions({elementRef: actionBarRef});
 
-  return (
+  const searchBar = (
     <Wrapper
       className={className}
       onBlur={() =>
@@ -326,16 +361,20 @@ function SearchQueryBuilderUI({
       data-test-id="search-query-builder"
     >
       <PanelProvider>
-        <PositionedSearchIconContainer>
-          <SearchIcon size="sm" />
-        </PositionedSearchIconContainer>
+        {showSearchIcon ? (
+          <PositionedSearchIconContainer data-test-id="search-query-builder-icon">
+            <SearchIcon size="sm" />
+          </PositionedSearchIconContainer>
+        ) : null}
         {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
           <PlainTextQueryInput label={label} />
         ) : (
           <TokenizedQueryGrid
+            // oxlint-disable-next-line react/refs
             autoFocus={autoFocusOnMount.current}
             label={label}
             actionBarWidth={actionBarWidth}
+            hideSearchIcon={!showSearchIcon}
           />
         )}
         {size !== 'small' && (
@@ -344,6 +383,20 @@ function SearchQueryBuilderUI({
       </PanelProvider>
     </Wrapper>
   );
+
+  if (menuPresentation === 'panel') {
+    return (
+      <QueryBuilderPanel
+        ref={panelRef}
+        data-test-id="search-query-builder-panel"
+        onMenuContainerRef={setMenuContainer}
+      >
+        {searchBar}
+      </QueryBuilderPanel>
+    );
+  }
+
+  return searchBar;
 }
 
 export function SearchQueryBuilder({...props}: SearchQueryBuilderProps) {

@@ -6,7 +6,7 @@ import {useSeerExplorerPolling} from './useSeerExplorerPolling';
 
 describe('useSeerExplorerPolling', () => {
   const organization = OrganizationFixture({
-    features: ['seer-explorer', 'gen-ai-features'],
+    features: ['seer-explorer'],
     hideAiFeatures: false,
     openMembership: true,
   });
@@ -48,4 +48,34 @@ describe('useSeerExplorerPolling', () => {
     expect(result.current.isPolling).toBe(false);
     expect(result.current.errorStatusCode).toBe(404);
   });
+
+  it.each([
+    ['timeout', 'timed-out', true],
+    ['stalled', 'not-polling', false],
+  ] as const)(
+    'maps a backend %s reason to %s',
+    async (failureReason, expectedPollingState, expectedTimedOut) => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/42/`,
+        body: {
+          session: {
+            blocks: [],
+            failure_reason: failureReason,
+            status: 'error',
+            updated_at: new Date().toISOString(),
+          },
+        },
+      });
+
+      const {result} = renderHookWithProviders(
+        () => useSeerExplorerPolling({runId: 42}),
+        {organization}
+      );
+
+      await waitFor(() => {
+        expect(result.current.pollingState).toBe(expectedPollingState);
+      });
+      expect(result.current.isTimedOut).toBe(expectedTimedOut);
+    }
+  );
 });

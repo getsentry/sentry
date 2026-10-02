@@ -1,34 +1,36 @@
-import {useQueryClient} from '@tanstack/react-query';
 import {useMutation} from '@tanstack/react-query';
 
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  starredSavedQueriesApiOptions,
-  type SavedQuery,
+  useInvalidateSavedQueries,
+  type SavedQueryRef,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 export function useReorderStarredSavedQueries() {
   const organization = useOrganization();
-  const queryClient = useQueryClient();
-  const {queryKey} = starredSavedQueriesApiOptions(organization);
+  const invalidateSavedQueries = useInvalidateSavedQueries();
 
   const {mutate} = useMutation({
-    mutationFn: (queries: SavedQuery[]) =>
+    mutationFn: (queries: SavedQueryRef[]) =>
       fetchMutation({
-        url: `/organizations/${organization.slug}/explore/saved/starred/order/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/explore/all-queries/starred/order/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+          }
+        ),
         method: 'PUT',
         data: {
-          query_ids: queries.map(query => query.id),
+          queries: queries.map(({queryId, queryType}) => ({
+            type: queryType,
+            query_id: Number(queryId),
+          })),
         },
       }),
-    onMutate: (queries: SavedQuery[]) => {
-      queryClient.setQueryData(queryKey, prevData =>
-        prevData ? {...prevData, json: queries} : prevData
-      );
-    },
     onSettled: () => {
-      queryClient.invalidateQueries({queryKey});
+      invalidateSavedQueries();
     },
   });
 

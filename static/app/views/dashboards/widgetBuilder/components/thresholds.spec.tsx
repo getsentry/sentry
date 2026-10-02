@@ -1,23 +1,122 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import {ThresholdsSection as Thresholds} from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
 import {
   useWidgetBuilderContext,
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+import {SpanFields} from 'sentry/views/insights/types';
 
-jest.mock('sentry/utils/useNavigate');
 describe('Thresholds', () => {
-  let mockNavigate!: jest.Mock;
+  it.each(['15', '0'])(
+    'saves the displayed unit when entering a new threshold (%s)',
+    async value => {
+      const {router} = render(
+        <WidgetBuilderProvider>
+          <Thresholds dataType="duration" dataUnit="second" />
+        </WidgetBuilderProvider>
+      );
 
-  beforeEach(() => {
-    mockNavigate = jest.fn();
-    jest.mocked(useNavigate).mockReturnValue(mockNavigate);
+      await userEvent.type(screen.getByLabelText('First Maximum'), value);
+
+      expect(screen.getByLabelText('Second Minimum')).toHaveValue(Number(value));
+      await waitFor(() => {
+        expect(JSON.parse(router.location.query.thresholds as string)).toMatchObject({
+          max_values: {max1: Number(value)},
+          unit: 'second',
+        });
+      });
+    }
+  );
+
+  it('saves the displayed unit when polarity is selected before the threshold', async () => {
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <Thresholds dataType="duration" dataUnit="second" />
+      </WidgetBuilderProvider>
+    );
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Higher is better'}));
+    await userEvent.type(screen.getByLabelText('Second Maximum'), '15');
+
+    expect(screen.getByRole('radio', {name: 'Higher is better'})).toBeChecked();
+    await waitFor(() => {
+      expect(JSON.parse(router.location.query.thresholds as string)).toMatchObject({
+        max_values: {max2: 15},
+        unit: 'second',
+      });
+    });
+  });
+
+  it('uses the displayed unit again after clearing the thresholds', async () => {
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <Thresholds dataType="duration" dataUnit="second" />
+      </WidgetBuilderProvider>
+    );
+
+    await userEvent.type(screen.getByLabelText('First Maximum'), '15');
+    await userEvent.clear(screen.getByLabelText('First Maximum'));
+    await userEvent.type(screen.getByLabelText('First Maximum'), '30');
+
+    await waitFor(() => {
+      expect(JSON.parse(router.location.query.thresholds as string)).toMatchObject({
+        max_values: {max1: 30},
+        unit: 'second',
+      });
+    });
+  });
+
+  it('preserves a unit selected before entering a value', async () => {
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <Thresholds dataType="duration" dataUnit="millisecond" />
+      </WidgetBuilderProvider>
+    );
+
+    await userEvent.click(screen.getAllByText('millisecond')[0]!);
+    await userEvent.click(screen.getByText('second'));
+    await userEvent.type(screen.getByLabelText('First Maximum'), '15');
+
+    await waitFor(() => {
+      expect(JSON.parse(router.location.query.thresholds as string)).toMatchObject({
+        max_values: {max1: 15},
+        unit: 'second',
+      });
+    });
+  });
+
+  it('preserves the base unit when editing existing thresholds with a null unit', async () => {
+    const {router} = render(
+      <WidgetBuilderProvider>
+        <Thresholds dataType="duration" dataUnit="second" />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {
+              thresholds: '{"max_values":{"max1":100},"unit":null}',
+            },
+          },
+        },
+      }
+    );
+
+    expect(screen.getByLabelText('First Maximum')).toHaveValue(100);
+    await userEvent.type(screen.getByLabelText('Second Maximum'), '200');
+
+    await waitFor(() => {
+      expect(JSON.parse(router.location.query.thresholds as string)).toMatchObject({
+        max_values: {max1: 100, max2: 200},
+        unit: null,
+      });
+    });
   });
 
   it('sets thresholds to undefined if the thresholds are fully wiped', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <Thresholds dataType="duration" dataUnit="millisecond" />
       </WidgetBuilderProvider>,
@@ -35,39 +134,149 @@ describe('Thresholds', () => {
 
     await userEvent.clear(screen.getByLabelText('First Maximum'));
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          thresholds: undefined,
-        }),
-      }),
-      expect.anything()
-    );
+    await waitFor(() => {
+      expect(router.location.query).not.toHaveProperty('thresholds');
+    });
   });
 
-  it('sets a threshold when applied', async () => {
+  it('shows new thresholds as fixed values', async () => {
     render(
       <WidgetBuilderProvider>
         <Thresholds dataType="duration" dataUnit="millisecond" />
-      </WidgetBuilderProvider>
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {
+              displayType: DisplayType.LINE,
+              yAxis: ['count()'],
+            },
+          },
+        },
+      }
     );
 
     await userEvent.type(screen.getByLabelText('First Maximum'), '100');
     await userEvent.type(screen.getByLabelText('Second Maximum'), '200');
     await userEvent.tab();
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          thresholds: '{"max_values":{"max1":100,"max2":200},"unit":null}',
-        }),
-      }),
-      expect.anything()
-    );
+    expect(screen.getByText('Fixed')).toBeInTheDocument();
+    expect(screen.getByLabelText('Second Minimum')).toHaveValue(100);
+    expect(screen.getByLabelText('Third Minimum')).toHaveValue(200);
   });
 
-  it('updates the unit when applied', async () => {
+  it('shows the saved threshold interval', () => {
     render(
+      <WidgetBuilderProvider>
+        <Thresholds dataType="integer" />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {
+              displayType: DisplayType.LINE,
+              yAxis: ['count()'],
+              interval: '1h',
+              thresholds:
+                '{"max_values":{"max1":100,"max2":200},"unit":null,"timeWindow":"10m"}',
+            },
+          },
+        },
+      }
+    );
+
+    expect(screen.getByText('10 minutes')).toBeInTheDocument();
+  });
+
+  it('explains how the threshold interval affects displayed values', async () => {
+    render(
+      <WidgetBuilderProvider>
+        <Thresholds dataType="integer" />
+      </WidgetBuilderProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/mock-pathname/',
+            query: {
+              displayType: DisplayType.LINE,
+              yAxis: ['count()'],
+              thresholds: '{"max_values":{"max1":100},"unit":null}',
+            },
+          },
+        },
+      }
+    );
+
+    await userEvent.hover(screen.getByTestId('more-information'));
+
+    expect(
+      await screen.findByText(
+        'Threshold values are defined for this interval and scale to match the dashboard interval.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it.each([`p95(${SpanFields.SPAN_DURATION})`, 'eps()'])(
+    'hides the interval selector for %s and clears a saved interval',
+    async aggregate => {
+      const {router} = render(
+        <WidgetBuilderProvider>
+          <Thresholds dataType="integer" />
+        </WidgetBuilderProvider>,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: '/mock-pathname/',
+              query: {
+                displayType: DisplayType.LINE,
+                yAxis: [aggregate],
+                thresholds: '{"max_values":{"max1":100},"unit":null,"timeWindow":"10m"}',
+              },
+            },
+          },
+        }
+      );
+
+      expect(screen.queryByText('10 minutes')).not.toBeInTheDocument();
+      expect(screen.queryByText('Fixed')).not.toBeInTheDocument();
+      await waitFor(() => {
+        expect(JSON.parse(router.location.query.thresholds as string)).toEqual({
+          max_values: {max1: 100},
+          unit: null,
+        });
+      });
+    }
+  );
+
+  it.each([`sum(${SpanFields.SPAN_DURATION})`, 'equation|count() / 2'])(
+    'shows the saved interval for %s',
+    aggregate => {
+      render(
+        <WidgetBuilderProvider>
+          <Thresholds dataType="integer" />
+        </WidgetBuilderProvider>,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: '/mock-pathname/',
+              query: {
+                displayType: DisplayType.LINE,
+                yAxis: [aggregate],
+                thresholds: '{"max_values":{"max1":100},"unit":null,"timeWindow":"10m"}',
+              },
+            },
+          },
+        }
+      );
+
+      expect(screen.getByText('10 minutes')).toBeInTheDocument();
+    }
+  );
+
+  it('updates the unit when applied', async () => {
+    const {router} = render(
       <WidgetBuilderProvider>
         <Thresholds dataType="duration" dataUnit="millisecond" />
       </WidgetBuilderProvider>,
@@ -86,14 +295,11 @@ describe('Thresholds', () => {
     await userEvent.click(screen.getAllByText('millisecond')[0]!);
     await userEvent.click(screen.getByText('second'));
 
-    expect(mockNavigate).toHaveBeenCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          thresholds: '{"max_values":{"max1":100,"max2":200},"unit":"second"}',
-        }),
-      }),
-      expect.anything()
-    );
+    await waitFor(() => {
+      expect(router.location.query.thresholds).toBe(
+        '{"max_values":{"max1":100,"max2":200},"unit":"second"}'
+      );
+    });
   });
 
   it('displays error', async () => {
@@ -122,7 +328,7 @@ describe('Thresholds', () => {
   });
 
   it('accepts decimal values', async () => {
-    render(
+    const {router} = render(
       <WidgetBuilderProvider>
         <Thresholds dataType="duration" dataUnit="millisecond" />
       </WidgetBuilderProvider>
@@ -134,14 +340,11 @@ describe('Thresholds', () => {
     expect((await screen.findAllByDisplayValue('0.5'))[0]).toBeInTheDocument();
     expect((await screen.findAllByDisplayValue('100.5456'))[0]).toBeInTheDocument();
 
-    expect(mockNavigate).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        query: expect.objectContaining({
-          thresholds: '{"max_values":{"max1":0.5,"max2":100.5456},"unit":null}',
-        }),
-      }),
-      expect.anything()
-    );
+    await waitFor(() => {
+      expect(router.location.query.thresholds).toBe(
+        '{"max_values":{"max1":0.5,"max2":100.5456},"unit":"millisecond"}'
+      );
+    });
   });
 
   it('preserves preferred polarity when thresholds are cleared', async () => {
@@ -149,6 +352,7 @@ describe('Thresholds', () => {
 
     function StateCapture() {
       const {state} = useWidgetBuilderContext();
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       capturedState = state;
       return null;
     }
@@ -186,6 +390,7 @@ describe('Thresholds', () => {
     // deviates from the URL param update (e.g. null vs undefined behavior)
     function StateCapture() {
       const {state} = useWidgetBuilderContext();
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       capturedState = state;
       return null;
     }

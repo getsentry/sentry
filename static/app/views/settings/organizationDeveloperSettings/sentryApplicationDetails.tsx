@@ -49,9 +49,11 @@ import type {
 import type {InternalAppApiToken, NewInternalAppApiToken} from 'sentry/types/user';
 import {convertMultilineFieldValue, extractMultilineFields} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -103,6 +105,37 @@ const AVATAR_STYLES = {
     ),
   },
 };
+
+function SentryAppAvatarChooser({
+  addAvatar,
+  app,
+  isColor,
+  isInternal,
+}: {
+  addAvatar: ({avatar}: {avatar?: Avatar}) => void;
+  app: SentryApp;
+  isColor: boolean;
+  isInternal: boolean;
+}) {
+  const avatarStyle = isColor ? 'color' : 'simple';
+  const styleProps = AVATAR_STYLES[avatarStyle];
+
+  return (
+    <AvatarChooser
+      endpoint={`/sentry-apps/${app.slug}/avatar/`}
+      supportedTypes={['default', 'upload']}
+      type={isColor ? 'sentryAppColor' : 'sentryAppSimple'}
+      model={app}
+      onSave={addAvatar}
+      title={isColor ? t('Logo') : t('Small Icon')}
+      help={styleProps.help.concat(isInternal ? '' : t(' Required for publishing.'))}
+      defaultChoice={{
+        label: styleProps.label,
+        description: styleProps.description,
+      }}
+    />
+  );
+}
 
 const sentryAppBaseSchema = z.object({
   name: z.string(),
@@ -330,7 +363,10 @@ function useSaveSentryApp({
 
     // setFieldErrors targets the scopes/events fields too, but nothing renders
     // them inline — the toasts below cover what the form can't show.
-    const fieldErrorsApplied = setFieldErrors(formApi, error);
+    const fieldErrorsApplied = setFieldErrors(
+      formApi,
+      requestErrorToFieldErrors(error, formApi.state.values)
+    );
 
     if (
       Array.isArray(responseJSON.events) &&
@@ -362,7 +398,11 @@ function useSaveSentryApp({
   const saveSentryAppMutation = useMutation({
     mutationFn: (data: SaveSentryAppPayload) =>
       fetchMutation<SentryApp>({
-        url: app ? `/sentry-apps/${app.slug}/` : '/sentry-apps/',
+        url: app
+          ? getApiUrl('/sentry-apps/$sentryAppIdOrSlug/', {
+              path: {sentryAppIdOrSlug: app.slug},
+            })
+          : getApiUrl('/sentry-apps/'),
         method: app ? 'PUT' : 'POST',
         data,
       }),
@@ -518,7 +558,6 @@ function ClaudeRoutineTemplateForm() {
       </form.FieldGroup>
 
       <PermissionsObserver
-        appPublished={false}
         scopes={CLAUDE_ROUTINE_SCOPES}
         events={CLAUDE_ROUTINE_EVENTS}
         newApp
@@ -698,7 +737,6 @@ function InternalSentryAppCreationForm() {
       </form.FieldGroup>
 
       <PermissionsObserver
-        appPublished={false}
         scopes={[]}
         events={[]}
         newApp
@@ -762,7 +800,6 @@ function PublicSentryAppCreationForm() {
       </form.FieldGroup>
 
       <PermissionsObserver
-        appPublished={false}
         scopes={[]}
         events={[]}
         newApp
@@ -803,7 +840,9 @@ function SentryAppEditForm({
   const addTokenMutation = useMutation({
     mutationFn: (sentryAppSlug: string) =>
       fetchMutation<NewInternalAppApiToken>({
-        url: `/sentry-apps/${sentryAppSlug}/api-tokens/`,
+        url: getApiUrl('/sentry-apps/$sentryAppIdOrSlug/api-tokens/', {
+          path: {sentryAppIdOrSlug: sentryAppSlug},
+        }),
         method: 'POST',
       }),
     onMutate: () => {
@@ -820,7 +859,9 @@ function SentryAppEditForm({
   const removeTokenMutation = useMutation({
     mutationFn: ({sentryAppSlug, tokenId}: {sentryAppSlug: string; tokenId: string}) =>
       fetchMutation({
-        url: `/sentry-apps/${sentryAppSlug}/api-tokens/${tokenId}/`,
+        url: getApiUrl('/sentry-apps/$sentryAppIdOrSlug/api-tokens/$apiTokenId/', {
+          path: {sentryAppIdOrSlug: sentryAppSlug, apiTokenId: tokenId},
+        }),
         method: 'DELETE',
       }),
     onMutate: () => {
@@ -837,7 +878,9 @@ function SentryAppEditForm({
   const rotateClientSecretMutation = useMutation({
     mutationFn: (sentryAppSlug: string) =>
       fetchMutation<RotateSecretResponse>({
-        url: `/sentry-apps/${sentryAppSlug}/rotate-secret/`,
+        url: getApiUrl('/sentry-apps/$sentryAppIdOrSlug/rotate-secret/', {
+          path: {sentryAppIdOrSlug: sentryAppSlug},
+        }),
         method: 'POST',
       }),
   });
@@ -939,27 +982,6 @@ function SentryAppEditForm({
     }
   };
 
-  const getAvatarChooser = (isColor: boolean) => {
-    const avatarStyle = isColor ? 'color' : 'simple';
-    const styleProps = AVATAR_STYLES[avatarStyle];
-
-    return (
-      <AvatarChooser
-        endpoint={`/sentry-apps/${app.slug}/avatar/`}
-        supportedTypes={['default', 'upload']}
-        type={isColor ? 'sentryAppColor' : 'sentryAppSimple'}
-        model={app}
-        onSave={addAvatar}
-        title={isColor ? t('Logo') : t('Small Icon')}
-        help={styleProps.help.concat(isInternal ? '' : t(' Required for publishing.'))}
-        defaultChoice={{
-          label: styleProps.label,
-          description: styleProps.description,
-        }}
-      />
-    );
-  };
-
   const defaultValues = {
     name: app.name,
     author: app.author ?? '',
@@ -1036,8 +1058,18 @@ function SentryAppEditForm({
         <AllowedOriginsField form={form} fields={{allowedOrigins: 'allowedOrigins'}} />
       </form.FieldGroup>
 
-      {getAvatarChooser(true)}
-      {getAvatarChooser(false)}
+      <SentryAppAvatarChooser
+        addAvatar={addAvatar}
+        app={app}
+        isColor
+        isInternal={isInternal}
+      />
+      <SentryAppAvatarChooser
+        addAvatar={addAvatar}
+        app={app}
+        isColor={false}
+        isInternal={isInternal}
+      />
 
       <PermissionsObserver
         appPublished={app.status === 'published'}
@@ -1058,25 +1090,23 @@ function SentryAppEditForm({
               <SimpleTable.HeaderCell>{t('Token')}</SimpleTable.HeaderCell>
               <SimpleTable.HeaderCell>{t('Created On')}</SimpleTable.HeaderCell>
               <SimpleTable.HeaderCell>{t('Scopes')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>
-                <AddTokenHeader>
-                  <Tooltip
-                    disabled={hasTokenAccess()}
-                    title={t(
-                      'You must be a Manager or Owner to create authentication tokens.'
-                    )}
+              <SimpleTable.HeaderCell align="right">
+                <Tooltip
+                  disabled={hasTokenAccess()}
+                  title={t(
+                    'You must be a Manager or Owner to create authentication tokens.'
+                  )}
+                >
+                  <Button
+                    size="xs"
+                    icon={<IconAdd />}
+                    onClick={onAddToken}
+                    disabled={!hasTokenAccess()}
+                    data-test-id="token-add"
                   >
-                    <Button
-                      size="xs"
-                      icon={<IconAdd />}
-                      onClick={onAddToken}
-                      disabled={!hasTokenAccess()}
-                      data-test-id="token-add"
-                    >
-                      {t('New Token')}
-                    </Button>
-                  </Tooltip>
-                </AddTokenHeader>
+                    {t('New Token')}
+                  </Button>
+                </Tooltip>
               </SimpleTable.HeaderCell>
             </SimpleTable.HeaderRow>
           }
@@ -1155,10 +1185,4 @@ const ClientSecret = styled('div')`
   justify-content: right;
   align-items: center;
   margin-right: 0;
-`;
-
-const AddTokenHeader = styled('div')`
-  margin: -${p => p.theme.space.md} 0;
-  display: flex;
-  justify-content: flex-end;
 `;

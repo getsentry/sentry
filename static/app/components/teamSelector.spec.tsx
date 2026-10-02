@@ -61,26 +61,57 @@ function createWrapper(
 
 describe('Team Selector', () => {
   beforeEach(() => {
+    TeamStore.reset();
     TeamStore.loadInitialData(teams);
   });
 
-  it('renders options', async () => {
-    createWrapper();
+  it('renders teams and selects an option', async () => {
+    const onChangeMock = jest.fn();
+    createWrapper({onChange: onChangeMock});
     await userEvent.type(screen.getByText('Select...'), '{keyDown}');
 
     expect(screen.getByText('#team1')).toBeInTheDocument();
     expect(screen.getByText('#team2')).toBeInTheDocument();
     expect(screen.getByText('#team3')).toBeInTheDocument();
+    await userEvent.click(screen.getByText('#team1'));
+    expect(onChangeMock).toHaveBeenCalledWith(expect.objectContaining({value: 'team1'}));
   });
 
-  it('selects an option', async () => {
-    const onChangeMock = jest.fn();
-    createWrapper({onChange: onChangeMock});
-    await userEvent.type(screen.getByText('Select...'), '{keyDown}');
+  it('displays a saved team that is not in the loaded page', async () => {
+    const savedTeam = TeamFixture({id: '4', slug: 'saved-team'});
+    const onChange = jest.fn();
+    TeamStore.setTeams([teams[0]!], true, 'next-page');
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      match: [MockApiClient.matchQuery({query: `id:${savedTeam.id}`})],
+      body: [savedTeam],
+    });
 
-    const option = screen.getByText('#team1');
-    await userEvent.click(option);
-    expect(onChangeMock).toHaveBeenCalledWith(expect.objectContaining({value: 'team1'}));
+    createWrapper({
+      useId: true,
+      value: savedTeam.id,
+      onChange,
+      useTeamDefaultIfOnlyOne: true,
+    });
+
+    expect(await screen.findByText('#saved-team')).toBeInTheDocument();
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('loads missing saved teams by slug in a multiple selection', async () => {
+    const savedTeam = TeamFixture({id: '4', slug: 'saved-team'});
+    const onChange = jest.fn();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/teams/`,
+      match: [MockApiClient.matchQuery({query: `slug:${savedTeam.slug}`})],
+      body: [savedTeam],
+    });
+
+    createWrapper({multiple: true, value: ['team1', savedTeam.slug], onChange});
+
+    expect(await screen.findByText('#saved-team')).toBeInTheDocument();
+    expect(screen.getByText('#team1')).toBeInTheDocument();
+    expect(onChange).not.toHaveBeenCalled();
   });
 
   it('respects the team filter', async () => {

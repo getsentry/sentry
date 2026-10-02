@@ -113,7 +113,7 @@ function IssueOpenPeriodsList() {
         investigation:
           activity.type === 'opened' && candidate?.status === 'view' ? (
             <Link
-              to={`/organizations/${organization.slug}/seer/investigation/${candidate.investigationId}/`}
+              to={`/organizations/${organization.slug}/explore/investigations/${candidate.investigationId}/`}
             >
               <Flex as="span" align="center" gap="xs">
                 <IconSeer size="xs" />
@@ -141,10 +141,6 @@ function IssueOpenPeriodsList() {
         ]
       : []),
   ];
-
-  const renderHeadCell = (col: GridColumnOrder) => {
-    return <AlignLeft>{col.name}</AlignLeft>;
-  };
 
   const renderBodyCell = (
     col: GridColumnOrder<string>,
@@ -179,9 +175,7 @@ function IssueOpenPeriodsList() {
         data={data}
         error={error}
         columnOrder={columnOrder}
-        columnSortBy={[]}
         grid={{
-          renderHeadCell,
           renderBodyCell,
         }}
       />

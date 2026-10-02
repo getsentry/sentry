@@ -30,6 +30,7 @@ export function useD3Zoom({
   const [transform, setTransform] = useState(zoomIdentity);
   const zoomBehaviorRef = useRef<ZoomBehavior<HTMLDivElement, unknown> | null>(null);
   const onTransformChangeRef = useRef(onTransformChange);
+  // oxlint-disable-next-line react/refs
   onTransformChangeRef.current = onTransformChange;
 
   useEffect(() => {
@@ -117,10 +118,14 @@ export function useSyncedD3Zoom(
     };
   }
 
+  // oxlint-disable-next-line react/refs
   const zoom1 = useD3Zoom({...options, onTransformChange: syncTo(zoom2Refs)});
+  // oxlint-disable-next-line react/refs
   const zoom2 = useD3Zoom({...options, onTransformChange: syncTo(zoom1Refs)});
 
+  // oxlint-disable-next-line react/refs
   zoom1Refs.current = zoom1;
+  // oxlint-disable-next-line react/refs
   zoom2Refs.current = zoom2;
 
   return [zoom1, zoom2];

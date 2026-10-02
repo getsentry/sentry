@@ -5,6 +5,7 @@ import {useDrawer} from '@sentry/scraps/drawer';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import type {ChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
 import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import {useSeerExplorerChatDispatch} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
@@ -14,20 +15,25 @@ const SEER_EXPLORER_DRAWER_KEY = 'seer-explorer-drawer';
 
 export type OpenSeerExplorerDrawerOptions = {
   /**
-   * Optional query string to auto-submit once the drawer opens.
-   * Only takes effect on a fresh/empty session.
+   * Submit `initialQuery` into the run already open instead of replacing it
+   * with a fresh session.
+   */
+  appendToOpenRun?: boolean;
+  /**
+   * An "Ask Seer" question to show as Seer's. Nothing is sent until the user
+   * replies. It joins the conversation on screen, or a new chat when Explorer
+   * is closed. The provider stores it in chat state; the drawer only opens.
+   */
+  chatPrompt?: ChatPrompt;
+  /**
+   * Optional query string to auto-submit once the drawer opens. Takes effect on
+   * an empty session, or the open one with `appendToOpenRun`.
    */
   initialQuery?: string;
   /**
    * Optional run ID to open. If provided, opens an existing session.
-   * Cannot be used together with `startNewRun`.
    */
   runId?: SeerExplorerRunId;
-  /**
-   * If true, switches to a new session before opening.
-   * Cannot be used together with `runId`.
-   */
-  startNewRun?: boolean;
 };
 
 export const useSeerExplorerDrawer = (options?: {onClose?: () => void}) => {
@@ -43,6 +49,7 @@ export const useSeerExplorerDrawer = (options?: {onClose?: () => void}) => {
   }, [isDrawerOpen]);
 
   const onCloseCallbackRef = useRef(options?.onClose);
+  // oxlint-disable-next-line react/refs
   onCloseCallbackRef.current = options?.onClose;
 
   const onOpen = useCallback(() => {
@@ -66,19 +73,18 @@ export const useSeerExplorerDrawer = (options?: {onClose?: () => void}) => {
 
   const openSeerExplorerDrawer = useCallback(
     (drawerOptions?: OpenSeerExplorerDrawerOptions) => {
-      const {runId: openRunId, startNewRun, initialQuery} = drawerOptions ?? {};
+      const {runId: openRunId, initialQuery, appendToOpenRun} = drawerOptions ?? {};
 
       if (initialQuery) {
-        // Always start a fresh session when a query is forwarded so it
-        // auto-submits into an empty conversation, even if the drawer is
-        // already open with an existing run.
-        dispatch({type: 'set run id', payload: null});
+        // A forwarded query starts a fresh session unless the caller asked to
+        // add to the open run.
+        if (!appendToOpenRun) {
+          dispatch({type: 'set run id', payload: null});
+        }
       } else if (isDrawerOpenRef.current) {
         return;
       } else if (openRunId !== undefined) {
         dispatch({type: 'set run id', payload: openRunId});
-      } else if (startNewRun) {
-        dispatch({type: 'set run id', payload: null});
       }
 
       openDrawer(
@@ -86,6 +92,7 @@ export const useSeerExplorerDrawer = (options?: {onClose?: () => void}) => {
           <ExplorerDrawerContent
             getPageReferrer={getPageReferrer}
             initialQuery={initialQuery}
+            appendInitialQuery={appendToOpenRun}
           />
         ),
         {

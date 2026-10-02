@@ -1,8 +1,9 @@
-import type {CSSProperties} from 'react';
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
 import * as qs from 'query-string';
+
+import type {CSS} from '@sentry/scraps/cssTypes';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -28,8 +29,8 @@ import {Rect} from 'sentry/utils/profiling/speedscope';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SpanFields} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
@@ -527,6 +528,7 @@ export function FlamegraphSpans({
 
       <SpansContextMenu
         contextMenu={contextMenuState}
+        // oxlint-disable-next-line react/refs
         hoveredNode={hoveredNodeOnContextMenuOpen.current}
         onCopyDescription={onCopyDescription}
         onCopyOperation={onCopyOperation}
@@ -548,7 +550,7 @@ export function FlamegraphSpans({
   );
 }
 
-const Canvas = styled('canvas')<{cursor?: CSSProperties['cursor']}>`
+const Canvas = styled('canvas')<{cursor?: CSS['cursor']}>`
   width: 100%;
   height: calc(100% - 20px);
   position: absolute;

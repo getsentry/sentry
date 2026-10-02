@@ -1,6 +1,8 @@
 import logging
+import random
 import time
 import uuid
+from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta, timezone
 from typing import Any, Literal, TypedDict, cast
 
@@ -38,7 +40,9 @@ from sentry.models.apikey import ApiKey
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.group import EventOrdering, Group
+from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
 from sentry.models.projectownership import ProjectOwnership
@@ -87,6 +91,7 @@ from sentry.seer.sentry_data_models import (
     ExecuteTimeseriesQueryErrorResponse,
     ExecuteTimeseriesQuerySuccessResponse,
     GetDsnResponse,
+    GroupAssigneesResponse,
     IssueCommittersResponse,
     IssueDetailsResponse,
     IssueOwner,
@@ -94,10 +99,12 @@ from sentry.seer.sentry_data_models import (
     ProfileFlamegraphErrorResponse,
     ProfileFlamegraphMetadata,
     ProfileFlamegraphSuccessResponse,
+    ProjectMembersResponse,
     ReplayMetadataResponse,
     RepositoryDefinitionResponse,
     TeamMembersResponse,
     TraceItemEventsResponse,
+    UserIdentity,
 )
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.snuba.dataset import Dataset
@@ -121,6 +128,9 @@ from sentry.utils.snuba import raw_snql_query
 from sentry.utils.snuba_rpc import get_trace_rpc
 
 logger = logging.getLogger(__name__)
+
+PROJECT_MEMBER_LIMIT_MAX = 20
+PROJECT_ASSIGNMENT_HISTORY_LIMIT = 500
 
 
 def _get_full_trace_id(
@@ -1196,13 +1206,15 @@ def _get_recommended_event(
     start: datetime | None = None,
     end: datetime | None = None,
 ) -> GroupEvent | None:
-    """
-    Our own implementation of Group.get_recommended_event. Requires the return event to fall in the time range and have a non-empty trace.
-    Time range defaults to the group's first and last seen times.
-    If multiple events are valid, return the one with highest RECOMMENDED ordering.
-    If no events are valid, return the highest recommended event.
+    """Prefer events with stored spans.
 
-    Also falls back to the regular recommended event in case of query failures or custom timeout.
+    The time range defaults to the group's first and last seen times. Search windows
+    from newest to oldest, choosing the highest RECOMMENDED event with stored spans
+    and an available body in the first matching window.
+
+    If no match is found, a query fails, or the search times out, fall back to the
+    highest RECOMMENDED event with an available body from the newest nonempty window,
+    then to the group's regular recommended event.
     """
     start_time = time.time()
 
@@ -1218,52 +1230,36 @@ def _get_recommended_event(
     retention_boundary = get_retention_boundary(organization, bool(start.tzinfo))
     window_start = max(end - window_size, start)
     window_end = end
-    # Fallback to first event we find (most recommended in most recent window).
-    fallback_event: GroupEvent | None = None
+    fallback_events: list[Event] = []
 
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
     else:
         dataset = Dataset.IssuePlatform
 
-    def get_latest_event() -> GroupEvent | None:
-        """If no events are found in the clamped range, use this query to return most recent event in the full range."""
-        return group.get_latest_event(start=unclamped_start, end=end)
-
-    logger.info(
-        "_get_recommended_event: starting query loop",
-        extra={
-            "organization_id": organization.id,
-            "project_id": group.project.id,
-            "issue_id": group.id,
-            "timedelta": end - start,
-            "start": start,
-            "end": end,
-            "dataset": dataset.value,
-        },
-    )
+    log_context = {
+        "organization_id": organization.id,
+        "project_id": group.project.id,
+        "issue_id": group.id,
+        "timedelta": end - start,
+        "start": start,
+        "end": end,
+        "dataset": dataset.value,
+    }
+    logger.info("_get_recommended_event: starting query loop", extra=log_context)
 
     while window_start >= start:
         if time.time() - start_time > timeout:
             logger.warning(
                 "_get_recommended_event: timeout reached",
-                extra={
-                    "organization_id": organization.id,
-                    "project_id": group.project.id,
-                    "issue_id": group.id,
-                    "timedelta": end - start,
-                    "start": start,
-                    "end": end,
-                    "dataset": dataset.value,
-                    "timeout": timeout,
-                },
+                extra={**log_context, "timeout": timeout},
             )
-            return fallback_event or get_latest_event()
+            break
 
         # Get candidate events with the standard recommended ordering.
         # This is an expensive orderby, hence the inner limit and sliding window.
         try:
-            events: list[Event] = eventstore.backend.get_events_snql(
+            events = eventstore.backend.get_events_snql(
                 organization_id=organization.id,
                 group_id=group.id,
                 start=window_start,
@@ -1278,65 +1274,39 @@ def _get_recommended_event(
                 dataset=dataset,
                 tenant_ids={"organization_id": group.project.organization_id},
                 inner_limit=1000,
+                eager_load_bodies=False,
+                extra_columns=["trace_id"],
             )
         except Exception:
             logger.exception(
                 "_get_recommended_event: eventstore query failed",
-                extra={
-                    "organization_id": organization.id,
-                    "project_id": group.project.id,
-                    "issue_id": group.id,
-                    "dataset": dataset.value,
-                },
+                extra=log_context,
             )
-            return fallback_event or get_latest_event()
+            break
 
-        if events and not fallback_event:
-            fallback_event = events[0].for_group(group)
+        if not fallback_events:
+            fallback_events = events
 
-        trace_ids = list({e.trace_id for e in events if e.trace_id})
+        trace_ids = list({event.trace_id for event in events if event.trace_id})
 
-        if len(trace_ids) > 0:
-            # Query EAP to get the span count of each trace.
-            # Extend the time range by +-1 day to account for min/max trace start/end times.
-            # Clamp spans_start to retention boundary to avoid QueryOutsideRetentionError.
-            spans_start = max(window_start - timedelta(days=1), retention_boundary)
-            spans_end = window_end + timedelta(days=1)
-            count_field = "count(span.duration)"
-
-            try:
-                result = execute_table_query(
-                    org_id=organization.id,
-                    dataset="spans",
-                    per_page=len(trace_ids),
-                    fields=["trace", count_field],
-                    query=f"trace:[{','.join(trace_ids)}]",
-                    start=spans_start.isoformat(),
-                    end=spans_end.isoformat(),
-                )
-            except Exception:
-                logger.exception(
-                    "_get_recommended_event: spans query failed",
-                    extra={
-                        "organization_id": organization.id,
-                        "project_id": group.project.id,
-                        "issue_id": group.id,
-                        "num_trace_ids": len(trace_ids),
-                    },
-                )
-                return fallback_event or get_latest_event()
-
-            if isinstance(result, ExecuteQuerySuccessResponse) and result.data:
-                # Return the first event with a span count greater than 0.
-                traces_with_spans = {
-                    item["trace"]
-                    for item in result.data
-                    if item.get("trace") and item.get(count_field, 0) > 0
-                }
-
-                for e in events:
-                    if e.trace_id in traces_with_spans:
-                        return e.for_group(group)
+        try:
+            # Spans may fall outside the event window.
+            traces_with_spans = _get_traces_with_spans(
+                organization.id,
+                trace_ids,
+                start=max(window_start - timedelta(days=1), retention_boundary),
+                end=window_end + timedelta(days=1),
+            )
+            matching_events = [event for event in events if event.trace_id in traces_with_spans]
+            event = _load_first_available_event(group, matching_events)
+            if event is not None:
+                return event
+        except Exception:
+            logger.exception(
+                "_get_recommended_event: spans query or event load failed",
+                extra={**log_context, "num_trace_ids": len(trace_ids)},
+            )
+            break
 
         if window_start == start:
             break
@@ -1346,22 +1316,52 @@ def _get_recommended_event(
 
     logger.warning(
         "_get_recommended_event: no event with a span found",
-        extra={
-            "issue_id": group.id,
-            "organization_id": organization.id,
-            "project_id": group.project.id,
-            "start": start,
-            "end": end,
-            "timedelta": end - start,
-            "dataset": dataset.value,
-            "has_fallback_event": bool(fallback_event),
-        },
+        extra={**log_context, "has_fallback_event": bool(fallback_events)},
     )
-    return fallback_event or get_latest_event()
+    return _load_first_available_event(group, fallback_events) or group.get_recommended_event(
+        start=unclamped_start, end=end
+    )
 
 
-# Activity types to include in issue details for Seer Agent (manual actions only)
-_SEER_EXPLORER_ACTIVITY_TYPES = [
+def _get_traces_with_spans(
+    org_id: int, trace_ids: Sequence[str], start: datetime, end: datetime
+) -> set[str]:
+    if not trace_ids:
+        return set()
+
+    count_field = "count(span.duration)"
+    result = execute_table_query(
+        org_id=org_id,
+        dataset="spans",
+        per_page=len(trace_ids),
+        fields=["trace", count_field],
+        query=f"trace:[{','.join(trace_ids)}]",
+        start=start.isoformat(),
+        end=end.isoformat(),
+    )
+    if not isinstance(result, ExecuteQuerySuccessResponse):
+        return set()
+
+    return {row["trace"] for row in result.data if row.get("trace") and row.get(count_field, 0) > 0}
+
+
+def _load_first_available_event(group: Group, events: Sequence[Event]) -> GroupEvent | None:
+    for event in events:
+        try:
+            # Checking data loads the body on demand.
+            has_data = bool(event.data)
+        except Exception:
+            logger.exception(
+                "_load_first_available_event: body load failed",
+                extra={"project_id": group.project_id, "event_id": event.event_id},
+            )
+            continue
+        if has_data:
+            return event.for_group(group)
+    return None
+
+
+_SEER_EXPLORER_ACTOR_OPTIONAL_ACTIVITY_TYPES = [
     ActivityType.NOTE.value,
     ActivityType.SET_RESOLVED.value,
     ActivityType.SET_RESOLVED_IN_RELEASE.value,
@@ -1369,6 +1369,11 @@ _SEER_EXPLORER_ACTIVITY_TYPES = [
     ActivityType.SET_RESOLVED_IN_PULL_REQUEST.value,
     ActivityType.SET_UNRESOLVED.value,
     ActivityType.ASSIGNED.value,
+]
+
+_SEER_EXPLORER_ACTOR_REQUIRED_ACTIVITY_TYPES = [
+    ActivityType.TRIGGER_AUTOFIX.value,
+    ActivityType.SEER_ITERATION_STARTED.value,
 ]
 
 
@@ -1540,10 +1545,15 @@ def get_issue_details(
         timeseries, timeseries_stats_period, timeseries_interval = None, None, None
 
     try:
-        activities = Activity.objects.filter(
-            group=group,
-            type__in=_SEER_EXPLORER_ACTIVITY_TYPES,
-        ).order_by("-datetime")[:50]
+        activity_filter = models.Q(
+            type__in=_SEER_EXPLORER_ACTOR_OPTIONAL_ACTIVITY_TYPES
+        ) | models.Q(
+            type__in=_SEER_EXPLORER_ACTOR_REQUIRED_ACTIVITY_TYPES,
+            user_id__isnull=False,
+        )
+        activities = (
+            Activity.objects.filter(group=group).filter(activity_filter).order_by("-datetime")[:50]
+        )
         serialized_activities = serialize(
             list(activities), user=None, serializer=ActivitySerializer(resolve_mentions=True)
         )
@@ -1912,7 +1922,12 @@ class _IssueOwnership:
                         continue
                     seen.add(("user", owner.id))
                     owners.append(
-                        IssueOwner(type="user", email=owner.email, name=owner.get_display_name())
+                        IssueOwner(
+                            type="user",
+                            email=owner.email,
+                            username=owner.username,
+                            name=owner.get_display_name(),
+                        )
                     )
 
         return owners, sorted(matched_rules)
@@ -1951,7 +1966,7 @@ def get_team_members(
 
     Returns:
         A ``TeamMembersResponse`` with ``team_id``/``team_slug``/``team_name`` and
-        ``members`` (each an ``IssueOwner`` with ``type="user"``, ``email``, ``name``).
+        ``members`` (each an ``IssueOwner`` with ``type="user"``, ``username``, ``email``, ``name``).
         ``members`` is empty when the team has no active members. Returns ``None`` if the
         team cannot be found in the organization.
     """
@@ -1970,7 +1985,12 @@ def get_team_members(
     user_ids = list(team.get_member_user_ids())
     members = (
         [
-            IssueOwner(type="user", email=user.email, name=user.get_display_name())
+            IssueOwner(
+                type="user",
+                email=user.email,
+                username=user.username,
+                name=user.get_display_name(),
+            )
             for user in user_service.get_many(filter={"user_ids": user_ids})
         ]
         if user_ids
@@ -1981,6 +2001,144 @@ def get_team_members(
         team_slug=team.slug,
         team_name=team.name,
         members=members,
+    )
+
+
+def get_project_members(
+    *,
+    organization_id: int,
+    project_id: int,
+    exclude_group_id: int | None = None,
+    limit: int = 3,
+) -> ProjectMembersResponse | None:
+    if (
+        not isinstance(limit, int)
+        or isinstance(limit, bool)
+        or not 1 <= limit <= PROJECT_MEMBER_LIMIT_MAX
+    ):
+        raise BadRequest(f"limit must be between 1 and {PROJECT_MEMBER_LIMIT_MAX}")
+
+    try:
+        project = Project.objects.get(
+            id=project_id,
+            organization_id=organization_id,
+            status=ObjectStatus.ACTIVE,
+        )
+    except Project.DoesNotExist:
+        return None
+
+    member_ids = {
+        user_id
+        for user_id in (
+            OrganizationMemberTeam.objects.filter(
+                team__projectteam__project_id=project.id,
+                team__status=TeamStatus.ACTIVE,
+                is_active=True,
+                organizationmember__user_id__isnull=False,
+                organizationmember__user_is_active=True,
+            )
+            .values_list("organizationmember__user_id", flat=True)
+            .distinct()
+        )
+        if user_id is not None
+    }
+    if not member_ids:
+        return ProjectMembersResponse(members=[])
+
+    activities = Activity.objects.filter(
+        project_id=project.id,
+        type=ActivityType.ASSIGNED.value,
+    )
+    if exclude_group_id is not None:
+        activities = activities.exclude(group_id=exclude_group_id)
+    activity_data = activities.order_by("-datetime", "-id").values_list("data", flat=True)[
+        :PROJECT_ASSIGNMENT_HISTORY_LIMIT
+    ]
+
+    selected_member_ids: list[int] = []
+    for data in activity_data.iterator(chunk_size=50):
+        data = data or {}
+        if data.get("assigneeType") != "user":
+            continue
+        try:
+            user_id = int(data["assignee"])
+        except (KeyError, TypeError, ValueError):
+            continue
+        if user_id not in member_ids or user_id in selected_member_ids:
+            continue
+        selected_member_ids.append(user_id)
+        if len(selected_member_ids) == limit:
+            break
+
+    if len(selected_member_ids) < limit:
+        member_ids.difference_update(selected_member_ids)
+        fallback_count = min(limit - len(selected_member_ids), len(member_ids))
+        metrics.incr(
+            "seer.get_project_members.fallback",
+            tags={"fallback_count": str(fallback_count)},
+            sample_rate=1.0,
+        )
+        selected_member_ids.extend(random.sample(list(member_ids), fallback_count))
+
+    users_by_id = {
+        user.id: user
+        for user in user_service.get_many(
+            filter={
+                "user_ids": selected_member_ids,
+                "is_active": True,
+                "organization_id": organization_id,
+            }
+        )
+    }
+    return ProjectMembersResponse(
+        members=[
+            UserIdentity(id=user.id, username=user.username)
+            for user_id in selected_member_ids
+            if (user := users_by_id.get(user_id)) is not None
+        ]
+    )
+
+
+def get_group_assignees(
+    *,
+    organization_id: int,
+    group_ids: list[int],
+) -> GroupAssigneesResponse:
+    if len(group_ids) > 100:
+        raise BadRequest("At most 100 group IDs may be requested")
+
+    user_ids_by_group = cast(
+        dict[int, int],
+        dict(
+            GroupAssignee.objects.filter(
+                group_id__in=group_ids,
+                project__organization_id=organization_id,
+                user_id__isnull=False,
+            ).values_list("group_id", "user_id")
+        ),
+    )
+    if not user_ids_by_group:
+        return GroupAssigneesResponse(assignees={})
+
+    users_by_id = {
+        user.id: user
+        for user in user_service.get_many(
+            filter={
+                "user_ids": list(user_ids_by_group.values()),
+                "is_active": True,
+                "organization_id": organization_id,
+            }
+        )
+    }
+    return GroupAssigneesResponse(
+        assignees={
+            str(group_id): UserIdentity(
+                id=user.id,
+                username=user.username,
+            )
+            for group_id, user_id in user_ids_by_group.items()
+            if (user := users_by_id.get(user_id)) is not None
+        }
     )
 
 

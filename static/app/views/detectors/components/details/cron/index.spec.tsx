@@ -10,14 +10,24 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
-import {UserTimezoneProvider} from 'sentry/components/timezoneProvider';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {SentryDateTimeProvider} from 'sentry/scrapsProviders/datetime';
 import {ConfigStore} from 'sentry/stores/configStore';
+import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {CronDetectorDetails} from 'sentry/views/detectors/components/details/cron';
+import DetectorDetails from 'sentry/views/detectors/detail';
 
 describe('CronDetectorDetails - check-ins', () => {
-  const project = ProjectFixture();
+  const project = ProjectFixture({environments: ['production']});
   const cronDataSource = CronMonitorDataSourceFixture({
     queryObj: {
       ...CronMonitorDataSourceFixture().queryObj,
@@ -132,6 +142,82 @@ describe('CronDetectorDetails - check-ins', () => {
     expect(screen.queryByText('Recent Check-Ins')).not.toBeInTheDocument();
   });
 
+  describe('project filters', () => {
+    beforeEach(() => {
+      const otherProject = ProjectFixture({id: '999', slug: 'other-project'});
+      ProjectsStore.loadInitialData([project, otherProject]);
+      PageFiltersStore.reset();
+      // Give the timeline a measurable width so its stats request is enabled.
+      jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(1000);
+      localStorageWrapper.setItem(
+        'global-selection:org-slug',
+        JSON.stringify({
+          projects: [999],
+          environments: [cronDataSource.queryObj.environments[0]!.name],
+          period: '2d',
+          pinnedFilters: ['projects', 'environments', 'datetime'],
+        })
+      );
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/projects/',
+        body: [project, otherProject],
+      });
+    });
+
+    afterEach(() => {
+      localStorageWrapper.removeItem('global-selection:org-slug');
+      PageFiltersStore.reset();
+      ProjectsStore.reset();
+      jest.restoreAllMocks();
+    });
+
+    it.each([false, true])(
+      'uses the monitor project instead of a stale filter (in URL: %s)',
+      async inUrl => {
+        const environment = cronDataSource.queryObj.environments[0]!.name;
+        const statsRequest = MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/monitors-stats/',
+          body: {},
+        });
+        const {router} = render(<DetectorDetails />, {
+          initialRouterConfig: {
+            location: {
+              pathname: '/organizations/org-slug/monitors/1/',
+              query: inUrl ? {project: '999', environment, statsPeriod: '2d'} : {},
+            },
+            route: '/organizations/:orgId/monitors/:detectorId/',
+          },
+        });
+
+        await waitFor(() => {
+          expect(router.location.query).toEqual({
+            project: project.id,
+            environment,
+            statsPeriod: '2d',
+          });
+        });
+        await waitFor(() => {
+          expect(statsRequest).toHaveBeenCalledWith(
+            '/organizations/org-slug/monitors-stats/',
+            expect.objectContaining({
+              query: expect.objectContaining({
+                project: project.id,
+                environment,
+                monitor: [cronDataSource.queryObj.id],
+              }),
+            })
+          );
+        });
+        expect(PageFiltersStore.getState().selection.projects).toEqual([
+          Number(project.id),
+        ]);
+        expect(
+          JSON.parse(localStorageWrapper.getItem('global-selection:org-slug')!).projects
+        ).toEqual([999]);
+      }
+    );
+  });
+
   describe('check-ins', () => {
     it('shows recent check-ins with an empty table', async () => {
       render(<CronDetectorDetails detector={detector} project={project} />);
@@ -207,9 +293,9 @@ describe('CronDetectorDetails - check-ins', () => {
       ConfigStore.set('user', user);
 
       render(
-        <UserTimezoneProvider>
+        <SentryDateTimeProvider>
           <CronDetectorDetails detector={detectorWithCheckIn} project={project} />
-        </UserTimezoneProvider>
+        </SentryDateTimeProvider>
       );
 
       // Wait for check-ins to load and find the table within the section
@@ -246,6 +332,64 @@ describe('CronDetectorDetails - check-ins', () => {
       // UTC should show the raw UTC time
       const utcTimezoneText = timeCell.textContent;
       expect(utcTimezoneText).toBe('Jan 1, 2025 12:00:01 AM UTC');
+    });
+  });
+
+  describe('clock display', () => {
+    it('writes check-in times on the viewer 24 hour clock', async () => {
+      const defaultDataSource = CronMonitorDataSourceFixture();
+      const dataSouce = CronMonitorDataSourceFixture({
+        queryObj: {
+          ...defaultDataSource.queryObj,
+          environments: [
+            CronMonitorEnvironmentFixture({lastCheckIn: '2025-01-01T00:00:01Z'}),
+          ],
+        },
+      });
+
+      const detectorWithCheckIn = CronDetectorFixture({dataSources: [dataSouce]});
+
+      MockApiClient.addMockResponse({
+        url: `/projects/org-slug/${project.slug}/monitors/${detectorWithCheckIn.dataSources[0].queryObj.slug}/checkins/`,
+        body: [CheckInFixture()],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/projects/org-slug/${project.id}/monitors/${detectorWithCheckIn.dataSources[0].queryObj.slug}/processing-errors/`,
+        body: [],
+      });
+
+      MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/detectors/${detectorWithCheckIn.id}/`,
+        body: detectorWithCheckIn,
+      });
+
+      // A viewer in New York who has chosen the 24 hour clock.
+      const user = UserFixture();
+      user.options.timezone = 'America/New_York';
+      user.options.clock24Hours = true;
+      ConfigStore.set('user', user);
+
+      render(
+        <SentryDateTimeProvider>
+          <CronDetectorDetails detector={detectorWithCheckIn} project={project} />
+        </SentryDateTimeProvider>
+      );
+
+      const recentCheckInsHeading = await screen.findByText('Recent Check-Ins');
+      const container = recentCheckInsHeading.closest('section')!;
+      const checkInTable = await within(container).findByRole('table');
+
+      const headers = within(checkInTable).getAllByRole('columnheader');
+      const startedColumnIndex = headers.findIndex(h => h.textContent === 'Started');
+
+      const rows = within(checkInTable).getAllByRole('row');
+      const cells = within(rows[1]!).getAllByRole('cell');
+      const timeCell = cells[startedColumnIndex]!;
+
+      // The timezone override subtree has to carry the viewer's clock through
+      // rather than substituting a default of its own.
+      expect(timeCell).toHaveTextContent('Dec 31, 2024 19:00:01 EST');
     });
   });
 

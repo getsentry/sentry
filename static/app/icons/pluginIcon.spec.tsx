@@ -9,6 +9,6 @@ jest.mock('images/logos/logo-github.svg', () => 'github', {});
 
 describe('PluginIcon', () => {
   it('renders', () => {
-    render(<PluginIcon pluginId="github" size={20} />);
+    render(<PluginIcon pluginId="github" />);
   });
 });

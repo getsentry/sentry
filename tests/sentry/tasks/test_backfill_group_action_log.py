@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from unittest.mock import call as mock_call
 from unittest.mock import patch
 
 import pytest
@@ -9,12 +10,12 @@ from django.utils import timezone
 
 from sentry import options as real_options
 from sentry.issues.action_log.types import GroupActionType, GroupActorType
+from sentry.issues.derived.gate import GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
 from sentry.tasks.backfill_group_action_log import (
-    GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
     _reset_project,
     backfill_group_action_log_for_all_projects,
     backfill_group_action_log_for_group,
@@ -24,12 +25,14 @@ from sentry.tasks.backfill_group_action_log import (
     reset_and_backfill_group_action_log,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
 
 TEST_BATCH_SIZE = 5
 
 
+@with_feature({"projects:issue-action-log-write-to-db": False})
 class BackfillGroupActionLogForGroupTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -154,6 +157,7 @@ class BackfillGroupActionLogForGroupTest(TestCase):
             backfill_group_action_log_for_group(self.group.id)
 
 
+@with_feature({"projects:issue-action-log-write-to-db": False})
 class ResetAndBackfillGroupActionLogTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -605,18 +609,13 @@ class EnrollProjectsForGroupActionLogBackfillTest(TestCase):
         )
 
     def _project_feature_results(self, enabled_project_ids: set[int]) -> Any:
-        def build_batch_results(
-            feature_names: list[str], *, projects: list[Any], organization: Any
-        ) -> dict[str, dict[str, bool]]:
-            feature_name = feature_names[0]
-            return {
-                f"project:{project.id}": {feature_name: project.id in enabled_project_ids}
-                for project in projects
-            }
+        def has_feature(feature_name: str, project: Any) -> bool:
+            assert feature_name == "projects:issue-action-log-write-to-db"
+            return project.id in enabled_project_ids
 
         return patch(
-            "sentry.tasks.backfill_group_action_log.features.batch_has",
-            side_effect=build_batch_results,
+            "sentry.tasks.backfill_group_action_log.features.has",
+            side_effect=has_feature,
         )
 
     def test_dispatches_enrollment_for_active_organizations(self) -> None:
@@ -635,28 +634,52 @@ class EnrollProjectsForGroupActionLogBackfillTest(TestCase):
         assert dispatched_organization_ids == {first_organization.id, second_organization.id}
         assert inactive_organization.id not in dispatched_organization_ids
 
-    def test_enrolls_active_projects_without_overwriting_existing_option(self) -> None:
+    def test_enrolls_only_eligible_legacy_projects_without_state(self) -> None:
         organization = self.create_organization()
-        pending_project = self.create_project(organization=organization)
+        legacy_project = self.create_project(organization=organization)
+        missing_epoch_project = self.create_project(organization=organization)
+        already_enrolled_project = self.create_project(organization=organization)
         ineligible_project = self.create_project(organization=organization)
         completed_project = self.create_project(organization=organization)
+        new_project = self.create_project(organization=organization)
         inactive_project = self.create_project(organization=organization)
+        legacy_project.update_option("sentry:option-epoch", 15)
+        missing_epoch_project.delete_option("sentry:option-epoch")
+        already_enrolled_project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, False)
         completed_project.update_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION, True)
         inactive_project.update(status=1)
-        assert pending_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is None
+        assert legacy_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is None
 
         with self._project_feature_results(
-            {pending_project.id, completed_project.id}
-        ) as mock_batch_has:
+            {
+                legacy_project.id,
+                missing_epoch_project.id,
+                already_enrolled_project.id,
+                completed_project.id,
+                new_project.id,
+            }
+        ) as mock_has:
             enroll_organization_projects_for_group_action_log_backfill(organization.id)
 
-        mock_batch_has.assert_called_once_with(
-            ["projects:issue-action-log-write-to-db"],
-            projects=[pending_project, ineligible_project, completed_project],
-            organization=organization,
+        assert mock_has.call_args_list == [
+            mock_call("projects:issue-action-log-write-to-db", legacy_project),
+            mock_call("projects:issue-action-log-write-to-db", missing_epoch_project),
+            mock_call("projects:issue-action-log-write-to-db", already_enrolled_project),
+            mock_call("projects:issue-action-log-write-to-db", ineligible_project),
+            mock_call("projects:issue-action-log-write-to-db", completed_project),
+            mock_call("projects:issue-action-log-write-to-db", new_project),
+        ]
+        assert legacy_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is False
+        assert missing_epoch_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is False
+        assert (
+            already_enrolled_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is False
         )
-        assert pending_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is False
         assert completed_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is True
+        assert new_project.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is True
+        assert not ProjectOption.objects.filter(
+            project=new_project,
+            key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
+        ).exists()
         assert not ProjectOption.objects.filter(
             project=ineligible_project,
             key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
@@ -739,16 +762,63 @@ class BackfillGroupActionLogForAllProjectsTest(TestCase):
         ):
             backfill_group_action_log_for_all_projects()
 
-        mock_apply.assert_called_once_with(
-            kwargs={
-                "project_id": incomplete_project.id,
-                "reset": False,
-                "chain_pr_lifecycle": True,
-            },
-            headers={"sentry-propagate-traces": False},
-        )
-        assert project_without_option.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is None
+        dispatched_project_ids = {
+            call.kwargs["kwargs"]["project_id"] for call in mock_apply.call_args_list
+        }
+        assert dispatched_project_ids == {incomplete_project.id, inactive_project.id}
+        assert project_without_option.get_option(GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION) is True
+        assert not ProjectOption.objects.filter(
+            project=project_without_option,
+            key=GROUP_ACTION_LOG_BACKFILL_COMPLETED_OPTION,
+        ).exists()
         mock_coordinator_apply.assert_not_called()
+
+    def test_complete_options_do_not_consume_batch(self) -> None:
+        complete_project_1 = self.create_project(organization=self.organization)
+        complete_project_2 = self.create_project(organization=self.organization)
+        incomplete_project = self.create_project(organization=self.organization)
+        self._set_backfill_complete(complete_project_1, True)
+        self._set_backfill_complete(complete_project_2, True)
+        self._set_backfill_complete(incomplete_project, False)
+
+        with (
+            override_options({"issues.backfill_group_action_log.coordinator_batch_size": 2}),
+            patch.object(
+                backfill_group_action_log_for_project, "apply_async"
+            ) as mock_project_apply,
+            patch.object(
+                backfill_group_action_log_for_all_projects, "apply_async"
+            ) as mock_coordinator_apply,
+        ):
+            backfill_group_action_log_for_all_projects()
+
+        mock_project_apply.assert_called_once()
+        assert mock_project_apply.call_args.kwargs["kwargs"]["project_id"] == incomplete_project.id
+        mock_coordinator_apply.assert_not_called()
+
+    def test_logs_coordinator_phases(self) -> None:
+        project = self.create_project(organization=self.organization)
+        self._set_backfill_complete(project, False)
+
+        with (
+            self.assertLogs("sentry.tasks.backfill_group_action_log", level="INFO") as logs,
+            patch.object(backfill_group_action_log_for_project, "apply_async"),
+        ):
+            backfill_group_action_log_for_all_projects()
+
+        events = [record.getMessage() for record in logs.records]
+        assert events == [
+            "backfill_group_action_log.coordinator.started",
+            "backfill_group_action_log.coordinator.query_started",
+            "backfill_group_action_log.coordinator.query_completed",
+            "backfill_group_action_log.coordinator.dispatch_started",
+            "backfill_group_action_log.coordinator.batch_dispatched",
+            "backfill_group_action_log.coordinator.completed",
+        ]
+        query_completed = logs.records[2]
+        assert query_completed.__dict__["duration_ms"] >= 0
+        assert query_completed.__dict__["incomplete_option_count"] == 1
+        assert query_completed.__dict__["option_count"] == 1
 
     def test_self_chains_when_more_projects_remain(self) -> None:
         for _ in range(3):

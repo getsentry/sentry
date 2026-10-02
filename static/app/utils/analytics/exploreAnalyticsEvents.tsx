@@ -11,6 +11,11 @@ export type ExploreAnalyticsEventParameters = {
   'explore.floating_trigger.zoom_in': {
     organization: Organization;
   };
+  'explore.share_link_copied': {
+    frozen_relative_period: boolean;
+    organization: Organization;
+    traceItemDataset: TraceItemDataset;
+  };
   'explore.table_exported': {
     export_type: 'browser_sync' | 'export_download';
     organization: Organization;
@@ -37,5 +42,6 @@ export const exploreAnalyticsEventMap: Record<ExploreAnalyticsEventKey, string |
   'explore.floating_trigger.compare_attribute_breakdowns':
     'Explore: Floating Trigger Compare Attribute Breakdowns',
   'explore.floating_trigger.zoom_in': 'Explore: Floating Trigger Zoom In',
+  'explore.share_link_copied': 'Explore: Share Link Copied',
   'explore.table_exported': 'Explore: Table Exported',
 };

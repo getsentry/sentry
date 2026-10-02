@@ -13,7 +13,7 @@ import type {Location} from 'history';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {useHotkeys} from '@sentry/scraps/hotkey';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -32,6 +32,11 @@ export interface DrawerOptions {
    * Key to identify the drawer and enable persistence of the drawer width
    */
   drawerKey?: string;
+  /**
+   * Custom max width for the drawer, as any CSS length. Applies on top of the
+   * default percentage ceiling rather than replacing it.
+   */
+  drawerMaxWidth?: string;
   /**
    * Custom width for the drawer
    */
@@ -231,6 +236,7 @@ export function GlobalDrawer({children}: any) {
               ref={panelRef}
               mode={currentDrawerConfig.options.mode ?? 'blocking'}
               drawerWidth={currentDrawerConfig?.options?.drawerWidth}
+              drawerMaxWidth={currentDrawerConfig?.options?.drawerMaxWidth}
               drawerKey={currentDrawerConfig?.options?.drawerKey}
               resizable={currentDrawerConfig?.options?.resizable}
             >

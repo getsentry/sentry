@@ -59,9 +59,11 @@ import type {ShortIdResponse} from 'sentry/types/group';
 import type {Member, Team} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
@@ -77,6 +79,7 @@ import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
 import {DashboardFilter} from 'sentry/views/dashboards/types';
 import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {
+  getSavedQueryKey,
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
   useGetSavedQueries,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
@@ -89,6 +92,10 @@ import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settin
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {
+  toggleXRayMode,
+  useXRayModeEnabled,
+} from 'sentry/views/seerExplorer/xray/xrayModeStore';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 import {PROJECT_SETTINGS_ICONS} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
@@ -108,7 +115,6 @@ export function isNavItemVisible(
   return typeof item.show === 'function' ? item.show(context) : item.show;
 }
 import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 import {CMDKAction} from './cmdk';
 import {CommandPaletteSlot} from './commandPaletteSlot';
@@ -271,7 +277,7 @@ export function GlobalCommandPaletteActions() {
   const {mutate: exitSuperuser} = useMutation({
     mutationFn: () =>
       fetchMutation({
-        url: '/auth/superuser/',
+        url: getApiUrl('/auth/superuser/'),
         method: 'DELETE',
       }),
     onSuccess: () => window.location.reload(),
@@ -287,6 +293,12 @@ export function GlobalCommandPaletteActions() {
     ? projects.filter(p => p.slug === params.projectId)
     : projects.filter(p => queryProjectIds.has(p.id));
   const currentProjectSlugs = new Set(currentProjects.map(p => p.slug));
+  // Included in project picker query keys so starring/unstarring a project
+  // reorders the cached list.
+  const bookmarkedProjectSlugs = projects
+    .filter(p => p.isBookmarked)
+    .map(p => p.slug)
+    .join(',');
   const visibleProjectSettingsNavItems = useMemo(() => {
     const context: Omit<NavigationGroupProps, 'items' | 'name' | 'id'> = {
       access: new Set(organization.access),
@@ -330,6 +342,7 @@ export function GlobalCommandPaletteActions() {
 
   const {supportsNotifications, permission, askNotificationPermission} =
     useNotificationPermission();
+  const xrayModeEnabled = useXRayModeEnabled();
   return (
     <CommandPaletteSlot name="global">
       <CMDKAction display={{label: t('Go to...')}}>
@@ -387,22 +400,12 @@ export function GlobalCommandPaletteActions() {
               to={`${prefix}/explore/metrics/`}
             />
           )}
-          {organization.features.includes('explore-errors') &&
-            !getDiscoverDeprecation(organization) && (
-              <CMDKAction
-                display={{label: t('Errors')}}
-                to={`${prefix}/explore/errors-v2/`}
-              />
-            )}
+          {/* TODO(nikki): I removed the errors on eap UI here so it wouldn't get confused with discover errors, add it back before launch */}
           <CMDKAction
             display={{
-              label: getDiscoverDeprecation(organization) ? t('Errors') : t('Discover'),
+              label: t('Errors'),
             }}
-            to={
-              getDiscoverDeprecation(organization)
-                ? `${prefix}/explore/errors/homepage/`
-                : `${prefix}/explore/discover/homepage/`
-            }
+            to={`${prefix}/explore/errors/`}
           />
           {organization.features.includes('profiling') && (
             <CMDKAction
@@ -435,7 +438,7 @@ export function GlobalCommandPaletteActions() {
           />
           {starredSavedQueries.map(query => (
             <CMDKAction
-              key={query.id}
+              key={getSavedQueryKey(query)}
               display={{label: query.name, icon: <IconStar />}}
               to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
             />
@@ -707,11 +710,16 @@ export function GlobalCommandPaletteActions() {
                       organization.slug,
                       suffix,
                       params.projectId ?? [...queryProjectIds].join(','),
+                      bookmarkedProjectSlugs,
                     ],
                     queryFn: () => {
                       const sorted = [
-                        ...projects.filter(p => currentProjectSlugs.has(p.slug)),
-                        ...projects.filter(p => !currentProjectSlugs.has(p.slug)),
+                        ...sortProjects(
+                          projects.filter(p => currentProjectSlugs.has(p.slug))
+                        ),
+                        ...sortProjects(
+                          projects.filter(p => !currentProjectSlugs.has(p.slug))
+                        ),
                       ];
                       return sorted.map(project => ({
                         display: {
@@ -765,7 +773,7 @@ export function GlobalCommandPaletteActions() {
           )}
           {isActiveSuperuser() && (
             <CMDKAction
-              display={{label: t('Exit Superuser'), icon: <IconLock locked={false} />}}
+              display={{label: t('Exit Superuser'), icon: <IconLock />}}
               keywords={[t('superuser')]}
               onAction={() => exitSuperuser()}
             />
@@ -925,7 +933,7 @@ export function GlobalCommandPaletteActions() {
             ),
             enabled: query.length >= 1,
             select: data =>
-              data.json.map(project => ({
+              sortProjects(data.json).map(project => ({
                 display: {
                   label: project.slug,
                   icon: <ProjectAvatar project={project} size={16} />,
@@ -962,18 +970,17 @@ export function GlobalCommandPaletteActions() {
               'cmdk-project-nav',
               organization.slug,
               projects.map(p => p.slug).join(','),
+              bookmarkedProjectSlugs,
             ],
             queryFn: () =>
-              projects
-                .toSorted((a, b) => a.slug.localeCompare(b.slug))
-                .map(project => ({
-                  display: {
-                    label: project.slug,
-                    icon: <ProjectAvatar project={project} size={16} />,
-                  },
-                  keywords: [project.name, project.slug],
-                  to: `/organizations/${organization.slug}/issues/?project=${project.id}`,
-                })),
+              sortProjects(projects).map(project => ({
+                display: {
+                  label: project.slug,
+                  icon: <ProjectAvatar project={project} size={16} />,
+                },
+                keywords: [project.name, project.slug],
+                to: `/organizations/${organization.slug}/issues/?project=${project.id}`,
+              })),
             enabled: state === 'selected',
             staleTime: Infinity,
           })
@@ -1070,6 +1077,27 @@ export function GlobalCommandPaletteActions() {
             }}
           />
         </CMDKAction>
+
+        {organization.features.includes('seer-xray') && (
+          <CMDKAction
+            display={{
+              label: xrayModeEnabled
+                ? t('Disable Seer XRay Mode')
+                : t('Enable Seer XRay Mode'),
+              icon: <IconSeer />,
+            }}
+            keywords={[
+              'xray',
+              'x-ray',
+              'seer',
+              'llm context',
+              'debug',
+              'inspect',
+              'overlay',
+            ]}
+            onAction={() => toggleXRayMode()}
+          />
+        )}
       </CMDKAction>
 
       {(NODE_ENV === 'development' || DEPLOY_PREVIEW_CONFIG) && (

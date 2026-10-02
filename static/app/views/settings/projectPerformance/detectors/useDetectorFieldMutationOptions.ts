@@ -2,6 +2,7 @@ import {mutationOptions, useQueryClient} from '@tanstack/react-query';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -44,7 +45,10 @@ export function useDetectorFieldMutationOptions({
     scope: {id: mutationKey.join(':')},
     mutationFn: (data: ProjectPerformanceSettings) =>
       fetchMutation<ProjectPerformanceSettings>({
-        url: `/projects/${organization.slug}/${projectSlug}/performance-issues/configure/`,
+        url: getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/',
+          {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug}}
+        ),
         method: 'PUT',
         data,
       }),
@@ -54,18 +58,14 @@ export function useDetectorFieldMutationOptions({
       const previousData = queryClient.getQueryData(queryOptions.queryKey);
 
       queryClient.setQueryData(queryOptions.queryKey, previous =>
-        previous
-          ? {json: {...previous.json, ...variables}, headers: previous.headers}
-          : previous
+        previous ? {...previous, json: {...previous.json, ...variables}} : previous
       );
 
       return {previousData};
     },
     onSuccess: (data, variables) => {
       queryClient.setQueryData(queryOptions.queryKey, previous =>
-        previous
-          ? {json: {...previous.json, ...data}, headers: previous.headers}
-          : previous
+        previous ? {...previous, json: {...previous.json, ...data}} : previous
       );
 
       const [thresholdKey, thresholdValue] = Object.entries(variables)[0] ?? [];

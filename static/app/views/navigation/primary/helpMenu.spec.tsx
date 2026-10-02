@@ -7,6 +7,7 @@ import {
   screen,
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
+import {setWindowLocation} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ModalStore} from 'sentry/stores/modalStore';
@@ -24,17 +25,14 @@ function HelpMenuWithWhatsNew() {
 jest.mock('sentry/utils/intercom', () => ({
   showIntercom: jest.fn(),
 }));
-
-async function expandResourcesSubmenu() {
-  await userEvent.click(screen.getByRole('button', {name: 'Help'}));
-  await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Resources'}));
-}
+jest.mock('sentry/utils/analytics');
 
 describe('PrimaryNavigationHelpMenu', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     ModalStore.reset();
     ConfigStore.set('supportEmail', 'support@sentry.io');
+    setWindowLocation('https://example.test');
   });
 
   it('opens Intercom when contacting support', async () => {
@@ -42,7 +40,7 @@ describe('PrimaryNavigationHelpMenu', () => {
 
     render(<PrimaryNavigationHelpMenu />, {organization});
 
-    await expandResourcesSubmenu();
+    await userEvent.click(screen.getByRole('button', {name: 'Help'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Contact Support'}));
 
     expect(intercom.showIntercom).toHaveBeenCalledWith(organization.slug);

@@ -8,7 +8,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
-import {openProjectCreationModal} from 'sentry/actionCreators/modal';
 import {IdBadge} from 'sentry/components/idBadge';
 import {
   IconAdd,
@@ -19,6 +18,8 @@ import {
   IconVercel,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import type {JsonFormAdapterFieldConfig} from './types';
 
@@ -50,6 +51,7 @@ export function ProjectMapperAddRow({
   indicator,
   disabled,
 }: ProjectMapperAddRowProps) {
+  const organization = useOrganization();
   const [selectedMappedValue, setSelectedMappedValue] = useState<string | null>(null);
   const [selectedSentryProjectId, setSelectedSentryProjectId] = useState<number | null>(
     null
@@ -63,7 +65,11 @@ export function ProjectMapperAddRow({
 
   const sentryProjects = config.sentryProjects ?? [];
   const sentryProjectOptions = [
-    {label: t('Create a Project'), value: -1, leadingItems: <IconAdd />},
+    {
+      label: t('Create a Project'),
+      leadingItems: <IconAdd />,
+      value: -1,
+    },
     ...sentryProjects.map(project => ({
       label: project.slug,
       value: project.id,
@@ -81,9 +87,11 @@ export function ProjectMapperAddRow({
 
   const handleSelectSentryProject = (option: {value: number} | null) => {
     if (option?.value === -1) {
-      openProjectCreationModal({
-        defaultCategory: config.iconType === 'vercel' ? 'browser' : 'popular',
-      });
+      window.open(
+        makeProjectsPathname({path: '/new/', organization}),
+        '_blank',
+        'noopener,noreferrer'
+      );
       return;
     }
     setSelectedSentryProjectId(option ? option.value : null);

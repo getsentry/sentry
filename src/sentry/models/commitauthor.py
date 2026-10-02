@@ -13,6 +13,9 @@ if TYPE_CHECKING:
     from sentry.users.services.user import RpcUser
 
 
+COMMIT_AUTHOR_EMAIL_LENGTH = 200
+
+
 class CommitAuthorManager(BaseManager["CommitAuthor"]):
     def get_or_create(
         self, defaults: Mapping[str, Any] | None = None, **kwargs: Any
@@ -31,7 +34,7 @@ class CommitAuthor(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     # display name
     name = models.CharField(max_length=128, null=True)
-    email = models.CharField(max_length=200)
+    email = models.CharField(max_length=COMMIT_AUTHOR_EMAIL_LENGTH)
 
     # Format varies by provider:
     # - GitHub/GitHub Enterprise: "github:username", "github_enterprise:username"

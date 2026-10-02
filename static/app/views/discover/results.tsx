@@ -8,6 +8,8 @@ import omit from 'lodash/omit';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import type {CursorHandler} from '@sentry/scraps/pagination';
@@ -23,8 +25,6 @@ import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {Banner} from 'sentry/components/banner';
 import {Confirm} from 'sentry/components/confirm';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -46,7 +46,7 @@ import {trackAiQueryOutcome} from 'sentry/components/searchQueryBuilder/askSeerC
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconEllipsis} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
-import {t, tct, tctCode} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {DataCategory, type PageFilters} from 'sentry/types/core';
 import {SavedSearchType} from 'sentry/types/group';
 import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization';
@@ -67,8 +67,7 @@ import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
-import {generateQueryWithTag} from 'sentry/utils/queryString';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {generateQueryWithTag, decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
@@ -84,7 +83,7 @@ import {
   DEFAULT_EVENT_VIEW,
   DEFAULT_EVENT_VIEW_MAP,
 } from 'sentry/views/discover/results/data';
-import ResultsChart from 'sentry/views/discover/results/resultsChart';
+import {ResultsChartContainer} from 'sentry/views/discover/results/resultsChart';
 import {ResultsHeader} from 'sentry/views/discover/results/resultsHeader';
 import {ResultsSearchQueryBuilder} from 'sentry/views/discover/results/resultsSearchQueryBuilder';
 import {SampleDataAlert} from 'sentry/views/discover/results/sampleDataAlert';
@@ -104,9 +103,6 @@ import {
 import Table from 'sentry/views/discover/table';
 import {
   generateTitle,
-  getDiscoverDeprecation,
-  getDiscoverDeprecationEnabled,
-  getTransactionsDeprecation,
   handleAddQueryToDashboard,
   SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
 } from 'sentry/views/discover/utils';
@@ -213,6 +209,7 @@ export class Results extends Component<Props, State> {
   componentDidMount() {
     const {organization, selection, location, isHomepage, navigate} = this.props;
     if (location.query[SHOW_UNPARAM_BANNER]) {
+      // oxlint-disable-next-line react/no-did-mount-set-state -- Legacy class lifecycle.
       this.setState({showUnparameterizedBanner: true});
       navigate(
         {
@@ -236,6 +233,7 @@ export class Results extends Component<Props, State> {
     const {eventView, confirmedQuery, savedQuery} = this.state;
 
     if (location.query.incompatible) {
+      // oxlint-disable-next-line react/no-did-update-set-state -- Legacy class lifecycle.
       this.setState({showQueryIncompatibleWithDataset: true});
       this.props.navigate(
         {
@@ -375,12 +373,11 @@ export class Results extends Component<Props, State> {
   // on this results page, so hard-block every transactions query (table, chart,
   // total count, and tags) and point users to their migrated queries instead.
   isTransactionsUnsupported() {
-    const {organization, location} = this.props;
+    const {location} = this.props;
     const {savedQueryDataset} = this.state;
     return (
-      getDiscoverDeprecation(organization) &&
       getDatasetFromLocationOrSavedQueryDataset(location, savedQueryDataset) ===
-        DiscoverDatasets.TRANSACTIONS
+      DiscoverDatasets.TRANSACTIONS
     );
   }
 
@@ -409,7 +406,7 @@ export class Results extends Component<Props, State> {
           mode,
           referrer: 'errors',
           resultCount: totals,
-          orgSlug: organization.slug,
+          organization,
           runId: aiQueryRunId,
         });
       }
@@ -421,7 +418,7 @@ export class Results extends Component<Props, State> {
           mode,
           referrer: 'errors',
           resultCount: 0,
-          orgSlug: organization.slug,
+          organization,
           runId: aiQueryRunId,
           error: err instanceof Error ? err : true,
         });
@@ -613,11 +610,11 @@ export class Results extends Component<Props, State> {
 
   getDocumentTitle(): string {
     const {eventView} = this.state;
-    const {isHomepage, organization} = this.props;
+    const {isHomepage} = this.props;
     if (!eventView) {
       return '';
     }
-    return generateTitle({eventView, isHomepage, organization});
+    return generateTitle({eventView, isHomepage});
   }
 
   setError = (error: string, errorCode: number) => {
@@ -646,8 +643,7 @@ export class Results extends Component<Props, State> {
   };
 
   render() {
-    const {organization, location, selection, api, setSavedQuery, isHomepage} =
-      this.props;
+    const {organization, location, selection, setSavedQuery, isHomepage} = this.props;
     const {
       eventView,
       error,
@@ -659,7 +655,6 @@ export class Results extends Component<Props, State> {
       savedQueryDataset,
       showQueryIncompatibleWithDataset,
       showUnparameterizedBanner,
-      splitDecision,
       tips,
     } = this.state;
     const hasDatasetSelectorFeature = hasDatasetSelector(organization);
@@ -685,7 +680,6 @@ export class Results extends Component<Props, State> {
             eventView={eventView}
             yAxis={yAxisArray}
             isHomepage={isHomepage}
-            splitDecision={splitDecision}
           />
           <Layout.Body>
             <Top width="full">
@@ -708,19 +702,6 @@ export class Results extends Component<Props, State> {
                 savedQueryDataset={savedQueryDataset}
                 selection={selection}
               />
-              {savedQueryDataset === SavedQueryDatasets.ERRORS &&
-                !getDiscoverDeprecationEnabled(organization) &&
-                getTransactionsDeprecation(organization) &&
-                // so we know the transaction migration is done before showing this banner
-                organization.features.includes('expose-migrated-discover-queries') && (
-                  <Alert.Container>
-                    <Alert variant="info">
-                      {t(
-                        'Discover \u2192 Errors will be moving soon to Explore \u2192 Errors. Same functionality, just even easier to find.'
-                      )}
-                    </Alert>
-                  </Alert.Container>
-                )}
 
               {!hasDatasetSelectorFeature && <SampleDataAlert query={query} />}
 
@@ -744,8 +725,7 @@ export class Results extends Component<Props, State> {
                   organization={organization}
                   location={location}
                 >
-                  <ResultsChart
-                    api={api}
+                  <ResultsChartContainer
                     organization={organization}
                     eventView={eventView}
                     location={location}
@@ -967,9 +947,10 @@ function TransactionsDatasetDeprecationBanner({
             />
           }
         >
-          {tctCode(
+          {tct(
             'The transactions dataset is being deprecated. Please use [traceLink:Explore / Traces] with the [code:is_transaction:true] filter instead. Please read these [FAQLink:FAQs] for more information.',
             {
+              code: <code />,
               traceLink: (
                 <Link
                   to={{
@@ -1151,7 +1132,7 @@ function DiscoverContextMenu({
       key: 'add-to-dashboard',
       label: t('Add to Dashboard'),
       disabled: deprecatingTransactionsDataset,
-      tooltipOptions: {isHoverable: true},
+      tooltipOptions: {},
       tooltip:
         deprecatingTransactionsDataset && getTransactionDeprecationMessage(tracesUrl),
       onAction: () => {
@@ -1305,7 +1286,9 @@ function SaveQueryButton({
   }, [eventView, savedQuery, yAxis]);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setQueryName('');
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [eventView.id]);
 
   const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
@@ -1366,7 +1349,6 @@ function SaveQueryButton({
                   deprecatingTransactionsDataset &&
                   getTransactionDeprecationMessage(tracesUrl)
                 }
-                isHoverable
               >
                 <Button
                   onClick={handleUpdate}
@@ -1383,7 +1365,6 @@ function SaveQueryButton({
                   currentDataset !== DiscoverDatasets.TRANSACTIONS ||
                   !organization.features.includes('discover-saved-queries-deprecation')
                 }
-                isHoverable
                 title={getTransactionDeprecationMessage(tracesUrl)}
               >
                 <SaveAsDropdown
@@ -1403,7 +1384,6 @@ function SaveQueryButton({
               currentDataset !== DiscoverDatasets.TRANSACTIONS ||
               !organization.features.includes('discover-saved-queries-deprecation')
             }
-            isHoverable
             title={getTransactionDeprecationMessage(tracesUrl)}
           >
             <SaveAsDropdown

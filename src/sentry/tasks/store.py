@@ -9,7 +9,7 @@ from typing import Any
 import orjson
 from sentry_relay.processing import StoreNormalizer
 
-from sentry import options, reprocessing2
+from sentry import features, options, reprocessing2
 from sentry.attachments import delete_cached_and_ratelimited_attachments, get_attachments_for_event
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.event_preprocessors import get_event_preprocessors
@@ -130,7 +130,11 @@ def _do_preprocess_event(
     has_attachments: bool = False,
     inline_save_event: bool = False,
 ) -> None:
+    # Imported here, not at module top, to avoid circular imports back into
+    # sentry.tasks (e.g. sentry.tasks.gpu_crash imports this module).
+    from sentry.lang.native.utils import is_gpu_crash_event
     from sentry.stacktraces.processing import find_stacktraces_in_data
+    from sentry.tasks.gpu_crash import symbolicate_gpu_crash_event
     from sentry.tasks.symbolication import (
         submit_symbolicate,
     )
@@ -160,6 +164,43 @@ def _do_preprocess_event(
     project.set_cached_field_value(
         "organization", Organization.objects.get_from_cache(id=project.organization_id)
     )
+
+    # A GPU crash dump is its own native event (Relay split it off the minidump
+    # upload) carrying only the `.nv-gpudmp` — no CPU crash report. Route it to
+    # teapot in a dedicated isolated task before symbolication/save, so a slow
+    # teapot can never back up CPU symbolication. Checked before the stacktrace
+    # lookup below — that work is pointless for an event bound for teapot. Only on
+    # first ingest (`has_attachments`): teapot enriches once, and we deliberately
+    # don't back up the unprocessed payload, so a reprocess keeps the enriched
+    # event as-is instead of re-running teapot (the `.nv-gpudmp` isn't reloaded)
+    # and dropping the enrichment. The feature flag is checked here (project
+    # already loaded), not in the task; the load-shed killswitch drops the routing
+    # (event still saves via the normal path) if the pool is overwhelmed. Order
+    # matters: this runs on every event, so the cheap `has_attachments` bool, the
+    # feature flag, and the killswitch gate first and short-circuit before
+    # `is_gpu_crash_event`, which scans the attachment list — that scan only runs
+    # for the handful of feature-enabled orgs, not the full ingest firehose.
+    if (
+        has_attachments
+        and features.has("organizations:gpu-crash-symbolication", project.organization)
+        and not killswitch_matches_context(
+            "store.load-shed-gpu-crash-projects",
+            {
+                "project_id": project_id,
+                "event_id": event_id,
+                "platform": data.get("platform") or "null",
+            },
+        )
+        and is_gpu_crash_event(data)
+    ):
+        symbolicate_gpu_crash_event.delay(
+            cache_key=cache_key,
+            event_id=event_id,
+            start_time=start_time,
+            has_attachments=has_attachments,
+            from_reprocessing=from_reprocessing,
+        )
+        return
 
     # Get the list of platforms for which we want to use Symbolicator.
     # Possible values are `js`, `jvm`, and `native`.
@@ -481,7 +522,6 @@ def _do_save_event(
     cache_key: str | None = None,
     data: MutableMapping[str, Any] | None = None,
     start_time: float | None = None,
-    event_id: str | None = None,
     project_id: int | None = None,
     has_attachments: bool = False,
     consumer_type: str | None = None,
@@ -514,9 +554,6 @@ def _do_save_event(
     )
 
     with metrics.global_tags(tags={"event_type": event_type}):
-        if event_id is None and data is not None:
-            event_id = data["event_id"]
-
         # only when we come from reprocessing we get a project_id sent into
         # the task.
         if project_id is None:
@@ -544,7 +581,9 @@ def _do_save_event(
         attachments = []
         project = None
         try:
-            if cache_key and has_attachments:
+            if has_attachments:
+                # Attachment cache keys are carried in _attachments, independently
+                # of whether the event payload itself is in the processing store.
                 all_attachments = list(get_attachments_for_event(data))
                 # we won’t be needing the transient attachments after this anymore
                 data.pop("_attachments", None)
@@ -568,31 +607,15 @@ def _do_save_event(
                 ):
                     raise HashDiscarded("Load shedding save_event")
 
-                manager = EventManager(data)
                 # event.project.organization is populated after this statement.
-                manager.save(
+                EventManager(data).save(
                     project=project,
                     assume_normalized=True,
                     start_time=start_time,
                     cache_key=cache_key,
                     attachments=attachments,
                 )
-                # Put the updated event back into the cache so that post_process
-                # has the most recent data.
-
-                # We don't need to update the event in the processing_store for transaction events
-                # because they're not used in post_process.
-                if consumer_type != ConsumerType.Transactions:
-                    data = manager.get_data()
-                    if not isinstance(data, dict):
-                        data = dict(data.items())
-                    processing_store.store(data)
-
         except HashDiscarded:
-            # Delete the event payload from cache since it won't show up in post-processing.
-            if cache_key:
-                processing_store.delete_by_key(cache_key)
-
             # Mark all the attachments as `rate_limited`, so they are being properly cleaned up in the `finally` block:
             for attachment in all_attachments:
                 attachment.rate_limited = True
@@ -601,11 +624,12 @@ def _do_save_event(
             raise
 
         finally:
-            if consumer_type == ConsumerType.Transactions and event_id:
-                # we won't use the transaction data in post_process
-                # so we can delete it from the cache now.
-                if cache_key:
-                    processing_store.delete_by_key(cache_key)
+            if cache_key:
+                # NB: Delete even on errors (above). There is no retry policy on
+                # save_event tasks.
+                processing_store.delete_by_key(cache_key)
+
+                if consumer_type == ConsumerType.Transactions:
                     track_sampled_event(
                         data["event_id"],
                         ConsumerType.Transactions,
@@ -640,7 +664,6 @@ def save_event(
         cache_key,
         data,
         start_time,
-        event_id,
         project_id,
         consumer_type=ConsumerType.Events,
         **kwargs,
@@ -669,7 +692,6 @@ def save_event_transaction(
         cache_key,
         data,
         start_time,
-        event_id,
         project_id,
         consumer_type=ConsumerType.Transactions,
         **kwargs,
@@ -717,7 +739,6 @@ def save_event_attachments(
         cache_key,
         data,
         start_time,
-        event_id,
         project_id,
         consumer_type=ConsumerType.Attachments,
         has_attachments=True,

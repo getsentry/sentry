@@ -59,6 +59,7 @@ export function withSubscription<P extends InjectedSubscriptionProps>(
       const orgSlug = this.getOrgSlug();
 
       if (orgSlug === null) {
+        // oxlint-disable-next-line react/no-did-mount-set-state -- Legacy class lifecycle.
         this.setState({subscription: this.props.subscription});
       } else {
         SubscriptionStore.get(orgSlug, (subscription: Subscription) => {

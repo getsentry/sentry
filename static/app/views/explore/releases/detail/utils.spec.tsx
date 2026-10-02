@@ -86,6 +86,15 @@ describe('releases/detail/utils', () => {
       expect(marklines.map(markline => markline.seriesName)).toEqual([adopted]);
     });
 
+    it('generates marklines when the stats period is unitless and so measured in seconds', () => {
+      const marklines = generateReleaseMarkLines(release, project, theme, {
+        ...location,
+        query: {statsPeriod: '3600'},
+      });
+
+      expect(marklines.map(markline => markline.seriesName)).toEqual([created]);
+    });
+
     it('does not generate out-of-bounds marklines on ancient/clamped releases', () => {
       const marklines = generateReleaseMarkLines(
         {...release, dateCreated: '2010-03-24T01:00:30Z'},

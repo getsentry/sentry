@@ -1,12 +1,13 @@
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, assert_type
 
 import pytest
 
 from sentry.onboarding.agentic_progress.model import (
     STAGE_DEFINITIONS,
     STAGE_INDEX,
+    CreateProjectExtra,
     InvalidOnboardingRun,
     InvalidProgressUpdate,
     OnboardingRun,
@@ -16,9 +17,12 @@ from sentry.onboarding.agentic_progress.model import (
     ProgressUpdateField,
     RunStatus,
     Stage,
+    StageDefinition,
     StageState,
     StageStatus,
+    VerificationErrorExtra,
     apply_update,
+    get_stage_definition,
     initial_stages,
     validate_update,
 )
@@ -43,6 +47,17 @@ def make_run(now: datetime) -> OnboardingRun:
 def test_stage_definitions_are_ordered_and_complete() -> None:
     assert [definition.stage for definition in STAGE_DEFINITIONS] == list(Stage)
     assert STAGE_DEFINITIONS[-1].optional is True
+
+
+def test_extra_stage_definition_preserves_its_type() -> None:
+    assert_type(
+        get_stage_definition(Stage.CREATE_PROJECT),
+        StageDefinition[CreateProjectExtra],
+    )
+    assert_type(
+        get_stage_definition(Stage.RECEIVE_VERIFICATION_ERROR),
+        StageDefinition[VerificationErrorExtra],
+    )
 
 
 @pytest.mark.parametrize(
@@ -163,6 +178,53 @@ def test_from_dict_wraps_invalid_persisted_run_status() -> None:
 
     with pytest.raises(InvalidOnboardingRun, match="state is invalid"):
         OnboardingRun.from_dict(persisted)
+
+
+@pytest.mark.parametrize(
+    ("stage", "extra"),
+    [
+        (Stage.CREATE_PROJECT, {"project_slugs": ["project", 1]}),
+        (Stage.CREATE_PROJECT, {"project_slugs": ["project"], "unknown": True}),
+        (Stage.CREATE_PROJECT, {"issue_ids": ["123"]}),
+        (Stage.CONNECT_MCP, {"project_slugs": ["project"]}),
+    ],
+)
+def test_from_dict_rejects_invalid_stage_extra(stage: Stage, extra: dict[str, object]) -> None:
+    persisted = make_run(datetime(2020, 1, 1, tzinfo=timezone.utc)).to_dict()
+    persisted["stages"][STAGE_INDEX[stage]]["extra"] = extra
+
+    with pytest.raises(InvalidOnboardingRun, match=f"Invalid extra data for {stage.value}"):
+        OnboardingRun.from_dict(persisted)
+
+
+def test_stage_extra_round_trips() -> None:
+    now = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    run = apply_update(
+        make_run(now),
+        ProgressUpdate(
+            stage=Stage.CREATE_PROJECT,
+            status=StageStatus.COMPLETED,
+            extra=CreateProjectExtra(project_slugs=("frontend", "backend")),
+        ),
+        now,
+    )
+
+    assert OnboardingRun.from_dict(run.to_dict()) == run
+
+
+def test_empty_stage_extra_round_trips() -> None:
+    now = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    run = apply_update(
+        make_run(now),
+        ProgressUpdate(
+            stage=Stage.CREATE_PROJECT,
+            status=StageStatus.COMPLETED,
+            extra=CreateProjectExtra(project_slugs=()),
+        ),
+        now,
+    )
+
+    assert OnboardingRun.from_dict(run.to_dict()) == run
 
 
 def test_from_dict_rejects_empty_persisted_stage_status() -> None:
@@ -298,7 +360,7 @@ def test_failed_stage_can_be_retried() -> None:
 
 def test_terminal_run_only_accepts_idempotent_replay() -> None:
     now = datetime(2020, 1, 1, tzinfo=timezone.utc)
-    update = ProgressUpdate(
+    update: ProgressUpdate[Any] = ProgressUpdate(
         stage=Stage.ANALYZE_PROJECT,
         status=StageStatus.FAILED,
         event_note="Command failed.",
@@ -380,22 +442,24 @@ def test_inferred_bypass_clears_stale_event_note() -> None:
 
 
 @pytest.mark.parametrize(
-    ("later_stage", "owning_stage", "project_slugs", "issue_ids"),
+    ("later_stage", "owning_stage", "extra"),
     [
-        (Stage.INSTRUMENT_APP, Stage.CREATE_PROJECT, ("example-project",), ()),
+        (
+            Stage.INSTRUMENT_APP,
+            Stage.CREATE_PROJECT,
+            CreateProjectExtra(project_slugs=("example-project",)),
+        ),
         (
             Stage.PREPARE_PRODUCTION,
             Stage.RECEIVE_VERIFICATION_ERROR,
-            (),
-            ("12345",),
+            VerificationErrorExtra(issue_ids=("12345",)),
         ),
     ],
 )
 def test_bypassed_stage_accepts_late_metadata(
     later_stage: Stage,
     owning_stage: Stage,
-    project_slugs: tuple[str, ...],
-    issue_ids: tuple[str, ...],
+    extra: CreateProjectExtra | VerificationErrorExtra,
 ) -> None:
     now = datetime(2020, 1, 1, tzinfo=timezone.utc)
     advanced = apply_update(
@@ -409,16 +473,15 @@ def test_bypassed_stage_accepts_late_metadata(
         ProgressUpdate(
             stage=owning_stage,
             status=StageStatus.COMPLETED,
-            project_slugs=project_slugs,
-            issue_ids=issue_ids,
+            extra=extra,
         ),
         now + timedelta(seconds=1),
     )
 
-    assert enriched.stages[list(Stage).index(owning_stage)].status is StageStatus.BYPASSED
+    stage = enriched.stages[list(Stage).index(owning_stage)]
+    assert stage.status is StageStatus.BYPASSED
+    assert stage.extra == extra
     assert enriched.sequence == advanced.sequence + 1
-    assert enriched.project_slugs == project_slugs
-    assert enriched.issue_ids == issue_ids
 
 
 @pytest.mark.parametrize(
@@ -438,7 +501,7 @@ def test_bypassed_stage_accepts_late_metadata(
         ),
     ],
 )
-def test_update_validation(update: ProgressUpdate, message: str) -> None:
+def test_update_validation(update: ProgressUpdate[Any], message: str) -> None:
     with pytest.raises(ValueError, match=message):
         validate_update(update)
 
@@ -467,13 +530,14 @@ def test_expired_run_rejects_update() -> None:
         )
 
 
-def test_issue_ids_are_scoped_to_verification_receipt() -> None:
-    with pytest.raises(ValueError, match="Issue IDs"):
+def test_verification_extra_is_scoped_to_verification_receipt() -> None:
+    extra = VerificationErrorExtra(issue_ids=("123",))
+    with pytest.raises(ValueError, match="Extra data"):
         validate_update(
             ProgressUpdate(
                 stage=Stage.CREATE_PROJECT,
                 status=StageStatus.COMPLETED,
-                issue_ids=("123",),
+                extra=extra,
             )
         )
 
@@ -481,18 +545,19 @@ def test_issue_ids_are_scoped_to_verification_receipt() -> None:
         ProgressUpdate(
             stage=Stage.RECEIVE_VERIFICATION_ERROR,
             status=StageStatus.COMPLETED,
-            issue_ids=("123",),
+            extra=extra,
         )
     )
 
 
-def test_project_slugs_are_scoped_to_project_creation() -> None:
-    with pytest.raises(ValueError, match="Project slugs"):
+def test_project_extra_is_scoped_to_project_creation() -> None:
+    extra = CreateProjectExtra(project_slugs=("project-one", "project-two"))
+    with pytest.raises(ValueError, match="Extra data"):
         validate_update(
             ProgressUpdate(
                 stage=Stage.INSTRUMENT_APP,
                 status=StageStatus.COMPLETED,
-                project_slugs=("project-one", "project-two"),
+                extra=extra,
             )
         )
 
@@ -500,7 +565,7 @@ def test_project_slugs_are_scoped_to_project_creation() -> None:
         ProgressUpdate(
             stage=Stage.CREATE_PROJECT,
             status=StageStatus.COMPLETED,
-            project_slugs=("project-one", "project-two"),
+            extra=extra,
         )
     )
 
@@ -512,7 +577,7 @@ def test_metadata_accumulates_unique_values() -> None:
         ProgressUpdate(
             stage=Stage.CREATE_PROJECT,
             status=StageStatus.ACTIVE,
-            project_slugs=("frontend", "backend"),
+            extra=CreateProjectExtra(project_slugs=("frontend", "backend")),
         ),
         now,
     )
@@ -522,12 +587,14 @@ def test_metadata_accumulates_unique_values() -> None:
         ProgressUpdate(
             stage=Stage.CREATE_PROJECT,
             status=StageStatus.COMPLETED,
-            project_slugs=("backend", "worker"),
+            extra=CreateProjectExtra(project_slugs=("backend", "worker")),
         ),
         now + timedelta(seconds=1),
     )
 
-    assert updated.project_slugs == ("frontend", "backend", "worker")
+    assert updated.stages[STAGE_INDEX[Stage.CREATE_PROJECT]].extra == CreateProjectExtra(
+        project_slugs=("frontend", "backend", "worker")
+    )
 
 
 @pytest.mark.parametrize("field", ["created_at", "updated_at", "expires_at"])
@@ -535,7 +602,7 @@ def test_from_dict_rejects_invalid_timestamps(field: str) -> None:
     persisted = make_run(datetime(2020, 1, 1, tzinfo=timezone.utc)).to_dict()
     persisted[field] = "2020-01-01T00:00:00"
 
-    with pytest.raises(InvalidOnboardingRun, match="timezone"):
+    with pytest.raises(InvalidOnboardingRun, match="state is invalid"):
         OnboardingRun.from_dict(persisted)
 
 

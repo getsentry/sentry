@@ -1,8 +1,6 @@
+from sentry.dynamic_sampling.per_org.serving import get_transaction_sample_rates
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, PolymorphicRule, Rule, RuleType
-from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_transactions import (
-    get_transactions_resampling_rates,
-)
 from sentry.models.project import Project
 
 
@@ -11,8 +9,8 @@ class BoostLowVolumeTransactionsBias(Bias):
         proj_id = project.id
         org_id = project.organization.id
 
-        transaction_map, base_implicit_rate = get_transactions_resampling_rates(
-            org_id=org_id, proj_id=proj_id, default_rate=base_sample_rate
+        transaction_map, base_implicit_rate = get_transaction_sample_rates(
+            org_id=org_id, project_id=proj_id, default_rate=base_sample_rate
         )
 
         ret_val: list[Rule] = []

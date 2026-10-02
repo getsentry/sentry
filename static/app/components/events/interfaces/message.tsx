@@ -1,8 +1,9 @@
 import styled from '@emotion/styled';
 
 import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
+import {StructuredData} from 'sentry/components/structuredEventData';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
@@ -28,28 +29,31 @@ function renderParams(params: Props['data']['params'], meta: any) {
   // only format some parameters into the formatted string, but we want to
   // display all of them.
 
-  if (Array.isArray(params)) {
-    const arrayData = params.map((value, i) => {
-      const key = `#${i}`;
-      return {
-        key,
-        value,
-        subject: key,
-        meta: meta?.data?.params?.[i]?.[''],
-      };
-    });
+  const entries = Array.isArray(params)
+    ? params.map((value, i) => [`#${i}`, value, meta?.data?.params?.[i]?.['']] as const)
+    : Object.entries(params).map(
+        ([key, value]) => [key, value, meta?.data?.params?.[key]?.['']] as const
+      );
 
-    return <KeyValueList data={arrayData} shouldSort={false} isContextData />;
-  }
-
-  const objectData = Object.entries(params).map(([key, value]) => ({
-    key,
-    value,
-    subject: key,
-    meta: meta?.data?.params?.[key]?.[''],
-  }));
-
-  return <KeyValueList data={objectData} shouldSort={false} isContextData />;
+  return (
+    <KeyValueTableCard
+      variant="label"
+      contentItems={entries.map(([key, value, valueMeta]) => ({
+        item: {
+          key,
+          subject: key,
+          value: (
+            <StructuredData
+              withAnnotatedText
+              value={value}
+              maxDefaultDepth={2}
+              meta={valueMeta}
+            />
+          ),
+        },
+      }))}
+    />
+  );
 }
 
 export function Message({data, event}: Props) {

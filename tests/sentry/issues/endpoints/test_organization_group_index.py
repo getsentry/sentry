@@ -644,6 +644,23 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             str(group_without_seer.id),
         }
 
+    def test_has_issue_id_does_not_crash(self) -> None:
+        # Regression test: has:issue.id was parsed as issue.id != '' which caused
+        # a ValueError when the lambda tried int('').
+        self.store_event(
+            data={"fingerprint": ["group-1"], "timestamp": before_now(seconds=1).isoformat()},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+
+        # has:issue.id should return all groups (every group always has an id)
+        response = self.get_success_response(query="has:issue.id")
+        assert len(response.data) >= 1
+
+        # !has:issue.id should return no groups (every group always has an id)
+        response = self.get_success_response(query="!has:issue.id")
+        assert len(response.data) == 0
+
     def test_lookup_by_event_id(self) -> None:
         event_id = "c" * 32
         event = self.store_event(
@@ -3225,6 +3242,17 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     def assertNoResolution(self, group: Group) -> None:
         assert not GroupResolution.objects.filter(group=group).exists()
 
+    def test_no_accessible_projects(self) -> None:
+        organization = self.create_organization()
+        self.create_project(organization=organization)
+        user = self.create_user()
+        self.create_member(organization=organization, user=user, has_global_access=False)
+        self.login_as(user=user)
+
+        response = self.get_response(organization.slug, status="resolved")
+
+        assert response.status_code == 204
+
     def test_global_resolve(self) -> None:
         group1 = self.create_group(status=GroupStatus.RESOLVED)
         group2 = self.create_group(status=GroupStatus.UNRESOLVED)
@@ -3343,6 +3371,24 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         response = self.get_success_response(query="is:unresolved", sort_by="date", method="get")
         assert len(response.data) == 0
+
+    def test_bulk_resolve_with_stats_period(self) -> None:
+        older_group = self.store_event(
+            data={"fingerprint": ["older"], "timestamp": before_now(days=2).isoformat()},
+            project_id=self.project.id,
+        ).group
+        recent_group = self.store_event(
+            data={"fingerprint": ["recent"], "timestamp": before_now(minutes=30).isoformat()},
+            project_id=self.project.id,
+        ).group
+        self.login_as(user=self.user)
+
+        self.get_success_response(qs_params={"query": "", "statsPeriod": "1h"}, status="resolved")
+
+        older_group.refresh_from_db()
+        recent_group.refresh_from_db()
+        assert older_group.status == GroupStatus.UNRESOLVED
+        assert recent_group.status == GroupStatus.RESOLVED
 
     @patch("sentry.integrations.example.integration.ExampleIntegration.sync_status_outbound")
     def test_resolve_with_integration(self, mock_sync_status_outbound: MagicMock) -> None:
@@ -3734,7 +3780,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group1 = self.create_group(status=GroupStatus.RESOLVED)
         group1.resolved_at = timezone.now()
         group1.save()
-        group2 = self.create_group(status=GroupStatus.UNRESOLVED)
+        group2 = self.create_group(status=GroupStatus.UNRESOLVED, last_seen=before_now(days=2))
         group3 = self.create_group(status=GroupStatus.IGNORED)
         group4 = self.create_group(
             project=self.create_project(slug="foo"),
@@ -3743,7 +3789,8 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
         response = self.get_success_response(
-            qs_params={"id": [group1.id, group2.id], "group4": group4.id}, status="resolved"
+            qs_params={"id": [group1.id, group2.id], "group4": group4.id, "statsPeriod": "1h"},
+            status="resolved",
         )
         assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
 
@@ -4654,6 +4701,17 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
             assert not Group.objects.filter(id=group.id).exists()
             assert not GroupHash.objects.filter(group_id=group.id).exists()
 
+    def test_no_accessible_projects(self) -> None:
+        organization = self.create_organization()
+        self.create_project(organization=organization)
+        user = self.create_user()
+        self.create_member(organization=organization, user=user, has_global_access=False)
+        self.login_as(user=user)
+
+        response = self.get_response(organization.slug)
+
+        assert response.status_code == 204
+
     @patch("sentry.eventstream.snuba.SnubaEventStream._send")
     @patch("sentry.eventstream.snuba.datetime")
     def test_delete_by_id(self, mock_datetime: MagicMock, mock_send: MagicMock) -> None:
@@ -4734,6 +4792,53 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         response = self.get_response(qs_params={"id": ["not_an_int", "123"]})
         assert response.status_code == 400
+
+    def test_bulk_delete_with_date_range(self) -> None:
+        older_group = self.store_event(
+            data={"fingerprint": ["older"], "timestamp": before_now(hours=3).isoformat()},
+            project_id=self.project.id,
+        ).group
+        matching_group = self.store_event(
+            data={"fingerprint": ["matching"], "timestamp": before_now(minutes=90).isoformat()},
+            project_id=self.project.id,
+        ).group
+        newer_group = self.store_event(
+            data={"fingerprint": ["newer"], "timestamp": before_now(minutes=30).isoformat()},
+            project_id=self.project.id,
+        ).group
+        self.login_as(user=self.user)
+
+        with self.tasks():
+            self.get_success_response(
+                qs_params={
+                    "query": "",
+                    "start": before_now(hours=2).isoformat(),
+                    "end": before_now(hours=1).isoformat(),
+                },
+                status_code=204,
+            )
+
+        self.assert_deleted_groups([matching_group])
+        older_group.refresh_from_db()
+        newer_group.refresh_from_db()
+        assert older_group.status == GroupStatus.UNRESOLVED
+        assert newer_group.status == GroupStatus.UNRESOLVED
+
+    def test_bulk_delete_with_invalid_date_range(self) -> None:
+        group = self.create_group()
+        self.login_as(user=self.user)
+
+        response = self.get_response(
+            qs_params={
+                "start": before_now(hours=1).isoformat(),
+                "end": before_now(hours=2).isoformat(),
+            }
+        )
+
+        assert response.status_code == 400
+        assert response.data == {"detail": "start must be before end"}
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
 
     def test_bulk_delete_for_many_projects_without_option(self) -> None:
         NEW_CHUNK_SIZE = 2

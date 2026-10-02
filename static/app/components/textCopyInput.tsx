@@ -15,25 +15,15 @@ interface Props extends Omit<InputProps, 'onCopy'> {
   children: string;
   className?: string;
   disabled?: boolean;
-  /**
-   * Icon displayed before the copied text.
-   */
-  icon?: React.ReactNode;
   onCopy?: (value: string) => void;
-  /**
-   * Always show the ending of a long overflowing text in input
-   */
-  rtl?: boolean;
   style?: React.CSSProperties;
 }
 
 export function TextCopyInput({
   className,
   disabled,
-  icon,
   style,
   onCopy,
-  rtl,
   size,
   children,
   ...inputProps
@@ -46,38 +36,19 @@ export function TextCopyInput({
       return;
     }
 
-    if (rtl) {
-      // we don't want to select the first character - \u202A, nor the last - \u202C
-      node.setSelectionRange(1, node.value.length - 1);
-    } else {
-      selectText(node);
-    }
-  }, [rtl, textNodeId]);
-
-  /**
-   * We are using direction: rtl; to always show the ending of a long overflowing text in input.
-   *
-   * This however means that the trailing characters with BiDi class O.N. ('Other Neutrals') goes to the other side.
-   * Hello! becomes !Hello and vice versa. This is a problem for us when we want to show path in this component, because
-   * /user/local/bin becomes user/local/bin/. Wrapping in unicode characters for left-to-righ embedding solves this,
-   * however we need to be aware of them when selecting the text - we are solving that by offsetting the selectionRange.
-   */
-  const inputValue = rtl ? '\u202A' + children + '\u202C' : children;
+    selectText(node);
+  }, [textNodeId]);
 
   return (
     <InputGroup className={className}>
-      {icon && (
-        <InputGroup.LeadingItems disablePointerEvents>{icon}</InputGroup.LeadingItems>
-      )}
       <StyledInput
         id={textNodeId}
         readOnly
         disabled={disabled}
         style={style}
-        value={inputValue}
+        value={children}
         onClick={handleSelectText}
         size={size}
-        rtl={rtl}
         {...inputProps}
       />
       <InputGroup.TrailingItems>
@@ -93,8 +64,8 @@ export function TextCopyInput({
   );
 }
 
-const StyledInput = styled(InputGroup.Input)<{rtl?: boolean}>`
-  direction: ${p => (p.rtl ? 'rtl' : 'ltr')};
+const StyledInput = styled(InputGroup.Input)`
+  direction: ltr;
 `;
 
 const StyledCopyButton = styled(CopyToClipboardButton)`

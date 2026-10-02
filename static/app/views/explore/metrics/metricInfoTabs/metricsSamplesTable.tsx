@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
@@ -38,6 +37,8 @@ const EMBEDDED_RESULT_LIMIT = 100;
 interface MetricsSamplesTableProps {
   isMetricOptionsEmpty?: boolean;
   overrideTableData?: TraceMetricEventsResponseItem[];
+  overrideTableRoutingHint?: string;
+  requiredQuery?: string;
   source?: MetricsSamplesTableSource;
   traceMetric?: TraceMetric;
 }
@@ -47,6 +48,8 @@ export function MetricsSamplesTable({
   source = DEFAULT_METRICS_SAMPLES_TABLE_SOURCE,
   isMetricOptionsEmpty,
   overrideTableData,
+  overrideTableRoutingHint,
+  requiredQuery,
 }: MetricsSamplesTableProps) {
   const isEmbedded = isEmbeddedMetricsSamplesTableSource(source);
   const columns = isEmbedded
@@ -68,6 +71,7 @@ export function MetricsSamplesTable({
     fields,
     ingestionDelaySeconds: TRACE_METRICS_INGESTION_DELAY_SECONDS,
     staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
+    requiredQuery,
   });
 
   const metaWithValueUnit = useMemo<EventsMetaType>(() => {
@@ -96,9 +100,7 @@ export function MetricsSamplesTable({
         </LoadingMaskRow>
       )}
       {!overrideTableData?.length && error ? (
-        <SimpleTable.Empty style={{minHeight: '140px'}}>
-          <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-        </SimpleTable.Empty>
+        <SimpleTable.Error />
       ) : overrideTableData?.length || data?.length ? (
         (overrideTableData ?? data ?? []).map((row, i) => (
           <SampleTableRow
@@ -106,6 +108,7 @@ export function MetricsSamplesTable({
             row={row}
             columns={columns}
             meta={metaWithValueUnit}
+            routingHint={overrideTableData ? overrideTableRoutingHint : meta.routingHint}
             source={source}
           />
         ))

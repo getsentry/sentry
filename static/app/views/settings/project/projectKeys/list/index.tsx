@@ -20,6 +20,7 @@ import {IconAdd, IconFlag} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
@@ -67,7 +68,13 @@ export default function ProjectKeys() {
   const handleRemoveKeyMutation = useMutation({
     mutationFn: (data: ProjectKey) => {
       return api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/keys/${data.id}/`,
+        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: project.slug,
+            keyId: data.id,
+          },
+        }),
         {
           method: 'DELETE',
         }
@@ -89,7 +96,13 @@ export default function ProjectKeys() {
   const handleToggleKeyMutation = useMutation({
     mutationFn: ({isActive, data}: {data: ProjectKey; isActive: boolean}) => {
       return api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/keys/${data.id}/`,
+        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: project.slug,
+            keyId: data.id,
+          },
+        }),
         {
           method: 'PUT',
           data: {isActive},
@@ -122,9 +135,15 @@ export default function ProjectKeys() {
 
   const handleCreateKeyMutation = useMutation({
     mutationFn: () => {
-      return api.requestPromise(`/projects/${organization.slug}/${project.slug}/keys/`, {
-        method: 'POST',
-      });
+      return api.requestPromise(
+        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/', {
+          path: {
+            organizationIdOrSlug: organization.slug,
+            projectIdOrSlug: project.slug,
+          },
+        }),
+        {method: 'POST'}
+      );
     },
     onSuccess: (updatedKey: ProjectKey) => {
       setKeyListState([...keyList, updatedKey]);
@@ -144,42 +163,6 @@ export default function ProjectKeys() {
   }
 
   const keyList = keyListState ? keyListState : keyListResponse.json;
-
-  const renderEmpty = () => {
-    return (
-      <Panel>
-        <EmptyMessage icon={<IconFlag />}>
-          {t('There are no keys active for this project.')}
-        </EmptyMessage>
-      </Panel>
-    );
-  };
-
-  const renderResults = () => {
-    const hasAccess = hasEveryAccess(['project:write'], {organization, project});
-
-    return (
-      <Fragment>
-        {keyList.map(key => (
-          <KeyRow
-            hasWriteAccess={hasAccess}
-            key={key.id}
-            projectId={project.slug}
-            project={project}
-            data={key}
-            onToggle={(isActive, data) =>
-              handleToggleKeyMutation.mutate({isActive, data})
-            }
-            onRemove={data => handleRemoveKeyMutation.mutate(data)}
-            routes={routes}
-            location={location}
-            params={params}
-          />
-        ))}
-        <Pagination pageLinks={keyListResponse.headers.Link} />
-      </Fragment>
-    );
-  };
 
   const isEmpty = !keyList.length;
   const hasAccess = hasEveryAccess(['project:write'], {organization, project});
@@ -217,7 +200,33 @@ export default function ProjectKeys() {
       <ProjectPermissionAlert project={project} />
       <RelayDsnOverrideAlert />
 
-      {isEmpty ? renderEmpty() : renderResults()}
+      {isEmpty ? (
+        <Panel>
+          <EmptyMessage icon={<IconFlag />}>
+            {t('There are no keys active for this project.')}
+          </EmptyMessage>
+        </Panel>
+      ) : (
+        <Fragment>
+          {keyList.map(key => (
+            <KeyRow
+              hasWriteAccess={hasAccess}
+              key={key.id}
+              projectId={project.slug}
+              project={project}
+              data={key}
+              onToggle={(isActive, data) =>
+                handleToggleKeyMutation.mutate({isActive, data})
+              }
+              onRemove={data => handleRemoveKeyMutation.mutate(data)}
+              routes={routes}
+              location={location}
+              params={params}
+            />
+          ))}
+          <Pagination pageLinks={keyListResponse.headers.Link} />
+        </Fragment>
+      )}
     </div>
   );
 }

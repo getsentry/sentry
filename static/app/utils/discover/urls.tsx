@@ -5,9 +5,9 @@ import type {Organization} from 'sentry/types/organization';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
-import type {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import type {TraceLayoutTabKeys} from 'sentry/views/performance/newTraceDetails/useTraceLayoutTabs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import type {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
+import type {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
 
 import type {EventData} from './eventView';
 import {EventView} from './eventView';
@@ -106,12 +106,10 @@ export function eventDetailsRouteWithEventView({
   organization,
   eventSlug,
   eventView,
-  isHomepage,
 }: {
   eventSlug: string;
   eventView: EventView;
   organization: Organization;
-  isHomepage?: boolean;
 }) {
   const pathname = eventDetailsRoute({
     organization,
@@ -120,7 +118,7 @@ export function eventDetailsRouteWithEventView({
 
   return {
     pathname,
-    query: {...eventView.generateQueryStringObject(), homepage: isHomepage},
+    query: eventView.generateQueryStringObject(),
   };
 }
 
@@ -131,7 +129,7 @@ export function eventDetailsRouteWithEventView({
 export function getDiscoverLandingUrl(organization: Organization): string {
   if (organization.features.includes('discover-query')) {
     return makeDiscoverPathname({
-      path: '/homepage/',
+      path: '/',
       organization,
     });
   }

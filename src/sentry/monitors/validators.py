@@ -9,7 +9,7 @@ from django.db.models import F
 from django.db.models.functions import TruncMinute
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema_field, extend_schema_serializer
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.fields import empty
 
@@ -48,6 +48,7 @@ from sentry.monitors.utils import (
     signal_monitor_created,
     update_issue_alert_rule,
 )
+from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.dates import AVAILABLE_TIMEZONES
 from sentry.utils.outcomes import Outcome
@@ -309,7 +310,6 @@ class ConfigValidator(serializers.Serializer):
         return attrs
 
 
-@extend_schema_serializer(exclude_fields=["alert_rule"])
 class MonitorValidator(CamelSnakeSerializer):
     project = ProjectField(
         scope="project:read",
@@ -341,7 +341,10 @@ class MonitorValidator(CamelSnakeSerializer):
         help_text="Disable creation of monitor incidents",
     )
     config = ConfigValidator(help_text="The configuration for the monitor.")
-    alert_rule = MonitorAlertRuleValidator(required=False)
+    alert_rule = MonitorAlertRuleValidator(
+        required=False,
+        help_text="Alert rule configuration created alongside the monitor.",
+    )
 
     def validate(self, attrs):
         # When creating a new monitor, check if we would exceed the organization limit
@@ -426,6 +429,11 @@ class MonitorValidator(CamelSnakeSerializer):
         signal_monitor_created(project, request.user, False, monitor, request)
         validated_issue_alert_rule = validated_data.get("alert_rule")
         if validated_issue_alert_rule:
+            metrics.incr(
+                "monitors.validator.alert_rule",
+                tags={"operation": "create"},
+                sample_rate=1.0,
+            )
             issue_alert_rule_id = create_issue_alert_rule(
                 request, project, monitor, validated_issue_alert_rule
             )
@@ -546,6 +554,11 @@ class MonitorValidator(CamelSnakeSerializer):
 
         # Update alert rule after in case slug or name changed
         if "alert_rule" in validated_data:
+            metrics.incr(
+                "monitors.validator.alert_rule",
+                tags={"operation": "update"},
+                sample_rate=1.0,
+            )
             alert_rule_data = validated_data["alert_rule"]
             request = self.context.get("request")
             if not request:
@@ -584,7 +597,6 @@ class ContextsValidator(serializers.Serializer):
     trace = TraceContextValidator(required=False)
 
 
-@extend_schema_serializer(exclude_fields=["monitor_config", "contexts"])
 class MonitorCheckInValidator(serializers.Serializer):
     status = serializers.ChoiceField(
         choices=(
@@ -606,7 +618,11 @@ class MonitorCheckInValidator(serializers.Serializer):
         allow_null=True,
         help_text="Name of the environment.",
     )
-    contexts = ContextsValidator(required=False, allow_null=True)
+    contexts = ContextsValidator(
+        required=False,
+        allow_null=True,
+        help_text="Additional context sent with the check-in, such as the trace it belongs to.",
+    )
 
 
 class MonitorBulkEditValidator(MonitorValidator):

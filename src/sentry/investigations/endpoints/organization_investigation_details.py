@@ -10,6 +10,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.investigations.endpoints.base import (
     OrganizationInvestigationEndpoint,
+    organization_project_ids,
     service_error,
 )
 from sentry.investigations.endpoints.serializers import InvestigationDetailsSerializer
@@ -18,7 +19,10 @@ from sentry.investigations.endpoints.validators import (
     InvestigationUpdateValidator,
 )
 from sentry.investigations.models import Investigation, InvestigationStatus
-from sentry.investigations.services import archive_investigation, update_investigation
+from sentry.investigations.services import (
+    archive_investigation_with_orchestration,
+    update_investigation_with_orchestration,
+)
 from sentry.models.organization import Organization
 
 
@@ -38,9 +42,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
             serialize(
                 investigation,
                 request.user,
-                InvestigationDetailsSerializer(
-                    accessible_project_ids=request.access.accessible_project_ids
-                ),
+                InvestigationDetailsSerializer(),
             )
         )
 
@@ -53,7 +55,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
         values = dict(validator.validated_data)
         expected_version = values.pop("investigation_version")
         requested_project_ids = values.pop("project_ids", None)
-        project_ids = request.access.accessible_project_ids
+        project_ids = organization_project_ids(organization)
         if requested_project_ids is not None and not set(requested_project_ids).issubset(
             project_ids
         ):
@@ -76,8 +78,10 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
                     status=status.HTTP_400_BAD_REQUEST,
                 )
             try:
-                archived = archive_investigation(
-                    investigation=investigation, expected_version=expected_version
+                archived = archive_investigation_with_orchestration(
+                    investigation=investigation,
+                    expected_version=expected_version,
+                    actor_id=request.user.id,
                 )
             except Exception as error:
                 response = service_error(error)
@@ -88,11 +92,11 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
                 serialize(
                     archived,
                     request.user,
-                    InvestigationDetailsSerializer(accessible_project_ids=project_ids),
+                    InvestigationDetailsSerializer(),
                 )
             )
         try:
-            updated = update_investigation(
+            updated = update_investigation_with_orchestration(
                 investigation=investigation,
                 expected_version=expected_version,
                 fields=values,
@@ -107,7 +111,7 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
             serialize(
                 updated,
                 request.user,
-                InvestigationDetailsSerializer(accessible_project_ids=project_ids),
+                InvestigationDetailsSerializer(),
             )
         )
 
@@ -118,9 +122,10 @@ class OrganizationInvestigationsDetailsEndpoint(OrganizationInvestigationEndpoin
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
         try:
-            archive_investigation(
+            archive_investigation_with_orchestration(
                 investigation=investigation,
                 expected_version=validator.validated_data["investigation_version"],
+                actor_id=request.user.id,
             )
         except Exception as error:
             response = service_error(error)

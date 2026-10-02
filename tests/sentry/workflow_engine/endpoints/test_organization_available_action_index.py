@@ -292,6 +292,49 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
             },
         ]
 
+    def test_filter_by_type(self) -> None:
+        self.setup_integrations()
+        self.setup_email()
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"type": Action.Type.SLACK},
+            status_code=200,
+        )
+        assert response.data == [
+            {
+                "type": Action.Type.SLACK,
+                "handlerGroup": ActionHandler.Group.NOTIFICATION.value,
+                "configSchema": {},
+                "dataSchema": {},
+                "integrations": [
+                    {"id": str(self.slack_integration.id), "name": self.slack_integration.name}
+                ],
+            }
+        ]
+
+    def test_filter_by_multiple_types(self) -> None:
+        self.setup_integrations()
+        self.setup_email()
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"type": [Action.Type.EMAIL, Action.Type.GITHUB]},
+            status_code=200,
+        )
+        assert [action["type"] for action in response.data] == [
+            Action.Type.EMAIL,
+            Action.Type.GITHUB,
+        ]
+
+    def test_invalid_type_filter(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"type": "carrier_pigeon"},
+            status_code=400,
+        )
+        assert response.data == {"type": ["Invalid action type: carrier_pigeon"]}
+
     @with_feature({"organizations:integrations-ticket-rules": False})
     def test_does_not_return_ticket_actions_without_feature(self) -> None:
         self.setup_integrations()
@@ -313,6 +356,39 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 ],
             }
         ]
+
+    @with_feature({"organizations:integrations-alert-rule": False})
+    def test_flags_alert_rule_actions_without_feature(self) -> None:
+        self.setup_integrations()
+        self.create_integration(
+            organization=self.organization,
+            external_id="2",
+            name="My MS Teams Integration",
+            provider="msteams",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=200,
+        )
+        assert {action["type"]: action.get("disabledReason") for action in response.data} == {
+            Action.Type.SLACK: "plan",
+            Action.Type.GITHUB: None,
+            Action.Type.MSTEAMS: "plan",
+        }
+
+    @with_feature({"organizations:integrations-issue-basic": False})
+    def test_flags_ticket_actions_without_feature(self) -> None:
+        self.setup_integrations()
+
+        response = self.get_success_response(
+            self.organization.slug,
+            status_code=200,
+        )
+        assert {action["type"]: action.get("disabledReason") for action in response.data} == {
+            Action.Type.SLACK: None,
+            Action.Type.GITHUB: "plan",
+        }
 
     def test_integrations_with_services(self) -> None:
         self.setup_integrations_with_services()

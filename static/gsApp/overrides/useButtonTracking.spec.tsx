@@ -54,6 +54,24 @@ describe('buttonTracking', () => {
     </OrganizationContext>
   );
 
+  const anonymousWrapper = ({children}: ButtonProps) => (
+    <OrganizationContext value={null}>
+      <RouterProvider
+        router={createMemoryRouter(
+          [
+            {
+              path: '/auth/login/',
+              handle: {path: '/auth/login/'},
+              element: children,
+            },
+          ],
+          {initialEntries: ['/auth/login/']}
+        )}
+        future={{v7_startTransition: true}}
+      />
+    </OrganizationContext>
+  );
+
   afterEach(() => {
     jest.mocked(rawTrackAnalyticsEvent).mockClear();
   });
@@ -158,5 +176,38 @@ describe('buttonTracking', () => {
       text: 'Create Alert',
     });
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(1);
+  });
+
+  it('tracks explicit events without an organization', () => {
+    const {result} = renderHook(useButtonTracking, {
+      wrapper: anonymousWrapper,
+    });
+
+    result.current({
+      clickType: 'button',
+      'aria-label': 'Sign in',
+      analyticsEventKey: 'auth.login.submit_clicked',
+      analyticsEventName: 'Auth: Login Submit Clicked',
+      analyticsParams: {state: 'login'},
+    });
+
+    expect(rawTrackAnalyticsEvent).toHaveBeenCalledWith({
+      eventName: 'Auth: Login Submit Clicked',
+      eventKey: 'auth.login.submit_clicked',
+      organization: null,
+      parameterized_path: 'auth.login',
+      text: 'Sign in',
+      state: 'login',
+    });
+  });
+
+  it('does not track automatic button events without an organization', () => {
+    const {result} = renderHook(useButtonTracking, {
+      wrapper: anonymousWrapper,
+    });
+
+    result.current({clickType: 'button', 'aria-label': 'Uninstrumented'});
+
+    expect(rawTrackAnalyticsEvent).not.toHaveBeenCalled();
   });
 });

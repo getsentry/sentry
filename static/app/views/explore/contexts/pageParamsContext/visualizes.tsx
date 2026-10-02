@@ -13,6 +13,7 @@ import {
   getFieldDefinition,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -178,7 +179,9 @@ export function determineDefaultChartType(yAxes: readonly string[]): ChartType {
   };
 
   for (const yAxis of yAxes) {
-    const func = parseFunction(yAxis);
+    // Parse conditionally so adding an `_if` filter does not change the default chart
+    // type of the underlying aggregate.
+    const func = parseConditionalAggregate(yAxis);
     if (!defined(func)) {
       continue;
     }

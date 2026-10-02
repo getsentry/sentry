@@ -2,8 +2,9 @@ import {Fragment} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 
+import {ResultGrid} from 'sentry/components/resultGrid';
+
 import {AdminConfirmationModal} from 'admin/components/adminConfirmationModal';
-import {ResultGrid} from 'admin/components/resultGrid';
 
 type Props = {
   onRemoveEmail: (hash: string) => void;
@@ -46,7 +47,6 @@ export function EventUsers({orgId, projectId, onRemoveEmail}: Props) {
             </Fragment>
           }
           onConfirm={() => onRemoveEmail(row.hash)}
-          showAuditFields
         >
           <Button size="xs" variant="danger">
             Delete Email

@@ -1,25 +1,33 @@
-import {Fragment, useEffect, useEffectEvent, useMemo, useState} from 'react';
+import {
+  type ComponentProps,
+  Fragment,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import Feature from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {KeyValueList} from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {GroupList} from 'sentry/components/issues/groupList';
 import {Placeholder} from 'sentry/components/placeholder';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {treeResultLocator} from 'sentry/components/searchSyntax/utils';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event, EventOccurrence} from 'sentry/types/event';
@@ -53,17 +61,28 @@ import {
 } from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {
   investigationCandidatesQueryOptions,
   getInvestigationDetailQueryOptions,
+  investigationOrchestrationQueryOptions,
   useLaunchInvestigationMutation,
 } from 'sentry/views/investigations/api';
-import type {MetricOpenPeriodInvestigationSource} from 'sentry/views/investigations/types';
+import {shouldPollInvestigationBlocks} from 'sentry/views/investigations/detail/cell';
+import {shouldPollInvestigationRun} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
+import {getSeerStatusBlock} from 'sentry/views/investigations/statusBlock/getSeerStatusBlock';
+import {SeerStatusBlock} from 'sentry/views/investigations/statusBlock/seerStatusBlock';
+import type {
+  InvestigationDetail,
+  InvestigationOrchestration,
+  MetricOpenPeriodInvestigationSource,
+} from 'sentry/views/investigations/types';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {AttributeComparisonSection} from './attributeComparisonSection';
 import {OpenPeriodTimelineSection} from './openPeriodTimelineSection';
+
+const INVESTIGATION_POLL_INTERVAL = 2000;
+const INVESTIGATION_METADATA_GRACE_PERIOD = 10_000;
 
 interface MetricDetectorEvidenceData {
   /**
@@ -211,6 +230,7 @@ function useZoomTimeRangeToOpenPeriod({
 
   useEffect(() => {
     zoomTimeRangeToOpenPeriod();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [openPeriodStart, openPeriodEnd, intervalSeconds]);
 }
 
@@ -224,7 +244,6 @@ function ZoomToOpenPeriod(props: Parameters<typeof useZoomTimeRangeToOpenPeriod>
  * Issues list does not support AND/OR in the query, but Discover does.
  */
 function BooleanLogicError({discoverUrl}: {discoverUrl: LocationDescriptor}) {
-  const organization = useOrganization();
   return (
     <Alert.Container>
       <Alert
@@ -232,15 +251,13 @@ function BooleanLogicError({discoverUrl}: {discoverUrl: LocationDescriptor}) {
         trailingItems={
           <Feature features="discover-basic">
             <LinkButton variant="secondary" size="xs" to={discoverUrl}>
-              {getDiscoverDeprecation(organization)
-                ? t('Open in Explore')
-                : t('Open in Discover')}
+              {t('Open in Explore')}
             </LinkButton>
           </Feature>
         }
       >
         {t('Contributing issues unavailable for this detector.')}{' '}
-        <QuestionTooltip
+        <InfoTip
           title={t(
             'Issues do not support AND/OR queries. Modify your query to see contributing issues.'
           )}
@@ -330,7 +347,6 @@ function ContributingIssues({
           <GroupList
             queryParams={queryParams}
             canSelectGroups={false}
-            withChart
             withPagination={false}
             source="metric-issue-contributing-issues"
             numPlaceholderRows={3}
@@ -458,9 +474,9 @@ function TriggeredConditionDetails({
           </Flex>
         }
       >
-        <KeyValueList
-          shouldSort={false}
-          data={[
+        <KeyValueTableCard
+          variant="label"
+          contentItems={[
             {
               key: 'dataset',
               value: datasetConfig.name,
@@ -485,11 +501,9 @@ function TriggeredConditionDetails({
                   {
                     key: 'query',
                     value: (
-                      <pre>
-                        <Text size="md">
-                          <ProvidedFormattedQuery query={snubaQuery.query} />
-                        </Text>
-                      </pre>
+                      <Text size="md">
+                        <ProvidedFormattedQuery query={snubaQuery.query} />
+                      </Text>
                     ),
                     subject: t('Query'),
                   },
@@ -502,17 +516,13 @@ function TriggeredConditionDetails({
             },
             {
               key: 'condition',
-              value: (
-                <pre>
-                  {getConditionDescription({
-                    aggregate: snubaQuery.aggregate,
-                    condition: triggeredCondition,
-                    config: evidenceData.config ?? {
-                      detectionType: 'static',
-                    },
-                  })}
-                </pre>
-              ),
+              value: getConditionDescription({
+                aggregate: snubaQuery.aggregate,
+                condition: triggeredCondition,
+                config: evidenceData.config ?? {
+                  detectionType: 'static',
+                },
+              }),
               subject: t('Condition'),
             },
             ...(formattedEvaluatedValue
@@ -524,7 +534,7 @@ function TriggeredConditionDetails({
                   },
                 ]
               : []),
-          ]}
+          ].map(item => ({item}))}
         />
       </FoldSection>
       <OpenPeriodTimelineSection eventId={eventId} groupId={groupId} />
@@ -561,19 +571,6 @@ const GroupListWrapper = styled('div')`
   margin-top: ${p => p.theme.space.md};
 `;
 
-const InvestigationSummaryCard = styled(Stack)`
-  padding: 14px 16px;
-  box-shadow: ${p => p.theme.shadow.low};
-
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: 4px;
-    background: ${p => p.theme.tokens.background.accent.vibrant};
-  }
-`;
-
 function SeerInvestigationSection({
   eventId,
   groupId,
@@ -584,6 +581,7 @@ function SeerInvestigationSection({
   const organization = useOrganization();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const metadataIdleSince = useRef<{id: string; timestamp: number} | null>(null);
   const eventOpenPeriodQuery = useEventOpenPeriod({groupId, eventId});
   const shouldLoadLatest =
     eventOpenPeriodQuery.isSuccess && eventOpenPeriodQuery.data === null;
@@ -592,9 +590,6 @@ function SeerInvestigationSection({
     {enabled: shouldLoadLatest}
   );
   const openPeriod = eventOpenPeriodQuery.data ?? groupOpenPeriodsQuery.data?.[0] ?? null;
-  const isOpenPeriodPending =
-    eventOpenPeriodQuery.isPending ||
-    (shouldLoadLatest && groupOpenPeriodsQuery.isPending);
   const isOpenPeriodError =
     eventOpenPeriodQuery.isError || (shouldLoadLatest && groupOpenPeriodsQuery.isError);
   const source = useMemo<MetricOpenPeriodInvestigationSource | null>(
@@ -611,15 +606,90 @@ function SeerInvestigationSection({
     organizationSlug: organization.slug,
     sources: source ? [source] : [],
   });
-  const {
-    data: candidate,
-    isPending: isCandidatePending,
-    isError: isCandidateError,
-  } = useQuery({
+  const {data: candidate, isError: isCandidateError} = useQuery({
     ...candidateOptions,
     enabled: source !== null,
     select: response => response.json.items[0],
   });
+  const existingInvestigationId =
+    candidate?.status === 'view' ? candidate.investigationId : null;
+  const {
+    data: existingInvestigation,
+    isPending: isExistingInvestigationPending,
+    isError: isExistingInvestigationError,
+  } = useQuery({
+    ...getInvestigationDetailQueryOptions(
+      organization.slug,
+      existingInvestigationId ?? 'disabled'
+    ),
+    enabled: existingInvestigationId !== null,
+    select: response => response.json,
+    refetchInterval: query => {
+      const investigation = query.state.data?.json;
+      if (!investigation || (investigation.summary && investigation.summaryDescription)) {
+        return false;
+      }
+      const blocks = investigation.blocks ?? [];
+      // Matches the investigation page: an agentic run keeps the detail polling
+      // until it settles, so the summary lands without a refresh.
+      const orchestrationActive =
+        investigation.orchestration &&
+        shouldPollInvestigationRun(investigation.orchestration.status);
+      if (
+        orchestrationActive ||
+        shouldPollInvestigationBlocks(blocks) ||
+        isTitleGenerationActive(investigation.titleGeneration?.status)
+      ) {
+        metadataIdleSince.current = null;
+        return INVESTIGATION_POLL_INTERVAL;
+      }
+      if (
+        investigation.titleGeneration?.status === 'failed' ||
+        blocks.some(
+          block =>
+            block.config.autoRun === true &&
+            (block.currentExecution?.status === 'failed' ||
+              block.currentExecution?.status === 'cancelled')
+        )
+      ) {
+        return false;
+      }
+      const idleSince =
+        metadataIdleSince.current?.id === investigation.id
+          ? metadataIdleSince.current.timestamp
+          : Date.now();
+      metadataIdleSince.current = {id: investigation.id, timestamp: idleSince};
+      return Date.now() - idleSince < INVESTIGATION_METADATA_GRACE_PERIOD
+        ? INVESTIGATION_POLL_INTERVAL
+        : false;
+    },
+  });
+  const hasSummary = Boolean(
+    existingInvestigation?.summary && existingInvestigation.summaryDescription
+  );
+  const {data: orchestration} = useQuery({
+    ...investigationOrchestrationQueryOptions(
+      organization.slug,
+      existingInvestigationId ?? 'disabled'
+    ),
+    // Only agentic runs have a projection to read, and once the summary is in
+    // there is nothing left for the status line to say.
+    enabled:
+      existingInvestigationId !== null &&
+      Boolean(existingInvestigation?.orchestration) &&
+      !hasSummary,
+    // Polls like the investigation page's hypotheses, and stops once the run
+    // reaches a terminal state, unless its summary is still being written.
+    refetchInterval: query => {
+      const run = query.state.data?.json;
+      return shouldPollInvestigationRun(run?.status, run?.runId !== null) ||
+        (run?.status === 'completed' && run.report.metadata.status === 'generating')
+        ? INVESTIGATION_POLL_INTERVAL
+        : false;
+    },
+  });
+  const statusBlock = getInvestigationStatusBlock(existingInvestigation, orchestration);
+
   const launchMutation = useLaunchInvestigationMutation(organization.slug, {
     onSuccess: launchedInvestigation => {
       queryClient.setQueryData(candidateOptions.queryKey, {
@@ -633,7 +703,7 @@ function SeerInvestigationSection({
       );
       navigate(
         normalizeUrl(
-          `/organizations/${organization.slug}/seer/investigation/${launchedInvestigation.id}/`
+          `/organizations/${organization.slug}/explore/investigations/${launchedInvestigation.id}/`
         )
       );
     },
@@ -643,9 +713,20 @@ function SeerInvestigationSection({
   const investigationPath =
     candidate?.status === 'view'
       ? normalizeUrl(
-          `/organizations/${organization.slug}/seer/investigation/${candidate.investigationId}/`
+          `/organizations/${organization.slug}/explore/investigations/${candidate.investigationId}/`
         )
       : null;
+
+  if (
+    source === null ||
+    !candidate ||
+    candidate.status === 'unavailable' ||
+    isOpenPeriodError ||
+    isCandidateError ||
+    (existingInvestigationId !== null && isExistingInvestigationError)
+  ) {
+    return null;
+  }
 
   return (
     <FoldSection
@@ -658,55 +739,114 @@ function SeerInvestigationSection({
       titleLabel={t('Seer Investigation')}
       sectionKey="seer_investigation"
     >
-      {isOpenPeriodPending || (source !== null && isCandidatePending) ? (
+      {existingInvestigationId !== null && isExistingInvestigationPending ? (
         <Placeholder height="40px" width="160px" />
-      ) : isOpenPeriodError || isCandidateError ? (
-        <Alert.Container>
-          <Alert variant="danger" showIcon>
-            {t('Unable to load investigation information.')}
-          </Alert>
-        </Alert.Container>
       ) : (
-        <Stack gap="md">
-          <InvestigationSummaryCard
-            position="relative"
-            overflow="hidden"
-            border="primary"
-            radius="md"
-            gap="xs"
-          >
-            <Text size="lg" bold>
-              {t('Different investigation title')}
+        <Stack gap="xl">
+          {statusBlock ? (
+            <SeerStatusBlock
+              {...statusBlock}
+              trailing={
+                investigationPath ? (
+                  <LinkButton size="sm" variant="primary" to={investigationPath}>
+                    {t('View Investigation')}
+                  </LinkButton>
+                ) : undefined
+              }
+            />
+          ) : investigationPath ? null : (
+            <Text size="md" variant="muted">
+              {t(
+                'Launch a Seer investigation to understand what happened, identify what drove the breach, and get evidence-backed next steps.'
+              )}
             </Text>
-            <Text size="md">{t('Different investigation summary text')}</Text>
-          </InvestigationSummaryCard>
-          <Flex>
-            {investigationPath ? (
-              <LinkButton size="md" variant="primary" to={investigationPath}>
-                {t('View Investigation')}
-              </LinkButton>
-            ) : (
-              <Button
-                size="md"
-                variant="primary"
-                busy={launchMutation.isPending}
-                disabled={!source || candidate?.status === 'unavailable'}
-                onClick={() => source && launchMutation.mutate(source)}
-              >
-                {t('Launch Investigation')}
-              </Button>
-            )}
-          </Flex>
+          )}
+          {statusBlock && investigationPath ? null : (
+            <Flex>
+              {investigationPath ? (
+                <LinkButton size="md" variant="primary" to={investigationPath}>
+                  {t('View Investigation')}
+                </LinkButton>
+              ) : (
+                <Button
+                  size="md"
+                  variant="primary"
+                  busy={launchMutation.isPending}
+                  onClick={() => launchMutation.mutate(source)}
+                >
+                  {t('Launch Investigation')}
+                </Button>
+              )}
+            </Flex>
+          )}
         </Stack>
       )}
     </FoldSection>
   );
 }
 
+/**
+ * What the section says about an existing investigation: its summary once
+ * there is one, otherwise where the run has got to.
+ */
+function getInvestigationStatusBlock(
+  investigation: InvestigationDetail | undefined,
+  orchestration: InvestigationOrchestration | undefined
+): ComponentProps<typeof SeerStatusBlock> | null {
+  // The run's projection carries the summary too, so it shows even when the
+  // detail query stopped polling before the summary was written.
+  const metadata =
+    orchestration?.status === 'completed' ? orchestration.report.metadata : undefined;
+  const summary = investigation?.summary ?? metadata?.summary;
+  const summaryDescription =
+    investigation?.summaryDescription ?? metadata?.summaryDescription;
+  if (summary && summaryDescription) {
+    return {
+      variant: 'complete',
+      title: t('Seer investigation completed'),
+      children: (
+        <Stack gap="xs">
+          <Text size="sm" bold>
+            {summary}
+          </Text>
+          <Text size="sm" density="comfortable">
+            {summaryDescription}
+          </Text>
+        </Stack>
+      ),
+    };
+  }
+  const runStatus = orchestration ? getSeerStatusBlock(orchestration) : null;
+  if (!runStatus) {
+    return null;
+  }
+  return {
+    variant: runStatus.variant,
+    title:
+      runStatus.variant === 'complete'
+        ? t('Seer investigation completed')
+        : runStatus.title,
+    meta: runStatus.meta,
+    // The running copy is written for the investigation page itself ("will open
+    // automatically"), so only the stopped states, whose descriptions explain
+    // what happened, carry it here.
+    description: runStatus.variant === 'running' ? undefined : runStatus.description,
+  };
+}
+
+function isTitleGenerationActive(status: string | null | undefined) {
+  return status === 'pending' || status === 'running';
+}
+
 export function MetricIssueSeerInvestigationSection({
   group,
   event,
 }: MetricDetectorTriggeredSectionProps) {
+  const organization = useOrganization();
+  if (!organization.openMembership) {
+    return null;
+  }
+
   return <SeerInvestigationSection eventId={event.eventID} groupId={group.id} />;
 }
 

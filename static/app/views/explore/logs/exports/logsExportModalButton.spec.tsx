@@ -37,6 +37,7 @@ describe('LogsExportModalButton', () => {
     field: ['message'],
     project: [1],
     query: '',
+    sampling: 'HIGHEST_ACCURACY',
     sort: ['-timestamp'],
   };
 
@@ -53,13 +54,14 @@ describe('LogsExportModalButton', () => {
         isLoading={false}
         queryInfo={queryInfo}
         supportsAllColumns
+        supportsLocalDownload={false}
         tableData={tableData}
         title="Logs Export"
       />,
       {organization}
     );
     renderGlobalModal();
-    await userEvent.click(screen.getByRole('button', {name: 'Export Data'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   }
 

@@ -97,6 +97,100 @@ class AppMentionEventTest(BaseEventTest):
         mock_apply_async.assert_not_called()
         assert_halt_metric(mock_record, SeerSlackHaltReason.MISSING_EVENT_DATA)
 
+    @patch("sentry.integrations.slack.workspace.send_threaded_ephemeral_message")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
+    def test_app_mention_only_the_bot_mention_halts(self, mock_apply_async, mock_record, mock_send):
+        for text in ("<@U0BOT>", "  <@U0BOT>   "):
+            with self.subTest(text=text):
+                mock_apply_async.reset_mock()
+                mock_record.reset_mock()
+                mock_send.reset_mock()
+
+                with self.feature(SEER_EXPLORER_FEATURES):
+                    resp = self.post_webhook(
+                        event_data={**APP_MENTION_EVENT, "text": text},
+                        data=AUTHORIZATIONS_DATA,
+                    )
+
+                assert resp.status_code == 200
+                mock_apply_async.assert_not_called()
+                assert_halt_metric(mock_record, SeerSlackHaltReason.EMPTY_PROMPT)
+
+                mock_send.assert_called_once()
+                kwargs = mock_send.call_args.kwargs
+                assert kwargs["channel_id"] == APP_MENTION_EVENT["channel"]
+                assert kwargs["thread_ts"] == APP_MENTION_EVENT["ts"]
+                assert "came through empty" in kwargs["renderable"]["text"]
+
+    @patch("sentry.integrations.slack.workspace.send_threaded_ephemeral_message")
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
+    def test_app_mention_only_the_bot_mention_halts_without_authorizations(
+        self, mock_apply_async, mock_record, mock_send
+    ):
+        with self.feature(SEER_EXPLORER_FEATURES):
+            resp = self.post_webhook(event_data={**APP_MENTION_EVENT, "text": "<@U0BOT>"})
+
+        assert resp.status_code == 200
+        mock_apply_async.assert_not_called()
+        assert_halt_metric(mock_record, SeerSlackHaltReason.EMPTY_PROMPT)
+        mock_send.assert_called_once()
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
+    def test_app_mention_only_mentions_halts(self, mock_apply_async, mock_record):
+        """Mentioning us alongside other users, with no question, is still empty."""
+        with self.feature(SEER_EXPLORER_FEATURES):
+            resp = self.post_webhook(
+                event_data={**APP_MENTION_EVENT, "text": "<@U0BOT> <@U1234567890|alice>"},
+                data=AUTHORIZATIONS_DATA,
+            )
+
+        assert resp.status_code == 200
+        mock_apply_async.assert_not_called()
+        assert_halt_metric(mock_record, SeerSlackHaltReason.EMPTY_PROMPT)
+
+    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
+    def test_app_mention_other_user_mention_with_text_dispatches(self, mock_apply_async):
+        """A mention of someone else is context, not emptiness, when text follows."""
+        with self.feature(SEER_EXPLORER_FEATURES):
+            resp = self.post_webhook(
+                event_data={
+                    **APP_MENTION_EVENT,
+                    "text": "<@U0BOT> what did <@U1234567890> break?",
+                },
+                data=AUTHORIZATIONS_DATA,
+            )
+
+        assert resp.status_code == 200
+        mock_apply_async.assert_called_once()
+
+    @patch("sentry.integrations.slack.workspace.send_threaded_ephemeral_message")
+    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
+    def test_app_mention_empty_prompt_reply_failure_is_swallowed(self, mock_apply_async, mock_send):
+        mock_send.side_effect = Exception("slack down")
+
+        with self.feature(SEER_EXPLORER_FEATURES):
+            resp = self.post_webhook(
+                event_data={**APP_MENTION_EVENT, "text": "<@U0BOT>"},
+                data=AUTHORIZATIONS_DATA,
+            )
+
+        assert resp.status_code == 200
+        mock_apply_async.assert_not_called()
+
+    @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
+    def test_app_mention_with_text_after_the_mention_dispatches(self, mock_apply_async):
+        with self.feature(SEER_EXPLORER_FEATURES):
+            resp = self.post_webhook(
+                event_data={**APP_MENTION_EVENT, "text": "<@U0BOT> why is this slow?"},
+                data=AUTHORIZATIONS_DATA,
+            )
+
+        assert resp.status_code == 200
+        mock_apply_async.assert_called_once()
+
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @patch("sentry.seer.entrypoints.slack.tasks.process_mention_for_slack.apply_async")
     def test_app_mention_no_integration(self, mock_apply_async, mock_record):

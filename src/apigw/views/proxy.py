@@ -33,8 +33,7 @@ async def proxy_cell_from_org(
     db_ctx: Any, org: str, timeout: float | None = None, **kwargs: Any
 ) -> Any:
     try:
-        async with db_ctx.acquire() as db:
-            cell = await get_cell_for_organization(db, org)
+        cell = await get_cell_for_organization(db_ctx, org)
     except CellResolutionError:
         abort_with_json(404, {"error": "apigateway", "detail": "Not found"})
     return await proxy_cell_request(cell, request, timeout)
@@ -48,6 +47,16 @@ proxy.route(
     methods=["get", "post", "put", "patch", "delete", "head", "options"],
     pipeline=[db.pipe_ctx],
     name="proxy_cell_from_org_integrations",
+)(proxy_cell_from_org)
+
+# NOTE: this is defined before `proxy_control_from_org` since verify-connection
+#       is a cell endpoint (calls Seer) under the monitoring-providers path,
+#       which is otherwise routed to control
+proxy.route(
+    "/api/0/organizations/<str:org>/monitoring-providers/gcp/verify-connection",
+    methods=["get", "post", "put", "patch", "delete", "head", "options"],
+    pipeline=[db.pipe_ctx, ProxyTimeoutPipe(90.0)],
+    name="proxy_cell_from_org_monitoring_provider_verify",
 )(proxy_cell_from_org)
 
 

@@ -76,15 +76,15 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           conditions: AI_GENERATIONS_FILTER,
           fields: [
             `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS})`,
-            `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED})`,
+            `sum(${SpanFields.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS})`,
             `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS})`,
-            `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING})`,
+            `sum(${SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS})`,
           ],
           aggregates: [
             `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS})`,
-            `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED})`,
+            `sum(${SpanFields.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS})`,
             `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS})`,
-            `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING})`,
+            `sum(${SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS})`,
           ],
           columns: [],
           fieldAliases: [
@@ -121,9 +121,9 @@ const MODELS_TABLE: PrebuiltWidget = {
         `p95(${SpanFields.SPAN_DURATION})`,
         `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,
         `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS})`,
-        `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED})`,
+        `sum(${SpanFields.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS})`,
         `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS})`,
-        `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING})`,
+        `sum(${SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS})`,
       ],
       aggregates: [
         'count()',
@@ -132,9 +132,9 @@ const MODELS_TABLE: PrebuiltWidget = {
         `p95(${SpanFields.SPAN_DURATION})`,
         `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,
         `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS})`,
-        `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED})`,
+        `sum(${SpanFields.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS})`,
         `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS})`,
-        `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING})`,
+        `sum(${SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS})`,
       ],
       columns: [SpanFields.GEN_AI_RESPONSE_MODEL],
       fieldAliases: [

@@ -18,6 +18,7 @@ import {
   RRWebDOMFrameFixture,
   RRWebFullSnapshotFrameEventFixture,
   RRWebIncrementalSnapshotFrameEventFixture,
+  RRWebInitFrameEventsFixture,
 } from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
@@ -412,6 +413,60 @@ describe('ReplayReader', () => {
     expect(replay?.hasCanvasElementInReplay()).toBe(true);
   });
 
+  describe('processingErrors', () => {
+    const timestamp = new Date('2023-12-25T00:02:00');
+
+    it('reports no errors when the replay has both a meta frame and a full snapshot', () => {
+      const replay = ReplayReader.factory({
+        attachments: [
+          ...RRWebInitFrameEventsFixture({timestamp}),
+          RRWebFullSnapshotFrameEventFixture({timestamp}),
+        ],
+        errors: [],
+        fetching: false,
+        replayRecord,
+      });
+
+      expect(replay?.processingErrors()).toEqual([]);
+    });
+
+    it('reports a missing full snapshot when the replay only has a meta frame', () => {
+      const replay = ReplayReader.factory({
+        attachments: RRWebInitFrameEventsFixture({timestamp}),
+        errors: [],
+        fetching: false,
+        replayRecord,
+      });
+
+      expect(replay?.processingErrors()).toEqual(['Missing Full Snapshot Frame']);
+    });
+
+    it('reports no missing full snapshot when the replay is a video replay', () => {
+      const replay = ReplayReader.factory({
+        attachments: [
+          ...RRWebInitFrameEventsFixture({timestamp}),
+          {
+            type: EventType.Custom,
+            timestamp: timestamp.getTime(),
+            data: {
+              tag: 'video',
+              payload: {
+                duration: 5000,
+                segmentId: 0,
+                timestamp: timestamp.getTime(),
+              },
+            },
+          },
+        ],
+        errors: [],
+        fetching: false,
+        replayRecord,
+      });
+
+      expect(replay?.processingErrors()).toEqual([]);
+    });
+  });
+
   describe('clip window', () => {
     const replayStartedAt = new Date('2024-01-01T00:02:00');
     const replayFinishedAt = new Date('2024-01-01T00:04:00');
@@ -535,6 +590,110 @@ describe('ReplayReader', () => {
           offsetMs: 6_000,
         }),
       ]);
+    });
+  });
+
+  describe('clip window outside the replay', () => {
+    const replayStartedAt = new Date('2024-01-01T00:02:00');
+    const replayFinishedAt = new Date('2024-01-01T00:04:00');
+
+    function readerWithClipWindow(clipWindow: {
+      endTimestampMs: number;
+      startTimestampMs: number;
+    }) {
+      return ReplayReader.factory({
+        attachments: [
+          RRWebFullSnapshotFrameEventFixture({
+            timestamp: new Date('2024-01-01T00:02:30'),
+          }),
+        ],
+        errors: [],
+        fetching: false,
+        replayRecord: ReplayRecordFixture({
+          started_at: replayStartedAt,
+          finished_at: replayFinishedAt,
+        }),
+        clipWindow,
+      });
+    }
+
+    const replayDurationMs = replayFinishedAt.getTime() - replayStartedAt.getTime();
+
+    it('plays the whole replay when the window starts after it ended', () => {
+      // A timestamp well past `finished_at` clamps both edges of the window onto
+      // the same instant, which used to leave the reader with no duration at all.
+      const eventTimestampMs = replayFinishedAt.getTime() + 60_000;
+      const replay = readerWithClipWindow({
+        startTimestampMs: eventTimestampMs - 5_000,
+        endTimestampMs: eventTimestampMs + 5_000,
+      });
+
+      expect(replay?.getDurationMs()).toBe(replayDurationMs);
+      expect(replay?.getStartTimestampMs()).toBe(replayStartedAt.getTime());
+      expect(replay?.getStartOffsetMs()).toBe(0);
+    });
+
+    it('plays the whole replay when the window ends before it started', () => {
+      const replay = readerWithClipWindow({
+        startTimestampMs: replayStartedAt.getTime() - 70_000,
+        endTimestampMs: replayStartedAt.getTime() - 60_000,
+      });
+
+      expect(replay?.getDurationMs()).toBe(replayDurationMs);
+      expect(replay?.getStartTimestampMs()).toBe(replayStartedAt.getTime());
+    });
+
+    it('still clips a window that only overhangs the end', () => {
+      // The overlap is real here, so it is a real clip and must not widen to the
+      // whole replay.
+      const replay = readerWithClipWindow({
+        startTimestampMs: replayFinishedAt.getTime() - 3_000,
+        endTimestampMs: replayFinishedAt.getTime() + 60_000,
+      });
+
+      expect(replay?.getDurationMs()).toBe(3_000);
+      expect(replay?.getStartTimestampMs()).toBe(replayFinishedAt.getTime() - 3_000);
+    });
+
+    it('keeps showing the head of the replay for an event before it started', () => {
+      // Pre-existing behaviour: this event does describe a moment in the replay,
+      // so it clips rather than widening to the whole thing.
+      const eventTimestampMs = replayStartedAt.getTime() - 60_000;
+      const replay = ReplayReader.factory({
+        attachments: [
+          RRWebFullSnapshotFrameEventFixture({
+            timestamp: new Date('2024-01-01T00:02:30'),
+          }),
+        ],
+        errors: [],
+        fetching: false,
+        replayRecord: ReplayRecordFixture({
+          started_at: replayStartedAt,
+          finished_at: replayFinishedAt,
+        }),
+        clipWindow: {
+          startTimestampMs: eventTimestampMs - 5_000,
+          endTimestampMs: eventTimestampMs + 5_000,
+        },
+        eventTimestampMs,
+      });
+
+      expect(replay?.getDurationMs()).toBe(10_000);
+      expect(replay?.getStartTimestampMs()).toBe(replayStartedAt.getTime());
+      expect(replay?.getErrorBeforeReplayStart()).toBe(true);
+    });
+
+    it('falls back to the whole replay when the window is not a real time', () => {
+      // `new Date('nonsense').getTime()` is NaN, and NaN survives `clamp`.
+      const replay = readerWithClipWindow({
+        startTimestampMs: NaN,
+        endTimestampMs: NaN,
+      });
+
+      expect(replay?.getDurationMs()).toBe(
+        replayFinishedAt.getTime() - replayStartedAt.getTime()
+      );
+      expect(replay?.getStartTimestampMs()).toBe(replayStartedAt.getTime());
     });
   });
 

@@ -92,6 +92,8 @@ describe('getReasonGroupName', () => {
     expect(getReasonGroupName(Outcome.FILTERED, 'browser-extensions')).toBe(
       'Browser Extensions'
     );
+    expect(getReasonGroupName(Outcome.FILTERED, 'ip-address')).toBe('IP Address');
+    expect(getReasonGroupName(Outcome.FILTERED, 'invalid-csp')).toBe('Invalid CSP');
 
     expect(getReasonGroupName(Outcome.CLIENT_DISCARD, 'queue_overflow')).toBe(
       ClientDiscardReason.QUEUE_OVERFLOW
@@ -103,6 +105,10 @@ describe('getReasonGroupName', () => {
 
     expect(getReasonGroupName(Outcome.CLIENT_DISCARD, 'no_parent_span')).toBe(
       ClientDiscardReason.NO_PARENT_SPAN
+    );
+
+    expect(getReasonGroupName(Outcome.CLIENT_DISCARD, 'callback_error')).toBe(
+      ClientDiscardReason.CALLBACK_ERROR
     );
   });
 

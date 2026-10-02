@@ -6,7 +6,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.investigations.agent import synchronize_title
+from sentry.investigations.agent import synchronize_title, title_generation_preview
 from sentry.investigations.endpoints.base import OrganizationInvestigationEndpoint
 from sentry.investigations.models import Investigation
 from sentry.models.organization import Organization
@@ -31,7 +31,7 @@ class OrganizationInvestigationTitleGenerationEndpoint(OrganizationInvestigation
             )
             synchronize_title(investigation, state)
             investigation.refresh_from_db()
-            preview = next(
+            content = next(
                 (
                     state_block.message.content
                     for state_block in reversed(state.blocks)
@@ -39,4 +39,5 @@ class OrganizationInvestigationTitleGenerationEndpoint(OrganizationInvestigation
                 ),
                 None,
             )
+            preview = title_generation_preview(content)
         return Response({"status": investigation.title_generation_status, "preview": preview})

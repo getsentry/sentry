@@ -15,6 +15,7 @@ import {
   isMeasurement,
   measurementType,
   parseFunction,
+  prettifyParsedFunction,
 } from 'sentry/utils/discover/fields';
 
 describe('parseFunction', () => {
@@ -93,6 +94,73 @@ describe('parseFunction', () => {
       arguments: ['tags[foo,number]'],
     });
   });
+
+  it('annotates filter when the first argument is backtick-wrapped', () => {
+    expect(parseFunction('avg_if(`span.op:db`,span.duration)')).toEqual({
+      name: 'avg_if',
+      arguments: ['`span.op:db`', 'span.duration'],
+      filter: 'span.op:db',
+    });
+  });
+
+  it('does not split backtick wrapped search filters on commas', () => {
+    expect(parseFunction('avg_if(`span.op:[db,http]`,span.duration)')).toEqual({
+      name: 'avg_if',
+      arguments: ['`span.op:[db,http]`', 'span.duration'],
+      filter: 'span.op:[db,http]',
+    });
+    expect(
+      parseFunction('count_if(`span.description:"GET /foo, /bar"`,span.duration)')
+    ).toEqual({
+      name: 'count_if',
+      arguments: ['`span.description:"GET /foo, /bar"`', 'span.duration'],
+      filter: 'span.description:"GET /foo, /bar"',
+    });
+    expect(parseFunction('avg_if(`tags[Limit,number]:>5`,span.duration)')).toEqual({
+      name: 'avg_if',
+      arguments: ['`tags[Limit,number]:>5`', 'span.duration'],
+      filter: 'tags[Limit,number]:>5',
+    });
+  });
+
+  it('handles backtick wrapped search filters as the only argument', () => {
+    expect(parseFunction('count_if(`span.op:db`)')).toEqual({
+      name: 'count_if',
+      arguments: ['`span.op:db`'],
+      filter: 'span.op:db',
+    });
+  });
+
+  it('annotates filters containing commas and quotes', () => {
+    expect(
+      parseFunction('avg_if(`span.op:[db,http] AND span.status:ok`,span.duration)')
+    ).toEqual({
+      name: 'avg_if',
+      arguments: ['`span.op:[db,http] AND span.status:ok`', 'span.duration'],
+      filter: 'span.op:[db,http] AND span.status:ok',
+    });
+  });
+
+  it('leaves Discover style count_if untouched', () => {
+    expect(parseFunction('count_if(span.duration,equals,300)')).toEqual({
+      name: 'count_if',
+      arguments: ['span.duration', 'equals', '300'],
+    });
+  });
+
+  it('leaves plain aggregates without a filter key', () => {
+    expect(parseFunction('avg(span.duration)')).toEqual({
+      name: 'avg',
+      arguments: ['span.duration'],
+    });
+  });
+
+  it('does not treat backtick args as filters on non-_if aggregates', () => {
+    expect(parseFunction('avg(`span.op:db`,span.duration)')).toEqual({
+      name: 'avg',
+      arguments: ['`span.op:db`', 'span.duration'],
+    });
+  });
 });
 
 describe('generateFieldAsString', () => {
@@ -121,6 +189,15 @@ describe('generateFieldAsString', () => {
         function: ['count', 'tags[foo,number]', undefined, undefined],
       })
     ).toBe('count(tags[foo,number])');
+  });
+
+  it('preserves backtick wrapped search filter arguments', () => {
+    expect(
+      generateFieldAsString({
+        kind: 'function',
+        function: ['avg_if', '`span.op:[db,http]`', 'span.duration', undefined],
+      })
+    ).toBe('avg_if(`span.op:[db,http]`,span.duration)');
   });
 
   it('round-trips quoted function arguments through field parsing', () => {
@@ -180,6 +257,15 @@ describe('getAggregateAlias', () => {
     expect(
       getAggregateAlias('to_other(release,"release:beta@1.1.1 (2)",others,current)')
     ).toBe('to_other_release__release_beta_1_1_1__2___others_current');
+  });
+
+  it('handles EAP conditional aggregates', () => {
+    expect(getAggregateAlias('avg_if(`span.op:db`,span.duration)')).toBe(
+      'avg_span_duration'
+    );
+    expect(getAggregateAlias('count_if(`span.op:db`,span.duration)')).toBe(
+      'count_span_duration'
+    );
   });
 });
 
@@ -274,6 +360,16 @@ describe('explodeField', () => {
       function: ['count', 'foo.bar.is-Enterprise_42', undefined, undefined],
     });
   });
+
+  it('round-trips backtick-wrapped _if filters', () => {
+    expect(explodeField({field: 'avg_if(`span.op:db`,span.duration)'})).toEqual({
+      kind: 'function',
+      function: ['avg_if', '`span.op:db`', 'span.duration'],
+    });
+    expect(
+      generateFieldAsString(explodeField({field: 'avg_if(`span.op:db`,span.duration)'}))
+    ).toBe('avg_if(`span.op:db`,span.duration)');
+  });
 });
 
 describe('aggregateOutputType', () => {
@@ -351,6 +447,7 @@ describe('aggregateMultiPlotType', () => {
     expect(aggregateMultiPlotType('sum(transaction.duration)')).toBe('area');
     expect(aggregateMultiPlotType('p95()')).toBe('line');
     expect(aggregateMultiPlotType('equation|sum(transaction.duration) / 2')).toBe('line');
+    expect(aggregateMultiPlotType('avg_if(`span.op:db`,span.duration)')).toBe('line');
   });
 });
 
@@ -364,12 +461,6 @@ describe('generateAggregateFields', () => {
     expect(
       generateAggregateFields(organization, [{field: 'not_real_aggregate()'}])
     ).toContainEqual({field: 'not_real_aggregate()'});
-  });
-
-  it('excludes fields from aggregates', () => {
-    expect(generateAggregateFields(organization, [], ['count()'])).not.toContainEqual({
-      field: 'count()',
-    });
   });
 });
 
@@ -395,5 +486,36 @@ describe('fieldAlignment()', () => {
     expect(fieldAlignment('transaction.duration', undefined, meta)).toBe('right');
 
     expect(fieldAlignment('title', undefined, meta)).toBe('left');
+  });
+});
+
+describe('prettifyParsedFunction', () => {
+  it('prettifies typed tag arguments', () => {
+    expect(
+      prettifyParsedFunction({
+        name: 'avg',
+        arguments: ['tags[Limit,number]'],
+      })
+    ).toBe('avg(Limit)');
+  });
+
+  it('prettifies typed tag keys inside conditional filter arguments', () => {
+    expect(
+      prettifyParsedFunction({
+        name: 'avg_if',
+        arguments: ['`tags[Limit,number]:>5`', 'span.duration'],
+        filter: 'tags[Limit,number]:>5',
+      })
+    ).toBe('avg_if(`Limit:>5`,span.duration)');
+  });
+
+  it('does not collapse a filter argument to only the typed tag name', () => {
+    expect(
+      prettifyParsedFunction({
+        name: 'avg_if',
+        arguments: ['`tags[Limit,number]:>5`', 'tags[Limit,number]'],
+        filter: 'tags[Limit,number]:>5',
+      })
+    ).toBe('avg_if(`Limit:>5`,Limit)');
   });
 });

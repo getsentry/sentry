@@ -2,11 +2,13 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
 import invariant from 'invariant';
+import {useQueryState} from 'nuqs';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -15,8 +17,8 @@ import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {Duration} from 'sentry/components/duration/duration';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {KeyValueData} from 'sentry/components/keyValueData';
 import {replayBulkDeleteAuditLogApiOptions} from 'sentry/components/replays/bulkDelete/replayBulkDeleteAuditLogApiOptions';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCalendar, IconDelete} from 'sentry/icons';
@@ -24,16 +26,21 @@ import {t, tct, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {getShortEventId} from 'sentry/utils/events';
-import {decodeList} from 'sentry/utils/queryString';
 import {
+  getBulkDeleteErrorReason,
   type ReplayBulkDeletePayload,
   useDeleteReplays,
 } from 'sentry/utils/replays/hooks/useDeleteReplays';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
+
+const REPLAY_COLUMNS: TableColumnConfig[] = [
+  {key: 'replay', width: '1fr'},
+  {key: 'duration', width: 'max-content'},
+];
 
 interface Props {
   queryOptions: QueryKeyEndpointOptions | undefined;
@@ -45,11 +52,7 @@ export function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
   const queryClient = useQueryClient();
   const analyticsArea = useAnalyticsArea();
   const organization = useOrganization();
-  const {project: selectedProjectIds} = useLocationQuery({
-    fields: {
-      project: decodeList,
-    },
-  });
+  const [selectedProjectIds] = useQueryState('project', parseAsStringArray);
   const {projects} = useProjects();
   const hasOnlyOneProject = projects.length === 1;
 
@@ -131,16 +134,23 @@ export function DeleteReplays({selectedIds, replays, queryOptions}: Props) {
                     // TODO: get the list to refetch
                     refetchAuditLog();
                   },
-                  onError: () =>
+                  onError: error => {
+                    const count =
+                      selectedIds === 'all'
+                        ? Number.MAX_SAFE_INTEGER
+                        : selectedIds.length;
+                    const reason = getBulkDeleteErrorReason(error);
                     addErrorMessage(
-                      tn(
-                        'Failed to delete replay',
-                        'Failed to delete replays',
-                        selectedIds === 'all'
-                          ? Number.MAX_SAFE_INTEGER
-                          : selectedIds.length
-                      )
-                    ),
+                      reason
+                        ? tn(
+                            'Failed to delete replay: %2$s',
+                            'Failed to delete replays: %2$s',
+                            count,
+                            reason
+                          )
+                        : tn('Failed to delete replay', 'Failed to delete replays', count)
+                    );
+                  },
                   onSettled: () => {},
                 });
               },
@@ -174,7 +184,7 @@ function ReplayQueryPreview({
       <Title project={project}>
         {t('Replays matching the following query will be deleted')}
       </Title>
-      <KeyValueData.Card contentItems={contentItems} />
+      <KeyValueTableCard contentItems={contentItems} />
       <Text size="sm" variant="muted">
         All dates and times are in UTC.
       </Text>
@@ -191,6 +201,7 @@ function ReplayPreviewTable({
 }) {
   return (
     <SimpleTableWithTwoColumns
+      columns={REPLAY_COLUMNS}
       header={
         <SimpleTable.HeaderRow>
           <SimpleTable.HeaderCell>{t('Replay')}</SimpleTable.HeaderCell>
@@ -273,8 +284,6 @@ function Title({children, project}: {children: React.ReactNode; project: Project
 }
 
 const SimpleTableWithTwoColumns = styled(SimpleTable)`
-  grid-template-columns: 1fr max-content;
-
   max-height: calc(100vh - 315px);
   min-height: 200px;
   overflow-y: auto;

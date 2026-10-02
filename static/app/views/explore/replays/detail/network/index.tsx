@@ -71,6 +71,7 @@ export function NetworkList() {
     gridTemplateColumns,
     scrollContainerRef,
     totalColumnWidth,
+    totalSize,
     virtualRows,
     virtualizer,
     wrapperRef,
@@ -208,7 +209,7 @@ export function NetworkList() {
                   ) : (
                     <VirtualTable.Content
                       style={{
-                        height: virtualizer.getTotalSize(),
+                        height: totalSize,
                         width: totalColumnWidth,
                       }}
                     >
@@ -255,6 +256,7 @@ export function NetworkList() {
                                   key={`${virtualRow.key}-${columnIndex}`}
                                   columnIndex={columnIndex}
                                   frame={network}
+                                  isSelected={selectedIndex === virtualRow.index}
                                   onMouseEnter={onMouseEnter}
                                   onMouseLeave={onMouseLeave}
                                   onClickCell={onClickCell}

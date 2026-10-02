@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import noop from 'lodash/noop';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 type Props<T> = {
   children: ReactNode;
@@ -84,7 +84,10 @@ function Item<T extends string | number>({
   );
 
   return (
-    <LabelContainer className={className}>
+    <Container
+      className={className}
+      width={{zero: '100%', xl: '50%', '3xl': '33.333%', '4xl': '25%'}}
+    >
       <Label>
         <Checkbox
           name={name}
@@ -97,7 +100,7 @@ function Item<T extends string | number>({
         />
         <CheckboxLabel>{children}</CheckboxLabel>
       </Label>
-    </LabelContainer>
+    </Container>
   );
 }
 
@@ -115,18 +118,4 @@ const Label = styled('label')`
 
 const CheckboxLabel = styled('span')`
   margin-left: ${p => p.theme.space.md};
-`;
-
-const LabelContainer = styled('div')`
-  width: 100%;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    width: 50%;
-  }
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    width: 33.333%;
-  }
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    width: 25%;
-  }
 `;

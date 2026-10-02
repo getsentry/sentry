@@ -140,6 +140,21 @@ FEATURES = [
         """,
         IntegrationFeatures.TICKET_RULES,
     ),
+    FeatureDescription(
+        """
+        Get automated code reviews from Seer on your GitHub pull requests,
+        surfacing bugs and issues before they reach production.
+        """,
+        IntegrationFeatures.SEER_CONTEXT,
+    ),
+    FeatureDescription(
+        """
+        Let Seer's Autofix find the root cause of your Sentry issues and open a
+        pull request with the fix, iterating on review comments and CI feedback
+        until the PR is ready to merge.
+        """,
+        IntegrationFeatures.SEER_CONTEXT,
+    ),
 ]
 
 metadata = IntegrationMetadata(
@@ -1024,7 +1039,9 @@ def validate_github_installation(
 
     try:
         integration = Integration.objects.get(
-            external_id=installation_id, status=ObjectStatus.ACTIVE
+            provider=GitHubIntegrationProvider.key,
+            external_id=installation_id,
+            status=ObjectStatus.ACTIVE,
         )
     except Integration.DoesNotExist:
         # The installation.created webhook from GitHub normally creates the

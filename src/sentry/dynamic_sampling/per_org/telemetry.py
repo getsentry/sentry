@@ -14,7 +14,11 @@ from sentry.dynamic_sampling.per_org.gate import (
     metrics_sample_rate,
 )
 from sentry.utils import metrics
-from sentry.utils.snuba_rpc import SnubaRPCError, SnubaRPCTimeout
+from sentry.utils.snuba_rpc import (
+    SnubaRPCError,
+    SnubaRPCTimeout,
+    SnubaRPCTooManySimultaneous,
+)
 
 F = TypeVar("F", bound=Callable[..., object])
 
@@ -23,6 +27,39 @@ METRIC_PREFIX = "dynamic_sampling"
 SCHEDULER_BUCKET_ORG_STATUS_METRIC = (
     "dynamic_sampling.schedule_per_org_calculations_bucket.org_status"
 )
+
+SERVING_SOURCE_METRIC = "dynamic_sampling.per_org.serving_source"
+
+
+class ServedValue(StrEnum):
+    """The piece of data rule generation reads from a cache."""
+
+    PROJECT_SAMPLE_RATE = "project_sample_rate"
+    TRANSACTION_SAMPLE_RATES = "transaction_sample_rates"
+    RECALIBRATION_FACTOR = "recalibration_factor"
+
+
+class ServingSource(StrEnum):
+    """Whether the per-org caches held a value that rule generation served."""
+
+    PER_ORG = "per_org"
+    # No pass has stored a value for the organization yet.
+    PER_ORG_NO_DATA = "per_org_no_data"
+    # The cache could not be read, so rule generation served its own fallback.
+    PER_ORG_ERROR = "per_org_error"
+
+
+def emit_serving_source(value: ServedValue, source: ServingSource) -> None:
+    """Record whether the per-org caches held a value that rule generation served.
+
+    Sampled like the rest of the per-org metrics: this runs on every rule generation, and
+    the served-to-missing ratio survives sampling because both sides are sampled alike.
+    """
+    metrics.incr(
+        SERVING_SOURCE_METRIC,
+        sample_rate=metrics_sample_rate(),
+        tags={"value": value.value, "source": source.value},
+    )
 
 
 class DynamicSamplingStatus(StrEnum):
@@ -68,23 +105,6 @@ def emit_status(
     )
 
 
-def emit_count(metric: str, amount: int) -> None:
-    metrics.incr(
-        metric,
-        amount=amount,
-        sample_rate=metrics_sample_rate(),
-    )
-
-
-def emit_gauge(metric: str, value: float, *, tags: Mapping[str, str] | None = None) -> None:
-    metrics.gauge(
-        metric,
-        value,
-        sample_rate=metrics_sample_rate(),
-        tags=dict(tags) if tags else None,
-    )
-
-
 def _get_status_from_result(result: object) -> DynamicSamplingStatus:
     if isinstance(result, DynamicSamplingStatus):
         return result
@@ -126,11 +146,9 @@ def track_dynamic_sampling(func: F) -> F:
             except DynamicSamplingException as exc:
                 result = exc.status
             except SnubaRPCTimeout:
-                emit_status(status_metric, DynamicSamplingStatus.SNUBA_TIMEOUT)
-                raise
-            except SnubaRPCError:
-                emit_status(status_metric, DynamicSamplingStatus.SNUBA_ERROR)
-                raise
+                result = DynamicSamplingStatus.SNUBA_TIMEOUT
+            except (SnubaRPCError, SnubaRPCTooManySimultaneous):
+                result = DynamicSamplingStatus.SNUBA_ERROR
             except Exception as exc:
                 emit_status(status_metric, DynamicSamplingStatus.FAILED)
                 sentry_sdk.capture_exception(exc)

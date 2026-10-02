@@ -1,25 +1,22 @@
 import {QueryClientProvider, type InfiniteData} from '@tanstack/react-query';
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {Organization} from 'sentry/types/organization';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   LOGS_AUTO_REFRESH_KEY,
   LOGS_REFRESH_INTERVAL_KEY,
-  type AutoRefreshState,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {LogsFrozenContextProviderProps} from 'sentry/views/explore/logs/logsFrozenContext';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import type {
   EventsLogsResult,
@@ -31,15 +28,6 @@ import {
   type LogPageParam,
 } from 'sentry/views/explore/logs/useLogsQuery';
 
-jest.mock('sentry/utils/useLocation');
-const mockUseLocation = jest.mocked(useLocation);
-
-jest.mock('sentry/components/pageFilters/usePageFilters');
-const mockUsePageFilters = jest.mocked(usePageFilters);
-
-jest.mock('sentry/utils/useNavigate');
-const mockUseNavigate = jest.mocked(useNavigate);
-
 type CachedQueryData = InfiniteData<ApiResponse<EventsLogsResult>, LogPageParam>;
 
 const linkHeaders = {
@@ -49,7 +37,6 @@ const linkHeaders = {
 describe('useInfiniteLogsQuery', () => {
   const organization = OrganizationFixture();
   const queryClient = makeTestQueryClient();
-  const mockLocation = mockUseLocation.mockReturnValue(LocationFixture());
 
   function createWrapper() {
     return function ({children}: {children?: React.ReactNode}) {
@@ -70,19 +57,15 @@ describe('useInfiniteLogsQuery', () => {
 
   afterEach(() => {
     mockNow.mockRestore();
+    PageFiltersStore.reset();
   });
 
   beforeEach(() => {
     jest.resetAllMocks();
     mockNow = jest.spyOn(Date, 'now');
     MockApiClient.clearMockResponses();
-    mockLocation.mockReturnValue(LocationFixture());
-    mockUsePageFilters.mockReturnValue({
-      isReady: true,
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: PageFiltersFixture(),
-    });
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
     queryClient.clear();
   });
 
@@ -106,6 +89,103 @@ describe('useInfiniteLogsQuery', () => {
     expect(result.current.data).toHaveLength(0);
   });
 
+  it('keeps the surviving row paired with its page hint across pagination and refresh', async () => {
+    const first = createMockLogsData([
+      {id: '3', timestamp_precise: '300', timestamp: '300'},
+      {id: '2', timestamp_precise: '200', timestamp: '200'},
+    ]);
+    const second = createMockLogsData([
+      {id: '2', timestamp_precise: '200', timestamp: '200'},
+      {id: '1', timestamp_precise: '100', timestamp: '100'},
+    ]);
+    first.meta!.routingHint = 'first-page';
+    second.meta!.routingHint = 'second-page';
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: first,
+      headers: linkHeaders,
+    });
+    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      organization,
+      additionalWrapper: createWrapper(),
+    });
+    await waitFor(() => expect(result.current.data).toHaveLength(2));
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: second,
+      headers: linkHeaders,
+    });
+    await act(async () => {
+      await result.current.fetchNextPage();
+    });
+    await waitFor(() => expect(result.current.data).toHaveLength(3));
+    const hints = () =>
+      result.current.data.map(row => [row.id, result.current.routingHintsByRow.get(row)]);
+    expect(hints()).toEqual([
+      ['3', 'first-page'],
+      ['2', 'first-page'],
+      ['1', 'second-page'],
+    ]);
+
+    // Replace responses without changing row values or the number of pages.
+    act(() => {
+      queryClient.setQueryData(result.current.queryKey, previous => {
+        if (!previous) {
+          throw new Error('Expected cached log pages');
+        }
+        return {
+          ...previous,
+          pages: previous.pages.map((page, index) => ({
+            ...page,
+            json: {
+              ...page.json,
+              meta: {
+                ...page.json.meta!,
+                routingHint: index === 0 ? 'refreshed-page' : undefined,
+              },
+            },
+          })),
+        };
+      });
+    });
+    await waitFor(() =>
+      expect(hints()).toEqual([
+        ['3', 'refreshed-page'],
+        ['2', 'refreshed-page'],
+        ['1', undefined],
+      ])
+    );
+    expect(result.current.data.every(row => !('routingHint' in row))).toBe(true);
+  });
+
+  it('reads the routing hint from trace log responses', async () => {
+    const body = createMockLogsData([
+      {id: '1', timestamp_precise: '100', timestamp: '100'},
+    ]);
+    body.meta!.routingHint = 'trace-log-hint';
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-logs/`,
+      body,
+    });
+    const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
+      organization,
+      additionalWrapper: ({children}) => (
+        <LogsQueryParamsProvider
+          analyticsPageSource={LogsAnalyticsPageSource.TRACE_DETAILS}
+          source="state"
+          freeze={{traceId: '00000000000000000000000000000000'}}
+        >
+          {children}
+        </LogsQueryParamsProvider>
+      ),
+    });
+    await waitFor(() => expect(result.current.data).toHaveLength(1));
+    expect(result.current.routingHintsByRow.get(result.current.data[0]!)).toBe(
+      'trace-log-hint'
+    );
+  });
+
   test.each([
     ['DESC', ['9', '8', '7', '6', '5', '4', '4.1', '3', '2']],
     ['ASC', ['1', '2', '3', '4', '5', '6', '6.1', '7', '8']],
@@ -115,14 +195,14 @@ describe('useInfiniteLogsQuery', () => {
         ? createDescendingMocks(organization)
         : createAscendingMocks(organization);
 
-    if (sort === 'ASC') {
-      mockLocation.mockReturnValue(
-        LocationFixture({query: {[LOGS_SORT_BYS_KEY]: 'timestamp'}})
-      );
-    }
-
     const {result, rerender} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
       additionalWrapper: createWrapper(),
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: sort === 'ASC' ? {[LOGS_SORT_BYS_KEY]: 'timestamp'} : {},
+        },
+      },
       organization,
     });
 
@@ -174,9 +254,6 @@ describe('useInfiniteLogsQuery', () => {
 
   it('keeps the first row first when fetching the previous page in ascending sort order', async () => {
     const eventsEndpoint = `/organizations/${organization.slug}/events/`;
-    mockLocation.mockReturnValue(
-      LocationFixture({query: {[LOGS_SORT_BYS_KEY]: 'timestamp'}})
-    );
 
     MockApiClient.addMockResponse({
       url: eventsEndpoint,
@@ -227,6 +304,12 @@ describe('useInfiniteLogsQuery', () => {
 
     const {result, rerender} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
       additionalWrapper: createWrapper(),
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: {[LOGS_SORT_BYS_KEY]: 'timestamp'},
+        },
+      },
       organization,
     });
 
@@ -427,7 +510,7 @@ describe('useInfiniteLogsQuery', () => {
       });
     }
 
-    function createTraceWrapper(freeze: {traceId: string; traceTimestamp?: number}) {
+    function createTraceWrapper(freeze: LogsFrozenContextProviderProps) {
       return function ({children}: {children?: React.ReactNode}) {
         return (
           <QueryClientProvider client={queryClient}>
@@ -444,19 +527,16 @@ describe('useInfiniteLogsQuery', () => {
     }
 
     beforeEach(() => {
-      mockUsePageFilters.mockReturnValue({
-        isReady: true,
-        pinnedFilters: new Set(),
-        shouldPersist: true,
-        selection: PageFiltersFixture({
+      PageFiltersStore.onInitializeUrlState(
+        PageFiltersFixture({
           datetime: {
             start: '2025-04-03T00:00:00',
             end: '2025-04-03T00:10:00',
             period: null,
             utc: null,
           },
-        }),
-      });
+        })
+      );
     });
 
     it('queries as far back as logs go, narrowed by the trace timestamp', async () => {
@@ -495,6 +575,26 @@ describe('useInfiniteLogsQuery', () => {
           query: expect.objectContaining({
             start: '2025-04-03T00:00:00.000',
             end: '2025-04-03T00:10:00.000',
+          }),
+        })
+      );
+    });
+
+    it('matches both span id attributes when frozen to a span', async () => {
+      const mockRequest = mockTraceLogsRequest();
+      const spanId = 'b'.repeat(16);
+
+      renderHookWithProviders(() => useInfiniteLogsQuery(), {
+        additionalWrapper: createTraceWrapper({span: {traceId, spanId}}),
+        organization,
+      });
+
+      await waitFor(() => expect(mockRequest).toHaveBeenCalled());
+      expect(mockRequest).toHaveBeenCalledWith(
+        traceLogsEndpoint,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            query: `trace:${traceId} ( span_id:${spanId} OR trace.parent_span_id:${spanId} )`,
           }),
         })
       );
@@ -938,17 +1038,8 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
   const organization = OrganizationFixture();
   const queryClient = makeTestQueryClient();
 
-  function createWrapper({autoRefresh = 'enabled'}: {autoRefresh?: AutoRefreshState}) {
+  function createWrapper() {
     return function ({children}: {children?: React.ReactNode}) {
-      mockUseLocation.mockReturnValue(
-        LocationFixture({
-          query: {
-            [LOGS_AUTO_REFRESH_KEY]: autoRefresh,
-            [LOGS_REFRESH_INTERVAL_KEY]: '5', // Fast refresh for testing
-          },
-        })
-      );
-
       return (
         <QueryClientProvider client={queryClient}>
           <LogsQueryParamsProvider
@@ -970,20 +1061,15 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     // with a realistic timestamp so that initializeVirtualTimestamp computes a sane
     // targetTimestamp and correctly filters far-future log rows.
     mockNowInner = jest.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
-    mockUseNavigate.mockReturnValue(jest.fn());
     MockApiClient.clearMockResponses();
     queryClient.clear();
-
-    mockUsePageFilters.mockReturnValue({
-      isReady: true,
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: PageFiltersFixture(),
-    });
+    PageFiltersStore.init();
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
   });
 
   afterEach(() => {
     mockNowInner.mockRestore();
+    PageFiltersStore.reset();
   });
 
   it('should integrate with virtual streaming when auto refresh is enabled', async () => {
@@ -1001,7 +1087,16 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     });
 
     const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
-      additionalWrapper: createWrapper({autoRefresh: 'enabled'}),
+      additionalWrapper: createWrapper(),
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: {
+            [LOGS_AUTO_REFRESH_KEY]: 'enabled',
+            [LOGS_REFRESH_INTERVAL_KEY]: '5', // Fast refresh for testing
+          },
+        },
+      },
       organization,
     });
 
@@ -1031,7 +1126,16 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     });
 
     const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
-      additionalWrapper: createWrapper({autoRefresh: 'idle'}),
+      additionalWrapper: createWrapper(),
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: {
+            [LOGS_AUTO_REFRESH_KEY]: 'idle',
+            [LOGS_REFRESH_INTERVAL_KEY]: '5', // Fast refresh for testing
+          },
+        },
+      },
       organization,
     });
 
@@ -1088,7 +1192,16 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     });
 
     const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
-      additionalWrapper: createWrapper({autoRefresh: 'enabled'}),
+      additionalWrapper: createWrapper(),
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: {
+            [LOGS_AUTO_REFRESH_KEY]: 'enabled',
+            [LOGS_REFRESH_INTERVAL_KEY]: '5', // Fast refresh for testing
+          },
+        },
+      },
       organization,
     });
 
@@ -1152,7 +1265,16 @@ describe('Virtual Streaming Integration (Auto Refresh Behaviour)', () => {
     });
 
     const {result} = renderHookWithProviders(() => useInfiniteLogsQuery(), {
-      additionalWrapper: createWrapper({autoRefresh: 'idle'}), // Disable auto refresh to avoid virtual streaming filtering
+      additionalWrapper: createWrapper(),
+      initialRouterConfig: {
+        location: {
+          pathname: '/mock-pathname/',
+          query: {
+            [LOGS_AUTO_REFRESH_KEY]: 'idle', // Disable auto refresh to avoid virtual streaming filtering
+            [LOGS_REFRESH_INTERVAL_KEY]: '5',
+          },
+        },
+      },
       organization,
     });
 

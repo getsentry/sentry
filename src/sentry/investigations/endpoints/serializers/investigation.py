@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
-from collections.abc import Set as AbstractSet
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict, override
 
@@ -22,6 +21,7 @@ from sentry.investigations.models import (
     Investigation,
     InvestigationBlock,
     InvestigationFavoriteUser,
+    InvestigationOrchestrationRun,
     InvestigationParameter,
     InvestigationProject,
     InvestigationSourceType,
@@ -50,9 +50,42 @@ class InvestigationTitleGenerationSerializerResponse(TypedDict):
     status: str | None
 
 
+class InvestigationOrchestrationSerializerResponse(TypedDict):
+    phase: str
+    status: str
+    heartbeatAt: datetime | None
+    notebookRevision: int
+
+
+def orchestration_summaries_by_investigation(
+    investigations: Sequence[Investigation],
+) -> dict[int, InvestigationOrchestrationSerializerResponse]:
+    return {
+        investigation_id: {
+            "phase": phase,
+            "status": status,
+            "heartbeatAt": heartbeat_at,
+            "notebookRevision": notebook_revision,
+        }
+        for investigation_id, phase, status, heartbeat_at, notebook_revision in (
+            InvestigationOrchestrationRun.objects.filter(
+                investigation_id__in=[investigation.id for investigation in investigations]
+            ).values_list(
+                "investigation_id",
+                "phase",
+                "status",
+                "heartbeat_at",
+                "notebook_revision",
+            )
+        )
+    }
+
+
 class InvestigationSerializerResponse(TypedDict):
     id: str
     title: str
+    summary: str | None
+    summaryDescription: str | None
     status: str
     sourceType: str
     createdBy: str | None
@@ -61,6 +94,8 @@ class InvestigationSerializerResponse(TypedDict):
     version: int
     blockCount: int
     isFavorited: bool
+    titleGeneration: InvestigationTitleGenerationSerializerResponse
+    orchestration: InvestigationOrchestrationSerializerResponse | None
 
 
 class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
@@ -70,7 +105,6 @@ class InvestigationDetailsSerializerResponse(InvestigationSerializerResponse):
     projectIds: list[int]
     parameters: list[InvestigationParameterSerializerResponse]
     blocks: list[InvestigationBlockSerializerResponse]
-    titleGeneration: InvestigationTitleGenerationSerializerResponse
 
 
 @register(Investigation)
@@ -97,10 +131,13 @@ class InvestigationSerializer(Serializer):
                 ).values_list("investigation_id", flat=True)
             )
 
+        orchestration_by_investigation = orchestration_summaries_by_investigation(item_list)
+
         return {
             investigation: {
                 "block_count": block_counts.get(investigation.id, 0),
                 "is_favorited": investigation.id in favorited_ids,
+                "orchestration": orchestration_by_investigation.get(investigation.id),
             }
             for investigation in item_list
         }
@@ -117,6 +154,8 @@ class InvestigationSerializer(Serializer):
         return {
             "id": str(obj.id),
             "title": obj.title,
+            "summary": obj.summary,
+            "summaryDescription": obj.summary_description,
             "status": obj.status,
             "sourceType": source.get("type", InvestigationSourceType.MANUAL),
             "createdBy": (str(obj.created_by_id) if obj.created_by_id is not None else None),
@@ -125,6 +164,8 @@ class InvestigationSerializer(Serializer):
             "version": obj.version,
             "blockCount": attrs["block_count"],
             "isFavorited": attrs["is_favorited"],
+            "titleGeneration": {"status": obj.title_generation_status},
+            "orchestration": attrs["orchestration"],
         }
 
 
@@ -134,9 +175,6 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
     and blocks. Use this for single-investigation reads; the base serializer
     omits the nested collections so list reads stay cheap.
     """
-
-    def __init__(self, accessible_project_ids: AbstractSet[int]) -> None:
-        self.accessible_project_ids = accessible_project_ids
 
     def _blocks_by_investigation(
         self, item_list: Sequence[Investigation], user: User | RpcUser | AnonymousUser
@@ -149,7 +187,7 @@ class InvestigationDetailsSerializer(InvestigationSerializer):
         serialized = serialize(
             blocks,
             user,
-            InvestigationBlockSerializer(accessible_project_ids=self.accessible_project_ids),
+            InvestigationBlockSerializer(),
         )
 
         by_investigation: MutableMapping[int, list[InvestigationBlockSerializerResponse]] = (

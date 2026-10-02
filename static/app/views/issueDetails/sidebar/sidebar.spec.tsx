@@ -25,13 +25,14 @@ describe('IssueDetailsSidebar', () => {
   const activityContent = 'test-note';
   const issueTrackingKey = 'issue-key';
 
-  const organization = OrganizationFixture({features: ['gen-ai-features']});
+  const organization = OrganizationFixture();
   const project = ProjectFixture();
   const group = GroupFixture({
     activity: [
       {
         type: GroupActivityType.NOTE,
         id: 'note-1',
+        commentId: 'note-1',
         data: {text: activityContent},
         dateCreated: '2020-01-01T00:00:00',
         user,
@@ -143,7 +144,7 @@ describe('IssueDetailsSidebar', () => {
     expect(mockExternalIssues).toHaveBeenCalled();
 
     expect(screen.getByRole('heading', {name: 'Activity'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: /Add a comment/})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Add a comment'})).toBeInTheDocument();
     expect(screen.getByText(activityContent)).toBeInTheDocument();
 
     expect(screen.getByRole('button', {name: 'View 1 comment'})).toBeInTheDocument();

@@ -1,9 +1,9 @@
 import type {TagCollection} from 'sentry/types/group';
-import {parseFunction} from 'sentry/utils/discover/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
 export interface AttributeCollections {
@@ -31,7 +31,9 @@ export function getColumnFieldsForValidation({
     }
 
     fieldsForValidation.add(aggregateField.yAxis);
-    for (const argument of parseFunction(aggregateField.yAxis)?.arguments ?? []) {
+    // Parse conditionally so an `_if` filter query is not mistaken for an attribute.
+    const conditional = parseConditionalAggregate(aggregateField.yAxis);
+    for (const argument of conditional?.arguments ?? []) {
       if (argument) {
         fieldsForValidation.add(argument);
       }
@@ -159,11 +161,18 @@ function getValidatedAggregateFields({
       return !invalidFields.has(aggregateField.groupBy);
     }
 
-    if (invalidFields.has(aggregateField.yAxis)) {
+    const conditional = parseConditionalAggregate(aggregateField.yAxis);
+
+    // A series carrying an `_if` filter is validated as one expression, so an invalid
+    // filter query cannot be told apart from an invalid aggregate. Keep the series so an
+    // errored query is reported by its search bar instead of being thrown away, matching
+    // the main search. The argument check below still catches a bad aggregate.
+    if (!conditional?.filter && invalidFields.has(aggregateField.yAxis)) {
       return false;
     }
 
-    return !parseFunction(aggregateField.yAxis)?.arguments.some(
+    // Only the base aggregate arguments are attributes; `_if` filter queries are not.
+    return !conditional?.arguments.some(
       argument => argument && invalidFields.has(argument)
     );
   });

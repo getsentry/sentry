@@ -58,27 +58,13 @@ const getDynamicParts = (params: DocsParams): string[] => {
         profileSessionSampleRate: 1.0`);
   }
 
-  if (params.isLogsSelected) {
-    dynamicParts.push(`
-      // Logs
-      enableLogs: true`);
-  }
-
   return dynamicParts;
 };
 
 export function getSdkSetupSnippet(params: DocsParams, isVersion5: boolean) {
   const config = buildSdkConfig({
     params,
-    staticParts: [
-      `dsn: "${params.dsn.public}"`,
-      `dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/svelte/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: []
-  }`,
-    ],
+    staticParts: [`dsn: "${params.dsn.public}"`],
     getIntegrations,
     getDynamicParts,
   });
