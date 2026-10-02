@@ -86,10 +86,10 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
         title: value.title,
         message: value.message,
         link: value.link,
-        mediaUrl: value.mediaUrl || null,
-        category: value.category,
         dateExpires: value.dateExpires || null,
         isActive: value.isActive,
+        ...(value.mediaUrl || data.mediaUrl ? {mediaUrl: value.mediaUrl || null} : {}),
+        ...(value.category || data.category ? {category: value.category} : {}),
       };
       return mutation.mutateAsync(payload).catch(() => {});
     },
