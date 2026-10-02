@@ -26,6 +26,18 @@ class TestActorType:
 
 
 class TestViewerContext:
+    def test_superuser_context_roundtrip_and_org_change(self):
+        ctx = ViewerContext(user_id=42, organization_id=10, superuser_context="sentry-proof")
+        assert ViewerContext.deserialize(ctx.serialize()) == ctx
+        assert "sentry-proof" not in repr(ctx)
+        with viewer_context_scope(ctx):
+            set_viewer_context_organization(10)
+            assert get_viewer_context() == ctx
+            set_viewer_context_organization(11)
+            changed = get_viewer_context()
+            assert changed is not None
+            assert changed.superuser_context is None
+
     def test_defaults(self):
         ctx = ViewerContext()
         assert ctx.organization_id is None

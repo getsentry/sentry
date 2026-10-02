@@ -52,7 +52,6 @@ from sentry.seer.agent.on_completion_hook import (
     AgentOnCompletionHook,
     extract_hook_definition,
 )
-from sentry.seer.agent_token import create_agent_authorization
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.models import (
     UNKNOWN_RUN_ID_FOR_GROUP,
@@ -72,6 +71,7 @@ from sentry.utils.prompts import (
     get_prompt_activities_for_user,
     seer_monitoring_provider_dont_ask_feature,
 )
+from sentry.viewer_context import get_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -384,6 +384,14 @@ class SeerAgentClient:
         context = SeerViewerContext(organization_id=self.organization.id)
         if self.user and hasattr(self.user, "id") and self.user.id is not None:
             context["user_id"] = self.user.id
+        viewer = get_viewer_context()
+        if (
+            viewer is not None
+            and viewer.superuser_context is not None
+            and viewer.user_id == context.get("user_id")
+            and viewer.organization_id == self.organization.id
+        ):
+            context["superuser_context"] = viewer.superuser_context
         return context
 
     def start_run(
@@ -449,7 +457,6 @@ class SeerAgentClient:
             page_location=page_location,
             sent_at=sent_at,
             user_org_context=user_org_context,
-            agent_authorization=create_agent_authorization(request, self.organization),
             intelligence_level=self.intelligence_level,
             is_interactive=self.is_interactive,
             agent_run_options=agent_run_options,
@@ -797,7 +804,6 @@ class SeerAgentClient:
             query=prompt,
             run_id=run_id,
             insert_index=insert_index,
-            agent_authorization=create_agent_authorization(request, self.organization),
             on_page_context=on_page_context,
             page_name=page_name,
             page_location=page_location,

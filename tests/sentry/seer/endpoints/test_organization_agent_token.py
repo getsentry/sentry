@@ -27,7 +27,12 @@ from rest_framework.test import APIClient
 from sentry.api.endpoints.seer_models import SEER_MODELS_CACHE_KEY
 from sentry.apidocs.hooks import CustomEndpointEnumerator
 from sentry.attachments.base import CachedAttachment
-from sentry.auth.superuser import SESSION_KEY, Superuser
+from sentry.auth.superuser import (
+    SESSION_KEY,
+    SUPERUSER_CONTEXT_SALT,
+    Superuser,
+    create_superuser_context,
+)
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.issues.endpoints.group_tags import GroupTagsEndpoint
@@ -79,7 +84,7 @@ class SuperuserAgentTokenTest(APITestCase):
                 f"{self.path}seer/explorer-chat/", {"query": "List projects"}, format="json"
             )
         assert response.status_code == 200, response.content
-        proof = outbound.call_args[0][0]["agent_authorization"]
+        proof = outbound.call_args.kwargs["viewer_context"]["superuser_context"]
         assert isinstance(proof, str)
         return proof
 
@@ -89,6 +94,7 @@ class SuperuserAgentTokenTest(APITestCase):
                 organization_id=(organization or self.org).id,
                 user_id=(user or self.employee).id,
                 actor_type=ActorType.USER,
+                superuser_context=proof,
             ),
             key=SECRET,
         )
@@ -97,7 +103,6 @@ class SuperuserAgentTokenTest(APITestCase):
             {"sessionId": "123"},
             format="json",
             HTTP_X_VIEWER_CONTEXT=viewer,
-            HTTP_X_SENTRY_AGENT_AUTHORIZATION=proof,
         )
 
     def _read(self, token, path=None):
@@ -121,12 +126,31 @@ class SuperuserAgentTokenTest(APITestCase):
         assert issue_response.data["id"] == str(group.id)
         claims = agent_token.decode_agent_token(minted.data["token"])
         assert set(claims["scopes"]) <= agent_token.readonly_scopes()
-        assert claims["superuser_session"] == proof
+        assert claims["superuser_context"] == proof
+
+    def test_viewer_context_authorizes_standard_api_reads(self):
+        proof = self._chat_authorization()
+        viewer = encode_viewer_context(
+            ViewerContext(
+                organization_id=self.org.id,
+                user_id=self.employee.id,
+                actor_type=ActorType.USER,
+                superuser_context=proof,
+            ),
+            key=SECRET,
+        )
+        client = APIClient()
+        client.credentials(HTTP_X_VIEWER_CONTEXT=viewer)
+        # No mint endpoint or agent token is involved in this access decision.
+        assert client.get(self.path).status_code == 200
+        assert client.put(self.path, {}, format="json").status_code == 403
+        other_org = self.create_organization()
+        assert client.get(f"/api/0/organizations/{other_org.slug}/").status_code == 403
 
     def test_identity_alone_does_not_delegate_superuser(self):
         self._chat_authorization()
         with self.feature(FLAG):
-            assert self._mint("").status_code == 403
+            assert self._mint(None).status_code == 403
 
     def test_elevated_browser_can_also_mint_a_usable_token(self):
         self.login_as(self.employee, superuser=True)
@@ -156,12 +180,21 @@ class SuperuserAgentTokenTest(APITestCase):
                 assert self._read(minted.data["token"]).status_code == 401
 
     def test_current_user_privilege_is_rechecked_without_cache_clear(self):
+        self._assert_revoked({"is_superuser": False})
+
+    def test_inactive_user_cannot_use_elevation(self):
+        self._assert_revoked({"is_active": False})
+
+    def test_suspended_user_cannot_use_elevation(self):
+        self._assert_revoked({"is_suspended": True})
+
+    def _assert_revoked(self, changes):
         proof = self._chat_authorization()
         with self.feature(FLAG):
             minted = self._mint(proof)
             assert minted.status_code == 200, minted.content
             with assume_test_silo_mode(SiloMode.CONTROL):
-                self.employee.update(is_superuser=False)
+                self.employee.update(**changes)
             assert self._mint(proof).status_code == 401
             assert self._read(minted.data["token"]).status_code == 401
 
@@ -204,11 +237,11 @@ class SuperuserAgentTokenTest(APITestCase):
         request.COOKIES = {name: value.value for name, value in self.client.cookies.items()}
         request.superuser = Superuser(request)
         with self.feature(FLAG):
-            assert agent_token.create_agent_authorization(request, self.org) is None
+            assert create_superuser_context(request, self.org) is None
             request.superuser.authorize_org(
                 self.org.slug, "for_unit_test", "Testing delegated access"
             )
-            proof = agent_token.create_agent_authorization(request, self.org)
+            proof = create_superuser_context(request, self.org)
             assert proof is not None
             assert self._mint(proof).status_code == 200
 
@@ -216,12 +249,12 @@ class SuperuserAgentTokenTest(APITestCase):
         request = self.make_request(user=self.employee)
         request.auth = None
         with self.feature(FLAG):
-            assert agent_token.create_agent_authorization(request, self.org) is None
+            assert create_superuser_context(request, self.org) is None
 
     def test_seer_shared_secret_cannot_forge_elevation(self):
         proof = self._chat_authorization()
-        payload = signing.loads(proof, salt=agent_token.SUPERUSER_SESSION_SALT)
-        forged = signing.dumps(payload, key=SECRET, salt=agent_token.SUPERUSER_SESSION_SALT)
+        payload = signing.loads(proof, salt=SUPERUSER_CONTEXT_SALT)
+        forged = signing.dumps(payload, key=SECRET, salt=SUPERUSER_CONTEXT_SALT)
         with self.feature(FLAG):
             assert self._mint(forged).status_code == 401
 
@@ -235,7 +268,7 @@ class SuperuserAgentTokenTest(APITestCase):
         idle_expiry = timezone.now() + timedelta(seconds=30)
         request.session[SESSION_KEY]["idl"] = str(idle_expiry.timestamp())
         with self.feature(FLAG):
-            proof = agent_token.create_agent_authorization(request, self.org)
+            proof = create_superuser_context(request, self.org)
             assert proof is not None
             minted = self._mint(proof)
             assert minted.status_code == 200, minted.content
