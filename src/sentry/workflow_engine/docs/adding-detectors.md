@@ -450,6 +450,8 @@ api_availability = {
 The global `api_enabled` gate must pass before any operation is available. An operation's
 `True` cannot override a denied global gate. `LIST` additionally requires `GET`, so a denied
 `GET` gate hides a type from both listing and counts even when `LIST` is explicitly allowed.
+Gate checks short-circuit in that order: global gate, implied `GET` for `LIST`, then the
+requested operation.
 
 Generic detector-platform APIs evaluate these gates through `get_excluded_detector_types`,
 which reads registered settings without fetching detector rows. List filtering happens
