@@ -64,29 +64,31 @@ export function InvestigationViewers({
   return (
     <Fragment>
       {separator}
-      <Flex align="center">
-        {shown.map(({user, active, lastSeen}, index) => (
-          // Stacked like AvatarList; the first (most recent) viewer is on top.
-          <ViewerAvatar key={user.id} active={active} stackOrder={shown.length - index}>
-            <UserAvatar
-              user={user}
-              size={24}
-              hasTooltip
-              tooltipOptions={{position: 'bottom'}}
-              renderTooltip={() =>
-                active
-                  ? t('%s is viewing now', userDisplayName(user, false))
-                  : tct('[name] viewed [time]', {
-                      name: userDisplayName(user, false),
-                      time: <TimeSince date={lastSeen} />,
-                    })
-              }
-            />
-          </ViewerAvatar>
-        ))}
+      <Flex align="center" gap="xs">
+        <Flex align="center">
+          {shown.map(({user, active, lastSeen}, index) => (
+            // Stacked like AvatarList; the first (most recent) viewer is on top.
+            <ViewerAvatar key={user.id} active={active} stackOrder={shown.length - index}>
+              <UserAvatar
+                user={user}
+                size={24}
+                hasTooltip
+                tooltipOptions={{position: 'bottom'}}
+                renderTooltip={() =>
+                  active
+                    ? t('%s is viewing now', userDisplayName(user, false))
+                    : tct('[name] viewed [time]', {
+                        name: userDisplayName(user, false),
+                        time: <TimeSince date={lastSeen} />,
+                      })
+                }
+              />
+            </ViewerAvatar>
+          ))}
+        </Flex>
         {total > viewers.length ? (
-          <Tooltip title={t('%s other viewers', total - viewers.length)} skipWrapper>
-            <MoreViewers>+{total - viewers.length}</MoreViewers>
+          <Tooltip title={t('%s other viewers', total - viewers.length)}>
+            <CollapsedAvatars>+{total - viewers.length}</CollapsedAvatars>
           </Tooltip>
         ) : null}
       </Flex>
@@ -123,8 +125,4 @@ const ViewerAvatar = styled('span')<{active: boolean; stackOrder: number}>`
       opacity: 1;
     }
   }
-`;
-
-const MoreViewers = styled(CollapsedAvatars)`
-  margin-left: ${p => p.theme.space.xs};
 `;
