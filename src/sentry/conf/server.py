@@ -887,7 +887,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.hybridcloud.tasks.deliver_from_outbox",
     "sentry.hybridcloud.tasks.deliver_webhooks",
     "sentry.hybridcloud.tasks.webhook_backlog_metrics",
-    "sentry.incidents.tasks",
     "sentry.ingest.consumer.simple_event",
     "sentry.ingest.transaction_clusterer.tasks",
     "sentry.integrations.data_forwarding.tasks",
@@ -1067,10 +1066,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "clear-expired-snoozes": {
         "task": "issues:sentry.tasks.clear_expired_snoozes",
-        "schedule": crontab("*/5", "*", "*", "*", "*"),
-    },
-    "clear-expired-rulesnoozes": {
-        "task": "issues:sentry.tasks.clear_expired_rulesnoozes",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
     "collect-project-platforms": {

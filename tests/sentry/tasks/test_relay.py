@@ -12,6 +12,7 @@ from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDe
 from sentry.tasks.relay import (
     _schedule_invalidate_project_config,
     build_project_config,
+    compute_projectkey_config,
     invalidate_project_config,
     schedule_build_project_config,
     schedule_invalidate_project_config,
@@ -454,6 +455,40 @@ class TestInvalidationTask:
             new_cfg = redis_cache.get(cache_key)
             assert new_cfg is not None
             assert new_cfg != cfg
+
+    def test_invalidate_org_writes_each_config_as_computed(
+        self,
+        default_organization,
+        default_project,
+        default_projectkey,
+        factories,
+        redis_cache,
+        task_runner,
+        django_cache,
+    ):
+        other_project = factories.create_project(organization=default_organization)
+        other_projectkey = ProjectKey.objects.get(project=other_project)
+        seed = {"dummy-key": "val"}
+        public_keys = [default_projectkey.public_key, other_projectkey.public_key]
+        redis_cache.set_many({public_key: seed for public_key in public_keys})
+
+        fresh_before_each_compute = []
+
+        def record_then_compute(key):
+            fresh_before_each_compute.append(
+                sum(redis_cache.get(public_key) != seed for public_key in public_keys)
+            )
+            return compute_projectkey_config(key)
+
+        with (
+            mock.patch("sentry.tasks.relay.compute_projectkey_config", record_then_compute),
+            task_runner(),
+        ):
+            schedule_invalidate_project_config(
+                organization_id=default_organization.id, trigger="test"
+            )
+
+        assert fresh_before_each_compute == [0, 1]
 
     @mock.patch(
         "sentry.tasks.relay._schedule_invalidate_project_config",

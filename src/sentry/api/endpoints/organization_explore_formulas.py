@@ -28,6 +28,7 @@ from sentry.api.serializers import Serializer, serialize
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.explore.models import (
     ExploreSavedFormula,
+    ExploreSavedQueryDataset,
     ExploreSavedVariable,
     KindItemTypes,
     ParamItemTypes,
@@ -54,6 +55,7 @@ class ExploreSavedFormulaResponse(TypedDict):
     name: str
     params: list[ExploreSavedParam]
     references: list[ExploreSavedReference]
+    dataset: str
     type: str
     unit: str | None
 
@@ -110,6 +112,7 @@ class ExploreSavedFormulaSerializer(Serializer[ExploreSavedFormulaResponse]):
             "formula": obj.formula,
             "id": str(obj.id),
             "name": obj.name,
+            "dataset": ExploreSavedQueryDataset.get_type_name(obj.dataset),
             "params": serialize(params, user, serializer=ExploreSavedParamsSerializer()),
             "references": serialize(
                 references, user, serializer=ExploreSavedReferencesSerializer()
@@ -151,8 +154,18 @@ class FormulaSerializer(RequestSerializer):
     references = ListField(
         child=ReferenceSerializer(),
     )
+    dataset = ChoiceField(
+        choices=ExploreSavedQueryDataset.as_text_choices(),
+        required=True,
+    )
 
     # TODO: still need to validate that the formula & params resolve to a parseable equation
+
+    def validate_dataset(self, dataset: str) -> int:
+        dataset_id = ExploreSavedQueryDataset.get_id_for_type_name(dataset)
+        if dataset_id is None:
+            raise ValidationError("Invalid dataset value")
+        return dataset_id
 
     def validate_name(self, name: str) -> str:
         if not name.startswith("formula."):
@@ -254,6 +267,7 @@ class OrganizationExploreFormulas(OrganizationExploreFormulaBase):
                 formula=data["formula"],
                 name=data["name"],
                 unit=data["unit"],
+                dataset=data["dataset"],
             )
             for param in data["params"]:
                 ExploreSavedVariable.objects.create(
@@ -360,6 +374,7 @@ class OrganizationExploreFormulasDetail(OrganizationExploreFormulaBase):
                 formula=data["formula"],
                 name=data["name"],
                 unit=data["unit"],
+                dataset=data["dataset"],
                 updated_by_id=request.user.id,
             )
             ExploreSavedVariable.objects.filter(explore_saved_formula=formula).delete()

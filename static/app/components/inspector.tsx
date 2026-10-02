@@ -440,13 +440,13 @@ export function SentryComponentInspector() {
             background-color: ${theme.tokens.border.success.muted} !important;
           }
 
-          [data-sentry-component-trace][data-sentry-source-path*="app/components/core"]:not([data-inspector-skip]) {
+          [data-sentry-component-trace]:is([data-sentry-source-path*="app/components/core"], [data-sentry-source-path*="packages/scraps/src"]):not([data-inspector-skip]) {
             box-shadow: 0 0 0 1px ${theme.tokens.border.accent.vibrant} !important;
             background-color: ${theme.tokens.border.accent.muted} !important;
           }
 
-          [data-sentry-component-trace][data-sentry-source-path*="app/components/core"]:not([data-inspector-skip]) [data-sentry-source-path*="app/components/core"],
-          [data-sentry-component-trace][data-sentry-source-path*="app/components/core"]:not([data-inspector-skip]) [data-sentry-source-path] {
+          [data-sentry-component-trace]:is([data-sentry-source-path*="app/components/core"], [data-sentry-source-path*="packages/scraps/src"]):not([data-inspector-skip]) :is([data-sentry-source-path*="app/components/core"], [data-sentry-source-path*="packages/scraps/src"]),
+          [data-sentry-component-trace]:is([data-sentry-source-path*="app/components/core"], [data-sentry-source-path*="packages/scraps/src"]):not([data-inspector-skip]) [data-sentry-source-path] {
             box-shadow: none !important;
           }
         `}
@@ -714,7 +714,8 @@ function getSourcePath(el: unknown): string {
   if (!isTraceElement(el)) {
     return 'unknown path';
   }
-  return el.dataset.sentrySourcePath?.split(/static\//)[1] || 'unknown path';
+  const sourcePath = el.dataset.sentrySourcePath;
+  return sourcePath?.split(/static\//)[1] ?? 'unknown path';
 }
 
 const getFileName = (path: string) => {
@@ -730,7 +731,10 @@ function getComponentStorybookFile(
   el: unknown,
   stories: Record<string, string>
 ): string | null {
-  const sourcePath = getSourcePath(el);
+  const sourcePath = getSourcePath(el).replace(
+    /^packages\/scraps\/src\//,
+    'app/components/core/'
+  );
   const mdxSourcePath = sourcePath.replace(/\.tsx$/, '.mdx');
 
   if (stories[mdxSourcePath] && getFileName(mdxSourcePath) === getFileName(sourcePath)) {
@@ -782,7 +786,9 @@ function isCoreComponent(el: unknown): boolean {
   if (!isTraceElement(el)) {
     return false;
   }
-  return el.dataset.sentrySourcePath?.includes('app/components/core') ?? false;
+  return /(?:app\/components\/core|packages\/scraps\/src)\//.test(
+    el.dataset.sentrySourcePath ?? ''
+  );
 }
 
 function isViewComponent(el: unknown): boolean {

@@ -2,147 +2,33 @@ import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {
-  type EventTagTreeRowConfig,
-  EventTagsTreeRow,
-  type EventTagsTreeRowProps,
-} from 'sentry/components/events/eventTags/eventTagsTreeRow';
+import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
 import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
+import {
+  TreeColumn as KeyValueTreeColumn,
+  TreeContainer,
+} from 'sentry/components/keyValueTree/styles';
+import {
+  buildKeyValueTree,
+  getKeyValueTreeColumns,
+  type KeyValueTreeContent,
+  type KeyValueTreeRowConfig,
+} from 'sentry/components/keyValueTree/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Event, EventTagWithMeta} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils/defined';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-const MAX_TREE_DEPTH = 4;
-const INVALID_BRANCH_REGEX = /\.{2,}/;
-
-type TagTree = Map<string, TagTreeContent>;
-
-export interface TagTreeContent {
-  subtree: TagTree;
-  value: string;
-  // These will be omitted on pseudo tags (see addToTagTree)
-  meta?: Record<string, any>;
-  originalTag?: EventTagWithMeta;
-}
-
-interface TagTreeColumnData {
-  columns: React.ReactNode[];
-  runningTotal: number;
-  startIndex: number;
-}
+export type TagTreeContent = KeyValueTreeContent<string, EventTagWithMeta>;
 
 interface EventTagsTreeProps {
   event: Event;
   projectSlug: Project['slug'];
   tags: EventTagWithMeta[];
   /** Applied to every row; e.g. `disableActions` for read-only surfaces. */
-  config?: EventTagTreeRowConfig;
-}
-
-function addToTagTree({
-  tree,
-  tag,
-  originalTag,
-}: {
-  originalTag: EventTagWithMeta;
-  tag: EventTagWithMeta;
-  tree: TagTree;
-}): TagTree {
-  const BRANCH_MATCHES_REGEX = /\./g;
-  if (!defined(tag.key)) {
-    return tree;
-  }
-
-  const branchMatches = tag.key.match(BRANCH_MATCHES_REGEX) ?? [];
-
-  const hasInvalidBranchCount =
-    branchMatches.length <= 0 || branchMatches.length > MAX_TREE_DEPTH;
-  const hasInvalidBranchSequence = INVALID_BRANCH_REGEX.test(tag.key);
-
-  // Ignore tags with 0, or >4 branches, as well as sequential dots (e.g. 'some..tag')
-  if (hasInvalidBranchCount || hasInvalidBranchSequence) {
-    tree.set(tag.key, {
-      value: tag.value,
-      subtree: new Map<string, TagTreeContent>(),
-      meta: originalTag?.meta,
-      originalTag,
-    });
-    return tree;
-  }
-  // E.g. 'device.model.version'
-  const splitIndex = tag.key.indexOf('.'); // 6
-  const trunk = tag.key.slice(0, splitIndex); // 'device'
-  const branch = tag.key.slice(splitIndex + 1); // 'model.version'
-
-  let trunkNode = tree.get(trunk);
-  if (!trunkNode) {
-    trunkNode = {value: '', subtree: new Map<string, TagTreeContent>()};
-    tree.set(trunk, trunkNode);
-  }
-  // Recurse with a pseudo tag, e.g. 'model', to create nesting structure
-  const pseudoTag = {
-    key: branch,
-    value: tag.value,
-  };
-  trunkNode.subtree = addToTagTree({
-    tree: trunkNode.subtree,
-    tag: pseudoTag,
-    originalTag,
-  });
-  return tree;
-}
-
-/**
- * Function to recursively create a flat list of all rows to be rendered for a given TagTree
- * @param props The props for rendering the root of the TagTree
- * @returns A list of TagTreeRow components to be rendered in this tree
- */
-function getTagTreeRows({
-  tagKey,
-  content,
-  spacerCount = 0,
-  uniqueKey,
-  event,
-  project,
-  isLast,
-  config,
-}: EventTagsTreeRowProps & {uniqueKey: string}): React.ReactNode[] {
-  const subtreeEntries = Array.from(content.subtree.entries());
-  const subtreeRows = subtreeEntries.reduce<React.ReactNode[]>(
-    (rows, [tag, tagContent], i) => {
-      const branchRows = getTagTreeRows({
-        event,
-        project,
-        config,
-        tagKey: tag,
-        content: tagContent,
-        spacerCount: spacerCount + 1,
-        isLast: i === subtreeEntries.length - 1,
-        // Encoding the trunk index with the branch index ensures uniqueness for the key
-        uniqueKey: `${uniqueKey}-${i}`,
-      });
-      return rows.concat(branchRows);
-    },
-    []
-  );
-  return [
-    <EventTagsTreeRow
-      key={`${tagKey}-${spacerCount}-${uniqueKey}`}
-      tagKey={tagKey}
-      content={content}
-      spacerCount={spacerCount}
-      data-test-id="tag-tree-row"
-      event={event}
-      project={project}
-      isLast={isLast}
-      config={config}
-    />,
-    ...subtreeRows,
-  ];
+  config?: KeyValueTreeRowConfig;
 }
 
 /**
@@ -169,52 +55,33 @@ function TagTreeColumns({
     if (!project) {
       return [];
     }
-    // Create the TagTree data structure using all the given tags
-    const tagTree = tags.reduce(
-      (tree, tag) => addToTagTree({tree, tag, originalTag: tag}),
-      new Map<string, TagTreeContent>()
-    );
-    // Create a list of TagTreeRow lists, containing every row to be rendered. They are grouped by
-    // root parent so that we do not split up roots/branches when forming columns
-    const tagTreeRowGroups: React.ReactNode[][] = Array.from(tagTree.entries()).map(
-      ([tagKey, content], i) =>
-        getTagTreeRows({tagKey, content, uniqueKey: `${i}`, project, event, config})
-    );
-    // Get the total number of TagTreeRow components to be rendered, and a goal size for each column
-    const tagTreeRowTotal = tagTreeRowGroups.reduce(
-      (sum, group) => sum + group.length,
-      0
-    );
-    const columnRowGoal = Math.ceil(tagTreeRowTotal / columnCount);
 
-    // Iterate through the row groups, splitting rows into columns when we exceed the goal size
-    const data = tagTreeRowGroups.reduce<TagTreeColumnData>(
-      ({startIndex, runningTotal, columns}, rowList, index) => {
-        // If it's the last entry, create a column with the remaining rows
-        if (index === tagTreeRowGroups.length - 1) {
-          columns.push(
-            <TreeColumn key={columns.length} data-test-id="tag-tree-column">
-              {tagTreeRowGroups.slice(startIndex)}
-            </TreeColumn>
-          );
-          return {startIndex, runningTotal, columns};
-        }
-        // If we reach the goal column size, wrap rows in a TreeColumn.
-        if (runningTotal >= columnRowGoal) {
-          columns.push(
-            <TreeColumn key={columns.length} data-test-id="tag-tree-column">
-              {tagTreeRowGroups.slice(startIndex, index)}
-            </TreeColumn>
-          );
-          runningTotal = 0;
-          startIndex = index;
-        }
-        runningTotal += rowList.length;
-        return {startIndex, runningTotal, columns};
-      },
-      {startIndex: 0, runningTotal: 0, columns: []}
+    const tagTree = buildKeyValueTree(
+      tags.map(tag => ({
+        key: tag.key,
+        value: tag.value,
+        meta: tag.meta,
+        original: tag,
+      }))
     );
-    return data.columns;
+
+    return getKeyValueTreeColumns(tagTree, columnCount).map((rows, index) => (
+      <TreeColumn key={index} data-test-id="tag-tree-column">
+        {rows.map(row => (
+          <EventTagsTreeRow
+            key={row.uniqueKey}
+            tagKey={row.treeKey}
+            content={row.content}
+            spacerCount={row.spacerCount}
+            hasStem={row.hasStem}
+            data-test-id="tag-tree-row"
+            event={event}
+            project={project}
+            config={config}
+          />
+        ))}
+      </TreeColumn>
+    ));
   }, [columnCount, isPending, project, event, tags, config]);
 
   return <Fragment>{assembledColumns}</Fragment>;
@@ -236,27 +103,10 @@ export function EventTagsTree(props: EventTagsTreeProps) {
   );
 }
 
-export const TreeContainer = styled('div')<{columnCount: number}>`
-  display: grid;
-  grid-template-columns: repeat(${p => p.columnCount}, 1fr);
-  align-items: start;
-`;
-
-export const TreeColumn = styled('div')`
-  display: grid;
+export const TreeColumn = styled(KeyValueTreeColumn)`
   grid-template-columns: minmax(auto, 175px) 1fr;
-  grid-column-gap: ${p => p.theme.space['2xl']};
   &:first-child {
     margin-left: -${p => p.theme.space.md};
-  }
-  &:not(:first-child) {
-    border-left: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding-left: ${p => p.theme.space.xl};
-    margin-left: -1px;
-  }
-  &:not(:last-child) {
-    border-right: 1px solid ${p => p.theme.tokens.border.secondary};
-    padding-right: ${p => p.theme.space.xl};
   }
 `;
 

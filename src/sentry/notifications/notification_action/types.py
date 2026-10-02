@@ -24,7 +24,7 @@ from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
-from sentry.notifications.types import TEST_NOTIFICATION_ID
+from sentry.notifications.types import TEST_NOTIFICATION_ID, RuleFuture
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.rules.processing.processor import activate_downstream_actions
 from sentry.services.eventstore.models import GroupEvent
@@ -34,7 +34,6 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
 )
 from sentry.types.activity import ActivityType
-from sentry.types.rules import RuleFuture
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector, Workflow
 from sentry.workflow_engine.types import (
     ActionInvocation,
