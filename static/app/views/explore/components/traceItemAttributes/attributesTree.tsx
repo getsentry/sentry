@@ -2,7 +2,7 @@ import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {AttributeDetailsTooltip} from 'sentry/components/attributes/attributeDetailsTooltip';
@@ -11,10 +11,7 @@ import {
   KeyValueTreeRowActions,
   visitExternalLinkAction,
 } from 'sentry/components/keyValueTree/keyValueTreeRowActions';
-import {
-  TreeColumn as KeyValueTreeColumn,
-  TreeContainer as KeyValueTreeContainer,
-} from 'sentry/components/keyValueTree/styles';
+import {TreeColumn as KeyValueTreeColumn} from 'sentry/components/keyValueTree/styles';
 import {
   buildKeyValueTree,
   getKeyValueTreeColumns,
@@ -180,13 +177,15 @@ export function AttributesTree<RendererExtra extends RenderFunctionBaggage>(
   const widthBasedColumnCount = useContainerColumnCount(containerRef);
   const columnCount = props.columnCount ?? widthBasedColumnCount;
   return (
-    <TreeContainer
+    <Grid
+      align="start"
+      columns={`repeat(${columnCount}, 1fr)`}
+      whiteSpace="normal"
       ref={containerRef}
-      columnCount={columnCount}
       data-test-id="fields-tree"
     >
       <AttributesTreeColumns {...props} columnCount={columnCount} />
-    </TreeContainer>
+    </Grid>
   );
 }
 
@@ -324,10 +323,6 @@ function getAttribute(
     type: attribute.type,
   };
 }
-
-const TreeContainer = styled(KeyValueTreeContainer)`
-  white-space: normal;
-`;
 
 const TreeColumn = styled(KeyValueTreeColumn)`
   grid-template-columns: minmax(min-content, max-content) auto;

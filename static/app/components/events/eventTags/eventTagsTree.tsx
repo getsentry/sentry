@@ -1,12 +1,11 @@
 import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {Grid} from '@sentry/scraps/layout';
+
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventTagsTreeRow} from 'sentry/components/events/eventTags/eventTagsTreeRow';
-import {
-  TreeColumn as KeyValueTreeColumn,
-  TreeContainer,
-} from 'sentry/components/keyValueTree/styles';
+import {TreeColumn as KeyValueTreeColumn} from 'sentry/components/keyValueTree/styles';
 import {
   buildKeyValueTree,
   getKeyValueTreeColumns,
@@ -92,13 +91,14 @@ export function EventTagsTree(props: EventTagsTreeProps) {
   const columnCount = useContainerColumnCount(containerRef);
   return (
     <ErrorBoundary mini message={t('There was a problem loading event tags.')}>
-      <TreeContainer
-        columnCount={columnCount}
+      <Grid
+        align="start"
+        columns={`repeat(${columnCount}, 1fr)`}
         ref={containerRef}
         data-test-id="event-tags-tree"
       >
         <TagTreeColumns columnCount={columnCount} {...props} />
-      </TreeContainer>
+      </Grid>
     </ErrorBoundary>
   );
 }
