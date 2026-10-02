@@ -4,7 +4,6 @@ import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
-import {Container} from '@sentry/scraps/layout';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -75,18 +74,16 @@ function ProjectSecurityHeaders() {
               }
             )}
           </TextBlock>
-          <Container marginBottom="xl">
-            <DescriptionList striped>
-              <DescriptionList.Term>sentry_environment</DescriptionList.Term>
-              <DescriptionList.Details>
-                {t('The environment name (e.g. production).')}
-              </DescriptionList.Details>
-              <DescriptionList.Term>sentry_release</DescriptionList.Term>
-              <DescriptionList.Details>
-                {t('The version of the application.')}
-              </DescriptionList.Details>
-            </DescriptionList>
-          </Container>
+          <DescriptionList striped>
+            <DescriptionList.Term>sentry_environment</DescriptionList.Term>
+            <DescriptionList.Details>
+              {t('The environment name (e.g. production).')}
+            </DescriptionList.Details>
+            <DescriptionList.Term>sentry_release</DescriptionList.Term>
+            <DescriptionList.Details>
+              {t('The version of the application.')}
+            </DescriptionList.Details>
+          </DescriptionList>
         </PanelBody>
       </Panel>
 
