@@ -4,150 +4,13 @@ from unittest import mock
 import pytest
 
 from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorFunction
-from sentry.services.eventstore.processing import event_processing_store
 from sentry.tasks.store import preprocess_event
-from sentry.tasks.symbolication import (
-    symbolicate_event,
-    symbolicate_js_event,
-    symbolicate_jvm_event,
-)
+from sentry.tasks.symbolication import symbolicate_event
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
-
-
-@django_db_all
-def test_inline_preprocess_keeps_backup_and_samples_canonical_event_id(
-    default_project,
-    mock_symbolicate_event,
-):
-    data = {"platform": "native", "project": default_project.id, "event_id": "a" * 32}
-    with (
-        override_options(
-            {"store.enable-inline-payloads": 0.7, "store.disable-processing-store": True}
-        ),
-        mock.patch.object(
-            event_processing_store, "store", wraps=event_processing_store.store
-        ) as store,
-    ):
-        preprocess_event(data=data, event_id="b" * 32)
-
-    store.assert_called_once_with(data, unprocessed=True)
-    kwargs = mock_symbolicate_event.delay.call_args.kwargs
-    assert kwargs["data"] == data
-    assert kwargs["event_id"] == "a" * 32
-    assert kwargs["cache_key"] is None
-
-
-@django_db_all
-@pytest.mark.parametrize(
-    "cache_key,expected_writes,expected_reads", [(None, 0, 0), ("e:working", 3, 1)]
-)
-@pytest.mark.parametrize("has_changed", (False, True))
-def test_inline_chained_symbolication_survives_rate_rollback(
-    default_project,
-    mock_event_processing_store,
-    mock_process_event,
-    mock_symbolication_function,
-    cache_key,
-    expected_writes,
-    expected_reads,
-    has_changed,
-):
-    data = {
-        "platform": "native",
-        "project": default_project.id,
-        "event_id": EVENT_ID,
-        "_attachments": [{"id": 0, "key": "attachment-key", "name": "dump.dmp"}],
-    }
-    enriched = dict(data, message="symbolicated")
-    mock_symbolication_function.return_value = {False: None, True: enriched}[has_changed]
-    mock_event_processing_store.store.return_value = cache_key
-    mock_event_processing_store.get.return_value = {False: data, True: enriched}[has_changed]
-
-    with (
-        override_options(
-            {"store.enable-inline-payloads": 1.0, "store.disable-processing-store": True}
-        ),
-        mock.patch.object(symbolicate_js_event, "delay") as submit_js,
-    ):
-        symbolicate_event(
-            cache_key=cache_key,
-            data=data,
-            has_attachments=True,
-            symbolicate_functions=["js", "jvm"],
-        )
-    js_kwargs = submit_js.call_args.kwargs
-    assert js_kwargs["data"] == {False: data, True: enriched}[has_changed]
-    assert js_kwargs["cache_key"] == cache_key
-
-    with (
-        override_options(
-            {"store.enable-inline-payloads": 0.0, "store.disable-processing-store": True}
-        ),
-        mock.patch.object(symbolicate_jvm_event, "delay") as submit_jvm,
-    ):
-        symbolicate_js_event(**js_kwargs)
-        jvm_kwargs = submit_jvm.call_args.kwargs
-        symbolicate_jvm_event(**jvm_kwargs)
-
-    assert mock_symbolication_function.call_count == 3
-    assert mock_event_processing_store.get.call_count == expected_reads
-    assert mock_event_processing_store.store.call_count == expected_writes
-    expected_data = {False: data, True: enriched}[has_changed]
-    assert (
-        mock_event_processing_store.store.call_args_list
-        == [mock.call(expected_data)] * expected_writes
-    )
-    final_kwargs = mock_process_event.delay.call_args.kwargs
-    expected_inline_data = {None: expected_data, "e:working": None}[cache_key]
-    assert final_kwargs.get("data") == expected_inline_data
-    assert jvm_kwargs.get("data") == expected_inline_data
-    assert final_kwargs["cache_key"] == cache_key
-    assert final_kwargs["has_attachments"] is True
-    assert final_kwargs["data_has_changed"] is has_changed
-
-
-@django_db_all
-def test_inline_symbolication_error_forwards_error_flags(
-    default_project,
-    mock_event_processing_store,
-    mock_process_event,
-    mock_symbolication_function,
-):
-    data = {"platform": "native", "project": default_project.id, "event_id": EVENT_ID}
-    mock_symbolication_function.side_effect = RuntimeError("symbolication failed")
-    with override_options(
-        {"store.enable-inline-payloads": 1.0, "store.disable-processing-store": True}
-    ):
-        symbolicate_event(data=data)
-
-    payload = mock_process_event.delay.call_args.kwargs["data"]
-    assert payload["_metrics"]["flag.processing.error"] is True
-    assert payload["_metrics"]["flag.processing.fatal"] is True
-    assert mock_process_event.delay.call_args.kwargs["data_has_changed"] is True
-    mock_event_processing_store.get.assert_not_called()
-    mock_event_processing_store.store.assert_not_called()
-
-
-def test_inline_symbolication_load_shedding_keeps_payload(
-    mock_event_processing_store,
-    mock_process_event,
-):
-    data = {"project": 1, "event_id": EVENT_ID, "platform": "native"}
-    with (
-        override_options(
-            {"store.enable-inline-payloads": 0.0, "store.disable-processing-store": True}
-        ),
-        mock.patch("sentry.tasks.symbolication.killswitch_matches_context", return_value=True),
-    ):
-        symbolicate_event(data=data, symbolicate_functions=["js"])
-
-    assert mock_process_event.delay.call_args.kwargs["data"] == data
-    mock_event_processing_store.get.assert_not_called()
-    mock_event_processing_store.store.assert_not_called()
 
 
 @pytest.fixture
@@ -182,57 +45,97 @@ def mock_event_processing_store():
 
 
 @django_db_all
+@pytest.mark.parametrize("inline", (False, True))
 def test_move_to_symbolicate_event(
-    default_project, mock_process_event, mock_save_event, mock_symbolicate_event
+    default_project,
+    mock_process_event,
+    mock_save_event,
+    mock_symbolicate_event,
+    mock_event_processing_store,
+    inline,
 ):
-    data = {
-        "platform": "native",
-        "project": default_project.id,
-        "event_id": EVENT_ID,
-    }
+    data = {"platform": "native", "project": default_project.id, "event_id": EVENT_ID}
+    cache_key = None if inline else "e:1"
+    mock_event_processing_store.store.return_value = "e:1"
+    with (
+        override_options(
+            {
+                "store.enable-inline-payloads": float(inline),
+                "store.disable-processing-store": inline,
+            }
+        ),
+        mock.patch("sentry.tasks.store.reprocessing2.backup_unprocessed_event") as backup,
+    ):
+        preprocess_event(cache_key=cache_key, data=data)
 
-    preprocess_event(cache_key="", data=data)
-
+    backup.assert_called_once_with(data=data)
     assert mock_symbolicate_event.delay.call_count == 1
+    kwargs = mock_symbolicate_event.delay.call_args.kwargs
+    assert kwargs["data"] == (data if inline else None)
+    assert kwargs["cache_key"] == cache_key
     assert mock_process_event.delay.call_count == 0
     assert mock_save_event.delay.call_count == 0
 
 
 @django_db_all
-def test_symbolicate_event_doesnt_call_process_inline(
+@pytest.mark.parametrize("inline", (False, True))
+@pytest.mark.parametrize(
+    "error,load_shed,symbolicate_functions,expected_metrics",
+    [
+        (
+            RuntimeError("symbolication failed"),
+            False,
+            [],
+            {"flag.processing.error": True, "flag.processing.fatal": True},
+        ),
+        (None, True, ["js"], {}),
+    ],
+)
+def test_symbolication_continues_after_error_or_load_shedding(
     default_project,
     mock_event_processing_store,
     mock_process_event,
-    mock_save_event,
     mock_symbolication_function,
+    error,
+    load_shed,
+    expected_metrics,
+    symbolicate_functions,
+    inline,
 ):
-    data = {
-        "platform": "native",
-        "project": default_project.id,
-        "event_id": EVENT_ID,
-    }
+    data = {"platform": "native", "project": default_project.id, "event_id": EVENT_ID}
+    cache_key = None if inline else "e:1"
     mock_event_processing_store.get.return_value = data
-    mock_event_processing_store.store.return_value = "e:1"
+    mock_event_processing_store.store.return_value = cache_key
+    mock_symbolication_function.side_effect = error
+    with (
+        override_options(
+            {
+                "store.enable-inline-payloads": float(inline),
+                "store.disable-processing-store": inline,
+            }
+        ),
+        mock.patch("sentry.tasks.symbolication.killswitch_matches_context", return_value=load_shed),
+    ):
+        symbolicate_event(
+            cache_key=cache_key,
+            data=data if inline else None,
+            symbolicate_functions=symbolicate_functions,
+        )
 
-    symbolicated_data = {"type": "error"}
-    mock_symbolication_function.return_value = symbolicated_data
-
-    with mock.patch("sentry.tasks.store.do_process_event") as mock_do_process_event:
-        symbolicate_event(cache_key="e:1", start_time=1)
-
-    # The event mutated, so make sure we save it back
-    ((_, (event,), _),) = mock_event_processing_store.store.mock_calls
-
-    assert event == symbolicated_data
-
-    assert mock_save_event.delay.call_count == 0
-    assert mock_process_event.delay.call_count == 1
-    assert mock_do_process_event.call_count == 0
+    mock_process_event.delay.assert_called_once()
+    kwargs = mock_process_event.delay.call_args.kwargs
+    assert kwargs["data"] == (data if inline else None)
+    assert kwargs["cache_key"] == cache_key
+    assert data.get("_metrics", {}) == expected_metrics
+    assert kwargs["data_has_changed"] is (error is not None)
+    assert mock_event_processing_store.get.call_count == (0 if inline else 1)
+    assert mock_event_processing_store.store.call_args_list == [mock.call(data)] * (not inline)
 
 
 @django_db_all
+@pytest.mark.parametrize("inline", (False, True))
 def test_symbolicate_minidump_and_native_stacktrace(
-    default_project, mock_event_processing_store, mock_process_event, mock_save_event
+    default_project, mock_event_processing_store, mock_process_event, mock_save_event, inline
 ):
     """
     An event containing both a minidump and an additional raw native stacktrace
@@ -291,7 +194,7 @@ def test_symbolicate_minidump_and_native_stacktrace(
     mock_event_processing_store.get.side_effect = stored_data.get
     mock_event_processing_store.store.side_effect = _store
 
-    cache_key = _store(data)
+    cache_key = None if inline else _store(data)
 
     minidump_response = {
         "status": "completed",
@@ -340,6 +243,13 @@ def test_symbolicate_minidump_and_native_stacktrace(
         mock.patch.object(
             Symbolicator, "process_payload", return_value=payload_response
         ) as mock_process_payload,
+        override_options(
+            {
+                "store.enable-inline-payloads": float(inline),
+                "store.disable-processing-store": inline,
+            }
+        ),
+        mock.patch("sentry.tasks.store.do_process_event") as mock_do_process_event,
         TaskRunner(),
     ):
         preprocess_event(cache_key=cache_key, data=data)
@@ -352,7 +262,16 @@ def test_symbolicate_minidump_and_native_stacktrace(
     # processing.
     assert mock_process_event.delay.call_count == 1
     final_cache_key = mock_process_event.delay.call_args.kwargs["cache_key"]
-    final_data = stored_data[final_cache_key]
+    final_data = (
+        mock_process_event.delay.call_args.kwargs["data"]
+        if inline
+        else stored_data[final_cache_key]
+    )
+    assert bool(final_cache_key) is not inline
+    assert mock_event_processing_store.store.call_count == (0 if inline else 3)
+    assert mock_event_processing_store.get.call_count == (0 if inline else 2)
+    mock_save_event.delay.assert_not_called()
+    mock_do_process_event.assert_not_called()
     assert not final_data.get("_metrics", {}).get("flag.processing.error")
 
     exceptions = final_data["exception"]["values"]

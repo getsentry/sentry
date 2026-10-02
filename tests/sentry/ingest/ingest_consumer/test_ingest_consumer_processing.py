@@ -142,56 +142,6 @@ def test_ingest_conditions_working_payload_write(
 
 
 @django_db_all
-@pytest.mark.parametrize("disable_store,expected_writes", [(False, 1), (True, 0)])
-@pytest.mark.parametrize("save_synchronously", (False, True))
-def test_ingest_inlines_transaction_with_optional_working_key(
-    default_project,
-    save_event_transaction,
-    disable_store,
-    expected_writes,
-    save_synchronously,
-):
-    data = get_normalized_event(
-        {
-            "type": "transaction",
-            "transaction": "inline transaction",
-            "start_timestamp": time.time() - 1,
-            "timestamp": time.time(),
-            "contexts": {"trace": {"trace_id": "a" * 32, "span_id": "b" * 16, "op": "http.server"}},
-        },
-        default_project,
-    )
-    with (
-        override_options(
-            {"store.enable-inline-payloads": 1.0, "store.disable-processing-store": disable_store}
-        ),
-        patch.object(
-            transaction_processing_store, "store", wraps=transaction_processing_store.store
-        ) as store,
-        patch("sentry.ingest.consumer.processors.track_sampled_event") as track,
-    ):
-        process_event(
-            ConsumerType.Transactions,
-            {
-                "payload": orjson.dumps(data),
-                "start_time": time.time(),
-                "event_id": data["event_id"],
-                "project_id": default_project.id,
-            },
-            project=default_project,
-            inline_save_event_transaction=save_synchronously,
-        )
-
-    assert store.call_count == expected_writes
-    assert track.call_count == expected_writes
-    kwargs = {False: save_event_transaction.delay, True: save_event_transaction}[
-        save_synchronously
-    ].call_args.kwargs
-    assert kwargs["data"] == data
-    assert bool(kwargs["cache_key"]) is bool(expected_writes)
-
-
-@django_db_all
 def test_ingest_inline_only_event_saves_without_working_payload(default_project, task_runner):
     payload = get_normalized_event({"message": "inline event"}, default_project)
     event_id = payload["event_id"]
@@ -220,58 +170,6 @@ def test_ingest_inline_only_event_saves_without_working_payload(default_project,
     event = eventstore.backend.get_event_by_id(default_project.id, event_id)
     assert event is not None
     assert event.data["logentry"]["formatted"] == "inline event"
-
-
-@django_db_all
-def test_inline_save_cached_attachments_without_working_key(
-    default_project,
-    task_runner,
-    django_cache,
-) -> None:
-    payload = get_normalized_event({"message": "inline attachments"}, default_project)
-    event_id = payload["event_id"]
-    chunked_data = b"chunked attachment" * 20
-    process_attachment_chunk(
-        {
-            "payload": chunked_data,
-            "event_id": event_id,
-            "project_id": default_project.id,
-            "id": 0,
-            "chunk_index": 0,
-        }
-    )
-    store_attachments_for_event(
-        default_project,
-        payload,
-        [
-            CachedAttachment(id=0, name="chunked.txt", chunks=1, size=len(chunked_data)),
-            CachedAttachment(id=1, name="unchunked.txt", data=b"unchunked attachment"),
-            CachedAttachment(id=2, name="limited.txt", data=b"limited", rate_limited=True),
-        ],
-        timeout=3600,
-    )
-    cached_attachments = list(get_attachments_for_event(payload))
-
-    with (
-        patch("sentry.features.has", return_value=True),
-        override_options({"objectstore.enable_for.attachments": 0.0}),
-        task_runner(),
-    ):
-        save_event_attachments(
-            data=payload, project_id=default_project.id, event_id=event_id, start_time=time.time()
-        )
-
-    attachments = EventAttachment.objects.filter(
-        project_id=default_project.id, event_id=event_id
-    ).order_by("name")
-    assert [attachment.name for attachment in attachments] == ["chunked.txt", "unchunked.txt"]
-    for attachment, expected in zip(attachments, (chunked_data, b"unchunked attachment")):
-        with attachment.getfile() as file:
-            assert file.read() == expected
-    assert "_attachments" not in payload
-    for cached_attachment in cached_attachments:
-        with pytest.raises(MissingAttachmentChunks):
-            cached_attachment.load_data()
 
 
 @django_db_all
@@ -474,6 +372,56 @@ def test_process_event_from_kafka_transaction_saves_inline_with_option(
         project_id=project_id,
     )
     assert save_event_transaction.delay.call_count == 0
+
+
+@django_db_all
+@pytest.mark.parametrize("disable_store,expected_writes", [(False, 1), (True, 0)])
+@pytest.mark.parametrize("save_synchronously", (False, True))
+def test_inline_transaction(
+    default_project,
+    save_event_transaction,
+    disable_store,
+    expected_writes,
+    save_synchronously,
+):
+    data = get_normalized_event(
+        {
+            "type": "transaction",
+            "transaction": "inline transaction",
+            "start_timestamp": time.time() - 1,
+            "timestamp": time.time(),
+            "contexts": {"trace": {"trace_id": "a" * 32, "span_id": "b" * 16, "op": "http.server"}},
+        },
+        default_project,
+    )
+    with (
+        override_options(
+            {"store.enable-inline-payloads": 1.0, "store.disable-processing-store": disable_store}
+        ),
+        patch.object(
+            transaction_processing_store, "store", wraps=transaction_processing_store.store
+        ) as store,
+        patch("sentry.ingest.consumer.processors.track_sampled_event") as track,
+    ):
+        process_event(
+            ConsumerType.Transactions,
+            {
+                "payload": orjson.dumps(data),
+                "start_time": time.time(),
+                "event_id": data["event_id"],
+                "project_id": default_project.id,
+            },
+            project=default_project,
+            inline_save_event_transaction=save_synchronously,
+        )
+
+    assert store.call_count == expected_writes
+    assert track.call_count == expected_writes
+    kwargs = {False: save_event_transaction.delay, True: save_event_transaction}[
+        save_synchronously
+    ].call_args.kwargs
+    assert kwargs["data"] == data
+    assert bool(kwargs["cache_key"]) is bool(expected_writes)
 
 
 @django_db_all

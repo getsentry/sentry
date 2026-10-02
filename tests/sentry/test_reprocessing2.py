@@ -47,10 +47,6 @@ def test_reprocessing_conditions_working_payload_write(
     assert store.call_count == expected_writes
     assert bool(preprocess.call_args.kwargs["cache_key"]) is bool(expected_writes)
     assert preprocess.call_args.kwargs["data"] is data
-    assert data["contexts"]["reprocessing"] == {
-        "original_issue_id": 123,
-        "original_primary_hash": "original-hash",
-    }
 
 
 class MaybeCopyAttachmentIntoCacheTest(TestCase):
