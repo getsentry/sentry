@@ -253,6 +253,43 @@ describe('LogsTabContent', () => {
     expect(table).toHaveTextContent(/some log message2/);
   });
 
+  it('restores saved sorts when the selected columns are already in the URL', async () => {
+    localStorageWrapper.setItem(
+      'logs-params-v2',
+      JSON.stringify({
+        fields: ['timestamp', 'message'],
+        sortBys: [{field: 'timestamp', kind: 'asc'}],
+      })
+    );
+    const {[LOGS_SORT_BYS_KEY]: _sortBys, ...query} = initialRouterConfig.location.query;
+    const savedColumnsRouterConfig = {
+      ...initialRouterConfig,
+      location: {
+        ...initialRouterConfig.location,
+        query: {...query, [LOGS_FIELDS_KEY]: ['timestamp', 'message']},
+      },
+    };
+
+    const {router} = render(
+      <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />,
+      {
+        initialRouterConfig: savedColumnsRouterConfig,
+        organization,
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    await waitFor(() => {
+      expect(router.location.query[LOGS_SORT_BYS_KEY]).toBe('timestamp');
+    });
+    expect(eventTableMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/events/`,
+      expect.objectContaining({
+        query: expect.objectContaining({sort: 'timestamp'}),
+      })
+    );
+  });
+
   it('removes invalid selected columns after validation', async () => {
     const validationBody: EventValidationData = {
       dataset: [],
