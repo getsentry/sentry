@@ -139,9 +139,12 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
           subject: f.flag,
           value: (
             <Grid
-              columns={{zero: '1fr 0.5fr', sm: '1fr 1fr 0.5fr'}}
+              columns={{zero: '1fr auto', sm: '1fr auto auto'}}
               rows={{zero: 'auto auto', sm: 'auto'}}
+              align="center"
+              gap={{zero: '0 md', sm: 'md'}}
               justifyItems="start"
+              width="100%"
               css={css`
                 .invisible {
                   visibility: hidden;
@@ -157,19 +160,25 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
               {f.result.toString()}
               {suspectFlagNames.has(f.flag) && (
                 <Container
-                  column={{zero: '1 / -1', sm: 'auto'}}
+                  column={{zero: '1 / -1', sm: '2'}}
                   row={{zero: '2', sm: 'auto'}}
                 >
-                  <Text as="div" variant="secondary">
+                  <Text as="div" size="sm" variant="secondary">
                     {t('Suspect')}
                   </Text>
                 </Container>
               )}
-              <FlagActionDropdown
-                flag={f.flag}
-                result={f.result.toString()}
-                generateAction={generateAction}
-              />
+              <Container
+                column={{zero: '2', sm: '3'}}
+                row={{zero: '1', sm: 'auto'}}
+                justifySelf="end"
+              >
+                <FlagActionDropdown
+                  flag={f.flag}
+                  result={f.result.toString()}
+                  generateAction={generateAction}
+                />
+              </Container>
             </Grid>
           ),
         },
