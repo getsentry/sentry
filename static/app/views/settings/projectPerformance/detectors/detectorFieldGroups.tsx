@@ -1,6 +1,5 @@
 import {t} from 'sentry/locale';
 import {AI_DETECTED_ISSUE_TYPES, IssueTitle, IssueType} from 'sentry/types/group';
-import type {Organization} from 'sentry/types/organization';
 import {safeGetQsParam} from 'sentry/utils/integrationUtil';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
@@ -82,7 +81,6 @@ type DetectorSettingsOptions = {
   hasAccess: boolean;
   hasWebVitalsSeerSuggestions: boolean;
   isResetting: boolean;
-  organization: Organization;
   performanceIssueSettings: ProjectPerformanceSettings;
   projectSlug: string;
   resetVersion: number;
@@ -255,7 +253,6 @@ export function getProjectDetectorSettings({
   hasAIIssueDetection,
   hasWebVitalsSeerSuggestions,
   isResetting,
-  organization,
   performanceIssueSettings,
   projectSlug,
   resetVersion,
