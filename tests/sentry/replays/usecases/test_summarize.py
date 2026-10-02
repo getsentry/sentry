@@ -15,8 +15,10 @@ from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMet
 from sentry.replays.testutils import mock_replay
 from sentry.replays.usecases.ingest.event_parser import get_timestamp_unit, which
 from sentry.replays.usecases.summarize import (
+    MISSING,
     EventDict,
     _parse_iso_timestamp_to_ms,
+    _safe,
     as_log_message,
     get_summary_logs,
     rpc_get_replay_summary_logs,
@@ -1420,6 +1422,35 @@ def test_get_summary_logs_keeps_events_with_malformed_fields(
         "User navigated at 1790662162845.0",
     ]
     mock_fetch_feedback_details.assert_called_once_with(None, 1)
+
+
+def test_safe_dict_lookups() -> None:
+    view = _safe(
+        {
+            "obj": {"key": "value"},
+            "zero": 0,
+            "float": 1.5,
+            "filtered": "[Filtered]",
+            "blank": " ",
+            "flag": True,
+            "list": [1],
+            "empty": {},
+            "null": None,
+        }
+    )
+    assert view["obj"]["key"] == "value"
+    assert view["zero"] == "0"
+    assert view["float"] == "1.5"
+    assert view["filtered"] == "[Filtered]"
+    assert view["filtered"]["method"] is MISSING
+    assert view["filtered"][1:4] == "Fil"
+    for key in ("blank", "flag", "list", "empty", "null", "absent"):
+        assert view[key] is MISSING
+        assert view[key]["deeper"]["still"] is MISSING
+    assert f"{view['absent']}" == ""
+    assert (view["absent"] or "fallback") == "fallback"
+    assert view.get("flag") is True
+    assert view["absent"].get("anything") is None
 
 
 def test_parse_iso_timestamp_to_ms() -> None:

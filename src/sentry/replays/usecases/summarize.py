@@ -2,7 +2,7 @@ import logging
 import math
 from collections.abc import Generator, Iterator, Mapping
 from datetime import datetime, timedelta
-from typing import Any, TypedDict
+from typing import Any, SupportsIndex, TypedDict, overload
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -267,50 +267,69 @@ def get_summary_logs(
     )
 
 
-class _Field:
-    """Null-safe view over untrusted replay recording JSON.
+class _Text(str):
+    """A non-empty display string read from replay JSON.
 
-    Recording payloads come from many SDK versions and platforms, so any key may be missing,
-    null, or a different type than expected. Indexing a `_Field` never raises: a missing key, or
-    indexing into something that isn't an object, yields an empty field. Leaf values are read
-    through accessors that return None when the value is absent or unusable, which lets log
-    messages be built from whatever data is present instead of dropping the event.
+    Indexing with a string key returns `MISSING` instead of raising, so a lookup chain like
+    `payload["data"]["method"]` stays safe when `data` turned out to be a string such as
+    `"[Filtered]"`. Positional indexing and slicing behave like a normal `str`.
     """
 
-    __slots__ = ("_value",)
+    @overload
+    def __getitem__(self, key: str) -> "_Text": ...
 
-    def __init__(self, value: Any = None) -> None:
-        self._value = value
+    @overload
+    def __getitem__(self, key: SupportsIndex | slice) -> str: ...
 
-    def __getitem__(self, key: str) -> "_Field":
-        if isinstance(self._value, Mapping):
-            return _Field(self._value.get(key))
-        return _Field()
+    def __getitem__(self, key: str | SupportsIndex | slice) -> str:
+        if isinstance(key, str):
+            return MISSING
+        return super().__getitem__(key)
 
-    @property
-    def value(self) -> Any:
-        return self._value
+    def get(self, key: str, default: Any = None) -> Any:
+        return default
 
-    def text(self) -> str | None:
-        """Return the value as a non-empty string, or None if it can't be displayed as one."""
-        value = self._value
-        if isinstance(value, bool):
-            return None
-        if isinstance(value, str):
-            return value if value.strip() else None
-        if isinstance(value, (int, float)):
-            return str(value)
-        return None
+
+MISSING = _Text("")
+
+
+class _SafeDict(dict[str, Any]):
+    """Read-only view over untrusted replay recording JSON where `[]` never raises.
+
+    Recording payloads come from many SDK versions and platforms, so any key may be missing,
+    null, or a different type than expected. `[]` returns a nested `_SafeDict` for objects, a
+    `_Text` for displayable strings and numbers, and `MISSING` (an empty, falsy `_Text`) for
+    anything else, including empty objects. Every lookup is safe to chain and drop straight
+    into an f-string, and `value or "fallback"` handles the gaps.
+
+    `.get()` keeps normal dict semantics and returns the raw value, for the few fields that
+    aren't text (e.g. booleans).
+
+    `[]` deliberately changes dict semantics, so pass the original event, not this view, to
+    helpers that expect a plain dict.
+    """
+
+    def __getitem__(self, key: str) -> "_SafeDict | _Text":
+        return _safe(super().get(key))
+
+
+def _safe(value: Any) -> _SafeDict | _Text:
+    if isinstance(value, (_SafeDict, _Text)):
+        return value
+    if isinstance(value, Mapping):
+        return _SafeDict(value) if value else MISSING
+    if isinstance(value, str):
+        return _Text(value) if value.strip() else MISSING
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        return _Text(value)
+    return MISSING
 
 
 def _get_event_timestamp_ms(event: Any, event_type: EventType) -> float | None:
     """Return the event timestamp in milliseconds, or None if it is missing or malformed."""
-    value = _Field(event)["timestamp"].value
-    if value is None or isinstance(value, bool):
-        return None
     try:
-        timestamp = float(value)
-    except (TypeError, ValueError):
+        timestamp = float(str(_safe(event)["timestamp"]))
+    except ValueError:
         return None
     if not math.isfinite(timestamp):
         return None
@@ -368,7 +387,7 @@ def generate_summary_logs(
 
             # Yield the current event's log message
             if event_type == EventType.FEEDBACK:
-                feedback_id = _Field(event)["data"]["payload"]["data"]["feedbackId"].text()
+                feedback_id = str(_safe(event)["data"]["payload"]["data"]["feedbackId"]) or None
                 # Filter out duplicate feedback events.
                 if feedback_id not in seen_feedback_ids:
                     feedback = fetch_feedback_details(feedback_id, project_id)
@@ -398,12 +417,12 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
     to the AI use case. In later iterations, if more or all log messages are desired, this function
     should be forked.
 
-    Every field is read through `_Field`, so a missing or malformed field degrades the message
+    Every field is read through `_SafeDict`, so a missing or malformed field degrades the message
     instead of discarding the event.
     """
     event_type = which(event)
     when = _format_when(_get_event_timestamp_ms(event, event_type))
-    payload = _Field(event)["data"]["payload"]
+    payload = _safe(event)["data"]["payload"]
     data = payload["data"]
 
     trunc_length = 200  # used for CONSOLE logs and RESOURCE_* urls.
@@ -411,15 +430,15 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
     try:
         match event_type:
             case EventType.CLICK:
-                target = payload["message"].text() or "an element"
+                target = payload["message"] or "an element"
                 return f"User clicked on {target} {when}"
             case EventType.DEAD_CLICK:
-                target = payload["message"].text() or "an element"
+                target = payload["message"] or "an element"
                 return (
                     f"User clicked on {target} but the triggered action was slow to complete {when}"
                 )
             case EventType.RAGE_CLICK:
-                target = payload["message"].text() or "an element"
+                target = payload["message"] or "an element"
                 return f"User rage clicked on {target} but the triggered action was slow to complete {when}"
             case EventType.NAVIGATION_SPAN:
                 # for web replays, we favor NAVIGATION_SPAN
@@ -427,15 +446,14 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
                 # for mobile replays, we only have access to NAVIGATION events.
                 if is_mobile_replay:
                     return None
-                to = payload["description"].text()
-                if to is not None:
+                to = payload["description"]
+                if to:
                     return f"User navigated to: {to} {when}"
                 return f"User navigated {when}"
             case EventType.CONSOLE:
-                raw_message = payload["message"].value
-                if raw_message is None:
+                message = str(payload["message"])
+                if not message:
                     return f"Logged a console message {when}"
-                message = str(raw_message)
                 if len(message) > trunc_length:
                     message = message[:trunc_length] + " [truncated]"
                 return f"Logged: '{message}' {when}"
@@ -444,51 +462,48 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
             case EventType.RESOURCE_XHR:
                 return _network_log_message("XHR", event, payload, when, trunc_length)
             case EventType.LCP:
-                size = data["size"].text()
-                rating = data["rating"].text()
-                if size is not None and rating is not None:
+                size = data["size"]
+                rating = data["rating"]
+                if size and rating:
                     return f"Application largest contentful paint: {size} ms and has a {rating} rating {when}"
-                if size is not None:
+                if size:
                     return f"Application largest contentful paint: {size} ms {when}"
-                if rating is not None:
+                if rating:
                     return f"Application largest contentful paint has a {rating} rating {when}"
                 return f"Application largest contentful paint occurred {when}"
             case EventType.HYDRATION_ERROR:
                 return f"There was a hydration error on the page {when}"
             case EventType.TAP:
-                target = payload["message"].text() or "an element"
+                target = payload["message"] or "an element"
                 return f"User tapped on {target} {when}"
             case EventType.DEVICE_BATTERY:
-                level = data["level"].text()
-                charging = data["charging"].value
+                level = data["level"]
+                # `charging` is a boolean, so read the raw value rather than its text.
+                charging = data.get("charging")
                 charging_str = None
                 if isinstance(charging, bool):
                     charging_str = "charging" if charging else "not charging"
-                if level is not None and charging_str is not None:
+                if level and charging_str:
                     return f"Device battery was {level}% and {charging_str} {when}"
-                if level is not None:
+                if level:
                     return f"Device battery was {level}% {when}"
-                if charging_str is not None:
+                if charging_str:
                     return f"Device battery was {charging_str} {when}"
                 return f"Device battery event occurred {when}"
             case EventType.DEVICE_ORIENTATION:
-                position = data["position"].text()
-                if position is not None:
+                position = data["position"]
+                if position:
                     return f"Device orientation was changed to {position} {when}"
                 return f"Device orientation was changed {when}"
             case EventType.DEVICE_CONNECTIVITY:
-                state = data["state"].text()
-                if state is not None:
+                state = data["state"]
+                if state:
                     return f"Device connectivity was changed to {state} {when}"
                 return f"Device connectivity was changed {when}"
             case EventType.SCROLL:
-                return _join_words(
-                    "User scrolled", data["view.id"].text(), data["direction"].text(), when
-                )
+                return _join_words("User scrolled", data["view.id"], data["direction"], when)
             case EventType.SWIPE:
-                return _join_words(
-                    "User swiped", data["view.id"].text(), data["direction"].text(), when
-                )
+                return _join_words("User swiped", data["view.id"], data["direction"], when)
             case EventType.BACKGROUND:
                 return f"User moved the app to the background {when}"
             case EventType.FOREGROUND:
@@ -520,8 +535,8 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
             case EventType.NAVIGATION:
                 if not is_mobile_replay:
                     return None
-                to = data["to"].text()
-                if to is not None:
+                to = data["to"]
+                if to:
                     return f"User navigated to: {to} {when}"
                 return f"User navigated {when}"
             case EventType.MULTI_CLICK:
@@ -538,27 +553,27 @@ def as_log_message(event: dict[str, Any], is_mobile_replay: bool = False) -> str
         return None
 
 
-def _join_words(*parts: str | None) -> str:
-    return " ".join(part for part in parts if part)
+def _join_words(*parts: object) -> str:
+    return " ".join(str(part) for part in parts if part)
 
 
 def _network_log_message(
-    label: str, event: dict[str, Any], payload: _Field, when: str, trunc_length: int
+    label: str, event: dict[str, Any], payload: _SafeDict | _Text, when: str, trunc_length: int
 ) -> str | None:
     data = payload["data"]
-    method = data["method"].text()
-    status_code = data["statusCode"].text()
+    method = data["method"]
+    status_code = str(data["statusCode"])
 
     # Skip successful requests
-    if status_code is not None and status_code.startswith("2"):
+    if status_code.startswith("2"):
         return None
 
-    description = payload["description"].text()
-    url = _parse_url(description, trunc_length) if description is not None else None
+    description = str(payload["description"])
+    url = _parse_url(description, trunc_length) if description else None
     request_str = _join_words(method, url)
     request_part = f'{label} request "{request_str}"' if request_str else f"{label} request"
 
-    status_str = status_code if status_code is not None else "no response"
+    status_str = status_code or "no response"
 
     _, response_size = parse_network_content_lengths(event)
     if response_size is None:
