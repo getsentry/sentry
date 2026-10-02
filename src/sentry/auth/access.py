@@ -1011,7 +1011,10 @@ def from_request_org_and_scopes(
     Note that `scopes` is usually None because request.auth is not set at `get_authorization_header`
     when the request is made from the frontend using cookies
     """
-    if isinstance(request.auth, AuthenticatedToken) and request.auth.superuser_access is not None:
+    if (
+        isinstance(request.auth, AuthenticatedToken)
+        and request.auth.superuser_access_expires_at is not None
+    ):
         if rpc_user_org_context is None:
             return DEFAULT
         return from_superuser_access(request.auth, rpc_user_org_context)
@@ -1128,7 +1131,7 @@ def from_request(
     request: Request, organization: Organization | None = None, scopes: Iterable[str] | None = None
 ) -> Access:
     if isinstance(request.auth, AuthenticatedToken) and (
-        is_agent_auth(request.auth) or request.auth.superuser_access is not None
+        is_agent_auth(request.auth) or request.auth.superuser_access_expires_at is not None
     ):
         if organization is None:
             return DEFAULT
@@ -1300,7 +1303,7 @@ def from_rpc_member(
 
 
 def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
-    if isinstance(auth, AuthenticatedToken) and auth.superuser_access is not None:
+    if isinstance(auth, AuthenticatedToken) and auth.superuser_access_expires_at is not None:
         context = organization_service.get_organization_by_id(
             id=organization.id, user_id=auth.user_id
         )
@@ -1332,7 +1335,7 @@ def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
 def from_rpc_auth(
     auth: AuthenticatedToken, rpc_user_org_context: RpcUserOrganizationContext
 ) -> Access:
-    if isinstance(auth, AuthenticatedToken) and auth.superuser_access is not None:
+    if isinstance(auth, AuthenticatedToken) and auth.superuser_access_expires_at is not None:
         return from_superuser_access(auth, rpc_user_org_context)
     if is_system_auth(auth):
         return SystemAccess()
@@ -1370,7 +1373,7 @@ def from_agent_auth(
         return DEFAULT
     if auth.user_id != rpc_user_org_context.user_id:
         return DEFAULT
-    if isinstance(auth, AuthenticatedToken) and auth.superuser_access is not None:
+    if isinstance(auth, AuthenticatedToken) and auth.superuser_access_expires_at is not None:
         return from_superuser_access(auth, rpc_user_org_context)
     # No membership (never a member, or revoked since mint) -> no access. Required
     # explicitly because RpcBackedAccess would otherwise hand back the full token
@@ -1384,7 +1387,7 @@ def from_superuser_access(
     auth: AuthenticatedToken, rpc_user_org_context: RpcUserOrganizationContext
 ) -> Access:
     if (
-        auth.superuser_access is None
+        auth.superuser_access_expires_at is None
         or auth.organization_id != rpc_user_org_context.organization.id
         or auth.user_id != rpc_user_org_context.user_id
     ):
@@ -1393,7 +1396,9 @@ def from_superuser_access(
     user = users[0] if users else None
     if user is None:
         return DEFAULT
-    delegated = resolve_superuser_access(auth.superuser_access, user, rpc_user_org_context)
+    delegated = resolve_superuser_access(
+        auth.superuser_access_expires_at, user, rpc_user_org_context
+    )
     if delegated is None:
         return DEFAULT
     scopes, _ = delegated

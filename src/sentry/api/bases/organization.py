@@ -147,7 +147,7 @@ class OrganizationPermission(DemoSafePermission):
                 set_viewer_context_superuser(
                     user_id=request.user.id,
                     organization_id=org.id,
-                    superuser_access=grant,
+                    superuser_access_expires_at=grant,
                 )
         return allowed
 
