@@ -209,6 +209,10 @@ export function GroupingVariant({
                   title={t('Events with the same hash are grouped together')}
                 />
               </Flex>
+            ) : subject === t('Client fingerprint values') ? (
+              <Text as="span" wrap="nowrap">
+                {subject}
+              </Text>
             ) : undefined,
           value,
         }))}
