@@ -37,7 +37,6 @@ interface CacheLifecycleSectionProps {
   node: EapSpanNode;
   onTabScrollToNode: (node: BaseNode) => void;
   organization: Organization;
-  traceId: string;
   links?: TraceItemResponseLink[];
   tree?: TraceTree;
 }
@@ -117,11 +116,10 @@ function useOpenOriginSpan({
   itemAgeSeconds,
   organization,
   location,
-  traceId,
   onTabScrollToNode,
 }: Pick<
   CacheLifecycleSectionProps,
-  'tree' | 'node' | 'organization' | 'location' | 'traceId' | 'onTabScrollToNode'
+  'tree' | 'node' | 'organization' | 'location' | 'onTabScrollToNode'
 > & {
   itemAgeSeconds: number | undefined;
   link: TraceItemResponseLink | undefined;
@@ -134,13 +132,13 @@ function useOpenOriginSpan({
       return;
     }
 
-    // The fill span can be in the trace already on screen.
-    if (tree && link.traceId === traceId) {
-      const spanNode = tree.root.findChild(c => c.matchById(link.itemId));
-      if (spanNode) {
-        onTabScrollToNode(spanNode);
-        return;
-      }
+    // The fill span can be in the tree already on screen. The replay trace
+    // view merges several traces into one tree, so search it even when the
+    // link points to another trace.
+    const spanNode = tree?.root.findChild(c => c.matchById(link.itemId));
+    if (spanNode) {
+      onTabScrollToNode(spanNode);
+      return;
     }
 
     traceDispatch({type: 'minimize drawer', payload: true});

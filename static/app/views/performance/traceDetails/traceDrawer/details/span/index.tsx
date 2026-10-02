@@ -378,7 +378,6 @@ function EAPSpanNodeDetailsContent({
             links={links}
             location={location}
             organization={organization}
-            traceId={node.extra?.replayTraceSlug ?? traceId}
             tree={tree}
             onTabScrollToNode={onTabScrollToNode}
           />
