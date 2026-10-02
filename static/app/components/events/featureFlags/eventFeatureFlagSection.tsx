@@ -158,7 +158,9 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
                   width="100%"
                 >
                   <Flex align="center" gap="sm" wrap="wrap">
-                    <Container whiteSpace="nowrap">{f.result.toString()}</Container>
+                    <Text as="span" monospace wrap="nowrap">
+                      {f.result.toString()}
+                    </Text>
                     {suspectFlagNames.has(f.flag) && (
                       <Text as="div" size="sm" variant="secondary" wrap="nowrap">
                         {t('Suspect')}
