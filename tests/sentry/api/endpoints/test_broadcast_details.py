@@ -110,6 +110,27 @@ class BroadcastUpdateTest(APITestCase):
         broadcast.refresh_from_db()
         assert broadcast.sync_locked is False
 
+    def test_clear_optional_fields(self) -> None:
+        broadcast = Broadcast.objects.create(
+            title="Broadcast",
+            message="Message",
+            link="https://example.com/",
+            media_url="https://example.com/image.png",
+            category="announcement",
+        )
+        self.add_user_permission(user=self.user, permission="broadcasts.admin")
+        self.login_as(user=self.user, superuser=True)
+
+        response = self.client.put(
+            f"/api/0/broadcasts/{broadcast.id}/",
+            {"mediaUrl": None, "category": None},
+        )
+
+        assert response.status_code == 200
+        broadcast.refresh_from_db()
+        assert broadcast.media_url is None
+        assert broadcast.category is None
+
     def test_hasseen_only_does_not_lock(self) -> None:
         broadcast = Broadcast.objects.create(
             upstream_id="changelog-xyz",

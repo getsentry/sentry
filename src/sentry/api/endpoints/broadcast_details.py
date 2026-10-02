@@ -95,9 +95,9 @@ class BroadcastDetailsEndpoint(Endpoint):
             update_kwargs["date_expires"] = result["dateExpires"]
         if result.get("cta"):
             update_kwargs["cta"] = result["cta"]
-        if result.get("mediaUrl"):
+        if "mediaUrl" in result:
             update_kwargs["media_url"] = result["mediaUrl"]
-        if result.get("category"):
+        if "category" in result:
             update_kwargs["category"] = result["category"]
         if result.get("syncLocked") is not None:
             update_kwargs["sync_locked"] = result["syncLocked"]
