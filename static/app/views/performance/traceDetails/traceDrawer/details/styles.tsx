@@ -15,7 +15,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -39,7 +38,6 @@ import {
   IconTerminal,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -497,10 +495,6 @@ function NodeActions(props: {
   const user = useUser();
   const params = useParams<{traceSlug?: string}>();
 
-  const transactionId = props.node.transactionId ?? '';
-
-  const canShowEAPSpanJSON = isEAPSpanNode(props.node);
-
   const transactionProfileTarget = useMemo(() => {
     if (!props.profileId) {
       return null;
@@ -538,15 +532,11 @@ function NodeActions(props: {
           icon={<IconFocus />}
         />
       </Tooltip>
-      {props.showJSONLink && (canShowEAPSpanJSON || transactionId) ? (
+      {props.showJSONLink && isEAPSpanNode(props.node) ? (
         <Tooltip title={t('JSON')} skipWrapper>
           <ActionLinkButton
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
-            href={
-              canShowEAPSpanJSON
-                ? `/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}`
-                : `/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/events/${transactionId}/json/`
-            }
+            href={`/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}`}
             size="zero"
             aria-label={t('JSON')}
             icon={<IconJson />}
@@ -615,16 +605,6 @@ const ActionButton = styled(Button)`
 const ActionLinkButton = styled(LinkButton)`
   ${actionButtonStyles};
 `;
-
-function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
-  return (
-    <EventTagsDataSection
-      event={event}
-      projectSlug={projectSlug}
-      disableCollapsePersistence
-    />
-  );
-}
 
 type SectionCardKeyValueList = KeyValueListData;
 
@@ -900,7 +880,6 @@ export const TraceDrawerComponents = {
   LegacyTitleText,
   IssuesLink,
   SectionCard,
-  EventTags,
   SubtitleWithCopyButton,
   MultilineText,
   MultilineJSON,

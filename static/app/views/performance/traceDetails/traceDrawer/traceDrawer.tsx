@@ -11,7 +11,6 @@ import {
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
 import {
   usePassiveResizableDrawer,
@@ -35,7 +34,6 @@ import {type TraceTabsReducerState} from 'sentry/views/performance/traceDetails/
 type TraceDrawerProps = {
   manager: VirtualizedViewManager;
   onTabScrollToNode: (node: BaseNode) => void;
-  replay: ReplayRecord | null;
   scheduler: TraceScheduler;
   trace: TraceTree;
   traceGridRef: HTMLElement | null;
@@ -187,18 +185,6 @@ export function TraceDrawer(props: TraceDrawerProps) {
   }, [onResize, drawerOptions, traceState.preferences.layout]);
 
   const {onMouseDown, size} = usePassiveResizableDrawer(resizableDrawerOptions);
-  const onParentClick = useCallback(
-    (node: BaseNode) => {
-      props.onTabScrollToNode(node);
-      traceDispatch({
-        type: 'activate tab',
-        payload: node,
-        pin_previous: true,
-      });
-    },
-    [props, traceDispatch]
-  );
-
   const onMinimizeClick = useCallback(() => {
     traceAnalytics.trackDrawerMinimize(organization);
     traceDispatch({
@@ -368,12 +354,9 @@ export function TraceDrawer(props: TraceDrawerProps) {
             {traceState.tabs.current_tab &&
             typeof traceState.tabs.current_tab.node !== 'string'
               ? traceState.tabs.current_tab.node.renderDetails({
-                  manager: props.manager,
                   node: traceState.tabs.current_tab.node,
-                  onParentClick,
                   onTabScrollToNode: props.onTabScrollToNode,
                   organization,
-                  replay: props.replay,
                   traceId: props.traceId,
                   tree: props.trace,
                 })
