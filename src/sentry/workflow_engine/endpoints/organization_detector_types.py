@@ -45,7 +45,9 @@ class OrganizationDetectorTypeIndexEndpoint(OrganizationEndpoint):
         """
         Returns a list of detector types for a given org
         """
-        excluded_types = get_excluded_detector_types(DetectorAPIOperation.GET)
+        excluded_types = get_excluded_detector_types(
+            DetectorAPIOperation.GET, organization, actor=request.user
+        )
         type_slugs = [
             gt.slug
             for gt in grouptype.registry.get_visible(organization)

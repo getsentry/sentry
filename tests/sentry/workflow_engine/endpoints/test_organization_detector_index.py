@@ -40,7 +40,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import DetectorAPIOperation
+from sentry.workflow_engine.types import DetectorAPIOperation, FeatureGate
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 pytestmark = pytest.mark.sentry_metrics
@@ -76,9 +76,17 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         detector_2 = self.create_detector(
             project=self.project, name="Test Detector 2", type=MetricIssue.slug
         )
-        response = self.get_success_response(
-            self.organization.slug, qs_params={"project": self.project.id}
-        )
+        with (
+            patch.object(MetricIssue.detector_settings, "api_enabled", True),
+            patch.object(
+                MetricIssue.detector_settings,
+                "api_availability",
+                {DetectorAPIOperation.GET: True, DetectorAPIOperation.LIST: True},
+            ),
+        ):
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"project": self.project.id}
+            )
         assert response.data == serialize(
             [self.error_detector, self.issue_stream_detector, detector, detector_2]
         )
@@ -88,14 +96,29 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         hits = int(response["X-Hits"])
         assert hits == 4
 
+    def test_global_denial_overrides_allowed_read_operations(self) -> None:
+        settings = detector_settings_registry.get(ErrorGroupType.slug)
+        with (
+            patch.object(settings, "api_enabled", False),
+            patch.object(
+                settings,
+                "api_availability",
+                {DetectorAPIOperation.GET: True, DetectorAPIOperation.LIST: True},
+            ),
+        ):
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"project": self.project.id}
+            )
+
+        assert [detector["id"] for detector in response.data] == [
+            str(self.issue_stream_detector.id)
+        ]
+        assert int(response["X-Hits"]) == 1
+
     def test_hidden_detector_type(self) -> None:
         self.create_detector(project=self.project, type=ErrorGroupType.slug)
         settings = detector_settings_registry.get(ErrorGroupType.slug)
-        with patch.object(
-            settings,
-            "excluded_api_operations",
-            frozenset({DetectorAPIOperation.LIST}),
-        ):
+        with patch.object(settings, "api_availability", {DetectorAPIOperation.LIST: False}):
             response = self.get_success_response(
                 self.organization.slug,
                 qs_params={"project": self.project.id, "per_page": 1},
@@ -108,11 +131,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
     def test_hidden_detector_type_with_type_filters(self) -> None:
         settings = detector_settings_registry.get(ErrorGroupType.slug)
-        with patch.object(
-            settings,
-            "excluded_api_operations",
-            frozenset({DetectorAPIOperation.LIST}),
-        ):
+        with patch.object(settings, "api_availability", {DetectorAPIOperation.LIST: False}):
             response = self.get_success_response(
                 self.organization.slug,
                 qs_params={
@@ -128,11 +147,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
     def test_hidden_detector_type_by_ids(self) -> None:
         settings = detector_settings_registry.get(ErrorGroupType.slug)
-        with patch.object(
-            settings,
-            "excluded_api_operations",
-            frozenset({DetectorAPIOperation.LIST}),
-        ):
+        with patch.object(settings, "api_availability", {DetectorAPIOperation.LIST: False}):
             response = self.get_success_response(
                 self.organization.slug,
                 qs_params={
@@ -147,11 +162,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
 
     def test_get_exclusion_hides_detector_type_from_list(self) -> None:
         settings = detector_settings_registry.get(ErrorGroupType.slug)
-        with patch.object(
-            settings,
-            "excluded_api_operations",
-            frozenset({DetectorAPIOperation.GET}),
-        ):
+        with patch.object(settings, "api_availability", {DetectorAPIOperation.GET: False}):
             response = self.get_success_response(
                 self.organization.slug,
                 qs_params={"project": self.project.id},
@@ -162,18 +173,39 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         ]
         assert int(response["X-Hits"]) == 1
 
+    def test_get_feature_gate_controls_list_with_list_explicitly_allowed(self) -> None:
+        feature_name = "organizations:workflow-engine-log-evaluations"
+        settings = detector_settings_registry.get(ErrorGroupType.slug)
+        with patch.object(
+            settings,
+            "api_availability",
+            {
+                DetectorAPIOperation.GET: FeatureGate(feature_name),
+                DetectorAPIOperation.LIST: True,
+            },
+        ):
+            for enabled in (False, True, False):
+                with self.subTest(feature_enabled=enabled), self.feature({feature_name: enabled}):
+                    response = self.get_success_response(
+                        self.organization.slug, qs_params={"project": self.project.id}
+                    )
+
+                    expected_ids = {str(self.issue_stream_detector.id)}
+                    if enabled:
+                        expected_ids.add(str(self.error_detector.id))
+                    assert {detector["id"] for detector in response.data} == expected_ids
+                    assert int(response["X-Hits"]) == len(expected_ids)
+
     def test_write_exclusions_do_not_hide_detector_type_from_list(self) -> None:
         settings = detector_settings_registry.get(ErrorGroupType.slug)
         with patch.object(
             settings,
-            "excluded_api_operations",
-            frozenset(
-                {
-                    DetectorAPIOperation.POST,
-                    DetectorAPIOperation.PUT,
-                    DetectorAPIOperation.DELETE,
-                }
-            ),
+            "api_availability",
+            {
+                DetectorAPIOperation.POST: False,
+                DetectorAPIOperation.PUT: False,
+                DetectorAPIOperation.DELETE: False,
+            },
         ):
             response = self.get_success_response(
                 self.organization.slug,
@@ -1155,9 +1187,33 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
             project=self.project, type=MonitorIncidentType.slug, enabled=True
         )
         with patch.object(
-            MetricIssue.detector_settings,
-            "excluded_api_operations",
-            frozenset({DetectorAPIOperation.PUT}),
+            MetricIssue.detector_settings, "api_availability", {DetectorAPIOperation.PUT: False}
+        ):
+            self.get_error_response(
+                self.organization.slug,
+                qs_params={"id": [allowed_detector.id, self.detector.id]},
+                enabled=False,
+                status_code=400,
+            )
+
+        allowed_detector.refresh_from_db()
+        self.detector.refresh_from_db()
+        assert allowed_detector.enabled is True
+        assert self.detector.enabled is True
+
+    def test_global_feature_gate_rejects_mixed_ids_without_updates(self) -> None:
+        allowed_detector = self.create_detector(
+            project=self.project, type=MonitorIncidentType.slug, enabled=True
+        )
+        feature_name = "organizations:workflow-engine-log-evaluations"
+        with (
+            self.feature({feature_name: False}),
+            patch.object(MetricIssue.detector_settings, "api_enabled", FeatureGate(feature_name)),
+            patch.object(
+                MetricIssue.detector_settings,
+                "api_availability",
+                {DetectorAPIOperation.PUT: True},
+            ),
         ):
             self.get_error_response(
                 self.organization.slug,
@@ -1176,9 +1232,7 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
             project=self.project, type=MonitorIncidentType.slug, enabled=True
         )
         with patch.object(
-            MetricIssue.detector_settings,
-            "excluded_api_operations",
-            frozenset({DetectorAPIOperation.PUT}),
+            MetricIssue.detector_settings, "api_availability", {DetectorAPIOperation.PUT: False}
         ):
             response = self.get_success_response(
                 self.organization.slug,
@@ -1196,10 +1250,19 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         assert [detector["id"] for detector in response.data] == [str(allowed_detector.id)]
 
     def test_update_detectors_by_ids_success(self) -> None:
-        with patch.object(
-            MetricIssue.detector_settings,
-            "excluded_api_operations",
-            frozenset({DetectorAPIOperation.LIST, DetectorAPIOperation.GET}),
+        feature_name = "organizations:workflow-engine-log-evaluations"
+        with (
+            self.feature(feature_name),
+            patch.object(MetricIssue.detector_settings, "api_enabled", FeatureGate(feature_name)),
+            patch.object(
+                MetricIssue.detector_settings,
+                "api_availability",
+                {
+                    DetectorAPIOperation.LIST: False,
+                    DetectorAPIOperation.GET: False,
+                    DetectorAPIOperation.PUT: True,
+                },
+            ),
         ):
             response = self.get_success_response(
                 self.organization.slug,
@@ -1591,8 +1654,34 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
     def test_delete_exclusion_rejects_mixed_ids_without_deletions(self) -> None:
         with patch.object(
             ErrorGroupType.detector_settings,
-            "excluded_api_operations",
-            frozenset({DetectorAPIOperation.DELETE}),
+            "api_availability",
+            {DetectorAPIOperation.DELETE: False},
+        ):
+            self.get_error_response(
+                self.organization.slug,
+                qs_params={"id": [self.detector.id, self.error_detector.id]},
+                status_code=400,
+            )
+
+        self.detector.refresh_from_db()
+        self.error_detector.refresh_from_db()
+        assert self.detector.status == ObjectStatus.ACTIVE
+        assert self.error_detector.status == ObjectStatus.ACTIVE
+        assert not CellScheduledDeletion.objects.filter(
+            model_name="Detector",
+            object_id__in=[self.detector.id, self.error_detector.id],
+        ).exists()
+
+    def test_global_feature_gate_rejects_mixed_ids_without_deletions(self) -> None:
+        feature_name = "organizations:workflow-engine-log-evaluations"
+        with (
+            self.feature({feature_name: False}),
+            patch.object(MetricIssue.detector_settings, "api_enabled", FeatureGate(feature_name)),
+            patch.object(
+                MetricIssue.detector_settings,
+                "api_availability",
+                {DetectorAPIOperation.DELETE: True},
+            ),
         ):
             self.get_error_response(
                 self.organization.slug,
@@ -1612,8 +1701,8 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
     def test_delete_exclusion_skips_type_in_query_selection(self) -> None:
         with patch.object(
             ErrorGroupType.detector_settings,
-            "excluded_api_operations",
-            frozenset({DetectorAPIOperation.DELETE}),
+            "api_availability",
+            {DetectorAPIOperation.DELETE: False},
         ):
             self.get_success_response(
                 self.organization.slug,
@@ -1637,12 +1726,19 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
 
     def test_delete_detectors_by_ids_success(self) -> None:
         """Test successful deletion of detectors by specific IDs"""
+        feature_name = "organizations:workflow-engine-log-evaluations"
         with (
             outbox_runner(),
+            self.feature(feature_name),
+            patch.object(MetricIssue.detector_settings, "api_enabled", FeatureGate(feature_name)),
             patch.object(
                 MetricIssue.detector_settings,
-                "excluded_api_operations",
-                frozenset({DetectorAPIOperation.LIST, DetectorAPIOperation.GET}),
+                "api_availability",
+                {
+                    DetectorAPIOperation.LIST: False,
+                    DetectorAPIOperation.GET: False,
+                    DetectorAPIOperation.DELETE: True,
+                },
             ),
         ):
             self.get_success_response(

@@ -347,17 +347,17 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
 
         @detector_settings_registry.register(HandlerGroupType.slug)
         class HandlerDetectorSettings(DetectorSettings):
-            excluded_api_operations = frozenset()
+            api_availability = {}
             handler = MockDetectorHandler
 
         @detector_settings_registry.register(HandlerStateGroupType.slug)
         class HandlerStateDetectorSettings(DetectorSettings):
-            excluded_api_operations = frozenset()
+            api_availability = {}
             handler = MockDetectorStateHandler
 
         @detector_settings_registry.register(HandlerUpdateGroupType.slug)
         class HandlerUpdateDetectorSettings(DetectorSettings):
-            excluded_api_operations = frozenset()
+            api_availability = {}
             handler = MockDetectorWithUpdateHandler
 
         self.no_handler_type = NoHandlerGroupType
@@ -510,7 +510,7 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
 
         @detector_settings_registry.register(DefaultConditionGroupType.slug)
         class DefaultConditionDetectorSettings(DetectorSettings):
-            excluded_api_operations = frozenset()
+            api_availability = {}
             handler = MockDefaultDetectorHandler
 
         self.group_type = DefaultConditionGroupType
@@ -775,7 +775,7 @@ class TestDetectorHandlerGroupedEvaluate(BaseGroupTypeTest):
 
         @detector_settings_registry.register(GroupedConditionGroupType.slug)
         class GroupedConditionDetectorSettings(DetectorSettings):
-            excluded_api_operations = frozenset()
+            api_availability = {}
             handler = MockGroupedDetectorHandler
 
         self.group_type = GroupedConditionGroupType
@@ -950,7 +950,7 @@ class TestDetectorHandlerEvidenceData(BaseGroupTypeTest):
 
         @detector_settings_registry.register(EvidenceConditionGroupType.slug)
         class EvidenceConditionDetectorSettings(DetectorSettings):
-            excluded_api_operations = frozenset()
+            api_availability = {}
             handler = MockDefaultDetectorHandler
 
         self.group_type = EvidenceConditionGroupType

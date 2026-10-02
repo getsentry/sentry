@@ -272,7 +272,7 @@ class SourcemapConfigurationType(GroupType):
 
 @detector_settings_registry.register(SourcemapConfigurationType.slug)
 class SourcemapConfigurationDetectorSettings(DetectorSettings):
-    excluded_api_operations = frozenset()
+    api_availability = {}
     handler = SourcemapDetectorHandler
 
 

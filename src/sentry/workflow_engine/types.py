@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
 from typing import (
@@ -309,8 +309,17 @@ class DetectorAPIOperation(StrEnum):
     DELETE = "DELETE"
 
 
+@dataclass(frozen=True)
+class FeatureGate:
+    name: str
+
+
+APIGate: TypeAlias = bool | FeatureGate
+
+
 class DetectorSettings:
-    excluded_api_operations: ClassVar[frozenset[DetectorAPIOperation]]
+    api_enabled: ClassVar[APIGate] = True
+    api_availability: ClassVar[Mapping[DetectorAPIOperation, APIGate]]
     handler: ClassVar[type[BaseDetectorHandler[Any, Any]] | None] = None
     validator: ClassVar[type[BaseDetectorTypeValidator] | None] = None
     config_schema: ClassVar[dict[str, Any]] = {}

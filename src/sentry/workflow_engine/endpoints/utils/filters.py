@@ -1,6 +1,11 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from django.db.models import BigIntegerField, Exists, Model, OuterRef, Q, QuerySet
 from django.db.models.functions import Cast
 
+from sentry import features
 from sentry.api.event_search import SearchFilter
 from sentry.db.models.query import in_iexact
 from sentry.incidents.grouptype import MetricIssue
@@ -11,21 +16,60 @@ from sentry.snuba.models import QuerySubscription
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import DetectorAPIOperation
+from sentry.workflow_engine.types import APIGate, DetectorAPIOperation
+
+if TYPE_CHECKING:
+    from django.contrib.auth.models import AnonymousUser
+
+    from sentry.users.models.user import User
+    from sentry.users.services.user.model import RpcUser
 
 
-def get_excluded_detector_types(operation: DetectorAPIOperation | str) -> list[str]:
-    """Resolve detector-platform API exclusions without fetching detector rows."""
+def _api_gate_enabled(
+    gate: APIGate,
+    organization: Organization,
+    actor: User | RpcUser | AnonymousUser | None,
+) -> bool:
+    if isinstance(gate, bool):
+        return gate
+    return features.has(gate.name, organization, actor=actor)
+
+
+def get_excluded_detector_types(
+    operation: DetectorAPIOperation | str | None,
+    organization: Organization,
+    *,
+    actor: User | RpcUser | AnonymousUser | None = None,
+) -> list[str]:
+    """Resolve detector-platform API gates for the current request, without fetching rows."""
     if operation == "HEAD":
         operation = DetectorAPIOperation.GET
+
+    required_operations: tuple[DetectorAPIOperation, ...]
+    if operation is None:
+        required_operations = ()
+    else:
+        try:
+            operation = DetectorAPIOperation(operation)
+        except ValueError:
+            # Leave unsupported verbs to endpoint dispatch; only the global gate applies.
+            required_operations = ()
+        else:
+            required_operations = (
+                (DetectorAPIOperation.GET, DetectorAPIOperation.LIST)
+                if operation == DetectorAPIOperation.LIST
+                else (operation,)
+            )
 
     return [
         detector_type
         for detector_type, settings in detector_settings_registry.registrations.items()
-        if operation in settings.excluded_api_operations
-        or (
-            operation == DetectorAPIOperation.LIST
-            and DetectorAPIOperation.GET in settings.excluded_api_operations
+        if not _api_gate_enabled(settings.api_enabled, organization, actor)
+        or not all(
+            _api_gate_enabled(
+                settings.api_availability.get(required_operation, True), organization, actor
+            )
+            for required_operation in required_operations
         )
     ]
 

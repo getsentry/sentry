@@ -90,7 +90,9 @@ def get_detector_validator(
     if type.detector_settings is None or type.detector_settings.validator is None:
         raise ValidationError({"type": ["Detector type not compatible with detectors"]})
 
-    if detector_type_slug in get_excluded_detector_types(request.method):
+    if detector_type_slug in get_excluded_detector_types(
+        request.method, project.organization, actor=request.user
+    ):
         raise ValidationError(
             {"type": [f"Detector type does not support {request.method} requests"]}
         )
@@ -122,7 +124,11 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
             detector = (
                 Detector.objects.by_organization(organization.id)
                 .with_type_filters()
-                .exclude(type__in=get_excluded_detector_types(request.method))
+                .exclude(
+                    type__in=get_excluded_detector_types(
+                        request.method, organization, actor=request.user
+                    )
+                )
                 .select_related("project")
                 .get(id=validated_detector_id)
             )

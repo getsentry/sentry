@@ -1,11 +1,12 @@
 from datetime import timedelta
+from typing import Any
 from unittest import mock
 
 import pytest
 from django.utils import timezone
 from rest_framework.exceptions import ErrorDetail
 
-from sentry import audit_log
+from sentry import audit_log, features
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
@@ -41,7 +42,7 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import DetectorAPIOperation, DetectorPriorityLevel
+from sentry.workflow_engine.types import DetectorAPIOperation, DetectorPriorityLevel, FeatureGate
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.test_base import ProjectAccessTestMixin
 
@@ -158,13 +159,28 @@ class OrganizationDetectorDetailsBaseTest(APITestCase):
         )
         assert self.detector.data_sources is not None
 
+    def get_detector_state(self) -> list[list[dict[str, Any]]]:
+        querysets = (
+            Detector.objects.filter(id=self.detector.id),
+            DataSource.objects.filter(organization=self.organization),
+            DataSourceDetector.objects.filter(detector=self.detector),
+            QuerySubscription.objects.filter(project=self.project),
+            SnubaQuery.objects.filter(id=self.snuba_query.id),
+            DataConditionGroup.objects.filter(id=self.data_condition_group.id),
+            DataCondition.objects.filter(condition_group=self.data_condition_group),
+            DetectorWorkflow.objects.filter(detector=self.detector),
+            CellScheduledDeletion.objects.filter(model_name="Detector", object_id=self.detector.id),
+        )
+        return [list(queryset.order_by("id").values()) for queryset in querysets]
+
 
 @cell_silo_test
 class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
+    @with_feature({"organizations:change-alerts": False})
     @mock.patch.object(
         detector_settings_registry.get(MetricIssue.slug),
-        "excluded_api_operations",
-        frozenset({DetectorAPIOperation.LIST}),
+        "api_availability",
+        {DetectorAPIOperation.LIST: FeatureGate("organizations:change-alerts")},
     )
     def test_simple(self) -> None:
         response = self.get_success_response(self.organization.slug, self.detector.id)
@@ -172,16 +188,103 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
 
     def test_get_exclusion(self) -> None:
         settings = detector_settings_registry.get(MetricIssue.slug)
-        with mock.patch.object(
-            settings, "excluded_api_operations", frozenset({DetectorAPIOperation.GET})
-        ):
+        with mock.patch.object(settings, "api_availability", {DetectorAPIOperation.GET: False}):
             self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
 
         assert Detector.objects.filter(id=self.detector.id).exists()
 
+    def test_get_global_feature_gate(self) -> None:
+        gate = FeatureGate("organizations:workflow-engine-log-evaluations")
+        settings = detector_settings_registry.get(MetricIssue.slug)
+        original_state = self.get_detector_state()
+        with (
+            mock.patch.object(settings, "api_enabled", gate),
+            mock.patch.object(settings, "api_availability", {DetectorAPIOperation.GET: True}),
+        ):
+            with self.feature({gate.name: False}):
+                self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
+            assert self.get_detector_state() == original_state
+
+            with self.feature(gate.name):
+                response = self.get_success_response(self.organization.slug, self.detector.id)
+            assert response.data == serialize(self.detector)
+
+    def test_get_operation_feature_gate(self) -> None:
+        gate = FeatureGate("organizations:workflow-engine-log-evaluations")
+        settings = detector_settings_registry.get(MetricIssue.slug)
+        original_state = self.get_detector_state()
+        with mock.patch.object(settings, "api_availability", {DetectorAPIOperation.GET: gate}):
+            with self.feature({gate.name: False}):
+                self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
+            assert self.get_detector_state() == original_state
+
+            with self.feature(gate.name):
+                response = self.get_success_response(self.organization.slug, self.detector.id)
+            assert response.data == serialize(self.detector)
+
+    def test_get_feature_gate_uses_authorized_actor(self) -> None:
+        flag = "organizations:workflow-engine-log-evaluations"
+        allowed_user = self.create_user(is_superuser=False)
+        denied_user = self.create_user(is_superuser=False)
+        for user in (allowed_user, denied_user):
+            self.create_member(
+                user=user, organization=self.organization, role="member", teams=[self.team]
+            )
+        allowed_user_id = allowed_user.id
+        organization_id = self.organization.id
+
+        class ActorFeatureHandler(features.FeatureHandler):
+            features = {flag}
+
+            def has(
+                self,
+                feature,
+                actor,
+                skip_entity: bool | None = False,
+                skip_experiment_exposure: bool = False,
+            ) -> bool:
+                return (
+                    feature.organization.id == organization_id
+                    and actor is not None
+                    and actor.id == allowed_user_id
+                )
+
+        settings = detector_settings_registry.get(MetricIssue.slug)
+        with mock.patch.dict(
+            features.default_manager._handler_registry, {flag: [ActorFeatureHandler()]}
+        ):
+            for attribute, value in (
+                ("api_enabled", FeatureGate(flag)),
+                ("api_availability", {DetectorAPIOperation.GET: FeatureGate(flag)}),
+            ):
+                with self.subTest(gate=attribute), mock.patch.object(settings, attribute, value):
+                    self.login_as(allowed_user)
+                    response = self.get_success_response(self.organization.slug, self.detector.id)
+                    assert response.data == serialize(self.detector)
+
+                    self.login_as(denied_user)
+                    self.get_error_response(
+                        self.organization.slug, self.detector.id, status_code=404
+                    )
+
+                    self.login_as(allowed_user)
+                    response = self.get_success_response(self.organization.slug, self.detector.id)
+                    assert response.data == serialize(self.detector)
+
     def test_does_not_exist(self) -> None:
         self.get_error_response(self.organization.slug, 999999999, status_code=404)
 
+    @with_feature("organizations:workflow-engine-log-evaluations")
+    @mock.patch.object(
+        detector_settings_registry.get(MetricIssue.slug),
+        "api_enabled",
+        FeatureGate("organizations:workflow-engine-log-evaluations"),
+    )
+    @mock.patch.object(
+        detector_settings_registry.get(MetricIssue.slug),
+        "api_availability",
+        {DetectorAPIOperation.GET: FeatureGate("organizations:workflow-engine-log-evaluations")},
+    )
     def test_permission_denied_when_open_membership_disabled(self) -> None:
         """
         Test that members cannot access detectors for projects they don't have team access to
@@ -365,9 +468,7 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         original_name = self.detector.name
         original_config = self.detector.config
         settings = detector_settings_registry.get(MetricIssue.slug)
-        with mock.patch.object(
-            settings, "excluded_api_operations", frozenset({DetectorAPIOperation.PUT})
-        ):
+        with mock.patch.object(settings, "api_availability", {DetectorAPIOperation.PUT: False}):
             self.get_error_response(
                 self.organization.slug, self.detector.id, **self.valid_data, status_code=404
             )
@@ -381,12 +482,47 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert self.snuba_query.query == "hello"
         assert self.condition.comparison == 50
 
+    def assert_put_feature_gate(self, gate: FeatureGate) -> None:
+        original_state = self.get_detector_state()
+        with self.feature({gate.name: False}):
+            self.get_error_response(
+                self.organization.slug, self.detector.id, **self.valid_data, status_code=404
+            )
+        assert self.get_detector_state() == original_state
+
+        with self.feature(gate.name), self.tasks():
+            response = self.get_success_response(
+                self.organization.slug, self.detector.id, **self.valid_data
+            )
+        self.detector.refresh_from_db()
+        data_source = DataSource.objects.get(detector=self.detector)
+        subscription = QuerySubscription.objects.get(id=data_source.source_id)
+        self.condition.refresh_from_db()
+        assert response.data == serialize(self.detector)
+        self.assert_detector_updated(self.detector)
+        self.assert_snuba_query_updated(subscription.snuba_query)
+        self.assert_data_condition_updated(self.condition)
+        assert data_source.organization_id == self.organization.id
+
+    def test_put_global_feature_gate_preserves_state(self) -> None:
+        gate = FeatureGate("organizations:workflow-engine-log-evaluations")
+        settings = detector_settings_registry.get(MetricIssue.slug)
+        with (
+            mock.patch.object(settings, "api_enabled", gate),
+            mock.patch.object(settings, "api_availability", {DetectorAPIOperation.PUT: True}),
+        ):
+            self.assert_put_feature_gate(gate)
+
+    def test_put_operation_feature_gate_preserves_state(self) -> None:
+        gate = FeatureGate("organizations:workflow-engine-log-evaluations")
+        settings = detector_settings_registry.get(MetricIssue.slug)
+        with mock.patch.object(settings, "api_availability", {DetectorAPIOperation.PUT: gate}):
+            self.assert_put_feature_gate(gate)
+
     def test_put_excluded_target_type_preserves_state(self) -> None:
         original_name = self.detector.name
         settings = detector_settings_registry.get(MonitorIncidentType.slug)
-        with mock.patch.object(
-            settings, "excluded_api_operations", frozenset({DetectorAPIOperation.PUT})
-        ):
+        with mock.patch.object(settings, "api_availability", {DetectorAPIOperation.PUT: False}):
             response = self.get_error_response(
                 self.organization.slug,
                 self.detector.id,
@@ -400,10 +536,34 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert self.detector.type == MetricIssue.slug
         assert self.detector.name == original_name
 
+    def test_put_feature_gated_target_type_preserves_state(self) -> None:
+        gate = FeatureGate("organizations:workflow-engine-log-evaluations")
+        settings = detector_settings_registry.get(MonitorIncidentType.slug)
+        original_state = self.get_detector_state()
+        for attribute, value in (
+            ("api_enabled", gate),
+            ("api_availability", {DetectorAPIOperation.PUT: gate}),
+        ):
+            with (
+                self.subTest(gate=attribute),
+                mock.patch.object(settings, attribute, value),
+                self.feature({gate.name: False}),
+            ):
+                response = self.get_error_response(
+                    self.organization.slug,
+                    self.detector.id,
+                    name="Unauthorized change",
+                    type=MonitorIncidentType.slug,
+                    status_code=400,
+                )
+                assert "type" in response.data
+                assert self.get_detector_state() == original_state
+
+    @with_feature({"organizations:change-alerts": False})
     @mock.patch.object(
         detector_settings_registry.get(MetricIssue.slug),
-        "excluded_api_operations",
-        frozenset({DetectorAPIOperation.LIST}),
+        "api_availability",
+        {DetectorAPIOperation.LIST: FeatureGate("organizations:change-alerts")},
     )
     @mock.patch("sentry.incidents.metric_issue_detector.schedule_update_project_config")
     def test_update(self, mock_schedule_update_project_config: mock.MagicMock) -> None:
@@ -1197,9 +1357,7 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
     def test_delete_exclusion_preserves_detector(self) -> None:
         original_status = self.detector.status
         settings = detector_settings_registry.get(MetricIssue.slug)
-        with mock.patch.object(
-            settings, "excluded_api_operations", frozenset({DetectorAPIOperation.DELETE})
-        ):
+        with mock.patch.object(settings, "api_availability", {DetectorAPIOperation.DELETE: False}):
             self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
 
         self.detector.refresh_from_db()
@@ -1209,10 +1367,40 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         ).exists()
         assert DataSourceDetector.objects.filter(id=self.data_source_detector.id).exists()
 
+    def assert_delete_feature_gate(self, gate: FeatureGate) -> None:
+        original_state = self.get_detector_state()
+        with self.feature({gate.name: False}):
+            self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
+        assert self.get_detector_state() == original_state
+
+        with self.feature(gate.name), outbox_runner():
+            self.get_success_response(self.organization.slug, self.detector.id)
+        self.detector.refresh_from_db()
+        assert self.detector.status == ObjectStatus.PENDING_DELETION
+        assert CellScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=self.detector.id
+        ).exists()
+
+    def test_delete_global_feature_gate_preserves_state(self) -> None:
+        gate = FeatureGate("organizations:workflow-engine-log-evaluations")
+        settings = detector_settings_registry.get(MetricIssue.slug)
+        with (
+            mock.patch.object(settings, "api_enabled", gate),
+            mock.patch.object(settings, "api_availability", {DetectorAPIOperation.DELETE: True}),
+        ):
+            self.assert_delete_feature_gate(gate)
+
+    def test_delete_operation_feature_gate_preserves_state(self) -> None:
+        gate = FeatureGate("organizations:workflow-engine-log-evaluations")
+        settings = detector_settings_registry.get(MetricIssue.slug)
+        with mock.patch.object(settings, "api_availability", {DetectorAPIOperation.DELETE: gate}):
+            self.assert_delete_feature_gate(gate)
+
+    @with_feature({"organizations:change-alerts": False})
     @mock.patch.object(
         detector_settings_registry.get(MetricIssue.slug),
-        "excluded_api_operations",
-        frozenset({DetectorAPIOperation.LIST}),
+        "api_availability",
+        {DetectorAPIOperation.LIST: FeatureGate("organizations:change-alerts")},
     )
     @mock.patch(
         "sentry.workflow_engine.endpoints.organization_detector_details.schedule_update_project_config"
@@ -1234,6 +1422,17 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         assert self.detector.status == ObjectStatus.PENDING_DELETION
         mock_schedule_update_project_config.assert_called_once_with(self.detector)
 
+    @with_feature("organizations:workflow-engine-log-evaluations")
+    @mock.patch.object(
+        detector_settings_registry.get(MetricIssue.slug),
+        "api_enabled",
+        FeatureGate("organizations:workflow-engine-log-evaluations"),
+    )
+    @mock.patch.object(
+        detector_settings_registry.get(MetricIssue.slug),
+        "api_availability",
+        {DetectorAPIOperation.DELETE: FeatureGate("organizations:workflow-engine-log-evaluations")},
+    )
     def test_delete_denied_without_alert_write_access(self) -> None:
         self.organization.update_option("sentry:alerts_member_write", False)
         member = self.create_user()
