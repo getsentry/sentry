@@ -35,7 +35,7 @@ import {
 import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useOrganization} from 'sentry/utils/useOrganization';
-const GRID_COLUMNS = '40px 1fr 138px 150px';
+const GRID_COLUMNS = '48px 1fr 138px 150px';
 const SELECTED_ROW_HEIGHT = 44;
 const BOTTOM_PADDING = 24; // px gap between table bottom and viewport edge
 const estimateSize = () => 68;

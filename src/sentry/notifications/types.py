@@ -2,12 +2,18 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, StrEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, NamedTuple
 
 from sentry.hybridcloud.rpc import ValueEqualityEnum
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
+    from sentry.models.rule import Rule
+
+
+class RuleFuture(NamedTuple):
+    rule: Rule
+    kwargs: dict[str, Any]
 
 
 class NotificationSettingEnum(ValueEqualityEnum):

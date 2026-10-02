@@ -23,8 +23,6 @@ from sentry.silo.base import SiloLimit, SiloMode
 from sentry.utils.tracing import set_span_tag, start_span
 
 logger = logging.getLogger(__name__)
-progress_logger = logging.getLogger("sentry.cleanup.progress")
-progress_logger.setLevel(logging.INFO)
 
 TRANSACTION_PREFIX = "cleanup"
 DELETES_BY_PROJECT_CHUNK_SIZE = 100
@@ -896,6 +894,9 @@ def _schedule_bulk_delete_chunks(
     Returns:
         Tuple of (chunk_count, total_objects)
     """
+    progress_logger = logging.getLogger("sentry.cleanup.progress")
+    progress_logger.setLevel(logging.INFO)
+
     imp = ".".join((model_tp.__module__, model_tp.__name__))
     chunk_count = 0
     total_objects = 0

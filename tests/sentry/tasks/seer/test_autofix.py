@@ -35,6 +35,7 @@ from sentry.testutils.cases import TestCase as SentryTestCase
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 
 
 class TestGenerateIssueSummaryOnly(SentryTestCase):
@@ -238,11 +239,27 @@ class TestAutofixIssueDataJudge(SentryTestCase):
             "content": json.dumps({"verdict": verdict, "confidence": "high", "reason": "Evidence"}),
             "model": "claude-opus-4-8@default",
         }
-        mock_request.return_value = response
+        observed_contexts: list[ViewerContext | None] = []
+
+        def record_viewer_context(*_args: object, **_kwargs: object) -> Mock:
+            observed_contexts.append(get_viewer_context())
+            return response
+
+        mock_request.side_effect = record_viewer_context
 
         with self.feature(FEATURE_FLAG):
             judge_issue_data([(issue_data.id, event_id)])
 
+        assert observed_contexts == [
+            ViewerContext(
+                organization_id=self.organization.id,
+                actor_type=ActorType.SYSTEM,
+            )
+        ]
+        assert mock_request.call_args.kwargs["viewer_context"] == {
+            "organization_id": self.organization.id
+        }
+        assert get_viewer_context() is None
         prompt = json.loads(mock_request.call_args.args[0]["prompt"])
         assert prompt == {
             "event_id": event_id,

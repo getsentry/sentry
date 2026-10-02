@@ -7,13 +7,13 @@
     "jsx": "react-jsx",
     "jsxImportSource": "@emotion/react",
     "strict": true,
+    "declaration": true,
+    "emitDeclarationOnly": true,
     "rootDir": "src",
+    "outDir": "dist",
     "skipLibCheck": true,
     "types": [],
-    "paths": {
-      "@sentry/scraps/*": ["./src/*"]
-    },
-    "noEmit": true
+    "paths": {"@sentry/scraps/*": ["./src/*"]}
   },
   "include": ["src"],
   "exclude": ["src/**/*.spec.tsx"]
