@@ -8,16 +8,23 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import (
     DEFAULT_EXPIRY_TIME,
     DEFAULT_IGNORE_LIMIT,
+    AIDetectedCodeHealthGroupType,
+    AIDetectedDBGroupType,
+    AIDetectedHTTPGroupType,
+    AIDetectedRuntimePerformanceGroupType,
+    AIDetectedSecurityGroupType,
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
     NoiseConfig,
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
+    QueryInjectionVulnerabilityGroupType,
     get_group_type_by_slug,
     get_group_types_by_category,
     should_create_group,
 )
+from sentry.preprod.size_analysis.grouptype import PreprodSizeAnalysisGroupType
 from sentry.testutils.cases import TestCase
 from sentry.utils.redis import redis_clusters
 from sentry.workflow_engine.registry import detector_settings_registry
@@ -176,6 +183,16 @@ class ShouldCreateGroupTest(TestCase):
 
 
 class GroupTypeReleasedTest(BaseGroupTypeTest):
+    def test_completed_rollouts(self) -> None:
+        registry = GroupTypeRegistry()
+        group_types = {QueryInjectionVulnerabilityGroupType, PreprodSizeAnalysisGroupType}
+        for group_type in group_types:
+            registry.add(group_type)
+            assert group_type.allow_ingest(self.organization)
+            assert group_type.allow_post_process_group(self.organization)
+
+        assert set(registry.get_visible(self.organization)) == group_types
+
     def test_released(self) -> None:
         @dataclass(frozen=True)
         class TestGroupType(GroupType):
@@ -243,6 +260,42 @@ class GroupTypeReleasedTest(BaseGroupTypeTest):
 
 
 class GroupRegistryTest(BaseGroupTypeTest):
+    def test_shared_ai_rollout_features(self) -> None:
+        registry = GroupTypeRegistry()
+        group_types = {
+            AIDetectedHTTPGroupType,
+            AIDetectedDBGroupType,
+            AIDetectedRuntimePerformanceGroupType,
+            AIDetectedSecurityGroupType,
+            AIDetectedCodeHealthGroupType,
+        }
+        for group_type in group_types:
+            registry.add(group_type)
+
+        with self.feature(
+            {
+                "organizations:issue-ai-detected-visible": False,
+                "organizations:issue-ai-detected-ingest": False,
+                "organizations:issue-ai-detected-post-process-group": False,
+            }
+        ):
+            assert registry.get_visible(self.organization) == []
+            for group_type in group_types:
+                assert not group_type.allow_ingest(self.organization)
+                assert not group_type.allow_post_process_group(self.organization)
+
+        with self.feature(
+            [
+                "organizations:issue-ai-detected-visible",
+                "organizations:issue-ai-detected-ingest",
+                "organizations:issue-ai-detected-post-process-group",
+            ]
+        ):
+            assert set(registry.get_visible(self.organization)) == group_types
+            for group_type in group_types:
+                assert group_type.allow_ingest(self.organization)
+                assert group_type.allow_post_process_group(self.organization)
+
     def test_get_visible(self) -> None:
         class UnreleasedGroupType(GroupType):
             type_id = 9999
