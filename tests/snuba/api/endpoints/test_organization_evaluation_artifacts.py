@@ -85,7 +85,6 @@ class OrganizationEvaluationArtifactsTest(APITestCase, SnubaTestCase):
         response = self.get_success_response(
             self.organization.slug,
             detector_id=10,
-            triggered="false",
             outcome=["completed", "not_triggered"],
         )
         artifacts = {row["id"]: row for row in response.data}
@@ -118,7 +117,7 @@ class OrganizationEvaluationArtifactsTest(APITestCase, SnubaTestCase):
         assert workflow_data["triggeredActionIds"] == []
         assert workflow_data["delayed"] == {"filterGroupIds": ["40"], "passingFilterGroupIds": []}
 
-    def test_action_membership_and_numeric_activity_type(self) -> None:
+    def test_action_arrays_and_activity_types(self) -> None:
         item = self.store_artifact(
             {
                 "evaluation_type": "workflow",
@@ -128,7 +127,7 @@ class OrganizationEvaluationArtifactsTest(APITestCase, SnubaTestCase):
                 "activity_type": 1234,
             }
         )
-        self.store_artifact(
+        other = self.store_artifact(
             {
                 "evaluation_type": "workflow",
                 "workflow_id": 21,
@@ -137,12 +136,49 @@ class OrganizationEvaluationArtifactsTest(APITestCase, SnubaTestCase):
                 "activity_type": "set_resolved",
             }
         )
-        response = self.get_success_response(
-            self.organization.slug, triggered_action_ids=[60, 80], activity_type=1234
-        )
+        response = self.get_success_response(self.organization.slug, workflow_id=20)
         assert [row["id"] for row in response.data] == [item.item_id.hex()]
         assert response.data[0]["triggeredActionIds"] == ["50", "60"]
         assert response.data[0]["activityType"] == 1234
+        response = self.get_success_response(self.organization.slug, workflow_id=21)
+        assert [row["id"] for row in response.data] == [other.item_id.hex()]
+        assert response.data[0]["triggeredActionIds"] == ["70"]
+        assert response.data[0]["activityType"] == "set_resolved"
+
+    def test_unsupported_attributes_do_not_filter(self) -> None:
+        first = self.store_artifact(
+            {
+                "evaluation_type": "workflow",
+                "workflow_id": 20,
+                "outcome": "actions_triggered",
+                "triggered": True,
+                "triggered_action_ids": [50],
+                "activity_type": 1234,
+            }
+        )
+        second = self.store_artifact(
+            {
+                "evaluation_type": "workflow",
+                "workflow_id": 21,
+                "outcome": "not_triggered",
+                "triggered": False,
+                "triggered_action_ids": [],
+                "activity_type": "set_resolved",
+            }
+        )
+        response = self.get_success_response(
+            self.organization.slug,
+            item_id=first.item_id.hex(),
+            trace_id=first.trace_id,
+            triggered="true",
+            triggered_action_ids=50,
+            activity_type=1234,
+            trigger_evaluation="{}",
+        )
+        assert {row["id"] for row in response.data} == {
+            first.item_id.hex(),
+            second.item_id.hex(),
+        }
 
     def test_pagination_with_equal_timestamps_and_terminal_page(self) -> None:
         first = self.store_artifact(
@@ -211,7 +247,9 @@ class OrganizationEvaluationArtifactsTest(APITestCase, SnubaTestCase):
                 "outcome": "no_workflows",
             }
         )
-        response = self.get_success_response(self.organization.slug, item_id=item.item_id.hex())
+        response = self.get_success_response(
+            self.organization.slug, evaluation_type="workflow", evaluation_phase="delayed"
+        )
         assert response.data == [
             {
                 "id": item.item_id.hex(),
@@ -237,12 +275,6 @@ class OrganizationEvaluationArtifactsTest(APITestCase, SnubaTestCase):
             end=(self.timestamp - timedelta(days=8)).isoformat(),
         )
         assert response.data == []
-
-    def test_invalid_boolean(self) -> None:
-        response = self.get_error_response(
-            self.organization.slug, triggered="invalid", status_code=400
-        )
-        assert "detail" in response.data
 
     def test_invalid_id(self) -> None:
         response = self.get_error_response(self.organization.slug, workflow_id="x", status_code=400)

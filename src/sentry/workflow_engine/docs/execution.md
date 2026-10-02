@@ -439,20 +439,16 @@ organization read/write/admin scopes). Every query is restricted to the URL
 organization and projects the caller can access. Use repeated `project` parameters
 to select projects, or `project=-1` for all accessible projects.
 
-Query parameters use the stored snake_case attribute names:
+Supported attribute filters use stored snake_case names:
 
-- Identity: `project_id`, `item_id`, `trace_id`, `detector_id`, `detector_type`,
-  `workflow_id`, `group_id`, `event_id`, `group_key`, `environment_id`.
-- Evaluation: `evaluation_type`, `evaluation_phase`, `outcome`, `error`, `triggered`,
-  `priority`, `triggered_action_ids`.
-- Issue/event state: `event_kind`, `issue_status`, `issue_substatus`, `issue_priority`,
-  `is_resolved`, `is_new`, `is_regression`, `is_new_group_environment`, `has_escalated`,
-  `activity_type` (name or numeric ID).
-- Encoded condition data: `trigger_evaluation`, `filter_evaluations`, `delayed`.
-  These compare the exact stored JSON string; they do not search nested JSON fields.
+- Identity: `detector_id`, `workflow_id`, `group_id`, `event_id`, `project_id`,
+  `detector_type`.
+- Evaluation: `outcome`, `error`, `evaluation_type`, `evaluation_phase`.
 
 Filters match exactly. Different fields are ANDed; repeated values for one field are
-ORed. `triggered_action_ids` matches artifacts containing any supplied action ID.
+ORed. Other attributes are returned but cannot be used as filters; unsupported query
+parameters are ignored. Retrieval pages matching artifact IDs, then fetches all
+stored attributes in one bulk query rather than maintaining a response-column list.
 For example:
 
 ```text

@@ -33,7 +33,7 @@ from sentry.workflow_engine.endpoints.serializers.evaluation_artifact import (
 )
 from sentry.workflow_engine.processors.evaluations.eap import EAP_RETENTION_DAYS
 from sentry.workflow_engine.processors.evaluations.query import (
-    EVALUATION_ATTRIBUTE_TYPES,
+    EVALUATION_FILTER_TYPES,
     build_evaluation_filter,
     query_evaluation_artifacts,
 )
@@ -42,34 +42,16 @@ FEATURE_FLAG = "organizations:workflow-engine-evaluation-artifacts-api"
 _ATTRIBUTE_PARAM_TYPES = {
     AttributeKey.TYPE_STRING: str,
     AttributeKey.TYPE_INT: int,
-    AttributeKey.TYPE_BOOLEAN: bool,
-    AttributeKey.TYPE_ARRAY_INT: int,
 }
 
 
-class ActivityTypeField(serializers.Field[str | int, Any, str | int, Any]):
-    def to_internal_value(self, data: Any) -> str | int:
-        value = serializers.CharField().run_validation(data)
-        if value.lstrip("+-").isdecimal():
-            return serializers.IntegerField(
-                min_value=-I64_MAX - 1, max_value=I64_MAX
-            ).run_validation(value)
-        return value
-
-
 def evaluation_filter_field(name: str) -> serializers.Field[Any, Any, Any, Any]:
-    attr_type = EVALUATION_ATTRIBUTE_TYPES[name]
-    if name == "activity_type":
-        return ActivityTypeField()
+    attr_type = EVALUATION_FILTER_TYPES[name]
     if name == "evaluation_type":
         return serializers.ChoiceField(choices=["detector", "workflow"])
     if name == "evaluation_phase":
         return serializers.ChoiceField(choices=["initial", "delayed"])
-    if name == "event_kind":
-        return serializers.ChoiceField(choices=["group_event", "activity"])
-    if attr_type == AttributeKey.TYPE_BOOLEAN:
-        return serializers.BooleanField()
-    if attr_type in (AttributeKey.TYPE_INT, AttributeKey.TYPE_ARRAY_INT):
+    if attr_type == AttributeKey.TYPE_INT:
         return serializers.IntegerField(min_value=0, max_value=I64_MAX)
     return serializers.CharField()
 
@@ -87,8 +69,7 @@ class OrganizationEvaluationArtifactsEndpoint(OrganizationEndpoint):
         description=(
             "Experimental detector and workflow evaluation history. Defaults to the last seven days. "
             "All attribute filters are exact matches, ANDed across fields. Repeat a parameter to "
-            "match any of its values. triggered_action_ids matches any listed action ID. "
-            "JSON attribute filters compare the stored JSON string, not nested condition fields. "
+            "match any of its values. "
             "Results are newest first, with artifact ID as the tie-breaker. "
             "Use explicit start/end dates when traversing pages of live data."
         ),
@@ -107,7 +88,7 @@ class OrganizationEvaluationArtifactsEndpoint(OrganizationEndpoint):
                     many=True,
                     description="Exact attribute filter; repeat to match any value.",
                 )
-                for name, attr_type in EVALUATION_ATTRIBUTE_TYPES.items()
+                for name, attr_type in EVALUATION_FILTER_TYPES.items()
             ],
         ],
         responses={
@@ -127,7 +108,7 @@ class OrganizationEvaluationArtifactsEndpoint(OrganizationEndpoint):
             return Response(status=404)
 
         filters: dict[str, list[Any]] = {}
-        for name in EVALUATION_ATTRIBUTE_TYPES:
+        for name in EVALUATION_FILTER_TYPES:
             if name not in request.GET:
                 continue
             field = serializers.ListField(child=evaluation_filter_field(name), allow_empty=False)
