@@ -6,7 +6,7 @@
 import contextlib
 import datetime
 from collections.abc import Collection, Generator, Mapping
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, TypedDict, Union
 
 from django.http.request import HttpRequest
 from pydantic.fields import Field
@@ -56,6 +56,11 @@ class RpcAuthState(RpcModel):
     permissions: list[str]
 
 
+class SuperuserAccess(TypedDict):
+    expires_at: int
+    signature: str
+
+
 class AuthenticatedToken(RpcModel):
     allowed_origins: list[str] = Field(default_factory=list)
     audit_log_data: dict[str, Any] = Field(default_factory=dict)
@@ -66,7 +71,7 @@ class AuthenticatedToken(RpcModel):
     organization_id: int | None = None
     application_id: int | None = None  # only relevant for ApiToken
     project_id: int | None = None  # only relevant for ProjectKey
-    superuser_context: str | None = Field(default=None, repr=False)
+    superuser_access: SuperuserAccess | None = Field(default=None, repr=False)
 
     def token_has_org_access(self, organization_id: int) -> bool:
         return self.kind == "api_token" and self.organization_id == organization_id

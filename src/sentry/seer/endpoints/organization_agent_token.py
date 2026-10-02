@@ -23,7 +23,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
-from sentry.auth.superuser import create_superuser_context, superuser_context_access
+from sentry.auth.superuser import create_superuser_access, resolve_superuser_access
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import organization_service
 from sentry.seer import agent_token
@@ -105,9 +105,9 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
         )
 
         proof = (
-            request.auth.superuser_context
+            request.auth.superuser_access
             if request.auth is not None
-            else create_superuser_context(request, organization)
+            else create_superuser_access(request, organization)
         )
         ttl = agent_token.DEFAULT_TOKEN_TTL
         if proof is not None:
@@ -116,7 +116,7 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
                 id=organization.id, user_id=user_id
             )
             delegated = (
-                superuser_context_access(proof, users[0], org_context)
+                resolve_superuser_access(proof, users[0], org_context)
                 if users and org_context is not None
                 else None
             )
@@ -130,7 +130,7 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
             organization_id=organization.id,
             scopes=scopes,
             session_id=session_id,
-            superuser_context=proof,
+            superuser_access=proof,
             ttl=ttl,
         )
         return Response(

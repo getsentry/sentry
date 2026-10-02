@@ -26,8 +26,9 @@ class TestActorType:
 
 
 class TestViewerContext:
-    def test_superuser_context_roundtrip_and_org_change(self):
-        ctx = ViewerContext(user_id=42, organization_id=10, superuser_context="sentry-proof")
+    def test_superuser_access_roundtrip_and_org_change(self):
+        proof = {"expires_at": 1234567890, "signature": "sentry-proof"}
+        ctx = ViewerContext(user_id=42, organization_id=10, superuser_access=proof)
         assert ViewerContext.deserialize(ctx.serialize()) == ctx
         assert "sentry-proof" not in repr(ctx)
         with viewer_context_scope(ctx):
@@ -36,7 +37,7 @@ class TestViewerContext:
             set_viewer_context_organization(11)
             changed = get_viewer_context()
             assert changed is not None
-            assert changed.superuser_context is None
+            assert changed.superuser_access is None
 
     def test_defaults(self):
         ctx = ViewerContext()

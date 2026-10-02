@@ -29,9 +29,9 @@ from sentry.apidocs.hooks import CustomEndpointEnumerator
 from sentry.attachments.base import CachedAttachment
 from sentry.auth.superuser import (
     SESSION_KEY,
-    SUPERUSER_CONTEXT_SALT,
+    SUPERUSER_ACCESS_SALT,
     Superuser,
-    create_superuser_context,
+    create_superuser_access,
 )
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
@@ -84,8 +84,10 @@ class SuperuserAgentTokenTest(APITestCase):
                 f"{self.path}seer/explorer-chat/", {"query": "List projects"}, format="json"
             )
         assert response.status_code == 200, response.content
-        proof = outbound.call_args.kwargs["viewer_context"]["superuser_context"]
-        assert isinstance(proof, str)
+        proof = outbound.call_args.kwargs["viewer_context"]["superuser_access"]
+        assert isinstance(proof, dict)
+        assert type(proof["expires_at"]) is int
+        assert isinstance(proof["signature"], str)
         return proof
 
     def _mint(self, proof, *, user=None, organization=None):
@@ -94,7 +96,7 @@ class SuperuserAgentTokenTest(APITestCase):
                 organization_id=(organization or self.org).id,
                 user_id=(user or self.employee).id,
                 actor_type=ActorType.USER,
-                superuser_context=proof,
+                superuser_access=proof,
             ),
             key=SECRET,
         )
@@ -126,7 +128,7 @@ class SuperuserAgentTokenTest(APITestCase):
         assert issue_response.data["id"] == str(group.id)
         claims = agent_token.decode_agent_token(minted.data["token"])
         assert set(claims["scopes"]) <= agent_token.readonly_scopes()
-        assert claims["superuser_context"] == proof
+        assert claims["superuser_access"] == proof
 
     def test_viewer_context_authorizes_standard_api_reads(self):
         proof = self._chat_authorization()
@@ -135,7 +137,7 @@ class SuperuserAgentTokenTest(APITestCase):
                 organization_id=self.org.id,
                 user_id=self.employee.id,
                 actor_type=ActorType.USER,
-                superuser_context=proof,
+                superuser_access=proof,
             ),
             key=SECRET,
         )
@@ -168,7 +170,13 @@ class SuperuserAgentTokenTest(APITestCase):
         with self.feature(FLAG):
             assert self._mint(proof, user=other_user).status_code == 401
             assert self._mint(proof, organization=other_org).status_code == 401
-            assert self._mint(proof + "tampered").status_code == 401
+            assert (
+                self._mint({**proof, "signature": proof["signature"] + "tampered"}).status_code
+                == 401
+            )
+            assert (
+                self._mint({**proof, "expires_at": proof["expires_at"] + 3600}).status_code == 401
+            )
 
     def test_expired_elevation_cannot_mint_or_be_used(self):
         proof = self._chat_authorization()
@@ -237,11 +245,11 @@ class SuperuserAgentTokenTest(APITestCase):
         request.COOKIES = {name: value.value for name, value in self.client.cookies.items()}
         request.superuser = Superuser(request)
         with self.feature(FLAG):
-            assert create_superuser_context(request, self.org) is None
+            assert create_superuser_access(request, self.org) is None
             request.superuser.authorize_org(
                 self.org.slug, "for_unit_test", "Testing delegated access"
             )
-            proof = create_superuser_context(request, self.org)
+            proof = create_superuser_access(request, self.org)
             assert proof is not None
             assert self._mint(proof).status_code == 200
 
@@ -249,12 +257,15 @@ class SuperuserAgentTokenTest(APITestCase):
         request = self.make_request(user=self.employee)
         request.auth = None
         with self.feature(FLAG):
-            assert create_superuser_context(request, self.org) is None
+            assert create_superuser_access(request, self.org) is None
 
     def test_seer_shared_secret_cannot_forge_elevation(self):
         proof = self._chat_authorization()
-        payload = signing.loads(proof, salt=SUPERUSER_CONTEXT_SALT)
-        forged = signing.dumps(payload, key=SECRET, salt=SUPERUSER_CONTEXT_SALT)
+        value = f"{self.employee.id}:{self.org.id}:{proof['expires_at']}"
+        forged = {
+            **proof,
+            "signature": signing.Signer(key=SECRET, salt=SUPERUSER_ACCESS_SALT).signature(value),
+        }
         with self.feature(FLAG):
             assert self._mint(forged).status_code == 401
 
@@ -268,7 +279,7 @@ class SuperuserAgentTokenTest(APITestCase):
         idle_expiry = timezone.now() + timedelta(seconds=30)
         request.session[SESSION_KEY]["idl"] = str(idle_expiry.timestamp())
         with self.feature(FLAG):
-            proof = create_superuser_context(request, self.org)
+            proof = create_superuser_access(request, self.org)
             assert proof is not None
             minted = self._mint(proof)
             assert minted.status_code == 200, minted.content

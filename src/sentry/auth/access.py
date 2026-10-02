@@ -18,10 +18,9 @@ from sentry.auth.services.access.service import access_service
 from sentry.auth.services.auth import AuthenticatedToken, RpcAuthState, RpcMemberSsoState
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import (
-    create_superuser_context,
     get_superuser_scopes,
     is_active_superuser,
-    superuser_context_access,
+    resolve_superuser_access,
 )
 from sentry.auth.system import is_system_auth
 from sentry.constants import ObjectStatus
@@ -47,7 +46,6 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.tracing import set_span_data, set_span_tag, start_span
-from sentry.viewer_context import set_viewer_context_superuser
 
 __all__ = (
     "from_user",
@@ -973,10 +971,10 @@ def from_request_org_and_scopes(
     Note that `scopes` is usually None because request.auth is not set at `get_authorization_header`
     when the request is made from the frontend using cookies
     """
-    if isinstance(request.auth, AuthenticatedToken) and request.auth.superuser_context is not None:
+    if isinstance(request.auth, AuthenticatedToken) and request.auth.superuser_access is not None:
         if rpc_user_org_context is None:
             return DEFAULT
-        return from_superuser_context(request.auth, rpc_user_org_context)
+        return from_superuser_access(request.auth, rpc_user_org_context)
     if is_agent_auth(request.auth):
         if rpc_user_org_context is None:
             return DEFAULT
@@ -1019,11 +1017,6 @@ def from_request_org_and_scopes(
         )
 
         superuser_scopes = get_superuser_scopes(auth_state, request.user, rpc_user_org_context)
-        set_viewer_context_superuser(
-            user_id=request.user.id,
-            organization_id=rpc_user_org_context.organization.id,
-            superuser_context=create_superuser_context(request, rpc_user_org_context),
-        )
         if scopes:
             superuser_scopes = superuser_scopes.union(set(scopes))
         if member and member.scopes:
@@ -1095,7 +1088,7 @@ def from_request(
     request: Request, organization: Organization | None = None, scopes: Iterable[str] | None = None
 ) -> Access:
     if isinstance(request.auth, AuthenticatedToken) and (
-        is_agent_auth(request.auth) or request.auth.superuser_context is not None
+        is_agent_auth(request.auth) or request.auth.superuser_access is not None
     ):
         if organization is None:
             return DEFAULT
@@ -1137,11 +1130,6 @@ def from_request(
         sso_state = auth_state.sso_state
 
         superuser_scopes = get_superuser_scopes(auth_state, request.user, organization)
-        set_viewer_context_superuser(
-            user_id=request.user.id,
-            organization_id=organization.id,
-            superuser_context=create_superuser_context(request, organization),
-        )
         if scopes:
             superuser_scopes = superuser_scopes.union(set(scopes))
         if member and (member_scopes := member.get_scopes()):
@@ -1272,11 +1260,11 @@ def from_rpc_member(
 
 
 def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
-    if isinstance(auth, AuthenticatedToken) and auth.superuser_context is not None:
+    if isinstance(auth, AuthenticatedToken) and auth.superuser_access is not None:
         context = organization_service.get_organization_by_id(
             id=organization.id, user_id=auth.user_id
         )
-        return from_superuser_context(auth, context) if context is not None else DEFAULT
+        return from_superuser_access(auth, context) if context is not None else DEFAULT
     if is_system_auth(auth):
         return SystemAccess()
     if is_agent_auth(auth):
@@ -1304,8 +1292,8 @@ def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
 def from_rpc_auth(
     auth: AuthenticatedToken, rpc_user_org_context: RpcUserOrganizationContext
 ) -> Access:
-    if isinstance(auth, AuthenticatedToken) and auth.superuser_context is not None:
-        return from_superuser_context(auth, rpc_user_org_context)
+    if isinstance(auth, AuthenticatedToken) and auth.superuser_access is not None:
+        return from_superuser_access(auth, rpc_user_org_context)
     if is_system_auth(auth):
         return SystemAccess()
     if is_agent_auth(auth):
@@ -1342,8 +1330,8 @@ def from_agent_auth(
         return DEFAULT
     if auth.user_id != rpc_user_org_context.user_id:
         return DEFAULT
-    if isinstance(auth, AuthenticatedToken) and auth.superuser_context is not None:
-        return from_superuser_context(auth, rpc_user_org_context)
+    if isinstance(auth, AuthenticatedToken) and auth.superuser_access is not None:
+        return from_superuser_access(auth, rpc_user_org_context)
     # No membership (never a member, or revoked since mint) -> no access. Required
     # explicitly because RpcBackedAccess would otherwise hand back the full token
     # scopes uncapped when member is None.
@@ -1352,11 +1340,11 @@ def from_agent_auth(
     return from_rpc_member(rpc_user_org_context, scopes=auth.get_scopes())
 
 
-def from_superuser_context(
+def from_superuser_access(
     auth: AuthenticatedToken, rpc_user_org_context: RpcUserOrganizationContext
 ) -> Access:
     if (
-        auth.superuser_context is None
+        auth.superuser_access is None
         or auth.organization_id != rpc_user_org_context.organization.id
         or auth.user_id != rpc_user_org_context.user_id
     ):
@@ -1365,7 +1353,7 @@ def from_superuser_context(
     user = users[0] if users else None
     if user is None:
         return DEFAULT
-    delegated = superuser_context_access(auth.superuser_context, user, rpc_user_org_context)
+    delegated = resolve_superuser_access(auth.superuser_access, user, rpc_user_org_context)
     if delegated is None:
         return DEFAULT
     scopes, _ = delegated

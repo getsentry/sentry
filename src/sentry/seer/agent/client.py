@@ -387,11 +387,11 @@ class SeerAgentClient:
         viewer = get_viewer_context()
         if (
             viewer is not None
-            and viewer.superuser_context is not None
+            and viewer.superuser_access is not None
             and viewer.user_id == context.get("user_id")
             and viewer.organization_id == self.organization.id
         ):
-            context["superuser_context"] = viewer.superuser_context
+            context["superuser_access"] = viewer.superuser_access
         return context
 
     def start_run(
