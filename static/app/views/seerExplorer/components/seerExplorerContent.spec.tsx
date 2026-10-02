@@ -570,6 +570,10 @@ describe('SeerExplorerContent', () => {
       );
 
       const question = await screen.findByText('Which project should we focus on?');
+      // Pinned above the composer, outside the scrolling transcript.
+      expect(screen.getByTestId('seer-explorer-pending-input')).toContainElement(
+        question
+      );
       const alert = screen.getByText(
         'There was an error sending your message, wait and try again.'
       );
@@ -578,7 +582,7 @@ describe('SeerExplorerContent', () => {
       ).toBeTruthy();
     });
 
-    it('shows a pending write approval after the transcript', async () => {
+    it('pins a pending write approval above the composer', async () => {
       jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
         ...defaultHookReturn,
         sessionData: {
@@ -640,6 +644,7 @@ describe('SeerExplorerContent', () => {
       );
 
       const block = await screen.findByTestId('agent-write-approval-block');
+      expect(screen.getByTestId('seer-explorer-pending-input')).toContainElement(block);
       expect(within(block).getByRole('button', {name: 'Approve'})).toBeInTheDocument();
       // Exactly one prompt: the transcript shows no actions of its own.
       expect(screen.getAllByRole('button', {name: 'Approve'})).toHaveLength(1);

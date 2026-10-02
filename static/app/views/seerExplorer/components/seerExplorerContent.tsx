@@ -302,6 +302,7 @@ export function SeerExplorerContent({
   // Only when the error empty state is what's on screen. A live conversation that hits a
   // transient poll error still has its transcript and must keep its composer.
   const showLoadError = isEmptyState && (isError || hasSessionLoadError);
+  const showEmptyState = isEmptyState && (!chatPrompt || showLoadError);
 
   // A question can't be answered in a run that won't take a reply (someone else's, or one
   // that failed to load), so it moves to a new chat instead of being lost.
@@ -419,8 +420,8 @@ export function SeerExplorerContent({
     !!organization?.features.includes('seer-infra-telemetry') &&
     !!organization?.features.includes('seer-infra-telemetry-user-level-auth');
 
-  // Pending-input blocks rendered at the end of the transcript. When one is showing,
-  // the request error alert sits directly above it instead of above the composer.
+  // Pending-input blocks are pinned between the transcript and the composer, outside the
+  // scroll area, so a run waiting on the user never has its prompt scrolled out of view.
   const showFileApprovalBlock =
     !readOnly && isFileApprovalPending && fileApprovalIndex < fileApprovalTotalPatches;
   const questionToShow = !readOnly && isQuestionPending ? currentQuestion : undefined;
@@ -763,7 +764,7 @@ export function SeerExplorerContent({
           <UpdateSlackAlert num_configurations={activeSlackIntegrations.length} />
         )}
         <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
-          {isEmptyState && (!chatPrompt || showLoadError) ? (
+          {showEmptyState ? (
             <EmptyState
               isLoading={isPolling}
               isError={showLoadError}
@@ -790,43 +791,6 @@ export function SeerExplorerContent({
                 showThinking={showThinking}
               />
               {chatPrompt ? <ChatPromptMessage text={chatPrompt.text} /> : null}
-              {showsPendingInputBlock && requestErrorAlert}
-              {showFileApprovalBlock && (
-                <FileChangeApprovalBlock
-                  currentIndex={fileApprovalIndex}
-                  pendingInput={pendingInput}
-                />
-              )}
-              {questionToShow && (
-                <AskUserQuestionBlock
-                  currentQuestion={questionToShow}
-                  customText={customText}
-                  isOtherSelected={isOtherSelected}
-                  onCustomTextChange={handleQuestionCustomTextChange}
-                  onSelectOption={handleQuestionSelectOption}
-                  questionIndex={questionIndex}
-                  selectedOption={selectedOption}
-                />
-              )}
-              {agentWriteApprovalToShow && (
-                <AgentWriteApprovalBlock
-                  key={agentWriteApprovalToShow.id}
-                  pendingInput={agentWriteApprovalToShow}
-                  readOnly={readOnly}
-                  respondToUserInput={respondToUserInput}
-                />
-              )}
-              {reauthToShow && (
-                <ReauthMonitoringProviderBlock
-                  data={reauthToShow}
-                  onComplete={handleReauthComplete}
-                  returnUrl={
-                    runId === null
-                      ? undefined
-                      : getRelativeExplorerUrl(runId, {resume: true})
-                  }
-                />
-              )}
             </Fragment>
           )}
         </BlocksContainer>
@@ -851,7 +815,54 @@ export function SeerExplorerContent({
             </Alert>
           </Container>
         )}
-        {!showsPendingInputBlock && requestErrorAlert}
+        {requestErrorAlert}
+        {!showEmptyState && showsPendingInputBlock && (
+          <Stack
+            data-test-id="seer-explorer-pending-input"
+            flexShrink={0}
+            maxHeight="50%"
+            overflowY="auto"
+            gap="md"
+            paddingTop="md"
+          >
+            {showFileApprovalBlock && (
+              <FileChangeApprovalBlock
+                currentIndex={fileApprovalIndex}
+                pendingInput={pendingInput}
+              />
+            )}
+            {questionToShow && (
+              <AskUserQuestionBlock
+                currentQuestion={questionToShow}
+                customText={customText}
+                isOtherSelected={isOtherSelected}
+                onCustomTextChange={handleQuestionCustomTextChange}
+                onSelectOption={handleQuestionSelectOption}
+                questionIndex={questionIndex}
+                selectedOption={selectedOption}
+              />
+            )}
+            {agentWriteApprovalToShow && (
+              <AgentWriteApprovalBlock
+                key={agentWriteApprovalToShow.id}
+                pendingInput={agentWriteApprovalToShow}
+                readOnly={readOnly}
+                respondToUserInput={respondToUserInput}
+              />
+            )}
+            {reauthToShow && (
+              <ReauthMonitoringProviderBlock
+                data={reauthToShow}
+                onComplete={handleReauthComplete}
+                returnUrl={
+                  runId === null
+                    ? undefined
+                    : getRelativeExplorerUrl(runId, {resume: true})
+                }
+              />
+            )}
+          </Stack>
+        )}
         <InputSection
           blocks={blocks}
           enabled={!readOnly && !showLoadError}
