@@ -1371,7 +1371,10 @@ def test_as_log_message_never_raises_on_missing_or_malformed_fields(
     event_type = which(event)
 
     for path in _all_paths(event):
-        for replacement in (_DELETE, None, "", "[Filtered]", [], {}, 0, True):
+        # `_text` and `get_timestamp_ms` are unit tested for every value type, so this only
+        # checks that each field is read through them: a missing field, a string where an
+        # object is expected, and an object where a string is expected.
+        for replacement in (_DELETE, "[Filtered]", {}):
             mutated = _mutate(event, path, replacement)
             message = as_log_message(mutated, is_mobile_replay)
             if which(mutated) != event_type:
