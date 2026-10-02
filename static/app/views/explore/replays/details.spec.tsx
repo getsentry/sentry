@@ -12,9 +12,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 
 import ReplayDetails from './details';
 
-jest.mock('sentry/utils/replays/hooks/useLoadReplayReader', () => ({
-  useLoadReplayReader: jest.fn(),
-}));
+jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
 jest.mock('sentry/utils/replays/hooks/useReplayPageview');
 
 const mockUseLoadReplayReader = jest.mocked(useLoadReplayReader);

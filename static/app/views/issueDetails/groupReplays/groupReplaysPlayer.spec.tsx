@@ -15,9 +15,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import {GroupReplaysPlayer} from './groupReplaysPlayer';
 
-jest.mock('sentry/utils/replays/hooks/useLoadReplayReader', () => ({
-  useLoadReplayReader: jest.fn(),
-}));
+jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
 
 const mockOrgSlug = 'sentry-emerging-tech';
 const mockReplaySlug = 'replays:761104e184c64d439ee1014b72b4d83b';

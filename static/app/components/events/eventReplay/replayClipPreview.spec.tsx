@@ -29,9 +29,7 @@ jest.mock('react-router', () => ({
     },
   ]),
 }));
-jest.mock('sentry/utils/replays/hooks/useLoadReplayReader', () => ({
-  useLoadReplayReader: jest.fn(),
-}));
+jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
 
 const mockUseLoadReplayReader = jest.mocked(useLoadReplayReader);
 

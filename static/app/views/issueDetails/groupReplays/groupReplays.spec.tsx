@@ -27,9 +27,7 @@ const mockReplayUrl = '/organizations/org-slug/replays/';
 const REPLAY_ID_1 = '346789a703f6454384f1de473b8b9fcc';
 const REPLAY_ID_2 = 'b05dae9b6be54d21a4d5ad9f8f02b780';
 
-jest.mock('sentry/utils/replays/hooks/useLoadReplayReader', () => ({
-  useLoadReplayReader: jest.fn(),
-}));
+jest.mock('sentry/utils/replays/hooks/useLoadReplayReader');
 const mockUseLoadReplayReader = jest.mocked(useLoadReplayReader);
 
 jest.mock('react-router', () => ({
