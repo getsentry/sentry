@@ -1,7 +1,7 @@
 import {useRef} from 'react';
 import type {Node} from '@react-types/shared';
-import {useVirtualizer} from '@tanstack/react-virtual';
 
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import type {FormSize} from 'sentry/utils/theme';
 
 const heightEstimations = {
@@ -35,7 +35,7 @@ export function useVirtualizedItems<T extends ObjectLike>({
   const scrollElementRef = useRef<HTMLDivElement>(null);
   const heightEstimation = heightEstimations[size];
 
-  const virtualizer = useVirtualizer({
+  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
     count: listItems.length,
     getScrollElement: () => scrollElementRef?.current,
     estimateSize: index => {
@@ -47,12 +47,12 @@ export function useVirtualizedItems<T extends ObjectLike>({
       return heightEstimation.regular;
     },
     enabled: virtualized,
+    overscan: 1,
   });
 
   if (virtualized) {
-    const virtualizedItems = virtualizer.getVirtualItems();
     return {
-      items: virtualizedItems,
+      items: virtualItems,
       scrollToIndex: (index: number) => {
         virtualizer.scrollToIndex(index, {align: 'auto'});
       },
@@ -64,7 +64,7 @@ export function useVirtualizedItems<T extends ObjectLike>({
       wrapperProps: {
         'data-is-virtualized': true,
         style: {
-          height: virtualizer.getTotalSize() + listPadding * 2,
+          height: totalSize + listPadding * 2,
           width: '100%',
           position: 'relative',
         },
@@ -74,7 +74,7 @@ export function useVirtualizedItems<T extends ObjectLike>({
         top: 0,
         left: 0,
         width: '100%',
-        transform: `translateY(${virtualizedItems[0]?.start ?? 0}px)`,
+        transform: `translateY(${virtualItems[0]?.start ?? 0}px)`,
       },
     } as const;
   }
