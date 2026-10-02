@@ -1,4 +1,4 @@
-import {Flex, Stack, type FlexProps} from '@sentry/scraps/layout';
+import {Flex, Stack, type FlexProps, type StackProps} from '@sentry/scraps/layout';
 import {Heading, Text, type TextProps} from '@sentry/scraps/text';
 
 interface EmptyStateProps extends Omit<
@@ -7,8 +7,10 @@ interface EmptyStateProps extends Omit<
 > {
   title: React.ReactNode;
   action?: React.ReactNode;
+  contentGap?: StackProps['gap'];
   description?: React.ReactNode;
   illustration?: React.ReactNode;
+  textAlign?: TextProps<'p'>['align'];
 }
 
 export function EmptyState({
@@ -16,10 +18,15 @@ export function EmptyState({
   description,
   illustration,
   action,
+  contentGap = 'md',
+  textAlign: textAlignProp,
   ...props
 }: EmptyStateProps) {
   const switchOn = 'md';
-  const textAlign: TextProps<'p'>['align'] = {zero: 'center', [switchOn]: 'left'};
+  const textAlign: TextProps<'p'>['align'] = textAlignProp ?? {
+    zero: 'center',
+    [switchOn]: 'left',
+  };
 
   return (
     <Flex containerType="inline-size" width="100%" flexGrow={1} minWidth={0}>
@@ -38,7 +45,7 @@ export function EmptyState({
           </Flex>
         )}
         <Stack gap="xl">
-          <Stack gap="md" width="100%" maxWidth="48ch">
+          <Stack gap={contentGap} width="100%" maxWidth="48ch">
             <Heading as="h3" size="lg" align={textAlign}>
               {title}
             </Heading>
