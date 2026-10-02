@@ -129,19 +129,17 @@ export function Screenshot({
               )}
               <Container
                 cursor="pointer"
-                css={css`
-                  & > * {
-                    width: 100%;
-                    z-index: 1;
-                    border: 0;
-                    padding: 0 !important;
-                  }
-                `}
                 onClick={() =>
                   openVisualizationModal(screenshot, `${downloadUrl}?download=1`)
                 }
               >
                 <AttachmentComponent
+                  css={css`
+                    width: 100%;
+                    z-index: 1;
+                    border: 0;
+                    padding: 0 !important;
+                  `}
                   orgSlug={organization.slug}
                   projectSlug={projectSlug}
                   eventId={eventId}
