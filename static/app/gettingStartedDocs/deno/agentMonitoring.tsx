@@ -136,9 +136,7 @@ prompt: "What is the weather in San Francisco?",
           type: 'custom',
           content: (
             <ManualInstrumentationNote
-              docsLink={
-                <ExternalLink href={MANUAL_INSTRUMENTATION_DOCS} />
-              }
+              docsLink={<ExternalLink href={MANUAL_INSTRUMENTATION_DOCS} />}
             />
           ),
         },
