@@ -38,6 +38,7 @@ const PatternTokens = styled('span')`
   .token.char-set,
   .token.escape,
   .token.special-escape {
-    color: ${p => p.theme.tokens.content.success};
+    color: ${p =>
+      p.theme.type === 'dark' ? p.theme.colors.green600 : p.theme.tokens.content.success};
   }
 `;
