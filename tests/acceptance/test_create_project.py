@@ -1,5 +1,9 @@
 from unittest import mock
 
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions
+from selenium.webdriver.support.wait import WebDriverWait
+
 from sentry.integrations.github.integration import GitHubOAuthLoginResult
 from sentry.integrations.models.integration import Integration
 from sentry.models.project import Project
@@ -57,6 +61,13 @@ class ScmCreateProjectTest(AcceptanceTestCase):
     def load_project_creation_page(self) -> None:
         self.browser.get(self.path)
         self.browser.wait_until(xpath='//h4[text()="Repository"]')
+
+    def select_platform(self, name: str) -> None:
+        platform_input = self.browser.element('input[aria-autocomplete="list"]')
+        platform_input.send_keys(name)
+        option = f'//p[@data-test-id="menu-list-item-label"][text()="{name}"]'
+        self.browser.wait_until(xpath=option)
+        self.browser.click(xpath=option)
 
     def select_repository(self) -> None:
         repository_input = self.browser.element('input[aria-autocomplete="list"]')
@@ -179,13 +190,7 @@ class ScmCreateProjectTest(AcceptanceTestCase):
             }
         ):
             self.load_project_creation_page()
-
-            platform_input = self.browser.element('input[aria-autocomplete="list"]')
-            platform_input.send_keys("React")
-            self.browser.wait_until(
-                xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]'
-            )
-            self.browser.click(xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]')
+            self.select_platform("React")
 
             self.browser.wait_until(xpath='//*[@role="checkbox"][.//*[text()="Tracing"]]')
             self.browser.click(xpath='//*[@role="checkbox"][.//*[text()="Tracing"]]')
@@ -226,13 +231,6 @@ class ScmCreateProjectTest(AcceptanceTestCase):
             self.select_repository()
             self.create_scm_project("Django", "python-django")
 
-    def select_platform(self, name: str) -> None:
-        platform_input = self.browser.element('input[aria-autocomplete="list"]')
-        platform_input.send_keys(name)
-        option = f'//p[@data-test-id="menu-list-item-label"][text()="{name}"]'
-        self.browser.wait_until(xpath=option)
-        self.browser.click(xpath=option)
-
     def test_create_team(self) -> None:
         org = self.create_organization(name="Rowdy Tiger", owner=self.user)
 
@@ -252,12 +250,19 @@ class ScmCreateProjectTest(AcceptanceTestCase):
         with self.feature({"organizations:onboarding-scm-project-creation": True}):
             self.load_project_creation_page()
             self.select_platform("Laravel")
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
             self.browser.click(xpath='//button[contains(., "Create project")]')
             self.browser.wait_until(xpath="//h2[text()='Configure Laravel SDK']")
             project1 = Project.objects.get(organization=self.org, slug="php-laravel")
 
+            # Going back deletes the project before returning to the form, which
+            # restores the Laravel selection.
             self.browser.click(xpath='//button[contains(., "Back to Platform Selection")]')
-            self.load_project_creation_page()
+            WebDriverWait(self.browser.driver, 10).until(
+                expected_conditions.text_to_be_present_in_element_value(
+                    (By.CSS_SELECTOR, 'input[placeholder="project-name"]'), "php-laravel"
+                )
+            )
             self.select_platform("Next.js")
             self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
             self.browser.click(xpath='//button[contains(., "Create project")]')
