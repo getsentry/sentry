@@ -6,7 +6,7 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {
@@ -234,9 +234,7 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   if (isRegexOperator(token.operator)) {
     return (
       <Flex align="center" minWidth="0" width="100%">
-        <Container paddingRight="2xs">
-          <RegexDelimiter />
-        </Container>
+        <RegexDelimiter paddingRight="xs" />
         <TruncatedFilterDisplayValue
           value={formatFilterValue({token: token.value, valueType})}
           fallbackMaxLength={FILTER_VALUE_FALLBACK_MAX_LENGTH}

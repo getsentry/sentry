@@ -1,9 +1,27 @@
+import styled from '@emotion/styled';
+
 import {Text} from '@sentry/scraps/text';
 
-export function RegexDelimiter(props: {onMouseDown?: React.MouseEventHandler}) {
+import type {SpaceSize} from 'sentry/utils/theme';
+
+interface RegexDelimiterProps {
+  onMouseDown?: React.MouseEventHandler;
+  paddingRight?: SpaceSize;
+}
+
+export function RegexDelimiter({onMouseDown, paddingRight}: RegexDelimiterProps) {
   return (
-    <Text aria-hidden variant="muted" {...props}>
+    <DelimiterText
+      aria-hidden
+      onMouseDown={onMouseDown}
+      paddingRight={paddingRight}
+      variant="muted"
+    >
       /
-    </Text>
+    </DelimiterText>
   );
 }
+
+const DelimiterText = styled(Text)<{paddingRight?: SpaceSize}>`
+  padding-right: ${p => (p.paddingRight ? p.theme.space[p.paddingRight] : undefined)};
+`;

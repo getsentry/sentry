@@ -8691,7 +8691,7 @@ describe('SearchQueryBuilder', () => {
       );
     });
 
-    it('shows slashes around a regex value', async () => {
+    it('shows slashes when the value is a non-empty regex', async () => {
       render(
         <SearchQueryBuilder
           {...defaultProps}
@@ -8708,7 +8708,7 @@ describe('SearchQueryBuilder', () => {
       expect(within(valueButton).getByText('^a.*b')).toBeInTheDocument();
     });
 
-    it('shows slashes around an empty regex value', async () => {
+    it('shows slashes when the value is an empty regex', async () => {
       render(
         <SearchQueryBuilder
           {...defaultProps}

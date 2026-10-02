@@ -1319,7 +1319,6 @@ export function SearchQueryBuilderValueCombobox({
     [dispatch, fieldDefinition, selectedValues, token]
   );
 
-  // Prevent the mousedown from blurring the input, which would commit the value.
   const focusInputFromDelimiter = (e: React.MouseEvent) => {
     e.preventDefault();
     inputRef.current?.focus();
