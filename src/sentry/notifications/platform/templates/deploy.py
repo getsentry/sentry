@@ -27,6 +27,7 @@ from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationCategory,
     NotificationData,
+    NotificationLink,
     NotificationProviderKey,
     NotificationRenderedAction,
     NotificationRenderedTemplate,
@@ -143,7 +144,11 @@ def build_deploy_body(data: DeployReleaseData) -> list[NotificationSection]:
         for rp in data.release_projects:
             release_project_blocks = [
                 PlainTextBlock(text=f"{rp['project_slug']} ("),
-                LinkTextBlock(text="View Release", url=rp["release_url"]),
+                LinkTextBlock(
+                    text="View Release",
+                    url=rp["release_url"],
+                    tracked_as=NotificationLink.RELEASE,
+                ),
                 PlainTextBlock(text=")"),
             ]
             if rp["resolved_issue_count"]:
@@ -193,18 +198,34 @@ def build_deploy_body(data: DeployReleaseData) -> list[NotificationSection]:
 def build_deploy_actions(data: DeployReleaseData) -> list[NotificationRenderedAction]:
     if data.repo_name_to_commits or not data.repo_setup_link:
         return []
-    return [NotificationRenderedAction(label="Connect a repository", link=data.repo_setup_link)]
+    return [
+        NotificationRenderedAction(
+            label="Connect a repository",
+            link=data.repo_setup_link,
+            tracked_as=NotificationLink.CONNECT_REPOSITORY,
+        )
+    ]
 
 
 def build_deploy_footer(data: DeployReleaseData) -> list[NotificationTextBlock]:
     blocks: list[NotificationTextBlock] = []
     if data.alert_name and data.alert_url:
         blocks.append(PlainTextBlock(text="Alert:"))
-        blocks.append(LinkTextBlock(text=data.alert_name, url=data.alert_url))
+        blocks.append(
+            LinkTextBlock(
+                text=data.alert_name, url=data.alert_url, tracked_as=NotificationLink.ALERT
+            )
+        )
     if data.user_settings_url and blocks:
         blocks.append(PlainTextBlock(text=TEXT_DELIMITER))
     if data.user_settings_url:
-        blocks.append(LinkTextBlock(text="Manage Preferences", url=data.user_settings_url))
+        blocks.append(
+            LinkTextBlock(
+                text="Manage Preferences",
+                url=data.user_settings_url,
+                tracked_as=NotificationLink.NOTIFICATION_SETTINGS,
+            )
+        )
     return blocks
 
 

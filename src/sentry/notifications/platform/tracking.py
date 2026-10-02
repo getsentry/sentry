@@ -1,11 +1,10 @@
 import logging
-import re
 from collections.abc import Collection, Mapping
 from copy import copy
 from dataclasses import dataclass, replace
 from enum import StrEnum
 from typing import NotRequired, TypedDict, cast
-from urllib.parse import SplitResult, parse_qs, parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from sentry import analytics, options
 from sentry.analytics.events.notification_tracking import (
@@ -15,6 +14,7 @@ from sentry.analytics.events.notification_tracking import (
 from sentry.notifications.platform.types import (
     LinkTextBlock,
     NotificationCategory,
+    NotificationLink,
     NotificationProviderKey,
     NotificationRenderedTemplate,
     NotificationSection,
@@ -24,20 +24,6 @@ from sentry.notifications.platform.types import (
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
-
-
-class NotificationLink(StrEnum):
-    """What a tracked link points to, inferred from the page it lands on."""
-
-    ISSUE = "issue"
-    SEER = "seer"
-    """An issue opened with the Seer drawer."""
-    ISSUE_LIST = "issue_list"
-    ALERT = "alert"
-    RELEASE = "release"
-    DATA_EXPORT = "data_export"
-    SETTINGS = "settings"
-    OTHER = "other"
 
 
 class NotificationEngagementMechanism(StrEnum):
@@ -87,63 +73,44 @@ def is_tracking_enabled(
     )
 
 
-def classify_link(url: str) -> NotificationLink:
-    """
-    Works with both path styles: `/organizations/<slug>/issues/1/` and, on an organization's own
-    subdomain, `/issues/1/`.
-    """
-    parsed = urlsplit(url)
-    path = re.sub(r"^/organizations/[^/]+", "", parsed.path)
-    query = parse_qs(parsed.query)
-
-    if re.match(r"^/issues/\d+(/|$)", path):
-        return (
-            NotificationLink.SEER if query.get("seerDrawer") == ["true"] else NotificationLink.ISSUE
-        )
-    if path.startswith("/issues/"):
-        return NotificationLink.ISSUE if "preview" in query else NotificationLink.ISSUE_LIST
-    if path.startswith(("/monitors/alerts/", "/alerts/")):
-        return NotificationLink.ALERT
-    if path.startswith("/releases/"):
-        return NotificationLink.RELEASE
-    if path.startswith("/data-export/"):
-        return NotificationLink.DATA_EXPORT
-    if path.startswith("/settings/"):
-        return NotificationLink.SETTINGS
-    return NotificationLink.OTHER
-
-
 def decorate_links(
     rendered_template: NotificationRenderedTemplate, *, referrer: str, notification_uuid: str
 ) -> tuple[NotificationRenderedTemplate, set[NotificationLink]]:
     """
-    Adds `referrer` and `notification_uuid` to every Sentry link in the rendered template, replacing
-    any values already there. Returns the decorated template and the kinds of link it contains.
-    Other links and images are left alone, and a link that can't be decorated is kept as it was.
+    Adds `referrer`, `notification_uuid`, and `notification_link` (the link's `tracked_as` name) to
+    every tracked link in the rendered template, replacing any values already there. Returns the
+    decorated template and the names of the links it contains. A link that can't be decorated is
+    kept as it was.
     """
     links: set[NotificationLink] = set()
 
-    def decorate(url: str) -> str:
+    def decorate(url: str, tracked_as: NotificationLink) -> str:
         try:
             parsed = urlsplit(url)
-            if not _is_sentry_url(parsed):
-                return url
             query = [
                 (key, value)
                 for key, value in parse_qsl(parsed.query, keep_blank_values=True)
-                if key not in ("referrer", "notification_uuid")
+                if key not in ("referrer", "notification_uuid", "notification_link")
             ]
-            query += [("referrer", referrer), ("notification_uuid", notification_uuid)]
+            query += [
+                ("referrer", referrer),
+                ("notification_uuid", notification_uuid),
+                ("notification_link", tracked_as),
+            ]
             decorated = urlunsplit(parsed._replace(query=urlencode(query)))
-            links.add(classify_link(url))
-            return decorated
         except Exception:
             logger.exception("notifications.tracking.decorate_link.failed", extra={"url": url})
             return url
+        links.add(tracked_as)
+        return decorated
 
     def decorate_blocks(blocks: list[NotificationTextBlock]) -> list[NotificationTextBlock]:
         return [
-            replace(block, url=decorate(block.url)) if isinstance(block, LinkTextBlock) else block
+            (
+                replace(block, url=decorate(block.url, block.tracked_as))
+                if isinstance(block, LinkTextBlock) and block.tracked_as
+                else block
+            )
             for block in blocks
         ]
 
@@ -162,7 +129,12 @@ def decorate_links(
         subject=decorate_text(rendered_template.subject),
         body=[decorate_section(section) for section in rendered_template.body],
         actions=[
-            replace(action, link=decorate(action.link)) for action in rendered_template.actions
+            (
+                replace(action, link=decorate(action.link, action.tracked_as))
+                if action.tracked_as
+                else action
+            )
+            for action in rendered_template.actions
         ],
         footer=(
             None if rendered_template.footer is None else decorate_text(rendered_template.footer)
@@ -171,21 +143,10 @@ def decorate_links(
     return decorated, links
 
 
-def _is_sentry_url(parsed: SplitResult) -> bool:
-    host = parsed.hostname
-    sentry_host = urlsplit(options.get("system.url-prefix")).hostname
-    return (
-        parsed.scheme in ("http", "https")
-        and host is not None
-        and sentry_host is not None
-        and (host == sentry_host or host.endswith(f".{sentry_host}"))
-    )
-
-
 def record_sent(context: NotificationTrackingContext, *, links: Collection[str] = ()) -> None:
     """
-    Record that a notification was delivered. `links` names each kind of tracked link or button
-    present in the message, which provides the per-link denominator for click-through. A link that
+    Record that a notification was delivered. `links` holds the names of the tracked links and
+    buttons in the message, which provides the per-link denominator for click-through. A name that
     appears more than once is counted once.
     """
     try:

@@ -30,7 +30,6 @@ from sentry.notifications.platform.threading import (
     ThreadingService,
 )
 from sentry.notifications.platform.tracking import (
-    NotificationLink,
     NotificationTrackingContext,
     decorate_links,
     is_tracking_enabled,
@@ -38,6 +37,7 @@ from sentry.notifications.platform.tracking import (
 )
 from sentry.notifications.platform.types import (
     NotificationData,
+    NotificationLink,
     NotificationProviderKey,
     NotificationSource,
     NotificationStrategy,
@@ -189,7 +189,7 @@ class NotificationService[T: NotificationData]:
         provider: type[NotificationProvider[RenderableT]],
     ) -> tuple[RenderableT, set[NotificationLink]]:
         """
-        Returns the renderable and the kinds of tracked link it contains. Links are only tracked
+        Returns the renderable and the names of the tracked links it contains. Links are only tracked
         through the provider's default renderer, since custom renderers don't use the rendered
         template.
         """

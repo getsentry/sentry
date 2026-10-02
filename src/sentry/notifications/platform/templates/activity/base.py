@@ -17,6 +17,7 @@ from sentry.notifications.platform.types import (
     CodeTextBlock,
     LinkTextBlock,
     NotificationData,
+    NotificationLink,
     NotificationProviderKey,
     NotificationSection,
     NotificationSource,
@@ -139,25 +140,39 @@ class AssignedNotificationData(ActivityNotificationData):
 def build_footer(data: ActivityNotificationData) -> list[NotificationTextBlock]:
     blocks: list[NotificationTextBlock] = [
         PlainTextBlock(text="Project:"),
-        LinkTextBlock(text=data.project_slug, url=data.project_url),
+        LinkTextBlock(
+            text=data.project_slug, url=data.project_url, tracked_as=NotificationLink.PROJECT
+        ),
     ]
     if data.alert_name and data.alert_url:
         blocks.append(PlainTextBlock(text=FOOTER_DELIMITER))
         blocks.append(PlainTextBlock(text="Alert:"))
-        blocks.append(LinkTextBlock(text=data.alert_name, url=data.alert_url))
+        blocks.append(
+            LinkTextBlock(
+                text=data.alert_name, url=data.alert_url, tracked_as=NotificationLink.ALERT
+            )
+        )
     if data.user_settings_url:
         blocks.append(PlainTextBlock(text=FOOTER_DELIMITER))
-        blocks.append(LinkTextBlock(text="Manage Preferences", url=data.user_settings_url))
+        blocks.append(
+            LinkTextBlock(
+                text="Manage Preferences",
+                url=data.user_settings_url,
+                tracked_as=NotificationLink.NOTIFICATION_SETTINGS,
+            )
+        )
     return blocks
 
 
 def build_issue_link(issue_short_id: str | None, issue_url: str) -> LinkTextBlock:
     label = issue_short_id or "This issue"
-    return LinkTextBlock(text=label, url=issue_url)
+    return LinkTextBlock(text=label, url=issue_url, tracked_as=NotificationLink.ISSUE)
 
 
 def get_issue_description(data: ActivityNotificationData) -> list[NotificationSection]:
-    blocks: list[NotificationTextBlock] = [LinkTextBlock(text=data.issue_title, url=data.issue_url)]
+    blocks: list[NotificationTextBlock] = [
+        LinkTextBlock(text=data.issue_title, url=data.issue_url, tracked_as=NotificationLink.ISSUE)
+    ]
     if data.issue_culprit:
         blocks.extend([PlainTextBlock(text="—"), CodeTextBlock(text=data.issue_culprit)])
     sections: list[NotificationSection] = [ParagraphSection(blocks=blocks)]

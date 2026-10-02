@@ -10,6 +10,7 @@ from sentry.notifications.platform.types import (
     CodeTextBlock,
     NotificationCategory,
     NotificationData,
+    NotificationLink,
     NotificationRenderedAction,
     NotificationRenderedTemplate,
     NotificationSource,
@@ -50,7 +51,13 @@ class DataExportSuccessTemplate(NotificationTemplate[DataExportSuccess]):
                     ],
                 )
             ],
-            actions=[NotificationRenderedAction(label="Take Me There", link=data.export_url)],
+            actions=[
+                NotificationRenderedAction(
+                    label="Take Me There",
+                    link=data.export_url,
+                    tracked_as=NotificationLink.DATA_EXPORT,
+                )
+            ],
             footer=f"This download file expires at {format_date(data.expiration_date)}. So don't get attached.",
         )
 

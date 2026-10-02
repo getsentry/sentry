@@ -12,19 +12,32 @@ from sentry.notifications.platform.registry import (
     template_registry,
 )
 from sentry.notifications.platform.service import NotificationService
-from sentry.notifications.platform.tracking import classify_link
-from sentry.notifications.platform.types import LinkTextBlock, NotificationRenderedTemplate
+from sentry.notifications.platform.types import (
+    LinkTextBlock,
+    NotificationLink,
+    NotificationRenderedTemplate,
+)
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 
 
-def get_links(rendered_template: NotificationRenderedTemplate) -> list[str]:
+def get_links(
+    rendered_template: NotificationRenderedTemplate,
+) -> list[tuple[str, NotificationLink | None]]:
     blocks = [*rendered_template.subject_blocks, *rendered_template.footer_blocks]
     for section in rendered_template.body:
         blocks.extend(section.blocks)
-    return [block.url for block in blocks if isinstance(block, LinkTextBlock)] + [
-        action.link for action in rendered_template.actions
-    ]
+    return [
+        (block.url, block.tracked_as) for block in blocks if isinstance(block, LinkTextBlock)
+    ] + [(action.link, action.tracked_as) for action in rendered_template.actions]
+
+
+def is_sentry_page(url: str) -> bool:
+    hostname = urlsplit(url).hostname or ""
+    return (hostname == "sentry.io" or hostname.endswith(".sentry.io")) and hostname not in (
+        "docs.sentry.io",
+        "www.sentry.io",
+    )
 
 
 def get_strings(value: Any) -> Iterator[str]:
@@ -79,18 +92,19 @@ class RenderTemplateLinkTrackingTest(TestCase):
                     rendered_template = render.call_args.kwargs["rendered_template"]
                     text = "\n".join(get_strings(renderable))
 
-                    sentry_links = [
-                        link
-                        for link in get_links(rendered_template)
-                        if (urlsplit(link).hostname or "").endswith("sentry.io")
-                    ]
-                    for link in sentry_links:
+                    tracked: set[NotificationLink] = set()
+                    for link, tracked_as in get_links(rendered_template):
+                        if tracked_as is None:
+                            assert not is_sentry_page(link), link
+                            continue
                         query = parse_qs(urlsplit(link).query)
                         assert query["referrer"] == [f"{source}-{provider.key}"], link
                         assert query["notification_uuid"] == [data.notification_uuid], link
+                        assert query["notification_link"] == [tracked_as], link
                         assert link in text, link
+                        tracked.add(tracked_as)
                         checked += 1
-                    assert links == {classify_link(link) for link in sentry_links}
+                    assert links == tracked
 
         assert checked
 
