@@ -216,6 +216,20 @@ def test_delete_grouping_records_uses_generic_metrics_endpoint(
 
 
 class TestResolveViewerContext:
+    def test_outbox_preserves_elevation_without_ambient_context(self) -> None:
+        result = _resolve_viewer_context(
+            SeerViewerContext(organization_id=42, user_id=7, superuser_context="sentry-proof")
+        )
+        assert result is not None
+        assert result.superuser_context == "sentry-proof"
+
+    def test_changing_viewer_strips_elevation(self) -> None:
+        ctx = ViewerContext(organization_id=42, user_id=7, superuser_context="sentry-proof")
+        with viewer_context_scope(ctx):
+            result = _resolve_viewer_context(SeerViewerContext(organization_id=43, user_id=7))
+        assert result is not None
+        assert result.superuser_context is None
+
     def test_both_none(self) -> None:
         assert _resolve_viewer_context(None) is None
 

@@ -27,6 +27,7 @@ from sentry_relay.exceptions import UnpackError
 
 from sentry import features, options
 from sentry.auth.services.auth import AuthenticatedToken
+from sentry.auth.superuser import superuser_context_access
 from sentry.auth.system import SystemToken, is_internal_ip
 from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
 from sentry.hybridcloud.rpc.service import RpcAuthenticationSetupException, compare_signature
@@ -617,7 +618,7 @@ class AgentTokenAuthentication(StandardAuthentication):
     The agent credential remains the authorization authority. A non-authoritative,
     ephemeral copy of the delegating user is returned only for compatibility with
     callsites that still require ``request.user``; API access is derived from the
-    delegating member and capped by the token in ``access.from_agent_auth``."""
+    delegating member or approved superuser context, capped by the token."""
 
     token_name = b"bearer"
 
@@ -625,9 +626,6 @@ class AgentTokenAuthentication(StandardAuthentication):
         if not super().accepts_auth(auth) or len(auth) != 2:
             return False
         return agent_token.is_agent_token_string(force_str(auth[1]))
-
-    def build_auth_token(self, request: Request, token_str: str) -> AuthenticatedToken:
-        return agent_token.build_authenticated_token(agent_token.decode_agent_token(token_str))
 
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         def fail(reason: str, **extra: Any) -> NoReturn:
@@ -651,9 +649,10 @@ class AgentTokenAuthentication(StandardAuthentication):
             raise AuthenticationFailed("Invalid agent token")
 
         try:
+            claims = agent_token.decode_agent_token(token_str)
             # Building the token casts org and scopes too, so any missing/mis-typed claim
             # in a signed token is a clean 401 here, not a 500 downstream.
-            auth_token = self.build_auth_token(request, token_str)
+            auth_token = agent_token.build_authenticated_token(claims)
             user_id = auth_token.user_id
         except (PyJWTError, KeyError, ValueError, TypeError) as exc:
             fail("decode_failed", error_type=type(exc).__name__)
@@ -662,7 +661,7 @@ class AgentTokenAuthentication(StandardAuthentication):
             fail("no_user_principal", org_id=auth_token.organization_id)
 
         # The delegating user must still be valid even though they are not the request user.
-        if auth_token.superuser_session is not None:
+        if auth_token.superuser_context is not None:
             # Non-members do not necessarily receive this cell's user-cache invalidations.
             users = user_service.get_many(filter={"user_ids": [user_id]})
             user = users[0] if users else None
@@ -683,14 +682,9 @@ class AgentTokenAuthentication(StandardAuthentication):
         )
         if org_context is None:
             fail("org_context_missing", user_id=user_id, org_id=auth_token.organization_id)
-        if auth_token.superuser_session is not None:
-            if (
-                agent_token.superuser_session_access(
-                    auth_token.superuser_session, user, org_context
-                )
-                is None
-            ):
-                fail("superuser_session_invalid", user_id=user_id)
+        if auth_token.superuser_context is not None:
+            if superuser_context_access(auth_token.superuser_context, user, org_context) is None:
+                fail("superuser_context_invalid", user_id=user_id)
         elif org_context.member is None:
             fail("org_membership_missing", user_id=user_id, org_id=auth_token.organization_id)
         if not features.has(
@@ -935,9 +929,9 @@ class ViewerContextAuthentication(BaseAuthentication):
     Used by trusted services (e.g., Seer) that echo back the viewer context
     originally signed by Sentry.
 
-    The user is resolved via user_service.get_user() (RPC-backed, cached).
-    Sets request.auth = None so that determine_access derives permissions
-    from the user's OrganizationMember role — identical to session auth.
+    Identity-only contexts derive access from organization membership. An optional
+    Sentry-signed superuser context instead produces an org-bound credential;
+    shared access checks validate it again and cap it to read-only scopes.
     """
 
     def authenticate(self, request: Request) -> tuple[Any, Any] | None:
@@ -966,7 +960,11 @@ class ViewerContextAuthentication(BaseAuthentication):
             )
             return None
 
-        user = user_service.get_user(user_id=vc.user_id)
+        if vc.superuser_context is not None:
+            users = user_service.get_many(filter={"user_ids": [vc.user_id]})
+            user = users[0] if users else None
+        else:
+            user = user_service.get_user(user_id=vc.user_id)
         if user is None or not user.is_active or getattr(user, "is_suspended", False):
             # TODO(jstanley): Temporary logging for debugging non-public prod 401s
             # during X-Viewer-Context propagation (Seer code mode callbacks).
@@ -993,6 +991,38 @@ class ViewerContextAuthentication(BaseAuthentication):
         # session-like for permission derivation, but mark it so org access can
         # avoid requiring browser-session SSO state on service callbacks.
         setattr(request, "user_from_viewer_context", True)
+
+        if vc.superuser_context is not None:
+            org_context = (
+                organization_service.get_organization_by_id(
+                    id=vc.organization_id,
+                    user_id=user.id,
+                    include_projects=False,
+                    include_teams=False,
+                )
+                if vc.organization_id is not None
+                else None
+            )
+            delegated = (
+                superuser_context_access(vc.superuser_context, user, org_context)
+                if org_context is not None
+                else None
+            )
+            if delegated is None:
+                raise AuthenticationFailed("Invalid superuser context")
+            scopes, _ = delegated
+            credential = AuthenticatedToken(
+                kind="viewer_context",
+                user_id=user.id,
+                organization_id=vc.organization_id,
+                scopes=sorted(scopes),
+                superuser_context=vc.superuser_context,
+            )
+            # Org-bound access must not enable global staff/superuser bypasses.
+            user = user.copy(
+                update={"is_staff": False, "is_superuser": False, "permissions": frozenset()}
+            )
+            return (user, credential)
 
         # Return None for auth to match session behavior —
         # determine_access will derive scopes from org membership role.

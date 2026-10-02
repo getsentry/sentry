@@ -6,14 +6,13 @@ from typing import Any, cast
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
-from rest_framework.exceptions import AuthenticationFailed, PermissionDenied
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.authentication import AgentTokenAuthentication
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
@@ -24,41 +23,18 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
-from sentry.auth.services.auth import AuthenticatedToken
+from sentry.auth.superuser import create_superuser_context, superuser_context_access
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import organization_service
 from sentry.seer import agent_token
 from sentry.seer.endpoints.agent_request import AgentTokenRequestData, AgentTokenRequestSerializer
 from sentry.users.services.user.service import user_service
-from sentry.viewer_context import viewer_context_from_header
 
 
 class AgentTokenResponseSerializer(serializers.Serializer):
     token = serializers.CharField()
     expiresAt = serializers.DateTimeField()
     scopes = serializers.ListField(child=serializers.CharField())
-
-
-class AgentSessionAuthentication(AgentTokenAuthentication):
-    """Only the mint endpoint accepts a session delegation, bound to its signed viewer."""
-
-    def authenticate(self, request: Request) -> tuple[Any, Any] | None:
-        proof = request.headers.get(agent_token.AGENT_AUTHORIZATION_HEADER)
-        if not proof:
-            return None
-        return self.authenticate_token(request, proof)
-
-    def build_auth_token(self, request: Request, token_str: str) -> AuthenticatedToken:
-        viewer = viewer_context_from_header(request.META.get("HTTP_X_VIEWER_CONTEXT", ""))
-        if viewer is None or viewer.user_id is None or viewer.organization_id is None:
-            raise AuthenticationFailed("Signed viewer context required.")
-        return AuthenticatedToken(
-            kind=agent_token.AGENT_SESSION_KIND,
-            user_id=viewer.user_id,
-            organization_id=viewer.organization_id,
-            scopes=sorted(agent_token.readonly_scopes()),
-            superuser_session=token_str,
-        )
 
 
 class AgentTokenPermission(OrganizationPermission):
@@ -77,10 +53,6 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
     }
     owner = ApiOwner.ML_AI
     permission_classes = (AgentTokenPermission,)
-    authentication_classes = (
-        AgentSessionAuthentication,
-        *OrganizationEndpoint.authentication_classes,
-    )
 
     @extend_schema(
         operation_id="Mint a Seer agent capability token",
@@ -133,9 +105,9 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
         )
 
         proof = (
-            request.auth.superuser_session
-            if agent_token.is_agent_auth(request.auth)
-            else agent_token.create_agent_authorization(request, organization)
+            request.auth.superuser_context
+            if request.auth is not None
+            else create_superuser_context(request, organization)
         )
         ttl = agent_token.DEFAULT_TOKEN_TTL
         if proof is not None:
@@ -144,7 +116,7 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
                 id=organization.id, user_id=user_id
             )
             delegated = (
-                agent_token.superuser_session_access(proof, users[0], org_context)
+                superuser_context_access(proof, users[0], org_context)
                 if users and org_context is not None
                 else None
             )
@@ -158,7 +130,7 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
             organization_id=organization.id,
             scopes=scopes,
             session_id=session_id,
-            superuser_session=proof,
+            superuser_context=proof,
             ttl=ttl,
         )
         return Response(
