@@ -34,6 +34,14 @@ export interface DescriptionListProps extends React.HTMLAttributes<HTMLDListElem
   nowrap?: boolean;
   ref?: React.Ref<HTMLDListElement>;
   /**
+   * Lay the list out as a full-width table: alternate rows are striped, terms
+   * and details split the width evenly, and details sit against the far edge.
+   * Each cell stays on one line and truncates. Terms are set in the primary
+   * color and details in the secondary color, so `terms` does not apply.
+   * @default false
+   */
+  striped?: boolean;
+  /**
    * How terms are set against their details.
    *
    * - `muted` sets them in the secondary color at a regular weight, so the
@@ -54,12 +62,19 @@ const List = styled('dl', {
     prop !== 'columns' &&
     prop !== 'align' &&
     prop !== 'terms' &&
+    prop !== 'striped' &&
     isPropValid(prop),
 })<DescriptionListProps>`
   display: grid;
-  ${p => rc('grid-template-columns', p.columns ?? 'max-content minmax(0, 1fr)', p.theme)};
-  ${p => rc('align-items', p.align ?? 'baseline', p.theme)};
-  ${p => rc('gap', p.gap ?? 'sm md', p.theme, getSpacing)};
+  ${p =>
+    rc(
+      'grid-template-columns',
+      p.columns ??
+        (p.striped ? 'minmax(0, 1fr) minmax(0, 1fr)' : 'max-content minmax(0, 1fr)'),
+      p.theme
+    )};
+  ${p => rc('align-items', p.align ?? (p.striped ? 'stretch' : 'baseline'), p.theme)};
+  ${p => rc('gap', p.gap ?? (p.striped ? '0' : 'sm md'), p.theme, getSpacing)};
   margin: 0;
   text-align: left;
   ${p =>
@@ -67,6 +82,36 @@ const List = styled('dl', {
     css`
       width: max-content;
       white-space: nowrap;
+    `}
+
+  ${p =>
+    p.striped &&
+    css`
+      > dt,
+      > dd {
+        padding: ${p.theme.space.xs} ${p.theme.space.md};
+        font-size: ${p.theme.font.size.md};
+        line-height: inherit;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      > dt {
+        display: flex;
+        align-items: center;
+        color: ${p.theme.tokens.content.primary};
+      }
+
+      > dd {
+        text-align: right;
+        color: ${p.theme.tokens.content.secondary};
+      }
+
+      > dt:nth-of-type(odd),
+      > dd:nth-of-type(odd) {
+        background-color: ${p.theme.tokens.background.secondary};
+      }
     `}
 
   /*
@@ -77,6 +122,7 @@ const List = styled('dl', {
    */
   ${p =>
     p.terms === 'strong' &&
+    !p.striped &&
     css`
       > dt {
         color: ${p.theme.tokens.content.primary};

@@ -75,20 +75,18 @@ export function TagPanel() {
     <Stack wrap="nowrap" minHeight="0">
       <TagFilters tags={tags} {...filterProps} />
       <TabItemContainer>
-        <Container as="section" flex="1 1 auto" overflow="auto" padding="sm md">
+        <Container as="section" flex="1 1 auto" overflow="auto">
           {filteredTags.length ? (
-            <Container containerType="inline-size">
-              <DescriptionList>
-                {filteredTags.map(([key, values]) => (
-                  <ReplayTagsTableRow
-                    key={key}
-                    name={key}
-                    values={values}
-                    generateUrl={key.includes('sdk.replay.') ? undefined : generateUrl}
-                  />
-                ))}
-              </DescriptionList>
-            </Container>
+            <DescriptionList striped>
+              {filteredTags.map(([key, values]) => (
+                <ReplayTagsTableRow
+                  key={key}
+                  name={key}
+                  values={values}
+                  generateUrl={key.includes('sdk.replay.') ? undefined : generateUrl}
+                />
+              ))}
+            </DescriptionList>
           ) : (
             <EmptyMessage>{t('No tags for this replay were found.')}</EmptyMessage>
           )}

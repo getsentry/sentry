@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {ActorAvatar} from '@sentry/scraps/avatar';
 import {CodeBlock} from '@sentry/scraps/code';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
-import {Grid} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
@@ -77,40 +77,42 @@ export function UptimeDetailsSidebar({
         </div>
       </Grid>
       <SectionHeading>{t('Configuration')}</SectionHeading>
-      <DescriptionList>
-        <DescriptionList.Term>{t('Check Interval')}</DescriptionList.Term>
-        <DescriptionList.Details>
-          {t('Every %s', getDuration(uptimeSub.intervalSeconds))}
-        </DescriptionList.Details>
-        <DescriptionList.Term>{t('Timeout')}</DescriptionList.Term>
-        <DescriptionList.Details>
-          {t('After %s', getDuration(uptimeSub.timeoutMs / 1000, 2))}
-        </DescriptionList.Details>
-        <DescriptionList.Term>{t('Failure tolerance')}</DescriptionList.Term>
-        <DescriptionList.Details>
-          {tn(
-            '%s failure check',
-            '%s failure checks',
-            uptimeDetector.config.downtimeThreshold
-          )}
-        </DescriptionList.Details>
-        <DescriptionList.Term>{t('Recovery tolerance')}</DescriptionList.Term>
-        <DescriptionList.Details>
-          {tn('%s up check', '%s up checks', uptimeDetector.config.recoveryThreshold)}
-        </DescriptionList.Details>
-        <DescriptionList.Term>{t('Environment')}</DescriptionList.Term>
-        <DescriptionList.Details>
-          {uptimeDetector.config.environment}
-        </DescriptionList.Details>
-        <DescriptionList.Term>{t('Owner')}</DescriptionList.Term>
-        <DescriptionList.Details>
-          {uptimeDetector.owner ? (
-            <ActorAvatar actor={uptimeDetector.owner} />
-          ) : (
-            t('Unassigned')
-          )}
-        </DescriptionList.Details>
-      </DescriptionList>
+      <Container marginBottom="xl">
+        <DescriptionList striped>
+          <DescriptionList.Term>{t('Check Interval')}</DescriptionList.Term>
+          <DescriptionList.Details>
+            {t('Every %s', getDuration(uptimeSub.intervalSeconds))}
+          </DescriptionList.Details>
+          <DescriptionList.Term>{t('Timeout')}</DescriptionList.Term>
+          <DescriptionList.Details>
+            {t('After %s', getDuration(uptimeSub.timeoutMs / 1000, 2))}
+          </DescriptionList.Details>
+          <DescriptionList.Term>{t('Failure tolerance')}</DescriptionList.Term>
+          <DescriptionList.Details>
+            {tn(
+              '%s failure check',
+              '%s failure checks',
+              uptimeDetector.config.downtimeThreshold
+            )}
+          </DescriptionList.Details>
+          <DescriptionList.Term>{t('Recovery tolerance')}</DescriptionList.Term>
+          <DescriptionList.Details>
+            {tn('%s up check', '%s up checks', uptimeDetector.config.recoveryThreshold)}
+          </DescriptionList.Details>
+          <DescriptionList.Term>{t('Environment')}</DescriptionList.Term>
+          <DescriptionList.Details>
+            {uptimeDetector.config.environment}
+          </DescriptionList.Details>
+          <DescriptionList.Term>{t('Owner')}</DescriptionList.Term>
+          <DescriptionList.Details>
+            {uptimeDetector.owner ? (
+              <ActorAvatar actor={uptimeDetector.owner} />
+            ) : (
+              t('Unassigned')
+            )}
+          </DescriptionList.Details>
+        </DescriptionList>
+      </Container>
     </Fragment>
   );
 }

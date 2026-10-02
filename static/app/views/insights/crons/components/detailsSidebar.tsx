@@ -103,7 +103,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
       </Legend>
       <SectionHeading>{t('Cron Details')}</SectionHeading>
       <Container marginBottom="xl">
-        <DescriptionList>
+        <DescriptionList striped>
           <DescriptionList.Term>{t('Monitor Slug')}</DescriptionList.Term>
           <DescriptionList.Details>{slug}</DescriptionList.Details>
           <DescriptionList.Term>{t('Failure tolerance')}</DescriptionList.Term>
@@ -191,7 +191,6 @@ const MonitorSlug = styled('button')`
   align-items: center;
   gap: ${p => p.theme.space.xs};
 
-  padding: 0;
   background: transparent;
   border: none;
   &:hover {
