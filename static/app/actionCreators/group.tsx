@@ -82,14 +82,7 @@ function getUpdateUrl({projectId, orgId}: UpdateParams) {
 
 type BulkDeleteParams = UpdateParams;
 
-/**
- * Deletes the given groups. Resolves to `true` on success and `false` on
- * failure (errors are surfaced via GroupStore); never rejects.
- */
-export async function bulkDelete(
-  api: Client,
-  params: BulkDeleteParams
-): Promise<boolean> {
+export async function bulkDelete(api: Client, params: BulkDeleteParams) {
   const {itemIds} = params;
   const path = getUpdateUrl(params);
 
@@ -99,16 +92,14 @@ export async function bulkDelete(
   GroupStore.onDelete(id, itemIds);
 
   try {
-    const [data] = await api.requestPromise(path, {
+    const data = await api.requestPromise(path, {
       query,
       method: 'DELETE',
-      includeAllArgs: true,
     });
     GroupStore.onDeleteSuccess(id, itemIds, data);
-    return true;
   } catch (error) {
     GroupStore.onDeleteError(id, itemIds, error as RequestError);
-    return false;
+    throw error;
   }
 }
 

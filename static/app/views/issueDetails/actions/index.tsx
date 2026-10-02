@@ -258,17 +258,17 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     });
   };
 
-  const onDelete = () => {
+  const onDelete = async () => {
     addLoadingMessage(t('Delete event\u2026'));
+    trackIssueAction('deleted');
+    IssueListCacheStore.reset();
 
-    void bulkDelete(api, {
-      orgId: organization.slug,
-      projectId: project.slug,
-      itemIds: [group.id],
-    }).then(success => {
-      if (!success) {
-        return;
-      }
+    try {
+      await bulkDelete(api, {
+        orgId: organization.slug,
+        projectId: project.slug,
+        itemIds: [group.id],
+      });
       clearIndicators();
 
       addSuccessMessage(t('Issue deleted'));
@@ -276,10 +276,9 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         pathname: `/organizations/${organization.slug}/issues/`,
         query: {project: project.id},
       });
-    });
-
-    trackIssueAction('deleted');
-    IssueListCacheStore.reset();
+    } catch {
+      // GroupStore already shows the error
+    }
   };
 
   const onUpdate = (data: UpdateData, onComplete?: () => void) => {

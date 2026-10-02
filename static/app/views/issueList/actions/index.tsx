@@ -201,15 +201,21 @@ export function IssueListActions({
   const queryExcludingPerformanceIssues = `${query ?? ''} issue.category:error`;
 
   function handleDelete() {
-    actionSelectedGroups(itemIds => {
-      void bulkDelete(api, {
-        orgId: organization.slug,
-        itemIds,
-        query: queryExcludingPerformanceIssues,
-        project: selection.projects,
-        environment: selection.environments,
-        ...selection.datetime,
-      }).then(() => onDelete());
+    actionSelectedGroups(async itemIds => {
+      try {
+        await bulkDelete(api, {
+          orgId: organization.slug,
+          itemIds,
+          query: queryExcludingPerformanceIssues,
+          project: selection.projects,
+          environment: selection.environments,
+          ...selection.datetime,
+        });
+      } catch {
+        // GroupStore already shows the error
+      } finally {
+        onDelete();
+      }
     });
   }
 
