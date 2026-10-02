@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
@@ -117,7 +117,15 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
   ) : isPending ? (
     <LoadingIndicator />
   ) : attachments.length > 0 ? (
-    <ScreenshotGrid>
+    <Grid
+      columns={{
+        zero: 'minmax(0, 1fr)',
+        '2xs': 'repeat(2, minmax(0, 1fr))',
+        md: 'repeat(3, minmax(0, 1fr))',
+        xl: 'repeat(4, minmax(0, 1fr))',
+      }}
+      gap="xl"
+    >
       {attachments.map(screenshot => (
         <ScreenshotCard
           key={screenshot.id}
@@ -129,7 +137,7 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
           attachments={attachments}
         />
       ))}
-    </ScreenshotGrid>
+    </Grid>
   ) : (
     <EmptyStateWarning>
       <p>{t('No screenshots found')}</p>
@@ -137,8 +145,8 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
   );
 
   return (
-    <Stack gap="xl">
-      <Flex justify="between">
+    <Stack gap="xl" containerType="inline-size">
+      <Flex justify="between" align="center" wrap="wrap" gap="md">
         <Flex align="center" gap="md">
           <IconFilter size="xs" />
           {t('Results are filtered by the selections above.')}
@@ -154,25 +162,6 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
     </Stack>
   );
 }
-
-const ScreenshotGrid = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(100px, 1fr);
-  grid-template-rows: repeat(2, max-content);
-  gap: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: repeat(3, minmax(100px, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    grid-template-columns: repeat(4, minmax(100px, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints['2xl']}) {
-    grid-template-columns: repeat(6, minmax(100px, 1fr));
-  }
-`;
 
 const NoMarginPagination = styled(Pagination)`
   margin: 0;
