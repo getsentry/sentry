@@ -426,7 +426,7 @@ export const ReplaySelectColumn: ReplayTableColumn = {
           </Tooltip>
 
           <CheckboxClickTarget htmlFor={`replay-table-select-${replay.id}`}>
-            <Checkbox
+            <CheckboxWithBackground
               id={`replay-table-select-${replay.id}`}
               disabled={isSelected(replay.id) === 'all-selected'}
               checked={isSelected(replay.id) !== false}
@@ -582,6 +582,10 @@ const CheckboxClickTarget = styled('label')`
       opacity: 0;
     }
   }
+`;
+
+const CheckboxWithBackground = styled(Checkbox)`
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const UnreadIndicator = styled('div')`

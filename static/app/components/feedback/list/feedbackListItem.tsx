@@ -75,7 +75,7 @@ export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
             e.stopPropagation();
           }}
         >
-          <Checkbox
+          <CheckboxWithBackground
             disabled={isSelected(feedbackItem.id) === 'all-selected'}
             checked={isSelected(feedbackItem.id) !== false}
             onChange={() => {
@@ -206,6 +206,10 @@ const PreviewRow = styled(Row)`
   align-items: flex-start;
   font-size: ${p => p.theme.font.size.sm};
   padding-bottom: ${p => p.theme.space.sm};
+`;
+
+const CheckboxWithBackground = styled(Checkbox)`
+  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const CheckboxRow = styled(Row)`
