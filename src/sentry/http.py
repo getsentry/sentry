@@ -174,7 +174,7 @@ def fetch_file(
     logger.debug("Fetching %r from the internet", url)
 
     with contextlib.ExitStack() as ctx:
-        http_session = ctx.enter_context(SafeSession())
+        http_session = ctx.enter_context(SafeSession(max_retries=3))
 
         try:
             start = time.monotonic()
