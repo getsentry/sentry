@@ -210,7 +210,7 @@ def get_rules_from_workflows(
 
         rules[workflow_id] = NotificationRule(
             label=workflow.name,
-            id=workflow_id,
+            action_id=None,
             project=project,
             environment_id=workflow.environment_id,
             data={"actions": [{"workflow_id": workflow_id}]},

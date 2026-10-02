@@ -75,7 +75,7 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
         assert persisted_rule is not None
         rule_future = RuleFuture(
             rule=NotificationRule(
-                id=persisted_rule.id,
+                action_id=persisted_rule.id,
                 label=persisted_rule.label,
                 data={"actions": [azuredevops_rule.data]},
                 project=persisted_rule.project,

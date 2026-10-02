@@ -124,7 +124,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
         self.sentry_app = self.create_sentry_app(organization=self.organization)
         self.rule = self.create_project_rule(name="Issa Rule")
         self.notification_rule = NotificationRule(
-            id=self.rule.id,
+            action_id=self.rule.id,
             label=self.rule.label,
             data={"actions": self.rule.data["actions"]},
             project=self.rule.project,
@@ -387,7 +387,7 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
 
         rule_future = RuleFuture(
             rule=NotificationRule(
-                id=rule.id,
+                action_id=rule.id,
                 label=rule.label,
                 data={"actions": rule.data["actions"]},
                 project=rule.project,

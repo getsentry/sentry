@@ -101,7 +101,7 @@ class GroupRecordsTestCase(TestCase):
             )
             for index, event in enumerate(events)
         ]
-        ret = _group_records(records, {group.id: group}, {self.rule.id: self.rule})
+        ret = _group_records(records, {group.id: group}, {self.rule.legacy_rule_id: self.rule})
         assert ret == {self.rule: {group: records}}
 
 

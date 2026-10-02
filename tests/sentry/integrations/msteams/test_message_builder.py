@@ -427,9 +427,9 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert card_json[0] == "{" and card_json[-1] == "}"
 
     def test_issue_action_payload_includes_rule_and_workflow_ids(self) -> None:
-        rule = replace(
-            self.rules[0], legacy_rule_id=self.rules[0].id, workflow_id=123
-        )
+        legacy_rule_id = self.rules[0].legacy_rule_id
+        assert legacy_rule_id is not None
+        rule = replace(self.rules[0], legacy_rule_id=legacy_rule_id, workflow_id=123)
 
         payload = MSTeamsIssueMessageBuilder(
             group=self.group1,
@@ -438,7 +438,7 @@ class MSTeamsMessageBuilderTest(TestCase):
             integration=self.integration,
         ).generate_action_payload(ACTION_TYPE.RESOLVE)["payload"]
 
-        assert payload["rules"] == [self.rules[0].id]
+        assert payload["rules"] == [legacy_rule_id]
         assert payload["workflows"] == [123]
 
     def test_issue_without_description(self) -> None:
@@ -450,18 +450,20 @@ class MSTeamsMessageBuilderTest(TestCase):
 
     def test_action_payload_uses_explicit_rule_and_workflow_ids(self) -> None:
         legacy_rule = self.rules[0]
+        legacy_rule_id = legacy_rule.legacy_rule_id
+        assert legacy_rule_id is not None
         rules = [
             NotificationRule(
-                id=legacy_rule.id + 1000,
+                action_id=legacy_rule.action_id,
                 label="Workflow with legacy rule",
-                data={"actions": [{"legacy_rule_id": legacy_rule.id}]},
+                data={"actions": [{"legacy_rule_id": legacy_rule_id}]},
                 project=self.project1,
                 environment_id=None,
                 workflow_id=123,
-                legacy_rule_id=legacy_rule.id,
+                legacy_rule_id=legacy_rule_id,
             ),
             NotificationRule(
-                id=legacy_rule.id + 2000,
+                action_id=None,
                 label="Workflow only",
                 data={"actions": [{"workflow_id": 123}]},
                 project=self.project1,
@@ -479,7 +481,7 @@ class MSTeamsMessageBuilderTest(TestCase):
 
         payload = builder.generate_action_payload(ACTION_TYPE.RESOLVE)
 
-        assert payload["payload"]["rules"] == [legacy_rule.id]
+        assert payload["payload"]["rules"] == [legacy_rule_id]
         assert payload["payload"]["workflows"] == [123]
 
     def test_issue_with_only_one_rule(self) -> None:

@@ -50,7 +50,7 @@ def get_notification_rules(
         else:
             notification_rules.append(
                 NotificationRule(
-                    id=workflow_id,
+                    action_id=None,
                     label=workflow.name,
                     data={"actions": [{"workflow_id": workflow_id}]},
                     project=project,

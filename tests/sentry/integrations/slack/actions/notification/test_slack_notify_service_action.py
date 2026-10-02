@@ -1,4 +1,5 @@
 from copy import deepcopy
+from dataclasses import replace
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -7,6 +8,7 @@ from slack_sdk.web import SlackResponse
 
 from sentry.integrations.slack import SlackNotifyServiceAction
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.models.rule import Rule
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.notifications.types import NotificationRule, RuleFuture
 from sentry.shared_integrations.exceptions import IntegrationError
@@ -14,6 +16,10 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.silo import assume_test_silo_mode
+
+
+def notification_rule_for_action(rule: Rule) -> NotificationRule:
+    return replace(NotificationRule.from_deprecated_legacy_rule(rule), action_id=rule.id)
 
 
 class TestInit(RuleTestCase):
@@ -80,9 +86,7 @@ class TestInit(RuleTestCase):
 
         results[0].callback(
             self.event,
-            futures=[
-                RuleFuture(rule=NotificationRule.from_deprecated_legacy_rule(rule), kwargs={})
-            ],
+            futures=[RuleFuture(rule=notification_rule_for_action(rule), kwargs={})],
         )
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
@@ -130,9 +134,7 @@ class TestInit(RuleTestCase):
 
         results[0].callback(
             self.event,
-            futures=[
-                RuleFuture(rule=NotificationRule.from_deprecated_legacy_rule(rule), kwargs={})
-            ],
+            futures=[RuleFuture(rule=notification_rule_for_action(rule), kwargs={})],
         )
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
@@ -186,9 +188,7 @@ class TestInit(RuleTestCase):
 
         results[0].callback(
             self.event,
-            futures=[
-                RuleFuture(rule=NotificationRule.from_deprecated_legacy_rule(rule), kwargs={})
-            ],
+            futures=[RuleFuture(rule=notification_rule_for_action(rule), kwargs={})],
         )
 
         assert NotificationMessage.objects.all().count() == 1
@@ -227,9 +227,7 @@ class TestInit(RuleTestCase):
 
         results[0].callback(
             self.event,
-            futures=[
-                RuleFuture(rule=NotificationRule.from_deprecated_legacy_rule(rule), kwargs={})
-            ],
+            futures=[RuleFuture(rule=notification_rule_for_action(rule), kwargs={})],
         )
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
@@ -266,16 +264,15 @@ class TestInit(RuleTestCase):
         rule.id = self.action.id
         rule.environment_id = None
 
-        rule_cls_instance = self.get_rule(data=rule.data["actions"][0], rule=rule)
+        notification_rule = notification_rule_for_action(rule)
+        rule_cls_instance = self.get_rule(data=rule.data["actions"][0], rule=notification_rule)
 
         results = list(rule_cls_instance.after(event=self.event))
         assert len(results) == 1
 
         results[0].callback(
             self.event,
-            futures=[
-                RuleFuture(rule=NotificationRule.from_deprecated_legacy_rule(rule), kwargs={})
-            ],
+            futures=[RuleFuture(rule=notification_rule, kwargs={})],
         )
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
@@ -319,9 +316,7 @@ class TestInit(RuleTestCase):
 
         results[0].callback(
             self.event,
-            futures=[
-                RuleFuture(rule=NotificationRule.from_deprecated_legacy_rule(rule), kwargs={})
-            ],
+            futures=[RuleFuture(rule=notification_rule_for_action(rule), kwargs={})],
         )
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)
@@ -381,9 +376,7 @@ class TestInit(RuleTestCase):
 
         results[0].callback(
             self.event,
-            futures=[
-                RuleFuture(rule=NotificationRule.from_deprecated_legacy_rule(rule), kwargs={})
-            ],
+            futures=[RuleFuture(rule=notification_rule_for_action(rule), kwargs={})],
         )
         blocks = mock_post.call_args.kwargs["blocks"]
         blocks = orjson.loads(blocks)

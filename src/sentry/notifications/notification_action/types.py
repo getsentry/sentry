@@ -272,7 +272,7 @@ class BaseIssueAlertHandler(ABC):
             data["actions"][0]["skipDigests"] = True
 
         rule = NotificationRule(
-            id=action.id,
+            action_id=action.id,
             project=detector.linked_project,
             environment_id=environment_id,
             label=label,
@@ -360,7 +360,8 @@ class BaseIssueAlertHandler(ABC):
                 "action_id": invocation.action.id,
                 "detector_id": invocation.detector.id,
                 "event_data": asdict(invocation.event_data),
-                "rule_id": rule.id,
+                "legacy_rule_id": rule.legacy_rule_id,
+                "workflow_id": rule.workflow_id,
                 "rule_project_id": rule.project.id,
                 "rule_environment_id": rule.environment_id,
                 "rule_label": rule.label,

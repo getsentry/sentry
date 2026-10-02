@@ -358,10 +358,13 @@ class AlertRuleNotification(ProjectNotification):
             notify(provider, self, participants, shared_context)
 
     def get_log_params(self, recipient: Actor) -> Mapping[str, Any]:
+        alert_id = None
+        if self.rules:
+            alert_id = self.rules[0].workflow_id or self.rules[0].legacy_rule_id
         return {
             "target_type": self.target_type,
             "target_identifier": self.target_identifier,
-            "alert_id": self.rules[0].id if self.rules else None,
+            "alert_id": alert_id,
             **super().get_log_params(recipient),
         }
 
