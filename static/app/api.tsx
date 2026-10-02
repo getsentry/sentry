@@ -213,7 +213,7 @@ export function hasProjectBeenRenamed(response: ResponseMeta) {
 
 type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
 
-export type RequestCallbacks = {
+type RequestCallbacks = {
   /**
    * Callback for the request completing (success or error)
    */
