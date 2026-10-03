@@ -37,6 +37,7 @@ from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMet
 from sentry.replays.testutils import mock_replay, mock_replay_viewed
 from sentry.seer import agent_token
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
+from sentry.seer.signed_seer_api import _resolve_viewer_context
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
@@ -65,6 +66,7 @@ class SuperuserAgentTokenTest(APITestCase):
 
     def _chat_authorization(self):
         self.login_as(self.employee, superuser=True)
+        resolved_contexts: list[ViewerContext] = []
         with (
             self.feature([FLAG, "organizations:seer-explorer"]),
             patch(
@@ -74,11 +76,19 @@ class SuperuserAgentTokenTest(APITestCase):
         ):
             outbound.return_value.status = 200
             outbound.return_value.json.return_value = {"run_id": 123}
+
+            def capture_context(*_args: Any, **kwargs: Any) -> Any:
+                resolved = _resolve_viewer_context(kwargs["viewer_context"])
+                assert resolved is not None
+                resolved_contexts.append(resolved)
+                return outbound.return_value
+
+            outbound.side_effect = capture_context
             response = self.client.post(
                 f"{self.path}seer/explorer-chat/", {"query": "List projects"}, format="json"
             )
         assert response.status_code == 200, response.content
-        expires_at = outbound.call_args.kwargs["viewer_context"]["superuser_access_expires_at"]
+        expires_at = resolved_contexts[0].superuser_access_expires_at
         assert type(expires_at) is int
         return expires_at
 
