@@ -30,11 +30,9 @@ CONSUMERS = {
         ProcessingServices.AttachmentsStore.value,
         ProcessingServices.ProcessingStore.value,
         ProcessingServices.ProcessingLocks.value,
-        ProcessingServices.PostProcessLocks.value,
     ],
     "ingest-transactions": [
         ProcessingServices.ProcessingStoreTransactions.value,
         ProcessingServices.ProcessingLocks.value,
-        ProcessingServices.PostProcessLocks.value,
     ],
 }
