@@ -20,7 +20,7 @@ class OrganizationQuickStartTest(AcceptanceTestCase):
         self.user = self.create_user("foo@example.com")
         self.login_as(self.user)
 
-    @with_feature(["organizations:onboarding", "organizations:onboarding-scm-project-creation"])
+    @with_feature("organizations:onboarding")
     @override_settings(
         PRIVACY_URL="https://sentry.io/privacy/", TERMS_URL="https://sentry.io/terms/"
     )

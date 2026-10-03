@@ -108,11 +108,6 @@ class ScmCreateProjectTest(AcceptanceTestCase):
         }
 
         with (
-            self.feature(
-                {
-                    "organizations:onboarding-scm-project-creation": True,
-                }
-            ),
             mock.patch(
                 "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
                 return_value=self.mock_repos,
@@ -183,12 +178,7 @@ class ScmCreateProjectTest(AcceptanceTestCase):
             self.create_scm_project("Django", "python-django")
 
     def test_create_without_repository(self) -> None:
-        with self.feature(
-            {
-                "organizations:onboarding-scm-project-creation": True,
-                "organizations:performance-view": True,
-            }
-        ):
+        with self.feature("organizations:performance-view"):
             self.load_project_creation_page()
             self.select_platform("React")
 
@@ -203,11 +193,6 @@ class ScmCreateProjectTest(AcceptanceTestCase):
         self.create_github_integration()
 
         with (
-            self.feature(
-                {
-                    "organizations:onboarding-scm-project-creation": True,
-                }
-            ),
             mock.patch(
                 "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
                 return_value=self.mock_repos,
@@ -234,44 +219,42 @@ class ScmCreateProjectTest(AcceptanceTestCase):
     def test_create_team(self) -> None:
         org = self.create_organization(name="Rowdy Tiger", owner=self.user)
 
-        with self.feature({"organizations:onboarding-scm-project-creation": True}):
-            self.browser.get(f"/organizations/{org.slug}/projects/new/")
-            self.browser.wait_until(xpath='//h4[text()="Repository"]')
+        self.browser.get(f"/organizations/{org.slug}/projects/new/")
+        self.browser.wait_until(xpath='//h4[text()="Repository"]')
 
-            self.browser.click(None, "//*[text()='Select a Team']")
-            self.browser.click('[data-test-id="create-team-option"]')
-            self.browser.wait_until("[role='dialog']")
-            input = self.browser.element('input[name="slug"]')
-            input.send_keys("new-team")
-            self.browser.element("[role='dialog'] form").submit()
-            self.browser.wait_until(xpath='//div[text()="#new-team"]')
+        self.browser.click(None, "//*[text()='Select a Team']")
+        self.browser.click('[data-test-id="create-team-option"]')
+        self.browser.wait_until("[role='dialog']")
+        input = self.browser.element('input[name="slug"]')
+        input.send_keys("new-team")
+        self.browser.element("[role='dialog'] form").submit()
+        self.browser.wait_until(xpath='//div[text()="#new-team"]')
 
     def test_project_deletion_on_going_back(self) -> None:
-        with self.feature({"organizations:onboarding-scm-project-creation": True}):
-            self.load_project_creation_page()
-            self.select_platform("Laravel")
-            self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
-            self.browser.click(xpath='//button[contains(., "Create project")]')
-            self.browser.wait_until(xpath="//h2[text()='Configure Laravel SDK']")
-            project1 = Project.objects.get(organization=self.org, slug="php-laravel")
+        self.load_project_creation_page()
+        self.select_platform("Laravel")
+        self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
+        self.browser.click(xpath='//button[contains(., "Create project")]')
+        self.browser.wait_until(xpath="//h2[text()='Configure Laravel SDK']")
+        project1 = Project.objects.get(organization=self.org, slug="php-laravel")
 
-            # Going back deletes the project before returning to the form, which
-            # restores the Laravel selection.
-            self.browser.click(xpath='//button[contains(., "Back to Platform Selection")]')
-            WebDriverWait(self.browser.driver, 10).until(
-                expected_conditions.text_to_be_present_in_element_value(
-                    (By.CSS_SELECTOR, 'input[placeholder="project-name"]'), "php-laravel"
-                )
+        # Going back deletes the project before returning to the form, which
+        # restores the Laravel selection.
+        self.browser.click(xpath='//button[contains(., "Back to Platform Selection")]')
+        WebDriverWait(self.browser.driver, 10).until(
+            expected_conditions.text_to_be_present_in_element_value(
+                (By.CSS_SELECTOR, 'input[placeholder="project-name"]'), "php-laravel"
             )
-            self.select_platform("Next.js")
-            self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
-            self.browser.click(xpath='//button[contains(., "Create project")]')
-            self.browser.wait_until(xpath="//h2[text()='Configure Next.js SDK']")
-            project2 = Project.objects.get(organization=self.org, slug="javascript-nextjs")
+        )
+        self.select_platform("Next.js")
+        self.browser.wait_until_clickable(xpath='//button[contains(., "Create project")]')
+        self.browser.click(xpath='//button[contains(., "Create project")]')
+        self.browser.wait_until(xpath="//h2[text()='Configure Next.js SDK']")
+        project2 = Project.objects.get(organization=self.org, slug="javascript-nextjs")
 
-            self.browser.back()
-            self.browser.get(f"/organizations/{self.org.slug}/projects/")
-            self.browser.wait_until(xpath='//*[text()="Remain Calm"]')
-            assert_existing_projects_status(
-                self.org, active_project_ids=[], deleted_project_ids=[project1.id, project2.id]
-            )
+        self.browser.back()
+        self.browser.get(f"/organizations/{self.org.slug}/projects/")
+        self.browser.wait_until(xpath='//*[text()="Remain Calm"]')
+        assert_existing_projects_status(
+            self.org, active_project_ids=[], deleted_project_ids=[project1.id, project2.id]
+        )
