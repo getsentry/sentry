@@ -9,6 +9,7 @@ from rest_framework import status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -75,7 +76,6 @@ from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.cursors import Cursor, EAPPageTokenCursor
 from sentry.utils.sdk import sdk_logger
 from sentry.utils.snuba import SnubaError
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -361,7 +361,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 query_source=query_source,
             )
 
-        @trace
+        @traces.trace
         def _dashboards_data_fn(
             scoped_dataset_query: DatasetQuery,
             offset: int,
@@ -449,7 +449,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 sentry_sdk.capture_exception(e)
                 return _data_fn(scoped_dataset_query, offset, limit, scoped_query)
 
-        @trace
+        @traces.trace
         def _discover_data_fn(
             scoped_dataset_query: DatasetQuery,
             offset: int,

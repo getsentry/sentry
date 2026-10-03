@@ -5,6 +5,7 @@ from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry import search
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -23,7 +24,6 @@ from sentry.search.events.types import EventsResponse, SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.utils import RPC_DATASETS
-from sentry.utils.tracing import set_span_data, start_span
 
 
 class OrganizationEventsMetaResponse(TypedDict):
@@ -99,7 +99,9 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
         except NoProjects:
             return Response([])
 
-        with start_span(op="discover.endpoint", name="find_lookup_keys") as span:
+        with traces.start_span(
+            name="find_lookup_keys", attributes={"sentry.op": "discover.endpoint"}
+        ) as span:
             possible_keys = ["transaction"]
             lookup_keys = {key: request.query_params.get(key) for key in possible_keys}
 
@@ -112,7 +114,9 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
                 )
 
         with handle_query_errors():
-            with start_span(op="discover.endpoint", name="filter_creation"):
+            with traces.start_span(
+                name="filter_creation", attributes={"sentry.op": "discover.endpoint"}
+            ):
                 projects = self.get_projects(request, organization)
                 # Filter out None values from environments
                 environments = [e for e in snuba_params.environments if e is not None]
@@ -136,12 +140,16 @@ class OrganizationEventsRelatedIssuesEndpoint(OrganizationEventsEndpointBase):
 
                 query_kwargs["actor"] = request.user
 
-            with start_span(op="discover.endpoint", name="issue_search"):
+            with traces.start_span(
+                name="issue_search", attributes={"sentry.op": "discover.endpoint"}
+            ):
                 results_cursor = search.backend.query(**query_kwargs)
 
-        with start_span(op="discover.endpoint", name="serialize_results") as span:
+        with traces.start_span(
+            name="serialize_results", attributes={"sentry.op": "discover.endpoint"}
+        ) as span:
             results = list(results_cursor)
-            set_span_data(span, "result_length", len(results))
+            span.set_attribute("result_length", len(results))
             context = serialize(
                 results,
                 request.user,
