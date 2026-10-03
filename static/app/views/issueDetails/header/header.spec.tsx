@@ -119,6 +119,24 @@ describe('GroupHeader', () => {
       expect(screen.getByText(group.shortId)).toBeInTheDocument();
     });
 
+    it('links the short-id crumb project badge to the project', async () => {
+      render(
+        <GroupDataContextProvider group={group} project={group.project}>
+          <GroupHeader {...defaultProps} group={group} project={project} event={null} />
+        </GroupDataContextProvider>,
+        {
+          organization,
+        }
+      );
+
+      expect(
+        await screen.findByRole('link', {name: 'View Project Details'})
+      ).toHaveAttribute(
+        'href',
+        `/organizations/${organization.slug}/insights/projects/${project.slug}/?project=${project.id}`
+      );
+    });
+
     it('displays share icon if issue has been shared', async () => {
       render(
         <GroupDataContextProvider

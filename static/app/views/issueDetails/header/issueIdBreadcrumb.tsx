@@ -19,6 +19,7 @@ import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getShareUrl, ShareIssueModal} from 'sentry/views/issueDetails/actions/shareModal';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 interface ShortIdBreadcrumbProps {
   group: Group;
@@ -27,7 +28,7 @@ interface ShortIdBreadcrumbProps {
 
 /**
  * Builds the current-page (`page-title`) breadcrumb item for an issue: the
- * project badge as a leading graphic, the short-id as the label with an
+ * project badge as a leading graphic linking to the project, the short-id as the label with an
  * always-on explanatory tooltip, an always-present copy action, and a share
  * action that only appears for public issues (`group.isPublic` with a share
  * URL). Used by the issue details header trail (`GroupHeader`).
@@ -57,6 +58,13 @@ export function useIssueIdBreadcrumbItem({project, group}: ShortIdBreadcrumbProp
         avatarProps={{hasTooltip: true, tooltip: project.slug}}
       />
     ),
+    leadingGraphicLink: {
+      label: t('View Project Details'),
+      to: {
+        pathname: makeProjectsPathname({path: `/${project.slug}/`, organization}),
+        query: {project: project.id},
+      },
+    },
     labelTooltip: t(
       'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'
     ),

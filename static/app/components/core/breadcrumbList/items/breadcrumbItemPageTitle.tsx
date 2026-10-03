@@ -12,7 +12,7 @@ import {
 } from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
-import type {LinkProps} from '@sentry/scraps/link';
+import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconChevron} from 'sentry/icons';
@@ -109,6 +109,11 @@ export interface BreadcrumbItemPageTitleProps {
    * Rendered aria-hidden inside a fixed-size slot; the label carries the meaning.
    */
   leadingGraphic?: React.ReactNode;
+  /**
+   * Makes the leading graphic a link. The graphic itself stays decorative, so
+   * `label` provides the link's accessible name.
+   */
+  leadingGraphicLink?: {label: string; to: LinkProps['to']};
   /** Structured prev/next navigation rendered before the label. */
   pagination?: BreadcrumbItemPaginationProps;
   /** Typed trailing actions rendered after the page title. */
@@ -119,6 +124,7 @@ export function BreadcrumbItemPageTitle({
   label,
   labelTooltip,
   leadingGraphic,
+  leadingGraphicLink,
   pagination,
   trailingActions,
 }: BreadcrumbItemPageTitleProps) {
@@ -175,7 +181,14 @@ export function BreadcrumbItemPageTitle({
           </Tooltip>
         </Flex>
       )}
-      {leadingGraphic && <BreadcrumbLeadingSlot>{leadingGraphic}</BreadcrumbLeadingSlot>}
+      {leadingGraphic &&
+        (leadingGraphicLink ? (
+          <Link to={leadingGraphicLink.to} aria-label={leadingGraphicLink.label}>
+            <BreadcrumbLeadingSlot>{leadingGraphic}</BreadcrumbLeadingSlot>
+          </Link>
+        ) : (
+          <BreadcrumbLeadingSlot>{leadingGraphic}</BreadcrumbLeadingSlot>
+        ))}
       {/* minWidth={0} lets the title content shrink. The visible-width floor lives
           on the outer Flex above. */}
       <Container minWidth={0}>

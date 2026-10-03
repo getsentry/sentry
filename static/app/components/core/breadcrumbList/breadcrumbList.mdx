@@ -270,12 +270,13 @@ edit affordance.
 
 Beyond `label`, the optional props are not shared evenly across the item types.
 
-| Prop              | `'link'` | `'page-title'` | `'editable-title'` |
-| ----------------- | :------: | :------------: | :----------------: |
-| `leadingGraphic`  |    ✓     |       ✓        |         ✓          |
-| `labelTooltip`    |          |       ✓        |                    |
-| `pagination`      |          |       ✓        |                    |
-| `trailingActions` |          |       ✓        |                    |
+| Prop                 | `'link'` | `'page-title'` | `'editable-title'` |
+| -------------------- | :------: | :------------: | :----------------: |
+| `leadingGraphic`     |    ✓     |       ✓        |         ✓          |
+| `leadingGraphicLink` |          |       ✓        |                    |
+| `labelTooltip`       |          |       ✓        |                    |
+| `pagination`         |          |       ✓        |                    |
+| `trailingActions`    |          |       ✓        |                    |
 
 ### Leading graphics
 
@@ -321,6 +322,21 @@ the meaning.
     type: 'page-title',
     label: 'Client Keys (DSN)',
     leadingGraphic: <ProjectsBadge projectPlatforms={['python', 'javascript']} />,
+  }}
+/>
+```
+
+On `'page-title'`, pass `leadingGraphicLink` (`{label, to}`) to make the graphic
+a link — for example, the issue details project badge links to the project. The
+graphic stays decorative, so `label` is the link's accessible name.
+
+```tsx
+<BreadcrumbList.Title
+  item={{
+    type: 'page-title',
+    label: 'JAVASCRIPT-2X9',
+    leadingGraphic: <ProjectBadge disableLink project={project} hideName />,
+    leadingGraphicLink: {label: 'View Project Details', to: projectDetailsPath},
   }}
 />
 ```
