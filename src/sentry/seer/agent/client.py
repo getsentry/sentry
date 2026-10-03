@@ -624,7 +624,6 @@ class SeerAgentClient:
         existing_agent_run: SeerAgentRun,
         payload: dict[str, Any],
         referrer: str,
-        user_org_context: UserOrgContext,
         agent_run_options: AgentRunOptions | None = None,
         proxy_headers: dict[str, str] | None = None,
     ) -> SeerRun:
@@ -640,7 +639,6 @@ class SeerAgentClient:
             payload=payload,
             referrer=referrer,
             agent_run_options=resolved_agent_run_options,
-            user_org_context=user_org_context,
             proxy_headers=proxy_headers,
         )
 
