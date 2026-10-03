@@ -5,6 +5,7 @@ import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPal
 import {IconLock, IconMail, IconSettings, IconSubscribed, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FORM_FIELD_REGISTRY} from 'sentry/views/settings/fieldRegistry.generated';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
@@ -26,7 +27,17 @@ function normalizeRouteForLookup(route: string): string {
 }
 
 function resolveRoutePath(route: string, orgSlug: string): string {
-  return replaceRouterParams(normalizeRouteForLookup(route), {orgId: orgSlug});
+  // Apply normalizeUrl to the route template *before* substituting the real org
+  // slug.  On customer-domain sessions, normalizeUrl strips the `:orgId` segment
+  // from the template (e.g. `/settings/:orgId/feature-flags/…` →
+  // `/settings/feature-flags/…`), so replaceRouterParams becomes a no-op and
+  // the stored URL is already canonical.  Without this, the command palette's
+  // own normalizeUrl call (commandPalette.tsx) would strip a real slug that had
+  // already been substituted, producing a broken path such as
+  // `/settings/feature-flags/…` where `feature-flags` would be mis-matched as
+  // `:orgId` by the router.
+  const normalizedRoute = normalizeUrl(normalizeRouteForLookup(route));
+  return replaceRouterParams(normalizedRoute, {orgId: orgSlug});
 }
 
 function titleFromRoute(route: string): string {
@@ -75,7 +86,7 @@ type SettingsFieldSection = {
 
 type FormFieldDefinition = (typeof FORM_FIELD_REGISTRY)[string];
 
-function getSettingsFieldSections(orgSlug: string): SettingsFieldSection[] {
+export function getSettingsFieldSections(orgSlug: string): SettingsFieldSection[] {
   const routeTitleMap = new Map<string, string>();
   for (const section of getUserOrgNavigationConfiguration()) {
     for (const item of section.items) {
