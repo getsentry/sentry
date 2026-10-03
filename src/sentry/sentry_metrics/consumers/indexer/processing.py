@@ -1,10 +1,13 @@
 import logging
 from collections.abc import Callable, Mapping
 
+import sentry_sdk
 from arroyo.types import Message
 from django.conf import settings
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_metrics_v1 import IngestMetric
+from sentry_sdk import traces
+from sentry_sdk.scope import Scope
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.sentry_metrics.configuration import IndexerStorage, MetricsIngestConfiguration
@@ -17,7 +20,6 @@ from sentry.sentry_metrics.indexer.mock import MockIndexer
 from sentry.sentry_metrics.indexer.postgres.postgres_v2 import PostgresIndexer
 from sentry.utils import metrics
 from sentry.utils.sdk import set_span_attribute
-from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
 
@@ -68,11 +70,18 @@ class MessageProcessor:
             settings.SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE
             * settings.SENTRY_BACKEND_APM_SAMPLING
         )
-        with start_span(
-            name="sentry.sentry_metrics.consumers.indexer.processing.process_messages",
-            custom_sampling_context={"sample_rate": sample_rate},
-            transaction=True,
-        ):
+        traces.new_trace()
+        active_propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
+        prev_sampling_context = active_propagation_context.custom_sampling_context
+        Scope.set_custom_sampling_context({"sample_rate": sample_rate})
+        try:
+            span = traces.start_span(
+                name="sentry.sentry_metrics.consumers.indexer.processing.process_messages",
+                parent_span=None,
+            )
+        finally:
+            active_propagation_context.custom_sampling_context = prev_sampling_context
+        with span:
             return self._process_messages_impl(outer_message)
 
     def _process_messages_impl(
@@ -118,7 +127,7 @@ class MessageProcessor:
 
         with (
             metrics.timer("metrics_consumer.bulk_record"),
-            start_span(op="bulk_record", name="bulk_record"),
+            traces.start_span(name="bulk_record", attributes={"sentry.op": "bulk_record"}),
         ):
             record_result = self._indexer.bulk_record(extracted_strings)
 
