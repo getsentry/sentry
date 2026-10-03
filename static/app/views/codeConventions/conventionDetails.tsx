@@ -1,8 +1,8 @@
 import {Fragment, useEffect} from 'react';
 import {skipToken, useQuery} from '@tanstack/react-query';
+import {parse} from 'yaml';
 
 import {Alert} from '@sentry/scraps/alert';
-import {CodeBlock} from '@sentry/scraps/code';
 import {DrawerBody, DrawerHeader, useDrawer} from '@sentry/scraps/drawer';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -16,6 +16,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {
+  ConventionConfig,
+  type Convention,
+} from 'sentry/views/codeConventions/conventionConfig';
 import {
   conventionFilesQueryOptions,
   formatConventionTitle,
@@ -55,6 +59,8 @@ export default function ConventionDetails() {
           return response.text();
         }
       : skipToken,
+    // A YAML syntax error throws here and surfaces as the query's error state.
+    select: (yaml): Convention => parse(yaml),
     staleTime: 5 * 60 * 1000,
   });
 
@@ -62,7 +68,7 @@ export default function ConventionDetails() {
     filesQuery.isPending || (filename !== undefined && yamlQuery.isPending);
   const isError = filesQuery.isError || yamlQuery.isError;
   const isNotFound = filesQuery.isSuccess && filename === undefined;
-  const yaml = yamlQuery.data;
+  const convention = yamlQuery.data;
   const refetchFiles = filesQuery.refetch;
   const refetchYaml = yamlQuery.refetch;
 
@@ -92,11 +98,7 @@ export default function ConventionDetails() {
             {isNotFound && (
               <Alert variant="warning">{t('This convention could not be found.')}</Alert>
             )}
-            {filename && yaml !== undefined && (
-              <CodeBlock language="yaml" filename={filename}>
-                {yaml}
-              </CodeBlock>
-            )}
+            {convention && <ConventionConfig convention={convention} />}
           </DrawerBody>
         </Fragment>
       ),
@@ -115,6 +117,7 @@ export default function ConventionDetails() {
       }
     );
   }, [
+    convention,
     conventionName,
     filename,
     title,
@@ -127,7 +130,6 @@ export default function ConventionDetails() {
     query,
     refetchFiles,
     refetchYaml,
-    yaml,
   ]);
 
   return (
