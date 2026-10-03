@@ -6,6 +6,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
+import {FiltersYamlPreview} from 'sentry/views/codeConventions/conventionFilterPreview';
 import {getConventionFileUrls, type Convention} from 'sentry/views/codeConventions/utils';
 
 const SAVE_DISABLED_REASON = t('Saving conventions is not available yet');
@@ -76,6 +77,7 @@ export function ConventionEditForm({convention, filename}: Props) {
                     value={field.state.value}
                     onChange={field.handleChange}
                   />
+                  {name === 'filters' && <FiltersYamlPreview yaml={field.state.value} />}
                 </field.Layout.Stack>
               )}
             </form.AppField>
