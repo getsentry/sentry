@@ -124,4 +124,28 @@ describe('BillingDetailsForm', () => {
       expect.objectContaining({data: expect.objectContaining({region: null})})
     );
   });
+
+  it('submits an edited billing email through the Scraps form', async () => {
+    const update = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/billing-details/`,
+      method: 'PUT',
+      body: billingDetails,
+    });
+    render(<BillingDetailsForm {...defaultProps} />);
+
+    const email = await screen.findByRole('textbox', {name: 'Billing email'});
+    await userEvent.clear(email);
+    await userEvent.type(email, 'billing@example.com');
+    const submit = screen.getByRole('button', {name: 'Save Changes'});
+    await waitFor(() => expect(submit).toBeEnabled());
+    await userEvent.click(submit);
+
+    await waitFor(() => expect(update).toHaveBeenCalled());
+    expect(update).toHaveBeenCalledWith(
+      `/customers/${organization.slug}/billing-details/`,
+      expect.objectContaining({
+        data: expect.objectContaining({billingEmail: 'billing@example.com'}),
+      })
+    );
+  });
 });
