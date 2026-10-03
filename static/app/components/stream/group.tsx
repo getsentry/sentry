@@ -3,7 +3,6 @@ import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {Checkbox} from '@sentry/scraps/checkbox';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -27,6 +26,7 @@ import {ProgressBar} from 'sentry/components/progressBar';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {TimeSince} from 'sentry/components/timeSince';
+import {UnreadIndicator} from 'sentry/components/unreadIndicator';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {TimeseriesValue} from 'sentry/types/core';
@@ -46,6 +46,7 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {ListItemCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -131,19 +132,17 @@ function GroupCheckbox({
   return (
     <GroupCheckBoxWrapper>
       {!group.hasSeen && (
-        <Tooltip title={t('Unread')} skipWrapper>
-          <UnreadIndicator
-            data-test-id="unread-issue-indicator"
-            onClick={(e: React.MouseEvent) => {
-              // Toggle checkbox on unread indicator misclick
-              e.stopPropagation();
-              handleToggle(e.shiftKey);
-            }}
-          />
-        </Tooltip>
+        <GroupUnreadIndicator
+          data-test-id="unread-issue-indicator"
+          onClick={(e: React.MouseEvent) => {
+            // Toggle checkbox on unread indicator misclick
+            e.stopPropagation();
+            handleToggle(e.shiftKey);
+          }}
+        />
       )}
       <CheckboxLabel>
-        <CheckboxWithBackground
+        <ListItemCheckbox
           id={group.id}
           aria-label={t('Select Issue')}
           checked={isSelected}
@@ -900,11 +899,7 @@ const CheckboxLabel = styled('label')`
   align-items: center;
 `;
 
-const UnreadIndicator = styled('div')`
-  width: 8px;
-  height: 8px;
-  background-color: ${p => p.theme.tokens.graphics.accent.vibrant};
-  border-radius: 50%;
+const GroupUnreadIndicator = styled(UnreadIndicator)`
   margin-top: 1px;
   margin-left: ${p => p.theme.space.xl};
   z-index: 1;
@@ -919,12 +914,6 @@ const Wrapper = styled(PanelItem)<{
   line-height: 1.1;
   padding: ${p => p.theme.space.md} 0;
   min-height: 82px;
-
-  &:not(:has(:hover)):not(:has(input:checked)):not(:focus-within) {
-    ${CheckboxLabel} {
-      ${p => p.theme.visuallyHidden};
-    }
-  }
 
   [data-issue-title-link] {
     &::before {
@@ -1000,10 +989,6 @@ const GroupCheckBoxWrapper = styled('div')`
   justify-content: center;
   padding-top: ${p => p.theme.space.md};
   z-index: 1;
-`;
-
-const CheckboxWithBackground = styled(Checkbox)`
-  background-color: ${p => p.theme.tokens.background.primary};
 `;
 
 const PrimaryCount = styled(Count)`
