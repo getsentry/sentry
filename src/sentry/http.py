@@ -74,6 +74,10 @@ def safe_urlopen(
     verify_ssl=True,
     user_agent=None,
     stream=False,
+    # Defaults to 3 for backwards compatibility reasons. Change this if
+    # you either know better or are more willing to take on the monitoring
+    # effort of altering the default value.
+    max_retries: int = 3,
 ):
     """
     A slightly safer version of ``urlib2.urlopen`` which prevents redirection
@@ -82,7 +86,7 @@ def safe_urlopen(
     if user_agent is not None:
         warnings.warn("user_agent is no longer used with safe_urlopen")
 
-    with SafeSession() as session:
+    with SafeSession(max_retries=max_retries) as session:
         kwargs = {}
 
         if json:
@@ -170,7 +174,7 @@ def fetch_file(
     logger.debug("Fetching %r from the internet", url)
 
     with contextlib.ExitStack() as ctx:
-        http_session = ctx.enter_context(SafeSession())
+        http_session = ctx.enter_context(SafeSession(max_retries=3))
 
         try:
             start = time.monotonic()

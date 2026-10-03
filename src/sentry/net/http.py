@@ -165,7 +165,7 @@ class BlacklistAdapter(HTTPAdapter):
         # If is_ipaddress_permitted is defined, then we pass it as an additional parameter to freshly created
         # `urllib3.connectionpool.ConnectionPool` instances managed by `SafePoolManager`.
         self.is_ipaddress_permitted = is_ipaddress_permitted
-        super().__init__(max_retries=max_retries)
+        super().__init__(max_retries=max_retries if max_retries is not None else 0)
 
     def init_poolmanager(
         self, connections: int, maxsize: int, block: bool = DEFAULT_POOLBLOCK, **pool_kwargs: Any
@@ -216,7 +216,7 @@ class SafeSession(Session):
     def __init__(
         self,
         is_ipaddress_permitted: IsIpAddressPermitted = None,
-        max_retries: Retry | None = None,
+        max_retries: Retry | int | None = None,
     ) -> None:
         Session.__init__(self)
         self.headers.update({"User-Agent": USER_AGENT})
