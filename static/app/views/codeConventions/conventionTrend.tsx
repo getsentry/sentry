@@ -1,5 +1,7 @@
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
+import {Container} from '@sentry/scraps/layout';
+
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -124,12 +126,16 @@ export function ConventionTrend({titlePrefix}: Props) {
     return <Placeholder width="100%" height={`${CHART_HEIGHT}px`} />;
   }
 
+  // Table cells are flex containers, where the chart's own wrapper would
+  // collapse to zero width before echarts measures it.
   return (
-    <MiniBarChart
-      isGroupedByDate
-      showTimeInTooltip
-      series={series}
-      height={CHART_HEIGHT}
-    />
+    <Container width="100%">
+      <MiniBarChart
+        isGroupedByDate
+        showTimeInTooltip
+        series={series}
+        height={CHART_HEIGHT}
+      />
+    </Container>
   );
 }
