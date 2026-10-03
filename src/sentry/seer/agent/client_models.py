@@ -163,6 +163,7 @@ class MemoryBlock(BaseModel):
     message: Message
     timestamp: str
     loading: bool = False
+    tool_summary: str | None = None
     artifacts: list[Artifact] = []
     file_patches: list[AgentFilePatch] | None = None  # Incremental patches (per edit)
     merged_file_patches: list[AgentFilePatch] | None = (
