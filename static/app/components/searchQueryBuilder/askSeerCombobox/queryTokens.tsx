@@ -3,7 +3,10 @@ import styled from '@emotion/styled';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import type {
+  AskSeerStrategy,
+  QueryTokensProps,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
   formatDateRange,
   getCrossEventFilterQuery,
@@ -18,8 +21,14 @@ import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {useProjects} from 'sentry/utils/useProjects';
 
 const MAX_PROJECT_CHIPS = 3;
+const MAX_FIELD_CHIPS = 3;
 
-export function QueryTokens(props: QueryTokensProps) {
+interface QueryTokensComponentProps extends QueryTokensProps {
+  /** Seer strategy for the surface, used to hide chips it can't apply. */
+  strategy?: AskSeerStrategy;
+}
+
+export function QueryTokens(props: QueryTokensComponentProps) {
   const normalizedDateTimeParams = normalizeSeerDateTimeParams(props);
 
   return <NewQueryTokens {...props} {...normalizedDateTimeParams} />;
@@ -36,7 +45,9 @@ function NewQueryTokens({
   visualizations,
   expandedProjectIds,
   crossEvents,
-}: QueryTokensProps) {
+  extraFields,
+  strategy,
+}: QueryTokensComponentProps) {
   const tokens: React.ReactNode[] = [];
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const {projects} = useProjects();
@@ -100,6 +111,31 @@ function NewQueryTokens({
           {groupBys.map((groupBy, idx) => (
             <ExploreGroupBys key={idx}>{groupBy}</ExploreGroupBys>
           ))}
+        </Stack>
+      </Stack>
+    );
+  }
+
+  // Extra fields only land as sample-table columns, so they're meaningless
+  // alongside group bys (aggregate mode) or on Issues/Metrics, whose UI has no
+  // column selection to apply them to.
+  const showExtraFields =
+    !groupBys?.length &&
+    !!extraFields?.length &&
+    strategy !== 'Issues' &&
+    strategy !== 'Metrics';
+
+  if (showExtraFields) {
+    const visibleFields = extraFields.slice(0, MAX_FIELD_CHIPS);
+
+    tokens.push(
+      <Stack key="fields">
+        <ExploreParamTitle>{t('Fields')}</ExploreParamTitle>
+        <Stack as="span" gap="xs" overflow="hidden">
+          {visibleFields.map(field => (
+            <ExploreGroupBys key={field}>{field}</ExploreGroupBys>
+          ))}
+          {extraFields.length > MAX_FIELD_CHIPS && <ExploreGroupBys>…</ExploreGroupBys>}
         </Stack>
       </Stack>
     );

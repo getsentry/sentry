@@ -397,6 +397,7 @@ export function MetricsTabSeerComboBox({traceMetric}: MetricsTabSeerComboBoxProp
   return (
     <AskSeerComboBox
       initialQuery={initialSeerQuery}
+      strategy="Metrics"
       askSeerMutationOptions={metricsTabAskSeerMutationOptions}
       applySeerSearchQuery={applySeerSearchQuery}
     />

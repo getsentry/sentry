@@ -8,7 +8,10 @@ import {
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
 import {AskSeerLoadingStatus} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerLoadingStatus';
 import {BaseAskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/baseAskSeerComboBox';
-import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import type {
+  AskSeerStrategy,
+  QueryTokensProps,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {useAskSeerPolling} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useAskSeerPolling';
 import {formatQueryToNaturalLanguage} from 'sentry/components/searchQueryBuilder/askSeerCombobox/utils';
 import {t} from 'sentry/locale';
@@ -21,7 +24,7 @@ interface AskSeerPollingComboBoxProps<T extends QueryTokensProps> {
   applySeerSearchQuery: (item: T, runId?: number | string) => void;
   initialQuery: string;
   projectIds: number[];
-  strategy: string;
+  strategy: AskSeerStrategy;
   className?: string;
   /**
    * Fallback mutation options to use if the polling endpoint fails.
@@ -130,6 +133,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
       searchQuery={searchQuery}
       onSearchQueryChange={setSearchQuery}
       queries={queries}
+      strategy={strategy}
       unsupportedReason={unsupportedReason}
       submitQuery={submitQuery}
       isPending={isSessionPending || isPolling}
