@@ -9,6 +9,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -24,8 +25,8 @@ import {
 } from 'sentry/views/codeConventions/utils';
 
 /**
- * Route component for `code-conventions/:conventionName/`. It renders nothing
- * itself; it keeps the drawer open for as long as the URL points at a
+ * Route component for `code-conventions/:conventionName/`. It renders only the
+ * document title; it keeps the drawer open for as long as the URL points at a
  * convention, so the drawer is linkable and closes on back navigation.
  */
 export default function ConventionDetails() {
@@ -34,6 +35,7 @@ export default function ConventionDetails() {
   const navigate = useNavigate();
   const organization = useOrganization();
   const {openDrawer} = useDrawer();
+  const title = formatConventionTitle(conventionName);
 
   // The URL only carries the convention name, and the file may end in either
   // `.yml` or `.yaml`, so look the filename up in the (already cached) list.
@@ -71,10 +73,10 @@ export default function ConventionDetails() {
           <DrawerHeader>
             {filename ? (
               <ExternalLink href={getConventionFileUrls(filename).htmlUrl}>
-                <Text monospace>{formatConventionTitle(conventionName)}</Text>
+                <Text>{title}</Text>
               </ExternalLink>
             ) : (
-              <Text monospace>{formatConventionTitle(conventionName)}</Text>
+              <Text>{title}</Text>
             )}
           </DrawerHeader>
           <DrawerBody>
@@ -115,6 +117,7 @@ export default function ConventionDetails() {
   }, [
     conventionName,
     filename,
+    title,
     isError,
     isNotFound,
     isPending,
@@ -127,5 +130,10 @@ export default function ConventionDetails() {
     yaml,
   ]);
 
-  return null;
+  return (
+    <SentryDocumentTitle
+      title={`${title} — ${t('Code Conventions')}`}
+      orgSlug={organization.slug}
+    />
+  );
 }

@@ -1,5 +1,7 @@
 import {queryOptions} from '@tanstack/react-query';
 
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+
 export const REPO = 'getsentry/sentry';
 const REF = 'master';
 const CONVENTIONS_PATH = '.sentry-refactor-tasks/conventions';
@@ -48,10 +50,19 @@ export function getConventionName(filename: string) {
   return filename.replace(YAML_EXTENSION, '');
 }
 
-// Matches the `[<name>]` prefix that @sentry/refactor-tasks puts on each issue
-// title, so rows line up with what shows in the issue stream.
-export function formatConventionTitle(conventionName: string) {
+/**
+ * The `[<name>]` prefix that @sentry/refactor-tasks puts on each issue title,
+ * used to find a convention's issues.
+ */
+export function getConventionIssueTitlePrefix(conventionName: string) {
   return `[${conventionName}]`;
+}
+
+/**
+ * Human-readable title, e.g. `no-class-components` -> `No Class Components`.
+ */
+export function formatConventionTitle(conventionName: string) {
+  return toTitleCase(conventionName.replaceAll('-', ' '));
 }
 
 export function getCodeConventionsPath(orgSlug: string) {

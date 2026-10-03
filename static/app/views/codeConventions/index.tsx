@@ -18,6 +18,7 @@ import {
   conventionFilesQueryOptions,
   formatConventionTitle,
   getCodeConventionsPath,
+  getConventionIssueTitlePrefix,
   getConventionName,
   REPO,
 } from 'sentry/views/codeConventions/utils';
@@ -80,7 +81,7 @@ export default function CodeConventions() {
                       </SimpleTable.RowCell>
                       <SimpleTable.RowCell>
                         <ConventionIssueCount
-                          title={formatConventionTitle(conventionName)}
+                          titlePrefix={getConventionIssueTitlePrefix(conventionName)}
                         />
                       </SimpleTable.RowCell>
                     </SimpleTable.Row>

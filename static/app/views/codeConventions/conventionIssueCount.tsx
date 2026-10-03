@@ -14,14 +14,17 @@ const CONVENTIONS_PROJECT_ID = '4511567035432960';
 const STATS_PERIOD = '90d';
 
 interface Props {
-  title: string;
+  /**
+   * The `[<name>]` prefix the convention's issue titles start with.
+   */
+  titlePrefix: string;
 }
 
-export function ConventionIssueCount({title}: Props) {
+export function ConventionIssueCount({titlePrefix}: Props) {
   const organization = useOrganization();
   const query = {
     project: CONVENTIONS_PROJECT_ID,
-    query: `is:unresolved title:"*${title}*"`,
+    query: `is:unresolved title:"*${titlePrefix}*"`,
     statsPeriod: STATS_PERIOD,
   };
 
