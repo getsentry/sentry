@@ -19,7 +19,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
-import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
+import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/topEventsConstants';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {Table} from 'sentry/views/explore/multiQueryMode/components/miniTable';
 import type {

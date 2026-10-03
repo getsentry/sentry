@@ -9,7 +9,7 @@ import {
   useProgressiveQuery,
   type RPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
+import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/topEventsConstants';
 import {
   getQueryMode,
   useReadQueriesFromLocation,
