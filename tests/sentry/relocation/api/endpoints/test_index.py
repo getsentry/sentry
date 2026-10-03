@@ -328,7 +328,6 @@ class PostRelocationsTest(APITestCase):
     ) -> None:
         self.login_as(user=self.owner, superuser=False)
         relocation_count = Relocation.objects.count()
-        relocation_file_count = RelocationFile.objects.count()
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             (_, tmp_pub_key_path) = self.tmp_keys(tmp_dir)
@@ -358,11 +357,13 @@ class PostRelocationsTest(APITestCase):
         assert response.data["owner"]["email"] == str(self.owner.email)
         assert response.data["owner"]["username"] == str(self.owner.username)
 
-        relocation: Relocation = Relocation.objects.get(owner_id=self.owner.id)
+        relocation = Relocation.objects.get(owner_id=self.owner.id)
         assert str(relocation.uuid) == response.data["uuid"]
         assert relocation.want_org_slugs == ["testing"]
         assert Relocation.objects.count() == relocation_count + 1
-        assert RelocationFile.objects.count() == relocation_file_count + 1
+        assert RelocationFile.objects.count() == 1
+        relocation_file = RelocationFile.objects.get(relocation=relocation)
+        assert relocation_file.bucket_path == f"runs/{relocation.uuid}/in/raw-relocation-data.tar"
 
         assert uploading_start_mock.call_count == 1
         uploading_start_mock.assert_called_with(args=[response.data["uuid"], None, None])
