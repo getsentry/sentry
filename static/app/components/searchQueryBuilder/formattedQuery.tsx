@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import {Chip} from '@sentry/scraps/chip';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
@@ -48,12 +47,14 @@ function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
     return null;
   }
 
-  return isAggregateFilterToken(token) ? (
-    <div>
-      <AggregateKeyVisual token={token} />
-    </div>
-  ) : (
-    <div>{getKeyLabel(token.key)}</div>
+  return (
+    <Chip.Property>
+      {isAggregateFilterToken(token) ? (
+        <AggregateKeyVisual token={token} />
+      ) : (
+        getKeyLabel(token.key)
+      )}
+    </Chip.Property>
   );
 }
 
@@ -69,12 +70,13 @@ function Filter({token}: {token: TokenResult<Token.FILTER>}) {
   );
 
   return (
-    <FilterWrapper aria-label={token.text}>
-      <FilterKey token={token} /> {label}{' '}
-      <FilterValue>
+    <Chip.Root readonly size="sm" aria-label={token.text}>
+      <FilterKey token={token} />
+      <Chip.Operator>{label}</Chip.Operator>
+      <Chip.Value maxWidth="300px">
         <FilterValueText token={token} />
-      </FilterValue>
-    </FilterWrapper>
+      </Chip.Value>
+    </Chip.Root>
   );
 }
 
@@ -199,16 +201,6 @@ export function FilterWrapper(props: FlexProps) {
     />
   );
 }
-
-const FilterValue = styled('div')`
-  max-width: 300px;
-  min-width: 0;
-  color: ${p => p.theme.tokens.content.accent};
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-`;
 
 function Paren({children}: {children: React.ReactNode}) {
   return (

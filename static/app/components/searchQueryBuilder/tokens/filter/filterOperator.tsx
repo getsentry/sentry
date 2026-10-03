@@ -84,7 +84,7 @@ function FilterKeyOperatorLabel({
   }
 
   return (
-    <Flex align="center" gap="sm">
+    <Flex as="span" align="center" gap="sm">
       <Tooltip title={fieldDefinition?.desc}>
         <span>{keyLabel}</span>
         {opLabel ? <OpLabel> {opLabel}</OpLabel> : null}
