@@ -1104,7 +1104,10 @@ function ViewerTableV2({
               dashboardFilters,
               selectedQueryIndex
             );
-            navigate(getExploreUrl(dataRow));
+            const exploreUrl = getExploreUrl(dataRow);
+            if (exploreUrl) {
+              navigate(exploreUrl);
+            }
           }
         }}
       />

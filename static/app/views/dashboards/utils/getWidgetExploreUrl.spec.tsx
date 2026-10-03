@@ -428,6 +428,16 @@ describe('getWidgetExploreUrl', () => {
     expect(query2.query).toBe('is_transaction:false');
   });
 
+  it('returns null for widgets with an empty queries array', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [],
+    });
+
+    const url = getWidgetExploreUrl(widget, undefined, selection, organization);
+    expect(url).toBeNull();
+  });
+
   it('returns null for log widgets with multiple queries', () => {
     const widget = WidgetFixture({
       displayType: DisplayType.LINE,

@@ -566,6 +566,10 @@ function renderInternalErrorCount(widget?: Widget, dashboardFilters?: DashboardF
     );
     const target = getRowExploreUrl(data);
 
+    if (!target) {
+      return <NumberContainer>{count}</NumberContainer>;
+    }
+
     return (
       <NumberContainer>
         <Link to={target}>{count}</Link>
