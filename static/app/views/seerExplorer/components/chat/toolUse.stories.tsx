@@ -1,11 +1,12 @@
 import {Fragment, useState} from 'react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
+import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {AgentWriteApprovalProvider} from 'sentry/components/seer/markdown/embeds/components/agentWriteApproval';
 import * as Storybook from 'sentry/stories';
+import {AgentWriteApprovalBlock} from 'sentry/views/seerExplorer/components/agentWriteApprovalBlock';
 import {BlockComponent} from 'sentry/views/seerExplorer/components/chat';
 import type {
   AgentWriteApproval,
@@ -95,32 +96,33 @@ function AgentWriteApprovalStory() {
     sessionId: 'story-session',
     status,
   };
-  const pendingInput: PendingUserInput | null =
-    status === 'pending'
-      ? {
-          id: APPROVAL_ID,
-          input_type: 'agent_write_approval',
-          data: {
-            required_scopes: ['event:write'],
-            session_id: 'story-session',
-          },
-        }
-      : null;
+  const pendingInput: PendingUserInput = {
+    id: APPROVAL_ID,
+    input_type: 'agent_write_approval',
+    data: {
+      required_scopes: ['event:write'],
+      session_id: 'story-session',
+    },
+  };
 
   return (
     <QueryClientProvider client={storyQueryClient}>
-      <AgentWriteApprovalProvider
-        pendingInput={pendingInput}
-        requestApproval={() => Promise.resolve({scopes: approval.requiredScopes})}
-        respondToUserInput={(_inputId, responseData) => {
-          setStatus(responseData?.decision === 'approve' ? 'approved' : 'rejected');
-        }}
-      >
+      <Stack gap="lg">
         <SeerMarkdown
           raw="{% agentWriteApproval /%}"
           structuredContent={{agentWriteApproval: approval}}
         />
-      </AgentWriteApprovalProvider>
+        {status === 'pending' ? (
+          <AgentWriteApprovalBlock
+            pendingInput={pendingInput}
+            readOnly={false}
+            requestApproval={() => Promise.resolve({scopes: approval.requiredScopes})}
+            respondToUserInput={(_inputId, responseData) => {
+              setStatus(responseData?.decision === 'approve' ? 'approved' : 'rejected');
+            }}
+          />
+        ) : null}
+      </Stack>
     </QueryClientProvider>
   );
 }
@@ -168,8 +170,8 @@ export default Storybook.story('ToolUseBlock', story => {
   story('Agent write approval — structured content', () => (
     <Fragment>
       <Text>
-        The actionable approval card is delivered through structured content and explains
-        the requested access in plain language.
+        The transcript records the request as a status line from structured content. The
+        actionable prompt renders above the composer while the input is pending.
       </Text>
       <AgentWriteApprovalStory />
     </Fragment>

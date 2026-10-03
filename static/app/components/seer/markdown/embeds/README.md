@@ -52,11 +52,11 @@ contents are the link already sitting in its header. These render bare, by desig
 | `docs`               | compact link    | declared `level: ['inline']`; a docs URL has no preview                                   |
 | `dsn`                | `TextCopyInput` | one copyable value, and no page in Sentry to link to                                      |
 | `replay` (no clip)   | compact link    | falls back to a link when there is no event timestamp, or the reader has no replay access |
-| `agentWriteApproval` | action buttons  | an action to take, not a resource to preview -- see below                                 |
+| `agentWriteApproval` | status line     | records a request, not a resource to preview -- see below                                 |
 
-`agentWriteApproval` is deliberately left out of the rule for now: it asks the reader to
-approve or reject a write, so a collapse toggle could hide a pending decision behind a
-header. Whether it grows its own chrome is tracked separately from the block-chrome rule.
+`agentWriteApproval` only records the request and its outcome in the transcript. The
+Approve/Reject prompt renders above the Explorer composer (`AgentWriteApprovalBlock`), so a
+pending decision is never hidden inside a collapsed thinking block or a card.
 
 Anything else rendered at block level renders inside `SeerEmbedBlock`. Adding a new block
 preview means adding a case to this section or routing it through the card -- there is no
