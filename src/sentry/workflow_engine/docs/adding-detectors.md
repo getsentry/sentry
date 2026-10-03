@@ -393,7 +393,6 @@ from sentry.workflow_engine.types import DetectorAPIOperation, DetectorSettings,
 
 @detector_settings_registry.register(ExampleGroupType.slug)
 class ExampleDetectorSettings(DetectorSettings):
-    api_availability = {}
     handler = ExampleDetectorHandler
     validator = ExampleDetectorValidator
     config_schema = {
@@ -413,18 +412,19 @@ imported during application startup.
 
 [`DetectorSettings`](../types.py) fields are:
 
-| Field              | Purpose                                                                       |
-| ------------------ | ----------------------------------------------------------------------------- |
-| `api_availability` | Required mapping of `DetectorAPIOperation` to `bool` or `FeatureGate`         |
-| `api_enabled`      | Global `bool` or `FeatureGate` for detector-platform APIs; defaults to `True` |
-| `handler`          | Runtime `DetectorHandler` class                                               |
-| `validator`        | Native detector API validator                                                 |
-| `config_schema`    | Save-time JSON schema for `Detector.config`                                   |
-| `filter`           | Optional `Q` filter controlling user-visible detector rows of this type       |
+| Field              | Purpose                                                                                |
+| ------------------ | -------------------------------------------------------------------------------------- |
+| `api_availability` | Optional operation-to-`bool`/`FeatureGate` overrides; inherits the all-enabled default |
+| `handler`          | Runtime `DetectorHandler` class                                                        |
+| `validator`        | Native detector API validator                                                          |
+| `config_schema`    | Save-time JSON schema for `Detector.config`                                            |
+| `filter`           | Optional `Q` filter controlling user-visible detector rows of this type                |
 
-Every settings class must explicitly define `api_availability`; the base class has no
-default. Use `{}` to allow every operation. Missing entries default to `True`. The
-supported enum members are `LIST`, `GET`, `POST`, `PUT`, and `DELETE`.
+Settings classes inherit `DetectorSettings.DEFAULT_API_AVAILABILITY` unless they override
+`api_availability`. This shared mapping is immutable and sets each `DetectorAPIOperation`
+member to `True`, so ordinary detector implementations need no availability declaration.
+Missing entries in custom maps still default to `True`. The supported enum members are
+`LIST`, `GET`, `POST`, `PUT`, and `DELETE`.
 
 Each gate is either `True`, `False`, or `FeatureGate("organizations:feature-name")`.
 `FeatureGate` checks a registered organization-scoped feature at request time using the
@@ -434,24 +434,25 @@ valid gate values.
 To hide a type from the list and its counts without disabling other operations:
 
 ```python
-api_availability = {DetectorAPIOperation.LIST: False}
-```
-
-For a rollout across all detector-platform APIs, optionally configure `api_enabled`:
-
-```python
-api_enabled = FeatureGate("organizations:example-detector-api")
 api_availability = {
-    DetectorAPIOperation.LIST: FeatureGate("organizations:example-detector-list"),
-    DetectorAPIOperation.DELETE: False,
+    **DetectorSettings.DEFAULT_API_AVAILABILITY,
+    DetectorAPIOperation.LIST: False,
 }
 ```
 
-The global `api_enabled` gate must pass before any operation is available. An operation's
-`True` cannot override a denied global gate. `LIST` additionally requires `GET`, so a denied
-`GET` gate hides a type from both listing and counts even when `LIST` is explicitly allowed.
-Gate checks short-circuit in that order: global gate, implied `GET` for `LIST`, then the
-requested operation.
+For a rollout across every detector-platform API, assign the same feature gate to all
+operations:
+
+```python
+api_availability = {
+    operation: FeatureGate("organizations:example-detector-api")
+    for operation in DetectorAPIOperation
+}
+```
+
+`LIST` additionally requires `GET`, so a denied `GET` gate hides a type from both listing
+and counts even when `LIST` is explicitly allowed. Gate checks short-circuit in that order:
+implied `GET` for `LIST`, then the requested operation.
 
 Generic detector-platform APIs evaluate these gates through `get_excluded_detector_types`,
 which reads registered settings without fetching detector rows. List filtering happens

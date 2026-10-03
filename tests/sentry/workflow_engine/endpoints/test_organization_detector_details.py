@@ -193,22 +193,6 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
 
         assert Detector.objects.filter(id=self.detector.id).exists()
 
-    def test_get_global_feature_gate(self) -> None:
-        gate = FeatureGate("organizations:workflow-engine-log-evaluations")
-        settings = detector_settings_registry.get(MetricIssue.slug)
-        original_state = self.get_detector_state()
-        with (
-            mock.patch.object(settings, "api_enabled", gate),
-            mock.patch.object(settings, "api_availability", {DetectorAPIOperation.GET: True}),
-        ):
-            with self.feature({gate.name: False}):
-                self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
-            assert self.get_detector_state() == original_state
-
-            with self.feature(gate.name):
-                response = self.get_success_response(self.organization.slug, self.detector.id)
-            assert response.data == serialize(self.detector)
-
     def test_get_operation_feature_gate(self) -> None:
         gate = FeatureGate("organizations:workflow-engine-log-evaluations")
         settings = detector_settings_registry.get(MetricIssue.slug)
@@ -250,36 +234,29 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
                 )
 
         settings = detector_settings_registry.get(MetricIssue.slug)
-        with mock.patch.dict(
-            features.default_manager._handler_registry, {flag: [ActorFeatureHandler()]}
+        with (
+            mock.patch.dict(
+                features.default_manager._handler_registry, {flag: [ActorFeatureHandler()]}
+            ),
+            mock.patch.object(
+                settings, "api_availability", {DetectorAPIOperation.GET: FeatureGate(flag)}
+            ),
         ):
-            for attribute, value in (
-                ("api_enabled", FeatureGate(flag)),
-                ("api_availability", {DetectorAPIOperation.GET: FeatureGate(flag)}),
-            ):
-                with self.subTest(gate=attribute), mock.patch.object(settings, attribute, value):
-                    self.login_as(allowed_user)
-                    response = self.get_success_response(self.organization.slug, self.detector.id)
-                    assert response.data == serialize(self.detector)
+            self.login_as(allowed_user)
+            response = self.get_success_response(self.organization.slug, self.detector.id)
+            assert response.data == serialize(self.detector)
 
-                    self.login_as(denied_user)
-                    self.get_error_response(
-                        self.organization.slug, self.detector.id, status_code=404
-                    )
+            self.login_as(denied_user)
+            self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
 
-                    self.login_as(allowed_user)
-                    response = self.get_success_response(self.organization.slug, self.detector.id)
-                    assert response.data == serialize(self.detector)
+            self.login_as(allowed_user)
+            response = self.get_success_response(self.organization.slug, self.detector.id)
+            assert response.data == serialize(self.detector)
 
     def test_does_not_exist(self) -> None:
         self.get_error_response(self.organization.slug, 999999999, status_code=404)
 
     @with_feature("organizations:workflow-engine-log-evaluations")
-    @mock.patch.object(
-        detector_settings_registry.get(MetricIssue.slug),
-        "api_enabled",
-        FeatureGate("organizations:workflow-engine-log-evaluations"),
-    )
     @mock.patch.object(
         detector_settings_registry.get(MetricIssue.slug),
         "api_availability",
@@ -504,15 +481,6 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         self.assert_data_condition_updated(self.condition)
         assert data_source.organization_id == self.organization.id
 
-    def test_put_global_feature_gate_preserves_state(self) -> None:
-        gate = FeatureGate("organizations:workflow-engine-log-evaluations")
-        settings = detector_settings_registry.get(MetricIssue.slug)
-        with (
-            mock.patch.object(settings, "api_enabled", gate),
-            mock.patch.object(settings, "api_availability", {DetectorAPIOperation.PUT: True}),
-        ):
-            self.assert_put_feature_gate(gate)
-
     def test_put_operation_feature_gate_preserves_state(self) -> None:
         gate = FeatureGate("organizations:workflow-engine-log-evaluations")
         settings = detector_settings_registry.get(MetricIssue.slug)
@@ -540,24 +508,19 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         gate = FeatureGate("organizations:workflow-engine-log-evaluations")
         settings = detector_settings_registry.get(MonitorIncidentType.slug)
         original_state = self.get_detector_state()
-        for attribute, value in (
-            ("api_enabled", gate),
-            ("api_availability", {DetectorAPIOperation.PUT: gate}),
+        with (
+            mock.patch.object(settings, "api_availability", {DetectorAPIOperation.PUT: gate}),
+            self.feature({gate.name: False}),
         ):
-            with (
-                self.subTest(gate=attribute),
-                mock.patch.object(settings, attribute, value),
-                self.feature({gate.name: False}),
-            ):
-                response = self.get_error_response(
-                    self.organization.slug,
-                    self.detector.id,
-                    name="Unauthorized change",
-                    type=MonitorIncidentType.slug,
-                    status_code=400,
-                )
-                assert "type" in response.data
-                assert self.get_detector_state() == original_state
+            response = self.get_error_response(
+                self.organization.slug,
+                self.detector.id,
+                name="Unauthorized change",
+                type=MonitorIncidentType.slug,
+                status_code=400,
+            )
+            assert "type" in response.data
+            assert self.get_detector_state() == original_state
 
     @with_feature({"organizations:change-alerts": False})
     @mock.patch.object(
@@ -1381,15 +1344,6 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
             model_name="Detector", object_id=self.detector.id
         ).exists()
 
-    def test_delete_global_feature_gate_preserves_state(self) -> None:
-        gate = FeatureGate("organizations:workflow-engine-log-evaluations")
-        settings = detector_settings_registry.get(MetricIssue.slug)
-        with (
-            mock.patch.object(settings, "api_enabled", gate),
-            mock.patch.object(settings, "api_availability", {DetectorAPIOperation.DELETE: True}),
-        ):
-            self.assert_delete_feature_gate(gate)
-
     def test_delete_operation_feature_gate_preserves_state(self) -> None:
         gate = FeatureGate("organizations:workflow-engine-log-evaluations")
         settings = detector_settings_registry.get(MetricIssue.slug)
@@ -1423,11 +1377,6 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         mock_schedule_update_project_config.assert_called_once_with(self.detector)
 
     @with_feature("organizations:workflow-engine-log-evaluations")
-    @mock.patch.object(
-        detector_settings_registry.get(MetricIssue.slug),
-        "api_enabled",
-        FeatureGate("organizations:workflow-engine-log-evaluations"),
-    )
     @mock.patch.object(
         detector_settings_registry.get(MetricIssue.slug),
         "api_availability",

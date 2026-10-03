@@ -227,18 +227,6 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
             detector=detector, workflow=self.connected_workflow
         ).exists()
 
-    def test_post_global_feature_gate_preserves_state(self) -> None:
-        gate = FeatureGate("organizations:workflow-engine-log-evaluations")
-        with (
-            mock.patch.object(MetricIssue.detector_settings, "api_enabled", gate),
-            mock.patch.object(
-                MetricIssue.detector_settings,
-                "api_availability",
-                {DetectorAPIOperation.POST: True},
-            ),
-        ):
-            self.assert_post_feature_gate(gate)
-
     def test_post_operation_feature_gate_preserves_state(self) -> None:
         gate = FeatureGate("organizations:workflow-engine-log-evaluations")
         with mock.patch.object(

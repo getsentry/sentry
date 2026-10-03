@@ -421,7 +421,6 @@ class PreprodSizeAnalysisGroupType(GroupType):
 
 @detector_settings_registry.register(PreprodSizeAnalysisGroupType.slug)
 class PreprodSizeAnalysisDetectorSettings(DetectorSettings):
-    api_availability = {}
     handler = PreprodSizeAnalysisDetectorHandler
     validator = PreprodSizeAnalysisDetectorValidator
     config_schema = {

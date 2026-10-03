@@ -55,12 +55,10 @@ class JSONConfigBaseTest(BaseGroupTypeTest):
 
         @detector_settings_registry.register(TestGroupType.slug)
         class TestDetectorSettings(DetectorSettings):
-            api_availability = {}
             config_schema = self.example_schema
 
         @detector_settings_registry.register(ExampleGroupType.slug)
         class ExampleDetectorSettings(DetectorSettings):
-            api_availability = {}
             config_schema = {"type": "object", "additionalProperties": False}
 
 
@@ -113,7 +111,6 @@ class TestMetricIssueDetectorConfig(JSONConfigBaseTest, APITestCase):
 
         @detector_settings_registry.register(TestGroupType.slug)
         class TestDetectorSettings(DetectorSettings):
-            api_availability = {}
             config_schema = detector_settings_registry.get(MetricIssue.slug).config_schema
 
     def test_detector_correct_schema(self) -> None:
