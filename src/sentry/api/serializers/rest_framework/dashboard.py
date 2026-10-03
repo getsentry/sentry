@@ -8,6 +8,7 @@ from typing import Any, TypedDict
 import sentry_sdk
 from django.db.models import Max
 from rest_framework import serializers
+from sentry_sdk import traces
 
 from sentry import features, options
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
@@ -48,7 +49,7 @@ from sentry.tasks.on_demand_metrics import (
 from sentry.utils.dates import parse_stats_period
 from sentry.utils.snuba import UnqualifiedQueryError
 from sentry.utils.strings import oxfordize_list
-from sentry.utils.tracing import set_span_data, start_span
+from sentry.utils.tracing import set_span_data
 
 AGGREGATE_PATTERN = r"^(\w+)\((.*)?\)$"
 AGGREGATE_BASE = r".*(\w+)\((.*)?\)"
@@ -1167,7 +1168,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         return instance
 
     def update_widgets(self, instance, widget_data):
-        with start_span(op="function", name="dashboard.update_widgets"):
+        with traces.start_span(
+            name="dashboard.update_widgets", attributes={"sentry.op": "function"}
+        ):
             widget_ids = [widget["id"] for widget in widget_data if "id" in widget]
 
             existing_widgets = DashboardWidget.objects.filter(dashboard=instance, id__in=widget_ids)
@@ -1317,7 +1320,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         organization = self.context["organization"]
         linked_dashboards = linked_dashboards or []
 
-        with start_span(op="function", name="dashboard.update_or_create_field_links") as span:
+        with traces.start_span(
+            name="dashboard.update_or_create_field_links", attributes={"sentry.op": "function"}
+        ) as span:
             # Get the set of fields that should exist
             new_fields = set()
             field_links_to_create = []
@@ -1332,9 +1337,9 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     for ld in linked_dashboards
                 ],
             )
-            set_span_data(span, "widget_display_type", widget_display_type)
-            set_span_data(span, "query_id", query.id)
-            set_span_data(span, "widget_id", widget.id)
+            span.set_attribute("widget_display_type", widget_display_type)
+            span.set_attribute("query_id", query.id)
+            span.set_attribute("widget_id", widget.id)
 
             is_breakdown_chart = (
                 widget_display_type
@@ -1407,23 +1412,23 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                 field__in=new_fields
             ).delete()
 
-            with start_span(
-                op="db.bulk_create", name="dashboard.update_or_create_field_links.bulk_create"
-            ) as span:
-                set_span_data(span, "new_fields", list(new_fields))
-                set_span_data(span, "query_id", query.id)
-                set_span_data(span, "widget_id", widget.id)
-                set_span_data(span, "widget_display_type", widget.display_type)
-                set_span_data(
-                    span,
-                    "linked_dashboards",
-                    [
-                        {"field": ld.get("field"), "dashboard_id": ld.get("dashboard_id")}
-                        for ld in linked_dashboards
-                    ],
-                )
-                set_span_data(span, "field_links_count", len(field_links_to_create))
-
+            with traces.start_span(
+                name="dashboard.update_or_create_field_links.bulk_create",
+                attributes={
+                    "sentry.op": "db.bulk_create",
+                    "new_fields": list(new_fields),
+                    "query_id": query.id,
+                    "widget_id": widget.id,
+                    "widget_display_type": widget.display_type,
+                    "linked_dashboards": repr(
+                        [
+                            {"field": ld.get("field"), "dashboard_id": ld.get("dashboard_id")}
+                            for ld in linked_dashboards
+                        ]
+                    ),
+                    "field_links_count": len(field_links_to_create),
+                },
+            ):
                 # Use bulk_create with update_conflicts to effectively upsert (i.e bulk update or create)
                 if field_links_to_create:
                     DashboardFieldLink.objects.bulk_create(
