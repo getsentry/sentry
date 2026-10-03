@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture, ProjectFixture} from 'sentry-fixture/project';
 import {ProjectFiltersFixture} from 'sentry-fixture/projectFilters';
+import {ReleaseFixture} from 'sentry-fixture/release';
 import {TombstonesFixture} from 'sentry-fixture/tombstones';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -40,6 +41,7 @@ describe('ProjectFilters', () => {
   };
 
   const CUSTOM_INBOUND_FILTERS_URL = `${PROJECT_URL}custom-inbound-filters/`;
+  const RELEASES_URL = `${PROJECT_URL}releases/`;
 
   const inboundFiltersV2Org = OrganizationFixture({
     ...organization,
@@ -79,6 +81,7 @@ describe('ProjectFilters', () => {
       url: CUSTOM_INBOUND_FILTERS_URL,
       body: filters,
     });
+    MockApiClient.addMockResponse({url: RELEASES_URL, body: []});
     const result = render(<ProjectFilters />, {
       organization: inboundFiltersV2Org,
       outletContext: {project: renderedProject},
@@ -708,6 +711,71 @@ describe('ProjectFilters', () => {
     );
   });
 
+  it('hides comment lines in the table and keeps them in the editor', async () => {
+    renderInboundFilters([
+      CustomInboundFilterFixture({
+        id: '1',
+        name: 'Old releases',
+        conditions: [
+          {
+            type: 'release',
+            value: ['# builds before the fix', '1.* # first bad one', '2.*'],
+          },
+        ],
+      }),
+    ]);
+
+    expect(await screen.findByText('Old releases')).toBeInTheDocument();
+    expect(screen.getByText('1.*')).toBeInTheDocument();
+    expect(screen.getByText('2.*')).toBeInTheDocument();
+    expect(screen.queryByText(/before the fix/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/first bad one/)).not.toBeInTheDocument();
+    expect(screen.getAllByText('or')).toHaveLength(1);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Edit filter'}));
+    expect(await screen.findByText('Edit Custom Filter')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Condition value'})).toHaveValue(
+      '# builds before the fix\n1.* # first bad one\n2.*'
+    );
+  });
+
+  it('needs a pattern besides comments and saves the comments with it', async () => {
+    renderInboundFilters([]);
+    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+
+    const createMock = MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      method: 'POST',
+      body: CustomInboundFilterFixture({id: '10', name: 'Noise'}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
+    await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Noise');
+    const value = screen.getByRole('textbox', {name: 'Condition value'});
+    await userEvent.type(value, '# nothing yet');
+    await userEvent.click(screen.getByRole('button', {name: 'Create Filter'}));
+
+    expect(await screen.findByText('Enter a value to match')).toBeInTheDocument();
+    expect(createMock).not.toHaveBeenCalled();
+
+    await userEvent.type(value, '{enter}*timeout* # flaky');
+    await userEvent.click(screen.getByRole('button', {name: 'Create Filter'}));
+
+    await waitFor(() =>
+      expect(createMock).toHaveBeenCalledWith(
+        CUSTOM_INBOUND_FILTERS_URL,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            conditions: [
+              {type: 'error_message', value: ['# nothing yet', '*timeout* # flaky']},
+            ],
+          }),
+        })
+      )
+    );
+  });
+
   it('keeps a condition type it does not know', async () => {
     // A newer deploy can store a condition type this bundle has no description
     // for. It has to stay visible and editable, not break the page or the modal.
@@ -1205,6 +1273,89 @@ describe('ProjectFilters', () => {
         })
       )
     );
+  });
+
+  it('warns about a release pattern no release matches and still saves it', async () => {
+    renderInboundFilters([]);
+    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+
+    const releasesMock = MockApiClient.addMockResponse({
+      url: RELEASES_URL,
+      body: [ReleaseFixture({version: '2.41.0'}), ReleaseFixture({version: '2.41.1'})],
+    });
+    const createMock = MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      method: 'POST',
+      body: CustomInboundFilterFixture({id: '10', name: 'Old release'}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
+    await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'Old release');
+    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Release'}));
+
+    // The search runs on the literal part of each pattern. `2.41.*` matches a
+    // release the search found, `2.41` matches none of them exactly. Comments
+    // are not patterns.
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Condition value'}),
+      '# the bad ones\n2.41.*\n2.41 # exact'
+    );
+
+    expect(
+      await screen.findByText(/No release of this project matches/)
+    ).toBeInTheDocument();
+    expect(screen.getByText('2.41')).toBeInTheDocument();
+    expect(screen.queryByText('2.41.*')).not.toBeInTheDocument();
+    expect(releasesMock).toHaveBeenCalledWith(
+      RELEASES_URL,
+      expect.objectContaining({query: {query: '2.41.', per_page: 100}})
+    );
+    expect(releasesMock).toHaveBeenCalledWith(
+      RELEASES_URL,
+      expect.objectContaining({query: {query: '2.41', per_page: 100}})
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Filter'}));
+    await waitFor(() =>
+      expect(createMock).toHaveBeenCalledWith(
+        CUSTOM_INBOUND_FILTERS_URL,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            conditions: [
+              {type: 'release', value: ['# the bad ones', '2.41.*', '2.41 # exact']},
+            ],
+          }),
+        })
+      )
+    );
+  });
+
+  it('does not warn about a release pattern while a full page of releases may hide a match', async () => {
+    renderInboundFilters([]);
+    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+
+    const releasesMock = MockApiClient.addMockResponse({
+      url: RELEASES_URL,
+      body: Array.from({length: 100}, (_, index) =>
+        ReleaseFixture({version: `12.41.${index}`})
+      ),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('textbox', {name: 'Condition property'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Release'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Condition value'}),
+      '2.41.*'
+    );
+
+    await waitFor(() => expect(releasesMock).toHaveBeenCalled());
+    expect(
+      screen.queryByText(/No release of this project matches/)
+    ).not.toBeInTheDocument();
   });
 
   it('shows the data type of every filter in the table', async () => {
