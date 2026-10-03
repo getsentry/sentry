@@ -91,16 +91,22 @@ describe('ConventionConfig', () => {
     ).toBeInTheDocument();
   });
 
-  it('toggles an edit mode with disabled text areas', async () => {
+  it('toggles an edit mode with editable text areas that cannot be saved', async () => {
     render(<ConventionConfig convention={parse(YAML)} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Edit'}));
 
     expect(screen.queryByRole('button', {name: 'Why'})).not.toBeInTheDocument();
 
+    expect(
+      screen.getByText(/Editing conventions isn't supported yet/)
+    ).toBeInTheDocument();
+
     const why = screen.getByRole('textbox', {name: 'Why'});
-    expect(why).toBeDisabled();
     expect(why).toHaveValue('Class components are the **legacy** style.\n');
+    await userEvent.clear(why);
+    await userEvent.type(why, 'Edited');
+    expect(why).toHaveValue('Edited');
 
     expect(screen.getByRole('textbox', {name: 'Examples'})).toHaveDisplayValue(
       /bad:\n {2}- class Profile extends Component \{\}/

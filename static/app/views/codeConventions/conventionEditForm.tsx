@@ -1,12 +1,13 @@
 import {stringify} from 'yaml';
 
+import {Alert} from '@sentry/scraps/alert';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import type {Convention} from 'sentry/views/codeConventions/utils';
 
-const DISABLED_REASON = t('Editing conventions is not available yet');
+const SAVE_DISABLED_REASON = t('Saving conventions is not available yet');
 
 /**
  * Examples and filters are structured in the YAML, so they're edited as YAML
@@ -54,6 +55,11 @@ export function ConventionEditForm({convention}: Props) {
   return (
     <form.AppForm form={form}>
       <Stack gap="xl">
+        <Alert variant="info" showIcon>
+          {t(
+            "Editing conventions isn't supported yet. You can change these fields to try it out, but your changes can't be saved."
+          )}
+        </Alert>
         {fields.map(({name, label}) =>
           defaultValues[name] ? (
             <form.AppField key={name} name={name}>
@@ -61,7 +67,6 @@ export function ConventionEditForm({convention}: Props) {
                 <field.Layout.Stack label={label}>
                   <field.TextArea
                     autosize
-                    disabled={DISABLED_REASON}
                     value={field.state.value}
                     onChange={field.handleChange}
                   />
@@ -74,7 +79,7 @@ export function ConventionEditForm({convention}: Props) {
           <form.SubmitButton
             variant="primary"
             disabled
-            tooltipProps={{title: DISABLED_REASON}}
+            tooltipProps={{title: SAVE_DISABLED_REASON}}
           >
             {t('Save')}
           </form.SubmitButton>
