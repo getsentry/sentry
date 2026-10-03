@@ -13,6 +13,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConventionIssueCount} from 'sentry/views/codeConventions/conventionIssueCount';
+import {ConventionTags} from 'sentry/views/codeConventions/conventionTags';
 import {RepositorySelector} from 'sentry/views/codeConventions/repositorySelector';
 import {
   conventionFilesQueryOptions,
@@ -68,16 +69,19 @@ export default function CodeQuality() {
                   return (
                     <SimpleTable.Row key={entry.sha}>
                       <SimpleTable.RowCell>
-                        <Link
-                          to={{
-                            pathname: normalizeUrl(
-                              `${getCodeConventionsPath(organization.slug)}${conventionName}/`
-                            ),
-                            query: location.query,
-                          }}
-                        >
-                          <strong>{formatConventionTitle(conventionName)}</strong>
-                        </Link>
+                        <Stack gap="sm">
+                          <Link
+                            to={{
+                              pathname: normalizeUrl(
+                                `${getCodeConventionsPath(organization.slug)}${conventionName}/`
+                              ),
+                              query: location.query,
+                            }}
+                          >
+                            <strong>{formatConventionTitle(conventionName)}</strong>
+                          </Link>
+                          <ConventionTags filename={entry.name} />
+                        </Stack>
                       </SimpleTable.RowCell>
                       <SimpleTable.RowCell>
                         <ConventionIssueCount

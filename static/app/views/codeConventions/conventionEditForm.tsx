@@ -4,7 +4,7 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
-import type {Convention} from 'sentry/views/codeConventions/conventionConfig';
+import type {Convention} from 'sentry/views/codeConventions/utils';
 
 const DISABLED_REASON = t('Editing conventions is not available yet');
 

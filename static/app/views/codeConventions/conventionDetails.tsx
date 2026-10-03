@@ -1,6 +1,5 @@
 import {Fragment, useEffect} from 'react';
-import {skipToken, useQuery} from '@tanstack/react-query';
-import {parse} from 'yaml';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {DrawerBody, DrawerHeader, useDrawer} from '@sentry/scraps/drawer';
@@ -16,12 +15,10 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {
-  ConventionConfig,
-  type Convention,
-} from 'sentry/views/codeConventions/conventionConfig';
+import {ConventionConfig} from 'sentry/views/codeConventions/conventionConfig';
 import {
   conventionFilesQueryOptions,
+  conventionQueryOptions,
   formatConventionTitle,
   getCodeConventionsPath,
   getConventionFileUrls,
@@ -48,21 +45,7 @@ export default function ConventionDetails() {
     entry => getConventionName(entry.name) === conventionName
   )?.name;
 
-  const yamlQuery = useQuery({
-    queryKey: ['github-raw', filename],
-    queryFn: filename
-      ? async ({signal}): Promise<string> => {
-          const response = await fetch(getConventionFileUrls(filename).rawUrl, {signal});
-          if (!response.ok) {
-            throw new Error(`GitHub responded with ${response.status}`);
-          }
-          return response.text();
-        }
-      : skipToken,
-    // A YAML syntax error throws here and surfaces as the query's error state.
-    select: (yaml): Convention => parse(yaml),
-    staleTime: 5 * 60 * 1000,
-  });
+  const yamlQuery = useQuery(conventionQueryOptions(filename));
 
   const isPending =
     filesQuery.isPending || (filename !== undefined && yamlQuery.isPending);

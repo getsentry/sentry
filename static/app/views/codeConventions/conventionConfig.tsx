@@ -11,20 +11,7 @@ import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {TagVariant} from 'sentry/utils/theme';
 import {ConventionEditForm} from 'sentry/views/codeConventions/conventionEditForm';
-
-export interface Convention {
-  name: string;
-  detect?: string;
-  detect_command?: string;
-  examples?: {bad?: string[]; good?: string[]};
-  exclude?: string[];
-  fix?: string;
-  include?: string[];
-  prefilter?: string;
-  severity?: string;
-  tags?: string[];
-  why?: string;
-}
+import type {Convention} from 'sentry/views/codeConventions/utils';
 
 function getSeverityVariant(severity: string): TagVariant {
   switch (severity) {

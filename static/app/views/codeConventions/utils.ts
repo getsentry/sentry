@@ -1,4 +1,5 @@
-import {queryOptions} from '@tanstack/react-query';
+import {queryOptions, skipToken} from '@tanstack/react-query';
+import {parse} from 'yaml';
 
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
@@ -9,6 +10,20 @@ const CONVENTIONS_PATH = '.sentry-refactor-tasks/conventions';
 const CONVENTIONS_CONTENTS_URL = `https://api.github.com/repos/${REPO}/contents/${CONVENTIONS_PATH}?ref=${REF}`;
 
 const YAML_EXTENSION = /\.ya?ml$/;
+
+export interface Convention {
+  name: string;
+  detect?: string;
+  detect_command?: string;
+  examples?: {bad?: string[]; good?: string[]};
+  exclude?: string[];
+  fix?: string;
+  include?: string[];
+  prefilter?: string;
+  severity?: string;
+  tags?: string[];
+  why?: string;
+}
 
 interface GitHubContentEntry {
   name: string;
@@ -40,6 +55,27 @@ export function getConventionFileUrls(filename: string) {
     htmlUrl: `https://github.com/${REPO}/blob/${REF}/${CONVENTIONS_PATH}/${filename}`,
     rawUrl: `https://raw.githubusercontent.com/${REPO}/${REF}/${CONVENTIONS_PATH}/${filename}`,
   };
+}
+
+/**
+ * Fetches and parses one convention file. Parsing happens in the query so the
+ * table and the drawer share the parsed result from the cache, and a YAML
+ * syntax error surfaces as the query's error state.
+ */
+export function conventionQueryOptions(filename: string | undefined) {
+  return queryOptions({
+    queryKey: ['github-raw', filename],
+    queryFn: filename
+      ? async ({signal}): Promise<Convention> => {
+          const response = await fetch(getConventionFileUrls(filename).rawUrl, {signal});
+          if (!response.ok) {
+            throw new Error(`GitHub responded with ${response.status}`);
+          }
+          return parse(await response.text());
+        }
+      : skipToken,
+    staleTime: 5 * 60 * 1000,
+  });
 }
 
 /**
