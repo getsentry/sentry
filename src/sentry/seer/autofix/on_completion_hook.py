@@ -509,6 +509,8 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             record("no_pr_comment_sources")
             return outcomes
 
+        changed_repos = iteration_repos(iterations[-1])
+
         # Rate-limit-sensitive orgs skip the extra reaction-delete / resolve API calls.
         rate_limit_sensitive = is_github_rate_limit_sensitive(organization.slug)
         delete_eyes = not rate_limit_sensitive
@@ -580,6 +582,8 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 unique_id = getattr(source.comment, "unique_id", None)
                 if unique_id is None:
                     record("resolve_no_unique_id")
+                elif repo_name not in changed_repos:
+                    record("resolve_skipped_no_changes")
                 else:
                     resolve_by_repo_pr.setdefault((repo_name, pr_number), []).append(unique_id)
             if delete_eyes:
