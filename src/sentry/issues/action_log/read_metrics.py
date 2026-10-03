@@ -8,6 +8,8 @@ ACTIVITY_READ_METRIC = "issues.action_log.activity_read"
 
 
 class ActivityReadResult(StrEnum):
+    #: Activity is the authoritative read source, independent of the GAL gate.
+    ACTIVITY = "activity"
     #: The log backed the response.
     GAL = "group_action_log"
     #: The gate was open, or the flag was on, but we served Activity anyway.
@@ -36,10 +38,11 @@ def record_activity_read(
     reason: ActivityReadFallbackReason | None = None,
 ) -> None:
     """
-    Record the outcome of one attempt to serve activity from the action log.
+    Record the source/outcome of an activity read.
 
     Called once per read: by ``should_serve_action_log_activity`` when the gate closes,
     otherwise by the caller once it knows whether the read produced anything.
+    Direct Activity readers report ACTIVITY without consulting the gate.
     """
     tags = {"endpoint": endpoint, "result": result.value}
     if reason is not None:
