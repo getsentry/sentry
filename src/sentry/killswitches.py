@@ -60,7 +60,7 @@ ALL_KILLSWITCH_OPTIONS = {
         fields={
             "organization_id": "Numeric organization ID to filter events by.",
             "project_id": "A project ID to filter events by.",
-            "event_type": "transaction, csp, hpkp, expectct, expectstaple, transaction, default or null",
+            "event_type": "transaction, csp, transaction, default or null",
             "has_attachments": "Filter events by whether they have been sent together with attachments or not. Note that attachments can be sent completely separately as well.",
             "event_id": "An event ID as given in the event payload.",
         },
@@ -95,7 +95,7 @@ ALL_KILLSWITCH_OPTIONS = {
         description="Drop events in save_event",
         fields={
             "project_id": "A project ID to filter events by.",
-            "event_type": "transaction, csp, hpkp, expectct, expectstaple, transaction, default or null",
+            "event_type": "transaction, csp, transaction, default or null",
             "platform": "The event platform as defined in the event payload's platform field, or 'none'",
         },
     ),
