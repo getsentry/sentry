@@ -8,7 +8,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
-import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConventionIssueCount} from 'sentry/views/codeConventions/conventionIssueCount';
 import {RepositorySelector} from 'sentry/views/codeConventions/repositorySelector';
@@ -24,7 +23,6 @@ interface GitHubContentEntry {
   name: string;
   path: string;
   sha: string;
-  size: number;
   type: 'file' | 'dir' | 'symlink' | 'submodule';
 }
 
@@ -40,8 +38,6 @@ function formatConventionTitle(filename: string) {
 const COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: '1fr'},
   {key: 'issues', width: 'max-content'},
-  {key: 'type', width: 'max-content'},
-  {key: 'size', width: 'max-content'},
 ];
 
 export default function CodeConventions() {
@@ -87,8 +83,6 @@ export default function CodeConventions() {
                   <SimpleTable.HeaderRow>
                     <SimpleTable.HeaderCell>{t('Title')}</SimpleTable.HeaderCell>
                     <SimpleTable.HeaderCell>{t('Issues')}</SimpleTable.HeaderCell>
-                    <SimpleTable.HeaderCell>{t('Type')}</SimpleTable.HeaderCell>
-                    <SimpleTable.HeaderCell>{t('Size')}</SimpleTable.HeaderCell>
                   </SimpleTable.HeaderRow>
                 }
               >
@@ -106,10 +100,6 @@ export default function CodeConventions() {
                     </SimpleTable.RowCell>
                     <SimpleTable.RowCell>
                       <ConventionIssueCount title={formatConventionTitle(entry.name)} />
-                    </SimpleTable.RowCell>
-                    <SimpleTable.RowCell>{entry.type}</SimpleTable.RowCell>
-                    <SimpleTable.RowCell>
-                      {entry.type === 'file' ? formatBytesBase2(entry.size) : null}
                     </SimpleTable.RowCell>
                   </SimpleTable.Row>
                 ))}
