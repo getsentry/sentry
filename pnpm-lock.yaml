@@ -175,7 +175,7 @@ importers:
         version: 1.23.4
       '@rsdoctor/rspack-plugin':
         specifier: 1.6.3
-        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rsbuild/core@2.2.11(core-js@3.45.0))(@rspack/core@2.2.3(@swc/helpers@0.5.23))
+        version: 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rsbuild/core@2.2.11(core-js@3.50.0))(@rspack/core@2.2.3(@swc/helpers@0.5.23))
       '@rspack/cli':
         specifier: 2.2.3
         version: 2.2.3(@rspack/core@2.2.3(@swc/helpers@0.5.23))(@rspack/dev-server@2.2.1(@rspack/core@2.2.3(@swc/helpers@0.5.23))(selfsigned@5.5.0))
@@ -339,8 +339,8 @@ importers:
         specifier: ^1.0.0
         version: 1.0.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
       core-js:
-        specifier: 3.45.0
-        version: 3.45.0
+        specifier: 3.50.0
+        version: 3.50.0
       cronstrue:
         specifier: ^2.50.0
         version: 2.50.0
@@ -790,10 +790,10 @@ importers:
         version: 30.5.1(@types/jsdom@21.1.7)(jsdom@30.1.1)
       '@rsbuild/plugin-react':
         specifier: 2.1.1
-        version: 2.1.1(@rsbuild/core@2.2.11(core-js@3.45.0))(@rspack/core@2.2.8(@swc/helpers@0.5.23))
+        version: 2.1.1(@rsbuild/core@2.2.11(core-js@3.50.0))(@rspack/core@2.2.8(@swc/helpers@0.5.23))
       '@rslib/core':
         specifier: 1.0.3
-        version: 1.0.3(@typescript/typescript6@6.0.2)(core-js@3.45.0)
+        version: 1.0.3(@typescript/typescript6@6.0.2)(core-js@3.50.0)
       '@swc/core':
         specifier: 1.16.2
         version: 1.16.2(@swc/helpers@0.5.23)
@@ -5446,8 +5446,8 @@ packages:
     resolution: {integrity: sha512-XGpFGbMLHwSt74YLTKho7Ib242qi6O8MSX+sRokV4oz7iKXvQWGYZthjIhjRGMxjzVkAubBO512dKGYcefmX3Q==}
     engines: {node: '>=6.4.0'}
 
-  core-js@3.45.0:
-    resolution: {integrity: sha512-c2KZL9lP4DjkN3hk/an4pWn5b5ZefhRJnAc42n6LJ19kSnbeRbdQZE5dSeE2LBol1OwJD3X1BQvFTAsa8ReeDA==}
+  core-js@3.50.0:
+    resolution: {integrity: sha512-BRWgOLKkFeCgRudR6zrs8p9XJZcE14grzKMMssoYrk6krtuEZ7MTKPIY5RzOnqsEKIR9kst7wNzphttraT+Yqw==}
 
   core-util-is@1.0.3:
     resolution: {integrity: sha512-ZQBvi1DcpJ4GDqanjucZ2Hj3wEO5pZDS89BWbkcrvdxksJorwUDDZamX9ldFkp9aw2lmBDLgkObEA4DWNJ9FYQ==}
@@ -11847,16 +11847,16 @@ snapshots:
 
   '@remix-run/router@1.23.4': {}
 
-  '@rsbuild/core@2.2.11(core-js@3.45.0)':
+  '@rsbuild/core@2.2.11(core-js@3.50.0)':
     dependencies:
       '@rspack/core': 2.2.8(@swc/helpers@0.5.23)
       '@swc/helpers': 0.5.23
     optionalDependencies:
-      core-js: 3.45.0
+      core-js: 3.50.0
     transitivePeerDependencies:
       - '@module-federation/runtime-tools'
 
-  '@rsbuild/plugin-check-syntax@1.6.1(@rsbuild/core@2.2.11(core-js@3.45.0))':
+  '@rsbuild/plugin-check-syntax@1.6.1(@rsbuild/core@2.2.11(core-js@3.50.0))':
     dependencies:
       acorn: 8.18.0
       browserslist-to-es-version: 1.4.2
@@ -11864,22 +11864,22 @@ snapshots:
       picocolors: 1.1.1
       source-map: 0.7.6
     optionalDependencies:
-      '@rsbuild/core': 2.2.11(core-js@3.45.0)
+      '@rsbuild/core': 2.2.11(core-js@3.50.0)
 
-  '@rsbuild/plugin-react@2.1.1(@rsbuild/core@2.2.11(core-js@3.45.0))(@rspack/core@2.2.8(@swc/helpers@0.5.23))':
+  '@rsbuild/plugin-react@2.1.1(@rsbuild/core@2.2.11(core-js@3.50.0))(@rspack/core@2.2.8(@swc/helpers@0.5.23))':
     dependencies:
       '@rspack/plugin-react-refresh': 2.0.2(@rspack/core@2.2.8(@swc/helpers@0.5.23))(react-refresh@0.19.0)
       react-refresh: 0.19.0
     optionalDependencies:
-      '@rsbuild/core': 2.2.11(core-js@3.45.0)
+      '@rsbuild/core': 2.2.11(core-js@3.50.0)
     transitivePeerDependencies:
       - '@rspack/core'
 
   '@rsdoctor/client@1.6.3': {}
 
-  '@rsdoctor/core@1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rsbuild/core@2.2.11(core-js@3.45.0))(@rspack/core@2.2.3(@swc/helpers@0.5.23))':
+  '@rsdoctor/core@1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rsbuild/core@2.2.11(core-js@3.50.0))(@rspack/core@2.2.3(@swc/helpers@0.5.23))':
     dependencies:
-      '@rsbuild/plugin-check-syntax': 1.6.1(@rsbuild/core@2.2.11(core-js@3.45.0))
+      '@rsbuild/plugin-check-syntax': 1.6.1(@rsbuild/core@2.2.11(core-js@3.50.0))
       '@rsdoctor/graph': 1.6.3(@rspack/core@2.2.3(@swc/helpers@0.5.23))
       '@rsdoctor/sdk': 1.6.3(@rspack/core@2.2.3(@swc/helpers@0.5.23))
       '@rsdoctor/types': 1.6.3(@rspack/core@2.2.3(@swc/helpers@0.5.23))
@@ -11912,9 +11912,9 @@ snapshots:
       - '@rspack/core'
       - webpack
 
-  '@rsdoctor/rspack-plugin@1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rsbuild/core@2.2.11(core-js@3.45.0))(@rspack/core@2.2.3(@swc/helpers@0.5.23))':
+  '@rsdoctor/rspack-plugin@1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rsbuild/core@2.2.11(core-js@3.50.0))(@rspack/core@2.2.3(@swc/helpers@0.5.23))':
     dependencies:
-      '@rsdoctor/core': 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rsbuild/core@2.2.11(core-js@3.45.0))(@rspack/core@2.2.3(@swc/helpers@0.5.23))
+      '@rsdoctor/core': 1.6.3(@emnapi/core@1.11.3)(@emnapi/runtime@1.11.3)(@rsbuild/core@2.2.11(core-js@3.50.0))(@rspack/core@2.2.3(@swc/helpers@0.5.23))
       '@rsdoctor/graph': 1.6.3(@rspack/core@2.2.3(@swc/helpers@0.5.23))
       '@rsdoctor/sdk': 1.6.3(@rspack/core@2.2.3(@swc/helpers@0.5.23))
       '@rsdoctor/types': 1.6.3(@rspack/core@2.2.3(@swc/helpers@0.5.23))
@@ -11977,10 +11977,10 @@ snapshots:
       - '@rspack/core'
       - webpack
 
-  '@rslib/core@1.0.3(@typescript/typescript6@6.0.2)(core-js@3.45.0)':
+  '@rslib/core@1.0.3(@typescript/typescript6@6.0.2)(core-js@3.50.0)':
     dependencies:
-      '@rsbuild/core': 2.2.11(core-js@3.45.0)
-      rsbuild-plugin-dts: 1.0.3(@rsbuild/core@2.2.11(core-js@3.45.0))(@typescript/typescript6@6.0.2)
+      '@rsbuild/core': 2.2.11(core-js@3.50.0)
+      rsbuild-plugin-dts: 1.0.3(@rsbuild/core@2.2.11(core-js@3.50.0))(@typescript/typescript6@6.0.2)
     optionalDependencies:
       typescript: '@typescript/typescript6@6.0.2'
     transitivePeerDependencies:
@@ -13983,7 +13983,7 @@ snapshots:
     dependencies:
       browserslist: 4.29.0
 
-  core-js@3.45.0: {}
+  core-js@3.50.0: {}
 
   core-util-is@1.0.3: {}
 
@@ -18136,10 +18136,10 @@ snapshots:
 
   rrweb-cssom@0.8.0: {}
 
-  rsbuild-plugin-dts@1.0.3(@rsbuild/core@2.2.11(core-js@3.45.0))(@typescript/typescript6@6.0.2):
+  rsbuild-plugin-dts@1.0.3(@rsbuild/core@2.2.11(core-js@3.50.0))(@typescript/typescript6@6.0.2):
     dependencies:
       '@ast-grep/napi': 0.45.3
-      '@rsbuild/core': 2.2.11(core-js@3.45.0)
+      '@rsbuild/core': 2.2.11(core-js@3.50.0)
     optionalDependencies:
       typescript: '@typescript/typescript6@6.0.2'
 
