@@ -389,6 +389,31 @@ describe('ResponseGroup', () => {
     expect(screen.getByText('Just an answer')).toBeInTheDocument();
   });
 
+  it('shows a partial answer while loading when streaming is enabled', () => {
+    const partial = assistantBlock('a1', 'Partial answer', true);
+    const {rerender} = render(
+      <ResponseGroup group={[partial]} blockIndex={0} blocks={[partial]} />,
+      {organization: OrganizationFixture({features: ['seer-explorer-stream']})}
+    );
+
+    expect(screen.getByText('Partial answer')).toBeInTheDocument();
+
+    const complete = assistantBlock('a1', 'Complete answer');
+    rerender(<ResponseGroup group={[complete]} blockIndex={0} blocks={[complete]} />);
+
+    expect(screen.getByText('Complete answer')).toBeInTheDocument();
+    expect(screen.queryByText('Partial answer')).not.toBeInTheDocument();
+  });
+
+  it('hides a partial answer while loading when streaming is disabled', () => {
+    const partial = assistantBlock('a1', 'Partial answer', true);
+    render(<ResponseGroup group={[partial]} blockIndex={0} blocks={[partial]} />, {
+      organization,
+    });
+
+    expect(screen.queryByText('Partial answer')).not.toBeInTheDocument();
+  });
+
   it('renders a ThinkingBlock placeholder before any trace content arrives', () => {
     const group = [llmWaitBlock()];
 
