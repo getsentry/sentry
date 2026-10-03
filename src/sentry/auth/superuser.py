@@ -34,7 +34,7 @@ from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.auth.system import is_system_auth
 from sentry.data_secrecy.logic import should_allow_superuser_access
 from sentry.models.organization import Organization
-from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
+from sentry.organizations.services.organization import RpcUserOrganizationContext
 from sentry.types.request import _HttpRequestWithUser, _RequestWithUser
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -582,27 +582,14 @@ class Superuser(ElevatedMode):
 SUPERUSER_ACCESS_TTL = timedelta(minutes=5)
 
 
-def create_superuser_access(
-    request: HttpRequest | Request,
-    organization_context: Organization | RpcOrganization | RpcUserOrganizationContext,
-) -> int | None:
-    """Carry the approved session deadline without exporting browser credentials."""
-    if getattr(request, "auth", None) is not None or not request.user.is_superuser:
-        return None
-    organization = (
-        organization_context.organization
-        if isinstance(organization_context, RpcUserOrganizationContext)
-        else organization_context
-    )
-    su = getattr(request, "superuser", None) or Superuser(request)
-    if not su.is_active or su.requires_org_auth(organization):
-        return None
+def get_superuser_access_expiry(su: Superuser, organization_id: int) -> int | None:
+    """Bound an approved superuser session for ViewerContext propagation."""
     data = su.get_session_data()
-    if data is None or not should_allow_superuser_access(organization_context):
+    if data is None:
         return None
     now = django_timezone.now()
     expires = min(data["exp"], data["idl"], now + SUPERUSER_ACCESS_TTL)
-    if organization.id != su.org_id:
+    if organization_id != su.org_id:
         expires = min(expires, data["exp"] - MAX_AGE + MAX_AGE_PRIVILEGED_ORG_ACCESS)
     if expires <= now:
         return None
