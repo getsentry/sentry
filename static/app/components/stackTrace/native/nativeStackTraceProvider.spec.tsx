@@ -1,0 +1,279 @@
+import {EventFixture} from 'sentry-fixture/event';
+import {EventStacktraceFrameFixture} from 'sentry-fixture/eventStacktraceFrame';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {NativeDisplayOptionsMenu} from 'sentry/components/stackTrace/native/nativeDisplayOptions';
+import {NativeStackTraceViewStateProvider} from 'sentry/components/stackTrace/native/nativeDisplayOptionsContext';
+import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nativeStackTraceProvider';
+import {RawDownloadAction} from 'sentry/components/stackTrace/native/rawDownloadAction';
+import type {StacktraceType} from 'sentry/types/stacktrace';
+import {localStorageWrapper} from 'sentry/utils/localStorage';
+
+describe('NativeStackTraceProvider', () => {
+  const event = EventFixture({platform: 'cocoa'});
+  const organization = OrganizationFixture({slug: 'org-slug'});
+  const storageKey = 'issue-details-stracktrace-display-org-slug-project-slug';
+  const stacktrace: StacktraceType = {
+    framesOmitted: null,
+    hasSystemFrames: false,
+    registers: null,
+    frames: [],
+  };
+  const stacktraceWithAddress: StacktraceType = {
+    framesOmitted: null,
+    hasSystemFrames: false,
+    registers: null,
+    frames: [
+      EventStacktraceFrameFixture({
+        filename: 'main.m',
+        function: 'main',
+        instructionAddr: '0x1000',
+        platform: 'cocoa',
+      }),
+    ],
+  };
+
+  beforeEach(() => {
+    localStorageWrapper.removeItem(storageKey);
+  });
+
+  function PersistedNativeStackTrace({
+    children,
+    hasMinifiedStacktrace = false,
+    stacktrace: stacktraceProp = stacktrace,
+  }: {
+    children: React.ReactNode;
+    hasMinifiedStacktrace?: boolean;
+    stacktrace?: StacktraceType;
+  }) {
+    return (
+      <NativeStackTraceViewStateProvider
+        hasMinifiedStacktrace={hasMinifiedStacktrace}
+        platform="cocoa"
+        storageKey={storageKey}
+      >
+        <NativeStackTraceProvider event={event} stacktrace={stacktraceProp}>
+          {children}
+        </NativeStackTraceProvider>
+      </NativeStackTraceViewStateProvider>
+    );
+  }
+
+  it('hydrates raw and minified display options from persisted storage', async () => {
+    localStorageWrapper.setItem(
+      storageKey,
+      JSON.stringify(['raw-stack-trace', 'minified'])
+    );
+
+    render(
+      <PersistedNativeStackTrace hasMinifiedStacktrace>
+        <RawDownloadAction
+          eventId="event-id"
+          organization={organization}
+          projectSlug="project-slug"
+          threadId={123}
+        />
+      </PersistedNativeStackTrace>
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Download'})).toHaveAttribute(
+        'href',
+        '/projects/org-slug/project-slug/events/event-id/apple-crash-report?minified=true&thread_id=123&download=1'
+      );
+    });
+  });
+
+  it('persists native display options to storage', async () => {
+    render(
+      <PersistedNativeStackTrace stacktrace={stacktraceWithAddress}>
+        <NativeDisplayOptionsMenu
+          hasAbsoluteAddresses
+          hasAbsoluteFilePaths={false}
+          hasVerboseFunctionNames={false}
+        />
+      </PersistedNativeStackTrace>
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(
+      await screen.findByRole('option', {name: 'Absolute Addresses'})
+    );
+
+    await waitFor(() => {
+      expect(JSON.parse(localStorageWrapper.getItem(storageKey)!)).toEqual([
+        'absolute-addresses',
+      ]);
+    });
+  });
+
+  it('selects view and order independently without clearing frame detail preferences', async () => {
+    render(
+      <PersistedNativeStackTrace stacktrace={stacktraceWithAddress}>
+        <NativeDisplayOptionsMenu
+          hasAbsoluteAddresses
+          hasAbsoluteFilePaths={false}
+          hasVerboseFunctionNames={false}
+        />
+      </PersistedNativeStackTrace>
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    expect(screen.getByRole('listbox', {name: 'View'})).not.toHaveAttribute(
+      'aria-multiselectable',
+      'true'
+    );
+    expect(screen.getByRole('listbox', {name: 'Order'})).not.toHaveAttribute(
+      'aria-multiselectable',
+      'true'
+    );
+    expect(screen.getByRole('listbox', {name: 'Frame Details'})).toHaveAttribute(
+      'aria-multiselectable',
+      'true'
+    );
+
+    await userEvent.click(screen.getByRole('option', {name: 'Absolute Addresses'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Oldest First'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Raw Stack Trace'}));
+
+    expect(screen.getByRole('option', {name: 'Oldest First'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('option', {name: 'Newest First'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+    expect(screen.getByRole('option', {name: 'Absolute Addresses'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await waitFor(() => {
+      expect(JSON.parse(localStorageWrapper.getItem(storageKey)!)).toEqual([
+        'absolute-addresses',
+        'raw-stack-trace',
+      ]);
+    });
+
+    await userEvent.click(screen.getByRole('option', {name: 'Full Stack Trace'}));
+    expect(screen.getByRole('option', {name: 'Raw Stack Trace'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+    expect(screen.getByRole('option', {name: 'Absolute Addresses'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.getByRole('option', {name: 'Oldest First'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+  });
+
+  it('preserves the minified preference when the current stack has no minified data', async () => {
+    localStorageWrapper.setItem(storageKey, JSON.stringify(['minified']));
+
+    render(
+      <PersistedNativeStackTrace stacktrace={stacktraceWithAddress}>
+        <NativeDisplayOptionsMenu
+          hasAbsoluteAddresses
+          hasAbsoluteFilePaths={false}
+          hasVerboseFunctionNames={false}
+        />
+      </PersistedNativeStackTrace>
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(
+      await screen.findByRole('option', {name: 'Absolute Addresses'})
+    );
+
+    await waitFor(() => {
+      expect(JSON.parse(localStorageWrapper.getItem(storageKey)!)).toEqual([
+        'absolute-addresses',
+        'minified',
+      ]);
+    });
+  });
+
+  it('updates multiple frame preferences without losing earlier selections', async () => {
+    function Preferences() {
+      return (
+        <PersistedNativeStackTrace
+          hasMinifiedStacktrace
+          stacktrace={stacktraceWithAddress}
+        >
+          <NativeDisplayOptionsMenu
+            hasAbsoluteAddresses
+            hasAbsoluteFilePaths
+            hasVerboseFunctionNames
+          />
+        </PersistedNativeStackTrace>
+      );
+    }
+    const {unmount} = render(<Preferences />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    for (const name of [
+      'Absolute Addresses',
+      'Absolute File Paths',
+      'Verbose Function Names',
+      'Unsymbolicated',
+    ]) {
+      await userEvent.click(screen.getByRole('option', {name}));
+    }
+    await waitFor(() => {
+      expect(JSON.parse(localStorageWrapper.getItem(storageKey)!)).toEqual([
+        'absolute-addresses',
+        'absolute-file-paths',
+        'minified',
+        'verbose-function-names',
+      ]);
+    });
+
+    await userEvent.click(screen.getByRole('option', {name: 'Absolute File Paths'}));
+    unmount();
+    render(<Preferences />);
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    for (const name of [
+      'Absolute Addresses',
+      'Verbose Function Names',
+      'Unsymbolicated',
+    ]) {
+      expect(screen.getByRole('option', {name})).toHaveAttribute('aria-selected', 'true');
+    }
+    expect(screen.getByRole('option', {name: 'Absolute File Paths'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+  });
+
+  it('allows local minified defaults to be deselected', async () => {
+    render(
+      <NativeStackTraceViewStateProvider
+        defaultIsMinified
+        hasMinifiedStacktrace
+        platform="cocoa"
+      >
+        <NativeDisplayOptionsMenu
+          hasAbsoluteAddresses={false}
+          hasAbsoluteFilePaths={false}
+          hasVerboseFunctionNames={false}
+        />
+      </NativeStackTraceViewStateProvider>
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    expect(screen.getByRole('option', {name: 'Unsymbolicated'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Unsymbolicated'}));
+    expect(screen.getByRole('option', {name: 'Unsymbolicated'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+  });
+});

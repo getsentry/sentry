@@ -1,4 +1,4 @@
-import {Activity, useMemo, useRef, type ComponentType} from 'react';
+import {Activity, useMemo, useState, type ComponentType} from 'react';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
@@ -10,6 +10,7 @@ import {t} from 'sentry/locale';
 import {StackTraceFrameRow} from './frame/frameRow';
 import {RawStackTraceText} from './rawStackTrace';
 import {useStackTraceContext, useStackTraceViewState} from './stackTraceContext';
+import type {StackTraceFrameHeaderProps} from './types';
 
 function OmittedFramesBanner({omittedFrames}: {omittedFrames: [number, number]}) {
   const [start, end] = omittedFrames;
@@ -27,12 +28,14 @@ interface StackTraceFramesProps {
   /** Removes the outer border and border-radius, useful for embedding in hovercards. */
   borderless?: boolean;
   frameActionsComponent?: ComponentType<{isHovering: boolean}>;
+  frameHeaderComponent?: ComponentType<StackTraceFrameHeaderProps>;
 }
 
 export function StackTraceFrames({
   borderless = false,
   frameContextComponent: FrameContextComponent,
   frameActionsComponent: FrameActionsComponent = StackTraceFrameRow.Actions.Default,
+  frameHeaderComponent: FrameHeaderComponent = StackTraceFrameRow.Header,
 }: StackTraceFramesProps) {
   const {rows, allRows, stacktrace, event} = useStackTraceContext();
   const {view} = useStackTraceViewState();
@@ -50,12 +53,10 @@ export function StackTraceFrames({
     return {visibleIndices: indices, rowByIndex: map};
   }, [rows]);
 
-  // Lazy: track frames that have ever been visible so we only mount on first appearance.
-  // A ref is sufficient — the component already re-renders when `rows` changes.
-  const everVisibleRef = useRef(new Set<number>());
-  for (const idx of visibleIndices) {
-    // oxlint-disable-next-line react/refs
-    everVisibleRef.current.add(idx);
+  // Keep previously visible frames mounted so filtering preserves their local state.
+  const [mountedIndices, setMountedIndices] = useState(visibleIndices);
+  if ([...visibleIndices].some(index => !mountedIndices.has(index))) {
+    setMountedIndices(new Set([...mountedIndices, ...visibleIndices]));
   }
 
   if (view === 'raw') {
@@ -81,7 +82,6 @@ export function StackTraceFrames({
 
   return (
     <FramesPanel borderless={borderless}>
-      {/* oxlint-disable-next-line react/refs */}
       {allRows.map(row => {
         if (row.kind === 'omitted') {
           return (
@@ -89,17 +89,17 @@ export function StackTraceFrames({
           );
         }
 
-        if (!everVisibleRef.current.has(row.frameIndex)) {
+        const isVisible = visibleIndices.has(row.frameIndex);
+        if (!isVisible && !mountedIndices.has(row.frameIndex)) {
           return null;
         }
 
-        const isVisible = visibleIndices.has(row.frameIndex);
         const activeRow = rowByIndex.get(row.frameIndex) ?? row;
 
         return (
           <Activity key={row.frameIndex} mode={isVisible ? 'visible' : 'hidden'}>
             <StackTraceFrameRow row={activeRow}>
-              <StackTraceFrameRow.Header
+              <FrameHeaderComponent
                 actions={({isHovering}) => (
                   <FrameActionsComponent isHovering={isHovering} />
                 )}
