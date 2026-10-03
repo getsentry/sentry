@@ -1,0 +1,242 @@
+from __future__ import annotations
+
+from typing import Any
+
+import pytest
+
+from sentry.llm_cache_detection.detection import (
+    AgentLabelSource,
+    CacheFinding,
+    CacheOutcome,
+    CallSiteStats,
+    Classification,
+    OutcomeReason,
+)
+from sentry.llm_cache_detection.pricing import PricingGap, SavingsEstimate, estimate_savings
+from sentry.relay.config.ai_model_costs import AIModelMetadataConfig, model_costs
+
+# Order-of-magnitude realistic: a cached input token is far cheaper than a fresh
+# one, and writing the cache costs a premium over both.
+INPUT_PRICE = 0.000003
+CACHED_INPUT_PRICE = 0.0000003
+CACHE_WRITE_PRICE = 0.00000375
+
+
+def costs(
+    *,
+    input_price: float = INPUT_PRICE,
+    cached_input_price: float = CACHED_INPUT_PRICE,
+    cache_write_price: float = CACHE_WRITE_PRICE,
+) -> dict[str, Any]:
+    return {
+        "inputPerToken": input_price,
+        "outputPerToken": 0.000015,
+        "outputReasoningPerToken": 0.000015,
+        "inputCachedPerToken": cached_input_price,
+        "inputCacheWritePerToken": cache_write_price,
+    }
+
+
+def config(models: dict[str, Any]) -> AIModelMetadataConfig:
+    return {
+        "version": 1,
+        "models": {model: {"costs": model_costs} for model, model_costs in models.items()},
+    }
+
+
+def make_stats(
+    *,
+    model: str = "claude-sonnet-4",
+    sum_input_tokens: float = 10_000_000,
+    sum_cache_read_tokens: float = 0,
+    sum_cache_creation_tokens: float = 0,
+) -> CallSiteStats:
+    return CallSiteStats(
+        agent_label="Planner",
+        agent_label_source=AgentLabelSource.AGENT_NAME,
+        span_name="generate_content claude-sonnet-4",
+        model=model,
+        call_count=5_000,
+        sampled_call_count=5_000,
+        sum_input_tokens=sum_input_tokens,
+        sum_cache_read_tokens=sum_cache_read_tokens,
+        sum_cache_creation_tokens=sum_cache_creation_tokens,
+        avg_input_tokens=2_000,
+    )
+
+
+def make_finding(outcome: CacheOutcome, stats: CallSiteStats) -> CacheFinding:
+    return CacheFinding(
+        classification=Classification(outcome, OutcomeReason.CACHE_ACTIVITY),
+        stats=stats,
+        anchor=None,
+    )
+
+
+class TestModelCostsLookup:
+    def test_matches_the_model_id_as_reported(self) -> None:
+        found = model_costs("claude-sonnet-4", config({"claude-sonnet-4": costs()}))
+
+        assert found is not None
+        assert found["inputPerToken"] == INPUT_PRICE
+
+    def test_matches_after_stripping_a_date_suffix(self) -> None:
+        # Providers ship dated snapshots of the same model; the metadata is keyed
+        # by the undated name.
+        found = model_costs("claude-sonnet-4-20250514", config({"claude-sonnet-4": costs()}))
+
+        assert found is not None
+
+    def test_matches_a_model_the_span_reports_namespaced(self) -> None:
+        # Gateways like OpenRouter and Bedrock report the provider alongside the
+        # model; the metadata is keyed by the model alone.
+        found = model_costs("anthropic/claude-sonnet-4", config({"claude-sonnet-4": costs()}))
+
+        assert found is not None
+
+    def test_matches_a_namespaced_model_carrying_a_date_suffix(self) -> None:
+        found = model_costs(
+            "anthropic/claude-sonnet-4-20250514", config({"claude-sonnet-4": costs()})
+        )
+
+        assert found is not None
+
+    def test_matches_the_bare_key_beside_a_wildcard_prefixed_one(self) -> None:
+        # The feed registers a `*`-prefixed key for relay to glob-match against,
+        # always alongside the bare key. Nothing here reads the starred one, so
+        # this is the shape the fetcher really produces, not the starred key alone.
+        found = model_costs(
+            "claude-sonnet-4", config({"claude-sonnet-4": costs(), "*claude-sonnet-4": costs()})
+        )
+
+        assert found is not None
+
+    def test_returns_none_for_an_unknown_model(self) -> None:
+        assert model_costs("some-self-hosted-model", config({"claude-sonnet-4": costs()})) is None
+
+
+PRICED = config({"claude-sonnet-4": costs()})
+THRASHING = make_stats(
+    sum_input_tokens=10_000_000,
+    sum_cache_read_tokens=200_000,
+    sum_cache_creation_tokens=8_000_000,
+)
+
+
+def test_prices_uncached_volume_at_the_difference_it_could_have_paid() -> None:
+    stats = make_stats(sum_input_tokens=10_000_000)
+
+    estimate = estimate_savings(make_finding(CacheOutcome.NOT_CACHING, stats), PRICED)
+
+    assert isinstance(estimate, SavingsEstimate)
+    assert estimate.estimated_savings_usd == pytest.approx(
+        10_000_000 * (INPUT_PRICE - CACHED_INPUT_PRICE)
+    )
+    assert estimate.price_per_input_token == INPUT_PRICE
+    assert estimate.price_per_cached_input_token == CACHED_INPUT_PRICE
+    assert estimate.price_per_cache_write_token == CACHE_WRITE_PRICE
+    assert estimate.overpay_vs_no_cache_usd is None
+
+
+def test_prices_an_uncached_finding_without_a_cache_write_price() -> None:
+    # Most models the feed prices carry none, and this formula never uses it.
+    stats = make_stats(sum_input_tokens=1_000_000)
+    metadata = config({"claude-sonnet-4": costs(cache_write_price=0)})
+
+    estimate = estimate_savings(make_finding(CacheOutcome.NOT_CACHING, stats), metadata)
+
+    assert isinstance(estimate, SavingsEstimate)
+    assert estimate.estimated_savings_usd == pytest.approx(
+        1_000_000 * (INPUT_PRICE - CACHED_INPUT_PRICE)
+    )
+
+
+def test_prices_thrash_as_writes_that_should_have_been_reads() -> None:
+    estimate = estimate_savings(make_finding(CacheOutcome.THRASH, THRASHING), PRICED)
+
+    assert isinstance(estimate, SavingsEstimate)
+    assert estimate.estimated_savings_usd == pytest.approx(
+        8_000_000 * (CACHE_WRITE_PRICE - CACHED_INPUT_PRICE)
+    )
+    # The few reads recoup little of the write premium: worse than not caching.
+    assert estimate.overpay_vs_no_cache_usd == pytest.approx(
+        8_000_000 * (CACHE_WRITE_PRICE - INPUT_PRICE) - 200_000 * (INPUT_PRICE - CACHED_INPUT_PRICE)
+    )
+
+
+def test_omits_the_overpay_figure_when_the_reads_cover_the_premium() -> None:
+    stats = make_stats(
+        sum_input_tokens=10_000_000,
+        sum_cache_read_tokens=6_000_000,
+        sum_cache_creation_tokens=1_000_000,
+    )
+
+    estimate = estimate_savings(make_finding(CacheOutcome.THRASH, stats), PRICED)
+
+    assert isinstance(estimate, SavingsEstimate)
+    assert estimate.overpay_vs_no_cache_usd is None
+
+
+@pytest.mark.parametrize(
+    ("outcome", "stats", "metadata", "gap"),
+    [
+        pytest.param(
+            CacheOutcome.NOT_CACHING, make_stats(), None, PricingGap.NO_METADATA, id="no-metadata"
+        ),
+        pytest.param(
+            CacheOutcome.NOT_CACHING,
+            make_stats(model="x"),
+            PRICED,
+            PricingGap.UNKNOWN_MODEL,
+            id="unknown-model",
+        ),
+        # The feed's zero means "no price", not "free".
+        pytest.param(
+            CacheOutcome.NOT_CACHING,
+            make_stats(),
+            config({"claude-sonnet-4": costs(input_price=0)}),
+            PricingGap.NO_INPUT_PRICE,
+            id="no-input-price",
+        ),
+        pytest.param(
+            CacheOutcome.NOT_CACHING,
+            make_stats(),
+            config({"claude-sonnet-4": costs(cached_input_price=0)}),
+            PricingGap.NO_CACHED_PRICE,
+            id="no-cached-price",
+        ),
+        pytest.param(
+            CacheOutcome.THRASH,
+            THRASHING,
+            config({"claude-sonnet-4": costs(cache_write_price=0)}),
+            PricingGap.NO_WRITE_PREMIUM,
+            id="thrash-without-write-price",
+        ),
+        pytest.param(
+            CacheOutcome.THRASH,
+            THRASHING,
+            config({"claude-sonnet-4": costs(cache_write_price=CACHED_INPUT_PRICE)}),
+            PricingGap.NO_WRITE_PREMIUM,
+            id="thrash-write-price-not-above-cached",
+        ),
+        # Input reported exclusive of cached tokens leaves nothing uncached.
+        pytest.param(
+            CacheOutcome.NOT_CACHING,
+            make_stats(
+                sum_input_tokens=1_000_000,
+                sum_cache_read_tokens=900_000,
+                sum_cache_creation_tokens=900_000,
+            ),
+            PRICED,
+            PricingGap.NOTHING_TO_RECOVER,
+            id="nothing-to-recover",
+        ),
+    ],
+)
+def test_names_why_a_finding_cannot_be_priced(
+    outcome: CacheOutcome,
+    stats: CallSiteStats,
+    metadata: AIModelMetadataConfig | None,
+    gap: PricingGap,
+) -> None:
+    assert estimate_savings(make_finding(outcome, stats), metadata) == gap
