@@ -10,3 +10,4 @@ export const SIDE_PANEL_MIN_CONTAINER_BREAKPOINT = '4xl';
 export const USAGE_OVERVIEW_PANEL_HEADER_HEIGHT = '60px';
 
 export const USAGE_OVERVIEW_PANEL_REFERRER = 'product-breakdown-panel';
+export const USAGE_OVERVIEW_PRODUCT_LINK_REFERRER = 'product-breakdown-page';
