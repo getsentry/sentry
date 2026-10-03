@@ -513,8 +513,6 @@ const appConfig: Configuration = {
       'getsentry-test': path.join(import.meta.dirname, 'tests', 'js', 'getsentry-test'),
       admin: path.join(staticPrefix, 'gsAdmin'),
 
-      // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
-      // to be resolved
       less: path.join(staticPrefix, 'less'),
       'sentry-test': path.join(import.meta.dirname, 'tests', 'js', 'sentry-test'),
       'sentry-locale': path.join(import.meta.dirname, 'src', 'sentry', 'locale'),
