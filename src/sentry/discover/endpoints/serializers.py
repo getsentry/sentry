@@ -297,7 +297,9 @@ class TeamKeyTransactionSerializer(serializers.Serializer):
         organization = self.context["organization"]
         verified_teams = {team.id for team in Team.objects.get_for_user(organization, request.user)}
 
-        teams = Team.objects.filter(id__in=team_ids)
+        teams = Team.objects.filter(id__in=team_ids, organization_id=organization.id)
+        if len(teams) != len(set(team_ids)):
+            raise serializers.ValidationError("One or more teams do not exist.")
 
         for team in teams:
             if team.id in verified_teams:
