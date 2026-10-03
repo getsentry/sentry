@@ -26,6 +26,9 @@ examples:
 
 include:
   - "static/**/*.tsx"
+exclude:
+  - "**/*.spec.*"
+prefilter: "grep -rl 'extends Component' {repo_path}/static/"
 `;
 
 describe('ConventionConfig', () => {
@@ -38,7 +41,7 @@ describe('ConventionConfig', () => {
     expect(screen.getByText('react')).toBeInTheDocument();
     expect(screen.getByText('migration')).toBeInTheDocument();
 
-    for (const title of ['Why', 'Detect', 'Fix', 'Examples']) {
+    for (const title of ['Why', 'Detect', 'Fix', 'Examples', 'Filters']) {
       expect(screen.getByRole('button', {name: title})).toHaveAttribute(
         'aria-expanded',
         'true'
@@ -48,6 +51,15 @@ describe('ConventionConfig', () => {
     expect(screen.getByText('legacy')).toBeInTheDocument();
     expect(screen.getByText('class Profile extends Component {}')).toBeInTheDocument();
     expect(screen.getByText('function Profile() { return null; }')).toBeInTheDocument();
+
+    expect(screen.getByText('Include')).toBeInTheDocument();
+    expect(screen.getByText('static/**/*.tsx')).toBeInTheDocument();
+    expect(screen.getByText('Exclude')).toBeInTheDocument();
+    expect(screen.getByText('**/*.spec.*')).toBeInTheDocument();
+    expect(screen.getByText('Prefilter')).toBeInTheDocument();
+    expect(
+      screen.getByText("grep -rl 'extends Component' {repo_path}/static/")
+    ).toBeInTheDocument();
   });
 
   it('collapses a section', async () => {
@@ -67,6 +79,7 @@ describe('ConventionConfig', () => {
 
     expect(screen.getByRole('button', {name: 'Why'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Fix'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Filters'})).not.toBeInTheDocument();
     expect(screen.queryByText('Severity')).not.toBeInTheDocument();
     expect(screen.queryByText('Tags')).not.toBeInTheDocument();
   });

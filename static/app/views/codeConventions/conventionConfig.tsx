@@ -13,7 +13,10 @@ export interface Convention {
   name: string;
   detect?: string;
   examples?: {bad?: string[]; good?: string[]};
+  exclude?: string[];
   fix?: string;
+  include?: string[];
+  prefilter?: string;
   severity?: string;
   tags?: string[];
   why?: string;
@@ -42,6 +45,19 @@ function formatExamples(examples: NonNullable<Convention['examples']>) {
     .join('\n\n');
 }
 
+function formatFilters({include, exclude, prefilter}: Convention) {
+  // Globs are wrapped in inline code so their `*`s aren't read as emphasis.
+  const toGlobList = (globs: string[]) => globs.map(glob => `- \`${glob}\``).join('\n');
+
+  return [
+    include?.length ? `**${t('Include')}**\n\n${toGlobList(include)}` : '',
+    exclude?.length ? `**${t('Exclude')}**\n\n${toGlobList(exclude)}` : '',
+    prefilter ? `**${t('Prefilter')}**\n\n\`\`\`bash\n${prefilter}\n\`\`\`` : '',
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+}
+
 interface Props {
   convention: Convention;
 }
@@ -56,6 +72,7 @@ export function ConventionConfig({convention}: Props) {
       title: t('Examples'),
       raw: convention.examples ? formatExamples(convention.examples) : undefined,
     },
+    {key: 'filters', title: t('Filters'), raw: formatFilters(convention)},
   ];
 
   return (
