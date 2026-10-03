@@ -2,16 +2,17 @@ from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
-from sentry.models.apitoken import ApiToken
 from sentry.models.project import Project
-from sentry.silo.base import SiloMode
+from sentry.seer.endpoints.organization_seer_rpc import public_org_seer_method_registry
+from sentry.seer.sentry_data_models import OrganizationSlugResponse
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.silo import cell_silo_test
 from sentry.utils.samples import load_data
 
 
+@cell_silo_test
 class TestOrganizationSeerRpcEndpoint(APITestCase):
     """Test the combined organization/project seer RPC endpoint"""
 
@@ -46,6 +47,12 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         assert response.status_code == 404
 
     @with_feature("organizations:seer-public-rpc")
+    def test_args_must_be_an_object(self) -> None:
+        path = self._get_path("get_organization_slug")
+        response = self.client.post(path, data={"args": []}, format="json")
+        assert response.status_code == 400
+
+    @with_feature("organizations:seer-public-rpc")
     def test_org_level_method_get_organization_slug(self) -> None:
         """Test that organization-level methods work and return correct data"""
         path = self._get_path("get_organization_slug")
@@ -76,6 +83,108 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         assert set(project_data["instrumentation"]) == {"transactions", "spans", "logs"}
 
     @with_feature("organizations:seer-public-rpc")
+    def test_get_organization_projects_filters_to_accessible_projects(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member = self.create_user()
+        team = self.create_team(organization=self.organization, members=[member])
+        accessible_project = self.create_project(
+            organization=self.organization,
+            teams=[team],
+            slug="accessible-project",
+        )
+        self.login_as(member)
+
+        path = self._get_path("get_organization_projects")
+        response = self.client.post(path, data={"args": {}}, format="json")
+
+        assert response.status_code == 200
+        assert {project["id"] for project in response.data["projects"]} == {accessible_project.id}
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_get_organization_projects_ignores_project_query_param(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member = self.create_user()
+        team = self.create_team(organization=self.organization, members=[member])
+        accessible_project = self.create_project(organization=self.organization, teams=[team])
+        self.login_as(member)
+
+        path = f"{self._get_path('get_organization_projects')}?project={self.project.id}"
+        response = self.client.post(path, data={"args": {}}, format="json")
+
+        assert response.status_code == 200
+        assert {project["id"] for project in response.data["projects"]} == {accessible_project.id}
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_get_organization_projects_ignores_project_slug_query_param(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member = self.create_user()
+        team = self.create_team(organization=self.organization, members=[member])
+        accessible_project = self.create_project(organization=self.organization, teams=[team])
+        self.login_as(member)
+
+        path = f"{self._get_path('get_organization_projects')}?projectSlug={self.project.slug}"
+        response = self.client.post(path, data={"args": {}}, format="json")
+
+        assert response.status_code == 200
+        assert {project["id"] for project in response.data["projects"]} == {accessible_project.id}
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_cross_project_method_requires_global_project_access_in_production(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member = self.create_user()
+        team = self.create_team(organization=self.organization, members=[member])
+        self.create_project(organization=self.organization, teams=[team])
+        self.login_as(member)
+
+        path = self._get_path("get_trace_waterfall")
+        with patch(
+            "sentry.seer.endpoints.organization_seer_rpc.in_test_environment",
+            return_value=False,
+        ):
+            response = self.client.post(
+                path,
+                data={"args": {"trace_id": "a" * 32}},
+                format="json",
+            )
+
+        assert response.status_code == 403
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_organization_metadata_method_allows_restricted_member(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[])
+        self.login_as(member)
+
+        path = self._get_path("get_organization_slug")
+        response = self.client.post(path, data={"args": {}}, format="json")
+
+        assert response.status_code == 200
+        assert response.data == {"slug": self.organization.slug}
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_org_read_scope_can_query_accessible_projects(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["org:read"])
+
+        path = self._get_path("get_organization_projects")
+        response = self.client.post(
+            path, data={"args": {}}, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}"
+        )
+
+        assert response.status_code == 200
+        assert {project["id"] for project in response.data["projects"]} == {self.project.id}
+
+    @with_feature("organizations:seer-public-rpc")
     def test_org_level_method_get_organization_features(self) -> None:
         """Test that get_organization_features returns the features key"""
         path = self._get_path("get_organization_features")
@@ -100,6 +209,212 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         assert response.data["platform"] == project.platform
         assert response.data["dsn_public"].startswith("http")
         assert response.data["dsn_public"].endswith(f"/{project.id}")
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_project_scoped_org_method_allows_project_member(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member = self.create_user()
+        team = self.create_team(organization=self.organization, members=[member])
+        project = self.create_project(
+            organization=self.organization,
+            teams=[team],
+            slug="member-project",
+        )
+        self.login_as(member)
+
+        path = self._get_path("get_dsn")
+        response = self.client.post(
+            path,
+            data={"args": {"project_slug": project.slug}},
+            format="json",
+        )
+
+        assert response.status_code == 200
+        assert response.data["project_slug"] == project.slug
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_project_scoped_org_method_denies_other_team_project(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member = self.create_user()
+        team = self.create_team(organization=self.organization, members=[member])
+        self.create_project(organization=self.organization, teams=[team])
+        self.login_as(member)
+
+        path = self._get_path("get_dsn")
+        response = self.client.post(
+            path,
+            data={"args": {"project_slug": self.project.slug}},
+            format="json",
+        )
+
+        assert response.status_code == 404
+
+        missing_response = self.client.post(
+            path,
+            data={"args": {"project_slug": "does-not-exist"}},
+            format="json",
+        )
+        assert missing_response.status_code == response.status_code
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_query_method_injects_accessible_projects(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member = self.create_user()
+        team = self.create_team(organization=self.organization, members=[member])
+        accessible_project = self.create_project(organization=self.organization, teams=[team])
+        self.login_as(member)
+
+        mock_method = MagicMock(return_value=OrganizationSlugResponse(slug=self.organization.slug))
+        path = self._get_path("execute_issues_query")
+        with patch.dict(
+            public_org_seer_method_registry,
+            {"execute_issues_query": mock_method},
+        ):
+            response = self.client.post(
+                path,
+                data={"args": {"query": "is:unresolved"}},
+                format="json",
+            )
+
+        assert response.status_code == 200
+        assert mock_method.call_args.kwargs["project_ids"] == [accessible_project.id]
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_query_method_denies_inaccessible_project(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member = self.create_user()
+        team = self.create_team(organization=self.organization, members=[member])
+        self.create_project(organization=self.organization, teams=[team])
+        self.login_as(member)
+
+        mock_method = MagicMock(return_value=OrganizationSlugResponse(slug=self.organization.slug))
+        path = self._get_path("execute_issues_query")
+        with patch.dict(
+            public_org_seer_method_registry,
+            {"execute_issues_query": mock_method},
+        ):
+            response = self.client.post(
+                path,
+                data={
+                    "args": {
+                        "project_ids": [self.project.id],
+                        "query": "is:unresolved",
+                    }
+                },
+                format="json",
+            )
+
+        assert response.status_code == 403
+        mock_method.assert_not_called()
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_group_scoped_method_allows_only_accessible_project(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member = self.create_user()
+        team = self.create_team(organization=self.organization, members=[member])
+        accessible_project = self.create_project(organization=self.organization, teams=[team])
+        accessible_group = self.create_group(project=accessible_project)
+        inaccessible_group = self.create_group(project=self.project)
+        self.login_as(member)
+
+        mock_method = MagicMock(return_value=OrganizationSlugResponse(slug=self.organization.slug))
+        path = self._get_path("get_latest_issue_event")
+        with patch.dict(
+            public_org_seer_method_registry,
+            {"get_latest_issue_event": mock_method},
+        ):
+            allowed_response = self.client.post(
+                path,
+                data={"args": {"group_id": accessible_group.id}},
+                format="json",
+            )
+            denied_response = self.client.post(
+                path,
+                data={"args": {"group_id": inaccessible_group.id}},
+                format="json",
+            )
+
+        assert allowed_response.status_code == 200
+        assert denied_response.status_code == 200
+        assert denied_response.data == {}
+        mock_method.assert_called_once()
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_team_scoped_method_allows_only_team_member(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member = self.create_user()
+        team = self.create_team(organization=self.organization, members=[member])
+        other_team = self.create_team(organization=self.organization)
+        self.login_as(member)
+
+        mock_method = MagicMock(return_value=OrganizationSlugResponse(slug=self.organization.slug))
+        path = self._get_path("get_team_members")
+        with patch.dict(
+            public_org_seer_method_registry,
+            {"get_team_members": mock_method},
+        ):
+            allowed_response = self.client.post(
+                path,
+                data={"args": {"team_slug": team.slug}},
+                format="json",
+            )
+            denied_response = self.client.post(
+                path,
+                data={"args": {"team_slug": other_team.slug}},
+                format="json",
+            )
+
+        assert allowed_response.status_code == 200
+        assert denied_response.status_code == 404
+        mock_method.assert_called_once()
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_optional_project_method_requires_slug_for_restricted_member(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+
+        member = self.create_user()
+        team = self.create_team(organization=self.organization, members=[member])
+        accessible_project = self.create_project(organization=self.organization, teams=[team])
+        self.login_as(member)
+
+        mock_method = MagicMock(return_value=OrganizationSlugResponse(slug=self.organization.slug))
+        path = self._get_path("get_replay_metadata")
+        with patch.dict(
+            public_org_seer_method_registry,
+            {"get_replay_metadata": mock_method},
+        ):
+            allowed_response = self.client.post(
+                path,
+                data={
+                    "args": {
+                        "replay_id": "a" * 32,
+                        "project_slug": accessible_project.slug,
+                    }
+                },
+                format="json",
+            )
+            denied_response = self.client.post(
+                path,
+                data={"args": {"replay_id": "a" * 32}},
+                format="json",
+            )
+
+        assert allowed_response.status_code == 200
+        assert denied_response.status_code == 403
+        mock_method.assert_called_once()
 
     @with_feature("organizations:seer-public-rpc")
     def test_project_method_requires_project_id(self) -> None:
@@ -158,11 +473,12 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
 
     @with_feature("organizations:seer-public-rpc")
     def test_project_method_with_non_accessible_project(self) -> None:
-        """Test that non-existent project_id returns 404"""
+        """Test that an organization member cannot access another team's project."""
         self.organization.flags.allow_joinleave = False
         self.organization.save()
 
         user = self.create_user()
+        self.create_member(organization=self.organization, user=user, role="member", teams=[])
         self.login_as(user)
 
         path = self._get_path("get_transactions_for_project")
@@ -172,7 +488,7 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
             format="json",
         )
 
-        assert response.status_code == 403  # Project not accessible
+        assert response.status_code == 404  # Inaccessible is indistinguishable from not found
 
     @with_feature("organizations:seer-public-rpc")
     def test_unknown_method_returns_404_for_org_method(self) -> None:
@@ -187,8 +503,7 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         self.organization = self.create_organization(owner=self.user)
 
         for scope in ["org:read", "org:write", "org:admin"]:
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                token = ApiToken.objects.create(user=self.user, scope_list=[scope])
+            token = self.create_user_auth_token(user=self.user, scope_list=[scope])
 
             path = self._get_path("get_organization_slug")
             response = self.client.post(
@@ -270,14 +585,26 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
         assert response.data["project_id"] == self.project.id
 
     @with_feature("organizations:seer-public-rpc")
-    def test_get_issue_committers_without_project_access_returns_null(self) -> None:
-        """An org member without access to the issue's project gets a null result.
+    def test_get_issue_committers_allows_restricted_project_member(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
 
-        Without the project-access gate, a closed-membership org member could supply
-        any in-org issue_id and read commit/PR data for projects they cannot access.
-        We collapse no-access into the same null "not found" signal so the caller can't
-        tell the issue exists in a project they can't see.
-        """
+        member = self.create_user()
+        team = self.create_team(organization=self.organization, members=[member])
+        project = self.create_project(organization=self.organization, teams=[team])
+        group = self.create_group(project=project)
+        self.login_as(member)
+
+        path = self._get_path("get_issue_committers")
+        response = self.client.post(path, data={"args": {"issue_id": str(group.id)}}, format="json")
+
+        assert response.status_code == 200
+        assert response.data is not None
+        assert response.data["project_id"] == project.id
+
+    @with_feature("organizations:seer-public-rpc")
+    def test_get_issue_committers_without_project_access_returns_null(self) -> None:
+        """An inaccessible issue is indistinguishable from one that does not exist."""
         group = self.create_group(project=self.project)
 
         self.organization.flags.allow_joinleave = False
@@ -320,7 +647,7 @@ class TestOrganizationSeerRpcEndpoint(APITestCase):
 
     @with_feature("organizations:seer-public-rpc")
     def test_get_issue_details_without_project_access_returns_null(self) -> None:
-        """get_issue_details collapses no-access into the null not-found signal."""
+        """An inaccessible issue is rejected before its details are loaded."""
         group = self.create_group(project=self.project)
 
         self.organization.flags.allow_joinleave = False
