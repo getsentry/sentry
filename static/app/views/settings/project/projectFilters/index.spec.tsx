@@ -40,10 +40,16 @@ describe('ProjectFilters', () => {
   };
 
   const CUSTOM_INBOUND_FILTERS_URL = `${PROJECT_URL}custom-inbound-filters/`;
+  const VALIDATE_URL = `${CUSTOM_INBOUND_FILTERS_URL}validate/`;
 
   const inboundFiltersV2Org = OrganizationFixture({
     ...organization,
     features: ['inbound-filters-v2', 'inbound-filters-v2-ui'],
+  });
+
+  const nameSuggestionOrg = OrganizationFixture({
+    ...inboundFiltersV2Org,
+    features: [...inboundFiltersV2Org.features, 'inbound-filters-name-suggestion'],
   });
 
   type CustomInboundFilter = {
@@ -73,14 +79,15 @@ describe('ProjectFilters', () => {
 
   function renderInboundFilters(
     filters: CustomInboundFilter[],
-    renderedProject: typeof project = project
+    renderedProject: typeof project = project,
+    renderedOrganization: typeof organization = inboundFiltersV2Org
   ) {
     MockApiClient.addMockResponse({
       url: CUSTOM_INBOUND_FILTERS_URL,
       body: filters,
     });
     const result = render(<ProjectFilters />, {
-      organization: inboundFiltersV2Org,
+      organization: renderedOrganization,
       outletContext: {project: renderedProject},
       initialRouterConfig,
     });
@@ -682,6 +689,95 @@ describe('ProjectFilters', () => {
         })
       )
     );
+  });
+
+  it('suggests a name once every condition of the draft has a value', async () => {
+    renderInboundFilters([], project, nameSuggestionOrg);
+    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+
+    const validateMock = MockApiClient.addMockResponse({
+      url: VALIDATE_URL,
+      method: 'POST',
+      body: {errors: {}, suggestedName: 'Ignore timeouts'},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
+
+    // Leaving a field while a condition is still empty asks for nothing.
+    await userEvent.click(screen.getByRole('textbox', {name: 'Name'}));
+    await userEvent.tab();
+    expect(validateMock).not.toHaveBeenCalled();
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Condition value'}),
+      '*timeout*'
+    );
+    await userEvent.tab();
+
+    await waitFor(() =>
+      expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('Ignore timeouts')
+    );
+    expect(validateMock).toHaveBeenCalledWith(
+      VALIDATE_URL,
+      expect.objectContaining({
+        method: 'POST',
+        data: {
+          dataType: 'error',
+          conditions: [{type: 'error_message', value: ['*timeout*']}],
+        },
+      })
+    );
+  });
+
+  it('keeps a name the user typed and suggests one once they clear it', async () => {
+    renderInboundFilters([], project, nameSuggestionOrg);
+    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+
+    const validateMock = MockApiClient.addMockResponse({
+      url: VALIDATE_URL,
+      method: 'POST',
+      body: {errors: {}, suggestedName: 'Ignore timeouts'},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
+    const nameField = screen.getByRole('textbox', {name: 'Name'});
+    await userEvent.type(nameField, 'My own name');
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Condition value'}),
+      '*timeout*'
+    );
+    await userEvent.tab();
+    expect(validateMock).not.toHaveBeenCalled();
+    expect(nameField).toHaveValue('My own name');
+
+    await userEvent.clear(nameField);
+
+    await waitFor(() => expect(nameField).toHaveValue('Ignore timeouts'));
+    expect(validateMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not ask for a name suggestion without the feature', async () => {
+    renderInboundFilters([]);
+    expect(await screen.findByText('No inbound filters found')).toBeInTheDocument();
+
+    const validateMock = MockApiClient.addMockResponse({
+      url: VALIDATE_URL,
+      method: 'POST',
+      body: {errors: {}, suggestedName: 'Ignore timeouts'},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    expect(await screen.findByText('Create Custom Filter')).toBeInTheDocument();
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Condition value'}),
+      '*timeout*'
+    );
+    await userEvent.tab();
+
+    expect(validateMock).not.toHaveBeenCalled();
+    expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('');
   });
 
   it('shows the values of a condition as alternatives and edits them one per line', async () => {
