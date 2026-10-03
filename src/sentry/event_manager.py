@@ -2522,7 +2522,7 @@ def save_attachment(
         date_expires=datetime.now(timezone.utc) + timedelta(days=attachment.retention_days),
     )
 
-    if is_pending and features.has("projects:defer-attachment-storage", project):
+    if is_pending:
         if group_id is not None:
             logger.warning("group_id %s with is_pending=True", group_id)
 
@@ -2606,8 +2606,6 @@ def save_pending_attachments(
     exactly that reason: once when the event is saved, and again in post-processing.
     ``source`` tags the metric so the two can be told apart.
     """
-    if not features.has("projects:defer-attachment-storage", project):
-        return
 
     # This runs for every error event of a flagged project, and almost none of them have
     # a pending attachment. Probe outside a transaction so the common case stays a single
