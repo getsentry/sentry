@@ -573,7 +573,12 @@ def create_dif_from_file(
 
 
 def create_dif_from_fileobj(
-    project: Project, meta: DifMeta, fileobj: IO[bytes]
+    project: Project,
+    meta: DifMeta,
+    fileobj: IO[bytes],
+    *,
+    checksum: str | None = None,
+    file_size: int | None = None,
 ) -> tuple[ProjectDebugFile, bool]:
     """Creates an Objectstore-backed ``ProjectDebugFile`` from a file-like object.
 
@@ -581,9 +586,12 @@ def create_dif_from_fileobj(
     only in Objectstore. To create a DIF from an existing legacy ``File``, use
     ``create_dif_from_file`` instead. This function intentionally does not check feature flags:
     callers must only use it when exclusive Objectstore writes are enabled. Objectstore upload
-    failures are fatal.
+    failures are fatal. When ``checksum`` and ``file_size`` are provided, they must describe
+    ``fileobj`` and avoid reading it once before upload. If either is omitted, both are computed
+    from ``fileobj``.
     """
-    checksum, file_size = _get_fileobj_checksum_and_size(fileobj)
+    if checksum is None or file_size is None:
+        checksum, file_size = _get_fileobj_checksum_and_size(fileobj)
 
     dif = find_existing_dif(project, meta, checksum)
 
