@@ -12,9 +12,16 @@ def escape_slack_text(txt: str | None) -> str:
     could break formatting.
 
     docs - https://api.slack.com/reference/surfaces/formatting#escaping
+
+    Every caller of this helper embeds the result as a single-line title (a
+    link label or a bolded heading), so any newlines in the input are
+    collapsed to spaces. Left unescaped, a newline inside a `<url|*text*>`
+    link breaks Slack's mrkdwn parsing and the whole link renders as raw text
+    instead of a clickable link.
     """
     if not txt:
         return ""
+    txt = re.sub(r"\n+", " ", txt)
     return txt.translate(translator)
 
 
