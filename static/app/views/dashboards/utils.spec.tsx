@@ -356,8 +356,15 @@ describe('getDashboardFiltersFromURL', () => {
       value: 'release:[v1.0]',
       dataset: WidgetType.DISCOVER,
     });
-    const missingTag = JSON.stringify({value: 'release:[v1.0]', dataset: WidgetType.DISCOVER});
-    const nullTag = JSON.stringify({tag: null, value: 'foo', dataset: WidgetType.DISCOVER});
+    const missingTag = JSON.stringify({
+      value: 'release:[v1.0]',
+      dataset: WidgetType.DISCOVER,
+    });
+    const nullTag = JSON.stringify({
+      tag: null,
+      value: 'foo',
+      dataset: WidgetType.DISCOVER,
+    });
 
     const location = LocationFixture({
       query: {globalFilter: [validFilter, missingTag, nullTag]},
