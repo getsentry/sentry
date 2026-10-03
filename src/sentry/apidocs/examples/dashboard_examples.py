@@ -69,6 +69,7 @@ DASHBOARD_OBJECT = {
             "changedReason": None,
             "axisRange": None,
             "legendType": "default",
+            "chartPalette": None,
         }
     ],
     "projects": [1],
