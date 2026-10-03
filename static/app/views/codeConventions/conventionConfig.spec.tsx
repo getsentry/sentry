@@ -91,6 +91,34 @@ describe('ConventionConfig', () => {
     ).toBeInTheDocument();
   });
 
+  it('toggles an edit mode with disabled text areas', async () => {
+    render(<ConventionConfig convention={parse(YAML)} />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Edit'}));
+
+    expect(screen.queryByRole('button', {name: 'Why'})).not.toBeInTheDocument();
+
+    const why = screen.getByRole('textbox', {name: 'Why'});
+    expect(why).toBeDisabled();
+    expect(why).toHaveValue('Class components are the **legacy** style.\n');
+
+    expect(screen.getByRole('textbox', {name: 'Examples'})).toHaveDisplayValue(
+      /bad:\n {2}- class Profile extends Component \{\}/
+    );
+    expect(screen.getByRole('textbox', {name: 'Filters'})).toHaveDisplayValue(
+      /include:\n {2}- static\/\*\*\/\*\.tsx/
+    );
+    expect(screen.getByRole('button', {name: 'Save'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+
+    expect(screen.queryByRole('textbox', {name: 'Why'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Why'})).toBeInTheDocument();
+  });
+
   it('skips sections that are missing', () => {
     render(<ConventionConfig convention={{name: 'only-why', why: 'Because.'}} />);
 

@@ -1,13 +1,16 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 
 import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
+import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {TagVariant} from 'sentry/utils/theme';
+import {ConventionEditForm} from 'sentry/views/codeConventions/conventionEditForm';
 
 export interface Convention {
   name: string;
@@ -67,6 +70,8 @@ interface Props {
 }
 
 export function ConventionConfig({convention}: Props) {
+  const [isEditing, setIsEditing] = useState(false);
+
   const sections = [
     {key: 'why', title: t('Why'), raw: convention.why},
     {key: 'detect', title: t('Detect'), raw: convention.detect},
@@ -81,42 +86,55 @@ export function ConventionConfig({convention}: Props) {
 
   return (
     <Stack gap="xl">
-      <Grid columns="max-content minmax(0, 1fr)" gap="md lg" align="center">
-        {convention.severity && (
-          <Fragment>
-            <Text variant="muted">{t('Severity')}</Text>
-            <Flex>
-              <Tag variant={getSeverityVariant(convention.severity)}>
-                {convention.severity}
-              </Tag>
-            </Flex>
-          </Fragment>
-        )}
-        {convention.tags?.length ? (
-          <Fragment>
-            <Text variant="muted">{t('Tags')}</Text>
-            <Flex gap="sm" wrap="wrap">
-              {convention.tags.map(tag => (
-                <Tag key={tag} variant="muted">
-                  {tag}
+      <Flex justify="between" align="start" gap="lg">
+        <Grid columns="max-content minmax(0, 1fr)" gap="md lg" align="center">
+          {convention.severity && (
+            <Fragment>
+              <Text variant="muted">{t('Severity')}</Text>
+              <Flex>
+                <Tag variant={getSeverityVariant(convention.severity)}>
+                  {convention.severity}
                 </Tag>
-              ))}
-            </Flex>
-          </Fragment>
-        ) : null}
-      </Grid>
-      <Stack gap="md">
-        {sections.map(({key, title, raw}) =>
-          raw ? (
-            <Disclosure key={key} defaultExpanded>
-              <Disclosure.Title>{title}</Disclosure.Title>
-              <Disclosure.Content>
-                <Markdown raw={raw} />
-              </Disclosure.Content>
-            </Disclosure>
-          ) : null
-        )}
-      </Stack>
+              </Flex>
+            </Fragment>
+          )}
+          {convention.tags?.length ? (
+            <Fragment>
+              <Text variant="muted">{t('Tags')}</Text>
+              <Flex gap="sm" wrap="wrap">
+                {convention.tags.map(tag => (
+                  <Tag key={tag} variant="muted">
+                    {tag}
+                  </Tag>
+                ))}
+              </Flex>
+            </Fragment>
+          ) : null}
+        </Grid>
+        <Button
+          size="sm"
+          icon={isEditing ? undefined : <IconEdit />}
+          onClick={() => setIsEditing(editing => !editing)}
+        >
+          {isEditing ? t('Cancel') : t('Edit')}
+        </Button>
+      </Flex>
+      {isEditing ? (
+        <ConventionEditForm convention={convention} />
+      ) : (
+        <Stack gap="md">
+          {sections.map(({key, title, raw}) =>
+            raw ? (
+              <Disclosure key={key} defaultExpanded>
+                <Disclosure.Title>{title}</Disclosure.Title>
+                <Disclosure.Content>
+                  <Markdown raw={raw} />
+                </Disclosure.Content>
+              </Disclosure>
+            ) : null
+          )}
+        </Stack>
+      )}
     </Stack>
   );
 }
