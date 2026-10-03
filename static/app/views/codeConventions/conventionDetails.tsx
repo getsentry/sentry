@@ -134,7 +134,7 @@ export default function ConventionDetails() {
 
   return (
     <SentryDocumentTitle
-      title={`${title} — ${t('Code Conventions')}`}
+      title={`${title} — ${t('Code Quality')}`}
       orgSlug={organization.slug}
     />
   );

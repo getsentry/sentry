@@ -28,7 +28,7 @@ const COLUMNS: TableColumnConfig[] = [
   {key: 'issues', width: 'max-content'},
 ];
 
-export default function CodeConventions() {
+export default function CodeQuality() {
   const organization = useOrganization();
   const location = useLocation();
 
@@ -40,9 +40,9 @@ export default function CodeConventions() {
   } = useQuery(conventionFilesQueryOptions);
 
   return (
-    <SentryDocumentTitle title={t('Code Conventions')} orgSlug={organization.slug}>
+    <SentryDocumentTitle title={t('Code Quality')} orgSlug={organization.slug}>
       <Stack flex={1}>
-        <Layout.Title>{t('Code Conventions')}</Layout.Title>
+        <Layout.Title>{t('Code Quality')}</Layout.Title>
         <Layout.Body>
           <Layout.Main width="full">
             <Stack gap="xl">

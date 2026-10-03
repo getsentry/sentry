@@ -116,10 +116,10 @@ function IssuesSecondaryNavigationImpl() {
             <SecondaryNavigation.ListItem>
               <SecondaryNavigation.Link
                 to={`${baseUrl}/code-conventions/`}
-                analyticsItemName="issues_code_conventions"
+                analyticsItemName="issues_code_quality"
                 trailingItems={<FeatureBadge type="alpha" />}
               >
-                {t('Code Conventions')}
+                {t('Code Quality')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
           </SecondaryNavigation.List>
