@@ -639,7 +639,7 @@ function SearchQueryBuilderInputInternal({
               type: 'UPDATE_FREE_TEXT_ON_SELECT',
               tokens: [token],
               text: option.value,
-              shouldCommitQuery: true,
+              shouldCommitQuery: false,
               focusOverride: calculateNextFocusForInsertedToken(item),
             });
             resetInputValue();

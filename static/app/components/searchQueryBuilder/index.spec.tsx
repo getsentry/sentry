@@ -2111,6 +2111,34 @@ describe('SearchQueryBuilder', () => {
     });
 
     describe('logic items', () => {
+      it.each(['AND', 'OR'])(
+        'waits for the next filter before searching after selecting %s',
+        async operator => {
+          const onSearch = jest.fn();
+          render(
+            <SearchQueryBuilder
+              {...defaultProps}
+              initialQuery="browser.name:Chrome"
+              onSearch={onSearch}
+            />
+          );
+
+          await userEvent.type(getLastInput(), operator);
+          await userEvent.click(await screen.findByRole('option', {name: operator}));
+
+          expect(screen.getByRole('row', {name: operator})).toBeInTheDocument();
+          expect(onSearch).not.toHaveBeenCalled();
+
+          await userEvent.type(getLastInput(), 'browser.name:');
+          await userEvent.click(await screen.findByRole('option', {name: 'Firefox'}));
+
+          expect(onSearch).toHaveBeenCalledWith(
+            `browser.name:Chrome ${operator} browser.name:Firefox`,
+            expect.anything()
+          );
+        }
+      );
+
       it('will suggest logic items when typing its value', async () => {
         render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
         await userEvent.click(getLastInput());
