@@ -4,11 +4,11 @@ import type {StripePaymentElementChangeEvent} from '@stripe/stripe-js';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {Form} from 'sentry/components/forms/form';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
@@ -31,6 +31,17 @@ export function InnerIntentForm({
   const [submitDisabled, setSubmitDisabled] = useState(true);
   const [stripeIsLoading, setStripeIsLoading] = useState(true);
   const [stripeIsBlocked, setStripeIsBlocked] = useState(false);
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {},
+    onSubmit: () => {
+      try {
+        handleSubmit({stripe, elements});
+      } catch (error) {
+        onError(error instanceof Error ? error.message : t('An unknown error occurred.'));
+      }
+    },
+  });
 
   const handleFormChange = (formData: StripePaymentElementChangeEvent) => {
     setSubmitDisabled(!formData.complete);
@@ -64,30 +75,7 @@ export function InnerIntentForm({
         </Alert>
       )}
       {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
-      <Form
-        onSubmit={() => handleSubmit({stripe, elements})}
-        onSubmitError={error =>
-          onError(error.responseJSON?.detail ?? t('An unknown error occurred.'))
-        }
-        submitDisabled={submitDisabled}
-        submitLabel={
-          isSubmitting && busyButtonText
-            ? busyButtonText
-            : (buttonText ?? t('Save Changes'))
-        }
-        extraButton={
-          onCancel && (
-            <Button aria-label={t('Cancel')} onClick={onCancel}>
-              {t('Cancel')}
-            </Button>
-          )
-        }
-        footerStyle={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          marginLeft: 0,
-        }}
-      >
+      <form.AppForm form={form}>
         <Stack gap="xl">
           {stripeIsLoading && <LoadingIndicator />}
           <PaymentElement
@@ -124,7 +112,19 @@ export function InnerIntentForm({
             )}
           </Stack>
         </Stack>
-      </Form>
+        <Flex align="center" justify="between">
+          {onCancel && (
+            <Button aria-label={t('Cancel')} onClick={onCancel}>
+              {t('Cancel')}
+            </Button>
+          )}
+          <form.SubmitButton disabled={submitDisabled} busy={isSubmitting}>
+            {isSubmitting && busyButtonText
+              ? busyButtonText
+              : (buttonText ?? t('Save Changes'))}
+          </form.SubmitButton>
+        </Flex>
+      </form.AppForm>
     </Stack>
   );
 }
