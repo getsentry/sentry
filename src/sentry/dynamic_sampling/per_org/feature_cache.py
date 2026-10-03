@@ -9,10 +9,9 @@ import sentry_sdk
 from django.db.models import Exists, OuterRef, QuerySet
 from taskbroker_client.retry import Retry
 
-from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.rules.utils import get_redis_client_for_ds
-from sentry.dynamic_sampling.utils import DYNAMIC_SAMPLING_FEATURE
+from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
@@ -68,12 +67,7 @@ def get_orgs_with_dynamic_sampling() -> list[int] | None:
 
 
 def _orgs_with_dynamic_sampling(organizations: Sequence[Organization]) -> list[int]:
-    # A None result means the check failed, which would otherwise read as "none of them".
-    results = features.batch_has_for_organizations(DYNAMIC_SAMPLING_FEATURE, organizations)
-    if results is None:
-        raise RuntimeError(f"Unable to evaluate {DYNAMIC_SAMPLING_FEATURE} for a batch of orgs")
-
-    return [org.id for org in organizations if results.get(f"organization:{org.id}", False)]
+    return [org.id for org in organizations if has_dynamic_sampling(org)]
 
 
 @instrumented_task(
@@ -88,9 +82,9 @@ def _orgs_with_dynamic_sampling(organizations: Sequence[Organization]) -> list[i
 )
 def cache_dynamic_sampling_feature_flags() -> int:
     """
-    An empty result leaves the previous entry in place. Every candidate losing the feature
-    within one hour means the feature backend is answering wrongly, and serving that answer
-    would stop the pipeline for everyone until the next successful refresh.
+    An empty result leaves the previous entry in place. If the quota backend temporarily
+    returns no rates, serving that result would stop the pipeline for everyone until the
+    next successful refresh.
     """
     org_ids: list[int] = []
     for organizations in chunked(
@@ -102,7 +96,7 @@ def cache_dynamic_sampling_feature_flags() -> int:
     if not org_ids:
         logger.warning(
             "dynamic_sampling.per_org.feature_cache.empty_refresh",
-            extra={"feature": DYNAMIC_SAMPLING_FEATURE},
+            extra={"source": "subscription_quota"},
         )
         metrics.incr("dynamic_sampling.per_org.feature_cache.empty_refresh")
         return 0

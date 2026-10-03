@@ -4,7 +4,6 @@ from datetime import datetime
 import sentry_sdk
 from snuba_sdk.query_visitors import InvalidQueryError
 
-from sentry import features
 from sentry.api.serializers.rest_framework.dashboard import is_aggregate
 from sentry.constants import ObjectStatus
 from sentry.discover.arithmetic import ArithmeticParseError
@@ -15,6 +14,7 @@ from sentry.discover.dataset_split import (
     _get_field_list,
     _get_snuba_dataclass,
 )
+from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_widget import (
@@ -215,10 +215,7 @@ def _get_and_save_split_decision_for_dashboard_widget(
             )
         return widget_dataset, False
 
-    if (
-        features.has("organizations:dynamic-sampling", dashboard.organization, actor=None)
-        and not equations
-    ):
+    if has_dynamic_sampling(dashboard.organization) and not equations:
         try:
             metrics_query_result = metrics_query(
                 selected_columns,

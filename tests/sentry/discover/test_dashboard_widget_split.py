@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from unittest.mock import patch
 
 import pytest
 
@@ -118,7 +119,7 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
             hours_before_now=2,
         )
 
-        with self.feature({"organizations:dynamic-sampling": True}):
+        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5):
             _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
                 metrics_query, self.dry_run
             )
@@ -149,7 +150,7 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
             order=0,
         )
 
-        with self.feature({"organizations:dynamic-sampling": True}):
+        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5):
             _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
                 metrics_query, self.dry_run
             )
@@ -183,7 +184,7 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
             order=0,
         )
 
-        with self.feature({"organizations:dynamic-sampling": True}):
+        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5):
             _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
                 metrics_query, self.dry_run
             )
@@ -214,7 +215,7 @@ class DashboardWidgetDatasetSplitTestCase(BaseMetricsLayerTestCase, TestCase, Sn
             order=0,
         )
 
-        with self.feature({"organizations:dynamic-sampling": False}):
+        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=None):
             _, queried_snuba = _get_and_save_split_decision_for_dashboard_widget(
                 metrics_query, self.dry_run
             )
