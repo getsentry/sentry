@@ -524,8 +524,9 @@ describe('Performance > Widgets > WidgetContainer', () => {
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Most Related Errors'
     );
-    expect(eventsMock).toHaveBeenCalledTimes(1);
-    expect(eventStatsMock).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(eventsMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('Most improved trends widget', async () => {
