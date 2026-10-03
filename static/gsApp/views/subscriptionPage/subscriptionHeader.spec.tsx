@@ -425,4 +425,18 @@ describe('SubscriptionHeader', () => {
     );
     expect(screen.queryByTestId('trial-alert')).not.toBeInTheDocument();
   });
+
+  it('renders fallback text when planDetails is undefined', () => {
+    const organization = OrganizationFixture({access: ['org:billing']});
+    const subscription = {
+      ...SubscriptionFixture({organization}),
+      planDetails: undefined as any,
+    };
+    SubscriptionStore.set(organization.slug, subscription);
+    render(
+      <SubscriptionHeader organization={organization} subscription={subscription} />,
+      {additionalWrapper: SecondaryNavigationContextProvider}
+    );
+    expect(screen.getByText('Subscription')).toBeInTheDocument();
+  });
 });
