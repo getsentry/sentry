@@ -391,8 +391,9 @@ UNEXPANDED_ENV_VAR_RE = re.compile(
     r"|%[A-Za-z_][A-Za-z0-9_]*%"
 )
 # The bare name of an environment variable, such as `VERCEL_GIT_COMMIT_SHA`: upper case words joined
-# by underscores, each starting with a letter, so that names like `RELEASE_1_2` do not match.
-ENV_VAR_NAME_RE = re.compile(r"[A-Z][A-Z0-9]*(?:_[A-Z][A-Z0-9]*)+")
+# by underscores. Names with digits, such as `RELEASE_1_2` or `APP_V2`, do not match, as those are
+# more likely to be real release names.
+ENV_VAR_NAME_RE = re.compile(r"[A-Z]+(?:_[A-Z]+)+")
 
 
 def get_placeholder_release_kind(release: str) -> str | None:
@@ -402,12 +403,13 @@ def get_placeholder_release_kind(release: str) -> str | None:
     such as JavaScript's `String(undefined)`, and "env_var" for an environment variable that was
     never expanded or its bare name.
     """
-    name = release.strip().lower()
+    stripped = release.strip()
+    name = stripped.lower()
     if name in ("undefined", "null"):
         return name
     if not name:
         return "empty"
-    if UNEXPANDED_ENV_VAR_RE.fullmatch(release) or ENV_VAR_NAME_RE.fullmatch(release):
+    if UNEXPANDED_ENV_VAR_RE.fullmatch(stripped) or ENV_VAR_NAME_RE.fullmatch(stripped):
         return "env_var"
     return None
 
