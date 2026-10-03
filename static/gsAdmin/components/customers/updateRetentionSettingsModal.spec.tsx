@@ -354,6 +354,95 @@ describe('UpdateRetentionSettingsModal', () => {
     expectSelectValue('Logs Downsampled', null);
   });
 
+  it('does not offer a stored zero org retention', async () => {
+    const subscription = SubscriptionFixture({
+      organization,
+      categories: {
+        spans: MetricHistoryFixture({
+          retention: {
+            standard: 90,
+            downsampled: 0,
+          },
+        }),
+      },
+      planDetails: PlanDetailsLookupFixture('am3_f'),
+      orgRetention: {standard: 0, downsampled: null},
+    });
+
+    openUpdateRetentionSettingsModal({
+      subscription,
+      organization,
+      onSuccess,
+    });
+
+    await loadModal();
+
+    // Other legacy values are kept as a "(current)" choice, but a zero org
+    // retention cannot be written back, so the field reads as no override.
+    expectSelectValue('Org Retention', null);
+    // The same zero on a category is a real value (inherit standard), so it
+    // is still offered there.
+    expectSelectValue('Spans Downsampled', '0 days (current)');
+
+    await selectEvent.openMenu(getSelect('Org Retention'));
+
+    const options = screen
+      .getAllByRole('menuitemradio')
+      .map(option => option.textContent);
+
+    expect(options[0]).toBe('30 days');
+    expect(options).not.toContain('0 days (current)');
+  });
+
+  it('clears a stored zero org retention on save', async () => {
+    const subscription = SubscriptionFixture({
+      organization,
+      categories: {
+        spans: MetricHistoryFixture({
+          retention: {
+            standard: 90,
+            downsampled: 30,
+          },
+        }),
+      },
+      planDetails: PlanDetailsLookupFixture('am3_f'),
+      orgRetention: {standard: 0, downsampled: null},
+    });
+
+    const updateMock = MockApiClient.addMockResponse({
+      url: `/_admin/customers/${organization.slug}/retention-settings/`,
+      method: 'POST',
+      body: {},
+    });
+
+    openUpdateRetentionSettingsModal({
+      subscription,
+      organization,
+      onSuccess,
+    });
+
+    await loadModal();
+
+    // Submitting without touching the field must not send the zero back and
+    // earn a 400; it writes a null, which drops the org-level override.
+    await userEvent.click(screen.getByRole('button', {name: 'Update Settings'}));
+
+    await waitFor(() => {
+      expect(updateMock).toHaveBeenCalledWith(
+        `/_admin/customers/${organization.slug}/retention-settings/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: expect.objectContaining({
+            orgRetention: {
+              standard: null,
+              downsampled: null,
+            },
+          }),
+        })
+      );
+    });
+  });
+
   it('calls api with correct data when updating all fields', async () => {
     const subscription = SubscriptionFixture({
       organization,
