@@ -138,6 +138,11 @@ class Access(abc.ABC):
         check_scope_declaration(scope)
         return False
 
+    def would_have_project_scope_with_added_auth_scope(self, project: Project, scope: str) -> bool:
+        """Whether adding ``scope`` to the current auth scope cap would grant it for a project."""
+        check_scope_declaration(scope)
+        return False
+
     def get_organization_role(self) -> OrganizationRole | None:
         if self.role is not None:
             return organization_roles.get(self.role)
@@ -491,6 +496,38 @@ class RpcBackedAccess(Access):
             member.scopes, self.scopes_upper_bound | {scope}
         )
         return scope in add_scope_hierarchy(list(candidate_scopes))
+
+    def would_have_project_scope_with_added_auth_scope(self, project: Project, scope: str) -> bool:
+        """
+        Return whether adding a scope to the token would grant access for this project.
+
+        Check both organization-level scopes and scopes from the member's role on
+        a project team. This does not modify the token or access instance.
+        """
+        if not self.has_project_access(project):
+            return False
+        if self.would_have_scope_with_added_auth_scope(scope):
+            return True
+
+        # Team roles can only grant project scopes for member-backed token access.
+        member = self.rpc_user_organization_context.member
+        if (
+            member is None
+            or self.scopes_upper_bound is None
+            or not features.has(
+                "organizations:team-roles", self.rpc_user_organization_context.organization
+            )
+        ):
+            return False
+
+        # A role on any team linked to the project may grant the requested scope...
+        project_team_ids = set(project.teams.values_list("id", flat=True))
+        return any(
+            member_team.role
+            and member_team.team_id in project_team_ids
+            and scope in member_team.role.scopes
+            for member_team in member.member_teams
+        )
 
     # TODO(cathy): remove this
     @property

@@ -132,6 +132,35 @@ def can_edit_detector_workflow_connections(detector: Detector, request: Request)
     )
 
 
+def enforce_detector_workflow_connection_permissions(
+    request: Request, detectors: Sequence[Detector]
+) -> None:
+    """
+    Report the appropriate scopes for managing connections between detectors and workflows.
+    - If the request CAN edit connections, return early
+    - If any linked project is inaccessible, raise a 403
+    - If any workflow is connected to the all project detector, require `org:write`
+    - Otherwise, require `alerts:write`
+    """
+    denied_detectors = [
+        detector
+        for detector in detectors
+        if not can_edit_detector_workflow_connections(detector, request)
+    ]
+    if not denied_detectors:
+        return
+
+    projects = [detector.linked_project for detector in denied_detectors if detector.project]
+    if not all(request.access.has_project_access(project) for project in projects):
+        raise PermissionDenied
+
+    if any(detector.project is None for detector in denied_detectors):
+        enforce_scope(request, "org:write")
+        return
+
+    enforce_scope(request, "alerts:write", projects=projects)
+
+
 def validate_detectors_exist_and_have_permissions(
     detector_ids: list[DetectorId], organization: Organization, request: Request
 ) -> list[Detector]:
@@ -146,8 +175,7 @@ def validate_detectors_exist_and_have_permissions(
     if missing_detector_ids:
         raise serializers.ValidationError(f"Some detectors do not exist: {missing_detector_ids}")
 
-    if not all(can_edit_detector_workflow_connections(detector, request) for detector in detectors):
-        raise PermissionDenied
+    enforce_detector_workflow_connection_permissions(request=request, detectors=detectors)
 
     return detectors
 
@@ -212,6 +240,46 @@ def can_edit_workflows(workflows: Sequence[Workflow], request: Request) -> bool:
     )
 
 
+def enforce_workflow_edit_permissions(request: Request, workflows: Sequence[Workflow]) -> None:
+    """
+    Report the appropriate scopes for a workflow edit request.
+    - If the request CAN edit workflows, return early
+    - If any linked project is inaccessible, raise a 403
+    - If any workflow is connected to the all project detector, require `org:write`
+    - If any workflow doesn't have a detector hooked up, require `alerts:write`
+    - If all workflows have project detectors, require `alerts:write` for each project
+    """
+    if can_edit_workflows(workflows, request):
+        return
+
+    workflow_ids = {workflow.id for workflow in workflows}
+    detector_workflows = list(
+        DetectorWorkflow.objects.filter(workflow_id__in=workflow_ids).select_related(
+            "detector", "detector__project"
+        )
+    )
+    projects = [
+        detector_workflow.detector.linked_project
+        for detector_workflow in detector_workflows
+        if detector_workflow.detector.project
+    ]
+    if not all(request.access.has_project_access(project) for project in projects):
+        raise PermissionDenied
+
+    if any(detector_workflow.detector.project is None for detector_workflow in detector_workflows):
+        enforce_scope(request, "org:write")
+        return
+
+    connected_workflow_ids = {
+        detector_workflow.workflow_id for detector_workflow in detector_workflows
+    }
+    if workflow_ids != connected_workflow_ids:
+        enforce_scope(request, "alerts:write")
+        return
+
+    enforce_scope(request, "alerts:write", projects=projects)
+
+
 def validate_workflow_connections(
     workflow_ids: list[int],
     organization: Organization,
@@ -228,8 +296,8 @@ def validate_workflow_connections(
     for workflow in new_workflows:
         enforce_workflow_access(workflow, organization, request)
 
-    if new_workflows and not can_edit_workflows(new_workflows, request):
-        raise PermissionDenied
+    if new_workflows:
+        enforce_workflow_edit_permissions(request=request, workflows=new_workflows)
 
 
 def connect_workflows_to_detectors(
@@ -266,11 +334,12 @@ def connect_workflows_to_detectors(
             detector_workflows_to_remove = [
                 dw for dw in existing_detector_workflows if dw.detector_id not in detector_ids
             ]
-            if not all(
-                can_edit_detector_workflow_connections(detector_workflow.detector, request)
-                for detector_workflow in detector_workflows_to_remove
-            ):
-                raise PermissionDenied
+            enforce_detector_workflow_connection_permissions(
+                request=request,
+                detectors=[
+                    detector_workflow.detector for detector_workflow in detector_workflows_to_remove
+                ],
+            )
         else:
             detector_workflows_to_add = get_detector_workflows_to_add(
                 workflow_id, set(detector_ids)
