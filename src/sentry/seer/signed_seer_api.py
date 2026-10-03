@@ -28,7 +28,6 @@ class SeerViewerContext(TypedDict, total=False):
     # Once all call sites are wired up, tighten this to int and ensure callers
     # only set user_id when an authenticated user is present.
     user_id: int | None
-    superuser_access_expires_at: int | None
 
 
 logger = logging.getLogger(__name__)
@@ -75,7 +74,6 @@ def _resolve_viewer_context(
     explicit_vc = ViewerContext(
         organization_id=explicit.get("organization_id"),
         user_id=explicit.get("user_id"),
-        superuser_access_expires_at=explicit.get("superuser_access_expires_at"),
     )
 
     if vc is None:
@@ -143,14 +141,7 @@ def _resolve_viewer_context(
             token=None,
             superuser_access_expires_at=None,
         )
-    return replace(
-        vc,
-        organization_id=org_id,
-        user_id=user_id,
-        superuser_access_expires_at=explicit.get(
-            "superuser_access_expires_at", vc.superuser_access_expires_at
-        ),
-    )
+    return replace(vc, organization_id=org_id, user_id=user_id)
 
 
 @trace
