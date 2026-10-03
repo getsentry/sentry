@@ -13,12 +13,14 @@ interface Props<Data> {
         'status' | 'error' | 'isFetching' | 'isFetchingNextPage'
       >;
   backgroundUpdatingMessage?: () => React.ReactNode;
+  errorMessage?: (error: Error) => React.ReactNode;
   loadingMessage?: () => React.ReactNode;
 }
 
 export function InfiniteListState<Data>({
   backgroundUpdatingMessage = BackgroundUpdatingMessage,
   children,
+  errorMessage = defaultErrorMessage,
   loadingMessage = LoadingMessage,
   queryResult,
 }: Props<Data>) {
@@ -27,7 +29,7 @@ export function InfiniteListState<Data>({
     return loadingMessage();
   }
   if (status === 'error') {
-    return <ErrorMessage error={error!} />;
+    return errorMessage(error!);
   }
 
   // It's fetching in the background if:
@@ -49,7 +51,7 @@ function LoadingMessage() {
   return <p>{t('Loading...')}</p>;
 }
 
-function ErrorMessage({error}: {error: Error}) {
+function defaultErrorMessage(error: Error) {
   return <p>{t('Error: %s', error.message)}</p>;
 }
 
