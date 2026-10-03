@@ -607,8 +607,8 @@ importers:
         specifier: ^3.0.8
         version: 3.0.8
       '@types/gettext-parser':
-        specifier: 8.0.0
-        version: 8.0.0
+        specifier: 9.0.0
+        version: 9.0.0
       '@types/node':
         specifier: 24.13.2
         version: 24.13.2
@@ -4344,8 +4344,8 @@ packages:
   '@types/estree@1.0.9':
     resolution: {integrity: sha512-GhdPgy1el4/ImP05X05Uw4cw2/M93BCUmnEvWZNStlCzEKME4Fkk+YpoA5OiHNQmoS7Cafb8Xa3Pya8m1Qrzeg==}
 
-  '@types/gettext-parser@8.0.0':
-    resolution: {integrity: sha512-oBBIahfWKqAC8LsIw+uFwhXfwlF8GhWDUhyEjoP7Pl9g5bFLhYA/2SiXPkE4oKhDX9fL091qCAyPVZtIkd5X6Q==}
+  '@types/gettext-parser@9.0.0':
+    resolution: {integrity: sha512-LpZ+LeNa/tiFTxouKLkoyXVFF7JChu32YcZfnu+k54NfmlwlIiR017o3r+2yyB1FLg6LDzbF/UyH+AfhqffmXA==}
 
   '@types/gtag.js@0.0.12':
     resolution: {integrity: sha512-YQV9bUsemkzG81Ea295/nF/5GijnD2Af7QhEofh7xu+kvCN6RdodgNwwGWXB5GMI3NoyvQo0odNctoH/qLMIpg==}
@@ -4444,9 +4444,6 @@ packages:
 
   '@types/react@19.3.0':
     resolution: {integrity: sha512-N0rFCuH9YoxG9/m61l9MfpJKfmLOVU0em7ipIz6TRgSSkvReLB9vL85GB+yr8Bs5leqpvg96JSwF4ZS1s4viQg==}
-
-  '@types/readable-stream@4.0.18':
-    resolution: {integrity: sha512-21jK/1j+Wg+7jVw1xnSwy/2Q1VgVjWuFssbYGTREPUBeZ+rqVFl2udq0IkxzPC0ZhOzVceUbyIACFZKLqKEBlA==}
 
   '@types/reflux@0.4.1':
     resolution: {integrity: sha512-XOavgwrJxBiSQufelsZ+ZAi6Xvrh/M/IlfKNrqnxHytK8WKkWF8G4QhZwwhLXk7NsgaUf3ZqcFFN9YhzBqmuNA==}
@@ -12986,10 +12983,9 @@ snapshots:
 
   '@types/estree@1.0.9': {}
 
-  '@types/gettext-parser@8.0.0':
+  '@types/gettext-parser@9.0.0':
     dependencies:
       '@types/node': 24.13.2
-      '@types/readable-stream': 4.0.18
 
   '@types/gtag.js@0.0.12': {}
 
@@ -13091,11 +13087,6 @@ snapshots:
   '@types/react@19.3.0':
     dependencies:
       csstype: 3.2.3
-
-  '@types/readable-stream@4.0.18':
-    dependencies:
-      '@types/node': 24.13.2
-      safe-buffer: 5.1.2
 
   '@types/reflux@0.4.1': {}
 
