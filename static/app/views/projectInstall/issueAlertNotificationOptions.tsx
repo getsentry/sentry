@@ -1,20 +1,5 @@
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState, type ReactNode} from 'react';
 
-import {Stack} from '@sentry/scraps/layout';
-
-import {MultipleCheckbox} from 'sentry/components/forms/controls/multipleCheckbox';
-import {
-  MessagingIntegrationAnalyticsView,
-  SetupMessagingIntegrationButton,
-} from 'sentry/components/messagingIntegrations/setupMessagingIntegrationButton';
 import {t, tct} from 'sentry/locale';
 import {
   IssueAlertActionType,
@@ -22,13 +7,11 @@ import {
   type IssueAlertRuleAction,
 } from 'sentry/types/alerts';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
-import {MessagingIntegrationAlertRule} from 'sentry/views/projectInstall/messagingIntegrationAlertRule';
 
 export type ChannelIdentityField = 'channelId' | 'channelName';
 
@@ -541,60 +524,4 @@ export function useIssueAlertNotificationOptions({
     shouldRenderNotificationConfigs,
     shouldRenderSetupButton,
   };
-}
-
-export function IssueAlertNotificationOptions(
-  notificationProps: IssueAlertNotificationProps
-) {
-  const {actions, setActions} = notificationProps;
-  const organization = useOrganization();
-  const {querySuccess, shouldRenderNotificationConfigs, shouldRenderSetupButton} =
-    useIssueAlertNotificationOptions(notificationProps);
-
-  if (!querySuccess) {
-    return null;
-  }
-
-  return (
-    <Fragment>
-      <MultipleCheckbox
-        name="notification"
-        value={actions}
-        onChange={values => {
-          const wasEnabled = actions.includes(MultipleCheckboxOptions.INTEGRATION);
-          const isEnabled = values.includes(MultipleCheckboxOptions.INTEGRATION);
-          setActions(values);
-          if (wasEnabled !== isEnabled) {
-            trackAnalytics('project_creation.notify_integration_toggled', {
-              organization,
-              enabled: isEnabled,
-              variant: 'legacy',
-            });
-          }
-        }}
-      >
-        <Stack gap="md">
-          <MultipleCheckbox.Item value={MultipleCheckboxOptions.EMAIL} disabled>
-            {t('Notify via email')}
-          </MultipleCheckbox.Item>
-          {!shouldRenderSetupButton && (
-            <div>
-              <MultipleCheckbox.Item value={MultipleCheckboxOptions.INTEGRATION}>
-                {t('Notify via integration (Slack, Discord, MS Teams, etc.)')}
-              </MultipleCheckbox.Item>
-              {shouldRenderNotificationConfigs && (
-                <MessagingIntegrationAlertRule {...notificationProps} />
-              )}
-            </div>
-          )}
-        </Stack>
-      </MultipleCheckbox>
-      {shouldRenderSetupButton && (
-        <SetupMessagingIntegrationButton
-          analyticsView={MessagingIntegrationAnalyticsView.PROJECT_CREATION}
-          variant="legacy"
-        />
-      )}
-    </Fragment>
-  );
 }

@@ -1,6 +1,6 @@
 import type {Location, Query} from 'history';
 
-import type {Category} from 'sentry/components/platformPicker';
+import type {Category} from 'sentry/data/platformPickerCategories';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
 import type {PlatformKey} from './platform';
