@@ -1,10 +1,12 @@
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from datetime import datetime, timedelta, timezone
+from functools import partial
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
 import time_machine
-from django.db import connection, router, transaction
+from django.db import OperationalError, connection, router, transaction
 from django.db.models.functions import Now
 from django.utils import timezone as django_timezone
 
@@ -47,6 +49,7 @@ from sentry.issues.derived.features import (
 )
 from sentry.issues.derived.framework import (
     AggregatorResult,
+    DerivedDataError,
     Feature,
     Pipeline,
     State,
@@ -65,6 +68,7 @@ from sentry.issues.derived.processing import (
 )
 from sentry.issues.derived.promote import PromotionResult, promote_to_live
 from sentry.issues.derived.store import GroupDerivedDataStore
+from sentry.issues.derived.tasks import process_group_log_task
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.issues.models.groupderiveddata import EPOCH, GroupDerivedData
@@ -109,6 +113,119 @@ class ProcessGroupLogTest(TestCase):
                 action=ViewAction(),
                 actor=GroupActionActor.user(self.user.id),
             )
+
+    def test_inline_corruption_preserves_data(self) -> None:
+        self._assert_corruption_preserves_data(
+            partial(processing.trigger_group_log_processing, strategy=ProcessingStrategy.INLINE)
+        )
+
+    def test_async_corruption_preserves_data(self) -> None:
+        self._assert_corruption_preserves_data(process_group_log_task)
+
+    def _assert_corruption_preserves_data(self, run: Callable[[int], None]) -> None:
+        group = self.create_group()
+        derived = self.create_group_derived_data(
+            group, data={"status": "invalid"}, pipeline_hash=PIPELINE.pipeline_hash
+        )
+        entry = self.create_group_action_log_entry(group)
+        before = GroupDerivedData.objects.filter(id=derived.id).values().get()
+        with (
+            patch(
+                "sentry.issues.derived.processing._process_batch", wraps=processing._process_batch
+            ) as batch,
+            patch("sentry.issues.derived.reporting.logger") as logger,
+            patch("sentry.issues.derived.reporting.metrics.incr") as incr,
+        ):
+            run(group.id)
+        batch.assert_called_once()
+        incr.assert_any_call(
+            "issues.derived.feature_error",
+            sample_rate=1.0,
+            tags={
+                "operation": "process",
+                "stage": "decode",
+                "feature": "status",
+                "aggregator": "none",
+            },
+        )
+        assert GroupDerivedData.objects.filter(id=derived.id).values().get() == before
+        assert GroupActionLogEntry.objects.filter(id=entry.id).exists()
+        extra = logger.exception.call_args.kwargs["extra"]
+        assert extra["group_id"] == group.id
+        assert extra["cursor_id"] == derived.cursor_id
+        assert extra["pipeline_hash"] == PIPELINE.pipeline_hash
+        assert extra["feature_name"] == "status"
+
+    def test_sync_processing_raises_corruption(self) -> None:
+        group = self.create_group()
+        self.create_group_derived_data(
+            group, data={"status": "invalid"}, pipeline_hash=PIPELINE.pipeline_hash
+        )
+        self.create_group_action_log_entry(group)
+        with pytest.raises(DerivedDataError):
+            processing.trigger_group_log_processing(group.id, strategy=ProcessingStrategy.SYNC)
+
+    def test_aggregator_failure_discards_whole_batch(self) -> None:
+        group = self.create_group()
+        self.create_group_action_log_entry(group)
+        bad_entry = self.create_group_action_log_entry(group)
+
+        @aggregator((VIEW_COUNT,))
+        def fail_second(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+            if entry.id == bad_entry.id:
+                raise KeyError("bad action")
+            return StateUpdate({VIEW_COUNT: state[VIEW_COUNT] + 1})
+
+        pipeline = Pipeline([fail_second])
+        derived = self.create_group_derived_data(group, pipeline_hash=pipeline.pipeline_hash)
+        before = GroupDerivedData.objects.filter(id=derived.id).values().get()
+        with pytest.raises(DerivedDataError) as exc:
+            process_group_log(group.id, pipeline=pipeline)
+        assert exc.value.entry_id == bad_entry.id
+        assert GroupDerivedData.objects.filter(id=derived.id).values().get() == before
+
+    def test_encode_failure_does_not_advance_cursor(self) -> None:
+        group = self.create_group()
+        self.create_group_action_log_entry(group)
+        derived = self.create_group_derived_data(group, pipeline_hash=PIPELINE.pipeline_hash)
+        before = GroupDerivedData.objects.filter(id=derived.id).values().get()
+        with (
+            patch.object(
+                GroupDerivedDataStore,
+                "build_update",
+                side_effect=DerivedDataError("encode", feature_name="view_count"),
+            ),
+            pytest.raises(DerivedDataError),
+        ):
+            process_group_log(group.id)
+        assert GroupDerivedData.objects.filter(id=derived.id).values().get() == before
+
+    def test_inline_database_failure_propagates(self) -> None:
+        self._assert_database_failure_propagates(
+            partial(processing.trigger_group_log_processing, strategy=ProcessingStrategy.INLINE)
+        )
+
+    def test_async_database_failure_propagates(self) -> None:
+        self._assert_database_failure_propagates(process_group_log_task)
+
+    def _assert_database_failure_propagates(self, run: Callable[[int], None]) -> None:
+        group = self.create_group()
+        with (
+            patch(
+                "sentry.issues.derived.processing._entries_after_cursor",
+                side_effect=OperationalError("offline"),
+            ),
+            pytest.raises(OperationalError),
+        ):
+            run(group.id)
+
+    def test_inline_corruption_does_not_schedule_async_retry(self) -> None:
+        group = self.create_group()
+        self.create_group_derived_data(group, data={"status": "invalid"})
+        self.create_group_action_log_entry(group)
+        with patch("sentry.issues.derived.processing.process_group_log_task.delay") as delay:
+            processing.trigger_group_log_processing(group.id, strategy=ProcessingStrategy.INLINE)
+        delay.assert_not_called()
 
     def test_missing_group_raises_does_not_exist(self) -> None:
         group = self.create_group()
@@ -1320,3 +1437,46 @@ class ProcessGroupLogTimeoutTest(TestCase):
 
         derived = process_group_log(group.id, timeout=timedelta(minutes=5))
         assert derived.view_count == 3
+
+
+@pytest.mark.parametrize("data", [[], "invalid", None, 42])
+def test_store_rejects_non_object_data(data: Any) -> None:
+    with pytest.raises(DerivedDataError) as exc:
+        GroupDerivedDataStore.load(PIPELINE, GroupDerivedData(data=data))
+    assert exc.value.stage == "decode"
+    assert isinstance(exc.value.__cause__, TypeError)
+
+
+@pytest.mark.parametrize(
+    "values,feature",
+    [
+        ({"data": {"status": "invalid"}}, "status"),
+        ({"data": {"status": None}}, "status"),
+        ({"data": {"has_open_fix_pr": "false"}}, "has_open_fix_pr"),
+        ({"data": {"no_change_reconcile_ids": [True]}}, "no_change_reconcile_ids"),
+        ({"progress": "invalid"}, "progress"),
+        ({"view_count": True}, "view_count"),
+        ({"last_progressed_at": "invalid"}, "last_progressed_at"),
+    ],
+)
+def test_store_rejects_invalid_features(values: dict[str, Any], feature: str) -> None:
+    with pytest.raises(DerivedDataError) as exc:
+        GroupDerivedDataStore.load(PIPELINE, GroupDerivedData(**values))
+    assert exc.value.stage == "decode"
+    assert exc.value.feature_name == feature
+
+
+def test_store_preserves_missing_defaults_and_optional_null() -> None:
+    state = GroupDerivedDataStore.load(PIPELINE, GroupDerivedData(data={}, progress=None))
+    assert state[STATUS] == STATUS.initial_value()
+    assert state[PROGRESS] is None
+    assert state[LAST_PROGRESSED_AT] is None
+
+
+def test_store_rejects_invalid_output() -> None:
+    state = PIPELINE.initial_state()
+    state.merge(StateUpdate({VIEW_COUNT: "invalid"}))
+    with pytest.raises(DerivedDataError) as exc:
+        GroupDerivedDataStore.build_update(PIPELINE, state)
+    assert exc.value.stage == "encode"
+    assert exc.value.feature_name == VIEW_COUNT.name
