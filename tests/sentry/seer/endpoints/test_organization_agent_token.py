@@ -26,13 +26,15 @@ from rest_framework.test import APIClient
 from sentry.api.endpoints.seer_models import SEER_MODELS_CACHE_KEY
 from sentry.apidocs.hooks import CustomEndpointEnumerator
 from sentry.attachments.base import CachedAttachment
-from sentry.auth.superuser import SESSION_KEY, Superuser, create_superuser_access
+from sentry.auth import access
+from sentry.auth.superuser import SESSION_KEY, Superuser, get_superuser_access_expiry
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.issues.endpoints.group_tags import GroupTagsEndpoint
 from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.organizationmember import OrganizationMember
+from sentry.organizations.services.organization import organization_service
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.replays.testutils import mock_replay, mock_replay_viewed
 from sentry.seer import agent_token
@@ -46,7 +48,13 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
-from sentry.viewer_context import ActorType, ViewerContext, encode_viewer_context
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    encode_viewer_context,
+    get_viewer_context,
+    viewer_context_scope,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
@@ -217,12 +225,28 @@ class SuperuserAgentTokenTest(APITestCase):
         request.session = self.client.session
         request.COOKIES = {name: value.value for name, value in self.client.cookies.items()}
         request.superuser = Superuser(request)
+        org_context = organization_service.get_organization_by_id(
+            id=self.org.id, user_id=self.employee.id
+        )
+        assert org_context is not None
         with self.feature(FLAG):
-            assert create_superuser_access(request, self.org) is None
-            request.superuser.authorize_org(
-                self.org.slug, "for_unit_test", "Testing delegated access"
-            )
-            expires_at = create_superuser_access(request, self.org)
+            with viewer_context_scope(ViewerContext(user_id=self.employee.id)):
+                access.from_request_org_and_scopes(
+                    request=request, rpc_user_org_context=org_context
+                )
+                viewer = get_viewer_context()
+                assert viewer is not None
+                assert viewer.superuser_access_expires_at is None
+
+                request.superuser.authorize_org(
+                    self.org.slug, "for_unit_test", "Testing delegated access"
+                )
+                access.from_request_org_and_scopes(
+                    request=request, rpc_user_org_context=org_context
+                )
+                viewer = get_viewer_context()
+                assert viewer is not None
+                expires_at = viewer.superuser_access_expires_at
             assert expires_at is not None
             assert self._mint(expires_at).status_code == 200
 
@@ -236,7 +260,7 @@ class SuperuserAgentTokenTest(APITestCase):
         idle_expiry = timezone.now() + timedelta(seconds=30)
         request.session[SESSION_KEY]["idl"] = str(idle_expiry.timestamp())
         with self.feature(FLAG):
-            expires_at = create_superuser_access(request, self.org)
+            expires_at = get_superuser_access_expiry(request.superuser, self.org.id)
             assert expires_at is not None
             minted = self._mint(expires_at)
             assert minted.status_code == 200, minted.content
