@@ -5,7 +5,7 @@ import {useListState} from '@react-stately/list';
 import {skipToken, useQueries} from '@tanstack/react-query';
 
 import type {ActiveTrigger} from './matching';
-import type {AsyncComposerSource, ComposerSource} from './types';
+import type {ComposerSource} from './types';
 
 interface SuggestionListItem {
   hideCheck: boolean;
@@ -38,10 +38,7 @@ function useSourceSuggestions(
   query: string | undefined
 ) {
   const asyncSources = useMemo(
-    () =>
-      activeSources.filter(
-        (source): source is AsyncComposerSource<unknown> => 'queryOptions' in source
-      ),
+    () => activeSources.filter(source => 'queryOptions' in source),
     [activeSources]
   );
 
@@ -62,7 +59,7 @@ function useSourceSuggestions(
         suggestions: query === undefined ? [] : source.getSuggestions(query),
       };
     }
-    const asyncIndex = asyncSources.indexOf(source as AsyncComposerSource<unknown>);
+    const asyncIndex = asyncSources.indexOf(source);
     const data = asyncIndex >= 0 ? asyncQueries[asyncIndex]?.data : undefined;
     return {source, suggestions: Array.isArray(data) ? data : []};
   });
@@ -92,7 +89,8 @@ export function useComposerSuggestions({
   const items = useMemo(() => {
     return suggestionsBySource.flatMap(({source, suggestions}) =>
       suggestions.slice(0, MAX_SUGGESTIONS).map(suggestion => {
-        const textValue = source.getText(suggestion);
+        const textValue =
+          'getText' in source ? source.getText(suggestion) : source.getId(suggestion);
         return {
           key: `${source.id}:${source.getId(suggestion)}`,
           hideCheck: true,
