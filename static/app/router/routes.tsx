@@ -2540,6 +2540,12 @@ function buildRoutes(): RouteObject[] {
     {
       path: 'code-conventions/',
       component: make(() => import('sentry/views/codeConventions')),
+      children: [
+        {
+          path: ':conventionFile/',
+          component: make(() => import('sentry/views/codeConventions/conventionDetails')),
+        },
+      ],
     },
     {
       path: 'views/:viewId/',

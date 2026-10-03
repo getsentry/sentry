@@ -22,6 +22,7 @@ type ParamKeys =
   | 'broadcastId'
   | 'clientID'
   | 'codeId'
+  | 'conventionFile'
   | 'conversationId'
   | 'dashboardId'
   | 'dataExportId'
