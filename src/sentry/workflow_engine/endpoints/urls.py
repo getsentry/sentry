@@ -9,6 +9,7 @@ from .organization_detector_count import OrganizationDetectorCountEndpoint
 from .organization_detector_details import OrganizationDetectorDetailsEndpoint
 from .organization_detector_index import OrganizationDetectorIndexEndpoint
 from .organization_detector_types import OrganizationDetectorTypeIndexEndpoint
+from .organization_evaluation_artifacts import OrganizationEvaluationArtifactsEndpoint
 from .organization_incident_groupopenperiod_index import (
     OrganizationIncidentGroupOpenPeriodIndexEndpoint,
 )
@@ -23,6 +24,11 @@ from .organization_workflow_project_scope import OrganizationWorkflowProjectScop
 from .organization_workflow_stats import OrganizationWorkflowStatsEndpoint
 
 organization_urlpatterns = [
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/evaluation-artifacts/$",
+        OrganizationEvaluationArtifactsEndpoint.as_view(),
+        name="sentry-api-0-organization-evaluation-artifacts",
+    ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/detectors/(?P<detector_id>\d+)/$",
         OrganizationDetectorDetailsEndpoint.as_view(),

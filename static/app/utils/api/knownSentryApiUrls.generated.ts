@@ -133,6 +133,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/discover/saved/$queryId/visit/'
   | '/organizations/$organizationIdOrSlug/dsn-lookup/'
   | '/organizations/$organizationIdOrSlug/environments/'
+  | '/organizations/$organizationIdOrSlug/evaluation-artifacts/'
   | '/organizations/$organizationIdOrSlug/eventids/$eventId/'
   | '/organizations/$organizationIdOrSlug/events-dropped/'
   | '/organizations/$organizationIdOrSlug/events-facets-performance-histogram/'
