@@ -189,5 +189,4 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
                 query_start=start,
                 query_end=end,
             ),
-            count_hits=True,
         )
