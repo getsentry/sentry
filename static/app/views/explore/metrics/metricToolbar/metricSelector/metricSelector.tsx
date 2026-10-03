@@ -28,7 +28,6 @@ import {useOverlay} from 'sentry/utils/useOverlay';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
-import {useHasMetricUnitsUI} from 'sentry/views/explore/metrics/hooks/useHasMetricUnitsUI';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricTypeBadge} from 'sentry/views/explore/metrics/metricToolbar/metricOptionLabel';
 import {MetricDetailPanel} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricDetailPanel';
@@ -69,16 +68,14 @@ function nextFrameCallback(cb: () => void) {
 function MetricOptionTrailingItems({
   metricType,
   metricUnit,
-  hasMetricUnitsUI,
 }: {
-  hasMetricUnitsUI: boolean;
   metricType: TraceMetricTypeValue;
   metricUnit?: string;
 }) {
   return (
     <Fragment>
       <MetricTypeBadge metricType={metricType} />
-      {hasDisplayMetricUnit(hasMetricUnitsUI, metricUnit) ? (
+      {hasDisplayMetricUnit(metricUnit) ? (
         <Tag variant="promotion">{metricUnit}</Tag>
       ) : null}
     </Fragment>
@@ -113,8 +110,6 @@ export function MetricSelector({
 }) {
   const theme = useTheme();
   const triggerId = useId();
-
-  const hasMetricUnitsUI = useHasMetricUnitsUI();
 
   const searchRef = useRef<HTMLInputElement>(null);
   const listElementRef = useRef<HTMLUListElement>(null);
@@ -163,7 +158,6 @@ export function MetricSelector({
         <MetricOptionTrailingItems
           metricType={traceMetricType}
           metricUnit={traceMetricDisplayUnit}
-          hasMetricUnitsUI={hasMetricUnitsUI}
         />
       ),
     };
@@ -173,7 +167,6 @@ export function MetricSelector({
     traceMetricType,
     traceMetric.unit,
     traceMetricDisplayUnit,
-    hasMetricUnitsUI,
   ]);
 
   // Always show the selected metric at the top of the list so it's easy to
@@ -230,7 +223,6 @@ export function MetricSelector({
             lastSeen,
             trailingItems: () => (
               <MetricOptionTrailingItems
-                hasMetricUnitsUI={hasMetricUnitsUI}
                 metricType={metricType}
                 metricUnit={metricUnit}
               />
@@ -295,7 +287,6 @@ export function MetricSelector({
     traceMetric.type,
     traceMetric.unit,
     traceMetricSelectValue,
-    hasMetricUnitsUI,
   ]);
 
   // Auto-select the first selectable metric when no metric is currently
@@ -799,7 +790,6 @@ export function MetricSelector({
                     >
                       <MetricDetailPanel
                         metric={highlightedOption ?? optionFromTraceMetric}
-                        hasMetricUnitsUI={hasMetricUnitsUI}
                       />
                     </SidePanel>
                   ) : null}
