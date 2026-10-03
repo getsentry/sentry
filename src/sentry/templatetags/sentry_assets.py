@@ -105,7 +105,7 @@ class ScriptNode(template.Node):
         return "".join(output)
 
     def _unwrap_content(self, text):
-        matches = re.search(r"<script[^\>]*>([\s\S]*?)</script>", text)
+        matches = re.search(r"<script[^>]*>([\s\S]*?)</script\s*>", text, re.IGNORECASE)
         if matches:
             return matches.group(1).strip()
         return text
