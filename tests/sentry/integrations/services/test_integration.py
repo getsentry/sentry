@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 from sentry.constants import ObjectStatus
+from sentry.db.models.fields.encryption import EncryptedJSONField
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -244,6 +245,22 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
         self.verify_org_integration_result(
             result=rpc_org_integration1, expected=self.org_integration1
         )
+
+    def test_get_organization_integrations_does_not_decrypt_integration_metadata(self) -> None:
+        # The result carries no integration fields, so decrypting the integration's metadata for
+        # every listed row is wasted work on integrations installed in many organizations.
+        with patch.object(
+            EncryptedJSONField,
+            "from_db_value",
+            autospec=True,
+            side_effect=EncryptedJSONField.from_db_value,
+        ) as decrypt:
+            result = integration_service.get_organization_integrations(
+                integration_id=self.integration1.id
+            )
+
+        self.verify_result(result=result, expected=[self.org_integration1])
+        assert decrypt.call_count == 0
 
     def test_get_organization_integrations(self) -> None:
         # by ids
