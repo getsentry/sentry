@@ -347,17 +347,14 @@ class BaseDetectorHandlerTest(BaseGroupTypeTest):
 
         @detector_settings_registry.register(HandlerGroupType.slug)
         class HandlerDetectorSettings(DetectorSettings):
-            api_availability = {}
             handler = MockDetectorHandler
 
         @detector_settings_registry.register(HandlerStateGroupType.slug)
         class HandlerStateDetectorSettings(DetectorSettings):
-            api_availability = {}
             handler = MockDetectorStateHandler
 
         @detector_settings_registry.register(HandlerUpdateGroupType.slug)
         class HandlerUpdateDetectorSettings(DetectorSettings):
-            api_availability = {}
             handler = MockDetectorWithUpdateHandler
 
         self.no_handler_type = NoHandlerGroupType
@@ -510,7 +507,6 @@ class TestDetectorHandlerEvaluate(BaseGroupTypeTest):
 
         @detector_settings_registry.register(DefaultConditionGroupType.slug)
         class DefaultConditionDetectorSettings(DetectorSettings):
-            api_availability = {}
             handler = MockDefaultDetectorHandler
 
         self.group_type = DefaultConditionGroupType
@@ -775,7 +771,6 @@ class TestDetectorHandlerGroupedEvaluate(BaseGroupTypeTest):
 
         @detector_settings_registry.register(GroupedConditionGroupType.slug)
         class GroupedConditionDetectorSettings(DetectorSettings):
-            api_availability = {}
             handler = MockGroupedDetectorHandler
 
         self.group_type = GroupedConditionGroupType
@@ -950,7 +945,6 @@ class TestDetectorHandlerEvidenceData(BaseGroupTypeTest):
 
         @detector_settings_registry.register(EvidenceConditionGroupType.slug)
         class EvidenceConditionDetectorSettings(DetectorSettings):
-            api_availability = {}
             handler = MockDefaultDetectorHandler
 
         self.group_type = EvidenceConditionGroupType

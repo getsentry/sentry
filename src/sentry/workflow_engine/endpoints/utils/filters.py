@@ -59,10 +59,6 @@ def get_excluded_detector_types(
 
     excluded_types = []
     for detector_type, settings in detector_settings_registry.registrations.items():
-        if not _api_gate_enabled(settings.api_enabled, organization, actor):
-            excluded_types.append(detector_type)
-            continue
-
         for required_operation in required_operations:
             gate = settings.api_availability.get(required_operation, True)
             if not _api_gate_enabled(gate, organization, actor):

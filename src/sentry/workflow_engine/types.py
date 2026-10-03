@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from enum import IntEnum, StrEnum
+from types import MappingProxyType
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -318,8 +319,11 @@ APIGate: TypeAlias = bool | FeatureGate
 
 
 class DetectorSettings:
-    api_enabled: ClassVar[APIGate] = True
-    api_availability: ClassVar[Mapping[DetectorAPIOperation, APIGate]]
+    DEFAULT_API_AVAILABILITY: ClassVar[Mapping[DetectorAPIOperation, APIGate]] = MappingProxyType(
+        {operation: True for operation in DetectorAPIOperation}
+    )
+
+    api_availability: ClassVar[Mapping[DetectorAPIOperation, APIGate]] = DEFAULT_API_AVAILABILITY
     handler: ClassVar[type[BaseDetectorHandler[Any, Any]] | None] = None
     validator: ClassVar[type[BaseDetectorTypeValidator] | None] = None
     config_schema: ClassVar[dict[str, Any]] = {}

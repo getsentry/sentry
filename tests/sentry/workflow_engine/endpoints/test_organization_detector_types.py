@@ -124,7 +124,6 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             released = True
 
         class MockDetectorSettings(DetectorSettings):
-            api_availability = {}
             handler = MockDetectorHandler
 
         for group_type in (TestMetricGroupType, TestCronsGroupType, TestUptimeGroupType):
@@ -170,21 +169,6 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
         ):
             response = self.get_success_response(self.organization.slug)
             assert response.data == self.expected_type_slugs
-
-    def test_global_denial_overrides_allowed_get(self) -> None:
-        excluded_slug = self.expected_type_slugs[0]
-        settings = detector_settings_registry.get(excluded_slug)
-
-        class DisabledDetectorSettings(DetectorSettings):
-            handler = settings.handler
-            api_enabled = False
-            api_availability = {DetectorAPIOperation.GET: True}
-
-        with patch.dict(
-            detector_settings_registry.registrations, {excluded_slug: DisabledDetectorSettings}
-        ):
-            response = self.get_success_response(self.organization.slug)
-            assert response.data == self.expected_type_slugs[1:]
 
     def test_list_feature_gate_does_not_affect_type_discovery(self) -> None:
         feature_name = "organizations:workflow-engine-log-evaluations"

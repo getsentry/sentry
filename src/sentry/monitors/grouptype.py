@@ -25,5 +25,4 @@ class MonitorIncidentType(GroupType):
 
 @detector_settings_registry.register(MonitorIncidentType.slug)
 class MonitorIncidentDetectorSettings(DetectorSettings):
-    api_availability = {}
     validator = MonitorIncidentDetectorValidator

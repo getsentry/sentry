@@ -275,7 +275,6 @@ class UptimeDomainCheckFailure(GroupType):
 
 @detector_settings_registry.register(UptimeDomainCheckFailure.slug)
 class UptimeDomainCheckFailureDetectorSettings(DetectorSettings):
-    api_availability = {}
     handler = UptimeDetectorHandler
     validator = UptimeDomainCheckFailureValidator
     config_schema = {

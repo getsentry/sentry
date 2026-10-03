@@ -254,7 +254,7 @@ class OrganizationDetectorCountTest(APITestCase):
                     assert int(list_response["X-Hits"]) == count_response.data["total"]
                     assert len(list_response.data) == count_response.data["total"]
 
-    def test_global_feature_gate_is_scoped_to_each_organization_request(self) -> None:
+    def test_feature_gate_is_scoped_to_each_organization_request(self) -> None:
         other_org = self.create_organization(owner=self.user)
         other_team = self.create_team(organization=other_org)
         other_project = self.create_project(organization=other_org, teams=[other_team])
@@ -276,11 +276,10 @@ class OrganizationDetectorCountTest(APITestCase):
         settings = detector_settings_registry.get(MetricIssue.slug)
         with (
             self.feature({feature_name: [self.organization.slug]}),
-            patch.object(settings, "api_enabled", FeatureGate(feature_name)),
             patch.object(
                 settings,
                 "api_availability",
-                {DetectorAPIOperation.GET: True, DetectorAPIOperation.LIST: True},
+                {operation: FeatureGate(feature_name) for operation in DetectorAPIOperation},
             ),
         ):
             for organization, project in (
