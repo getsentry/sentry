@@ -58,7 +58,7 @@ const INITIAL_STATE: WizardState = {
   selectedRepository: undefined,
 };
 
-export function ScmCreateProject() {
+export default function ScmCreateProject() {
   const location = useLocation();
   const referrer = decodeScalar(location.query.referrer);
   const projectId = decodeScalar(location.query.project);

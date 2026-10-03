@@ -1211,7 +1211,7 @@ function buildRoutes(): RouteObject[] {
     },
     {
       path: 'new/',
-      component: make(() => import('sentry/views/projectInstall/newProject')),
+      component: make(() => import('sentry/views/projectInstall/scmCreateProject')),
     },
     {
       path: ':projectId/',

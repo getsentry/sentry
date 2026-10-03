@@ -5,7 +5,6 @@ import type {ProjectDetailsFormState} from 'sentry/components/onboarding/scm/scm
 import type {Integration, Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {Project} from 'sentry/types/project';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 
 export const WIZARD_STORAGE_KEY = 'project-creation-wizard';
@@ -28,21 +27,16 @@ export interface WizardState {
 export function useScmCreateProjectProductSync(
   project: Project
 ): ((products: ProductSolution[]) => void) | undefined {
-  const organization = useOrganization();
-  const hasScmProjectCreation = organization.features.includes(
-    'onboarding-scm-project-creation'
-  );
-
   const [session, setSession] = useSessionStorage<WizardState | null>(
     WIZARD_STORAGE_KEY,
     null
   );
 
   // Guard: only sync when this getting-started page belongs to the project the
-  // SCM wizard just created. Without this check a non-SCM getting-started page
-  // could clobber a stale session that happens to be in storage.
-  const isWizardSession =
-    hasScmProjectCreation && session?.createdProjectId === project.id;
+  // SCM wizard just created. Without this check another project's
+  // getting-started page could clobber a stale session that happens to be in
+  // storage.
+  const isWizardSession = session?.createdProjectId === project.id;
 
   const syncProducts = useCallback(
     (products: ProductSolution[]) => {
