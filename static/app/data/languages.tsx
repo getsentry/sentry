@@ -12,5 +12,6 @@ export const languages = [
   ['fr', 'French'],
   ['hu', 'Hungarian'],
   ['es', 'Spanish'],
+  ['ko', 'Korean'],
   ['en', 'English'],
 ] as const;
