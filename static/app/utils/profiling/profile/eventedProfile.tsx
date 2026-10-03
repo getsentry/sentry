@@ -40,7 +40,7 @@ export class EventedProfile extends Profile {
       eventedProfile.unit
     );
 
-    for (const event of eventedProfile.events) {
+    for (const event of eventedProfile.events ?? []) {
       const frame = frameIndex[event.frame];
 
       if (!frame) {
