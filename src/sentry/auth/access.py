@@ -18,6 +18,8 @@ from sentry.auth.services.access.service import access_service
 from sentry.auth.services.auth import AuthenticatedToken, RpcAuthState, RpcMemberSsoState
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import (
+    Superuser,
+    get_superuser_access_expiry,
     get_superuser_scopes,
     is_active_superuser,
     resolve_superuser_access,
@@ -46,6 +48,7 @@ from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.tracing import set_span_data, set_span_tag, start_span
+from sentry.viewer_context import set_viewer_context_superuser
 
 __all__ = (
     "from_user",
@@ -1003,11 +1006,12 @@ def from_request_org_and_scopes(
 
     if is_active_superuser(request):
         su = getattr(request, "superuser", None)
-        if (
-            su
-            and su.requires_org_auth(rpc_user_org_context.organization)
-            and rpc_user_org_context.member is None
-        ):
+        if su is None and request.auth is None:
+            su = Superuser(request)
+        requires_org_auth = su is not None and su.requires_org_auth(
+            rpc_user_org_context.organization
+        )
+        if requires_org_auth and rpc_user_org_context.member is None:
             setattr(request, "_superuser_needs_org_auth", rpc_user_org_context.organization.slug)
 
         member = rpc_user_org_context.member
@@ -1024,6 +1028,15 @@ def from_request_org_and_scopes(
             superuser_scopes = superuser_scopes.union(set(scopes))
         if member and member.scopes:
             superuser_scopes = superuser_scopes.union(set(member.scopes))
+
+        if request.auth is None and su is not None and su.is_active and not requires_org_auth:
+            expires_at = get_superuser_access_expiry(su, rpc_user_org_context.organization.id)
+            if expires_at is not None:
+                set_viewer_context_superuser(
+                    user_id=request.user.id,
+                    organization_id=rpc_user_org_context.organization.id,
+                    superuser_access_expires_at=expires_at,
+                )
 
         return ApiBackedOrganizationGlobalAccess(
             rpc_user_organization_context=rpc_user_org_context,
