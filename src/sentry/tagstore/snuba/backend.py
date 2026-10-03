@@ -2421,7 +2421,7 @@ class SnubaTagStorage(TagStorage):
             group,
             environment_ids,
             key,
-            orderby="-last_seen",
+            orderby="-times_seen" if order_by == "-times_seen" else "-last_seen",
             tenant_ids=tenant_ids,
         )
 
