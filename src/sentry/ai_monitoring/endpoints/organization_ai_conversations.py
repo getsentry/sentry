@@ -4,11 +4,14 @@ from collections.abc import Mapping, Sequence
 from typing import Any, TypedDict
 
 import sentry_sdk
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.ai_monitoring.constants import AI_CONVERSATIONS_FIELDS
+from sentry.ai_monitoring.constants import (
+    AI_CONVERSATION_DURATION_EXPRESSION,
+    AI_CONVERSATIONS_FIELDS,
+)
 from sentry.ai_monitoring.conversation_aggregates import (
     CONVERSATION_AGGREGATE_COLUMNS,
     AIConversationAggregates,
@@ -63,6 +66,7 @@ class UserResponse(TypedDict):
 
 class AIConversationData(AIConversationAggregates):
     conversationId: str
+    duration: float
     errors: int
     title: str | None
     projectId: int | None
@@ -101,6 +105,20 @@ AI_CONVERSATIONS_PER_PAGE_PARAM = OpenApiParameter(
     required=False,
     type=int,
     description="Number of conversations to return per page. Defaults to 10; maximum is 100.",
+)
+
+AI_CONVERSATIONS_SORT_PARAM = OpenApiParameter(
+    name="sort",
+    location="query",
+    required=False,
+    many=True,
+    type=str,
+    description=(
+        "Field used to sort conversations. Provide exactly one value and prefix it with `-` "
+        "for descending order. "
+        "`conversation.duration` measures elapsed time in milliseconds between the earliest "
+        "and latest span timestamps."
+    ),
 )
 
 
@@ -150,12 +168,19 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.START,
             GlobalParams.END,
             AI_CONVERSATIONS_QUERY_PARAM,
+            AI_CONVERSATIONS_SORT_PARAM,
             CursorQueryParam,
             AI_CONVERSATIONS_PER_PAGE_PARAM,
         ],
         responses={
-            200: inline_sentry_response_serializer(
-                "ListOrganizationAIConversationsResponse", list[AIConversationResponse]
+            200: OpenApiResponse(
+                response=inline_sentry_response_serializer(
+                    "ListOrganizationAIConversationsResponse", list[AIConversationResponse]
+                ),
+                description=(
+                    "AI conversations. `duration` and `generationDuration` use milliseconds; "
+                    "`startTimestamp` and `endTimestamp` use Unix epoch milliseconds."
+                ),
             ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
@@ -214,7 +239,11 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
         with handle_query_errors():
             resolver = Spans.get_resolver(
                 snuba_params,
-                SearchResolverConfig(auto_fields=True, disable_aggregate_extrapolation=True),
+                SearchResolverConfig(
+                    auto_fields=True,
+                    disable_aggregate_extrapolation=True,
+                    fields_acl=FieldsACL(functions={"elapsed_if"}),
+                ),
             )
             query_string = compile_conversation_query(user_query, resolver)
 
@@ -323,7 +352,11 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             offset=offset,
             limit=limit,
             referrer=Referrer.API_AI_CONVERSATIONS.value,
-            config=SearchResolverConfig(auto_fields=True, disable_aggregate_extrapolation=True),
+            config=SearchResolverConfig(
+                auto_fields=True,
+                disable_aggregate_extrapolation=True,
+                fields_acl=FieldsACL(functions={"elapsed_if"}),
+            ),
             sampling_mode=sampling_mode,
         )
 
@@ -342,6 +375,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 "gen_ai.conversation.id",
                 "failure_count() as errors",
                 *CONVERSATION_AGGREGATE_COLUMNS,
+                f"{AI_CONVERSATION_DURATION_EXPRESSION} as duration",
                 f"collect_unique_if(`{operation_filter}`, trace) as trace_ids",
                 f"collect_unique_if(`{operation_filter}`, project.id) as project_ids",
                 "collect_unique_if(`gen_ai.operation.type:agent`, gen_ai.agent.name) as flow",
@@ -367,7 +401,14 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             config=SearchResolverConfig(
                 auto_fields=True,
                 disable_aggregate_extrapolation=True,
-                fields_acl=FieldsACL(functions={"collect_unique_if", "first_if", "last_if"}),
+                fields_acl=FieldsACL(
+                    functions={
+                        "collect_unique_if",
+                        "first_if",
+                        "last_if",
+                        "elapsed_if",
+                    }
+                ),
             ),
             sampling_mode="HIGHEST_ACCURACY",
         )
@@ -384,6 +425,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             trace_ids = sorted(row.get("trace_ids") or [])
             conversations_map[conversation_id] = {
                 "conversationId": conversation_id,
+                "duration": float(row.get("duration") or 0),
                 "errors": int(row.get("errors") or 0),
                 "title": None,
                 "projectId": min(project_ids, default=None),
