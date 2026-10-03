@@ -1,6 +1,7 @@
 import {Outlet} from 'react-router-dom';
 import {useQuery} from '@tanstack/react-query';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -45,7 +46,12 @@ export default function CodeQuality() {
   return (
     <SentryDocumentTitle title={t('Code Quality')} orgSlug={organization.slug}>
       <Stack flex={1}>
-        <Layout.Title>{t('Code Quality')}</Layout.Title>
+        <Layout.Title>
+          <Flex align="center" gap="sm">
+            {t('Code Quality')}
+            <FeatureBadge type="alpha" />
+          </Flex>
+        </Layout.Title>
         <Layout.Body>
           <Layout.Main width="full">
             <Stack gap="xl">
