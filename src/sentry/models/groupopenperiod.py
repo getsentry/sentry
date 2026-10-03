@@ -160,20 +160,21 @@ def create_open_period(group: Group, start_time: datetime, event_id: str | None 
     if not should_create_open_periods(group.type):
         return None
 
-    latest_open_period = get_latest_open_period(group)
-    if latest_open_period and latest_open_period.date_ended is None:
-        logger.warning("Latest open period is not closed", extra={"group_id": group.id})
-        return
-
     # There are some historical cases where we log multiple regressions for the same group,
     # but we only want to create a new open period for the first regression
     with transaction.atomic(router.db_for_write(Group)):
         # Force a Group lock before the create to establish consistent lock ordering
-        # This prevents deadlocks by ensuring we always acquire the Group lock first
+        # This prevents deadlocks by ensuring we always acquire the Group lock first.
+        # The open-period guard check is performed AFTER acquiring this lock so that
+        # concurrent processes cannot both pass the check and both attempt to insert a
+        # duplicate open period (TOCTOU race condition).
         Group.objects.select_for_update().filter(id=group.id).first()
 
-        # There are some historical cases where we log multiple regressions for the same group,
-        # but we only want to create a new open period for the first regression
+        latest_open_period = get_latest_open_period(group)
+        if latest_open_period and latest_open_period.date_ended is None:
+            logger.warning("Latest open period is not closed", extra={"group_id": group.id})
+            return
+
         open_period = GroupOpenPeriod.objects.create(
             group=group,
             project=group.project,
