@@ -409,8 +409,10 @@ function CreatedProjects({projectSlugs}: {projectSlugs: string[]}) {
 export function AgenticProgress({
   run,
   onboardingCode = run.onboardingCode,
+  issueLinkReferrer = 'onboarding-agentic-first-issue',
 }: {
   run: AgenticProgressRun;
+  issueLinkReferrer?: string;
   onboardingCode?: string;
 }) {
   const createProjectStage = run.stages.find(stage => stage.stage === 'create_project');
@@ -460,7 +462,7 @@ export function AgenticProgress({
           animate={{opacity: 1, y: 0}}
           transition={{delay: 0.15, duration: 0.25, ease: 'easeOut'}}
         >
-          <FirstIssueCard issueId={firstIssueId} />
+          <FirstIssueCard issueId={firstIssueId} referrer={issueLinkReferrer} />
         </MotionContainer>
       ) : null}
       <AgenticProgressMeta
