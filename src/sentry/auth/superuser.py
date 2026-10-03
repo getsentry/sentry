@@ -30,13 +30,14 @@ from rest_framework.request import Request
 from sentry import options
 from sentry.api.exceptions import DataSecrecyError, SentryAPIException
 from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
-from sentry.auth.services.auth.model import RpcAuthState
+from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.auth.system import is_system_auth
 from sentry.data_secrecy.logic import should_allow_superuser_access
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcUserOrganizationContext
 from sentry.types.request import _HttpRequestWithUser, _RequestWithUser
 from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.auth import has_completed_sso
 from sentry.utils.settings import is_self_hosted
@@ -89,7 +90,6 @@ SUPERUSER_READONLY_SCOPES = settings.SENTRY_READONLY_SCOPES.union({"org:superuse
 
 def get_superuser_scopes(
     auth_state: RpcAuthState,
-    user: User,
     organization_context: Organization | RpcUserOrganizationContext,
 ) -> set[str]:
     if not should_allow_superuser_access(organization_context):
@@ -315,7 +315,8 @@ class Superuser(ElevatedMode):
             )
             return None
 
-        data = request.session.get(SESSION_KEY)
+        raw_data = request.session.get(SESSION_KEY)
+        data = dict(raw_data) if raw_data else None
         if not cookie_token:
             if data:
                 logger.warning(
@@ -576,3 +577,43 @@ class Superuser(ElevatedMode):
         # otherwise, if the session is invalid and there's a cookie set, clear it
         elif not self.is_valid and request.COOKIES.get(COOKIE_NAME):
             response.delete_cookie(COOKIE_NAME)
+
+
+SUPERUSER_ACCESS_TTL = timedelta(minutes=5)
+
+
+def get_superuser_access_expiry(su: Superuser, organization_id: int) -> int | None:
+    """Bound an approved superuser session for ViewerContext propagation."""
+    data = su.get_session_data()
+    if data is None:
+        return None
+    now = django_timezone.now()
+    expires = min(data["exp"], data["idl"], now + SUPERUSER_ACCESS_TTL)
+    if organization_id != su.org_id:
+        expires = min(expires, data["exp"] - MAX_AGE + MAX_AGE_PRIVILEGED_ORG_ACCESS)
+    if expires <= now:
+        return None
+    return int(expires.timestamp())
+
+
+def resolve_superuser_access(
+    expires_at: int, user: RpcUser, org_context: RpcUserOrganizationContext
+) -> tuple[set[str], datetime] | None:
+    """Validate expiry and current user/customer policy."""
+    if not user.is_active or not user.is_superuser or user.is_suspended:
+        return None
+    try:
+        if type(expires_at) is not int:
+            return None
+        expires = datetime.fromtimestamp(expires_at, timezone.utc)
+        if expires <= django_timezone.now():
+            return None
+        scopes = (
+            get_superuser_scopes(
+                RpcAuthState(sso_state=RpcMemberSsoState(), permissions=[]), org_context
+            )
+            & settings.SENTRY_READONLY_SCOPES
+        )
+    except (TypeError, ValueError, OverflowError, DataSecrecyError):
+        return None
+    return scopes, expires

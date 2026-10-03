@@ -63,6 +63,8 @@ class ViewerContext:
     project_id: int | None = None
     user_id: int | None = None
     actor_type: ActorType = ActorType.UNKNOWN
+    # Deadline from Sentry's approved superuser session for this organization.
+    superuser_access_expires_at: int | None = dataclasses.field(default=None, repr=False)
 
     # Carries scopes/kind for in-process permission checks.
     # NOT propagated across process/service boundaries.
@@ -77,11 +79,16 @@ class ViewerContext:
             result["project_id"] = self.project_id
         if self.user_id is not None:
             result["user_id"] = self.user_id
+        if self.superuser_access_expires_at is not None:
+            result["superuser_access_expires_at"] = self.superuser_access_expires_at
         return result
 
     @classmethod
     def deserialize(cls, data: dict[str, Any]) -> ViewerContext:
         """Reconstruct from a serialized dict. Token is not deserialized."""
+        superuser_access_expires_at = data.get("superuser_access_expires_at")
+        if superuser_access_expires_at is not None and type(superuser_access_expires_at) is not int:
+            raise ValueError("Invalid superuser access expiry")
         try:
             actor_type = ActorType(data.get("actor_type", "unknown"))
         except ValueError:
@@ -91,6 +98,7 @@ class ViewerContext:
             project_id=data.get("project_id"),
             user_id=data.get("user_id"),
             actor_type=actor_type,
+            superuser_access_expires_at=superuser_access_expires_at,
         )
 
 
@@ -176,13 +184,30 @@ def observe_viewer_context_propagation(
         logger.warning("viewer_context.missing", extra=log_extra)
 
 
+def set_viewer_context_superuser(
+    *, user_id: int, organization_id: int, superuser_access_expires_at: int
+) -> None:
+    """Attach elevation produced by the normal organization access checks."""
+    ctx = get_viewer_context()
+    if ctx is not None and ctx.user_id == user_id:
+        _viewer_context_var.set(
+            dataclasses.replace(
+                ctx,
+                organization_id=organization_id,
+                superuser_access_expires_at=superuser_access_expires_at,
+            )
+        )
+
+
 def set_viewer_context_organization(organization_id: int) -> None:
     """Update the current ``ViewerContext`` with a resolved organization id."""
     ctx = get_viewer_context()
     if ctx is None or ctx.organization_id == organization_id:
         return
 
-    _viewer_context_var.set(dataclasses.replace(ctx, organization_id=organization_id))
+    _viewer_context_var.set(
+        dataclasses.replace(ctx, organization_id=organization_id, superuser_access_expires_at=None)
+    )
 
 
 def set_viewer_context_project(project_id: int) -> None:
