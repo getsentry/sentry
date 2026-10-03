@@ -204,6 +204,15 @@ OPENAPI_TAGS = [
         },
     },
     {
+        "name": "Seer Agent",
+        "description": "Endpoints for Seer's search agent, which translates natural language into Sentry search queries",
+        "x-display-description": False,
+        "externalDocs": {
+            "description": "Found an error? Let us know.",
+            "url": "https://github.com/getsentry/sentry-docs/issues/new/?title=API%20Documentation%20Error:%20/api/seer-agent/&template=api_error_template.md",
+        },
+    },
+    {
         "name": "Mobile Builds",
         "description": "Endpoints for mobile build analysis",
         "x-display-description": False,
