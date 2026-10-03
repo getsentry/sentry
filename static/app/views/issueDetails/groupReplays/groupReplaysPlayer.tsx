@@ -81,7 +81,7 @@ export function GroupReplaysPlayer({
         }
 
         return (
-          <PlayerContainer data-test-id="player-container">
+          <PlayerContainer>
             <ReplayPlayerPluginsContextProvider>
               <ReplayReaderProvider replay={replay}>
                 <ReplayPlayerStateContextProvider>
