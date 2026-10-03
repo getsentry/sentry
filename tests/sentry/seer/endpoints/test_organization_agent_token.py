@@ -26,29 +26,249 @@ from rest_framework.test import APIClient
 from sentry.api.endpoints.seer_models import SEER_MODELS_CACHE_KEY
 from sentry.apidocs.hooks import CustomEndpointEnumerator
 from sentry.attachments.base import CachedAttachment
+from sentry.auth import access
+from sentry.auth.superuser import SESSION_KEY, Superuser, get_superuser_access_expiry
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.issues.endpoints.group_tags import GroupTagsEndpoint
 from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.organizationmember import OrganizationMember
+from sentry.organizations.services.organization import organization_service
 from sentry.replays.lib.storage import FilestoreBlob, RecordingSegmentStorageMeta
 from sentry.replays.testutils import mock_replay, mock_replay_viewed
 from sentry.seer import agent_token
 from sentry.seer.models.agent_write_grant import SeerAgentWriteGrant
+from sentry.seer.signed_seer_api import _resolve_viewer_context
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
-from sentry.viewer_context import ActorType, ViewerContext, encode_viewer_context
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    encode_viewer_context,
+    get_viewer_context,
+    viewer_context_scope,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
 FLAG = "organizations:seer-agent-token-flow"
+
+
+@override_settings(SEER_API_SHARED_SECRET=SECRET, SENTRY_SELF_HOSTED=False)
+class SuperuserAgentTokenTest(APITestCase):
+    endpoint = "sentry-api-0-organization-agent-token"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.employee = self.create_user(is_superuser=True, is_staff=True)
+        self.org = self.create_organization()
+        self.path = f"/api/0/organizations/{self.org.slug}/"
+
+    def _chat_authorization(self):
+        self.login_as(self.employee, superuser=True)
+        resolved_contexts: list[ViewerContext] = []
+        with (
+            self.feature([FLAG, "organizations:seer-explorer"]),
+            patch(
+                "sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None)
+            ),
+            patch("sentry.receivers.outbox.cell.make_agent_chat_request") as outbound,
+        ):
+            outbound.return_value.status = 200
+            outbound.return_value.json.return_value = {"run_id": 123}
+
+            def capture_context(*_args: Any, **kwargs: Any) -> Any:
+                resolved = _resolve_viewer_context(kwargs["viewer_context"])
+                assert resolved is not None
+                resolved_contexts.append(resolved)
+                return outbound.return_value
+
+            outbound.side_effect = capture_context
+            response = self.client.post(
+                f"{self.path}seer/explorer-chat/", {"query": "List projects"}, format="json"
+            )
+        assert response.status_code == 200, response.content
+        expires_at = resolved_contexts[0].superuser_access_expires_at
+        assert type(expires_at) is int
+        return expires_at
+
+    def _mint(self, expires_at):
+        viewer = encode_viewer_context(
+            ViewerContext(
+                organization_id=self.org.id,
+                user_id=self.employee.id,
+                actor_type=ActorType.USER,
+                superuser_access_expires_at=expires_at,
+            ),
+            key=SECRET,
+        )
+        return APIClient().post(
+            f"/api/0/organizations/{self.org.slug}/agent/token/",
+            {"sessionId": "123"},
+            format="json",
+            HTTP_X_VIEWER_CONTEXT=viewer,
+        )
+
+    def _read(self, token, path=None):
+        return APIClient().get(path or self.path, HTTP_AUTHORIZATION=f"Bearer {token}")
+
+    def test_chat_to_mint_to_read_without_membership(self):
+        assert not OrganizationMember.objects.filter(
+            organization=self.org, user_id=self.employee.id
+        ).exists()
+        expires_at = self._chat_authorization()
+        project = self.create_project(organization=self.org)
+        group = self.create_group(project=project)
+        with self.feature(FLAG):
+            minted = self._mint(expires_at)
+            assert minted.status_code == 200, minted.content
+            response = self._read(minted.data["token"])
+            issue_response = self._read(minted.data["token"], f"/api/0/issues/{group.id}/")
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.org.id)
+        assert issue_response.status_code == 200, issue_response.content
+        assert issue_response.data["id"] == str(group.id)
+        claims = agent_token.decode_agent_token(minted.data["token"])
+        assert set(claims["scopes"]) <= agent_token.readonly_scopes()
+        assert claims["superuser_access_expires_at"] == expires_at
+
+    def test_identity_alone_does_not_delegate_superuser(self):
+        self._chat_authorization()
+        with self.feature(FLAG):
+            assert self._mint(None).status_code == 403
+
+    def test_elevated_browser_can_also_mint_a_usable_token(self):
+        self.login_as(self.employee, superuser=True)
+        with self.feature(FLAG):
+            minted = self.client.post(
+                f"{self.path}agent/token/", {"sessionId": "123"}, format="json"
+            )
+            assert minted.status_code == 200, minted.content
+            assert self._read(minted.data["token"]).status_code == 200
+
+    def test_invalid_expiry_cannot_mint(self):
+        self._chat_authorization()
+        with self.feature(FLAG):
+            assert self._mint(True).status_code == 401
+
+    def test_expired_elevation_cannot_mint_or_be_used(self):
+        expires_at = self._chat_authorization()
+        with self.feature(FLAG):
+            minted = self._mint(expires_at)
+            assert minted.status_code == 200, minted.content
+            with freeze_time(timezone.now() + timedelta(minutes=6)):
+                assert self._mint(expires_at).status_code == 401
+                assert self._read(minted.data["token"]).status_code == 401
+
+    def test_current_user_privilege_is_rechecked_without_cache_clear(self):
+        self._assert_revoked({"is_superuser": False})
+
+    def test_inactive_user_cannot_use_elevation(self):
+        self._assert_revoked({"is_active": False})
+
+    def test_suspended_user_cannot_use_elevation(self):
+        self._assert_revoked({"is_suspended": True})
+
+    def _assert_revoked(self, changes):
+        expires_at = self._chat_authorization()
+        with self.feature(FLAG):
+            minted = self._mint(expires_at)
+            assert minted.status_code == 200, minted.content
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                self.employee.update(**changes)
+            assert self._mint(expires_at).status_code == 403
+            assert self._read(minted.data["token"]).status_code == 401
+
+    def test_delegated_token_cannot_write_remint_or_cross_org(self):
+        expires_at = self._chat_authorization()
+        other_org = self.create_organization()
+        self.create_seer_agent_write_grant(
+            organization=self.org, user=self.employee, session_id="123", scope_list=["org:write"]
+        )
+        with self.feature(FLAG):
+            minted = self._mint(expires_at)
+            assert minted.status_code == 200, minted.content
+            client = APIClient()
+            client.credentials(HTTP_AUTHORIZATION=f"Bearer {minted.data['token']}")
+            assert client.put(self.path, {}, format="json").status_code == 403
+            assert (
+                client.post(
+                    f"{self.path}agent/token/", {"sessionId": "123"}, format="json"
+                ).status_code
+                == 403
+            )
+            assert client.get(f"/api/0/organizations/{other_org.slug}/").status_code == 403
+
+    def test_customer_policy_is_rechecked(self):
+        expires_at = self._chat_authorization()
+        with self.feature(FLAG):
+            minted = self._mint(expires_at)
+            assert minted.status_code == 200, minted.content
+            with patch("sentry.auth.superuser.should_allow_superuser_access", return_value=False):
+                assert self._mint(expires_at).status_code == 401
+                assert self._read(minted.data["token"]).status_code == 401
+
+    @override_settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
+    def test_delegation_requires_existing_org_approval(self):
+        with self.settings(VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=False):
+            self.login_as(self.employee, superuser=True)
+        request = self.make_request(user=self.employee)
+        request.auth = None
+        request.session = self.client.session
+        request.COOKIES = {name: value.value for name, value in self.client.cookies.items()}
+        request.superuser = Superuser(request)
+        org_context = organization_service.get_organization_by_id(
+            id=self.org.id, user_id=self.employee.id
+        )
+        assert org_context is not None
+        with self.feature(FLAG):
+            with viewer_context_scope(ViewerContext(user_id=self.employee.id)):
+                access.from_request_org_and_scopes(
+                    request=request, rpc_user_org_context=org_context
+                )
+                viewer = get_viewer_context()
+                assert viewer is not None
+                assert viewer.superuser_access_expires_at is None
+
+                request.superuser.authorize_org(
+                    self.org.slug, "for_unit_test", "Testing delegated access"
+                )
+                access.from_request_org_and_scopes(
+                    request=request, rpc_user_org_context=org_context
+                )
+                viewer = get_viewer_context()
+                assert viewer is not None
+                expires_at = viewer.superuser_access_expires_at
+            assert expires_at is not None
+            assert self._mint(expires_at).status_code == 200
+
+    def test_delegation_does_not_renew_idle_expiry(self):
+        self.login_as(self.employee, superuser=True)
+        request = self.make_request(user=self.employee)
+        request.auth = None
+        request.session = self.client.session
+        request.COOKIES = {name: value.value for name, value in self.client.cookies.items()}
+        request.superuser = Superuser(request)
+        idle_expiry = timezone.now() + timedelta(seconds=30)
+        request.session[SESSION_KEY]["idl"] = str(idle_expiry.timestamp())
+        with self.feature(FLAG):
+            expires_at = get_superuser_access_expiry(request.superuser, self.org.id)
+            assert expires_at is not None
+            minted = self._mint(expires_at)
+            assert minted.status_code == 200, minted.content
+            claims = agent_token.decode_agent_token(minted.data["token"])
+            assert claims["exp"] <= int(idle_expiry.timestamp())
+            with freeze_time(idle_expiry + timedelta(seconds=1)):
+                assert self._mint(expires_at).status_code == 401
+                assert self._read(minted.data["token"]).status_code == 401
 
 
 class MatrixAuthentication(StrEnum):
