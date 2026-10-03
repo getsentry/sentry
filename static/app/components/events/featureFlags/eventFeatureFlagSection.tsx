@@ -1,14 +1,15 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
-import {Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
+import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
+import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {
   CardContainer,
   EventFeatureFlagDrawer,
@@ -25,7 +26,10 @@ import {
 import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {useLegacyEventSuspectFlags} from 'sentry/components/issues/suspect/useLegacyEventSuspectFlags';
-import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
+import {
+  KeyValueTableCard,
+  KeyValueTableSubject,
+} from 'sentry/components/tables/keyValueTable';
 import {IconSearch} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
@@ -34,7 +38,6 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -57,27 +60,12 @@ type EventFeatureFlagSectionProps = {
 
 function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSectionProps) {
   const organization = useOrganization();
-  const theme = useTheme();
-  const isXsScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
-
-  const feedbackButton = isXsScreen ? null : (
-    <FeedbackButton
-      variant="secondary"
-      aria-label={t('Give feedback on the feature flag section')}
-      size="xs"
-      feedbackOptions={{
-        messagePlaceholder: t('How can we make feature flags work better for you?'),
-        tags: {
-          'feedback.source': 'issue_details_feature_flags',
-          'feedback.owner': 'replay',
-        },
-      }}
-    />
-  );
 
   const [orderBy, setOrderBy] = useState(OrderBy.NEWEST);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
+  const cardContainerRef = useRef<HTMLDivElement>(null);
+  const cardColumnCount = useIssueDetailsColumnCount(cardContainerRef);
 
   const eventView = useIssueDetailsEventView({group});
   const {data: rawFlagData} = useQuery(
@@ -153,18 +141,42 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
         item: {
           key: f.flag,
           subject: f.flag,
+          subjectNode: (
+            <Container alignSelf="center">
+              <KeyValueTableSubject>{f.flag}</KeyValueTableSubject>
+            </Container>
+          ),
           value: (
-            <ValueWrapper>
-              {f.result.toString()}
-              {suspectFlagNames.has(f.flag) && (
-                <SuspectLabel>{t('Suspect')}</SuspectLabel>
+            <RevealOnHover>
+              {revealProps => (
+                <Grid
+                  {...revealProps}
+                  columns="minmax(0, 1fr) auto"
+                  align="center"
+                  gap="md"
+                  justifyItems="start"
+                  width="100%"
+                >
+                  <Flex align="center" gap="sm" wrap="wrap">
+                    <Text as="span" monospace wrap="nowrap">
+                      {f.result.toString()}
+                    </Text>
+                    {suspectFlagNames.has(f.flag) && (
+                      <Text as="div" size="sm" variant="secondary" wrap="nowrap">
+                        {t('Suspect')}
+                      </Text>
+                    )}
+                  </Flex>
+                  <Container column="2" justifySelf="end">
+                    <FlagActionDropdown
+                      flag={f.flag}
+                      result={f.result.toString()}
+                      generateAction={generateAction}
+                    />
+                  </Container>
+                </Grid>
               )}
-              <FlagActionDropdown
-                flag={f.flag}
-                result={f.result.toString()}
-                generateAction={generateAction}
-              />
-            </ValueWrapper>
+            </RevealOnHover>
           ),
         },
         isSuspectFlag: suspectFlagNames.has(f.flag),
@@ -227,7 +239,20 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
 
   const actions = (
     <Grid flow="column" align="center" gap="md">
-      {feedbackButton}
+      <Container display={{zero: 'none', sm: 'block'}}>
+        <FeedbackButton
+          variant="secondary"
+          aria-label={t('Give feedback on the feature flag section')}
+          size="xs"
+          feedbackOptions={{
+            messagePlaceholder: t('How can we make feature flags work better for you?'),
+            tags: {
+              'feedback.source': 'issue_details_feature_flags',
+              'feedback.owner': 'replay',
+            },
+          }}
+        />
+      </Container>
       <FeatureFlagSettingsButton orgSlug={organization.slug} />
       {hasFlags && (
         <Fragment>
@@ -263,7 +288,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   );
 
   const shouldUseTwoColumns =
-    !isXsScreen && truncatedItems.length > NUM_PREVIEW_FLAGS / 2;
+    cardColumnCount > 1 && truncatedItems.length > NUM_PREVIEW_FLAGS / 2;
   const columnOne = shouldUseTwoColumns
     ? truncatedItems.slice(0, NUM_PREVIEW_FLAGS / 2)
     : truncatedItems;
@@ -280,16 +305,23 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
       title={t('Feature Flags')}
       actions={actions}
     >
-      {hasFlags ? (
-        <CardContainer numCols={shouldUseTwoColumns ? 2 : 1}>
-          <KeyValueTableCard expandLeft contentItems={columnOne} />
-          <KeyValueTableCard expandLeft contentItems={columnTwo} />
-        </CardContainer>
-      ) : (
-        <StyledEmptyStateWarning withIcon small>
-          {t('No feature flags were found for this event')}
-        </StyledEmptyStateWarning>
-      )}
+      <Container
+        ref={cardContainerRef}
+        width="100%"
+        border={hasFlags ? undefined : 'primary'}
+        radius={hasFlags ? undefined : 'md'}
+      >
+        {hasFlags ? (
+          <CardContainer numCols={shouldUseTwoColumns ? 2 : 1}>
+            <KeyValueTableCard expandLeft contentItems={columnOne} />
+            <KeyValueTableCard expandLeft contentItems={columnTwo} />
+          </CardContainer>
+        ) : (
+          <EmptyStateWarning small>
+            {t('No feature flags were found for this event')}
+          </EmptyStateWarning>
+        )}
+      </Container>
       {extraFlags > 0 && (
         <Button
           size="sm"
@@ -305,42 +337,3 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     </FoldSection>
   );
 }
-
-const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  border: ${p => p.theme.tokens.border.primary} solid 1px;
-  border-radius: ${p => p.theme.radius.md};
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
-
-const SuspectLabel = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const ValueWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr 0.5fr;
-  justify-items: start;
-
-  @media (max-width: ${p => p.theme.breakpoints.xs}) {
-    grid-template-columns: 1fr 0.5fr;
-    grid-template-rows: auto auto;
-
-    /* Move suspect label to second row, spanning full width */
-    ${SuspectLabel} {
-      grid-column: 1 / -1;
-      grid-row: 2;
-    }
-  }
-
-  .invisible {
-    visibility: hidden;
-  }
-  &:hover,
-  &:active {
-    .invisible .flag-button {
-      visibility: visible;
-    }
-  }
-`;
