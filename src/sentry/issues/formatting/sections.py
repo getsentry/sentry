@@ -23,7 +23,13 @@ from sentry.issues.formatting.formatter import (
     truncate,
 )
 from sentry.issues.formatting.limits import LIMITS_DEFAULT, Limits
-from sentry.issues.formatting.models import EventObject, Frame, Stacktrace, contains_filtered
+from sentry.issues.formatting.models import (
+    EventObject,
+    Frame,
+    Stacktrace,
+    ThreadDetails,
+    contains_filtered,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -248,22 +254,37 @@ def user_section(model: EventObject, limits: Limits) -> Section | None:
     return Section(title="User", groups=(Group(items=present),))
 
 
+def _thread_flags(thread: ThreadDetails) -> str | None:
+    flags = [name for name, on in (("crashed", thread.crashed), ("current", thread.current)) if on]
+    return ", ".join(flags) or None
+
+
 def threads_section(model: EventObject, limits: Limits) -> Section | None:
+    # every thread gets listed, including ones with no stacktrace: on a mobile crash the
+    # crashed thread often has none, and its state is the thing worth seeing. Only the first
+    # few carry a stacktrace, since those are what cost.
     groups: list[Group] = []
+    stacktraces = 0
     for thread in model.threads:
-        # only threads that carry a stacktrace are worth rendering
-        st = thread.stacktrace
-        if not (st and st.frames):
-            continue
         # checked before appending, not after: testing at the bottom lets a zero cap through
-        # with one thread already rendered
-        if len(groups) >= limits.max_threads:  # bound total output by thread count
+        # with one thread already listed
+        if len(groups) >= limits.max_threads_listed:
             break
+        st = thread.stacktrace
+        frames = len(st.frames) if st else 0
+
         label = thread.name or (str(thread.id) if thread.id is not None else "Thread")
         items: list[Any] = [Text(label)]
-        if thread.crashed:
-            items.append(Field("Crashed", "Yes"))
-        items.append(Code(_render_stacktrace(st, limits)))
+        if thread.id is not None:
+            items.append(Field("ID", str(thread.id)))
+        if thread.state:
+            items.append(Field("State", thread.state))
+        if flags := _thread_flags(thread):
+            items.append(Field("Flags", flags))
+        items.append(Field("Frames", str(frames)))
+        if frames and stacktraces < limits.max_thread_stacktraces:
+            items.append(Code(_render_stacktrace(st, limits)))  # type: ignore[arg-type]
+            stacktraces += 1
         groups.append(Group(items=tuple(items)))
 
     if not groups:
