@@ -1,45 +1,79 @@
 import {useCallback} from 'react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   SavedQueryType,
+  getSavedQueryKey,
+  starredSavedQueriesApiOptions,
   useInvalidateSavedQueries,
-  useInvalidateSavedQuery,
-  type SavedQueryRef,
+  type CombinedSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 export function useStarQuery() {
   const api = useApi();
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const invalidateSavedQueries = useInvalidateSavedQueries();
-  const invalidateSavedQuery = useInvalidateSavedQuery();
+  const starredQueryKey = starredSavedQueriesApiOptions(organization).queryKey;
 
-  const starQuery = useCallback(
-    async ({queryId, queryType}: SavedQueryRef, starred: boolean) => {
-      await api.requestPromise(
-        queryType === SavedQueryType.EXPLORE
+  const {mutateAsync} = useMutation({
+    mutationFn: ({
+      savedQuery,
+      starred,
+    }: {
+      savedQuery: CombinedSavedQuery;
+      starred: boolean;
+    }) =>
+      api.requestPromise(
+        savedQuery.queryType === SavedQueryType.EXPLORE
           ? getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/starred/', {
-              path: {organizationIdOrSlug: organization.slug, id: String(queryId)},
+              path: {
+                organizationIdOrSlug: organization.slug,
+                id: String(savedQuery.id),
+              },
             })
           : getApiUrl(
               '/organizations/$organizationIdOrSlug/discover/saved/$id/starred/',
               {
-                path: {organizationIdOrSlug: organization.slug, id: String(queryId)},
+                path: {
+                  organizationIdOrSlug: organization.slug,
+                  id: String(savedQuery.id),
+                },
               }
             ),
-        {
-          method: 'POST',
-          data: {
-            starred,
-          },
+        {method: 'POST', data: {starred}}
+      ),
+    onMutate: ({
+      savedQuery,
+      starred,
+    }: {
+      savedQuery: CombinedSavedQuery;
+      starred: boolean;
+    }) => {
+      const key = getSavedQueryKey(savedQuery);
+      queryClient.setQueryData(starredQueryKey, prevData => {
+        if (!prevData) {
+          return prevData;
         }
-      );
-      invalidateSavedQueries();
-      invalidateSavedQuery();
+        const json = prevData.json.filter(row => getSavedQueryKey(row) !== key);
+        return {
+          ...prevData,
+          json: starred ? [...json, savedQuery] : json,
+        };
+      });
     },
-    [api, organization.slug, invalidateSavedQueries, invalidateSavedQuery]
+    onSettled: () => {
+      invalidateSavedQueries();
+    },
+  });
+
+  const starQuery = useCallback(
+    (savedQuery: CombinedSavedQuery, starred: boolean) =>
+      mutateAsync({savedQuery, starred}),
+    [mutateAsync]
   );
 
   return {starQuery};
