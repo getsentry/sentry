@@ -484,67 +484,54 @@ class SuperuserTestCase(TestCase):
 
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_scopes(self) -> None:
-        user = self.create_user(is_superuser=True)
-
         auth_state = RpcAuthState(sso_state=RpcMemberSsoState(), permissions=[])
         auth_state_with_write = RpcAuthState(
             sso_state=RpcMemberSsoState(), permissions=["superuser.write"]
         )
 
         assert (
-            get_superuser_scopes(auth_state, user, organization_context=self.organization)
+            get_superuser_scopes(auth_state, organization_context=self.organization)
             == SUPERUSER_SCOPES
         )
         assert (
-            get_superuser_scopes(
-                auth_state_with_write, user, organization_context=self.organization
-            )
+            get_superuser_scopes(auth_state_with_write, organization_context=self.organization)
             == SUPERUSER_SCOPES
         )
 
         # test scope separation
         with self.options({"superuser.read-write.ga-rollout": True}):
             assert (
-                get_superuser_scopes(auth_state, user, organization_context=self.organization)
+                get_superuser_scopes(auth_state, organization_context=self.organization)
                 == SUPERUSER_READONLY_SCOPES
             )
             assert (
-                get_superuser_scopes(
-                    auth_state_with_write, user, organization_context=self.organization
-                )
+                get_superuser_scopes(auth_state_with_write, organization_context=self.organization)
                 == SUPERUSER_SCOPES
             )
 
     def test_superuser_scopes_self_hosted(self) -> None:
         # self hosted always has superuser write scopes
-
-        user = self.create_user(is_superuser=True)
-
         auth_state = RpcAuthState(sso_state=RpcMemberSsoState(), permissions=[])
         auth_state_with_write = RpcAuthState(
             sso_state=RpcMemberSsoState(), permissions=["superuser.write"]
         )
 
         assert (
-            get_superuser_scopes(auth_state, user, organization_context=self.organization)
+            get_superuser_scopes(auth_state, organization_context=self.organization)
             == SUPERUSER_SCOPES
         )
         assert (
-            get_superuser_scopes(
-                auth_state_with_write, user, organization_context=self.organization
-            )
+            get_superuser_scopes(auth_state_with_write, organization_context=self.organization)
             == SUPERUSER_SCOPES
         )
 
         with self.feature({"superuser.read-write.ga-rollout": True}):
             assert (
-                get_superuser_scopes(auth_state, user, organization_context=self.organization)
+                get_superuser_scopes(auth_state, organization_context=self.organization)
                 == SUPERUSER_SCOPES
             )
             assert (
-                get_superuser_scopes(
-                    auth_state_with_write, user, organization_context=self.organization
-                )
+                get_superuser_scopes(auth_state_with_write, organization_context=self.organization)
                 == SUPERUSER_SCOPES
             )
 
