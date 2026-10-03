@@ -1,7 +1,10 @@
+import {Fragment} from 'react';
+
 import {Tag} from '@sentry/scraps/badge';
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
+import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import type {TagVariant} from 'sentry/utils/theme';
@@ -57,18 +60,30 @@ export function ConventionConfig({convention}: Props) {
 
   return (
     <Stack gap="xl">
-      <Flex gap="sm" wrap="wrap">
+      <Grid columns="max-content minmax(0, 1fr)" gap="md lg" align="center">
         {convention.severity && (
-          <Tag variant={getSeverityVariant(convention.severity)}>
-            {convention.severity}
-          </Tag>
+          <Fragment>
+            <Text variant="muted">{t('Severity')}</Text>
+            <Flex>
+              <Tag variant={getSeverityVariant(convention.severity)}>
+                {convention.severity}
+              </Tag>
+            </Flex>
+          </Fragment>
         )}
-        {convention.tags?.map(tag => (
-          <Tag key={tag} variant="muted">
-            {tag}
-          </Tag>
-        ))}
-      </Flex>
+        {convention.tags?.length ? (
+          <Fragment>
+            <Text variant="muted">{t('Tags')}</Text>
+            <Flex gap="sm" wrap="wrap">
+              {convention.tags.map(tag => (
+                <Tag key={tag} variant="muted">
+                  {tag}
+                </Tag>
+              ))}
+            </Flex>
+          </Fragment>
+        ) : null}
+      </Grid>
       <Stack gap="md">
         {sections.map(({key, title, raw}) =>
           raw ? (

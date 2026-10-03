@@ -32,7 +32,9 @@ describe('ConventionConfig', () => {
   it('renders severity, tags, and a section per field', () => {
     render(<ConventionConfig convention={parse(YAML)} />);
 
+    expect(screen.getByText('Severity')).toBeInTheDocument();
     expect(screen.getByText('warning')).toBeInTheDocument();
+    expect(screen.getByText('Tags')).toBeInTheDocument();
     expect(screen.getByText('react')).toBeInTheDocument();
     expect(screen.getByText('migration')).toBeInTheDocument();
 
@@ -65,5 +67,7 @@ describe('ConventionConfig', () => {
 
     expect(screen.getByRole('button', {name: 'Why'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Fix'})).not.toBeInTheDocument();
+    expect(screen.queryByText('Severity')).not.toBeInTheDocument();
+    expect(screen.queryByText('Tags')).not.toBeInTheDocument();
   });
 });
