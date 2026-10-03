@@ -2,7 +2,7 @@ import {EventFixture} from 'sentry-fixture/event';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {screen, userEvent, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import {
   getEmbedLinkHref,
@@ -45,6 +45,13 @@ function renderEventEmbed(data: Record<string, unknown> = {}) {
 }
 
 describe('Seer event embed', () => {
+  beforeAll(async () => {
+    // The block is behind `lazy()`. Compiling its module graph on first render
+    // costs more than a `findBy*` will wait for, so pay it here instead of
+    // inside the first block assertion.
+    await import('./eventBlock');
+  }, 60_000);
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -74,7 +81,15 @@ describe('Seer event embed', () => {
 
     renderEventEmbed();
 
-    expect(await screen.findByText('ReferenceError')).toBeInTheDocument();
+    // Each loading stage a reader sees gets its own assertion, so no single
+    // `findBy*` has to wait out all of them. First the lazy block's fallback...
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+    // ...then the block's card, still loading the event...
+    const block = await screen.findByTestId('seer-event-embed');
+    expect(within(block).getByTestId('loading-indicator')).toBeInTheDocument();
+    // ...then the event itself.
+    expect(await within(block).findByText('ReferenceError')).toBeInTheDocument();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
     expect(screen.getByText('totals is not defined')).toBeInTheDocument();
     expect(screen.getByText('app/checkout in renderTotals')).toBeInTheDocument();
     // `HighlightsIconSummary` renders without a `group`, off `event.projectSlug`.
