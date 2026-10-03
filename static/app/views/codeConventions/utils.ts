@@ -1,6 +1,7 @@
 import {queryOptions, skipToken} from '@tanstack/react-query';
 import {parse} from 'yaml';
 
+import {t} from 'sentry/locale';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 export const REPO = 'getsentry/sentry';
@@ -138,6 +139,28 @@ export function getConventionIssueTitlePrefix(conventionName: string) {
  */
 export function formatConventionTitle(conventionName: string) {
   return toTitleCase(conventionName.replaceAll('-', ' '));
+}
+
+export type ConventionCommandKind = 'prefilter' | 'detect_command';
+
+/**
+ * A convention picks the files to scan with either a grep prefilter or a
+ * detect_command script, never both.
+ */
+export function getConventionCommand(
+  convention: Convention
+): {command: string; kind: ConventionCommandKind; title: string} | undefined {
+  if (convention.prefilter) {
+    return {kind: 'prefilter', command: convention.prefilter, title: t('Prefilter')};
+  }
+  if (convention.detect_command) {
+    return {
+      kind: 'detect_command',
+      command: convention.detect_command,
+      title: t('Detect Command'),
+    };
+  }
+  return undefined;
 }
 
 export function getCodeConventionsPath(orgSlug: string) {

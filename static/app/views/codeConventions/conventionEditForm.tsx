@@ -6,14 +6,18 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
-import {FiltersYamlPreview} from 'sentry/views/codeConventions/conventionFilterPreview';
-import {getConventionFileUrls, type Convention} from 'sentry/views/codeConventions/utils';
+import {CommandPreview} from 'sentry/views/codeConventions/conventionFilterPreview';
+import {
+  getConventionCommand,
+  getConventionFileUrls,
+  type Convention,
+} from 'sentry/views/codeConventions/utils';
 
 const SAVE_DISABLED_REASON = t('Saving conventions is not available yet');
 
 /**
- * Examples and filters are structured in the YAML, so they're edited as YAML
- * rather than as prose like the other sections.
+ * Examples are structured in the YAML, so they're edited as YAML rather than
+ * as prose like the other sections.
  */
 function toYamlValue(value: Record<string, unknown> | undefined) {
   const defined = Object.fromEntries(
@@ -28,17 +32,13 @@ interface Props {
 }
 
 export function ConventionEditForm({convention, filename}: Props) {
+  const command = getConventionCommand(convention);
   const defaultValues = {
     why: convention.why ?? '',
     detect: convention.detect ?? '',
     fix: convention.fix ?? '',
     examples: toYamlValue(convention.examples),
-    filters: toYamlValue({
-      include: convention.include,
-      exclude: convention.exclude,
-      prefilter: convention.prefilter,
-      detect_command: convention.detect_command,
-    }),
+    filters: command?.command ?? '',
   };
 
   const form = useScrapsForm({
@@ -52,7 +52,7 @@ export function ConventionEditForm({convention, filename}: Props) {
     {name: 'detect', label: t('Detect')},
     {name: 'fix', label: t('Fix')},
     {name: 'examples', label: t('Examples')},
-    {name: 'filters', label: t('Filters')},
+    {name: 'filters', label: command?.title ?? t('Filters')},
   ] as const;
 
   return (
@@ -77,7 +77,14 @@ export function ConventionEditForm({convention, filename}: Props) {
                     value={field.state.value}
                     onChange={field.handleChange}
                   />
-                  {name === 'filters' && <FiltersYamlPreview yaml={field.state.value} />}
+                  {name === 'filters' && command && (
+                    <CommandPreview
+                      kind={command.kind}
+                      command={field.state.value}
+                      include={convention.include}
+                      exclude={convention.exclude}
+                    />
+                  )}
                 </field.Layout.Stack>
               )}
             </form.AppField>

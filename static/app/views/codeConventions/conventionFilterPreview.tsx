@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
-import {parse} from 'yaml';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -16,7 +15,11 @@ import {
   seededShuffle,
   type ConventionFilters,
 } from 'sentry/views/codeConventions/filterPreview';
-import {getRepoFileUrls, repoFilesQueryOptions} from 'sentry/views/codeConventions/utils';
+import {
+  getRepoFileUrls,
+  repoFilesQueryOptions,
+  type ConventionCommandKind,
+} from 'sentry/views/codeConventions/utils';
 
 const SAMPLE_SIZE = 15;
 // Prefilter matches are rare (often under 1% of candidates), so files are read
@@ -167,49 +170,23 @@ export function ConventionFilterPreview({filters}: Props) {
   );
 }
 
-const YAML_DEBOUNCE_MS = 500;
+const COMMAND_DEBOUNCE_MS = 500;
 
-function toStringList(value: unknown) {
-  return Array.isArray(value)
-    ? value.filter(item => typeof item === 'string')
-    : undefined;
-}
-
-function parseFiltersYaml(yaml: string): {filters: ConventionFilters} | {error: string} {
-  let value: unknown;
-  try {
-    value = parse(yaml);
-  } catch (error) {
-    return {error: error instanceof Error ? error.message : String(error)};
-  }
-  if (value === null || value === undefined) {
-    return {filters: {}};
-  }
-  if (typeof value !== 'object' || Array.isArray(value)) {
-    return {error: t('Filters must be a YAML mapping.')};
-  }
-  const record = value as Record<string, unknown>;
-  return {
-    filters: {
-      include: toStringList(record.include),
-      exclude: toStringList(record.exclude),
-      prefilter: typeof record.prefilter === 'string' ? record.prefilter : undefined,
-      detect_command:
-        typeof record.detect_command === 'string' ? record.detect_command : undefined,
-    },
-  };
+interface CommandPreviewProps {
+  command: string;
+  kind: ConventionCommandKind;
+  exclude?: string[];
+  include?: string[];
 }
 
 /**
- * Previews filters as they're edited, waiting for a pause in typing so each
- * keystroke doesn't restart the scan.
+ * Previews a command as it's edited, waiting for a pause in typing so each
+ * keystroke doesn't restart the scan. The convention's include/exclude globs
+ * still apply to the command's output, as they do in the scanner.
  */
-export function FiltersYamlPreview({yaml}: {yaml: string}) {
-  const [debouncedYaml] = useDebouncedValue(yaml, {wait: YAML_DEBOUNCE_MS});
-  const parsed = useMemo(() => parseFiltersYaml(debouncedYaml), [debouncedYaml]);
-
-  if ('error' in parsed) {
-    return <Text variant="danger">{parsed.error}</Text>;
-  }
-  return <ConventionFilterPreview filters={parsed.filters} />;
+export function CommandPreview({command, kind, include, exclude}: CommandPreviewProps) {
+  const [debouncedCommand] = useDebouncedValue(command, {wait: COMMAND_DEBOUNCE_MS});
+  return (
+    <ConventionFilterPreview filters={{include, exclude, [kind]: debouncedCommand}} />
+  );
 }

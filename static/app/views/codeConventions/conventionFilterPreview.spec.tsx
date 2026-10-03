@@ -3,8 +3,8 @@ import fetchMock from 'jest-fetch-mock';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {
+  CommandPreview,
   ConventionFilterPreview,
-  FiltersYamlPreview,
 } from 'sentry/views/codeConventions/conventionFilterPreview';
 
 const FILES: Record<string, string> = {
@@ -84,25 +84,26 @@ describe('ConventionFilterPreview', () => {
   });
 });
 
-describe('FiltersYamlPreview', () => {
+describe('CommandPreview', () => {
   beforeEach(() => {
     fetchMock.resetMocks();
     mockGitHub();
   });
 
-  it('updates the preview from edited YAML', async () => {
-    render(<FiltersYamlPreview yaml={'include:\n  - "static/**/*.tsx"\n'} />);
+  it('previews an edited prefilter with the hidden globs still applied', async () => {
+    render(
+      <CommandPreview
+        kind="prefilter"
+        command="grep -rl 'extends Component' {repo_path}/static/"
+        exclude={['**/*.spec.*']}
+      />
+    );
 
     expect(
-      await screen.findByText('3 files match the include and exclude globs. A sample:')
+      await screen.findByText(/Of 2 read so far, 1 match the prefilter pattern/)
     ).toBeInTheDocument();
-  });
-
-  it('shows YAML errors', async () => {
-    render(<FiltersYamlPreview yaml="include: [unclosed" />);
-
     expect(
-      await screen.findByText(/Flow sequence|unclosed|Missing/i)
+      screen.getByRole('link', {name: 'static/app/profile.tsx'})
     ).toBeInTheDocument();
   });
 });

@@ -12,7 +12,7 @@ import {t} from 'sentry/locale';
 import type {TagVariant} from 'sentry/utils/theme';
 import {ConventionEditForm} from 'sentry/views/codeConventions/conventionEditForm';
 import {ConventionFilterPreview} from 'sentry/views/codeConventions/conventionFilterPreview';
-import type {Convention} from 'sentry/views/codeConventions/utils';
+import {getConventionCommand, type Convention} from 'sentry/views/codeConventions/utils';
 
 function getSeverityVariant(severity: string): TagVariant {
   switch (severity) {
@@ -37,20 +37,9 @@ function formatExamples(examples: NonNullable<Convention['examples']>) {
     .join('\n\n');
 }
 
-function formatFilters({include, exclude, prefilter, detect_command}: Convention) {
-  // Globs are wrapped in inline code so their `*`s aren't read as emphasis.
-  const toGlobList = (globs: string[]) => globs.map(glob => `- \`${glob}\``).join('\n');
-
-  return [
-    include?.length ? `**${t('Include')}**\n\n${toGlobList(include)}` : '',
-    exclude?.length ? `**${t('Exclude')}**\n\n${toGlobList(exclude)}` : '',
-    prefilter ? `**${t('Prefilter')}**\n\n\`\`\`bash\n${prefilter}\n\`\`\`` : '',
-    detect_command
-      ? `**${t('Detect Command')}**\n\n\`\`\`bash\n${detect_command}\n\`\`\``
-      : '',
-  ]
-    .filter(Boolean)
-    .join('\n\n');
+function formatCommand(convention: Convention) {
+  const command = getConventionCommand(convention);
+  return command ? `**${command.title}**\n\n\`\`\`bash\n${command.command}\n\`\`\`` : '';
 }
 
 interface Props {
@@ -73,7 +62,7 @@ export function ConventionConfig({convention, filename}: Props) {
     {
       key: 'filters',
       title: t('Filters'),
-      raw: formatFilters(convention),
+      raw: formatCommand(convention),
       preview: (
         <Stack gap="sm">
           <Text bold>{t('Matching files')}</Text>

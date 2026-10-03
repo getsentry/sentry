@@ -54,10 +54,8 @@ describe('ConventionConfig', () => {
     expect(screen.getByText('class Profile extends Component {}')).toBeInTheDocument();
     expect(screen.getByText('function Profile() { return null; }')).toBeInTheDocument();
 
-    expect(screen.getByText('Include')).toBeInTheDocument();
-    expect(screen.getByText('static/**/*.tsx')).toBeInTheDocument();
-    expect(screen.getByText('Exclude')).toBeInTheDocument();
-    expect(screen.getByText('**/*.spec.*')).toBeInTheDocument();
+    expect(screen.queryByText('static/**/*.tsx')).not.toBeInTheDocument();
+    expect(screen.queryByText('**/*.spec.*')).not.toBeInTheDocument();
     expect(screen.getByText('Prefilter')).toBeInTheDocument();
     expect(
       screen.getByText("grep -rl 'extends Component' {repo_path}/static/")
@@ -122,8 +120,8 @@ describe('ConventionConfig', () => {
     expect(screen.getByRole('textbox', {name: 'Examples'})).toHaveDisplayValue(
       /bad:\n {2}- class Profile extends Component \{\}/
     );
-    expect(screen.getByRole('textbox', {name: 'Filters'})).toHaveDisplayValue(
-      /include:\n {2}- static\/\*\*\/\*\.tsx/
+    expect(screen.getByRole('textbox', {name: 'Prefilter'})).toHaveValue(
+      "grep -rl 'extends Component' {repo_path}/static/"
     );
     expect(screen.getByRole('button', {name: 'Save'})).toHaveAttribute(
       'aria-disabled',
