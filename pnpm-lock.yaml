@@ -577,8 +577,8 @@ importers:
         specifier: 2.44.0
         version: 2.44.0
       '@swc-contrib/mut-cjs-exports':
-        specifier: 15.0.0
-        version: 15.0.0(@swc/core@1.16.2(@swc/helpers@0.5.23))(@swc/jest@0.2.39(@swc/core@1.16.2(@swc/helpers@0.5.23)))
+        specifier: 17.0.0
+        version: 17.0.0(@swc/core@1.16.2(@swc/helpers@0.5.23))(@swc/jest@0.2.39(@swc/core@1.16.2(@swc/helpers@0.5.23)))
       '@swc/core':
         specifier: 1.16.2
         version: 1.16.2(@swc/helpers@0.5.23)
@@ -3892,8 +3892,8 @@ packages:
     resolution: {integrity: sha512-PTigkxMdMUP6B5ISS7jMqJAKhgrhZwjprDqR1eATtFfh0OpKVNp110xiH+goeVdrJ29/4LeZJR4FaHHWstsu0A==}
     engines: {node: '>=12.16'}
 
-  '@swc-contrib/mut-cjs-exports@15.0.0':
-    resolution: {integrity: sha512-etf/WrlGTgojDfnOeAn9wjDfRSd/wpcx/tB4O9m5SXAj8Ftl1yABCafuZyg7x2bJ5PuSrRUQV0ieARriTYb6tQ==}
+  '@swc-contrib/mut-cjs-exports@17.0.0':
+    resolution: {integrity: sha512-6voZAuvj99IPMD4X36iGNfFZBK5+CpiFNOtkirlPEqS8FK8L/zf28hzCP/kLHi6YCQhzEqnDem1utC7Q8ahmcA==}
     peerDependencies:
       '@swc/core': ^1.16.0
       '@swc/jest': ^0.2.37
@@ -12522,7 +12522,7 @@ snapshots:
 
   '@stripe/stripe-js@5.10.0': {}
 
-  '@swc-contrib/mut-cjs-exports@15.0.0(@swc/core@1.16.2(@swc/helpers@0.5.23))(@swc/jest@0.2.39(@swc/core@1.16.2(@swc/helpers@0.5.23)))':
+  '@swc-contrib/mut-cjs-exports@17.0.0(@swc/core@1.16.2(@swc/helpers@0.5.23))(@swc/jest@0.2.39(@swc/core@1.16.2(@swc/helpers@0.5.23)))':
     dependencies:
       '@swc/core': 1.16.2(@swc/helpers@0.5.23)
       '@swc/jest': 0.2.39(@swc/core@1.16.2(@swc/helpers@0.5.23))
