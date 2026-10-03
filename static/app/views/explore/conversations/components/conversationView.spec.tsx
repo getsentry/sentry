@@ -92,6 +92,55 @@ describe('ConversationViewContent', () => {
     expect(detailPane()).not.toBeInTheDocument();
   });
 
+  it.each([
+    [{}, 'Anthropic tool result'],
+    [{'gen_ai.tool.call.result': 'Standard tool result'}, 'Standard tool result'],
+  ])('shows transcript tool output (%j)', async (attributes, expected) => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+      body: {
+        conversationId: CONVERSATION_ID,
+        title: null,
+        spans: [
+          ...CONVERSATION_BODY,
+          spanFixture({
+            span_id: 'tool-span',
+            parent_span: 'span-a',
+            'span.name': 'search',
+            'gen_ai.operation.type': 'execute_tool',
+            'gen_ai.tool.name': 'search',
+            'precise.start_ts': 1000.1,
+            'precise.finish_ts': 1000.2,
+            'anthropic.tool_result.content': JSON.stringify([
+              {type: 'text', text: 'Anthropic tool result'},
+            ]),
+            ...attributes,
+          }),
+        ],
+      },
+    });
+    render(
+      <ConversationViewContent
+        conversation={{conversationId: CONVERSATION_ID}}
+        activeTab="transcript"
+        selectedSpanId="tool-span"
+      />,
+      {organization: OrganizationFixture()}
+    );
+
+    await userEvent.click(await screen.findByRole('tab', {name: 'Output'}));
+    await waitFor(() => {
+      expect(screen.getByRole('tab', {name: 'Output'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      expect(screen.getByText(expected)).toBeVisible();
+    });
+    if (expected === 'Standard tool result') {
+      expect(screen.queryByText('Anthropic tool result')).not.toBeInTheDocument();
+    }
+  });
+
   it('opens the first span by default on the timeline', async () => {
     renderView({activeTab: 'timeline'});
 

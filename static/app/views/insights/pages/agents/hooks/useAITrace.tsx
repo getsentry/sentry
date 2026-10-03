@@ -43,6 +43,7 @@ const AI_TRACE_BASE_ATTRIBUTES = [
   'status',
   'gen_ai.tool.call.arguments',
   'gen_ai.tool.call.result',
+  'anthropic.tool_result.content',
   'gen_ai.tool.input',
   'gen_ai.tool.output',
 ];

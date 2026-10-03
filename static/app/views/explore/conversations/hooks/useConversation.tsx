@@ -43,6 +43,7 @@ interface ConversationApiSpan {
   'span.status': string;
   span_id: string;
   trace: string;
+  'anthropic.tool_result.content'?: string;
   errors?: TraceTree.EAPError[];
   'gen_ai.agent.name'?: string;
   'gen_ai.cost.total_tokens'?: number;
@@ -188,9 +189,16 @@ function createNodeFromApiSpan(
       [SpanFields.GEN_AI_AGENT_NAME]: apiSpan['gen_ai.agent.name'] ?? '',
       [SpanFields.GEN_AI_TOOL_NAME]: apiSpan['gen_ai.tool.name'] ?? '',
       'gen_ai.tool.call.arguments': apiSpan['gen_ai.tool.call.arguments'] ?? '',
-      'gen_ai.tool.call.result': apiSpan['gen_ai.tool.call.result'] ?? '',
+      ...(apiSpan['gen_ai.tool.call.result'] !== undefined && {
+        'gen_ai.tool.call.result': apiSpan['gen_ai.tool.call.result'],
+      }),
+      ...(apiSpan['anthropic.tool_result.content'] !== undefined && {
+        'anthropic.tool_result.content': apiSpan['anthropic.tool_result.content'],
+      }),
       'gen_ai.tool.input': apiSpan['gen_ai.tool.input'] ?? '',
-      'gen_ai.tool.output': apiSpan['gen_ai.tool.output'] ?? '',
+      ...(apiSpan['gen_ai.tool.output'] !== undefined && {
+        'gen_ai.tool.output': apiSpan['gen_ai.tool.output'],
+      }),
       ...(apiSpan['gen_ai.usage.input_tokens'] !== undefined && {
         [SpanFields.GEN_AI_USAGE_INPUT_TOKENS]: apiSpan['gen_ai.usage.input_tokens'],
       }),

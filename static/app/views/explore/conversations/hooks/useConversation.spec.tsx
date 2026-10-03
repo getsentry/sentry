@@ -4,6 +4,7 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {SpanFields} from 'sentry/views/insights/types';
+import {getAIToolOutput} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
 
 import {useConversation, type ConversationStats} from './useConversation';
 
@@ -84,6 +85,31 @@ describe('useConversation', () => {
     expect(result.current.nodes).toEqual([]);
     expect(result.current.isLoading).toBe(false);
     expect(result.current.title).toBeNull();
+  });
+
+  it.each([
+    [{}, 'Anthropic result'],
+    [{'gen_ai.tool.call.result': 'standard result'}, 'standard result'],
+    [{'gen_ai.tool.call.result': ''}, ''],
+  ])('preserves API tool output precedence (%j)', async (attributes, expected) => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/conv-123/`,
+      body: envelope([
+        {
+          ...BASE_SPAN,
+          'gen_ai.operation.type': 'execute_tool',
+          'anthropic.tool_result.content': 'Anthropic result',
+          'gen_ai.tool.output': 'legacy result',
+          ...attributes,
+        },
+      ]),
+    });
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-123'}),
+      {organization}
+    );
+    await waitFor(() => expect(result.current.nodes).toHaveLength(1));
+    expect(getAIToolOutput(result.current.nodes[0]!)).toBe(expected);
   });
 
   it('returns the conversation title from the envelope', async () => {

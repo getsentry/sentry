@@ -28,6 +28,7 @@ const OUTPUT_PRESENCE_ATTRIBUTES = [
   'gen_ai.response.object',
   'gen_ai.response.tool_calls',
   'gen_ai.tool.call.result',
+  'anthropic.tool_result.content',
   'gen_ai.tool.output',
 ] as const;
 
@@ -98,7 +99,7 @@ export function AIOutputSection({
         </Fragment>
       )}
       {toolOutput ? (
-        <TraceDrawerComponents.MultilineJSON value={toolOutput} maxDefaultDepth={1} />
+        <AIContentRenderer text={formatAIToolOutput(toolOutput)} maxJsonDepth={1} />
       ) : null}
     </FoldSection>
   );
@@ -180,6 +181,37 @@ export function getAIToolOutput(
 ) {
   return (
     getTraceNodeAttribute('gen_ai.tool.call.result', node, event, attributes) ??
+    getTraceNodeAttribute('anthropic.tool_result.content', node, event, attributes) ??
     getTraceNodeAttribute('gen_ai.tool.output', node, event, attributes)
   );
+}
+
+/**
+ * Content-block arrays can be rendered as text using the existing message
+ * normalizer. Keep the original JSON if any block is unsupported, rather than
+ * dropping part of a tool's result.
+ */
+export function formatAIToolOutput(output: string | number | boolean): string {
+  const raw = output.toString();
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return raw;
+  }
+  if (!Array.isArray(parsed) || parsed.length === 0) {
+    return raw;
+  }
+  const texts: string[] = [];
+  for (const block of parsed) {
+    const {responseText} = extractAssistantOutput(
+      JSON.stringify({role: 'assistant', content: [block]}),
+      {defaultRole: 'assistant'}
+    );
+    if (!responseText) {
+      return raw;
+    }
+    texts.push(responseText);
+  }
+  return texts.join('\n');
 }
