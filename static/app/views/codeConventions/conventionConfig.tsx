@@ -11,7 +11,6 @@ import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {TagVariant} from 'sentry/utils/theme';
 import {ConventionEditForm} from 'sentry/views/codeConventions/conventionEditForm';
-import {ConventionFilterPreview} from 'sentry/views/codeConventions/conventionFilterPreview';
 import {getConventionCommand, type Convention} from 'sentry/views/codeConventions/utils';
 
 function getSeverityVariant(severity: string): TagVariant {
@@ -59,24 +58,7 @@ export function ConventionConfig({convention, filename}: Props) {
       title: t('Examples'),
       raw: convention.examples ? formatExamples(convention.examples) : undefined,
     },
-    {
-      key: 'filters',
-      title: t('Filters'),
-      raw: formatCommand(convention),
-      preview: (
-        <Stack gap="sm">
-          <Text bold>{t('Matching files')}</Text>
-          <ConventionFilterPreview
-            filters={{
-              include: convention.include,
-              exclude: convention.exclude,
-              prefilter: convention.prefilter,
-              detect_command: convention.detect_command,
-            }}
-          />
-        </Stack>
-      ),
-    },
+    {key: 'filters', title: t('Filters'), raw: formatCommand(convention)},
   ];
 
   return (
@@ -118,15 +100,12 @@ export function ConventionConfig({convention, filename}: Props) {
         <ConventionEditForm convention={convention} filename={filename} />
       ) : (
         <Stack gap="md">
-          {sections.map(({key, title, raw, preview}) =>
+          {sections.map(({key, title, raw}) =>
             raw ? (
               <Disclosure key={key} defaultExpanded>
                 <Disclosure.Title>{title}</Disclosure.Title>
                 <Disclosure.Content>
-                  <Stack gap="lg">
-                    <Markdown raw={raw} />
-                    {preview}
-                  </Stack>
+                  <Markdown raw={raw} />
                 </Disclosure.Content>
               </Disclosure>
             ) : null

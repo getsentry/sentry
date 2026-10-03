@@ -24,10 +24,6 @@ examples:
   good:
     - 'function Profile() { return null; }'
 
-include:
-  - "static/**/*.tsx"
-exclude:
-  - "**/*.spec.*"
 prefilter: "grep -rl 'extends Component' {repo_path}/static/"
 `;
 
@@ -54,8 +50,6 @@ describe('ConventionConfig', () => {
     expect(screen.getByText('class Profile extends Component {}')).toBeInTheDocument();
     expect(screen.getByText('function Profile() { return null; }')).toBeInTheDocument();
 
-    expect(screen.queryByText('static/**/*.tsx')).not.toBeInTheDocument();
-    expect(screen.queryByText('**/*.spec.*')).not.toBeInTheDocument();
     expect(screen.getByText('Prefilter')).toBeInTheDocument();
     expect(
       screen.getByText("grep -rl 'extends Component' {repo_path}/static/")

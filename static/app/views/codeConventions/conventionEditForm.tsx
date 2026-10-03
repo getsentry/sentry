@@ -6,7 +6,6 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
-import {CommandPreview} from 'sentry/views/codeConventions/conventionFilterPreview';
 import {
   getConventionCommand,
   getConventionFileUrls,
@@ -77,14 +76,6 @@ export function ConventionEditForm({convention, filename}: Props) {
                     value={field.state.value}
                     onChange={field.handleChange}
                   />
-                  {name === 'filters' && command && (
-                    <CommandPreview
-                      kind={command.kind}
-                      command={field.state.value}
-                      include={convention.include}
-                      exclude={convention.exclude}
-                    />
-                  )}
                 </field.Layout.Stack>
               )}
             </form.AppField>

@@ -20,9 +20,7 @@ export interface Convention {
   detect?: string;
   detect_command?: string;
   examples?: {bad?: string[]; good?: string[]};
-  exclude?: string[];
   fix?: string;
-  include?: string[];
   prefilter?: string;
   severity?: string;
   tags?: string[];
@@ -54,48 +52,13 @@ export const conventionFilesQueryOptions = queryOptions({
   staleTime: 5 * 60 * 1000,
 });
 
-export function getRepoFileUrls(path: string) {
+export function getConventionFileUrls(filename: string) {
+  const path = `${CONVENTIONS_PATH}/${filename}`;
   return {
     htmlUrl: `https://github.com/${REPO}/blob/${REF}/${path}`,
     rawUrl: `https://raw.githubusercontent.com/${REPO}/${REF}/${path}`,
   };
 }
-
-export function getConventionFileUrls(filename: string) {
-  return getRepoFileUrls(`${CONVENTIONS_PATH}/${filename}`);
-}
-
-interface GitHubTreeEntry {
-  mode: string;
-  path: string;
-  type: 'blob' | 'tree' | 'commit';
-}
-
-const SYMLINK_MODE = '120000';
-
-/**
- * Every file path in the repo, from one recursive git tree request. It's a
- * large response, so it's kept for the whole session once loaded.
- */
-export const repoFilesQueryOptions = queryOptions({
-  queryKey: ['github-tree', REPO, REF],
-  queryFn: async ({signal}): Promise<string[]> => {
-    const response = await fetch(
-      `https://api.github.com/repos/${REPO}/git/trees/${REF}?recursive=1`,
-      {signal, headers: {Accept: 'application/vnd.github+json'}}
-    );
-    if (!response.ok) {
-      throw new Error(`GitHub responded with ${response.status}`);
-    }
-    const {tree}: {tree: GitHubTreeEntry[]} = await response.json();
-    // grep -r doesn't follow symlinks it finds while recursing.
-    return tree
-      .filter(entry => entry.type === 'blob' && entry.mode !== SYMLINK_MODE)
-      .map(entry => entry.path);
-  },
-  staleTime: Infinity,
-  gcTime: Infinity,
-});
 
 /**
  * Fetches and parses one convention file. Parsing happens in the query so the
@@ -141,24 +104,18 @@ export function formatConventionTitle(conventionName: string) {
   return toTitleCase(conventionName.replaceAll('-', ' '));
 }
 
-export type ConventionCommandKind = 'prefilter' | 'detect_command';
-
 /**
  * A convention picks the files to scan with either a grep prefilter or a
  * detect_command script, never both.
  */
 export function getConventionCommand(
   convention: Convention
-): {command: string; kind: ConventionCommandKind; title: string} | undefined {
+): {command: string; title: string} | undefined {
   if (convention.prefilter) {
-    return {kind: 'prefilter', command: convention.prefilter, title: t('Prefilter')};
+    return {command: convention.prefilter, title: t('Prefilter')};
   }
   if (convention.detect_command) {
-    return {
-      kind: 'detect_command',
-      command: convention.detect_command,
-      title: t('Detect Command'),
-    };
+    return {command: convention.detect_command, title: t('Detect Command')};
   }
   return undefined;
 }
