@@ -93,7 +93,16 @@ function EventBlockView({
   }
 }
 
-export default function SeerEventBlock({id, issueId, shortId, view, tagKeys}: EventData) {
+export default function SeerEventBlock({
+  id: rawId,
+  issueId: rawIssueId,
+  shortId,
+  view,
+  tagKeys,
+}: EventData) {
+  // LLMs sometimes emit numeric values; coerce to string once at the boundary.
+  const id = String(rawId);
+  const issueId = String(rawIssueId);
   const organization = useOrganization();
   // A `tag` view without tag keys has nothing to break down -- show the summary.
   const resolvedView = view === 'tag' && !tagKeys?.length ? 'summary' : view;
