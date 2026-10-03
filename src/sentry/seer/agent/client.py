@@ -71,6 +71,7 @@ from sentry.utils.prompts import (
     get_prompt_activities_for_user,
     seer_monitoring_provider_dont_ask_feature,
 )
+from sentry.viewer_context import get_viewer_context
 
 logger = logging.getLogger(__name__)
 
@@ -379,10 +380,19 @@ class SeerAgentClient:
         if not has_access:
             raise SeerPermissionError(error or "Access denied")
 
-    def _build_viewer_context(self) -> SeerViewerContext:
+    def _build_viewer_context(self) -> SeerViewerContext | None:
+        user_id = getattr(self.user, "id", None)
+        viewer = get_viewer_context()
+        if (
+            viewer is not None
+            and viewer.organization_id == self.organization.id
+            and (user_id is None or viewer.user_id == user_id)
+        ):
+            return None
+
         context = SeerViewerContext(organization_id=self.organization.id)
-        if self.user and hasattr(self.user, "id") and self.user.id is not None:
-            context["user_id"] = self.user.id
+        if user_id is not None:
+            context["user_id"] = user_id
         return context
 
     def start_run(
