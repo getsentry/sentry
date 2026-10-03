@@ -1,5 +1,7 @@
 import type {ReactNode} from 'react';
 
+import {ToolCall, ToolCallIndicator, type ToolCallStatus} from '@sentry/scraps/chat';
+import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -10,6 +12,8 @@ import {
   IconFatal,
   IconWarning,
 } from 'sentry/icons';
+import {t} from 'sentry/locale';
+import type {InvestigationToolActivity} from 'sentry/views/investigations/types';
 
 /**
  * Where an agentic run has got to, as one line the viewer can read without
@@ -69,6 +73,105 @@ function StatusIcon({variant}: {variant: SeerStatusBlockVariant}) {
   }
 }
 
+/**
+ * The shared chat glyph for each tool-call status, so a call here reads the same
+ * as it does in the Seer agent. A status Seer adds before this code knows the
+ * name is shown as waiting: the call exists but nothing has come of it yet.
+ */
+function getToolCallStatus(status: InvestigationToolActivity['status']): ToolCallStatus {
+  switch (status) {
+    case 'running':
+      return 'loading';
+    case 'completed':
+      return 'success';
+    case 'failed':
+      return 'failure';
+    default:
+      return 'pending';
+  }
+}
+
+/**
+ * What the latest call's bare glyph announces. Without a label the shared
+ * indicator falls back to describing a pending call as waiting for approval,
+ * which is not what a queued call means here.
+ */
+function getToolCallLabel(status: InvestigationToolActivity['status']): string {
+  switch (status) {
+    case 'queued':
+      return t('Queued');
+    case 'running':
+      return t('Running');
+    case 'completed':
+      return t('Succeeded');
+    case 'failed':
+      return t('Failed');
+    default:
+      return t('Waiting');
+  }
+}
+
+/**
+ * The calls behind the current phase, drawn the way the Seer agent draws them.
+ *
+ * Only the latest is shown: it says what the agent is doing right now, and the
+ * block's title is still the sentence to read. When there is history behind it,
+ * the latest call becomes the toggle, and opening it lists the earlier calls
+ * newest first, so the list reads back in time from what is happening now.
+ */
+function ToolActivityList({toolActivity}: {toolActivity: InvestigationToolActivity[]}) {
+  const latest = toolActivity[toolActivity.length - 1];
+  if (!latest) {
+    return null;
+  }
+  const earlier = toolActivity.slice(0, -1).reverse();
+
+  if (!earlier.length) {
+    return (
+      <Container data-test-id="seer-status-block-tool-activity">
+        <ToolCall title={latest.title} status={getToolCallStatus(latest.status)} />
+      </Container>
+    );
+  }
+
+  return (
+    <Container data-test-id="seer-status-block-tool-activity">
+      <Disclosure size="xs">
+        <Disclosure.Title
+          leadingItems={
+            <ToolCallIndicator
+              status={getToolCallStatus(latest.status)}
+              aria-label={getToolCallLabel(latest.status)}
+            />
+          }
+        >
+          <Text size="sm" variant="secondary" monospace ellipsis>
+            {latest.title}
+          </Text>
+        </Disclosure.Title>
+        <Disclosure.Content>
+          <Stack
+            as="ul"
+            gap="xs"
+            margin="0"
+            padding="0"
+            aria-label={t('Earlier tool calls')}
+          >
+            {earlier.map(activity => (
+              <Flex as="li" key={activity.id} minWidth="0">
+                <ToolCall
+                  title={activity.title}
+                  status={getToolCallStatus(activity.status)}
+                />
+              </Flex>
+            ))}
+          </Stack>
+        </Disclosure.Content>
+      </Disclosure>
+    </Container>
+  );
+}
+
 type SeerStatusBlockProps = {
   /** The sentence the block leads with, in the agent's voice. */
   title: string;
@@ -100,6 +203,12 @@ type SeerStatusBlockProps = {
    */
   meta?: string;
   /**
+   * The tool calls behind the current phase, latest last. Only the latest is
+   * shown; it expands to list the earlier ones. Only a running block should supply
+   * these — once a run stops they are history, not status.
+   */
+  toolActivity?: InvestigationToolActivity[];
+  /**
    * A control on the right edge of the block, such as a link to open the
    * investigation. Unlike `action`, it is not a request for input.
    */
@@ -126,6 +235,7 @@ export function SeerStatusBlock({
   elapsed,
   meta,
   title,
+  toolActivity,
   trailing,
   variant,
 }: SeerStatusBlockProps) {
@@ -177,6 +287,10 @@ export function SeerStatusBlock({
               <Text size="sm" density="comfortable">
                 {description}
               </Text>
+            ) : null}
+
+            {toolActivity?.length ? (
+              <ToolActivityList toolActivity={toolActivity} />
             ) : null}
 
             {children}
