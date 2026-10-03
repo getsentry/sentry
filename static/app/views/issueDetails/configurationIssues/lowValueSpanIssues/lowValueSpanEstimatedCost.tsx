@@ -52,6 +52,23 @@ function getEstimatedCostTooltip(pricingBasis: PricingBasis | null): string {
 export function LowValueSpanEstimatedCost({
   extrapolatedSpanCount,
 }: LowValueSpanEstimatedCostProps) {
+  return (
+    <KeyValueTableDataRow
+      disableFormattedData
+      item={{
+        key: 'estimated-cost',
+        subject: t('Estimated cost'),
+        value: (
+          <LowValueSpanEstimatedCostValue extrapolatedSpanCount={extrapolatedSpanCount} />
+        ),
+      }}
+    />
+  );
+}
+
+export function LowValueSpanEstimatedCostValue({
+  extrapolatedSpanCount,
+}: LowValueSpanEstimatedCostProps) {
   const organization = useOrganization();
   const costQuery = useQuery(
     apiOptions.as<LowValueSpanCostsResponse>()(
@@ -78,10 +95,5 @@ export function LowValueSpanEstimatedCost({
     );
   }
 
-  return (
-    <KeyValueTableDataRow
-      disableFormattedData
-      item={{key: 'estimated-cost', subject: t('Estimated cost'), value}}
-    />
-  );
+  return value;
 }

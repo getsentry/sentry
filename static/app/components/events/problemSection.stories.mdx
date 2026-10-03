@@ -1,0 +1,89 @@
+---
+title: ProblemSection
+description: A problem explanation with display-ready fields and optional supporting content.
+source: sentry/components/events/problemSection
+---
+
+import {Container, Stack} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import {ProblemSection} from 'sentry/components/events/problemSection';
+import * as Storybook from 'sentry/stories';
+
+Callers supply the summary, ordered fields, and optional supporting content. Data
+loading, formatting, permissions, and the collapsible section remain with the caller.
+The component does not accept an event, occurrence, or issue type.
+
+## Span Evidence
+
+<Storybook.Demo>
+  <ProblemSection
+    summary="Sentry found a frequently created span that adds little value. It can make traces harder to read and increases stored span volume."
+    fields={[
+      {
+        key: 'span',
+        label: 'Affected span',
+        value: 'function - compute_checksum',
+        link: '/explore/traces/',
+      },
+      {
+        key: 'count',
+        label: 'Span count',
+        value: '60K',
+        tooltip:
+          'Projected 30-day volume based on a recent sample. Actual volume may differ.',
+      },
+      {key: 'cost', label: 'Estimated cost', value: '$12.34'},
+      {key: 'duration', label: 'Average duration', value: '<1ms'},
+    ]}
+  />
+</Storybook.Demo>
+
+## Rich Explanation and Supporting Content
+
+This example uses synthetic values to show a different set of fields with the same component.
+
+<Storybook.Demo>
+  <ProblemSection
+    summary={
+      <Stack gap="sm">
+        <Text>
+          This call site repeatedly writes to the prompt cache but rarely reads it.
+        </Text>
+        <Text bold>Review the changing prefix.</Text>
+      </Stack>
+    }
+    fields={[
+      {key: 'call-site', label: 'Call site', value: 'answer_question'},
+      {
+        key: 'ratio',
+        label: 'Cache write:read ratio',
+        value: '4:1',
+        emphasized: true,
+        tooltip: 'Cache writes compared with cache reads.',
+      },
+      {key: 'calls', label: 'Calls', value: '20,000'},
+    ]}
+  >
+    <Text variant="muted">Supporting charts or evidence can be supplied here.</Text>
+  </ProblemSection>
+</Storybook.Demo>
+
+## Narrow Layout
+
+<Storybook.Demo>
+  <Container width="320px" maxWidth="100%">
+    <ProblemSection
+      summary="Review this frequently repeated operation."
+      fields={[
+        {
+          key: 'span',
+          label: 'Affected span',
+          value: 'function - calculate_batch_checksum',
+          link: '/explore/traces/',
+        },
+        {key: 'count', label: 'Span count', value: 'Unknown'},
+      ]}
+    />
+  </Container>
+</Storybook.Demo>
