@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 import sentry_sdk
 from django.conf import settings
-from django.db import router
+from django.db import IntegrityError, router
 from django.db.models import Count, Exists, OuterRef
 from django.utils import timezone
 from sentry_redis_tools.clients import RedisCluster
@@ -165,7 +165,18 @@ def index_urls_in_bundle(
         # NOTE: The django ORM by default tries to batch *all* the inserts into a single query,
         # which is not quite that efficient. We want to have a fixed batch size,
         # which will result in a fixed number of unique `INSERT` queries.
-        ArtifactBundleIndex.objects.bulk_create(urls_to_index, batch_size=50)
+        #
+        # NOTE: A concurrent `_remove_duplicate_artifact_bundles` call may delete the
+        # `ArtifactBundle` row between the point we loaded it and the point this
+        # transaction commits.  If that happens the FK constraint on
+        # `sentry_artifactbundleindex.artifact_bundle_id` will raise an
+        # `IntegrityError`.  There is nothing left to index in that case, so we
+        # catch the error and return early rather than letting the task fail.
+        try:
+            ArtifactBundleIndex.objects.bulk_create(urls_to_index, batch_size=50)
+        except IntegrityError:
+            metrics.incr("artifact_bundle_indexing.bundle_deleted_during_indexing")
+            return
 
         # Mark the bundle as indexed
         ArtifactBundle.objects.filter(id=artifact_bundle.id).update(
