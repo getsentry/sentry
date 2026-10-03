@@ -74,6 +74,23 @@ describe('ConventionConfig', () => {
     expect(screen.getByText('legacy')).not.toBeVisible();
   });
 
+  it('shows a detect command under filters', () => {
+    render(
+      <ConventionConfig
+        convention={{
+          name: 'no-deprecated-callsite',
+          detect_command: 'bash {convention_dir}/detect.sh {repo_path}',
+        }}
+      />
+    );
+
+    expect(screen.getByRole('button', {name: 'Filters'})).toBeInTheDocument();
+    expect(screen.getByText('Detect Command')).toBeInTheDocument();
+    expect(
+      screen.getByText('bash {convention_dir}/detect.sh {repo_path}')
+    ).toBeInTheDocument();
+  });
+
   it('skips sections that are missing', () => {
     render(<ConventionConfig convention={{name: 'only-why', why: 'Because.'}} />);
 

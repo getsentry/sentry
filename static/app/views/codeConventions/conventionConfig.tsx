@@ -12,6 +12,7 @@ import type {TagVariant} from 'sentry/utils/theme';
 export interface Convention {
   name: string;
   detect?: string;
+  detect_command?: string;
   examples?: {bad?: string[]; good?: string[]};
   exclude?: string[];
   fix?: string;
@@ -45,7 +46,7 @@ function formatExamples(examples: NonNullable<Convention['examples']>) {
     .join('\n\n');
 }
 
-function formatFilters({include, exclude, prefilter}: Convention) {
+function formatFilters({include, exclude, prefilter, detect_command}: Convention) {
   // Globs are wrapped in inline code so their `*`s aren't read as emphasis.
   const toGlobList = (globs: string[]) => globs.map(glob => `- \`${glob}\``).join('\n');
 
@@ -53,6 +54,9 @@ function formatFilters({include, exclude, prefilter}: Convention) {
     include?.length ? `**${t('Include')}**\n\n${toGlobList(include)}` : '',
     exclude?.length ? `**${t('Exclude')}**\n\n${toGlobList(exclude)}` : '',
     prefilter ? `**${t('Prefilter')}**\n\n\`\`\`bash\n${prefilter}\n\`\`\`` : '',
+    detect_command
+      ? `**${t('Detect Command')}**\n\n\`\`\`bash\n${detect_command}\n\`\`\``
+      : '',
   ]
     .filter(Boolean)
     .join('\n\n');
