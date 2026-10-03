@@ -15,18 +15,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConventionIssueCount} from 'sentry/views/codeConventions/conventionIssueCount';
 import {RepositorySelector} from 'sentry/views/codeConventions/repositorySelector';
 import {
-  CONVENTIONS_CONTENTS_URL,
+  conventionFilesQueryOptions,
   formatConventionTitle,
   getCodeConventionsPath,
+  getConventionName,
   REPO,
-  YAML_EXTENSION,
 } from 'sentry/views/codeConventions/utils';
-
-interface GitHubContentEntry {
-  name: string;
-  sha: string;
-  type: 'file' | 'dir' | 'symlink' | 'submodule';
-}
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: '1fr'},
@@ -37,29 +31,12 @@ export default function CodeConventions() {
   const organization = useOrganization();
   const location = useLocation();
 
-  // The repo is public, so the unauthenticated GitHub API is enough here. Its
-  // rate limit is per-IP, so avoid refetching on every focus or remount.
   const {
     data: entries,
     isPending,
     isError,
     refetch,
-  } = useQuery({
-    queryKey: ['github-contents', CONVENTIONS_CONTENTS_URL],
-    queryFn: async ({signal}): Promise<GitHubContentEntry[]> => {
-      const response = await fetch(CONVENTIONS_CONTENTS_URL, {
-        signal,
-        headers: {Accept: 'application/vnd.github+json'},
-      });
-      if (!response.ok) {
-        throw new Error(`GitHub responded with ${response.status}`);
-      }
-      return response.json();
-    },
-    select: data =>
-      data.filter(entry => entry.type === 'file' && YAML_EXTENSION.test(entry.name)),
-    staleTime: 5 * 60 * 1000,
-  });
+  } = useQuery(conventionFilesQueryOptions);
 
   return (
     <SentryDocumentTitle title={t('Code Conventions')} orgSlug={organization.slug}>
@@ -85,25 +62,30 @@ export default function CodeConventions() {
                 {entries?.length === 0 && (
                   <SimpleTable.Empty>{t('No YAML files found')}</SimpleTable.Empty>
                 )}
-                {entries?.map(entry => (
-                  <SimpleTable.Row key={entry.sha}>
-                    <SimpleTable.RowCell>
-                      <Link
-                        to={{
-                          pathname: normalizeUrl(
-                            `${getCodeConventionsPath(organization.slug)}${entry.name}/`
-                          ),
-                          query: location.query,
-                        }}
-                      >
-                        <strong>{formatConventionTitle(entry.name)}</strong>
-                      </Link>
-                    </SimpleTable.RowCell>
-                    <SimpleTable.RowCell>
-                      <ConventionIssueCount title={formatConventionTitle(entry.name)} />
-                    </SimpleTable.RowCell>
-                  </SimpleTable.Row>
-                ))}
+                {entries?.map(entry => {
+                  const conventionName = getConventionName(entry.name);
+                  return (
+                    <SimpleTable.Row key={entry.sha}>
+                      <SimpleTable.RowCell>
+                        <Link
+                          to={{
+                            pathname: normalizeUrl(
+                              `${getCodeConventionsPath(organization.slug)}${conventionName}/`
+                            ),
+                            query: location.query,
+                          }}
+                        >
+                          <strong>{formatConventionTitle(conventionName)}</strong>
+                        </Link>
+                      </SimpleTable.RowCell>
+                      <SimpleTable.RowCell>
+                        <ConventionIssueCount
+                          title={formatConventionTitle(conventionName)}
+                        />
+                      </SimpleTable.RowCell>
+                    </SimpleTable.Row>
+                  );
+                })}
               </SimpleTable>
             </Stack>
           </Layout.Main>

@@ -1,10 +1,37 @@
+import {queryOptions} from '@tanstack/react-query';
+
 export const REPO = 'getsentry/sentry';
 const REF = 'master';
 const CONVENTIONS_PATH = '.sentry-refactor-tasks/conventions';
 
-export const CONVENTIONS_CONTENTS_URL = `https://api.github.com/repos/${REPO}/contents/${CONVENTIONS_PATH}?ref=${REF}`;
+const CONVENTIONS_CONTENTS_URL = `https://api.github.com/repos/${REPO}/contents/${CONVENTIONS_PATH}?ref=${REF}`;
 
-export const YAML_EXTENSION = /\.ya?ml$/;
+const YAML_EXTENSION = /\.ya?ml$/;
+
+interface GitHubContentEntry {
+  name: string;
+  sha: string;
+  type: 'file' | 'dir' | 'symlink' | 'submodule';
+}
+
+// The repo is public, so the unauthenticated GitHub API is enough here. Its
+// rate limit is per-IP, so avoid refetching on every focus or remount.
+export const conventionFilesQueryOptions = queryOptions({
+  queryKey: ['github-contents', CONVENTIONS_CONTENTS_URL],
+  queryFn: async ({signal}): Promise<GitHubContentEntry[]> => {
+    const response = await fetch(CONVENTIONS_CONTENTS_URL, {
+      signal,
+      headers: {Accept: 'application/vnd.github+json'},
+    });
+    if (!response.ok) {
+      throw new Error(`GitHub responded with ${response.status}`);
+    }
+    return response.json();
+  },
+  select: data =>
+    data.filter(entry => entry.type === 'file' && YAML_EXTENSION.test(entry.name)),
+  staleTime: 5 * 60 * 1000,
+});
 
 export function getConventionFileUrls(filename: string) {
   return {
@@ -13,11 +40,18 @@ export function getConventionFileUrls(filename: string) {
   };
 }
 
+/**
+ * A convention's `name` field is the same as its filename stem, so the stem is
+ * what @sentry/refactor-tasks uses to label its issues.
+ */
+export function getConventionName(filename: string) {
+  return filename.replace(YAML_EXTENSION, '');
+}
+
 // Matches the `[<name>]` prefix that @sentry/refactor-tasks puts on each issue
-// title, so rows line up with what shows in the issue stream. A convention's
-// `name` field is the same as its filename stem.
-export function formatConventionTitle(filename: string) {
-  return `[${filename.replace(YAML_EXTENSION, '')}]`;
+// title, so rows line up with what shows in the issue stream.
+export function formatConventionTitle(conventionName: string) {
+  return `[${conventionName}]`;
 }
 
 export function getCodeConventionsPath(orgSlug: string) {
