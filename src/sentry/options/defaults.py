@@ -1122,6 +1122,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Do not add `ArtifactBundleIndex` rows for files stored under a name built from their own
+# debug ID (`~/<debug-id>-<n>.js`), which lookups find by debug ID rather than by URL.
+register(
+    "sourcemaps.artifact-bundles.index-skip-debug-id-names",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 # Killswitch to stop storing any reprocessing payloads.
 register("store.reprocessing-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
