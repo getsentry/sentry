@@ -14,6 +14,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConventionIssueCount} from 'sentry/views/codeConventions/conventionIssueCount';
 import {ConventionTags} from 'sentry/views/codeConventions/conventionTags';
+import {ConventionTrend} from 'sentry/views/codeConventions/conventionTrend';
 import {RepositorySelector} from 'sentry/views/codeConventions/repositorySelector';
 import {
   conventionFilesQueryOptions,
@@ -26,6 +27,7 @@ import {
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: '1fr'},
+  {key: 'trend', width: '180px'},
   {key: 'issues', width: 'max-content'},
 ];
 
@@ -55,6 +57,7 @@ export default function CodeQuality() {
                 header={
                   <SimpleTable.HeaderRow>
                     <SimpleTable.HeaderCell>{t('Title')}</SimpleTable.HeaderCell>
+                    <SimpleTable.HeaderCell>{t('Open (30d)')}</SimpleTable.HeaderCell>
                     <SimpleTable.HeaderCell>{t('Issues')}</SimpleTable.HeaderCell>
                   </SimpleTable.HeaderRow>
                 }
@@ -82,6 +85,11 @@ export default function CodeQuality() {
                           </Link>
                           <ConventionTags filename={entry.name} />
                         </Stack>
+                      </SimpleTable.RowCell>
+                      <SimpleTable.RowCell>
+                        <ConventionTrend
+                          titlePrefix={getConventionIssueTitlePrefix(conventionName)}
+                        />
                       </SimpleTable.RowCell>
                       <SimpleTable.RowCell>
                         <ConventionIssueCount

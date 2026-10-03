@@ -8,9 +8,8 @@ import type {Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {CONVENTIONS_PROJECT_ID} from 'sentry/views/codeConventions/utils';
 
-// The `coding-conventions` project that @sentry/refactor-tasks reports into.
-const CONVENTIONS_PROJECT_ID = '4511567035432960';
 const STATS_PERIOD = '90d';
 
 interface Props {

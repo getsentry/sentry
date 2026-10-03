@@ -4,6 +4,9 @@ import {parse} from 'yaml';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 export const REPO = 'getsentry/sentry';
+
+// The `coding-conventions` project that @sentry/refactor-tasks reports into.
+export const CONVENTIONS_PROJECT_ID = '4511567035432960';
 const REF = 'master';
 const CONVENTIONS_PATH = '.sentry-refactor-tasks/conventions';
 
