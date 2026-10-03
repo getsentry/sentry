@@ -2,13 +2,14 @@ from collections import defaultdict
 from collections.abc import Sequence
 
 from django.db import router, transaction
-from django.db.models import Q
+from django.db.models import F, Q
 from django.db.models.functions import Coalesce
 
 from sentry import features
 from sentry.models.activity import Activity
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.release import Release, ReleaseStatus
+from sentry.models.releases.util import release_order_date
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
@@ -34,11 +35,16 @@ def clear_expired_resolutions(release_id):
     except Release.DoesNotExist:
         return
 
-    if features.has("organizations:release-resolution-finalized-order", release.organization):
-        _clear_finalized_resolutions(release)
+    use_finalized_order = features.has(
+        "organizations:release-resolution-finalized-order", release.organization
+    )
+    if use_finalized_order or features.has(
+        "organizations:release-resolution-project-anchor", release.organization
+    ):
+        _clear_pending_resolutions(release, use_finalized_order=use_finalized_order)
         return
 
-    # The legacy path assigns the triggering release directly. The finalized
+    # The legacy path assigns the triggering release directly. The project-scoped
     # path can also reevaluate an archived anchor, so it filters successors instead.
     if release.status not in (ReleaseStatus.OPEN, None):
         return
@@ -64,8 +70,10 @@ def clear_expired_resolutions(release_id):
     _update_resolution_activities(resolution_list, release)
 
 
-def _clear_finalized_resolutions(release: Release) -> None:
-    release_order = release.date_released or release.date_added
+def _clear_pending_resolutions(release: Release, *, use_finalized_order: bool) -> None:
+    release_order = release_order_date(
+        release.date_added, release.date_released, use_finalized_order=use_finalized_order
+    )
     # A date edit can make this release a successor, or move an existing
     # resolution's anchor before a release that was already registered.
     pending = (
@@ -75,7 +83,13 @@ def _clear_finalized_resolutions(release: Release) -> None:
             group__project_id__in=release.projects.values("id"),
             release__organization_id=release.organization_id,
         )
-        .alias(resolution_release_order=Coalesce("release__date_released", "release__date_added"))
+        .alias(
+            resolution_release_order=(
+                Coalesce("release__date_released", "release__date_added")
+                if use_finalized_order
+                else F("release__date_added")
+            )
+        )
         .filter(
             Q(release=release)
             | Q(resolution_release_order__lt=release_order)
@@ -95,7 +109,7 @@ def _clear_finalized_resolutions(release: Release) -> None:
             if key not in next_releases:
                 try:
                     next_releases[key] = Release.objects.get_next_release(
-                        project, resolution.release, use_finalized_order=True
+                        project, resolution.release, use_finalized_order=use_finalized_order
                     )
                 except Release.DoesNotExist:
                     next_releases[key] = None

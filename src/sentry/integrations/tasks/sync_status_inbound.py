@@ -50,10 +50,21 @@ def get_resolutions_and_activity_data_for_groups(
         "resolve_next_release",
         "resolve_current_release",
     ]:
+        affected_groups = list(affected_groups)
+        use_project_anchor = bool(
+            resolution_strategy == "resolve_next_release"
+            and affected_groups
+            and features.has(
+                "organizations:release-resolution-project-anchor", affected_groups[0].organization
+            )
+        )
+        eligible_status = Q(status=ReleaseStatus.OPEN)
+        if use_project_anchor:
+            eligible_status |= Q(status__isnull=True)
         all_project_ids = list({group.project_id for group in affected_groups})
         has_releases_for_each_project = all(
             Release.objects.filter(
-                projects=project_id, organization_id=organization_id, status=ReleaseStatus.OPEN
+                eligible_status, projects=project_id, organization_id=organization_id
             ).exists()
             for project_id in all_project_ids
         )
@@ -80,16 +91,24 @@ def get_resolutions_and_activity_data_for_groups(
                 # probably should be done within a single transaction with the status but this is fine for now
                 # note this logic is ported from src/sentry/api/helpers/group_index/update.py
                 # find the latest release by date for the project
-                last_release_by_date = (
-                    Release.objects.filter(
-                        projects=group.project,
-                        organization_id=organization_id,
-                        status=ReleaseStatus.OPEN,
+                if use_project_anchor:
+                    last_release_by_date = Release.objects.get_latest_release(
+                        group.project,
+                        use_finalized_order=features.has(
+                            "organizations:release-resolution-finalized-order", group.organization
+                        ),
                     )
-                    .extra(select={"sort": "COALESCE(date_released, date_added)"})
-                    .order_by("-sort")
-                    .first()
-                )
+                else:
+                    last_release_by_date = (
+                        Release.objects.filter(
+                            projects=group.project,
+                            organization_id=organization_id,
+                            status=ReleaseStatus.OPEN,
+                        )
+                        .extra(select={"sort": "COALESCE(date_released, date_added)"})
+                        .order_by("-sort")
+                        .first()
+                    )
                 # Check if semver versioning scheme is followed
                 follows_semver = follows_semver_versioning_scheme(
                     org_id=organization_id,
@@ -111,7 +130,7 @@ def get_resolutions_and_activity_data_for_groups(
                     extra=local_logging_params,
                 )
 
-                resolution_params = {
+                resolution_params: dict[str, int | str | Release | None] = {
                     "status": GroupStatus.RESOLVED,
                     "release": last_release_by_date,  # Is this the right release?
                     "type": (
@@ -138,28 +157,33 @@ def get_resolutions_and_activity_data_for_groups(
                                 organization_id=organization_id,
                             )
 
-                            # If we already know the `next` release in date based ordering
-                            # when clicking on `resolvedInNextRelease` because it is already
-                            # been released, there is no point in setting GroupResolution to
-                            # be of type in_next_release but rather in_release would suffice
-
-                            resolved_in_release = Release.objects.get_next_release(
-                                group.project,
-                                current_release_obj,
-                                use_finalized_order=features.has(
-                                    "organizations:release-resolution-finalized-order",
-                                    group.project.organization,
-                                ),
-                            )
-                            resolution_params.update({"release": resolved_in_release})
-                            activity_data.update({"version": resolved_in_release.version})
-                            local_logging_params.update(
-                                {"resolved_in_release": resolved_in_release.version}
-                            )
-                            logger.info(
-                                "get_resolutions_and_activity_data_for_groups.resolved_in_release",
-                                extra=local_logging_params,
-                            )
+                            if use_project_anchor:
+                                resolution_params.update(
+                                    {
+                                        "release": current_release_obj,
+                                        "status": GroupResolution.Status.pending,
+                                    }
+                                )
+                            else:
+                                # Legacy issue anchors can already have a known successor.
+                                resolved_in_release = Release.objects.get_next_release(
+                                    group.project,
+                                    current_release_obj,
+                                    use_legacy_sort=True,
+                                    use_finalized_order=features.has(
+                                        "organizations:release-resolution-finalized-order",
+                                        group.project.organization,
+                                    ),
+                                )
+                                resolution_params.update({"release": resolved_in_release})
+                                activity_data.update({"version": resolved_in_release.version})
+                                local_logging_params.update(
+                                    {"resolved_in_release": resolved_in_release.version}
+                                )
+                                logger.info(
+                                    "get_resolutions_and_activity_data_for_groups.resolved_in_release",
+                                    extra=local_logging_params,
+                                )
                         except Release.DoesNotExist:
                             # If it gets here, it means we don't know the upcoming
                             # release yet because it does not exist, and so we should
@@ -320,8 +344,9 @@ def sync_status_inbound(
                     if not created:
                         resolution.update(datetime=django_timezone.now(), **resolution_params)
 
-                    # Link the activity to the resolution so regressions can find it.
-                    if created:
+                    # Reevaluation must find this activity even when reusing a
+                    # resolution row from an earlier resolve/unresolve cycle.
+                    if created or resolution.status == GroupResolution.Status.pending:
                         latest_resolution_activity = (
                             Activity.objects.filter(group=group, type=activity_type.value)
                             .order_by("-datetime")
