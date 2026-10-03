@@ -2,7 +2,9 @@ import uuid
 from unittest.mock import Mock, patch
 
 import pytest
+from sentry_protos.taskbroker.v1.taskbroker_pb2 import RetryState, TaskActivation
 from taskbroker_client.retry import RetryTaskError
+from taskbroker_client.state import clear_current_task, set_current_task
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.eventstream.base import GroupState
@@ -76,10 +78,19 @@ class TestBuildTriggerActionTaskParams(TestCase):
         assert "notification_uuid" not in params
 
 
+# The broker stores `times + 1` as max_attempts once the worker schedules a retry, so later
+# attempts see max_attempts=4 for Retry(times=3).
+FIRST_ATTEMPT = RetryState(attempts=0, max_attempts=3)
+SECOND_ATTEMPT = RetryState(attempts=1, max_attempts=4)
+FINAL_ATTEMPT = RetryState(attempts=2, max_attempts=4)
+
+
 class TestTriggerAction(TestCase):
-    def call_trigger_action(self, action: Mock, retries_remaining: bool) -> None:
+    def call_trigger_action(self, action: Mock, retry_state: RetryState) -> None:
         event_data = Mock()
         detector = Mock(type="error")
+        set_current_task(TaskActivation(retry_state=retry_state))
+        self.addCleanup(clear_current_task)
 
         with (
             patch("sentry.workflow_engine.tasks.actions.Action.objects.get", return_value=action),
@@ -90,10 +101,6 @@ class TestTriggerAction(TestCase):
             patch(
                 "sentry.workflow_engine.processors.detector.get_preferred_detector",
                 return_value=detector,
-            ),
-            patch(
-                "taskbroker_client.retry.current_task",
-                return_value=Mock(retries_remaining=retries_remaining),
             ),
         ):
             trigger_action(
@@ -120,7 +127,7 @@ class TestTriggerAction(TestCase):
         action = Mock(id=1, type=Action.Type.SLACK)
         action.trigger.side_effect = error
 
-        self.call_trigger_action(action, retries_remaining=False)
+        self.call_trigger_action(action, retry_state=FINAL_ATTEMPT)
 
         mock_capture_exception.assert_called_once_with(error)
 
@@ -132,7 +139,7 @@ class TestTriggerAction(TestCase):
         action = Mock(id=1, type=Action.Type.SLACK)
         action.trigger.side_effect = error
 
-        self.call_trigger_action(action, retries_remaining=False)
+        self.call_trigger_action(action, retry_state=FINAL_ATTEMPT)
 
         mock_capture_exception.assert_called_once_with(error)
 
@@ -141,7 +148,7 @@ class TestTriggerAction(TestCase):
         action = Mock(id=1, type=Action.Type.SLACK)
         action.trigger.side_effect = Action.DoesNotExist()
 
-        self.call_trigger_action(action, retries_remaining=True)
+        self.call_trigger_action(action, retry_state=FIRST_ATTEMPT)
 
         mock_capture_exception.assert_not_called()
 
@@ -154,7 +161,7 @@ class TestTriggerAction(TestCase):
         action.trigger.side_effect = error
 
         with pytest.raises(RetryTaskError):
-            self.call_trigger_action(action, retries_remaining=True)
+            self.call_trigger_action(action, retry_state=FIRST_ATTEMPT)
 
         mock_capture_exception.assert_not_called()
 
@@ -166,6 +173,18 @@ class TestTriggerAction(TestCase):
         action.trigger.side_effect = ProcessingDeadlineExceeded("action timed out")
 
         with pytest.raises(RetryTaskError):
-            self.call_trigger_action(action, retries_remaining=True)
+            self.call_trigger_action(action, retry_state=FIRST_ATTEMPT)
+
+        mock_capture_exception.assert_not_called()
+
+    @patch("sentry.workflow_engine.tasks.actions.sentry_sdk.capture_exception")
+    def test_raises_trigger_exception_on_retried_attempt_with_retries_remaining(
+        self, mock_capture_exception: Mock
+    ) -> None:
+        action = Mock(id=1, type=Action.Type.SLACK)
+        action.trigger.side_effect = RuntimeError("action failed")
+
+        with pytest.raises(RetryTaskError):
+            self.call_trigger_action(action, retry_state=SECOND_ATTEMPT)
 
         mock_capture_exception.assert_not_called()
