@@ -4476,6 +4476,24 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Treat artifact bundles uploaded with the release name "undefined", "null" or "" as uploaded
+# without a release, when every file in the bundle can be found by debug ID. Build tooling sends
+# these names when no release was set or detected.
+register(
+    "sourcemaps.artifact-bundles.assemble.ignore-placeholder-releases",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# The same for release names that are an unexpanded environment variable, such as `$GITHUB_SHA`,
+# or the bare name of one, such as `VERCEL_GIT_COMMIT_SHA`.
+register(
+    "sourcemaps.artifact-bundles.assemble.ignore-env-var-releases",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch for token-level remapping of compound Dart exception types.
 register(
     "dart.compound-type-deobfuscation.enabled",
