@@ -37,6 +37,16 @@ type Props = {
   hideDisplayToggle?: boolean;
 };
 
+export function getSelectedBuildProjectIds(selectionProjects: number[]): string[] {
+  const selectedIds = selectionProjects.filter(id => id !== ALL_ACCESS_PROJECTS);
+
+  // If no specific projects selected, pass [-1] to represent "all projects"
+  // This avoids expanding to hundreds of project IDs which causes URL length issues
+  return selectedIds.length === 0
+    ? [`${ALL_ACCESS_PROJECTS}`]
+    : selectedIds.map(id => `${id}`);
+}
+
 export function MobileBuilds({
   organization,
   selectedProjectIds,
@@ -152,7 +162,7 @@ export function MobileBuilds({
     isLoading: isLoadingBuilds,
     pageSource:
       activeDisplay === PreprodBuildsDisplay.SNAPSHOT
-        ? 'releases_snapshots_tab'
+        ? 'snapshots_list'
         : 'releases_mobile_builds_tab',
     projectCount: selectedProjectIds.length,
     searchQuery,

@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
+import {makeSnapshotsListUrl} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {getBranchUrl, getPrUrl, getShaUrl} from 'sentry/views/preprod/utils/vcsLinkUtils';
 
 const TITLE_MARKER_ATTR = 'data-snapshot-header-title';
@@ -118,7 +119,7 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
             <Flex align="center" gap="xs" minWidth={0}>
               <IconCode size="xs" style={{flexShrink: 0}} />
               <Link
-                to={`/organizations/${organization.slug}/explore/releases/?query=${encodeURIComponent(`app_id:${appId}`)}&tab=snapshots`}
+                to={makeSnapshotsListUrl(organization.slug, {query: `app_id:${appId}`})}
               >
                 <Text size="sm" variant="accent" monospace ellipsis>
                   {appId}

@@ -1638,11 +1638,11 @@ function buildRoutes(): RouteObject[] {
     children: [
       {
         path: '/snapshots/',
-        redirectTo: '/explore/releases/?tab=snapshots',
+        redirectTo: '/explore/snapshots/',
       },
       {
         path: '/organizations/:orgId/snapshots/',
-        redirectTo: '/organizations/:orgId/explore/releases/?tab=snapshots',
+        redirectTo: '/organizations/:orgId/explore/snapshots/',
       },
     ],
   };
@@ -2237,6 +2237,10 @@ function buildRoutes(): RouteObject[] {
       path: 'releases/',
       component: make(() => import('sentry/views/explore/releases/index')),
       children: releaseChildren,
+    },
+    {
+      path: 'snapshots/',
+      component: make(() => import('sentry/views/explore/snapshots')),
     },
     {
       path: 'logs/',

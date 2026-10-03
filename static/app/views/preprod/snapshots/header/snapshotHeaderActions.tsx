@@ -46,7 +46,10 @@ import {
   isSnapshotApproved,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
-import {getSnapshotPath} from 'sentry/views/preprod/utils/buildLinkUtils';
+import {
+  getSnapshotPath,
+  makeSnapshotsListUrl,
+} from 'sentry/views/preprod/utils/buildLinkUtils';
 import {handleStaffPermissionError} from 'sentry/views/preprod/utils/staffPermissionError';
 
 interface SnapshotHeaderActionsProps {
@@ -204,8 +207,7 @@ export function SnapshotHeaderActions({
     mutationFn: () => fetchMutation({url: apiUrl, method: 'DELETE'}),
     onSuccess: () => {
       addSuccessMessage(t('Snapshot deleted'));
-      // TODO(preprod): Redirect to snapshot builds list once that UI is added
-      navigate('/');
+      navigate(makeSnapshotsListUrl(organizationSlug, {project: data.project_id}));
     },
     onError: error => handleRequestError(error, t('Failed to delete snapshot')),
   });
