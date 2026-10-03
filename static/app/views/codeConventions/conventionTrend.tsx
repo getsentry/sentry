@@ -12,6 +12,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {CONVENTIONS_PROJECT_ID} from 'sentry/views/codeConventions/utils';
 
 const CHART_HEIGHT = 25;
+// The table clips its cells, so the tooltip has to render outside it.
+const TOOLTIP_OPTIONS = {appendToBody: true};
 const DAYS = 30;
 const DAY_MS = 24 * 60 * 60 * 1000;
 // No API returns resolution times filtered by issue title, so they're read from
@@ -135,6 +137,7 @@ export function ConventionTrend({titlePrefix}: Props) {
         showTimeInTooltip
         series={series}
         height={CHART_HEIGHT}
+        tooltip={TOOLTIP_OPTIONS}
       />
     </Container>
   );
