@@ -21,6 +21,10 @@ import {
   encodeMetricQueryParams,
 } from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
+import {
+  defaultMetricQuery,
+  encodeMetricQueryParams,
+} from 'sentry/views/explore/metrics/metricQuery';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
   VisualizeEquation,
