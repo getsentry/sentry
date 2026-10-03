@@ -952,11 +952,7 @@ class ViewerContextAuthentication(BaseAuthentication):
             )
             return None
 
-        if vc.superuser_access_expires_at is not None:
-            users = user_service.get_many(filter={"user_ids": [vc.user_id]})
-            user = users[0] if users else None
-        else:
-            user = user_service.get_user(user_id=vc.user_id)
+        user = user_service.get_user(user_id=vc.user_id)
         if user is None or not user.is_active or getattr(user, "is_suspended", False):
             # TODO(jstanley): Temporary logging for debugging non-public prod 401s
             # during X-Viewer-Context propagation (Seer code mode callbacks).
