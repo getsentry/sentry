@@ -10,6 +10,7 @@ from sentry.integrations.jira import JiraCreateTicketAction, JiraIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.activity import Activity
+from sentry.notifications.types import NotificationRule, RuleFuture
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import (
     ApiInvalidRequestError,
@@ -20,7 +21,6 @@ from sentry.testutils.asserts import assert_halt_metric
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
-from sentry.types.rules import RuleFuture
 from sentry.utils import json
 
 pytestmark = [requires_snuba]
@@ -50,11 +50,20 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
     def trigger(self, event, rule_object):
         action = rule_object.data.get("actions", ())[0]
-        action_inst = self.get_rule(data=action, rule=rule_object)
+        notification_rule = NotificationRule(
+            action_id=rule_object.id,
+            label=rule_object.label,
+            data={"actions": [action]},
+            project=rule_object.project,
+            environment_id=rule_object.environment_id,
+            workflow_id=123,
+            legacy_rule_id=rule_object.id,
+        )
+        action_inst = self.get_rule(data=action, rule=notification_rule)
         results = list(action_inst.after(event=event))
         assert len(results) == 1
 
-        rule_future = RuleFuture(rule=rule_object, kwargs=results[0].kwargs)
+        rule_future = RuleFuture(rule=notification_rule, kwargs=results[0].kwargs)
         return results[0].callback(event, futures=[rule_future])
 
     def get_key(self, event: GroupEvent):

@@ -23,9 +23,9 @@ from sentry.integrations.messaging.message_builder import (
 from sentry.integrations.types import ExternalProviders
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
-from sentry.models.rule import Rule
 from sentry.notifications.notifications.base import ProjectNotification
-from sentry.notifications.utils.rules import RuleIdType, get_rule_or_workflow_id
+from sentry.notifications.types import NotificationRule
+from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.services.eventstore.models import GroupEvent
 
 from ..message_builder.base.component import DiscordComponentCustomIds as CustomIds
@@ -37,7 +37,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         group: Group,
         event: GroupEvent | None = None,
         tags: set[str] | None = None,
-        rules: list[Rule] | None = None,
+        rules: list[NotificationRule] | None = None,
         link_to_event: bool = False,
         issue_details: bool = False,
         notification: ProjectNotification | None = None,
@@ -57,39 +57,40 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
             max(self.group.last_seen, self.event.datetime) if self.event else self.group.last_seen
         )
         obj: Group | GroupEvent = self.event if self.event is not None else self.group
-        rule_id = None
+        rule_id: int | None = None
         rule_environment_id = None
-        key: RuleIdType = "legacy_rule_id"
+        is_workflow = False
         if self.rules:
             rule_environment_id = self.rules[0].environment_id
-            key, rule_id = get_rule_or_workflow_id(self.rules[0], prefer="workflow_id")
+            key, rule_id_value = get_rule_or_workflow_id(self.rules[0], prefer="workflow_id")
+            is_workflow = key == "workflow_id"
+            rule_id = int(rule_id_value)
 
         url = None
-        match key:
-            case "workflow_id":
-                url = get_title_link_workflow_engine_ui(
-                    self.group,
-                    self.event,
-                    self.link_to_event,
-                    self.issue_details,
-                    self.notification,
-                    ExternalProviders.DISCORD,
-                    int(rule_id) if rule_id else None,
-                    rule_environment_id,
-                    notification_uuid=notification_uuid,
-                )
-            case "legacy_rule_id":
-                url = get_title_link(
-                    self.group,
-                    self.event,
-                    self.link_to_event,
-                    self.issue_details,
-                    self.notification,
-                    ExternalProviders.DISCORD,
-                    int(rule_id) if rule_id else None,
-                    rule_environment_id,
-                    notification_uuid=notification_uuid,
-                )
+        if is_workflow:
+            url = get_title_link_workflow_engine_ui(
+                self.group,
+                self.event,
+                self.link_to_event,
+                self.issue_details,
+                self.notification,
+                ExternalProviders.DISCORD,
+                rule_id,
+                rule_environment_id,
+                notification_uuid=notification_uuid,
+            )
+        else:
+            url = get_title_link(
+                self.group,
+                self.event,
+                self.link_to_event,
+                self.issue_details,
+                self.notification,
+                ExternalProviders.DISCORD,
+                rule_id,
+                rule_environment_id,
+                notification_uuid=notification_uuid,
+            )
 
         embeds = [
             DiscordMessageEmbed(

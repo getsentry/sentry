@@ -49,6 +49,8 @@ class IssueDiscordRendererTest(TestCase):
                     "actions": [{"workflow_id": 1}],
                 },
                 project_id=self.project.id,
+                workflow_id=1,
+                legacy_rule_id=None,
             ),
         )
 
@@ -119,7 +121,12 @@ class IssueDiscordRendererTest(TestCase):
         data = IssueNotificationData(
             group_id=self.group.id,
             rule=SerializableRuleProxy(
-                id=1, label="Test Detector", data={}, project_id=self.project.id
+                id=1,
+                label="Test Detector",
+                data={"actions": [{"workflow_id": 1}]},
+                project_id=self.project.id,
+                workflow_id=1,
+                legacy_rule_id=None,
             ),
         )
         assert data.source == NotificationSource.ISSUE
@@ -130,7 +137,12 @@ class IssueAlertProviderDispatchTest(TestCase):
         data = IssueNotificationData(
             group_id=self.group.id,
             rule=SerializableRuleProxy(
-                id=1, label="Test Detector", data={}, project_id=self.project.id
+                id=1,
+                label="Test Detector",
+                data={"actions": [{"workflow_id": 1}]},
+                project_id=self.project.id,
+                workflow_id=1,
+                legacy_rule_id=None,
             ),
         )
         renderer = DiscordNotificationProvider.get_renderer(data=data)

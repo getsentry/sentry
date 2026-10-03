@@ -24,7 +24,7 @@ class JiraCreateTicketAction(TicketEventAction):
             self.data["fixVersions"] = [fix_versions]
 
     def generate_footer(self, rule_url: str) -> str:
-        return f"This ticket was automatically created by Sentry via [{self.rule.label}|{absolute_uri(rule_url)}]"
+        return f"This ticket was automatically created by Sentry via [{self.rule_context.label}|{absolute_uri(rule_url)}]"
 
     def translate_integration(self, integration: RpcIntegration) -> str:
         name = integration.metadata.get("domain_name", integration.name)

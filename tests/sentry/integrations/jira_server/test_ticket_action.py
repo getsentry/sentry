@@ -7,12 +7,12 @@ from sentry.api.serializers.rest_framework.rule import validate_actions
 from sentry.integrations.jira_server import JiraServerCreateTicketAction, JiraServerIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.rule import Rule
+from sentry.notifications.types import NotificationRule, RuleFuture
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.types.rules import RuleFuture
 from tests.sentry.integrations.jira_server import EXAMPLE_PRIVATE_KEY
 
 pytestmark = [requires_snuba]
@@ -50,11 +50,20 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
     def trigger(self, event: GroupEvent, rule_object: Rule) -> object:
         action = rule_object.data.get("actions", ())[0]
-        action_inst = self.get_rule(data=action, rule=rule_object)
+        notification_rule = NotificationRule(
+            action_id=rule_object.id,
+            label=rule_object.label,
+            data={"actions": [action]},
+            project=rule_object.project,
+            environment_id=rule_object.environment_id,
+            workflow_id=123,
+            legacy_rule_id=rule_object.id,
+        )
+        action_inst = self.get_rule(data=action, rule=notification_rule)
         results = list(action_inst.after(event=event))
         assert len(results) == 1
 
-        rule_future = RuleFuture(rule=rule_object, kwargs=results[0].kwargs)
+        rule_future = RuleFuture(rule=notification_rule, kwargs=results[0].kwargs)
         return results[0].callback(event, futures=[rule_future])
 
     def get_key(self, event: GroupEvent) -> str:

@@ -15,8 +15,7 @@ from sentry.integrations.services.integration import (
 )
 from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.organization import OrganizationStatus
-from sentry.models.rule import Rule
-from sentry.notifications.types import RuleFuture
+from sentry.notifications.types import NotificationRule, RuleFuture
 from sentry.rules.actions import EventAction
 from sentry.rules.base import CallbackFuture
 from sentry.services.eventstore.models import GroupEvent
@@ -110,7 +109,7 @@ class IntegrationEventAction(EventAction, abc.ABC):
         self,
         event: GroupEvent,
         external_id: str,
-        rule: Rule | None = None,
+        rule: NotificationRule | None = None,
         notification_uuid: str | None = None,
     ) -> None:
         from sentry.integrations.discord.analytics import DiscordIntegrationNotificationSent
@@ -129,6 +128,10 @@ class IntegrationEventAction(EventAction, abc.ABC):
             "slack": SlackIntegrationNotificationSent,
             "email": EmailNotificationSent,
         }
+        alert_id = None
+        if rule is not None:
+            alert_id = rule.broken_rule_id
+
         try:
             if event_class := PROVIDER_TO_EVENT_CLASS.get(self.provider):
                 analytics.record(
@@ -137,7 +140,7 @@ class IntegrationEventAction(EventAction, abc.ABC):
                         project_id=event.project_id,
                         group_id=event.group_id,
                         notification_uuid=notification_uuid if notification_uuid else "",
-                        alert_id=rule.id if rule else None,
+                        alert_id=alert_id,
                         category="issue_alert",
                     )
                 )
@@ -148,7 +151,7 @@ class IntegrationEventAction(EventAction, abc.ABC):
             analytics.record(
                 AlertSentEvent(
                     provider=self.provider,
-                    alert_id=rule.id if rule else "",
+                    alert_id=alert_id if alert_id is not None else "",
                     alert_type="issue_alert",
                     organization_id=event.organization.id,
                     project_id=event.project_id,

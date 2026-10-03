@@ -44,7 +44,7 @@ from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
 from sentry.notifications.notifications.rules import get_group_substatus_text
-from sentry.notifications.types import GroupSubscriptionReason
+from sentry.notifications.types import GroupSubscriptionReason, NotificationRule
 from sentry.notifications.utils import get_interface_list
 from sentry.notifications.utils.links import (
     get_group_settings_link,
@@ -282,7 +282,8 @@ def make_feedback_issue(project: Project) -> GroupEvent:
 def get_shared_context(
     rule: Rule, org: Organization, project: Project, group: Group, event: BaseEvent
 ) -> dict[str, Any]:
-    rules = get_rules([rule], org, project, group.type)
+    notification_rule = NotificationRule.from_deprecated_legacy_rule(rule, project=project)
+    rules = get_rules([notification_rule], org, project, group.type)
     snooze_alert = len(rules) > 0
     snooze_alert_url = rules[0].status_url + urlencode({"mute": "1"}) if snooze_alert else ""
     return {
@@ -517,7 +518,16 @@ def digest(request: HttpRequest) -> HttpResponse:
     org = Organization(id=1, slug="example", name="Example Organization")
     project = Project(id=1, slug="example", name="Example Project", organization=org)
     rules = {
-        i: Rule(id=i, project=project, label=f"Rule #{i}") for i in range(1, random.randint(2, 4))
+        i: NotificationRule(
+            action_id=None,
+            label=f"Rule #{i}",
+            data={"actions": [{}]},
+            project=project,
+            environment_id=None,
+            workflow_id=None,
+            legacy_rule_id=i,
+        )
+        for i in range(1, random.randint(2, 4))
     }
     groups = {}
     event_counts = {}

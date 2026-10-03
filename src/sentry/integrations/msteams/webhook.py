@@ -51,6 +51,7 @@ from sentry.models.activity import ActivityIntegration
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
 from sentry.models.rule import Rule
+from sentry.notifications.types import NotificationRule
 from sentry.services import eventstore
 from sentry.silo.base import SiloMode
 from sentry.users.services.user.service import user_service
@@ -653,7 +654,10 @@ class MsTeamsWebhookEndpoint(Endpoint):
             # get the rules from the payload
             rule_ids = payload.get("rules", [])
             workflow_ids = payload.get("workflows", [])
-            rules = tuple(Rule.objects.filter(id__in=rule_ids, project_id=group.project_id))
+            rules = tuple(
+                NotificationRule.from_deprecated_legacy_rule(rule, project=group.project)
+                for rule in Rule.objects.filter(id__in=rule_ids, project_id=group.project_id)
+            )
             metrics.incr(
                 "integrations.msteams.action.rule_lookup",
                 tags={

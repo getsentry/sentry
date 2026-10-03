@@ -8,12 +8,12 @@ from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.vsts import AzureDevopsCreateTicketAction
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.models.grouplink import GroupLink
+from sentry.notifications.types import NotificationRule, RuleFuture
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.types.rules import RuleFuture
 
 from .test_issues import VstsIssueBase
 
@@ -71,7 +71,20 @@ class AzureDevopsCreateTicketActionTest(RuleTestCase, VstsIssueBase):
         assert len(results) == 1
 
         # Trigger rule callback
-        rule_future = RuleFuture(rule=azuredevops_rule, kwargs=results[0].kwargs)
+        persisted_rule = azuredevops_rule.rule
+        assert persisted_rule is not None
+        rule_future = RuleFuture(
+            rule=NotificationRule(
+                action_id=persisted_rule.id,
+                label=persisted_rule.label,
+                data={"actions": [azuredevops_rule.data]},
+                project=persisted_rule.project,
+                environment_id=persisted_rule.environment_id,
+                workflow_id=123,
+                legacy_rule_id=persisted_rule.id,
+            ),
+            kwargs=results[0].kwargs,
+        )
         results[0].callback(event, futures=[rule_future])
         data = orjson.loads(responses.calls[0].response.text)
 

@@ -38,6 +38,7 @@ from sentry.models.repository import Repository
 from sentry.models.rule import Rule as IssueAlertRule
 from sentry.models.team import Team
 from sentry.monitors.grouptype import MonitorIncidentType
+from sentry.notifications.types import NotificationRule
 from sentry.notifications.utils.actions import MessageAction
 from sentry.services.eventstore.models import Event
 from sentry.silo.base import SiloMode
@@ -388,7 +389,10 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         more_tags = {"escape": "`room`", "foo": "bar", "release": release.version}
         notes = "hey @colleen fix it"
 
-        assert SlackIssuesMessageBuilder(group, rules=[rule]).build() == build_test_message_blocks(
+        notification_rule = NotificationRule.from_deprecated_legacy_rule(rule)
+        assert SlackIssuesMessageBuilder(
+            group, rules=[notification_rule]
+        ).build() == build_test_message_blocks(
             teams={self.team},
             users={self.user},
             group=group,
@@ -461,8 +465,9 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         rule = self.create_project_rule(project=self.project)
         workflow_id = rule.data["actions"][0]["workflow_id"]
         rule.data["actions"][0].pop("legacy_rule_id")
+        notification_rule = NotificationRule.from_deprecated_legacy_rule(rule)
 
-        blocks = SlackIssuesMessageBuilder(self.group, rules=[rule]).build()["blocks"]
+        blocks = SlackIssuesMessageBuilder(self.group, rules=[notification_rule]).build()["blocks"]
 
         assert orjson.loads(blocks[0]["block_id"]) == {
             "issue": self.group.id,
@@ -1317,7 +1322,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
         assert group
         group.update(type=1, substatus=GroupSubStatus.ONGOING, times_seen=3)
 
-        context = get_context(group, [rule])
+        context = get_context(group, [NotificationRule.from_deprecated_legacy_rule(rule)])
         assert (
             context
             == f"Events: *3*   Users Affected: *7*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"
@@ -1325,7 +1330,7 @@ class SlackNotificationConfigTest(TestCase, PerformanceIssueTestCase, Occurrence
 
         # filter users affected by env
         rule.update(environment_id=env.id)
-        context = get_context(group, [rule])
+        context = get_context(group, [NotificationRule.from_deprecated_legacy_rule(rule)])
         assert (
             context
             == f"Events: *3*   Users Affected: *5*   State: *Ongoing*   First Seen: *{time_since(group.first_seen)}*"

@@ -265,7 +265,7 @@ class DigestNotification(ProjectNotification):
 
     def get_log_params(self, recipient: Actor) -> Mapping[str, Any]:
         try:
-            alert_id = list(self.digest.digest)[0].id
+            alert_id = list(self.digest.digest)[0].broken_rule_id
         except Exception:
             alert_id = None
 
