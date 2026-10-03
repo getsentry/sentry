@@ -9,6 +9,7 @@ import {t, tct} from 'sentry/locale';
 import {
   getConventionCommand,
   getConventionFileUrls,
+  getNewConventionFileUrl,
   type Convention,
 } from 'sentry/views/codeConventions/utils';
 
@@ -27,10 +28,15 @@ function toYamlValue(value: Record<string, unknown> | undefined) {
 
 interface Props {
   convention: Convention;
-  filename: string;
+  /**
+   * The existing convention's file. Without it the form is for a new
+   * convention, and shows every field rather than only the ones with values.
+   */
+  filename?: string;
 }
 
 export function ConventionEditForm({convention, filename}: Props) {
+  const isNew = filename === undefined;
   const command = getConventionCommand(convention);
   const defaultValues = {
     why: convention.why ?? '',
@@ -51,23 +57,31 @@ export function ConventionEditForm({convention, filename}: Props) {
     {name: 'detect', label: t('Detect')},
     {name: 'fix', label: t('Fix')},
     {name: 'examples', label: t('Examples')},
-    {name: 'filters', label: command?.title ?? t('Filters')},
+    {name: 'filters', label: command?.title ?? t('Prefilter')},
   ] as const;
 
   return (
     <form.AppForm form={form}>
       <Stack gap="xl">
         <Alert variant="info" showIcon>
-          {tct('Saving changes is not supported. Create a PR at [link] instead.', {
-            link: (
-              <ExternalLink href={getConventionFileUrls(filename).htmlUrl}>
-                {filename}
-              </ExternalLink>
-            ),
-          })}
+          {isNew
+            ? tct('Saving changes is not supported. [link] instead.', {
+                link: (
+                  <ExternalLink href={getNewConventionFileUrl()}>
+                    {t('Create a PR adding a convention file')}
+                  </ExternalLink>
+                ),
+              })
+            : tct('Saving changes is not supported. Create a PR at [link] instead.', {
+                link: (
+                  <ExternalLink href={getConventionFileUrls(filename).htmlUrl}>
+                    {filename}
+                  </ExternalLink>
+                ),
+              })}
         </Alert>
         {fields.map(({name, label}) =>
-          defaultValues[name] ? (
+          isNew || defaultValues[name] ? (
             <form.AppField key={name} name={name}>
               {field => (
                 <field.Layout.Stack label={label}>

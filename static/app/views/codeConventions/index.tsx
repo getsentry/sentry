@@ -2,6 +2,7 @@ import {Outlet} from 'react-router-dom';
 import {useQuery} from '@tanstack/react-query';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
+import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -9,6 +10,7 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -23,8 +25,10 @@ import {
   getCodeConventionsPath,
   getConventionIssueTitlePrefix,
   getConventionName,
+  getNewConventionPath,
   REPO,
 } from 'sentry/views/codeConventions/utils';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: '1fr'},
@@ -52,6 +56,16 @@ export default function CodeQuality() {
             <FeatureBadge type="alpha" />
           </Flex>
         </Layout.Title>
+        <TopBar.Slot name="actions">
+          <LinkButton
+            size="sm"
+            variant="primary"
+            icon={<IconAdd />}
+            to={normalizeUrl(getNewConventionPath(organization.slug))}
+          >
+            {t('New convention')}
+          </LinkButton>
+        </TopBar.Slot>
         <Layout.Body>
           <Layout.Main width="full">
             <Stack gap="xl">

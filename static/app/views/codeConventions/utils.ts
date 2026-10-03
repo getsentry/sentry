@@ -52,6 +52,18 @@ export const conventionFilesQueryOptions = queryOptions({
   staleTime: 5 * 60 * 1000,
 });
 
+/**
+ * GitHub's editor for adding a file to the conventions directory, which opens
+ * a PR on commit.
+ */
+export function getNewConventionFileUrl() {
+  return `https://github.com/${REPO}/new/${REF}/${CONVENTIONS_PATH}`;
+}
+
+export function getNewConventionPath(orgSlug: string) {
+  return `/organizations/${orgSlug}/issues/code-conventions/new/`;
+}
+
 export function getConventionFileUrls(filename: string) {
   const path = `${CONVENTIONS_PATH}/${filename}`;
   return {
