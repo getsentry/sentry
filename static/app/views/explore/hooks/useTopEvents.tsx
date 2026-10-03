@@ -1,8 +1,7 @@
 import {useMemo} from 'react';
 
-import {useQueryParamsGroupBys} from 'sentry/views/explore/queryParams/context';
-
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/topEventsConstants';
+import {useQueryParamsGroupBys} from 'sentry/views/explore/queryParams/context';
 
 // TODO: There's a limitation with this hook when a top n query < 9 series.
 // This hook always returns 9, which can be misleading, but there's no simple way

@@ -22,9 +22,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
+import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/topEventsConstants';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
-import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/topEventsConstants';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {
   useQueryParamsAggregateCursor,
