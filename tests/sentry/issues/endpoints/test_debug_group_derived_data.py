@@ -4,6 +4,7 @@ from sentry.issues.action_log.types import (
     ActionSource,
     GroupAction,
     GroupActionActor,
+    GroupActionType,
     ResolveAction,
     ViewAction,
 )
@@ -90,3 +91,60 @@ class DebugGroupDerivedDataEndpointTest(APITestCase):
         self.get_error_response(
             self.organization.slug, self.group.id, qs_params={"limit": "10001"}, status_code=400
         )
+
+    def test_corrupt_stored_state_preserves_metadata_and_computed_state(self) -> None:
+        entry = self.create_group_action_log_entry(self.group)
+        derived = self.create_group_derived_data(
+            self.group,
+            data=[],
+            cursor_id=entry.id,
+            cursor_date=entry.date_added,
+            pipeline_hash=PIPELINE.pipeline_hash,
+        )
+        response = self.get_success_response(self.organization.slug, self.group.id)
+        assert response.data["stored"]["state"] is None
+        assert response.data["stored"]["cursorId"] == entry.id
+        assert response.data["stored"]["generatedAt"] == str(derived.generated_at)
+        assert response.data["stored"]["pipelineHash"] == PIPELINE.pipeline_hash
+        assert response.data["computed"]["view_count"] == 1
+        assert response.data["errors"]["stored"]["stage"] == "decode"
+        assert "computed" not in response.data["errors"]
+
+    def test_failed_replay_preserves_stored_state_and_identifies_entry(self) -> None:
+        entry = self.create_group_action_log_entry(
+            self.group, type=GroupActionType.RECONCILE_STATUS, data={"status": "invalid"}
+        )
+        self.create_group_derived_data(self.group, data={"status": "closed"})
+        response = self.get_success_response(self.organization.slug, self.group.id)
+        assert response.data["stored"]["state"]["status"] == "closed"
+        assert response.data["computed"] is None
+        assert response.data["entryCount"] == 1
+        assert response.data["truncated"] is False
+        error = response.data["errors"]["computed"]
+        assert error["stage"] == "aggregate"
+        assert error["aggregator"] == "track_status"
+        assert error["entryId"] == str(entry.id)
+        assert "detail" in error
+        assert "invalid" not in error["detail"]
+        assert "stored" not in response.data["errors"]
+
+    def test_both_states_can_fail_independently(self) -> None:
+        self.create_group_derived_data(self.group, progress="invalid")
+        self.create_group_action_log_entry(
+            self.group, type=GroupActionType.RECONCILE_STATUS, data={"status": "invalid"}
+        )
+        response = self.get_success_response(self.organization.slug, self.group.id)
+        assert response.data["stored"]["state"] is None
+        assert response.data["computed"] is None
+        assert set(response.data["errors"]) == {"stored", "computed"}
+
+    def test_corrupt_stored_state_still_respects_replay_limit(self) -> None:
+        self.create_group_derived_data(self.group, progress="invalid")
+        self.create_group_action_log_entry(self.group)
+        self.create_group_action_log_entry(self.group)
+        response = self.get_success_response(
+            self.organization.slug, self.group.id, qs_params={"limit": "1"}
+        )
+        assert response.data["truncated"] is True
+        assert response.data["computed"] is None
+        assert set(response.data["errors"]) == {"stored"}
