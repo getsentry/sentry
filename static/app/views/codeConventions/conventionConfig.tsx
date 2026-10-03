@@ -54,9 +54,10 @@ function formatFilters({include, exclude, prefilter, detect_command}: Convention
 
 interface Props {
   convention: Convention;
+  filename: string;
 }
 
-export function ConventionConfig({convention}: Props) {
+export function ConventionConfig({convention, filename}: Props) {
   const [isEditing, setIsEditing] = useState(false);
 
   const sections = [
@@ -107,7 +108,7 @@ export function ConventionConfig({convention}: Props) {
         </Button>
       </Flex>
       {isEditing ? (
-        <ConventionEditForm convention={convention} />
+        <ConventionEditForm convention={convention} filename={filename} />
       ) : (
         <Stack gap="md">
           {sections.map(({key, title, raw}) =>

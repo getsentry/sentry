@@ -81,7 +81,9 @@ export default function ConventionDetails() {
             {isNotFound && (
               <Alert variant="warning">{t('This convention could not be found.')}</Alert>
             )}
-            {convention && <ConventionConfig convention={convention} />}
+            {convention && filename && (
+              <ConventionConfig convention={convention} filename={filename} />
+            )}
           </DrawerBody>
         </Fragment>
       ),

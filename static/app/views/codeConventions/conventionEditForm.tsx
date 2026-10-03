@@ -3,9 +3,10 @@ import {stringify} from 'yaml';
 import {Alert} from '@sentry/scraps/alert';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 
-import {t} from 'sentry/locale';
-import type {Convention} from 'sentry/views/codeConventions/utils';
+import {t, tct} from 'sentry/locale';
+import {getConventionFileUrls, type Convention} from 'sentry/views/codeConventions/utils';
 
 const SAVE_DISABLED_REASON = t('Saving conventions is not available yet');
 
@@ -22,9 +23,10 @@ function toYamlValue(value: Record<string, unknown> | undefined) {
 
 interface Props {
   convention: Convention;
+  filename: string;
 }
 
-export function ConventionEditForm({convention}: Props) {
+export function ConventionEditForm({convention, filename}: Props) {
   const defaultValues = {
     why: convention.why ?? '',
     detect: convention.detect ?? '',
@@ -56,9 +58,13 @@ export function ConventionEditForm({convention}: Props) {
     <form.AppForm form={form}>
       <Stack gap="xl">
         <Alert variant="info" showIcon>
-          {t(
-            "Editing conventions isn't supported yet. You can change these fields to try it out, but your changes can't be saved."
-          )}
+          {tct('Saving changes is not supported. Create a PR at [link] instead.', {
+            link: (
+              <ExternalLink href={getConventionFileUrls(filename).htmlUrl}>
+                {filename}
+              </ExternalLink>
+            ),
+          })}
         </Alert>
         {fields.map(({name, label}) =>
           defaultValues[name] ? (

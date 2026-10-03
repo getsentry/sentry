@@ -33,7 +33,9 @@ prefilter: "grep -rl 'extends Component' {repo_path}/static/"
 
 describe('ConventionConfig', () => {
   it('renders severity, tags, and a section per field', () => {
-    render(<ConventionConfig convention={parse(YAML)} />);
+    render(
+      <ConventionConfig filename="no-class-components.yaml" convention={parse(YAML)} />
+    );
 
     expect(screen.getByText('Severity')).toBeInTheDocument();
     expect(screen.getByText('warning')).toBeInTheDocument();
@@ -63,7 +65,9 @@ describe('ConventionConfig', () => {
   });
 
   it('collapses a section', async () => {
-    render(<ConventionConfig convention={parse(YAML)} />);
+    render(
+      <ConventionConfig filename="no-class-components.yaml" convention={parse(YAML)} />
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Why'}));
 
@@ -77,6 +81,7 @@ describe('ConventionConfig', () => {
   it('shows a detect command under filters', () => {
     render(
       <ConventionConfig
+        filename="no-class-components.yaml"
         convention={{
           name: 'no-deprecated-callsite',
           detect_command: 'bash {convention_dir}/detect.sh {repo_path}',
@@ -92,15 +97,21 @@ describe('ConventionConfig', () => {
   });
 
   it('toggles an edit mode with editable text areas that cannot be saved', async () => {
-    render(<ConventionConfig convention={parse(YAML)} />);
+    render(
+      <ConventionConfig filename="no-class-components.yaml" convention={parse(YAML)} />
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Edit'}));
 
     expect(screen.queryByRole('button', {name: 'Why'})).not.toBeInTheDocument();
 
     expect(
-      screen.getByText(/Editing conventions isn't supported yet/)
+      screen.getByText(/Saving changes is not supported. Create a PR at/)
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'no-class-components.yaml'})).toHaveAttribute(
+      'href',
+      'https://github.com/getsentry/sentry/blob/master/.sentry-refactor-tasks/conventions/no-class-components.yaml'
+    );
 
     const why = screen.getByRole('textbox', {name: 'Why'});
     expect(why).toHaveValue('Class components are the **legacy** style.\n');
@@ -126,7 +137,12 @@ describe('ConventionConfig', () => {
   });
 
   it('skips sections that are missing', () => {
-    render(<ConventionConfig convention={{name: 'only-why', why: 'Because.'}} />);
+    render(
+      <ConventionConfig
+        filename="no-class-components.yaml"
+        convention={{name: 'only-why', why: 'Because.'}}
+      />
+    );
 
     expect(screen.getByRole('button', {name: 'Why'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Fix'})).not.toBeInTheDocument();
