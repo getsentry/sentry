@@ -621,8 +621,7 @@ class AuthLoginView(BaseView, ReactMixin):
     def handle_basic_auth(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
         """
         Legacy handler that handles GET and POST requests for registration and login.
-        This is still here because it's used by OAuthAuthorizeView and AuthOrganizationLoginView.
-        It will be removed once we decouple those classes from this method TODO(@EricHasegawa).
+        AuthOrganizationLoginView uses this for password authentication and registration.
         """
         op = request.POST.get("op")
         organization = kwargs.pop("organization", None)
