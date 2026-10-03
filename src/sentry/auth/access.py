@@ -1019,7 +1019,7 @@ def from_request_org_and_scopes(
             org_member=member,
         )
 
-        superuser_scopes = get_superuser_scopes(auth_state, request.user, rpc_user_org_context)
+        superuser_scopes = get_superuser_scopes(auth_state, rpc_user_org_context)
         if scopes:
             superuser_scopes = superuser_scopes.union(set(scopes))
         if member and member.scopes:
@@ -1132,7 +1132,7 @@ def from_request(
         )
         sso_state = auth_state.sso_state
 
-        superuser_scopes = get_superuser_scopes(auth_state, request.user, organization)
+        superuser_scopes = get_superuser_scopes(auth_state, organization)
         if scopes:
             superuser_scopes = superuser_scopes.union(set(scopes))
         if member and (member_scopes := member.get_scopes()):

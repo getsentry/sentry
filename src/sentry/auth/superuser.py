@@ -90,7 +90,6 @@ SUPERUSER_READONLY_SCOPES = settings.SENTRY_READONLY_SCOPES.union({"org:superuse
 
 def get_superuser_scopes(
     auth_state: RpcAuthState,
-    user: User | RpcUser,
     organization_context: Organization | RpcUserOrganizationContext,
 ) -> set[str]:
     if not should_allow_superuser_access(organization_context):
@@ -624,7 +623,7 @@ def resolve_superuser_access(
             return None
         scopes = (
             get_superuser_scopes(
-                RpcAuthState(sso_state=RpcMemberSsoState(), permissions=[]), user, org_context
+                RpcAuthState(sso_state=RpcMemberSsoState(), permissions=[]), org_context
             )
             & settings.SENTRY_READONLY_SCOPES
         )
