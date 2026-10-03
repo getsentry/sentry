@@ -362,7 +362,7 @@ class IntegrationEventLifecycle(EventLifecycle):
             return
 
         if exc_value is not None and isinstance(exc_value.__cause__, RestrictedIPAddress):
-            # ApiHostError is raised from RestrictedIPAddress
+            # ApiRestrictedIPError is raised from RestrictedIPAddress
             self.record_halt(exc_value)
             return
         super().__exit__(exc_type, exc_value, traceback)
