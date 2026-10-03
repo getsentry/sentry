@@ -67,6 +67,7 @@ export type KnownSentryApiUrls =
   | '/internal/rpc/$serviceName/$methodName/'
   | '/internal/scm-rpc/'
   | '/internal/seer-rpc/$methodName/'
+  | '/internal/seer/autofix/retry/'
   | '/internal/seer/night-shift/trigger/'
   | '/internal/warnings/'
   | '/notification-defaults/'
