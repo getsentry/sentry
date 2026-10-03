@@ -8,7 +8,7 @@ import {renderToString} from 'react-dom/server';
 import createCache from '@emotion/cache';
 import {CacheProvider} from '@emotion/react';
 import createEmotionServer from '@emotion/server/create-instance';
-import {chromium, type Browser} from 'playwright';
+import {chromium, type Browser, type Page} from 'playwright';
 
 import type {
   SnapshotImageMetadata,
@@ -117,14 +117,15 @@ interface TakeSnapshotOptions {
 }
 
 /**
- * A pointer interaction to perform before capturing, so snapshots can cover
- * `:hover` / `:active` states. Each value is a CSS selector; the first match is
+ * Browser preparation and pointer interactions to perform before capturing.
+ * `hover` / `active` values are CSS selectors; the first match is
  * used. `:focus-visible` is intentionally unsupported — Chromium only applies it
  * to keyboard-driven focus, so it cannot be forced reliably from a screenshot.
  */
 export interface SnapshotInteraction {
   active?: string;
   hover?: string;
+  prepare?: (page: Page) => Promise<void>;
 }
 
 export async function takeSnapshot({
@@ -156,6 +157,8 @@ export async function takeSnapshot({
 
     // Wait for fonts to load
     await page.evaluate(() => document.fonts.ready);
+
+    await interaction?.prepare?.(page);
 
     // Drive pointer states (:hover / :active) before capturing, if requested.
     let releaseActive: (() => Promise<void>) | undefined;

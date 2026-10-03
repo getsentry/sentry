@@ -95,7 +95,7 @@ const Highlight = styled('div')<{size: 'small' | 'normal'}>`
   padding: ${p =>
     p.size === 'small'
       ? `${p.theme.space.sm} ${p.theme.space.md}`
-      : `${p.theme.space.sm} 48px ${p.theme.space.sm} 44px`};
+      : `${p.theme.space.sm} 40px ${p.theme.space.sm} 28px`};
   width: 100%;
   height: 100%;
   user-select: none;
@@ -110,7 +110,7 @@ const InvisibleInput = styled('textarea')<{size: 'small' | 'normal'}>`
   padding: ${p =>
     p.size === 'small'
       ? `${p.theme.space.sm} ${p.theme.space.md}`
-      : `${p.theme.space.sm} 48px ${p.theme.space.sm} 44px`};
+      : `${p.theme.space.sm} 40px ${p.theme.space.sm} 28px`};
   position: absolute;
   inset: 0;
   resize: none;
