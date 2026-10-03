@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from typing import Any, Literal, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict
 
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
@@ -56,13 +56,18 @@ class OrganizationMemberTeamSerializerResponse(TypedDict):
     teamRole: Literal["contributor", "admin"]
 
 
+class OrganizationMemberTeamData(TypedDict):
+    isActive: NotRequired[bool]
+    teamRole: NotRequired[str]
+
+
 @sentry_schema_serializer(
     omit_from_public_schema={
         "isActive": "Reported in responses, but the update handler only applies teamRole; "
         "a value sent here is validated and discarded.",
     }
 )
-class OrganizationMemberTeamSerializer(serializers.Serializer[dict[str, Any]]):
+class OrganizationMemberTeamSerializer(serializers.Serializer[Any, OrganizationMemberTeamData]):
     isActive = serializers.BooleanField()
     teamRole = serializers.ChoiceField(
         choices=team_roles.get_descriptions(),

@@ -1,5 +1,6 @@
 import posixpath
 from collections.abc import Callable
+from typing import Any, NotRequired, TypedDict
 from zipfile import ZipFile
 
 from django.http.response import FileResponse
@@ -40,7 +41,11 @@ from sentry.releases.endpoints.project_release_files import pseudo_releasefile
 INVALID_UPDATE_MESSAGE = "Can only update release files with integer IDs"
 
 
-class ReleaseFileSerializer(serializers.Serializer):
+class ReleaseFileData(TypedDict):
+    name: NotRequired[str]
+
+
+class ReleaseFileSerializer(serializers.Serializer[Any, ReleaseFileData]):
     name = serializers.CharField(
         max_length=200, required=True, help_text="The new name (full path) of the file."
     )
