@@ -57,7 +57,7 @@ export default function CodeQuality() {
                 header={
                   <SimpleTable.HeaderRow>
                     <SimpleTable.HeaderCell>{t('Title')}</SimpleTable.HeaderCell>
-                    <SimpleTable.HeaderCell>{t('Open (30d)')}</SimpleTable.HeaderCell>
+                    <SimpleTable.HeaderCell>{t('Resolved (30d)')}</SimpleTable.HeaderCell>
                     <SimpleTable.HeaderCell>{t('Issues')}</SimpleTable.HeaderCell>
                   </SimpleTable.HeaderRow>
                 }
