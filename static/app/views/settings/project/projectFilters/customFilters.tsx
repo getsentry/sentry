@@ -159,7 +159,7 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
   },
   release: {
     label: t('Release'),
-    placeholder: t('Glob pattern, e.g. 2.41.*'),
+    placeholder: t('Glob pattern or version comparison, e.g. 2.41.* or >=2.41.0'),
     description: {
       all: t('Matches the release of any data type.'),
       error: t('Matches the release of the error.'),
@@ -463,7 +463,7 @@ function CustomFilterModal({
           </Heading>
           <Text variant="muted" size="sm">
             {t(
-              'Sentry only filters data that matches every condition below. Each value is a glob pattern, so * matches any text. Put one pattern per line to match any of them.'
+              'Sentry only filters data that matches every condition below. Each value is a glob pattern, so * matches any text. A release value that is a version, e.g. 2.41.0, or starts with >, >=, <, <= or = compares versions instead. It applies to every package unless you name one, e.g. >=myapp@2.0. Put one value per line to match any of them.'
             )}
           </Text>
         </Stack>
