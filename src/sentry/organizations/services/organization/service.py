@@ -104,6 +104,25 @@ class OrganizationService(RpcService):
         :param include_teams: Whether you want teams in the response.
         """
 
+    @cell_rpc_method(resolve=ByCellName())
+    @abstractmethod
+    def get_organizations_by_ids(
+        self,
+        *,
+        cell_name: str,
+        organization_ids: list[int],
+        user_id: int | None = None,
+    ) -> list[RpcUserOrganizationContext]:
+        """
+        Fetches organization and membership contexts for many organizations in one call,
+        e.g. for callers that already know several org ids share a cell and want to avoid
+        one RPC per org.
+
+        :param cell_name: The cell all of the given organizations are expected to live in.
+        :param organization_ids: The ids of the organizations to fetch.
+        :param user_id: The id of the user to fetch membership for.
+        """
+
     @cell_rpc_method(resolve=ByOrganizationSlug(), return_none_if_mapping_not_found=True)
     @abstractmethod
     def get_org_by_slug(
