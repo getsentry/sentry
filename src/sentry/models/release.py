@@ -21,6 +21,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
 from sentry.db.models import (
     BoundedBigIntegerField,
+    BoundedIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
@@ -247,8 +248,8 @@ class Release(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
-    # Shadow column for widening `id` to int8. Every write keeps it equal to `id`.
-    new_id = BoundedBigIntegerField()
+    # Narrow leftover of the id widening, still written on every insert until it is dropped.
+    new_id = BoundedIntegerField()
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField(
         "sentry.Project", related_name="releases", through=ReleaseProject
@@ -344,6 +345,10 @@ class Release(Model):
             models.Index(fields=("organization", "build_number")),
             models.Index(fields=("organization", "date_added")),
             models.Index(fields=("organization", "status")),
+            IndexWithPostgresNameLimits(
+                fields=["id", "organization"],
+                name="sentry_release_id_organization_id",
+            ),
         ]
 
     __repr__ = sane_repr("organization_id", "version")
