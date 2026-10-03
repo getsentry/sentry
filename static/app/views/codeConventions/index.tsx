@@ -28,7 +28,6 @@ import {
   getNewConventionPath,
   REPO,
 } from 'sentry/views/codeConventions/utils';
-import {TopBar} from 'sentry/views/navigation/topBar';
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: '1fr'},
@@ -56,21 +55,19 @@ export default function CodeQuality() {
             <FeatureBadge type="alpha" />
           </Flex>
         </Layout.Title>
-        <TopBar.Slot name="actions">
-          <LinkButton
-            size="sm"
-            variant="primary"
-            icon={<IconAdd />}
-            to={normalizeUrl(getNewConventionPath(organization.slug))}
-          >
-            {t('New convention')}
-          </LinkButton>
-        </TopBar.Slot>
         <Layout.Body>
           <Layout.Main width="full">
             <Stack gap="xl">
-              <Flex>
+              <Flex justify="between" align="center" gap="md">
                 <RepositorySelector repoName={REPO} />
+                <LinkButton
+                  size="sm"
+                  variant="primary"
+                  icon={<IconAdd />}
+                  to={normalizeUrl(getNewConventionPath(organization.slug))}
+                >
+                  {t('New convention')}
+                </LinkButton>
               </Flex>
               <SimpleTable
                 columns={COLUMNS}
