@@ -503,7 +503,6 @@ class Project(Model):
     def transfer_to(self, organization: Organization) -> None:
         from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
         from sentry.incidents.models.alert_rule import AlertRule
-        from sentry.integrations.models.external_issue import ExternalIssue
         from sentry.integrations.models.repository_project_path_config import (
             RepositoryProjectPathConfig,
         )
@@ -829,26 +828,88 @@ class Project(Model):
                     owner_team_id__isnull=True, owner_user_id__isnull=True
                 ).update(owner_team_id=None, owner_user_id=None)
 
-        # Manually move over external issues to the new org
-        linked_groups = GroupLink.objects.filter(project_id=self.id).values_list(
-            "linked_id", flat=True
-        )
-
         # Delete issue ownership objects to prevent them from being stuck on the old org
         ProjectCodeOwners.objects.filter(project_id=self.id).delete()
         RepositoryProjectPathConfig.objects.filter(project_repository__project_id=self.id).delete()
         ProjectRepository.objects.filter(project_id=self.id).delete()
 
+        self._transfer_external_issues(old_org_id, organization.id)
+
+    def _transfer_external_issues(self, old_org_id: int, new_org_id: int) -> None:
+        """
+        Give the moved project's groups an ExternalIssue owned by the new org. Inbound sync and
+        the Jira issue panel resolve groups through ExternalIssue.organization_id, so a row can
+        only be moved when no group left behind still links it; otherwise this project's links
+        are repointed to a copy (or an existing row) in the new org.
+        """
+        from sentry.integrations.models.external_issue import ExternalIssue
+
+        project_issue_links = GroupLink.objects.filter(
+            project_id=self.id, linked_type=GroupLink.LinkedType.issue
+        )
+
         for external_issues in chunked(
             RangeQuerySetWrapper(
-                ExternalIssue.objects.filter(organization_id=old_org_id, id__in=linked_groups),
+                ExternalIssue.objects.filter(
+                    organization_id=old_org_id,
+                    id__in=project_issue_links.values_list("linked_id", flat=True),
+                ),
                 step=1000,
             ),
             1000,
         ):
+            ids = [ei.id for ei in external_issues]
+            shared_ids = set(
+                GroupLink.objects.filter(linked_type=GroupLink.LinkedType.issue, linked_id__in=ids)
+                .exclude(project_id=self.id)
+                .values_list("linked_id", flat=True)
+            )
+            existing_in_new_org = {
+                (ei.integration_id, ei.key): ei
+                for ei in ExternalIssue.objects.filter(
+                    organization_id=new_org_id,
+                    integration_id__in={ei.integration_id for ei in external_issues},
+                    key__in={ei.key for ei in external_issues},
+                )
+            }
+
+            to_move: list[ExternalIssue] = []
+            to_copy: list[ExternalIssue] = []
+            # Rows nothing will link once this project's links point at the new org's row.
+            orphaned_ids: list[int] = []
+            # Old ExternalIssue id -> the new org's ExternalIssue this project's links should use.
+            repoint: dict[int, ExternalIssue] = {}
             for ei in external_issues:
-                ei.organization_id = organization.id
-            ExternalIssue.objects.bulk_update(external_issues, ["organization_id"])
+                target = existing_in_new_org.get((ei.integration_id, ei.key))
+                if target is not None:
+                    repoint[ei.id] = target
+                    if ei.id not in shared_ids:
+                        orphaned_ids.append(ei.id)
+                elif ei.id in shared_ids:
+                    to_copy.append(ei)
+                else:
+                    ei.organization_id = new_org_id
+                    to_move.append(ei)
+
+            copies = [
+                ExternalIssue(
+                    **{
+                        field.attname: getattr(ei, field.attname)
+                        for field in ExternalIssue._meta.concrete_fields
+                        if not field.primary_key
+                    }
+                    | {"organization_id": new_org_id}
+                )
+                for ei in to_copy
+            ]
+
+            with transaction.atomic(router.db_for_write(ExternalIssue)):
+                ExternalIssue.objects.bulk_update(to_move, ["organization_id"])
+                for ei, copy in zip(to_copy, ExternalIssue.objects.bulk_create(copies)):
+                    repoint[ei.id] = copy
+                for old_id, target in repoint.items():
+                    project_issue_links.filter(linked_id=old_id).update(linked_id=target.id)
+                ExternalIssue.objects.filter(id__in=orphaned_ids).delete()
 
     def add_team(self, team):
         from sentry.models.projectteam import ProjectTeam
