@@ -9,7 +9,6 @@ from django.urls import reverse
 
 import sentry.utils.auth
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.user import User
 from sentry.utils.auth import (
@@ -136,22 +135,13 @@ class GetLoginRedirectTest(TestCase):
         request = self._make_request()
         request.session["_pending_2fa"] = [1234, 1234, 1234]
         result = get_login_redirect(request)
-        assert result == reverse("sentry-2fa-dialog")
+        assert result == reverse("sentry-login")
 
         request = self._make_request()
         request.subdomain = "orgslug"
         request.session["_pending_2fa"] = [1234, 1234, 1234]
         result = get_login_redirect(request)
-        assert result == f"http://orgslug.testserver{reverse('sentry-2fa-dialog')}"
-
-    @override_options({"auth.v2.enabled": True})
-    def test_pending_2fa_with_react_auth_setting(self) -> None:
-        request = self._make_request()
-        request.session["_pending_2fa"] = [1234, 1234, 1234]
-
-        result = get_login_redirect(request)
-
-        assert result == reverse("sentry-login")
+        assert result == f"http://orgslug.testserver{reverse('sentry-login')}"
 
     def test_login_uses_default(self) -> None:
         result = get_login_redirect(self._make_request(reverse("sentry-login")))

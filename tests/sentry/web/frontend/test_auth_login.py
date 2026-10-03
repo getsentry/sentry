@@ -1,37 +1,23 @@
-from datetime import timedelta
 from functools import cached_property
 from unittest import mock
 from urllib.parse import quote as urlquote
-from urllib.parse import urlencode
 
-import pytest
-from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
-from django.utils import timezone
 
-from sentry import newsletter
-from sentry.analytics.events.user_signup import UserSignUpEvent
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.authprovider import AuthProvider
-from sentry.models.organization import Organization
-from sentry.models.organizationmember import OrganizationMember
-from sentry.newsletter.dummy import DummyNewsletter
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.receivers import create_default_projects
-from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
-from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.testutils.silo import control_silo_test
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.models.user import User
-from sentry.utils import json
-from sentry.web.frontend.auth_login import AuthLoginView, additional_context
+from sentry.web.frontend.auth_login import AuthLoginView
 
 
 # TODO(dcramer): need tests for SSO behavior and single org behavior
@@ -41,35 +27,20 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
     def path(self) -> str:
         return reverse("sentry-login")
 
+    def setUp(self) -> None:
+        super().setUp()
+        self.client.get(reverse("sentry-api-0-auth-config"))
+
     def allow_registration(self):
         return self.options({"auth.allow-registration": True})
 
-    def test_renders_correct_template(self) -> None:
-        resp = self.client.get(self.path)
-
-        assert resp.status_code == 200
-        self.assertTemplateUsed("sentry/login.html")
-
-    def test_renders_legacy_login_banner(self) -> None:
-        banner = 'Banner message <a href="https://example.com">Learn more</a>.'
-        with mock.patch.object(
-            additional_context,
-            "_callbacks",
-            {lambda request: {"login_banner_legacy_html": banner}},
-        ):
-            response = self.client.get(self.path)
-
-        assert banner.encode() in response.content
-
-    @override_options({"auth.v2.enabled": True})
-    def test_renders_react_template_with_setting(self) -> None:
+    def test_renders_react_template(self) -> None:
         response = self.client.get(self.path)
 
         assert response.status_code == 200
         self.assertTemplateUsed(response, "sentry/base-react.html")
         self.assertTemplateNotUsed(response, "sentry/login.html")
 
-    @override_options({"auth.v2.enabled": True})
     @with_feature("system:multi-region")
     def test_customer_domain_login_redirects_to_primary_domain(self) -> None:
         organization = self.create_organization(slug="customer-domain-org")
@@ -103,10 +74,8 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
         assert response.status_code == 200
         assert response.redirect_chain == [("http://testserver/auth/register/", 302)]
-        assert response.context["op"] == "register"
-        self.assertTemplateUsed(response, "sentry/login.html")
+        self.assertTemplateUsed(response, "sentry/base-react.html")
 
-    @override_options({"auth.v2.enabled": True})
     def test_customer_domain_login_does_not_redirect_without_multi_region(self) -> None:
         organization = self.create_organization(slug="customer-domain-org")
 
@@ -117,23 +86,6 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
         assert response.status_code == 200
         self.assertTemplateUsed(response, "sentry/base-react.html")
-
-    def test_cannot_request_access(self) -> None:
-        resp = self.client.get(self.path)
-
-        assert resp.status_code == 200
-        assert resp.context["join_request_link"] is None
-
-    def test_renders_session_expire_message(self) -> None:
-        self.client.cookies["session_expired"] = "1"
-        resp = self.client.get(self.path)
-
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/login.html")
-
-        messages = list(resp.context["messages"])
-        assert len(messages) == 1
-        assert messages[0].message == "Your session has expired."
 
     def test_login_invalid_password(self) -> None:
         # load it once for test cookie
@@ -199,13 +151,10 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             follow=True,
         )
         assert resp.status_code == 200
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            ("/organizations/new/", 302),
-        ]
+        assert resp.redirect_chain == [(reverse("sentry-login"), 302)]
 
     def test_login_valid_credentials_with_org(self) -> None:
-        org = self.create_organization(owner=self.user)
+        self.create_organization(owner=self.user)
         # load it once for test cookie
         self.client.get(self.path)
 
@@ -215,10 +164,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             follow=True,
         )
         assert resp.status_code == 200
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            (f"/organizations/{org.slug}/issues/", 302),
-        ]
+        assert resp.redirect_chain == [(reverse("sentry-login"), 302)]
 
     def test_login_invalid_op(self) -> None:
         # load it once for test cookie
@@ -258,15 +204,12 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             follow=True,
         )
         assert resp.status_code == 200
-        assert resp.redirect_chain == [(reverse("sentry-2fa-dialog"), 302)]
+        assert resp.redirect_chain == [(reverse("sentry-login"), 302)]
 
         with mock.patch("sentry.auth.authenticators.TotpInterface.validate_otp", return_value=True):
             resp = self.client.post(reverse("sentry-2fa-dialog"), {"otp": "something"}, follow=True)
             assert resp.status_code == 200
-            assert resp.redirect_chain == [
-                (reverse("sentry-login"), 302),
-                ("/organizations/baz/issues/", 302),
-            ]
+            assert resp.redirect_chain == [(reverse("sentry-login"), 302)]
 
     @with_feature("system:multi-region")
     def test_login_valid_credentials_with_org_and_customer_domains(self) -> None:
@@ -282,7 +225,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert resp.status_code == 200
         assert resp.redirect_chain == [
             (f"http://{org.slug}.testserver/auth/login/", 302),
-            (f"http://{org.slug}.testserver/issues/", 302),
+            ("http://testserver/auth/login/", 302),
         ]
 
     @with_feature("system:multi-region")
@@ -305,194 +248,31 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert resp.status_code == 302
         assert resp["Location"] == f"http://testserver/auth/login/{org.slug}/"
 
-    def test_registration_disabled(self) -> None:
-        with self.feature({"auth:register": False}), self.allow_registration():
-            resp = self.client.get(self.path)
-            assert resp.context["register_form"] is None
-
-    @mock.patch("sentry.analytics.record")
-    def test_registration_valid(self, mock_record: mock.MagicMock) -> None:
-        with self.feature("auth:register"), self.allow_registration():
-            resp = self.client.post(
-                self.path,
-                {
-                    "username": "test-a-really-long-email-address@example.com",
-                    "password": "foobar",
-                    "name": "Foo Bar",
-                    "op": "register",
-                },
-            )
-        assert resp.status_code == 302, (
-            resp.context["register_form"].errors if resp.status_code == 200 else None
-        )
-        frontend_events = {"event_name": "Sign Up"}
-        marketing_query = urlencode({"frontend_events": json.dumps(frontend_events)})
-        assert marketing_query in resp.headers["Location"]
-
-        user = User.objects.get(username="test-a-really-long-email-address@example.com")
-        assert user.email == "test-a-really-long-email-address@example.com"
-        assert user.check_password("foobar")
-        assert user.name == "Foo Bar"
-        with assume_test_silo_mode(SiloMode.CELL):
-            assert not OrganizationMember.objects.filter(user_id=user.id).exists()
-
-        assert_last_analytics_event(
-            mock_record,
-            UserSignUpEvent(
-                user_id=user.id,
-                source="register-form",
-                provider=None,
-                referrer="in-app",
-            ),
-        )
-
-    @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
-    def test_registration_single_org(self) -> None:
-        with assume_test_silo_mode(SiloMode.MONOLITH):
-            create_default_projects()
-        with self.feature("auth:register"), self.allow_registration():
-            resp = self.client.post(
-                self.path,
-                {
-                    "username": "test-a-really-long-email-address@example.com",
-                    "password": "foobar",
-                    "name": "Foo Bar",
-                    "op": "register",
-                },
-            )
-        assert resp.status_code == 302, (
-            resp.context["register_form"].errors if resp.status_code == 200 else None
-        )
-        user = User.objects.get(username="test-a-really-long-email-address@example.com")
-
-        # User is part of the default org
-        with assume_test_silo_mode(SiloMode.CELL):
-            default_org = Organization.get_default()
-            org_member = OrganizationMember.objects.get(
-                organization_id=default_org.id, user_id=user.id
-            )
-        assert org_member.role == default_org.default_role
-        self.assert_org_member_mapping(org_member=org_member)
-
-    @override_settings(SENTRY_SINGLE_ORGANIZATION=True)
-    @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_session")
-    def test_registration_single_org_with_invite(self, from_session: mock.MagicMock) -> None:
-        with assume_test_silo_mode(SiloMode.MONOLITH):
-            create_default_projects()
-        self.session["can_register"] = True
-        self.save_session()
-
-        self.client.get(self.path)
-
-        invite_helper = mock.Mock(valid_request=True, organization_id=self.organization.id)
-        from_session.return_value = invite_helper
-
-        resp = self.client.post(
-            self.path,
-            {
-                "username": "test@example.com",
-                "password": "foobar",
-                "name": "Foo Bar",
-                "op": "register",
-            },
-        )
-
-        user = User.objects.get(username="test@example.com")
-
-        # An organization member should NOT have been created, even though
-        # we're in single org mode, accepting the invite will handle that
-        # (which we assert next)
-        with assume_test_silo_mode(SiloMode.CELL):
-            assert not OrganizationMember.objects.filter(user_id=user.id).exists()
-
-        # Invitation was accepted
-        assert len(invite_helper.accept_invite.mock_calls) == 1
-        assert resp.status_code == 302
-        assert "/organizations/new/" in resp["Location"]
-
     def test_register_renders_correct_template(self) -> None:
         with self.allow_registration():
             register_path = reverse("sentry-register")
             resp = self.client.get(register_path)
 
             assert resp.status_code == 200
-            assert resp.context["op"] == "register"
-            self.assertTemplateUsed("sentry/login.html")
+            self.assertTemplateUsed(resp, "sentry/base-react.html")
 
-    def test_register_prefills_invite_email(self) -> None:
-        self.session["invite_email"] = "foo@example.com"
-        self.session["can_register"] = True
-        self.save_session()
+    @override_options({"auth.allow-registration": True})
+    @with_feature("auth:register")
+    def test_registration_post_requires_auth_api(self) -> None:
+        for route in ("sentry-login", "sentry-register"):
+            with self.subTest(route=route):
+                response = self.client.post(
+                    reverse(route),
+                    {
+                        "username": "new.user@example.com",
+                        "password": "new-secure-password",
+                        "name": "New User",
+                        "op": "register",
+                    },
+                )
 
-        register_path = reverse("sentry-register")
-        resp = self.client.get(register_path)
-
-        assert resp.status_code == 200
-        assert resp.context["op"] == "register"
-        assert resp.context["register_form"].initial["username"] == "foo@example.com"
-        self.assertTemplateUsed("sentry/login.html")
-
-    @mock.patch("sentry.web.frontend.auth_login.ApiInviteHelper.from_session")
-    def test_register_accepts_invite(self, from_session: mock.MagicMock) -> None:
-        self.session["can_register"] = True
-        self.save_session()
-
-        self.client.get(self.path)
-
-        invite_helper = mock.Mock(valid_request=True, organization_id=self.organization.id)
-        from_session.return_value = invite_helper
-
-        resp = self.client.post(
-            self.path,
-            {
-                "username": "test@example.com",
-                "password": "foobar",
-                "name": "Foo Bar",
-                "op": "register",
-            },
-        )
-        assert resp.status_code == 302
-        assert len(invite_helper.accept_invite.mock_calls) == 1
-
-    def test_register_new_user_accepts_invite_using_session(self) -> None:
-        invite = self.create_member(
-            email="member@example.com",
-            token="abcdef",
-            token_expires_at=timezone.now() + timedelta(hours=24),
-            organization_id=self.organization.id,
-        )
-        self.session["can_register"] = True
-        self.session["invite_token"] = invite.token
-        self.session["invite_member_id"] = invite.id
-        self.session["invite_organization_id"] = invite.organization_id
-        self.save_session()
-
-        self.client.get(self.path)
-        resp = self.client.post(
-            self.path,
-            {
-                "username": "member@example.com",
-                "password": "foobar",
-                "name": "Foo Bar",
-                "op": "register",
-            },
-        )
-        assert resp.status_code == 302
-        assert f"/organizations/{self.organization.slug}/issues/" in resp["Location"]
-        invite.refresh_from_db()
-        assert invite.user_id
-        assert invite.token is None
-        assert User.objects.get(id=invite.user_id).username == "member@example.com"
-
-    def test_redirects_to_relative_next_url(self) -> None:
-        next = "/welcome"
-        self.client.get(self.path + "?next=" + next)
-
-        resp = self.client.post(
-            self.path, {"username": self.user.username, "password": "admin", "op": "login"}
-        )
-        assert resp.status_code == 302
-        assert resp.get("Location", "").endswith(next)
+                assert response.status_code == 400
+                assert not User.objects.filter(email="new.user@example.com").exists()
 
     def test_doesnt_redirect_to_external_next_url(self) -> None:
         next = "http://example.com"
@@ -503,69 +283,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             {"username": self.user.username, "password": "admin", "op": "login"},
             follow=True,
         )
-        assert resp.redirect_chain == [
-            (reverse("sentry-login"), 302),
-            ("/organizations/new/", 302),
-        ]
-
-    def test_redirects_already_authed_non_superuser(self) -> None:
-        self.user.update(is_superuser=False)
-        self.login_as(self.user)
-        with self.feature("organizations:create"):
-            resp = self.client.get(self.path)
-            self.assertRedirects(resp, "/organizations/new/")
-
-    def test_redirects_authenticated_user_to_custom_next_url(self) -> None:
-        self.user.update(is_superuser=False)
-        self.login_as(self.user)
-        resp = self.client.get(self.path + "?next=testserver")
-        assert resp.status_code == 302
-        assert resp.get("Location", "").endswith("testserver")
-
-    def test_inactive_authenticated_user_redirected_to_reactivate(self) -> None:
-        # inactive user + ?next= must go to reactivate, not be forwarded to next_uri.
-        # BaseView.is_auth_required rejects inactive users and redirects them back to
-        # login, creating an infinite redirect loop.
-        self.user.update(is_active=False)
-        self.login_as(self.user)
-        resp = self.client.get(self.path + "?next=/restore/")
-        self.assertRedirects(resp, "/auth/reactivate/", fetch_redirect_response=False)
-
-    def test_redirect_superuser(self) -> None:
-        self.login_as(self.user, superuser=False)
-
-        resp = self.client.get(self.path)
-
-        with self.feature("organizations:create"):
-            resp = self.client.get(self.path)
-            self.assertRedirects(resp, "/organizations/new/")
-
-        self.login_as(self.user, superuser=True)
-
-        resp = self.client.get(self.path)
-
-        with self.feature("organizations:create"):
-            resp = self.client.get(self.path)
-            self.assertRedirects(resp, "/organizations/new/")
-
-    @override_settings(
-        AUTH_PASSWORD_VALIDATORS=[
-            {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"}
-        ]
-    )
-    def test_unable_to_set_weak_password_via_registration_form(self) -> None:
-        with self.feature("auth:register"), self.options({"auth.allow-registration": True}):
-            resp = self.client.post(
-                self.path,
-                {
-                    "username": "hello@example.com",
-                    "password": "hello@example.com",
-                    "name": "Hello World",
-                    "op": "register",
-                },
-            )
-        assert resp.status_code == 200
-        assert b"The password is too similar to the username." in resp.content
+        assert resp.redirect_chain == [(reverse("sentry-login"), 302)]
 
     @override_options({"demo-mode.enabled": True, "demo-mode.users": [1]})
     def test_login_demo_mode(self) -> None:
@@ -586,7 +304,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
         assert resp.status_code == 200
         # successful login redirects to organizations/new
-        assert resp.redirect_chain == [(reverse("sentry-login"), 302), ("/organizations/new/", 302)]
+        assert resp.redirect_chain == [(reverse("sentry-login"), 302)]
 
     @override_options({"demo-mode.enabled": False, "demo-mode.users": [1]})
     def test_login_demo_mode_disabled(self) -> None:
@@ -656,86 +374,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
             assert resp.status_code == 200
             # successful login redirects to demo orgs issue stream
-            assert resp.redirect_chain == [
-                (reverse("sentry-login"), 302),
-                (f"/organizations/{demo_org.slug}/issues/", 302),
-            ]
-
-
-@pytest.mark.skipif(
-    settings.SENTRY_NEWSLETTER != "sentry.newsletter.dummy.DummyNewsletter",
-    reason="Requires DummyNewsletter.",
-)
-@control_silo_test
-class AuthLoginNewsletterTest(TestCase):
-    @cached_property
-    def path(self) -> str:
-        return reverse("sentry-login")
-
-    @pytest.fixture(autouse=True)
-    def enable_newsletter(self):
-        with newsletter.backend.test_only__downcast_to(DummyNewsletter).enable():
-            yield
-
-    def test_registration_requires_subscribe_choice_with_newsletter(self) -> None:
-        with self.feature("auth:register"), self.options({"auth.allow-registration": True}):
-            resp = self.client.post(
-                self.path,
-                {
-                    "username": "test-a-really-long-email-address@example.com",
-                    "password": "foobar",
-                    "name": "Foo Bar",
-                    "op": "register",
-                },
-            )
-        assert resp.status_code == 200
-
-        with self.feature("auth:register"), self.options({"auth.allow-registration": True}):
-            resp = self.client.post(
-                self.path,
-                {
-                    "username": "test-a-really-long-email-address@example.com",
-                    "password": "foobar",
-                    "name": "Foo Bar",
-                    "op": "register",
-                    "subscribe": "0",
-                },
-            )
-        assert resp.status_code == 302
-
-        user = User.objects.get(username="test-a-really-long-email-address@example.com")
-        assert user.email == "test-a-really-long-email-address@example.com"
-        assert user.check_password("foobar")
-        assert user.name == "Foo Bar"
-        with assume_test_silo_mode(SiloMode.CELL):
-            assert not OrganizationMember.objects.filter(user_id=user.id).exists()
-
-        assert newsletter.backend.get_subscriptions(user) == {"subscriptions": []}
-
-    def test_registration_subscribe_to_newsletter(self) -> None:
-        with self.feature("auth:register"), self.options({"auth.allow-registration": True}):
-            resp = self.client.post(
-                self.path,
-                {
-                    "username": "test-a-really-long-email-address@example.com",
-                    "password": "foobar",
-                    "name": "Foo Bar",
-                    "op": "register",
-                    "subscribe": "1",
-                },
-            )
-        assert resp.status_code == 302
-
-        user = User.objects.get(username="test-a-really-long-email-address@example.com")
-        assert user.email == "test-a-really-long-email-address@example.com"
-        assert user.check_password("foobar")
-        assert user.name == "Foo Bar"
-
-        results = newsletter.backend.get_subscriptions(user)["subscriptions"]
-        assert len(results) == 1
-        assert results[0].list_id == newsletter.backend.get_default_list_id()
-        assert results[0].subscribed
-        assert not results[0].verified
+            assert resp.redirect_chain == [(reverse("sentry-login"), 302)]
 
 
 @control_silo_test
@@ -746,6 +385,7 @@ class AuthLoginCustomerDomainTest(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        self.client.get(reverse("sentry-api-0-auth-config"))
 
     def disable_registration(self):
         return self.options({"auth.allow-registration": False})
@@ -759,8 +399,8 @@ class AuthLoginCustomerDomainTest(TestCase):
             )
 
             assert resp.status_code == 200
-            assert resp.redirect_chain == [("http://baz.testserver/auth/login/baz/", 302)]
-            self.assertTemplateUsed("sentry/organization-login.html")
+            assert resp.redirect_chain == []
+            self.assertTemplateUsed(resp, "sentry/base-react.html")
 
     def test_renders_correct_template_existent_org_preserve_querystring(self) -> None:
         with self.disable_registration():
@@ -771,8 +411,8 @@ class AuthLoginCustomerDomainTest(TestCase):
             )
 
             assert resp.status_code == 200
-            assert resp.redirect_chain == [("http://baz.testserver/auth/login/baz/?one=two", 302)]
-            self.assertTemplateUsed("sentry/organization-login.html")
+            assert resp.redirect_chain == []
+            self.assertTemplateUsed(resp, "sentry/base-react.html")
 
     def test_renders_correct_template_nonexistent_org(self) -> None:
         with self.disable_registration():
@@ -782,40 +422,7 @@ class AuthLoginCustomerDomainTest(TestCase):
             )
 
             assert resp.status_code == 200
-            self.assertTemplateUsed("sentry/login.html")
-
-    def test_authenticated_user_with_session_active_org_does_not_get_no_org_access(self) -> None:
-        visible_org = self.create_organization(owner=self.user)
-        self.create_organization(name="albertos-apples")
-        self.login_as(self.user)
-        self.session["activeorg"] = visible_org.slug
-        self.save_session()
-
-        with self.feature({"organizations:create": False}):
-            resp = self.client.get(
-                self.path,
-                HTTP_HOST="albertos-apples.testserver",
-                follow=True,
-            )
-
-            assert resp.status_code == 200
-            assert resp.redirect_chain == [
-                (f"http://testserver/organizations/{visible_org.slug}/issues/", 302)
-            ]
-
-    def test_authenticated_user_without_visible_org_still_gets_no_org_access(self) -> None:
-        user = self.create_user()
-        self.create_organization(name="albertos-apples")
-        self.login_as(user)
-
-        with self.feature({"organizations:create": False}):
-            resp = self.client.get(
-                self.path,
-                HTTP_HOST="albertos-apples.testserver",
-            )
-
-            assert resp.status_code == 403
-            self.assertTemplateUsed(resp, "sentry/no-organization-access.html")
+            self.assertTemplateUsed(resp, "sentry/base-react.html")
 
     def test_explicit_org_path_does_not_use_customer_domain_subdomain(self) -> None:
         visible_org = self.create_organization(owner=self.user)
@@ -842,11 +449,8 @@ class AuthLoginCustomerDomainTest(TestCase):
             )
 
             assert resp.status_code == 200
-            assert resp.redirect_chain == [
-                ("http://albertos-apples.testserver/auth/login/", 302),
-                ("http://testserver/organizations/new/", 302),
-            ]
-            self.assertTemplateUsed("sentry/login.html")
+            assert resp.redirect_chain == [("http://albertos-apples.testserver/auth/login/", 302)]
+            self.assertTemplateUsed(resp, "sentry/base-react.html")
 
     def test_login_valid_credentials_with_org(self) -> None:
         with self.disable_registration():
@@ -861,10 +465,7 @@ class AuthLoginCustomerDomainTest(TestCase):
                 follow=True,
             )
             assert resp.status_code == 200
-            assert resp.redirect_chain == [
-                ("http://albertos-apples.testserver/auth/login/", 302),
-                ("http://albertos-apples.testserver/issues/", 302),
-            ]
+            assert resp.redirect_chain == [("http://albertos-apples.testserver/auth/login/", 302)]
 
     def test_login_valid_credentials_invalid_customer_domain(self) -> None:
         with self.feature("system:multi-region"), self.disable_registration():
@@ -882,7 +483,7 @@ class AuthLoginCustomerDomainTest(TestCase):
             assert resp.status_code == 200
             assert resp.redirect_chain == [
                 ("http://albertos-apples.testserver/auth/login/", 302),
-                ("http://albertos-apples.testserver/issues/", 302),
+                ("http://testserver/auth/login/", 302),
             ]
 
     def test_login_valid_credentials_non_staff(self) -> None:
@@ -901,10 +502,7 @@ class AuthLoginCustomerDomainTest(TestCase):
                 follow=True,
             )
             assert resp.status_code == 200
-            assert resp.redirect_chain == [
-                ("http://albertos-apples.testserver/auth/login/", 302),
-                ("http://albertos-apples.testserver/issues/", 302),
-            ]
+            assert resp.redirect_chain == [("http://albertos-apples.testserver/auth/login/", 302)]
 
     def test_login_valid_credentials_not_a_member(self) -> None:
         user = self.create_user()
@@ -923,11 +521,7 @@ class AuthLoginCustomerDomainTest(TestCase):
 
             assert resp.status_code == 200
             assert resp.redirect_chain == [
-                (f"http://albertos-apples.testserver{reverse('sentry-login')}", 302),
-                (
-                    f"http://albertos-apples.testserver{reverse('sentry-auth-organization', args=['albertos-apples'])}",
-                    302,
-                ),
+                (f"http://albertos-apples.testserver{reverse('sentry-login')}", 302)
             ]
 
     def test_login_valid_credentials_orgless(self) -> None:
@@ -945,10 +539,7 @@ class AuthLoginCustomerDomainTest(TestCase):
             )
 
             assert resp.status_code == 200
-            assert resp.redirect_chain == [
-                ("http://albertos-apples.testserver/auth/login/", 302),
-                ("http://albertos-apples.testserver/auth/login/albertos-apples/", 302),
-            ]
+            assert resp.redirect_chain == [("http://albertos-apples.testserver/auth/login/", 302)]
 
     def test_login_valid_credentials_org_does_not_exist(self) -> None:
         user = self.create_user()
@@ -964,10 +555,7 @@ class AuthLoginCustomerDomainTest(TestCase):
             )
 
             assert resp.status_code == 200
-            assert resp.redirect_chain == [
-                ("http://albertos-apples.testserver/auth/login/", 302),
-                ("http://testserver/organizations/new/", 302),
-            ]
+            assert resp.redirect_chain == [("http://albertos-apples.testserver/auth/login/", 302)]
 
     def test_login_redirects_to_sso_org_does_not_exist(self) -> None:
         # load it once for test cookie
@@ -1010,10 +598,7 @@ class AuthLoginCustomerDomainTest(TestCase):
                 follow=True,
             )
             assert resp.status_code == 200
-            assert resp.redirect_chain == [
-                ("/auth/login/", 302),
-                ("http://albertos-apples.testserver/auth/login/albertos-apples/", 302),
-            ]  # Redirects to default login
+            assert resp.redirect_chain == [("/auth/login/", 302)]  # Redirects to default login
 
     def test_login_redirects_to_sso_provider(self) -> None:
         # load it once for test cookie

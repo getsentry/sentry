@@ -135,7 +135,7 @@ def has_pending_2fa(request: HttpRequest) -> bool:
 
 
 def is_react_auth_enabled(request: HttpRequest) -> bool:
-    return options.get("auth.v2.enabled")
+    return True
 
 
 def get_login_url(reset: bool = False) -> str:

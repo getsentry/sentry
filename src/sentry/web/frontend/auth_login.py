@@ -51,7 +51,7 @@ from sentry.web.frontend.base import BaseView, control_silo_view, determine_acti
 from sentry.web.frontend.react_page import ReactMixin
 
 ERR_NO_SSO = _("The organization does not exist or does not have Single Sign-On enabled.")
-REACT_AUTH_URL_NAMES = frozenset({"sentry-login", "sentry-auth-organization"})
+REACT_AUTH_URL_NAMES = frozenset({"sentry-login", "sentry-auth-organization", "sentry-register"})
 
 logger = logging.getLogger("sentry.auth")
 
@@ -145,7 +145,7 @@ class AuthLoginView(BaseView, ReactMixin):
 
         if self.should_redirect_to_sso_login(request=request):
             response = self.get_org_auth_login_redirect(request=request)
-        elif self.can_register(request=request):
+        elif self.can_register(request=request) and not is_react_auth_enabled(request):
             response = self.get_registration_page(request=request, **kwargs)
         else:
             response = self.get_login_page(request=request, **kwargs)
@@ -265,12 +265,19 @@ class AuthLoginView(BaseView, ReactMixin):
 
     def post(self, request: HttpRequest, **kwargs) -> HttpResponseBase:
         op = request.POST.get("op")
+        if (
+            request.resolver_match
+            and request.resolver_match.url_name == "sentry-register"
+            and is_react_auth_enabled(request)
+        ):
+            raise BadRequest()
+
         if op == "sso" and request.POST.get("organization"):
             return self.redirect_post_to_sso(request=request)
 
         organization: RpcOrganization | None = kwargs.pop("organization", None)
 
-        if self.can_register(request=request):
+        if self.can_register(request=request) and not is_react_auth_enabled(request):
             return self.handle_register_form_submit(
                 request=request, organization=organization, **kwargs
             )
@@ -625,6 +632,9 @@ class AuthLoginView(BaseView, ReactMixin):
         It will be removed once we decouple those classes from this method TODO(@EricHasegawa).
         """
         op = request.POST.get("op")
+        if op == "register" and is_react_auth_enabled(request):
+            raise BadRequest()
+
         organization = kwargs.pop("organization", None)
 
         if is_demo_mode_enabled() and is_demo_org(organization):
@@ -647,7 +657,7 @@ class AuthLoginView(BaseView, ReactMixin):
                     url = f"{url}?{request.GET.urlencode()}"
                 return HttpResponseRedirect(url)
 
-        can_register = self.can_register(request)
+        can_register = self.can_register(request) and not is_react_auth_enabled(request)
 
         if not op:
             # Detect that we are on the register page by url /register/ and
