@@ -1235,6 +1235,7 @@ export const apiExamples = {
             teamsWithEditAccess: [],
           },
           isFavorited: false,
+          isHidden: false,
           prebuiltId: null,
         },
         {
@@ -1284,6 +1285,7 @@ export const apiExamples = {
           widgetPreview: [],
           permissions: null,
           isFavorited: false,
+          isHidden: false,
           prebuiltId: null,
         },
       ],
@@ -7920,6 +7922,32 @@ export const apiExamples = {
       ],
     },
   },
+  '/organizations/$organizationIdOrSlug/trace-items/metrics/': {
+    GET: {
+      'List the trace metrics for an organization': [
+        {
+          name: 'checkout.latency',
+          type: 'distribution',
+          unit: 'millisecond',
+          count: 1432,
+          lastSeen: 1735689600,
+          context: {
+            brief: 'End-to-end latency of the checkout flow.',
+            details: [
+              'Recorded once per completed checkout, from cart submit to receipt.',
+            ],
+          },
+        },
+        {
+          name: 'cart.items',
+          type: 'gauge',
+          unit: null,
+          count: 87,
+          lastSeen: 1735686000,
+        },
+      ],
+    },
+  },
   '/organizations/$organizationIdOrSlug/trace-items/stats/': {
     GET: {
       'Attribute distributions for the matching trace items': {
@@ -8711,7 +8739,7 @@ export const apiExamples = {
               {
                 id: '234567',
                 type: 'issue_priority_deescalating',
-                comparison: true,
+                comparison: 75,
                 conditionResult: true,
               },
             ],
@@ -8790,7 +8818,7 @@ export const apiExamples = {
               {
                 id: '345678',
                 type: 'issue_priority_deescalating',
-                comparison: true,
+                comparison: 75,
                 conditionResult: true,
               },
             ],

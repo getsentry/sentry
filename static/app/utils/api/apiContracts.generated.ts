@@ -1849,6 +1849,7 @@ export type DashboardListResponse = Array<{
   };
   id: string;
   isFavorited: boolean;
+  isHidden: boolean;
   lastVisited: string | null;
   permissions: {
     isEditableByEveryone: boolean;
@@ -3624,6 +3625,18 @@ export type IntegrationIssueConfigResponse = {
   linkIssueConfig?: Array<Record<string, unknown>>;
 };
 
+export type IntegrationRepositoriesResponse = {
+  repos: Array<{
+    defaultBranch: string | null;
+    externalId: string;
+    identifier: string;
+    isInstalled: boolean;
+    name: string;
+    url: string | null;
+  }>;
+  searchable?: boolean;
+};
+
 export type InvalidEventsQueryResponse = {
   dataset: Array<{
     error: string | null;
@@ -3893,6 +3906,34 @@ export type IssueEventDetailsResponse = {
   > | null;
   startTimestamp?: number;
 };
+
+export type IssueIntegrationsResponse = Array<{
+  accountType: string | null;
+  domainName: string | null;
+  externalIssues: Array<{
+    description: string | null;
+    displayName: string;
+    id: string;
+    key: string;
+    title: string | null;
+    url: string;
+  }>;
+  icon: string | null;
+  id: string;
+  name: string;
+  outOfDate: boolean | null;
+  provider: {
+    aspects: Record<string, unknown>;
+    canAdd: boolean;
+    canDisable: boolean;
+    features: string[];
+    key: string;
+    name: string;
+    slug: string;
+  };
+  scopes: string[] | null;
+  status: string;
+}>;
 
 export type LatestBaseSnapshotResponse = {
   app_id?: string | null;
@@ -6407,6 +6448,7 @@ export type OrganizationEventsTimeseriesResponse = {
       start: number;
       type: 'system';
     }>;
+    estimatedIngestionDelaySeconds?: number;
   };
 };
 
@@ -7097,7 +7139,6 @@ export type OrganizationReleaseTimeseriesResponse = Array<{
 
 export type OrganizationSamplingEffectiveSampleRateResponse = {
   eapEffectiveSampleRate: number | null;
-  effectiveSampleRate: number | null;
 };
 
 export type OrganizationSentryAppDetailsResponse = Array<{
@@ -8837,6 +8878,30 @@ export type SeerModelsResponse = {
   models: string[];
 };
 
+export type SentryAppComponentsResponse = Array<{
+  error:
+    | string
+    | {
+        context?: Record<string, unknown>;
+        detail?: string;
+      };
+  schema: Record<string, unknown>;
+  sentryApp: {
+    avatars: Array<{
+      avatarType: string;
+      avatarUrl: string;
+      avatarUuid: string;
+      color: boolean;
+      photoType: string;
+    }>;
+    name: string;
+    slug: string;
+    uuid: string;
+  };
+  type: string;
+  uuid: string;
+}>;
+
 export type SentryAppDetailsResponse = {
   allowedOrigins: string[];
   avatars: Array<{
@@ -8874,6 +8939,11 @@ export type SentryAppDetailsResponse = {
   webhookUrl?: string | null;
 };
 
+export type SentryAppExternalRequestOptionsResponse = {
+  choices: string[][];
+  defaultValue?: string;
+};
+
 export type SentryAppInstallation = {
   app: {
     sentryAppId: number;
@@ -8887,6 +8957,12 @@ export type SentryAppInstallation = {
   };
   status: string;
   uuid: string;
+};
+
+export type SentryAppInstallationExternalIssueActions = {
+  action: 'create' | 'link';
+  groupId: string;
+  uri: string;
 };
 
 export type SentryAppInstallationParser = {
@@ -10244,6 +10320,15 @@ export type WorkflowGroupHistory = {
   detector?: Record<string, unknown>;
 };
 
+export type WorkflowProjectScopeResponse = {
+  includesAllProjects: boolean;
+  projectIds: string[];
+};
+
+export type WorkflowRunCreate = {
+  strategy: 'duplicate_monitors';
+};
+
 /**
  * Allows parameters to be defined in snake case, but passed as camel case.
  *
@@ -10332,11 +10417,11 @@ export type ApiMapping = {
     POST: {response: AgentTokenResponse};
   };
   '/organizations/$organizationIdOrSlug/agents/conversations/': {
-    /** listOrganizationAIConversations (public) */
+    /** listOrganizationAIConversations (public_experimental) */
     GET: {response: ListOrganizationAIConversationsResponse};
   };
   '/organizations/$organizationIdOrSlug/agents/conversations/$conversationId/': {
-    /** retrieveOrganizationAIConversation (public) */
+    /** retrieveOrganizationAIConversation (public_experimental) */
     GET: {response: RetrieveOrganizationAIConversationResponse};
   };
   '/organizations/$organizationIdOrSlug/alert-rule-detector/': {
@@ -10493,6 +10578,10 @@ export type ApiMapping = {
     /** getOrganizationIntegration (public) */
     GET: {response: OrganizationIntegrationResponse};
   };
+  '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/': {
+    /** listOrganizationIntegrationRepositories (public_experimental) */
+    GET: {response: IntegrationRepositoriesResponse};
+  };
   '/organizations/$organizationIdOrSlug/integrations/$integrationId/serverless-functions/': {
     /** List an Integration's Serverless Functions (private) */
     GET: {response: ListServerlessFunctions};
@@ -10518,7 +10607,7 @@ export type ApiMapping = {
     PUT: {response: GroupUpdateResponse};
   };
   '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/': {
-    /** getOrganizationIssueAutofixState (public) */
+    /** getOrganizationIssueAutofixState (public_experimental) */
     GET: {response: AutofixStateResponse};
     /** startOrganizationIssueAutofix (public) */
     POST: {response: AutofixPostResponse};
@@ -10538,6 +10627,10 @@ export type ApiMapping = {
   '/organizations/$organizationIdOrSlug/issues/$issueId/hashes/': {
     /** listOrganizationIssueHashes (public) */
     GET: {response: GroupHashesResponse};
+  };
+  '/organizations/$organizationIdOrSlug/issues/$issueId/integrations/': {
+    /** listOrganizationIssueIntegrations (public_experimental) */
+    GET: {response: IssueIntegrationsResponse};
   };
   '/organizations/$organizationIdOrSlug/issues/$issueId/integrations/$integrationId/': {
     /** Retrieve an Integration's Issue Config for an Issue (public) */
@@ -10686,7 +10779,7 @@ export type ApiMapping = {
     GET: {response: OrganizationRelayResponse};
   };
   '/organizations/$organizationIdOrSlug/release-threshold-statuses/': {
-    /** listOrganizationReleaseThresholdStatuses (public) */
+    /** listOrganizationReleaseThresholdStatuses (public_experimental) */
     GET: {response: ReleaseThresholdStatusResponse};
   };
   '/organizations/$organizationIdOrSlug/releases/': {
@@ -10781,6 +10874,14 @@ export type ApiMapping = {
     /** replaceOrganizationScimV2User (experimental) */
     PUT: {response: OrganizationMemberSCIM};
   };
+  '/organizations/$organizationIdOrSlug/seer/workflows/': {
+    /** Start a Seer workflow run (private) */
+    POST: {response: Record<string, unknown>};
+  };
+  '/organizations/$organizationIdOrSlug/sentry-app-components/': {
+    /** listOrganizationSentryAppComponents (public_experimental) */
+    GET: {response: SentryAppComponentsResponse};
+  };
   '/organizations/$organizationIdOrSlug/sentry-app-installations/': {
     /** List an Organization's Integration Platform Installations (private) */
     GET: {
@@ -10841,7 +10942,7 @@ export type ApiMapping = {
     GET: {response: ListTraceItemAttributeValuesResponse};
   };
   '/organizations/$organizationIdOrSlug/trace-items/metrics/': {
-    /** listOrganizationTraceMetrics (experimental) */
+    /** listOrganizationTraceMetrics (public_experimental) */
     GET: {response: ListOrganizationTraceMetricsResponse};
   };
   '/organizations/$organizationIdOrSlug/trace-items/stats/': {
@@ -10885,6 +10986,10 @@ export type ApiMapping = {
   '/organizations/$organizationIdOrSlug/workflows/$workflowId/group-history/': {
     /** Retrieve Group Firing History for a Workflow (experimental) */
     GET: {response: WorkflowGroupHistory};
+  };
+  '/organizations/$organizationIdOrSlug/workflows/$workflowId/project-scope/': {
+    /** getOrganizationWorkflowProjectScope (private) */
+    GET: {response: WorkflowProjectScopeResponse};
   };
   '/organizations/$organizationIdOrSlug/workflows/$workflowId/stats/': {
     /** Retrieve Firing Stats for a Workflow for a Given Time Range. (experimental) */
@@ -11790,6 +11895,10 @@ export type ApiMapping = {
     /** Update a Sentry App Installation (private) */
     PUT: {response: SentryAppInstallation};
   };
+  '/sentry-app-installations/$uuid/external-issue-actions/': {
+    /** executeSentryAppInstallationExternalIssueAction (public_experimental) */
+    POST: {response: PlatformExternalIssueResponse};
+  };
   '/sentry-app-installations/$uuid/external-issues/': {
     /** Create or update an External Issue (private) */
     POST: {
@@ -11801,6 +11910,10 @@ export type ApiMapping = {
         webUrl: string;
       };
     };
+  };
+  '/sentry-app-installations/$uuid/external-requests/': {
+    /** getSentryAppInstallationExternalRequestOptions (public_experimental) */
+    GET: {response: SentryAppExternalRequestOptionsResponse};
   };
   '/sentry-apps/$sentryAppIdOrSlug/': {
     /** getSentryApp (public) */
