@@ -694,8 +694,8 @@ importers:
         specifier: 16.26.1
         version: 16.26.1(@typescript/typescript6@6.0.2)
       stylelint-config-recommended:
-        specifier: ^14.0.1
-        version: 14.0.1(stylelint@16.26.1(@typescript/typescript6@6.0.2))
+        specifier: ^17.0.0
+        version: 17.0.0(stylelint@16.26.1(@typescript/typescript6@6.0.2))
       terser:
         specifier: 5.51.2
         version: 5.51.2
@@ -8914,11 +8914,11 @@ packages:
   style-to-object@1.0.14:
     resolution: {integrity: sha512-LIN7rULI0jBscWQYaSswptyderlarFkjQ+t79nzty8tcIAceVomEVlLzH5VP4Cmsv6MtKhs7qaAiwlcp+Mgaxw==}
 
-  stylelint-config-recommended@14.0.1:
-    resolution: {integrity: sha512-bLvc1WOz/14aPImu/cufKAZYfXs/A/owZfSMZ4N+16WGXLoX5lOir53M6odBxvhgmgdxCVnNySJmZKx73T93cg==}
+  stylelint-config-recommended@17.0.0:
+    resolution: {integrity: sha512-WaMSdEiPfZTSFVoYmJbxorJfA610O0tlYuU2aEwY33UQhSPgFbClrVJYWvy3jGJx+XW37O+LyNLiZOEXhKhJmA==}
     engines: {node: '>=18.12.0'}
     peerDependencies:
-      stylelint: ^16.1.0
+      stylelint: ^16.23.0
 
   stylelint@16.26.1:
     resolution: {integrity: sha512-v20V59/crfc8sVTAtge0mdafI3AdnzQ2KsWe6v523L4OA1bJO02S7MO2oyXDCS6iWb9ckIPnqAFVItqSBQr7jw==}
@@ -18552,7 +18552,7 @@ snapshots:
     dependencies:
       inline-style-parser: 0.2.7
 
-  stylelint-config-recommended@14.0.1(stylelint@16.26.1(@typescript/typescript6@6.0.2)):
+  stylelint-config-recommended@17.0.0(stylelint@16.26.1(@typescript/typescript6@6.0.2)):
     dependencies:
       stylelint: 16.26.1(@typescript/typescript6@6.0.2)
 
