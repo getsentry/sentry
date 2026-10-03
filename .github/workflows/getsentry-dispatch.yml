@@ -53,8 +53,19 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          changed_files="$RUNNER_TEMP/getsentry-dispatch-files"
           gh api repos/${{ github.repository }}/pulls/${{ github.event.number }}/files \
-            --paginate | python3 .github/workflows/scripts/parse-pr-files.py >> "$GITHUB_OUTPUT"
+            --paginate | python3 .github/workflows/scripts/parse-pr-files.py > "$changed_files"
+
+          # This output is exported to github-script. Reserve headroom below the
+          # 65,535-byte workflow_dispatch payload maximum; the script checks exactly.
+          changed_files_bytes=$(wc -c < "$changed_files")
+          if (( changed_files_bytes > 60000 )); then
+            echo '::warning::Changed files exceed the workflow dispatch payload limit; running the full getsentry suite'
+            printf 'files=\nprevious-filenames=\n' >> "$GITHUB_OUTPUT"
+          else
+            cat "$changed_files" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: getsentry token
         uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
