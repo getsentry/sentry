@@ -113,6 +113,15 @@ function IssuesSecondaryNavigationImpl() {
                 {t('User Feedback')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
+            <SecondaryNavigation.ListItem>
+              <SecondaryNavigation.Link
+                to={`${baseUrl}/code-conventions/`}
+                analyticsItemName="issues_code_conventions"
+                trailingItems={<FeatureBadge type="alpha" />}
+              >
+                {t('Code Conventions')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         {(hasSeerNightShift || !hasIssueInbox) && (

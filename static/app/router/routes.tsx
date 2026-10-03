@@ -2538,6 +2538,10 @@ function buildRoutes(): RouteObject[] {
       redirectTo: '../autofix/',
     },
     {
+      path: 'code-conventions/',
+      component: make(() => import('sentry/views/codeConventions')),
+    },
+    {
       path: 'views/:viewId/',
       component: errorHandler(OverviewWrapper),
     },
