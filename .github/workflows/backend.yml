@@ -486,6 +486,47 @@ jobs:
           github-token: ${{ steps.token.outputs.token }}
           message: ':hammer_and_wrench: Sync API Urls to TypeScript'
 
+  api-contracts-typescript:
+    if: needs.files-changed.outputs.api_docs == 'true'
+    needs: files-changed
+    name: api contracts typescript generation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: getsentry/action-github-app-token@5c1e90706fe007857338ac1bfbd7a4177db2f789 # v4.0.0
+        id: token
+        with:
+          app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
+          private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+      - name: Setup sentry env
+        uses: ./.github/actions/setup-sentry
+        with:
+          mode: backend-ci
+
+      - uses: ./.github/actions/setup-node-pnpm
+
+      - name: Sync API contracts to TypeScript
+        run: |
+          make build-api-contracts
+
+      # Backend-only changes can skip the frontend workflow, so validate the
+      # regenerated contracts and examples here before committing them.
+      - name: Typecheck API contracts and consumers
+        run: pnpm run typecheck
+
+      - name: Lint generated API contracts and examples
+        run: pnpm run lint:js static/app/utils/api/apiContracts.generated.ts tests/js/fixtures/generated/apiExamples.generated.ts
+
+      - name: Apply any file changes
+        if: github.ref != 'refs/heads/master'
+        uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
+        with:
+          github-token: ${{ steps.token.outputs.token }}
+          message: ':hammer_and_wrench: Sync API contracts to TypeScript'
+
   migration:
     if: needs.files-changed.outputs.migration_lockfile == 'true'
     needs: files-changed
@@ -647,6 +688,7 @@ jobs:
   backend-required-check:
     needs:
       [
+        api-contracts-typescript,
         api-docs,
         backend-test,
         backend-migration-tests,
