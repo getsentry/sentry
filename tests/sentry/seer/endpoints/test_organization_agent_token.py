@@ -166,7 +166,7 @@ class SuperuserAgentTokenTest(APITestCase):
             assert minted.status_code == 200, minted.content
             with assume_test_silo_mode(SiloMode.CONTROL):
                 self.employee.update(**changes)
-            assert self._mint(expires_at).status_code == 401
+            assert self._mint(expires_at).status_code == 403
             assert self._read(minted.data["token"]).status_code == 401
 
     def test_delegated_token_cannot_write_remint_or_cross_org(self):
