@@ -5,6 +5,10 @@ import process from 'node:process';
 import type {Config} from '@jest/types';
 import type {Options as SwcOptions} from '@swc/core';
 
+import {getReactRouterVersion} from './build-utils/reactRouterVersion.ts';
+
+const REACT_ROUTER_VERSION = getReactRouterVersion(process.env);
+
 const swcConfig: SwcOptions = {
   isModule: true,
   module: {
@@ -19,6 +23,10 @@ const swcConfig: SwcOptions = {
       dynamicImport: true,
     },
     transform: {
+      optimizer: {
+        // React Router's ESM build checks Vite HMR; Jest runs without it.
+        globals: {vars: {'import.meta.hot': 'undefined'}},
+      },
       react: {
         runtime: 'automatic',
         importSource: '@emotion/react',
@@ -248,6 +256,9 @@ const ESM_NODE_MODULES = [
   'screenfull',
   'cbor2',
   'nuqs',
+  'react-router',
+  '@remix-run\\+route-pattern',
+  'cookie-es',
   'color',
   'marked',
   '@sentry\\+sqlish',
@@ -255,14 +266,18 @@ const ESM_NODE_MODULES = [
 
 const config: Config.InitialOptions = {
   verbose: false,
-  cacheDirectory: '.cache/jest',
+  cacheDirectory: `.cache/jest/router-v${REACT_ROUTER_VERSION}`,
   collectCoverageFrom: [
     'static/app/**/*.{js,jsx,ts,tsx}',
     '!static/app/**/*.spec.{js,jsx,ts,tsx}',
   ],
   coverageReporters: ['html', 'cobertura'],
   coverageDirectory: '.artifacts/coverage',
+  resolver: '<rootDir>/build-utils/reactRouterResolver.ts',
   moduleNameMapper: {
+    '^react-router-dom$': `<rootDir>/static/app/router/reactRouterV${REACT_ROUTER_VERSION}.tsx`,
+    '^sentry/router/reactRouter$': `<rootDir>/static/app/router/reactRouterV${REACT_ROUTER_VERSION}.tsx`,
+    '^sentry-test/router$': `<rootDir>/tests/js/sentry-test/routerV${REACT_ROUTER_VERSION}.ts`,
     '\\.(css|less|png|gif|jpg|avif|webp|woff|mp4)$':
       '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
     '^sentry/stories/storyManifest\\.generated$':
@@ -295,6 +310,7 @@ const config: Config.InitialOptions = {
   },
   passWithNoTests: JEST_TESTS !== undefined,
   setupFiles: [
+    '<rootDir>/tests/js/sentry-test/setupReact.ts',
     '<rootDir>/static/app/utils/silenceReactUnsafeWarnings.ts',
     'jest-canvas-mock',
   ],
@@ -304,7 +320,10 @@ const config: Config.InitialOptions = {
   ],
   testMatch: testMatch?.length
     ? testMatch
-    : ['<rootDir>/(static|tests/js)/**/?(*.)+(spec|test).[jt]s?(x)'],
+    : [
+        '<rootDir>/(static|tests/js)/**/?(*.)+(spec|test).[jt]s?(x)',
+        '<rootDir>/build-utils/reactRouterVersion.spec.ts',
+      ],
   testPathIgnorePatterns: [
     '<rootDir>/tests/sentry/lang/javascript/',
     '<rootDir>/static/packages/scraps/',
@@ -357,6 +376,7 @@ const config: Config.InitialOptions = {
       tags: {
         ...optionalTags,
         'ci.branch': BRANCH,
+        'ci.react_router_version': REACT_ROUTER_VERSION,
         'ci.commit': GITHUB_PR_SHA,
         'ci.github_run_attempt': GITHUB_RUN_ATTEMPT,
         'ci.github_actions_run': `https://github.com/getsentry/sentry/actions/runs/${GITHUB_RUN_ID}`,

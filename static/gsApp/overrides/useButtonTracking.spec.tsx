@@ -49,7 +49,6 @@ describe('buttonTracking', () => {
           ],
           {initialEntries: [`/settings/${organization.slug}/${project.slug}/`]}
         )}
-        future={{v7_startTransition: true}}
       />
     </OrganizationContext>
   );
@@ -67,7 +66,6 @@ describe('buttonTracking', () => {
           ],
           {initialEntries: ['/auth/login/']}
         )}
-        future={{v7_startTransition: true}}
       />
     </OrganizationContext>
   );

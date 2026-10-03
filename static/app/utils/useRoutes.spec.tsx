@@ -13,7 +13,6 @@ describe('useRoutes', () => {
             [{path: '/', handle: {path: '/'}, element: children}],
             {initialEntries: ['/']}
           )}
-          future={{v7_startTransition: true}}
         />
       ),
     });

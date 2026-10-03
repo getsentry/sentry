@@ -2,9 +2,10 @@ import {Fragment, useRef, useState} from 'react';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {expectTypeOf} from 'expect-type';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {IconEllipsis} from 'sentry/icons';
@@ -281,6 +282,54 @@ describe('CompactSelect', () => {
 
     expect(screen.getByText('Menu title')).toBeInTheDocument();
   });
+
+  it.each([true, false])(
+    'preserves nested menu focus when opening autofocus runs (search=%s)',
+    async search => {
+      const onAction = jest.fn();
+      render(
+        <CompactSelect
+          search={search}
+          value="opt_one"
+          onChange={jest.fn()}
+          options={[{value: 'opt_one', label: 'Option One'}]}
+          menuTitle={
+            <DropdownMenu
+              usePortal
+              triggerLabel="Operator"
+              items={[{key: 'is', label: 'is', onAction}]}
+            />
+          }
+        />
+      );
+
+      const openingFrames: FrameRequestCallback[] = [];
+      const frameMock = jest
+        .spyOn(window, 'requestAnimationFrame')
+        .mockImplementation(callback => {
+          openingFrames.push(callback);
+          return 0;
+        });
+
+      try {
+        await userEvent.click(screen.getByRole('button', {name: 'Option One'}));
+        frameMock.mockRestore();
+        await userEvent.click(screen.getByRole('button', {name: 'Operator'}));
+        expect(screen.getByRole('menuitemradio', {name: 'is'})).toBeInTheDocument();
+        const focusedControl = document.activeElement;
+
+        act(() => {
+          openingFrames.forEach(callback => callback(0));
+        });
+
+        expect(focusedControl).toHaveFocus();
+        await userEvent.click(screen.getByRole('menuitemradio', {name: 'is'}));
+        expect(onAction).toHaveBeenCalledTimes(1);
+      } finally {
+        frameMock.mockRestore();
+      }
+    }
+  );
 
   it('can be dismissed', async () => {
     render(

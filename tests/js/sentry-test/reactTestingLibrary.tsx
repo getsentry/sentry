@@ -2,21 +2,13 @@ import {Fragment} from 'react';
 import {createPortal} from 'react-dom';
 import {
   Outlet,
-  RouterProvider,
   useRouteError,
   type RouteObject,
   type To,
+  RouterProvider,
 } from 'react-router-dom';
 import {cache} from '@emotion/css'; // eslint-disable-line @sentry/no-vanilla-emotion
 import {CacheProvider, ThemeProvider} from '@emotion/react';
-import {
-  createMemoryHistory,
-  createRouter,
-  type InitialEntry,
-  type MemoryHistory,
-  type Router,
-  type RouterNavigateOptions,
-} from '@remix-run/router';
 import {QueryClientProvider} from '@tanstack/react-query';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import {userEvent} from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
@@ -26,6 +18,13 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {instrumentUserEvent} from 'sentry-test/instrumentedEnv/userEventIntegration';
+import {
+  createMemoryHistory,
+  createRouter,
+  type InitialEntry,
+  type Router,
+  type RouterNavigateOptions,
+} from 'sentry-test/router';
 
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {GlobalModal} from '@sentry/scraps/modal';
@@ -236,7 +235,7 @@ function makeRouter({
 }: {
   children: React.ReactNode;
   config: RouterConfig | undefined;
-  history: MemoryHistory;
+  history: ReturnType<typeof createMemoryHistory>;
   outletContext: Record<string, unknown> | undefined;
 }) {
   const childRoutes = createRoutesFromConfig(children, config);
@@ -251,10 +250,6 @@ function makeRouter({
     : childRoutes;
 
   const router = createRouter({
-    future: {
-      v7_prependBasename: true,
-      v7_relativeSplatPath: true,
-    },
     history,
     routes,
   }).initialize();
@@ -375,10 +370,7 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
     outletContext,
   });
 
-  const renderResult = rtl.render(
-    <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />,
-    options
-  );
+  const renderResult = rtl.render(<RouterProvider router={memoryRouter} />, options);
 
   const rerender = (newUi: React.ReactElement) => {
     const newRouter = makeRouter({
@@ -388,11 +380,11 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
       outletContext,
     });
 
-    renderResult.rerender(
-      <RouterProvider router={newRouter} future={{v7_startTransition: true}} />
-    );
+    renderResult.rerender(<RouterProvider router={newRouter} />);
     // Force the router to update children
-    rtl.act(() => newRouter.revalidate());
+    rtl.act(() => {
+      newRouter.revalidate();
+    });
   };
 
   const testRouter = new TestRouter(memoryRouter);
@@ -431,7 +423,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
       outletContext,
     });
 
-    return <RouterProvider router={memoryRouter} future={{v7_startTransition: true}} />;
+    return <RouterProvider router={memoryRouter} />;
   }
 
   const {initialProps, ...rest} = options;
@@ -459,6 +451,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
  * More details: https://kentcdodds.com/blog/common-mistakes-with-react-testing-library#not-using-testing-libraryuser-event
  */
 const fireEvent = rtl.fireEvent;
+const renderWithoutProviders = rtl.render;
 
 function renderGlobalModal(options?: RenderOptions) {
   const result = render(<GlobalModal />, options);
@@ -503,6 +496,7 @@ export {
   render,
   renderGlobalModal,
   renderHookWithProviders,
+  renderWithoutProviders,
   userEvent,
   waitForDrawerToHide,
 };

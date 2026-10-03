@@ -28,6 +28,10 @@ const swcConfig: SwcOptions = {
       dynamicImport: true,
     },
     transform: {
+      optimizer: {
+        // React Router's ESM build checks Vite HMR; Jest runs without it.
+        globals: {vars: {'import.meta.hot': 'undefined'}},
+      },
       react: {
         runtime: 'automatic',
         importSource: '@emotion/react',
@@ -51,7 +55,15 @@ const swcConfig: SwcOptions = {
 /**
  * ESM packages that need to be transformed.
  */
-const ESM_NODE_MODULES = ['screenfull', 'cbor2', 'nuqs', 'color'];
+const ESM_NODE_MODULES = [
+  'screenfull',
+  'cbor2',
+  'nuqs',
+  'react-router',
+  '@remix-run\\+route-pattern',
+  'cookie-es',
+  'color',
+];
 
 const config: Config.InitialOptions = {
   testTimeout: 30_000,
@@ -88,7 +100,11 @@ const config: Config.InitialOptions = {
   setupFiles: ['<rootDir>/tests/js/sentry-test/snapshots/snapshot-setup.ts'],
   setupFilesAfterEnv: ['<rootDir>/tests/js/sentry-test/snapshots/snapshot-framework.ts'],
 
+  resolver: '<rootDir>/build-utils/reactRouterResolver.ts',
   moduleNameMapper: {
+    '^react-router-dom$': '<rootDir>/static/app/router/reactRouterV6.tsx',
+    // Visual snapshots use the production router version.
+    '^sentry/router/reactRouter$': '<rootDir>/static/app/router/reactRouterV6.tsx',
     '\\.(css|less|png|gif|jpg|woff|mp4)$':
       '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',
     '^sentry/(.*)': '<rootDir>/static/app/$1',

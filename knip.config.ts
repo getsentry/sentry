@@ -5,6 +5,8 @@ const isProductionMode = process.argv.includes('--production');
 const productionEntryPoints = [
   // the main entry points - app, gsAdmin & gsApp
   'static/app/index.tsx',
+  // Rspack selects the router implementation by build mode.
+  'static/app/router/reactRouterV{6,8}.tsx',
   // scraps has all index.tsx file as separate entry points
   'static/app/components/core/*/index.tsx',
   // defined in rspack.config.ts pipelines

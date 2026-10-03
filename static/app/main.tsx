@@ -1,8 +1,7 @@
 import {lazy, Suspense, useEffect, useState} from 'react';
 import {createBrowserRouter, RouterProvider} from 'react-router-dom';
-import {wrapCreateBrowserRouterV6} from '@sentry/react';
+import {wrapCreateBrowserRouter} from '@sentry/react';
 import {MotionConfig} from 'framer-motion';
-import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
 
 import {setApiNavigate} from 'sentry/api';
 import {AppQueryClientProvider} from 'sentry/appQueryClient';
@@ -13,6 +12,7 @@ import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {USE_TANSTACK_DEVTOOL} from 'sentry/constants';
 import {SENTRY_RELEASE_VERSION} from 'sentry/constants/sdk';
 import {preload} from 'sentry/router/preload';
+import {NuqsAdapter} from 'sentry/router/reactRouter';
 import {RouteConfigProvider} from 'sentry/router/routeConfigContext';
 import {routes} from 'sentry/router/routes';
 import {ServiceWorkerProvider} from 'sentry/serviceWorker/client/serviceWorkerContext';
@@ -31,7 +31,7 @@ const SentryTanStackDevtools =
     : null;
 
 function buildRouter() {
-  const sentryCreateBrowserRouter = wrapCreateBrowserRouterV6(createBrowserRouter);
+  const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createBrowserRouter);
   const router = sentryCreateBrowserRouter(routes());
   setApiNavigate(createReactRouter3Navigate(router));
 

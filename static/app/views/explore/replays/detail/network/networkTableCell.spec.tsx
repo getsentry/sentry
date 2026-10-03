@@ -1,9 +1,9 @@
-import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
 import {ReplayRequestFrameFixture} from 'sentry-fixture/replay/replaySpanFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {NuqsAdapter} from 'sentry/router/reactRouter';
 import {hydrateSpans} from 'sentry/utils/replays/hydrateSpans';
 
 import {NetworkTableCell} from './networkTableCell';
