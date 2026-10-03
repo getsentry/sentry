@@ -158,7 +158,9 @@ describe('Onboarding Setup Docs', () => {
       ).toBeInTheDocument();
 
       // First code block is the install snippet, second is the verify snippet
-      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      const codeBlocks = (await screen.findAllByText(/import \* as Sentry/)).map(el =>
+        el.closest('code')
+      );
       expect(codeBlocks[0]).toHaveTextContent(/Tracing/);
       expect(codeBlocks[0]).toHaveTextContent(/Session Replay/);
     });
@@ -194,7 +196,9 @@ describe('Onboarding Setup Docs', () => {
       );
 
       // First code block is the install snippet, second is the verify snippet
-      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      const codeBlocks = (await screen.findAllByText(/import \* as Sentry/)).map(el =>
+        el.closest('code')
+      );
       expect(codeBlocks[0]).toHaveTextContent(/Tracing/);
       expect(codeBlocks[0]).not.toHaveTextContent(/Session Replay/);
     });
@@ -230,7 +234,9 @@ describe('Onboarding Setup Docs', () => {
       );
 
       // First code block is the install snippet, second is the verify snippet
-      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      const codeBlocks = (await screen.findAllByText(/import \* as Sentry/)).map(el =>
+        el.closest('code')
+      );
       expect(codeBlocks[0]).toHaveTextContent(/Session Replay/);
       expect(codeBlocks[0]).not.toHaveTextContent(/Tracing/);
     });
@@ -268,7 +274,9 @@ describe('Onboarding Setup Docs', () => {
       await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       // First code block is the install snippet, second is the verify snippet
-      const codeBlocks = await screen.findAllByText(/import \* as Sentry/);
+      const codeBlocks = (await screen.findAllByText(/import \* as Sentry/)).map(el =>
+        el.closest('code')
+      );
       expect(codeBlocks[0]).not.toHaveTextContent(/Tracing/);
       expect(codeBlocks[0]).not.toHaveTextContent(/Session Replay/);
     });
