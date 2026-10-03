@@ -3267,10 +3267,9 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
     @override_settings(SENTRY_SELF_HOSTED=False)
-    def test_kick_off_seer_automation_skips_when_lock_held(
+    def test_kick_off_seer_automation_enqueues_when_summary_lock_held(
         self, mock_generate_summary_and_run_automation
     ):
-        """Test that seer automation is skipped when another task is already processing the same issue"""
         from sentry.seer.autofix.issue_summary import get_issue_summary_lock_key
         from sentry.tasks.post_process import locks
 
@@ -3293,25 +3292,8 @@ class KickOffSeerAutomationTestMixin(BasePostProcessGroupMixin):
                 event=event,
             )
 
-        # Verify that seer automation was NOT started due to the lock
-        mock_generate_summary_and_run_automation.assert_not_called()
-
-        # Test that it works normally when lock is not held
-        event2 = self.create_event(
-            data={"message": "testing 2"},
-            project_id=self.project.id,
-        )
-
-        self.call_post_process_group(
-            is_new=True,
-            is_regression=False,
-            is_new_group_environment=True,
-            event=event2,
-        )
-
-        # Now it should be called since no lock is held
         mock_generate_summary_and_run_automation.assert_called_once_with(
-            event2.group.id, trigger_path="old_seer_automation"
+            event.group.id, trigger_path="old_seer_automation"
         )
 
     @patch("sentry.tasks.seer.autofix.generate_summary_and_run_automation.delay")
@@ -3501,6 +3483,24 @@ class PostProcessGroupErrorTest(
     PipelineKillswitchTestMixin,
     CheckIfFlagsSentTestMixin,
 ):
+    @patch("sentry.seer.autofix.utils.is_seer_seat_based_tier_enabled", return_value=True)
+    @patch("sentry.tasks.seer.autofix.generate_issue_summary_only.delay")
+    def test_seat_based_org_scores_when_summary_is_already_cached(
+        self, mock_summary_task: MagicMock, mock_seat_based_tier: MagicMock
+    ) -> None:
+        event = self.create_event(data={"message": "testing"}, project_id=self.project.id)
+        cache.set(
+            f"ai-group-summary-v2:{event.group.id}",
+            {"group_id": str(event.group.id), "headline": "Summary", "event_id": event.event_id},
+            timeout=60,
+        )
+
+        self.call_post_process_group(
+            is_new=True, is_regression=False, is_new_group_environment=True, event=event
+        )
+
+        mock_summary_task.assert_called_once_with(event.group.id)
+
     @patch("sentry.tasks.post_process.run_post_process_job")
     def test_reads_processed_event_from_nodestore_once(
         self, mock_run_post_process_job: MagicMock

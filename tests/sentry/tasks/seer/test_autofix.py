@@ -23,6 +23,7 @@ from sentry.tasks.seer.autofix import (
     configure_seer_for_existing_org,
     generate_issue_summary_only,
     generate_summary_and_run_automation,
+    summarize_issue,
 )
 from sentry.tasks.seer.autofix_issue_data import (
     FEATURE_FLAG,
@@ -220,6 +221,42 @@ class TestGenerateSummaryAndRunAutomation(SentryTestCase):
             group=group,
             source=SeerAutomationSource.POST_PROCESS,
         )
+
+
+class TestSummarizeIssue(SentryTestCase):
+    @patch("sentry.tasks.seer.autofix.run_automation")
+    @patch("sentry.tasks.seer.autofix.get_and_update_group_fixability_score")
+    @patch("sentry.tasks.seer.autofix.get_or_generate_issue_summary")
+    def test_only_obtains_summary(
+        self, mock_summary: MagicMock, mock_score: MagicMock, mock_automation: MagicMock
+    ) -> None:
+        summarize_issue(self.group.id, source=SeerAutomationSource.ISSUE_DETAILS.value)
+
+        mock_summary.assert_called_once_with(
+            group=self.group, source=SeerAutomationSource.ISSUE_DETAILS
+        )
+        mock_score.assert_not_called()
+        mock_automation.assert_not_called()
+
+    @patch(
+        "sentry.tasks.seer.autofix.get_or_generate_issue_summary",
+        side_effect=IssueSummaryUnavailable,
+    )
+    def test_summary_unavailable(self, mock_summary: MagicMock) -> None:
+        summarize_issue(self.group.id)
+
+        mock_summary.assert_called_once_with(
+            group=self.group, source=SeerAutomationSource.ISSUE_DETAILS
+        )
+
+    @patch(
+        "sentry.tasks.seer.autofix.get_or_generate_issue_summary", side_effect=UnableToAcquireLock
+    )
+    def test_lock_failure_propagates(self, mock_summary: MagicMock) -> None:
+        with pytest.raises(UnableToAcquireLock):
+            summarize_issue(self.group.id)
+
+        mock_summary.assert_called_once()
 
 
 class TestAutofixIssueDataJudge(SentryTestCase):
