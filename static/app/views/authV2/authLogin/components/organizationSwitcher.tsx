@@ -46,7 +46,7 @@ export function OrganizationSwitcher({
         ref={gridElement => setElement(gridElement as HTMLDivElement | null)}
         columns="1fr"
       >
-        <AnimatePresence initial={false} mode="popLayout">
+        <AnimatePresence initial={false}>
           {authOrganization ? (
             <MotionContainer
               key="organization"
