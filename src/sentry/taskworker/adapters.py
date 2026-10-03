@@ -28,6 +28,7 @@ from sentry.silo.base import SiloMode
 from sentry.utils import json
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.viewer_context import (
+    ActorType,
     ViewerContext,
     get_viewer_context,
     observe_viewer_context_propagation,
@@ -138,7 +139,7 @@ class ViewerContextHook:
             expected=bool(raw),
         )
         if ctx is None:
-            return contextlib.nullcontext()
+            ctx = ViewerContext(actor_type=ActorType.SYSTEM)
         return viewer_context_scope(ctx)
 
 

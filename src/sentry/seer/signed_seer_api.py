@@ -67,6 +67,10 @@ def _resolve_viewer_context(
     vc = get_viewer_context()
 
     if explicit is None and vc is None:
+        metrics.incr(
+            "seer.viewer_context_resolution",
+            tags={"outcome": "contextvar_missing", "endpoint": endpoint or "unknown"},
+        )
         return None
     if explicit is None:
         return vc
