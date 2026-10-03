@@ -12,6 +12,7 @@ import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {canUseAutofixStepResult} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {ErrorLevel} from 'sentry/components/events/errorLevel';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -28,6 +29,7 @@ import {
   IconSeer,
   IconThumb,
   IconUser,
+  IconWarning,
 } from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {IssueCategory, IssueType} from 'sentry/types/group';
@@ -59,6 +61,26 @@ import type {
   ProjectConfig,
 } from './types';
 import {useIsInView} from './useIsInView';
+
+// `codeChanges` comes from the milestone written when an earlier turn completed,
+// so it goes stale once a later turn (e.g. "Add context & retry") errors. Gate it
+// on the live run status with the same rule as the Seer panel. `status` is
+// best-effort (null when the status poll fails), so only a known status gates it.
+function getCodeChangesDisplay(
+  sectionKey: AutofixStateKey,
+  run: OverviewRun
+): 'diff' | 'error' | null {
+  if (sectionKey !== 'code_changes_ready') {
+    return null;
+  }
+  if (run.status === 'error') {
+    return 'error';
+  }
+  if (run.status !== null && !canUseAutofixStepResult(run.status)) {
+    return null;
+  }
+  return run.codeChanges?.length ? 'diff' : null;
+}
 
 // The endpoint orders links oldest-first and only enriches open/draft PRs, so
 // the newest actionable link is the one carrying badges and files.
@@ -172,6 +194,14 @@ function OverviewAction({
         >
           {getProcessingLabel(sectionKey)}
         </Button>
+        <OpenSeerButton run={run} section={sectionKey} size="sm" />
+      </ActionButtonBar>
+    );
+  }
+
+  if (getCodeChangesDisplay(sectionKey, run) === 'error') {
+    return (
+      <ActionButtonBar>
         <OpenSeerButton run={run} section={sectionKey} size="sm" />
       </ActionButtonBar>
     );
@@ -577,9 +607,9 @@ export const OverviewCard = memo(function OverviewCardComponent({
       section: sectionKey,
     });
 
-  const showCodeChanges = Boolean(
-    sectionKey === 'code_changes_ready' && run.codeChanges?.length
-  );
+  const codeChangesDisplay = getCodeChangesDisplay(sectionKey, run);
+  const showCodeChangesError = codeChangesDisplay === 'error';
+  const showCodeChanges = codeChangesDisplay === 'diff';
   const showEnrichmentPlaceholder = enrichmentPending && Boolean(reviewPullRequest?.url);
   const showPullRequestFiles =
     !showEnrichmentPlaceholder && Boolean(reviewPullRequest) && changedFiles.length > 0;
@@ -587,6 +617,7 @@ export const OverviewCard = memo(function OverviewCardComponent({
     rootCause ||
     proposedFix ||
     showCodeChanges ||
+    showCodeChangesError ||
     showEnrichmentPlaceholder ||
     showPullRequestFiles
   );
@@ -676,7 +707,14 @@ export const OverviewCard = memo(function OverviewCardComponent({
                 {proposedFix}
               </NarrativeBlock>
             )}
-            {showCodeChanges && run.codeChanges ? (
+            {showCodeChangesError ? (
+              <NarrativeBlock
+                icon={<IconWarning size="xs" variant="secondary" aria-hidden />}
+                label={t('Code Changes')}
+              >
+                {t('Seer ran into an error on the latest attempt. Open Seer to retry.')}
+              </NarrativeBlock>
+            ) : showCodeChanges && run.codeChanges ? (
               <CodeChanges
                 codeChanges={run.codeChanges}
                 onFirstExpand={trackCodeChangesExpanded}
