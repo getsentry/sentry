@@ -41,6 +41,15 @@ export type GroupListColumn =
   | 'firstSeen'
   | 'lastSeen';
 
+/**
+ * Sorts the loaded issues by title in the browser, since the issues endpoint
+ * has no title sort. Only the current page is ordered.
+ */
+export type GroupListTitleSort = {
+  direction: 'asc' | 'desc' | null;
+  onChange: (direction: 'asc' | 'desc') => void;
+};
+
 export type GroupListProps = {
   /**
    * Number of placeholder rows to show during loading
@@ -81,6 +90,7 @@ export type GroupListProps = {
   // where the group list is rendered
   source?: string;
   staleTime?: number;
+  titleSort?: GroupListTitleSort;
   useFilteredStats?: boolean;
   useTintRow?: boolean;
   withChart?: boolean;
@@ -122,6 +132,7 @@ export function GroupList({
   withPagination = true,
   canSelectGroups = true,
   hideMessage = false,
+  titleSort,
   useFilteredStats = true,
   useTintRow = true,
   withHeader = true,
@@ -275,7 +286,14 @@ export function GroupList({
   };
 
   const pageLinks = data?.headers.Link ?? null;
-  const groups = groupsData ?? [];
+  const direction = titleSort?.direction;
+  const groups = direction
+    ? [...(groupsData ?? [])].sort(
+        (a, b) =>
+          a.title.localeCompare(b.title, undefined, {numeric: true}) *
+          (direction === 'asc' ? 1 : -1)
+      )
+    : (groupsData ?? []);
   const hasError = hasLogicBoolean || isQueryError;
   const loading = !hasLogicBoolean && isPending;
 
@@ -344,7 +362,13 @@ export function GroupList({
   return (
     <Fragment>
       <PanelContainer>
-        {withHeader && <GroupListHeader withChart={!!withChart} withColumns={columns} />}
+        {withHeader && (
+          <GroupListHeader
+            withChart={!!withChart}
+            withColumns={columns}
+            titleSort={titleSort}
+          />
+        )}
         <PanelBody>
           {loading
             ? Array.from({length: numPlaceholderRows}, (_, i) => (

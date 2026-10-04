@@ -1,17 +1,22 @@
+import {Button} from '@sentry/scraps/button';
+
 import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
 
-import type {GroupListColumn} from './groupList';
+import type {GroupListColumn, GroupListTitleSort} from './groupList';
 
 type Props = {
   withChart: boolean;
+  titleSort?: GroupListTitleSort;
   withColumns?: GroupListColumn[];
 };
 
 export function GroupListHeader({
   withChart,
+  titleSort,
   withColumns = ['graph', 'event', 'users', 'assignee', 'lastTriggered'],
 }: Props) {
   return (
@@ -22,7 +27,27 @@ export function GroupListHeader({
         paddingLeft="xl"
         style={{textTransform: 'capitalize'}}
       >
-        {t('Issue')}
+        {titleSort ? (
+          <Button
+            size="zero"
+            variant="transparent"
+            icon={
+              titleSort.direction ? (
+                <IconArrow
+                  size="xs"
+                  direction={titleSort.direction === 'asc' ? 'up' : 'down'}
+                />
+              ) : undefined
+            }
+            onClick={() =>
+              titleSort.onChange(titleSort.direction === 'asc' ? 'desc' : 'asc')
+            }
+          >
+            {t('Issue')}
+          </Button>
+        ) : (
+          t('Issue')
+        )}
       </IssueStreamHeaderLabel>
       {withColumns.includes('lastSeen') && (
         <IssueStreamHeaderLabel

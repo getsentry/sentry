@@ -1,8 +1,14 @@
+import {parseAsStringLiteral, useQueryState} from 'nuqs';
+
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import {GroupList, type GroupListColumn} from 'sentry/components/issues/groupList';
+import {
+  GroupList,
+  type GroupListColumn,
+  type GroupListTitleSort,
+} from 'sentry/components/issues/groupList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconGithub} from 'sentry/icons';
@@ -22,6 +28,10 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 // events, users and priority columns carry no signal here.
 const COLUMNS: GroupListColumn[] = ['firstSeen', 'assignee'];
 
+// Sorting by title happens in the browser, so load enough issues that one page
+// holds a whole convention.
+const PAGE_SIZE = 100;
+
 export default function ConventionIssues() {
   const {repoName, conventionName} = useParams<{
     conventionName: string;
@@ -30,6 +40,14 @@ export default function ConventionIssues() {
   const organization = useOrganization();
   const title = formatConventionTitle(conventionName);
   const issuesQuery = getConventionIssuesQuery(conventionName);
+  const [sort, setSort] = useQueryState(
+    'sort',
+    parseAsStringLiteral(['title', '-title'] as const)
+  );
+  const titleSort: GroupListTitleSort = {
+    direction: sort === 'title' ? 'asc' : sort === '-title' ? 'desc' : null,
+    onChange: direction => setSort(direction === 'asc' ? 'title' : '-title'),
+  };
 
   return (
     <SentryDocumentTitle
@@ -71,11 +89,12 @@ export default function ConventionIssues() {
         <Layout.Body>
           <Layout.Main width="full">
             <GroupList
-              queryParams={{...issuesQuery, limit: 25, sort: 'date'}}
+              queryParams={{...issuesQuery, limit: PAGE_SIZE, sort: 'date'}}
               query={issuesQuery.query}
               withColumns={COLUMNS}
               withChart={false}
               hideMessage
+              titleSort={titleSort}
               canSelectGroups={false}
               numPlaceholderRows={10}
               source="code-conventions"

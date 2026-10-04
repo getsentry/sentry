@@ -1,6 +1,6 @@
 import {GroupFixture} from 'sentry-fixture/group';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {EventOrGroupType} from 'sentry/types/event';
 import ConventionIssues from 'sentry/views/codeConventions/conventionIssues';
@@ -53,5 +53,59 @@ describe('ConventionIssues', () => {
     expect(screen.getByRole('link', {name: 'Issues'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Code Quality'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'getsentry/sentry'})).toBeInTheDocument();
+  });
+
+  it('sorts issues by title from the Issue column heading', async () => {
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [
+        GroupFixture({
+          id: '1',
+          title: '## [no-class-components] static/b.tsx:12',
+          type: EventOrGroupType.DEFAULT,
+        }),
+        GroupFixture({
+          id: '2',
+          title: '## [no-class-components] static/a.tsx:9',
+          type: EventOrGroupType.DEFAULT,
+        }),
+        GroupFixture({
+          id: '3',
+          title: '## [no-class-components] static/a.tsx:10',
+          type: EventOrGroupType.DEFAULT,
+        }),
+      ],
+    });
+
+    const {router} = render(<ConventionIssues />, {
+      initialRouterConfig: {
+        location: {
+          pathname:
+            '/organizations/org-slug/issues/code-conventions/getsentry%2Fsentry/no-class-components/issues/',
+        },
+        route:
+          '/organizations/:orgId/issues/code-conventions/:repoName/:conventionName/issues/',
+      },
+    });
+
+    const titles = () =>
+      screen
+        .getAllByText(/## \[no-class-components\]/)
+        .map(element => element.textContent);
+
+    await screen.findByText('## [no-class-components] static/b.tsx:12');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Issue'}));
+    expect(router.location.query.sort).toBe('title');
+    expect(titles()).toEqual([
+      '## [no-class-components] static/a.tsx:9',
+      '## [no-class-components] static/a.tsx:10',
+      '## [no-class-components] static/b.tsx:12',
+    ]);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Issue'}));
+    expect(router.location.query.sort).toBe('-title');
+    expect(titles()[0]).toBe('## [no-class-components] static/b.tsx:12');
   });
 });
