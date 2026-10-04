@@ -127,6 +127,15 @@ export function GroupListHeader({
           {t('Progress')}
         </IssueStreamHeaderLabel>
       )}
+      {withColumns.includes('autofix') && (
+        <IssueStreamHeaderLabel
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.PROGRESS]: 'inline-block'}}
+          width="160px"
+          style={{textTransform: 'capitalize'}}
+        >
+          {t('Autofix')}
+        </IssueStreamHeaderLabel>
+      )}
       {(withColumns.includes('assignee') || withColumns.includes('assigneeAvatar')) && (
         <IssueStreamHeaderLabel
           display={{zero: 'none', [COLUMN_BREAKPOINTS.ASSIGNEE]: 'inline-block'}}

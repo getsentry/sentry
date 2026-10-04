@@ -37,6 +37,7 @@ describe('ConventionIssues', () => {
     expect(screen.queryByText('class Profile extends Component')).not.toBeInTheDocument();
 
     expect(screen.getByText('Age')).toBeInTheDocument();
+    expect(screen.getByText('Autofix')).toBeInTheDocument();
     for (const hidden of ['Last Seen', 'Events', 'Users', 'Priority', 'Graph:']) {
       expect(screen.queryByText(hidden)).not.toBeInTheDocument();
     }
@@ -47,6 +48,7 @@ describe('ConventionIssues', () => {
         query: expect.objectContaining({
           project: '4511567035432960',
           query: 'is:unresolved title:"*[no-class-components]*"',
+          expand: ['derivedData'],
         }),
       })
     );

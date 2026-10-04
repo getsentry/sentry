@@ -26,7 +26,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 // Every issue in a convention shares the same kind of title, severity and a
 // near-constant event rate (one per scan), so the message, Last Seen, trend,
 // events, users and priority columns carry no signal here.
-const COLUMNS: GroupListColumn[] = ['firstSeen', 'assignee'];
+const COLUMNS: GroupListColumn[] = ['firstSeen', 'autofix', 'assignee'];
 
 // Sorting by title happens in the browser, so load enough issues that one page
 // holds a whole convention.
@@ -89,7 +89,13 @@ export default function ConventionIssues() {
         <Layout.Body>
           <Layout.Main width="full">
             <GroupList
-              queryParams={{...issuesQuery, limit: PAGE_SIZE, sort: 'date'}}
+              queryParams={{
+                ...issuesQuery,
+                limit: PAGE_SIZE,
+                sort: 'date',
+                // Carries each issue's Autofix step without a request per row.
+                expand: ['derivedData'],
+              }}
               query={issuesQuery.query}
               withColumns={COLUMNS}
               withChart={false}

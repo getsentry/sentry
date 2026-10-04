@@ -30,6 +30,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupListHeader} from './groupListHeader';
 
 export type GroupListColumn =
+  | 'autofix'
   | 'graph'
   | 'event'
   | 'users'

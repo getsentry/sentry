@@ -19,6 +19,7 @@ import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
 import {GroupMetaRow} from 'sentry/components/groupMetaRow';
+import {GroupAutofixStatus} from 'sentry/components/issues/groupAutofixStatus';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PanelItem} from 'sentry/components/panels/panelItem';
@@ -328,6 +329,18 @@ export function LoadingStreamGroup({
               justify="end"
             >
               <Placeholder height="24px" />
+            </Flex>
+          )}
+          {withColumns.includes('autofix') && (
+            <Flex
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.PROGRESS]: 'flex'}}
+              width="160px"
+              paddingRight="xl"
+              marginRight="xl"
+              alignSelf="center"
+              justify="start"
+            >
+              <Placeholder height="36px" />
             </Flex>
           )}
           {(withColumns.includes('assignee') ||
@@ -862,6 +875,18 @@ export function StreamGroup({
               ) : (
                 <Placeholder height="18px" />
               )}
+            </Flex>
+          )}
+          {withColumns.includes('autofix') && (
+            <Flex
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.PROGRESS]: 'flex'}}
+              width="160px"
+              paddingRight="xl"
+              marginRight="xl"
+              alignSelf="center"
+              justify="start"
+            >
+              <GroupAutofixStatus group={group} />
             </Flex>
           )}
           {(withColumns.includes('assignee') ||
