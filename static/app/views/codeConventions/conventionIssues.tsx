@@ -18,6 +18,7 @@ import {ProgressState, type Group} from 'sentry/types/group';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {ConventionWhy} from 'sentry/views/codeConventions/conventionWhy';
 import {
   formatConventionTitle,
   getCodeConventionsPath,
@@ -115,24 +116,27 @@ export default function ConventionIssues() {
         </Layout.Title>
         <Layout.Body>
           <Layout.Main width="full">
-            <GroupList
-              queryParams={{
-                ...issuesQuery,
-                limit: PAGE_SIZE,
-                sort: 'date',
-                // Carries each issue's Autofix step without a request per row.
-                expand: ['derivedData'],
-              }}
-              query={issuesQuery.query}
-              withColumns={COLUMNS}
-              withChart={false}
-              hideMessage
-              titleSort={titleSort}
-              groupSections={groupByProgress}
-              canSelectGroups={false}
-              numPlaceholderRows={10}
-              source="code-conventions"
-            />
+            <Stack gap="lg">
+              <ConventionWhy conventionName={conventionName} />
+              <GroupList
+                queryParams={{
+                  ...issuesQuery,
+                  limit: PAGE_SIZE,
+                  sort: 'date',
+                  // Carries each issue's Autofix step without a request per row.
+                  expand: ['derivedData'],
+                }}
+                query={issuesQuery.query}
+                withColumns={COLUMNS}
+                withChart={false}
+                hideMessage
+                titleSort={titleSort}
+                groupSections={groupByProgress}
+                canSelectGroups={false}
+                numPlaceholderRows={10}
+                source="code-conventions"
+              />
+            </Stack>
           </Layout.Main>
         </Layout.Body>
       </Stack>

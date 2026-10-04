@@ -1,3 +1,4 @@
+import fetchMock from 'jest-fetch-mock';
 import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -162,5 +163,37 @@ describe('ConventionIssues', () => {
         screen.getByText('## [no-class-components] static/b.tsx:1')
       ) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
+  });
+
+  it('explains the convention in a collapsed disclosure', async () => {
+    fetchMock.resetMocks();
+    fetchMock.mockResponse(request =>
+      Promise.resolve(
+        request.url.includes('api.github.com')
+          ? JSON.stringify([{name: 'no-class-components.yaml', sha: 'abc', type: 'file'}])
+          : 'name: no-class-components\nwhy: |\n  Class components are the **legacy** style.\n'
+      )
+    );
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/issues/', body: []});
+
+    render(<ConventionIssues />, {
+      initialRouterConfig: {
+        location: {
+          pathname:
+            '/organizations/org-slug/issues/code-conventions/getsentry%2Fsentry/no-class-components/issues/',
+        },
+        route:
+          '/organizations/:orgId/issues/code-conventions/:repoName/:conventionName/issues/',
+      },
+    });
+
+    const toggle = await screen.findByRole('button', {
+      name: 'Why this convention matters',
+    });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    await userEvent.click(toggle);
+    expect(screen.getByText('legacy')).toBeVisible();
   });
 });
