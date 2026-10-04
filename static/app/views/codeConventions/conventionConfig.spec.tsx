@@ -39,7 +39,7 @@ describe('ConventionConfig', () => {
     expect(screen.getByText('react')).toBeInTheDocument();
     expect(screen.getByText('migration')).toBeInTheDocument();
     expect(screen.getByText('Schedule')).toBeInTheDocument();
-    expect(screen.getByText('0 0 * * *')).toBeInTheDocument();
+    expect(screen.getByText('13 8 * * *')).toBeInTheDocument();
 
     for (const title of ['Why', 'Detect', 'Fix', 'Examples', 'Filters']) {
       expect(screen.getByRole('button', {name: title})).toHaveAttribute(

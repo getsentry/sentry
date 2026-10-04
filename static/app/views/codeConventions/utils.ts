@@ -136,8 +136,10 @@ export function getConventionCommand(
   return undefined;
 }
 
-// Conventions without a schedule are scanned once a day.
-export const DEFAULT_SCHEDULE = '0 0 * * *';
+// Every convention currently runs on the refactor-tasks workflow's cron
+// (.github/workflows/refactor-tasks.yml), in UTC. A convention's own
+// `schedule` overrides it.
+export const DEFAULT_SCHEDULE = '13 8 * * *';
 
 export function getConventionSchedule(convention: Convention) {
   return convention.schedule ?? DEFAULT_SCHEDULE;

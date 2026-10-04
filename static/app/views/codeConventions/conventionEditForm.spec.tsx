@@ -9,7 +9,7 @@ describe('ConventionEditForm', () => {
     for (const name of ['Why', 'Detect', 'Fix', 'Examples', 'Prefilter']) {
       expect(screen.getByRole('textbox', {name})).toHaveValue('');
     }
-    expect(screen.getByRole('textbox', {name: 'Schedule'})).toHaveValue('0 0 * * *');
+    expect(screen.getByRole('textbox', {name: 'Schedule'})).toHaveValue('13 8 * * *');
     expect(
       screen.getByRole('link', {name: 'Create a PR adding a convention file'})
     ).toHaveAttribute(

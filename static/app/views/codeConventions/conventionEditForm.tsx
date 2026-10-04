@@ -88,7 +88,9 @@ export function ConventionEditForm({convention, filename}: Props) {
             <field.Layout.Stack
               label={t('Schedule')}
               hintText={
-                crontabAsText(field.state.value) ?? t('Not a valid cron expression')
+                crontabAsText(field.state.value)
+                  ? t('%s UTC', crontabAsText(field.state.value))
+                  : t('Not a valid cron expression')
               }
             >
               <field.Input

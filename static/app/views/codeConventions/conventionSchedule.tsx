@@ -14,7 +14,11 @@ import {crontabAsText} from 'sentry/views/insights/crons/utils/crontabAsText';
 export function ScheduleText({schedule}: {schedule: string}) {
   return (
     <Stack gap="2xs">
-      <Text>{crontabAsText(schedule) ?? t('Invalid schedule')}</Text>
+      <Text>
+        {crontabAsText(schedule)
+          ? t('%s UTC', crontabAsText(schedule))
+          : t('Invalid schedule')}
+      </Text>
       <Text size="xs" variant="muted" monospace>
         {schedule}
       </Text>
