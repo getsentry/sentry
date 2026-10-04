@@ -6,11 +6,12 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {Text} from '@sentry/scraps/text';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {IconAdd} from 'sentry/icons';
+import {IconAdd, IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -111,6 +112,12 @@ export default function CodeQuality() {
                           >
                             <strong>{formatConventionTitle(conventionName)}</strong>
                           </Link>
+                          <Flex align="center" gap="xs">
+                            <IconGithub size="xs" />
+                            <Text size="sm" variant="muted">
+                              {REPO}
+                            </Text>
+                          </Flex>
                           <ConventionTags filename={entry.name} />
                         </Stack>
                       </SimpleTable.RowCell>
