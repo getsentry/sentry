@@ -6,7 +6,6 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {
   getAutofixState,
   GroupAutofixStatus,
-  groupByAutofixStage,
 } from 'sentry/components/issues/groupAutofixStatus';
 import {ProgressState} from 'sentry/types/group';
 
@@ -33,6 +32,12 @@ describe('getAutofixState', () => {
         })
       )
     ).toEqual({status: 'Plan ready', nextStep: 'Review plan'});
+  });
+
+  it('only offers to view an open PR', () => {
+    expect(
+      getAutofixState(GroupFixture({derivedData: {...derivedData, blocker: 'merge_pr'}}))
+    ).toEqual({status: null, nextStep: 'View PR'});
   });
 
   it('offers the step after the last completed one', () => {
@@ -111,36 +116,5 @@ describe('GroupAutofixStatus', () => {
     });
 
     expect(container).toBeEmptyDOMElement();
-  });
-});
-
-describe('groupByAutofixStage', () => {
-  it('orders stages from has-PR to not started', () => {
-    const groups = [
-      GroupFixture({id: 'none', seerAutofixLastTriggered: null}),
-      GroupFixture({
-        id: 'plan',
-        derivedData: {...derivedData, blocker: 'approve_plan'},
-      }),
-      GroupFixture({id: 'pr', derivedData: {...derivedData, hasOpenFixPr: true}}),
-      GroupFixture({
-        id: 'rca',
-        derivedData: {...derivedData, lastCompletedAutofixStep: 'root_cause'},
-      }),
-    ];
-
-    expect(
-      groupByAutofixStage(groups).map(({label, groups: stage}) => [
-        label,
-        stage.map(group => group.id),
-      ])
-    ).toEqual([
-      ['Has PR', ['pr']],
-      ['Code changes ready', []],
-      ['Plan ready', ['plan']],
-      ['Root cause found', ['rca']],
-      ['In progress', []],
-      ['Not started', ['none']],
-    ]);
   });
 });

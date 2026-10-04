@@ -112,7 +112,7 @@ describe('ConventionIssues', () => {
     expect(titles()[0]).toBe('## [no-class-components] static/b.tsx:12');
   });
 
-  it('groups issues by Autofix stage with PRs first', async () => {
+  it('groups issues into the inbox progress sections', async () => {
     MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
@@ -151,12 +151,12 @@ describe('ConventionIssues', () => {
       },
     });
 
-    const hasPr = await screen.findByRole('button', {name: /Has PR/});
-    const notStarted = screen.getByRole('button', {name: /Not started/});
+    const hasPr = await screen.findByRole('button', {name: /Fix Proposed/});
+    const notStarted = screen.getByRole('button', {name: /Identified/});
     expect(
       hasPr.compareDocumentPosition(notStarted) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
-    expect(screen.queryByRole('button', {name: /Plan ready/})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: /Diagnosed/})).not.toBeInTheDocument();
     expect(
       hasPr.compareDocumentPosition(
         screen.getByText('## [no-class-components] static/b.tsx:1')

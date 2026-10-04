@@ -433,7 +433,12 @@ export function GroupList({
                   <Fragment key={section.key}>{section.groups.map(renderGroup)}</Fragment>
                 ) : section.groups.length > 0 ? (
                   <Disclosure key={section.key} defaultExpanded size="sm">
-                    <Container padding="sm" background="secondary" borderBottom="primary">
+                    <Container
+                      width="100%"
+                      padding="sm"
+                      background="secondary"
+                      borderBottom="primary"
+                    >
                       <Disclosure.Title
                         trailingItems={
                           <Badge variant="muted">{section.groups.length}</Badge>
