@@ -60,11 +60,6 @@ export default function ConventionIssues() {
             items={[
               {
                 type: 'link',
-                label: t('Issues'),
-                to: normalizeUrl(`/organizations/${organization.slug}/issues/`),
-              },
-              {
-                type: 'link',
                 label: t('Code Quality'),
                 to: normalizeUrl(getCodeConventionsPath(organization.slug)),
               },

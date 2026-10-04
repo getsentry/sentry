@@ -52,7 +52,7 @@ describe('ConventionIssues', () => {
         }),
       })
     );
-    expect(screen.getByRole('link', {name: 'Issues'})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Issues'})).not.toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Code Quality'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'getsentry/sentry'})).toBeInTheDocument();
   });
