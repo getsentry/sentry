@@ -117,9 +117,7 @@ export default function CodeQuality() {
                         />
                       </SimpleTable.RowCell>
                       <SimpleTable.RowCell>
-                        <ConventionIssueCount
-                          titlePrefix={getConventionIssueTitlePrefix(conventionName)}
-                        />
+                        <ConventionIssueCount conventionName={conventionName} />
                       </SimpleTable.RowCell>
                     </SimpleTable.Row>
                   );

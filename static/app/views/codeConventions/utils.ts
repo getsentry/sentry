@@ -143,6 +143,22 @@ export function getConventionSchedule(convention: Convention) {
   return convention.schedule ?? DEFAULT_SCHEDULE;
 }
 
+/**
+ * Search params for a convention's open issues, shared by the table's count
+ * and the convention's issues page so the two always agree.
+ */
+export function getConventionIssuesQuery(conventionName: string) {
+  return {
+    project: CONVENTIONS_PROJECT_ID,
+    query: `is:unresolved title:"*${getConventionIssueTitlePrefix(conventionName)}*"`,
+    statsPeriod: '90d',
+  };
+}
+
+export function getConventionIssuesPath(orgSlug: string, conventionName: string) {
+  return `/organizations/${orgSlug}/issues/code-conventions/${conventionName}/issues/`;
+}
+
 export function getCodeConventionsPath(orgSlug: string) {
   return `/organizations/${orgSlug}/issues/code-conventions/`;
 }

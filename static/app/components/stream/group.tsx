@@ -84,6 +84,7 @@ type Props = {
   canSelect?: boolean;
   displayReprocessingLayout?: boolean;
   hasGuideAnchor?: boolean;
+  hideMessage?: boolean;
   memberList?: User[];
   onAssigneeChange?: (newAssignee: AssignableEntity | null) => void;
   onPriorityChange?: (newPriority: PriorityLevel) => void;
@@ -412,6 +413,7 @@ export function StreamGroup({
   group,
   displayReprocessingLayout,
   hasGuideAnchor,
+  hideMessage = false,
   memberList,
   query,
   queryFilterDescription,
@@ -731,7 +733,12 @@ export function StreamGroup({
           />
         )}
         <GroupSummary canSelect={selectionEnabled}>
-          <GroupHeaderRow data={group} query={query} source={referrer} />
+          <GroupHeaderRow
+            data={group}
+            query={query}
+            source={referrer}
+            hideMessage={hideMessage}
+          />
           <GroupMetaRow data={group} showLifetime={false} />
         </GroupSummary>
       </Fragment>

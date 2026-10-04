@@ -8,24 +8,18 @@ import type {Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {CONVENTIONS_PROJECT_ID} from 'sentry/views/codeConventions/utils';
-
-const STATS_PERIOD = '90d';
+import {
+  getConventionIssuesPath,
+  getConventionIssuesQuery,
+} from 'sentry/views/codeConventions/utils';
 
 interface Props {
-  /**
-   * The `[<name>]` prefix the convention's issue titles start with.
-   */
-  titlePrefix: string;
+  conventionName: string;
 }
 
-export function ConventionIssueCount({titlePrefix}: Props) {
+export function ConventionIssueCount({conventionName}: Props) {
   const organization = useOrganization();
-  const query = {
-    project: CONVENTIONS_PROJECT_ID,
-    query: `is:unresolved title:"*${titlePrefix}*"`,
-    statsPeriod: STATS_PERIOD,
-  };
+  const query = getConventionIssuesQuery(conventionName);
 
   // Only the X-Hits total is needed, so fetch a single issue.
   const {data: hits, isPending} = useQuery({
@@ -42,12 +36,7 @@ export function ConventionIssueCount({titlePrefix}: Props) {
   }
 
   return (
-    <Link
-      to={{
-        pathname: normalizeUrl(`/organizations/${organization.slug}/issues/`),
-        query,
-      }}
-    >
+    <Link to={normalizeUrl(getConventionIssuesPath(organization.slug, conventionName))}>
       <Count value={hits ?? 0} />
     </Link>
   );

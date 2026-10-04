@@ -59,6 +59,10 @@ export type GroupListProps = {
         path: '/organizations/$organizationIdOrSlug/releases/$version/resolved/';
         version: string;
       };
+  /**
+   * Omit the event message line under each issue title.
+   */
+  hideMessage?: boolean;
   onFetchSuccess?: (
     groupListState: State,
     onCursor: (
@@ -117,6 +121,7 @@ export function GroupList({
   withChart = true,
   withPagination = true,
   canSelectGroups = true,
+  hideMessage = false,
   useFilteredStats = true,
   useTintRow = true,
   withHeader = true,
@@ -355,6 +360,7 @@ export function GroupList({
                     key={group.id}
                     group={group}
                     canSelect={canSelectGroups}
+                    hideMessage={hideMessage}
                     withChart={withChart}
                     withColumns={columns}
                     memberList={members}
