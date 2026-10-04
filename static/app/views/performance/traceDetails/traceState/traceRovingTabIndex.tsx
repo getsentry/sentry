@@ -1,5 +1,5 @@
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
-import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/traceDetails/traceState';
+import {traceReducerExhaustiveActionCheck} from './traceReducerUtils';
 
 interface TraceRovingTabIndexState {
   index: number | null;
