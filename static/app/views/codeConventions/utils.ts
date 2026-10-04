@@ -22,6 +22,10 @@ export interface Convention {
   examples?: {bad?: string[]; good?: string[]};
   fix?: string;
   prefilter?: string;
+  /**
+   * Cron expression for how often the convention is scanned.
+   */
+  schedule?: string;
   severity?: string;
   tags?: string[];
   why?: string;
@@ -130,6 +134,13 @@ export function getConventionCommand(
     return {command: convention.detect_command, title: t('Detect Command')};
   }
   return undefined;
+}
+
+// Conventions without a schedule are scanned once a day.
+export const DEFAULT_SCHEDULE = '0 0 * * *';
+
+export function getConventionSchedule(convention: Convention) {
+  return convention.schedule ?? DEFAULT_SCHEDULE;
 }
 
 export function getCodeConventionsPath(orgSlug: string) {

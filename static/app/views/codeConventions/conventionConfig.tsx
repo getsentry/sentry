@@ -11,7 +11,12 @@ import {IconEdit} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {TagVariant} from 'sentry/utils/theme';
 import {ConventionEditForm} from 'sentry/views/codeConventions/conventionEditForm';
-import {getConventionCommand, type Convention} from 'sentry/views/codeConventions/utils';
+import {ScheduleText} from 'sentry/views/codeConventions/conventionSchedule';
+import {
+  getConventionCommand,
+  getConventionSchedule,
+  type Convention,
+} from 'sentry/views/codeConventions/utils';
 
 function getSeverityVariant(severity: string): TagVariant {
   switch (severity) {
@@ -87,6 +92,8 @@ export function ConventionConfig({convention, filename}: Props) {
               </Flex>
             </Fragment>
           ) : null}
+          <Text variant="muted">{t('Schedule')}</Text>
+          <ScheduleText schedule={getConventionSchedule(convention)} />
         </Grid>
         <Button
           size="sm"

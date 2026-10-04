@@ -9,9 +9,11 @@ import {t, tct} from 'sentry/locale';
 import {
   getConventionCommand,
   getConventionFileUrls,
+  getConventionSchedule,
   getNewConventionFileUrl,
   type Convention,
 } from 'sentry/views/codeConventions/utils';
+import {crontabAsText} from 'sentry/views/insights/crons/utils/crontabAsText';
 
 const SAVE_DISABLED_REASON = t('Saving conventions is not available yet');
 
@@ -39,6 +41,7 @@ export function ConventionEditForm({convention, filename}: Props) {
   const isNew = filename === undefined;
   const command = getConventionCommand(convention);
   const defaultValues = {
+    schedule: getConventionSchedule(convention),
     why: convention.why ?? '',
     detect: convention.detect ?? '',
     fix: convention.fix ?? '',
@@ -80,6 +83,23 @@ export function ConventionEditForm({convention, filename}: Props) {
                 ),
               })}
         </Alert>
+        <form.AppField name="schedule">
+          {field => (
+            <field.Layout.Stack
+              label={t('Schedule')}
+              hintText={
+                crontabAsText(field.state.value) ?? t('Not a valid cron expression')
+              }
+            >
+              <field.Input
+                monospace
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder="* * * * *"
+              />
+            </field.Layout.Stack>
+          )}
+        </form.AppField>
         {fields.map(({name, label}) =>
           isNew || defaultValues[name] ? (
             <form.AppField key={name} name={name}>

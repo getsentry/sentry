@@ -1,4 +1,4 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ConventionEditForm} from 'sentry/views/codeConventions/conventionEditForm';
 
@@ -9,6 +9,7 @@ describe('ConventionEditForm', () => {
     for (const name of ['Why', 'Detect', 'Fix', 'Examples', 'Prefilter']) {
       expect(screen.getByRole('textbox', {name})).toHaveValue('');
     }
+    expect(screen.getByRole('textbox', {name: 'Schedule'})).toHaveValue('0 0 * * *');
     expect(
       screen.getByRole('link', {name: 'Create a PR adding a convention file'})
     ).toHaveAttribute(
@@ -32,5 +33,22 @@ describe('ConventionEditForm', () => {
     expect(screen.getByRole('textbox', {name: 'Why'})).toHaveValue('Because.');
     expect(screen.queryByRole('textbox', {name: 'Fix'})).not.toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'only-why.yaml'})).toBeInTheDocument();
+  });
+
+  it('describes the edited schedule and flags invalid ones', async () => {
+    render(
+      <ConventionEditForm
+        convention={{name: 'hourly', schedule: '0 */6 * * *', why: 'Because.'}}
+        filename="hourly.yaml"
+      />
+    );
+
+    const schedule = screen.getByRole('textbox', {name: 'Schedule'});
+    expect(schedule).toHaveValue('0 */6 * * *');
+    expect(screen.getByText(/every 6 hours/i)).toBeInTheDocument();
+
+    await userEvent.clear(schedule);
+    await userEvent.type(schedule, 'nope');
+    expect(screen.getByText('Not a valid cron expression')).toBeInTheDocument();
   });
 });

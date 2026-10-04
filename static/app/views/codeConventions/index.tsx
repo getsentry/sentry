@@ -16,6 +16,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConventionIssueCount} from 'sentry/views/codeConventions/conventionIssueCount';
+import {ConventionSchedule} from 'sentry/views/codeConventions/conventionSchedule';
 import {ConventionTags} from 'sentry/views/codeConventions/conventionTags';
 import {ConventionTrend} from 'sentry/views/codeConventions/conventionTrend';
 import {RepositorySelector} from 'sentry/views/codeConventions/repositorySelector';
@@ -31,6 +32,7 @@ import {
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: '1fr'},
+  {key: 'schedule', width: 'max-content'},
   {key: 'trend', width: '180px'},
   {key: 'issues', width: 'max-content'},
 ];
@@ -74,6 +76,7 @@ export default function CodeQuality() {
                 header={
                   <SimpleTable.HeaderRow>
                     <SimpleTable.HeaderCell>{t('Title')}</SimpleTable.HeaderCell>
+                    <SimpleTable.HeaderCell>{t('Schedule')}</SimpleTable.HeaderCell>
                     <SimpleTable.HeaderCell>
                       {t('Known issues (30d)')}
                     </SimpleTable.HeaderCell>
@@ -104,6 +107,9 @@ export default function CodeQuality() {
                           </Link>
                           <ConventionTags filename={entry.name} />
                         </Stack>
+                      </SimpleTable.RowCell>
+                      <SimpleTable.RowCell>
+                        <ConventionSchedule filename={entry.name} />
                       </SimpleTable.RowCell>
                       <SimpleTable.RowCell>
                         <ConventionTrend
