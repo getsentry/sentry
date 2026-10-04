@@ -1,7 +1,7 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
   getAutofixState,
@@ -50,8 +50,8 @@ describe('getAutofixState', () => {
 
   it('falls back to whether a run happened without derived data', () => {
     expect(getAutofixState(GroupFixture({seerAutofixLastTriggered: null}))).toEqual({
-      status: 'Not started',
-      nextStep: 'Find root cause',
+      status: null,
+      nextStep: 'Start Autofix',
     });
     expect(
       getAutofixState(GroupFixture({seerAutofixLastTriggered: new Date().toISOString()}))
@@ -75,6 +75,33 @@ describe('GroupAutofixStatus', () => {
       'href',
       expect.stringContaining('/issues/42/')
     );
+  });
+
+  it('starts a run through every step for an issue without one', async () => {
+    const startRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/7/autofix/',
+      method: 'POST',
+      body: {run_id: 1},
+    });
+
+    render(
+      <GroupAutofixStatus
+        group={GroupFixture({id: '7', seerAutofixLastTriggered: null})}
+      />
+    );
+
+    expect(screen.queryByText('Not started')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Start Autofix'}));
+
+    expect(startRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/issues/7/autofix/',
+      expect.objectContaining({
+        query: {mode: 'explorer'},
+        data: {step: 'root_cause', stopping_point: 'open_pr', referrer: 'api.web'},
+      })
+    );
+    expect(await screen.findByText('In progress')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Seer'})).toHaveAttribute('href');
   });
 
   it('renders nothing when AI features are hidden', () => {
