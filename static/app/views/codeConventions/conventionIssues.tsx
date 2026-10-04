@@ -4,6 +4,7 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
+import {groupByAutofixStage} from 'sentry/components/issues/groupAutofixStatus';
 import {
   GroupList,
   type GroupListColumn,
@@ -96,6 +97,7 @@ export default function ConventionIssues() {
               withChart={false}
               hideMessage
               titleSort={titleSort}
+              groupSections={groupByAutofixStage}
               canSelectGroups={false}
               numPlaceholderRows={10}
               source="code-conventions"

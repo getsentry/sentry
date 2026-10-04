@@ -2,6 +2,9 @@ import {Fragment, useCallback, useEffect, useEffectEvent, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
+import {Badge} from '@sentry/scraps/badge';
+import {Disclosure} from '@sentry/scraps/disclosure';
+import {Container} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
@@ -51,6 +54,16 @@ export type GroupListTitleSort = {
   onChange: (direction: 'asc' | 'desc') => void;
 };
 
+/**
+ * A labelled run of issues. With a null label the issues render without a
+ * section heading.
+ */
+export type GroupListSection = {
+  groups: Group[];
+  key: string;
+  label: React.ReactNode | null;
+};
+
 export type GroupListProps = {
   /**
    * Number of placeholder rows to show during loading
@@ -69,6 +82,11 @@ export type GroupListProps = {
         path: '/organizations/$organizationIdOrSlug/releases/$version/resolved/';
         version: string;
       };
+  /**
+   * Splits the loaded issues into collapsible sections, in the order returned.
+   * Empty sections are hidden.
+   */
+  groupSections?: (groups: Group[]) => GroupListSection[];
   /**
    * Omit the event message line under each issue title.
    */
@@ -132,6 +150,7 @@ export function GroupList({
   withChart = true,
   withPagination = true,
   canSelectGroups = true,
+  groupSections,
   hideMessage = false,
   titleSort,
   useFilteredStats = true,
@@ -360,6 +379,38 @@ export function GroupList({
       ? computedQueryParams?.groupStatsPeriod
       : DEFAULT_STREAM_GROUP_STATS_PERIOD;
 
+  const renderGroup = (group: Group) => {
+    const members = memberList?.get(group.project.slug);
+
+    return (
+      <StreamGroup
+        key={group.id}
+        group={group}
+        canSelect={canSelectGroups}
+        hideMessage={hideMessage}
+        withChart={withChart}
+        withColumns={columns}
+        memberList={members}
+        useFilteredStats={useFilteredStats}
+        useTintRow={useTintRow}
+        statsPeriod={statsPeriod}
+        queryFilterDescription={queryFilterDescription}
+        source={source}
+        query={query}
+        onAssigneeChange={newAssignee =>
+          updateQueryCacheAssigneeChange(group.id, newAssignee)
+        }
+        onPriorityChange={newPriority =>
+          updateQueryCachePriorityChange(group.id, newPriority)
+        }
+      />
+    );
+  };
+
+  const sections: GroupListSection[] = groupSections
+    ? groupSections(groups)
+    : [{key: 'all', label: null, groups}];
+
   return (
     <Fragment>
       <PanelContainer>
@@ -377,33 +428,26 @@ export function GroupList({
                   <Placeholder height="50px" />
                 </GroupPlaceholder>
               ))
-            : groups.map(group => {
-                const members = memberList?.get(group.project.slug);
-
-                return (
-                  <StreamGroup
-                    key={group.id}
-                    group={group}
-                    canSelect={canSelectGroups}
-                    hideMessage={hideMessage}
-                    withChart={withChart}
-                    withColumns={columns}
-                    memberList={members}
-                    useFilteredStats={useFilteredStats}
-                    useTintRow={useTintRow}
-                    statsPeriod={statsPeriod}
-                    queryFilterDescription={queryFilterDescription}
-                    source={source}
-                    query={query}
-                    onAssigneeChange={newAssignee =>
-                      updateQueryCacheAssigneeChange(group.id, newAssignee)
-                    }
-                    onPriorityChange={newPriority =>
-                      updateQueryCachePriorityChange(group.id, newPriority)
-                    }
-                  />
-                );
-              })}
+            : sections.map(section =>
+                section.label === null ? (
+                  <Fragment key={section.key}>{section.groups.map(renderGroup)}</Fragment>
+                ) : section.groups.length > 0 ? (
+                  <Disclosure key={section.key} defaultExpanded size="sm">
+                    <Container padding="sm" background="secondary" borderBottom="primary">
+                      <Disclosure.Title
+                        trailingItems={
+                          <Badge variant="muted">{section.groups.length}</Badge>
+                        }
+                      >
+                        {section.label}
+                      </Disclosure.Title>
+                    </Container>
+                    <Disclosure.Content>
+                      {section.groups.map(renderGroup)}
+                    </Disclosure.Content>
+                  </Disclosure>
+                ) : null
+              )}
         </PanelBody>
       </PanelContainer>
       {withPagination && (

@@ -54,6 +54,61 @@ export function getAutofixState(group: Group): AutofixState {
   return getAutofixRunExists(group) ? IN_PROGRESS_STATE : STEP_STATES.none;
 }
 
+type AutofixStage =
+  | 'has_pr'
+  | 'code_changes'
+  | 'plan'
+  | 'root_cause'
+  | 'in_progress'
+  | 'not_started';
+
+/**
+ * Stages from furthest along to not started, the order a list of issues should
+ * be worked through.
+ */
+const AUTOFIX_STAGES: Array<{key: AutofixStage; label: string}> = [
+  {key: 'has_pr', label: t('Has PR')},
+  {key: 'code_changes', label: t('Code changes ready')},
+  {key: 'plan', label: t('Plan ready')},
+  {key: 'root_cause', label: t('Root cause found')},
+  {key: 'in_progress', label: t('In progress')},
+  {key: 'not_started', label: t('Not started')},
+];
+
+function getAutofixStage(group: Group): AutofixStage {
+  const {blocker, lastCompletedAutofixStep, hasOpenFixPr} = group.derivedData ?? {};
+  if (
+    hasOpenFixPr ||
+    blocker === 'merge_pr' ||
+    lastCompletedAutofixStep === 'pr_created' ||
+    lastCompletedAutofixStep === 'pr_iteration'
+  ) {
+    return 'has_pr';
+  }
+  if (blocker === 'approve_code_changes' || lastCompletedAutofixStep === 'code_changes') {
+    return 'code_changes';
+  }
+  if (blocker === 'approve_plan' || lastCompletedAutofixStep === 'solution') {
+    return 'plan';
+  }
+  if (blocker === 'approve_root_cause' || lastCompletedAutofixStep === 'root_cause') {
+    return 'root_cause';
+  }
+  return getAutofixRunExists(group) ? 'in_progress' : 'not_started';
+}
+
+/**
+ * Groups issues by how far Autofix has got with them, issues with a PR first.
+ * Keeps the given order within each stage.
+ */
+export function groupByAutofixStage(groups: Group[]) {
+  return AUTOFIX_STAGES.map(({key, label}) => ({
+    key,
+    label,
+    groups: groups.filter(group => getAutofixStage(group) === key),
+  }));
+}
+
 /**
  * Starts an Autofix run that goes all the way to an open PR, rather than
  * stopping after the root cause for the user to approve each step.

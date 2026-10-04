@@ -3,6 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {EventOrGroupType} from 'sentry/types/event';
+import {ProgressState} from 'sentry/types/group';
 import ConventionIssues from 'sentry/views/codeConventions/conventionIssues';
 
 describe('ConventionIssues', () => {
@@ -109,5 +110,57 @@ describe('ConventionIssues', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Issue'}));
     expect(router.location.query.sort).toBe('-title');
     expect(titles()[0]).toBe('## [no-class-components] static/b.tsx:12');
+  });
+
+  it('groups issues by Autofix stage with PRs first', async () => {
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [
+        GroupFixture({
+          id: '1',
+          title: '## [no-class-components] static/a.tsx:1',
+          type: EventOrGroupType.DEFAULT,
+          seerAutofixLastTriggered: null,
+        }),
+        GroupFixture({
+          id: '2',
+          title: '## [no-class-components] static/b.tsx:1',
+          type: EventOrGroupType.DEFAULT,
+          derivedData: {
+            hasOpenFixPr: true,
+            hasRootCause: true,
+            isAssigned: false,
+            lastProgressedAt: null,
+            progress: ProgressState.FIX_PROPOSED,
+            status: 'open',
+            viewCount: 0,
+          },
+        }),
+      ],
+    });
+
+    render(<ConventionIssues />, {
+      initialRouterConfig: {
+        location: {
+          pathname:
+            '/organizations/org-slug/issues/code-conventions/getsentry%2Fsentry/no-class-components/issues/',
+        },
+        route:
+          '/organizations/:orgId/issues/code-conventions/:repoName/:conventionName/issues/',
+      },
+    });
+
+    const hasPr = await screen.findByRole('button', {name: /Has PR/});
+    const notStarted = screen.getByRole('button', {name: /Not started/});
+    expect(
+      hasPr.compareDocumentPosition(notStarted) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(screen.queryByRole('button', {name: /Plan ready/})).not.toBeInTheDocument();
+    expect(
+      hasPr.compareDocumentPosition(
+        screen.getByText('## [no-class-components] static/b.tsx:1')
+      ) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
   });
 });
