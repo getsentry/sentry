@@ -55,23 +55,26 @@ export function getAutofixState(group: Group): AutofixState {
 }
 
 /**
- * Starts a run that goes all the way to an open PR, rather than stopping after
- * the root cause for the user to approve each step.
+ * Starts an Autofix run that goes all the way to an open PR, rather than
+ * stopping after the root cause for the user to approve each step.
  */
+export function startFullAutofix(orgSlug: string, groupId: string) {
+  return fetchMutation({
+    method: 'POST',
+    url: getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
+      path: {organizationIdOrSlug: orgSlug, issueId: groupId},
+    }),
+    options: {query: {mode: 'explorer'}},
+    data: {step: 'root_cause', stopping_point: 'open_pr', referrer: 'api.web'},
+  });
+}
+
 function useStartFullAutofix(group: Group) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: () =>
-      fetchMutation({
-        method: 'POST',
-        url: getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
-          path: {organizationIdOrSlug: organization.slug, issueId: group.id},
-        }),
-        options: {query: {mode: 'explorer'}},
-        data: {step: 'root_cause', stopping_point: 'open_pr', referrer: 'api.web'},
-      }),
+    mutationFn: () => startFullAutofix(organization.slug, group.id),
     onSuccess: () => {
       queryClient.invalidateQueries({
         queryKey: explorerAutofixApiOptions(organization.slug, group.id).queryKey,

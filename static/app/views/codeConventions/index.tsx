@@ -15,6 +15,7 @@ import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ConventionBatchAutofix} from 'sentry/views/codeConventions/conventionBatchAutofix';
 import {ConventionCost} from 'sentry/views/codeConventions/conventionCost';
 import {ConventionIssueCount} from 'sentry/views/codeConventions/conventionIssueCount';
 import {ConventionSchedule} from 'sentry/views/codeConventions/conventionSchedule';
@@ -37,6 +38,7 @@ const COLUMNS: TableColumnConfig[] = [
   {key: 'cost', width: 'max-content'},
   {key: 'trend', width: '180px'},
   {key: 'issues', width: 'max-content'},
+  {key: 'autofix', width: 'max-content'},
 ];
 
 export default function CodeQuality() {
@@ -84,6 +86,7 @@ export default function CodeQuality() {
                       {t('Known issues (30d)')}
                     </SimpleTable.HeaderCell>
                     <SimpleTable.HeaderCell>{t('Issues')}</SimpleTable.HeaderCell>
+                    <SimpleTable.HeaderCell>{t('Autofix')}</SimpleTable.HeaderCell>
                   </SimpleTable.HeaderRow>
                 }
               >
@@ -127,6 +130,9 @@ export default function CodeQuality() {
                           repoName={REPO}
                           conventionName={conventionName}
                         />
+                      </SimpleTable.RowCell>
+                      <SimpleTable.RowCell>
+                        <ConventionBatchAutofix conventionName={conventionName} />
                       </SimpleTable.RowCell>
                     </SimpleTable.Row>
                   );
