@@ -15,6 +15,7 @@ import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ConventionCost} from 'sentry/views/codeConventions/conventionCost';
 import {ConventionIssueCount} from 'sentry/views/codeConventions/conventionIssueCount';
 import {ConventionSchedule} from 'sentry/views/codeConventions/conventionSchedule';
 import {ConventionTags} from 'sentry/views/codeConventions/conventionTags';
@@ -35,6 +36,7 @@ const COLUMNS: TableColumnConfig[] = [
   {key: 'schedule', width: 'max-content'},
   {key: 'trend', width: '180px'},
   {key: 'issues', width: 'max-content'},
+  {key: 'cost', width: 'max-content'},
 ];
 
 export default function CodeQuality() {
@@ -81,6 +83,7 @@ export default function CodeQuality() {
                       {t('Known issues (30d)')}
                     </SimpleTable.HeaderCell>
                     <SimpleTable.HeaderCell>{t('Issues')}</SimpleTable.HeaderCell>
+                    <SimpleTable.HeaderCell>{t('LLM cost (30d)')}</SimpleTable.HeaderCell>
                   </SimpleTable.HeaderRow>
                 }
               >
@@ -118,6 +121,9 @@ export default function CodeQuality() {
                       </SimpleTable.RowCell>
                       <SimpleTable.RowCell>
                         <ConventionIssueCount conventionName={conventionName} />
+                      </SimpleTable.RowCell>
+                      <SimpleTable.RowCell>
+                        <ConventionCost filename={entry.name} />
                       </SimpleTable.RowCell>
                     </SimpleTable.Row>
                   );

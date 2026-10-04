@@ -161,6 +161,38 @@ export function getConventionIssuesPath(orgSlug: string, conventionName: string)
   return `/organizations/${orgSlug}/issues/code-conventions/${conventionName}/issues/`;
 }
 
+/**
+ * Demo data: estimated LLM input tokens each convention's scans used over the
+ * last 30 days. Measured on a checkout by running each prefilter, applying the
+ * scanner's include/exclude rules, and re-scanning matched files on each day
+ * they changed (CI keeps the scan cache between runs), at the scanner's own
+ * 4 chars per token plus the convention prompt per batch. Output tokens aren't
+ * included. detect_command conventions don't call a model.
+ */
+const DEMO_SCAN_TOKENS_30D: Record<string, number> = {
+  'deprecated-needs-replacement': 177_629,
+  'no-callback-api-request': 614_267,
+  'no-class-components': 226_663,
+  'no-custom-render-helper': 1_588_680,
+};
+
+// Scans run on Claude Haiku 4.5 (INFERENCE_MODEL: haiku in the workflow).
+const HAIKU_INPUT_USD_PER_MILLION_TOKENS = 1;
+
+export function getConventionScanUsage(convention: Convention) {
+  if (convention.detect_command && !convention.prefilter) {
+    return {tokens: 0, costUsd: 0};
+  }
+  const tokens = DEMO_SCAN_TOKENS_30D[convention.name];
+  if (tokens === undefined) {
+    return null;
+  }
+  return {
+    tokens,
+    costUsd: (tokens / 1_000_000) * HAIKU_INPUT_USD_PER_MILLION_TOKENS,
+  };
+}
+
 export function getCodeConventionsPath(orgSlug: string) {
   return `/organizations/${orgSlug}/issues/code-conventions/`;
 }
