@@ -1,6 +1,6 @@
+import {FeatureBadge} from '@sentry/scraps/badge';
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
 
 import {GroupList, type GroupListColumn} from 'sentry/components/issues/groupList';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -14,6 +14,7 @@ import {
   getCodeConventionsPath,
   getConventionIssuesQuery,
 } from 'sentry/views/codeConventions/utils';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 // Every issue in a convention shares the same kind of title, severity and a
 // near-constant event rate (one per scan), so the message, Last Seen, trend,
@@ -32,28 +33,40 @@ export default function ConventionIssues() {
       orgSlug={organization.slug}
     >
       <Stack flex={1}>
-        <Layout.Title>{title}</Layout.Title>
+        <TopBar.Slot name="breadcrumbs">
+          <BreadcrumbList
+            items={[
+              {
+                type: 'link',
+                label: t('Issues'),
+                to: normalizeUrl(`/organizations/${organization.slug}/issues/`),
+              },
+              {
+                type: 'link',
+                label: t('Code Quality'),
+                to: normalizeUrl(getCodeConventionsPath(organization.slug)),
+              },
+            ]}
+          />
+        </TopBar.Slot>
+        <Layout.Title>
+          <Flex align="center" gap="sm">
+            {title}
+            <FeatureBadge type="alpha" />
+          </Flex>
+        </Layout.Title>
         <Layout.Body>
           <Layout.Main width="full">
-            <Stack gap="xl">
-              <Flex gap="xs">
-                <Link to={normalizeUrl(getCodeConventionsPath(organization.slug))}>
-                  {t('Code Quality')}
-                </Link>
-                <Text variant="muted">/</Text>
-                <Text>{title}</Text>
-              </Flex>
-              <GroupList
-                queryParams={{...issuesQuery, limit: 25, sort: 'date'}}
-                query={issuesQuery.query}
-                withColumns={COLUMNS}
-                withChart={false}
-                hideMessage
-                canSelectGroups={false}
-                numPlaceholderRows={10}
-                source="code-conventions"
-              />
-            </Stack>
+            <GroupList
+              queryParams={{...issuesQuery, limit: 25, sort: 'date'}}
+              query={issuesQuery.query}
+              withColumns={COLUMNS}
+              withChart={false}
+              hideMessage
+              canSelectGroups={false}
+              numPlaceholderRows={10}
+              source="code-conventions"
+            />
           </Layout.Main>
         </Layout.Body>
       </Stack>
