@@ -6,7 +6,7 @@ import {EventOrGroupType} from 'sentry/types/event';
 import ConventionIssues from 'sentry/views/codeConventions/conventionIssues';
 
 describe('ConventionIssues', () => {
-  it("lists the convention's issues without message, trend or count columns", async () => {
+  it("lists the convention's issues with only the age and assignee columns", async () => {
     MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
     const issuesRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
@@ -36,7 +36,7 @@ describe('ConventionIssues', () => {
     expect(screen.queryByText('class Profile extends Component')).not.toBeInTheDocument();
 
     expect(screen.getByText('Age')).toBeInTheDocument();
-    for (const hidden of ['Last Seen', 'Events', 'Users', 'Graph:']) {
+    for (const hidden of ['Last Seen', 'Events', 'Users', 'Priority', 'Graph:']) {
       expect(screen.queryByText(hidden)).not.toBeInTheDocument();
     }
 

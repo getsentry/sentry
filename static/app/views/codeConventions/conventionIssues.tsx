@@ -15,10 +15,10 @@ import {
   getConventionIssuesQuery,
 } from 'sentry/views/codeConventions/utils';
 
-// Every issue in a convention shares the same kind of title and a near-constant
-// event rate (one per scan), so the message, Last Seen, trend, events and
-// users columns carry no signal here.
-const COLUMNS: GroupListColumn[] = ['firstSeen', 'priority', 'assignee'];
+// Every issue in a convention shares the same kind of title, severity and a
+// near-constant event rate (one per scan), so the message, Last Seen, trend,
+// events, users and priority columns carry no signal here.
+const COLUMNS: GroupListColumn[] = ['firstSeen', 'assignee'];
 
 export default function ConventionIssues() {
   const {conventionName} = useParams<{conventionName: string}>();
