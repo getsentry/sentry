@@ -447,7 +447,10 @@ export function GroupList({
                         {section.label}
                       </Disclosure.Title>
                     </Container>
-                    <Disclosure.Content>
+                    {/* Rows are full-width panel items, so drop the content's
+                        padding and title-aligned indent. Content takes no
+                        spacing props, hence the inline style. */}
+                    <Disclosure.Content style={{padding: 0}}>
                       {section.groups.map(renderGroup)}
                     </Disclosure.Content>
                   </Disclosure>
