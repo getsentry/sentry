@@ -18,7 +18,7 @@ import {ProgressState, type Group} from 'sentry/types/group';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {ConventionWhy} from 'sentry/views/codeConventions/conventionWhy';
+import {ConventionOverview} from 'sentry/views/codeConventions/conventionOverview';
 import {
   formatConventionTitle,
   getCodeConventionsPath,
@@ -117,7 +117,7 @@ export default function ConventionIssues() {
         <Layout.Body>
           <Layout.Main width="full">
             <Stack gap="lg">
-              <ConventionWhy conventionName={conventionName} />
+              <ConventionOverview conventionName={conventionName} />
               <GroupList
                 queryParams={{
                   ...issuesQuery,

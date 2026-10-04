@@ -165,13 +165,13 @@ describe('ConventionIssues', () => {
     ).toBeTruthy();
   });
 
-  it('explains the convention in a collapsed disclosure', async () => {
+  it('explains why the convention exists and how it detects violations', async () => {
     fetchMock.resetMocks();
     fetchMock.mockResponse(request =>
       Promise.resolve(
         request.url.includes('api.github.com')
           ? JSON.stringify([{name: 'no-class-components.yaml', sha: 'abc', type: 'file'}])
-          : 'name: no-class-components\nwhy: |\n  Class components are the **legacy** style.\n'
+          : 'name: no-class-components\nwhy: |\n  Class components are the **legacy** style.\ndetect: |\n  Look for classes that extend `Component`.\n'
       )
     );
     MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
@@ -195,5 +195,10 @@ describe('ConventionIssues', () => {
 
     await userEvent.click(toggle);
     expect(screen.getByText('legacy')).toBeVisible();
+
+    const detect = screen.getByRole('button', {name: 'How violations are detected'});
+    expect(detect).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(detect);
+    expect(screen.getByText('Component')).toBeVisible();
   });
 });
