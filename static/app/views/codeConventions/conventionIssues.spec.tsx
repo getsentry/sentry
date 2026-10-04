@@ -171,7 +171,7 @@ describe('ConventionIssues', () => {
       Promise.resolve(
         request.url.includes('api.github.com')
           ? JSON.stringify([{name: 'no-class-components.yaml', sha: 'abc', type: 'file'}])
-          : 'name: no-class-components\nwhy: |\n  Class components are the **legacy** style.\ndetect: |\n  Look for classes that extend `Component`.\n'
+          : 'name: no-class-components\ntags: [react, migration]\nwhy: |\n  Class components are the **legacy** style.\ndetect: |\n  Look for classes that extend `Component`.\n'
       )
     );
     MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
@@ -192,6 +192,9 @@ describe('ConventionIssues', () => {
       name: 'Why this convention matters',
     });
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByText('13 8 * * *')).toBeInTheDocument();
+    expect(screen.getByText('$0.23')).toBeInTheDocument();
+    expect(screen.getByText('react')).toBeInTheDocument();
 
     await userEvent.click(toggle);
     expect(screen.getByText('legacy')).toBeVisible();
