@@ -51,5 +51,6 @@ describe('ConventionIssues', () => {
     );
     expect(screen.getByRole('link', {name: 'Issues'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Code Quality'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'getsentry/sentry'})).toBeInTheDocument();
   });
 });

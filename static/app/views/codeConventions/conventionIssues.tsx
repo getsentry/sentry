@@ -5,6 +5,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {GroupList, type GroupListColumn} from 'sentry/components/issues/groupList';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -13,6 +14,7 @@ import {
   formatConventionTitle,
   getCodeConventionsPath,
   getConventionIssuesQuery,
+  REPO,
 } from 'sentry/views/codeConventions/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -45,6 +47,15 @@ export default function ConventionIssues() {
                 type: 'link',
                 label: t('Code Quality'),
                 to: normalizeUrl(getCodeConventionsPath(organization.slug)),
+              },
+              {
+                type: 'link',
+                label: REPO,
+                leadingGraphic: <IconGithub />,
+                to: {
+                  pathname: normalizeUrl(getCodeConventionsPath(organization.slug)),
+                  query: {repo: REPO},
+                },
               },
             ]}
           />
