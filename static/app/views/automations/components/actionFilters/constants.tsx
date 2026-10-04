@@ -115,6 +115,17 @@ export enum Interval {
   THIRTY_DAYS = '30d',
 }
 
+export const FREQUENCY_COUNT_DEFAULT_COMPARISON = {
+  value: 100,
+  interval: Interval.ONE_HOUR,
+};
+
+export const FREQUENCY_PERCENT_DEFAULT_COMPARISON = {
+  value: 100,
+  interval: Interval.ONE_HOUR,
+  comparisonInterval: Interval.ONE_WEEK,
+};
+
 export const MATCH_CHOICES = [
   {value: MatchType.CONTAINS, label: 'contains'},
   {value: MatchType.EQUAL, label: 'equals'},

@@ -1,14 +1,10 @@
 import type React from 'react';
-import {createContext, useContext} from 'react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
-import {
-  DataConditionType,
-  type DataCondition,
-} from 'sentry/types/workflowEngine/dataConditions';
+import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
 import {
   AgeComparisonDetails,
   AgeComparisonNode,
@@ -22,7 +18,8 @@ import {
 import {
   AgeComparison,
   Attribute,
-  Interval,
+  FREQUENCY_COUNT_DEFAULT_COMPARISON,
+  FREQUENCY_PERCENT_DEFAULT_COMPARISON,
   Level,
   MatchType,
   ModelAge,
@@ -96,26 +93,6 @@ import {
   validateTaggedEventCondition,
 } from 'sentry/views/automations/components/actionFilters/taggedEvent';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
-
-interface DataConditionNodeProps {
-  condition: DataCondition;
-  condition_id: string;
-  onUpdate: (params: {comparison?: any; type?: DataConditionType}) => void;
-}
-
-export const DataConditionNodeContext = createContext<DataConditionNodeProps | null>(
-  null
-);
-
-export function useDataConditionNodeContext(): DataConditionNodeProps {
-  const context = useContext(DataConditionNodeContext);
-  if (!context) {
-    throw new Error(
-      'useDataConditionNodeContext was called outside of DataConditionNode'
-    );
-  }
-  return context;
-}
 
 type DataConditionNode = {
   label: string;
@@ -334,7 +311,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Number of events'),
       dataCondition: EventFrequencyNode,
       details: EventFrequencyCountDetails,
-      defaultComparison: {value: 100, interval: Interval.ONE_HOUR},
+      defaultComparison: FREQUENCY_COUNT_DEFAULT_COMPARISON,
       validate: validateEventFrequencyCondition,
       warningMessage: OccurenceBasedMonitorsWarning,
     },
@@ -345,11 +322,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Number of events'),
       dataCondition: EventFrequencyNode,
       details: EventFrequencyPercentDetails,
-      defaultComparison: {
-        value: 100,
-        interval: Interval.ONE_HOUR,
-        comparisonInterval: Interval.ONE_WEEK,
-      },
+      defaultComparison: FREQUENCY_PERCENT_DEFAULT_COMPARISON,
       validate: validateEventFrequencyCondition,
       warningMessage: OccurenceBasedMonitorsWarning,
     },
@@ -369,7 +342,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Number of users affected'),
       dataCondition: EventUniqueUserFrequencyNode,
       details: EventUniqueUserFrequencyCountDetails,
-      defaultComparison: {value: 100, interval: Interval.ONE_HOUR},
+      defaultComparison: FREQUENCY_COUNT_DEFAULT_COMPARISON,
       validate: validateEventUniqueUserFrequencyCondition,
       warningMessage: OccurenceBasedMonitorsWarning,
     },
@@ -380,11 +353,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Number of users affected'),
       dataCondition: EventUniqueUserFrequencyNode,
       details: EventUniqueUserFrequencyPercentDetails,
-      defaultComparison: {
-        value: 100,
-        interval: Interval.ONE_HOUR,
-        comparisonInterval: Interval.ONE_WEEK,
-      },
+      defaultComparison: FREQUENCY_PERCENT_DEFAULT_COMPARISON,
       validate: validateEventUniqueUserFrequencyCondition,
       warningMessage: OccurenceBasedMonitorsWarning,
     },
@@ -404,7 +373,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Percentage of sessions affected'),
       dataCondition: PercentSessionsNode,
       details: PercentSessionsCountDetails,
-      defaultComparison: {value: 100, interval: Interval.ONE_HOUR},
+      defaultComparison: FREQUENCY_COUNT_DEFAULT_COMPARISON,
       validate: validatePercentSessionsCondition,
       warningMessage: OccurenceBasedMonitorsWarning,
     },
@@ -415,11 +384,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Percentage of sessions affected'),
       dataCondition: PercentSessionsNode,
       details: PercentSessionsPercentDetails,
-      defaultComparison: {
-        value: 100,
-        interval: Interval.ONE_HOUR,
-        comparisonInterval: Interval.ONE_WEEK,
-      },
+      defaultComparison: FREQUENCY_PERCENT_DEFAULT_COMPARISON,
       validate: validatePercentSessionsCondition,
       warningMessage: OccurenceBasedMonitorsWarning,
     },

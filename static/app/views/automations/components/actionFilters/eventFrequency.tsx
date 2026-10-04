@@ -14,6 +14,8 @@ import {
 } from 'sentry/views/automations/components/actionFilters/comparisonBranches';
 import {
   COMPARISON_INTERVAL_CHOICES,
+  FREQUENCY_COUNT_DEFAULT_COMPARISON,
+  FREQUENCY_PERCENT_DEFAULT_COMPARISON,
   INTERVAL_CHOICES,
 } from 'sentry/views/automations/components/actionFilters/constants';
 import {
@@ -21,10 +23,7 @@ import {
   SubfiltersList,
   validateSubfilters,
 } from 'sentry/views/automations/components/actionFilters/subfiltersList';
-import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
-import {
-  dataConditionNodesMap,
+import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
   useDataConditionNodeContext,
 } from 'sentry/views/automations/components/dataConditionNodes';
 
@@ -128,7 +127,9 @@ function ComparisonTypeField() {
           comparison: {
             ...condition.comparison,
             ...dataConditionNodesMap.get(option.value)?.defaultComparison,
-          },
+            ...(option.value === DataConditionType.EVENT_FREQUENCY_PERCENT
+              ? FREQUENCY_PERCENT_DEFAULT_COMPARISON
+              : FREQUENCY_COUNT_DEFAULT_COMPARISON),
         });
         removeError(condition.id);
       }}
