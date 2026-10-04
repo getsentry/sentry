@@ -24,9 +24,9 @@ import {RepositorySelector} from 'sentry/views/codeConventions/repositorySelecto
 import {
   conventionFilesQueryOptions,
   formatConventionTitle,
-  getCodeConventionsPath,
   getConventionIssueTitlePrefix,
   getConventionName,
+  getConventionPath,
   getNewConventionPath,
   REPO,
 } from 'sentry/views/codeConventions/utils';
@@ -101,7 +101,7 @@ export default function CodeQuality() {
                           <Link
                             to={{
                               pathname: normalizeUrl(
-                                `${getCodeConventionsPath(organization.slug)}${conventionName}/`
+                                getConventionPath(organization.slug, REPO, conventionName)
                               ),
                               query: location.query,
                             }}
@@ -120,7 +120,10 @@ export default function CodeQuality() {
                         />
                       </SimpleTable.RowCell>
                       <SimpleTable.RowCell>
-                        <ConventionIssueCount conventionName={conventionName} />
+                        <ConventionIssueCount
+                          repoName={REPO}
+                          conventionName={conventionName}
+                        />
                       </SimpleTable.RowCell>
                       <SimpleTable.RowCell>
                         <ConventionCost filename={entry.name} />

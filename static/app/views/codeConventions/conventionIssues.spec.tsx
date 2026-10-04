@@ -24,9 +24,10 @@ describe('ConventionIssues', () => {
       initialRouterConfig: {
         location: {
           pathname:
-            '/organizations/org-slug/issues/code-conventions/no-class-components/issues/',
+            '/organizations/org-slug/issues/code-conventions/getsentry%2Fsentry/no-class-components/issues/',
         },
-        route: '/organizations/:orgId/issues/code-conventions/:conventionName/issues/',
+        route:
+          '/organizations/:orgId/issues/code-conventions/:repoName/:conventionName/issues/',
       },
     });
 

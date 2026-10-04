@@ -56,6 +56,7 @@ type ParamKeys =
   | 'relocationUuid'
   | 'replaySlug'
   | 'repoId'
+  | 'repoName'
   | 'ruleId'
   | 'scrubbingId'
   | 'searchId'

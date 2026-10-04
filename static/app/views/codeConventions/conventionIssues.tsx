@@ -14,7 +14,6 @@ import {
   formatConventionTitle,
   getCodeConventionsPath,
   getConventionIssuesQuery,
-  REPO,
 } from 'sentry/views/codeConventions/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -24,7 +23,10 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 const COLUMNS: GroupListColumn[] = ['firstSeen', 'assignee'];
 
 export default function ConventionIssues() {
-  const {conventionName} = useParams<{conventionName: string}>();
+  const {repoName, conventionName} = useParams<{
+    conventionName: string;
+    repoName: string;
+  }>();
   const organization = useOrganization();
   const title = formatConventionTitle(conventionName);
   const issuesQuery = getConventionIssuesQuery(conventionName);
@@ -50,11 +52,11 @@ export default function ConventionIssues() {
               },
               {
                 type: 'link',
-                label: REPO,
+                label: repoName,
                 leadingGraphic: <IconGithub />,
                 to: {
                   pathname: normalizeUrl(getCodeConventionsPath(organization.slug)),
-                  query: {repo: REPO},
+                  query: {repo: repoName},
                 },
               },
             ]}

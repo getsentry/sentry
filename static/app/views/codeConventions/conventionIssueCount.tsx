@@ -15,9 +15,10 @@ import {
 
 interface Props {
   conventionName: string;
+  repoName: string;
 }
 
-export function ConventionIssueCount({conventionName}: Props) {
+export function ConventionIssueCount({conventionName, repoName}: Props) {
   const organization = useOrganization();
   const query = getConventionIssuesQuery(conventionName);
 
@@ -36,7 +37,11 @@ export function ConventionIssueCount({conventionName}: Props) {
   }
 
   return (
-    <Link to={normalizeUrl(getConventionIssuesPath(organization.slug, conventionName))}>
+    <Link
+      to={normalizeUrl(
+        getConventionIssuesPath(organization.slug, repoName, conventionName)
+      )}
+    >
       <Count value={hits ?? 0} />
     </Link>
   );

@@ -2538,7 +2538,7 @@ function buildRoutes(): RouteObject[] {
       redirectTo: '../autofix/',
     },
     {
-      path: 'code-conventions/:conventionName/issues/',
+      path: 'code-conventions/:repoName/:conventionName/issues/',
       component: make(() => import('sentry/views/codeConventions/conventionIssues')),
     },
     {
@@ -2550,7 +2550,7 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/codeConventions')),
       children: [
         {
-          path: ':conventionName/',
+          path: ':repoName/:conventionName/',
           component: make(() => import('sentry/views/codeConventions/conventionDetails')),
         },
       ],

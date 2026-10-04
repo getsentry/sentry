@@ -23,15 +23,19 @@ import {
   getCodeConventionsPath,
   getConventionFileUrls,
   getConventionName,
+  REPO,
 } from 'sentry/views/codeConventions/utils';
 
 /**
- * Route component for `code-conventions/:conventionName/`. It renders only the
+ * Route component for `code-conventions/:repoName/:conventionName/`. It renders only the
  * document title; it keeps the drawer open for as long as the URL points at a
  * convention, so the drawer is linkable and closes on back navigation.
  */
 export default function ConventionDetails() {
-  const {conventionName} = useParams<{conventionName: string}>();
+  const {repoName, conventionName} = useParams<{
+    conventionName: string;
+    repoName: string;
+  }>();
   const {query} = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -41,9 +45,12 @@ export default function ConventionDetails() {
   // The URL only carries the convention name, and the file may end in either
   // `.yml` or `.yaml`, so look the filename up in the (already cached) list.
   const filesQuery = useQuery(conventionFilesQueryOptions);
-  const filename = filesQuery.data?.find(
-    entry => getConventionName(entry.name) === conventionName
-  )?.name;
+  // Only one repo's conventions exist for now.
+  const filename =
+    repoName === REPO
+      ? filesQuery.data?.find(entry => getConventionName(entry.name) === conventionName)
+          ?.name
+      : undefined;
 
   const yamlQuery = useQuery(conventionQueryOptions(filename));
 
@@ -98,13 +105,16 @@ export default function ConventionDetails() {
           });
         },
         shouldCloseOnLocationChange: nextLocation =>
-          !nextLocation.pathname.endsWith(`/code-conventions/${conventionName}/`),
+          !nextLocation.pathname.endsWith(
+            `/code-conventions/${encodeURIComponent(repoName)}/${conventionName}/`
+          ),
       }
     );
   }, [
     convention,
     conventionName,
     filename,
+    repoName,
     title,
     isError,
     isNotFound,

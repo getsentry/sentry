@@ -157,8 +157,24 @@ export function getConventionIssuesQuery(conventionName: string) {
   };
 }
 
-export function getConventionIssuesPath(orgSlug: string, conventionName: string) {
-  return `/organizations/${orgSlug}/issues/code-conventions/${conventionName}/issues/`;
+/**
+ * Conventions are scoped to a repo. Its full name (`owner/repo`) is encoded
+ * into a single path segment.
+ */
+export function getConventionPath(
+  orgSlug: string,
+  repoName: string,
+  conventionName: string
+) {
+  return `/organizations/${orgSlug}/issues/code-conventions/${encodeURIComponent(repoName)}/${conventionName}/`;
+}
+
+export function getConventionIssuesPath(
+  orgSlug: string,
+  repoName: string,
+  conventionName: string
+) {
+  return `${getConventionPath(orgSlug, repoName, conventionName)}issues/`;
 }
 
 /**
