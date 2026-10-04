@@ -917,4 +917,46 @@ describe('useConversation', () => {
     expect(node?.uniqueErrorIssues).toEqual([]);
     expect(node?.uniqueOccurrenceIssues).toEqual([]);
   });
+
+  it('keeps failed non-AI spans of the conversation and drops healthy ones', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/conv-123/`,
+      body: envelope([
+        BASE_SPAN,
+        {
+          ...BASE_SPAN,
+          'gen_ai.operation.type': undefined,
+          'span.name': 'process order-updates',
+          'span.op': 'queue.process',
+          span_id: 'span-job-ok',
+        },
+        {
+          ...BASE_SPAN,
+          'gen_ai.operation.type': undefined,
+          'precise.start_ts': 1001,
+          'precise.finish_ts': 1001.2,
+          'span.name': 'process order-updates',
+          'span.op': 'queue.process',
+          'span.status': 'internal_error',
+          span_id: 'span-job-failed',
+          errors: [{issue_id: 42, title: 'OrderAlreadyShippedError'}],
+        },
+      ]),
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-123'}),
+      {organization}
+    );
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false);
+    });
+
+    expect(result.current.nodes.map(node => node.id)).toEqual([
+      'span-1',
+      'span-job-failed',
+    ]);
+    expect(result.current.nodes[1]?.errors.size).toBe(1);
+  });
 });
