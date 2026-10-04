@@ -34,9 +34,9 @@ import {
 const COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: '1fr'},
   {key: 'schedule', width: 'max-content'},
+  {key: 'cost', width: 'max-content'},
   {key: 'trend', width: '180px'},
   {key: 'issues', width: 'max-content'},
-  {key: 'cost', width: 'max-content'},
 ];
 
 export default function CodeQuality() {
@@ -79,11 +79,11 @@ export default function CodeQuality() {
                   <SimpleTable.HeaderRow>
                     <SimpleTable.HeaderCell>{t('Title')}</SimpleTable.HeaderCell>
                     <SimpleTable.HeaderCell>{t('Schedule')}</SimpleTable.HeaderCell>
+                    <SimpleTable.HeaderCell>{t('LLM cost (30d)')}</SimpleTable.HeaderCell>
                     <SimpleTable.HeaderCell>
                       {t('Known issues (30d)')}
                     </SimpleTable.HeaderCell>
                     <SimpleTable.HeaderCell>{t('Issues')}</SimpleTable.HeaderCell>
-                    <SimpleTable.HeaderCell>{t('LLM cost (30d)')}</SimpleTable.HeaderCell>
                   </SimpleTable.HeaderRow>
                 }
               >
@@ -115,6 +115,9 @@ export default function CodeQuality() {
                         <ConventionSchedule filename={entry.name} />
                       </SimpleTable.RowCell>
                       <SimpleTable.RowCell>
+                        <ConventionCost filename={entry.name} />
+                      </SimpleTable.RowCell>
+                      <SimpleTable.RowCell>
                         <ConventionTrend
                           titlePrefix={getConventionIssueTitlePrefix(conventionName)}
                         />
@@ -124,9 +127,6 @@ export default function CodeQuality() {
                           repoName={REPO}
                           conventionName={conventionName}
                         />
-                      </SimpleTable.RowCell>
-                      <SimpleTable.RowCell>
-                        <ConventionCost filename={entry.name} />
                       </SimpleTable.RowCell>
                     </SimpleTable.Row>
                   );
