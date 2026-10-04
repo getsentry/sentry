@@ -23,10 +23,7 @@ export const canUseMetricsAlertsUI = (organization: Organization) => {
 };
 
 export const canUseMetricsStatsBytesUI = (organization: Organization) => {
-  return (
-    canUseMetricsUI(organization) &&
-    organization.features.includes('tracemetrics-stats-bytes-ui')
-  );
+  return canUseMetricsUI(organization);
 };
 
 export const canUseMetricsEquationsInAlerts = (organization: Organization) => {
