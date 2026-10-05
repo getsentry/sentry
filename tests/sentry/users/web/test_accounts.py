@@ -9,6 +9,7 @@ from django.utils import timezone
 
 from sentry.organizations.services.organization import organization_service
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.lostpasswordhash import LostPasswordHash
@@ -37,6 +38,62 @@ class TestAccounts(TestCase):
         resp = self.client.get(self.path)
         assert resp.status_code == 200
         self.assertTemplateUsed("sentry/account/recover/index.html")
+
+    @override_options({"auth.v2.enabled": True})
+    def test_recovery_confirm_renders_react(self) -> None:
+        response = self.client.get(self.password_recover_path(self.user.id, "token"))
+
+        assert response.status_code == 200
+        self.assertTemplateUsed("sentry/base-react.html")
+        assert response["Referrer-Policy"] == "strict-origin-when-cross-origin"
+
+    @override_options({"auth.v2.enabled": False})
+    def test_recovery_confirm_renders_legacy(self) -> None:
+        password_hash = LostPasswordHash.for_user(self.user)
+
+        response = self.client.get(self.password_recover_path(self.user.id, password_hash.hash))
+
+        assert response.status_code == 200
+        self.assertTemplateUsed("sentry/account/recover/confirm.html")
+
+    @override_options({"auth.v2.enabled": False})
+    def test_recovery_confirm_cookie_enables_react(self) -> None:
+        self.client.cookies["sentry_react_auth"] = "1"
+
+        response = self.client.get(self.password_recover_path(self.user.id, "token"))
+
+        assert response.status_code == 200
+        self.assertTemplateUsed("sentry/base-react.html")
+
+    @override_options({"auth.v2.enabled": True})
+    def test_recovery_confirm_cookie_disables_react(self) -> None:
+        self.client.cookies["sentry_react_auth"] = "0"
+        password_hash = LostPasswordHash.for_user(self.user)
+
+        response = self.client.get(self.password_recover_path(self.user.id, password_hash.hash))
+
+        assert response.status_code == 200
+        self.assertTemplateUsed("sentry/account/recover/confirm.html")
+
+    @override_options({"auth.v2.enabled": True})
+    def test_relocation_confirm_renders_legacy(self) -> None:
+        password_hash = LostPasswordHash.for_user(self.user)
+
+        response = self.client.get(self.relocation_recover_path(self.user.id, password_hash.hash))
+
+        assert response.status_code == 200
+        self.assertTemplateUsed("sentry/account/relocate/confirm.html")
+
+    @override_options({"auth.v2.enabled": True})
+    def test_set_password_confirm_renders_legacy(self) -> None:
+        password_hash = LostPasswordHash.for_user(self.user)
+
+        response = self.client.get(
+            reverse("sentry-account-set-password-confirm", args=[self.user.id, password_hash.hash])
+        )
+
+        assert response.status_code == 200
+        self.assertTemplateUsed("sentry/account/set_password/confirm.html")
 
     def test_post_unknown_user(self) -> None:
         resp = self.client.post(self.path, {"user": "nobody"})

@@ -14,7 +14,7 @@ import {mergeProps} from '@react-aria/utils';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Text, type TextProps} from '@sentry/scraps/text';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {IconClose} from 'sentry/icons';
 

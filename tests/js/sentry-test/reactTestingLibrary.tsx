@@ -20,6 +20,7 @@ import {
 import {QueryClientProvider} from '@tanstack/react-query';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import {userEvent} from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
+import type {OnUrlUpdateFunction} from 'nuqs/adapters/testing';
 import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
@@ -47,6 +48,10 @@ interface ProviderOptions {
    * Pass additional context providers
    */
   additionalWrapper?: rtl.RenderOptions['wrapper'];
+  /**
+   * Observe nuqs URL updates, including navigation options.
+   */
+  onNuqsUrlUpdate?: OnUrlUpdateFunction;
   /**
    * Sets the OrganizationContext. You may pass null to provide no organization
    */
@@ -164,7 +169,10 @@ function makeAllTheProviders(options: ProviderOptions) {
     return (
       <CacheProvider value={{...cache, compat: true}}>
         <QueryClientProvider client={makeTestQueryClient()}>
-          <SentryNuqsTestingAdapter defaultOptions={{shallow: false}}>
+          <SentryNuqsTestingAdapter
+            defaultOptions={{shallow: false}}
+            onUrlUpdate={options.onNuqsUrlUpdate}
+          >
             <ThemeProvider theme={ThemeFixture()}>
               <ScrapsTestingProviders>
                 <CommandPaletteProvider>{wrappedContent}</CommandPaletteProvider>
@@ -271,6 +279,14 @@ class TestRouter {
     };
   }
 
+  /**
+   * How the current location was reached: 'POP' (initial entry or back/forward),
+   * 'PUSH', or 'REPLACE'.
+   */
+  get historyAction() {
+    return this.router.state.historyAction;
+  }
+
   navigate = (to: To | number, opts?: RouterNavigateOptions) => {
     rtl.act(() => {
       if (typeof to === 'number') {
@@ -349,6 +365,7 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
   const AllTheProviders = makeAllTheProviders({
     organization: options.organization,
     additionalWrapper: options.additionalWrapper,
+    onNuqsUrlUpdate: options.onNuqsUrlUpdate,
   });
 
   const memoryRouter = makeRouter({
@@ -400,6 +417,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
   const AllTheProviders = makeAllTheProviders({
     organization: options.organization,
     additionalWrapper: options.additionalWrapper,
+    onNuqsUrlUpdate: options.onNuqsUrlUpdate,
   });
 
   let memoryRouter: Router | null = null;

@@ -8,38 +8,41 @@ import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {AutofixQuotaContent} from 'sentry/views/issueDetails/sidebar/autofixSection';
 import {IssuePreviewAutofixSummary} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewAutofixSummary';
 
-type IssuePreviewSeerState = 'configure' | 'start' | 'summary';
+type IssuePreviewSeerState =
+  | 'unavailable'
+  | 'loading'
+  | 'configure'
+  | 'start'
+  | 'summary';
 
 function useIssuePreviewSeerState(group: Group, project: Project) {
   const aiConfig = useAiConfig(group, project);
   const autofix = useExplorerAutofix(group, {
     enabled: aiConfig.hasAutofix,
   });
-  let state: IssuePreviewSeerState = 'summary';
-  if (
-    group.derivedData?.progress === ProgressState.ASSIGNED &&
-    !aiConfig.isAutofixSetupLoading
+  const isAssigned = group.derivedData?.progress === ProgressState.ASSIGNED;
+  let state: IssuePreviewSeerState;
+  if (!aiConfig.hasAutofix) {
+    state = 'unavailable';
+  } else if (aiConfig.isAutofixSetupLoading) {
+    state = 'loading';
+  } else if (
+    isAssigned &&
+    (!aiConfig.hasAutofixQuota ||
+      (aiConfig.hasGithubIntegration && !aiConfig.seerReposLinked))
   ) {
-    if (
-      !aiConfig.hasAutofixQuota ||
-      (aiConfig.hasGithubIntegration && !aiConfig.seerReposLinked)
-    ) {
-      state = 'configure';
-    } else if (!autofix.runState && !autofix.isWaitingForRun) {
-      state = 'start';
-    }
+    state = 'configure';
+  } else if (autofix.isLoading && !autofix.isWaitingForRun) {
+    state = 'loading';
+  } else if (isAssigned && !autofix.runState && !autofix.isWaitingForRun) {
+    state = 'start';
+  } else {
+    state = 'summary';
   }
 
   return {
     aiConfig,
     autofix,
-    hasAutofix: aiConfig.hasAutofix,
-    isLoading:
-      aiConfig.hasAutofix &&
-      (aiConfig.isAutofixSetupLoading ||
-        (state !== 'configure' && autofix.isLoading && !autofix.isWaitingForRun)),
-    shouldShowSeerActions:
-      aiConfig.hasAutofix && (state === 'start' || state === 'summary'),
     state,
   };
 }
@@ -84,6 +87,10 @@ export function IssuePreviewSeerContent({
   project: Project;
 }) {
   const {aiConfig, autofix, state} = previewSeer;
+
+  if (state === 'unavailable' || state === 'loading') {
+    return null;
+  }
 
   if (state === 'configure') {
     return <AutofixQuotaContent aiConfig={aiConfig} group={group} project={project} />;

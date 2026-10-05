@@ -32,7 +32,6 @@ import {usePrevious} from 'sentry/utils/usePrevious';
 import {useGlobalAlerts} from 'sentry/views/app/globalAlerts';
 import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/results/data';
 import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 import {Results} from './results';
 
@@ -66,9 +65,8 @@ function Homepage() {
   const previousSavedQuery = usePrevious(savedQuery);
 
   const shouldHideThisTransactionsQuery =
-    getDiscoverDeprecation(organization) &&
-    (savedQuery?.queryDataset === SavedQueryDatasets.TRANSACTIONS ||
-      savedQuery?.dataset === DiscoverDatasets.TRANSACTIONS);
+    savedQuery?.queryDataset === SavedQueryDatasets.TRANSACTIONS ||
+    savedQuery?.dataset === DiscoverDatasets.TRANSACTIONS;
 
   useEffect(() => {
     const hasFetchedSavedQuery = !previousSavedQuery && savedQuery;

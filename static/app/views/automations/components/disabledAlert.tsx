@@ -6,10 +6,7 @@ import {IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useUpdateAutomation} from 'sentry/views/automations/hooks';
-import {
-  getNoAlertWritePermissionTooltip,
-  useCanEditAutomation,
-} from 'sentry/views/automations/hooks/useCanEditAutomation';
+import {useAutomationEditPermission} from 'sentry/views/automations/hooks/useCanEditAutomation';
 
 type DisabledAlertProps = {
   automation: Automation;
@@ -23,7 +20,11 @@ type DisabledAlertProps = {
 export function DisabledAlert({automation}: DisabledAlertProps) {
   const {mutate: updateAutomation, isPending: isEnabling} = useUpdateAutomation();
 
-  const canEdit = useCanEditAutomation(automation.id);
+  const {
+    canEdit,
+    disabledReason,
+    isPending: isPermissionPending,
+  } = useAutomationEditPermission(automation.id);
 
   if (automation.enabled) {
     return null;
@@ -37,18 +38,17 @@ export function DisabledAlert({automation}: DisabledAlertProps) {
     });
   };
 
-  const permissionTooltipText = getNoAlertWritePermissionTooltip();
-
   return (
     <Alert.Container>
       <Alert
         variant="muted"
         trailingItems={
-          <Tooltip title={canEdit ? undefined : permissionTooltipText} disabled={canEdit}>
+          <Tooltip title={disabledReason} disabled={canEdit}>
             <Button
               size="xs"
               icon={<IconPlay />}
               onClick={handleEnable}
+              busy={isPermissionPending}
               disabled={isEnabling || !canEdit}
               aria-label={t('Enable')}
             >

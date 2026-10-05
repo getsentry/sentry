@@ -10,14 +10,12 @@ from sentry.models.project import Project
 from sentry.receivers import create_default_projects
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
-from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.pytest.relay import adjust_settings_for_relay_tests
-from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
+from sentry.testutils.silo import no_silo_test
 from sentry.testutils.skips import requires_kafka
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
-from sentry.users.models.userrole import manage_default_super_admin_role
 from sentry.utils.sdk import bind_organization_context, get_project_key
 
 pytestmark = [requires_kafka, thread_leak_allowlist(reason="relay integration tests", issue=97040)]
@@ -26,8 +24,6 @@ pytestmark = [requires_kafka, thread_leak_allowlist(reason="relay integration te
 @pytest.fixture
 def scope():
     with sentry_sdk.isolation_scope() as scope:
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            manage_default_super_admin_role()
         create_default_projects()
         yield scope
 

@@ -213,6 +213,7 @@ export function InvestigationBreachedMetricDetailFixture(
       type: 'metric_open_period',
       ref: {groupId: '123', openPeriodId: '456'},
       revision: null,
+      snapshot: {monitor: {id: '789', name: 'Checkout error rate'}},
     },
     blocks: [
       InvestigationBlockFixture({
