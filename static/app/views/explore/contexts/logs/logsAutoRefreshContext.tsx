@@ -7,7 +7,7 @@ import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useLogsApiOptionsWithInfinite} from 'sentry/views/explore/logs/useLogsApiOptions';
-import {useLogsQueryHighFidelity} from 'sentry/views/explore/logs/useLogsQuery';
+import {useLogsQueryHighFidelity} from 'sentry/views/explore/logs/useLogsQueryHighFidelity';
 
 export const LOGS_AUTO_REFRESH_KEY = 'live';
 export const LOGS_REFRESH_INTERVAL_KEY = 'refreshEvery';
