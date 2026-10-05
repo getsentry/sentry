@@ -616,7 +616,7 @@ E.g. `['release', 'environment']`""",
         return value
 
     def validate_semver(self, value):
-        if not features.has(
+        if value and not features.has(
             "organizations:project-semver-ordering", self.context["project"].organization
         ):
             raise serializers.ValidationError(

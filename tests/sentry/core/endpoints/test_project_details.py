@@ -965,6 +965,13 @@ class ProjectUpdateTest(APITestCase):
             )
         assert "semver" in response.data
 
+    def test_semver_ordering_can_be_disabled_without_feature(self) -> None:
+        self.project.update_option("sentry:semver", True)
+        with self.feature({"organizations:project-semver-ordering": False}):
+            response = self.get_success_response(self.org_slug, self.proj_slug, semver=False)
+        assert self.project.get_option("sentry:semver") is False
+        assert response.data["semver"] is False
+
     def test_semver_ordering_rejects_invalid_value(self) -> None:
         with self.feature("organizations:project-semver-ordering"):
             response = self.get_error_response(
