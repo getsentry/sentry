@@ -355,7 +355,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     aggregateSortBys,
   });
 
-  const refreshTable = async () => {
+  const refreshData = async () => {
     setTimeseriesIngestDelay(getMaxIngestDelayTimestamp());
     queryClient.setQueryData(tableData.queryKey, data => {
       if (data?.pages) {
@@ -367,7 +367,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
       }
       return data;
     });
-    await tableData.refetch();
+    await Promise.all([tableData.refetch(), timeseriesResult.refetch()]);
   };
 
   const openColumnEditor = () => {
@@ -547,7 +547,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
                       size="sm"
                       icon={<IconRefresh />}
                       disabled={!canManuallyRefresh}
-                      onClick={refreshTable}
+                      onClick={refreshData}
                       aria-label={t('Refresh')}
                     />
                   </Tooltip>

@@ -5,6 +5,7 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
@@ -83,8 +84,6 @@ describe('LogsTabContent', () => {
     route: '/organizations/:orgId/explore/logs/',
   };
 
-  setupPageFilters();
-
   const eventTableResponseBody = {
     data: [
       {
@@ -143,6 +142,7 @@ describe('LogsTabContent', () => {
   };
 
   beforeEach(() => {
+    setupPageFilters();
     MockApiClient.clearMockResponses();
 
     // Default API mocks
@@ -683,6 +683,23 @@ describe('LogsTabContent', () => {
       name: 'Refresh',
     });
     expect(refreshButton).toBeDisabled();
+  });
+
+  it('refetches the chart when the refresh button is clicked', async () => {
+    PageFiltersStore.updateDateTime({period: '1h', start: null, end: null, utc: null});
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
+    await waitFor(() => expect(eventsTimeSeriesMock).toHaveBeenCalled());
+    const initialCallCount = eventsTimeSeriesMock.mock.calls.length;
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Refresh'}));
+
+    await waitFor(() =>
+      expect(eventsTimeSeriesMock).toHaveBeenCalledTimes(initialCallCount + 1)
+    );
   });
 
   it('warns that results may be incomplete when no logs are found and the sort is not timestamp descending', async () => {
