@@ -2534,7 +2534,7 @@ const TRACEMETRIC_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     valueType: FieldValueType.DATE,
   },
   [TraceMetricKnownFieldKey.ID]: {
-    desc: t('The unique identifier of the metric sample.'),
+    desc: t('The unique identifier.'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowWildcard: false,
@@ -2560,24 +2560,24 @@ const TRACEMETRIC_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     valueType: FieldValueType.NUMBER,
   },
   [TraceMetricKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: {
-    desc: t('The time Sentry received the metric, in nanoseconds since the Unix epoch.'),
+    desc: t('The timestamp at which an envelope was received by Relay, in nanoseconds.'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.NUMBER,
   },
   [TraceMetricKnownFieldKey.PROJECT]: {
-    desc: t('The project the metric was sent to.'),
+    desc: t('The project slug.'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowWildcard: false,
   },
   [TraceMetricKnownFieldKey.SPAN_ID]: {
-    desc: t('The ID of the span that was active when the metric was recorded.'),
+    desc: t('The connected span ID.'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowWildcard: false,
   },
   [TraceMetricKnownFieldKey.TRACE]: {
-    desc: t('The ID of the trace the metric was recorded in.'),
+    desc: t('The connected trace ID.'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
     allowWildcard: false,

@@ -43,9 +43,9 @@ describe('getFieldDefinition attribute search metadata', () => {
     );
   });
 
-  it('keeps the metric-specific description for id', () => {
+  it('keeps the local tracemetric description for id', () => {
     expect(getFieldDefinition(TraceMetricKnownFieldKey.ID, 'tracemetric')?.desc).toBe(
-      'The unique identifier of the metric sample.'
+      'The unique identifier.'
     );
     expect(getFieldDefinition(TraceMetricKnownFieldKey.ID, 'span')?.desc).toBe(
       ATTRIBUTE_SEARCH_METADATA[TraceMetricKnownFieldKey.ID]?.brief
