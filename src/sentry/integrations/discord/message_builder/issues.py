@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Sequence
+
 from sentry import tagstore
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
 from sentry.integrations.discord.message_builder.base.base import (
@@ -38,7 +40,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         group: Group,
         event: GroupEvent | None = None,
         tags: set[str] | None = None,
-        rules: list[Rule | NotificationOrigin] | None = None,
+        rules: Sequence[Rule | NotificationOrigin] | None = None,
         link_to_event: bool = False,
         issue_details: bool = False,
         notification: ProjectNotification | None = None,
