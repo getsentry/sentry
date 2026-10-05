@@ -1,6 +1,7 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {UserFixture} from 'sentry-fixture/user';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
@@ -14,7 +15,9 @@ import type {
 } from 'sentry/types/organization';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import {EventView} from 'sentry/utils/discover/eventView';
+import {DurationUnit} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES} from 'sentry/utils/fields';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {SpansConfig} from 'sentry/views/dashboards/datasetConfig/spans';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 
@@ -158,6 +161,44 @@ describe('SpansConfig', () => {
     const resultUnits = SpansConfig.getSeriesResultUnit!(multiSeriesData, widgetQuery);
     expect(resultUnits['count(span.duration)']).toBeNull();
     expect(resultUnits['p50(span.duration)']).toBe('millisecond');
+  });
+
+  it('surfaces types and units from an events-timeseries response', () => {
+    const data: EventsTimeSeriesResponse = {
+      timeSeries: [
+        TimeSeriesFixture({
+          yAxis: 'count(span.duration)',
+          meta: {valueType: 'integer', valueUnit: null, interval: 60_000},
+        }),
+        TimeSeriesFixture({
+          yAxis: 'p50(span.duration)',
+          meta: {
+            valueType: 'duration',
+            valueUnit: DurationUnit.MILLISECOND,
+            interval: 60_000,
+          },
+        }),
+      ],
+    };
+
+    const widgetQuery: WidgetQuery = {
+      name: '',
+      fields: ['count(span.duration)', 'p50(span.duration)'],
+      columns: [],
+      fieldAliases: [],
+      aggregates: ['count(span.duration)', 'p50(span.duration)'],
+      conditions: '',
+      orderby: '',
+    };
+
+    expect(SpansConfig.getSeriesResultType!(data, widgetQuery)).toEqual({
+      'count(span.duration)': 'integer',
+      'p50(span.duration)': 'duration',
+    });
+    expect(SpansConfig.getSeriesResultUnit!(data, widgetQuery)).toEqual({
+      'count(span.duration)': null,
+      'p50(span.duration)': 'millisecond',
+    });
   });
 
   it('renders internal error count as a link to explore with error filter', () => {

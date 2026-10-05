@@ -163,9 +163,9 @@ describe('useDuplicateDashboard', () => {
   });
 
   it('preserves prebuilt-only globalFilter chips when no saved filters exist', async () => {
-    // Web Vitals defines `browser.name` and `user.geo.subregion` chips in its
-    // prebuilt config. They live only in the static config — not the DB
-    // record — so cloning must not drop them.
+    // Web Vitals defines `browser.name`, `user.geo.subregion` and
+    // `browser.navigation.type` chips in its prebuilt config. They live only in
+    // the static config — not the DB record — so cloning must not drop them.
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/dashboards/77/`,
       body: DashboardFixture([], {
@@ -217,6 +217,12 @@ describe('useDuplicateDashboard', () => {
               expect.objectContaining({
                 tag: expect.objectContaining({key: 'user.geo.subregion'}),
               }),
+              // Carried in its default "All" state, as a normal saved filter.
+              {
+                dataset: 'spans',
+                tag: expect.objectContaining({key: 'browser.navigation.type'}),
+                value: '',
+              },
             ]),
           },
         }),

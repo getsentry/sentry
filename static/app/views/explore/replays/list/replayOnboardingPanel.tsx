@@ -10,7 +10,6 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Accordion} from 'sentry/components/container/accordion';
-import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {ReplayUnsupportedAlert} from 'sentry/components/replays/alerts/replayUnsupportedAlert';
 import {replayPlatforms} from 'sentry/data/platformCategories';
@@ -27,15 +26,9 @@ import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobile
 import {ReplayPanel} from 'sentry/views/explore/replays/list/replayPanel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
-const OnboardingCTAHook = OverrideOrDefault({
-  overrideName: 'component:replay-onboarding-cta',
-  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
-});
-
 export function ReplayOnboardingPanel() {
   const pageFilters = usePageFilters();
   const projects = useProjects();
-  const organization = useOrganization();
   const canUserCreateProject = useCanCreateProject();
 
   const supportedPlatforms = replayPlatforms;
@@ -70,12 +63,7 @@ export function ReplayOnboardingPanel() {
         <ReplayUnsupportedAlert projectSlug={selectedProjects[0]!.slug} />
       )}
       <ReplayPanel image={<HeroImage src={emptyStateImg} />}>
-        <OnboardingCTAHook organization={organization}>
-          <SetupReplaysCTA
-            primaryAction={primaryAction}
-            disabled={primaryActionDisabled}
-          />
-        </OnboardingCTAHook>
+        <SetupReplaysCTA primaryAction={primaryAction} disabled={primaryActionDisabled} />
       </ReplayPanel>
     </Fragment>
   );

@@ -51,7 +51,7 @@ function InstallFeedbackIntegration() {
 
 function renderPollingComboBox(withFeedback = true) {
   const {organization} = initializeOrg({
-    organization: {features: ['gen-ai-features'], hideAiFeatures: false},
+    organization: {hideAiFeatures: false},
   });
 
   render(
@@ -198,7 +198,6 @@ describe('AskSeerPollingComboBox results', () => {
     });
     const {organization} = initializeOrg({
       organization: {
-        features: ['gen-ai-features'],
         hideAiFeatures: false,
       },
     });

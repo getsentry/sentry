@@ -78,16 +78,15 @@ import {
 } from './utils';
 
 const MAX_ITEMS = 25;
-// the default period for the graph in each issue row
-const DEFAULT_GRAPH_STATS_PERIOD = '24h';
 // the allowed period choices for graph in each issue row
 const DYNAMIC_COUNTS_STATS_PERIODS = new Set(['14d', '24h', 'auto']);
+// when no explicit period is chosen, follow the global time range selector
+const DEFAULT_GRAPH_STATS_PERIOD = 'auto';
 const MAX_ISSUES_COUNT = 100;
 
 interface Props {
   headerActions?: ReactNode;
   initialQuery?: string;
-  initialSort?: IssueSortOptions;
   shouldFetchOnMount?: boolean;
   title?: ReactNode;
   titleDescription?: ReactNode;
@@ -135,7 +134,6 @@ const parsePageQueryParam = (location: Location, defaultPage = 0) => {
 
 function IssueListOverviewInner({
   initialQuery = DEFAULT_QUERY,
-  initialSort = DEFAULT_ISSUE_STREAM_SORT,
   shouldFetchOnMount = true,
   title = t('Issues'),
   titleDescription,
@@ -220,11 +218,9 @@ function IssueListOverviewInner({
   // Saved views persist their own sort, so they neither read nor write it.
   const defaultSort = urlParams.viewId
     ? (groupSearchView?.querySort ?? DEFAULT_ISSUE_STREAM_SORT)
-    : initialSort === DEFAULT_ISSUE_STREAM_SORT
-      ? hasRecommendedSortDefault
-        ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
-        : DEFAULT_ISSUE_STREAM_SORT
-      : initialSort;
+    : hasRecommendedSortDefault
+      ? (getStoredIssueSort(organization.slug) ?? IssueSortOptions.RECOMMENDED)
+      : DEFAULT_ISSUE_STREAM_SORT;
   const sort = decodeScalar(location.query.sort, defaultSort) as IssueSortOptions;
 
   const getGroupStatsPeriod = useCallback((): string => {
@@ -262,7 +258,9 @@ function IssueListOverviewInner({
     }
 
     const groupStatsPeriod = getGroupStatsPeriod();
-    if (groupStatsPeriod !== DEFAULT_GRAPH_STATS_PERIOD) {
+    // The backend treats a missing groupStatsPeriod as '24h', so 'auto'
+    // (follow the global time range) has to be sent explicitly.
+    if (groupStatsPeriod !== '24h') {
       params.groupStatsPeriod = groupStatsPeriod;
     }
 
@@ -318,8 +316,9 @@ function IssueListOverviewInner({
 
     // Only resume polling if we're on the first page of results
     const links = parseLinkHeader(pageLinks);
-    if (links && !links.previous!.results && realtimeActive) {
-      pollerRef.current?.setEndpoint(links?.previous!.href);
+    const previousHref = links?.previous?.href;
+    if (links && !links.previous?.results && realtimeActive && previousHref) {
+      pollerRef.current?.setEndpoint(previousHref);
       pollerRef.current?.enable();
     }
   }, [pageLinks, realtimeActive]);
@@ -491,7 +490,7 @@ function IssueListOverviewInner({
           mode: 'samples',
           referrer: 'issues',
           resultCount: data.length, // Can also use newQueryCount for total hits
-          orgSlug: organization.slug,
+          organization,
           runId: aiQueryRunId,
         });
       }
@@ -524,7 +523,7 @@ function IssueListOverviewInner({
           mode: 'samples',
           referrer: 'issues',
           resultCount: 0,
-          orgSlug: organization.slug,
+          organization,
           runId: aiQueryRunId,
           error: parseApiError(err as RequestError),
         });
@@ -628,7 +627,7 @@ function IssueListOverviewInner({
     }
 
     const links = parseLinkHeader(pageLinks);
-    return links && !links.previous!.results && !links.next!.results;
+    return links && !links.previous?.results && !links.next?.results;
   }, [pageLinks]);
 
   const getPageCounts = useCallback(() => {
@@ -701,11 +700,7 @@ function IssueListOverviewInner({
       organization,
       sort: newSort,
     });
-    if (
-      hasRecommendedSortDefault &&
-      !urlParams.viewId &&
-      initialSort === DEFAULT_ISSUE_STREAM_SORT
-    ) {
+    if (hasRecommendedSortDefault && !urlParams.viewId) {
       setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
     }
     transitionTo({sort: newSort});

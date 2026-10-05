@@ -67,7 +67,6 @@ def send_search_agent_start_request(
     metric_context: dict[str, Any] | None = None,
     viewer_context: SeerViewerContext | None = None,
     cross_event: bool = False,
-    project_expansion: bool = False,
     reflection_step: bool = False,
     code_mode: bool = False,
 ) -> SeerRun:
@@ -86,7 +85,6 @@ def send_search_agent_start_request(
 
     options: dict[str, Any] = {
         "cross_event": cross_event,
-        "project_expansion": project_expansion,
         "reflection_step": reflection_step,
         "code_mode": code_mode,
     }
@@ -139,7 +137,6 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         options = validated_data.get("options") or {}
         model_name = options.get("model_name")
         metric_context = options.get("metric_context")
-        code_mode_toggle = bool(options.get("code_mode"))
 
         projects = self.get_projects(
             request, organization, project_ids=set(validated_data["project_ids"])
@@ -161,7 +158,7 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        has_seer_access, detail = has_seer_access_with_detail(organization, actor=request.user)
+        has_seer_access, detail = has_seer_access_with_detail(organization)
         if not has_seer_access:
             return Response(
                 {"detail": detail},
@@ -198,18 +195,12 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                     organization,
                     actor=request.user,
                 ),
-                project_expansion=features.has(
-                    "organizations:seer-assisted-query-project-expansion",
-                    organization,
-                    actor=request.user,
-                ),
                 reflection_step=features.has(
                     "organizations:seer-assisted-query-reflection",
                     organization,
                     actor=request.user,
                 ),
-                code_mode=code_mode_toggle
-                and features.has(
+                code_mode=features.has(
                     "organizations:seer-assisted-query-codemode",
                     organization,
                     actor=request.user,

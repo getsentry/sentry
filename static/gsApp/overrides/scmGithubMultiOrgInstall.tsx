@@ -46,7 +46,7 @@ export function ScmGithubMultiOrgInstall({
   );
 
   return (
-    <Stack gap="lg" align="start">
+    <Stack gap="lg" align="start" width="100%">
       {needsUpgrade && (
         <Alert
           variant="warning"
