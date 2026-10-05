@@ -4,8 +4,6 @@ import {traceRovingTabIndexReducer} from 'sentry/views/performance/traceDetails/
 import {traceSearchReducer} from 'sentry/views/performance/traceDetails/traceState/traceSearch';
 import {traceTabsReducer} from 'sentry/views/performance/traceDetails/traceState/traceTabs';
 
-export {traceReducerExhaustiveActionCheck} from './traceReducerUtils';
-
 export const TraceReducer = makeCombinedReducers({
   tabs: traceTabsReducer,
   search: traceSearchReducer,
