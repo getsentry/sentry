@@ -24,7 +24,6 @@ from sentry.issues.grouptype import (
     get_group_types_by_category,
     should_create_group,
 )
-from sentry.preprod.size_analysis.grouptype import PreprodSizeAnalysisGroupType
 from sentry.testutils.cases import TestCase
 from sentry.utils.redis import redis_clusters
 from sentry.workflow_engine.registry import detector_settings_registry
@@ -183,15 +182,13 @@ class ShouldCreateGroupTest(TestCase):
 
 
 class GroupTypeReleasedTest(BaseGroupTypeTest):
-    def test_completed_rollouts(self) -> None:
+    def test_query_injection_released(self) -> None:
         registry = GroupTypeRegistry()
-        group_types = {QueryInjectionVulnerabilityGroupType, PreprodSizeAnalysisGroupType}
-        for group_type in group_types:
-            registry.add(group_type)
-            assert group_type.allow_ingest(self.organization)
-            assert group_type.allow_post_process_group(self.organization)
+        registry.add(QueryInjectionVulnerabilityGroupType)
 
-        assert set(registry.get_visible(self.organization)) == group_types
+        assert QueryInjectionVulnerabilityGroupType.allow_ingest(self.organization)
+        assert QueryInjectionVulnerabilityGroupType.allow_post_process_group(self.organization)
+        assert registry.get_visible(self.organization) == [QueryInjectionVulnerabilityGroupType]
 
     def test_released(self) -> None:
         @dataclass(frozen=True)
