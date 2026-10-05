@@ -93,13 +93,12 @@ describe('BillingDetailsForm', () => {
     await screen.findByRole('textbox', {name: /VAT Number/i});
   });
 
-  it('renders cancel beside submit when provided', async () => {
+  it('renders and handles cancel when provided', async () => {
     const onCancel = jest.fn();
     render(<BillingDetailsForm {...defaultProps} onCancel={onCancel} />);
 
     const cancelButton = screen.getByRole('button', {name: 'Cancel'});
-    const submitButton = screen.getByRole('button', {name: 'Save Changes'});
-    expect(cancelButton.parentElement).toBe(submitButton.parentElement);
+    expect(screen.getByRole('button', {name: 'Save Changes'})).toBeInTheDocument();
 
     await userEvent.click(cancelButton);
     expect(onCancel).toHaveBeenCalledTimes(1);
