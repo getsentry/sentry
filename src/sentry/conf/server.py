@@ -598,6 +598,29 @@ TRUSTED_TYPES_ENABLED = False
 TRUSTED_TYPES_POLICIES: list[str] = []
 TRUSTED_TYPES_REPORT_URI: str | None = None
 
+if ENVIRONMENT == "development":
+    # Emit the Trusted Types report-only header on the dev server so every
+    # developer collects violations locally, ahead of turning it on in prod.
+    #
+    # The header rides on Content-Security-Policy-Report-Only, which django-csp
+    # owns while CSP_REPORT_ONLY is True — the middleware stands down rather than
+    # clobber the CSP. Turning report-only off frees the header name for the TT
+    # middleware; the trade-off is that the base CSP is now enforced locally
+    # (production already enforces it, and dev adds 'unsafe-eval' plus the HMR
+    # websocket above, so this should be transparent).
+    CSP_REPORT_ONLY = False
+    TRUSTED_TYPES_ENABLED = True
+    TRUSTED_TYPES_POLICIES = [
+        "dompurify",  # DOMPurify's own policy: markdown and sanitized HTML
+        "sentry-bundler",  # rspack chunk loading (output.trustedTypes)
+        "sentry-script-url",  # service worker registration
+        "svelte-trusted-html",  # Svelte runtime inside @sentry/rrweb-player (replays)
+        "rspack-dev-server#overlay",  # dev-only: the dev-server error overlay
+    ]
+    # Point this at a Sentry project to receive the reports, e.g. in
+    # ~/.sentry/sentry.conf.py:
+    #   TRUSTED_TYPES_REPORT_URI = "https://<host>/api/<project>/security/?sentry_key=<key>"
+
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
 # webpack assets live at a different URL that is unversioned
