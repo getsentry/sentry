@@ -66,6 +66,15 @@ describe('SavedQueries API helpers', () => {
       );
       expect(response).toEqual({data: {}, fromBody: {}});
     });
+
+    it('rejects with "Query name is required" when the query has no name', async () => {
+      const unnamedView = errorsView.clone();
+      unnamedView.name = '';
+      await expect(
+        handleUpdateQuery(api, organization, unnamedView, yAxis)
+      ).rejects.toThrow('Query name is required');
+      expect(mockCall).not.toHaveBeenCalled();
+    });
   });
 
   describe('handleUpdateQueryName', () => {
