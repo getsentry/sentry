@@ -713,7 +713,7 @@ describe('ProjectFilters', () => {
       screen.getByRole('textbox', {name: 'Condition value'}),
       '*timeout*'
     );
-    await userEvent.tab();
+    await userEvent.click(screen.getByText('Create Custom Filter'));
 
     await waitFor(() =>
       expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('Ignore timeouts')
@@ -748,11 +748,14 @@ describe('ProjectFilters', () => {
       screen.getByRole('textbox', {name: 'Condition value'}),
       '*timeout*'
     );
-    await userEvent.tab();
+    await userEvent.click(screen.getByText('Create Custom Filter'));
     expect(validateMock).not.toHaveBeenCalled();
     expect(nameField).toHaveValue('My own name');
 
+    // Clearing alone asks for nothing; leaving the empty field does.
     await userEvent.clear(nameField);
+    expect(validateMock).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByText('Create Custom Filter'));
 
     await waitFor(() => expect(nameField).toHaveValue('Ignore timeouts'));
     expect(validateMock).toHaveBeenCalledTimes(1);
@@ -774,7 +777,7 @@ describe('ProjectFilters', () => {
       screen.getByRole('textbox', {name: 'Condition value'}),
       '*timeout*'
     );
-    await userEvent.tab();
+    await userEvent.click(screen.getByText('Create Custom Filter'));
 
     expect(validateMock).not.toHaveBeenCalled();
     expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('');

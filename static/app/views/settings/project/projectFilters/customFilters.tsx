@@ -328,10 +328,6 @@ function getCompleteDraft(
   return {id: filterId, dataType: values.dataType, conditions};
 }
 
-// Pause after the last keystroke before the draft asks for a name suggestion. A
-// field losing focus asks right away.
-const NAME_SUGGESTION_DEBOUNCE_MS = 500;
-
 // The API answers with either `{detail: string}` or a DRF validation error, which
 // nests messages under field names and list indexes, e.g.
 // `{conditions: [{}, {value: ['... is not an IP address or CIDR range.']}]}`. Both
@@ -531,8 +527,6 @@ function CustomFilterModal({
     defaultValues,
     validators: {onDynamic: filterSchema},
     listeners: {
-      onChange: ({formApi}) => suggestName(formApi.state.values),
-      onChangeDebounceMs: NAME_SUGGESTION_DEBOUNCE_MS,
       onBlur: ({formApi}) => suggestName(formApi.state.values),
     },
     onSubmit: ({value}) =>
