@@ -3,6 +3,7 @@ from typing import Any
 
 from django.conf import settings
 
+from sentry.ai_monitoring.utils import normalize_model_id, prefix_glob_model_name
 from sentry.http import safe_urlopen
 from sentry.relay.config.ai_model_costs import (
     AI_MODEL_METADATA_CACHE_KEY,
@@ -11,8 +12,6 @@ from sentry.relay.config.ai_model_costs import (
     AIModelMetadata,
     AIModelMetadataConfig,
     ModelId,
-    normalize_model_id,
-    prefix_glob_model_name,
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task

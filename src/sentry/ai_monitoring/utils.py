@@ -1,3 +1,4 @@
+import re
 from collections.abc import Mapping
 from datetime import datetime
 from typing import Any, TypedDict
@@ -11,6 +12,7 @@ from sentry.ai_monitoring.message_normalizer import (
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.relay.config.ai_model_costs import AIModelCost, AIModelMetadataConfig
 
 
 class ConversationProject(TypedDict):
@@ -132,3 +134,100 @@ def get_aggregated_last_output(row: Mapping[str, Any]) -> str | None:
     if output and response:
         return output if output_timestamp >= response_timestamp else response
     return output or response or _extract_last_assistant_message(row.get("agent_output_messages"))
+
+
+def normalize_model_id(model_id: str) -> str:
+    """
+    Normalize a model id by removing dates and versions.
+    Example:
+    - "gpt-4" -> "gpt-4"
+    - "gpt-4-20241022" -> "gpt-4"
+    - "gpt-4-v1.0" -> "gpt-4"
+    - "gpt-4-20241022-v1.0" -> "gpt-4"
+    - "gpt-4-20241022-v1.0-beta" -> "gpt-4"
+    - "gpt-4-20241022-v1.0-beta-1" -> "gpt-4"
+
+    Args:
+        model_id: The model id to normalize
+
+    Returns:
+        The normalized model id
+    """
+    return re.sub(
+        r"(([-_@])(\d{4}[-/.]\d{2}[-/.]\d{2}|\d{8}))?([-_]v\d+[:.]?\d*([-:].*)?)?$", "", model_id
+    )
+
+
+def prefix_glob_model_name(model_id: str) -> str:
+    """
+    Create a glob version of a model name by adding a wildcard prefix.
+
+    This handles cases where models have random prefixes before the actual model name.
+    Can be used on both regular model IDs and suffix-globbed model names.
+
+    Examples:
+    - "gpt-4" -> "*gpt-4"
+    - "claude-3-5-sonnet" -> "*claude-3-5-sonnet"
+    - "o3-pro" -> "*o3-pro"
+
+    Args:
+        model_id: The original model ID or a suffix-globbed model name
+
+    Returns:
+        The glob version with a wildcard prefix
+    """
+    # Simply prepend * to the model name
+    return f"*{model_id}"
+
+
+def canonical_model_name(model_id: str) -> str:
+    """Reduce a model id to the model's own name, the same whichever gateway or
+    cloud reported it.
+
+    Strips a namespace (``anthropic/``, ``models/``), Bedrock's region and vendor
+    (``us.anthropic.``), a snapshot date or version, and spells versions with
+    dashes the way providers do where OpenRouter uses dots (``4.5``).
+    """
+    name = normalize_model_id(_unqualified_model_name(model_id))
+    return re.sub(r"(?<=\d)\.(?=\d)", "-", name)
+
+
+def _unqualified_model_name(model_id: str) -> str:
+    name = model_id.lower().rsplit("/", 1)[-1]
+    return re.sub(r"^(?:[a-z]+\.)+", "", name)
+
+
+def model_costs(model_id: str, config: AIModelMetadataConfig) -> AIModelCost | None:
+    """Look up per-token prices for a model reported on a span.
+
+    Spans carry provider-specific model names, so the lookup narrows the
+    reported id towards how the metadata is keyed: as reported, with dates and
+    versions stripped, then again without the namespace a gateway prefixes
+    (``anthropic/claude-sonnet-4``), which the metadata keys without, then
+    lowercased and without Bedrock's region and vendor, and finally as the
+    canonical name. Exact spellings go first because a dated snapshot can be
+    priced apart from its model, and OpenRouter keys keep dotted versions.
+
+    The metadata also holds a ``*``-prefixed key per model, which is there for
+    relay to glob-match against and is not useful here: it is only ever added
+    alongside the bare key, so a dict lookup on it can never find a model the
+    bare key missed.
+
+    Returns None when the model is unknown.
+    """
+    models = config.get("models") or {}
+    bare_model_id = model_id.rsplit("/", 1)[-1]
+    unqualified_model_name = _unqualified_model_name(model_id)
+    for key in (
+        model_id,
+        normalize_model_id(model_id),
+        bare_model_id,
+        normalize_model_id(bare_model_id),
+        unqualified_model_name,
+        normalize_model_id(unqualified_model_name),
+        canonical_model_name(model_id),
+    ):
+        metadata = models.get(key)
+        if metadata is not None:
+            return metadata.get("costs")
+    return None
