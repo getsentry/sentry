@@ -610,14 +610,23 @@ class TestStatefulDetectorHandlerExtractValueFromPacket(TestCase):
 class MockRotatingDetectorStateHandler(MockDetectorStateHandler):
     activation_creates_new_issue = True
 
+    detector_interval = timedelta(hours=1)
+
+    def get_detector_interval(self, data_packet: DataPacket[dict[str, Any]]) -> timedelta:
+        return self.detector_interval
+
+
+class MockRotatingDetectorStateHandlerWithoutInterval(MockDetectorStateHandler):
+    activation_creates_new_issue = True
+
 
 class MockFingerprintedRotatingDetectorStateHandler(MockRotatingDetectorStateHandler):
     def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
         return ["custom-fingerprint"]
 
 
-class MockShortCooldownRotatingDetectorStateHandler(MockRotatingDetectorStateHandler):
-    activation_cooldown = timedelta(hours=1)
+class MockShortIntervalRotatingDetectorStateHandler(MockRotatingDetectorStateHandler):
+    detector_interval = timedelta(minutes=1)
 
 
 class TestStatefulDetectorActivationId(TestCase):
@@ -661,6 +670,9 @@ class TestStatefulDetectorActivationId(TestCase):
         self, handler: MockDetectorStateHandler, group_key: DetectorGroupKey = None
     ) -> int | None:
         return handler.state_manager.get_state_data([group_key])[group_key].activation_id
+
+    def activation_cooldown(self, handler: MockDetectorStateHandler) -> timedelta:
+        return handler.get_activation_cooldown(self.packet(0, Level.OK))
 
     def fingerprint(self, handler: MockDetectorStateHandler, packet: DataPacket[Any]) -> list[str]:
         detector_result = handler.evaluate(packet).result[self.group_key].result
@@ -794,7 +806,7 @@ class TestStatefulDetectorActivationId(TestCase):
 
             assert self.activation_id(handler, "group_b") == group_b_initial_activation_id
 
-            frozen_time.shift(handler.activation_cooldown)
+            frozen_time.shift(self.activation_cooldown(handler))
 
             handler.evaluate(self.grouped_packet(3, {"group_a": Level.HIGH}))
 
@@ -839,7 +851,7 @@ class TestStatefulDetectorActivationId(TestCase):
 
             handler.evaluate(self.packet(2, Level.OK))
 
-            frozen_time.shift(handler.activation_cooldown)
+            frozen_time.shift(self.activation_cooldown(handler))
 
             handler.evaluate(self.packet(3, Level.HIGH))
 
@@ -864,7 +876,7 @@ class TestStatefulDetectorActivationId(TestCase):
 
             handler.evaluate(self.packet(2, Level.OK))
 
-            frozen_time.shift(handler.activation_cooldown - timedelta(seconds=1))
+            frozen_time.shift(self.activation_cooldown(handler) - timedelta(seconds=1))
 
             handler.evaluate(self.packet(3, Level.HIGH))
 
@@ -879,7 +891,7 @@ class TestStatefulDetectorActivationId(TestCase):
         """
         handler = MockRotatingDetectorStateHandler(detector=self.detector)
 
-        half_cooldown = handler.activation_cooldown / 2
+        half_cooldown = self.activation_cooldown(handler) / 2
 
         with (
             self.feature("organizations:workflow-engine-rotate-activation-id"),
@@ -905,7 +917,7 @@ class TestStatefulDetectorActivationId(TestCase):
 
             handler.evaluate(self.packet(6, Level.OK))
 
-            frozen_time.shift(handler.activation_cooldown)
+            frozen_time.shift(self.activation_cooldown(handler))
 
             handler.evaluate(self.packet(7, Level.HIGH))
 
@@ -926,7 +938,7 @@ class TestStatefulDetectorActivationId(TestCase):
 
             handler.evaluate(self.grouped_packet(2, {"group_a": Level.OK}))
 
-            frozen_time.shift(handler.activation_cooldown)
+            frozen_time.shift(self.activation_cooldown(handler))
 
             handler.evaluate(self.grouped_packet(3, {"group_b": Level.OK}))
 
@@ -936,10 +948,25 @@ class TestStatefulDetectorActivationId(TestCase):
 
             assert self.activation_id(handler, "group_b") == group_b_initial_activation_id
 
-    def test_detector_cooldown_can_be_overridden_per_handler(self) -> None:
-        handler = MockShortCooldownRotatingDetectorStateHandler(detector=self.detector)
+    def test_detector_cooldown_is_a_multiple_of_the_detector_interval(self) -> None:
+        handler = MockRotatingDetectorStateHandler(detector=self.detector)
 
-        assert handler.activation_cooldown < MockRotatingDetectorStateHandler.activation_cooldown
+        expected_cooldown = handler.detector_interval * handler.activation_cooldown_intervals
+
+        assert self.activation_cooldown(handler) == expected_cooldown
+
+    def test_detector_opted_in_without_an_interval_raises_value_error(self) -> None:
+        handler = MockRotatingDetectorStateHandlerWithoutInterval(detector=self.detector)
+
+        with pytest.raises(ValueError):
+            handler.get_activation_cooldown(self.packet(1, Level.HIGH))
+
+    def test_detector_cooldown_scales_with_the_detector_interval(self) -> None:
+        handler = MockShortIntervalRotatingDetectorStateHandler(detector=self.detector)
+
+        default_handler = MockRotatingDetectorStateHandler(detector=self.detector)
+
+        assert self.activation_cooldown(handler) < self.activation_cooldown(default_handler)
 
         with (
             self.feature("organizations:workflow-engine-rotate-activation-id"),
@@ -951,7 +978,7 @@ class TestStatefulDetectorActivationId(TestCase):
 
             handler.evaluate(self.packet(2, Level.OK))
 
-            frozen_time.shift(handler.activation_cooldown)
+            frozen_time.shift(self.activation_cooldown(handler))
 
             handler.evaluate(self.packet(3, Level.HIGH))
 
@@ -998,7 +1025,7 @@ class TestStatefulDetectorActivationId(TestCase):
 
             resolution_update_fingerprint = self.fingerprint(handler, self.packet(2, Level.OK))
 
-            frozen_time.shift(handler.activation_cooldown)
+            frozen_time.shift(self.activation_cooldown(handler))
 
             next_firing_update_fingerprint = self.fingerprint(handler, self.packet(3, Level.HIGH))
 
@@ -1020,7 +1047,7 @@ class TestStatefulDetectorActivationId(TestCase):
 
             resolution_update_fingerprint = self.fingerprint(handler, self.packet(2, Level.OK))
 
-            frozen_time.shift(handler.activation_cooldown - timedelta(seconds=1))
+            frozen_time.shift(self.activation_cooldown(handler) - timedelta(seconds=1))
 
             refiring_update_fingerprint = self.fingerprint(handler, self.packet(3, Level.HIGH))
 
@@ -1064,7 +1091,7 @@ class TestStatefulDetectorActivationId(TestCase):
             with self.feature("organizations:workflow-engine-rotate-activation-id"):
                 resolution_update_fingerprint = self.fingerprint(handler, self.packet(2, Level.OK))
 
-                frozen_time.shift(handler.activation_cooldown)
+                frozen_time.shift(self.activation_cooldown(handler))
 
                 # Only a firing after both the cutover and the cooldown rotates.
                 next_firing_update_fingerprint = self.fingerprint(
@@ -1089,7 +1116,7 @@ class TestStatefulDetectorActivationId(TestCase):
                 resolution_update_fingerprint = self.fingerprint(handler, self.packet(2, Level.OK))
 
             with self.feature("organizations:workflow-engine-rotate-activation-id"):
-                frozen_time.shift(handler.activation_cooldown - timedelta(seconds=1))
+                frozen_time.shift(self.activation_cooldown(handler) - timedelta(seconds=1))
 
                 next_firing_update_fingerprint = self.fingerprint(
                     handler, self.packet(3, Level.HIGH)
@@ -1115,7 +1142,7 @@ class TestStatefulDetectorActivationId(TestCase):
             assert resolution_update_fingerprint == firing_update_fingerprint
 
 
-class TestStatefulDetectorHasBeenInOkStateForCooldown(TestCase):
+class TestStatefulDetectorHasBeenInOkStateFor(TestCase):
     def setUp(self) -> None:
         self.detector = self.create_detector(
             name="Stateful Detector",
@@ -1124,7 +1151,7 @@ class TestStatefulDetectorHasBeenInOkStateForCooldown(TestCase):
 
         self.handler = MockRotatingDetectorStateHandler(detector=self.detector)
 
-        self.cooldown = self.handler.activation_cooldown
+        self.cooldown = timedelta(hours=3)
 
         self.now = datetime.now(UTC)
 
@@ -1142,7 +1169,7 @@ class TestStatefulDetectorHasBeenInOkStateForCooldown(TestCase):
         )
 
     def has_been_in_ok_state_for_cooldown(self, state_data: DetectorStateData) -> bool:
-        return self.handler._has_been_in_ok_state_for_cooldown(state_data, self.now)
+        return self.handler._has_been_in_ok_state_for(state_data, self.cooldown, self.now)
 
     def test_detector_without_persisted_state_has_been_ok_forever(self) -> None:
         state_data = self.state_data(Level.OK, date_updated=None)

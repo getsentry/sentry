@@ -351,12 +351,13 @@ class StatefulDetectorHandler(
     """
 
     # If this flag is true, an open period that starts after the detector has been OK for
-    # at least `activation_cooldown` generates a unique issue. An earlier open period
-    # regresses the previous issue instead, which keeps a flapping detector on one issue.
+    # at least `activation_cooldown_intervals` detector intervals generates a unique issue.
+    # An earlier open period regresses the previous issue instead, which keeps a flapping
+    # detector on one issue. Handlers that set this must implement `get_detector_interval`.
     # If this flag is false, a new open period will always regress a previous issue.
     activation_creates_new_issue: ClassVar[bool] = False
 
-    activation_cooldown: ClassVar[timedelta] = timedelta(hours=72)
+    activation_cooldown_intervals: ClassVar[int] = 3
 
     def __init__(self, detector: Detector, thresholds: DetectorThresholds | None = None):
         super().__init__(detector)
@@ -443,6 +444,30 @@ class StatefulDetectorHandler(
         """
         return {}
 
+    def get_detector_interval(self, data_packet: DataPacket[DataPacketType]) -> timedelta | None:
+        """
+        How much time each data packet covers for this detector.
+        Handlers that set `activation_creates_new_issue` must implement this, since the activation
+        cooldown is a multiple of it. It may query the database, so it is only called when the
+        detector leaves the OK state.
+        """
+        return None
+
+    def get_activation_cooldown(self, data_packet: DataPacket[DataPacketType]) -> timedelta:
+        """
+        How long the detector must stay OK before its next trigger opens a new issue
+        instead of regressing the previous one.
+        """
+        detector_interval = self.get_detector_interval(data_packet)
+
+        if detector_interval is None:
+            raise ValueError(
+                f"Detector {self.detector.id} must implement `get_detector_interval` "
+                "while `activation_creates_new_issue` is set"
+            )
+
+        return detector_interval * self.activation_cooldown_intervals
+
     # TODO: The stateful detector handler overrides the default evaluation logic of DetectorHandler.evaluate, yet shares
     # much of the same logic. Refactor this method to use super().evaluate() supplemented with the state manager logic.
     @override
@@ -507,7 +532,7 @@ class StatefulDetectorHandler(
                 self.state_manager.enqueue_counter_reset(group_key)
 
             activation_id = self._get_activation_id(
-                state_data, new_priority, should_rotate_activation_id, now
+                state_data, new_priority, should_rotate_activation_id, data_packet, now
             )
 
             self.state_manager.enqueue_state_update(
@@ -762,6 +787,7 @@ class StatefulDetectorHandler(
         state_data: DetectorStateData,
         new_priority: DetectorPriorityLevel,
         should_rotate_activation_id: bool,
+        data_packet: DataPacket[DataPacketType],
         now: datetime,
     ) -> int | None:
         if not should_rotate_activation_id:
@@ -772,15 +798,22 @@ class StatefulDetectorHandler(
             and new_priority != DetectorPriorityLevel.OK
         )
 
-        has_been_in_ok_state_for_cooldown = self._has_been_in_ok_state_for_cooldown(state_data, now)
+        if not is_leaving_ok_state:
+            return state_data.activation_id
 
-        if is_leaving_ok_state and has_been_in_ok_state_for_cooldown:
+        activation_cooldown = self.get_activation_cooldown(data_packet)
+
+        has_been_in_ok_state_for_cooldown = self._has_been_in_ok_state_for(
+            state_data, activation_cooldown, now
+        )
+
+        if has_been_in_ok_state_for_cooldown:
             return _get_unix_epoch_time_in_milliseconds()
 
         return state_data.activation_id
 
-    def _has_been_in_ok_state_for_cooldown(
-        self, state_data: DetectorStateData, now: datetime
+    def _has_been_in_ok_state_for(
+        self, state_data: DetectorStateData, duration: timedelta, now: datetime
     ) -> bool:
         """
         A detector with no persisted state has been OK forever, so its first trigger
@@ -794,7 +827,7 @@ class StatefulDetectorHandler(
 
         time_in_ok_state = now - state_data.date_updated
 
-        return time_in_ok_state >= self.activation_cooldown
+        return time_in_ok_state >= duration
 
     def _get_detector_organization(self) -> Organization:
         """

@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from sentry.incidents.grouptype import (
     MetricIssueDetectorHandler,
+    MetricUpdate,
     SessionsAggregate,
     get_alert_type_from_aggregate_dataset,
 )
@@ -412,6 +413,16 @@ class TestMetricIssueDetectorActivationId(BaseMetricIssueTest):
     def activation_id(self) -> int | None:
         return DetectorState.objects.get(detector=self.detector).activation_id
 
+    def activation_cooldown(self) -> timedelta:
+        handler = MetricIssueDetectorHandler(self.detector)
+
+        packet: DataPacket[MetricUpdate] = DataPacket(
+            source_id=str(self.query_subscription.id),
+            packet=self.firing_packet(0).packet,
+        )
+
+        return handler.get_activation_cooldown(packet)
+
     def stable_fingerprint(self) -> list[str]:
         return [f"detector:{self.detector.id}"]
 
@@ -429,7 +440,7 @@ class TestMetricIssueDetectorActivationId(BaseMetricIssueTest):
 
             resolution_update_fingerprint = self.fingerprint(self.resolution_packet(2))
 
-            frozen_time.shift(MetricIssueDetectorHandler.activation_cooldown)
+            frozen_time.shift(self.activation_cooldown())
 
             next_firing_update_fingerprint = self.fingerprint(self.firing_packet(3))
 
@@ -449,13 +460,18 @@ class TestMetricIssueDetectorActivationId(BaseMetricIssueTest):
 
             resolution_update_fingerprint = self.fingerprint(self.resolution_packet(2))
 
-            frozen_time.shift(MetricIssueDetectorHandler.activation_cooldown - timedelta(seconds=1))
+            frozen_time.shift(self.activation_cooldown() - timedelta(seconds=1))
 
             next_firing_update_fingerprint = self.fingerprint(self.firing_packet(3))
 
             assert resolution_update_fingerprint == firing_update_fingerprint
 
             assert next_firing_update_fingerprint == firing_update_fingerprint
+
+    def test_detector_cooldown_is_three_times_the_query_time_window(self) -> None:
+        time_window = timedelta(seconds=self.snuba_query.time_window)
+
+        assert self.activation_cooldown() == 3 * time_window
 
     def test_detector_with_flag_off_keeps_stable_fingerprint(self) -> None:
         with self.feature({"organizations:workflow-engine-rotate-activation-id": False}):

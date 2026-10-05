@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from datetime import timedelta
 from enum import StrEnum
 from typing import Any, Literal, TypedDict
 
@@ -223,19 +224,7 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
                 f"Failed to find detector trigger for detector id {self.detector.id}, cannot create metric issue occurrence"
             )
 
-        try:
-            query_subscription = QuerySubscription.objects.get(id=data_packet.source_id)
-        except QuerySubscription.DoesNotExist:
-            raise DetectorException(
-                f"Failed to find query subscription for detector id {self.detector.id}, cannot create metric issue occurrence"
-            )
-
-        try:
-            snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query_id)
-        except SnubaQuery.DoesNotExist:
-            raise DetectorException(
-                f"Failed to find snuba query for detector id {self.detector.id}, cannot create metric issue occurrence"
-            )
+        snuba_query = self._get_snuba_query(data_packet)
 
         try:
             owner = self.detector.owner.identifier if self.detector.owner else None
@@ -265,6 +254,26 @@ class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricRes
 
     def extract_dedupe_value(self, data_packet: DataPacket[MetricUpdate]) -> int:
         return int(data_packet.packet.timestamp.timestamp())
+
+    def get_detector_interval(self, data_packet: DataPacket[MetricUpdate]) -> timedelta:
+        snuba_query = self._get_snuba_query(data_packet)
+
+        return timedelta(seconds=snuba_query.time_window)
+
+    def _get_snuba_query(self, data_packet: DataPacket[MetricUpdate]) -> SnubaQuery:
+        try:
+            query_subscription = QuerySubscription.objects.get(id=data_packet.source_id)
+        except QuerySubscription.DoesNotExist:
+            raise DetectorException(
+                f"Failed to find query subscription for detector id {self.detector.id}, cannot evaluate metric issue detector"
+            )
+
+        try:
+            return SnubaQuery.objects.get(id=query_subscription.snuba_query_id)
+        except SnubaQuery.DoesNotExist:
+            raise DetectorException(
+                f"Failed to find snuba query for detector id {self.detector.id}, cannot evaluate metric issue detector"
+            )
 
     def extract_value(
         self, data_packet: DataPacket[MetricUpdate]
