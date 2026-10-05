@@ -132,6 +132,7 @@ class GetLoginRedirectTest(TestCase):
         result = get_login_redirect(request)
         assert result == "http://orgslug.testserver/foobar/"
 
+    @override_options({"auth.v2.enabled": False})
     def test_pending_2fa(self) -> None:
         request = self._make_request()
         request.session["_pending_2fa"] = [1234, 1234, 1234]
@@ -144,8 +145,7 @@ class GetLoginRedirectTest(TestCase):
         result = get_login_redirect(request)
         assert result == f"http://orgslug.testserver{reverse('sentry-2fa-dialog')}"
 
-    @override_options({"auth.v2.enabled": True})
-    def test_pending_2fa_with_react_auth_setting(self) -> None:
+    def test_pending_2fa_with_react_auth_by_default(self) -> None:
         request = self._make_request()
         request.session["_pending_2fa"] = [1234, 1234, 1234]
 
