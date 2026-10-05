@@ -167,6 +167,31 @@ class ProjectPreprodSnapshotTest(APITestCase):
         assert response.status_code == 200
         mock_track_outcome.assert_not_called()
 
+    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.track_outcome")
+    def test_outcome_failure_does_not_fail_snapshot_upload(
+        self, mock_track_outcome: MagicMock
+    ) -> None:
+        mock_track_outcome.side_effect = RuntimeError("outcome failure")
+        data = {
+            "app_id": "com.example.app",
+            "images": {
+                "abc123def456": {
+                    "content_hash": "abc123def456",
+                    "width": 375,
+                    "height": 812,
+                }
+            },
+        }
+
+        with self.feature("organizations:preprod-snapshot-billing-outcomes"):
+            response = self.client.post(self._get_create_url(), data, format="json")
+
+        assert response.status_code == 200
+        artifact = PreprodArtifact.objects.get(id=response.data["artifactId"])
+        snapshot_metrics = PreprodSnapshotMetrics.objects.get(id=response.data["snapshotMetricsId"])
+        assert snapshot_metrics.preprod_artifact == artifact
+        mock_track_outcome.assert_called_once()
+
     def test_snapshot_upload_rejects_reserved_archive_filename(self) -> None:
         data = {
             "app_id": "com.example.app",

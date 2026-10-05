@@ -874,17 +874,29 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             manifest_size_bytes = len(manifest_bytes)
             session.put(manifest_bytes, key=manifest_key)
 
-        if images and features.has(
-            "organizations:preprod-snapshot-billing-outcomes", project.organization
-        ):
-            track_outcome(
-                org_id=project.organization_id,
-                project_id=project.id,
-                key_id=None,
-                outcome=Outcome.ACCEPTED,
-                quantity=len(images),
-                category=DataCategory.SNAPSHOT_IMAGE,
-            )
+        if images:
+            try:
+                if features.has(
+                    "organizations:preprod-snapshot-billing-outcomes", project.organization
+                ):
+                    track_outcome(
+                        org_id=project.organization_id,
+                        project_id=project.id,
+                        key_id=None,
+                        outcome=Outcome.ACCEPTED,
+                        quantity=len(images),
+                        category=DataCategory.SNAPSHOT_IMAGE,
+                    )
+            except Exception:
+                logger.exception(
+                    "Failed to track snapshot image billing outcome",
+                    extra={
+                        "preprod_artifact_id": artifact.id,
+                        "organization_id": project.organization_id,
+                        "project_id": project.id,
+                        "image_count": len(images),
+                    },
+                )
 
         try:
             parsed_manifest = orjson.loads(manifest_bytes)
