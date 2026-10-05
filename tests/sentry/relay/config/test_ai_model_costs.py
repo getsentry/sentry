@@ -17,21 +17,25 @@ COSTS: AIModelCost = {
 
 CONFIG: AIModelMetadataConfig = {
     "version": 1,
-    "models": {"claude-sonnet-4": {"costs": COSTS}},
+    "models": {"claude-sonnet-4-5": {"costs": COSTS}},
 }
 
 
 @pytest.mark.parametrize(
     "model_id",
     [
-        "claude-sonnet-4",
+        "claude-sonnet-4-5",
         # Providers ship dated snapshots of the same model; the metadata is keyed
         # by the undated name.
-        "claude-sonnet-4-20250514",
-        # Gateways like OpenRouter and Bedrock report the provider alongside the
-        # model; the metadata is keyed by the model alone.
-        "anthropic/claude-sonnet-4",
-        "anthropic/claude-sonnet-4-20250514",
+        "claude-sonnet-4-5-20250929",
+        # Gateways report the provider alongside the model; the metadata is keyed
+        # by the model alone.
+        "anthropic/claude-sonnet-4-5",
+        "anthropic/claude-sonnet-4-5-20250929",
+        pytest.param("anthropic/claude-sonnet-4.5", id="openrouter"),
+        pytest.param("us.anthropic.claude-sonnet-4-5-20250929-v1:0", id="bedrock"),
+        pytest.param("anthropic.claude-sonnet-4-5-20250929-v1:0", id="bedrock-no-region"),
+        pytest.param("Claude-Sonnet-4-5", id="case"),
     ],
 )
 def test_model_costs_finds_a_model_however_the_span_names_it(model_id: str) -> None:

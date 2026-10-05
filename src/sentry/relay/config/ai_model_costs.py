@@ -111,10 +111,13 @@ def canonical_model_name(model_id: str) -> str:
     (``us.anthropic.``), a snapshot date or version, and spells versions with
     dashes the way providers do where OpenRouter uses dots (``4.5``).
     """
-    name = model_id.lower().rsplit("/", 1)[-1]
-    name = re.sub(r"^(?:[a-z]+\.)+", "", name)
-    name = normalize_model_id(name)
+    name = normalize_model_id(_unqualified_model_name(model_id))
     return re.sub(r"(?<=\d)\.(?=\d)", "-", name)
+
+
+def _unqualified_model_name(model_id: str) -> str:
+    name = model_id.lower().rsplit("/", 1)[-1]
+    return re.sub(r"^(?:[a-z]+\.)+", "", name)
 
 
 def model_costs(model_id: str, config: AIModelMetadataConfig) -> AIModelCost | None:
@@ -123,7 +126,10 @@ def model_costs(model_id: str, config: AIModelMetadataConfig) -> AIModelCost | N
     Spans carry provider-specific model names, so the lookup narrows the
     reported id towards how the metadata is keyed: as reported, with dates and
     versions stripped, then again without the namespace a gateway prefixes
-    (``anthropic/claude-sonnet-4``), which the metadata keys without.
+    (``anthropic/claude-sonnet-4``), which the metadata keys without, then
+    lowercased and without Bedrock's region and vendor, and finally as the
+    canonical name. Exact spellings go first because a dated snapshot can be
+    priced apart from its model, and OpenRouter keys keep dotted versions.
 
     The metadata also holds a ``*``-prefixed key per model, which is there for
     relay to glob-match against and is not useful here: it is only ever added
@@ -134,11 +140,15 @@ def model_costs(model_id: str, config: AIModelMetadataConfig) -> AIModelCost | N
     """
     models = config.get("models") or {}
     bare_model_id = model_id.rsplit("/", 1)[-1]
+    unqualified_model_name = _unqualified_model_name(model_id)
     for key in (
         model_id,
         normalize_model_id(model_id),
         bare_model_id,
         normalize_model_id(bare_model_id),
+        unqualified_model_name,
+        normalize_model_id(unqualified_model_name),
+        canonical_model_name(model_id),
     ):
         metadata = models.get(key)
         if metadata is not None:
