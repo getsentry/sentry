@@ -167,6 +167,23 @@ describe('buildRoutes()', () => {
       expect(matchedPaths).not.toContain('*');
     });
 
+    it('matches the snapshots list before the catch-all', () => {
+      const spy = jest.spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get');
+
+      spy.mockReturnValue(true);
+      let matchedPaths = getMatchedPaths(buildRoutes(), '/explore/snapshots/');
+      expect(matchedPaths).toContain('snapshots/');
+      expect(matchedPaths).not.toContain(':catchAll/');
+
+      spy.mockReturnValue(false);
+      matchedPaths = getMatchedPaths(
+        buildRoutes(),
+        '/organizations/test-org/explore/snapshots/'
+      );
+      expect(matchedPaths).toContain('snapshots/');
+      expect(matchedPaths).not.toContain('*');
+    });
+
     it('catches unknown subpaths under /explore/', () => {
       const spy = jest.spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get');
 
@@ -182,6 +199,14 @@ describe('buildRoutes()', () => {
         '/organizations/test-org/explore/nonexistent-page/also-nonexistent-page/'
       );
       expect(matchedPaths).toContain('*');
+    });
+  });
+
+  describe('legacy snapshots redirect', () => {
+    it('redirects /snapshots/ to the explore snapshots list', () => {
+      expect(getRedirectTarget(buildRoutes(), '/organizations/test-org/snapshots/')).toBe(
+        '/organizations/test-org/explore/snapshots/'
+      );
     });
   });
 

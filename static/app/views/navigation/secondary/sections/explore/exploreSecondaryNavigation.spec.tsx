@@ -155,7 +155,34 @@ describe('ExploreSecondaryNavigation', () => {
     expect(screen.queryByText('Investigations')).not.toBeInTheDocument();
   });
 
-  it('marks Releases as active on preprod pages', () => {
+  it('marks Releases as active on preprod size pages', () => {
+    render(
+      <PrimaryNavigationContextProvider>
+        <SecondaryNavigationContextProvider>
+          <Navigation />
+          <div id="main" />
+        </SecondaryNavigationContextProvider>
+      </PrimaryNavigationContextProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/preprod/size/123/',
+          },
+        },
+      }
+    );
+
+    expect(screen.getByRole('link', {name: 'Releases'})).toHaveAttribute(
+      'aria-current',
+      'page'
+    );
+    expect(screen.getByRole('link', {name: /Snapshots/})).not.toHaveAttribute(
+      'aria-current'
+    );
+  });
+
+  it('marks Snapshots as active on preprod snapshot pages', () => {
     render(
       <PrimaryNavigationContextProvider>
         <SecondaryNavigationContextProvider>
@@ -173,9 +200,12 @@ describe('ExploreSecondaryNavigation', () => {
       }
     );
 
-    expect(screen.getByRole('link', {name: 'Releases'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: /Snapshots/})).toHaveAttribute(
       'aria-current',
       'page'
+    );
+    expect(screen.getByRole('link', {name: 'Releases'})).not.toHaveAttribute(
+      'aria-current'
     );
   });
 
