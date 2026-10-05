@@ -68,46 +68,54 @@ export function InnerIntentForm({
       {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
       <form onSubmit={submit}>
         <Stack gap="xl">
-          {stripeIsLoading && <LoadingIndicator />}
-          <PaymentElement
-            onReady={() => setStripeIsLoading(false)}
-            onLoadError={() => {
-              handleStripeLoadError();
-            }}
-            options={{
-              terms: {card: 'never'}, // we display the terms ourselves
-              wallets: {applePay: 'never', googlePay: 'never'},
-            }}
-          />
-          <Stack gap="sm">
-            <small>
-              {tct('Payments are processed securely through [stripe:Stripe].', {
-                stripe: <ExternalLink href="https://stripe.com/" />,
-              })}
-            </small>
-            {/* location is 0 on the checkout page which is why this isn't location && */}
-            {defined(location) && (
-              <Text size="xs" variant="muted">
-                {tct(
-                  'By clicking [buttonText], you authorize Sentry to automatically charge you recurring subscription fees and applicable [budgetTerm] fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for [budgetTerm] fees. You may cancel your subscription at any time [here:here].',
-                  {
-                    buttonText: <b>{buttonText ?? t('Save Changes')}</b>,
-                    budgetTerm,
-                    here: (
-                      <ExternalLink href="https://sentry.io/settings/billing/cancel/" />
-                    ),
-                  }
-                )}
-              </Text>
-            )}
+          <Stack gap="xl">
+            {stripeIsLoading && <LoadingIndicator />}
+            <PaymentElement
+              onReady={() => setStripeIsLoading(false)}
+              onLoadError={() => {
+                handleStripeLoadError();
+              }}
+              options={{
+                terms: {card: 'never'}, // we display the terms ourselves
+                wallets: {applePay: 'never', googlePay: 'never'},
+              }}
+            />
+            <Stack gap="sm">
+              <small>
+                {tct('Payments are processed securely through [stripe:Stripe].', {
+                  stripe: <ExternalLink href="https://stripe.com/" />,
+                })}
+              </small>
+              {/* location is 0 on the checkout page which is why this isn't location && */}
+              {defined(location) && (
+                <Text size="xs" variant="muted">
+                  {tct(
+                    'By clicking [buttonText], you authorize Sentry to automatically charge you recurring subscription fees and applicable [budgetTerm] fees. Recurring charges occur at the start of your selected billing cycle for subscription fees and monthly for [budgetTerm] fees. You may cancel your subscription at any time [here:here].',
+                    {
+                      buttonText: <b>{buttonText ?? t('Save Changes')}</b>,
+                      budgetTerm,
+                      here: (
+                        <ExternalLink href="https://sentry.io/settings/billing/cancel/" />
+                      ),
+                    }
+                  )}
+                </Text>
+              )}
+            </Stack>
           </Stack>
+          <Flex
+            align="center"
+            justify="end"
+            gap="md"
+            borderTop="secondary"
+            paddingTop="lg"
+          >
+            {onCancel && <Button onClick={onCancel}>{t('Cancel')}</Button>}
+            <Button type="submit" variant="primary" busy={isSubmitting}>
+              {buttonText ?? t('Save Changes')}
+            </Button>
+          </Flex>
         </Stack>
-        <Flex align="center" justify="end" gap="md">
-          {onCancel && <Button onClick={onCancel}>{t('Cancel')}</Button>}
-          <Button type="submit" variant="primary" busy={isSubmitting}>
-            {buttonText ?? t('Save Changes')}
-          </Button>
-        </Flex>
       </form>
     </Stack>
   );

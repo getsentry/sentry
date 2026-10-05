@@ -117,19 +117,10 @@ export function BillingDetailsPanel({
                   t('An unknown error occurred.')
               );
             }}
-            extraButton={
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => {
-                  setIsEditing(false);
-                  setFormError(null);
-                }}
-                aria-label={t('Cancel editing business address')}
-              >
-                {t('Cancel')}
-              </Button>
-            }
+            onCancel={() => {
+              setIsEditing(false);
+              setFormError(null);
+            }}
             analyticsEvent={analyticsEvent}
           />
         ) : billingDetails && hasSomeBillingDetails(billingDetails) ? (
