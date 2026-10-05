@@ -2147,23 +2147,27 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             )
             for index in range(3)
         ]
-        integrations = [
-            self.create_integration(
-                organization=self.organization,
-                provider="jira",
-                external_id=f"jira_external_id_{index}",
-                name=f"Jira {index}",
-                metadata={"base_url": f"https://jira-{index}.example.com"},
-            )
-            for index in range(3)
-        ]
-        for integration_index, integration in enumerate(integrations):
-            for event in events[:2]:
-                self.create_integration_external_issue(
-                    group=event.group,
-                    integration=integration,
-                    key=f"APP-{integration_index}-{event.group.id}",
-                )
+        jira_a = self.create_integration(
+            organization=self.organization,
+            provider="jira",
+            external_id="jira_a",
+            metadata={"base_url": "https://a.example.com"},
+        )
+        jira_b = self.create_integration(
+            organization=self.organization,
+            provider="jira",
+            external_id="jira_b",
+            metadata={"base_url": "https://b.example.com"},
+        )
+        shared_issue = self.create_integration_external_issue(
+            group=events[0].group, integration=jira_a, key="A-1"
+        )
+        self.create_integration_external_issue(group=events[0].group, integration=jira_b, key="B-1")
+        self.create_group_link(
+            group=events[1].group,
+            linked_id=shared_issue.id,
+            linked_type=GroupLink.LinkedType.issue,
+        )
         self.login_as(user=self.user)
 
         with CaptureQueriesContext(connection) as queries:
@@ -2171,14 +2175,13 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
 
         assert response.status_code == 200
         annotations_by_group = {int(group["id"]): group["annotations"] for group in response.data}
-        for event in events[:2]:
-            assert sorted(annotations_by_group[event.group.id], key=lambda a: a["displayName"]) == [
-                {
-                    "url": f"https://jira-{index}.example.com/browse/APP-{index}-{event.group.id}",
-                    "displayName": f"APP-{index}-{event.group.id}",
-                }
-                for index in range(3)
-            ]
+        assert sorted(annotations_by_group[events[0].group.id], key=lambda a: a["url"]) == [
+            {"url": "https://a.example.com/browse/A-1", "displayName": "A-1"},
+            {"url": "https://b.example.com/browse/B-1", "displayName": "B-1"},
+        ]
+        assert annotations_by_group[events[1].group.id] == [
+            {"url": "https://a.example.com/browse/A-1", "displayName": "A-1"},
+        ]
         assert annotations_by_group[events[2].group.id] == []
         assert len([query for query in queries if "sentry_grouplink" in query["sql"]]) == 1
         assert len([query for query in queries if "sentry_externalissue" in query["sql"]]) == 1

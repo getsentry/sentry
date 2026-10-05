@@ -773,11 +773,8 @@ class IssueDefaultTest(TestCase):
         }
 
     def test_annotations(self) -> None:
-        label = self.installation.get_issue_display_name(self.external_issue)
-        link = self.installation.get_issue_url(self.external_issue.key)
-
         assert self.installation.map_external_issues_to_annotations([self.external_issue]) == [
-            {"url": link, "displayName": label}
+            {"url": "https://example/issues/APP-123", "displayName": "display name: APP-123"}
         ]
 
     @patch("sentry.integrations.mixins.issues.maybe_generate_external_issue_details")

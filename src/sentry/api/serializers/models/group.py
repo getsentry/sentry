@@ -17,6 +17,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.constants import LOG_LEVELS
 from sentry.eventtypes import EventTypeStr
+from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
@@ -756,8 +757,6 @@ class GroupSerializerBase(Serializer, ABC):
     def _resolve_integration_annotations(
         org_id: int, groups: Sequence[Group]
     ) -> Sequence[Mapping[int, Sequence[Any]]]:
-        from sentry.integrations.base import IntegrationFeatures
-
         group_ids_by_external_issue_id: dict[int, list[int]] = defaultdict(list)
         for group_id, linked_id in GroupLink.objects.filter(
             group_id__in=[group.id for group in groups],
@@ -771,7 +770,6 @@ class GroupSerializerBase(Serializer, ABC):
         if not group_ids_by_external_issue_id:
             return []
 
-        # Load external issues for every integration at once instead of once per integration.
         external_issues_by_integration_id: dict[int, list[ExternalIssue]] = defaultdict(list)
         for external_issue in ExternalIssue.objects.filter(
             id__in=group_ids_by_external_issue_id, organization_id=org_id
