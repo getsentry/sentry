@@ -4,6 +4,7 @@ import ipaddress
 from collections.abc import Mapping
 from typing import Any, TypedDict
 
+from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -17,7 +18,13 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectSettingPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.examples.project_examples import ProjectExamples
+from sentry.apidocs.parameters import GlobalParams, ProjectParams
+from sentry.apidocs.response_types import (
+    DetailResponse,
+    ValidationErrorResponse,
+    as_validation_errors,
+)
 from sentry.ingest.inbound_filters import get_supported_condition_types
 from sentry.models.custominboundfilter import (
     ConditionType,
@@ -45,6 +52,16 @@ _REQUIRED_FEATURE_BY_DATA_TYPE: Mapping[DataType, str] = {
 class CustomInboundFilterCondition(TypedDict):
     type: str
     value: list[str]
+
+
+class CustomInboundFilterResponse(TypedDict):
+    id: str
+    name: str | None
+    active: bool
+    dataType: str
+    conditions: list[CustomInboundFilterCondition]
+    dateCreated: str
+    dateUpdated: str
 
 
 def _condition_value_chars(conditions: list[CustomInboundFilterCondition]) -> int:
@@ -85,11 +102,21 @@ def _is_ip_address_or_range(value: str) -> bool:
 
 class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboundFilterCondition]):
     type = serializers.ChoiceField(
-        choices=[condition_type.value for condition_type in ConditionType]
+        choices=[condition_type.value for condition_type in ConditionType],
+        help_text=(
+            "The field the condition matches against. Every `dataType` accepts `release` and "
+            "`ip_address`. In addition, `error` accepts `error_type` and `error_message`, "
+            "`log` accepts `log_message`, and `metric` accepts `metric_name`. `span` and "
+            "`all` accept no other types."
+        ),
     )
     value = serializers.ListField(
         child=serializers.CharField(allow_blank=False, trim_whitespace=True),
         allow_empty=False,
+        help_text=(
+            "Glob patterns the field is matched against. The condition matches when any "
+            "pattern matches, so multiple values act as OR."
+        ),
     )
 
     def validate(self, attrs: CustomInboundFilterCondition) -> CustomInboundFilterCondition:
@@ -105,11 +132,19 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
 
 
 class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFilter]):
-    id = serializers.CharField(read_only=True)
+    id = serializers.CharField(read_only=True, help_text="The ID of the filter.")
     name = serializers.CharField(
-        max_length=256, allow_blank=True, allow_null=True, required=False, trim_whitespace=True
+        max_length=256,
+        allow_blank=True,
+        allow_null=True,
+        required=False,
+        trim_whitespace=True,
+        help_text="A human-readable label for the filter.",
     )
-    active = serializers.BooleanField(required=False)
+    active = serializers.BooleanField(
+        required=False,
+        help_text="Whether the filter drops matching data. An inactive filter is kept but ignored.",
+    )
     dataType = serializers.ChoiceField(
         source="data_type",
         choices=[data_type.value for data_type in DataType],
@@ -126,12 +161,16 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         help_text=(
             "Conditions are combined with AND: an event must match every condition to be "
             "filtered out. There is no OR between conditions, so e.g. two release conditions "
-            "can express a range (>2 AND <4). To broaden matching, widen a condition's values "
+            "can express a range (`>2 AND <4`). To broaden matching, widen a condition's values "
             "or add separate filters."
         ),
     )
-    dateCreated = serializers.DateTimeField(source="date_added", read_only=True)
-    dateUpdated = serializers.DateTimeField(source="date_updated", read_only=True)
+    dateCreated = serializers.DateTimeField(
+        source="date_added", read_only=True, help_text="When the filter was created."
+    )
+    dateUpdated = serializers.DateTimeField(
+        source="date_updated", read_only=True, help_text="When the filter was last changed."
+    )
 
     class Meta:
         model = CustomInboundFilter
@@ -158,22 +197,16 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         # A partial update may change the data type or the conditions alone, so the
         # other side comes from the stored filter.
         stored = self.instance
-        conditions = attrs.get("conditions")
-        if conditions is None:
-            conditions = stored.conditions if stored else None
-
-        raw_data_type = attrs.get("data_type") or (stored.data_type if stored else None)
-        if raw_data_type is None:
-            raise serializers.ValidationError(
-                {"dataType": "This filter has no data type. Send dataType to update it."}
-            )
-        if conditions is None:
-            return attrs
+        if stored is None:
+            conditions = attrs["conditions"]
+            data_type = DataType(attrs["data_type"])
+        else:
+            conditions = attrs.get("conditions", stored.conditions)
+            data_type = DataType(attrs.get("data_type", stored.data_type))
 
         if "conditions" in attrs:
             _validate_size(conditions, stored)
 
-        data_type = DataType(raw_data_type)
         supported = get_supported_condition_types(data_type)
         unsupported = sorted({condition["type"] for condition in conditions} - set(supported))
         if unsupported:
@@ -190,6 +223,31 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         return attrs
 
 
+def serialize_custom_inbound_filter(
+    custom_filter: CustomInboundFilter,
+) -> CustomInboundFilterResponse:
+    data = CustomInboundFilterSerializer(custom_filter).data
+    return {
+        "id": data["id"],
+        "name": data["name"],
+        "active": data["active"],
+        "dataType": data["dataType"],
+        "conditions": data["conditions"],
+        "dateCreated": data["dateCreated"],
+        "dateUpdated": data["dateUpdated"],
+    }
+
+
+def _user_filters(project: Project) -> QuerySet[CustomInboundFilter]:
+    """
+    The filters a user made here. A row with legacy_filter set is the double write of a
+    legacy list that the project settings still own, so this API neither lists, edits nor
+    deletes it for now. The serializer has no legacy_filter field, so a request cannot
+    set it.
+    """
+    return CustomInboundFilter.objects.filter(project_id=project.id, legacy_filter__isnull=True)
+
+
 class ProjectCustomInboundFilterEndpoint(ProjectEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (ProjectSettingPermission,)
@@ -201,6 +259,12 @@ class ProjectCustomInboundFilterEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         return features.has("projects:custom-inbound-filters", project, actor=request.user)
+
+    def get_custom_inbound_filter(self, project: Project, filter_id: str) -> CustomInboundFilter:
+        try:
+            return _user_filters(project).get(id=filter_id)
+        except (CustomInboundFilter.DoesNotExist, ValueError):
+            raise ResourceDoesNotExist
 
     @staticmethod
     def get_audit_log_data(
@@ -229,8 +293,8 @@ class ProjectCustomInboundFilterEndpoint(ProjectEndpoint):
 @extend_schema(tags=["Projects"])
 class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
+        "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
 
     @extend_schema(
@@ -245,21 +309,24 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=ProjectExamples.LIST_CUSTOM_INBOUND_FILTERS,
     )
-    def get(self, request: Request, project: Project) -> Response:
+    def get(
+        self, request: Request, project: Project
+    ) -> Response[list[CustomInboundFilterResponse]] | Response[DetailResponse]:
         """
         List the custom inbound filters configured for a project.
         """
         if not self.has_feature(request, project):
             return Response({"detail": "You do not have that feature enabled"}, status=400)
 
-        filters = CustomInboundFilter.objects.filter(project_id=project.id)
+        filters = _user_filters(project)
         return self.paginate(
             request=request,
             queryset=filters,
             order_by="id",
             paginator_cls=OffsetPaginator,
-            on_results=lambda results: CustomInboundFilterSerializer(results, many=True).data,
+            on_results=lambda results: [serialize_custom_inbound_filter(f) for f in results],
         )
 
     @extend_schema(
@@ -275,17 +342,22 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=ProjectExamples.CUSTOM_INBOUND_FILTER,
     )
-    def post(self, request: Request, project: Project) -> Response:
+    def post(
+        self, request: Request, project: Project
+    ) -> (
+        Response[CustomInboundFilterResponse]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
         Create a custom inbound filter for a project.
         """
         if not self.has_feature(request, project):
             return Response({"detail": "You do not have that feature enabled"}, status=400)
 
-        if CustomInboundFilter.objects.filter(project_id=project.id).count() >= (
-            MAX_FILTERS_PER_PROJECT
-        ):
+        if _user_filters(project).count() >= MAX_FILTERS_PER_PROJECT:
             return Response(
                 {
                     "detail": (
@@ -301,7 +373,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
             context={"project": project, "request": request},
         )
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         custom_filter = serializer.save(project=project)
 
@@ -314,29 +386,24 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         )
         schedule_invalidate_project_config(project_id=project.id, trigger="custom_inbound_filters")
 
-        return Response(serializer.data, status=201)
+        return Response(serialize_custom_inbound_filter(custom_filter), status=201)
 
 
 @cell_silo_endpoint
 @extend_schema(tags=["Projects"])
 class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "PUT": ApiPublishStatus.EXPERIMENTAL,
-        "DELETE": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
+        "PUT": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
+        "DELETE": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
-
-    def get_custom_inbound_filter(self, project: Project, filter_id: str) -> CustomInboundFilter:
-        try:
-            return CustomInboundFilter.objects.get(id=filter_id, project_id=project.id)
-        except (CustomInboundFilter.DoesNotExist, ValueError):
-            raise ResourceDoesNotExist
 
     @extend_schema(
         operation_id="Retrieve a Custom Inbound Filter",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
+            ProjectParams.CUSTOM_INBOUND_FILTER_ID,
         ],
         responses={
             200: CustomInboundFilterSerializer,
@@ -344,8 +411,11 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=ProjectExamples.CUSTOM_INBOUND_FILTER,
     )
-    def get(self, request: Request, project: Project, filter_id: str) -> Response:
+    def get(
+        self, request: Request, project: Project, filter_id: str
+    ) -> Response[CustomInboundFilterResponse] | Response[DetailResponse]:
         """
         Retrieve a single custom inbound filter.
         """
@@ -353,13 +423,14 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
             return Response({"detail": "You do not have that feature enabled"}, status=400)
 
         custom_filter = self.get_custom_inbound_filter(project, filter_id)
-        return Response(CustomInboundFilterSerializer(custom_filter).data)
+        return Response(serialize_custom_inbound_filter(custom_filter))
 
     @extend_schema(
         operation_id="Update a Custom Inbound Filter",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
+            ProjectParams.CUSTOM_INBOUND_FILTER_ID,
         ],
         request=CustomInboundFilterSerializer,
         responses={
@@ -368,8 +439,15 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
+        examples=ProjectExamples.CUSTOM_INBOUND_FILTER,
     )
-    def put(self, request: Request, project: Project, filter_id: str) -> Response:
+    def put(
+        self, request: Request, project: Project, filter_id: str
+    ) -> (
+        Response[CustomInboundFilterResponse]
+        | Response[DetailResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
         Update a custom inbound filter's name, active state, or conditions.
         """
@@ -384,7 +462,7 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
             context={"project": project, "request": request},
         )
         if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
+            return Response(as_validation_errors(serializer), status=400)
 
         changes: dict[str, Any] = {}
         for field in ("name", "active", "data_type", "conditions"):
@@ -411,13 +489,14 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
                     project_id=project.id, trigger="custom_inbound_filters"
                 )
 
-        return Response(CustomInboundFilterSerializer(custom_filter).data)
+        return Response(serialize_custom_inbound_filter(custom_filter))
 
     @extend_schema(
         operation_id="Delete a Custom Inbound Filter",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
+            ProjectParams.CUSTOM_INBOUND_FILTER_ID,
         ],
         responses={
             204: None,
@@ -426,7 +505,9 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def delete(self, request: Request, project: Project, filter_id: str) -> Response:
+    def delete(
+        self, request: Request, project: Project, filter_id: str
+    ) -> Response[None] | Response[DetailResponse]:
         """
         Delete a custom inbound filter.
         """

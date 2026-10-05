@@ -471,13 +471,12 @@ class ClaudeRoutineTextSummaryTest(TestCase):
         send_and_save_webhook_request(sentry_app, event)
         return orjson.loads(mock_safe_urlopen.call_args.kwargs["data"])
 
-    @with_feature("organizations:sentry-apps-claude-routine-webhooks")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    def test_routine_url_with_flag_appends_text(self, mock_safe_urlopen):
+    def test_routine_url_appends_text(self, mock_safe_urlopen):
         body = self._send(mock_safe_urlopen, self.ROUTINE_URL)
 
-        # Summary format is pinned by the AppPlatformEvent tests; only gating matters here.
+        # Summary format is pinned by the AppPlatformEvent tests.
         assert "text" in body
         # The standard payload still rides along.
         assert body["action"] == "created"
@@ -485,20 +484,11 @@ class ClaudeRoutineTextSummaryTest(TestCase):
 
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    def test_routine_url_without_flag_sends_standard_body(self, mock_safe_urlopen):
-        body = self._send(mock_safe_urlopen, self.ROUTINE_URL)
-
-        assert "text" not in body
-
-    @with_feature("organizations:sentry-apps-claude-routine-webhooks")
-    @override_options(CIRCUIT_BREAKER_OPTIONS)
-    @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
-    def test_non_routine_url_with_flag_sends_standard_body(self, mock_safe_urlopen):
+    def test_non_routine_url_sends_standard_body(self, mock_safe_urlopen):
         body = self._send(mock_safe_urlopen, "https://example.com/webhook")
 
         assert "text" not in body
 
-    @with_feature("organizations:sentry-apps-claude-routine-webhooks")
     @override_options(CIRCUIT_BREAKER_OPTIONS)
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen")
     def test_routine_signature_matches_sent_body(self, mock_safe_urlopen):

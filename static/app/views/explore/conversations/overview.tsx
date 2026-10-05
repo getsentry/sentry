@@ -21,6 +21,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {FieldKind, type FieldDefinition} from 'sentry/utils/fields';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {
   ExploreBodyContent,
   ExploreBodySearch,
@@ -34,20 +35,20 @@ import {
   type AgentsTableTab,
 } from 'sentry/views/explore/conversations/components/agentsTable';
 import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
-import {ConversationsChart} from 'sentry/views/explore/conversations/components/conversationsChart';
-import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/components/saveConversationQueryButton';
+import {useConversationDirectHitRedirect} from 'sentry/views/explore/conversations/hooks/useConversationDirectHitRedirect';
 import {
   CONVERSATION_FIELDS,
   useConversations,
+  type Conversation,
 } from 'sentry/views/explore/conversations/hooks/useConversations';
 import {useShowConversationOnboarding} from 'sentry/views/explore/conversations/hooks/useShowConversationOnboarding';
-import {ConversationOnboarding} from 'sentry/views/explore/conversations/onboarding';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
 import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {useVisitQuery} from 'sentry/views/explore/hooks/useVisitQuery';
 import {AgentSelector} from 'sentry/views/insights/common/components/agentSelector';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
+import {getAiInstrumentationDocsLink} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 import {
   FilterUrlParams,
   TableUrlParams,
@@ -84,9 +85,31 @@ const CONVERSATION_PRIORITIZED_FILTER_KEYS = Object.keys(CONVERSATION_FILTER_KEY
 const SPANS_CURSOR_URL_PARAM = 'cursor';
 const agentsTableTabParser = parseAsStringLiteral(AGENTS_TABLE_TABS);
 
+/**
+ * Links to the listed conversations' platform docs when they all come from one
+ * project, and to the general setup docs otherwise.
+ */
+function MissingMessagesAlert({conversations}: {conversations: Conversation[]}) {
+  const {projects} = useProjects();
+  const projectIds = new Set(conversations.map(conversation => conversation.projectId));
+  const [projectId] = projectIds;
+  const platform =
+    projectIds.size === 1 && projectId !== null && projectId !== undefined
+      ? projects.find(project => project.id === String(projectId))?.platform
+      : undefined;
+
+  return (
+    <ConversationMissingMessagesAlert
+      dismissKey="conversation-missing-messages-alert"
+      docsLink={getAiInstrumentationDocsLink(platform)}
+      padding="0 0 xl"
+      plural
+    />
+  );
+}
+
 function ConversationsOverviewPage() {
   const organization = useOrganization();
-  const agentsOverviewEnabled = organization.features.includes('gen-ai-agents-overview');
   const datePageFilterProps = useDatePageFilterProps({
     maxPickableDays: MAX_PICKABLE_DAYS,
     maxUpgradableDays: MAX_PICKABLE_DAYS,
@@ -104,6 +127,10 @@ function ConversationsOverviewPage() {
     isFetching: isConversationsFetching,
     error: conversationsError,
   } = conversationsResult;
+  useConversationDirectHitRedirect({
+    isDirectHit: conversationsResult.isDirectHit,
+    conversations,
+  });
   const showMissingMessagesAlert =
     !isConversationsFetching &&
     !conversationsError &&
@@ -116,10 +143,15 @@ function ConversationsOverviewPage() {
     'table',
     agentsTableTabParser.withOptions({history: 'replace'})
   );
-  const activeTab: AgentsTableTab = agentsOverviewEnabled
-    ? (selectedTab ?? (hasConversations ? 'conversations' : 'traces'))
-    : 'conversations';
+  const activeTab: AgentsTableTab =
+    selectedTab ?? (hasConversations ? 'conversations' : 'traces');
   const isConversationsTab = activeTab === 'conversations';
+  const searchPlaceholder =
+    activeTab === 'conversations'
+      ? t('Search by conversation ID, user, model, or message')
+      : activeTab === 'traces'
+        ? t('Search by trace ID, operation, service, or user')
+        : t('Search by model, provider, tokens, or operation');
   const selectedTabShowsOnboarding = isConversationsTab
     ? !hasConversations
     : !hasAgenticSpans;
@@ -247,14 +279,7 @@ function ConversationsOverviewPage() {
   const tableSearchBar = showSearch ? (
     <Flex gap="md" width="100%">
       <Flex flex={1} minWidth="0">
-        <TraceItemSearchQueryBuilder
-          {...spanSearchQueryBuilderProps}
-          placeholder={
-            isConversationsTab
-              ? t('Search or paste a conversation ID')
-              : t('Search spans')
-          }
-        />
+        <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
       </Flex>
       {isConversationsTab && <SaveConversationQueryButton />}
     </Flex>
@@ -263,11 +288,13 @@ function ConversationsOverviewPage() {
   let content: ReactNode;
   if (isOnboardingLoading) {
     content = <LoadingIndicator />;
-  } else if (agentsOverviewEnabled) {
+  } else {
     content = (
       <Fragment>
         {hasAgenticSpans && <AgentsCharts />}
-        {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
+        {showMissingMessagesAlert && (
+          <MissingMessagesAlert conversations={conversations} />
+        )}
         <AgentsTable
           activeTab={activeTab}
           conversations={conversationsResult}
@@ -279,20 +306,13 @@ function ConversationsOverviewPage() {
         />
       </Fragment>
     );
-  } else if (showOnboarding) {
-    content = <ConversationOnboarding onDismiss={refetchOnboarding} />;
-  } else {
-    content = (
-      <Fragment>
-        {showMissingMessagesAlert && <ConversationMissingMessagesAlert />}
-        <ConversationsChart />
-        <ConversationsTable conversations={conversationsResult} />
-      </Fragment>
-    );
   }
 
   return (
-    <SearchQueryBuilderProvider {...searchQueryBuilderProviderProps}>
+    <SearchQueryBuilderProvider
+      {...searchQueryBuilderProviderProps}
+      placeholder={searchPlaceholder}
+    >
       <ExploreBodySearch>
         <Layout.Main width="full">
           <Stack gap="md">
@@ -315,25 +335,10 @@ function ConversationsOverviewPage() {
                 </PageFilterBar>
                 <AgentSelector referrer={Referrer.AGENT_NAMES} />
               </Flex>
-              {agentsOverviewEnabled && hasAgenticSpans && (
+              {hasAgenticSpans && (
                 <Flex flex={1} justify="end">
                   <AgentsChartIntervalSelector />
                 </Flex>
-              )}
-              {!agentsOverviewEnabled && showSearch && (
-                <Flex flex={1} minWidth="300px">
-                  <TraceItemSearchQueryBuilder
-                    {...spanSearchQueryBuilderProps}
-                    placeholder={
-                      isConversationsTab
-                        ? t('Search or paste a conversation ID')
-                        : t('Search spans')
-                    }
-                  />
-                </Flex>
-              )}
-              {!agentsOverviewEnabled && showSearch && isConversationsTab && (
-                <SaveConversationQueryButton />
               )}
             </Flex>
           </Stack>

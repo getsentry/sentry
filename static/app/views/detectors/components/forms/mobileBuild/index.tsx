@@ -69,12 +69,20 @@ function MobileBuildDetectorForm() {
   );
 }
 
-export function NewPreprodDetectorForm() {
+export function NewPreprodDetectorForm({
+  duplicateDetector,
+}: {
+  duplicateDetector?: PreprodDetector;
+}) {
   return (
     <NewDetectorLayout
       detectorType="preprod_size_analysis"
       formDataToEndpointPayload={preprodFormDataToEndpointPayload}
-      initialFormData={PREPROD_DEFAULT_FORM_DATA}
+      initialFormData={
+        duplicateDetector
+          ? preprodSavedDetectorToFormData(duplicateDetector)
+          : PREPROD_DEFAULT_FORM_DATA
+      }
     >
       <MobileBuildDetectorForm />
     </NewDetectorLayout>

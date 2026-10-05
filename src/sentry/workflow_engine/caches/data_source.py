@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import NamedTuple
 
 from sentry.utils import metrics
@@ -5,7 +6,7 @@ from sentry.workflow_engine.caches import CacheMapping
 from sentry.workflow_engine.models.data_source import DataSource
 from sentry.workflow_engine.types import DetectorId
 
-CACHE_TTL = 60 * 20  # 20 minutes
+CACHE_TTL = timedelta(days=1).total_seconds()
 
 
 class _DataSourceCacheKey(NamedTuple):

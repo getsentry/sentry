@@ -65,6 +65,17 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         ]
         assert meta["dataset"] == self.dataset
 
+    def test_no_requested_fields(self) -> None:
+        response = self.do_request(
+            {
+                "query": "",
+                "project": self.project.id,
+                "dataset": self.dataset,
+            }
+        )
+        assert response.status_code == 400, response.content
+        assert response.data["detail"] == "No columns selected"
+
     @pytest.mark.querybuilder
     def test_timestamp_order(self) -> None:
         logs = [
@@ -826,6 +837,22 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         }
         assert links["previous"]["results"] == "false"
         assert links["next"]["results"] == "false"
+
+    def test_high_accuracy_flex_time_without_orderby(self):
+        response = self.do_request(
+            {
+                "field": ["count()"],
+                "query": "",
+                "orderby": "-count()",
+                "project": self.project.id,
+                "dataset": self.dataset,
+                "sampling": "HIGHEST_ACCURACY_FLEX_TIME",
+            },
+        )
+        assert response.status_code == 400, response.content
+        assert "You must orderby timestamp to use HIGHEST_ACCURACY_FLEX_TIME" in str(
+            response.data["detail"]
+        )
 
     def test_high_accuracy_flex_time_order_by_timestamp(self):
         logs = [
