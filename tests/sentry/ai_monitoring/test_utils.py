@@ -1,11 +1,7 @@
 import pytest
 
-from sentry.relay.config.ai_model_costs import (
-    AIModelCost,
-    AIModelMetadataConfig,
-    canonical_model_name,
-    model_costs,
-)
+from sentry.ai_monitoring.utils import canonical_model_name, model_costs
+from sentry.relay.config.ai_model_costs import AIModelCost, AIModelMetadataConfig
 
 COSTS: AIModelCost = {
     "inputPerToken": 0.000003,

@@ -656,7 +656,7 @@ class FetchAIModelMetadataTest(TestCase):
 
     def test_normalize_model_id(self) -> None:
         """Test model ID normalization with various date and version formats"""
-        from sentry.relay.config.ai_model_costs import normalize_model_id
+        from sentry.ai_monitoring.utils import normalize_model_id
 
         # Test cases with expected outputs
         test_cases = [
@@ -681,7 +681,7 @@ class FetchAIModelMetadataTest(TestCase):
 
     def test_create_prefix_glob_model_name(self) -> None:
         """Test prefix glob generation for model names"""
-        from sentry.relay.config.ai_model_costs import prefix_glob_model_name
+        from sentry.ai_monitoring.utils import prefix_glob_model_name
 
         # Test cases with expected outputs
         test_cases = [
