@@ -138,13 +138,13 @@ class GroupTypeRegistry:
             op="GroupTypeRegistry.get_visible", name="GroupTypeRegistry.get_visible"
         ) as span:
             released = [gt for gt in self.all() if gt.released]
-            feature_to_grouptypes: dict[str, list[type[GroupType]]] = defaultdict(list)
+            feature_to_grouptype: dict[str, type[GroupType]] = {}
             for gt in self.all():
                 if not gt.released:
                     for fname in gt.build_visible_feature_name():
-                        feature_to_grouptypes[fname].append(gt)
+                        feature_to_grouptype[fname] = gt
             batch_features = features.batch_has(
-                list(feature_to_grouptypes), actor=actor, organization=organization
+                list(feature_to_grouptype.keys()), actor=actor, organization=organization
             )
             enabled: list[type[GroupType]] = []
             if batch_features:
@@ -152,15 +152,15 @@ class GroupTypeRegistry:
                 seen: set[int] = set()
                 for feature, active in feature_results.items():
                     if active:
-                        for gt in feature_to_grouptypes[feature]:
-                            if gt.type_id not in seen:
-                                seen.add(gt.type_id)
-                                enabled.append(gt)
+                        gt = feature_to_grouptype[feature]
+                        if gt.type_id not in seen:
+                            seen.add(gt.type_id)
+                            enabled.append(gt)
             set_span_tag(span, "organization_id", organization.id)
             set_span_tag(span, "has_batch_features", batch_features is not None)
             set_span_tag(span, "released", released)
             set_span_tag(span, "enabled", enabled)
-            set_span_data(span, "feature_to_grouptype", feature_to_grouptypes)
+            set_span_data(span, "feature_to_grouptype", feature_to_grouptype)
             return released + enabled
 
     def get_all_group_type_ids(self) -> set[int]:
@@ -253,9 +253,6 @@ class GroupType:
     # decide if this is released. Add to HIDDEN_ISSUE_TYPES as well to prevent Events from this Group
     # being displayed on frontend.
     released: ClassVar[bool] = False
-    visible_feature_api_expose: ClassVar[bool] = True
-    # Override the rollout flag slug without changing the issue type slug.
-    feature_flag_slug: ClassVar[str | None] = None
     # If False this group is excluded from default searches, when there are no filters on issue.category or issue.type.
     in_default_search: ClassVar[bool] = True
 
@@ -297,9 +294,7 @@ class GroupType:
 
         if not cls.released:
             for fname in cls.build_visible_feature_name():
-                features.add(
-                    fname, OrganizationFeature, True, api_expose=cls.visible_feature_api_expose
-                )
+                features.add(fname, OrganizationFeature, True, api_expose=True)
             features.add(cls.build_ingest_feature_name(), OrganizationFeature, True)
             features.add(cls.build_post_process_group_feature_name(), OrganizationFeature, True)
 
@@ -330,7 +325,7 @@ class GroupType:
 
     @classmethod
     def build_base_feature_name(cls) -> str:
-        return f"organizations:issue-{cls.feature_flag_slug or cls.build_feature_name_slug()}"
+        return f"organizations:issue-{cls.build_feature_name_slug()}"
 
     @classmethod
     def build_visible_feature_name(cls) -> list[str]:
@@ -411,7 +406,6 @@ class PerformanceNPlusOneExperimentalGroupType(GroupType):
     noise_config = NoiseConfig()
     default_priority = PriorityLevel.LOW
     released = False
-    visible_feature_api_expose = False
 
 
 @dataclass(frozen=True)
@@ -467,7 +461,6 @@ class PerformanceNPlusOneAPICallsExperimentalGroupType(GroupType):
     noise_config = NoiseConfig()
     default_priority = PriorityLevel.LOW
     released = False
-    visible_feature_api_expose = False
 
 
 @dataclass(frozen=True)
@@ -677,7 +670,6 @@ class LLMDetectedExperimentalGroupTypeV2(GroupType):
     category = GroupCategory.AI_DETECTED.value
     default_priority = PriorityLevel.MEDIUM
     released = False
-    visible_feature_api_expose = False
     enable_auto_resolve = False
     enable_escalation_detection = False
 
@@ -690,8 +682,6 @@ class AIDetectedHTTPGroupType(GroupType):
     category = GroupCategory.HTTP_CLIENT.value
     default_priority = PriorityLevel.MEDIUM
     released = False
-    visible_feature_api_expose = False
-    feature_flag_slug = "ai-detected"
     enable_auto_resolve = False
     enable_escalation_detection = False
 
@@ -704,8 +694,6 @@ class AIDetectedDBGroupType(GroupType):
     category = GroupCategory.DB_QUERY.value
     default_priority = PriorityLevel.MEDIUM
     released = False
-    visible_feature_api_expose = False
-    feature_flag_slug = "ai-detected"
     enable_auto_resolve = False
     enable_escalation_detection = False
 
@@ -718,8 +706,6 @@ class AIDetectedRuntimePerformanceGroupType(GroupType):
     category = GroupCategory.AI_DETECTED.value
     default_priority = PriorityLevel.MEDIUM
     released = False
-    visible_feature_api_expose = False
-    feature_flag_slug = "ai-detected"
     enable_auto_resolve = False
     enable_escalation_detection = False
 
@@ -732,8 +718,6 @@ class AIDetectedSecurityGroupType(GroupType):
     category = GroupCategory.AI_DETECTED.value
     default_priority = PriorityLevel.MEDIUM
     released = False
-    visible_feature_api_expose = False
-    feature_flag_slug = "ai-detected"
     enable_auto_resolve = False
     enable_escalation_detection = False
 
@@ -746,8 +730,6 @@ class AIDetectedCodeHealthGroupType(GroupType):
     category = GroupCategory.AI_DETECTED.value
     default_priority = PriorityLevel.MEDIUM
     released = False
-    visible_feature_api_expose = False
-    feature_flag_slug = "ai-detected"
     enable_auto_resolve = False
     enable_escalation_detection = False
 

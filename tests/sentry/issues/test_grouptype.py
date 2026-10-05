@@ -3,16 +3,10 @@ from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
-from sentry import features
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.issues.grouptype import (
     DEFAULT_EXPIRY_TIME,
     DEFAULT_IGNORE_LIMIT,
-    AIDetectedCodeHealthGroupType,
-    AIDetectedDBGroupType,
-    AIDetectedHTTPGroupType,
-    AIDetectedRuntimePerformanceGroupType,
-    AIDetectedSecurityGroupType,
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
@@ -216,30 +210,6 @@ class GroupTypeReleasedTest(BaseGroupTypeTest):
         assert not TestGroupType.allow_post_process_group(self.organization)
         assert not TestGroupType.allow_ingest(self.organization)
 
-    def test_backend_only_visibility(self) -> None:
-        class BackendOnlyGroupType(GroupType):
-            type_id = 1
-            slug = "backend_only"
-            description = "Backend-only issue"
-            category = GroupCategory.DB_QUERY.value
-            visible_feature_api_expose = False
-
-        visible_flag = BackendOnlyGroupType.build_visible_feature_name()[0]
-        assert visible_flag not in features.all(api_expose_only=True)
-
-        registry = GroupTypeRegistry()
-        registry.add(BackendOnlyGroupType)
-        with self.feature(
-            [
-                visible_flag,
-                BackendOnlyGroupType.build_ingest_feature_name(),
-                BackendOnlyGroupType.build_post_process_group_feature_name(),
-            ]
-        ):
-            assert registry.get_visible(self.organization) == [BackendOnlyGroupType]
-            assert BackendOnlyGroupType.allow_ingest(self.organization)
-            assert BackendOnlyGroupType.allow_post_process_group(self.organization)
-
     def test_not_released_features(self) -> None:
         @dataclass(frozen=True)
         class TestGroupType(GroupType):
@@ -257,42 +227,6 @@ class GroupTypeReleasedTest(BaseGroupTypeTest):
 
 
 class GroupRegistryTest(BaseGroupTypeTest):
-    def test_shared_ai_rollout_features(self) -> None:
-        registry = GroupTypeRegistry()
-        group_types = {
-            AIDetectedHTTPGroupType,
-            AIDetectedDBGroupType,
-            AIDetectedRuntimePerformanceGroupType,
-            AIDetectedSecurityGroupType,
-            AIDetectedCodeHealthGroupType,
-        }
-        for group_type in group_types:
-            registry.add(group_type)
-
-        with self.feature(
-            {
-                "organizations:issue-ai-detected-visible": False,
-                "organizations:issue-ai-detected-ingest": False,
-                "organizations:issue-ai-detected-post-process-group": False,
-            }
-        ):
-            assert registry.get_visible(self.organization) == []
-            for group_type in group_types:
-                assert not group_type.allow_ingest(self.organization)
-                assert not group_type.allow_post_process_group(self.organization)
-
-        with self.feature(
-            [
-                "organizations:issue-ai-detected-visible",
-                "organizations:issue-ai-detected-ingest",
-                "organizations:issue-ai-detected-post-process-group",
-            ]
-        ):
-            assert set(registry.get_visible(self.organization)) == group_types
-            for group_type in group_types:
-                assert group_type.allow_ingest(self.organization)
-                assert group_type.allow_post_process_group(self.organization)
-
     def test_get_visible(self) -> None:
         class UnreleasedGroupType(GroupType):
             type_id = 9999
