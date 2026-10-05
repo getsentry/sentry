@@ -4,8 +4,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {StackTraceDisplayOptionsProvider} from 'sentry/components/stackTrace/displayOptionsContext';
 import {NativeDisplayOptionsMenu} from 'sentry/components/stackTrace/native/nativeDisplayOptions';
-import {NativeStackTraceViewStateProvider} from 'sentry/components/stackTrace/native/nativeDisplayOptionsContext';
 import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nativeStackTraceProvider';
 import {RawDownloadAction} from 'sentry/components/stackTrace/native/rawDownloadAction';
 import type {StacktraceType} from 'sentry/types/stacktrace';
@@ -49,7 +49,7 @@ describe('NativeStackTraceProvider', () => {
     stacktrace?: StacktraceType;
   }) {
     return (
-      <NativeStackTraceViewStateProvider
+      <StackTraceDisplayOptionsProvider
         hasMinifiedStacktrace={hasMinifiedStacktrace}
         platform="cocoa"
         storageKey={storageKey}
@@ -57,7 +57,7 @@ describe('NativeStackTraceProvider', () => {
         <NativeStackTraceProvider event={event} stacktrace={stacktraceProp}>
           {children}
         </NativeStackTraceProvider>
-      </NativeStackTraceViewStateProvider>
+      </StackTraceDisplayOptionsProvider>
     );
   }
 
@@ -252,7 +252,7 @@ describe('NativeStackTraceProvider', () => {
 
   it('allows local minified defaults to be deselected', async () => {
     render(
-      <NativeStackTraceViewStateProvider
+      <StackTraceDisplayOptionsProvider
         defaultIsMinified
         hasMinifiedStacktrace
         platform="cocoa"
@@ -262,7 +262,7 @@ describe('NativeStackTraceProvider', () => {
           hasAbsoluteFilePaths={false}
           hasVerboseFunctionNames={false}
         />
-      </NativeStackTraceViewStateProvider>
+      </StackTraceDisplayOptionsProvider>
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Display options'}));

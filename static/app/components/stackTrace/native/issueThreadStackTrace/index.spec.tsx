@@ -6,7 +6,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 
 import {IssueThreadStackTrace} from 'sentry/components/stackTrace/native/issueThreadStackTrace';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {Event, Thread} from 'sentry/types/event';
+import type {Event, ExceptionValue, Thread} from 'sentry/types/event';
 import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
@@ -127,6 +127,62 @@ function makeEvent(threads: Thread[], platform: PlatformKey = 'cocoa'): Event {
   } as Event;
 }
 
+function getExceptionEntry(event: Event) {
+  const exceptionEntry = event.entries.find(entry => entry.type === EntryType.EXCEPTION);
+  if (!exceptionEntry) {
+    throw new Error('Expected exception entry');
+  }
+  return exceptionEntry;
+}
+
+function getExceptionValues(event: Event): ExceptionValue[] {
+  return getExceptionEntry(event).data.values ?? [];
+}
+
+function setExceptionValues(event: Event, values: ExceptionValue[]) {
+  getExceptionEntry(event).data.values = values;
+}
+
+/**
+ * Thread 7 crashed with an exception that relies on the thread's frames, thread 8
+ * has its own exception, thread 9 has none, and one exception has no thread.
+ */
+function makeMixedThreadExceptionEvent(platform: PlatformKey) {
+  const event = makeEvent(
+    [
+      makeThread({crashed: true, id: 7}),
+      makeThread({id: 8, name: 'worker', stacktrace: makeStacktrace('Worker.run')}),
+      makeThread({id: 9, name: 'idle', stacktrace: makeStacktrace('Idle.wait')}),
+    ],
+    platform
+  );
+  const exception = getExceptionValues(event)[0]!;
+  setExceptionValues(event, [
+    {
+      ...exception,
+      type: 'CauseError',
+      value: 'Original failure',
+      threadId: null,
+      stacktrace: makeStacktrace('Cause.frame'),
+    },
+    {
+      ...exception,
+      type: 'ExampleError',
+      value: 'Example failure',
+      threadId: 7,
+      stacktrace: null,
+    },
+    {
+      ...exception,
+      type: 'SecondError',
+      value: 'Second failure',
+      threadId: 8,
+      stacktrace: makeStacktrace('Second.frame'),
+    },
+  ]);
+  return event;
+}
+
 function renderThreadStackTrace(event: Event) {
   const threadsEntry = event.entries.find(entry => entry.type === EntryType.THREADS)!;
 
@@ -213,6 +269,23 @@ describe('IssueThreadStackTrace', () => {
       'true'
     );
   });
+
+  it.each([
+    {threadCount: 1, sectionKey: 'threads'},
+    {threadCount: 2, sectionKey: 'stacktrace'},
+  ])(
+    'uses the legacy $sectionKey section for $threadCount thread(s)',
+    async ({threadCount, sectionKey}) => {
+      const threads = [
+        makeThread({crashed: true, id: 7}),
+        makeThread({id: 8, name: 'worker', stacktrace: makeStacktrace('Worker.run')}),
+      ].slice(0, threadCount);
+
+      renderThreadStackTrace(makeEvent(threads));
+
+      expect(await screen.findByTestId(sectionKey)).toHaveAttribute('id', sectionKey);
+    }
+  );
 
   it('renders thread controls and metadata from context', async () => {
     const event = makeEvent([
@@ -324,6 +397,15 @@ describe('IssueThreadStackTrace', () => {
       expect(await screen.findByText(frame)).toBeInTheDocument();
       expect(nextThread).toHaveFocus();
     }
+  });
+
+  it('marks a crashed thread without a stack trace as errored', async () => {
+    const event = makeEvent([makeThread({crashed: true, id: 7, stacktrace: null})]);
+    event.entries = event.entries.filter(entry => entry.type !== EntryType.EXCEPTION);
+
+    renderThreadStackTrace(event);
+
+    expect(await screen.findByText('Thread Errored')).toBeInTheDocument();
   });
 
   it.each([true, false])(
@@ -599,13 +681,16 @@ describe('IssueThreadStackTrace', () => {
     expect(screen.queryByText('No stack trace available')).not.toBeInTheDocument();
   });
 
-  it('copies the active native thread using raw stack trace formatting', async () => {
+  it('copies unsymbolicated thread frames with the matching exception', async () => {
     const event = makeEvent([
       makeThread({
         crashed: true,
         id: 7,
         rawStacktrace: makeStacktrace('raw_crash_symbol'),
       }),
+    ]);
+    setExceptionValues(event, [
+      {...getExceptionValues(event)[0]!, stacktrace: null, rawStacktrace: null},
     ]);
 
     renderThreadStackTrace(event);
@@ -617,7 +702,8 @@ describe('IssueThreadStackTrace', () => {
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Text'}));
 
     const copiedText = jest.mocked(navigator.clipboard.writeText).mock.calls[0]![0];
-    expect(copiedText).toContain('Thread: main\n');
+    expect(copiedText).toContain('EXC_BAD_ACCESS: Attempted to dereference null pointer');
+    expect(copiedText).not.toContain('Thread: main');
     expect(copiedText).toContain('CrashyApp');
     expect(copiedText).toContain('0x100001000');
     expect(copiedText).toContain('raw_crash_symbol');
@@ -656,6 +742,64 @@ describe('IssueThreadStackTrace', () => {
     expect(copiedText).toContain('Exception.visibleFrame');
     expect(copiedText).toContain('EXC_BAD_ACCESS: Attempted to dereference null pointer');
     expect(copiedText).not.toContain('Thread.onlyFrame');
+  });
+
+  it('copies a thread without an exception entry with its name', async () => {
+    const event = makeEvent([makeThread({crashed: true, id: 7, name: 'worker'})]);
+    event.entries = event.entries.filter(entry => entry.type !== EntryType.EXCEPTION);
+
+    renderThreadStackTrace(event);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Text'}));
+
+    const copiedText = jest.mocked(navigator.clipboard.writeText).mock.calls[0]![0];
+    expect(copiedText).toMatch(/^Thread: worker\n/);
+    expect(copiedText).toContain('ViewController.causeCrash');
+  });
+
+  it('copies only the selected thread and unassigned exceptions', async () => {
+    const event = makeMixedThreadExceptionEvent('cocoa');
+
+    renderThreadStackTrace(event);
+
+    const copyText = async () => {
+      await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Text'}));
+      return jest.mocked(navigator.clipboard.writeText).mock.lastCall![0];
+    };
+
+    // The crashed thread gets its own exception, filled in with the thread's frames.
+    let copiedText = await copyText();
+    expect(copiedText).toContain('CauseError: Original failure');
+    expect(copiedText).toContain('ExampleError: Example failure');
+    expect(copiedText).toContain('ViewController.causeCrash');
+    expect(copiedText).not.toContain('SecondError');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
+    copiedText = await copyText();
+    expect(copiedText).toContain('CauseError: Original failure');
+    expect(copiedText).toContain('SecondError: Second failure');
+    expect(copiedText).not.toContain('ExampleError');
+
+    // A thread without its own exception copies just its frames.
+    await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
+    copiedText = await copyText();
+    expect(copiedText).toMatch(/^Thread: idle\n/);
+    expect(copiedText).toContain('Idle.wait');
+    expect(copiedText).not.toContain('Error');
+  });
+
+  it('leaves out other threads exceptions in the raw view', async () => {
+    localStorageWrapper.setItem(storageKey, JSON.stringify(['raw-stack-trace']));
+    const event = makeMixedThreadExceptionEvent('c');
+
+    renderThreadStackTrace(event);
+
+    const rawText = await screen.findByText(/ExampleError/, {selector: 'pre'});
+    expect(rawText).toHaveTextContent('CauseError: Original failure');
+    expect(rawText).toHaveTextContent('ViewController.causeCrash');
+    expect(rawText).not.toHaveTextContent('SecondError');
   });
 
   it('applies native frame detail display options to exception-backed native frames', async () => {

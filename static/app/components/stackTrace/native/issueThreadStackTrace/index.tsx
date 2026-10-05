@@ -48,14 +48,15 @@ export function IssueThreadStackTrace({
       threads={threads}
     >
       <FoldSection
-        sectionKey={hasMoreThanOneThread ? SectionKey.THREADS : SectionKey.STACKTRACE}
+        // Same keys as the legacy Threads section so anchors and Jump To links keep working.
+        sectionKey={hasMoreThanOneThread ? SectionKey.STACKTRACE : SectionKey.THREADS}
         title={
           hasMoreThanOneThread
             ? tn('Stack Trace', 'Stack Traces', threads.length)
             : t('Stack Trace')
         }
         actions={<IssueThreadStackTraceActions />}
-        disableCollapsePersistence={hasMoreThanOneThread}
+        disableCollapsePersistence
       >
         <Stack gap="lg">
           <ThreadSummary />

@@ -1,5 +1,10 @@
 import {createContext, useCallback, useContext, useMemo, useState} from 'react';
 
+import {
+  NATIVE_DISPLAY_OPTION,
+  updateNativeDisplayOption,
+  type NativePersistedDisplayOption,
+} from 'sentry/components/stackTrace/native/nativeDisplayOptionsPersistence';
 import {StackTraceViewStateContext} from 'sentry/components/stackTrace/stackTraceContext';
 import type {
   StackTraceView,
@@ -7,12 +12,6 @@ import type {
   StackTraceViewStateProviderProps,
 } from 'sentry/components/stackTrace/types';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-
-import {
-  NATIVE_DISPLAY_OPTION,
-  updateNativeDisplayOption,
-  type NativePersistedDisplayOption,
-} from './nativeDisplayOptionsPersistence';
 
 interface NativeDisplayOptionsContextValue {
   absoluteAddresses: boolean;
@@ -23,7 +22,8 @@ interface NativeDisplayOptionsContextValue {
   verboseFunctionNames: boolean;
 }
 
-interface NativeStackTraceViewStateProviderProps extends StackTraceViewStateProviderProps {
+interface StackTraceDisplayOptionsProviderProps extends StackTraceViewStateProviderProps {
+  /** Saves display options to localStorage under this key when set. */
   storageKey?: string;
 }
 
@@ -35,7 +35,7 @@ const NativeDisplayOptionsContext =
 
 function getInitialDisplayOptions(
   storedValue: unknown,
-  {defaultIsMinified, defaultView}: NativeStackTraceViewStateProviderProps
+  {defaultIsMinified, defaultView}: StackTraceDisplayOptionsProviderProps
 ): PersistedOptions {
   return Object.values(NATIVE_DISPLAY_OPTION).filter(
     option =>
@@ -45,30 +45,34 @@ function getInitialDisplayOptions(
   );
 }
 
-export function NativeStackTraceViewStateProvider({
+/**
+ * Stack trace view state plus native frame detail options, shared by native
+ * and non-native issue stack traces.
+ */
+export function StackTraceDisplayOptionsProvider({
   storageKey,
   ...props
-}: NativeStackTraceViewStateProviderProps) {
+}: StackTraceDisplayOptionsProviderProps) {
   if (storageKey) {
     return (
-      <PersistedNativeStackTraceViewStateProvider storageKey={storageKey} {...props} />
+      <PersistedStackTraceDisplayOptionsProvider storageKey={storageKey} {...props} />
     );
   }
 
-  return <LocalNativeStackTraceViewStateProvider {...props} />;
+  return <LocalStackTraceDisplayOptionsProvider {...props} />;
 }
 
-function PersistedNativeStackTraceViewStateProvider({
+function PersistedStackTraceDisplayOptionsProvider({
   storageKey,
   ...props
-}: Omit<NativeStackTraceViewStateProviderProps, 'storageKey'> & {storageKey: string}) {
+}: Omit<StackTraceDisplayOptionsProviderProps, 'storageKey'> & {storageKey: string}) {
   const [persistedOptions, setPersistedOptions] = useLocalStorageState<PersistedOptions>(
     storageKey,
     storedValue => getInitialDisplayOptions(storedValue, props)
   );
 
   return (
-    <NativeStackTraceViewStateRoot
+    <StackTraceDisplayOptionsRoot
       key={storageKey}
       persistedOptions={persistedOptions}
       setPersistedOptions={setPersistedOptions}
@@ -77,15 +81,15 @@ function PersistedNativeStackTraceViewStateProvider({
   );
 }
 
-function LocalNativeStackTraceViewStateProvider(
-  props: Omit<NativeStackTraceViewStateProviderProps, 'storageKey'>
+function LocalStackTraceDisplayOptionsProvider(
+  props: Omit<StackTraceDisplayOptionsProviderProps, 'storageKey'>
 ) {
   const [persistedOptions, setPersistedOptions] = useState<PersistedOptions>(() =>
     getInitialDisplayOptions(undefined, props)
   );
 
   return (
-    <NativeStackTraceViewStateRoot
+    <StackTraceDisplayOptionsRoot
       {...props}
       persistedOptions={persistedOptions}
       setPersistedOptions={setPersistedOptions}
@@ -93,7 +97,7 @@ function LocalNativeStackTraceViewStateProvider(
   );
 }
 
-function NativeStackTraceViewStateRoot({
+function StackTraceDisplayOptionsRoot({
   children,
   defaultView = 'app',
   hasMinifiedStacktrace = false,
@@ -101,7 +105,7 @@ function NativeStackTraceViewStateRoot({
   setPersistedOptions,
   defaultIsNewestFirst = true,
   platform,
-}: Omit<NativeStackTraceViewStateProviderProps, 'storageKey'> & {
+}: Omit<StackTraceDisplayOptionsProviderProps, 'storageKey'> & {
   persistedOptions: PersistedOptions;
   setPersistedOptions: SetPersistedOptions;
 }) {
@@ -173,7 +177,7 @@ export function useNativeDisplayOptionsContext() {
   const context = useContext(NativeDisplayOptionsContext);
   if (!context) {
     throw new Error(
-      'useNativeDisplayOptionsContext must be used within NativeStackTraceViewStateProvider'
+      'useNativeDisplayOptionsContext must be used within StackTraceDisplayOptionsProvider'
     );
   }
   return context;

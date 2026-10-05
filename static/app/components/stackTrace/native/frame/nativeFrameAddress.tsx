@@ -2,9 +2,11 @@ import {Button} from '@sentry/scraps/button';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/utils';
-import {useNativeDisplayOptionsContext} from 'sentry/components/stackTrace/native/nativeDisplayOptionsContext';
+import {useNativeDisplayOptionsContext} from 'sentry/components/stackTrace/displayOptionsContext';
 import {useNativeStackTraceContext} from 'sentry/components/stackTrace/native/nativeStackTraceContext';
+import {getImagesLoadedSearchTerm} from 'sentry/components/stackTrace/native/useGoToImagesLoaded';
 import {
   useStackTraceContext,
   useStackTraceFrameContext,
@@ -12,8 +14,6 @@ import {
 import {t} from 'sentry/locale';
 import type {Image} from 'sentry/types/debugImage';
 import type {Frame} from 'sentry/types/event';
-
-import {useGoToImagesLoaded} from './actions/goToImagesLoadedAction';
 
 function isInlineFrame(frame: Frame, prevFrame: Frame | undefined, platform: string) {
   if (!prevFrame) {
@@ -93,8 +93,8 @@ export function NativeFrameAddress() {
   const {frame, frameIndex, platform} = useStackTraceFrameContext();
   const {frames} = useStackTraceContext();
   const {absoluteAddresses} = useNativeDisplayOptionsContext();
-  const {imageByFrameIndex, maxLengthOfRelativeAddress} = useNativeStackTraceContext();
-  const {isClickable, onClick} = useGoToImagesLoaded();
+  const {goToImagesLoaded, imageByFrameIndex, maxLengthOfRelativeAddress} =
+    useNativeStackTraceContext();
 
   const image = imageByFrameIndex.get(frameIndex) ?? null;
   const prevFrame = frames[frameIndex - 1];
@@ -109,7 +109,11 @@ export function NativeFrameAddress() {
     maxLengthOfRelativeAddress,
   });
   const tooltip = getAddressTooltip({inlineFrame, foundByStackScanning});
-  const canNavigate = isClickable && !!displayAddress;
+  const canNavigate =
+    !!goToImagesLoaded &&
+    !!frame.symbolicatorStatus &&
+    frame.symbolicatorStatus !== SymbolicatorStatus.UNKNOWN_IMAGE &&
+    !!displayAddress;
 
   const address = (
     <Text
@@ -127,7 +131,11 @@ export function NativeFrameAddress() {
       aria-label={t('Go to images loaded for address %s', displayAddress)}
       size="zero"
       variant="transparent"
-      onClick={onClick}
+      onClick={event => {
+        // Don't toggle the frame row.
+        event.stopPropagation();
+        goToImagesLoaded?.(getImagesLoadedSearchTerm(frame, image));
+      }}
     >
       {address}
     </Button>

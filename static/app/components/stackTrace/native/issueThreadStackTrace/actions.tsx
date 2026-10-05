@@ -3,7 +3,10 @@ import {Flex} from '@sentry/scraps/layout';
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {displayRawContent} from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import {DisplayOptions} from 'sentry/components/stackTrace/displayOptions';
-import {getOrderedExceptions} from 'sentry/components/stackTrace/issueStackTrace/utils';
+import {
+  formatExceptionsAsText,
+  getOrderedExceptions,
+} from 'sentry/components/stackTrace/issueStackTrace/utils';
 import {NativeDisplayOptionsMenu} from 'sentry/components/stackTrace/native/nativeDisplayOptions';
 import {getNativeFrameCapabilities} from 'sentry/components/stackTrace/native/nativeFrameAnalysis';
 import {RawDownloadAction} from 'sentry/components/stackTrace/native/rawDownloadAction';
@@ -17,12 +20,12 @@ export function IssueThreadStackTraceActions() {
   const organization = useOrganization();
   const {activeThreadModel, event, projectSlug} = useIssueThreadStackTraceContext();
   const {
-    activeException,
     activeThread,
     exception,
     minifiedStacktrace,
     platform,
     stacktrace,
+    textExceptionValues,
   } = activeThreadModel;
   const {isMinified, isNewestFirst, view} = useStackTraceViewState();
   const isNativeStackTrace = isNativePlatform(platform);
@@ -42,51 +45,29 @@ export function IssueThreadStackTraceActions() {
 
   const copyItems = CopyAsDropdown.makeDefaultCopyAsOptions({
     text: () => {
-      const threadInfo = activeThread?.name ? `Thread: ${activeThread.name}\n` : '';
-
-      if (exception?.values?.length) {
-        const exceptions = getOrderedExceptions(exception.values, isNewestFirst, view);
-        const activeExceptionIndex = activeException
-          ? exception.values.indexOf(activeException)
-          : -1;
-
-        return (
-          threadInfo +
-          exceptions
-            .map(exc => {
-              const isActiveException = exc.exceptionIndex === activeExceptionIndex;
-              let stacktraceData = exc.stacktrace;
-
-              if (isMinified) {
-                stacktraceData = isActiveException
-                  ? (minifiedStacktrace ?? exc.rawStacktrace ?? exc.stacktrace)
-                  : (exc.rawStacktrace ?? exc.stacktrace);
-              } else if (isActiveException) {
-                stacktraceData = stacktrace ?? exc.stacktrace;
-              }
-
-              return displayRawContent({
-                data: stacktraceData,
-                platform: stacktraceData?.frames?.[0]?.platform ?? platform,
-                exception: exc,
-                isMinified,
-              });
-            })
-            .join('\n\n')
-        );
+      if (textExceptionValues) {
+        return formatExceptionsAsText({
+          exceptions: getOrderedExceptions(textExceptionValues, isNewestFirst, view),
+          platform,
+          isMinified,
+          isStandalone: false,
+        });
       }
 
-      const stacktraceData = isMinified ? (minifiedStacktrace ?? stacktrace) : stacktrace;
+      const threadStacktrace = isMinified
+        ? (activeThread?.rawStacktrace ?? activeThread?.stacktrace)
+        : activeThread?.stacktrace;
 
-      if (!stacktraceData) {
+      if (!threadStacktrace) {
         return '';
       }
 
+      const threadInfo = activeThread?.name ? `Thread: ${activeThread.name}\n` : '';
       return (
         threadInfo +
         displayRawContent({
-          data: stacktraceData,
-          platform: stacktraceData.frames?.[0]?.platform ?? platform,
+          data: threadStacktrace,
+          platform: threadStacktrace.frames?.[0]?.platform ?? platform,
           isMinified,
         })
       );

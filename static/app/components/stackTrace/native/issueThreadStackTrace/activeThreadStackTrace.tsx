@@ -36,6 +36,7 @@ export function ActiveThreadStackTrace() {
     stacktrace,
     minifiedStacktrace,
     stacktraceMeta,
+    textExceptionValues,
   } = activeThreadModel;
   const {view} = useStackTraceViewState();
   const isNativeStackTrace = isNativePlatform(activeThreadModel.platform);
@@ -50,7 +51,10 @@ export function ActiveThreadStackTrace() {
     return (
       <IssueExceptionStackTrace
         key={activeThread?.id}
-        values={exception.values}
+        // Raw text matches the copied text, which leaves out other threads' exceptions.
+        values={
+          view === 'raw' && textExceptionValues ? textExceptionValues : exception.values
+        }
         event={event}
         groupingCurrentLevel={groupingCurrentLevel}
         hasScmSourceContext={hasScmSourceContext}
@@ -59,7 +63,11 @@ export function ActiveThreadStackTrace() {
   }
 
   if (!stacktrace) {
-    return <Text variant="muted">{t('No stack trace available')}</Text>;
+    return (
+      <Text variant="muted">
+        {activeThread?.crashed ? t('Thread Errored') : t('No stack trace available')}
+      </Text>
+    );
   }
 
   return (

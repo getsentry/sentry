@@ -8,6 +8,7 @@ import type {StackTraceProviderProps} from 'sentry/components/stackTrace/types';
 import {analyzeNativeFrames} from './nativeFrameAnalysis';
 import {NativeStackTraceContext} from './nativeStackTraceContext';
 import type {NativeStackTraceContextValue} from './nativeStackTraceContext';
+import {useGoToImagesLoaded} from './useGoToImagesLoaded';
 
 interface NativeStackTraceProviderProps extends Pick<
   StackTraceProviderProps,
@@ -75,9 +76,11 @@ export function NativeStackTraceProvider({
     [groupingCurrentLevel]
   );
 
+  const goToImagesLoaded = useGoToImagesLoaded(isHoverPreviewed);
+
   const value = useMemo<NativeStackTraceContextValue>(
-    () => ({...frameAnalysis, isHoverPreviewed}),
-    [frameAnalysis, isHoverPreviewed]
+    () => ({...frameAnalysis, goToImagesLoaded}),
+    [frameAnalysis, goToImagesLoaded]
   );
 
   return (

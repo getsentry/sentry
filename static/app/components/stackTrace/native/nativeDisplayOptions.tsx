@@ -1,11 +1,11 @@
 import {CompositeSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
+import {useNativeDisplayOptionsContext} from 'sentry/components/stackTrace/displayOptionsContext';
 import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-import {useNativeDisplayOptionsContext} from './nativeDisplayOptionsContext';
 import {NATIVE_DISPLAY_OPTION} from './nativeDisplayOptionsPersistence';
 
 /**

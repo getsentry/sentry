@@ -9,6 +9,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {ThreadSelector} from 'sentry/components/events/interfaces/threads/threadSelector';
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
+import {StackTraceDisplayOptionsProvider} from 'sentry/components/stackTrace/displayOptionsContext';
 import {
   ExceptionDescription,
   ExceptionHeader,
@@ -35,7 +36,6 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {NativeDefaultActions} from './frame/actions/nativeDefaultActions';
 import {NativeDisplayOptionsMenu} from './nativeDisplayOptions';
-import {NativeStackTraceViewStateProvider} from './nativeDisplayOptionsContext';
 import {getNativeFrameCapabilities} from './nativeFrameAnalysis';
 import {NativeStackTraceFrames} from './nativeStackTraceFrames';
 import {NativeStackTraceProvider} from './nativeStackTraceProvider';
@@ -169,14 +169,14 @@ function StoryProvider({
   stacktrace: StacktraceType;
 }) {
   return (
-    <NativeStackTraceViewStateProvider
+    <StackTraceDisplayOptionsProvider
       platform={event.platform}
       storageKey={DISPLAY_OPTIONS_STORAGE_KEY}
     >
       <NativeStackTraceProvider event={event} stacktrace={stacktrace}>
         {children}
       </NativeStackTraceProvider>
-    </NativeStackTraceViewStateProvider>
+    </StackTraceDisplayOptionsProvider>
   );
 }
 
@@ -667,7 +667,7 @@ function NativeIssueStackTraceStory() {
   return (
     // Re-key on the active thread so view state (app/full/raw) resets per thread
     // and the provider sees the correct default platform.
-    <NativeStackTraceViewStateProvider
+    <StackTraceDisplayOptionsProvider
       key={activeThread.id}
       platform={activeThread.platform}
       storageKey={DISPLAY_OPTIONS_STORAGE_KEY}
@@ -722,6 +722,6 @@ function NativeIssueStackTraceStory() {
           </Stack>
         </FoldSection>
       </NativeStackTraceProvider>
-    </NativeStackTraceViewStateProvider>
+    </StackTraceDisplayOptionsProvider>
   );
 }

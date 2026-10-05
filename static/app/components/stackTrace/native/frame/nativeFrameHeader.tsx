@@ -8,7 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {getLeadHint, trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {useNativeDisplayOptionsContext} from 'sentry/components/stackTrace/native/nativeDisplayOptionsContext';
+import {useNativeDisplayOptionsContext} from 'sentry/components/stackTrace/displayOptionsContext';
 import {useNativeStackTraceContext} from 'sentry/components/stackTrace/native/nativeStackTraceContext';
 import {
   useStackTraceContext,
@@ -194,7 +194,7 @@ export function NativeFrameHeader({actions}: StackTraceFrameHeaderProps) {
           {functionLabel ? (
             <Tooltip
               title={frame.rawFunction ?? frame.symbol}
-              disabled={!frame.rawFunction}
+              disabled={!(frame.rawFunction ?? frame.symbol)}
             >
               <FunctionName value={functionLabel.value} meta={functionLabel.meta} />
             </Tooltip>

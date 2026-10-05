@@ -9,7 +9,7 @@ import {
 import type {ReactNode} from 'react';
 
 import {findBestThread} from 'sentry/components/events/interfaces/threads/threadSelector/findBestThread';
-import {NativeStackTraceViewStateProvider} from 'sentry/components/stackTrace/native/nativeDisplayOptionsContext';
+import {StackTraceDisplayOptionsProvider} from 'sentry/components/stackTrace/displayOptionsContext';
 import type {Event, Thread} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -150,7 +150,7 @@ export function IssueThreadStackTraceProviders({
 
   return (
     <IssueThreadStackTraceContext value={contextValue}>
-      <NativeStackTraceViewStateProvider
+      <StackTraceDisplayOptionsProvider
         platform={activeThreadModel.platform}
         hasMinifiedStacktrace={activeThreadModel.hasMinifiedStacktrace}
         defaultView={activeThreadModel.defaultView}
@@ -158,7 +158,7 @@ export function IssueThreadStackTraceProviders({
         storageKey={storageKey}
       >
         {children}
-      </NativeStackTraceViewStateProvider>
+      </StackTraceDisplayOptionsProvider>
     </IssueThreadStackTraceContext>
   );
 }

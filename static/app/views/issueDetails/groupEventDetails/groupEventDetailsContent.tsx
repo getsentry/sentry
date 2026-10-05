@@ -103,12 +103,12 @@ export function EventDetailsContent({
   project,
 }: Required<Pick<EventDetailsContentProps, 'group' | 'event' | 'project'>>) {
   const organization = useOrganization();
-  const shouldUseNewStackTrace =
-    !isNativePlatform(event.platform) ||
-    organization.features.includes('issue-details-native-stack-trace');
-  const shouldUseNewNativeThreadStackTrace =
-    organization.features.includes('issue-details-native-stack-trace') &&
-    isNativePlatform(event.platform);
+  const isNativeEvent = isNativePlatform(event.platform);
+  const hasNativeStackTrace = organization.features.includes(
+    'issue-details-native-stack-trace'
+  );
+  const shouldUseNewStackTrace = !isNativeEvent || hasNativeStackTrace;
+  const shouldUseNewNativeThreadStackTrace = isNativeEvent && hasNativeStackTrace;
   const tagsRef = useRef<HTMLDivElement>(null);
   const eventEntries = useMemo(() => {
     const {entries} = event;

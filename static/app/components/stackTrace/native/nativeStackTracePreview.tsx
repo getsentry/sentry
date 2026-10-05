@@ -1,6 +1,6 @@
+import {StackTraceDisplayOptionsProvider} from 'sentry/components/stackTrace/displayOptionsContext';
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
 import {NativeIssueFrameActions} from 'sentry/components/stackTrace/native/frame/actions/nativeIssueActions';
-import {NativeStackTraceViewStateProvider} from 'sentry/components/stackTrace/native/nativeDisplayOptionsContext';
 import {NativeStackTraceFrames} from 'sentry/components/stackTrace/native/nativeStackTraceFrames';
 import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nativeStackTraceProvider';
 import type {Event} from 'sentry/types/event';
@@ -21,7 +21,7 @@ export function NativeStackTracePreview({
   stacktrace,
 }: NativeStackTracePreviewProps) {
   return (
-    <NativeStackTraceViewStateProvider
+    <StackTraceDisplayOptionsProvider
       platform={platform}
       defaultView={stacktrace.frames?.some(frame => frame.inApp) ? 'app' : 'full'}
     >
@@ -39,6 +39,6 @@ export function NativeStackTracePreview({
           frameContextComponent={FrameContent}
         />
       </NativeStackTraceProvider>
-    </NativeStackTraceViewStateProvider>
+    </StackTraceDisplayOptionsProvider>
   );
 }

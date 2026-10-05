@@ -1,8 +1,8 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {ThreadSelector} from 'sentry/components/events/interfaces/threads/threadSelector';
 import {getLockReason} from 'sentry/components/events/interfaces/threads/threadSelector/lockReason';
@@ -14,7 +14,6 @@ import {
 import {Pill} from 'sentry/components/pill';
 import {Pills} from 'sentry/components/pills';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import {TextOverflow} from 'sentry/components/textOverflow';
 import {
   IconChevron,
   IconClock,
@@ -56,15 +55,23 @@ export function ThreadSummary() {
 
   return (
     <Fragment>
-      <Grid>
-        <Container>
+      <Grid columns="auto 1fr" gap="xl">
+        <Stack gap="md">
           <ThreadHeading>{t('Threads')}</ThreadHeading>
           <ThreadControls />
-        </Container>
+        </Stack>
         <ThreadState />
       </Grid>
       <ThreadTags />
     </Fragment>
+  );
+}
+
+function ThreadHeading({children}: {children: React.ReactNode}) {
+  return (
+    <Heading as="h3" size="md" variant="secondary">
+      {children}
+    </Heading>
   );
 }
 
@@ -116,11 +123,11 @@ function ThreadState() {
   }
 
   return (
-    <ThreadStateContainer>
+    <Stack gap="md" minWidth="0">
       <ThreadHeading>{t('Thread State')}</ThreadHeading>
-      <Flex align="center" gap="xs" position="relative">
+      <Flex align="center" gap="xs" minWidth="0">
         <ThreadStateIcon state={threadStateDisplay} />
-        <TextOverflow>{threadStateDisplay}</TextOverflow>
+        <Text ellipsis>{threadStateDisplay}</Text>
         {threadStateDisplay && (
           <QuestionTooltip
             position="top"
@@ -130,9 +137,13 @@ function ThreadState() {
             skipWrapper
           />
         )}
-        <LockReason>{lockReason}</LockReason>
+        {lockReason ? (
+          <Text variant="secondary" ellipsis>
+            {lockReason}
+          </Text>
+        ) : null}
       </Flex>
-    </ThreadStateContainer>
+    </Stack>
   );
 }
 
@@ -146,7 +157,7 @@ function ThreadTags() {
   }
 
   return (
-    <Container>
+    <Stack gap="md">
       <ThreadHeading>{t('Thread Tags')}</ThreadHeading>
       <Pills>
         <Pill name={t('id')} value={activeThread.id} />
@@ -164,32 +175,6 @@ function ThreadTags() {
         )}
         {defined(lockReason) && <Pill name={t('lock reason')} value={lockReason} />}
       </Pills>
-    </Container>
+    </Stack>
   );
 }
-
-const Grid = styled('div')`
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: ${p => p.theme.space.xl};
-`;
-
-const ThreadStateContainer = styled('div')`
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const LockReason = styled(TextOverflow)`
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const ThreadHeading = styled('h3')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.md};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${p => p.theme.space.md};
-`;

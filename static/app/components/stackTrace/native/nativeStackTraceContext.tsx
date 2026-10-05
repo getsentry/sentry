@@ -5,8 +5,8 @@ import type {analyzeNativeFrames} from './nativeFrameAnalysis';
 export interface NativeStackTraceContextValue extends ReturnType<
   typeof analyzeNativeFrames
 > {
-  /** Hover previews delay tooltips and disable navigation. */
-  isHoverPreviewed: boolean;
+  /** Jumps to Images Loaded; undefined in hover previews or when that section is missing. */
+  goToImagesLoaded: ((searchTerm: string | undefined) => void) | undefined;
 }
 
 export const NativeStackTraceContext = createContext<NativeStackTraceContextValue | null>(

@@ -11,7 +11,7 @@ import {
   useDebugMetaSearch,
 } from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
-import {NativeStackTraceViewStateProvider} from 'sentry/components/stackTrace/native/nativeDisplayOptionsContext';
+import {StackTraceDisplayOptionsProvider} from 'sentry/components/stackTrace/displayOptionsContext';
 import {NATIVE_DISPLAY_OPTION} from 'sentry/components/stackTrace/native/nativeDisplayOptionsPersistence';
 import {NativeStackTraceFrames} from 'sentry/components/stackTrace/native/nativeStackTraceFrames';
 import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nativeStackTraceProvider';
@@ -109,7 +109,7 @@ function renderFrames(
   } = {}
 ) {
   return render(
-    <NativeStackTraceViewStateProvider
+    <StackTraceDisplayOptionsProvider
       platform="cocoa"
       defaultView={defaultView}
       defaultIsNewestFirst={defaultIsNewestFirst}
@@ -123,7 +123,7 @@ function renderFrames(
       >
         <NativeStackTraceFrames />
       </NativeStackTraceProvider>
-    </NativeStackTraceViewStateProvider>
+    </StackTraceDisplayOptionsProvider>
   );
 }
 
@@ -151,11 +151,11 @@ function renderFramesWithDebugMeta(stacktrace: StacktraceType, event: Event) {
       }}
     >
       <DebugMetaSearchProvider>
-        <NativeStackTraceViewStateProvider platform="cocoa">
+        <StackTraceDisplayOptionsProvider platform="cocoa">
           <NativeStackTraceProvider event={event} stacktrace={stacktrace}>
             <NativeStackTraceFrames />
           </NativeStackTraceProvider>
-        </NativeStackTraceViewStateProvider>
+        </StackTraceDisplayOptionsProvider>
         <DebugMetaSearchProbe />
         <div id={SectionKey.DEBUGMETA} />
       </DebugMetaSearchProvider>
@@ -248,6 +248,37 @@ describe('NativeFrameRow', () => {
 
     expect(screen.queryByTestId('symbolication-error-icon')).not.toBeInTheDocument();
     expect(screen.queryByTestId('symbolication-warning-icon')).not.toBeInTheDocument();
+  });
+
+  it('does not show a status icon when the resolved image has no debug or unwind status', () => {
+    // combineStatus treats an image without statuses as unused. The legacy
+    // renderer showed an "unknown problem" warning for unused images.
+    const stacktrace: StacktraceType = {
+      framesOmitted: null,
+      hasSystemFrames: false,
+      registers: null,
+      frames: [makeFrame({instructionAddr: '0x100012abc'})],
+    };
+    renderFrames(
+      stacktrace,
+      makeEvent(stacktrace, [makeImage({debug_status: null, unwind_status: null})])
+    );
+
+    expect(screen.queryByTestId('symbolication-error-icon')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('symbolication-warning-icon')).not.toBeInTheDocument();
+  });
+
+  it('shows the symbol in the function name tooltip when there is no raw function', async () => {
+    const stacktrace: StacktraceType = {
+      framesOmitted: null,
+      hasSystemFrames: false,
+      registers: null,
+      frames: [makeFrame({function: 'main', rawFunction: null, symbol: '_main'})],
+    };
+    renderFrames(stacktrace, makeEvent(stacktrace));
+
+    await userEvent.hover(screen.getByText('main'));
+    expect(await screen.findByText('_main')).toBeInTheDocument();
   });
 
   it('renders the function name and trimmed package', () => {
