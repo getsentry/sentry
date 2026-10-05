@@ -227,6 +227,10 @@ class NotificationData(BaseModel):
     The source is uniquely attributable to the way this notification was sent. It will be tracked in
     metrics/analytics to determine the egress from a given code-path or service.
     """
+    organization_id: int | None = None
+    """
+    The organization this notification is sent for.
+    """
 
 
 @dataclass(frozen=True)

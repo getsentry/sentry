@@ -42,6 +42,7 @@ class SeerAutofixErrorTemplate(NotificationTemplate[SeerAutofixError]):
     category = NotificationCategory.SEER
     example_data = SeerAutofixError(
         source=NotificationSource.SEER_AUTOFIX_ERROR,
+        organization_id=1,
         error_message="(401): Could not connect to your GitHub repository for this project.",
     )
     hide_from_debugger = True
@@ -176,6 +177,7 @@ class SeerAgentError(NotificationData):
 class SeerAgentErrorTemplate(NotificationTemplate[SeerAgentError]):
     category = NotificationCategory.SEER
     example_data = SeerAgentError(
+        organization_id=1,
         error_title="Seer had some trouble...",
         error_message="Seer could not explore your organization.",
     )
