@@ -1,10 +1,5 @@
 import {useState} from 'react';
-import type {
-  PaymentMethod,
-  SetupIntentResult,
-  Stripe,
-  StripeElements,
-} from '@stripe/stripe-js';
+import type {Stripe, StripeElements} from '@stripe/stripe-js';
 import {useMutation} from '@tanstack/react-query';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -26,101 +21,79 @@ export function SetupIntentForm(props: IntentFormProps) {
     onSuccessWithSubscription,
   } = props;
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {url: setupIntentUrl} = parseQueryKey(props.intentDataQueryKey);
-  const {mutateAsync: createSetupIntent} = useMutation({
-    mutationFn: () =>
-      fetchMutation<PaymentSetupCreateResponse>({url: setupIntentUrl, method: 'POST'}),
-    onError: error => {
-      setErrorMessage(getIntentErrorMessage(error) ?? t('Setup failed.'));
-      setIsSubmitting(false);
-    },
-  });
+  const {mutateAsync: savePaymentMethod, isPending} = useMutation({
+    mutationFn: async ({
+      stripe,
+      elements,
+    }: {
+      elements: StripeElements | null;
+      stripe: Stripe | null;
+    }) => {
+      if (!stripe || !elements) {
+        throw new Error(
+          t('Cannot complete your payment at this time, please try again later.')
+        );
+      }
 
-  const {mutateAsync: updateSubscription} = useMutation({
-    mutationFn: ({paymentMethod}: {paymentMethod: string | PaymentMethod | null}) =>
-      fetchMutation<Subscription>({
-        method: 'PUT',
-        url: getApiUrl('/customers/$organizationIdOrSlug/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        data: {
-          paymentMethod,
-          ftcConsentLocation,
-        },
-      }),
-    onSuccess: (data: Subscription) => {
-      addSuccessMessage(t('Updated payment method.'));
-      onSuccessWithSubscription?.(data);
-      onSuccess?.();
-      setIsSubmitting(false);
-    },
-    onError: () => {
-      setErrorMessage(t('Could not update payment method.'));
-      setIsSubmitting(false);
-    },
-  });
+      const stripeResult = await elements.submit();
+      if (stripeResult.error) {
+        throw new Error(stripeResult.error.message ?? t('Setup failed.'));
+      }
 
-  const handleSubmit = async ({
-    stripe,
-    elements,
-  }: {
-    elements: StripeElements | null;
-    stripe: Stripe | null;
-  }) => {
-    setIsSubmitting(true);
-    if (!stripe || !elements) {
-      setErrorMessage(
-        t('Cannot complete your payment at this time, please try again later.')
-      );
-      setIsSubmitting(false);
-      return;
-    }
+      const intentData = await fetchMutation<PaymentSetupCreateResponse>({
+        url: setupIntentUrl,
+        method: 'POST',
+      }).catch(error => {
+        throw new Error(
+          getIntentErrorMessage(error instanceof Error ? error : null) ??
+            t('Setup failed.')
+        );
+      });
 
-    const stripeResult = await elements.submit();
-    if (stripeResult.error) {
-      setErrorMessage(stripeResult.error.message ?? t('Setup failed.'));
-      setIsSubmitting(false);
-      return;
-    }
-
-    const intentData = await createSetupIntent().catch(() => null);
-    if (!intentData) {
-      return;
-    }
-
-    await stripe
-      .confirmSetup({
+      const result = await stripe.confirmSetup({
         elements,
         clientSecret: intentData.clientSecret,
         redirect: 'if_required', // if the payment method requires redirects, we redirect to the return_url on completion
         confirmParams: {
           return_url: window.location.href,
         },
-      })
-      .then((result: SetupIntentResult) => {
-        if (result.error) {
-          setErrorMessage(result.error.message ?? t('Setup failed.'));
-          setIsSubmitting(false);
-          return;
-        }
-        return updateSubscription({
-          paymentMethod: result.setupIntent.payment_method,
-        }).catch(() => {});
       });
-  };
+      if (result.error) {
+        throw new Error(result.error.message ?? t('Setup failed.'));
+      }
+
+      return fetchMutation<Subscription>({
+        method: 'PUT',
+        url: getApiUrl('/customers/$organizationIdOrSlug/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        data: {
+          paymentMethod: result.setupIntent.payment_method,
+          ftcConsentLocation,
+        },
+      }).catch(() => {
+        throw new Error(t('Could not update payment method.'));
+      });
+    },
+    onMutate: () => setErrorMessage(undefined),
+    onSuccess: (data: Subscription) => {
+      addSuccessMessage(t('Updated payment method.'));
+      onSuccessWithSubscription?.(data);
+      onSuccess?.();
+    },
+  });
 
   return (
     <InnerIntentForm
       {...props}
-      isSubmitting={isSubmitting}
+      isSubmitting={isPending}
       buttonText={props.buttonText}
-      onError={message => {
-        setErrorMessage(message);
-        setIsSubmitting(false);
+      onError={setErrorMessage}
+      handleSubmit={async ({stripe, elements}) => {
+        await savePaymentMethod({stripe, elements});
       }}
-      handleSubmit={handleSubmit}
       errorMessage={errorMessage}
     />
   );
