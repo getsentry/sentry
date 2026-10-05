@@ -1,7 +1,4 @@
 import {type CSSProperties, Fragment} from 'react';
-import {css} from '@emotion/react';
-// eslint-disable-next-line no-restricted-imports
-import color from 'color';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
@@ -131,15 +128,6 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
                     <ExternalLink
                       {...linkTextProps}
                       href={jsonUrl}
-                      css={cssTheme => css`
-                        text-decoration-color: ${color(cssTheme.colors.gray400)
-                          .alpha(0.5)
-                          .string()};
-
-                        &:hover {
-                          text-decoration-color: ${cssTheme.tokens.content.secondary};
-                        }
-                      `}
                       onClick={() =>
                         trackAnalytics('issue_details.event_json_clicked', {
                           organization,
@@ -165,13 +153,6 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
                     variant="transparent"
                     size="zero"
                     icon={<IconWarning variant="danger" />}
-                    css={cssTheme => css`
-                      color: ${cssTheme.colors.red400};
-
-                      &:hover {
-                        color: ${cssTheme.colors.red400};
-                      }
-                    `}
                     onClick={() => {
                       document
                         .getElementById(SectionKey.PROCESSING_ERROR)
@@ -179,7 +160,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
                       setEventErrorCollapsed(false);
                     }}
                   >
-                    <Text size="sm" bold={false} variant="inherit">
+                    <Text size="sm" bold={false} variant="danger">
                       {t('Processing Error')}
                     </Text>
                   </Button>
