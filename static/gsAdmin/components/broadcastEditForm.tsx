@@ -154,7 +154,7 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
           {field => (
             <field.Layout.Stack label="Title" required>
               <field.Input
-                value={typeof field.state.value === 'string' ? field.state.value : ''}
+                value={field.state.value ?? ''}
                 onChange={field.handleChange}
                 maxLength={64}
               />
@@ -165,7 +165,7 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
           {field => (
             <field.Layout.Stack label="Message" required>
               <field.Input
-                value={typeof field.state.value === 'string' ? field.state.value : ''}
+                value={field.state.value ?? ''}
                 onChange={field.handleChange}
                 maxLength={256}
               />
@@ -176,7 +176,7 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
           {field => (
             <field.Layout.Stack label="Link" required>
               <field.Input
-                value={typeof field.state.value === 'string' ? field.state.value : ''}
+                value={field.state.value ?? ''}
                 onChange={field.handleChange}
               />
             </field.Layout.Stack>
@@ -199,7 +199,7 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
               hintText="Optional. Image or video shown in What's New."
             >
               <field.Input
-                value={typeof field.state.value === 'string' ? field.state.value : ''}
+                value={field.state.value ?? ''}
                 onChange={field.handleChange}
               />
             </field.Layout.Stack>
@@ -209,7 +209,7 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
           {field => (
             <field.Layout.Stack label="Category">
               <field.Select
-                value={typeof field.state.value === 'string' ? field.state.value : null}
+                value={field.state.value}
                 onChange={field.handleChange}
                 options={CATEGORYCHOICES.map(
                   ([value, label]): {label: string; value: string} => ({value, label})
@@ -223,7 +223,7 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
             <field.Layout.Stack label="Expires">
               <field.Input
                 type="datetime-local"
-                value={typeof field.state.value === 'string' ? field.state.value : ''}
+                value={field.state.value ?? ''}
                 onChange={field.handleChange}
               />
             </field.Layout.Stack>
