@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from collections.abc import Mapping
-from typing import Any, NotRequired, TypedDict, _TypedDict
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, _TypedDict
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -15,9 +15,10 @@ from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.utils.translation import gettext_lazy as _
 from django.views.decorators.csrf import csrf_exempt
-from onelogin.saml2.auth import OneLogin_Saml2_Auth, OneLogin_Saml2_Settings
-from onelogin.saml2.constants import OneLogin_Saml2_Constants
 from rest_framework.request import Request
+
+if TYPE_CHECKING:
+    from onelogin.saml2.auth import OneLogin_Saml2_Auth
 
 from sentry import features, options
 from sentry.auth.exceptions import IdentityNotValid
@@ -215,6 +216,9 @@ class SAML2MetadataView(BaseView):
         provider = get_provider(organization_slug)
         config = provider.config if provider else {}
 
+        # Imported here so web workers do not load python3-saml and xmlsec at boot.
+        from onelogin.saml2.auth import OneLogin_Saml2_Settings
+
         saml_config = build_saml_config(config, organization_slug)
         saml_settings = OneLogin_Saml2_Settings(settings=saml_config, sp_validation_only=True)
         metadata = saml_settings.get_sp_metadata()
@@ -399,6 +403,9 @@ def build_saml_config(provider_config: Mapping[str, Any], org: str) -> SamlConfi
     For more details about the structure of this object see the
     SAML2Provider.build_config method.
     """
+    # Imported here so web workers do not load python3-saml and xmlsec at boot.
+    from onelogin.saml2.constants import OneLogin_Saml2_Constants
+
     avd = provider_config.get("advanced", {})
 
     security_config: _SamlConfigSecurity = {
@@ -459,6 +466,9 @@ def build_auth(request: HttpRequest, saml_config: _TypedDict) -> OneLogin_Saml2_
     """
     Construct a OneLogin_Saml2_Auth object for the current request.
     """
+    # Imported here so web workers do not load python3-saml and xmlsec at boot.
+    from onelogin.saml2.auth import OneLogin_Saml2_Auth
+
     url = urlparse(options.get("system.url-prefix"))
     saml_request = {
         "https": "on" if url.scheme == "https" else "off",

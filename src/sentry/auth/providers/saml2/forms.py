@@ -5,7 +5,6 @@ from django.forms.utils import ErrorList
 from django.http import HttpRequest
 from django.utils.encoding import force_str
 from django.utils.translation import gettext_lazy as _
-from onelogin.saml2.idp_metadata_parser import OneLogin_Saml2_IdPMetadataParser
 from requests.exceptions import SSLError
 
 from sentry.auth.helper import AuthHelper
@@ -32,6 +31,9 @@ def extract_idp_data_from_parsed_data(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def process_url(form: forms.Form) -> dict[str, Any]:
+    # Imported here so web workers do not load python3-saml and xmlsec at boot.
+    from onelogin.saml2.idp_metadata_parser import OneLogin_Saml2_IdPMetadataParser
+
     url = form.cleaned_data["metadata_url"]
     response = safe_urlopen(url)
     data = OneLogin_Saml2_IdPMetadataParser.parse(response.content)
@@ -41,6 +43,8 @@ def process_url(form: forms.Form) -> dict[str, Any]:
 def process_xml(form: forms.Form) -> dict[str, Any]:
     # cast unicode xml to byte string so lxml won't complain when trying to
     # parse a xml document with a type declaration.
+    from onelogin.saml2.idp_metadata_parser import OneLogin_Saml2_IdPMetadataParser
+
     xml = form.cleaned_data["metadata_xml"].encode("utf8")
     data = OneLogin_Saml2_IdPMetadataParser.parse(xml)
     return extract_idp_data_from_parsed_data(data)
