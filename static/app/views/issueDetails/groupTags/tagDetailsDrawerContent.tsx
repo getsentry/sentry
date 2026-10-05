@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
@@ -9,6 +9,7 @@ import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -157,6 +158,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
                 group={group}
                 tag={tag}
                 tagValue={tv}
+                striped={i % 2 === 1}
               />
             ))}
           </Grid>
@@ -184,8 +186,10 @@ function TagDetailsRow({
   group,
   tag,
   tagValue,
+  striped,
 }: {
   group: Group;
+  striped: boolean;
   tag: Tag;
   tagValue: TagValue;
 }) {
@@ -223,59 +227,40 @@ function TagDetailsRow({
         : `${cappedPercentage.toFixed(0)}%`;
 
   return (
-    <Grid
-      column="1 / -1"
-      columns="subgrid"
-      align="center"
-      radius="md"
-      padding="2xs md"
-      css={cssTheme => css`
-        &:nth-child(even) {
-          background: ${cssTheme.tokens.background.tertiary};
-        }
-
-        .invisible {
-          /* Keep the trigger focusable when closing the menu restores focus. */
-          opacity: 0;
-          pointer-events: none;
-        }
-        &:hover,
-        &:active,
-        &:focus-within {
-          .invisible {
-            opacity: 1;
-            pointer-events: auto;
-          }
-        }
-        @media (hover: none) {
-          .invisible {
-            opacity: 1;
-            pointer-events: auto;
-          }
-        }
-      `}
-    >
-      <TagDetailsValue
-        valueLocation={allEventsLocation}
-        tagKey={key}
-        tagValue={tagValue}
-      />
-      <Text ellipsis variant="inherit">
-        {props => <TimeSince {...props} date={tagValue.lastSeen} />}
-      </Text>
-      <Text as="div" align="right" variant="inherit">
-        {tagValue.count.toLocaleString()}
-      </Text>
-      <Text as="div" align="right" variant="inherit">
-        {displayPercentage}
-      </Text>
-      {tag.totalValues ? (
-        <TagBar percentage={percentage} style={{height: theme.space.lg}} />
-      ) : (
-        '--'
+    <RevealOnHover>
+      {props => (
+        <Grid
+          {...props}
+          column="1 / -1"
+          columns="subgrid"
+          align="center"
+          radius="md"
+          padding="2xs md"
+          background={striped ? 'tertiary' : undefined}
+        >
+          <TagDetailsValue
+            valueLocation={allEventsLocation}
+            tagKey={key}
+            tagValue={tagValue}
+          />
+          <Text ellipsis variant="inherit">
+            {textProps => <TimeSince {...textProps} date={tagValue.lastSeen} />}
+          </Text>
+          <Text as="div" align="right" variant="inherit">
+            {tagValue.count.toLocaleString()}
+          </Text>
+          <Text as="div" align="right" variant="inherit">
+            {displayPercentage}
+          </Text>
+          {tag.totalValues ? (
+            <TagBar percentage={percentage} style={{height: theme.space.lg}} />
+          ) : (
+            '--'
+          )}
+          <TagValueActionsMenu group={group} tag={tag} tagValue={tagValue} />
+        </Grid>
       )}
-      <TagValueActionsMenu group={group} tag={tag} tagValue={tagValue} />
-    </Grid>
+    </RevealOnHover>
   );
 }
 
@@ -377,54 +362,55 @@ function TagValueActionsMenu({
   const [isVisible, setIsVisible] = useState(false);
 
   return (
-    <DropdownMenu
-      size="xs"
-      onOpenChange={isOpen => setIsVisible(isOpen)}
-      trigger={triggerProps => (
-        <OverlayTrigger.IconButton
-          {...triggerProps}
-          aria-label={t('Tag Value Actions Menu')}
-          className={isVisible ? '' : 'invisible'}
-          icon={<IconEllipsis />}
-        />
-      )}
-      items={[
-        {
-          key: 'open-in-discover',
-          label: t('Open in Explore'),
-          to: eventView.getResultsViewUrlTarget(
-            organization,
-            false,
-            hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
-          ),
-          hidden: !group || !organization.features.includes('discover-basic'),
-        },
-        {
-          key: 'view-events',
-          label: t('View other events with this tag value'),
-          to: {
-            pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
-            query: {...globalSelectionParams, ...query},
+    <RevealOnHover.Action visible={isVisible}>
+      <DropdownMenu
+        size="xs"
+        onOpenChange={isOpen => setIsVisible(isOpen)}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            aria-label={t('Tag Value Actions Menu')}
+            icon={<IconEllipsis />}
+          />
+        )}
+        items={[
+          {
+            key: 'open-in-discover',
+            label: t('Open in Explore'),
+            to: eventView.getResultsViewUrlTarget(
+              organization,
+              false,
+              hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
+            ),
+            hidden: !group || !organization.features.includes('discover-basic'),
           },
-        },
-        {
-          key: 'view-issues',
-          label: t('Search issues with this tag value'),
-          to: {
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {...globalSelectionParams, ...query},
+          {
+            key: 'view-events',
+            label: t('View other events with this tag value'),
+            to: {
+              pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+              query: {...globalSelectionParams, ...query},
+            },
           },
-        },
-        {
-          key: 'copy-value',
-          label: t('Copy tag value to clipboard'),
-          onAction: () =>
-            copy(tagValue.value, {
-              successMessage: t('Copied tag value to clipboard'),
-            }),
-          hidden: tagValue.value === '',
-        },
-      ]}
-    />
+          {
+            key: 'view-issues',
+            label: t('Search issues with this tag value'),
+            to: {
+              pathname: `/organizations/${organization.slug}/issues/`,
+              query: {...globalSelectionParams, ...query},
+            },
+          },
+          {
+            key: 'copy-value',
+            label: t('Copy tag value to clipboard'),
+            onAction: () =>
+              copy(tagValue.value, {
+                successMessage: t('Copied tag value to clipboard'),
+              }),
+            hidden: tagValue.value === '',
+          },
+        ]}
+      />
+    </RevealOnHover.Action>
   );
 }
