@@ -16,6 +16,7 @@ class NotificationOrigin:
     """Identifies the rule or workflow that caused a notification."""
 
     label: str
+    environment_id: int | None
     workflow_id: int | None
     legacy_rule_id: int | None
 
@@ -35,6 +36,7 @@ class NotificationOrigin:
 
         return cls(
             label=rule.label,
+            environment_id=rule.environment_id,
             workflow_id=workflow_id,
             legacy_rule_id=legacy_rule_id,
         )
