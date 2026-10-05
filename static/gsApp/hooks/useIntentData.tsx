@@ -1,56 +1,20 @@
-import {useEffect} from 'react';
-import {useMutation} from '@tanstack/react-query';
-
-import {parseQueryKey, type ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
-import type {PaymentCreateResponse, PaymentSetupCreateResponse} from 'getsentry/types';
+import type {PaymentCreateResponse} from 'getsentry/types';
 
-interface HookResult<
-  T extends PaymentSetupCreateResponse | PaymentCreateResponse =
-    | PaymentSetupCreateResponse
-    | PaymentCreateResponse,
-> {
+interface HookResult {
   error: string | undefined;
-  intentData: T | undefined;
+  intentData: PaymentCreateResponse | undefined;
   isError: boolean;
   isLoading: boolean;
 }
 
 /**
- * Get payment method setup intent data.
- */
-export function useSetupIntentData({
-  queryKey,
-}: {
-  queryKey: ApiQueryKey;
-}): HookResult<PaymentSetupCreateResponse> {
-  const {url} = parseQueryKey(queryKey);
-  const {data, error, isError, isIdle, isPending, mutate} = useMutation({
-    mutationFn: () => fetchMutation<PaymentSetupCreateResponse>({url, method: 'POST'}),
-  });
-
-  useEffect(() => {
-    mutate();
-  }, [mutate]);
-
-  return {
-    intentData: data,
-    isLoading: isIdle || isPending,
-    isError,
-    error: getIntentErrorMessage(error),
-  };
-}
-
-/**
  * Get payment intent data.
  */
-export function usePaymentIntentData({
-  queryKey,
-}: {
-  queryKey: ApiQueryKey;
-}): HookResult<PaymentCreateResponse> {
+export function usePaymentIntentData({queryKey}: {queryKey: ApiQueryKey}): HookResult {
   const {
     isLoading,
     isPending,
@@ -69,7 +33,7 @@ export function usePaymentIntentData({
   };
 }
 
-function getIntentErrorMessage(error: Error | null): string | undefined {
+export function getIntentErrorMessage(error: Error | null): string | undefined {
   if (!(error instanceof RequestError)) {
     return error?.message;
   }

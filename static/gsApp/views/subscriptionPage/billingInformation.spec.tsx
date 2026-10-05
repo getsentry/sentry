@@ -309,7 +309,7 @@ describe('Subscription > BillingInformation', () => {
 
     const testSubscription = SubscriptionFixture({organization});
 
-    MockApiClient.addMockResponse({
+    const createSetupIntent = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/setup/`,
       method: 'POST',
       statusCode: 400,
@@ -324,6 +324,9 @@ describe('Subscription > BillingInformation', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
     const cardPanel = await screen.findByTestId('credit-card-panel');
     const inCardPanel = within(cardPanel);
+
+    expect(createSetupIntent).not.toHaveBeenCalled();
+    await userEvent.click(inCardPanel.getByRole('button', {name: 'Save Changes'}));
 
     await inCardPanel.findByText(
       'Unable to initialize payment setup, please try again later.'

@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useState} from 'react';
 import type {
   PaymentMethod,
   SetupIntentResult,
@@ -8,15 +8,15 @@ import type {
 import {useMutation} from '@tanstack/react-query';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 import {InnerIntentForm} from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
 import type {IntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
-import {useSetupIntentData} from 'getsentry/hooks/useIntentData';
-import type {Subscription} from 'getsentry/types';
+import {getIntentErrorMessage} from 'getsentry/hooks/useIntentData';
+import type {PaymentSetupCreateResponse, Subscription} from 'getsentry/types';
 
 export function SetupIntentForm(props: IntentFormProps) {
   const {
@@ -28,8 +28,14 @@ export function SetupIntentForm(props: IntentFormProps) {
   const [errorMessage, setErrorMessage] = useState<string | undefined>(undefined);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const {intentData, isLoading, isError, error} = useSetupIntentData({
-    queryKey: props.intentDataQueryKey,
+  const {url: setupIntentUrl} = parseQueryKey(props.intentDataQueryKey);
+  const {mutateAsync: createSetupIntent} = useMutation({
+    mutationFn: () =>
+      fetchMutation<PaymentSetupCreateResponse>({url: setupIntentUrl, method: 'POST'}),
+    onError: error => {
+      setErrorMessage(getIntentErrorMessage(error) ?? t('Setup failed.'));
+      setIsSubmitting(false);
+    },
   });
 
   const {mutateAsync: updateSubscription} = useMutation({
@@ -56,17 +62,6 @@ export function SetupIntentForm(props: IntentFormProps) {
     },
   });
 
-  useEffect(() => {
-    if (isError) {
-      // oxlint-disable-next-line react/set-state-in-effect
-      setErrorMessage(error);
-    }
-  }, [isError, error]);
-
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
-
   const handleSubmit = async ({
     stripe,
     elements,
@@ -75,7 +70,7 @@ export function SetupIntentForm(props: IntentFormProps) {
     stripe: Stripe | null;
   }) => {
     setIsSubmitting(true);
-    if (!stripe || !elements || !intentData) {
+    if (!stripe || !elements) {
       setErrorMessage(
         t('Cannot complete your payment at this time, please try again later.')
       );
@@ -87,6 +82,11 @@ export function SetupIntentForm(props: IntentFormProps) {
     if (stripeResult.error) {
       setErrorMessage(stripeResult.error.message ?? t('Setup failed.'));
       setIsSubmitting(false);
+      return;
+    }
+
+    const intentData = await createSetupIntent().catch(() => null);
+    if (!intentData) {
       return;
     }
 
@@ -116,7 +116,6 @@ export function SetupIntentForm(props: IntentFormProps) {
       {...props}
       isSubmitting={isSubmitting}
       buttonText={props.buttonText}
-      intentData={intentData}
       onError={message => {
         setErrorMessage(message);
         setIsSubmitting(false);

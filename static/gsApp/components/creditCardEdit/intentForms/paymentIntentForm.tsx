@@ -150,7 +150,6 @@ export function PaymentIntentForm(props: IntentFormProps) {
       {...props}
       buttonText={props.buttonText}
       isSubmitting={isSubmitting}
-      intentData={intentData}
       onError={message => {
         setErrorMessage(message);
         setIsSubmitting(false);
