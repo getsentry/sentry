@@ -52,7 +52,7 @@ class DeleteArtifactBundleTest(TransactionTestCase, HybridCloudTestMixin):
         assert not ProjectArtifactBundle.objects.filter(artifact_bundle=artifact_bundle).exists()
         assert not File.objects.filter(id=artifact_bundle.file.id).exists()
 
-    def test_debug_ids_are_deleted_by_cascade(self) -> None:
+    def test_indices_deleted_by_cascade(self) -> None:
         org = self.create_organization()
         artifact_bundle = self.create_artifact_bundle(org=org)
         other_bundle = self.create_artifact_bundle(org=org)
@@ -73,9 +73,10 @@ class DeleteArtifactBundleTest(TransactionTestCase, HybridCloudTestMixin):
                 ArtifactBundleIndex(
                     organization_id=org.id,
                     artifact_bundle=bundle,
-                    url="~/bundle.js",
+                    url=f"~/bundle-{index}.js",
                 )
                 for bundle in (artifact_bundle, other_bundle)
+                for index in range(3)
             ]
         )
         bundle_id = artifact_bundle.id
@@ -91,11 +92,18 @@ class DeleteArtifactBundleTest(TransactionTestCase, HybridCloudTestMixin):
         ]
         assert len(debug_id_deletes) == 1
         assert '"artifact_bundle_id" IN' in debug_id_deletes[0]
+        url_index_deletes = [
+            query["sql"]
+            for query in queries
+            if query["sql"].startswith('DELETE FROM "sentry_artifactbundleindex"')
+        ]
+        assert len(url_index_deletes) == 1
+        assert '"artifact_bundle_id" IN' in url_index_deletes[0]
         assert not DebugIdArtifactBundle.objects.filter(artifact_bundle_id=bundle_id).exists()
         assert not ArtifactBundleIndex.objects.filter(artifact_bundle_id=bundle_id).exists()
         assert not ArtifactBundle.objects.filter(id=bundle_id).exists()
         assert not File.objects.filter(id=file_id).exists()
         assert DebugIdArtifactBundle.objects.filter(artifact_bundle=other_bundle).count() == 3
-        assert ArtifactBundleIndex.objects.filter(artifact_bundle=other_bundle).count() == 1
+        assert ArtifactBundleIndex.objects.filter(artifact_bundle=other_bundle).count() == 3
         assert ArtifactBundle.objects.filter(id=other_bundle.id).exists()
         assert File.objects.filter(id=other_bundle.file_id).exists()
