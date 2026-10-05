@@ -120,9 +120,9 @@ describe('AddBillingInformation', () => {
       'aria-disabled',
       'true'
     ); // cannot checkout without billing info
-    expect(await screen.findByTestId('credit-card-panel')).toBeInTheDocument();
+    const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
     expect(screen.getByTestId('billing-details-panel')).toBeInTheDocument();
-    const inCardPanel = within(screen.getByTestId('credit-card-panel'));
+    const inCardPanel = within(cardPanel);
     const inBillingDetailsPanel = within(screen.getByTestId('billing-details-panel'));
 
     expect(
