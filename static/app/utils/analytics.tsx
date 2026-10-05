@@ -1,8 +1,3 @@
-import type {Span} from '@sentry/core';
-import * as Sentry from '@sentry/react';
-
-import {getOverride} from 'sentry/overrideRegistry';
-import type {Overrides} from 'sentry/types/overrides';
 import {
   alertsEventMap,
   type AlertsEventParameters,
@@ -228,32 +223,6 @@ const allEventMap: Record<string, string | null> = {
  */
 export const trackAnalytics = makeAnalyticsFunction<EventParameters>(allEventMap);
 
-type RecordMetric = Overrides['metrics:event'] & {
-  endSpan: (opts: {
-    /**
-     * Name of the transaction to end
-     */
-    name: string;
-  }) => void;
-
-  startSpan: (opts: {
-    /**
-     * Name of transaction
-     */
-    name: string;
-    /**
-     * Optional op code
-     */
-    op?: string;
-  }) => Span | undefined;
-};
-
-/**
- * Record metrics.
- */
-export const metric: RecordMetric = (name, value, tags) =>
-  getOverride('metrics:event')?.(name, value, tags);
-
 // JSDOM implements window.performance but not window.performance.mark
 export const CAN_MARK =
   window.performance &&
@@ -261,23 +230,3 @@ export const CAN_MARK =
   typeof window.performance.measure === 'function' &&
   typeof window.performance.getEntriesByName === 'function' &&
   typeof window.performance.clearMeasures === 'function';
-
-/**
- * Used to pass data between startTransaction and endTransaction
- */
-const spanDataStore = new Map<string, Span | undefined>();
-
-metric.startSpan = ({name, op}) => {
-  const span = Sentry.startInactiveSpan({
-    name,
-    op,
-    forceTransaction: true,
-  });
-  spanDataStore.set(name, span);
-  return span;
-};
-
-metric.endSpan = ({name}) => {
-  const span = spanDataStore.get(name);
-  span?.end();
-};
