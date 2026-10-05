@@ -116,12 +116,12 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
           </Grid>
         </Flex>
         <HeaderGrid>
-          <Title>
+          <Grid columns="minmax(0, max-content) min-content" align="center" gap="sm">
             <Tooltip title={primaryTitle} skipWrapper showOnlyOnOverflow delay={1000}>
               <PrimaryTitle>{primaryTitle}</PrimaryTitle>
             </Tooltip>
             {isAIDetectedIssue && <FeatureBadge type="new" />}
-          </Title>
+          </Grid>
           <StatTitle>
             {issueTypeConfig.eventAndUserCounts.enabled && (
               <StatLink
@@ -309,11 +309,4 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
     /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.primary};
   }
-`;
-
-const Title = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(0, max-content) min-content;
-  align-items: center;
-  column-gap: ${p => p.theme.space.sm};
 `;
