@@ -800,6 +800,18 @@ export function BaseChart({
     };
   }, []);
 
+  // echarts-for-react's `getEchartsInstance()` only looks up an existing instance
+  // (`echarts.getInstanceByDom`), and instances are created asynchronously and
+  // disposed on unmount/hide. If the option changes while no instance is attached,
+  // `updateEChartsOption` crashes calling `setOption` on `undefined`. Skipping the
+  // update is safe: once the instance is (re)created, echarts-for-react applies
+  // the current `option` prop. Called from `componentDidUpdate`, so reading the
+  // ref here happens outside of render.
+  const shouldSetOption = () => {
+    const instance = echartsInstanceRef.current?.getEchartsInstance();
+    return !!instance && !instance.isDisposed();
+  };
+
   return (
     <ChartContainer
       ref={chartContainerRef}
@@ -815,6 +827,7 @@ export function BaseChart({
         notMerge={notMerge}
         replaceMerge={replaceMerge}
         lazyUpdate={lazyUpdate}
+        shouldSetOption={shouldSetOption}
         theme={echartsTheme ?? 'v5'}
         onChartReady={onChartReady}
         onEvents={eventsMap}

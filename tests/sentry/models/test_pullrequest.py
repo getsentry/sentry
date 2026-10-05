@@ -763,35 +763,16 @@ class GetOrFetchExternalIdTest(TestCase):
         raise AssertionError("fetch should not be called")
 
     def test_returns_stored_id_without_fetch(self) -> None:
-        self._pr().update(external_id_str="pr_01abc")
+        self._pr().update(external_id="pr_01abc")
 
         assert self._fetch(self._no_fetch) == "pr_01abc"
 
-    def test_falls_back_to_the_integer_column(self) -> None:
-        self._pr().update(external_id=555)
-
-        assert self._fetch(self._no_fetch) == "555"
-
-    def test_prefers_the_string_column(self) -> None:
-        self._pr().update(external_id=555, external_id_str="556")
-
-        assert self._fetch(self._no_fetch) == "556"
-
-    def test_writes_back_both_columns_for_a_numeric_id(self) -> None:
-        pr = self._pr()
-
-        assert self._fetch(fetch=lambda: "555") == "555"
-        pr.refresh_from_db()
-        assert pr.external_id_str == "555"
-        assert pr.external_id == 555
-
-    def test_writes_back_only_the_string_column_for_a_non_numeric_id(self) -> None:
+    def test_writes_back_onto_existing_row(self) -> None:
         pr = self._pr()
 
         assert self._fetch(fetch=lambda: "pr_01abc") == "pr_01abc"
         pr.refresh_from_db()
-        assert pr.external_id_str == "pr_01abc"
-        assert pr.external_id is None
+        assert pr.external_id == "pr_01abc"
 
     def test_returns_fetched_id_unpersisted_when_row_is_absent(self) -> None:
         assert self._fetch(fetch=lambda: "555") == "555"
@@ -803,7 +784,6 @@ class GetOrFetchExternalIdTest(TestCase):
         assert self._fetch(fetch=lambda: None) is None
         pr.refresh_from_db()
         assert pr.external_id is None
-        assert pr.external_id_str is None
 
 
 class ParsePullRequestUrlTest(TestCase):

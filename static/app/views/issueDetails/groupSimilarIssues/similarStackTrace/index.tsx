@@ -94,21 +94,11 @@ export function SimilarStackTrace({project}: Props) {
     {ids: string[]; projectSlug: string; query?: string}
   >({
     mutationFn: ({ids, projectSlug, query}) =>
-      new Promise((resolve, reject) => {
-        mergeGroups(
-          api,
-          {
-            orgId: organization.slug,
-            projectId: projectSlug,
-            itemIds: [...ids, params.groupId],
-            query,
-          },
-          {
-            success: (data: any) => resolve(data),
-            error: (err: any) =>
-              reject(err instanceof Error ? err : new Error('Failed to merge issues')),
-          }
-        );
+      mergeGroups(api, {
+        orgId: organization.slug,
+        projectId: projectSlug,
+        itemIds: [...ids, params.groupId],
+        query,
       }),
     onSuccess: data => {
       if (data?.merge?.parent && data.merge.parent !== params.groupId) {

@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
+import {SCM_STEP_CONTENT_WIDTH} from 'sentry/components/onboarding/consts';
 
 interface ScmStepLayoutProps {
   children: ReactNode;

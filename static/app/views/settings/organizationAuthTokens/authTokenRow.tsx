@@ -1,8 +1,6 @@
-import {Fragment} from 'react';
-import styled from '@emotion/styled';
-
 import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Confirm} from 'sentry/components/confirm';
@@ -27,30 +25,34 @@ function LastUsed({
 }) {
   if (dateLastUsed && projectLastUsed) {
     return (
-      <Fragment>
+      <Text wordBreak="break-word">
         {tct('[date] in project [project]', {
-          date: <TimeSince date={dateLastUsed} />,
+          date: (
+            <Text wrap="nowrap">
+              <TimeSince date={dateLastUsed} />
+            </Text>
+          ),
           project: (
             <Link to={`/settings/${organization.slug}/projects/${projectLastUsed.slug}/`}>
               {projectLastUsed.name}
             </Link>
           ),
         })}
-      </Fragment>
+      </Text>
     );
   }
 
   if (dateLastUsed) {
     return (
-      <Fragment>
+      <Text wrap="nowrap">
         <TimeSince date={dateLastUsed} />
-      </Fragment>
+      </Text>
     );
   }
 
   if (projectLastUsed) {
     return (
-      <Fragment>
+      <Text wordBreak="break-word">
         {tct('in project [project]', {
           project: (
             <Link to={`/settings/${organization.slug}/${projectLastUsed.slug}/`}>
@@ -58,11 +60,11 @@ function LastUsed({
             </Link>
           ),
         })}
-      </Fragment>
+      </Text>
     );
   }
 
-  return <NeverUsed>{t('never used')}</NeverUsed>;
+  return <Text variant="muted">{t('never used')}</Text>;
 }
 
 export function OrganizationAuthTokensAuthTokenRow({
@@ -83,16 +85,16 @@ export function OrganizationAuthTokensAuthTokenRow({
   return (
     <SimpleTable.Row>
       <SimpleTable.RowCell direction="column" align="start">
-        <Label>
+        <Text wordBreak="break-word">
           <Link to={`/settings/${organization.slug}/auth-tokens/${token.id}/`}>
             {token.name}
           </Link>
-        </Label>
+        </Text>
 
         {token.tokenLastCharacters && (
-          <TokenPreview aria-label={t('Token preview')}>
+          <Text variant="muted" aria-label={t('Token preview')} wordBreak="break-word">
             {tokenPreview(token.tokenLastCharacters, 'sntrys_')}
-          </TokenPreview>
+          </Text>
         )}
       </SimpleTable.RowCell>
 
@@ -100,9 +102,9 @@ export function OrganizationAuthTokensAuthTokenRow({
         {isProjectLoading ? (
           <Placeholder height="1.25em" />
         ) : (
-          <Fragment>
+          <Text wrap="nowrap">
             <TimeSince date={token.dateCreated} />
-          </Fragment>
+          </Text>
         )}
       </SimpleTable.RowCell>
 
@@ -145,13 +147,3 @@ export function OrganizationAuthTokensAuthTokenRow({
     </SimpleTable.Row>
   );
 }
-
-const Label = styled('div')``;
-
-const NeverUsed = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const TokenPreview = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;

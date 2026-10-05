@@ -7,7 +7,6 @@ from sentry import features, options
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -262,35 +261,6 @@ def get_preferred_detector(event_data: WorkflowEventData) -> Detector:
         raise
 
 
-def create_issue_platform_payload(result: DetectorEvaluation, detector_type: str) -> None:
-    occurrence, status_change = None, None
-
-    if isinstance(result.result, IssueOccurrence):
-        occurrence = result.result
-        payload_type = PayloadType.OCCURRENCE
-
-        metrics.incr(
-            "workflow_engine.issue_platform.payload.sent.occurrence",
-            tags={"detector_type": detector_type},
-            sample_rate=1,
-        )
-    else:
-        status_change = result.result
-        payload_type = PayloadType.STATUS_CHANGE
-        metrics.incr(
-            "workflow_engine.issue_platform.payload.sent.status_change",
-            tags={"detector_type": detector_type},
-            sample_rate=1,
-        )
-
-    produce_occurrence_to_kafka(
-        payload_type=payload_type,
-        occurrence=occurrence,
-        status_change=status_change,
-        event_data=result.data["event_data"],
-    )
-
-
 def _get_detector_organization(detector: Detector) -> Organization | None:
     """
     Lookup the detector's organization through the organization cache.
@@ -346,7 +316,7 @@ def process_detectors[T](
 
     Once the evaluation is complete, each is stored in EAP for 7d (21d for metric detectors).
 
-    Finally, the triggered detectors create issues via the Issue Platform.
+    Finally, triggered detectors create issues via Issue Platform unless publication is disabled.
     """
     results: list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluation]]] = []
 
@@ -386,7 +356,11 @@ def process_detectors[T](
                     tags={"detector_type": detector.type},
                 )
 
-                create_issue_platform_payload(result, detector.type)
+            with metrics.timer(
+                "workflow_engine.process_detectors.on_complete",
+                tags={"detector_type": detector.type},
+            ):
+                handler.on_complete(detector, result)
 
         if detector_results:
             results.append((detector, detector_results))

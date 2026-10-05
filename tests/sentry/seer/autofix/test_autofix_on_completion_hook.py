@@ -15,13 +15,13 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
+from sentry.seer.autofix.autofix_agent import _group_and_referrer_from_run, get_current_step
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.on_completion_hook import (
     PIPELINE_ORDER,
     STOPPING_POINT_TO_STEP,
     AutofixOnCompletionHook,
-    _group_and_referrer_from_run,
     _stopping_point_from_run,
 )
 from sentry.seer.autofix.pr_iteration.completion import (
@@ -197,14 +197,14 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
     def test_get_current_step_root_cause(self) -> None:
         """Returns ROOT_CAUSE when root_cause artifact exists."""
         state = run_state(blocks=[root_cause_memory_block()])
-        step, referrer = AutofixOnCompletionHook._get_current_step(state)
+        step, referrer = get_current_step(state)
         assert step == AutofixStep.ROOT_CAUSE
         assert referrer is None
 
     def test_get_current_step_solution(self) -> None:
         """Returns SOLUTION when solution artifact exists."""
         state = run_state(blocks=[root_cause_memory_block(), solution_memory_block()])
-        step, referrer = AutofixOnCompletionHook._get_current_step(state)
+        step, referrer = get_current_step(state)
         assert step == AutofixStep.SOLUTION
         assert referrer is None
 
@@ -217,14 +217,14 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
                 code_changes_memory_block(),
             ]
         )
-        step, referrer = AutofixOnCompletionHook._get_current_step(state)
+        step, referrer = get_current_step(state)
         assert step == AutofixStep.CODE_CHANGES
         assert referrer is None
 
     def test_get_current_step_none(self) -> None:
         """Returns None when no artifacts or code changes exist."""
         state = run_state()
-        step, referrer = AutofixOnCompletionHook._get_current_step(state)
+        step, referrer = get_current_step(state)
         assert step is None
         assert referrer is None
 
@@ -233,7 +233,7 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
         state = run_state(
             blocks=[root_cause_memory_block(referrer=AutofixReferrer.ON_COMPLETION_HOOK.value)]
         )
-        step, referrer = AutofixOnCompletionHook._get_current_step(state)
+        step, referrer = get_current_step(state)
         assert step == AutofixStep.ROOT_CAUSE
         assert referrer == AutofixReferrer.ON_COMPLETION_HOOK
 
@@ -245,14 +245,14 @@ class TestAutofixOnCompletionHookHelpers(TestCase):
                 solution_memory_block(referrer=AutofixReferrer.ON_COMPLETION_HOOK.value),
             ]
         )
-        step, referrer = AutofixOnCompletionHook._get_current_step(state)
+        step, referrer = get_current_step(state)
         assert step == AutofixStep.SOLUTION
         assert referrer == AutofixReferrer.ON_COMPLETION_HOOK
 
     def test_get_current_step_invalid_referrer_returns_none(self):
         """Returns None referrer when referrer value is not a valid AutofixReferrer."""
         state = run_state(blocks=[root_cause_memory_block(referrer="not_a_valid_referrer")])
-        step, referrer = AutofixOnCompletionHook._get_current_step(state)
+        step, referrer = get_current_step(state)
         assert step == AutofixStep.ROOT_CAUSE
         assert referrer is None
 
@@ -1480,6 +1480,30 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
             )
         }
         return state
+
+    @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_failed_pr_creation_does_not_emit_pr_activities(self, mock_broadcast, mock_emit):
+        state = run_state(blocks=[code_changes_memory_block()])
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                pr_creation_status="error",
+            )
+        }
+
+        with patch(
+            "sentry.seer.autofix.on_completion_hook.SeerAutofixOperator.has_access",
+            return_value=True,
+        ):
+            AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        mock_broadcast.assert_not_called()
+        mock_emit.assert_not_called()
+        assert not Activity.objects.filter(
+            group=self.group,
+            type=ActivityType.SEER_PR_CREATED.value,
+        ).exists()
 
     @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")

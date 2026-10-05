@@ -1,4 +1,5 @@
 import {InfoText} from '@sentry/scraps/info';
+import {Text} from '@sentry/scraps/text';
 
 import {AttributeDetails} from 'sentry/components/attributes/attributeDetails';
 import {
@@ -55,13 +56,18 @@ export function AttributeDetailsTooltip({
 
   return (
     <InfoText
+      monospace
       variant="muted"
       title={
         <AttributeDetails
           description={fieldDefinition?.desc ?? DEFAULT_TAG_DESCRIPTION}
           isAddedBySentry={Boolean(fieldDefinition)}
           isScrubbed={isScrubbed}
-          name={attributeName}
+          name={
+            <Text bold monospace wordBreak="break-word">
+              {attributeName}
+            </Text>
+          }
           valueType={
             fieldDefinition?.valueType ?? defaultValueType ?? FieldValueType.STRING
           }
