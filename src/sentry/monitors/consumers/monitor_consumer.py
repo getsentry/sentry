@@ -9,7 +9,7 @@ from collections.abc import Mapping
 from concurrent.futures import Future, wait
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from copy import deepcopy
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from functools import partial
 from typing import Any, Literal, NotRequired, TypedDict
 
@@ -76,6 +76,7 @@ from sentry.monitors.system_incidents import update_check_in_volume
 from sentry.monitors.types import CheckinItem
 from sentry.monitors.utils import (
     ensure_cron_detector,
+    get_max_timeout_at,
     get_new_timeout_at,
     get_timeout_at,
     signal_first_checkin,
@@ -457,7 +458,7 @@ def update_existing_check_in(
     )
 
     # Check-ins can not change once they are older than MAX_TIMEOUT
-    is_past_max_timeout = start_time > existing_check_in.date_added + timedelta(minutes=MAX_TIMEOUT)
+    is_past_max_timeout = start_time >= get_max_timeout_at(existing_check_in)
 
     # In-progress updates can not reopen a timed out check-in
     is_reopening_timeout = (
