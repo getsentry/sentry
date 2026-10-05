@@ -31,7 +31,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 export type EditFormProps = ModalRenderProps & {
   externalId: string | null;
   integrationId: string | null;
-  project: Pick<Project, 'id' | 'slug'>;
+  project: Project;
   providerKey: string | null;
   repoName: string;
   repositoryId: string;

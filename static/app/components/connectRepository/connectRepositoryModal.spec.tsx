@@ -915,7 +915,7 @@ describe('ConnectRepositoryModal', () => {
             closeModal={closeModal}
             lockedSide="repo"
             mode="edit"
-            project={{id: project.id, slug: project.slug}}
+            project={project}
             {...repoIdentity}
           />
         </Fragment>,
