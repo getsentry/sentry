@@ -341,22 +341,28 @@ class AccessLogAttributesTest(TestCase):
 
 class AttributionSpanTest(TestCase):
     def record(self, request: Request) -> tuple[Any, list[tuple[str, Any]]]:
-        with (
-            mock.patch("sentry.api.client_kind.traces.start_span") as start_span,
-            mock.patch("sentry.api.client_kind.set_span_data") as set_span_data,
-        ):
+        with mock.patch("sentry.api.client_kind.traces.start_span") as start_span:
             set_client_kind_attributes(request)
         span = start_span.return_value.__enter__.return_value
-        return start_span, [
-            call.args[1:] for call in set_span_data.call_args_list if call.args[0] is span
+        attributes = list(start_span.call_args.kwargs["attributes"].items()) + [
+            call.args for call in span.set_attribute.call_args_list
         ]
+        return start_span, attributes
 
     def test_pairs_the_route_with_the_caller(self) -> None:
         start_span, attributes = self.record(
             make_request(auth=api_token(), user_agent="curl/8.7.1")
         )
-        assert start_span.call_args == mock.call(op=ATTRIBUTION_SPAN_OP, name=EVENTS_ROUTE)
+        assert start_span.call_args == mock.call(
+            name=EVENTS_ROUTE,
+            attributes={
+                "sentry.op": ATTRIBUTION_SPAN_OP,
+                ATTRIBUTE_NAMES.HTTP_ROUTE: EVENTS_ROUTE,
+                "client_kind_test": "script",
+            },
+        )
         assert attributes == [
+            ("sentry.op", ATTRIBUTION_SPAN_OP),
             (ATTRIBUTE_NAMES.HTTP_ROUTE, EVENTS_ROUTE),
             ("client_kind_test", "script"),
             (ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, "curl/8.7.1"),
@@ -366,7 +372,14 @@ class AttributionSpanTest(TestCase):
         request = make_request(auth=api_token(), user_agent="curl/8.7.1")
         mark_from_api_client(request)
         start_span, attributes = self.record(request)
-        assert start_span.call_args == mock.call(op=ATTRIBUTION_SPAN_OP, name=EVENTS_ROUTE)
+        assert start_span.call_args == mock.call(
+            name=EVENTS_ROUTE,
+            attributes={
+                "sentry.op": ATTRIBUTION_SPAN_OP,
+                ATTRIBUTE_NAMES.HTTP_ROUTE: EVENTS_ROUTE,
+                "client_kind_test": "script",
+            },
+        )
         assert (ATTRIBUTE_NAMES.HTTP_ROUTE, EVENTS_ROUTE) in attributes
 
     def test_carries_the_mcp_client_host(self) -> None:
@@ -385,6 +398,7 @@ class AttributionSpanTest(TestCase):
     def test_omits_user_agent_when_absent(self) -> None:
         _, attributes = self.record(make_request(auth=api_token()))
         assert [key for key, _ in attributes] == [
+            "sentry.op",
             ATTRIBUTE_NAMES.HTTP_ROUTE,
             "client_kind_test",
         ]
