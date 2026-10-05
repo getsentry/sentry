@@ -140,15 +140,18 @@ class IntegrationProxyClient(ApiClient):
         # IntegrationProxyClient, then the IntegrationProxyClient will need to have a smaller timeout value.
         # Otherwise, the CellSiloClient will timeout before it can receive a response from the IntegrationProxyClient.
         if options.get("hybridcloud.integrationproxy.long-server-wait-is-enabled"):
-            # 3 second wait for connection. 30 second wait for data. Its assumed because this is within our internal
-            # network that 3 seconds should be more than enough time under normal operating conditions. Under degraded
-            # conditions a longer wait is likely to strain system resources in excess of what is necessary. Its better
-            # to shed load with a lower timeout value and have users retry.
-            #
             # Because this is a proxied integration request we don't know what the other end is going to do. Giving
             # slow responders ample time to respond once the connection is established means slow but functioning
             # servers do not create a retry storm within our network. (as we've seen in the case of self-hosted GitLab).
-            self.timeout = (3, 30)
+            #
+            # The 10 second connection timeout matches the current production restriction so there will be no
+            # degradation in our capability to connect to remote resources. However, this is not an ideal configuration.
+            # Ideally, internal proxy requests should have a much lower connection timeout since these internal requests
+            # are expected to be quick and, again ideally, external resources should use a simple 30 second timeout
+            # strategy. This would let us make assumptions about resources we own and remove assumptions about resources
+            # we don't own. This wasn't done because the current timeout header forwarding (`set_proxy_request_options`)
+            # does not allow for it. On a second pass this could be improved.
+            self.timeout = (10, 30)
         else:
             self.timeout = 10
 
