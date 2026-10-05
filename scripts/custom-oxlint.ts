@@ -489,6 +489,7 @@ Native oxlint options:
       'Use the committed lint policy. Use --enroll or --prune for suppression changes.'
     );
   }
+  process.env.SENTRY_OXLINT_ENFORCE = 'true';
   const {default: config, incubator}: {default: OxlintConfig; incubator: OxlintConfig} =
     await import(pathToFileURL(path.join(root, 'oxlint.config.ts')).href);
   assert(

@@ -1,4 +1,4 @@
-import {defineConfig} from 'oxlint';
+import {defineConfig, type OxlintConfig} from 'oxlint';
 
 // incubator rules disallow new violations from being introduced
 // but suppress pre-existing violations on `master`
@@ -1948,14 +1948,41 @@ const config = defineConfig({
 const enrolledRules = new Set(
   Object.keys(incubator.rules).map(rule => rule.replace(/^eslint\//, ''))
 );
+function setIncubatorSeverity(rules: OxlintConfig['rules']) {
+  const configured = {...rules};
+  const severity = process.env.SENTRY_OXLINT_ENFORCE === 'true' ? 'error' : 'warn';
+  for (const [rule, options] of Object.entries(configured)) {
+    const current = Array.isArray(options) ? options[0] : options;
+    if (
+      !enrolledRules.has(rule.replace(/^eslint\//, '')) ||
+      current === 'off' ||
+      current === 0
+    ) {
+      continue;
+    }
+    const next = typeof current === 'number' ? (severity === 'error' ? 2 : 1) : severity;
+    if (Array.isArray(options)) {
+      const updated = structuredClone(options);
+      updated[0] = next;
+      configured[rule] = updated;
+    } else {
+      configured[rule] = next;
+    }
+  }
+  return configured;
+}
 export default defineConfig({
   ...config,
-  rules: {
+  rules: setIncubatorSeverity({
     ...Object.fromEntries(
       Object.entries(config.rules).filter(
         ([rule]) => !enrolledRules.has(rule.replace(/^eslint\//, ''))
       )
     ),
     ...incubator.rules,
-  },
+  }),
+  overrides: config.overrides.map(override => ({
+    ...override,
+    rules: setIncubatorSeverity(override.rules),
+  })),
 });

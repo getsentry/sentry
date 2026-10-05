@@ -86,7 +86,7 @@ pnpm run lint:js components/avatar.tsx    # specific file(s)
 pnpm run fix                              # auto-fix
 ```
 
-Incubator rules run in the existing oxlint pass in prek, normal lint, and CI. The committed `oxlint-suppressions.json` limits existing debt per file and rule. Successful fixes automatically reduce counts for checked files. Fast local prek fixes conservatively retain TypeScript counts until a full type-aware fix or `pnpm run lint:js --prune`. Enrolling rules requires `pnpm run lint:js --enroll --base REF` using trusted source. Inspect live findings with `pnpm run lint:js --backlog`. Put the maintenance flag first. Use `pnpm run lint:js --help` for all options.
+Incubator rules appear as warnings in editors. The lint wrapper promotes them to errors in the existing oxlint pass in prek, normal lint, and CI so native suppressions and the ratchet remain enforced. The committed `oxlint-suppressions.json` limits existing debt per file and rule. Successful fixes automatically reduce counts for checked files. Fast local prek fixes conservatively retain TypeScript counts until a full type-aware fix or `pnpm run lint:js --prune`. Enrolling rules requires `pnpm run lint:js --enroll --base REF` using trusted source. Inspect live findings with `pnpm run lint:js --backlog`. Put the maintenance flag first. Use `pnpm run lint:js --help` for all options.
 
 #### Testing
 
