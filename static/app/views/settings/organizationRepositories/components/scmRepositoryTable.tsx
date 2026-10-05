@@ -112,7 +112,7 @@ export function ScmRepositoryTable({
   const {expandedIds, toggle} = useExpandedInstallations(installations);
 
   return (
-    <Flex direction="column" gap="xl">
+    <Stack gap="xl">
       {installations.map(installation => {
         const hasSearchHits =
           repoMatches !== undefined &&
@@ -134,7 +134,7 @@ export function ScmRepositoryTable({
           <Fragment key={installation.integration.id}>{panel}</Fragment>
         );
       })}
-    </Flex>
+    </Stack>
   );
 }
 
