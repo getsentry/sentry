@@ -98,8 +98,12 @@ export function RepoLockedConnectForm({
   // has settled. The form resets to [] on every project change so PathMappingList
   // stays unmounted (its row state is initialized once from form state).
   useEffect(() => {
-    if (!selectedProject || isBranchPending) return;
-    if (form.state.values.pathMappings.length > 0) return;
+    if (!selectedProject || isBranchPending) {
+      return;
+    }
+    if (form.state.values.pathMappings.length > 0) {
+      return;
+    }
     form.setFieldValue('pathMappings', [
       {stackRoot: '', sourceRoot: '', branch: defaultBranch || DEFAULT_BRANCH},
     ]);
