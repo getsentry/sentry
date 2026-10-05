@@ -27,7 +27,7 @@ export function useSetupIntentData({
   queryKey: ApiQueryKey;
 }): HookResult<PaymentSetupCreateResponse> {
   const {url} = parseQueryKey(queryKey);
-  const {data, error, isError, isSuccess, mutate} = useMutation({
+  const {data, error, isError, isIdle, isPending, mutate} = useMutation({
     mutationFn: () => fetchMutation<PaymentSetupCreateResponse>({url, method: 'POST'}),
   });
 
@@ -37,7 +37,7 @@ export function useSetupIntentData({
 
   return {
     intentData: data,
-    isLoading: !isSuccess && !isError,
+    isLoading: isIdle || isPending,
     isError,
     error: getIntentErrorMessage(error),
   };
