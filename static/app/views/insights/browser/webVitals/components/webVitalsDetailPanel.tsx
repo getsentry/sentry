@@ -4,8 +4,8 @@ import styled from '@emotion/styled';
 
 import {DrawerHeader} from '@sentry/scraps/drawer';
 import {ExternalLink, Link} from '@sentry/scraps/link';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ColumnLabel} from 'sentry/components/tables/columnLabel';
 import type {
   GridColumnHeader,
   GridColumnOrder,
@@ -139,19 +139,19 @@ export function WebVitalsDetailPanel({
 
   const renderHeadCell = (col: Column) => {
     if (col.key === 'transaction') {
-      return <NoOverflow>{col.name}</NoOverflow>;
+      return <ColumnLabel column={col} />;
     }
     if (col.key === 'webVital') {
-      return <AlignRight>{`${webVital} P75`}</AlignRight>;
+      return <ColumnLabel align="right" column={{name: `${webVital} P75`}} />;
     }
     if (col.key === 'score') {
-      return <AlignCenter>{`${webVital} ${col.name}`}</AlignCenter>;
+      return <ColumnLabel align="center" column={{name: `${webVital} ${col.name}`}} />;
     }
     if (col.key === 'opportunity') {
       return (
-        <Tooltip
-          showUnderline
-          title={
+        <ColumnLabel
+          column={col}
+          tooltip={
             <span>
               {tct(
                 "A number rating how impactful a performance improvement on this page would be to your application's [webVital] Performance Score.",
@@ -163,17 +163,13 @@ export function WebVitalsDetailPanel({
               </ExternalLink>
             </span>
           }
-        >
-          {col.name}
-        </Tooltip>
+        />
       );
     }
-    if (col.key === 'count') {
-      if (webVital === 'inp') {
-        return <AlignRight>{t('Interactions')}</AlignRight>;
-      }
+    if (col.key === 'count' && webVital === 'inp') {
+      return <ColumnLabel align="right" column={{name: t('Interactions')}} />;
     }
-    return <AlignRight>{col.name}</AlignRight>;
+    return <ColumnLabel align="right" column={col} />;
   };
 
   const getFormattedDuration = (value: number) => {

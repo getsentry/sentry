@@ -342,8 +342,6 @@ def pytest_configure(config: pytest.Config) -> None:
     settings.BITBUCKET_CONSUMER_SECRET = "123"
     settings.SENTRY_OPTIONS["github-login.client-id"] = "abc"
     settings.SENTRY_OPTIONS["github-login.client-secret"] = "123"
-    # this isn't the real secret
-    settings.SENTRY_OPTIONS["github.integration-hook-secret"] = "b3002c3e321d4b7880360d397db2ccfd"
 
     # Configure control backend settings for storage
     settings.SENTRY_OPTIONS["filestore.control.backend"] = "filesystem"

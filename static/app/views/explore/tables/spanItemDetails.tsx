@@ -144,6 +144,7 @@ export function SpanItemDetails({
     <SpanItemDetailsContainer>
       <AttributesTree<SpanAttributesRendererExtra>
         attributes={visibleAttributes}
+        config={{attributeDetailsType: 'span'}}
         getCustomActions={getActions}
         renderers={renderers}
         rendererExtra={{
@@ -178,7 +179,7 @@ function useSpanAttributesTreeActions() {
 
   return useCallback(
     (content: AttributesTreeContent) => {
-      const attribute = content.originalAttribute;
+      const attribute = content.original;
       if (!attribute) {
         return [];
       }

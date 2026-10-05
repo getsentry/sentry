@@ -69,6 +69,8 @@ class OurLogs(rpc_dataset_common.RPCBase):
                 orderby.append(direction + "id")
                 if "id" not in selected_columns:
                     selected_columns.append("id")
+        elif sampling_mode == "HIGHEST_ACCURACY_FLEX_TIME":
+            raise InvalidSearchQuery("You must orderby timestamp to use HIGHEST_ACCURACY_FLEX_TIME")
 
         return cls._run_table_query(
             rpc_dataset_common.TableQuery(

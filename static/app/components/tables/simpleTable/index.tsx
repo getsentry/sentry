@@ -8,19 +8,17 @@ import type {LocationDescriptor} from 'history';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 import {
-  emptyCellStyle,
   fullWidthCellStyle,
   Table,
   type TableColumnConfig,
 } from '@sentry/scraps/table';
 
-import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
   type ColumnAlign,
   HeaderCellContent,
   type SortDirection,
 } from 'sentry/components/tables/sortableHeaderCell';
+import {TableEmpty, TableError, TableLoading} from 'sentry/components/tables/statusRows';
 import {defined} from 'sentry/utils/defined';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 
@@ -272,33 +270,13 @@ function FullWidthRow({children, ...props}: RowProps) {
   );
 }
 
-const Empty = styled(Table.Status)`
-  ${emptyCellStyle}
-`;
-
-function Loading(props: ComponentProps<typeof Empty>) {
-  return (
-    <Empty {...props}>
-      <LoadingIndicator />
-    </Empty>
-  );
-}
-
-function ErrorState(props: ComponentProps<typeof LoadingError>) {
-  return (
-    <Empty>
-      <LoadingError {...props} />
-    </Empty>
-  );
-}
-
 SimpleTable.HeaderRow = HeaderRow;
 SimpleTable.HeaderCell = HeaderCell;
 SimpleTable.Row = Row;
 SimpleTable.RowCell = RowCell;
 SimpleTable.rowLinkStyle = rowLinkStyle;
-SimpleTable.Empty = Empty;
-SimpleTable.Error = ErrorState;
-SimpleTable.Loading = Loading;
+SimpleTable.Empty = TableEmpty;
+SimpleTable.Error = TableError;
+SimpleTable.Loading = TableLoading;
 SimpleTable.FullWidthCell = FullWidthCell;
 SimpleTable.FullWidthRow = FullWidthRow;

@@ -309,6 +309,25 @@ describe('ArtifactCard', () => {
       expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
     });
 
+    it('renders unclosed embed syntax in the description as literal text', () => {
+      const description =
+        "Users clicking 'Ask Seer' trigger Seer chat that emits {% autofix %} embeds.";
+      const artifact = makeRootCauseArtifact({
+        one_line_description: description,
+        five_whys: [],
+      });
+
+      render(
+        <RootCauseCard
+          autofix={mockAutofix}
+          groupId="1"
+          section={makeSection('root_cause', 'completed', [artifact])}
+        />
+      );
+
+      expect(screen.getByText(description)).toBeInTheDocument();
+    });
+
     it('renders five_whys list items and heading', () => {
       const artifact = makeRootCauseArtifact({
         one_line_description: 'Bug',
@@ -772,6 +791,29 @@ describe('ArtifactCard', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('hides an unclosed embed tag in a block that is still loading', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'processing',
+            [],
+            [
+              {
+                ...makeAssistantBlock('Looking at {% issue %}{"id":"1"'),
+                loading: true,
+              },
+            ]
+          )}
+        />
+      );
+
+      expect(screen.getByText(/Looking at/)).toBeInTheDocument();
+      expect(screen.queryByText(/\{%/)).not.toBeInTheDocument();
+    });
+
     it('does not render file diff viewers in error state', () => {
       render(
         <CodeChangesCard
@@ -817,6 +859,31 @@ describe('ArtifactCard', () => {
           'Seer failed to generate a code change. This one is on us. Try running it again.'
         )
       ).not.toBeInTheDocument();
+    });
+
+    it('renders embeds in the agent explanation instead of raw tags', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofixWithRunState}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [],
+            [
+              makeAssistantBlock(
+                'See {% docs %}{"href":"https://docs.sentry.io/product/issues/","title":"Issues"}{% /docs %} for details.'
+              ),
+            ]
+          )}
+        />
+      );
+
+      expect(screen.getByRole('link', {name: /Issues/})).toHaveAttribute(
+        'href',
+        'https://docs.sentry.io/product/issues/'
+      );
+      expect(screen.queryByText(/\{% docs %\}/)).not.toBeInTheDocument();
     });
 
     it('opens and consumes a requested context prompt without an explanation', async () => {

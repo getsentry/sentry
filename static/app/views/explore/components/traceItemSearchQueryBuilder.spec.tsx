@@ -256,6 +256,19 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     expect(result.current.getFilterTokenWarning?.('url')).toBeUndefined();
   });
 
+  it.each([TraceItemDataset.ERRORS, TraceItemDataset.PROCESSING_ERRORS])(
+    'does not apply convention aliases or deprecation warnings for %s',
+    itemType => {
+      const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+        initialProps: {...defaultInitialProps, itemType},
+        organization,
+      });
+
+      expect(result.current.filterKeyAliases?.['http.method']).toBeUndefined();
+      expect(result.current.getFilterTokenWarning?.('http.method')).toBeUndefined();
+    }
+  );
+
   it('merges all secondary alias types into filterKeyAliases', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
       initialProps: {

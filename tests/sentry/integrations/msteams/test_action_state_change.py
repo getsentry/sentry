@@ -87,6 +87,8 @@ class StatusActionTest(APITestCase):
         assign_input: str | None = None,
         include_integration_id: bool = True,
         include_event_id: bool = True,
+        rule_ids: list[int] | None = None,
+        workflow_ids: list[int] | None = None,
     ) -> Response:
         replyToId = "12345"
 
@@ -109,7 +111,8 @@ class StatusActionTest(APITestCase):
             "groupId": group_id or self.group1.id,
             "eventId": self.event1.event_id if include_event_id else None,
             "actionType": action_type,
-            "rules": [],
+            "rules": rule_ids or [],
+            "workflows": workflow_ids or [],
         }
         if include_integration_id:
             action_payload["integrationId"] = self.integration.id
@@ -190,6 +193,73 @@ class StatusActionTest(APITestCase):
 
         assert resp.status_code == 200, resp.content
         assert self.group1.get_status() == GroupStatus.IGNORED
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.webhook.metrics.incr")
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_rule_lookup_metric_without_rule(
+        self, verify: MagicMock, metrics_incr: MagicMock
+    ) -> None:
+        self.post_webhook(action_type=ACTION_TYPE.ARCHIVE, archive_input="-1")
+
+        metrics_incr.assert_any_call(
+            "integrations.msteams.action.rule_lookup",
+            tags={
+                "has_rule": False,
+                "has_workflow_ids": False,
+                "lookup_succeeded": False,
+            },
+            sample_rate=1.0,
+        )
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.webhook.metrics.incr")
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_rule_lookup_metric_with_rule(self, verify: MagicMock, metrics_incr: MagicMock) -> None:
+        rule = self.create_project_rule(project=self.project1)
+        rule.data["actions"][0]["legacy_rule_id"] = rule.id
+        rule.save(update_fields=["data"])
+
+        response = self.post_webhook(
+            action_type=ACTION_TYPE.ARCHIVE,
+            archive_input="-1",
+            rule_ids=[rule.id],
+        )
+
+        assert response.status_code == 200
+        metrics_incr.assert_any_call(
+            "integrations.msteams.action.rule_lookup",
+            tags={
+                "has_rule": True,
+                "has_workflow_ids": False,
+                "lookup_succeeded": True,
+            },
+            sample_rate=1.0,
+        )
+
+    @responses.activate
+    @patch("sentry.integrations.msteams.webhook.metrics.incr")
+    @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
+    def test_rule_lookup_metric_when_rule_is_missing(
+        self, verify: MagicMock, metrics_incr: MagicMock
+    ) -> None:
+        response = self.post_webhook(
+            action_type=ACTION_TYPE.ARCHIVE,
+            archive_input="-1",
+            rule_ids=[999_999_999],
+            workflow_ids=[123],
+        )
+
+        assert response.status_code == 200
+        metrics_incr.assert_any_call(
+            "integrations.msteams.action.rule_lookup",
+            tags={
+                "has_rule": True,
+                "has_workflow_ids": True,
+                "lookup_succeeded": False,
+            },
+            sample_rate=1.0,
+        )
 
     @responses.activate
     @patch("sentry.integrations.msteams.webhook.verify_signature", return_value=True)
