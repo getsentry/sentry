@@ -1,4 +1,5 @@
 import {ApiTokenFixture} from 'sentry-fixture/apiToken';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   render,
@@ -204,5 +205,43 @@ describe('ApiNewToken', () => {
     expect(
       screen.queryByRole('checkbox', {name: 'Continuous Integration (CI)'})
     ).not.toBeInTheDocument();
+  });
+
+  it('does not render the Dashboard permission without the flag', () => {
+    render(<ApiNewToken />);
+    expect(screen.queryByRole('textbox', {name: 'Dashboard'})).not.toBeInTheDocument();
+  });
+
+  it('submits granular dashboard scopes when the flag is enabled', async () => {
+    MockApiClient.clearMockResponses();
+    const assignMock = MockApiClient.addMockResponse({
+      method: 'POST',
+      url: '/api-tokens/',
+    });
+
+    render(<ApiNewToken />, {
+      organization: OrganizationFixture({features: ['granular-permission-scopes-ui']}),
+    });
+
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Dashboard'}),
+      'Read, Write & Delete'
+    );
+    expect(
+      screen.getByText('dashboard:delete, dashboard:read, dashboard:write')
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Token'}));
+
+    await waitFor(() =>
+      expect(assignMock).toHaveBeenCalledWith(
+        '/api-tokens/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            scopes: ['dashboard:delete', 'dashboard:read', 'dashboard:write'],
+          }),
+        })
+      )
+    );
   });
 });

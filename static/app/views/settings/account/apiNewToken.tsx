@@ -18,6 +18,7 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {
+  DASHBOARD_PERMISSION,
   DISTRIBUTION_SENTRY_APP_PERMISSION,
   SENTRY_APP_PERMISSIONS,
 } from 'sentry/constants';
@@ -30,6 +31,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {
@@ -52,6 +54,7 @@ const INITIAL_PERMISSIONS: Permissions = {
   Organization: 'no-access',
   Alerts: 'no-access',
   Distribution: 'no-access',
+  Dashboard: 'no-access',
 };
 
 // Personal tokens can't be used for Distribution. The point of
@@ -69,6 +72,15 @@ export default function ApiNewToken() {
   const [permissions, setPermissions] = useState({...INITIAL_PERMISSIONS});
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const organization = useOrganization({allowNull: true});
+
+  // Personal tokens aren't tied to an organization, so the flag is read from
+  // the organization currently in context.
+  const displayedPermissions = organization?.features.includes(
+    'granular-permission-scopes-ui'
+  )
+    ? [...DISPLAYED_PERMISSIONS, DASHBOARD_PERMISSION]
+    : DISPLAYED_PERMISSIONS;
 
   const handleGoBack = useCallback(
     () => navigate(normalizeUrl(API_INDEX_ROUTE)),
@@ -77,7 +89,7 @@ export default function ApiNewToken() {
 
   const scopes = Array.from(
     new Set(
-      permissionStateToList(permissions, false).filter(
+      permissionStateToList(permissions, false, displayedPermissions).filter(
         (value): value is NonNullable<typeof value> => value !== undefined
       )
     )
@@ -165,7 +177,7 @@ export default function ApiNewToken() {
                 onChange={nextPermissions => {
                   setPermissions({...nextPermissions});
                 }}
-                displayedPermissions={DISPLAYED_PERMISSIONS}
+                displayedPermissions={displayedPermissions}
               />
             </PanelBody>
             <FieldGroup

@@ -75,7 +75,7 @@ export const ORG_ROLES: OrgRole[] = [
 ];
 
 type PermissionChoice = {
-  label: 'No Access' | 'Read' | 'Read & Write' | 'Admin';
+  label: 'No Access' | 'Read' | 'Read & Write' | 'Read, Write & Delete' | 'Admin';
   scopes: Scope[];
 };
 
@@ -83,6 +83,7 @@ export type PermissionObj = {
   choices: {
     'no-access': PermissionChoice;
     admin?: PermissionChoice;
+    delete?: PermissionChoice;
     read?: PermissionChoice;
     write?: PermissionChoice;
   };
@@ -116,6 +117,22 @@ export const CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION: SpecialPermissionObj 
   help: 'Allows CI and deployment tools to upload source maps, create releases, and manage code mappings for this organization.',
   summary: 'Source map upload, release creation, and code mappings.',
   scope: 'org:ci',
+};
+
+// Granular scope, only offered on personal tokens while
+// `organizations:granular-permission-scopes-ui` is rolling out.
+export const DASHBOARD_PERMISSION: PermissionObj = {
+  resource: 'Dashboard',
+  help: 'Dashboards and their widgets',
+  choices: {
+    'no-access': {label: 'No Access', scopes: []},
+    read: {label: 'Read', scopes: ['dashboard:read']},
+    write: {label: 'Read & Write', scopes: ['dashboard:read', 'dashboard:write']},
+    delete: {
+      label: 'Read, Write & Delete',
+      scopes: ['dashboard:read', 'dashboard:write', 'dashboard:delete'],
+    },
+  },
 };
 
 export const SPECIAL_SENTRY_APP_PERMISSIONS: SpecialPermissionObj[] = [

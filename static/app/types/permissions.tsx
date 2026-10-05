@@ -1,4 +1,4 @@
-export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin';
+export type PermissionValue = 'no-access' | 'read' | 'write' | 'admin' | 'delete';
 
 export type Permissions = {
   Event: PermissionValue;
@@ -8,6 +8,7 @@ export type Permissions = {
   Release: PermissionValue;
   Team: PermissionValue;
   Alerts?: PermissionValue;
+  Dashboard?: PermissionValue;
   Distribution?: PermissionValue;
 };
 

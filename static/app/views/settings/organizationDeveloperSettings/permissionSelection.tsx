@@ -180,10 +180,6 @@ function SpecialPermissionField({
   );
 }
 
-function findResource(r: PermissionResource) {
-  return SENTRY_APP_PERMISSIONS.find(permissions => permissions.resource === r);
-}
-
 /**
  * Converts the "Permission" values held in `state` to a list of raw
  * API scopes we can send to the server. For example:
@@ -193,10 +189,14 @@ function findResource(r: PermissionResource) {
  */
 export function permissionStateToList(
   permissions: Permissions,
-  hasContinuousIntegration: boolean
+  hasContinuousIntegration: boolean,
+  availablePermissions: PermissionObj[] = SENTRY_APP_PERMISSIONS
 ) {
   const scopes = Object.entries(permissions).flatMap(
-    ([r, p]) => findResource(r as PermissionResource)?.choices?.[p]?.scopes ?? []
+    ([r, p]) =>
+      availablePermissions.find(config => config.resource === r)?.choices?.[
+        p as PermissionValue
+      ]?.scopes ?? []
   );
 
   if (hasContinuousIntegration) {
@@ -241,7 +241,11 @@ export function PermissionSelection({
     // derives scopes from the onChange callback instead.
     form?.setValue(
       'scopes',
-      permissionStateToList(nextState.permissions, nextState.hasContinuousIntegration)
+      permissionStateToList(
+        nextState.permissions,
+        nextState.hasContinuousIntegration,
+        displayedPermissions
+      )
     );
   };
 
