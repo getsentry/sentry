@@ -17,8 +17,6 @@ import {
 } from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -26,12 +24,12 @@ import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  GroupActions,
-  GroupResolutionActions,
-} from 'sentry/views/issueDetails/actions/index';
+import {GroupResolutionActions} from 'sentry/views/issueDetails/actions/index';
+import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {IssuePreviewActions} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewActions';
 import {useIssuePreviewSeer} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
 import {IssuePreviewSeerActions} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeerActions';
+import {useInvalidateInboxQueries} from 'sentry/views/issueList/pages/inbox/useInvalidateInboxQueries';
 
 interface IssuePreviewHeaderActionsProps {
   group: Group;
@@ -82,6 +80,7 @@ function IssuePreviewResolutionActions({
   const organization = useOrganization();
   const location = useLocation();
   const queryClient = useQueryClient();
+  const invalidateInboxQueries = useInvalidateInboxQueries(group.id);
   async function handleUpdate(data: GroupStatusResolution) {
     const {alert_date, alert_rule_id, alert_type} = location.query;
     trackAnalytics('issue_inbox.resolve_clicked', {
@@ -112,42 +111,12 @@ function IssuePreviewResolutionActions({
           : t('Issue resolved')
       );
       IssueListCacheStore.reset();
-      const issueListUrl = getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
-        path: {organizationIdOrSlug: organization.slug},
-      });
-      const issueCountUrl = getApiUrl(
-        '/organizations/$organizationIdOrSlug/issues-count/',
-        {path: {organizationIdOrSlug: organization.slug}}
-      );
-      const issueUrl = getApiUrl(
-        '/organizations/$organizationIdOrSlug/issues/$issueId/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            issueId: group.id,
-          },
-        }
-      );
-      const issueActivitiesUrl = getApiUrl(
-        '/organizations/$organizationIdOrSlug/issues/$issueId/activities/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            issueId: group.id,
-          },
-        }
-      );
+      invalidateInboxQueries();
       void queryClient.invalidateQueries({
-        predicate: query => {
-          const url = safeParseQueryKey(query.queryKey)?.url;
-
-          return (
-            url === issueListUrl ||
-            url === issueCountUrl ||
-            url === issueUrl ||
-            url === issueActivitiesUrl
-          );
-        },
+        queryKey: groupQueryKey({
+          organizationSlug: organization.slug,
+          groupId: group.id,
+        }),
       });
     } catch {
       // GroupStore already shows the error
@@ -194,9 +163,7 @@ export function IssuePreviewHeaderActions({
   }
 
   if (!shouldShowSeerActions) {
-    return (
-      <GroupActions group={group} project={project} disabled={disabled} event={null} />
-    );
+    return <IssuePreviewActions group={group} project={project} disabled={disabled} />;
   }
 
   return (
