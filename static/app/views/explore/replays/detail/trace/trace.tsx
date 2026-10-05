@@ -62,6 +62,8 @@ const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
 
 const REPLAY_TRACE_WATERFALL_PREFERENCES_KEY = 'replay-trace-waterfall-preferences';
 
+const REPLAY_TRACE_ADDITIONAL_ATTRIBUTES = ['http.response.status_code', 'span.status'];
+
 export function NewTraceView({replay}: {replay: undefined | HydratedReplayRecord}) {
   const preferences = useMemo(
     () =>
@@ -94,6 +96,7 @@ function NewTraceViewImpl({replay}: {replay: undefined | HydratedReplayRecord}) 
   const trace = useTrace({
     traceSlug: firstTrace?.traceSlug,
     timestamp: firstTrace?.timestamp,
+    additionalAttributes: REPLAY_TRACE_ADDITIONAL_ATTRIBUTES,
   });
   const meta = useReplayTraceMeta(replay);
   const tree = useTraceTree({

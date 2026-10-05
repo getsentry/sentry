@@ -61,22 +61,18 @@ def _extract_first_user_message(messages: Any) -> str | None:
     return None
 
 
-def get_first_input_message(row: Mapping[str, Any]) -> str | None:
-    first_input = _extract_first_user_message(row.get("gen_ai.input.messages"))
-    return first_input or _extract_first_user_message(row.get("gen_ai.request.messages"))
+def _extract_last_assistant_message(messages: Any) -> str | None:
+    if messages == FILTERED:
+        return FILTERED
 
-
-def get_last_output(row: Mapping[str, Any]) -> str | None:
-    output_messages = row.get("gen_ai.output.messages")
-    if output_messages:
-        if output_messages == FILTERED:
-            return FILTERED
-        output = extract_assistant_output(output_messages, "assistant")["response_text"]
-        if output:
-            return output
-
-    response_text = row.get("gen_ai.response.text")
-    return response_text if isinstance(response_text, str) and response_text else None
+    # Agent spans record every assistant step of a turn, so only the final one
+    # is the turn's output.
+    for message in reversed(normalize_to_messages(messages, "assistant") or []):
+        if message.get("role") == "assistant":
+            content = stringify_message_content(message.get("content"))
+            if content:
+                return content
+    return None
 
 
 def get_aggregated_first_input(row: Mapping[str, Any]) -> str | None:
@@ -91,7 +87,11 @@ def get_aggregated_first_input(row: Mapping[str, Any]) -> str | None:
 
     if input_message and request_message:
         return input_message if input_timestamp <= request_timestamp else request_message
-    return input_message or request_message
+    return (
+        input_message
+        or request_message
+        or _extract_first_user_message(row.get("agent_input_messages"))
+    )
 
 
 def get_aggregated_last_output(row: Mapping[str, Any]) -> str | None:
@@ -113,4 +113,4 @@ def get_aggregated_last_output(row: Mapping[str, Any]) -> str | None:
 
     if output and response:
         return output if output_timestamp >= response_timestamp else response
-    return output or response
+    return output or response or _extract_last_assistant_message(row.get("agent_output_messages"))

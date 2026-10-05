@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack, type StackProps} from '@sentry/scraps/layout';
@@ -8,11 +8,13 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {Integration, Repository} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
 
 import {type ScmAnalyticsFlow, scmFlowVariantParams} from './scmAnalyticsFlow';
 import {ScmIntegrationSelect} from './scmIntegrationSelect';
+import {ScmPickerSection} from './scmPickerSection';
 import {ScmProviderPills} from './scmProviderPills';
 import {ScmRepoSelector} from './scmRepoSelector';
 import {useScmPlatformDetection} from './useScmPlatformDetection';
@@ -38,6 +40,8 @@ interface ScmIntegrationConnectProps {
   // renders static "Connected to ..." text for the single active integration.
   allowIntegrationSwitching?: boolean;
   maxWidth?: StackProps['maxWidth'];
+  // Horizontal alignment of the provider pills. Left by default.
+  pillsJustify?: React.ComponentProps<typeof ScmProviderPills>['justify'];
 }
 
 /**
@@ -64,6 +68,7 @@ export function ScmIntegrationConnect({
   selectedRepository,
   allowIntegrationSwitching = false,
   maxWidth = SCM_STEP_CONTENT_WIDTH,
+  pillsJustify,
 }: ScmIntegrationConnectProps) {
   const organization = useOrganization();
   const {
@@ -190,54 +195,72 @@ export function ScmIntegrationConnect({
     );
   }
 
-  return effectiveIntegration ? (
-    <Stack
-      key="with-integration"
-      gap="md"
-      width="100%"
-      maxWidth={maxWidth}
-      paddingTop={allowIntegrationSwitching ? undefined : '2xl'}
-    >
-      {allowIntegrationSwitching ? null : (
-        <Text bold size="sm" density="compressed" uppercase>
-          {t(
-            'Connected to %s / %s',
-            effectiveIntegration.provider.name,
-            effectiveIntegration.name
-          )}
-        </Text>
-      )}
-      <Flex
-        direction={{zero: 'column-reverse', '3xl': 'row'}}
-        width="100%"
-        gap="md"
-        align={{zero: 'start', '3xl': 'center'}}
-      >
-        <ScmRepoSelector
+  if (!effectiveIntegration) {
+    return (
+      <Stack key="without-integration" gap="2xl" width="100%" maxWidth={maxWidth}>
+        <ScmProviderPills
           analyticsFlow={analyticsFlow}
-          integration={effectiveIntegration}
-          selectedRepository={selectedRepository}
-          onRepositoryChange={onRepositoryChange}
-          onClearDerivedState={onClearDerivedState}
-          autoFocus={focusRepoSelectorOnMount}
+          providers={scmProviders}
+          onInstall={handleInstall}
+          justify={pillsJustify}
         />
-        {allowIntegrationSwitching ? (
+      </Stack>
+    );
+  }
+
+  const repoSelector = (
+    <Stack width="100%">
+      <ScmRepoSelector
+        analyticsFlow={analyticsFlow}
+        integration={effectiveIntegration}
+        selectedRepository={selectedRepository}
+        onRepositoryChange={onRepositoryChange}
+        onClearDerivedState={onClearDerivedState}
+        autoFocus={focusRepoSelectorOnMount}
+      />
+    </Stack>
+  );
+
+  if (allowIntegrationSwitching) {
+    return (
+      <Stack key="with-integration" gap="md" width="100%" maxWidth={maxWidth}>
+        <Flex
+          direction={{zero: 'column-reverse', '3xl': 'row'}}
+          width="100%"
+          gap="md"
+          align={{zero: 'start', '3xl': 'center'}}
+        >
+          {repoSelector}
           <ScmIntegrationSelect
             analyticsFlow={analyticsFlow}
             integrations={activeIntegrations}
             selectedIntegration={effectiveIntegration}
             onChange={handleIntegrationSelect}
           />
-        ) : null}
-      </Flex>
-    </Stack>
-  ) : (
-    <Stack key="without-integration" gap="2xl" width="100%" maxWidth={maxWidth}>
-      <ScmProviderPills
-        analyticsFlow={analyticsFlow}
-        providers={scmProviders}
-        onInstall={handleInstall}
-      />
+        </Flex>
+      </Stack>
+    );
+  }
+
+  // Single-integration hosts (onboarding) frame the connected provider and repo
+  // selector in the shared picker card, with the provider logo standing in for
+  // the provider's name.
+  return (
+    <Stack key="with-integration" width="100%" maxWidth={maxWidth}>
+      <ScmPickerSection
+        title={
+          <Fragment>
+            {/* The logo stands in for the provider's name, so it carries the
+              name for screen readers. */}
+            <Flex role="img" aria-label={effectiveIntegration.provider.name}>
+              {getIntegrationIcon(effectiveIntegration.provider.key)}
+            </Flex>
+            <Text size="lg">{effectiveIntegration.name}</Text>
+          </Fragment>
+        }
+      >
+        {repoSelector}
+      </ScmPickerSection>
     </Stack>
   );
 }

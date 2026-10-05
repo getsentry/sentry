@@ -5,11 +5,17 @@ import {
   normalizeToMessages,
 } from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {
-  AGENT_NAME_FIELDS,
   getNumberAttr,
   getStringAttr,
   hasError,
+  resolveAgentName,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getAnswerLabels,
+  getNodeEvaluation,
+  isEvaluationNode,
+  type Evaluation,
+} from 'sentry/views/insights/pages/agents/utils/evaluation';
 import {
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
@@ -21,7 +27,7 @@ const FILTERED = '[Filtered]';
 
 /**
  * Placeholder for message content the SDK didn't record, used when a
- * conversation's inference spans captured no inputs or outputs at all.
+ * conversation's generation spans captured no inputs or outputs at all.
  */
 export const NOT_REPORTED = '<not reported>';
 
@@ -51,13 +57,14 @@ export interface ConversationMessage {
   content: string;
   id: string;
   nodeId: string;
-  role: 'user' | 'assistant' | 'embedding';
+  role: 'user' | 'assistant' | 'embedding' | 'evaluation';
   timestamp: number;
   agentName?: string;
   duration?: number;
   embeddingHasError?: boolean;
   embeddingInput?: string;
   embeddingTokens?: number;
+  evaluation?: Evaluation;
   modelName?: string;
   reasoning?: string;
   toolCalls?: ToolCall[];
@@ -93,8 +100,8 @@ interface ConversationTurn {
 export function extractMessagesFromNodes(
   nodes: AITraceSpanNode[]
 ): ConversationMessage[] {
-  const enrichedNodes = enrichAnthropicAgentMessages(nodes);
-  const {generationSpans, toolSpans, embeddingSpans} =
+  const enrichedNodes = enrichAgentMessages(nodes);
+  const {generationSpans, toolSpans, embeddingSpans, evaluationSpans} =
     partitionSpansByType(enrichedNodes);
   const turns = buildConversationTurns(generationSpans, toolSpans);
   const displayTurns = turns.some(hasTurnContent)
@@ -103,28 +110,10 @@ export function extractMessagesFromNodes(
   const messages = [
     ...turnsToMessages(displayTurns),
     ...embeddingSpansToMessages(embeddingSpans),
+    ...evaluationSpansToMessages(evaluationSpans),
   ];
   messages.sort((a, b) => a.timestamp - b.timestamp);
   return messages;
-}
-
-const ANTHROPIC_OTEL_ORIGIN = 'auto.otlp.spans';
-const ANTHROPIC_SPAN_NAME_PREFIX = 'anthropic.';
-
-function getSpanName(node: AITraceSpanNode): string | undefined {
-  return 'name' in node.value && typeof node.value.name === 'string'
-    ? node.value.name
-    : undefined;
-}
-
-// OTLP ingest origin plus an `anthropic.` span name only co-occur for OTel spans
-// from Anthropic, which is the one source that records messages on the agent
-// span instead of its generation spans (see enrichAnthropicAgentMessages).
-function getIsAnthropicOtelNode(node: AITraceSpanNode): boolean {
-  return (
-    getStringAttr(node, SpanFields.SENTRY_ORIGIN) === ANTHROPIC_OTEL_ORIGIN &&
-    (getSpanName(node)?.startsWith(ANTHROPIC_SPAN_NAME_PREFIX) ?? false)
-  );
 }
 
 function nodeHasOwnMessages(node: AITraceSpanNode): boolean {
@@ -229,19 +218,15 @@ function buildAgentChildOverrides(
 }
 
 /**
- * Anthropic's OTel SDK records a turn's messages on the `invoke_agent` span and
- * leaves its `ai_client` children empty. Backfilling each child from the agent
- * span lets the unchanged turn-building pipeline render these conversations like
- * any fully instrumented agent, so inference stays the default source elsewhere.
+ * Some SDKs put messages on the agent span instead of its generation spans.
+ * Backfill empty generation children so the standard transcript flow can use them.
  */
-export function enrichAnthropicAgentMessages(
-  nodes: AITraceSpanNode[]
-): AITraceSpanNode[] {
+export function enrichAgentMessages(nodes: AITraceSpanNode[]): AITraceSpanNode[] {
   const childrenByAgentId = groupGenerationChildrenByAgent(nodes);
   const overridesById = new Map<string, Record<string, string>>();
 
   for (const node of nodes) {
-    if (getGenAiOpType(node) !== 'agent' || !getIsAnthropicOtelNode(node)) {
+    if (getGenAiOpType(node) !== 'agent') {
       continue;
     }
 
@@ -251,8 +236,7 @@ export function enrichAnthropicAgentMessages(
     }
 
     const children = childrenByAgentId.get(node.id) ?? [];
-    // Keep inference the default: only reconstruct when every generation child
-    // is missing its own messages.
+    // Keep generation spans as the source when they have their own messages.
     if (children.length === 0 || children.some(nodeHasOwnMessages)) {
       continue;
     }
@@ -282,15 +266,24 @@ export function enrichAnthropicAgentMessages(
 
 export function partitionSpansByType(nodes: AITraceSpanNode[]): {
   embeddingSpans: AITraceSpanNode[];
+  evaluationSpans: AITraceSpanNode[];
   generationSpans: AITraceSpanNode[];
   toolSpans: AITraceSpanNode[];
 } {
   const generationSpans: AITraceSpanNode[] = [];
   const toolSpans: AITraceSpanNode[] = [];
   const embeddingSpans: AITraceSpanNode[] = [];
+  const evaluationSpans: AITraceSpanNode[] = [];
 
   for (const node of nodes) {
     const opType = getGenAiOpType(node);
+    // Evaluations report gen_ai.operation.type "ai_client" like LLM calls, so
+    // they're recognized by gen_ai.operation.name before they'd fall through
+    // to generationSpans as empty turns.
+    if (isEvaluationNode(node)) {
+      evaluationSpans.push(node);
+      continue;
+    }
     // Embeddings are checked first: they don't get a dedicated
     // gen_ai.operation.type (it reports "ai_client"), so they're recognized by
     // their span op — or, once available, the embeddings-only input attribute.
@@ -308,8 +301,9 @@ export function partitionSpansByType(nodes: AITraceSpanNode[]): {
   generationSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
   toolSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
   embeddingSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
+  evaluationSpans.sort((a, b) => getNodeTimestamp(a) - getNodeTimestamp(b));
 
-  return {generationSpans, toolSpans, embeddingSpans};
+  return {generationSpans, toolSpans, embeddingSpans, evaluationSpans};
 }
 
 /**
@@ -350,6 +344,29 @@ export function embeddingSpansToMessages(
   }
 
   return messages;
+}
+
+/**
+ * Maps evaluation spans to standalone messages positioned by their own
+ * timestamp, like embeddings. Parts that can't be read are left to the span
+ * detail, which shows them raw.
+ */
+export function evaluationSpansToMessages(
+  evaluationSpans: AITraceSpanNode[]
+): ConversationMessage[] {
+  return evaluationSpans.map(span => {
+    const start = getNodeStartTimestamp(span);
+    const end = getNodeEndTimestamp(span);
+    return {
+      id: `evaluation-${span.id}`,
+      role: 'evaluation',
+      content: '',
+      timestamp: getNodeTimestamp(span),
+      nodeId: span.id,
+      duration: end > start ? end - start : undefined,
+      evaluation: getNodeEvaluation(span) ?? undefined,
+    };
+  });
 }
 
 export function buildConversationTurns(
@@ -578,13 +595,7 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
       const endTs = Math.max(genEnd, lastToolEnd);
       const duration = endTs > startTs ? endTs - startTs : undefined;
 
-      let agentName: string | undefined;
-      for (const field of AGENT_NAME_FIELDS) {
-        agentName = getStringAttr(turn.generation, field);
-        if (agentName) {
-          break;
-        }
-      }
+      const agentName = resolveAgentName(turn.generation.attributes ?? {});
       const modelName = getStringAttr(turn.generation, SpanFields.GEN_AI_RESPONSE_MODEL);
 
       messages.push({
@@ -776,6 +787,22 @@ function toBlockquote(text: string): string {
     .join('\n');
 }
 
+function evaluationToMarkdown(evaluation: Evaluation | undefined): string[] {
+  const lines: string[] = [];
+  const state = evaluation?.input?.state;
+  if (state !== undefined) {
+    lines.push(toBlockquote(typeof state === 'string' ? state : JSON.stringify(state)));
+  }
+  const answers = getAnswerLabels(
+    evaluation?.answers ?? [],
+    evaluation?.input?.questions
+  ).map(([key, label]) => `- ${key}: ${label}`);
+  if (answers.length > 0) {
+    lines.push(answers.join('\n'));
+  }
+  return lines;
+}
+
 export function messagesToMarkdown(messages: ConversationMessage[]): string {
   const blocks: string[] = [];
 
@@ -789,6 +816,9 @@ export function messagesToMarkdown(messages: ConversationMessage[]): string {
     } else if (message.role === 'embedding') {
       lines.push('### Embedding');
       lines.push(toBlockquote(message.embeddingInput ?? ''));
+    } else if (message.role === 'evaluation') {
+      lines.push('### Evaluation');
+      lines.push(...evaluationToMarkdown(message.evaluation));
     } else {
       const sender = message.agentName || message.modelName || 'Assistant';
       const durationStr =

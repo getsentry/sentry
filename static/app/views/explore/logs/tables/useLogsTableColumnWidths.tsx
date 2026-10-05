@@ -1,6 +1,5 @@
 import {useEffect, useState, type RefObject} from 'react';
 
-import {useWindowSize} from 'sentry/utils/window/useWindowSize';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 type ColumnWidths = Record<string, number | string>;
@@ -13,6 +12,7 @@ type LogsTableColumnWidthOptions = {
   isPending: boolean;
   isScrolling: boolean;
   tableRef: RefObject<HTMLElement | null>;
+  tableWidth: number;
 };
 
 // The flexible track is the message column when present, otherwise the last
@@ -29,19 +29,18 @@ function getDefaultColumnWidths(fields: readonly string[]) {
   return flexField ? {[flexField]: FLEX_COLUMN_WIDTH} : {};
 }
 
-function useFieldsColumnWidths(fields: readonly string[]) {
+function useFieldsColumnWidths(fields: readonly string[], tableWidth: number) {
   const [columnWidths, setColumnWidths] = useState<ColumnWidths | undefined>();
-  const windowSize = useWindowSize();
 
   const fieldsKey = fields.join('\u0000');
 
-  // Reset only when the fields actually change or the window resizes, not on
+  // Reset only when the fields actually change or the table resizes, not on
   // every new `fields` array identity (sort/search/date all mint a new array).
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setColumnWidths(undefined);
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [fieldsKey, windowSize]);
+  }, [fieldsKey, tableWidth]);
 
   return [columnWidths, setColumnWidths] as const;
 }
@@ -52,8 +51,9 @@ export function useLogsTableColumnWidths({
   isPending,
   isScrolling,
   dataLength,
+  tableWidth,
 }: LogsTableColumnWidthOptions): ColumnWidths {
-  const [columnWidths, setColumnWidths] = useFieldsColumnWidths(fields);
+  const [columnWidths, setColumnWidths] = useFieldsColumnWidths(fields, tableWidth);
 
   useEffect(() => {
     if (

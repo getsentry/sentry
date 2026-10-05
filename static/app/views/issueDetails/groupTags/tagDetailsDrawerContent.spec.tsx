@@ -127,7 +127,7 @@ describe('TagDetailsDrawerContent', () => {
     );
   });
 
-  it('navigates to discover with issue + tag query', async () => {
+  it('navigates to explore with issue + tag query', async () => {
     const discoverOrganization = OrganizationFixture({
       features: ['discover-basic'],
     });
@@ -146,12 +146,12 @@ describe('TagDetailsDrawerContent', () => {
     );
 
     const discoverMenuItem = screen.getByRole('menuitemradio', {
-      name: 'Open in Discover',
+      name: 'Open in Explore',
     });
     expect(discoverMenuItem).toBeInTheDocument();
 
     const link = new URL(discoverMenuItem.getAttribute('href') ?? '', 'http://localhost');
-    expect(link.pathname).toBe('/organizations/org-slug/explore/discover/results/');
+    expect(link.pathname).toBe('/organizations/org-slug/explore/errors/results/');
     const discoverQueryParams = qs.parse(link.search);
 
     expect(discoverQueryParams).toEqual({
@@ -160,7 +160,7 @@ describe('TagDetailsDrawerContent', () => {
       interval: '1m',
       name: 'RequestError: GET /issues/ 404',
       project: '2',
-      query: 'issue:JAVASCRIPT-6QS user.username:david',
+      query: 'issue:JAVASCRIPT-6QS (user.username:david)',
       queryDataset: 'error-events',
       statsPeriod: '14d',
       yAxis: ['count()', 'count_unique(user)'],

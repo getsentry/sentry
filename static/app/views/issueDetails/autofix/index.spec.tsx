@@ -63,10 +63,10 @@ describe('GroupAutofix', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/seer/onboarding-check/`,
       body: {
-        hasSupportedScmIntegration: false,
-        isAutofixEnabled: false,
+        hasSupportedScmIntegration: true,
+        isAutofixEnabled: true,
         isCodeReviewEnabled: false,
-        isSeerConfigured: false,
+        isSeerConfigured: true,
       },
     });
     MockApiClient.addMockResponse({
@@ -99,7 +99,7 @@ describe('GroupAutofix', () => {
     renderPage(
       OrganizationFixture({
         hideAiFeatures: false,
-        features: ['gen-ai-features', 'autofix-page'],
+        features: ['autofix-page'],
       })
     );
 
@@ -122,7 +122,7 @@ describe('GroupAutofix', () => {
     renderPage(
       OrganizationFixture({
         hideAiFeatures: false,
-        features: ['gen-ai-features', 'autofix-page', 'seer-billing'],
+        features: ['autofix-page', 'seer-billing'],
       })
     );
 
@@ -150,7 +150,7 @@ describe('GroupAutofix', () => {
     renderPage(
       OrganizationFixture({
         hideAiFeatures: false,
-        features: ['gen-ai-features', 'autofix-page', 'seer-billing'],
+        features: ['autofix-page', 'seer-billing'],
       })
     );
 
@@ -170,7 +170,7 @@ describe('GroupAutofix', () => {
     renderPage(
       OrganizationFixture({
         hideAiFeatures: false,
-        features: ['gen-ai-features', 'autofix-page', 'seer-billing'],
+        features: ['autofix-page', 'seer-billing'],
       })
     );
 
@@ -185,7 +185,7 @@ describe('GroupAutofix', () => {
     renderPage(
       OrganizationFixture({
         hideAiFeatures: false,
-        features: ['gen-ai-features', 'autofix-page', 'seer-billing'],
+        features: ['autofix-page', 'seer-billing'],
       })
     );
 
@@ -195,9 +195,133 @@ describe('GroupAutofix', () => {
     expect(screen.queryByTestId('autofix-upgrade-cta')).not.toBeInTheDocument();
   });
 
+  it('asks the org to finish configuring Seer before it has an SCM integration', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgSlug}/seer/onboarding-check/`,
+      body: {
+        hasSupportedScmIntegration: false,
+        isAutofixEnabled: false,
+        isCodeReviewEnabled: false,
+        isSeerConfigured: false,
+      },
+    });
+
+    renderPage(
+      OrganizationFixture({
+        hideAiFeatures: false,
+        features: ['autofix-page'],
+      })
+    );
+
+    expect(await screen.findByText('Finish Configuring Seer')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Set Up Seer'})).toHaveAttribute(
+      'href',
+      `/settings/${orgSlug}/seer/onboarding/`
+    );
+    expect(
+      screen.queryByRole('button', {name: 'Start Analysis'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('asks for project setup when no repos are linked to the project', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgSlug}/issues/${group.id}/autofix/setup/`,
+      body: AutofixSetupFixture({
+        integration: {ok: true, reason: null},
+        seerReposLinked: false,
+      }),
+    });
+
+    renderPage(
+      OrganizationFixture({
+        hideAiFeatures: false,
+        features: ['autofix-page'],
+      })
+    );
+
+    expect(await screen.findByText('Finish Configuring Seer')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Set Up Seer for This Project'})
+    ).toHaveAttribute('href', `/settings/${orgSlug}/projects/${project.slug}/seer/`);
+    expect(
+      screen.queryByRole('button', {name: 'Start Analysis'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('skips the setup step for legacy Seer plans', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgSlug}/seer/onboarding-check/`,
+      body: {
+        hasSupportedScmIntegration: false,
+        isAutofixEnabled: false,
+        isCodeReviewEnabled: false,
+        isSeerConfigured: false,
+      },
+    });
+
+    renderPage(
+      OrganizationFixture({
+        hideAiFeatures: false,
+        features: ['autofix-page', 'seer-added'],
+      })
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Start Analysis'})
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Finish Configuring Seer')).not.toBeInTheDocument();
+  });
+
+  it('keeps an existing run visible when Seer still needs setup', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgSlug}/seer/onboarding-check/`,
+      body: {
+        hasSupportedScmIntegration: false,
+        isAutofixEnabled: false,
+        isCodeReviewEnabled: false,
+        isSeerConfigured: false,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgSlug}/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture(),
+    });
+
+    renderPage(
+      OrganizationFixture({
+        hideAiFeatures: false,
+        features: ['autofix-page'],
+      })
+    );
+
+    expect(
+      await screen.findByText('The issue was caused by an unexpected value.')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Finish Configuring Seer')).not.toBeInTheDocument();
+  });
+
+  it('leaves the start card in place when the onboarding check fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgSlug}/seer/onboarding-check/`,
+      statusCode: 500,
+    });
+
+    renderPage(
+      OrganizationFixture({
+        hideAiFeatures: false,
+        features: ['autofix-page'],
+      })
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Start Analysis'})
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Finish Configuring Seer')).not.toBeInTheDocument();
+  });
+
   it('redirects to issue details without the autofix-page feature', async () => {
     const {router} = renderPage(
-      OrganizationFixture({hideAiFeatures: false, features: ['gen-ai-features']})
+      OrganizationFixture({hideAiFeatures: false, features: []})
     );
 
     await waitFor(() => {
@@ -211,7 +335,7 @@ describe('GroupAutofix', () => {
     const {router} = renderPage(
       OrganizationFixture({
         hideAiFeatures: true,
-        features: ['gen-ai-features', 'autofix-page'],
+        features: ['autofix-page'],
       })
     );
 

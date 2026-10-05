@@ -349,6 +349,40 @@ class OrganizationStatsTestV2(APITestCase, OutcomesSnubaTest):
         }
 
     @freeze_time(_now)
+    def test_user_my_projects_total_excludes_other_projects(self) -> None:
+        self.store_outcomes(
+            {
+                "org_id": self.org.id,
+                "timestamp": self._now - timedelta(hours=1),
+                "project_id": self.project4.id,
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.ERROR,
+                "quantity": 1,
+            },
+            2,
+        )
+
+        response = self.do_request(
+            {
+                "statsPeriod": "1d",
+                "interval": "1d",
+                "field": ["sum(quantity)"],
+                "category": ["error"],
+                "groupBy": ["outcome", "reason"],
+            },
+            user=self.user2,
+        )
+
+        assert result_sorted(response.data)["groups"] == [
+            {
+                "by": {"outcome": "accepted", "reason": "none"},
+                "series": {"sum(quantity)": [0, 2]},
+                "totals": {"sum(quantity)": 2},
+            }
+        ]
+
+    @freeze_time(_now)
     def test_user_no_proj_specific_access(self) -> None:
         response = self.do_request(
             {

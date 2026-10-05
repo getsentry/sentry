@@ -195,11 +195,6 @@ class DiscoverSavedQueryVisitEndpoint(DiscoverSavedQueryBase):
     def has_feature(self, organization, request):
         return features.has("organizations:discover-query", organization, actor=request.user)
 
-    def has_migrate_feature(self, organization, request):
-        return features.has(
-            "organizations:discover-queries-in-all-queries", organization, actor=request.user
-        )
-
     def post(self, request: Request, organization, query) -> Response:
         """
         Update last_visited and increment visits counter
@@ -213,7 +208,7 @@ class DiscoverSavedQueryVisitEndpoint(DiscoverSavedQueryBase):
         query.last_visited = timezone.now()
         query.save(update_fields=["visits", "last_visited"])
 
-        if self.has_migrate_feature(organization, request) and request.user.is_authenticated:
+        if request.user.is_authenticated:
             DiscoverSavedQueryLastVisited.objects.update_or_create(
                 organization=organization,
                 user_id=request.user.id,

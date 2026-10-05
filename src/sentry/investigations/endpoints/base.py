@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from rest_framework import status
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import APIException, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,6 +15,7 @@ from sentry.constants import ObjectStatus
 from sentry.investigations.models import (
     Investigation,
     InvestigationBlock,
+    InvestigationComment,
 )
 from sentry.investigations.services import (
     InvestigationConflictError,
@@ -25,6 +26,11 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 
 FEATURE = "organizations:investigations"
+
+
+class InvestigationArchivedError(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = "Archived investigations are read-only."
 
 
 def feature_enabled(request: Request, organization: Organization) -> bool:
@@ -147,5 +153,29 @@ class OrganizationInvestigationBlockEndpoint(OrganizationInvestigationEndpoint):
                 id=block_id, investigation=kwargs["investigation"]
             )
         except (InvestigationBlock.DoesNotExist, ValueError):
+            raise ResourceDoesNotExist
+        return args, kwargs
+
+
+class OrganizationInvestigationCommentEndpoint(OrganizationInvestigationEndpoint):
+    """Base for endpoints addressing a single comment."""
+
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: str | int,
+        investigation_id: str,
+        comment_id: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        args, kwargs = super().convert_args(
+            request, organization_id_or_slug, investigation_id, *args, **kwargs
+        )
+        try:
+            kwargs["comment"] = InvestigationComment.objects.get(
+                id=comment_id, investigation=kwargs["investigation"]
+            )
+        except (InvestigationComment.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
         return args, kwargs

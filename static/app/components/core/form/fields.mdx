@@ -9,7 +9,7 @@ resources:
 
 import {Container} from '@sentry/scraps/layout';
 
-import {BaseFieldDemo, NumberFieldDemo} from './__stories__/formDemos';
+import {BaseFieldDemo, CheckboxFieldDemo, NumberFieldDemo} from './__stories__/formDemos';
 
 import * as Storybook from 'sentry/stories';
 
@@ -185,6 +185,29 @@ Async search select that loads options from an API. Pass `queryOptions` to confi
         })}
       />
     </field.Layout.Row>
+  )}
+</form.AppField>
+```
+
+## Checkbox
+
+Boolean choice with a label and optional hint text. The hint aligns beneath the label.
+
+<Storybook.Demo>
+  <Container width="80%">
+    <CheckboxFieldDemo />
+  </Container>
+</Storybook.Demo>
+
+```jsx
+<form.AppField name="subscribe">
+  {field => (
+    <field.Checkbox
+      checked={field.state.value}
+      onChange={field.handleChange}
+      label={t('Send me the newsletter')}
+      hintText={t('Get product updates by email.')}
+    />
   )}
 </form.AppField>
 ```
