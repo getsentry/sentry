@@ -5,8 +5,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
+from sentry.ai_monitoring.utils import model_costs
 from sentry.llm_cache_issue_detection.detection import CacheFinding, CacheOutcome
-from sentry.relay.config.ai_model_costs import AIModelMetadataConfig, model_costs
+from sentry.relay.config.ai_model_costs import AIModelMetadataConfig
 
 
 @dataclass(frozen=True)

@@ -15,7 +15,7 @@ from datetime import UTC, datetime, timedelta
 from difflib import SequenceMatcher
 from enum import StrEnum
 
-from sentry.relay.config.ai_model_costs import canonical_model_name
+from sentry.ai_monitoring.utils import canonical_model_name
 
 DETECTION_WINDOW_DAYS = 7
 
