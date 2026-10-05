@@ -11,6 +11,35 @@ if TYPE_CHECKING:
     from sentry.models.rule import Rule
 
 
+@dataclass(frozen=True)
+class NotificationOrigin:
+    """Identifies the rule or workflow that caused a notification."""
+
+    label: str
+    workflow_id: int | None
+    legacy_rule_id: int | None
+
+    @classmethod
+    def from_legacy_rule(cls, rule: Rule) -> NotificationOrigin:
+        actions = rule.data.get("actions")
+        first_action = actions[0] if isinstance(actions, list) and actions else {}
+        workflow_id = first_action.get("workflow_id")
+        legacy_rule_id = first_action.get("legacy_rule_id")
+
+        if workflow_id is not None:
+            workflow_id = int(workflow_id)
+        if legacy_rule_id is not None:
+            legacy_rule_id = int(legacy_rule_id)
+        elif workflow_id is None:
+            legacy_rule_id = rule.id
+
+        return cls(
+            label=rule.label,
+            workflow_id=workflow_id,
+            legacy_rule_id=legacy_rule_id,
+        )
+
+
 class RuleFuture(NamedTuple):
     rule: Rule
     kwargs: dict[str, Any]
