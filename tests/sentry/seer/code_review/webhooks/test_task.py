@@ -1,5 +1,5 @@
 from typing import Any, cast
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from django.test import override_settings
 from urllib3.response import HTTPResponse
@@ -22,9 +22,9 @@ class ProcessGithubWebhookEventTest(TestCase):
         SENTRY_VIEWER_CONTEXT_ENABLED=True,
     )
     @patch("sentry.seer.code_review.utils.seer_code_review_connection_pool.urlopen")
-    def test_propagates_webhook_viewer_context_to_seer(self, mock_urlopen) -> None:
+    def test_propagates_webhook_viewer_context_to_seer(self, mock_urlopen: Mock) -> None:
         mock_urlopen.return_value = HTTPResponse(b"", status=200)
-        kwargs = {
+        kwargs: dict[str, Any] = {
             "seer_path": "/v1/code-review/test",
             "event_payload": {"action": "opened"},
             "tags": {"sentry_organization_id": str(self.organization.id)},
