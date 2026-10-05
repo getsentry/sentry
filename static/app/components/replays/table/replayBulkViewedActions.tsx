@@ -8,6 +8,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconCheckmark} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ListCheckboxQueryKeyRef} from 'sentry/utils/list/useListItemCheckboxState';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {replayListApiOptions} from 'sentry/utils/replays/replayListApiOptions';
@@ -40,7 +41,16 @@ export function ReplayBulkViewedActions({
 
     const results = await Promise.allSettled(
       selectedRows.map(replay => {
-        const url = `/projects/${organization.slug}/${replay.project_id}/replays/${replay.id}/viewed-by/`;
+        const url = getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/viewed-by/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: String(replay.project_id),
+              replayId: replay.id,
+            },
+          }
+        );
 
         return fetchMutation({method: 'POST', url}).then(() => replay.id);
       })

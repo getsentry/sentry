@@ -691,7 +691,6 @@ class AgentTokenAuthentication(StandardAuthentication):
                 "is_staff": False,
                 "is_superuser": False,
                 "permissions": frozenset(),
-                "roles": frozenset(),
             }
         )
         return self.transform_auth(compatibility_user, auth_token)

@@ -45,6 +45,7 @@ import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
+import {mapAutomationFormErrors} from 'sentry/views/automations/utils/mapAutomationFormErrors';
 import {hasAutomationWriteAccess} from 'sentry/views/automations/utils/permissions';
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -156,7 +157,9 @@ export default function AutomationNewSettings() {
     removeError,
   } = useAutomationBuilderErrors();
 
-  const {mutateAsync: createAutomation, error} = useCreateAutomation();
+  const {mutateAsync: createAutomation, error} = useCreateAutomation({
+    suppressErrorMessage: true,
+  });
 
   const handleSubmit = useCallback<OnSubmitCallback>(
     async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
@@ -243,6 +246,7 @@ export default function AutomationNewSettings() {
       initialData={initialData}
       onSubmit={handleSubmit}
       model={model}
+      mapFormErrors={mapAutomationFormErrors}
     >
       <AutomationFormProvider>
         <AutomationDocumentTitle />

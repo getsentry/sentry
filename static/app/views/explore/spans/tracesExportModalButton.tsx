@@ -14,7 +14,10 @@ import {ExploreExportModalButton} from 'sentry/views/explore/components/exports/
 import {trackExploreTableExported} from 'sentry/views/explore/components/exports/trackExploreTableExported';
 import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
+import {
+  AGGREGATES_SAMPLE_FIELDS,
+  type AggregatesTableResult,
+} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
@@ -63,7 +66,7 @@ export function TracesExportModalButton({
   const payload = eventView.getEventsAPIPayload(location);
   const queryInfo: ExploreQueryInfo = {
     dataset: TraceItemDataset.SPANS,
-    field: payload.field,
+    field: payload.field.filter(isExportedField),
     project: decodeList(payload.project).map(Number),
     query: payload.query,
     sampling: SAMPLING_MODE.HIGH_ACCURACY,
@@ -88,9 +91,20 @@ export function TracesExportModalButton({
     localDownload: ({format, limit}) => {
       const rows = data.slice(0, limit);
       if (format === 'jsonl') {
-        downloadAsJsonl(rows, filenameBase);
+        downloadAsJsonl(
+          rows.map(row =>
+            Object.fromEntries(
+              Object.entries(row).filter(([key]) => isExportedField(key))
+            )
+          ),
+          filenameBase
+        );
       } else {
-        downloadAsCsv({data: rows}, eventView.getColumns(), filenameBase);
+        downloadAsCsv(
+          {data: rows},
+          eventView.getColumns().filter(column => isExportedField(column.key)),
+          filenameBase
+        );
       }
     },
     trackExportSubmit: args =>
@@ -114,4 +128,8 @@ export function TracesExportModalButton({
       }
     />
   );
+}
+
+function isExportedField(field: string) {
+  return !AGGREGATES_SAMPLE_FIELDS.includes(field);
 }

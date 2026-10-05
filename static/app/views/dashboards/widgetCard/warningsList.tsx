@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 interface WarningsListProps {
-  warnings: string[];
+  warnings: React.ReactNode[];
 }
 
 export function WarningsList({warnings}: WarningsListProps) {

@@ -211,10 +211,8 @@ describe('GlobalAlertProvider', () => {
   });
 
   it('throws when used outside the provider', () => {
-    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
     expect(() => renderHook(useGlobalAlerts)).toThrow(
       /useGlobalAlerts must be used within a GlobalAlertProvider/
     );
-    consoleError.mockRestore();
   });
 });

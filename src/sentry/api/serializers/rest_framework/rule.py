@@ -128,10 +128,6 @@ class RuleSetSerializer(serializers.Serializer):
         return attrs
 
 
-class RulePreviewSerializer(RuleSetSerializer):
-    endpoint = serializers.DateTimeField(required=False, allow_null=True)
-
-
 class DummyRuleSerializer(serializers.Serializer):
     name = serializers.CharField(
         max_length=256, required=False, allow_null=True, allow_blank=True, default="Test Alert"

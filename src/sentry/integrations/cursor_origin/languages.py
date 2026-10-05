@@ -12,6 +12,7 @@ ignore the same directories.
 from __future__ import annotations
 
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 from sentry.integrations.source_code_management.repo_trees import segments_are_ignored
@@ -79,17 +80,7 @@ def _language(path: str) -> str | None:
     return EXTENSION_TO_LANGUAGE.get(f".{extension.lower()}")
 
 
-def _size(entry: dict[str, Any]) -> int | None:
-    """Blob size in bytes, or None if unreadable."""
-    # Origin documents ``size`` as a JSON number, but a stringified one has been
-    # observed, and trees and gitlinks omit the field entirely.
-    try:
-        return int(entry["size"])
-    except (KeyError, TypeError, ValueError):
-        return None
-
-
-def languages_from_tree(tree: list[dict[str, Any]]) -> dict[str, int]:
+def languages_from_tree(tree: Sequence[Mapping[str, Any]]) -> dict[str, int]:
     """Byte counts per language, shaped like GitHub's languages API.
 
     ``tree`` is the entry list from Origin's ``git/trees/{sha}?recursive=true``.
@@ -104,7 +95,8 @@ def languages_from_tree(tree: list[dict[str, Any]]) -> dict[str, int]:
         if language is None:
             continue
 
-        size = _size(entry)
+        # Documented as set for every blob; one missing would raise rather than skip.
+        size = entry.get("size")
         if size is None:
             continue
 
