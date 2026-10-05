@@ -119,21 +119,24 @@ export const CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION: SpecialPermissionObj 
   scope: 'org:ci',
 };
 
-// Granular scope, only offered on personal tokens while
+// Permissions backed by granular scopes (see GRANULAR_SCOPES in
+// sentry/conf/server.py). Only offered on personal tokens while
 // `organizations:granular-permission-scopes-ui` is rolling out.
-export const DASHBOARD_PERMISSION: PermissionObj = {
-  resource: 'Dashboard',
-  help: 'Dashboards and their widgets',
-  choices: {
-    'no-access': {label: 'No Access', scopes: []},
-    read: {label: 'Read', scopes: ['dashboard:read']},
-    write: {label: 'Read & Write', scopes: ['dashboard:read', 'dashboard:write']},
-    delete: {
-      label: 'Read, Write & Delete',
-      scopes: ['dashboard:read', 'dashboard:write', 'dashboard:delete'],
+export const GRANULAR_SENTRY_APP_PERMISSIONS: PermissionObj[] = [
+  {
+    resource: 'Dashboard',
+    help: 'Dashboards and their widgets',
+    choices: {
+      'no-access': {label: 'No Access', scopes: []},
+      read: {label: 'Read', scopes: ['dashboard:read']},
+      write: {label: 'Read & Write', scopes: ['dashboard:read', 'dashboard:write']},
+      delete: {
+        label: 'Read, Write & Delete',
+        scopes: ['dashboard:read', 'dashboard:write', 'dashboard:delete'],
+      },
     },
   },
-};
+];
 
 export const SPECIAL_SENTRY_APP_PERMISSIONS: SpecialPermissionObj[] = [
   CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION,

@@ -18,8 +18,8 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {
-  DASHBOARD_PERMISSION,
   DISTRIBUTION_SENTRY_APP_PERMISSION,
+  GRANULAR_SENTRY_APP_PERMISSIONS,
   SENTRY_APP_PERMISSIONS,
 } from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
@@ -54,7 +54,9 @@ const INITIAL_PERMISSIONS: Permissions = {
   Organization: 'no-access',
   Alerts: 'no-access',
   Distribution: 'no-access',
-  Dashboard: 'no-access',
+  ...Object.fromEntries(
+    GRANULAR_SENTRY_APP_PERMISSIONS.map(({resource}) => [resource, 'no-access'] as const)
+  ),
 };
 
 // Personal tokens can't be used for Distribution. The point of
@@ -79,7 +81,7 @@ export default function ApiNewToken() {
   const displayedPermissions = organization?.features.includes(
     'granular-permission-scopes-ui'
   )
-    ? [...DISPLAYED_PERMISSIONS, DASHBOARD_PERMISSION]
+    ? [...DISPLAYED_PERMISSIONS, ...GRANULAR_SENTRY_APP_PERMISSIONS]
     : DISPLAYED_PERMISSIONS;
 
   const handleGoBack = useCallback(
