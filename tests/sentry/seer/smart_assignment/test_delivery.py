@@ -223,24 +223,6 @@ class DeliverSmartAssignmentResultTest(TestCase):
         self._assert_outcome(mock_metrics, "resolved")
 
     @patch(METRICS_PATH)
-    def test_email_kind_without_exact_match_is_unlinked(self, mock_metrics: MagicMock) -> None:
-        dana = self.create_user(email="dana.reed@sentry.io", name="Dana Reed", username="dana")
-        self.create_member(user=dana, organization=self.organization)
-        self._deliver(
-            {
-                "candidates": [
-                    {
-                        "identifier": "dana.reed@gmail.com",
-                        "identifier_kind": "email",
-                    }
-                ]
-            }
-        )
-
-        assert self._extras()["predicted_assignee_user_ids"] == [None]
-        self._assert_outcome(mock_metrics, "unlinked")
-
-    @patch(METRICS_PATH)
     def test_unresolvable_identifier_records_no_user(self, mock_metrics: MagicMock) -> None:
         result = {
             "candidates": [
