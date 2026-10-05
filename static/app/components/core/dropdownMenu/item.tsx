@@ -100,6 +100,7 @@ interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {
    * Tag name for item wrapper
    */
   renderAs?: T;
+  submenuRef?: React.RefObject<HTMLElement | null>;
 }
 
 /**
@@ -115,9 +116,11 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   renderAs,
   ref,
   menuItemRef,
+  submenuRef,
   ...props
 }: DropdownMenuItemProps<T>) {
   const innerWrapRef = useRef<HTMLElement | null>(null);
+  const lastPointerPosition = useRef<{x: number; y: number} | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
   const {
@@ -133,7 +136,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   } = node.value ?? {};
   const isSubmenu = !!submenu;
   const {size} = node.props;
-  const {rootOverlayState} = useContext(DropdownMenuContext);
+  const {rootOverlayState, safetyTriangle} = useContext(DropdownMenuContext);
   const isLink = to || externalHref;
   const resolvedCloseOnSelect = itemCloseOnSelect ?? closeOnSelect;
 
@@ -231,7 +234,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       },
     };
   };
-  const mergedMenuItemContentProps = mergeProps(
+  const mergedMenuItemContentProps: React.HTMLAttributes<HTMLElement> = mergeProps(
     props,
     menuItemProps,
     hoverProps,
@@ -240,6 +243,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
     // oxlint-disable-next-line react/refs
     {ref: mergeRefs(menuItemRef, innerWrapRef), 'data-test-id': key}
   );
+  const {onPointerEnter, onPointerMove, onPointerLeave} = mergedMenuItemContentProps;
   const itemLabel = node.rendered ?? label;
 
   return (
@@ -249,7 +253,35 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       label={itemLabel}
       disabled={isDisabled}
       isFocused={isFocused}
-      innerWrapProps={mergedMenuItemContentProps}
+      innerWrapProps={{
+        ...mergedMenuItemContentProps,
+        onPointerEnter: (event: React.PointerEvent<HTMLElement>) => {
+          lastPointerPosition.current = {x: event.clientX, y: event.clientY};
+          // React clears currentTarget after dispatch, but hover may be deferred.
+          const savedEvent = {...event, currentTarget: event.currentTarget};
+          const enter = () => onPointerEnter?.(savedEvent);
+          if (safetyTriangle) {
+            safetyTriangle.defer(event, enter);
+          } else {
+            enter();
+          }
+        },
+        onPointerMove: (event: React.PointerEvent<HTMLElement>) => {
+          lastPointerPosition.current = {x: event.clientX, y: event.clientY};
+          onPointerMove?.(event);
+        },
+        onPointerLeave: (event: React.PointerEvent<HTMLElement>) => {
+          safetyTriangle?.leave(event.currentTarget);
+          if (
+            event.pointerType === 'mouse' &&
+            submenuRef?.current &&
+            lastPointerPosition.current
+          ) {
+            safetyTriangle?.start(lastPointerPosition.current, submenuRef.current);
+          }
+          onPointerLeave?.(event);
+        },
+      }}
       labelProps={labelProps}
       detailsProps={descriptionProps}
       trailingItems={
