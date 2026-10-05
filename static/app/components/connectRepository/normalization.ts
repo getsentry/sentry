@@ -26,7 +26,3 @@ export function normalizePathMapping(
     branch: resolveBranch(value.branch, branchFallback),
   };
 }
-
-export const normalizedPathMappingSchema = {
-  parse: (value: PathMappingValue) => normalizePathMapping(value),
-};
