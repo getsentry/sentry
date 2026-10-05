@@ -13,7 +13,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 
-export function FirstIssueCard({issueId}: {issueId: string}) {
+export function FirstIssueCard({issueId, referrer}: {issueId: string; referrer: string}) {
   const organization = useOrganization();
   const {data: group, isPending} = useQuery({
     ...groupApiOptions({
@@ -38,7 +38,7 @@ export function FirstIssueCard({issueId}: {issueId: string}) {
 
   return (
     <IssueCardLink
-      to={`/organizations/${organization.slug}/issues/${group.id}/?referrer=onboarding-agentic-first-issue`}
+      to={`/organizations/${organization.slug}/issues/${group.id}/?referrer=${encodeURIComponent(referrer)}`}
     >
       <Grid columns="minmax(0, 1fr) max-content" gap="lg" align="center">
         <Stack gap="lg">

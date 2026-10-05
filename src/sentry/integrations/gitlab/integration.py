@@ -561,7 +561,7 @@ class GitlabPRCommentWorkflow(PRCommentWorkflow):
 
 class InstallationConfigSerializer(CamelSnakeSerializer):
     url = URLField(required=False, default="https://gitlab.com")
-    group = CharField(required=False, allow_blank=True, default="")
+    group = CharField(required=True, allow_blank=False)
     include_subgroups = BooleanField(required=False, default=False)
     verify_ssl = BooleanField(required=False, default=True)
     client_id = CharField(required=True)
@@ -736,22 +736,26 @@ class GitlabIntegrationProvider(IntegrationProvider):
         scopes = sorted(GitlabIdentityProvider.oauth_scopes)
         base_url = state["installation_data"]["url"]
 
-        if state["installation_data"].get("group"):
-            group = self.get_group_info(data["access_token"], state["installation_data"])
-            include_subgroups = state["installation_data"]["include_subgroups"]
-        else:
-            group = {}
-            include_subgroups = False
+        # Guard against a missing group in the pipeline, we need this to
+        # properly key integrations.
+        if not state["installation_data"].get("group"):
+            raise IntegrationError("A GitLab group is required to install this integration.")
+
+        group = self.get_group_info(data["access_token"], state["installation_data"])
+        include_subgroups = state["installation_data"]["include_subgroups"]
 
         hostname = urlparse(base_url).netloc
         verify_ssl = state["installation_data"]["verify_ssl"]
 
-        # Splice the gitlab host and project together to
+        # Splice the gitlab host and group together to
         # act as unique link between a gitlab instance, group + sentry.
         # This value is embedded then in the webhook token that we
         # give to gitlab to allow us to find the integration a hook came
         # from.
-        external_id = "{}:{}".format(hostname, group.get("id", "_instance_"))
+        group_id = group["id"]
+        if not group_id or not isinstance(group_id, int):
+            raise IntegrationError("Malformed group provided")
+        external_id = f"{hostname}:{group_id}"
 
         # Hooks on GitLab outlive the org integration that created them, and one
         # integration row is shared by every org on the group, so the secret has to
@@ -763,12 +767,12 @@ class GitlabIntegrationProvider(IntegrationProvider):
             webhook_secret = secrets.token_hex(20)
 
         return {
-            "name": group.get("full_name", hostname),
+            "name": group["full_name"],
             "external_id": external_id,
             "metadata": {
                 "icon": group.get("avatar_url"),
                 "instance": hostname,
-                "domain_name": "{}/{}".format(hostname, group.get("full_path", "")).rstrip("/"),
+                "domain_name": "{}/{}".format(hostname, group["full_path"]).rstrip("/"),
                 "scopes": scopes,
                 "verify_ssl": verify_ssl,
                 "base_url": base_url,

@@ -614,6 +614,56 @@ describe('Onboarding', () => {
       ).not.toBeInTheDocument();
     });
 
+    it.each([
+      {
+        runStatus: 'failed',
+        connectionStatus: 'failed',
+        heading: 'Setup Didn’t Finish',
+      },
+      {
+        runStatus: 'cancelled',
+        connectionStatus: 'failed',
+        heading: 'Setup Didn’t Finish',
+      },
+      {
+        runStatus: 'completed',
+        connectionStatus: null,
+        heading: "You're All Set",
+      },
+    ] as const)(
+      'shows the $runStatus heading when the agent is disconnected',
+      async ({runStatus, connectionStatus, heading}) => {
+        const run = AgenticProgressRunFixture({
+          runStatus,
+          stages: [
+            {
+              stage: 'connect_mcp',
+              status: connectionStatus,
+              eventNote: null,
+              extra: null,
+            },
+          ],
+        });
+        MockApiClient.addMockResponse({
+          url: `/organizations/${scmOrganization.slug}/onboarding/agent/runs/${run.runId}/`,
+          body: run,
+        });
+
+        renderOnboarding('welcome');
+        expect(screen.getByRole('heading', {name: /Code breaks/})).toBeInTheDocument();
+
+        act(resolveAgenticRunRequest);
+
+        expect(await screen.findByRole('heading', {name: heading})).toBeInTheDocument();
+        expect(
+          screen.queryByRole('heading', {name: /Code breaks/})
+        ).not.toBeInTheDocument();
+        expect(
+          screen.queryByText(/^npx @sentry\/agent-plugin install /)
+        ).not.toBeInTheDocument();
+      }
+    );
+
     it('fires SCM welcome and agentic setup view events on welcome mount', () => {
       renderOnboarding('welcome');
 

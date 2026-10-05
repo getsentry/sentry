@@ -3577,6 +3577,15 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Notification sources that record engagement tracking (sent and engagement events).
+# Sources become metric tags, so this list is also what keeps those tags bounded.
+register(
+    "notifications.tracking.sources",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Notification Options - End
 
 
