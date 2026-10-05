@@ -23,10 +23,10 @@ import {IconChevron, IconEdit, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {HOUR} from 'sentry/utils/formatters';
+import {makeEventsTimeSeriesQueryKeyPrefix} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreShareButton} from 'sentry/views/explore/components/exploreShareButton';
@@ -371,11 +371,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     await Promise.all([
       tableData.refetch(),
       queryClient.refetchQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/events-timeseries/', {
-            path: {organizationIdOrSlug: organization.slug},
-          }),
-        ],
+        queryKey: makeEventsTimeSeriesQueryKeyPrefix(organization.slug),
         type: 'active',
       }),
     ]);
