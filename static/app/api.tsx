@@ -56,7 +56,7 @@ export class Request {
   cancel() {
     this.alive = false;
     this.aborter?.abort();
-    Sentry.metrics.count('app.api.request-abort', 1);
+    Sentry.metrics.count('ui.api-request.abort', 1);
   }
 }
 
@@ -428,6 +428,7 @@ export class Client {
 
     const id = uniqueId();
     const startTime = performance.now();
+    const url = sanitizePath(path);
 
     /**
      * Called when the request completes with a 2xx status
@@ -437,11 +438,10 @@ export class Client {
       textStatus: string,
       responseData: any
     ) => {
-      Sentry.metrics.distribution(
-        'app.api.request-success',
-        performance.now() - startTime,
-        {unit: 'millisecond', attributes: {status: resp?.status}}
-      );
+      Sentry.metrics.distribution('ui.api-request', performance.now() - startTime, {
+        unit: 'millisecond',
+        attributes: {status: resp?.status, outcome: 'success', url},
+      });
       if (options.success !== undefined) {
         this.wrapCallback<[any, string, ResponseMeta]>(id, options.success)(
           responseData,
@@ -459,11 +459,10 @@ export class Client {
       textStatus: string,
       errorThrown: string
     ) => {
-      Sentry.metrics.distribution(
-        'app.api.request-error',
-        performance.now() - startTime,
-        {unit: 'millisecond', attributes: {status: resp?.status}}
-      );
+      Sentry.metrics.distribution('ui.api-request', performance.now() - startTime, {
+        unit: 'millisecond',
+        attributes: {status: resp?.status, outcome: 'error', url},
+      });
 
       this.handleRequestError(
         {id, path, requestOptions: options},

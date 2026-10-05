@@ -1,6 +1,5 @@
 import {PureComponent} from 'react';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 
 import type {CursorHandler} from '@sentry/scraps/pagination';
@@ -195,7 +194,6 @@ class Table extends PureComponent<TableProps, TableState> {
     setError('', 200);
 
     this.setState({isLoading: true, tableFetchID});
-    const startTime = performance.now();
 
     this.props.api.clear();
     this.props.api
@@ -205,12 +203,6 @@ class Table extends PureComponent<TableProps, TableState> {
         query: apiPayload,
       })
       .then(([data, _, resp]) => {
-        // We want to measure this metric regardless of whether we use the result
-        Sentry.metrics.distribution(
-          'app.api.discover-query',
-          performance.now() - startTime,
-          {unit: 'millisecond', attributes: {status: resp?.status}}
-        );
         if (this.state.tableFetchID !== tableFetchID) {
           // invariant: a different request was initiated after this request
           return;
@@ -253,12 +245,6 @@ class Table extends PureComponent<TableProps, TableState> {
         }
       })
       .catch((err: any) => {
-        Sentry.metrics.distribution(
-          'app.api.discover-query',
-          performance.now() - startTime,
-          {unit: 'millisecond', attributes: {status: err.status}}
-        );
-
         const message = err?.responseJSON?.detail || t('An unknown error occurred.');
         this.setState({
           isLoading: false,
