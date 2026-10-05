@@ -14,6 +14,7 @@ export async function waitForMergeCommit({github, context, core}) {
   let timedOut = false;
   let mergeable = false;
   let mergeCommitSha = null;
+  let currentHeadSha = null;
 
   const start = new Date().getTime();
   // eslint-disable-next-line no-constant-condition
@@ -23,10 +24,13 @@ export async function waitForMergeCommit({github, context, core}) {
       pull_number: pullNumber,
     });
     if (response.status === 200 && response.data.mergeable !== null) {
+      currentHeadSha = response.data.head.sha;
       // If mergable is false, that means there is merge conflict
       // or the PR cannot be merged so we want to break.
       mergeable = response.data.mergeable;
-      if (mergeable) {
+      // The merge commit must be built from the head that triggered this run,
+      // otherwise we'd test commits pushed after approval.
+      if (mergeable && currentHeadSha === pullRequest.head.sha) {
         mergeCommitSha = response.data.merge_commit_sha;
       }
       break;
@@ -51,10 +55,15 @@ export async function waitForMergeCommit({github, context, core}) {
   core.info(`Mergeable: ${mergeable}`);
   core.info(`Merge commit SHA: ${mergeCommitSha}`);
   core.info(`PR head SHA: ${pullRequest.head.sha}`);
+  core.info(`Current PR head SHA: ${currentHeadSha}`);
   core.endGroup();
 
   if (!mergeable) {
     // setFailed will cause the action to fail
     core.setFailed(`PR #${pullNumber} is not mergeable`);
+  } else if (mergeCommitSha === null) {
+    core.setFailed(
+      `PR #${pullNumber} head moved from ${pullRequest.head.sha} to ${currentHeadSha} since this run was triggered`
+    );
   }
 }
