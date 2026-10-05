@@ -127,7 +127,7 @@ describe('TagDetailsDrawerContent', () => {
     );
   });
 
-  it('navigates to discover with issue + tag query', async () => {
+  it('navigates to explore with issue + tag query', async () => {
     const discoverOrganization = OrganizationFixture({
       features: ['discover-basic'],
     });
@@ -146,12 +146,12 @@ describe('TagDetailsDrawerContent', () => {
     );
 
     const discoverMenuItem = screen.getByRole('menuitemradio', {
-      name: 'Open in Discover',
+      name: 'Open in Explore',
     });
     expect(discoverMenuItem).toBeInTheDocument();
 
     const link = new URL(discoverMenuItem.getAttribute('href') ?? '', 'http://localhost');
-    expect(link.pathname).toBe('/organizations/org-slug/explore/discover/results/');
+    expect(link.pathname).toBe('/organizations/org-slug/explore/errors/results/');
     const discoverQueryParams = qs.parse(link.search);
 
     expect(discoverQueryParams).toEqual({

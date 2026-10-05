@@ -160,6 +160,74 @@ describe('DroppedDataCategoryList', () => {
     expect(screen.getByText('Dropped by sample rate')).toBeInTheDocument();
   });
 
+  it('renders the short description under the reason title', () => {
+    render(
+      <DroppedDataCategoryList
+        droppedAnnotations={[
+          AnnotationFixture({
+            outcome: 'filtered',
+            reason: 'web-crawlers',
+            start: 0,
+            end: 60_000,
+            eventCount: 5,
+          }),
+        ]}
+        acceptedAnnotations={[]}
+      />
+    );
+
+    expect(
+      screen.getByText("User agent matched Sentry's known crawler list.")
+    ).toBeInTheDocument();
+  });
+
+  it('fills the data type into the description from the annotation category', () => {
+    render(
+      <DroppedDataCategoryList
+        droppedAnnotations={[
+          AnnotationFixture({
+            category: 'log_item',
+            outcome: 'abuse',
+            reason: 'project_abuse_limit',
+            start: 0,
+            end: 60_000,
+            eventCount: 5,
+          }),
+        ]}
+        acceptedAnnotations={[]}
+      />
+    );
+
+    expect(
+      screen.getByText('Your log events exceeded the project abuse limit.')
+    ).toBeInTheDocument();
+  });
+
+  it('shows the raw reason and outcome codes only when hovering the title', async () => {
+    render(
+      <DroppedDataCategoryList
+        droppedAnnotations={[
+          AnnotationFixture({
+            outcome: 'client_discard',
+            reason: 'queue_overflow',
+            start: 0,
+            end: 60_000,
+            eventCount: 5,
+          }),
+        ]}
+        acceptedAnnotations={[]}
+      />
+    );
+
+    expect(screen.queryByText('queue_overflow')).not.toBeInTheDocument();
+    expect(screen.queryByText('client_discard')).not.toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('SDK queue overflow'));
+
+    expect(await screen.findByText('queue_overflow')).toBeInTheDocument();
+    expect(screen.getByText('client_discard')).toBeInTheDocument();
+  });
+
   it('collapses and expands a section when the header is clicked', async () => {
     render(
       <DroppedDataCategoryList

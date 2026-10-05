@@ -1,4 +1,10 @@
+import type {
+  CustomSeriesRenderItem,
+  CustomSeriesRenderItemAPI,
+  CustomSeriesRenderItemParams,
+} from 'echarts';
 import {AnnotationFixture} from 'sentry-fixture/annotation';
+import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
@@ -7,7 +13,9 @@ import {
   DROPPED_DATA_SERIES_ID,
   useDroppedDataBand,
 } from 'sentry/components/droppedData/useDroppedDataBand';
+import {severityColor, withAlpha} from 'sentry/components/droppedData/utils';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
+import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
 const chartRef: React.RefObject<ReactEchartsRef | null> = {current: null};
 
@@ -63,19 +71,41 @@ describe('useDroppedDataBand', () => {
     expect(result.current.droppedDataSeries).toBeNull();
   });
 
-  it('draws a pill for a small positive drop ratio', () => {
+  it('keeps buckets with any drops and skips those without', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
         droppedData: {
-          droppedAnnotations: [AnnotationFixture({start: 0, eventCount: 1})],
-          acceptedAnnotations: [AnnotationFixture({start: 0, eventCount: 99})],
+          droppedAnnotations: [
+            AnnotationFixture({start: 0, eventCount: 0}),
+            AnnotationFixture({start: 60_000, eventCount: 1}),
+          ],
+          acceptedAnnotations: [
+            AnnotationFixture({start: 0, eventCount: 100}),
+            AnnotationFixture({start: 60_000, eventCount: 99}),
+          ],
         },
       })
     );
 
-    expect(result.current.droppedDataSeries).not.toBeNull();
-    expect(result.current.droppedDataSeries?.data).toHaveLength(1);
+    expect(result.current.droppedDataSeries?.data).toEqual([
+      expect.objectContaining({start: 60_000, ratio: 0.01}),
+    ]);
+  });
+
+  it('hides the band when no bucket has drops', () => {
+    const {result} = renderHookWithProviders(() =>
+      useDroppedDataBand({
+        chartRef,
+        droppedData: {
+          droppedAnnotations: [AnnotationFixture({start: 0, eventCount: 0})],
+          acceptedAnnotations: [AnnotationFixture({start: 0, eventCount: 100})],
+        },
+      })
+    );
+
+    expect(result.current.droppedDataSeries).toBeNull();
+    expect(result.current.droppedDataBandHeight).toBe(0);
   });
 
   it('draws no pill for buckets that only have accepted volume', () => {
@@ -172,5 +202,169 @@ describe('useDroppedDataBand', () => {
     );
 
     expect(result.current.droppedDataSeries?.data).toHaveLength(2);
+  });
+
+  describe('render item', () => {
+    const TRACK_WIDTH = 600;
+
+    // One pixel per second, so each one-minute bucket is 60px wide.
+    const api = {
+      coord: ([time]: number[]) => [(time ?? 0) / 1000, 100],
+    } as unknown as CustomSeriesRenderItemAPI;
+
+    interface Gradient {
+      colorStops: Array<{color: string; offset: number}>;
+      global: boolean;
+      x: number;
+      x2: number;
+    }
+
+    interface BandRect {
+      shape: {width: number; x: number};
+      style: {fill: string | Gradient};
+      silent?: boolean;
+    }
+
+    function span({shape}: BandRect) {
+      return [shape.x, shape.x + shape.width];
+    }
+
+    function gradientRect(shapes: BandRect[] | undefined) {
+      const rect = shapes?.find(shape => typeof shape.style.fill !== 'string');
+      if (!rect) {
+        throw new Error('Expected the bucket to draw a gradient');
+      }
+
+      const gradient = rect.style.fill as Gradient;
+      return {
+        rect,
+        gradient,
+        colors: gradient.colorStops.map(stop => stop.color),
+        offsets: gradient.colorStops.map(stop => stop.offset),
+        xs: gradient.colorStops.map(stop =>
+          Math.round(gradient.x + stop.offset * (gradient.x2 - gradient.x))
+        ),
+      };
+    }
+
+    function renderShapes(dropped: Annotation[], accepted: Annotation[] = []) {
+      const {result} = renderHookWithProviders(() =>
+        useDroppedDataBand({
+          chartRef,
+          droppedData: {droppedAnnotations: dropped, acceptedAnnotations: accepted},
+        })
+      );
+
+      const series = result.current.droppedDataSeries;
+      if (!series || typeof series.renderItem !== 'function') {
+        throw new Error('Expected the dropped data series to render items');
+      }
+      const renderItem = series.renderItem as CustomSeriesRenderItem;
+
+      return (series.data as unknown[]).map((_, dataIndex) => {
+        const group = renderItem(
+          {
+            dataIndex,
+            dataIndexInside: dataIndex,
+            coordSys: {type: 'cartesian2d', x: 0, width: TRACK_WIDTH},
+          } as unknown as CustomSeriesRenderItemParams,
+          api
+        ) as {children: BandRect[]};
+
+        return group.children;
+      });
+    }
+
+    function bucket(minute: number, eventCount = 10) {
+      return AnnotationFixture({
+        start: minute * 60_000,
+        end: (minute + 1) * 60_000,
+        eventCount,
+      });
+    }
+
+    it('draws the track and the gradient once, on the first bucket', () => {
+      const [first, second] = renderShapes([bucket(2), bucket(3)]);
+
+      expect(first?.[0]).toMatchObject({shape: {x: 0, width: TRACK_WIDTH}, silent: true});
+      expect(first).toHaveLength(3);
+      expect(second).toHaveLength(1);
+    });
+
+    it('centres each hover target on its bucket start, clamped to the track', () => {
+      const spans = renderShapes([bucket(0), bucket(5), bucket(10)]).map(shapes =>
+        span(shapes.at(-1)!)
+      );
+
+      expect(spans).toEqual([
+        [0, 30],
+        [270, 330],
+        [570, TRACK_WIDTH],
+      ]);
+    });
+
+    it('limits hovering to the slot while the gradient stays silent', () => {
+      const [shapes] = renderShapes([bucket(3)]);
+      const hover = shapes!.at(-1)!;
+
+      expect(hover.silent).toBeUndefined();
+      expect(hover).toMatchObject({style: {fill: 'transparent'}});
+      expect(span(hover)).toEqual([150, 210]);
+      expect(gradientRect(shapes).rect.silent).toBe(true);
+    });
+
+    it('blends adjacent buckets evenly around their shared edge', () => {
+      const theme = ThemeFixture();
+      const [first] = renderShapes(
+        [bucket(3, 9), bucket(4, 12)],
+        [bucket(3, 91), bucket(4, 88)]
+      );
+      const nine = severityColor(0.09, theme);
+      const twelve = severityColor(0.12, theme);
+      const {colors, xs} = gradientRect(first);
+
+      expect(colors).toEqual([
+        withAlpha(nine, 0),
+        nine,
+        nine,
+        twelve,
+        twelve,
+        withAlpha(twelve, 0),
+      ]);
+      // The shared edge sits at 210, halfway between the 9% and 12% stops.
+      expect(xs).toEqual([142, 158, 202, 218, 262, 278]);
+    });
+
+    it('fades a lone bucket to clear across both of its edges', () => {
+      const [shapes] = renderShapes([bucket(3)]);
+      const color = severityColor(1, ThemeFixture());
+      const {rect, colors, xs} = gradientRect(shapes);
+
+      expect(span(rect)).toEqual([142, 218]);
+      expect(colors).toEqual([withAlpha(color, 0), color, color, withAlpha(color, 0)]);
+      expect(xs).toEqual([142, 158, 202, 218]);
+    });
+
+    it('fades runs one empty slot apart without overlapping', () => {
+      const [first] = renderShapes([bucket(3), bucket(5)]);
+      const color = severityColor(1, ThemeFixture());
+      const clear = withAlpha(color, 0);
+      const {colors, xs} = gradientRect(first);
+
+      expect(colors).toEqual([clear, color, color, clear, clear, color, color, clear]);
+      expect(xs).toEqual([142, 158, 202, 218, 262, 278, 322, 338]);
+    });
+
+    it('cuts the gradient off at the edge of the plot', () => {
+      const [shapes] = renderShapes([bucket(0)]);
+      const {rect, gradient, offsets} = gradientRect(shapes);
+
+      expect(span(rect)).toEqual([0, 38]);
+      expect(gradient).toMatchObject({global: true, x: -38, x2: 38});
+      for (const offset of offsets) {
+        expect(offset).toBeGreaterThanOrEqual(0);
+        expect(offset).toBeLessThanOrEqual(1);
+      }
+    });
   });
 });

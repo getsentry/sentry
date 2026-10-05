@@ -2,6 +2,7 @@ from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from django.test import override_settings
 from rest_framework import status
 
 from sentry.seer.endpoints.search_agent_start import send_search_agent_start_request
@@ -80,7 +81,7 @@ class SendSearchAgentStartRequestTest(TestCase):
         )
 
         sent_options = mock_request.call_args[0][0]["options"]
-        for flag in ["cross_event", "project_expansion", "reflection_step", "code_mode"]:
+        for flag in ["cross_event", "reflection_step", "code_mode"]:
             assert sent_options[flag] is False
 
     @patch("sentry.receivers.outbox.cell.make_search_agent_start_request")
@@ -94,19 +95,18 @@ class SendSearchAgentStartRequestTest(TestCase):
             natural_language_query="errors today",
             model_name="gpt-5",
             cross_event=True,
-            project_expansion=True,
             reflection_step=True,
             code_mode=True,
         )
 
         sent_options = mock_request.call_args[0][0]["options"]
-        for flag in ["cross_event", "project_expansion", "reflection_step", "code_mode"]:
+        for flag in ["cross_event", "reflection_step", "code_mode"]:
             assert sent_options[flag] is True
         assert sent_options["model_name"] == "gpt-5"
 
 
 @with_feature("organizations:gen-ai-search-agent-translate")
-@with_feature("organizations:gen-ai-features")
+@override_settings(SENTRY_SELF_HOSTED=False)
 class SearchAgentStartEndpointTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -139,7 +139,6 @@ class SearchAgentStartEndpointTest(APITestCase):
     @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
     @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
     @with_feature("organizations:seer-assisted-query-cross-event-explorer")
-    @with_feature("organizations:seer-assisted-query-project-expansion")
     @with_feature("organizations:seer-assisted-query-reflection")
     @with_feature("organizations:seer-assisted-query-codemode")
     def test_start_forwards_feature_flags(self, mock_send_request: MagicMock) -> None:
@@ -152,7 +151,6 @@ class SearchAgentStartEndpointTest(APITestCase):
         assert response.data == {"run_id": 42, "sentry_run_id": "run-uuid"}
         kwargs = mock_send_request.call_args.kwargs
         assert kwargs["cross_event"] is True
-        assert kwargs["project_expansion"] is True
         assert kwargs["reflection_step"] is True
 
     @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
@@ -176,31 +174,29 @@ class SearchAgentStartEndpointTest(APITestCase):
         assert response.status_code == status.HTTP_200_OK
         kwargs = mock_send_request.call_args.kwargs
         assert kwargs["cross_event"] is False
-        assert kwargs["project_expansion"] is False
         assert kwargs["reflection_step"] is False
 
     @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
     @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
     @with_feature("organizations:seer-assisted-query-codemode")
-    def test_code_mode_requires_toggle_and_flag(self, mock_send_request: MagicMock) -> None:
-        """code_mode is False when the request toggle is off, even if the flag is on."""
+    def test_code_mode_enabled_by_flag(self, mock_send_request: MagicMock) -> None:
+        """Code mode follows the flag without callers opting in."""
         mock_send_request.return_value = Mock(seer_run_state_id=42, uuid="run-uuid")
 
         response = self._post()
 
         assert response.status_code == status.HTTP_200_OK
-        assert mock_send_request.call_args.kwargs["code_mode"] is False
+        assert mock_send_request.call_args.kwargs["code_mode"] is True
 
     @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
     @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
-    @with_feature("organizations:seer-assisted-query-codemode")
-    def test_code_mode_toggle_enables_code_mode(self, mock_send_request: MagicMock) -> None:
-        """The toggle rides in `options` alongside model_name/metric_context."""
+    def test_code_mode_option_ignored_without_flag(self, mock_send_request: MagicMock) -> None:
+        """A client-sent code_mode option can't enable code mode without the flag."""
         mock_send_request.return_value = Mock(seer_run_state_id=42, uuid="run-uuid")
 
         response = self._post(options={"code_mode": True, "model_name": "gpt-5"})
 
         assert response.status_code == status.HTTP_200_OK
         kwargs = mock_send_request.call_args.kwargs
-        assert kwargs["code_mode"] is True
+        assert kwargs["code_mode"] is False
         assert kwargs["model_name"] == "gpt-5"

@@ -46,7 +46,6 @@ describe('useVisualizeFields', () => {
       'ai.total_cost',
       'gen_ai.usage.input_tokens',
       'gen_ai.usage.output_tokens',
-      'gen_ai.usage.total_cost',
       'gen_ai.usage.total_tokens',
       'score.ttfb',
     ]);

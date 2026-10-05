@@ -45,7 +45,7 @@ interface SeerEmbedBlockOwnProps {
    * describing the resource.
    */
   actions?: ReactNode;
-  /** Sits between the title and the link, for tags describing the contents. */
+  /** Sits between the title and the link, e.g. a copy button or view toggle. */
   badge?: ReactNode;
   /**
    * Whether the panel starts open. An embed whose preview is tall or slow to
@@ -54,6 +54,16 @@ interface SeerEmbedBlockOwnProps {
   defaultExpanded?: boolean;
   /** Spacing between the panel's own children. */
   gap?: StackProps['gap'];
+  /**
+   * Inset around the panel's children. A preview that draws its own row
+   * dividers, like an issue row, passes `"0"` so it sits flush in the card.
+   */
+  padding?: StackProps['padding'];
+  /**
+   * A compact status marker right after the title, e.g. a `StatusIndicator`
+   * for whether the resource is enabled.
+   */
+  status?: ReactNode;
 }
 
 type SeerEmbedBlockProps = SeerEmbedBlockOwnProps & SeerEmbedBlockLinkProps;
@@ -86,6 +96,8 @@ export function SeerEmbedBlock({
   href,
   icon,
   linkLabel,
+  padding = 'lg',
+  status,
   testId,
   title,
 }: SeerEmbedBlockProps) {
@@ -125,9 +137,10 @@ export function SeerEmbedBlock({
           variant="transparent"
         >
           <Flex align="center" gap="xs" minWidth="0">
-            <Heading as="h3" ellipsis size="sm">
+            <Heading as="h3" ellipsis size="md">
               {title}
             </Heading>
+            {status}
             <IconChevron direction={state.isExpanded ? 'up' : 'down'} size="xs" />
           </Flex>
         </ToggleButton>
@@ -143,7 +156,7 @@ export function SeerEmbedBlock({
           behind -- padding out here would strand an empty strip under the header
           of every collapsed card. */}
       <Container {...panelProps} ref={panelRef}>
-        <Stack gap={gap} padding="lg">
+        <Stack gap={gap} padding={padding}>
           {children}
         </Stack>
       </Container>

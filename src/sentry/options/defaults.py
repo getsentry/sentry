@@ -95,6 +95,38 @@ register(
     flags=FLAG_NOSTORE | FLAG_IMMUTABLE,
 )
 
+# Share of lock keys (0.0 to 1.0) that MigrationLockBackend sends to its new backend.
+# Only used when a lock manager is configured with the matching selector in
+# sentry.utils.locking.backends.migration.
+register(
+    "locks.default.migration-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "locks.post-process.migration-rollout-rate",
+    type=Float,
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# When on, MigrationLockBackend also checks the new backend for keys that go to the old
+# backend. Turn it on before the matching rollout rate goes above 0, and turn it off only
+# after the rate is back at 0 and all locks on the new backend have expired. See the
+# MigrationLockBackend docstring for the full sequence.
+register(
+    "locks.default.migration-check-new",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "locks.post-process.migration-check-new",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Processing worker caches
 register(
     "dsym.cache-path",
@@ -885,6 +917,11 @@ register("vercel.integration-slug", default="sentry", flags=FLAG_AUTOMATOR_MODIF
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("msteams.app-id")
+register(
+    "msteams.personal-installation-link.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Tenant-specific OAuth authority, required for single-tenant Azure Bots.
 # Empty (default) keeps the historical multi-tenant botframework.com authority.
 register("msteams.tenant-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -1428,14 +1465,6 @@ register(
     default=0.5,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Fuzzy resolution always runs after an exact email miss so its proposal can be
-# inspected. This controls whether that proposal is used in the delivered prediction.
-register(
-    "seer.smart_assignment.fuzzy_user_matching.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Spread child run_auto_transition_issues_* tasks across this many seconds
 # after each schedule tick, to smooth burst load (DB/signals/queues).
@@ -1715,6 +1744,16 @@ register("relay.span-usage-metric", default=False, flags=FLAG_AUTOMATOR_MODIFIAB
 register(
     "relay.invalidation-direct-outside-atomic",
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Stage of each legacy inbound filter list on its way into custom inbound filter rows,
+# keyed by list: releases, error_messages, log_messages, trace_metric_names. A value is
+# off, double_write, rows or v2; a missing list is off. See sentry.ingest.legacy_filter_lists.
+register(
+    "custom-inbound-filters.legacy-filter-stage",
+    default={},
+    type=Dict,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2789,6 +2828,14 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Sends relay a quota that limits each monitor environment to
+# `crons.per_monitor_rate_limit` check-ins per minute.
+register(
+    "crons.per_monitor_relay_quota.enabled",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Deterministic % of check-ins that use the seat-acceptance timeout wrapper.
 # Keyed on project id. Default 0.0 so deploy is a no-op until dialed up via
 # sentry-options-automator.
@@ -3481,6 +3528,13 @@ register(
 )
 
 # Notification Options - Start
+register(
+    "notifications.issue-alerts.disable-rule-snooze",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Options for migrating to the notification platform
 # Notifications for internal testing
 register(
@@ -3706,15 +3760,6 @@ register(
     "workflow_engine.max_more_workflows_per_org",
     type=Int,
     default=10000,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Whether the data source by detector and source id cache is enabled
-# When disabled, detector handlers query directly instead of using the cache
-register(
-    "workflow_engine.data_source_by_detector_and_source_id_cache.enabled",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -4212,18 +4257,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "warmup.url_resolver.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "warmup.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Cap on consecutive automated PR iterations (check suites + bot re-reviews);
 # human feedback resets the streak. See ``automated_iteration_cap_reached``.
@@ -4459,20 +4492,6 @@ register(
     default=[],
     type=Sequence,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "preprod.snapshots.auto-approve-sibling-diffs.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "preprod.snapshots.objectstore.snapshots-usecase.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # How far back the ingestion delay measurement window reaches, in minutes.
