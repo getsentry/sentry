@@ -118,6 +118,17 @@ export const CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION: SpecialPermissionObj 
   scope: 'org:ci',
 };
 
+export enum GranularPermissionLevel {
+  READ = 'read',
+  CREATE = 'create',
+  WRITE = 'write',
+  DELETE = 'delete',
+  ADMIN = 'admin',
+  RELEASES = 'releases',
+  INVITE = 'invite',
+  BILLING = 'billing',
+}
+
 export type GranularPermissionObj = {
   /**
    * Short description shown under the label.
@@ -131,7 +142,7 @@ export type GranularPermissionObj = {
    * Access levels in ascending order. Selecting a level also grants every
    * level before it.
    */
-  levels: string[];
+  levels: GranularPermissionLevel[];
   /**
    * Scope prefix, e.g. `dashboard` for `dashboard:read`.
    */
@@ -150,119 +161,186 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
     resource: 'issue',
     label: 'Issues',
     help: 'Issues and their workflow statuses',
-    levels: ['read', 'write', 'delete', 'admin'],
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.DELETE,
+      GranularPermissionLevel.ADMIN,
+    ],
   },
   {
     resource: 'monitors',
     label: 'Monitors',
     help: 'Monitors and the alerts they trigger',
-    levels: ['read', 'write', 'delete'],
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.DELETE,
+    ],
   },
   {
     resource: 'dashboard',
     label: 'Dashboards',
     help: 'Dashboards and their widgets',
-    levels: ['read', 'create', 'write', 'delete', 'admin'],
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.CREATE,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.DELETE,
+      GranularPermissionLevel.ADMIN,
+    ],
   },
   {
     resource: 'event',
     label: 'Events',
     help: 'Events sent to your projects',
-    levels: ['read', 'write', 'admin'],
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.ADMIN,
+    ],
   },
   {
     resource: 'project_v2',
     label: 'Projects',
     help: 'Projects, tags, debug files, and feedback',
-    levels: ['read', 'create', 'write', 'admin'],
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.CREATE,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.ADMIN,
+    ],
   },
   // Not a level above admin, so it gets its own row.
   {
     resource: 'project_v2',
     label: 'Project Releases',
     help: 'Releases, commits, and related files within projects',
-    levels: ['releases'],
+    levels: [GranularPermissionLevel.RELEASES],
   },
   {
     resource: 'team_v2',
     label: 'Teams',
     help: 'Teams and team membership',
-    levels: ['read', 'write', 'delete', 'admin'],
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.DELETE,
+      GranularPermissionLevel.ADMIN,
+    ],
   },
   {
     resource: 'member',
     label: 'Members',
     help: 'Organization members and their roles',
-    levels: ['read', 'write', 'admin'],
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.ADMIN,
+    ],
   },
   // Not a level above admin, so it gets its own row.
   {
     resource: 'member',
     label: 'Member Invites',
     help: 'Invite new members to the organization',
-    levels: ['invite'],
+    levels: [GranularPermissionLevel.INVITE],
   },
   {
     resource: 'org_v2',
     label: 'Organization',
     help: 'Organization details and settings',
-    levels: ['read', 'write', 'admin'],
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.ADMIN,
+    ],
   },
   // Not a level above admin, so it gets its own row.
   {
     resource: 'org_v2',
     label: 'Billing',
     help: 'Subscription, usage, and billing details',
-    levels: ['billing'],
+    levels: [GranularPermissionLevel.BILLING],
   },
   {
     resource: 'issueview',
     label: 'Issue Views',
     help: 'Saved views of the issue stream',
-    levels: ['read', 'write', 'delete', 'admin'],
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.DELETE,
+      GranularPermissionLevel.ADMIN,
+    ],
   },
   {
     resource: 'savedquery',
     label: 'Saved Queries',
     help: 'Saved Discover and Explore queries',
-    levels: ['read', 'write', 'delete', 'admin'],
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.DELETE,
+      GranularPermissionLevel.ADMIN,
+    ],
   },
   {
     resource: 'telemetry',
     label: 'Telemetry',
     help: 'Telemetry data such as spans, logs, and metrics',
-    levels: ['read', 'write', 'admin'],
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.ADMIN,
+    ],
   },
   {
     resource: 'user_preferences',
     label: 'User Preferences',
     help: 'Your personal settings and preferences',
-    levels: ['read', 'write'],
+    levels: [GranularPermissionLevel.READ, GranularPermissionLevel.WRITE],
   },
   // CI and integrations
   {
     resource: 'releases',
     label: 'Releases',
     help: 'Create and manage releases, typically from CI',
-    levels: ['read', 'write', 'delete'],
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.DELETE,
+    ],
   },
   {
     resource: 'source_maps',
     label: 'Source Maps',
     help: 'Upload and manage source maps',
-    levels: ['read', 'write', 'delete'],
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.DELETE,
+    ],
   },
   {
     resource: 'repositories',
     label: 'Repositories',
     help: 'Connected code repositories',
-    levels: ['read', 'write', 'delete'],
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.DELETE,
+    ],
   },
   {
     resource: 'integration',
     label: 'Integrations',
     help: 'Installed integrations and their configuration',
-    levels: ['read', 'write', 'delete'],
+    levels: [
+      GranularPermissionLevel.READ,
+      GranularPermissionLevel.WRITE,
+      GranularPermissionLevel.DELETE,
+    ],
   },
 ];
 
