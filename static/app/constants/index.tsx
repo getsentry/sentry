@@ -141,12 +141,37 @@ export type GranularPermissionObj = {
 // `project_v2:distribution` is left out: personal tokens can't be used for
 // Distribution (see DISPLAYED_PERMISSIONS in apiNewToken.tsx).
 export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
-  {resource: 'alerts', label: 'Alerts', levels: ['read', 'write', 'delete']},
+  // Ordered by how often people need them, most important first.
+  {resource: 'issue', label: 'Issues', levels: ['read', 'write', 'delete', 'admin']},
+  {resource: 'monitors', label: 'Monitors', levels: ['read', 'write', 'delete']},
   {
     resource: 'dashboard',
     label: 'Dashboards',
     levels: ['read', 'create', 'write', 'delete', 'admin'],
   },
+  {resource: 'event', label: 'Events', levels: ['read', 'write', 'admin']},
+  {
+    resource: 'project_v2',
+    label: 'Projects',
+    levels: ['read', 'create', 'write', 'admin'],
+  },
+  // Not a level above admin, so it gets its own row.
+  {resource: 'project_v2', label: 'Project Releases', levels: ['releases']},
+  {resource: 'team_v2', label: 'Teams', levels: ['read', 'write', 'delete', 'admin']},
+  {
+    resource: 'member',
+    label: 'Members',
+    levels: ['read', 'write', 'admin'],
+  },
+  // Not a level above admin, so it gets its own row.
+  {resource: 'member', label: 'Member Invites', levels: ['invite']},
+  {
+    resource: 'org_v2',
+    label: 'Organization',
+    levels: ['read', 'write', 'admin'],
+  },
+  // Not a level above admin, so it gets its own row.
+  {resource: 'org_v2', label: 'Billing', levels: ['billing']},
   {
     resource: 'issueview',
     label: 'Issue Views',
@@ -157,32 +182,9 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
     label: 'Saved Queries',
     levels: ['read', 'write', 'delete', 'admin'],
   },
-  {resource: 'user_preferences', label: 'User Preferences', levels: ['read', 'write']},
-  {
-    resource: 'project_v2',
-    label: 'Projects',
-    levels: ['read', 'create', 'write', 'admin'],
-  },
-  // Not a level above admin, so it gets its own row.
-  {resource: 'project_v2', label: 'Project Releases', levels: ['releases']},
-  {resource: 'event', label: 'Events', levels: ['read', 'write', 'admin']},
-  {
-    resource: 'member',
-    label: 'Members',
-    levels: ['read', 'write', 'admin'],
-  },
-  // Not a level above admin, so it gets its own row.
-  {resource: 'member', label: 'Member Invites', levels: ['invite']},
-  {resource: 'issue', label: 'Issues', levels: ['read', 'write', 'delete', 'admin']},
   {resource: 'telemetry', label: 'Telemetry', levels: ['read', 'write', 'admin']},
-  {
-    resource: 'org_v2',
-    label: 'Organization',
-    levels: ['read', 'write', 'admin'],
-  },
-  // Not a level above admin, so it gets its own row.
-  {resource: 'org_v2', label: 'Billing', levels: ['billing']},
-  {resource: 'team_v2', label: 'Teams', levels: ['read', 'write', 'delete', 'admin']},
+  {resource: 'user_preferences', label: 'User Preferences', levels: ['read', 'write']},
+  // CI and integrations
   {resource: 'releases', label: 'Releases', levels: ['read', 'write', 'delete']},
   {resource: 'source_maps', label: 'Source Maps', levels: ['read', 'write', 'delete']},
   {resource: 'repositories', label: 'Repositories', levels: ['read', 'write', 'delete']},
