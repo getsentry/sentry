@@ -2,7 +2,6 @@ import {Fragment, useMemo} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
-import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -20,6 +19,7 @@ import {useAutofixSectionEvidence} from 'sentry/components/events/autofix/v3/use
 import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
 import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {IconBug} from 'sentry/icons/iconBug';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
@@ -88,7 +88,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
             />
           )}
           <ArtifactDetails>
-            <Markdown raw={artifact.data.one_line_description} />
+            <SeerMarkdown raw={artifact.data.one_line_description} />
           </ArtifactDetails>
           {artifact.data.five_whys?.length ? (
             <Fragment>
@@ -97,7 +97,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
                 <Container as="ul" margin="0">
                   {artifact.data.five_whys.map((why, index) => (
                     <li key={index}>
-                      <Markdown raw={why} />
+                      <SeerMarkdown raw={why} />
                     </li>
                   ))}
                 </Container>
@@ -108,7 +108,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
                   <Container as="ol" margin="0">
                     {artifact.data?.reproduction_steps.map((step, index) => (
                       <li key={index}>
-                        <Markdown raw={step} />
+                        <SeerMarkdown raw={step} />
                       </li>
                     ))}
                   </Container>

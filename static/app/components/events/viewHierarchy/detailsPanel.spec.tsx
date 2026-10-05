@@ -32,11 +32,11 @@ describe('View Hierarchy Details Panel', () => {
   it('omits children from rendered data', () => {
     render(<DetailsPanel data={MOCK_DATA} />);
 
-    expect(screen.getByRole('cell', {name: '200'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '201'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '202'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '203'})).toBeInTheDocument();
-    expect(screen.queryByRole('cell', {name: 'children'})).not.toBeInTheDocument();
+    expect(screen.getByText('200')).toBeInTheDocument();
+    expect(screen.getByText('201')).toBeInTheDocument();
+    expect(screen.getByText('202')).toBeInTheDocument();
+    expect(screen.getByText('203')).toBeInTheDocument();
+    expect(screen.queryByText('children')).not.toBeInTheDocument();
   });
 
   it('accepts a custom title renderer', () => {

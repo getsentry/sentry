@@ -9,8 +9,8 @@ from typing import TYPE_CHECKING, Any, ClassVar
 from django import forms
 
 from sentry.models.project import Project
+from sentry.notifications.types import RuleFuture
 from sentry.services.eventstore.models import GroupEvent
-from sentry.types.rules import RuleFuture
 
 if TYPE_CHECKING:
     from sentry.models.rule import Rule
@@ -95,19 +95,3 @@ class RuleBase(abc.ABC):
         **kwargs: Any,
     ) -> CallbackFuture:
         return CallbackFuture(callback=callback, key=key, kwargs=kwargs)
-
-
-class EventState:
-    def __init__(
-        self,
-        is_new: bool,
-        is_regression: bool,
-        is_new_group_environment: bool,
-        has_reappeared: bool,
-        has_escalated: bool,
-    ) -> None:
-        self.is_new = is_new
-        self.is_regression = is_regression
-        self.is_new_group_environment = is_new_group_environment
-        self.has_reappeared = has_reappeared
-        self.has_escalated = has_escalated

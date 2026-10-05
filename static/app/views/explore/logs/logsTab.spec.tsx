@@ -1,3 +1,4 @@
+import {AnnotationFixture} from 'sentry-fixture/annotation';
 import {initializeLogsTest} from 'sentry-fixture/log';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
@@ -755,5 +756,56 @@ describe('LogsTabContent', () => {
         /we only scan your full log volume when sorting by timestamp in descending order/
       )
     ).toBeInTheDocument();
+  });
+
+  describe('dropped data layer', () => {
+    function mockDroppedData() {
+      return MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        method: 'GET',
+        match: [
+          MockApiClient.matchQuery({referrer: 'api.explore.dropped-data-annotations'}),
+        ],
+        body: {
+          timeSeries: [],
+          meta: {droppedAnnotations: [AnnotationFixture()], acceptedAnnotations: []},
+        },
+      });
+    }
+
+    it('shows the Layers control when logs were dropped', async () => {
+      const droppedDataMock = mockDroppedData();
+
+      render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+        initialRouterConfig,
+        organization: {
+          ...organization,
+          features: [...organization.features, 'explore-data-fidelity-annotations'],
+        },
+        additionalWrapper: ProviderWrapper,
+      });
+
+      expect(await screen.findByLabelText('Chart layers')).toBeInTheDocument();
+      expect(droppedDataMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events-timeseries/`,
+        expect.objectContaining({
+          query: expect.objectContaining({dataset: 'ourlogs', includeAnnotations: 1}),
+        })
+      );
+    });
+
+    it('hides the Layers control without the feature flag', async () => {
+      const droppedDataMock = mockDroppedData();
+
+      render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+        initialRouterConfig,
+        organization,
+        additionalWrapper: ProviderWrapper,
+      });
+
+      await screen.findByText('some log message1');
+      expect(droppedDataMock).not.toHaveBeenCalled();
+      expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
+    });
   });
 });

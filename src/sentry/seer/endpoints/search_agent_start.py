@@ -137,7 +137,6 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         options = validated_data.get("options") or {}
         model_name = options.get("model_name")
         metric_context = options.get("metric_context")
-        code_mode_toggle = bool(options.get("code_mode"))
 
         projects = self.get_projects(
             request, organization, project_ids=set(validated_data["project_ids"])
@@ -201,8 +200,7 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                     organization,
                     actor=request.user,
                 ),
-                code_mode=code_mode_toggle
-                and features.has(
+                code_mode=features.has(
                     "organizations:seer-assisted-query-codemode",
                     organization,
                     actor=request.user,

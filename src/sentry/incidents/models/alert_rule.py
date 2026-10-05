@@ -6,9 +6,7 @@ from enum import Enum, IntEnum, StrEnum
 from typing import TYPE_CHECKING, Any, ClassVar, Self
 
 from django.conf import settings
-from django.core.cache import cache
 from django.db import models
-from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 from django.utils.translation import gettext_lazy
 
@@ -25,7 +23,6 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.team import Team
@@ -34,7 +31,6 @@ from sentry.notifications.models.notificationaction import (
     ActionService,
     ActionTarget,
 )
-from sentry.snuba.models import QuerySubscription
 from sentry.types.actor import Actor
 
 if TYPE_CHECKING:
@@ -83,58 +79,11 @@ class AlertRuleManager(BaseManager["AlertRule"]):
     A manager that excludes all rows that are snapshots.
     """
 
-    CACHE_SUBSCRIPTION_KEY = "alert_rule:subscription:%s"
-
     def get_queryset(self) -> BaseQuerySet[AlertRule]:
         return super().get_queryset().exclude(status=AlertRuleStatus.SNAPSHOT.value)
 
-    def fetch_for_organization(
-        self, organization: Organization, projects: Collection[Project] | None = None
-    ) -> BaseQuerySet[AlertRule]:
-        queryset = self.filter(organization=organization)
-        if projects is not None:
-            queryset = queryset.filter(projects__in=projects).distinct()
-
-        return queryset
-
     def fetch_for_project(self, project: Project) -> BaseQuerySet[AlertRule]:
         return self.filter(projects=project).distinct()
-
-    @classmethod
-    def __build_subscription_cache_key(cls, subscription_id: int) -> str:
-        return cls.CACHE_SUBSCRIPTION_KEY % subscription_id
-
-    def get_for_subscription(self, subscription: QuerySubscription) -> AlertRule:
-        """
-        Fetches the AlertRule associated with a Subscription. Attempts to fetch from
-        cache then hits the database
-        """
-        cache_key = self.__build_subscription_cache_key(subscription.id)
-        alert_rule = cache.get(cache_key)
-        if alert_rule is None:
-            alert_rule = AlertRule.objects.get(snuba_query__subscriptions=subscription)
-            cache.set(cache_key, alert_rule, 3600)
-
-        return alert_rule
-
-    @classmethod
-    def clear_subscription_cache(cls, instance: QuerySubscription, **kwargs: Any) -> None:
-        cache.delete(cls.__build_subscription_cache_key(instance.id))
-        assert cache.get(cls.__build_subscription_cache_key(instance.id)) is None
-
-    @classmethod
-    def clear_alert_rule_subscription_caches(cls, instance: AlertRule, **kwargs: Any) -> None:
-        subscription_ids = QuerySubscription.objects.filter(
-            snuba_query_id=instance.snuba_query_id
-        ).values_list("id", flat=True)
-        if subscription_ids:
-            cache.delete_many(
-                cls.__build_subscription_cache_key(sub_id) for sub_id in subscription_ids
-            )
-            assert all(
-                cache.get(cls.__build_subscription_cache_key(sub_id)) is None
-                for sub_id in subscription_ids
-            )
 
 
 @cell_silo_model
@@ -221,17 +170,6 @@ class AlertRule(Model):
     __repr__ = sane_repr("id", "name", "date_added")
 
     @property
-    def created_by_id(self) -> int | None:
-        try:
-            created_activity = AlertRuleActivity.objects.get(
-                alert_rule=self, type=AlertRuleActivityType.CREATED.value
-            )
-            return created_activity.user_id
-        except AlertRuleActivity.DoesNotExist:
-            pass
-        return None
-
-    @property
     def owner(self) -> Actor | None:
         """Part of ActorOwned Protocol"""
         return Actor.from_id(user_id=self.user_id, team_id=self.team_id)
@@ -248,36 +186,6 @@ class AlertRule(Model):
 
     def get_audit_log_data(self) -> dict[str, Any]:
         return {"label": self.name}
-
-
-class AlertRuleTriggerManager(BaseManager["AlertRuleTrigger"]):
-    CACHE_KEY = "alert_rule_triggers:alert_rule:%s"
-
-    @classmethod
-    def _build_trigger_cache_key(cls, alert_rule_id: int) -> str:
-        return cls.CACHE_KEY % alert_rule_id
-
-    def get_for_alert_rule(self, alert_rule: AlertRule) -> list[AlertRuleTrigger]:
-        """
-        Fetches the AlertRuleTriggers associated with an AlertRule. Attempts to fetch
-        from cache then hits the database
-        """
-        cache_key = self._build_trigger_cache_key(alert_rule.id)
-        triggers = cache.get(cache_key)
-        if triggers is None:
-            triggers = list(AlertRuleTrigger.objects.filter(alert_rule=alert_rule))
-            cache.set(cache_key, triggers, 3600)
-        return triggers
-
-    @classmethod
-    def clear_trigger_cache(cls, instance: AlertRuleTrigger, **kwargs: Any) -> None:
-        cache.delete(cls._build_trigger_cache_key(instance.alert_rule_id))
-        assert cache.get(cls._build_trigger_cache_key(instance.alert_rule_id)) is None
-
-    @classmethod
-    def clear_alert_rule_trigger_cache(cls, instance: AlertRuleTrigger, **kwargs: Any) -> None:
-        cache.delete(cls._build_trigger_cache_key(instance.id))
-        assert cache.get(cls._build_trigger_cache_key(instance.id)) is None
 
 
 class AlertRuleThresholdType(Enum):
@@ -303,8 +211,6 @@ class AlertRuleTrigger(Model):
     alert_threshold = models.FloatField()
     resolve_threshold = models.FloatField(null=True)
     date_added = models.DateTimeField(default=timezone.now)
-
-    objects: ClassVar[AlertRuleTriggerManager] = AlertRuleTriggerManager()
 
     class Meta:
         app_label = "sentry"
@@ -488,46 +394,3 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     @classmethod
     def get_all_slugs(cls) -> list[str]:
         return list(cls._factory_registrations.by_slug)
-
-
-class AlertRuleActivityType(Enum):
-    CREATED = 1
-    DELETED = 2
-    UPDATED = 3
-    ENABLED = 4
-    DISABLED = 5
-    SNAPSHOT = 6
-    ACTIVATED = 7
-    DEACTIVATED = 8
-
-
-@cell_silo_model
-class AlertRuleActivity(Model):
-    """
-    Provides an audit log of activity for the alert rule
-    """
-
-    __relocation_scope__ = RelocationScope.Organization
-
-    alert_rule = FlexibleForeignKey("sentry.AlertRule")
-    previous_alert_rule = FlexibleForeignKey(
-        "sentry.AlertRule", null=True, related_name="previous_alert_rule"
-    )
-    user_id = HybridCloudForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete="SET_NULL")
-    type = models.IntegerField()
-    date_added = models.DateTimeField(default=timezone.now)
-
-    class Meta:
-        app_label = "sentry"
-        db_table = "sentry_alertruleactivity"
-
-
-post_delete.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)
-post_save.connect(AlertRuleManager.clear_subscription_cache, sender=QuerySubscription)
-post_save.connect(AlertRuleManager.clear_alert_rule_subscription_caches, sender=AlertRule)
-post_delete.connect(AlertRuleManager.clear_alert_rule_subscription_caches, sender=AlertRule)
-
-post_delete.connect(AlertRuleTriggerManager.clear_alert_rule_trigger_cache, sender=AlertRule)
-post_save.connect(AlertRuleTriggerManager.clear_alert_rule_trigger_cache, sender=AlertRule)
-post_save.connect(AlertRuleTriggerManager.clear_trigger_cache, sender=AlertRuleTrigger)
-post_delete.connect(AlertRuleTriggerManager.clear_trigger_cache, sender=AlertRuleTrigger)
