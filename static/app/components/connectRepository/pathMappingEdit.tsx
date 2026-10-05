@@ -10,7 +10,6 @@ import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {SOURCE_ROOT_PLACEHOLDER, STACK_ROOT_PLACEHOLDER} from './constants';
 import {
   DEFAULT_BRANCH,
-  normalizedPathMappingSchema,
   normalizeRoot,
   resolveBranch,
   sanitizeBranch,
@@ -122,20 +121,12 @@ export const PathMappingEdit = withFieldGroup({
                 sourceRoot: state.values?.sourceRoot ?? '',
               })}
             >
-              {({stackRoot, sourceRoot}) => {
-                const {stackRoot: previewStackRoot, sourceRoot: previewSourceRoot} =
-                  normalizedPathMappingSchema.parse({
-                    stackRoot,
-                    sourceRoot,
-                    branch: '',
-                  });
-                return (
-                  <PathMappingPreview
-                    stackRoot={previewStackRoot}
-                    sourceRoot={previewSourceRoot}
-                  />
-                );
-              }}
+              {({stackRoot, sourceRoot}) => (
+                <PathMappingPreview
+                  stackRoot={normalizeRoot(stackRoot)}
+                  sourceRoot={normalizeRoot(sourceRoot)}
+                />
+              )}
             </group.Subscribe>
           </Stack>
         </Stack>

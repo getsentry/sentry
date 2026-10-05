@@ -8,7 +8,7 @@ import {Text} from '@sentry/scraps/text';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
-import {DEFAULT_BRANCH, normalizedPathMappingSchema} from './normalization';
+import {DEFAULT_BRANCH, normalizePathMapping} from './normalization';
 import {PathMapping} from './pathMapping';
 import type {PathMappingValue} from './type';
 
@@ -22,13 +22,13 @@ const EMPTY_MAPPING: PathMappingValue = {stackRoot: '', sourceRoot: '', branch: 
 const hasContent = (value: PathMappingValue) =>
   value.stackRoot.trim() !== '' || value.sourceRoot.trim() !== '';
 
-const mappingKey = (value: PathMappingValue) => {
-  const {stackRoot, sourceRoot, branch} = normalizedPathMappingSchema.parse(value);
+const mappingKey = (value: PathMappingValue, branchFallback: string) => {
+  const {stackRoot, sourceRoot, branch} = normalizePathMapping(value, branchFallback);
   return `${stackRoot}\0${sourceRoot}\0${branch}`;
 };
 
-const hasDuplicateMappings = (values: PathMappingValue[]) => {
-  const keys = values.map(mappingKey);
+const hasDuplicateMappings = (values: PathMappingValue[], branchFallback: string) => {
+  const keys = values.map(value => mappingKey(value, branchFallback));
   return new Set(keys).size !== keys.length;
 };
 
@@ -121,7 +121,10 @@ export const PathMappingList = withForm({
             return (
               <form.Subscribe selector={state => state.values.pathMappings}>
                 {pathMappings => {
-                  const addDisabledReason = hasDuplicateMappings(pathMappings)
+                  const addDisabledReason = hasDuplicateMappings(
+                    pathMappings,
+                    branchFallback
+                  )
                     ? t('Resolve the duplicate path mapping first')
                     : undefined;
 

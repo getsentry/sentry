@@ -7,7 +7,7 @@ import {IconArrow, IconBranch, IconChevron, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import {AccentPathSegment} from './accentPathSegment';
-import {normalizedPathMappingSchema} from './normalization';
+import {DEFAULT_BRANCH, normalizePathMapping} from './normalization';
 import type {PathMappingValue} from './type';
 
 const PATH_RATIO = 35;
@@ -17,6 +17,7 @@ interface PathMappingSummaryProps extends PathMappingValue {
   expanded: boolean;
   onDelete: () => void;
   onExpandToggle: () => void;
+  defaultBranch?: string;
 }
 
 function PathSegment({value}: {value: string}) {
@@ -40,12 +41,16 @@ export function PathMappingSummary({
   expanded,
   onDelete,
   onExpandToggle,
+  defaultBranch,
 }: PathMappingSummaryProps) {
   const {
     stackRoot: normalizedStackRoot,
     sourceRoot: normalizedSourceRoot,
     branch: branchName,
-  } = normalizedPathMappingSchema.parse({stackRoot, sourceRoot, branch});
+  } = normalizePathMapping(
+    {stackRoot, sourceRoot, branch},
+    defaultBranch ?? DEFAULT_BRANCH
+  );
 
   return (
     <Container padding="md xl">

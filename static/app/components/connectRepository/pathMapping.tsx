@@ -36,6 +36,7 @@ export function PathMapping({
       {showSummary && (
         <PathMappingSummary
           {...value}
+          defaultBranch={defaultBranch}
           expanded={editing}
           onDelete={onDelete}
           onExpandToggle={onExpandToggle}
