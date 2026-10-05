@@ -339,6 +339,15 @@ const config: Config.InitialOptions = {
    */
   clearMocks: true,
 
+  /**
+   * Restart a worker between test files once its heap passes this limit.
+   * Long-lived workers accumulate memory across files, and the occasional
+   * multi-second GC pauses late in a worker's life push trivial tests past
+   * the 5s test timeout.
+   * @link - https://jestjs.io/docs/configuration#workeridlememorylimit-numberstring
+   */
+  workerIdleMemoryLimit: '2GB',
+
   testEnvironment: '<rootDir>/tests/js/sentry-test/jest-environment.js',
   testEnvironmentOptions: {
     globalsCleanup: 'on',
