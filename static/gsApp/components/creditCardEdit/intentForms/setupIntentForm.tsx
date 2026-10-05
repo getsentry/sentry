@@ -1,6 +1,8 @@
 import type {Stripe, StripeElements} from '@stripe/stripe-js';
 import {useMutation} from '@tanstack/react-query';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -20,11 +22,7 @@ export function SetupIntentForm(props: IntentFormProps) {
     onSuccessWithSubscription,
   } = props;
   const {url: setupIntentUrl} = parseQueryKey(props.intentDataQueryKey);
-  const {
-    mutateAsync: savePaymentMethod,
-    isPending,
-    error: submissionError,
-  } = useMutation({
+  const {mutateAsync: savePaymentMethod, isPending} = useMutation({
     mutationFn: async ({
       stripe,
       elements,
@@ -76,6 +74,11 @@ export function SetupIntentForm(props: IntentFormProps) {
       onSuccessWithSubscription?.(data);
       onSuccess?.();
     },
+    onError: error => {
+      toast.error(
+        getRequestErrorUserMessage(error, t('Could not update payment method.'))
+      );
+    },
   });
 
   return (
@@ -86,14 +89,6 @@ export function SetupIntentForm(props: IntentFormProps) {
       handleSubmit={async ({stripe, elements}) => {
         await savePaymentMethod({stripe, elements});
       }}
-      errorMessage={
-        submissionError
-          ? getRequestErrorUserMessage(
-              submissionError,
-              t('Could not update payment method.')
-            )
-          : undefined
-      }
     />
   );
 }

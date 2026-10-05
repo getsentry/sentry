@@ -328,7 +328,7 @@ describe('Subscription > BillingInformation', () => {
     expect(createSetupIntent).not.toHaveBeenCalled();
     await userEvent.click(inCardPanel.getByRole('button', {name: 'Save Changes'}));
 
-    await inCardPanel.findByText(
+    expect(await screen.findByRole('alert')).toHaveTextContent(
       'Unable to initialize payment setup, please try again later.'
     );
   });
@@ -352,9 +352,9 @@ describe('Subscription > BillingInformation', () => {
     const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
     await userEvent.click(within(cardPanel).getByRole('button', {name: 'Save Changes'}));
 
-    expect(
-      await within(cardPanel).findByText('Could not update payment method.')
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not update payment method.'
+    );
   });
 
   it('shows an error when confirmSetup fails', async () => {
@@ -380,6 +380,6 @@ describe('Subscription > BillingInformation', () => {
     // Save the updated credit card details
     await userEvent.click(inCardPanel.getByRole('button', {name: 'Save Changes'}));
 
-    expect(await screen.findByText('card invalid')).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent('card invalid');
   });
 });
