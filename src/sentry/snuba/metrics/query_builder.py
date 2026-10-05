@@ -747,6 +747,10 @@ def translate_meta_results(
                 continue
         elif alias_type == AliasMetaType.GROUP_BY_METRIC_FIELD:
             metric_groupby_field = alias_to_metric_group_by_field[record["name"]]
+            if isinstance(metric_groupby_field.field, str):
+                raise InvalidParams(
+                    f"Unexpected groupby field {metric_groupby_field.field} for alias {record['name']}"
+                )
             defined_parent_meta_type = get_metric_object_from_metric_field(
                 metric_groupby_field.field
             ).get_meta_type()
@@ -821,81 +825,90 @@ class SnubaQueryBuilder:
         the snql generation starts to diverge significantly.
         """
 
-        is_group_by = isinstance(metric_action_by_field, MetricGroupByField)
-        is_order_by = isinstance(metric_action_by_field, MetricOrderByField)
-        if not is_group_by and not is_order_by:
+        if isinstance(metric_action_by_field, MetricGroupByField):
+            action_by_field: MetricGroupByField | MetricOrderByField = metric_action_by_field
+            is_group_by = True
+            is_order_by = False
+        elif isinstance(metric_action_by_field, MetricOrderByField):
+            action_by_field = metric_action_by_field
+            is_group_by = False
+            is_order_by = True
+        else:
             raise InvalidParams("The metric action must either be an order by or group by.")
 
-        if isinstance(metric_action_by_field.field, str):
+        if isinstance(action_by_field.field, str):
             # This transformation is currently supported only for group by because OrderBy doesn't support the Function type.
-            if is_group_by and metric_action_by_field.field == "transaction":
+            if is_group_by and action_by_field.field == "transaction":
+                assert isinstance(action_by_field, MetricGroupByField)
                 return transform_null_transaction_to_unparameterized(
-                    use_case_id, org_id, metric_action_by_field.alias
+                    use_case_id, org_id, action_by_field.alias
                 )
 
             # Handles the case when we are trying to group or order by `project` for example, but we want
             # to translate it to `project_id` as that is what the metrics dataset understands.
-            if metric_action_by_field.field in FIELD_ALIAS_MAPPINGS:
-                column_name = FIELD_ALIAS_MAPPINGS[metric_action_by_field.field]
-            elif metric_action_by_field.field in FIELD_ALIAS_MAPPINGS.values():
-                column_name = metric_action_by_field.field
+            if action_by_field.field in FIELD_ALIAS_MAPPINGS:
+                column_name = FIELD_ALIAS_MAPPINGS[action_by_field.field]
+            elif action_by_field.field in FIELD_ALIAS_MAPPINGS.values():
+                column_name = action_by_field.field
             else:
                 # The support for tags in the order by is disabled for now because there is no need to have it. If the
                 # need arise, we will implement it.
                 if is_group_by:
-                    assert isinstance(metric_action_by_field.field, str)
-                    column_name = resolve_tag_key(use_case_id, org_id, metric_action_by_field.field)
+                    column_name = resolve_tag_key(use_case_id, org_id, action_by_field.field)
                 else:
                     raise NotImplementedError(
-                        f"Unsupported string field: {metric_action_by_field.field}"
+                        f"Unsupported string field: {action_by_field.field}"
                     )
 
             exp = (
                 AliasedExpression(
                     exp=Column(name=column_name),
-                    alias=metric_action_by_field.alias,
+                    alias=action_by_field.alias if isinstance(action_by_field, MetricGroupByField) else None,
                 )
                 if is_group_by and not is_column
                 else Column(name=column_name)
             )
 
             if is_order_by:
+                assert isinstance(action_by_field, MetricOrderByField)
                 # We return a list in order to use the "extend" method and reduce the number of changes across
                 # the codebase.
-                exp = [OrderBy(exp=exp, direction=metric_action_by_field.direction)]
+                exp = [OrderBy(exp=exp, direction=action_by_field.direction)]
 
             return exp
-        elif isinstance(metric_action_by_field.field, MetricField):
+        elif isinstance(action_by_field.field, MetricField):
             try:
                 metric_expression = metric_object_factory(
-                    metric_action_by_field.field.op, metric_action_by_field.field.metric_mri
+                    action_by_field.field.op, action_by_field.field.metric_mri
                 )
 
                 if is_group_by:
+                    assert isinstance(action_by_field, MetricGroupByField)
                     return metric_expression.generate_groupby_statements(
                         use_case_id=use_case_id,
-                        alias=metric_action_by_field.field.alias,
-                        params=metric_action_by_field.field.params,
+                        alias=action_by_field.field.alias,
+                        params=action_by_field.field.params,
                         projects=projects,
                     )[0]
                 elif is_order_by:
+                    assert isinstance(action_by_field, MetricOrderByField)
                     return metric_expression.generate_orderby_clause(
                         use_case_id=use_case_id,
-                        alias=metric_action_by_field.field.alias,
-                        params=metric_action_by_field.field.params,
+                        alias=action_by_field.field.alias,
+                        params=action_by_field.field.params,
                         projects=projects,
-                        direction=metric_action_by_field.direction,
+                        direction=action_by_field.direction,
                     )
                 else:
                     raise NotImplementedError(
-                        f"Unsupported metric field: {metric_action_by_field.field}"
+                        f"Unsupported metric field: {action_by_field.field}"
                     )
 
             except IndexError:
-                raise InvalidParams(f"Cannot resolve {metric_action_by_field.field} into SnQL")
+                raise InvalidParams(f"Cannot resolve {action_by_field.field} into SnQL")
         else:
             raise NotImplementedError(
-                f"Unsupported {'group by' if is_group_by else 'order by' if is_order_by else 'None'} field: {metric_action_by_field.field} needs to be either a MetricField or a string"
+                f"Unsupported {'group by' if is_group_by else 'order by' if is_order_by else 'None'} field: {action_by_field.field} needs to be either a MetricField or a string"
             )
 
     def _build_where(self) -> list[BooleanCondition | Condition]:
@@ -1066,6 +1079,8 @@ class SnubaQueryBuilder:
                 series_limit = self._metrics_query.max_limit
 
             if self._use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.SPANS]:
+                if self._metrics_query.interval is None:
+                    raise InvalidParams("Interval must be provided for discover-style metrics queries")
                 time_groupby_column = self.__generate_time_groupby_column_for_discover_queries(
                     self._metrics_query.interval
                 )
