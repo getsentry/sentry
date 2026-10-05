@@ -256,7 +256,6 @@ describe('Subscription > BillingInformation', () => {
     await screen.findByText('Payment method');
     await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
     const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
-    const inCardPanel = within(cardPanel);
 
     expect(
       screen.getByText(
@@ -265,8 +264,9 @@ describe('Subscription > BillingInformation', () => {
     ).toBeInTheDocument();
 
     // Save the updated credit card details
-    expect(inCardPanel.getByRole('button', {name: 'Save Changes'})).toBeEnabled();
-    await userEvent.click(inCardPanel.getByRole('button', {name: 'Save Changes'}));
+    const saveButton = within(cardPanel).getByRole('button', {name: 'Save Changes'});
+    expect(saveButton).toBeEnabled();
+    await userEvent.click(saveButton);
 
     // Wait for the API call to complete
     await screen.findByRole('button', {name: 'Edit payment method'});
@@ -333,10 +333,9 @@ describe('Subscription > BillingInformation', () => {
     await screen.findByText('Payment method');
     await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
     const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
-    const inCardPanel = within(cardPanel);
 
     expect(createSetupIntent).not.toHaveBeenCalled();
-    await userEvent.click(inCardPanel.getByRole('button', {name: 'Save Changes'}));
+    await userEvent.click(within(cardPanel).getByRole('button', {name: 'Save Changes'}));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Unable to initialize payment setup, please try again later.'
@@ -384,11 +383,10 @@ describe('Subscription > BillingInformation', () => {
     render(<BillingInformation subscription={sub} />, {organization});
 
     const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
-    const inCardPanel = within(cardPanel);
 
     // Panel is already in edit mode because paymentSource is null
     // Save the updated credit card details
-    await userEvent.click(inCardPanel.getByRole('button', {name: 'Save Changes'}));
+    await userEvent.click(within(cardPanel).getByRole('button', {name: 'Save Changes'}));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('card invalid');
   });

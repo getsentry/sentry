@@ -121,18 +121,17 @@ describe('AddBillingInformation', () => {
       'true'
     ); // cannot checkout without billing info
     const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
-    expect(screen.getByTestId('billing-details-panel')).toBeInTheDocument();
-    const inCardPanel = within(cardPanel);
-    const inBillingDetailsPanel = within(screen.getByTestId('billing-details-panel'));
 
     expect(
       screen.queryByRole('button', {name: 'Edit business address'})
     ).not.toBeInTheDocument();
     expect(
-      inBillingDetailsPanel.getByRole('button', {name: 'Save Changes'})
+      within(screen.getByTestId('billing-details-panel')).getByRole('button', {
+        name: 'Save Changes',
+      })
     ).toBeInTheDocument();
 
-    await inCardPanel.findByRole('button', {name: 'Save Changes'});
+    await within(cardPanel).findByRole('button', {name: 'Save Changes'});
     expect(
       screen.queryByRole('button', {name: 'Edit payment method'})
     ).not.toBeInTheDocument();
