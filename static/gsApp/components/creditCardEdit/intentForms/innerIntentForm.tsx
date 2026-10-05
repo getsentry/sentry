@@ -81,11 +81,11 @@ export function InnerIntentForm({
               }}
             />
             <Stack gap="sm">
-              <small>
+              <Text as="p" size="sm">
                 {tct('Payments are processed securely through [stripe:Stripe].', {
                   stripe: <ExternalLink href="https://stripe.com/" />,
                 })}
-              </small>
+              </Text>
               {/* location is 0 on the checkout page which is why this isn't location && */}
               {defined(location) && (
                 <Text size="xs" variant="muted">
