@@ -1,12 +1,13 @@
+from __future__ import annotations
+
 import logging
 import os
 import threading
 from collections.abc import Mapping, Sequence
 from enum import StrEnum
-from typing import Any, TypedDict, TypeVar
+from typing import TYPE_CHECKING, Any, TypedDict, TypeVar
 
 import sentry_sdk
-from tokenizers import Tokenizer
 
 from sentry import options
 from sentry.constants import (
@@ -31,6 +32,9 @@ from sentry.seer.similarity.types import GroupingVersion
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
+
+if TYPE_CHECKING:
+    from tokenizers import Tokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +78,10 @@ class TokenizerWrapper:
                 if self._tokenizer is None:
                     # Try to load from local model first, fallback to remote
                     if os.path.exists(TOKENIZER_MODEL_PATH):
+                        # Imported here so web workers do not load the tokenizers
+                        # extension at boot.
+                        from tokenizers import Tokenizer
+
                         logger.info("Loading tokenizer from local model: %s", TOKENIZER_MODEL_PATH)
                         self._tokenizer = Tokenizer.from_file(TOKENIZER_MODEL_PATH)
                     else:
