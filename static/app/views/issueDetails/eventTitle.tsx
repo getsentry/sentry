@@ -137,7 +137,6 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
                           .string()};
 
                         &:hover {
-                          color: ${cssTheme.tokens.content.secondary};
                           text-decoration-color: ${cssTheme.tokens.content.secondary};
                         }
                       `}

@@ -193,7 +193,6 @@ function TagDetailsRow({
   tag: Tag;
   tagValue: TagValue;
 }) {
-  const theme = useTheme();
   const organization = useOrganization();
   const location = useLocation();
 
@@ -252,11 +251,7 @@ function TagDetailsRow({
           <Text as="div" align="right" variant="inherit">
             {displayPercentage}
           </Text>
-          {tag.totalValues ? (
-            <TagBar percentage={percentage} style={{height: theme.space.lg}} />
-          ) : (
-            '--'
-          )}
+          {tag.totalValues ? <TagBar percentage={percentage} /> : '--'}
           <TagValueActionsMenu group={group} tag={tag} tagValue={tagValue} />
         </Grid>
       )}

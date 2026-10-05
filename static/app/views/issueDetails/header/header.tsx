@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
@@ -51,6 +51,7 @@ interface GroupHeaderProps {
 }
 
 export function GroupHeader({event, group, project}: GroupHeaderProps) {
+  const theme = useTheme();
   const location = useLocation();
   const organization = useOrganization();
   const {baseUrl} = useGroupDetailsRoute();
@@ -85,8 +86,8 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
         background="primary"
         paddingTop="md"
         paddingBottom="md"
-        css={theme => css`
-          padding-inline: var(--issue-details-inset, ${theme.space['2xl']});
+        css={cssTheme => css`
+          padding-inline: var(--issue-details-inset, ${cssTheme.space['2xl']});
         `}
       >
         <Flex justify="between">
@@ -217,8 +218,8 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
               position="relative"
               background={isComplete ? undefined : 'primary'}
               role="banner"
-              css={theme => css`
-                padding-inline: var(--issue-details-inset, ${theme.space['2xl']});
+              css={cssTheme => css`
+                padding-inline: var(--issue-details-inset, ${cssTheme.space['2xl']});
                 transition: background 0.3s ease-in-out;
                 &:before {
                   z-index: -1;
@@ -227,26 +228,24 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
                   content: '';
                   background: linear-gradient(
                     to right,
-                    ${theme.tokens.background.primary},
-                    ${color(theme.tokens.content.success)
+                    ${cssTheme.tokens.background.primary},
+                    ${color(cssTheme.tokens.content.success)
                       .lighten(0.5)
                       .alpha(0.15)
                       .string()}
                   );
                 }
-                &:after {
-                  content: '';
-                  position: absolute;
-                  top: 0;
-                  right: 0;
-                  left: var(--issue-details-inset, ${theme.space['2xl']});
-                  bottom: unset;
-                  height: 1px;
-                  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-                  background: ${theme.tokens.border.primary};
-                }
               `}
             >
+              <Container
+                aria-hidden="true"
+                position="absolute"
+                top={0}
+                right={0}
+                left={`var(--issue-details-inset, ${theme.space['2xl']})`}
+                borderTop="primary"
+                pointerEvents="none"
+              />
               <GroupActions
                 group={group}
                 project={project}
