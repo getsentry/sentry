@@ -119,6 +119,9 @@ export const CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION: SpecialPermissionObj 
 };
 
 export type GranularPermissionObj = {
+  /**
+   * Row label. Also identifies the row, since a resource can have several rows.
+   */
   label: string;
   /**
    * Access levels in ascending order. Selecting a level also grants every
@@ -129,10 +132,6 @@ export type GranularPermissionObj = {
    * Scope prefix, e.g. `dashboard` for `dashboard:read`.
    */
   resource: string;
-  /**
-   * Scopes granted independently of the selected level, shown as checkboxes.
-   */
-  extras?: string[];
 };
 
 // Granular permissions replace SENTRY_APP_PERMISSIONS on personal tokens while
@@ -163,23 +162,26 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
     resource: 'project_v2',
     label: 'Projects',
     levels: ['read', 'create', 'write', 'admin'],
-    extras: ['releases'],
   },
+  // Not a level above admin, so it gets its own row.
+  {resource: 'project_v2', label: 'Project Releases', levels: ['releases']},
   {resource: 'event', label: 'Events', levels: ['read', 'write', 'admin']},
   {
     resource: 'member',
     label: 'Members',
     levels: ['read', 'write', 'admin'],
-    extras: ['invite'],
   },
+  // Not a level above admin, so it gets its own row.
+  {resource: 'member', label: 'Member Invites', levels: ['invite']},
   {resource: 'issue', label: 'Issues', levels: ['read', 'write', 'delete', 'admin']},
   {resource: 'telemetry', label: 'Telemetry', levels: ['read', 'write', 'admin']},
   {
     resource: 'org_v2',
     label: 'Organization',
     levels: ['read', 'write', 'admin'],
-    extras: ['billing'],
   },
+  // Not a level above admin, so it gets its own row.
+  {resource: 'org_v2', label: 'Billing', levels: ['billing']},
   {resource: 'team_v2', label: 'Teams', levels: ['read', 'write', 'delete', 'admin']},
   {resource: 'releases', label: 'Releases', levels: ['read', 'write', 'delete']},
   {resource: 'source_maps', label: 'Source Maps', levels: ['read', 'write', 'delete']},

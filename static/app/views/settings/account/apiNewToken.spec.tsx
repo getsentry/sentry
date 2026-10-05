@@ -224,7 +224,7 @@ describe('ApiNewToken', () => {
       expect(screen.queryByRole('textbox', {name: 'Project'})).not.toBeInTheDocument();
     });
 
-    it('submits the selected level, the levels before it, and extra scopes', async () => {
+    it('submits the selected levels and the levels before them', async () => {
       MockApiClient.clearMockResponses();
       const assignMock = MockApiClient.addMockResponse({
         method: 'POST',
@@ -238,7 +238,10 @@ describe('ApiNewToken', () => {
         'Write'
       );
       await selectEvent.select(screen.getByRole('textbox', {name: 'Members'}), 'Read');
-      await userEvent.click(screen.getByRole('checkbox', {name: 'Invite'}));
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Member Invites'}),
+        'Invite'
+      );
 
       const expectedScopes = [
         'dashboard:create',

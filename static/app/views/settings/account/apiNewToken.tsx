@@ -73,10 +73,7 @@ function getPermissionsPreview(scopes: string[]): string {
 
 export default function ApiNewToken() {
   const [permissions, setPermissions] = useState({...INITIAL_PERMISSIONS});
-  const [granularPermissions, setGranularPermissions] = useState<GranularPermissions>({
-    levels: {},
-    extraScopes: [],
-  });
+  const [granularPermissions, setGranularPermissions] = useState<GranularPermissions>({});
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const organization = useOrganization({allowNull: true});
