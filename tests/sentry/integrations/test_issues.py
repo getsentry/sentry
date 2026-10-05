@@ -776,17 +776,9 @@ class IssueDefaultTest(TestCase):
         label = self.installation.get_issue_display_name(self.external_issue)
         link = self.installation.get_issue_url(self.external_issue.key)
 
-        assert self.installation.get_annotations_for_group_list([self.group]) == {
-            self.group.id: [{"url": link, "displayName": label}]
-        }
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = self.create_provider_integration(provider="example", external_id="4444")
-            integration.add_organization(self.group.organization, self.user)
-        installation = integration.get_installation(self.group.organization.id)
-        assert isinstance(installation, ExampleIntegration)
-
-        assert installation.get_annotations_for_group_list([self.group]) == {self.group.id: []}
+        assert self.installation.map_external_issues_to_annotations([self.external_issue]) == [
+            {"url": link, "displayName": label}
+        ]
 
     @patch("sentry.integrations.mixins.issues.maybe_generate_external_issue_details")
     def test_ai_text_replaces_defaults(self, mock_generate: MagicMock) -> None:

@@ -2136,6 +2136,53 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len([query for query in queries if "sentry_grouplink" in query["sql"]]) == 1
         assert len([query for query in queries if "sentry_externalissue" in query["sql"]]) == 1
 
+    def test_integration_annotations_batch_queries_across_integrations(self) -> None:
+        events = [
+            self.store_event(
+                data={
+                    "timestamp": before_now(seconds=500 - index).isoformat(),
+                    "fingerprint": [f"group-{index}"],
+                },
+                project_id=self.project.id,
+            )
+            for index in range(3)
+        ]
+        integrations = [
+            self.create_integration(
+                organization=self.organization,
+                provider="jira",
+                external_id=f"jira_external_id_{index}",
+                name=f"Jira {index}",
+                metadata={"base_url": f"https://jira-{index}.example.com"},
+            )
+            for index in range(3)
+        ]
+        for integration_index, integration in enumerate(integrations):
+            for event in events[:2]:
+                self.create_integration_external_issue(
+                    group=event.group,
+                    integration=integration,
+                    key=f"APP-{integration_index}-{event.group.id}",
+                )
+        self.login_as(user=self.user)
+
+        with CaptureQueriesContext(connection) as queries:
+            response = self.get_response(sort_by="date", limit=10, query="status:unresolved")
+
+        assert response.status_code == 200
+        annotations_by_group = {int(group["id"]): group["annotations"] for group in response.data}
+        for event in events[:2]:
+            assert sorted(annotations_by_group[event.group.id], key=lambda a: a["displayName"]) == [
+                {
+                    "url": f"https://jira-{index}.example.com/browse/APP-{index}-{event.group.id}",
+                    "displayName": f"APP-{index}-{event.group.id}",
+                }
+                for index in range(3)
+            ]
+        assert annotations_by_group[events[2].group.id] == []
+        assert len([query for query in queries if "sentry_grouplink" in query["sql"]]) == 1
+        assert len([query for query in queries if "sentry_externalissue" in query["sql"]]) == 1
+
     def test_expand_integration_issues_only_associates_issue_type_group_links(self) -> None:
         events = [
             self.store_event(

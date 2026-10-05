@@ -18,6 +18,7 @@ from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializer
 from sentry.constants import LOG_LEVELS
 from sentry.eventtypes import EventTypeStr
 from sentry.integrations.mixins.issues import IssueBasicIntegration
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
 from sentry.issues.derived.serialization import (
     GroupDerivedDataResponse,
@@ -757,17 +758,33 @@ class GroupSerializerBase(Serializer, ABC):
     ) -> Sequence[Mapping[int, Sequence[Any]]]:
         from sentry.integrations.base import IntegrationFeatures
 
-        # The cross-silo issue tracking lookups below will never have results
-        # without GroupLink rows, skip the lookup in that case.
-        if not GroupLink.objects.filter(
+        group_ids_by_external_issue_id: dict[int, list[int]] = defaultdict(list)
+        for group_id, linked_id in GroupLink.objects.filter(
             group_id__in=[group.id for group in groups],
             linked_type=GroupLink.LinkedType.issue,
-        ).exists():
+            relationship=GroupLink.Relationship.references,
+        ).values_list("group_id", "linked_id"):
+            group_ids_by_external_issue_id[linked_id].append(group_id)
+
+        # The cross-silo issue tracking lookups below will never have results
+        # without GroupLink rows, skip the lookup in that case.
+        if not group_ids_by_external_issue_id:
+            return []
+
+        # Load external issues for every integration at once instead of once per integration.
+        external_issues_by_integration_id: dict[int, list[ExternalIssue]] = defaultdict(list)
+        for external_issue in ExternalIssue.objects.filter(
+            id__in=group_ids_by_external_issue_id, organization_id=org_id
+        ):
+            external_issues_by_integration_id[external_issue.integration_id].append(external_issue)
+
+        if not external_issues_by_integration_id:
             return []
 
         integration_annotations = []
-        # find all the integration installs that have issue tracking
-        integrations = integration_service.get_integrations(organization_id=org_id)
+        integrations = integration_service.get_integrations(
+            organization_id=org_id, integration_ids=list(external_issues_by_integration_id)
+        )
         for integration in integrations:
             if not (
                 integration.has_feature(feature=IntegrationFeatures.ISSUE_BASIC)
@@ -777,9 +794,14 @@ class GroupSerializerBase(Serializer, ABC):
 
             install = integration.get_installation(organization_id=org_id)
             assert isinstance(install, IssueBasicIntegration), install
-            local_annotations_by_group_id = (
-                safe_execute(install.get_annotations_for_group_list, group_list=groups) or {}
+            external_issues = external_issues_by_integration_id[integration.id]
+            annotations = (
+                safe_execute(install.map_external_issues_to_annotations, external_issues) or []
             )
+            local_annotations_by_group_id: dict[int, list[Any]] = defaultdict(list)
+            for external_issue, annotation in zip(external_issues, annotations):
+                for group_id in group_ids_by_external_issue_id[external_issue.id]:
+                    local_annotations_by_group_id[group_id].append(annotation)
             integration_annotations.append(local_annotations_by_group_id)
 
         return integration_annotations
