@@ -410,7 +410,8 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
   const isFocused = item.key === state.selectionManager.focusedKey;
 
   const {dispatch} = useSearchQueryBuilderState();
-  const {invalidFilterKeys, invalidFilterKeyMessage} = useSearchQueryBuilderConfig();
+  const {invalidFilterKeys, invalidFilterKeyMessage, filterKeyAliases} =
+    useSearchQueryBuilderConfig();
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -439,7 +440,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
     !(filterMenuOpen && token.invalid.type === InvalidReason.FILTER_MUST_HAVE_VALUE);
   const tokenHasWarning = 'warning' in token && defined(token.warning);
   const filterKeyName = getKeyName(token.key, {aggregateWithArgs: true});
-  const keyIsInvalid = isInvalidFilterKey(token.key, invalidFilterKeys);
+  const keyIsInvalid = isInvalidFilterKey(token.key, invalidFilterKeys, filterKeyAliases);
   const tokenHasError = hasTokenInvalid || keyIsInvalid;
 
   return (
