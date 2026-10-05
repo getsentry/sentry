@@ -102,7 +102,7 @@
     "@react-types/shared": "3.36.0",
     "@remix-run/router": "1.23.4",
     "@rsbuild/core": "^2.2.4",
-    "@rsbuild/plugin-basic-ssl": "^1.2.3",
+    "@rsbuild/plugin-basic-ssl": "^2.0.0",
     "@rsdoctor/rspack-plugin": "1.6.3",
     "@rspack/core": "2.2.3",
     "@rspack/plugin-react-refresh": "2.0.2",
