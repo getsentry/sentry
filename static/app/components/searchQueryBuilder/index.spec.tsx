@@ -767,6 +767,44 @@ describe('SearchQueryBuilder', () => {
       });
       expect(mockOnBlur).toHaveBeenCalledWith('ab', expectedQueryState);
     });
+
+    it('does not search while a logical operator is missing a condition', async () => {
+      const mockOnChange = jest.fn();
+      const mockOnSearch = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:Chrome"
+          onChange={mockOnChange}
+          onSearch={mockOnSearch}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('OR{enter}');
+
+      await waitFor(() => {
+        expect(mockOnChange).toHaveBeenCalledWith(
+          'browser.name:Chrome OR',
+          expect.objectContaining({queryIsValid: false})
+        );
+      });
+      expect(mockOnSearch).not.toHaveBeenCalled();
+      expect(screen.getByRole('row', {name: 'OR'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('foo{enter}');
+
+      await waitFor(() => {
+        expect(mockOnSearch).toHaveBeenCalledWith(
+          'browser.name:Chrome OR foo',
+          expect.objectContaining({queryIsValid: true})
+        );
+      });
+    });
   });
 
   describe('actions', () => {

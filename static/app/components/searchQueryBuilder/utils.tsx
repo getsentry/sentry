@@ -325,6 +325,20 @@ export function queryIsValid(parsedQuery: ParseResult | null) {
   return !parsedQuery.some(tokenIsInvalid);
 }
 
+/**
+ * An AND / OR without a condition on both sides usually means the user is
+ * still typing (e.g. `browser:Chrome OR`).
+ */
+export function queryHasDanglingLogicalOperator(parsedQuery: ParseResult | null) {
+  return Boolean(
+    parsedQuery?.some(
+      token =>
+        token.type === Token.LOGIC_BOOLEAN &&
+        token.invalid?.type === InvalidReason.LOGICAL_OPERATOR_MISSING_CONDITION
+    )
+  );
+}
+
 export function isDateToken(token: TokenResult<Token.FILTER>) {
   return [FilterType.DATE, FilterType.RELATIVE_DATE, FilterType.SPECIFIC_DATE].includes(
     token.filter

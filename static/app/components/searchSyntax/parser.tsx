@@ -363,6 +363,7 @@ export enum InvalidReason {
   PARENS_NOT_ALLOWED = 'parens-not-allowed',
   REGEX_PATTERN_TOO_LONG = 'regex-pattern-too-long',
   INVALID_REGEX = 'invalid-regex',
+  LOGICAL_OPERATOR_MISSING_CONDITION = 'logic-operator-missing-condition',
 }
 
 /**
@@ -1665,6 +1666,9 @@ export const defaultConfig: SearchConfig = {
       MAX_REGEX_PATTERN_LENGTH
     ),
     [InvalidReason.INVALID_REGEX]: t('Invalid regex (RE2 syntax)'),
+    [InvalidReason.LOGICAL_OPERATOR_MISSING_CONDITION]: t(
+      'Add a condition on both sides of this operator'
+    ),
   },
 };
 
@@ -1693,11 +1697,58 @@ export function parseSearch(
     ? mergeSearchConfigWithDefaults(defaultConfig, additionalConfig)
     : defaultConfig;
 
-  return tryParseSearch(query, {
+  const result = tryParseSearch(query, {
     config,
     TokenConverter,
     TermOperator,
     FilterType,
+  });
+
+  if (result) {
+    markDanglingLogicalOperators(result, config);
+  }
+
+  return result;
+}
+
+/**
+ * The grammar accepts AND / OR anywhere a term is allowed, but the backend
+ * rejects operators without a condition on both sides (e.g. a trailing `OR`
+ * while the user is still typing). Whether an operator is dangling depends on
+ * its neighbors, so this can't be decided while the token is constructed.
+ */
+function markDanglingLogicalOperators(
+  tokens: readonly ParseResultToken[],
+  config: SearchConfig
+) {
+  const terms = tokens.filter(token => token.type !== Token.SPACES);
+
+  terms.forEach((token, index) => {
+    if (token.type === Token.LOGIC_GROUP) {
+      markDanglingLogicalOperators(token.inner, config);
+      return;
+    }
+
+    if (token.type !== Token.LOGIC_BOOLEAN || token.invalid) {
+      return;
+    }
+
+    const prev = terms[index - 1];
+    const next = terms[index + 1];
+
+    const missingLeft =
+      !prev || prev.type === Token.LOGIC_BOOLEAN || prev.type === Token.L_PAREN;
+    const missingRight =
+      !next || next.type === Token.LOGIC_BOOLEAN || next.type === Token.R_PAREN;
+
+    if (missingLeft || missingRight) {
+      token.invalid = {
+        type: InvalidReason.LOGICAL_OPERATOR_MISSING_CONDITION,
+        reason:
+          config.invalidMessages[InvalidReason.LOGICAL_OPERATOR_MISSING_CONDITION] ??
+          defaultConfig.invalidMessages[InvalidReason.LOGICAL_OPERATOR_MISSING_CONDITION],
+      };
+    }
   });
 }
 
