@@ -1,5 +1,5 @@
 import {Fragment, useEffect, useState} from 'react';
-import {css} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
@@ -8,6 +8,7 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
+import {Text} from '@sentry/scraps/text';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {DateTime} from 'sentry/components/dateTime';
@@ -36,6 +37,7 @@ interface Props {
 }
 
 export function FlagDetailsDrawerContent({group}: Props) {
+  const theme = useTheme();
   const navigate = useNavigate();
   const organization = useOrganization();
   const {tagKey} = useParams<{tagKey: string}>();
@@ -107,20 +109,24 @@ export function FlagDetailsDrawerContent({group}: Props) {
       <Grid
         columns="0.4fr 0.7fr 0.3fr 0.5fr min-content"
         gap={{zero: 'xs md', '5xl': 'xs xl'}}
-        css={theme =>
-          css`
-            margin: 0 -${theme.space.md};
-          `
-        }
+        position="relative"
+        left={`-${theme.space.md}`}
+        width={`calc(100% + ${theme.space.md} + ${theme.space.md})`}
       >
         <Header>
-          <ColumnTitle>{t('Provider')}</ColumnTitle>
-          <ColumnTitle>{t('Flag Name')}</ColumnTitle>
-          <ColumnTitle>{t('Action')}</ColumnTitle>
-          <ColumnTitle>
+          <Text as="div" wrap="nowrap" variant="muted" bold>
+            {t('Provider')}
+          </Text>
+          <Text as="div" wrap="nowrap" variant="muted" bold>
+            {t('Flag Name')}
+          </Text>
+          <Text as="div" wrap="nowrap" variant="muted" bold>
+            {t('Action')}
+          </Text>
+          <Text as="div" wrap="nowrap" variant="muted" bold>
             {sortArrow}
             {t('Date')}
-          </ColumnTitle>
+          </Text>
         </Header>
         <Body>
           {flagLog.json.data.map((flag, i) => {
@@ -234,12 +240,6 @@ function FlagValueActionsMenu({flagValue}: {flagValue: RawFlag}) {
     />
   );
 }
-
-const ColumnTitle = styled('div')`
-  white-space: nowrap;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
 
 const Body = styled('div')`
   display: grid;
