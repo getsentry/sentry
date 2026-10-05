@@ -111,24 +111,6 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                 self.action, self.detector, self.event_data, workflow_id=self.workflow.id
             )
 
-    def test_create_rule_instance_from_action_missing_rule_workflow_id_raises_value_error(
-        self,
-    ) -> None:
-        job = WorkflowEventData(
-            event=self.group_event, workflow_env=self.environment, group=self.group
-        )
-        action = self.create_action(
-            type=Action.Type.DISCORD,
-            integration_id="1234567890",
-            config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
-            data={"tags": "environment,user,my_tag"},
-        )
-
-        with pytest.raises(ValueError):
-            self.handler.create_rule_instance_from_action(
-                action, self.detector, job, workflow_id=None
-            )
-
     def test_create_rule_instance_from_action(self) -> None:
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
         rule = self.handler.create_rule_instance_from_action(

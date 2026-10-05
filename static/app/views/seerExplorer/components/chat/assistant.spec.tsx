@@ -91,8 +91,8 @@ describe('AssistantBlock', () => {
 
       await userEvent.click(upButton);
 
-      expect(upButton).toBeDisabled();
-      expect(downButton).toBeDisabled();
+      expect(upButton).toHaveAttribute('aria-disabled', 'true');
+      expect(downButton).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('disables both thumbs after thumbs down is clicked', async () => {
@@ -107,8 +107,8 @@ describe('AssistantBlock', () => {
 
       await userEvent.click(downButton);
 
-      expect(upButton).toBeDisabled();
-      expect(downButton).toBeDisabled();
+      expect(upButton).toHaveAttribute('aria-disabled', 'true');
+      expect(downButton).toHaveAttribute('aria-disabled', 'true');
     });
 
     it('does not disable thumbs without runId', async () => {
@@ -123,8 +123,8 @@ describe('AssistantBlock', () => {
 
       await userEvent.click(upButton);
 
-      expect(upButton).toBeEnabled();
-      expect(downButton).toBeEnabled();
+      expect(upButton).not.toHaveAttribute('aria-disabled', 'true');
+      expect(downButton).not.toHaveAttribute('aria-disabled', 'true');
     });
 
     it('hides action bar when interactionPending', async () => {

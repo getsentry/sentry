@@ -1,5 +1,4 @@
 import type {Location, Query} from 'history';
-import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
@@ -52,7 +51,7 @@ import {
 } from 'sentry/views/discover/savedQuery/utils';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
-import {decodeColumnOrder, getDiscoverDeprecation} from 'sentry/views/discover/utils';
+import {decodeColumnOrder} from 'sentry/views/discover/utils';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import type {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
@@ -741,7 +740,7 @@ export class EventView {
 
     stringifyQueryParams(output);
 
-    return cloneDeep(output as any);
+    return structuredClone(output as any);
   }
 
   isValid(): boolean {
@@ -1204,11 +1203,7 @@ export class EventView {
     isHomepage = false,
     queryDataset?: SavedQueryDatasets
   ): {pathname: string; query: Query} {
-    const target = isHomepage
-      ? getDiscoverDeprecation(organization)
-        ? undefined
-        : 'homepage'
-      : 'results';
+    const target = isHomepage ? undefined : 'results';
     const query = this.generateQueryStringObject();
     if (queryDataset) {
       query.queryDataset = queryDataset;
@@ -1242,7 +1237,7 @@ export class EventView {
         path: '/results/',
         organization,
       }),
-      query: cloneDeep(output),
+      query: structuredClone(output),
     };
   }
 
@@ -1274,7 +1269,7 @@ export class EventView {
 
     stringifyQueryParams(output);
 
-    const query = cloneDeep(output as any);
+    const query = structuredClone(output as any);
     return {
       pathname: normalizeUrl(
         `${getTransactionSummaryBaseUrl(organization, options.view)}/events/`

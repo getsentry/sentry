@@ -13,6 +13,9 @@ import {
 } from 'sentry/views/detectors/components/forms/metric/metricFormData';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
+import {parseMetricAggregate} from 'sentry/views/explore/metrics/parseMetricsAggregate';
+import {isTraceMetricTypeValue} from 'sentry/views/explore/metrics/types';
 
 function getLocationDataset(
   query: Record<string, string | string[] | undefined | null>
@@ -29,6 +32,7 @@ function getLocationDataset(
 
 function getLocationAggregate(
   query: Record<string, string | string[] | undefined | null>,
+  dataset: DetectorDataset,
   datasetConfig: ReturnType<typeof getDatasetConfig>,
   organization: Organization
 ): string | undefined {
@@ -39,6 +43,17 @@ function getLocationAggregate(
 
   if (datasetConfig.supportsEquations && isEquation(raw)) {
     return raw;
+  }
+
+  if (dataset === DetectorDataset.METRICS) {
+    const {aggregation, traceMetric} = parseMetricAggregate(raw);
+    if (!traceMetric.name || !isTraceMetricTypeValue(traceMetric.type)) {
+      return undefined;
+    }
+
+    return OPTIONS_BY_TYPE[traceMetric.type]?.some(option => option.value === aggregation)
+      ? raw
+      : undefined;
   }
 
   const parsedAggregate = parseFunction(raw);
@@ -59,6 +74,7 @@ export function useInitialMetricDetectorFormData(): Partial<MetricDetectorFormDa
   const defaultAggregate = generateFieldAsString(datasetConfig.defaultField);
   const aggregateFromUrl = getLocationAggregate(
     location.query,
+    dataset,
     datasetConfig,
     organization
   );

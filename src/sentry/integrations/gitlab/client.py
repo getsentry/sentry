@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping, Sequence
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 from urllib.parse import quote
 
@@ -30,6 +31,12 @@ if TYPE_CHECKING:
     from sentry.integrations.gitlab.integration import GitlabIntegration
 
 logger = logging.getLogger("sentry.integrations.gitlab")
+
+
+class GitLabApiRequestType(StrEnum):
+    CREATE_PROJECT_WEBHOOK = "create_project_webhook"
+    UPDATE_PROJECT_WEBHOOK = "update_project_webhook"
+    DELETE_PROJECT_WEBHOOK = "delete_project_webhook"
 
 
 class GitLabSetupApiClient(IntegrationProxyClient):
@@ -523,15 +530,11 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         path = GitLabApiClientPath.issue.format(project=safe_quote(project_id), issue=issue_iid)
         return self.put(path, data={"state_event": state})
 
-    def create_project_webhook(self, project_id):
-        """Create a webhook on a project
-
-        See https://docs.gitlab.com/ee/api/projects.html#add-project-hook
-        """
-        path = GitLabApiClientPath.project_hooks.format(project=safe_quote(project_id))
+    def _project_webhook_data(self) -> dict[str, Any]:
         hook_uri = reverse("sentry-extensions-gitlab-webhook")
         model = self.installation.model
-        data = {
+        # GitLab clears the token when the URL changes, so always send both together.
+        return {
             "url": absolute_uri(hook_uri),
             "token": "{}:{}".format(model.external_id, model.metadata["webhook_secret"]),
             "merge_requests_events": True,
@@ -540,7 +543,18 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
             "note_events": True,
             "enable_ssl_verification": model.metadata["verify_ssl"],
         }
-        resp = self.post(path, data=data)
+
+    def create_project_webhook(self, project_id):
+        """Create a webhook on a project.
+
+        See https://docs.gitlab.com/ee/api/projects.html#add-project-hook
+        """
+        path = GitLabApiClientPath.project_hooks.format(project=safe_quote(project_id))
+        resp = self.post(
+            path,
+            data=self._project_webhook_data(),
+            api_request_type=GitLabApiRequestType.CREATE_PROJECT_WEBHOOK,
+        )
 
         return resp["id"]
 
@@ -560,18 +574,47 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         path = GitLabApiClientPath.project_hook.format(
             project=safe_quote(project_id), hook_id=hook_id
         )
-        hook_uri = reverse("sentry-extensions-gitlab-webhook")
-        model = self.installation.model
-        data = {
-            "url": absolute_uri(hook_uri),
-            "token": "{}:{}".format(model.external_id, model.metadata["webhook_secret"]),
-            "merge_requests_events": True,
-            "push_events": True,
-            "issues_events": True,
-            "note_events": True,
-            "enable_ssl_verification": model.metadata["verify_ssl"],
-        }
-        return self.put(path, data=data)
+        return self.put(
+            path,
+            data=self._project_webhook_data(),
+            api_request_type=GitLabApiRequestType.UPDATE_PROJECT_WEBHOOK,
+        )
+
+    def ensure_project_webhook(self, project_id: int | str, hook_id: int | str | None) -> int | str:
+        """Refresh a stored hook, creating a replacement only when necessary."""
+        outcome = "failure"
+        try:
+            if hook_id:
+                try:
+                    hook = self.update_project_webhook(project_id, hook_id)
+                except ApiError as e:
+                    # An update may have applied despite an error. Only a 404 is safe
+                    # to follow with a create without risking duplicate deliveries.
+                    if e.code != 404:
+                        raise
+                else:
+                    if hook.get("alert_status") != "disabled":
+                        outcome = "updated"
+                        return hook_id
+                    # PUT does not re-enable permanently disabled hooks. Temporarily
+                    # disabled hooks recover after backoff; older GitLab omits this field.
+                    # Do not use the test endpoint: it replays commits into Sentry.
+                    try:
+                        self.delete_project_webhook(project_id, hook_id)
+                    except ApiError as e:
+                        if e.code != 404:
+                            raise
+            new_hook_id = self.create_project_webhook(project_id)
+            outcome = "recreated" if hook_id else "created"
+            return new_hook_id
+        except ApiError as e:
+            if e.code == 403:
+                outcome = "forbidden"
+            elif e.code == 404:
+                outcome = "not_found"
+            raise
+        finally:
+            metrics.incr("gitlab.project_webhook.reconcile", tags={"outcome": outcome})
 
     def delete_project_webhook(self, project_id, hook_id):
         """Delete a webhook from a project
@@ -581,7 +624,7 @@ class GitLabApiClient(IntegrationProxyClient, RepositoryClient, CommitContextCli
         path = GitLabApiClientPath.project_hook.format(
             project=safe_quote(project_id), hook_id=hook_id
         )
-        return self.delete(path)
+        return self.delete(path, api_request_type=GitLabApiRequestType.DELETE_PROJECT_WEBHOOK)
 
     def create_branch(self, project_id: str, branch: str, ref: str):
         """https://docs.gitlab.com/api/branches/#create-repository-branch"""

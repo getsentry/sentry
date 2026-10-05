@@ -17,8 +17,12 @@ import {ExploreContent} from './content';
 function TopBarWrapper({children}: {children: ReactNode}) {
   return (
     <TopBar.Slot.Provider>
+      <TopBar.Slot.Outlet name="breadcrumbs">
+        {props => <div {...props} data-test-id="topbar-breadcrumbs-slot" />}
+      </TopBar.Slot.Outlet>
+      {/* Mirror the real TopBar, which renders the title slot as an <h1>. */}
       <TopBar.Slot.Outlet name="title">
-        {props => <div {...props} data-test-id="topbar-title-slot" />}
+        {props => <h1 {...props} data-test-id="topbar-title-slot" />}
       </TopBar.Slot.Outlet>
       {children}
     </TopBar.Slot.Provider>
@@ -26,15 +30,11 @@ function TopBarWrapper({children}: {children: ReactNode}) {
 }
 
 describe('ExploreContent', () => {
-  const {organization, project} = initializeOrg({
-    organization: {
-      features: ['gen-ai-features'],
-    },
-  });
+  const {organization, project} = initializeOrg();
   const {organization: highRangeOrganization, project: highRangeProject} = initializeOrg({
     organization: {
       slug: 'high-range-org',
-      features: ['gen-ai-features', 'visibility-explore-range-high'],
+      features: ['visibility-explore-range-high'],
     },
   });
 
@@ -151,7 +151,7 @@ describe('ExploreContent', () => {
   }
 
   beforeEach(() => {
-    FeatureFlagOverrides.singleton().clear();
+    FeatureFlagOverrides.singleton().clearStoredOverrides();
     PageFiltersStore.init();
     OrganizationStore.onUpdate(organization, {replace: true});
 
@@ -172,7 +172,7 @@ describe('ExploreContent', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    FeatureFlagOverrides.singleton().clear();
+    FeatureFlagOverrides.singleton().clearStoredOverrides();
     act(() => {
       OrganizationStore.reset();
       ProjectsStore.reset();
@@ -213,7 +213,7 @@ describe('ExploreContent', () => {
 
     const highRangeOrganizationWithoutFeature = {
       ...highRangeOrganization,
-      features: ['gen-ai-features'],
+      features: [],
     };
 
     const {rerender} = render(
@@ -282,7 +282,7 @@ describe('ExploreContent', () => {
     );
   });
 
-  it('does not keep loading when toolbar overrides disable the high range flag', async () => {
+  it('does not keep loading when a local override disables the high range flag', async () => {
     act(() => ProjectsStore.loadInitialData([highRangeProject]));
     FeatureFlagOverrides.singleton().setStoredOverride(
       'visibility-explore-range-high',
@@ -291,7 +291,7 @@ describe('ExploreContent', () => {
 
     const highRangeOrganizationWithOverride = {
       ...highRangeOrganization,
-      features: ['gen-ai-features'],
+      features: [],
     };
     OrganizationStore.onUpdate(highRangeOrganizationWithOverride, {replace: true});
 

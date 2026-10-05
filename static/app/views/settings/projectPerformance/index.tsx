@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import type {Scope} from 'sentry/types/core';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
+import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useHasSeerWebVitalsSuggestions} from 'sentry/views/insights/browser/webVitals/utils/useHasSeerWebVitalsSuggestions';
@@ -65,9 +66,8 @@ export function ProjectPerformance() {
 
   const hasWebVitalsSeerSuggestions = useHasSeerWebVitalsSuggestions(project);
   const hasAIIssueDetection =
-    organization.features.includes('gen-ai-features') &&
     organization.features.includes('ai-issue-detection') &&
-    !organization.hideAiFeatures;
+    areAiFeaturesAllowed(organization);
 
   const {
     data: threshold,

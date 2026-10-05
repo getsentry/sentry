@@ -194,6 +194,7 @@ def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[i
         if alert_workflow:
             if rule := bulk_rules.get(alert_workflow.rule_id):
                 assert rule.project_id == project.id, "Rule must belong to Project"
+                rule.environment_id = workflow.environment_id
                 try:
                     rule.data["actions"][0]["legacy_rule_id"] = rule.id
                     rule.data["actions"][0]["workflow_id"] = workflow_id
@@ -211,6 +212,7 @@ def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[i
             label=workflow.name,
             id=workflow_id,
             project_id=project.id,
+            environment_id=workflow.environment_id,
             # We need to do this so that the links are built correctly downstream
             data={"actions": [{"workflow_id": workflow_id}]},
         )

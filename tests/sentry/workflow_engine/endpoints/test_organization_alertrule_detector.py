@@ -1,5 +1,6 @@
 from sentry.api.serializers import serialize
 from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
+from sentry.incidents.grouptype import MetricIssue
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
 
@@ -139,4 +140,65 @@ class OrganizationAlertRuleDetectorIndexGetTest(OrganizationAlertRuleDetectorAPI
         nonexistent_fake_id = get_fake_id_from_object_id(999999)
         self.get_error_response(
             self.organization.slug, alert_rule_id=str(nonexistent_fake_id), status_code=404
+        )
+
+
+@cell_silo_test
+class OrganizationAlertRuleDetectorProjectAccessTest(OrganizationAlertRuleDetectorAPITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self.member = self.create_user(is_superuser=False)
+        self.create_member(
+            user=self.member, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(self.member)
+
+    def test_mapping_requires_project_access(self) -> None:
+        self.get_error_response(
+            self.organization.slug, detector_id=self.detector_1.id, status_code=404
+        )
+        self.get_error_response(self.organization.slug, rule_id=67890, status_code=404)
+        self.get_error_response(self.organization.slug, alert_rule_id=12345, status_code=404)
+
+        self.create_team_membership(team=self.team, user=self.member)
+        response = self.get_success_response(self.organization.slug, rule_id=67890)
+        assert response.data == serialize(self.alert_rule_detector_2, self.member)
+        response = self.get_success_response(self.organization.slug, alert_rule_id=12345)
+        assert response.data == serialize(self.alert_rule_detector_1, self.member)
+
+    def test_fallback_respects_project_access_and_filters(self) -> None:
+        detector = self.create_detector(project=self.project, type=MetricIssue.slug)
+        fake_alert_rule_id = get_fake_id_from_object_id(detector.id)
+        self.get_error_response(
+            self.organization.slug, alert_rule_id=fake_alert_rule_id, status_code=404
+        )
+
+        self.create_team_membership(team=self.team, user=self.member)
+        response = self.get_success_response(
+            self.organization.slug, alert_rule_id=fake_alert_rule_id, detector_id=detector.id
+        )
+        assert response.data == {
+            "detectorId": str(detector.id),
+            "alertRuleId": str(fake_alert_rule_id),
+            "ruleId": None,
+        }
+
+        self.get_error_response(
+            self.organization.slug,
+            alert_rule_id=fake_alert_rule_id,
+            detector_id=self.detector_1.id,
+            status_code=404,
+        )
+        self.get_error_response(
+            self.organization.slug,
+            alert_rule_id=fake_alert_rule_id,
+            rule_id=67890,
+            status_code=404,
+        )
+        self.get_error_response(
+            self.organization.slug,
+            alert_rule_id=get_fake_id_from_object_id(self.other_detector.id),
+            status_code=404,
         )
