@@ -725,9 +725,13 @@ describe('ResultGrid allowAllRegions', () => {
       clear: jest.fn(),
       requestPromise: jest.fn((url: string, _options: any) => {
         if (url.startsWith('/_admin/cells/us/')) {
-          return Promise.resolve([[{id: '1', name: 'Acme', members: 5}], 'success', {
-            getResponseHeader: () => null,
-          }]);
+          return Promise.resolve([
+            [{id: '1', name: 'Acme', members: 5}],
+            'success',
+            {
+              getResponseHeader: () => null,
+            },
+          ]);
         }
         return Promise.reject(new Error('Failed to fetch'));
       }),
