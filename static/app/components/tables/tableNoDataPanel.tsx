@@ -7,8 +7,6 @@ export function TableNoDataPanel() {
     <EmptyState
       title={t('No results found')}
       description={t('Try adjusting the filters.')}
-      contentGap="sm"
-      textAlign="center"
     />
   );
 }
