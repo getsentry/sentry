@@ -15,7 +15,10 @@ from sentry.investigations.agent import (
     title_generation_preview,
 )
 from sentry.investigations.models import InvestigationBlockExecutionStatus
-from sentry.investigations.services.investigations import DEFAULT_INVESTIGATION_TITLE
+from sentry.investigations.services.investigations import (
+    DEFAULT_INVESTIGATION_TITLE,
+    default_investigation_title,
+)
 from sentry.investigations.telemetry import (
     record_execution_completed,
     record_investigation_completed,
@@ -157,7 +160,7 @@ class InvestigationAgentTest(TestCase):
                             content=(
                                 '<UNTRUSTED_DATA source="sentry_api" trust="UNTRUSTED">\n'
                                 "{'result': '12 errors', 'link_params': "
-                                "{'dataset': 'errors', 'query': 'is:unresolved', "
+                                "{'dataset': 'errors', 'query': 'is:unresolved', 'stats_period': '6d', "
                                 f"'project_slugs': ['{self.project.slug}']}}}}\n"
                                 "</UNTRUSTED_DATA>"
                             ),
@@ -186,6 +189,10 @@ class InvestigationAgentTest(TestCase):
         assert self.execution.status == InvestigationBlockExecutionStatus.COMPLETED
         assert self.execution.result["tableMarkdown"].startswith("| Errors |")
         assert self.execution.result["queryLinks"][0]["kind"] == "telemetry"
+        params = self.execution.result["queryLinks"][0]["params"]
+        assert params["start"] == (self.execution.date_added - timedelta(days=6)).isoformat()
+        assert params["end"] == self.execution.date_added.isoformat()
+        assert "stats_period" not in params
         assert list(self.execution.data_projects.all()) == [self.project]
         assert self.block.result_execution == self.execution
 
@@ -214,8 +221,22 @@ class InvestigationAgentTest(TestCase):
         assert list(self.execution.data_projects.all()) == [self.project]
 
     def test_completed_query_keeps_reused_result_projects(self) -> None:
+        original_links = [
+            {
+                "kind": "telemetry",
+                "params": {
+                    "dataset": "errors",
+                    "query": "",
+                    "start": "2025-08-01T00:00:00Z",
+                    "end": "2025-08-07T00:00:00Z",
+                },
+            }
+        ]
         self.execution.input_snapshot["projectIds"] = []
         self.execution.input_snapshot["contextDataProjectIds"] = [self.project.id]
+        self.execution.input_snapshot["context"] = [
+            {"currentBlock": True, "result": {"queryLinks": original_links}}
+        ]
         self.execution.save(update_fields=["input_snapshot"])
         run_state = state(
             blocks=[
@@ -239,6 +260,7 @@ class InvestigationAgentTest(TestCase):
         self.execution.refresh_from_db()
         assert self.execution.status == InvestigationBlockExecutionStatus.COMPLETED
         assert list(self.execution.data_projects.all()) == [self.project]
+        assert self.execution.result["queryLinks"] == original_links
 
     def test_start_run_requests_a_final_response_without_an_artifact_writer(self) -> None:
         client = MagicMock()
@@ -310,6 +332,41 @@ class InvestigationAgentTest(TestCase):
         assert context["source"]["snapshot"]["analysisWindow"]["breachStart"] == (
             "2026-08-14T23:56:02+00:00"
         )
+
+    def test_start_run_categorizes_the_run_as_an_investigation(self) -> None:
+        client = MagicMock()
+
+        start_execution_run(self.execution, self.organization, self.user, client)
+
+        assert client.category_key == "investigation"
+        assert client.category_value == str(self.investigation.id)
+
+    def test_start_run_passes_parameter_changes_separately_from_saved_settings(self) -> None:
+        saved_context = {
+            "currentBlock": True,
+            "queryContext": {
+                "parameters": {"environment": ["production"]},
+                "filters": {"start": "2025-08-01T00:00:00Z", "end": "2025-08-07T00:00:00Z"},
+            },
+        }
+        self.execution.input_snapshot.update(
+            {
+                "parameters": {"environment": ["staging"]},
+                "parameterChanges": {"environment": ["staging"]},
+                "context": [saved_context],
+            }
+        )
+        client = MagicMock()
+
+        start_execution_run(self.execution, self.organization, self.user, client)
+
+        prompt = client.start_run.call_args.args[0]
+        serialized_context = prompt.split("<investigation_context>\n", 1)[1].split(
+            "\n</investigation_context>", 1
+        )[0]
+        context = json.loads(serialized_context)
+        assert context["parameterChanges"] == {"environment": ["staging"]}
+        assert context["notebookContext"] == [saved_context]
 
     @patch("sentry.investigations.agent.record_execution_started")
     def test_start_run_records_execution_started(self, record_started: MagicMock) -> None:
@@ -1159,6 +1216,44 @@ class InvestigationAgentTest(TestCase):
         record_title_completed.assert_called_once_with(self.investigation)
         record_investigation_completed.assert_called_once_with(self.investigation)
 
+    def test_title_replaces_a_derived_default_title(self) -> None:
+        self.investigation.title = default_investigation_title(self.investigation.source_type)
+        self.investigation.title_generation_status = "running"
+        self.investigation.save(update_fields=["title", "title_generation_status"])
+        run_state = state(
+            blocks=[
+                MemoryBlock(
+                    id="title",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(role="assistant", content=completion_metadata()),
+                )
+            ]
+        )
+
+        synchronize_title(self.investigation, run_state)
+
+        self.investigation.refresh_from_db()
+        assert self.investigation.title == "Daily error volume spike"
+
+    def test_title_keeps_a_user_chosen_title(self) -> None:
+        self.investigation.title_generation_status = "running"
+        self.investigation.save(update_fields=["title_generation_status"])
+        run_state = state(
+            blocks=[
+                MemoryBlock(
+                    id="title",
+                    timestamp="2026-08-03T00:00:00Z",
+                    message=Message(role="assistant", content=completion_metadata()),
+                )
+            ]
+        )
+
+        synchronize_title(self.investigation, run_state)
+
+        self.investigation.refresh_from_db()
+        assert self.investigation.title == "Already titled"
+        assert self.investigation.summary == "Error volume crossed threshold"
+
     @patch("sentry.investigations.telemetry.metrics.distribution")
     @patch("sentry.investigations.telemetry.sentry_sdk.metrics.distribution")
     def test_completed_investigation_records_duration_metrics(
@@ -1272,6 +1367,18 @@ class InvestigationAgentTest(TestCase):
         assert "casual, plain language" in prompt
         assert "1 or 2 short" in prompt
         assert "Avoid headings and jargon" in prompt
+
+    @patch("sentry.investigations.agent.SeerAgentClient")
+    def test_title_generation_categorizes_the_run_as_an_investigation(
+        self, mock_client: MagicMock
+    ) -> None:
+        self.investigation.update(title=DEFAULT_INVESTIGATION_TITLE)
+
+        _maybe_start_title_generation(self.investigation, None)
+
+        kwargs = mock_client.call_args.kwargs
+        assert kwargs["category_key"] == "investigation"
+        assert kwargs["category_value"] == str(self.investigation.id)
 
     @patch("sentry.investigations.agent.record_investigation_completed")
     @patch("sentry.investigations.agent.SeerAgentClient")

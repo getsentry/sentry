@@ -10,7 +10,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
-import {IconAdd, IconFlag} from 'sentry/icons';
+import {IconAdd, IconDelete, IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
@@ -206,6 +206,16 @@ export function FeatureFlagCommandPaletteActions() {
           ))
         }
       />
+      {Object.keys(overrides).length > 0 && (
+        <CMDKAction
+          display={{label: t('Clear Local Feature Flag Overrides'), icon: <IconDelete />}}
+          keywords={[t('reset flags'), t('remove overrides')]}
+          onAction={() => {
+            FeatureFlagOverrides.singleton().clearStoredOverrides();
+            window.location.reload();
+          }}
+        />
+      )}
     </CMDKAction>
   );
 }

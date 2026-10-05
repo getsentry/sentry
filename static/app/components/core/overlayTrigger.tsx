@@ -1,14 +1,14 @@
 import * as React from 'react';
 import type {DistributedOmit, SetRequired} from 'type-fest';
 
-import {DropdownButton, type DropdownButtonProps} from 'sentry/components/dropdownButton';
+import {DropdownButton, type DropdownButtonProps} from '@sentry/scraps/dropdownMenu';
 
 import {ControlContext} from './compactSelect/control';
 
 type TriggerEl =
   | HTMLButtonElement
-  | (Omit<HTMLButtonElement, 'type'> & {
-      type: 'only use `Trigger.Button` or `Trigger.IconButton` for the trigger prop!';
+  | (Omit<HTMLButtonElement, 'ELEMENT_NODE'> & {
+      ELEMENT_NODE: 'only use `OverlayTrigger.Button` or `OverlayTrigger.IconButton` for the trigger prop!';
     });
 
 export type TriggerProps = Omit<React.HTMLAttributes<TriggerEl>, 'children'> & {
@@ -18,14 +18,14 @@ export type TriggerProps = Omit<React.HTMLAttributes<TriggerEl>, 'children'> & {
 
 type ButtonTriggerProps = DistributedOmit<DropdownButtonProps, 'ref' | 'children'> & {
   children: NonNullable<React.ReactNode>;
-  ref?: React.Ref<TriggerEl>;
+  ref?: React.Ref<TriggerEl> | React.Ref<HTMLButtonElement>;
 };
 
 type IconButtonTriggerProps = SetRequired<
   DistributedOmit<DropdownButtonProps, 'ref' | 'showChevron'>,
   'aria-label' | 'icon'
 > & {
-  ref?: React.Ref<TriggerEl>;
+  ref?: React.Ref<TriggerEl> | React.Ref<HTMLButtonElement>;
 };
 
 const useContextProps = () => {

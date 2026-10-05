@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
@@ -12,7 +12,6 @@ import {t} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {orgHasIssueInbox} from 'sentry/utils/seer/orgHasIssueInbox';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 
 import {NoContext} from './quickContextWrapper';
@@ -47,92 +46,9 @@ export function IssueContext(props: BaseContextProps) {
       organizationSlug: organization.slug,
       // The link to issue details doesn't seem to currently pass selected environments
       environments: [],
-      expandDerivedData: orgHasIssueInbox(organization),
+      expandDerivedData: organization.features.includes('issue-inbox'),
     })
   );
-
-  const title = issue?.title;
-  const renderTitle = () =>
-    issue && (
-      <IssueContextContainer data-test-id="quick-context-issue-title-container">
-        <ContextHeader>
-          <ContextTitle>{t('Title')}</ContextTitle>
-        </ContextHeader>
-        <Tooltip showOnlyOnOverflow skipWrapper title={title}>
-          <IssueTitleBody>{title}</IssueTitleBody>
-        </Tooltip>
-      </IssueContextContainer>
-    );
-
-  const renderStatusAndCounts = () =>
-    issue && (
-      <IssueContextContainer data-test-id="quick-context-issue-status-container">
-        <ContextRow>
-          <div>
-            <ContextHeader>
-              <ContextTitle>{t('Events')}</ContextTitle>
-            </ContextHeader>
-            <ContextBody>
-              <Count className="count" value={issue.count} />
-            </ContextBody>
-          </div>
-          <div>
-            <ContextHeader>
-              <ContextTitle>{t('Users')}</ContextTitle>
-            </ContextHeader>
-            <ContextBody>
-              <Count className="count" value={issue.userCount} />
-            </ContextBody>
-          </div>
-          <div>
-            <ContextHeader>
-              <ContextTitle>{t('Issue Status')}</ContextTitle>
-            </ContextHeader>
-            <ContextBody>
-              {issue.status === 'ignored' ? (
-                <IconMute
-                  data-test-id="quick-context-ignored-icon"
-                  variant="muted"
-                  size="xs"
-                />
-              ) : issue.status === 'resolved' ? (
-                <IconCheckmark variant="primary" size="xs" />
-              ) : (
-                <IconNot
-                  data-test-id="quick-context-unresolved-icon"
-                  variant="primary"
-                  size="xs"
-                />
-              )}
-              <StatusText>{issue.status}</StatusText>
-            </ContextBody>
-          </div>
-        </ContextRow>
-      </IssueContextContainer>
-    );
-
-  const renderAssignee = () =>
-    issue && (
-      <IssueContextContainer data-test-id="quick-context-assigned-to-container">
-        <ContextHeader>
-          <ContextTitle>{t('Assigned To')}</ContextTitle>
-        </ContextHeader>
-        <AssignedToBody>
-          {issue.assignedTo ? (
-            <ActorAvatar
-              data-test-id="assigned-avatar"
-              actor={issue.assignedTo}
-              hasTooltip={false}
-            />
-          ) : (
-            <StyledIconWrapper>
-              <IconUser size="md" />
-            </StyledIconWrapper>
-          )}
-          {getAssignedToDisplayName(issue) ?? t('No one')}
-        </AssignedToBody>
-      </IssueContextContainer>
-    );
 
   if (issueLoading || issueError) {
     return <NoContext isLoading={issueLoading} />;
@@ -140,10 +56,99 @@ export function IssueContext(props: BaseContextProps) {
 
   return (
     <Wrapper data-test-id="quick-context-hover-body">
-      {renderTitle()}
-      {renderStatusAndCounts()}
-      {renderAssignee()}
+      {issue && (
+        <Fragment>
+          <IssueTitle title={issue.title} />
+          <IssueStatusAndCounts issue={issue} />
+          <IssueAssignee issue={issue} />
+        </Fragment>
+      )}
     </Wrapper>
+  );
+}
+
+function IssueTitle({title}: {title: Group['title']}) {
+  return (
+    <IssueContextContainer data-test-id="quick-context-issue-title-container">
+      <ContextHeader>
+        <ContextTitle>{t('Title')}</ContextTitle>
+      </ContextHeader>
+      <Tooltip showOnlyOnOverflow skipWrapper title={title}>
+        <IssueTitleBody>{title}</IssueTitleBody>
+      </Tooltip>
+    </IssueContextContainer>
+  );
+}
+
+function IssueStatusAndCounts({issue}: {issue: Group}) {
+  return (
+    <IssueContextContainer data-test-id="quick-context-issue-status-container">
+      <ContextRow>
+        <div>
+          <ContextHeader>
+            <ContextTitle>{t('Events')}</ContextTitle>
+          </ContextHeader>
+          <ContextBody>
+            <Count className="count" value={issue.count} />
+          </ContextBody>
+        </div>
+        <div>
+          <ContextHeader>
+            <ContextTitle>{t('Users')}</ContextTitle>
+          </ContextHeader>
+          <ContextBody>
+            <Count className="count" value={issue.userCount} />
+          </ContextBody>
+        </div>
+        <div>
+          <ContextHeader>
+            <ContextTitle>{t('Issue Status')}</ContextTitle>
+          </ContextHeader>
+          <ContextBody>
+            {issue.status === 'ignored' ? (
+              <IconMute
+                data-test-id="quick-context-ignored-icon"
+                variant="muted"
+                size="xs"
+              />
+            ) : issue.status === 'resolved' ? (
+              <IconCheckmark variant="primary" size="xs" />
+            ) : (
+              <IconNot
+                data-test-id="quick-context-unresolved-icon"
+                variant="primary"
+                size="xs"
+              />
+            )}
+            <StatusText>{issue.status}</StatusText>
+          </ContextBody>
+        </div>
+      </ContextRow>
+    </IssueContextContainer>
+  );
+}
+
+function IssueAssignee({issue}: {issue: Group}) {
+  return (
+    <IssueContextContainer data-test-id="quick-context-assigned-to-container">
+      <ContextHeader>
+        <ContextTitle>{t('Assigned To')}</ContextTitle>
+      </ContextHeader>
+      <AssignedToBody>
+        {issue.assignedTo ? (
+          <ActorAvatar
+            data-test-id="assigned-avatar"
+            actor={issue.assignedTo}
+            hasTooltip={false}
+          />
+        ) : (
+          <StyledIconWrapper>
+            <IconUser size="md" />
+          </StyledIconWrapper>
+        )}
+        {getAssignedToDisplayName(issue) ?? t('No one')}
+      </AssignedToBody>
+    </IssueContextContainer>
   );
 }
 

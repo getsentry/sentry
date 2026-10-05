@@ -39,11 +39,7 @@ export function AskSeerButton() {
           <IconSeer
             variant={state === 'thinking' && prefersReducedMotion ? 'accent' : undefined}
             animation={
-              showMessageIndicator
-                ? 'waiting'
-                : state === 'thinking'
-                  ? 'loading'
-                  : undefined
+              state === 'thinking' ? 'loading' : showMessageIndicator ? 'idle' : undefined
             }
           />
           {showMessageIndicator && isIconOnly ? <MessageIndicator /> : null}

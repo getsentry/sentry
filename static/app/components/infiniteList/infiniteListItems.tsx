@@ -1,11 +1,12 @@
 import {useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 import type {InfiniteData, UseInfiniteQueryResult} from '@tanstack/react-query';
-import {useVirtualizer, type VirtualItem} from '@tanstack/react-virtual';
+import type {VirtualItem} from '@tanstack/react-virtual';
 
 import {Stack} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t} from 'sentry/locale';
 import type {ApiResult} from 'sentry/types/api';
 
@@ -55,13 +56,15 @@ export function InfiniteListItems<ListItem, Response = Array<ApiResult<ListItem[
   const loadedRows = deduplicateItems(data?.pages ?? []);
   const parentRef = useRef<HTMLDivElement>(null);
 
-  const rowVirtualizer = useVirtualizer({
+  const {
+    totalSize,
+    virtualItems: items,
+    virtualizer: rowVirtualizer,
+  } = useVirtualRows({
     count: hasNextPage ? loadedRows.length + 1 : loadedRows.length,
     getScrollElement: () => parentRef.current,
     estimateSize: estimateSize ?? (() => 100),
-    overscan: 5,
   });
-  const items = rowVirtualizer.getVirtualItems();
 
   useEffect(() => {
     const lastItem = items.at(-1);
@@ -76,11 +79,7 @@ export function InfiniteListItems<ListItem, Response = Array<ApiResult<ListItem[
 
   return (
     <FlexOverscroll ref={parentRef} data-scrollable>
-      <Stack
-        width="100%"
-        position="absolute"
-        style={{height: rowVirtualizer.getTotalSize()}}
-      >
+      <Stack width="100%" position="absolute" style={{height: totalSize}}>
         <PositionedList style={{transform: `translateY(${items[0]?.start ?? 0}px)`}}>
           {items.length ? null : emptyMessage()}
           {items.map(virtualItem => {

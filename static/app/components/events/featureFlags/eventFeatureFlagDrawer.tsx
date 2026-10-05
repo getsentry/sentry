@@ -25,9 +25,9 @@ import {
 } from 'sentry/components/events/featureFlags/utils';
 import {useFocusControl} from 'sentry/components/events/useFocusControl';
 import {
-  KeyValueData,
-  type KeyValueDataContentProps,
-} from 'sentry/components/keyValueData';
+  KeyValueTableCard,
+  type KeyValueTableDataRowProps,
+} from 'sentry/components/tables/keyValueTable';
 import {IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -40,7 +40,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 interface FlagDrawerProps {
   event: Event;
   group: Group;
-  hydratedFlags: KeyValueDataContentProps[];
+  hydratedFlags: KeyValueTableDataRowProps[];
   initialOrderBy: OrderBy;
   project: Project;
   focusControl?: FlagControlOptions;
@@ -116,20 +116,17 @@ export function EventFeatureFlagDrawer({
         {actions}
       </EventNavigator>
       <EventDrawerBody>
-        <CardContainer numCols={1}>
-          <KeyValueData.Card expandLeft contentItems={searchResults} />
+        <CardContainer>
+          <KeyValueTableCard expandLeft contentItems={searchResults} />
         </CardContainer>
       </EventDrawerBody>
     </EventDrawerContainer>
   );
 }
 
-export const CardContainer = styled('div')<{numCols: number}>`
-  display: grid;
-  grid-template-columns: repeat(${p => p.numCols}, 1fr);
-  align-items: start;
-
-  div {
+export const CardContainer = styled('div')`
+  /* Only the card panels, so dropdown overlays inside rows keep their border. */
+  > div {
     border: none;
     border-radius: ${p => p.theme.space.xs};
   }

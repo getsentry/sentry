@@ -337,13 +337,6 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Allowed Origins'),
     hintText: '',
   },
-  'project-filters-settings.filters:blacklisted_ips': {
-    name: 'filters:blacklisted_ips',
-    formId: 'project-filters-settings',
-    route: '/settings/:orgId/projects/:projectId/filters/',
-    label: t('IP Addresses'),
-    hintText: '',
-  },
   'project-filters-settings.filters:releases': {
     name: 'filters:releases',
     formId: 'project-filters-settings',
@@ -396,6 +389,13 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     hintText: t(
       "ChunkLoadErrors can happen in applications powered by Webpack or Turbopack when code chunks can't be found on the server. This often occurs during a redeploy of the website while users have the old page open. A page refresh usually resolves the issue."
     ),
+  },
+  'project-filters-settings.filters:blacklisted_ips': {
+    name: 'filters:blacklisted_ips',
+    formId: 'project-filters-settings',
+    route: '/settings/:orgId/projects/:projectId/filters/',
+    label: t('IP Addresses'),
+    hintText: '',
   },
   'project-security-and-privacy.storeCrashReports': {
     name: 'storeCrashReports',
@@ -473,6 +473,15 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
     label: t('Create Hydration Error Issues'),
     hintText: t(
       'Toggles whether or not to create Session Replay Hydration Error Issues during replay ingest. Using inbound filters to filter out hydration errors does not affect this setting.'
+    ),
+  },
+  'project-logs.sentry:relay_automatic_json_expansion': {
+    name: 'sentry:relay_automatic_json_expansion',
+    formId: 'project-logs',
+    route: '/settings/:orgId/projects/:projectId/logs/',
+    label: t('Expand JSON Attributes'),
+    hintText: t(
+      'Object attributes are sent as strings. Turn this on to expand them into nested attributes you can search on. Only applies to logs received after this is enabled.'
     ),
   },
   'csp.sentry:csp_ignored_sources_defaults': {
@@ -716,7 +725,7 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
   'new-provider-form.provider': {
     name: 'provider',
     formId: 'new-provider-form',
-    route: '/settings/feature-flags/change-tracking/new-provider/',
+    route: '/settings/:orgId/feature-flags/change-tracking/new-provider/',
     label: t('Provider'),
     hintText: t(
       'If you have already linked this provider, pasting a new secret will override the existing secret.'
@@ -725,7 +734,7 @@ export const FORM_FIELD_REGISTRY: Record<string, FormFieldDefinition> = {
   'new-provider-form.secret': {
     name: 'secret',
     formId: 'new-provider-form',
-    route: '/settings/feature-flags/change-tracking/new-provider/',
+    route: '/settings/:orgId/feature-flags/change-tracking/new-provider/',
     label: t('Secret'),
     hintText: t(
       'Paste the signing secret given by your provider when creating the webhook.'

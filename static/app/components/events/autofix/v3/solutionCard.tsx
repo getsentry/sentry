@@ -2,7 +2,6 @@ import {Fragment, useMemo} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
-import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -16,10 +15,13 @@ import {ArtifactDetails} from 'sentry/components/events/autofix/v3/artifactDetai
 import {ArtifactLoadingDetails} from 'sentry/components/events/autofix/v3/artifactLoadingDetails';
 import {AutofixResetPrompt} from 'sentry/components/events/autofix/v3/autofixResetPrompt';
 import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
+import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {IconList} from 'sentry/icons/iconList';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 interface SolutionCardProps {
@@ -46,6 +48,12 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
       step: 'solution',
     });
 
+  const rethinkPrompt = t('How can this plan be improved?');
+  const rethinkInChat = useRethinkInChat({
+    prompt: rethinkPrompt,
+    step: 'solution',
+  });
+
   return (
     <ArtifactCard
       icon={<IconList />}
@@ -56,7 +64,8 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
           : undefined
       }
       allowReset
-      onReset={canReset ? () => setShouldShowReset(true) : undefined}
+      onReset={canReset ? (rethinkInChat ?? (() => setShouldShowReset(true))) : undefined}
+      resetInChat={defined(rethinkInChat)}
     >
       {section.status === 'processing' ? (
         <ArtifactLoadingDetails
@@ -70,11 +79,11 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
               onClosePrompt={() => setShouldShowReset(false)}
               onReset={handleReset}
               placeholder={t('Give seer additional context to improve this plan.')}
-              prompt={t('How can this plan be improved?')}
+              prompt={rethinkPrompt}
             />
           )}
           <ArtifactDetails>
-            <Markdown raw={artifact.data.one_line_summary} />
+            <SeerMarkdown raw={artifact.data.one_line_summary} />
           </ArtifactDetails>
           {artifact.data.steps ? (
             <ArtifactDetails>
@@ -83,7 +92,7 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
                 {artifact.data.steps.map((step, index) => (
                   <li key={index}>
                     <Stack>
-                      <Markdown raw={step.title} />
+                      <SeerMarkdown raw={step.title} />
                       <Text size="sm" variant="muted">
                         {step.description}
                       </Text>

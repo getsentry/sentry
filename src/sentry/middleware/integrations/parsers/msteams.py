@@ -9,6 +9,7 @@ import orjson
 import sentry_sdk
 from django.http.response import HttpResponseBase
 
+from sentry.hybridcloud.mailbox import MailboxName
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
@@ -40,11 +41,7 @@ class MsTeamsRequestParser(BaseRequestParser):
 
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
-        integration = parsing.get_integration_from_card_action(data=self.request_data)
-        if integration is None:
-            integration = parsing.get_integration_from_channel_data(data=self.request_data)
-        if integration is None:
-            integration = parsing.get_integration_for_tenant(data=self.request_data)
+        integration = parsing.get_integration_from_request_data(data=self.request_data)
         if integration:
             return Integration.objects.filter(id=integration.id).first()
         return None
@@ -132,5 +129,7 @@ class MsTeamsRequestParser(BaseRequestParser):
             extra={"request_data": self.request_data},
         )
         return self.get_response_from_webhookpayload(
-            cells=cells, identifier=integration.id, integration_id=integration.id
+            cells=cells,
+            mailbox=MailboxName(self.provider, str(integration.id)),
+            integration_id=integration.id,
         )

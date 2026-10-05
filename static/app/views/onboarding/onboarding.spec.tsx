@@ -38,6 +38,20 @@ describe('Onboarding', () => {
   beforeAll(() => {
     TeamStore.loadInitialData([TeamFixture()]);
   });
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/config/integrations/',
+      body: {providers: [GitHubIntegrationProviderFixture()]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/integrations/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/repos/',
+      body: [],
+    });
+  });
   afterEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
@@ -45,12 +59,13 @@ describe('Onboarding', () => {
     jest.clearAllMocks();
   });
 
-  it('renders the welcome UI', () => {
+  it('renders SCM welcome without a feature or experiment assignment', () => {
     render(
       <OnboardingContextProvider>
         <OnboardingWithoutContext />
       </OnboardingContextProvider>,
       {
+        organization: OrganizationFixture({features: [], experiments: {}}),
         initialRouterConfig: {
           location: {
             pathname: '/onboarding/org-slug/welcome/',
@@ -60,7 +75,7 @@ describe('Onboarding', () => {
       }
     );
 
-    expect(screen.getByText('Welcome to Sentry')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: /Code breaks/})).toBeInTheDocument();
     expect(screen.getByText('Error monitoring')).toBeInTheDocument();
     expect(screen.getByText('Tracing')).toBeInTheDocument();
     expect(screen.getByText('Session replay')).toBeInTheDocument();
@@ -84,9 +99,9 @@ describe('Onboarding', () => {
       );
 
       expect(trackAnalytics).toHaveBeenCalledWith(
-        'growth.onboarding_start_onboarding',
+        'onboarding.scm_welcome_step_viewed',
         expect.objectContaining({
-          source: 'targeted_onboarding',
+          organization: expect.objectContaining({slug: 'org-slug'}),
         })
       );
     });
@@ -130,7 +145,7 @@ describe('Onboarding', () => {
       expect(
         jest
           .mocked(trackAnalytics)
-          .mock.calls.filter(call => call[0] === 'growth.onboarding_start_onboarding')
+          .mock.calls.filter(call => call[0] === 'onboarding.scm_welcome_step_viewed')
       ).toHaveLength(1);
     });
 
@@ -152,14 +167,14 @@ describe('Onboarding', () => {
       await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
 
       expect(trackAnalytics).toHaveBeenCalledWith(
-        'growth.onboarding_clicked_instrument_app',
+        'onboarding.scm_welcome_continue_clicked',
         expect.objectContaining({
-          source: 'targeted_onboarding',
+          organization: expect.objectContaining({slug: 'org-slug'}),
         })
       );
 
       await waitFor(() => {
-        expect(router.location.pathname).toBe('/onboarding/org-slug/select-platform/');
+        expect(router.location.pathname).toBe('/onboarding/org-slug/scm-connect/');
       });
     });
 
@@ -182,14 +197,14 @@ describe('Onboarding', () => {
           }
         );
 
-        await userEvent.click(screen.getByRole('button', {name: 'Skip onboarding'}), {
+        await userEvent.click(screen.getByRole('button', {name: 'Skip setup'}), {
           delay: null,
         });
 
         expect(trackAnalytics).toHaveBeenCalledWith(
-          'growth.onboarding_clicked_skip',
+          'onboarding.scm_header_skip_clicked',
           expect.objectContaining({
-            source: 'targeted_onboarding',
+            organization: expect.objectContaining({slug: 'org-slug'}),
           })
         );
 
@@ -203,8 +218,8 @@ describe('Onboarding', () => {
     });
   });
 
-  it('renders the select platform step', async () => {
-    render(
+  it('redirects the retired select-platform route to welcome', async () => {
+    const {router} = render(
       <OnboardingContextProvider>
         <OnboardingWithoutContext />
       </OnboardingContextProvider>,
@@ -218,9 +233,9 @@ describe('Onboarding', () => {
       }
     );
 
-    expect(
-      await screen.findByText('Select the platform you want to monitor')
-    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.location.pathname).toBe('/onboarding/org-slug/welcome/');
+    });
   });
 
   it('renders the setup docs step', async () => {
@@ -371,185 +386,15 @@ describe('Onboarding', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders framework selection modal if vanilla js is selected', async () => {
-    render(
-      <OnboardingContextProvider>
-        <OnboardingWithoutContext />
-      </OnboardingContextProvider>,
-      {
-        initialRouterConfig: {
-          location: {
-            pathname: '/onboarding/org-slug/select-platform/',
-          },
-          route: '/onboarding/:orgId/:step/',
-        },
-      }
-    );
-
-    renderGlobalModal();
-
-    // Select the JavaScript platform
-    await userEvent.click(screen.getByTestId('platform-javascript'));
-
-    // Modal is open
-    await screen.findByText('Do you use a framework?');
-  });
-
-  it('no longer display SDK data removal modal when going back', async () => {
-    const organization = OrganizationFixture();
-    const reactProject = ProjectFixture({
-      platform: 'javascript-react',
-      id: '2',
-      slug: 'javascript-react-slug',
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/sdks/`,
-      body: {},
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${reactProject.slug}/`,
-      body: [reactProject],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${reactProject.slug}/keys/`,
-      method: 'GET',
-      body: [ProjectKeysFixture()[0]],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${reactProject.slug}/issues/`,
-      body: [],
-    });
-
-    jest
-      .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
-      .mockImplementation(() => {
-        return {
-          project: reactProject,
-          isProjectActive: true,
-        };
-      });
-
-    render(
-      <OnboardingContextProvider
-        initialValue={{
-          selectedPlatform: {
-            key: reactProject.slug as PlatformKey,
-            type: 'framework',
-            language: 'javascript',
-            category: 'browser',
-            name: 'React',
-            link: 'https://docs.sentry.io/platforms/javascript/guides/react/',
-          },
-        }}
-      >
-        <OnboardingWithoutContext />
-      </OnboardingContextProvider>,
-      {
-        initialRouterConfig: {
-          location: {
-            pathname: `/onboarding/${organization.slug}/setup-docs/`,
-          },
-          route: '/onboarding/:orgId/:step/',
-        },
-      }
-    );
-
-    // Await for the docs to be loaded
-    await screen.findByText('Configure React SDK');
-
-    renderGlobalModal();
-
-    // Click on back button
-    await userEvent.click(screen.getByRole('button', {name: 'Back'}));
-
-    // Await for the modal to be open
-    expect(
-      screen.queryByText(/Are you sure you want to head back?/)
-    ).not.toBeInTheDocument();
-  });
-
-  it('clears all context when going back from setup-docs in legacy flow', async () => {
-    const organization = OrganizationFixture();
-    const reactProject = ProjectFixture({
-      platform: 'javascript-react',
-      id: '2',
-      slug: 'javascript-react',
-    });
-
-    jest
-      .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
-      .mockImplementation(() => ({
-        project: reactProject,
-        isProjectActive: false,
-      }));
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/sdks/`,
-      body: {},
-    });
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${reactProject.slug}/keys/`,
-      body: [ProjectKeysFixture()[0]],
-    });
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${reactProject.slug}/issues/`,
-      body: [],
-    });
-
-    const deleteProjectMock = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${reactProject.slug}/`,
-      method: 'DELETE',
-    });
-
-    const initialContext = {
-      selectedPlatform: {
-        key: reactProject.slug as PlatformKey,
-        type: 'framework',
-        language: 'javascript',
-        category: 'browser',
-        name: 'React',
-        link: 'https://docs.sentry.io/platforms/javascript/guides/react/',
-      },
-    };
-
-    sessionStorage.setItem('onboarding', JSON.stringify(initialContext));
-
-    render(
-      <OnboardingContextProvider initialValue={initialContext}>
-        <OnboardingWithoutContext />
-      </OnboardingContextProvider>,
-      {
-        initialRouterConfig: {
-          location: {
-            pathname: `/onboarding/${organization.slug}/setup-docs/`,
-          },
-          route: '/onboarding/:orgId/:step/',
-        },
-      }
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Back'}));
-
-    expect(deleteProjectMock).toHaveBeenCalled();
-
-    // Legacy flow should clear all context
-    const stored = sessionStorage.getItem('onboarding');
-    expect(stored).toBeNull();
-  });
-
   describe('SCM onboarding flow', () => {
     const scmOrganization = OrganizationFixture({
-      features: ['onboarding-scm-experiment', 'onboarding-agentic-setup'],
+      features: ['onboarding-agentic-setup'],
     });
 
     // Shares scmOrganization's slug, so the mocks registered in beforeEach below
     // cover both flows. Only the messaging experiment flag differs.
     const messagingOrganization = OrganizationFixture({
-      features: ['onboarding-scm-experiment', 'onboarding-scm-messaging-experiment'],
+      features: ['onboarding-scm-messaging-experiment'],
     });
 
     const githubProvider = GitHubIntegrationProviderFixture({
@@ -672,8 +517,7 @@ describe('Onboarding', () => {
     it('navigates from welcome to scm-connect', async () => {
       const {router} = renderOnboarding('welcome');
 
-      await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
-      await userEvent.click(await screen.findByRole('button', {name: 'Start setup'}));
+      await userEvent.click(await screen.findByRole('button', {name: /Set up manually/}));
 
       // Wait for scm-connect to render and its queries to resolve so the
       // mounted-effect fetches hit the mocked endpoints before afterEach
@@ -685,31 +529,67 @@ describe('Onboarding', () => {
       );
     });
 
-    it('shows the agent setup on start click without leaving welcome', async () => {
+    it('opens on the agent setup rather than the product interstitial', async () => {
       const {router} = renderOnboarding('welcome');
 
-      await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
-
       expect(
-        await screen.findByText('npx @sentry/agent-plugin install')
+        await screen.findByText(/^npx @sentry\/agent-plugin install /)
       ).toBeInTheDocument();
-      expect(screen.getByText('Connect your repository')).toBeInTheDocument();
-      expect(screen.getByText('Choose your platform')).toBeInTheDocument();
-      expect(screen.getByText('Install the SDK')).toBeInTheDocument();
-      expect(screen.getByText('Verify your setup')).toBeInTheDocument();
+      expect(screen.getByText('Recommended')).toBeInTheDocument();
+      expect(screen.getByText('Claude Code, Codex, Cursor, & Grok')).toBeInTheDocument();
+      const prompt = screen.getByText(/org slug: org-slug/);
+      const onboardingCode = prompt.textContent?.match(
+        /run code: ([A-Za-z0-9]{10})/
+      )?.[1];
+
+      expect(onboardingCode).toBeDefined();
+      expect(
+        screen.getByText(
+          `npx @sentry/agent-plugin install ${scmOrganization.slug}#${onboardingCode}`
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /Set up manually/})).toBeInTheDocument();
+      expect(screen.queryByTestId('onboarding-welcome-start')).not.toBeInTheDocument();
+      expect(screen.queryByText('Error monitoring')).not.toBeInTheDocument();
       expect(
         screen.queryByText('Detect your framework and language')
       ).not.toBeInTheDocument();
-      expect(trackAnalytics).toHaveBeenCalledWith(
-        'onboarding.scm_welcome_present_agentic_interstitial_clicked',
-        expect.objectContaining({organization: scmOrganization})
-      );
       expect(router.location.pathname).toBe(
         `/onboarding/${scmOrganization.slug}/welcome/`
       );
     });
 
-    it('preloads agent setup while the welcome screen is visible', async () => {
+    it('selects agent setup snippets on click and tracks their source', async () => {
+      renderOnboarding('welcome');
+
+      const installCommand = await screen.findByText(
+        /^npx @sentry\/agent-plugin install /
+      );
+      await userEvent.click(installCommand);
+
+      expect(window.getSelection()?.toString()).toBe(installCommand.textContent);
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'onboarding.scm_welcome_agent_snippet_selected',
+        expect.objectContaining({
+          organization: scmOrganization,
+          source: 'install_command',
+        })
+      );
+
+      const prompt = screen.getByText(/Please help me get started with sentry/);
+      await userEvent.click(prompt);
+
+      expect(window.getSelection()?.toString()).toBe(prompt.textContent);
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'onboarding.scm_welcome_agent_snippet_selected',
+        expect.objectContaining({
+          organization: scmOrganization,
+          source: 'prompt',
+        })
+      );
+    });
+
+    it('initializes the agentic run exactly once on welcome mount', async () => {
       renderOnboarding('welcome');
 
       await waitFor(() => expect(agenticRunRequestMock).toHaveBeenCalledTimes(1));
@@ -718,31 +598,32 @@ describe('Onboarding', () => {
     it('replaces setup instructions with agent progress', async () => {
       renderOnboarding('welcome');
 
-      await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
-
       expect(
-        await screen.findByText('npx @sentry/agent-plugin install')
+        await screen.findByText(/^npx @sentry\/agent-plugin install /)
       ).toBeInTheDocument();
 
       act(resolveAgenticRunRequest);
 
       expect(await screen.findByText('Agent Connected')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Switch to Manual'})).toBeInTheDocument();
       expect(
-        screen.queryByText('npx @sentry/agent-plugin install')
+        screen.queryByRole('button', {name: /Set up manually/})
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText('or')).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(/^npx @sentry\/agent-plugin install /)
       ).not.toBeInTheDocument();
     });
 
-    it('fires scm_welcome_step_viewed on welcome mount and not the legacy event', () => {
+    it('fires SCM welcome and agentic setup view events on welcome mount', () => {
       renderOnboarding('welcome');
 
       expect(trackAnalytics).toHaveBeenCalledWith(
         'onboarding.scm_welcome_step_viewed',
         expect.objectContaining({organization: scmOrganization})
       );
-      expect(trackAnalytics).not.toHaveBeenCalledWith(
-        'growth.onboarding_start_onboarding',
-        expect.anything()
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'onboarding.scm_welcome_agentic_setup_viewed',
+        expect.objectContaining({organization: scmOrganization})
       );
     });
 
@@ -755,7 +636,10 @@ describe('Onboarding', () => {
         JSON.stringify({
           selectedPlatform: nextJsPlatform,
           selectedFeatures: [ProductSolution.ERROR_MONITORING],
-          createdProjectSlug: 'javascript-nextjs',
+          createdProject: {
+            slug: 'javascript-nextjs',
+            messagingSelection: undefined,
+          },
           messagingSetup: selectedMessagingSetup,
           agentSetupProjectBaseline: {
             organizationId: scmOrganization.id,
@@ -779,9 +663,14 @@ describe('Onboarding', () => {
 
     it('goes straight to scm-connect when the agentic setup is off', async () => {
       const organization = OrganizationFixture({
-        features: ['onboarding-scm-experiment'],
+        features: [],
       });
       const {router} = renderFlow(organization, 'welcome');
+
+      expect(trackAnalytics).not.toHaveBeenCalledWith(
+        'onboarding.scm_welcome_agentic_setup_viewed',
+        expect.anything()
+      );
 
       await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
 
@@ -789,19 +678,14 @@ describe('Onboarding', () => {
       expect(router.location.pathname).toContain('/scm-connect/');
     });
 
-    it('fires scm_welcome_continue_clicked on browser setup click and not the legacy event', async () => {
+    it('fires scm_welcome_continue_clicked on browser setup click', async () => {
       renderOnboarding('welcome');
 
-      await userEvent.click(screen.getByTestId('onboarding-welcome-start'));
-      await userEvent.click(await screen.findByRole('button', {name: 'Start setup'}));
+      await userEvent.click(await screen.findByRole('button', {name: /Set up manually/}));
 
       expect(trackAnalytics).toHaveBeenCalledWith(
         'onboarding.scm_welcome_continue_clicked',
         expect.objectContaining({organization: scmOrganization})
-      );
-      expect(trackAnalytics).not.toHaveBeenCalledWith(
-        'growth.onboarding_clicked_instrument_app',
-        expect.anything()
       );
 
       // Wait for scm-connect to render and its queries to resolve so the
@@ -847,9 +731,7 @@ describe('Onboarding', () => {
       renderOnboarding('scm-connect');
 
       // Should auto-select the existing integration and show connected view
-      expect(
-        await screen.findByText('Connected to GitHub / getsentry')
-      ).toBeInTheDocument();
+      expect(await screen.findByText('getsentry')).toBeInTheDocument();
     });
 
     it('continue without a repo advances to next step without skipping onboarding', async () => {
@@ -895,7 +777,7 @@ describe('Onboarding', () => {
     it('auto-creates the project on Continue and advances to setup-docs', async () => {
       ProjectsStore.loadInitialData([]);
       const controlOrganization = OrganizationFixture({
-        features: ['onboarding-scm-experiment'],
+        features: [],
       });
       const createdProject = ProjectFixture({
         platform: 'javascript-nextjs',
@@ -1137,7 +1019,10 @@ describe('Onboarding', () => {
           JSON.stringify({
             selectedPlatform: nextJsPlatform,
             selectedFeatures: [ProductSolution.ERROR_MONITORING],
-            createdProjectSlug: nextJsProject.slug,
+            createdProject: {
+              slug: nextJsProject.slug,
+              messagingSelection: undefined,
+            },
           })
         );
 
@@ -1190,6 +1075,10 @@ describe('Onboarding', () => {
       const initialContext = {
         selectedPlatform: nextJsPlatform,
         selectedFeatures: [ProductSolution.ERROR_MONITORING],
+        createdProject: {
+          slug: nextJsProject.slug,
+          messagingSelection: undefined,
+        },
         messagingSetup: selectedMessagingSetup,
       };
 
@@ -1221,8 +1110,8 @@ describe('Onboarding', () => {
       const stored = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
       expect(stored.selectedPlatform).toBeDefined();
       expect(stored.selectedFeatures).toBeDefined();
-      // createdProjectSlug should be cleared so the user can re-create
-      expect(stored.createdProjectSlug).toBeUndefined();
+      // createdProject should be cleared so the user can re-create
+      expect(stored.createdProject).toBeUndefined();
       expect(stored.messagingSetup).toEqual(initialContext.messagingSetup);
     });
 
@@ -1313,7 +1202,10 @@ describe('Onboarding', () => {
         }),
         selectedPlatform: nextJsPlatform,
         selectedFeatures: [ProductSolution.ERROR_MONITORING],
-        createdProjectSlug: 'javascript-nextjs',
+        createdProject: {
+          slug: 'javascript-nextjs',
+          messagingSelection: undefined,
+        },
         messagingSetup: selectedMessagingSetup,
       };
 
@@ -1336,7 +1228,7 @@ describe('Onboarding', () => {
       // Derived state should be cleared
       expect(stored.selectedPlatform).toBeUndefined();
       expect(stored.selectedFeatures).toBeUndefined();
-      expect(stored.createdProjectSlug).toBeUndefined();
+      expect(stored.createdProject).toBeUndefined();
       // Integration and repo should be preserved
       expect(stored.selectedIntegration).toBeDefined();
       expect(stored.selectedRepository).toBeDefined();
@@ -1378,79 +1270,6 @@ describe('Onboarding', () => {
       // The retired step must not render or strand a stale direct navigation.
       expect(router.location.pathname).toBe(
         `/onboarding/${scmOrganization.slug}/welcome/`
-      );
-    });
-  });
-
-  it('loads doc on platform click', async () => {
-    const organization = OrganizationFixture();
-    const nextJsProject = ProjectFixture({
-      platform: 'javascript-nextjs',
-      id: '2',
-      slug: 'javascript-nextjs',
-    });
-
-    ProjectsStore.loadInitialData([nextJsProject]);
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/`,
-      body: {},
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/projects/`,
-      method: 'GET',
-      body: [nextJsProject],
-    });
-
-    // Mock for useRecentCreatedProject hook
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${nextJsProject.slug}/overview/`,
-      body: [nextJsProject],
-    });
-
-    // Minimal mocks needed for SetupDocs to render without errors
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/sdks/`,
-      body: {},
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${nextJsProject.slug}/keys/`,
-      method: 'GET',
-      body: [ProjectKeysFixture()[0]],
-    });
-
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/javascript-react-slug/keys/',
-      method: 'GET',
-      body: [ProjectKeysFixture()[0]],
-    });
-
-    const {router} = render(
-      <OnboardingContextProvider>
-        <OnboardingWithoutContext />
-      </OnboardingContextProvider>,
-      {
-        initialRouterConfig: {
-          location: {
-            pathname: `/onboarding/${organization.slug}/select-platform/`,
-          },
-          route: '/onboarding/:orgId/:step/',
-        },
-      }
-    );
-
-    // Select the Next.JS platform
-    await userEvent.click(screen.getByTestId('platform-javascript-nextjs'));
-
-    // Modal shall not be open
-    expect(screen.queryByText('Do you use a framework?')).not.toBeInTheDocument();
-
-    // Load docs for the selected platform
-    await waitFor(() => {
-      expect(router.location.pathname).toBe(
-        `/onboarding/${organization.slug}/setup-docs/`
       );
     });
   });

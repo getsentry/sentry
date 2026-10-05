@@ -3,11 +3,11 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from datetime import datetime, timezone
-from functools import cache
 
 from arroyo import Partition
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload
+from cachetools.func import ttl_cache
 from confluent_kafka.admin import (  # type: ignore[attr-defined]
     AdminClient,
     PartitionMetadata,
@@ -46,7 +46,7 @@ _checkin_producer = get_future_tracking_producer(
 )
 
 
-@cache
+@ttl_cache(ttl=5 * 60)
 def _get_partitions() -> Mapping[int, PartitionMetadata]:
     topic_defn = get_topic_definition(Topic.INGEST_MONITORS)
     topic = topic_defn["real_topic_name"]
@@ -74,14 +74,17 @@ def clock_pulse(current_datetime=None):
     if current_datetime is None:
         current_datetime = datetime.now(tz=timezone.utc)
 
+    partitions = _get_partitions()
+
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
         # Directly trigger try_monitor_tasks_trigger in dev
-        for partition in _get_partitions().values():
+        for partition in partitions.values():
             try_monitor_clock_tick(current_datetime, partition.id)
         return
 
     message: ClockPulse = {
         "message_type": "clock_pulse",
+        "partition_ids": [partition.id for partition in partitions.values()],
     }
 
     payload = KafkaPayload(None, MONITOR_CODEC.encode(message), [])
@@ -90,6 +93,6 @@ def clock_pulse(current_datetime=None):
     # topic. This is a requirement to ensure that none of the partitions stall,
     # since the global clock is tied to the slowest partition.
     topic = ArroyoTopic(get_topic_definition(Topic.INGEST_MONITORS)["real_topic_name"])
-    for partition in _get_partitions().values():
+    for partition in partitions.values():
         dest = Partition(topic, partition.id)
         _checkin_producer.produce(dest, payload)

@@ -124,7 +124,6 @@ export function SuperuserWarning({organization}: Props) {
         display="flex"
       >
         <Tooltip
-          isHoverable
           position="bottom-start"
           containerDisplayMode="block"
           title={

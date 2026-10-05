@@ -3,7 +3,6 @@ import {Fragment, useEffect, useMemo} from 'react';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
@@ -13,6 +12,7 @@ import {
   getAutofixArtifactFromSection,
   isCodeChangesArtifact,
   isPrIterationBlock,
+  isPrIterationPaused,
   type AutofixSection,
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -24,9 +24,14 @@ import {
   FeedbackList,
   usePrIterationFeedback,
 } from 'sentry/components/events/autofix/v3/feedbackList';
-import {PrIterationFeedbackForm} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
+import {
+  PR_ITERATION_PAUSED_TOOLTIP,
+  PrIterationFeedbackForm,
+} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
 import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
+import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {IconCode} from 'sentry/icons/iconCode';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t, tn} from 'sentry/locale';
@@ -42,6 +47,8 @@ interface CodeChangesCardProps {
   groupId: string;
   section: AutofixSection;
 }
+
+const MAX_AUTO_EXPANDED_DIFF_LINES = 30;
 
 function getFinalExplanation(section: AutofixSection): string | null {
   for (let i = section.blocks.length - 1; i >= 0; i--) {
@@ -112,8 +119,11 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   const noCodingAgents =
     Object.values(autofix.runState?.coding_agents ?? {}).length === 0;
 
+  const isPaused = isPrIterationPaused(autofix.runState);
+
   // Reset-after-PR is only reachable where reset opens the manual form.
   const isResetEligible =
+    !isPaused &&
     !hasFailedOnlyPRs &&
     (hasManualPrIterationFeature
       ? noCodingAgents && (hasPRs || autofix.runState?.status !== 'processing')
@@ -144,6 +154,20 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   const patchesByRepo = useMemo(() => collectPatches(artifact ?? []), [artifact]);
 
+  const shouldExpandDiffs = useMemo(() => {
+    let lineCount = 0;
+
+    for (const patches of patchesByRepo.values()) {
+      for (const patch of patches) {
+        for (const hunk of patch.patch.hunks) {
+          lineCount += hunk.lines.length;
+        }
+      }
+    }
+
+    return lineCount <= MAX_AUTO_EXPANDED_DIFF_LINES;
+  }, [patchesByRepo]);
+
   const explanation = useMemo(() => getFinalExplanation(section), [section]);
 
   const summary = useMemo(() => {
@@ -169,6 +193,13 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   }, [patchesByRepo]);
 
   const showPrIterationForm = hasPRs && hasManualPrIterationFeature;
+
+  const rethinkInChat = useRethinkInChat({
+    prompt: t('How can this code change be improved?'),
+    step: 'code_changes',
+  });
+  // Feedback on an open PR goes through the PR iteration form, not the chat.
+  const resetInChat = showPrIterationForm ? undefined : rethinkInChat;
   const prIterationForm = (
     <PrIterationFeedbackForm
       autofix={autofix}
@@ -247,7 +278,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
                 patch={patch.patch}
                 showBorder
                 collapsible
-                defaultExpanded={artifact !== null && artifact.length <= 1}
+                defaultExpanded={shouldExpandDiffs}
               />
             ))}
           </ArtifactDetails>
@@ -259,7 +290,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       <ArtifactDetails gap="lg">
         <Stack gap="md">
           <Text bold>{t("Seer proposed a fix but couldn't apply it automatically")}</Text>
-          <Markdown raw={explanation} />
+          <SeerMarkdown raw={explanation} />
         </Stack>
         {shouldShowReset ? (
           resetPrompt(
@@ -323,7 +354,9 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
           : undefined
       }
       allowReset
-      onReset={canReset ? () => setShouldShowReset(true) : undefined}
+      onReset={canReset ? (resetInChat ?? (() => setShouldShowReset(true))) : undefined}
+      resetInChat={defined(resetInChat)}
+      resetTooltip={isPaused ? PR_ITERATION_PAUSED_TOOLTIP : undefined}
     >
       <FeedbackList items={feedback} />
       {content}

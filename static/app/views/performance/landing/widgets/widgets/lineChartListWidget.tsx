@@ -537,18 +537,19 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
   };
 
   const assembleAccordionItems = (provided: ComponentData) =>
-    getItems(provided).map(item => ({header: item, content: getChart(provided)}));
-
-  const getChart = (provided: ComponentData) => (
-    <DurationChart
-      {...provided.widgetData.chart}
-      {...provided}
-      disableMultiAxis
-      disableXAxis
-      chartColors={props.chartColor ? [props.chartColor] : undefined}
-      isLineChart
-    />
-  );
+    getItems(provided).map(item => ({
+      header: item,
+      content: (
+        <DurationChart
+          {...provided.widgetData.chart}
+          {...provided}
+          disableMultiAxis
+          disableXAxis
+          chartColors={props.chartColor ? [props.chartColor] : undefined}
+          isLineChart
+        />
+      ),
+    }));
 
   const getItems = (provided: ComponentData) =>
     provided.widgetData.list.data.map(listItem => {
@@ -826,35 +827,32 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
 
   const moduleURLBuilder = useModuleURLBuilder();
 
-  const getContainerActions = () => {
-    const route: string =
-      (
-        {
-          [PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES]: moduleURLBuilder('db'),
-          [PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES]:
-            moduleURLBuilder('resource'),
-          [PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS]:
-            moduleURLBuilder('http'),
-          [PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS]:
-            moduleURLBuilder('cache'),
-        } as any
-      )[props.chartSetting] ?? '';
+  const route: string =
+    (
+      {
+        [PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES]: moduleURLBuilder('db'),
+        [PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES]:
+          moduleURLBuilder('resource'),
+        [PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS]: moduleURLBuilder('http'),
+        [PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS]:
+          moduleURLBuilder('cache'),
+      } as any
+    )[props.chartSetting] ?? '';
 
-    return [
-      PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES,
-      PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES,
-      PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS,
-      PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS,
-    ].includes(props.chartSetting) ? (
-      <Fragment>
-        <div>
-          <LinkButton to={`${route}/`} size="sm">
-            {t('View All')}
-          </LinkButton>
-        </div>
-      </Fragment>
-    ) : null;
-  };
+  const containerActions = [
+    PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES,
+    PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES,
+    PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS,
+    PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS,
+  ].includes(props.chartSetting) ? (
+    <Fragment>
+      <div>
+        <LinkButton to={`${route}/`} size="sm">
+          {t('View All')}
+        </LinkButton>
+      </div>
+    </Fragment>
+  ) : null;
 
   return (
     <GenericPerformanceWidget<DataType>
@@ -863,7 +861,7 @@ export function LineChartListWidget(props: PerformanceWidgetProps) {
       Subtitle={() => (
         <Subtitle>{props.subTitle ?? t('Found in the following transactions')}</Subtitle>
       )}
-      HeaderActions={() => getContainerActions()}
+      HeaderActions={() => containerActions}
       InteractiveTitle={
         InteractiveTitle
           ? provided => <InteractiveTitle {...provided.widgetData.chart} />

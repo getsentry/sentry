@@ -4,9 +4,9 @@ import {CodeBlock} from '@sentry/scraps/code';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {Placeholder} from 'sentry/components/placeholder';
+import {KeyValueTableRow} from 'sentry/components/tables/keyValueTable';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t, tn} from 'sentry/locale';
@@ -15,6 +15,7 @@ import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {
   DisableDetectorAction,
+  DuplicateDetectorAction,
   EditDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
@@ -69,6 +70,7 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
             <DatePageFilter />
             <Flex align="center" gap="sm" marginLeft="auto">
               <DisableDetectorAction detector={detector} />
+              <DuplicateDetectorAction detector={detector} />
               <EditDetectorAction detector={detector} />
             </Flex>
           </Flex>

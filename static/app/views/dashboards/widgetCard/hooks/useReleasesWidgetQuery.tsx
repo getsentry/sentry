@@ -178,14 +178,19 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
 
     // Memoize raw data to prevent unnecessary rerenders
     let finalRawData = rawData;
+    // oxlint-disable-next-line react/refs
     if (prevRawDataRef.current?.length === rawData.length) {
+      // oxlint-disable-next-line react/refs
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
+        // oxlint-disable-next-line react/refs
         finalRawData = prevRawDataRef.current;
       }
     }
 
+    // oxlint-disable-next-line react/refs
     if (finalRawData !== prevRawDataRef.current) {
+      // oxlint-disable-next-line react/refs
       prevRawDataRef.current = finalRawData;
     }
 
@@ -198,7 +203,10 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     };
   })();
 
-  return transformedData;
+  return {
+    ...transformedData,
+    timeseriesInterval: queryRequests[0]?.interval,
+  };
 }
 
 export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQueryResult {
@@ -341,14 +349,19 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
 
     // Memoize raw data to prevent unnecessary rerenders
     let finalRawData = rawData;
+    // oxlint-disable-next-line react/refs
     if (prevRawDataRef.current?.length === rawData.length) {
+      // oxlint-disable-next-line react/refs
       const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
       if (allSame) {
+        // oxlint-disable-next-line react/refs
         finalRawData = prevRawDataRef.current;
       }
     }
 
+    // oxlint-disable-next-line react/refs
     if (finalRawData !== prevRawDataRef.current) {
+      // oxlint-disable-next-line react/refs
       prevRawDataRef.current = finalRawData;
     }
 

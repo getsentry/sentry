@@ -3,6 +3,8 @@ from typing import Any
 from unittest import mock
 
 import responses
+from django.test import override_settings
+from rest_framework.test import APIClient
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
@@ -11,9 +13,9 @@ from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
+from sentry.seer import agent_token
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
@@ -34,6 +36,8 @@ from tests.sentry.workflow_engine.test_base import (
     MockActionValidatorTranslator,
     ProjectAccessTestMixin,
 )
+
+AGENT_TOKEN_SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
 
 
 class OrganizationWorkflowAPITestCase(APITestCase):
@@ -402,7 +406,6 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
             str(self.workflow_three.id),
         }
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_filter_by_project_includes_workflow_attached_to_all_projects_detector(self) -> None:
         all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
         self.create_detector_workflow(
@@ -415,19 +418,6 @@ class OrganizationWorkflowIndexBaseTest(OrganizationWorkflowAPITestCase):
         )
 
         assert str(self.workflow.id) in {workflow["id"] for workflow in response.data}
-
-    def test_filter_by_project_excludes_all_projects_workflow_without_flag(self) -> None:
-        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
-        self.create_detector_workflow(
-            workflow=self.workflow,
-            detector=all_projects_detector,
-        )
-
-        response = self.get_success_response(
-            self.organization.slug, qs_params=[("project", self.project.id)]
-        )
-
-        assert str(self.workflow.id) not in {workflow["id"] for workflow in response.data}
 
     def test_query_filter_by_action(self) -> None:
         self._create_action_for_workflow(self.workflow, Action.Type.SLACK, self.FAKE_SLACK_CONFIG)
@@ -1275,7 +1265,6 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         ]
         assert len(detector_workflow_audit_calls) == 1
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_create_workflow_with_all_projects_detector(self) -> None:
         all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
         workflow_data = {**self.valid_workflow, "detectorIds": [all_projects_detector.id]}
@@ -1295,7 +1284,6 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
         assert created_detector_workflows.count() == 1
         assert created_detector_workflows.get().detector_id == all_projects_detector.id
 
-    @with_feature("organizations:workflow-engine-all-projects-detector")
     def test_create_workflow_with_all_projects_detector_requires_org_write(self) -> None:
         all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
 
@@ -1536,6 +1524,17 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
             organization_id=self.organization.id, name="Third Workflow", enabled=False
         )
 
+    def _create_alerts_write_agent_client(self) -> APIClient:
+        token, _ = agent_token.encode_agent_token(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            scopes=["alerts:write"],
+            session_id="workflow-update",
+        )
+        client = APIClient()
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
+        return client
+
     def test_team_admin_can_update_project_scoped_workflow(self) -> None:
         detector = self.create_detector(project=self.project)
         self.create_detector_workflow(workflow=self.workflow, detector=detector)
@@ -1658,9 +1657,144 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
         self.workflow_three.refresh_from_db()
         assert self.workflow_three.enabled is False
 
+    def test_bulk_enable_workflows_by_ids_including_all_projects(self) -> None:
+        all_projects_workflow = self.create_workflow(
+            organization_id=self.organization.id, enabled=False
+        )
+        self.create_detector_workflow(
+            workflow=all_projects_workflow,
+            detector=ensure_default_all_projects_detector(self.organization.id),
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params=[
+                ("id", str(self.workflow.id)),
+                ("id", str(all_projects_workflow.id)),
+            ],
+            raw_data={"enabled": True},
+        )
+
+        self.workflow.refresh_from_db()
+        all_projects_workflow.refresh_from_db()
+        assert self.workflow.enabled is True
+        assert all_projects_workflow.enabled is True
+        assert {workflow["id"] for workflow in response.data} == {
+            str(self.workflow.id),
+            str(all_projects_workflow.id),
+        }
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_agent_token_can_update_ordinary_workflow_when_all_projects_workflow_exists(
+        self,
+    ) -> None:
+        all_projects_workflow = self.create_workflow(organization_id=self.organization.id)
+        self.create_detector_workflow(
+            workflow=all_projects_workflow,
+            detector=ensure_default_all_projects_detector(self.organization.id),
+        )
+        client = self._create_alerts_write_agent_client()
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = client.put(
+                f"/api/0/organizations/{self.organization.slug}/workflows/",
+                data={"enabled": True},
+                format="json",
+                query_params={"id": str(self.workflow.id)},
+            )
+
+        assert response.status_code == 200, response.content
+        self.workflow.refresh_from_db()
+        assert self.workflow.enabled is True
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_agent_token_can_update_by_project_when_all_projects_workflow_exists(self) -> None:
+        self.create_detector_workflow(
+            workflow=self.workflow,
+            detector=self.create_detector(project=self.project),
+        )
+        all_projects_workflow = self.create_workflow(
+            organization_id=self.organization.id, enabled=False
+        )
+        self.create_detector_workflow(
+            workflow=all_projects_workflow,
+            detector=ensure_default_all_projects_detector(self.organization.id),
+        )
+        client = self._create_alerts_write_agent_client()
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = client.put(
+                f"/api/0/organizations/{self.organization.slug}/workflows/",
+                data={"enabled": True},
+                format="json",
+                query_params={"project": str(self.project.id)},
+            )
+
+        assert response.status_code == 200, response.content
+        self.workflow.refresh_from_db()
+        all_projects_workflow.refresh_from_db()
+        assert self.workflow.enabled is True
+        assert all_projects_workflow.enabled is False
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_agent_token_can_update_all_accessible_when_all_projects_workflow_exists(self) -> None:
+        all_projects_workflow = self.create_workflow(
+            organization_id=self.organization.id, enabled=False
+        )
+        self.create_detector_workflow(
+            workflow=all_projects_workflow,
+            detector=ensure_default_all_projects_detector(self.organization.id),
+        )
+        client = self._create_alerts_write_agent_client()
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = client.put(
+                f"/api/0/organizations/{self.organization.slug}/workflows/",
+                data={"enabled": True},
+                format="json",
+                query_params={"projectSlug": "$all"},
+            )
+
+        assert response.status_code == 200, response.content
+        self.workflow.refresh_from_db()
+        all_projects_workflow.refresh_from_db()
+        assert self.workflow.enabled is True
+        assert all_projects_workflow.enabled is False
+
+    @override_settings(SEER_API_SHARED_SECRET=AGENT_TOKEN_SECRET)
+    def test_all_projects_workflow_agent_token_advertises_org_write(self) -> None:
+        all_projects_workflow = self.create_workflow(
+            organization_id=self.organization.id, enabled=False
+        )
+        self.create_detector_workflow(
+            workflow=all_projects_workflow,
+            detector=ensure_default_all_projects_detector(self.organization.id),
+        )
+        client = self._create_alerts_write_agent_client()
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = client.put(
+                f"/api/0/organizations/{self.organization.slug}/workflows/",
+                data={"enabled": True},
+                format="json",
+                query_params={"id": str(all_projects_workflow.id)},
+            )
+
+        assert response.status_code == 403, response.content
+        assert (
+            response["WWW-Authenticate"] == 'Bearer error="insufficient_scope", scope="org:write"'
+        )
+
     def test_bulk_enable_all_projects_slug_sentinel_includes_detached_workflows(self) -> None:
         self.create_detector_workflow(
             workflow=self.workflow, detector=self.create_detector(project=self.project)
+        )
+        all_projects_workflow = self.create_workflow(
+            organization_id=self.organization.id, enabled=False
+        )
+        self.create_detector_workflow(
+            workflow=all_projects_workflow,
+            detector=ensure_default_all_projects_detector(self.organization.id),
         )
 
         response = self.get_success_response(
@@ -1672,13 +1806,16 @@ class OrganizationWorkflowPutTest(OrganizationWorkflowAPITestCase):
         self.workflow.refresh_from_db()
         self.workflow_two.refresh_from_db()
         self.workflow_three.refresh_from_db()
+        all_projects_workflow.refresh_from_db()
         assert self.workflow.enabled is True
         assert self.workflow_two.enabled is True
         assert self.workflow_three.enabled is True
+        assert all_projects_workflow.enabled is True
         assert {workflow["id"] for workflow in response.data} == {
             str(self.workflow.id),
             str(self.workflow_two.id),
             str(self.workflow_three.id),
+            str(all_projects_workflow.id),
         }
 
     def test_bulk_disable_workflows_by_ids_success(self) -> None:
@@ -2266,13 +2403,13 @@ class OrganizationWorkflowPutProjectAccessTest(
         self.create_detector_workflow(workflow=self.user_workflow, detector=all_projects_detector)
         self.login_as(self.limited_user)
 
-        response = self.get_success_response(
+        self.get_error_response(
             self.organization.slug,
             qs_params={"id": str(self.user_workflow.id)},
             raw_data={"enabled": True},
+            status_code=403,
         )
 
-        assert "No workflows found" in response.data["detail"]
         self.user_workflow.refresh_from_db()
         assert self.user_workflow.enabled is False
 
@@ -2365,12 +2502,11 @@ class OrganizationWorkflowDeleteProjectAccessTest(
         self.create_detector_workflow(workflow=self.user_workflow, detector=all_projects_detector)
         self.login_as(self.limited_user)
 
-        response = self.get_success_response(
+        self.get_error_response(
             self.organization.slug,
             qs_params={"id": str(self.user_workflow.id)},
-            status_code=200,
+            status_code=403,
         )
 
-        assert "No workflows found" in response.data["detail"]
         self.user_workflow.refresh_from_db()
         assert self.user_workflow.status != ObjectStatus.PENDING_DELETION

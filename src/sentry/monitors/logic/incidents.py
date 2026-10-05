@@ -80,9 +80,11 @@ def try_incident_threshold(
             # reverse the list after slicing in order to start with oldest check-in
             previous_checkins = list(reversed(previous_checkins))
 
-            # If we have any successful check-ins within the threshold of
-            # commits we have NOT reached an incident state
-            if any([checkin.status == CheckInStatus.OK for checkin in previous_checkins]):
+            # If we have fewer check-ins than the threshold or any successful
+            # check-ins within it, we have NOT reached an incident state.
+            if len(previous_checkins) < failure_issue_threshold or any(
+                checkin.status == CheckInStatus.OK for checkin in previous_checkins
+            ):
                 return False
 
         # change monitor status + update fingerprint timestamp

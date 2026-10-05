@@ -71,8 +71,11 @@ def build_attachment_title(obj: Group | Event | GroupEvent) -> str:
     ev_type = obj.get_event_type()
     title = obj.title
 
-    if ev_type == "error" and "type" in ev_metadata:
-        title = ev_metadata["type"]
+    if ev_type == "error":
+        # A synthetic exception's type is a platform label, not the identity of what went wrong,
+        # so it makes a poor title.
+        if "type" in ev_metadata and not ev_metadata.get("synthetic"):
+            title = ev_metadata["type"]
 
     elif ev_type == "csp":
         title = f"{ev_metadata['directive']} - {ev_metadata['uri']}"
@@ -264,7 +267,7 @@ def build_footer(
 ) -> str:
     footer = f"{group.qualified_short_id}"
     if rules:
-        key, value = get_rule_or_workflow_id(rules[0])
+        key, value = get_rule_or_workflow_id(rules[0], prefer="workflow_id")
         match key:
             case "workflow_id":
                 rule_url = absolute_uri(create_link_to_workflow(group.organization.slug, value))

@@ -1,8 +1,9 @@
 import type {Key} from 'react';
 
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconAdd} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -50,20 +51,21 @@ export function CrossEventQueryingDropdown() {
     : t('For more targeted results, you can also cross reference other datasets.');
 
   return (
-    <Container width="100%">
-      {triggerProps => (
+    <Container width={{zero: '100%', md: 'auto'}}>
+      {containerProps => (
         <DropdownMenu
           onAction={onAction}
           items={getCrossEventDropdownItems(crossEventDatasetAvailability)}
           isDisabled={isDisabled}
-          triggerProps={{
-            ...triggerProps,
-            tooltipProps: {title: tooltipTitle},
-            size: 'md',
-            showChevron: false,
-            icon: <IconAdd />,
-            'aria-label': t('Add a cross event query'),
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...containerProps}
+              {...triggerProps}
+              tooltipProps={{title: tooltipTitle}}
+              icon={<IconAdd />}
+              aria-label={t('Add a cross event query')}
+            />
+          )}
         />
       )}
     </Container>

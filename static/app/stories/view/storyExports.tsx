@@ -1,5 +1,4 @@
 import React, {Fragment, useEffect} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {ErrorBoundary} from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
@@ -58,7 +57,14 @@ function StoryLayout() {
     <Tabs value={tab} onChange={setTab}>
       {isMDXStory(story) ? <MDXStoryTitle story={story} /> : null}
       <StoryGrid>
-        <StoryContainer>
+        <Stack
+          width="100%"
+          minWidth="0px"
+          maxWidth={{zero: '580px', '3xl': '832px'}}
+          gap="3xl"
+          padding="0 xl"
+          margin={{zero: '0', '3xl': '0 auto'}}
+        >
           <Stack flexGrow={1} minWidth="0px">
             <StoryTabPanels documentation={documentation} />
           </Stack>
@@ -66,7 +72,7 @@ function StoryLayout() {
             <StorySourceLinks />
           </ErrorBoundary>
           <StoryFooter />
-        </StoryContainer>
+        </Stack>
         <StoryTableOfContents />
       </StoryGrid>
     </Tabs>
@@ -78,7 +84,6 @@ function makeStorybookDocumentTitle(title: string | undefined): string {
 }
 
 function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
-  const theme = useTheme();
   const title = props.story.exports.frontmatter?.title;
   const description = props.story.exports.frontmatter?.description;
 
@@ -95,7 +100,14 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
       area="story-head"
     >
       <StoryGrid>
-        <StoryContainer style={{gap: theme.space['2xl']}}>
+        <Stack
+          width="100%"
+          minWidth="0px"
+          maxWidth={{zero: '580px', '3xl': '832px'}}
+          gap="2xl"
+          padding="0 xl"
+          margin={{zero: '0', '3xl': '0 auto'}}
+        >
           <Stack
             gap="xl"
             padding={
@@ -130,7 +142,7 @@ function MDXStoryTitle(props: {story: MDXStoryDescriptor}) {
           </Stack>
 
           <StoryTabList />
-        </StoryContainer>
+        </Stack>
         <StoryTableOfContentsPlaceholder />
       </StoryGrid>
     </Container>
@@ -291,8 +303,8 @@ function StoryGrid(props: React.ComponentProps<typeof Grid>) {
     <Grid
       {...props}
       columns={{
-        'screen:xs': 'minmax(0, 1fr) auto',
-        'screen:md': 'minmax(580px, 1fr) minmax(0, 256px)',
+        zero: 'minmax(0, 1fr) auto',
+        '3xl': 'minmax(580px, 1fr) minmax(0, 256px)',
       }}
       height="100%"
     />
@@ -311,20 +323,4 @@ function StoryModuleExports(props: {
 const StyledTabPanels = styled(TabPanels)`
   flex-grow: 1;
   min-width: 0;
-`;
-
-const StoryContainer = styled('div')`
-  max-width: 580px;
-  width: 100%;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: ${p => p.theme.space['3xl']};
-  padding-inline: ${p => p.theme.space.xl};
-  container-type: inline-size;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    max-width: 832px;
-    margin-inline: auto;
-  }
 `;

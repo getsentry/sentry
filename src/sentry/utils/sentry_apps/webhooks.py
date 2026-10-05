@@ -15,7 +15,7 @@ from requests import RequestException, Response
 from requests.exceptions import ChunkedEncodingError, ConnectionError, Timeout
 from rest_framework import status
 
-from sentry import features, options
+from sentry import options
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import safe_urlopen
 from sentry.integrations.utils.metrics import EventLifecycle
@@ -320,7 +320,8 @@ def send_and_save_webhook_request(
             }
         )
 
-        assert url is not None
+        if not url:
+            return Response()
 
         subject_id, subject_type = extract_webhook_subject(
             app_platform_event.resource, event, app_platform_event.data
@@ -333,11 +334,7 @@ def send_and_save_webhook_request(
                 include_teams=False,
             )
             owner_org = owner_context.organization if owner_context is not None else None
-            if (
-                owner_org is not None
-                and CLAUDE_ROUTINE_URL_RE.fullmatch(url)
-                and features.has("organizations:sentry-apps-claude-routine-webhooks", owner_org)
-            ):
+            if CLAUDE_ROUTINE_URL_RE.fullmatch(url):
                 app_platform_event.include_text_summary = True
             circuit_breaker = _create_circuit_breaker(sentry_app)
             if not _circuit_breaker_allows_request(circuit_breaker, sentry_app, lifecycle):

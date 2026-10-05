@@ -85,7 +85,7 @@ export function OurlogsSection({
       return {traceId};
     }
     return;
-  }, [replayId, replayData?.data, traceId]);
+  }, [replayId, replayData, traceId]);
 
   if (replayId && isReplayLoading) {
     return null;
@@ -231,6 +231,7 @@ function OurlogsSectionContent({
         }
       );
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [location.query, freeze, group, event, project, openDrawer, navigate, location]);
   if (!feature) {
     return null;
@@ -264,6 +265,7 @@ function OurlogsSectionContent({
             {abbreviatedTableData?.map((row, index) => (
               <LogRowContent
                 dataRow={row}
+                routingHint={tableData.routingHintsByRow.get(row)}
                 meta={tableData.meta}
                 highlightTerms={highlightTerms}
                 embedded

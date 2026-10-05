@@ -16,11 +16,19 @@ import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {DATADOG_SITES, DATADOG_SITE_VALUES} from 'sentry/utils/seer/datadogSites';
 
+const DATADOG_API_KEYS_DOCS_URL =
+  'https://docs.datadoghq.com/account_management/api-app-keys/';
+
+// Deep-links to the settings page for the selected site, falling back to the docs
+// when no (or an unrecognized) site is selected rather than guessing a host.
 function datadogOrgSettingsUrl(
   site: string,
   page: 'api-keys' | 'application-keys'
 ): string {
-  return `https://app.${site}/organization-settings/${page}`;
+  const appHost = DATADOG_SITES.find(s => s.value === site)?.appHost;
+  return appHost
+    ? `https://${appHost}/organization-settings/${page}`
+    : DATADOG_API_KEYS_DOCS_URL;
 }
 
 const credentialsSchema = z.object({
@@ -57,8 +65,13 @@ function DatadogCredentialsStep({
     <form.AppForm form={form}>
       <Stack gap="lg">
         <Text>
-          {t(
-            'Enter an organization-level Datadog API key and application key so Seer can access your Datadog telemetry.'
+          {tct(
+            'Enter an organization-level Datadog API key and application key so Seer can access your Datadog telemetry. Refer to the [link:documentation] for more setup guidance.',
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/integrations/debugging/datadog-seer/" />
+              ),
+            }
           )}
         </Text>
         <form.AppField name="site">
@@ -81,10 +94,6 @@ function DatadogCredentialsStep({
         </form.AppField>
         <form.Subscribe selector={state => state.values.site}>
           {site => {
-            const keysHref = (page: 'api-keys' | 'application-keys') =>
-              site
-                ? datadogOrgSettingsUrl(site, page)
-                : 'https://docs.datadoghq.com/account_management/api-app-keys/';
             return (
               <Stack gap="lg">
                 <form.AppField name="apiKey">
@@ -93,7 +102,13 @@ function DatadogCredentialsStep({
                       label={t('API Key')}
                       hintText={tct(
                         'Identifies your Datadog organization. Create one under [link:Organization Settings › API Keys].',
-                        {link: <ExternalLink href={keysHref('api-keys')} />}
+                        {
+                          link: (
+                            <ExternalLink
+                              href={datadogOrgSettingsUrl(site, 'api-keys')}
+                            />
+                          ),
+                        }
                       )}
                       required
                     >
@@ -111,7 +126,13 @@ function DatadogCredentialsStep({
                       label={t('Application Key')}
                       hintText={tct(
                         'Authorizes requests on top of the API key. Create one under [link:Organization Settings › Application Keys].',
-                        {link: <ExternalLink href={keysHref('application-keys')} />}
+                        {
+                          link: (
+                            <ExternalLink
+                              href={datadogOrgSettingsUrl(site, 'application-keys')}
+                            />
+                          ),
+                        }
                       )}
                       required
                     >

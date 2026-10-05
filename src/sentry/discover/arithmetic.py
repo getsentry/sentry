@@ -360,6 +360,35 @@ def parse_arithmetic(
     return result, list(visitor.fields), list(visitor.functions)
 
 
+def resolve_arithmetic(parsed: Operation | float | str):
+    """Given a parsed arithmetic string, assume that its resolveable to a single value and return that
+
+    will error if this is not possible
+    """
+    if isinstance(parsed, str):
+        raise InvalidSearchQuery("Cannot resolve columns")
+    elif isinstance(parsed, float):
+        return parsed
+    elif parsed.lhs is not None and parsed.rhs is not None:
+        match parsed.operator:
+            case "plus":
+                return resolve_arithmetic(parsed.lhs) + resolve_arithmetic(parsed.rhs)
+            case "minus":
+                return resolve_arithmetic(parsed.lhs) - resolve_arithmetic(parsed.rhs)
+            case "multiply":
+                return resolve_arithmetic(parsed.lhs) * resolve_arithmetic(parsed.rhs)
+            case "divide":
+                return resolve_arithmetic(parsed.lhs) / resolve_arithmetic(parsed.rhs)
+            case _:
+                raise InvalidSearchQuery("Unknown operator")
+    elif parsed.lhs is not None:
+        return parsed.lhs
+    elif parsed.rhs is not None:
+        return parsed.rhs
+    else:
+        raise InvalidSearchQuery("Poorly formed arithmetic an operator without sides was found")
+
+
 def resolve_equation_list(
     equations: list[str],
     selected_columns: list[str],

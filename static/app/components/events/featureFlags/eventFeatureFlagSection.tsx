@@ -25,14 +25,16 @@ import {
 import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {useLegacyEventSuspectFlags} from 'sentry/components/issues/suspect/useLegacyEventSuspectFlags';
-import {KeyValueData} from 'sentry/components/keyValueData';
+import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {IconSearch} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
 import {IssueCategory, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useContainerColumnCount} from 'sentry/utils/useContainerColumnCount';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -78,6 +80,8 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   const [orderBy, setOrderBy] = useState(OrderBy.NEWEST);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const columnCount = useContainerColumnCount(containerRef);
 
   const eventView = useIssueDetailsEventView({group});
   const {data: rawFlagData} = useQuery(
@@ -256,20 +260,10 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
 
   const NUM_PREVIEW_FLAGS = 20;
 
-  // Split the flags list into columns for display
   const truncatedItems = sortedFlags({flags: hydratedFlags, sort: orderBy}).slice(
     0,
     NUM_PREVIEW_FLAGS
   );
-
-  const shouldUseTwoColumns =
-    !isXsScreen && truncatedItems.length > NUM_PREVIEW_FLAGS / 2;
-  const columnOne = shouldUseTwoColumns
-    ? truncatedItems.slice(0, NUM_PREVIEW_FLAGS / 2)
-    : truncatedItems;
-  const columnTwo = shouldUseTwoColumns
-    ? truncatedItems.slice(NUM_PREVIEW_FLAGS / 2, NUM_PREVIEW_FLAGS)
-    : [];
 
   const extraFlags = hydratedFlags.length - NUM_PREVIEW_FLAGS;
   const label = tn('View 1 More Flag', 'View %s More Flags', extraFlags);
@@ -279,12 +273,18 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
       sectionKey={SectionKey.FEATURE_FLAGS}
       title={t('Feature Flags')}
       actions={actions}
+      ref={containerRef}
     >
       {hasFlags ? (
-        <CardContainer numCols={shouldUseTwoColumns ? 2 : 1}>
-          <KeyValueData.Card expandLeft contentItems={columnOne} />
-          <KeyValueData.Card expandLeft contentItems={columnTwo} />
-        </CardContainer>
+        <Grid align="start" columns={`repeat(${columnCount}, 1fr)`}>
+          {props => (
+            <CardContainer {...props}>
+              {splitIntoColumns(truncatedItems, columnCount).map((column, index) => (
+                <KeyValueTableCard key={index} expandLeft contentItems={column} />
+              ))}
+            </CardContainer>
+          )}
+        </Grid>
       ) : (
         <StyledEmptyStateWarning withIcon small>
           {t('No feature flags were found for this event')}

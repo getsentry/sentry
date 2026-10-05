@@ -4,13 +4,12 @@ import logging
 from dataclasses import dataclass, field
 
 from sentry import features, options
-from sentry.db.models.utils import is_model_attr_cached
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.organization import Organization
 from sentry.options.rollout import in_rollout_group
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
@@ -24,7 +23,7 @@ from sentry.workflow_engine.defaults.detectors import (
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors import DetectorEvaluation, ProcessDetectorsResult
-from sentry.workflow_engine.processors.evaluation_logging import emit_detector_evaluation_logs
+from sentry.workflow_engine.processors.evaluations.tracking import emit_evaluations
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorId,
@@ -42,6 +41,28 @@ def _get_all_projects_detector_cache_key(organization_id: int) -> str:
     return f"detector:all_projects:{organization_id}"
 
 
+def query_all_projects_detector(organization_id: int) -> Detector | None:
+    try:
+        return Detector.objects.get_or_none(
+            type=IssueStreamGroupType.slug,
+            project__isnull=True,
+            config__organization_id=organization_id,
+        )
+    except Detector.MultipleObjectsReturned:
+        logger.warning(
+            "get_all_projects_detector.many_exist", extra={"organization_id": organization_id}
+        )
+        return (
+            Detector.objects.filter(
+                type=IssueStreamGroupType.slug,
+                project__isnull=True,
+                config__organization_id=organization_id,
+            )
+            .order_by("date_added")
+            .first()
+        )
+
+
 def get_all_projects_detector(organization_id: int) -> Detector | None:
     with metrics.timer("workflow_engine.cache.all_projects_detector") as metrics_tags:
         cache_key = _get_all_projects_detector_cache_key(organization_id)
@@ -50,12 +71,7 @@ def get_all_projects_detector(organization_id: int) -> Detector | None:
             metrics_tags["cache_hit"] = "true"
             metrics_tags["detector_found"] = "true" if cached is not None else "false"
             return cached
-
-        result = Detector.objects.filter(
-            project__isnull=True,
-            type=IssueStreamGroupType.slug,
-            config__organization_id=organization_id,
-        ).first()
+        result = query_all_projects_detector(organization_id=organization_id)
         metrics_tags["cache_hit"] = "false"
         metrics_tags["detector_found"] = "true" if result is not None else "false"
         cache.set(cache_key, result, Detector.CACHE_TTL)
@@ -245,49 +261,63 @@ def get_preferred_detector(event_data: WorkflowEventData) -> Detector:
         raise
 
 
-def create_issue_platform_payload(result: DetectorEvaluation, detector_type: str) -> None:
-    occurrence, status_change = None, None
+def _get_detector_organization(detector: Detector) -> Organization | None:
+    """
+    Lookup the detector's organization through the organization cache.
 
-    if isinstance(result.result, IssueOccurrence):
-        occurrence = result.result
-        payload_type = PayloadType.OCCURRENCE
+    First this checks to see if we have the org id through the detector cache,
+    then check to see if it's an issue-stream detector.
 
-        metrics.incr(
-            "workflow_engine.issue_platform.payload.sent.occurrence",
-            tags={"detector_type": detector_type},
-            sample_rate=1,
+    If no org is found, return none.
+    """
+    org = None
+    organization_id = getattr(detector, "project_organization_id", None)
+
+    if organization_id is None:
+        organization_id = detector.config.get("organization_id")
+
+    if organization_id is not None:
+        try:
+            org = Organization.objects.get_from_cache(id=organization_id)
+        except Organization.DoesNotExist:
+            pass
+
+    return org
+
+
+def _emit_detector_evaluations(
+    detector: Detector,
+    result: ProcessDetectorsResult,
+) -> None:
+    organization = _get_detector_organization(detector)
+
+    if organization is not None:
+        emit_evaluations(
+            organization=organization,
+            result=result,
         )
     else:
-        status_change = result.result
-        payload_type = PayloadType.STATUS_CHANGE
         metrics.incr(
-            "workflow_engine.issue_platform.payload.sent.status_change",
-            tags={"detector_type": detector_type},
-            sample_rate=1,
+            "workflow_engine.process_detector.error",
+            tags={
+                "error": "organization_missing",
+            },
         )
-
-    produce_occurrence_to_kafka(
-        payload_type=payload_type,
-        occurrence=occurrence,
-        status_change=status_change,
-        event_data=result.data["event_data"],
-    )
-
-
-def _get_detector_organization_id(detector: Detector) -> int | None:
-    if detector.project_id is not None:
-        if is_model_attr_cached(detector, "project"):
-            project = detector.project
-            return project.organization_id if project is not None else None
-        return None
-
-    return detector.config.get("organization_id", None)
 
 
 @trace
 def process_detectors[T](
-    data_packet: DataPacket[T], detectors: list[Detector]
+    data_packet: DataPacket[T],
+    detectors: list[Detector],
 ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluation]]]:
+    """
+    This is a core method in workflow_engine. It evaluates the detectors
+    associated with each data packet, using the each individual detector_handler.
+
+    Once the evaluation is complete, each is stored in EAP for 7d (21d for metric detectors).
+
+    Finally, triggered detectors create issues via Issue Platform unless publication is disabled.
+    """
     results: list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluation]]] = []
 
     for detector in detectors:
@@ -304,11 +334,10 @@ def process_detectors[T](
         with metrics.timer(
             "workflow_engine.process_detectors.evaluate", tags={"detector_type": detector.type}
         ):
-            detector_results = handler.evaluate(data_packet)
+            detector_results = handler._evaluate(data_packet)
 
-        emit_detector_evaluation_logs(
-            logger,
-            organization_id=_get_detector_organization_id(detector),
+        _emit_detector_evaluations(
+            detector=detector,
             result=ProcessDetectorsResult(
                 detector_id=detector.id,
                 detector_type=detector.type,
@@ -327,7 +356,11 @@ def process_detectors[T](
                     tags={"detector_type": detector.type},
                 )
 
-                create_issue_platform_payload(result, detector.type)
+            with metrics.timer(
+                "workflow_engine.process_detectors.on_complete",
+                tags={"detector_type": detector.type},
+            ):
+                handler.on_complete(detector, result)
 
         if detector_results:
             results.append((detector, detector_results))

@@ -2,7 +2,9 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
@@ -38,13 +40,14 @@ export function FlagActionDropdown({
       className={isVisible ? '' : 'invisible'}
       onOpenChange={isOpen => setIsVisible(isOpen)}
       size="xs"
-      triggerProps={{
-        'aria-label': t('Flag Details'),
-        icon: <IconEllipsis />,
-        showChevron: false,
-        size: 'xs',
-        className: 'flag-button',
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          aria-label={t('Flag Details')}
+          icon={<IconEllipsis />}
+          className="flag-button"
+        />
+      )}
       items={[
         {
           key: 'open-flag-details',

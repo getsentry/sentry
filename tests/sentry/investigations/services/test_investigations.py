@@ -6,6 +6,7 @@ from uuid import UUID, uuid4
 
 import pytest
 from django.db import IntegrityError, close_old_connections
+from django.utils import timezone
 
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.investigations.models import (
@@ -24,6 +25,7 @@ from sentry.investigations.services.investigations import (
     create_block,
     create_manual_investigation,
     create_template_investigation,
+    default_investigation_title,
     delete_block,
     duplicate_investigation,
     investigation_legacy_source_key,
@@ -34,7 +36,9 @@ from sentry.investigations.services.investigations import (
 from sentry.investigations.services.orchestration import (
     accept_orchestration_command,
     create_agentic_manual_investigation,
+    get_orchestration_projection,
 )
+from sentry.seer.models.run import SeerRunType
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
@@ -225,6 +229,58 @@ class BreachedMetricSourceRefTest(TestCase):
                 },
                 accessible_project_ids={self.project.id},
             )
+
+
+def test_default_title_names_the_investigation_type() -> None:
+    assert (
+        default_investigation_title(InvestigationSourceType.METRIC_OPEN_PERIOD)
+        == "New breached metrics investigation"
+    )
+    assert (
+        default_investigation_title(InvestigationSourceType.BREACHED_METRIC)
+        == "New breached metrics investigation"
+    )
+    assert default_investigation_title(InvestigationSourceType.MANUAL) == "New manual investigation"
+
+
+class DefaultTitleTest(TestCase):
+    def test_untitled_agentic_investigation_gets_a_default_title(self) -> None:
+        investigation, _ = create_agentic_manual_investigation(
+            organization=self.organization,
+            user_id=self.user.id,
+            title=None,
+            source={"type": "manual", "prompt": "Investigate latency"},
+            project_ids=[],
+            filters={},
+        )
+
+        assert investigation.title == "New manual investigation"
+
+    def test_untitled_template_investigation_gets_a_default_title(self) -> None:
+        source = {
+            "type": InvestigationSourceType.METRIC_OPEN_PERIOD,
+            "ref": {"groupId": "1", "openPeriodId": "2"},
+            "snapshot": {"monitor": {"name": "Checkout errors"}},
+        }
+        resolved = BreachedMetricSource(project_id=self.project.id, dataset="errors", source=source)
+
+        with mock.patch(
+            "sentry.investigations.services.investigations.resolve_investigation_source",
+            return_value=resolved,
+        ):
+            investigation, created = create_template_investigation(
+                organization=self.organization,
+                user_id=self.user.id,
+                template_key="breached_metric",
+                template_version=1,
+                source={"type": "metric_open_period", "ref": source["ref"]},
+                supplied_parameters={},
+                accessible_project_ids={self.project.id},
+            )
+
+        assert created
+        investigation.refresh_from_db()
+        assert investigation.title == "New breached metrics investigation"
 
 
 class SourceTransitionCompatibilityTest(TestCase):
@@ -419,6 +475,53 @@ class OrchestrationControlServiceTest(TestCase):
         run.refresh_from_db()
         assert run.workflow_version == 1
         assert not InvestigationOrchestrationCommand.objects.filter(orchestration_run=run).exists()
+
+    def test_projection_serialization_overlays_authoritative_run_fields(self) -> None:
+        investigation, run = create_agentic_manual_investigation(
+            organization=self.organization,
+            user_id=self.user.id,
+            title=None,
+            source={"type": "manual", "prompt": "Investigate latency"},
+            project_ids=[],
+            filters={},
+        )
+        heartbeat = timezone.now()
+        run.update(
+            seer_run=self.create_seer_run(
+                organization=self.organization,
+                type=SeerRunType.INVESTIGATION,
+                seer_run_state_id=42,
+            ),
+            workflow_version=3,
+            generation=2,
+            phase="investigating",
+            status="processing",
+            notebook_revision=4,
+            heartbeat_at=heartbeat,
+            projection={
+                "investigationId": "stale",
+                "workflowVersion": 1,
+                "phase": "intake",
+                "status": "pending",
+                "heartbeatAt": "stale",
+                "updatedAt": "stale",
+                "report": {"notebookRevision": 0},
+            },
+        )
+        run.refresh_from_db()
+
+        result = get_orchestration_projection(investigation)
+
+        assert result["runId"] == "42"
+        assert result["investigationId"] == str(investigation.id)
+        assert result["workflowVersion"] == 3
+        assert result["generation"] == 2
+        assert result["phase"] == "investigating"
+        assert result["status"] == "processing"
+        assert result["notebookRevision"] == 4
+        assert result["heartbeatAt"] == heartbeat
+        assert result["updatedAt"] == run.date_updated
+        assert result["report"]["notebookRevision"] == 4
 
 
 class OrchestrationCommandConcurrencyTest(TransactionTestCase):

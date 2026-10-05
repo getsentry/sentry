@@ -1,4 +1,4 @@
-/* eslint-disable typescript-sort-keys/interface */
+/* eslint-disable @sentry/sort-interface-keys */
 import type {
   BuildDetailsVcsInfo,
   SnapshotApprovalStatus,
@@ -83,10 +83,17 @@ export function getImageName(image: SnapshotImage): string {
   return image.display_name ?? image.image_file_name;
 }
 
+export function getSnapshotImageUrlForKey(
+  imageBaseUrl: string,
+  imageKey: string
+): string {
+  return `${imageBaseUrl}${imageKey}/?image_type=preprod_snapshots`;
+}
+
 export function getSnapshotImageUrl(imageBaseUrl: string, image: SnapshotImage): string {
-  const url = `${imageBaseUrl}${image.key}/`;
+  const url = getSnapshotImageUrlForKey(imageBaseUrl, image.key);
   const fileName = image.image_file_name?.split('/').pop();
-  return fileName ? `${url}?filename=${encodeURIComponent(fileName)}` : url;
+  return fileName ? `${url}&filename=${encodeURIComponent(fileName)}` : url;
 }
 
 interface SidebarItemBase {

@@ -1,4 +1,5 @@
 import {GroupFixture} from 'sentry-fixture/group';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -30,7 +31,12 @@ describe('AssigneeSelector', () => {
         assigneeLoading={false}
         handleAssigneeChange={jest.fn()}
         showLabel
-      />
+      />,
+      {
+        organization: OrganizationFixture({
+          features: ['issue-priority-assignee-ui'],
+        }),
+      }
     );
 
     await userEvent.hover(await screen.findByText(assignedUser.name));

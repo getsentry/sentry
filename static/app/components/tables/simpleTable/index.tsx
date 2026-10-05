@@ -8,19 +8,17 @@ import type {LocationDescriptor} from 'history';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 import {
-  emptyCellStyle,
   fullWidthCellStyle,
   Table,
   type TableColumnConfig,
 } from '@sentry/scraps/table';
 
-import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import type {ColumnAlign} from 'sentry/components/tables/gridEditable';
 import {
+  type ColumnAlign,
   HeaderCellContent,
   type SortDirection,
 } from 'sentry/components/tables/sortableHeaderCell';
+import {TableEmpty, TableError, TableLoading} from 'sentry/components/tables/statusRows';
 import {defined} from 'sentry/utils/defined';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 
@@ -40,8 +38,11 @@ interface RowProps extends HTMLAttributes<HTMLTableRowElement> {
 type HeaderCellVariant = 'default' | 'first' | 'remaining' | 'full-width';
 
 export function SimpleTable({children, columns, header, ...props}: TableProps) {
+  // This shell has no resize affordance, so its columns do not opt into one.
+  const unresizableColumns = columns?.map(column => ({resizable: false, ...column}));
+
   return (
-    <StyledTable columns={columns} {...props}>
+    <StyledTable columns={unresizableColumns} {...props}>
       <PanelProvider>
         {header && <Table.Head>{header}</Table.Head>}
         <Table.Body>{children}</Table.Body>
@@ -74,6 +75,7 @@ function HeaderCell({
 }: HTMLAttributes<HTMLTableCellElement> & {
   align?: ColumnAlign;
   children?: React.ReactNode;
+  columnIndex?: number;
   divider?: boolean;
   handleSortClick?: (event: React.MouseEvent) => void;
   sort?: SortDirection;
@@ -178,7 +180,7 @@ const HeaderDivider = styled('div')`
 `;
 
 const ColumnHeaderCell = styled(Table.HeadCell, {
-  shouldForwardProp: prop => prop !== 'align' && prop !== 'variant',
+  shouldForwardProp: prop => prop !== 'variant',
 })<{variant: HeaderCellVariant; align?: ColumnAlign}>`
   outline: none;
   padding: 0 ${p => p.theme.space.xl};
@@ -195,9 +197,16 @@ const ColumnHeaderCell = styled(Table.HeadCell, {
   ${HeaderCellContent} {
     flex: 1;
     height: 100%;
-    justify-content: space-between;
     min-width: 0;
   }
+
+  ${p =>
+    !p.align &&
+    css`
+      ${HeaderCellContent} {
+        justify-content: space-between;
+      }
+    `}
 
   ${HeaderCellContent}:focus-visible {
     box-shadow: inset 0 0 0 2px ${p => p.theme.tokens.focus.default};
@@ -212,14 +221,6 @@ const ColumnHeaderCell = styled(Table.HeadCell, {
   &[aria-sort] {
     color: ${p => p.theme.tokens.content.primary};
   }
-
-  ${p =>
-    p.align === 'right' &&
-    css`
-      ${HeaderCellContent} {
-        justify-content: flex-end;
-      }
-    `}
 
   ${p =>
     p.variant === 'first' &&
@@ -269,33 +270,13 @@ function FullWidthRow({children, ...props}: RowProps) {
   );
 }
 
-const Empty = styled(Table.Status)`
-  ${emptyCellStyle}
-`;
-
-function Loading(props: ComponentProps<typeof Empty>) {
-  return (
-    <Empty {...props}>
-      <LoadingIndicator />
-    </Empty>
-  );
-}
-
-function ErrorState(props: ComponentProps<typeof LoadingError>) {
-  return (
-    <Empty>
-      <LoadingError {...props} />
-    </Empty>
-  );
-}
-
 SimpleTable.HeaderRow = HeaderRow;
 SimpleTable.HeaderCell = HeaderCell;
 SimpleTable.Row = Row;
 SimpleTable.RowCell = RowCell;
 SimpleTable.rowLinkStyle = rowLinkStyle;
-SimpleTable.Empty = Empty;
-SimpleTable.Error = ErrorState;
-SimpleTable.Loading = Loading;
+SimpleTable.Empty = TableEmpty;
+SimpleTable.Error = TableError;
+SimpleTable.Loading = TableLoading;
 SimpleTable.FullWidthCell = FullWidthCell;
 SimpleTable.FullWidthRow = FullWidthRow;

@@ -56,44 +56,9 @@ export function TeamSelect({
   onChangeTeamRole,
 }: Props) {
   const {teams, onSearch, fetching: isLoadingTeams} = useTeams();
-  const {orgRoleList, teamRoleList} = organization;
 
   const selectedTeamSlugs = new Set(selectedTeamRoles.map(tm => tm.teamSlug));
   const selectedTeams = teams.filter(tm => selectedTeamSlugs.has(tm.slug));
-
-  const renderBody = () => {
-    if (selectedTeams.length === 0) {
-      return <EmptyMessage>{t('No Teams assigned')}</EmptyMessage>;
-    }
-
-    return (
-      <Fragment>
-        {selectedOrgRole && (
-          <RoleOverwritePanelAlert
-            orgRole={selectedOrgRole}
-            orgRoleList={orgRoleList}
-            teamRoleList={teamRoleList}
-          />
-        )}
-
-        {selectedTeams.map(team => (
-          <TeamRow
-            key={team.slug}
-            disabled={disabled}
-            organization={organization}
-            team={team}
-            member={{
-              ...member,
-              orgRole: selectedOrgRole,
-              teamRoles: selectedTeamRoles,
-            }}
-            onChangeTeamRole={onChangeTeamRole}
-            onRemoveTeam={slug => onRemoveTeam(slug)}
-          />
-        ))}
-      </Fragment>
-    );
-  };
 
   return (
     <Panel>
@@ -107,7 +72,6 @@ export function TeamSelect({
             disabled={disabled}
             isLoadingTeams={isLoadingTeams}
             isAddingTeamToMember
-            canCreateTeam={false}
             onSearch={onSearch}
             onSelect={onAddTeam}
             onCreateTeam={onCreateTeam}
@@ -118,8 +82,79 @@ export function TeamSelect({
         </div>
       </TeamPanelHeader>
 
-      <PanelBody>{loadingTeams ? <LoadingIndicator /> : renderBody()}</PanelBody>
+      <PanelBody>
+        {loadingTeams ? (
+          <LoadingIndicator />
+        ) : (
+          <TeamSelectBody
+            disabled={disabled}
+            member={member}
+            onChangeTeamRole={onChangeTeamRole}
+            onRemoveTeam={onRemoveTeam}
+            organization={organization}
+            selectedOrgRole={selectedOrgRole}
+            selectedTeamRoles={selectedTeamRoles}
+            selectedTeams={selectedTeams}
+          />
+        )}
+      </PanelBody>
     </Panel>
+  );
+}
+
+type TeamSelectBodyProps = {
+  disabled: boolean;
+  member: Member;
+  onChangeTeamRole: Props['onChangeTeamRole'];
+  onRemoveTeam: Props['onRemoveTeam'];
+  organization: Organization;
+  selectedOrgRole: Member['orgRole'];
+  selectedTeamRoles: Member['teamRoles'];
+  selectedTeams: Team[];
+};
+
+function TeamSelectBody({
+  disabled,
+  member,
+  onChangeTeamRole,
+  onRemoveTeam,
+  organization,
+  selectedOrgRole,
+  selectedTeamRoles,
+  selectedTeams,
+}: TeamSelectBodyProps) {
+  if (selectedTeams.length === 0) {
+    return <EmptyMessage>{t('No Teams assigned')}</EmptyMessage>;
+  }
+
+  const {orgRoleList, teamRoleList} = organization;
+
+  return (
+    <Fragment>
+      {selectedOrgRole && (
+        <RoleOverwritePanelAlert
+          orgRole={selectedOrgRole}
+          orgRoleList={orgRoleList}
+          teamRoleList={teamRoleList}
+        />
+      )}
+
+      {selectedTeams.map(team => (
+        <TeamRow
+          key={team.slug}
+          disabled={disabled}
+          organization={organization}
+          team={team}
+          member={{
+            ...member,
+            orgRole: selectedOrgRole,
+            teamRoles: selectedTeamRoles,
+          }}
+          onChangeTeamRole={onChangeTeamRole}
+          onRemoveTeam={slug => onRemoveTeam(slug)}
+        />
+      ))}
+    </Fragment>
   );
 }
 

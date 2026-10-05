@@ -130,31 +130,36 @@ class OrganizationIntegrationChannelsMsTeamsTest(OrganizationIntegrationChannels
 
     @patch("sentry.integrations.msteams.client.MsTeamsClient.get")
     def test_msteams_channels_list(self, mock_get):
-        mock_channels = {
+        # The Bot Framework returns `id`, `name` and `type` per channel. The
+        # General channel has no name, and its id is the team id.
+        mock_get.return_value = {
             "conversations": [
-                {"id": "19:channel1@thread.tacv2", "displayName": "Development"},
-                {"id": "19:channel2@thread.tacv2", "displayName": "General"},
-                {
-                    "id": "19:channel3@thread.tacv2",
-                    "displayName": "Testing",
-                    "membershipType": "private",
-                },
+                {"id": "19:team-id@thread.tacv2"},
+                {"id": "19:channel1@thread.tacv2", "name": "Development"},
+                {"id": "19:channel3@thread.tacv2", "name": "Testing", "type": "private"},
             ]
         }
-        mock_get.return_value = mock_channels
         response = self.get_success_response(self.organization.slug, self.integration.id)
-        results = response.data["results"]
-        expected = []
-        for ch in mock_channels["conversations"]:
-            expected.append(
-                {
-                    "id": ch["id"],
-                    "name": ch["displayName"],
-                    "display": ch["displayName"],
-                    "type": ch.get("membershipType", "standard"),
-                }
-            )
-        assert results == expected
+        assert response.data["results"] == [
+            {
+                "id": "19:team-id@thread.tacv2",
+                "name": "General",
+                "display": "General",
+                "type": "standard",
+            },
+            {
+                "id": "19:channel1@thread.tacv2",
+                "name": "Development",
+                "display": "Development",
+                "type": "standard",
+            },
+            {
+                "id": "19:channel3@thread.tacv2",
+                "name": "Testing",
+                "display": "Testing",
+                "type": "private",
+            },
+        ]
         mock_get.assert_called_once()
 
 

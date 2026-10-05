@@ -2,13 +2,16 @@ import {useMemo} from 'react';
 import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import type {ErrorMessage} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
-import {KeyValueData} from 'sentry/components/keyValueData';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {
+  KeyValueTableCard,
+  KeyValueTableCardGrid,
+} from 'sentry/components/tables/keyValueTable';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
@@ -55,20 +58,19 @@ function EventErrorCard({
   const titleElement = docLink ? (
     <Flex gap="md" align="center">
       {title}
-      <QuestionTooltip
+      <InfoTip
         title={tct('Learn more about this error in our [docLink:documentation]', {
           docLink: <ExternalLink href={docLink} />,
         })}
         size="sm"
         position="top"
-        isHoverable
       />
     </Flex>
   ) : (
     <div>{title}</div>
   );
 
-  return <KeyValueData.Card contentItems={contentItems} title={titleElement} />;
+  return <KeyValueTableCard contentItems={contentItems} title={titleElement} />;
 }
 
 function EventErrorDescription({error}: {error: ErrorMessage}) {
@@ -78,6 +80,7 @@ function EventErrorDescription({error}: {error: ErrorMessage}) {
     const data = errorData || {};
     if (data.message === 'None') {
       // Python ensures a message string, but "None" doesn't make sense here
+      // oxlint-disable-next-line react/immutability
       delete data.message;
     }
 
@@ -85,11 +88,14 @@ function EventErrorDescription({error}: {error: ErrorMessage}) {
       // Separate the image name for readability
       const separator = /^([a-z]:\\|\\\\)/i.test(data.image_path) ? '\\' : '/';
       const path = data.image_path.split(separator);
+      // oxlint-disable-next-line react/immutability
       data.image_name = path.splice(-1, 1)[0];
+      // oxlint-disable-next-line react/immutability
       data.image_path = path.length ? path.join(separator) + separator : '';
     }
 
     if (typeof data.server_time === 'string' && typeof data.sdk_time === 'string') {
+      // oxlint-disable-next-line react/immutability
       data.message = t(
         'Adjusted timestamps by %s',
         moment
@@ -128,11 +134,11 @@ export function EventProcessingErrors({event, project, isShare}: Props) {
       sectionKey={SectionKey.PROCESSING_ERROR}
       title={t('Event Processing Errors')}
     >
-      <KeyValueData.Container>
+      <KeyValueTableCardGrid>
         {errors.map((error, idx) => {
           return <EventErrorDescription key={idx} error={error} />;
         })}
-      </KeyValueData.Container>
+      </KeyValueTableCardGrid>
     </FoldSection>
   );
 }

@@ -7,6 +7,7 @@ import {DrawerHeader} from '@sentry/scraps/drawer';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ColumnLabel} from 'sentry/components/tables/columnLabel';
 import type {
   GridColumnHeader,
   GridColumnOrder,
@@ -47,7 +48,7 @@ import {
 } from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
 type Column = GridColumnHeader;
@@ -60,18 +61,47 @@ const PAGELOADS_COLUMN_ORDER: GridColumnOrder[] = [
   {key: 'score', width: COL_WIDTH_UNDEFINED, name: t('Score')},
 ];
 
-const SPANS_SAMPLES_COLUMN_ORDER: GridColumnOrder[] = [
-  {key: 'id', width: COL_WIDTH_UNDEFINED, name: t('Trace')},
-  {
-    key: SpanFields.SPAN_DESCRIPTION,
+const SPANS_SAMPLES_SUBJECT_COLUMNS: Partial<Record<WebVitals, GridColumnOrder>> = {
+  lcp: {
+    key: SpanFields.BROWSER_WEB_VITAL_LCP_ELEMENT,
     width: COL_WIDTH_UNDEFINED,
-    name: t('Description'),
+    name: t('LCP Element'),
   },
-  {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: t('Profile')},
-  {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: t('Replay')},
-  {key: 'webVital', width: COL_WIDTH_UNDEFINED, name: t('Web Vital')},
-  {key: 'score', width: COL_WIDTH_UNDEFINED, name: t('Score')},
-];
+  cls: {
+    key: SpanFields.BROWSER_WEB_VITAL_CLS_SOURCE_1,
+    width: COL_WIDTH_UNDEFINED,
+    name: t('CLS Source'),
+  },
+  inp: {
+    key: SpanFields.NAME,
+    width: COL_WIDTH_UNDEFINED,
+    name: t('Interaction Target'),
+  },
+};
+
+const DEFAULT_SPANS_SAMPLES_SUBJECT_COLUMN: GridColumnOrder = {
+  key: SpanFields.NAME,
+  width: COL_WIDTH_UNDEFINED,
+  name: t('Name'),
+};
+
+function getSpansSamplesSubjectColumn(webVital: WebVitals | null): GridColumnOrder {
+  return (
+    (webVital && SPANS_SAMPLES_SUBJECT_COLUMNS[webVital]) ??
+    DEFAULT_SPANS_SAMPLES_SUBJECT_COLUMN
+  );
+}
+
+function getSpansSamplesColumnOrder(webVital: WebVitals | null): GridColumnOrder[] {
+  return [
+    {key: 'id', width: COL_WIDTH_UNDEFINED, name: t('Trace')},
+    getSpansSamplesSubjectColumn(webVital),
+    {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: t('Profile')},
+    {key: 'replayId', width: COL_WIDTH_UNDEFINED, name: t('Replay')},
+    {key: 'webVital', width: COL_WIDTH_UNDEFINED, name: t('Web Vital')},
+    {key: 'score', width: COL_WIDTH_UNDEFINED, name: t('Score')},
+  ];
+}
 
 const NO_VALUE = ' \u2014 ';
 
@@ -156,32 +186,20 @@ export function PageOverviewWebVitalsDetailPanel({
     spansTableData.filter(row => row['profile.id']).map(row => row['profile.id'])
   );
 
+  const spansSamplesColumnOrder = getSpansSamplesColumnOrder(webVital);
+
   const renderHeadCell = (col: Column) => {
-    if (col.key === 'transaction') {
-      return <NoOverflow>{col.name}</NoOverflow>;
-    }
     if (col.key === 'webVital') {
-      return <AlignRight>{`${webVital}`}</AlignRight>;
+      return <ColumnLabel align="right" column={{name: `${webVital}`}} />;
     }
     if (col.key === 'score' || col.key === 'measurements.score.inp') {
-      return <AlignCenter>{`${webVital} ${col.name}`}</AlignCenter>;
+      return <ColumnLabel align="center" column={{name: `${webVital} ${col.name}`}} />;
     }
     if (col.key === 'replayId' || col.key === 'profile.id') {
-      return <AlignCenter>{col.name}</AlignCenter>;
+      return <ColumnLabel align="center" column={col} />;
     }
 
-    if (col.key === SpanFields.SPAN_DESCRIPTION) {
-      if (webVital === 'lcp') {
-        return <span>{t('LCP Element')}</span>;
-      }
-      if (webVital === 'cls') {
-        return <span>{t('CLS Source')}</span>;
-      }
-      if (webVital === 'inp') {
-        return <span>{t('Interaction Target')}</span>;
-      }
-    }
-    return <NoOverflow>{col.name}</NoOverflow>;
+    return <ColumnLabel column={col} />;
   };
 
   const getFormattedDuration = (value: number) => {
@@ -268,18 +286,15 @@ export function PageOverviewWebVitalsDetailPanel({
       );
     }
 
-    if (key === SpanFields.SPAN_DESCRIPTION) {
-      const description =
-        webVital === 'lcp' && row[SpanFields.SPAN_OP] === 'pageload'
-          ? row[SpanFields.BROWSER_WEB_VITAL_LCP_ELEMENT]
-          : webVital === 'cls' && row[SpanFields.SPAN_OP] === 'pageload'
-            ? row[SpanFields.BROWSER_WEB_VITAL_CLS_SOURCE_1]
-            : row[key];
-
-      if (description) {
+    if (
+      key === SpanFields.NAME ||
+      key === SpanFields.BROWSER_WEB_VITAL_LCP_ELEMENT ||
+      key === SpanFields.BROWSER_WEB_VITAL_CLS_SOURCE_1
+    ) {
+      if (row[key]) {
         return (
           <NoOverflow>
-            <Tooltip title={description}>{description}</Tooltip>
+            <Tooltip title={row[key]}>{row[key]}</Tooltip>
           </NoOverflow>
         );
       }
@@ -351,7 +366,7 @@ export function PageOverviewWebVitalsDetailPanel({
               data={spansTableData}
               isLoading={isSpansLoading}
               columnOrder={
-                isSpansWebVital ? SPANS_SAMPLES_COLUMN_ORDER : PAGELOADS_COLUMN_ORDER
+                isSpansWebVital ? spansSamplesColumnOrder : PAGELOADS_COLUMN_ORDER
               }
               grid={{
                 getColumnSort: column => ({

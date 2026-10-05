@@ -20,6 +20,7 @@ import {
   isTransactionBased,
   IssueType,
 } from 'sentry/types/group';
+import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {toRoundedPercent} from 'sentry/utils/number/toRoundedPercent';
 import {SQLishFormatter} from 'sentry/utils/sqlish';
@@ -70,13 +71,13 @@ function normalizeSpanDescription(span: EvidenceSpan): string {
 
 /** Mirrors the `code.*` span data the UI's SlowDBQueryEvidence renders. */
 function getSpanCodeLocation(span: EvidenceSpan): string | null {
-  const data = span?.data;
-  const filepath = data?.['code.filepath'];
+  const data = span?.data ?? {};
+  const filepath = getAttributeValue(data, 'code.file.path', 'string');
   if (!filepath) {
     return null;
   }
-  const lineno = data?.['code.lineno'];
-  const fn = data?.['code.function'];
+  const lineno = getAttributeValue(data, 'code.line.number', 'number')?.toString();
+  const fn = getAttributeValue(data, 'code.function', 'string');
   const location = lineno === undefined ? filepath : `${filepath}:${lineno}`;
   return fn ? `${location} ${fn}` : location;
 }
@@ -319,10 +320,9 @@ export function formatSpanEvidenceToMarkdown(event: Event, group: Group): string
     const eventTransaction = event as EventTransaction;
     // Only resolve span info when the event carries the evidence payload, to
     // avoid the error capture inside the helper.
-    const spanInfo =
-      eventTransaction.perfProblem || event.occurrence?.evidenceData
-        ? getSpanInfoFromTransactionEvent(eventTransaction)
-        : null;
+    const spanInfo = event.occurrence?.evidenceData
+      ? getSpanInfoFromTransactionEvent(eventTransaction)
+      : null;
 
     if (spanInfo?.parentSpan) {
       lines.push(`**Parent Span:** ${getSpanMarkdownValue(spanInfo.parentSpan)}`);

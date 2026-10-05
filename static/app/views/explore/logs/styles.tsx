@@ -9,6 +9,7 @@ import {MultiHighlight} from 'sentry/components/highlight';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {Panel} from 'sentry/components/panels/panel';
 import {DATA_TABLE_ROW_HEIGHT, DataTable} from 'sentry/components/tables/dataTable';
+import type {ColumnAlign} from 'sentry/components/tables/sortableHeaderCell';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {unreachable} from 'sentry/utils/unreachable';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
@@ -187,10 +188,11 @@ function ContentsTable(props: React.ComponentProps<typeof DataTable>) {
   return <DataTable contentsBody {...props} />;
 }
 
-export const LogTable = styled(ContentsTable)<{minWidth: string}>`
+export const LogTable = styled(ContentsTable)<{minWidth: string; timestampWidth: number}>`
   --logsPinEdgeGap: ${p => p.theme.space.sm};
+  --logsTimestampWidth: ${p => p.timestampWidth}ch;
   --logsPinButtonArea: calc(2rem + var(--logsPinEdgeGap));
-  flex: 1;
+  flex: 0 1 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
@@ -215,6 +217,7 @@ export const LogTableBody = styled(DataTable.Body)<{
   align-content: start;
   overflow-x: hidden;
   overflow-anchor: none;
+  overscroll-behavior-y: contain;
   scrollbar-gutter: stable;
   scrollbar-width: thin;
 
@@ -271,7 +274,7 @@ export function LogFirstCellContent(props: FlexProps) {
   return <Flex align="center" {...props} />;
 }
 
-export const LogBasicRendererContainer = styled('span')<{align?: 'left' | 'right'}>`
+export const LogBasicRendererContainer = styled('span')<{align?: ColumnAlign}>`
   ${NumberContainer} {
     text-align: ${p => p.align || 'left'};
   }
@@ -322,6 +325,10 @@ export const ColoredLogText = styled('span')<{
 export const LogDate = styled('span')<{align?: 'left' | 'center' | 'right'}>`
   color: ${p => p.theme.tokens.content.secondary};
   text-align: ${p => p.align || 'left'};
+`;
+
+export const LogTimestamp = styled(LogDate)`
+  min-width: var(--logsTimestampWidth);
 `;
 
 export const LogsHighlight = styled(MultiHighlight)`

@@ -15,7 +15,7 @@ export function AppIcon({appName, appIconId, projectId}: AppIconProps) {
 
   let iconUrl: string | undefined;
   if (appIconId && projectId) {
-    iconUrl = `/api/0/projects/${organization.slug}/${projectId}/files/images/${appIconId}/`;
+    iconUrl = `/api/0/projects/${organization.slug}/${projectId}/files/images/${appIconId}/?image_type=preprod_size_app_icon`;
   }
 
   return (

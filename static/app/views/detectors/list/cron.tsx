@@ -68,12 +68,7 @@ function VisualizationCell({detector}: {detector: CronDetector}) {
   });
 
   return (
-    <SimpleTable.RowCell
-      data-column-name="visualization"
-      padding="lg 0"
-      borderLeft="muted"
-      height="100%"
-    >
+    <SimpleTable.RowCell column="-3 / -1" padding="lg 0" borderLeft="muted" height="100%">
       <Stack gap="sm" width="100%" ref={elementRef}>
         {cronEnvironments.map(environment => {
           if (isPending) {
@@ -103,13 +98,13 @@ const ADDITIONAL_COLUMNS: MonitorListAdditionalColumn[] = [
   {
     id: 'environment-label',
     columnWidth: '120px',
-    renderHeaderCell: () => <HeaderCell data-column-name="environment-label" />,
+    renderHeaderCell: () => <HeaderCell />,
     renderCell: (detector: Detector) => {
       if (detector.type !== 'monitor_check_in_failure') {
         return null;
       }
       return (
-        <SimpleTable.RowCell data-column-name="environment-label" alignSelf="start">
+        <SimpleTable.RowCell alignSelf="start">
           <Stack gap="sm" width="100%">
             {detector.dataSources[0].queryObj.environments.map(environment => {
               return (
@@ -243,7 +238,7 @@ export default function CronDetectorsList() {
         if (!detector) {
           return (
             <SimpleTable.RowCell
-              data-column-name="visualization"
+              column="-3 / -1"
               padding="lg 0"
               borderLeft="muted"
               height="100%"

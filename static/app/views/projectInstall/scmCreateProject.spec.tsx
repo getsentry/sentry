@@ -1,4 +1,6 @@
+import {AutomationFixture} from 'sentry-fixture/automations';
 import {DetectedPlatformFixture} from 'sentry-fixture/detectedPlatform';
+import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -6,18 +8,19 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 import {TeamFixture} from 'sentry-fixture/team';
 
 import {
+  act,
   render,
   renderGlobalModal,
   screen,
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
+import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ProjectDetailsFormState} from 'sentry/components/onboarding/scm/scmProjectDetailsTypes';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
-import {IssueAlertActionType, IssueAlertConditionType} from 'sentry/types/alerts';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/platform';
 import {DEFAULT_ISSUE_ALERT_OPTIONS_VALUES} from 'sentry/views/projectInstall/issueAlertOptions';
@@ -36,6 +39,7 @@ jest.mock('@tanstack/react-virtual', () => ({
         size: 36,
       })),
     getTotalSize: () => count * 36,
+    measure: jest.fn(),
     measureElement: jest.fn(),
     scrollToIndex: jest.fn(),
   })),
@@ -94,6 +98,19 @@ describe('ScmCreateProject', () => {
     integrationId: githubIntegration.id,
     provider: {id: 'integrations:github', name: 'GitHub'},
   });
+  const slackIntegration = OrganizationIntegrationsFixture({
+    id: 'slack-integration-id',
+    name: 'Sentry Workspace',
+    provider: {
+      key: 'slack',
+      slug: 'slack',
+      name: 'Slack',
+      canAdd: true,
+      canDisable: false,
+      features: [],
+      aspects: {},
+    },
+  });
 
   // Seed a persisted wizard for a project created in this session.
   function persistWizardSession(overrides: Partial<Record<string, unknown>> = {}) {
@@ -142,7 +159,7 @@ describe('ScmCreateProject', () => {
     return {createRequest, project};
   }
 
-  function mockExistingGithubRepository() {
+  function mockExistingGithubRepository(repositories = [githubRepository]) {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/`,
       body: [githubIntegration],
@@ -151,30 +168,51 @@ describe('ScmCreateProject', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${githubIntegration.id}/repos/`,
       body: {
-        repos: [
-          {
-            externalId: githubRepository.externalId,
-            identifier: githubRepository.externalSlug,
-            name: 'sentry',
-            isInstalled: true,
-          },
-        ],
+        repos: repositories.map(repository => ({
+          externalId: repository.externalId,
+          identifier: repository.externalSlug,
+          name: repository.name.split('/').pop(),
+          isInstalled: true,
+        })),
       },
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/`,
-      body: [githubRepository],
+      body: repositories,
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/repos/${githubRepository.id}/platforms/`,
-      body: {
-        platforms: [DetectedPlatformFixture({platform: 'python'})],
-      },
-    });
+    for (const repository of repositories) {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
+        body: {
+          platforms: [DetectedPlatformFixture({platform: 'python'})],
+        },
+      });
+    }
     return MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/python/repo/`,
       method: 'POST',
       body: {},
+    });
+  }
+
+  function mockSlackMessagingIntegration() {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/`,
+      body: [slackIntegration],
+      match: [MockApiClient.matchQuery({integrationType: 'messaging'})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${slackIntegration.id}/channels/`,
+      body: {
+        results: [
+          {
+            id: 'C123',
+            name: 'alerts',
+            display: '#alerts',
+            type: 'text',
+          },
+        ],
+      },
     });
   }
 
@@ -286,10 +324,13 @@ describe('ScmCreateProject', () => {
     // platform, and project-details sections are all present at once.
     expect(await screen.findByRole('heading', {name: 'Repository'})).toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Platform'})).toBeInTheDocument();
-    expect(screen.getByRole('heading', {name: 'Project name'})).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Project name'})).toBeInTheDocument();
 
     // Nothing is filled in yet, so the primary action stays disabled.
-    expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Create project'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('hides the repository section for members without a connected integration', async () => {
@@ -328,10 +369,11 @@ describe('ScmCreateProject', () => {
     render(<ScmCreateProject />, {organization});
 
     const createButton = await screen.findByRole('button', {name: 'Create project'});
-    expect(createButton).toBeDisabled();
+    expect(createButton).toHaveAttribute('aria-disabled', 'true');
 
-    // Fresh wizard: platform and project name are both missing.
-    await userEvent.hover(createButton);
+    // Fresh wizard: platform and project name are both missing, and keyboard
+    // focus alone must reach the tooltip that says so.
+    act(() => createButton.focus());
     expect(
       await screen.findByText('Please fill out all the required fields')
     ).toBeInTheDocument();
@@ -347,13 +389,13 @@ describe('ScmCreateProject', () => {
 
     // Framework SDKs commit straight from the picker; a base language (plain
     // Python) would detour through the framework-suggestion modal.
-    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.click(await screen.findByText('Search'));
     await userEvent.keyboard('Django');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
 
     const projectName = screen.getByPlaceholderText('project-name');
     expect(projectName).toHaveValue('python-django');
-    await userEvent.type(screen.getByLabelText('Select a Team'), '{keyDown}');
+    await userEvent.type(screen.getByLabelText('Team'), '{keyDown}');
     await userEvent.click(await screen.findByText('#selected-team'));
 
     await userEvent.click(screen.getByText('Django'));
@@ -401,10 +443,9 @@ describe('ScmCreateProject', () => {
       initialRouterConfig: returningRouterConfig,
     });
 
-    expect(
-      await screen.findByRole('heading', {name: 'Project name'})
-    ).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('project-name')).toHaveValue('my-restored-name');
+    expect(await screen.findByRole('textbox', {name: 'Project name'})).toHaveValue(
+      'my-restored-name'
+    );
   });
 
   it('re-derives a restored untouched name on a platform change', async () => {
@@ -503,6 +544,25 @@ describe('ScmCreateProject', () => {
       expect(router.location.pathname).toContain('/python/getting-started/');
     });
     expect(router.location.query.projectCreationVariant).toBe('scm');
+  });
+
+  it('creates the project on Enter in the project name field', async () => {
+    persistWizardSession();
+    const {createRequest} = mockProjectCreation('python', 'python');
+
+    render(<ScmCreateProject />, {
+      organization,
+      initialRouterConfig: returningRouterConfig,
+    });
+
+    await userEvent.type(
+      await screen.findByRole('textbox', {name: 'Project name'}),
+      '{Enter}'
+    );
+
+    await waitFor(() => {
+      expect(createRequest).toHaveBeenCalled();
+    });
   });
 
   it('forwards the selected products to getting-started as the product query', async () => {
@@ -638,7 +698,7 @@ describe('ScmCreateProject', () => {
     renderGlobalModal();
     const {router} = render(<ScmCreateProject />, {organization});
 
-    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.click(await screen.findByText('Search'));
     await userEvent.keyboard('Python');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Python'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Configure SDK'}));
@@ -688,19 +748,251 @@ describe('ScmCreateProject', () => {
     expect(savedState).not.toHaveProperty('selectedRepository');
   });
 
+  it('creates a project with the default high-priority alert workflow', async () => {
+    mockSlackMessagingIntegration();
+
+    const {createRequest, project} = mockProjectCreation(
+      'python-django',
+      'python-django'
+    );
+    const detector = IssueStreamDetectorFixture({
+      id: 'detector-id',
+      projectId: project.id,
+    });
+    const detectorRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/`,
+      body: [detector],
+    });
+    const workflowRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/`,
+      method: 'POST',
+      body: AutomationFixture({id: 'workflow-id'}),
+    });
+
+    render(<ScmCreateProject />, {organization});
+
+    await userEvent.click(await screen.findByText('Search'));
+    await userEvent.keyboard('Django');
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
+
+    await userEvent.click(screen.getByRole('button', {name: 'Alert frequency'}));
+    expect(screen.getByRole('radio', {name: /High priority issues/})).toBeChecked();
+    await userEvent.click(
+      await screen.findByRole('checkbox', {
+        name: 'Integration (Slack, Discord, MS Teams, etc.)',
+      })
+    );
+    await selectEvent.select(await screen.findByLabelText('channel'), '#alerts');
+    await userEvent.click(screen.getByRole('button', {name: 'Create project'}));
+
+    await waitFor(() => {
+      expect(createRequest).toHaveBeenCalledWith(
+        `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            platform: project.platform,
+            name: project.name,
+            default_rules: false,
+            origin: 'ui',
+          },
+        })
+      );
+    });
+    await waitFor(() => {
+      expect(detectorRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/detectors/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            project: [Number(project.id)],
+            query: 'type:issue_stream',
+          }),
+        })
+      );
+    });
+    await waitFor(() => {
+      expect(workflowRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/workflows/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            name: 'Send a notification for high priority issues',
+            enabled: true,
+            environment: null,
+            config: {frequency: 0},
+            detectorIds: [detector.id],
+            triggers: {
+              logicType: 'any-short',
+              conditions: [
+                {
+                  type: 'new_high_priority_issue',
+                  comparison: true,
+                  conditionResult: true,
+                },
+                {
+                  type: 'existing_high_priority_issue',
+                  comparison: true,
+                  conditionResult: true,
+                },
+              ],
+            },
+            actionFilters: [
+              {
+                logicType: 'all',
+                conditions: [],
+                actions: [
+                  {
+                    type: 'email',
+                    config: {
+                      targetType: 'issue_owners',
+                      targetIdentifier: null,
+                      targetDisplay: null,
+                    },
+                    data: {fallthrough_type: 'ActiveMembers'},
+                    status: 'active',
+                  },
+                  {
+                    type: 'slack',
+                    integrationId: slackIntegration.id,
+                    config: {
+                      targetType: 'specific',
+                      targetIdentifier: 'C123',
+                      targetDisplay: '#alerts',
+                    },
+                    data: {},
+                    status: 'active',
+                  },
+                ],
+              },
+            ],
+          },
+        })
+      );
+    });
+  });
+
+  it('rolls back the project when Slack workflow creation fails', async () => {
+    mockSlackMessagingIntegration();
+
+    const {project} = mockProjectCreation('python-django', 'python-django');
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/`,
+      body: [IssueStreamDetectorFixture({projectId: project.id})],
+    });
+    const workflowRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {detail: 'Failed to create Slack workflow'},
+      match: [
+        (_url, options) =>
+          options.data?.actionFilters?.[0]?.actions?.some(
+            (action: {type?: string}) => action.type === 'slack'
+          ),
+      ],
+    });
+    const projectDeletionRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'DELETE',
+    });
+
+    render(<ScmCreateProject />, {organization});
+
+    await userEvent.click(await screen.findByText('Search'));
+    await userEvent.keyboard('Django');
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Alert frequency'}));
+    await userEvent.click(
+      await screen.findByRole('checkbox', {
+        name: 'Integration (Slack, Discord, MS Teams, etc.)',
+      })
+    );
+    await selectEvent.select(await screen.findByLabelText('channel'), '#alerts');
+    await userEvent.click(screen.getByRole('button', {name: 'Create project'}));
+
+    await waitFor(() => expect(workflowRequest).toHaveBeenCalledTimes(1));
+    await waitFor(() => {
+      expect(projectDeletionRequest).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${project.slug}/`,
+        expect.objectContaining({
+          method: 'DELETE',
+          data: {origin: 'getting_started'},
+        })
+      );
+    });
+  });
+
+  it('uses default_rules when the messaging integration is not selected', async () => {
+    mockSlackMessagingIntegration();
+    const {createRequest, project} = mockProjectCreation(
+      'python-django',
+      'python-django'
+    );
+    const detectorRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/`,
+      body: [IssueStreamDetectorFixture({projectId: project.id})],
+    });
+    const workflowRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/`,
+      method: 'POST',
+      body: AutomationFixture(),
+    });
+
+    render(<ScmCreateProject />, {organization});
+
+    await userEvent.click(await screen.findByText('Search'));
+    await userEvent.keyboard('Django');
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
+
+    await userEvent.click(screen.getByRole('button', {name: 'Alert frequency'}));
+    expect(screen.getByRole('radio', {name: /High priority issues/})).toBeChecked();
+    expect(
+      await screen.findByRole('checkbox', {
+        name: 'Integration (Slack, Discord, MS Teams, etc.)',
+      })
+    ).not.toBeChecked();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create project'}));
+
+    await waitFor(() => {
+      expect(createRequest).toHaveBeenCalledWith(
+        `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            platform: project.platform,
+            name: project.name,
+            default_rules: true,
+            origin: 'ui',
+          },
+        })
+      );
+    });
+    expect(detectorRequest).not.toHaveBeenCalled();
+    expect(workflowRequest).not.toHaveBeenCalled();
+  });
+
   it('creates a project with a custom occurrence alert using a five-minute interval', async () => {
     const {createRequest, project} = mockProjectCreation(
       'python-django',
       'python-django'
     );
-    const ruleRequest = MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/rules/`,
+    const detector = IssueStreamDetectorFixture({
+      id: 'detector-id',
+      projectId: project.id,
+    });
+    const detectorRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/detectors/`,
+      body: [detector],
+    });
+    const workflowRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/workflows/`,
       method: 'POST',
-      body: {id: 'custom-rule-id'},
+      body: AutomationFixture({id: 'custom-workflow-id'}),
     });
     render(<ScmCreateProject />, {organization});
 
-    await userEvent.click(await screen.findByText('Search SDKs...'));
+    await userEvent.click(await screen.findByText('Search'));
     await userEvent.keyboard('Django');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Django'}));
 
@@ -721,28 +1013,55 @@ describe('ScmCreateProject', () => {
       );
     });
     await waitFor(() => {
-      expect(ruleRequest).toHaveBeenCalledWith(
-        `/projects/${organization.slug}/${project.slug}/rules/`,
+      expect(detectorRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/detectors/`,
+        expect.objectContaining({
+          query: expect.objectContaining({
+            project: [Number(project.id)],
+            query: 'type:issue_stream',
+          }),
+        })
+      );
+    });
+    await waitFor(() => {
+      expect(workflowRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/workflows/`,
         expect.objectContaining({
           method: 'POST',
           data: {
             name: project.name,
-            conditions: [
+            enabled: true,
+            environment: null,
+            config: {frequency: 1440},
+            detectorIds: [detector.id],
+            triggers: {
+              logicType: 'any-short',
+              conditions: [],
+            },
+            actionFilters: [
               {
-                id: IssueAlertConditionType.EVENT_FREQUENCY,
-                interval: '5m',
-                value: '10',
+                logicType: 'all',
+                conditions: [
+                  {
+                    type: 'event_frequency_count',
+                    comparison: {interval: '5m', value: 10},
+                    conditionResult: true,
+                  },
+                ],
+                actions: [
+                  {
+                    type: 'email',
+                    config: {
+                      targetType: 'issue_owners',
+                      targetIdentifier: null,
+                      targetDisplay: null,
+                    },
+                    data: {fallthrough_type: 'ActiveMembers'},
+                    status: 'active',
+                  },
+                ],
               },
             ],
-            actions: [
-              {
-                id: IssueAlertActionType.NOTIFY_EMAIL,
-                targetType: 'IssueOwners',
-                fallthroughType: 'ActiveMembers',
-              },
-            ],
-            actionMatch: 'all',
-            frequency: 5,
           },
         })
       );
@@ -759,11 +1078,14 @@ describe('ScmCreateProject', () => {
     await userEvent.keyboard('sentry');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'sentry'}));
 
-    expect(await screen.findByRole('radio', {name: 'Python Language'})).toBeChecked();
+    expect(await screen.findByRole('radio', {name: 'Python'})).toBeChecked();
     await waitFor(() => {
       expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
     });
-    expect(screen.getByRole('button', {name: 'Create project'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Create project'})).toHaveAttribute(
+      'aria-disabled',
+      'false'
+    );
 
     await userEvent.click(screen.getByRole('button', {name: 'Create project'}));
 
@@ -808,11 +1130,14 @@ describe('ScmCreateProject', () => {
     await userEvent.keyboard('sentry');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'sentry'}));
 
-    expect(await screen.findByRole('radio', {name: 'Python Language'})).toBeChecked();
+    expect(await screen.findByRole('radio', {name: 'Python'})).toBeChecked();
     await waitFor(() => {
       expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
     });
-    expect(screen.getByRole('button', {name: 'Create project'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Create project'})).toHaveAttribute(
+      'aria-disabled',
+      'false'
+    );
     const tracing = await screen.findByRole('checkbox', {name: /Tracing/});
     await userEvent.click(tracing);
     expect(tracing).toBeChecked();
@@ -820,17 +1145,72 @@ describe('ScmCreateProject', () => {
     await userEvent.click(screen.getByText('sentry'));
     await userEvent.keyboard('{Backspace}');
 
-    expect(await screen.findByText('Search SDKs...')).toBeInTheDocument();
-    expect(
-      screen.queryByRole('radio', {name: 'Python Language'})
-    ).not.toBeInTheDocument();
+    expect(await screen.findByText('Search')).toBeInTheDocument();
+    expect(screen.queryByRole('radio', {name: 'Python'})).not.toBeInTheDocument();
     expect(screen.getByPlaceholderText('project-name')).toHaveValue('');
-    expect(screen.getByRole('button', {name: 'Create project'})).toBeDisabled();
-    await userEvent.click(screen.getByText('Search SDKs...'));
+    expect(screen.getByRole('button', {name: 'Create project'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await userEvent.click(screen.getByText('Search'));
     await userEvent.keyboard('Python');
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Python'}));
     await userEvent.click(await screen.findByRole('button', {name: 'Configure SDK'}));
 
     expect(await screen.findByRole('checkbox', {name: /Tracing/})).not.toBeChecked();
+  });
+
+  it('creates a new project when the repository changes on a return', async () => {
+    const relayRepository = RepositoryFixture({
+      id: 'repository-2',
+      externalId: '2',
+      name: 'getsentry/relay',
+      externalSlug: 'getsentry/relay',
+      integrationId: githubIntegration.id,
+      provider: {id: 'integrations:github', name: 'GitHub'},
+    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture({slug: 'python', name: 'python', platform: 'python'}),
+    ]);
+    persistWizardSession({
+      createdProjectSlug: 'python',
+      selectedIntegration: githubIntegration,
+      selectedRepository: githubRepository,
+      projectDetailsForm: {
+        projectName: 'python',
+        teamSlug: adminTeam.slug,
+        alertRuleConfig: DEFAULT_ISSUE_ALERT_OPTIONS_VALUES,
+      },
+    });
+    mockExistingGithubRepository([githubRepository, relayRepository]);
+    const {createRequest, project} = mockProjectCreation('python-relay', 'python');
+    const repoLinkRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/repo/`,
+      method: 'POST',
+      body: {},
+    });
+
+    render(<ScmCreateProject />, {
+      organization,
+      initialRouterConfig: returningRouterConfig,
+    });
+
+    await userEvent.click(await screen.findByText('sentry'));
+    await userEvent.keyboard('relay');
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'relay'}));
+
+    expect(await screen.findByRole('radio', {name: 'Python'})).toBeChecked();
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText('project-name')).toHaveValue('python');
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Create project'}));
+
+    await waitFor(() => {
+      expect(repoLinkRequest).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${project.slug}/repo/`,
+        expect.objectContaining({data: {repositoryId: relayRepository.id}})
+      );
+    });
+    expect(createRequest).toHaveBeenCalled();
   });
 });

@@ -875,7 +875,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
                 DateUpdatedComparator("date_added"),
             ],
             "sentry.incident": [UUID4Comparator("detection_uuid")],
-            "sentry.incidentactivity": [UUID4Comparator("notification_uuid")],
             "sentry.integration": [DateUpdatedComparator("date_updated")],
             "sentry.orgauthtoken": [
                 HashObfuscatingComparator("token_hashed", "token_last_characters")
@@ -891,12 +890,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "sentry.organizationmemberinvite": [
                 DateUpdatedComparator("date_updated", "date_added"),
                 HashObfuscatingComparator("token"),
-            ],
-            "sentry.organizationmemberteam": [
-                # `new_id` mirrors the primary key, which is reassigned on import, so
-                # comparing its value across an export cycle is meaningless. The
-                # `new_id == id` invariant is enforced on write instead.
-                IgnoredComparator("new_id"),
             ],
             "sentry.projectkey": [
                 HashObfuscatingComparator("public_key", "secret_key"),
@@ -995,7 +988,9 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "tempest.tempestcredentials": [
                 DateUpdatedComparator("date_updated", "date_added"),
             ],
+            "explore.exploresavedformula": [DateUpdatedComparator("date_updated", "date_added")],
             "explore.exploresavedquery": [DateUpdatedComparator("date_updated", "date_added")],
+            "explore.exploresavedvariable": [DateUpdatedComparator("date_updated", "date_added")],
             "explore.exploresavedquerystarred": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],

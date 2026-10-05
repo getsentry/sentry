@@ -113,16 +113,13 @@ class GithubSharedSearchEndpoint(SourceCodeSearchEndpoint):
 
         assert isinstance(installation, self.installation_class)
         try:
-            if not query:
-                # TODO: Use GraphQL for preloads after validating these queries across supported
+            if field == "assignee":
+                choices = installation.get_allowed_assignees(repo, query)
+            elif not query:
+                # TODO: Use GraphQL for label preloads after validating the query across supported
                 # GHES versions.
-                if field == "assignee":
-                    choices = installation.get_allowed_assignees(repo, PAGE_LIMIT)
-                else:
-                    owner, repo_name = repo.split("/", 1)
-                    choices = installation.get_repo_labels(owner, repo_name, PAGE_LIMIT)
-            elif field == "assignee":
-                choices = installation.search_allowed_assignees(repo, query)
+                owner, repo_name = repo.split("/", 1)
+                choices = installation.get_repo_labels(owner, repo_name, PAGE_LIMIT)
             else:
                 choices = installation.search_repo_labels(repo, query)
         except (IntegrationError, InvalidIdentity) as error:

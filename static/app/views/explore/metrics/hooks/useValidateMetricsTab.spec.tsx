@@ -1,8 +1,8 @@
-import {PageFilterStateFixture, PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {MockMetricQueryParamsContext} from 'sentry/views/explore/metrics/hooks/testUtils';
 import {useValidateMetricsTab} from 'sentry/views/explore/metrics/hooks/useValidateMetricsTab';
@@ -11,8 +11,6 @@ import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQuer
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
-
-jest.mock('sentry/components/pageFilters/usePageFilters');
 
 const validationBody: EventValidationData = {
   dataset: [],
@@ -30,18 +28,17 @@ const validationBody: EventValidationData = {
 
 describe('useValidateMetricsTab', () => {
   beforeEach(() => {
-    jest.mocked(usePageFilters).mockReturnValue(
-      PageFilterStateFixture({
-        selection: PageFiltersFixture({
-          datetime: {period: '14d', start: null, end: null, utc: false},
-          environments: ['production'],
-          projects: [1],
-        }),
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({
+        datetime: {period: '14d', start: null, end: null, utc: false},
+        environments: ['production'],
+        projects: [1],
       })
     );
   });
 
   afterEach(() => {
+    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });

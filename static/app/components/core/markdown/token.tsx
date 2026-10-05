@@ -1,9 +1,7 @@
-import type {ReactNode} from 'react';
+import {createContext, useContext, type ReactNode} from 'react';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 
-import type {ExtendedToken, Token as TokenType} from 'sentry/utils/marked/marked';
-import {isSafeHref, isInternalHref, sanitizeHtml} from 'sentry/utils/marked/marked';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import {
@@ -34,8 +32,17 @@ import {
   DefaultUnorderedList,
 } from './defaultComponents';
 import type {MarkdownComponents} from './markdown';
+import type {ExtendedToken, Token as TokenType} from './marked';
+import {isSafeHref, isInternalHref, sanitizeHtml} from './marked';
 
 const TAG_START_RE = /\{%\s+[\w-]/;
+
+/**
+ * Whether the document is still streaming in. Only then can an unclosed `{% name`
+ * be the start of a tag whose closing marker has not arrived yet; in settled
+ * content it is text the author wrote and must render as written.
+ */
+export const MarkdownStreamingContext = createContext(false);
 
 function stripPartialTag(text: string): string {
   const idx = text.lastIndexOf('{%');
@@ -79,6 +86,8 @@ export function Token({
   components: MarkdownComponents;
   token: ExtendedToken;
 }): ReactNode {
+  const isStreaming = useContext(MarkdownStreamingContext);
+
   switch (token.type) {
     case 'space':
       // Blank-line tokens — layout gap is handled by the parent flex container
@@ -177,31 +186,33 @@ export function Token({
       const Th = components.TableHeaderCell ?? DefaultTableHeaderCell;
       const Td = components.TableCell ?? DefaultTableCell;
 
+      const columns = token.align.map(align => ({align: align ?? undefined}));
+      const header = token.header.map(cell => renderInline(cell.tokens, components));
+      const rows = token.rows.map(row =>
+        row.map(cell => renderInline(cell.tokens, components))
+      );
+
       return (
-        <TableComp Default={DefaultTable}>
+        <TableComp Default={DefaultTable} columns={columns} header={header} rows={rows}>
           <Thead Default={DefaultTableHead}>
             <Tr Default={DefaultTableRow}>
-              {token.header.map((cell, i) => (
-                <Th
-                  key={i}
-                  Default={DefaultTableHeaderCell}
-                  align={token.align[i] ?? undefined}
-                >
-                  {renderInline(cell.tokens, components)}
+              {header.map((cell, i) => (
+                <Th key={i} Default={DefaultTableHeaderCell} align={columns[i]?.align}>
+                  {cell}
                 </Th>
               ))}
             </Tr>
           </Thead>
           <Tbody Default={DefaultTableBody}>
-            {token.rows.map((row, rowIndex) => (
+            {rows.map((row, rowIndex) => (
               <Tr key={rowIndex} Default={DefaultTableRow}>
                 {row.map((cell, cellIndex) => (
                   <Td
                     key={cellIndex}
                     Default={DefaultTableCell}
-                    align={token.align[cellIndex] ?? undefined}
+                    align={columns[cellIndex]?.align}
                   >
-                    {renderInline(cell.tokens, components)}
+                    {cell}
                   </Td>
                 ))}
               </Tr>
@@ -266,7 +277,7 @@ export function Token({
       if (token.tokens) {
         return renderInline(token.tokens, components);
       }
-      const text = stripPartialTag(token.text);
+      const text = isStreaming ? stripPartialTag(token.text) : token.text;
       const TextComponent = components.Text;
       if (TextComponent) {
         return <TextComponent Default={DefaultText}>{text}</TextComponent>;
@@ -295,6 +306,7 @@ export function Token({
           attrs={token.attrs}
           data={token.data}
           raw={token.raw}
+          index={token.index}
         />
       );
     }

@@ -1,8 +1,9 @@
 import abc
 import dataclasses
 import logging
+import time
 from datetime import timedelta
-from typing import Any, cast
+from typing import Any, ClassVar, override
 from uuid import uuid4
 
 from django.conf import settings
@@ -10,21 +11,21 @@ from django.db.models import Q
 from django.utils import timezone
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
-from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework.base import camel_to_snake_case, convert_dict_key_case
+from sentry import features
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
+from sentry.models.organization import Organization
 from sentry.utils import metrics, redis
 from sentry.workflow_engine.handlers.detector.base import (
-    BaseDetectorHandler,
     DataPacketEvaluationType,
     DataPacketType,
+    DetectorHandler,
     DetectorOccurrence,
     EventData,
     GroupedDetectorEvaluationResult,
 )
-from sentry.workflow_engine.models import DataPacket, DataSource, Detector, DetectorState
+from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
 from sentry.workflow_engine.processors.data_condition_group import process_data_condition_group
 from sentry.workflow_engine.processors.evaluations import DetectorEvaluationData
@@ -43,6 +44,10 @@ def get_redis_client() -> RetryingRedisCluster:
     return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
 
 
+def _get_unix_epoch_time_in_milliseconds() -> int:
+    return time.time_ns() // 1_000_000
+
+
 DetectorCounter = str | DetectorPriorityLevel
 DetectorCounters = dict[DetectorCounter, int | None]
 
@@ -52,6 +57,7 @@ class DetectorStateData:
     group_key: DetectorGroupKey
     is_triggered: bool
     status: DetectorPriorityLevel
+
     # Stateful detectors always process data packets in order. Once we confirm that a data packet has been fully
     # processed and all workflows have been done, this value will be used by the stateful detector to prevent
     # reprocessing
@@ -66,12 +72,21 @@ class DetectorStateData:
     # If a counter value is `None` it means to unset the value
     counter_updates: DetectorCounters
 
+    activation_id: int | None = None
+
+
+@dataclasses.dataclass(frozen=True)
+class DetectorStateUpdate:
+    is_triggered: bool
+    priority: DetectorPriorityLevel
+    activation_id: int | None
+
 
 # TODO - we might want to extract this into another file to reduce noise in this file.
 class DetectorStateManager:
     dedupe_updates: dict[DetectorGroupKey, int]
     counter_updates: dict[DetectorGroupKey, DetectorCounters]
-    state_updates: dict[DetectorGroupKey, tuple[bool, DetectorPriorityLevel]]
+    state_updates: dict[DetectorGroupKey, DetectorStateUpdate]
     counter_names: list[DetectorCounter]
     detector: Detector
 
@@ -102,9 +117,17 @@ class DetectorStateManager:
         self.counter_updates[group_key] = counter_updates
 
     def enqueue_state_update(
-        self, group_key: DetectorGroupKey, is_triggered: bool, priority: DetectorPriorityLevel
+        self,
+        group_key: DetectorGroupKey,
+        is_triggered: bool,
+        priority: DetectorPriorityLevel,
+        activation_id: int | None = None,
     ) -> None:
-        self.state_updates[group_key] = (is_triggered, priority)
+        self.state_updates[group_key] = DetectorStateUpdate(
+            is_triggered=is_triggered,
+            priority=priority,
+            activation_id=activation_id,
+        )
 
     def get_redis_keys_for_group_keys(
         self, group_keys: list[DetectorGroupKey]
@@ -221,24 +244,27 @@ class DetectorStateManager:
         created_detector_states = []
         updated_detector_states = []
 
-        for group_key, (is_triggered, priority) in self.state_updates.items():
+        for group_key, state_update in self.state_updates.items():
             detector_state = detector_state_lookup.get(group_key)
             if not detector_state:
                 created_detector_states.append(
                     DetectorState(
                         detector_group_key=group_key,
                         detector=self.detector,
-                        is_triggered=is_triggered,
-                        state=priority,
+                        is_triggered=state_update.is_triggered,
+                        state=state_update.priority,
+                        activation_id=state_update.activation_id,
                         date_added=timezone.now(),
                     )
                 )
             elif (
-                is_triggered != detector_state.is_triggered
-                or priority != detector_state.priority_level
+                state_update.is_triggered != detector_state.is_triggered
+                or state_update.priority != detector_state.priority_level
+                or state_update.activation_id != detector_state.activation_id
             ):
-                detector_state.is_triggered = is_triggered
-                detector_state.state = priority
+                detector_state.is_triggered = state_update.is_triggered
+                detector_state.state = state_update.priority
+                detector_state.activation_id = state_update.activation_id
                 detector_state.date_updated = timezone.now()
                 updated_detector_states.append(detector_state)
 
@@ -247,7 +273,8 @@ class DetectorStateManager:
 
         if updated_detector_states:
             DetectorState.objects.bulk_update(
-                updated_detector_states, ["is_triggered", "state", "date_updated"]
+                updated_detector_states,
+                ["is_triggered", "state", "activation_id", "date_updated"],
             )
 
         self.state_updates.clear()
@@ -304,6 +331,7 @@ class DetectorStateManager:
                 ),
                 dedupe_value=group_key_dedupe_values[group_key],
                 counter_updates=counter_updates.get(group_key, {}),
+                activation_id=detector_state.activation_id if detector_state else None,
             )
         return results
 
@@ -312,12 +340,16 @@ DetectorThresholds = dict[DetectorPriorityLevel, int]
 
 
 class StatefulDetectorHandler(
-    BaseDetectorHandler[DataPacketType, DataPacketEvaluationType],
+    DetectorHandler[DataPacketType, DataPacketEvaluationType],
     abc.ABC,
 ):
     """
     Stateful Detectors are provided as a base class for new detectors that need to track state.
     """
+
+    # If this flag is true, unique issues will be generated for each open period
+    # If this flag is false, a new open period will regress a previous issue instead.
+    activation_creates_new_issue: ClassVar[bool] = False
 
     def __init__(self, detector: Detector, thresholds: DetectorThresholds | None = None):
         super().__init__(detector)
@@ -341,10 +373,54 @@ class StatefulDetectorHandler(
         """
         return {}
 
+    @abc.abstractmethod
+    def extract_dedupe_value(self, data_packet: DataPacket[DataPacketType]) -> int:
+        """
+        Extracts the de-duplication value from a passed data packet. This duplication
+        value is used to determine if we've already processed data to this point or not.
+
+        This is normally a timestamp, but could be any sortable value; (e.g. a sequence number, timestamp, etc).
+        """
+        pass
+
+    def build_occurrence_fingerprint(
+        self, group_key: DetectorGroupKey, activation_id: int | None
+    ) -> list[str]:
+        """
+        Builds a fingerprint for an occurrence
+        This function determines which issues get resolved as well as if newly breached thresholds create new issues
+        or regress old ones.
+        """
+        detector_key = self.state_manager.build_key(group_key)
+
+        issue_fingerprint = self.build_issue_fingerprint(group_key)
+
+        if self.activation_creates_new_issue and issue_fingerprint:
+            raise ValueError(
+                f"Detector {self.detector.id} cannot override `build_issue_fingerprint` "
+                "while `activation_creates_new_issue` is set"
+            )
+
+        stable_fingerprint = [
+            *issue_fingerprint,
+            detector_key,
+        ]
+
+        if not self.activation_creates_new_issue:
+            return stable_fingerprint
+
+        # If the activation_id is None, that means an issue was open prior to the class variable being set to true
+        # In this case, we must resolve the same fingerprint as before so the issue can receive updates
+        # and eventually be resolved.
+        if activation_id is None:
+            return stable_fingerprint
+
+        return [f"{detector_key}:activation:{activation_id}"]
+
     def build_issue_fingerprint(self, group_key: DetectorGroupKey = None) -> list[str]:
         """
         A hook that allows for additional fingerprinting to be added to the detectors issue occurrences.
-        By default the fingerprint will be the detector id and group key.
+        You may not override this hook if `activation_creates_new_issue` is true, or else it may interfere with unique issue creation
         """
         return []
 
@@ -360,62 +436,14 @@ class StatefulDetectorHandler(
         """
         return {}
 
-    def _build_evidence_data_sources(
-        self, data_packet: DataPacket[DataPacketType]
-    ) -> list[dict[str, Any]]:
-        try:
-            data_sources = list(
-                DataSource.objects.filter(detectors=self.detector, source_id=data_packet.source_id)
-            )
-            if not data_sources:
-                logger.warning(
-                    "Matching data source not found for detector while generating occurrence evidence data",
-                    extra={
-                        "detector_id": self.detector.id,
-                        "data_packet_source_id": data_packet.source_id,
-                    },
-                )
-                return []
-            # Serializers return camelcased keys, but evidence data should use snakecase
-            return convert_dict_key_case(serialize(data_sources), camel_to_snake_case)
-        except Exception:
-            logger.exception(
-                "Failed to serialize data source definition when building workflow engine evidence data"
-            )
-            return []
-
-    def _build_workflow_engine_evidence_data(
-        self,
-        group_evaluation: DataConditionGroupEvaluation,
-        data_packet: DataPacket[DataPacketType],
-        evaluation_value: DataPacketEvaluationType,
-    ) -> dict[str, Any]:
-        """
-        Build the workflow engine specific evidence data.
-        This is data that is common to all detectors.
-        """
-
-        base: dict[str, Any] = {
-            "detector_id": self.detector.id,
-            "value": evaluation_value,
-            "data_packet_source_id": str(data_packet.source_id),
-            "conditions": [
-                condition_evaluation.condition.get_snapshot()
-                for condition_evaluation in group_evaluation.data["condition_evaluations"]
-                if condition_evaluation.triggered
-            ],
-            "config": self.detector.config,
-            "data_sources": self._build_evidence_data_sources(data_packet),
-        }
-
-        return base
-
-    def evaluate_impl(
-        self, data_packet: DataPacket[DataPacketType]
-    ) -> GroupedDetectorEvaluationResult:
+    # TODO: The stateful detector handler overrides the default evaluation logic of DetectorHandler.evaluate, yet shares
+    # much of the same logic. Refactor this method to use super().evaluate() supplemented with the state manager logic.
+    @override
+    def evaluate(self, data_packet: DataPacket[DataPacketType]) -> GroupedDetectorEvaluationResult:
         dedupe_value = self.extract_dedupe_value(data_packet)
         group_data_values = self._extract_value_from_packet(data_packet)
         state = self.state_manager.get_state_data(list(group_data_values.keys()))
+        should_rotate_activation_id = self._should_rotate_activation_id()
         results: dict[DetectorGroupKey, DetectorEvaluation] = {}
 
         tainted = False
@@ -470,10 +498,15 @@ class StatefulDetectorHandler(
             if new_priority == DetectorPriorityLevel.OK:
                 self.state_manager.enqueue_counter_reset(group_key)
 
+            activation_id = self._get_activation_id(
+                state_data, new_priority, should_rotate_activation_id
+            )
+
             self.state_manager.enqueue_state_update(
                 group_key,
                 new_priority != DetectorPriorityLevel.OK,
                 new_priority,
+                activation_id,
             )
 
             results[group_key] = self._build_detector_evaluation_result(
@@ -482,6 +515,7 @@ class StatefulDetectorHandler(
                 detector_trigger_evaluation,
                 data_packet,
                 data_value,
+                activation_id,
             )
 
         self.state_manager.commit_state_updates()
@@ -493,18 +527,18 @@ class StatefulDetectorHandler(
         data_packet: DataPacket[DataPacketType],
         evaluation_value: DataPacketEvaluationType,
         group_key: DetectorGroupKey = None,
+        activation_id: int | None = None,
     ) -> StatusChangeMessage:
-        fingerprint = [
-            *self.build_issue_fingerprint(),
-            self.state_manager.build_key(group_key),
-        ]
+        fingerprint = self.build_occurrence_fingerprint(group_key, activation_id)
+
+        workflow_engine_evidence_data = self._build_workflow_engine_evidence_data(
+            group_evaluation,
+            data_packet,
+            evaluation_value,
+        )
 
         evidence_data = {
-            **self._build_workflow_engine_evidence_data(
-                group_evaluation,
-                data_packet,
-                evaluation_value,
-            ),
+            **dataclasses.asdict(workflow_engine_evidence_data),
             **self.build_detector_evidence_data(
                 group_evaluation,
                 data_packet,
@@ -521,30 +555,6 @@ class StatefulDetectorHandler(
             activity_data=evidence_data,
         )
 
-    def _extract_value_from_packet(
-        self,
-        data_packet: DataPacket[DataPacketType],
-    ) -> dict[DetectorGroupKey, DataPacketEvaluationType]:
-        """
-        This method will normalize the extracted value to support grouping results.
-
-        If `extract_value` returns a `dict[DetectorGroupKey, DataPacketEvaluationType]`
-        it will cast it to the correct data type.
-
-        If `extract_value` returns a single value, it will be wrapped in a dict
-        with `None` as the key, to normalize the type as `dict[DetectorGroupKey, DataPacketEvaluationType]`.
-        """
-        data_values = self.extract_value(data_packet)
-        group_data_values: dict[DetectorGroupKey, DataPacketEvaluationType] = {}
-
-        # Normalize the type to dict[DetectorGroupKey, DataPacketEvaluationType]
-        if self._is_detector_group_value(data_values):
-            group_data_values = cast(dict[DetectorGroupKey, DataPacketEvaluationType], data_values)
-        else:
-            group_data_values = {None: cast(DataPacketEvaluationType, data_values)}
-
-        return group_data_values
-
     def _build_detector_evaluation_result(
         self,
         group_key: DetectorGroupKey,
@@ -552,6 +562,7 @@ class StatefulDetectorHandler(
         group_evaluation: DataConditionGroupEvaluation,
         data_packet: DataPacket[DataPacketType],
         evaluation_value: DataPacketEvaluationType,
+        activation_id: int | None = None,
     ) -> DetectorEvaluation:
         detector_result: IssueOccurrence | StatusChangeMessage
         event_data: EventData | None = None
@@ -563,6 +574,7 @@ class StatefulDetectorHandler(
                 data_packet,
                 evaluation_value,
                 group_key,
+                activation_id,
             )
         else:
             # Call the `create_occurrence` method to create the detector occurrence.
@@ -576,6 +588,7 @@ class StatefulDetectorHandler(
                 new_priority,
                 group_key,
                 evaluation_value,
+                activation_id,
             )
 
             # Set the event data with the necessary fields
@@ -598,19 +611,6 @@ class StatefulDetectorHandler(
             priority=new_priority,
         )
 
-    def _is_detector_group_value(self, value: Any) -> bool:
-        """
-        Check if value is dict[DetectorGroupKey, DataPacketEvaluationType]
-        """
-        if not isinstance(value, dict):
-            return False
-
-        if not value:  # Empty dict case
-            return False
-
-        # Check if all keys are DetectorGroupKey instances
-        return all(isinstance(key, DetectorGroupKey) for key in value.keys())
-
     def _get_configured_detector_levels(self) -> list[DetectorPriorityLevel]:
         conditions = self.detector.get_conditions()
         return list(DetectorPriorityLevel(condition.condition_result) for condition in conditions)
@@ -623,6 +623,7 @@ class StatefulDetectorHandler(
         new_priority: DetectorPriorityLevel,
         group_key: DetectorGroupKey,
         data_value: DataPacketEvaluationType,
+        activation_id: int | None = None,
     ) -> IssueOccurrence:
         """
         Decorate the issue occurrence with the data from the detector's evaluation result.
@@ -633,17 +634,17 @@ class StatefulDetectorHandler(
             data_value,
         )
 
-        fingerprint = [
-            *self.build_issue_fingerprint(group_key),
-            self.state_manager.build_key(group_key),
-        ]
+        fingerprint = self.build_occurrence_fingerprint(group_key, activation_id)
+
+        occurrence_id = str(uuid4())
 
         return detector_occurrence.to_issue_occurrence(
             fingerprint=fingerprint,
-            occurrence_id=str(uuid4()),
+            occurrence_id=occurrence_id,
+            event_id=occurrence_id,
             project_id=self.detector.project_id,
             status=new_priority,
-            additional_evidence_data=evidence_data,
+            additional_evidence_data=dataclasses.asdict(evidence_data),
         )
 
     def _evaluation_detector_conditions(
@@ -731,3 +732,56 @@ class StatefulDetectorHandler(
                 return level
 
         return None
+
+    def _should_rotate_activation_id(self) -> bool:
+        """
+        Whether this detector should start a new activation on each OK -> non-OK transition.
+        For some detectors this is never the case, while for others it depends on the
+        organization's feature flag
+        """
+        if not self.activation_creates_new_issue:
+            return False
+
+        organization = self._get_detector_organization()
+
+        return features.has(
+            "organizations:workflow-engine-rotate-activation-id",
+            organization,
+        )
+
+    def _get_activation_id(
+        self,
+        state_data: DetectorStateData,
+        new_priority: DetectorPriorityLevel,
+        should_rotate_activation_id: bool,
+    ) -> int | None:
+        if not should_rotate_activation_id:
+            return state_data.activation_id
+
+        is_leaving_ok_state = (
+            state_data.status == DetectorPriorityLevel.OK
+            and new_priority != DetectorPriorityLevel.OK
+        )
+
+        if is_leaving_ok_state:
+            return _get_unix_epoch_time_in_milliseconds()
+
+        return state_data.activation_id
+
+    def _get_detector_organization(self) -> Organization:
+        """
+        Attempt to resolve organization from detector
+        "All projects detectors" don't have a linked project so resolve from the config,
+        similar to how we do it in `process_detectors`
+        """
+        if self.detector.project is not None:
+            return self.detector.project.organization
+
+        organization_id = self.detector.config.get("organization_id")
+
+        if organization_id is None:
+            raise ValueError(
+                f"Detector {self.detector.id} has neither a project nor an organization_id"
+            )
+
+        return Organization.objects.get_from_cache(id=organization_id)

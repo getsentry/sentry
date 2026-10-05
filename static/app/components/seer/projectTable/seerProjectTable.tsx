@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import {
   infiniteQueryOptions,
   useInfiniteQuery,
+  useMutation,
   useQuery,
   useQueryClient,
 } from '@tanstack/react-query';
@@ -51,6 +52,7 @@ import {
 } from 'sentry/utils/seer/seerProjectRepos';
 import {
   getMutateSeerProjectSettingsOptions,
+  getMutateSeerProjectsSettingsOptions,
   getInfiniteSeerProjectsSettingsQueryOptions,
   seerProjectSettingsSchema,
 } from 'sentry/utils/seer/seerProjectSettings';
@@ -72,6 +74,12 @@ const TABLE_COLUMNS: TableColumnConfig[] = [
   {key: 'repos', width: '74px'},
   {key: 'fixes', width: '1fr'},
   {key: 'automation_steps', width: '1fr'},
+  {key: 'pr_iteration', width: '1fr'},
+];
+
+const PR_ITERATION_OPTIONS = [
+  {value: true, label: t('On')},
+  {value: false, label: t('Off')},
 ];
 
 export function SeerProjectTable() {
@@ -79,6 +87,14 @@ export function SeerProjectTable() {
   const location = useLocation();
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
+
+  // Each row control is a form that keeps its own copy of the saved value, and
+  // once it has been used it stops picking up new values from the list. So after
+  // a bulk edit we bump this number, which is used as the row forms' `key`: React
+  // then replaces them with fresh forms that read the new values. Single-row
+  // saves don't bump it, so a row keeps its form (and its error handling) while
+  // its own save is in flight.
+  const [bulkEditVersion, setBulkEditVersion] = useState(0);
 
   // Query Values
   const [agentFilter, setAgentFilter] = useQueryState(
@@ -110,6 +126,20 @@ export function SeerProjectTable() {
     seerAgentIntegrationsSelectQueryOptions({organization})
   );
   const stoppingPointOptions = useStoppingPointSelectOptions();
+
+  const bulkEdit = useMutation({
+    ...getMutateSeerProjectsSettingsOptions({
+      organization,
+      projectsById,
+      queryClient,
+      knownAgents,
+    }),
+    onSuccess: () => setBulkEditVersion(version => version + 1),
+  });
+
+  // Row controls are locked while a bulk edit is saving, so no row save can still
+  // be running when the forms are replaced. The header does the reverse.
+  const isRowDisabled = !canWrite || bulkEdit.isPending;
 
   // Main fetch call
   const mutableSearch = MutableSearch.fromQueryObject({
@@ -157,7 +187,7 @@ export function SeerProjectTable() {
                 )}
               </Text>
               <Flex>
-                <AddProjectButton />
+                <AddProjectButton disabled={!canWrite} />
               </Flex>
             </Stack>
           </Flex>
@@ -195,7 +225,7 @@ export function SeerProjectTable() {
               }
             />
           </InputGroup>
-          <AddProjectButton />
+          <AddProjectButton disabled={!canWrite} />
         </Flex>
       </Stack>
       <ListItemCheckboxProvider
@@ -209,6 +239,7 @@ export function SeerProjectTable() {
             sort={sortBy}
             onSortClick={setSort}
             mutableSearch={mutableSearch}
+            bulkEdit={bulkEdit}
           />
 
           {isPending ? (
@@ -272,6 +303,7 @@ export function SeerProjectTable() {
                     </InfiniteTable.RowCell>
                     <InfiniteTable.RowCell overflow="visible">
                       <AgentSelectCell
+                        key={bulkEditVersion}
                         projectSlug={item.projectSlug}
                         initialValue={coalesePreferredAgent(
                           item.agent,
@@ -279,12 +311,13 @@ export function SeerProjectTable() {
                         )}
                         agentSelectOptions={agentSelectOptions}
                         knownAgents={knownAgents}
-                        disabled={!canWrite}
+                        disabled={isRowDisabled}
                       />
                     </InfiniteTable.RowCell>
                     <InfiniteTable.RowCell>
                       <Stack align="stretch" flex="1">
                         <AutoSaveForm
+                          key={bulkEditVersion}
                           name="stoppingPoint"
                           schema={seerProjectSettingsSchema}
                           initialValue={coaleseStoppingPoint(
@@ -299,10 +332,41 @@ export function SeerProjectTable() {
                         >
                           {field => (
                             <field.Select
-                              disabled={!canWrite}
+                              disabled={isRowDisabled}
                               menuPortalTarget={document.body}
                               onChange={field.handleChange}
                               options={stoppingPointOptions}
+                              // @ts-expect-error: Select component does not have a size prop defined
+                              size="xs"
+                              value={field.state.value}
+                            />
+                          )}
+                        </AutoSaveForm>
+                      </Stack>
+                    </InfiniteTable.RowCell>
+                    <InfiniteTable.RowCell>
+                      <Stack align="stretch" flex="1">
+                        <AutoSaveForm
+                          key={bulkEditVersion}
+                          name="prIteration"
+                          schema={seerProjectSettingsSchema}
+                          initialValue={item.prIteration}
+                          mutationOptions={getMutateSeerProjectSettingsOptions({
+                            organization,
+                            project: {slug: item.projectSlug},
+                            queryClient,
+                          })}
+                        >
+                          {field => (
+                            <field.Select
+                              aria-label={t(
+                                'Auto-iterate on PRs for %s',
+                                item.projectSlug
+                              )}
+                              disabled={isRowDisabled}
+                              menuPortalTarget={document.body}
+                              onChange={field.handleChange}
+                              options={PR_ITERATION_OPTIONS}
                               // @ts-expect-error: Select component does not have a size prop defined
                               size="xs"
                               value={field.state.value}
@@ -401,7 +465,7 @@ function AgentSelectCell({
   );
 }
 
-function AddProjectButton() {
+function AddProjectButton({disabled}: {disabled: boolean}) {
   const {openModal} = useModal();
 
   const [isLoadingModal, setIsLoadingModal] = useState(false);
@@ -430,7 +494,7 @@ function AddProjectButton() {
       }}
       icon={<IconAdd />}
       busy={isLoadingModal}
-      disabled={isLoadingModal}
+      disabled={disabled || isLoadingModal}
     >
       {t('Add Project')}
     </Button>

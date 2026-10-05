@@ -21,7 +21,11 @@ import {t, tct} from 'sentry/locale';
 import {pulse} from 'sentry/styles/animations';
 import {PriorityLevel} from 'sentry/types/group';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
-import type {Detector, MetricDetectorConfig} from 'sentry/types/workflowEngine/detectors';
+import type {
+  Detector,
+  MetricDetector,
+  MetricDetectorConfig,
+} from 'sentry/types/workflowEngine/detectors';
 import {generateFieldAsString} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -102,7 +106,11 @@ export function EditExistingMetricDetectorForm({detector}: {detector: Detector})
   );
 }
 
-export function NewMetricDetectorForm() {
+export function NewMetricDetectorForm({
+  duplicateDetector,
+}: {
+  duplicateDetector?: MetricDetector;
+}) {
   const initialMetricFormData = useInitialMetricDetectorFormData();
 
   return (
@@ -110,7 +118,11 @@ export function NewMetricDetectorForm() {
       detectorType="metric_issue"
       previewChart={<MetricDetectorPreviewChart />}
       formDataToEndpointPayload={metricDetectorFormDataToEndpointPayload}
-      initialFormData={initialMetricFormData}
+      initialFormData={
+        duplicateDetector
+          ? metricSavedDetectorToFormData(duplicateDetector)
+          : initialMetricFormData
+      }
       mapFormErrors={mapMetricDetectorFormErrors}
     >
       <MetricDetectorForm />
@@ -236,6 +248,7 @@ function useRevalidateMediumThreshold() {
 
   useEffect(() => {
     formContext.form?.validateField(METRIC_DETECTOR_FORM_FIELDS.mediumThreshold);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [highThreshold, formContext.form]);
 }
 
@@ -387,6 +400,7 @@ function IntervalPicker() {
         intervalChoices[0]![0]
       );
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [intervalChoices, formContext.form, interval, dataset]);
 
   return (
@@ -474,7 +488,6 @@ function CustomizeMetricSection({step}: {step?: number}) {
             />
             <Tooltip
               title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-              isHoverable
               disabled={!isTransactionsDataset}
             >
               <DisabledSection disabled={isTransactionsDataset}>
@@ -485,7 +498,6 @@ function CustomizeMetricSection({step}: {step?: number}) {
         </Stack>
         <Tooltip
           title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-          isHoverable
           disabled={!isTransactionsDataset}
         >
           <DisabledSection disabled={isTransactionsDataset}>
@@ -496,7 +508,6 @@ function CustomizeMetricSection({step}: {step?: number}) {
         dataset === DetectorDataset.METRICS ? null : (
           <Tooltip
             title={TRANSACTIONS_DATASET_DEPRECATION_MESSAGE}
-            isHoverable
             disabled={!isTransactionsDataset}
           >
             <FilterRow disabled={isTransactionsDataset}>
@@ -540,7 +551,6 @@ function DetectSection({step}: {step?: number}) {
             <WarningIcon
               id="thresholds-warning-icon"
               tooltipProps={{
-                isHoverable: true,
                 title: tct(
                   'Your thresholds may need to be adjusted to take into account [samplingLink:sampling].',
                   {

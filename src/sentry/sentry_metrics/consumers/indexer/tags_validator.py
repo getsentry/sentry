@@ -31,13 +31,3 @@ class ReleaseHealthTagsValidator(TagsValidator):
     """
     The release health pipeline has the same limits as the default tags limit enforcer.
     """
-
-
-class GenericMetricsTagsValidator(TagsValidator):
-    """
-    The generic metrics pipeline has the same limits has the same limits for tag keys
-    as the default tags limit enforcer, but has a different limit for tag values since tag values
-    are not indexed.
-    """
-
-    MAX_TAG_VALUE_LENGTH = 1000

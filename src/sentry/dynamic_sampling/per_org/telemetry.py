@@ -14,7 +14,11 @@ from sentry.dynamic_sampling.per_org.gate import (
     metrics_sample_rate,
 )
 from sentry.utils import metrics
-from sentry.utils.snuba_rpc import SnubaRPCError, SnubaRPCTimeout
+from sentry.utils.snuba_rpc import (
+    SnubaRPCError,
+    SnubaRPCTimeout,
+    SnubaRPCTooManySimultaneous,
+)
 
 F = TypeVar("F", bound=Callable[..., object])
 
@@ -36,20 +40,20 @@ class ServedValue(StrEnum):
 
 
 class ServingSource(StrEnum):
-    """Which pipeline supplied a value that rule generation served."""
+    """Whether the per-org caches held a value that rule generation served."""
 
-    # The organization is not in the serving rollout.
-    LEGACY = "legacy"
     PER_ORG = "per_org"
-    PER_ORG_FALLBACK = "per_org_fallback"
+    # No pass has stored a value for the organization yet.
     PER_ORG_NO_DATA = "per_org_no_data"
+    # The cache could not be read, so rule generation served its own fallback.
+    PER_ORG_ERROR = "per_org_error"
 
 
 def emit_serving_source(value: ServedValue, source: ServingSource) -> None:
-    """Record which pipeline supplied a value that rule generation served.
+    """Record whether the per-org caches held a value that rule generation served.
 
     Sampled like the rest of the per-org metrics: this runs on every rule generation, and
-    the legacy-to-per-org ratio survives sampling because both sides are sampled alike.
+    the served-to-missing ratio survives sampling because both sides are sampled alike.
     """
     metrics.incr(
         SERVING_SOURCE_METRIC,
@@ -142,11 +146,9 @@ def track_dynamic_sampling(func: F) -> F:
             except DynamicSamplingException as exc:
                 result = exc.status
             except SnubaRPCTimeout:
-                emit_status(status_metric, DynamicSamplingStatus.SNUBA_TIMEOUT)
-                raise
-            except SnubaRPCError:
-                emit_status(status_metric, DynamicSamplingStatus.SNUBA_ERROR)
-                raise
+                result = DynamicSamplingStatus.SNUBA_TIMEOUT
+            except (SnubaRPCError, SnubaRPCTooManySimultaneous):
+                result = DynamicSamplingStatus.SNUBA_ERROR
             except Exception as exc:
                 emit_status(status_metric, DynamicSamplingStatus.FAILED)
                 sentry_sdk.capture_exception(exc)

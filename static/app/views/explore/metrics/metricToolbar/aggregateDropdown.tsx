@@ -9,6 +9,8 @@ import {
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
+import {FieldKind} from 'sentry/utils/fields';
+import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import {
   DEFAULT_YAXIS_BY_TYPE,
   GROUPED_OPTIONS_BY_TYPE,
@@ -123,6 +125,17 @@ export function AggregateDropdown({
       {groups.map(group => {
         const groupKey = String(group.key);
         const isMulti = !singleSelect && MULTI_SELECT_GROUP_KEYS.has(groupKey);
+        const options = group.options.map<SelectOption<string>>(option => ({
+          ...option,
+          trailingItems: state => (
+            <Fragment>
+              {typeof option.trailingItems === 'function'
+                ? option.trailingItems(state)
+                : option.trailingItems}
+              <TypeBadge kind={FieldKind.FUNCTION} />
+            </Fragment>
+          ),
+        }));
         const activeValues = group.options
           .map(opt => String(opt.value))
           .filter(v => selectedNames.has(v));
@@ -133,7 +146,7 @@ export function AggregateDropdown({
               key={groupKey}
               label={group.label}
               multiple
-              options={group.options}
+              options={options}
               value={activeValues}
               onChange={handleChange}
             />
@@ -144,7 +157,7 @@ export function AggregateDropdown({
           <CompositeSelect.Region
             key={groupKey}
             label={group.label}
-            options={group.options}
+            options={options}
             value={activeValues[0]}
             onChange={opt => handleChange([opt])}
           />

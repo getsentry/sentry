@@ -153,7 +153,8 @@ def update_migrated_issue_alert(rule: Rule) -> Workflow | None:
     )  # action(s) must exist
 
     workflow.environment_id = rule.environment_id
-    if frequency := data["frequency"]:
+    # Rule updates from the API may omit frequency; keep the existing workflow value.
+    if frequency := data.get("frequency"):
         workflow.config["frequency"] = frequency
 
     workflow.owner_user_id = rule.owner_user_id

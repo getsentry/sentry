@@ -586,6 +586,63 @@ class ProjectPreprodCheckForUpdatesEndpointTest(APITestCase):
         assert data["current"] is not None
         assert data["current"]["build_number"] == 42
 
+    def test_raw_build_number_distinguishes_current_artifact_from_update(self) -> None:
+        encoded_build_number = 152_000_000_004_191
+        main_binary_identifier = "shared-identifier"
+        current_artifact = self._create_ios_artifact(
+            main_binary_identifier=main_binary_identifier,
+            build_number=encoded_build_number,
+            build_number_raw="152.0.4191.9",
+        )
+        update_artifact = self._create_ios_artifact(
+            main_binary_identifier=main_binary_identifier,
+            build_number=encoded_build_number,
+            build_number_raw="152.0.4191.10",
+        )
+
+        response = self.client.get(
+            self._get_url(),
+            {
+                "app_id": "com.example.app",
+                "platform": "ios",
+                "build_version": "1.0.0",
+                "build_number": "152.0.4191.9",
+                "main_binary_identifier": "shared-identifier",
+            },
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["current"]["id"] == str(current_artifact.id)
+        assert data["update"]["id"] == str(update_artifact.id)
+
+    def test_conflicting_raw_build_number_is_not_current_artifact(self) -> None:
+        update_artifact = self._create_ios_artifact(
+            main_binary_identifier="shared-identifier",
+            build_number=152_000_000_004_191,
+            build_number_raw="152.0.4191.10",
+        )
+
+        response = self.client.get(
+            self._get_url(),
+            {
+                "app_id": "com.example.app",
+                "platform": "ios",
+                "build_version": "1.0.0",
+                "build_number": "152.0.4191.9",
+                "main_binary_identifier": "shared-identifier",
+            },
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {self.api_token}",
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["current"] is None
+        assert data["update"]["id"] == str(update_artifact.id)
+
     def test_invalid_build_number_format(self) -> None:
         """Test that invalid build_number format returns 400"""
         url = self._get_url()

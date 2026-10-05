@@ -1,11 +1,10 @@
 import {useMemo} from 'react';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
@@ -81,15 +80,14 @@ export function EAPChartsWidget({transactionName, query}: EAPChartsWidgetProps) 
   const location = useLocation();
   const navigate = useNavigate();
 
-  const {
-    [SpanFields.SPAN_CATEGORY]: spanCategoryUrlParam,
-    [SELECTED_CHART_QUERY_PARAM]: selectedChartUrlParam,
-  } = useLocationQuery({
-    fields: {
-      [SpanFields.SPAN_CATEGORY]: decodeScalar,
-      [SELECTED_CHART_QUERY_PARAM]: decodeScalar,
-    },
-  });
+  const [spanCategoryUrlParam] = useQueryState(
+    SpanFields.SPAN_CATEGORY,
+    parseAsString.withDefault('')
+  );
+  const [selectedChartUrlParam] = useQueryState(
+    SELECTED_CHART_QUERY_PARAM,
+    parseAsString.withDefault('')
+  );
 
   const selectedChart = WIDGET_OPTIONS[selectedChartUrlParam as EAPWidgetType]
     ? (selectedChartUrlParam as EAPWidgetType)

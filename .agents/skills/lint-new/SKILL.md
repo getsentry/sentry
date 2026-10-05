@@ -20,7 +20,7 @@ Read the relevant reference before writing code. The archetypes document which A
 
 ## Step 2: Check Shared Utilities
 
-Before writing AST traversal logic, check `static/eslint/eslintPluginScraps/src/ast/` for reusable code:
+Before writing AST traversal logic, check `static/oxlint/eslintPluginScraps/src/ast/` for reusable code:
 
 | Utility                 | Location                                 | Use for                                                             |
 | ----------------------- | ---------------------------------------- | ------------------------------------------------------------------- |
@@ -37,8 +37,8 @@ If another rule already solves a similar problem, extract shared logic into `src
 
 ## Step 3: Create Files
 
-1. **Rule**: `static/eslint/eslintPluginScraps/src/rules/$ARGUMENTS.ts`
-2. **Test**: `static/eslint/eslintPluginScraps/src/rules/$ARGUMENTS.spec.ts`
+1. **Rule**: `static/oxlint/eslintPluginScraps/src/rules/$ARGUMENTS.ts`
+2. **Test**: `static/oxlint/eslintPluginScraps/src/rules/$ARGUMENTS.spec.ts`
 
 ### Rule Template
 
@@ -97,7 +97,7 @@ ruleTester.run('$ARGUMENTS', $RULE_NAME, {
 Run tests:
 
 ```bash
-pnpm test-ci "static/eslint/eslintPluginScraps/src/rules/$ARGUMENTS.spec.ts"
+pnpm test-ci "static/oxlint/eslintPluginScraps/src/rules/$ARGUMENTS.spec.ts"
 ```
 
 ## Autofix Guidance
@@ -141,7 +141,7 @@ When a rule is fixable, every invalid test case MUST include `output` showing th
 
 ### 1. Rule Index
 
-Add to `static/eslint/eslintPluginScraps/src/rules/index.ts`:
+Add to `static/oxlint/eslintPluginScraps/src/rules/index.ts`:
 
 ```typescript
 import {$RULE_NAME} from './$ARGUMENTS';
@@ -165,7 +165,7 @@ Add to `eslint.config.ts` inside the `name: 'plugin/@sentry/scraps'` block:
 ### 3. Verify
 
 ```bash
-pnpm test-ci "static/eslint/eslintPluginScraps/src/rules/$ARGUMENTS.spec.ts"
+pnpm test-ci "static/oxlint/eslintPluginScraps/src/rules/$ARGUMENTS.spec.ts"
 ```
 
 ## Extending an Existing Rule

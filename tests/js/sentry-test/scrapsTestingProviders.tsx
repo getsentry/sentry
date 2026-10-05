@@ -1,7 +1,10 @@
+import {createPortal} from 'react-dom';
+
+import {ToastProvider} from '@sentry/scraps/toast';
 import {
   TranslationContextProvider,
   type TranslationContextValue,
-} from '@sentry/scraps/translationContext';
+} from '@sentry/scraps/translation';
 
 import {SentryFormErrorProvider} from 'sentry/scrapsProviders/formError';
 import {SentryLinkBehaviorProvider} from 'sentry/scrapsProviders/link';
@@ -16,7 +19,10 @@ export function ScrapsTestingProviders({children}: {children: React.ReactNode}) 
   return (
     <SentryFormErrorProvider>
       <TranslationContextProvider value={testTranslation}>
-        <SentryLinkBehaviorProvider>{children}</SentryLinkBehaviorProvider>
+        <SentryLinkBehaviorProvider>
+          {children}
+          {createPortal(<ToastProvider />, document.body)}
+        </SentryLinkBehaviorProvider>
       </TranslationContextProvider>
     </SentryFormErrorProvider>
   );

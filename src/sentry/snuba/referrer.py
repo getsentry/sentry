@@ -227,6 +227,7 @@ class Referrer(StrEnum):
     API_INSIGHTS_WEB_VITAL_TRANSACTION = "api.insights.web-vitals.transaction"
     API_INSIGHTS_WEB_VITAL_TRANSACTIONS_SCORES = "api.insights.web-vitals.transactions-scores"
     API_INSIGHTS_WEB_VITAL_PROFILE_EXISTS = "api.insights.web-vitals.profile-exists"
+    API_INSIGHTS_WEB_VITAL_NAVIGATION_TYPE_COUNTS = "api.insights.web-vitals.navigation-type-counts"
 
     # Mobile vitals
     API_INSIGHTS_MOBILE_UI_SPAN_OPERATION_TABLE = "api.insights.mobile.ui.span-table"
@@ -507,8 +508,6 @@ class Referrer(StrEnum):
     API_ORGANIZATION_VITALS = "api.organization-vitals"
     API_AI_CONVERSATIONS = "api.ai-conversations"
     API_AI_CONVERSATIONS_COMPLETE = "api.ai-conversations.complete"
-    API_AI_CONVERSATIONS_ENRICHMENT = "api.ai-conversations.enrichment"
-    API_AI_CONVERSATIONS_FIRST_LAST_IO = "api.ai-conversations.first-last-io"
     API_AI_CONVERSATION_DETAILS = "api.ai-conversation-details"
     API_AI_CONVERSATION_DETAILS_ISSUES = "api.ai-conversation-details.issues"
     API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
@@ -623,6 +622,7 @@ class Referrer(StrEnum):
     API_TRACE_VIEW_GET_PARENTS = "api.trace-view.get-parents"
     API_TRACE_VIEW_GET_OCCURRENCE_IDS = "api.trace-view.get-occurrence-ids"
     API_TRACE_VIEW_LINKED_TRACES = "api.trace-view.linked-traces"
+    API_TRACE_VIEW_CACHE_ORIGIN = "api.trace-view.cache-origin"
     API_TRENDS_GET_EVENT_STATS = "api.trends.get-event-stats"
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS = "api.trends.get-event-statsv2.top-events"
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS_PRIMARY = (
@@ -645,24 +645,13 @@ class Referrer(StrEnum):
     DASHBOARDS_SLACK_UNFURL = "dashboards.slack.unfurl"
     DISCOVER_SLACK_UNFURL = "discover.slack.unfurl"
     EXPLORE_SLACK_UNFURL = "explore.slack.unfurl"
-    DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES = (
-        "dynamic_sampling.counters.get_org_transaction_volumes"
-    )
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT = (
-        "dynamic_sampling.distribution.fetch_projects_with_count_per_root_total_volumes"
-    )
+    INGESTION_DELAY_MEASUREMENT = "ingestion_delay.measurement"
     DYNAMIC_SAMPLING_PER_ORG_GET_EAP_ORG_VOLUME = "dynamic_sampling.per_org.get_eap_org_volume"
     DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES = (
         "dynamic_sampling.per_org.get_eap_project_volumes"
     )
     DYNAMIC_SAMPLING_PER_ORG_GET_EAP_TRANSACTION_VOLUMES = (
         "dynamic_sampling.per_org.get_eap_transaction_volumes"
-    )
-    DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION = (
-        "dynamic_sampling.counters.fetch_projects_with_count_per_transaction_volumes"
-    )
-    DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS = (
-        "dynamic_sampling.counters.fetch_projects_with_transaction_totals"
     )
     DYNAMIC_SAMPLING_SETTINGS_GET_SPAN_COUNTS = "dynamic_sampling.settings.get_project_span_counts"
     ESCALATING_GROUPS = "sentry.issues.escalating"
@@ -805,7 +794,7 @@ class Referrer(StrEnum):
     SEARCH_SAMPLE = "search_sample"
     SEARCH = "search"
     SEARCH_GROUP_INDEX = "search.group_index"
-    SEER_NIGHT_SHIFT_FIXABILITY_SCORE_STRATEGY = "seer.night_shift.fixability_score_strategy"
+    SEER_AGENTIC_TRIAGE_FIXABILITY_SCORE_STRATEGY = "seer.night_shift.fixability_score_strategy"
     SEARCH_GROUP_INDEX_SAMPLE = "search.group_index_sample"
     SEARCH_GROUP_INDEX_API = "search.group_index.api"
     SEARCH_GROUP_INDEX_API_SAMPLE = "search.group_index.api_sample"
@@ -933,14 +922,7 @@ class Referrer(StrEnum):
     TSDB_MODELID_801 = "tsdb-modelid:801"
 
     TSDB_MODELID_4_frequency_snoozes = "tsdb-modelid:4.frequency_snoozes"
-    TSDB_MODELID_4_alert_event_frequency = "tsdb-modelid:4.alert_event_frequency"
-    TSDB_MODELID_4_alert_event_frequency_percent = "tsdb-modelid:4.alert_event_frequency_percent"
-    TSDB_MODELID_4_batch_alert_event_frequency = "tsdb-modelid:4.batch_alert_event_frequency"
-    TSDB_MODELID_20_alert_event_frequency = "tsdb-modelid:20.alert_event_frequency"
     TSDB_MODELID_300_user_count_snoozes = "tsdb-modelid:300.user_count_snoozes"
-    TSDB_MODELID_300_alert_event_uniq_user_frequency = (
-        "tsdb-modelid:300.alert_event_uniq_user_frequency"
-    )
     TSDB_MODELID_4_wf_batch_alert_event_frequency = "tsdb-modelid:4.wf_batch_alert_event_frequency"
     TSDB_MODELID_4_wf_batch_alert_event_frequency_percent = (
         "tsdb-modelid:4.wf_batch_alert_event_frequency_percent"

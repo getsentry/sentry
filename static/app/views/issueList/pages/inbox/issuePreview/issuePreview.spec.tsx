@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {
   ExplorerAutofixBlockFixture,
   ExplorerAutofixResponseFixture,
@@ -12,14 +11,13 @@ import {PullRequestFixture} from 'sentry-fixture/pullRequest';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {clearIndicators} from 'sentry/actionCreators/indicator';
-import Indicators from 'sentry/components/indicators';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {GroupStatus, ProgressState, type Group} from 'sentry/types/group';
 
 import {IssuePreview} from './issuePreview';
 
 describe('IssuePreview', () => {
-  const organization = OrganizationFixture({features: ['gen-ai-features']});
+  const organization = OrganizationFixture();
   const project = ProjectFixture({id: '1'});
   const group = GroupFixture({id: '101', project, hasSeen: true});
   const fixAppliedGroup = GroupFixture({
@@ -119,6 +117,32 @@ describe('IssuePreview', () => {
     });
   });
 
+  it('shows standard actions without waiting for Seer setup when AI is hidden', async () => {
+    const setup = Promise.withResolvers<void>();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
+      body: {integration: {ok: false}, billing: null, seerReposLinked: false},
+      asyncDelay: setup.promise,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
+
+    render(<IssuePreview groupId={group.id} />, {
+      organization: OrganizationFixture({hideAiFeatures: true}),
+    });
+
+    expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
+    expect(
+      screen.queryByRole('button', {name: 'Find Root Cause'})
+    ).not.toBeInTheDocument();
+
+    setup.resolve();
+    expect(await screen.findByRole('heading', {name: 'Activity'})).toBeInTheDocument();
+  });
+
   it('links to an open user pull request and shows the next Autofix step', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
@@ -150,9 +174,10 @@ describe('IssuePreview', () => {
       'https://github.com/example/repo-name/pull/10'
     );
     expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
   });
 
-  it('labels and links each CTA when multiple pull requests exist', async () => {
+  it('labels and links each current PR CTA when multiple pull requests exist', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
       body: ExplorerAutofixResponseFixture({
@@ -181,7 +206,20 @@ describe('IssuePreview', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
       body: {
+        latestRegressionAt: '2026-08-16T12:00:00Z',
         pullRequests: [
+          {
+            ...PullRequestFixture({
+              id: '9',
+              dateCreated: '2026-08-15T12:00:00Z',
+              externalUrl: 'https://github.com/example/repo-name/pull/9',
+            }),
+            attribution: null,
+            checksStatus: null,
+            dateLinked: '2026-08-15T12:00:00Z',
+            reviewStatus: null,
+            status: 'open',
+          },
           {
             ...PullRequestFixture({
               id: '10',
@@ -220,6 +258,7 @@ describe('IssuePreview', () => {
       'href',
       'https://github.com/example/repo-name/pull/10'
     );
+    expect(screen.queryByRole('button', {name: 'View PR #9'})).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Restart Autofix'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'View PR'})).not.toBeInTheDocument();
   });
@@ -329,17 +368,36 @@ describe('IssuePreview', () => {
     expect(screen.queryByRole('button', {name: 'View PR'})).not.toBeInTheDocument();
   });
 
-  it('resolves a fix applied issue and offers to undo it', async () => {
-    let currentGroup = fixAppliedGroup;
+  it.each([
+    ProgressState.ASSIGNED,
+    ProgressState.DIAGNOSED,
+    ProgressState.FIX_PROPOSED,
+    ProgressState.FIX_APPLIED,
+  ])('resolves a %s issue and offers to undo it', async progress => {
+    const unresolvedGroup = GroupFixture({
+      ...fixAppliedGroup,
+      derivedData: {...fixAppliedGroup.derivedData!, progress},
+    });
+    const resolvedGroup = GroupFixture({
+      ...resolvedFixAppliedGroup,
+      derivedData: unresolvedGroup.derivedData,
+    });
+    let currentGroup = unresolvedGroup;
     mockFixAppliedPreview(() => currentGroup);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
+      body: {
+        integration: {ok: true, reason: null},
+        billing: {hasAutofixQuota: true},
+        seerReposLinked: true,
+      },
+    });
     const resolveRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/issues/`,
       method: 'PUT',
       body: (_url: string, options: {data: Pick<Group, 'status'>}) => {
         currentGroup =
-          options.data.status === GroupStatus.RESOLVED
-            ? resolvedFixAppliedGroup
-            : fixAppliedGroup;
+          options.data.status === GroupStatus.RESOLVED ? resolvedGroup : unresolvedGroup;
         return currentGroup;
       },
     });
@@ -353,6 +411,9 @@ describe('IssuePreview', () => {
       `/organizations/${organization.slug}/issues/${group.id}/?referrer=inbox`
     );
     expect(screen.queryByRole('button', {name: 'View PR'})).not.toBeInTheDocument();
+    if (progress !== ProgressState.FIX_APPLIED) {
+      expect(screen.getByRole('button', {name: 'Find Root Cause'})).toBeInTheDocument();
+    }
 
     await userEvent.click(resolveButton);
 
@@ -373,27 +434,87 @@ describe('IssuePreview', () => {
     );
   });
 
-  it('does not report success when resolving fails', async () => {
-    mockFixAppliedPreview();
+  it('keeps Resolve available while Seer is processing', async () => {
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture({
+        autofix: ExplorerAutofixStateFixture({status: 'processing'}),
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
+    const resolveRequest = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/issues/`,
       method: 'PUT',
-      statusCode: 500,
+      body: GroupFixture({...group, status: GroupStatus.RESOLVED, statusDetails: {}}),
     });
 
-    render(
-      <Fragment>
-        <IssuePreview groupId={group.id} />
-        <Indicators />
-      </Fragment>,
-      {organization}
+    render(<IssuePreview groupId={group.id} />, {organization});
+
+    expect(await screen.findByRole('button', {name: 'Make a Plan'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Resolve'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'More resolve options'})).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+    expect(resolveRequest).toHaveBeenCalledWith(
+      `/projects/${organization.slug}/${project.slug}/issues/`,
+      expect.objectContaining({
+        data: {status: 'resolved', statusDetails: {}, substatus: null},
+      })
     );
-
-    await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
-
-    expect(
-      await screen.findByText('Unable to update events. Please try again.')
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Issue resolved')).not.toBeInTheDocument();
   });
+
+  it('disables Resolve while the issue is reprocessing', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/`,
+      body: GroupFixture({
+        ...group,
+        status: GroupStatus.REPROCESSING,
+        statusDetails: {info: null, pendingEvents: 1},
+      }),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,
+      body: ExplorerAutofixResponseFixture({autofix: null}),
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
+
+    render(<IssuePreview groupId={group.id} />, {organization});
+
+    expect(await screen.findByRole('button', {name: 'Resolve'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'More resolve options'})).toBeDisabled();
+  });
+
+  it.each([ProgressState.DIAGNOSED, ProgressState.FIX_APPLIED])(
+    'does not report success when resolving a %s issue fails',
+    async progress => {
+      mockFixAppliedPreview(() =>
+        GroupFixture({
+          ...fixAppliedGroup,
+          derivedData: {...fixAppliedGroup.derivedData!, progress},
+        })
+      );
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/issues/`,
+        method: 'PUT',
+        statusCode: 500,
+      });
+
+      render(<IssuePreview groupId={group.id} />, {organization});
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
+
+      expect(
+        await screen.findByText('Unable to update events. Please try again.')
+      ).toBeInTheDocument();
+      expect(screen.queryByText('Issue resolved')).not.toBeInTheDocument();
+    }
+  );
 });

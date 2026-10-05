@@ -42,7 +42,6 @@ type State = {
   tags: Tag[];
   totalValues: null | number;
   nextCursor?: string;
-  tagLinks?: string;
 };
 
 class Tags extends Component<Props, State> {

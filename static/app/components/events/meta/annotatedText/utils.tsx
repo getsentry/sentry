@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 import {Link} from '@sentry/scraps/link';
 
 import {tct} from 'sentry/locale';
-import type {ChunkType} from 'sentry/types/group';
+import type {ChunkType, Meta} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
+import {defined} from 'sentry/utils/defined';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
 import {getRuleDescription} from 'sentry/views/settings/components/dataScrubbing/utils';
 
@@ -23,6 +24,22 @@ const NON_DATA_SCRUBBING_RULES = {
   '!raw': 'raw payload',
   '!config': 'SDK configuration',
 };
+
+/**
+ * Whether a remark's rule removed data for privacy. Relay also remarks on values
+ * it trimmed for size or read from the raw payload, which are not scrubbing.
+ */
+export function isDataScrubbingRule(ruleId: string | number): boolean {
+  return !Object.hasOwn(NON_DATA_SCRUBBING_RULES, String(ruleId));
+}
+
+/**
+ * Whether any remark records data Relay removed for privacy. The presence of
+ * remarks alone does not mean a value was scrubbed.
+ */
+export function hasScrubbedData(rem: Meta['rem'] | undefined): boolean {
+  return (rem ?? []).some(([ruleId]) => defined(ruleId) && isDataScrubbingRule(ruleId));
+}
 
 export function getTooltipText({
   remark = '',
@@ -54,7 +71,7 @@ export function getTooltipText({
       return (
         <Wrapper>
           {tct(
-            "[method] because of the a data scrubbing rule in your organization's settings.",
+            "[method] because of a data scrubbing rule in your organization's settings.",
             {
               method,
             }

@@ -10,7 +10,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectValue} from '@sentry/scraps/select';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconChevron, IconClose} from 'sentry/icons';
@@ -585,17 +585,25 @@ export function Select<OptionType extends GeneralSelectValue = GeneralSelectValu
       return a === b;
     };
 
+    const toOption = (val: OptionType['value']) =>
+      creatable && defined(val)
+        ? ({value: val, label: String(val)} as OptionType)
+        : undefined;
+
     if (props.multiple && Array.isArray(props.value)) {
       mappedValue = props.value
-        .map(val =>
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          flatOptions.find(option => compare(option.value, val))
+        .map(
+          val =>
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+            flatOptions.find(option => compare(option.value, val)) ?? toOption(val)
         )
         .filter(defined);
     } else {
       mappedValue =
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-        flatOptions.find(option => compare(option.value, props.value)) ?? mappedValue;
+        flatOptions.find(option => compare(option.value, props.value)) ??
+        toOption(props.value) ??
+        mappedValue;
     }
   }
 

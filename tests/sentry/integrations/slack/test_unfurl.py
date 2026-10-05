@@ -363,6 +363,58 @@ class UnfurlTest(TestCase):
         assert chart_data["seriesName"] == "count()"
         assert len(chart_data["stats"]["data"]) == INTERVALS_PER_DAY
 
+    @patch("sentry.integrations.slack.unfurl.discover.client.get")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_discover_without_fields_or_saved_query(
+        self, mock_generate_chart: MagicMock, api_mock: MagicMock
+    ) -> None:
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?project={self.project.id}&statsPeriod=24h"
+
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:discover-basic"]):
+            unfurls = link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert (
+            unfurls[url]
+            == SlackDiscoverMessageBuilder(title="Dashboards query", chart_url="chart-url").build()
+        )
+
+        assert len(mock_generate_chart.mock_calls) == 1
+        params = api_mock.call_args[1]["params"]
+        assert params.getlist("field") == []
+        assert params.getlist("name") == []
+        assert params.getlist("yAxis") == ["count()"]
+
+    @patch("sentry.integrations.slack.unfurl.discover.client.get")
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    def test_unfurl_discover_top5_without_fields_or_saved_query(
+        self, mock_generate_chart: MagicMock, api_mock: MagicMock
+    ) -> None:
+        url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?display=top5&project={self.project.id}&statsPeriod=24h"
+
+        link_type, args = match_link(url)
+
+        if not args or not link_type:
+            raise AssertionError("Missing link_type/args")
+
+        links = [
+            UnfurlableUrl(url=url, args=args),
+        ]
+
+        with self.feature(["organizations:discover-basic"]):
+            link_handlers[link_type].fn(self.integration, links, self.user)
+
+        assert len(mock_generate_chart.mock_calls) == 1
+        assert api_mock.call_args[1]["params"].getlist("field") == []
+
     @patch(
         "sentry.api.bases.organization_events.OrganizationEventsEndpointBase.get_event_stats_data",
         return_value={
@@ -887,9 +939,7 @@ class UnfurlTest(TestCase):
 
         assert (
             unfurls[url]
-            == SlackDiscoverMessageBuilder(
-                title=args["query"].get("name"), chart_url="chart-url"
-            ).build()
+            == SlackDiscoverMessageBuilder(title="Dashboards query", chart_url="chart-url").build()
         )
         assert len(mock_generate_chart.mock_calls) == 1
 
@@ -987,7 +1037,7 @@ class UnfurlTest(TestCase):
             version=2,
         )
         saved_query.set_projects([self.project.id])
-        api_mock.return_value.data = query
+        api_mock.return_value.data = {**query, "name": saved_query.name}
 
         url = f"https://sentry.io/organizations/{self.organization.slug}/discover/results/?id={saved_query.id}&statsPeriod=24h"
         link_type, args = match_link(url)
@@ -1008,9 +1058,7 @@ class UnfurlTest(TestCase):
 
         assert (
             unfurls[url]
-            == SlackDiscoverMessageBuilder(
-                title=args["query"].get("name"), chart_url="chart-url"
-            ).build()
+            == SlackDiscoverMessageBuilder(title="Test query", chart_url="chart-url").build()
         )
 
         assert len(mock_generate_chart.mock_calls) == 1

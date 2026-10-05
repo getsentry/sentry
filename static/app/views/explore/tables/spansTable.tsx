@@ -7,14 +7,12 @@ import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {DataTable} from 'sentry/components/tables/dataTable';
 import {getNextDirection} from 'sentry/components/tables/getNextSort';
 import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -69,10 +67,6 @@ export function SpansTable({
   const sortBys = useQueryParamsSortBys();
   const setFields = useSetQueryParamsFields();
   const setSortBys = useSetQueryParamsSortBys();
-  const organization = useOrganization();
-  const canExpandSpanDetails = organization.features.includes(
-    'explore-span-item-details'
-  );
 
   const visibleFields = useMemo(
     () => (fields.includes('id') ? [...fields] : ['id', ...fields]),
@@ -134,6 +128,12 @@ export function SpansTable({
   const displayedMeta =
     (isLoadingDifferentTable ? undefined : result.meta) ??
     (canRetainLastResolvedTable ? lastResolvedTable.meta : undefined);
+  const routingHint =
+    !result.isPending && !result.isPlaceholderData && result.data
+      ? result.meta?.routingHint
+      : canRetainLastResolvedTable
+        ? lastResolvedTable.meta.routingHint
+        : undefined;
   const displayedPageLinks =
     (result.isPlaceholderData || result.isError) && canRetainLastResolvedTable
       ? lastResolvedTable.pageLinks
@@ -189,22 +189,15 @@ export function SpansTable({
         data-test-id="spans-table"
         fields={visibleFields}
         minimumColumnWidth={50}
-        prefixColumnWidth={canExpandSpanDetails ? SPAN_DETAILS_COLUMN_WIDTH : undefined}
+        prefixColumnWidth={SPAN_DETAILS_COLUMN_WIDTH}
       >
         <DataTable.Head>
           <DataTable.Row>
-            {canExpandSpanDetails && (
-              <SpanDetailsToggleHeadCell aria-label={t('Span details')} isFirst />
-            )}
+            <SpanDetailsToggleHeadCell aria-label={t('Span details')} isFirst />
             {visibleFields.map((field, i) => {
               // Hide column names before alignment is determined
               if (result.isPending || isLoadingDifferentTable) {
-                return (
-                  <DataTable.HeadCell
-                    key={i}
-                    isFirst={!canExpandSpanDetails && i === 0}
-                  />
-                );
+                return <DataTable.HeadCell key={i} />;
               }
 
               const fieldType = meta.fields?.[field];
@@ -225,7 +218,6 @@ export function SpansTable({
                   align={align}
                   columnIndex={i}
                   key={i}
-                  isFirst={!canExpandSpanDetails && i === 0}
                   onSort={updateSort}
                   sort={direction}
                 >
@@ -248,31 +240,23 @@ export function SpansTable({
         </DataTable.Head>
         <DataTable.Body>
           {(result.isPending || isLoadingDifferentTable) && !displayedData ? (
-            <DataTable.Status>
-              <LoadingIndicator />
-            </DataTable.Status>
+            <DataTable.Loading />
           ) : result.isError && !isRetainedError ? (
-            <DataTable.Status>
-              <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </DataTable.Status>
+            <DataTable.Error />
           ) : displayedData?.length ? (
             displayedData.map((row, i) => (
               <SpanSampleRow
                 key={`${tableIdentityKey}:${getSpanKey(row, i)}`}
-                canExpandSpanDetails={canExpandSpanDetails}
                 columns={columnsFromEventView}
                 data={row}
                 fields={visibleFields}
                 pendingFields={pendingFields}
                 meta={meta}
+                routingHint={routingHint}
               />
             ))
           ) : (
-            <DataTable.Status>
-              <EmptyStateWarning>
-                <p>{t('No spans found')}</p>
-              </EmptyStateWarning>
-            </DataTable.Status>
+            <DataTable.Empty>{t('No spans found')}</DataTable.Empty>
           )}
         </DataTable.Body>
       </DataTable>
@@ -291,19 +275,19 @@ export function SpansTable({
 }
 
 function SpanSampleRow({
-  canExpandSpanDetails,
   columns,
   data,
   fields,
   pendingFields,
   meta,
+  routingHint,
 }: {
-  canExpandSpanDetails: boolean;
   columns: Array<TableColumn<string>>;
   data: EventData;
   fields: readonly string[];
   meta: MetaType;
   pendingFields: ReadonlySet<string>;
+  routingHint?: string;
 }) {
   const organization = useOrganization();
   const [isExpanded, setIsExpanded] = useState(false);
@@ -311,24 +295,22 @@ function SpanSampleRow({
   return (
     <Fragment>
       <DataTable.Row>
-        {canExpandSpanDetails ? (
-          <SpanDetailsToggleCell>
-            <Button
-              aria-expanded={isExpanded}
-              aria-label={isExpanded ? t('Hide span details') : t('Show span details')}
-              icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
-              size="zero"
-              variant="transparent"
-              onClick={() => {
-                setIsExpanded(e => !e);
-                trackAnalytics('trace_explorer.toggle_span_details', {
-                  organization,
-                  expanded: !isExpanded,
-                });
-              }}
-            />
-          </SpanDetailsToggleCell>
-        ) : null}
+        <SpanDetailsToggleCell>
+          <Button
+            aria-expanded={isExpanded}
+            aria-label={isExpanded ? t('Hide span details') : t('Show span details')}
+            icon={<IconChevron size="xs" direction={isExpanded ? 'down' : 'right'} />}
+            size="zero"
+            variant="transparent"
+            onClick={() => {
+              setIsExpanded(e => !e);
+              trackAnalytics('trace_explorer.toggle_span_details', {
+                organization,
+                expanded: !isExpanded,
+              });
+            }}
+          />
+        </SpanDetailsToggleCell>
         {fields.map((field, index) => (
           <DataTable.Cell key={field}>
             {pendingFields.has(field) ? (
@@ -344,10 +326,10 @@ function SpanSampleRow({
           </DataTable.Cell>
         ))}
       </DataTable.Row>
-      {canExpandSpanDetails && isExpanded ? (
+      {isExpanded ? (
         <DataTable.Row>
           <SpanDetailsCell>
-            <SpanItemDetails dataRow={data} />
+            <SpanItemDetails dataRow={data} routingHint={routingHint} />
           </SpanDetailsCell>
         </DataTable.Row>
       ) : null}

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {IconLock, IconQuestion} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
@@ -19,7 +19,7 @@ function IconWithTooltip({
   ...props
 }: InfoTooltipProps & {icon: React.ComponentType<SVGIconProps>}) {
   return (
-    <Tooltip title={title} skipWrapper isHoverable position={position}>
+    <Tooltip title={title} skipWrapper position={position}>
       <StyledIconWrapper tabIndex={0} role="img" aria-label={ariaLabel}>
         <Icon {...props} aria-hidden />
       </StyledIconWrapper>

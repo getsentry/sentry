@@ -18,6 +18,7 @@ import {IconOpen} from 'sentry/icons/iconOpen';
 import {IconPullRequest} from 'sentry/icons/iconPullRequest';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
+import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
 interface PullRequestsCardProps {
@@ -54,12 +55,18 @@ export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
     >
       {artifact?.map(pullRequest => {
         if (pullRequest.pr_creation_status === 'creating') {
+          const isUpdating = defined(pullRequest.pr_number);
           return (
-            <Button key={pullRequest.repo_name} variant="primary" disabled>
-              {pullRequest.pr_number
-                ? t('Updating PR in %s', pullRequest.repo_name)
-                : t('Creating PR in %s', pullRequest.repo_name)}
-            </Button>
+            <Flex key={pullRequest.repo_name} gap="xs" align="center">
+              <Button variant="primary" disabled>
+                {isUpdating
+                  ? t('Updating PR in %s', pullRequest.repo_name)
+                  : t('Creating PR in %s', pullRequest.repo_name)}
+              </Button>
+              {isUpdating && pullRequest.pr_url && (
+                <CopyPullRequestUrlButton url={pullRequest.pr_url} />
+              )}
+            </Flex>
           );
         }
 
@@ -70,17 +77,7 @@ export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
               <LinkButton external href={link.url} variant="primary" icon={<IconOpen />}>
                 {link.label}
               </LinkButton>
-              <Button
-                variant="primary"
-                icon={<IconCopy size="xs" />}
-                aria-label={t('Copy PR URL')}
-                tooltipProps={{title: t('Copy PR URL')}}
-                onClick={() =>
-                  copy(link.url, {
-                    successMessage: t('PR URL copied to clipboard.'),
-                  })
-                }
-              />
+              <CopyPullRequestUrlButton url={link.url} />
             </Flex>
           );
         }
@@ -99,5 +96,19 @@ export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
         );
       })}
     </ArtifactCard>
+  );
+}
+
+function CopyPullRequestUrlButton({url}: {url: string}) {
+  const {copy} = useCopyToClipboard();
+
+  return (
+    <Button
+      variant="primary"
+      icon={<IconCopy size="xs" />}
+      aria-label={t('Copy PR URL')}
+      tooltipProps={{title: t('Copy PR URL')}}
+      onClick={() => copy(url, {successMessage: t('PR URL copied to clipboard.')})}
+    />
   );
 }

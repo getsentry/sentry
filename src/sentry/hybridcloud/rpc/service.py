@@ -28,6 +28,7 @@ import requests
 import sentry_sdk
 from django.conf import settings
 from requests.adapters import HTTPAdapter, Retry
+from sentry_sdk import traces
 
 from sentry import options
 from sentry.hybridcloud.rpc import ArgumentDict, DelegatedBySiloMode, RpcModel
@@ -36,7 +37,6 @@ from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.types.cell import Cell, CellMappingNotFound
 from sentry.utils import json, metrics
 from sentry.utils.env import in_test_environment
-from sentry.utils.tracing import start_span
 from sentry.viewer_context import get_viewer_context
 
 if TYPE_CHECKING:
@@ -650,15 +650,29 @@ class _RemoteSiloCall:
                 unit="byte",
             )
             if response.status_code == 200:
-                return response.json()
+                try:
+                    return response.json()
+                except ValueError as e:
+                    # Handle the case where the response from the remote silo
+                    # is not valid JSON. This could arise if we receive errors
+                    # from the LB rather than the application.
+                    metrics.incr(
+                        "hybrid_cloud.dispatch_rpc.failure",
+                        tags=self._metrics_tags(kind="malformed_response"),
+                    )
+                    raise RpcResponseException(
+                        service_name=self.service_name,
+                        method_name=self.method_name,
+                        message=f"Received malformed 200 response of {len(response.content)} byte(s)",
+                    ) from e
             self._raise_from_response_status_error(response)
 
     @contextmanager
     def _open_request_context(self) -> Generator[None]:
         timer = metrics.timer("hybrid_cloud.dispatch_rpc.duration", tags=self._metrics_tags())
-        span = start_span(
-            op="hybrid_cloud.dispatch_rpc",
+        span = traces.start_span(
             name=f"rpc to {self.service_name}.{self.method_name}",
+            attributes={"sentry.op": "hybrid_cloud.dispatch_rpc"},
         )
         with span, timer:
             yield

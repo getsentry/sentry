@@ -114,6 +114,9 @@ export function CommandPalette({
 
   const getDocEl = useCallback(
     () => state.input.current?.closest('[role="document"]') as HTMLElement | null,
+    // The dependency is the ref object while React Compiler infers the `.current`
+    // read inside the callback. Refs are stable, so the memoization already holds.
+    // oxlint-disable-next-line react/preserve-manual-memoization
     [state.input]
   );
 
@@ -253,11 +256,13 @@ export function CommandPalette({
   const isSeerFallback =
     state.list === 'active' ? computedIsSeerFallback : frozenRef.current.isSeerFallback;
 
+  // oxlint-disable-next-line react/refs
   const analytics = useCommandPaletteAnalytics(isSeerFallback ? 0 : actions.length);
   const mouseLeftResultsRef = useRef(false);
 
   const sectionKeys = useMemo(() => {
     return new Set(
+      // oxlint-disable-next-line react/refs
       actions
         .filter(action => action.listItemType === 'section')
         .map(action => action.key)
@@ -266,6 +271,7 @@ export function CommandPalette({
 
   const treeState = useTreeState<CommandPaletteActionMenuItem>({
     disabledKeys: sectionKeys,
+    // oxlint-disable-next-line react/refs
     children: actions.map(action => {
       const menuItem = makeMenuItemFromAction(action, prefixMap);
 
@@ -352,6 +358,7 @@ export function CommandPalette({
     if (firstFocusableKey) {
       treeState.selectionManager.setFocusedKey(firstFocusableKey.key);
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [treeState.collection, treeState.selectionManager, firstFocusableKey]);
 
   const resultsListRef = useRef<HTMLDivElement>(null);
@@ -363,6 +370,7 @@ export function CommandPalette({
         disabledKeys: treeState.selectionManager.disabledKeys,
         ref: resultsListRef,
       }),
+    // oxlint-disable-next-line react/memo-dependencies
     [treeState.collection, treeState.selectionManager.disabledKeys]
   );
 
@@ -383,6 +391,7 @@ export function CommandPalette({
     ...collectionProps,
     onKeyDown: undefined,
   };
+  // oxlint-disable-next-line react/refs
   const inputCollectionProps = mergeProps(mergedCollectionProps, {
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
       dispatch({type: 'set query', query: e.target.value});
@@ -539,6 +548,7 @@ export function CommandPalette({
   // cleanup runs at exactly the right time. If the user re-opens the palette
   // before the animation ends, the component stays mounted and nothing fires.
   const pendingResetRef = useRef(state.pendingReset);
+  // oxlint-disable-next-line react/refs
   pendingResetRef.current = state.pendingReset;
   useEffect(() => {
     return () => {

@@ -9,7 +9,7 @@ import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {IdBadge} from 'sentry/components/idBadge';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tn} from 'sentry/locale';
-import type {Team} from 'sentry/types/organization';
+import type {Organization, Team} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useJoinTeam} from 'sentry/views/settings/organizationTeams/hooks/useJoinTeam';
@@ -29,6 +29,34 @@ interface OtherTeamsTableProps {
   teams: Team[];
 }
 
+function OtherTeamsEmptyState({
+  canCreateTeams,
+  hasSearch,
+  organization,
+}: {
+  canCreateTeams: boolean;
+  hasSearch: boolean;
+  organization: Organization;
+}) {
+  if (hasSearch) {
+    return <SimpleTable.Empty>{t('No teams match your search.')}</SimpleTable.Empty>;
+  }
+
+  // User is a member of all teams
+  return (
+    <SimpleTable.Empty>
+      <Flex gap="sm">
+        {t("You're a member of all teams.")}
+        {canCreateTeams && (
+          <Button variant="link" onClick={() => openCreateTeamModal({organization})}>
+            {t('Create another team')}
+          </Button>
+        )}
+      </Flex>
+    </SimpleTable.Empty>
+  );
+}
+
 export function OtherTeamsTable({
   teams,
   openMembership,
@@ -44,49 +72,33 @@ export function OtherTeamsTable({
     return null;
   }
 
-  const renderEmptyState = () => {
-    if (hasSearch) {
-      return <SimpleTable.Empty>{t('No teams match your search.')}</SimpleTable.Empty>;
-    }
-
-    // User is a member of all teams
-    return (
-      <SimpleTable.Empty>
-        <Flex gap="sm">
-          {t("You're a member of all teams.")}
-          {canCreateTeams && (
-            <Button variant="link" onClick={() => openCreateTeamModal({organization})}>
-              {t('Create another team')}
-            </Button>
-          )}
-        </Flex>
-      </SimpleTable.Empty>
-    );
-  };
-
   return (
     <TeamsTable
       header={
         <SimpleTable.HeaderRow>
           <SimpleTable.HeaderCell>{t('Other Teams')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="role" />
-          <SimpleTable.HeaderCell data-column-name="projects">
-            {t('Projects')}
-          </SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell data-column-name="actions" />
+          <SimpleTable.HeaderCell />
+          <SimpleTable.HeaderCell>{t('Projects')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell />
         </SimpleTable.HeaderRow>
       }
     >
-      {teams.length === 0
-        ? renderEmptyState()
-        : teams.map(team => (
-            <OtherTeamRow
-              key={team.slug}
-              team={team}
-              openMembership={openMembership}
-              projects={projects}
-            />
-          ))}
+      {teams.length === 0 ? (
+        <OtherTeamsEmptyState
+          canCreateTeams={canCreateTeams}
+          hasSearch={hasSearch}
+          organization={organization}
+        />
+      ) : (
+        teams.map(team => (
+          <OtherTeamRow
+            key={team.slug}
+            team={team}
+            openMembership={openMembership}
+            projects={projects}
+          />
+        ))
+      )}
     </TeamsTable>
   );
 }
@@ -140,14 +152,14 @@ function OtherTeamRow({team, openMembership, projects}: OtherTeamRowProps) {
           badge
         )}
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell data-column-name="role">{null}</SimpleTable.RowCell>
-      <SimpleTable.RowCell data-column-name="projects">
+      <SimpleTable.RowCell>{null}</SimpleTable.RowCell>
+      <SimpleTable.RowCell>
         <TeamProjectsCell
           projects={teamProjects}
           teamProjectsUrl={`/settings/${organization.slug}/teams/${team.slug}/projects/`}
         />
       </SimpleTable.RowCell>
-      <SimpleTable.RowCell justify="end" data-column-name="actions">
+      <SimpleTable.RowCell justify="end" padding="lg xl lg 0">
         <TeamAction
           isLoading={isLoading}
           isPending={team.isPending}

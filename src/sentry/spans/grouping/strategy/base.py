@@ -113,7 +113,11 @@ def span_op(op_name: str | Sequence[str]) -> Callable[[CallableStrategy], Callab
     permitted_ops = [op_name] if isinstance(op_name, str) else op_name
 
     def wrapped(fn: CallableStrategy) -> CallableStrategy:
-        return lambda span: fn(span) if span.get("op") in permitted_ops else None
+        def inner(span: Span) -> Sequence[str] | None:
+            op = span.get("op") or attribute_value(span, ATTRIBUTE_NAMES.SENTRY_OP)
+            return fn(span) if op in permitted_ops else None
+
+        return inner
 
     return wrapped
 
@@ -127,7 +131,9 @@ def raw_description_strategy(span: Span) -> Sequence[str]:
 
 
 def raw_description(span: Span) -> str:
-    return span.get("description") or attribute_value(span, "sentry.description") or ""
+    return (
+        span.get("description") or attribute_value(span, ATTRIBUTE_NAMES.SENTRY_DESCRIPTION) or ""
+    )
 
 
 IN_CONDITION_PATTERN = re.compile(r" IN \(%s(\s*,\s*%s)*\)")

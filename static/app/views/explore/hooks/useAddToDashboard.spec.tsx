@@ -24,7 +24,9 @@ describe('AddToDashboardButton', () => {
   let setVisualizes: ReturnType<typeof useSetQueryParamsVisualizes>;
 
   function TestPage({visualizeIndex}: {visualizeIndex: number}) {
+    // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
     setMode = useSetQueryParamsMode();
+    // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
     setVisualizes = useSetQueryParamsVisualizes();
     const {addToDashboard} = useAddToDashboard();
     return (

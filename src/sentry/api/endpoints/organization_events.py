@@ -9,17 +9,19 @@ from rest_framework import status
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
-from sentry.api.client_kind import get_client_host, get_client_kind, get_user_agent
 from sentry.api.helpers.error_upsampling import (
     is_errors_query_for_error_upsampled_projects,
     transform_orderby_for_error_upsampling,
     transform_query_columns_for_error_upsampling,
+)
+from sentry.api.helpers.ingestion_delay import (
+    get_ingestion_delay_status,
+    serialize_ingestion_status,
 )
 from sentry.api.paginator import EAPPageTokenPaginator, GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
@@ -34,6 +36,7 @@ from sentry.apidocs.parameters import (
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
+from sentry.ingestion_delay.meta import IngestionMeta
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
@@ -57,6 +60,7 @@ from sentry.snuba.preprod_size import PreprodSize
 from sentry.snuba.processing_errors_rpc import ProcessingErrors
 from sentry.snuba.profile_functions import ProfileFunctions
 from sentry.snuba.referrer import Referrer, is_valid_referrer
+from sentry.snuba.rpc_dataset_common import RPCBase
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.types import DatasetQuery
@@ -106,7 +110,9 @@ class EventsMeta(TypedDict, total=False):
     discoverSplitDecision: Any
     dataScanned: str
     bytesScanned: int
+    routingHint: str
     debug_info: Any
+    ingestion: IngestionMeta
 
 
 # Only used for api docs
@@ -141,6 +147,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             "organizations:on-demand-metrics-extraction",
             "organizations:on-demand-metrics-extraction-widgets",
             "organizations:events-endpoint-transactions-discover-blocked",
+            "organizations:measured-ingestion-delay-metadata",
         ]
         batch_features = features.batch_has(
             feature_names,
@@ -204,6 +211,9 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
         The `field` query parameter determines what fields will be selected in the `data` and `meta` keys of the endpoint response.
         - The `data` key contains a list of results row by row that match the `query` made
         - The `meta` key contains information about the response, including the unit or type of the fields requested
+        - EAP table results may include `meta.routingHint`. Pass this opaque value unchanged as
+          `routing_hint` when fetching item details for a row in this response. It identifies how
+          the table query was routed and is omitted when no hint is available.
         """
         if not self.has_feature(organization, request):
             return Response(
@@ -215,20 +225,6 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         referrer = request.GET.get("referrer")
         sentry_sdk.set_attribute("query.raw_referrer", referrer or "")
-
-        client_kind = get_client_kind(request, organization)
-        if client_kind is not None:
-            # `_test` suffix while this is a POC, to keep it out of the way of a
-            # real `client_kind` attribute later.
-            sentry_sdk.set_tag("client_kind_test", client_kind.value)
-            sentry_sdk.set_attribute("client_kind_test", client_kind.value)
-            client_host = get_client_host(request)
-            if client_host is not None:
-                sentry_sdk.set_tag("client_host_test", client_host)
-                sentry_sdk.set_attribute("client_host_test", client_host)
-            user_agent = get_user_agent(request)
-            if user_agent is not None:
-                sentry_sdk.set_attribute(ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, user_agent)
 
         try:
             snuba_params = self.get_snuba_params(
@@ -729,12 +725,21 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
 
         paginator, cursor_cls = paginator_factory(dataset)
 
-        max_per_page = 9999 if dataset in (OurLogs, TraceMetrics) else None
+        max_per_page = 9999 if dataset in RPC_DATASETS else None
+
+        # Only the EAP RPC datasets can measure ingestion delay, and only the item types the
+        # outcomes lookup understands. The rest would just log an unsupported item type.
+
+        include_measured_ingestion_delay_metadata = request.GET.get(
+            "includeMeasuredIngestionDelayMetadata"
+        ) is not None and batch_features.get(
+            "organizations:measured-ingestion-delay-metadata", False
+        )
 
         def _handle_results(results):
             # Apply error upsampling for regular Events API
             self.handle_error_upsampling(snuba_params.project_ids, results)
-            return self.handle_results_with_meta(
+            handled = self.handle_results_with_meta(
                 request,
                 organization,
                 snuba_params.project_ids,
@@ -742,6 +747,15 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                 standard_meta=True,
                 dataset=dataset,
             )
+            if (
+                include_measured_ingestion_delay_metadata
+                and isinstance(dataset, type)
+                and issubclass(dataset, RPCBase)
+            ):
+                status = get_ingestion_delay_status(dataset, snuba_params)
+                if status is not None:
+                    handled["meta"]["ingestion"] = serialize_ingestion_status(status)
+            return handled
 
         with handle_query_errors():
             # Don't include cursor headers if the client won't be using them
