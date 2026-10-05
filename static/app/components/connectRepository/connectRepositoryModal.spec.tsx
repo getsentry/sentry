@@ -981,7 +981,13 @@ describe('ConnectRepositoryModal', () => {
         const postRepo = MockApiClient.addMockResponse({
           url: `/projects/${organization.slug}/${project.slug}/repo/`,
           method: 'POST',
-          body: {id: '99', projectId: project.id, repositoryId: repo.id, source: 'scm_onboarding', created: true},
+          body: {
+            id: '99',
+            projectId: project.id,
+            repositoryId: repo.id,
+            source: 'scm_onboarding',
+            created: true,
+          },
         });
         const postMapping = MockApiClient.addMockResponse({
           url: `/organizations/${organization.slug}/code-mappings/`,

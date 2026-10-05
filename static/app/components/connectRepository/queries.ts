@@ -283,14 +283,11 @@ export function orgCodeMappingsInfiniteOptions(orgSlug: string) {
 }
 
 export function orgProjectsOptions(orgSlug: string) {
-  return apiOptions.as<Project[]>()(
-    '/organizations/$organizationIdOrSlug/projects/',
-    {
-      path: {organizationIdOrSlug: orgSlug},
-      query: {all_projects: '1', collapse: ['latestDeploys', 'unusedFeatures']},
-      staleTime: 60_000,
-    }
-  );
+  return apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
+    path: {organizationIdOrSlug: orgSlug},
+    query: {all_projects: '1', collapse: ['latestDeploys', 'unusedFeatures']},
+    staleTime: 60_000,
+  });
 }
 
 /**
@@ -318,7 +315,6 @@ export function useInvalidateRepoQueries(orgSlug: string) {
       queryClient.invalidateQueries(orgCodeMappingsInfiniteOptions(orgSlug)),
     ]);
 }
-
 
 const DUPLICATE_CODE_MAPPING_MESSAGE = 'Code path config already exists';
 

@@ -13,7 +13,7 @@ import {
 
 export type ConnectRepositoryModalProps =
   | (EditFormProps & {mode: 'edit'})
-  | (RepoLockedConnectFormProps & {mode: 'connect'; lockedSide: 'repo'})
+  | (RepoLockedConnectFormProps & {lockedSide: 'repo'; mode: 'connect'})
   | (ConnectFormProps & {mode: 'connect'; lockedSide?: 'project'});
 
 export function ConnectRepositoryModal(props: ConnectRepositoryModalProps) {

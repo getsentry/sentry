@@ -14,7 +14,6 @@ import type {Project} from 'sentry/types/project';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
-
 export function getApiErrorMessage(error: unknown): string {
   if (!(error instanceof RequestError)) {
     return t('Failed to connect repository');

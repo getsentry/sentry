@@ -494,7 +494,7 @@ describe('OrganizationRepositories', () => {
     const PROJECT = ProjectFixture({id: 'proj-1', slug: 'my-project'});
     const organization = OrganizationFixture({features: ['code-mappings-refactor']});
 
-    function setupRepoMocks(codeMappingBody: object[]) {
+    function setupRepoMocks(codeMappingBody: Record<PropertyKey, unknown>[]) {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/config/integrations/',
         body: {providers: [GITHUB_PROVIDER]},
@@ -598,7 +598,9 @@ describe('OrganizationRepositories', () => {
       const chip = await screen.findByTestId(/^platform-icon-/);
       await userEvent.click(chip);
 
-      expect(await screen.findByRole('heading', {name: 'Edit code mappings'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('heading', {name: 'Edit code mappings'})
+      ).toBeInTheDocument();
     });
   });
 });

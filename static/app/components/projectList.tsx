@@ -25,7 +25,7 @@ function CollapsedProjectsTooltip({
   projects,
   onProjectClick,
 }: {
-  projects: Array<AvatarProject>;
+  projects: AvatarProject[];
   onProjectClick?: (project: AvatarProject) => void;
 }) {
   return (
@@ -144,7 +144,11 @@ const StyledProjectBadge = styled(ProjectBadge, {
     `}
 `;
 
-const CollapsedBadge = styled('div')<{fontSize: number; size: number; $clickable?: boolean}>`
+const CollapsedBadge = styled('div')<{
+  fontSize: number;
+  size: number;
+  $clickable?: boolean;
+}>`
   display: flex;
   align-items: center;
   justify-content: center;

@@ -28,7 +28,11 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Integration, OrganizationIntegration, Repository} from 'sentry/types/integrations';
+import type {
+  Integration,
+  OrganizationIntegration,
+  Repository,
+} from 'sentry/types/integrations';
 import type {AvatarProject} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -241,7 +245,9 @@ function openMappedProjectEditModal({
 export default function OrganizationRepositories() {
   const organization = useOrganization();
   const {openModal} = useModal();
-  const hasCodeMappingsRefactor = organization.features.includes('code-mappings-refactor');
+  const hasCodeMappingsRefactor = organization.features.includes(
+    'code-mappings-refactor'
+  );
   const [searchTerm, setSearchTerm] = useState('');
   const [autoSyncIntegrationId, setAutoSyncIntegrationId] = useState<string | null>(null);
   const clearAutoSync = useCallback(() => setAutoSyncIntegrationId(null), []);

@@ -169,7 +169,6 @@ function EditRepositoryFormBody({
   );
 }
 
-
 export function EditRepositoryForm({
   Header,
   Body,
@@ -216,7 +215,9 @@ export function EditRepositoryForm({
   const isPending = codeMappingsQuery.isPending || isRepoInfoPending;
 
   const projectField = <LockedProjectField project={project} />;
-  const repoFieldLocked = <LockedRepoField repoName={repoName} providerKey={providerKey} />;
+  const repoFieldLocked = (
+    <LockedRepoField repoName={repoName} providerKey={providerKey} />
+  );
 
   // lockedSide determines field order only; both are always locked in edit mode.
   const [leftLabel, leftField, rightLabel, rightField] =

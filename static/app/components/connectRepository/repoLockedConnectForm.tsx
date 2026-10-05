@@ -14,15 +14,7 @@ import {
   LockedRepoField,
   getApiErrorMessage,
 } from 'sentry/components/connectRepository/connectionModalFrame';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
-import type {PathMappingValue} from 'sentry/components/connectRepository/type';
-import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
-import {t, tct} from 'sentry/locale';
-import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
-import type {Project} from 'sentry/types/project';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtualizedMenuList';
 import {
   orgProjectsOptions,
   projectCodeMappingsOptions,
@@ -30,6 +22,14 @@ import {
   useEditRepoInfo,
   useInvalidateRepoQueries,
 } from 'sentry/components/connectRepository/queries';
+import type {PathMappingValue} from 'sentry/components/connectRepository/type';
+import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtualizedMenuList';
+import {t, tct} from 'sentry/locale';
+import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
+import type {Project} from 'sentry/types/project';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 export type RepoLockedConnectFormProps = ModalRenderProps & {
   externalId: string | null;
@@ -42,9 +42,7 @@ export type RepoLockedConnectFormProps = ModalRenderProps & {
 function PathsPlaceholder() {
   return (
     <Container border="muted" radius="md" padding="2xl" style={{borderStyle: 'dashed'}}>
-      <Text variant="muted">
-        {t('Select a project first to configure code paths')}
-      </Text>
+      <Text variant="muted">{t('Select a project first to configure code paths')}</Text>
     </Container>
   );
 }
@@ -206,7 +204,9 @@ export function RepoLockedConnectForm({
               intro={intro}
               alerts={alerts}
               leftLabel={t('Repository')}
-              leftField={<LockedRepoField repoName={repoName} providerKey={providerKey} />}
+              leftField={
+                <LockedRepoField repoName={repoName} providerKey={providerKey} />
+              }
               rightLabel={t('Project')}
               rightField={projectField}
               pathsSection={pathsSection}
