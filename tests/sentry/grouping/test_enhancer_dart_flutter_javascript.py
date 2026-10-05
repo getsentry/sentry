@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from sentry.grouping.enhancer import ENHANCEMENT_BASES
+from sentry.grouping.enhancer import get_enhancement_bases
 from sentry.testutils.cases import TestCase
 
 
@@ -16,7 +16,7 @@ class _BaseJavaScriptDartFlutterEnhancerTest(TestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.enhancements = ENHANCEMENT_BASES["all-platforms:2026-01-20"]
+        self.enhancements = get_enhancement_bases()["all-platforms:2026-01-20"]
 
     def apply_rules(self, frame: dict[str, Any]) -> dict[str, Any]:
         frames = [frame]

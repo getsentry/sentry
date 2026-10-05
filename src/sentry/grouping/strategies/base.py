@@ -11,8 +11,8 @@ from sentry.grouping.component import (
 )
 from sentry.grouping.enhancer import (
     DEFAULT_ENHANCEMENTS_BASE,
-    ENHANCEMENT_BASES,
     EnhancementsConfig,
+    get_enhancement_bases,
 )
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import DEFAULT_GROUPING_FINGERPRINTING_BASES
@@ -208,7 +208,7 @@ class StrategyConfiguration:
                     base64_enhancements, referrer="strategy_config"
                 )
             except InvalidEnhancerConfig:
-                enhancements_config = ENHANCEMENT_BASES[
+                enhancements_config = get_enhancement_bases()[
                     self.enhancements_base or DEFAULT_ENHANCEMENTS_BASE
                 ]
 

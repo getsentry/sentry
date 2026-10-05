@@ -13,13 +13,13 @@ from sentry.grouping.api import get_grouping_config_dict_for_project, load_group
 from sentry.grouping.component import FrameGroupingComponent, StacktraceGroupingComponent
 from sentry.grouping.enhancer import (
     DEFAULT_ENHANCEMENTS_BASE,
-    ENHANCEMENT_BASES,
     LEGACY_ENHANCEMENT_BASE_HASHES,
     EnhancementsConfig,
     _is_valid_profiling_action,
     _is_valid_profiling_matcher,
     _load_enhancement_bases,
     _split_rules,
+    get_enhancement_bases,
     keep_profiling_rules,
 )
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
@@ -319,7 +319,7 @@ class EnhancementsTest(TestCase):
         ]
 
     def test_adds_split_rules_to_base_enhancements(self) -> None:
-        for base in ENHANCEMENT_BASES.values():
+        for base in get_enhancement_bases().values():
             # Make these sets so checking in them is faster
             classifier_rules = set(base.classifier_rules)
             contributes_rules = set(base.contributes_rules)

@@ -6,7 +6,7 @@ import re
 import zlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from functools import cached_property
+from functools import cache, cached_property
 from typing import Any, Literal, overload
 
 import msgpack
@@ -90,7 +90,7 @@ def _merge_rust_enhancements(
     """
     merged_rust_enhancements = RustEnhancements.empty()
     for base_id in bases:
-        base = ENHANCEMENT_BASES[base_id]
+        base = get_enhancement_bases()[base_id]
         base_rust_enhancements = (
             base.classifier_rust_enhancements
             if type == "classifier"
@@ -405,7 +405,7 @@ class EnhancementsConfig:
         self.rules = rules
         self.version = version or DEFAULT_ENHANCEMENTS_VERSION
         # To be safe, filter out invalid base ids (shouldn't ever happen in practice, though)
-        self.bases = [base_id for base_id in (bases or []) if base_id in ENHANCEMENT_BASES]
+        self.bases = [base_id for base_id in (bases or []) if base_id in get_enhancement_bases()]
 
         classifier_config, contributes_config = split_enhancement_configs or _split_rules(rules)
 
@@ -683,14 +683,24 @@ def _load_enhancement_bases() -> dict[str, EnhancementsConfig]:
     return enhancement_bases
 
 
-ENHANCEMENT_BASES = _load_enhancement_bases()
+@cache
+def get_enhancement_bases() -> dict[str, EnhancementsConfig]:
+    """
+    Return the built-in enhancement bases keyed by id.
 
-# TODO: Shim to cover the time period before events which have the old default enhancements name
-# encoded in their base64 grouping config expire. Should be able to be deleted after Nov 2025. (Note
-# that the new name is hard-coded, rather than a reference to `DEFAULT_ENHANCEMENTS_BASE`, because
-# if we make a new default in the meantime, the old name should still point to
-# `all-platforms:2023-01-11`.)
-ENHANCEMENT_BASES["newstyle:2023-01-11"] = ENHANCEMENT_BASES["all-platforms:2023-01-11"]
+    The bases are parsed on first use rather than at import, so processes that never group
+    events (such as web workers) do not pay for them.
+    """
+    enhancement_bases = _load_enhancement_bases()
+
+    # TODO: Shim to cover the time period before events which have the old default enhancements
+    # name encoded in their base64 grouping config expire. Should be able to be deleted after Nov
+    # 2025. (Note that the new name is hard-coded, rather than a reference to
+    # `DEFAULT_ENHANCEMENTS_BASE`, because if we make a new default in the meantime, the old name
+    # should still point to `all-platforms:2023-01-11`.)
+    enhancement_bases["newstyle:2023-01-11"] = enhancement_bases["all-platforms:2023-01-11"]
+
+    return enhancement_bases
 
 
 # Enhancements bases which have gone from default to legacy status shouldn't have their rules
