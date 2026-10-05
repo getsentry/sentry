@@ -122,10 +122,21 @@ sentry-cli monitors run ${slug} -- python path/to/file`;
 export function CurlCronQuickStart(props: QuickStartProps) {
   const {cronsUrl, slug} = withDefaultProps(props);
 
-  const url = new URL(cronsUrl.replace('___MONITOR_SLUG___', slug));
+  const fullUrl = cronsUrl.replace('___MONITOR_SLUG___', slug);
 
-  const checkInSuccessCode = `SENTRY_INGEST="${url.origin}"
-SENTRY_CRONS="\${SENTRY_INGEST}${url.pathname}"
+  let origin: string;
+  let pathname: string;
+  try {
+    const url = new URL(fullUrl);
+    origin = url.origin;
+    pathname = url.pathname;
+  } catch {
+    origin = fullUrl;
+    pathname = '';
+  }
+
+  const checkInSuccessCode = `SENTRY_INGEST="${origin}"
+SENTRY_CRONS="\${SENTRY_INGEST}${pathname}"
 
 # 🟡 Notify Sentry your job is running:
 curl "\${SENTRY_CRONS}?status=in_progress"
