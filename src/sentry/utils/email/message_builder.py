@@ -9,8 +9,6 @@ from operator import attrgetter
 from random import randrange
 from typing import Any
 
-import lxml.html
-import toronado
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.utils.encoding import force_str
@@ -68,6 +66,11 @@ def make_msgid(domain: str) -> str:
 
 
 def inline_css(value: str) -> str:
+    # Imported here so web workers do not load lxml and cssutils at boot. Only outbound
+    # HTML email needs them.
+    import lxml.html
+    import toronado
+
     tree = lxml.html.document_fromstring(value)
     toronado.inline(tree)
     # CSS media query support is inconsistent when the DOCTYPE declaration is
