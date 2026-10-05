@@ -27,6 +27,7 @@ export function ExploreControlSection({expanded, ...props}: ExploreControlSectio
       borderRight={{zero: 'none', xl: expanded ? 'primary' : 'none'}}
       overflow={expanded ? 'visible' : 'hidden'}
       width={{zero: 'auto', xl: expanded ? '343px' : '0px'}}
+      flexShrink={0}
       {...props}
     />
   );

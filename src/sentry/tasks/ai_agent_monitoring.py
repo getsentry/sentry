@@ -23,7 +23,10 @@ logger = logging.getLogger(__name__)
 
 # API endpoints
 OPENROUTER_MODELS_API_URL = "https://openrouter.ai/api/v1/models"
-MODELS_DEV_API_URL = "https://models.dev/api.json"
+# `type=all` includes specialized model types that models.dev omits by default.
+MODELS_DEV_API_URL = "https://models.dev/api.json?type=all"
+# Specialized models.dev types priced per token. Models without a type are general models.
+MODELS_DEV_TOKEN_PRICED_TYPES = frozenset({"decision"})
 
 
 def _normalize_model_id(model_id: str) -> str:
@@ -269,6 +272,10 @@ def _fetch_models_dev_models() -> dict[ModelId, AIModelMetadata]:
 
         for model_id, model_data in models.items():
             if not isinstance(model_data, dict):
+                continue
+
+            model_type = model_data.get("type")
+            if model_type is not None and model_type not in MODELS_DEV_TOKEN_PRICED_TYPES:
                 continue
 
             cost_data = model_data.get("cost", {})

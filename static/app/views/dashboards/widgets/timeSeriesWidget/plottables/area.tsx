@@ -36,12 +36,15 @@ export class Area extends ContinuousTimeSeries implements Plottable {
       yAxisIndex: plottingOptions.yAxisPosition === 'left' ? 0 : 1,
     };
 
+    // ECharts groups stacks by name, even when series use different Y axes.
+    const stackPrefix = plottingOptions.yAxisPosition;
+
     this.#timeSeriesAndIsIncomplete.forEach(([timeSeries, isIncomplete], index) => {
       if (isIncomplete) {
         plottableSeries.push(
           createLineSeries({
             ...commonOptions,
-            stack: `incomplete-${index}`,
+            stack: `incomplete-${stackPrefix}-${index}`,
             data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
               timeSeriesItemToEChartsDataPoint
             ),
@@ -61,7 +64,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
         plottableSeries.push(
           createLineSeries({
             ...commonOptions,
-            stack: `complete-${index}`,
+            stack: `complete-${stackPrefix}-${index}`,
             areaStyle: {
               color,
               opacity: 1,

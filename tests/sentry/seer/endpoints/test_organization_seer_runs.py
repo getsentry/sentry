@@ -2,6 +2,8 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import patch
 
+from django.test import override_settings
+
 from sentry.seer.models.run import SeerRunPullRequest, SeerRunType
 from sentry.seer.run_questions import QUESTIONS, question_hash
 from sentry.testutils.cases import APITestCase
@@ -9,9 +11,8 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 @with_feature("organizations:seer-explorer")
-@with_feature("organizations:gen-ai-features")
-@with_feature("organizations:gen-ai-consent-flow-removal")
 class OrganizationSeerRunsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-seer-runs"
 
@@ -176,8 +177,8 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
         assert [r["id"] for r in response.data] == [str(chat.uuid)]
 
     def test_source_in_filter(self) -> None:
-        night_shift = self.create_seer_run(organization=self.organization, user_id=self.user.id)
-        self.create_seer_agent_run(run=night_shift, source="night_shift")
+        agentic_triage = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=agentic_triage, source="night_shift")
         chat = self.create_seer_run(organization=self.organization, user_id=self.user.id)
         self.create_seer_agent_run(run=chat, source="chat")
         slack = self.create_seer_run(organization=self.organization, user_id=self.user.id)
@@ -186,22 +187,22 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "source:[night_shift, chat]"}
         )
-        assert {r["id"] for r in response.data} == {str(night_shift.uuid), str(chat.uuid)}
+        assert {r["id"] for r in response.data} == {str(agentic_triage.uuid), str(chat.uuid)}
 
     def test_source_wildcard_in_filter(self) -> None:
         # A bracketed list with wildcards collapses to a regex string; it must
         # match via __regex rather than being iterated char-by-char by __in.
         slack = self.create_seer_run(organization=self.organization, user_id=self.user.id)
         self.create_seer_agent_run(run=slack, source="slack_thread")
-        night_shift = self.create_seer_run(organization=self.organization, user_id=self.user.id)
-        self.create_seer_agent_run(run=night_shift, source="night_shift")
+        agentic_triage = self.create_seer_run(organization=self.organization, user_id=self.user.id)
+        self.create_seer_agent_run(run=agentic_triage, source="night_shift")
         chat = self.create_seer_run(organization=self.organization, user_id=self.user.id)
         self.create_seer_agent_run(run=chat, source="chat")
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"query": "source:[slack*, night*]"}
         )
-        assert {r["id"] for r in response.data} == {str(slack.uuid), str(night_shift.uuid)}
+        assert {r["id"] for r in response.data} == {str(slack.uuid), str(agentic_triage.uuid)}
 
     def test_project_filter(self) -> None:
         project = self.create_project(organization=self.organization)

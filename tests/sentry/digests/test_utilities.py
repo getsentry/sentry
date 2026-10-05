@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from collections.abc import Collection, Iterable, Mapping, Sequence
 
-from sentry.digests.notifications import Digest, DigestInfo, build_digest, event_to_record
+from sentry.digests.notifications import (
+    Digest,
+    DigestInfo,
+    build_digest,
+    event_to_record,
+    get_rules_from_workflows,
+)
 from sentry.digests.types import IdentifierKey, Record
 from sentry.digests.utils import (
     get_event_from_groups_in_digest,
@@ -20,6 +26,7 @@ from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.actor import ActorType
+from sentry.workflow_engine.models import Workflow
 
 
 def _get_records(project: Project, rules: Collection[RuleModel], event: Event) -> list[Record]:
@@ -108,6 +115,32 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         record = records[0]
         assert record.value.identifier_key == IdentifierKey.RULE
         assert record.value.rules == [rule.data["actions"][0]["legacy_rule_id"]]
+
+    def test_get_rules_from_workflows_uses_workflow_environment_for_linked_rule(self) -> None:
+        project = self.create_project(fire_project_created=True)
+        development = self.create_environment(project=project, name="development")
+        production = self.create_environment(project=project, name="production")
+        rule = self.create_project_rule(project=project, environment_id=development.id)
+        workflow_id = int(rule.data["actions"][0]["workflow_id"])
+        workflow = Workflow.objects.get(id=workflow_id)
+        workflow.update(environment_id=production.id)
+
+        rendered_rule = get_rules_from_workflows(project, {workflow_id})[workflow_id]
+
+        assert rendered_rule.id == rule.id
+        assert rendered_rule.environment_id == production.id
+
+    def test_get_rules_from_workflows_uses_workflow_environment_for_synthetic_rule(self) -> None:
+        project = self.create_project(fire_project_created=True)
+        environment = self.create_environment(project=project)
+        workflow = self.create_workflow(
+            organization=project.organization, environment_id=environment.id
+        )
+
+        rendered_rule = get_rules_from_workflows(project, {workflow.id})[workflow.id]
+
+        assert rendered_rule.id == workflow.id
+        assert rendered_rule.environment_id == environment.id
 
 
 def assert_rule_ids(digest: Digest, expected_rule_ids: list[int]) -> None:

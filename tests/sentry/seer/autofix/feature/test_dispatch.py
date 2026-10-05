@@ -6,10 +6,15 @@ from sentry.constants import DataCategory
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.feature.dispatch import AutofixFeatureArgs, trigger_autofix_feature
-from sentry.seer.autofix.feature.models import LEGACY_FEATURE_ID, RCAStepArgs
+from sentry.seer.autofix.feature.models import (
+    LEGACY_FEATURE_ID,
+    CodeChangesStepArgs,
+    RCAStepArgs,
+)
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.models import SeerPermissionError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -41,7 +46,7 @@ class TestTriggerAutofixFeature(TestCase):
             run = trigger_autofix_feature(
                 self.group,
                 AutofixFeatureArgs(
-                    referrer=AutofixReferrer.NIGHT_SHIFT,
+                    referrer=AutofixReferrer.AGENTIC_TRIAGE,
                     step=AutofixStep.ROOT_CAUSE,
                     existing_run_id=123,
                     insert_index=4,
@@ -69,7 +74,7 @@ class TestTriggerAutofixFeature(TestCase):
         assert client_kwargs["organization"] == self.group.organization
         assert client_kwargs["project"] == self.group.project
         assert client_kwargs["group"] == self.group
-        assert client_kwargs["enable_bash_tools"] is False
+        assert client_kwargs["enable_bash_mode"] is False
 
         # A rerun uses the existing mirror rather than creating another one.
         run_kwargs = client.continue_feature_run.call_args.kwargs
@@ -106,7 +111,7 @@ class TestTriggerAutofixFeature(TestCase):
             "module_path": AutofixOnCompletionHook.get_module_path(),
             "call_on_failure": True,
         }
-        assert run_kwargs["referrer"] == AutofixReferrer.NIGHT_SHIFT.value
+        assert run_kwargs["referrer"] == AutofixReferrer.AGENTIC_TRIAGE.value
         assert run_kwargs["proxy_headers"] == {"X-Viewer-Context": "signed-viewer-context"}
         mock_get_proxy_headers.assert_called_once_with()
 
@@ -127,7 +132,7 @@ class TestTriggerAutofixFeature(TestCase):
             run = trigger_autofix_feature(
                 self.group,
                 AutofixFeatureArgs(
-                    referrer=AutofixReferrer.NIGHT_SHIFT,
+                    referrer=AutofixReferrer.AGENTIC_TRIAGE,
                     step=AutofixStep.ROOT_CAUSE,
                     step_args=RCAStepArgs(),
                     stopping_point=AutofixStoppingPoint.OPEN_PR,
@@ -151,7 +156,7 @@ class TestTriggerAutofixFeature(TestCase):
         )
         assert start_kwargs["flush"] is True
         assert start_kwargs["extras"] == {
-            "referrer": AutofixReferrer.NIGHT_SHIFT.value,
+            "referrer": AutofixReferrer.AGENTIC_TRIAGE.value,
             "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
         }
 
@@ -166,7 +171,7 @@ class TestTriggerAutofixFeature(TestCase):
                 trigger_autofix_feature(
                     self.group,
                     AutofixFeatureArgs(
-                        referrer=AutofixReferrer.NIGHT_SHIFT,
+                        referrer=AutofixReferrer.AGENTIC_TRIAGE,
                         step=AutofixStep.ROOT_CAUSE,
                         step_args=RCAStepArgs(),
                     ),
@@ -188,7 +193,7 @@ class TestTriggerAutofixFeature(TestCase):
             run = trigger_autofix_feature(
                 self.group,
                 AutofixFeatureArgs(
-                    referrer=AutofixReferrer.NIGHT_SHIFT,
+                    referrer=AutofixReferrer.AGENTIC_TRIAGE,
                     step=AutofixStep.ROOT_CAUSE,
                     step_args=RCAStepArgs(),
                     allow_free_cohort=True,
@@ -212,7 +217,7 @@ class TestTriggerAutofixFeature(TestCase):
             trigger_autofix_feature(
                 self.group,
                 AutofixFeatureArgs(
-                    referrer=AutofixReferrer.NIGHT_SHIFT,
+                    referrer=AutofixReferrer.AGENTIC_TRIAGE,
                     step=AutofixStep.ROOT_CAUSE,
                     step_args=RCAStepArgs(),
                     flush=False,
@@ -235,14 +240,57 @@ class TestTriggerAutofixFeature(TestCase):
             trigger_autofix_feature(
                 self.group,
                 AutofixFeatureArgs(
-                    referrer=AutofixReferrer.NIGHT_SHIFT,
+                    referrer=AutofixReferrer.AGENTIC_TRIAGE,
                     step=AutofixStep.ROOT_CAUSE,
                     step_args=RCAStepArgs(),
                     user=user,
-                    enable_bash_tools=True,
+                    enable_bash_mode=True,
                 ),
             )
 
         client_kwargs = mock_client_cls.call_args.kwargs
         assert client_kwargs["user"] == user
-        assert client_kwargs["enable_bash_tools"] is True
+        assert client_kwargs["enable_bash_mode"] is True
+        assert client_kwargs["enable_coding"] is False
+
+    def test_code_changes_enables_coding(self) -> None:
+        fake_run = self.create_seer_run(organization=self.organization, type="feature_run")
+
+        with (
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
+            patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
+        ):
+            mock_quotas.backend.check_seer_quota.return_value = True
+            mock_client_cls.return_value.start_feature_run.return_value = fake_run
+
+            trigger_autofix_feature(
+                self.group,
+                AutofixFeatureArgs(
+                    referrer=AutofixReferrer.UNKNOWN,
+                    step=AutofixStep.CODE_CHANGES,
+                    step_args=CodeChangesStepArgs(),
+                ),
+            )
+
+        client_kwargs = mock_client_cls.call_args.kwargs
+        assert client_kwargs["enable_coding"] is True
+        agent_run_options = mock_client_cls.return_value.start_feature_run.call_args.kwargs[
+            "agent_run_options"
+        ]
+        assert agent_run_options["enable_coding"] is True
+
+    def test_code_changes_rejected_when_coding_disabled(self) -> None:
+        self.organization.update_option("sentry:enable_seer_coding", False)
+
+        with pytest.raises(
+            SeerPermissionError, match="Seer coding is not enabled for this organization"
+        ):
+            trigger_autofix_feature(
+                self.group,
+                AutofixFeatureArgs(
+                    referrer=AutofixReferrer.UNKNOWN,
+                    step=AutofixStep.CODE_CHANGES,
+                    step_args=CodeChangesStepArgs(),
+                    existing_run_id=123,
+                ),
+            )

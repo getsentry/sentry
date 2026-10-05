@@ -98,7 +98,7 @@ jest.mock('@tanstack/react-pacer', () => ({
   ...jest.requireActual('@tanstack/react-pacer'),
   useAsyncDebouncedCallback: <TFn>(fn: TFn) => fn,
   useDebouncedCallback: <TFn>(fn: TFn) => fn,
-  useDebouncedValue: <T>(value: T) => [value] as const,
+  useDebouncedValue: <T>(value: T) => [value, {state: {isPending: false}}] as const,
 }));
 jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
@@ -183,6 +183,22 @@ jest.mock('@stripe/react-stripe-js', () => {
           paymentIntent: {id: 'test-payment'},
         })
       ),
+      // Used to run a 3D Secure challenge on an intent created with
+      // confirmation_method=manual, which the server then confirms.
+      handleCardAction: jest.fn((clientSecret: string) => {
+        if (clientSecret === 'ERROR') {
+          return Promise.resolve({error: {message: 'authentication failed'}});
+        }
+        // Stripe rejects outright on some failures rather than resolving with
+        // an error, and callers have to survive both.
+        if (clientSecret === 'REJECT') {
+          return Promise.reject(new Error('authentication failed'));
+        }
+        return Promise.resolve({
+          error: undefined,
+          paymentIntent: {id: 'test-payment'},
+        });
+      }),
       confirmCardSetup: jest.fn((secretKey: string) => {
         if (secretKey === 'ERROR') {
           return Promise.resolve({error: {message: 'card invalid'}});

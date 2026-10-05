@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -18,31 +18,41 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SpanDetailCard} from 'sentry/views/explore/conversations/components/conversationLayout';
+import {
+  EvaluationInputTab,
+  EvaluationOutputTab,
+} from 'sentry/views/explore/conversations/components/evaluationSpanTabs';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
+import {EvaluationResultSummary} from 'sentry/views/insights/pages/agents/components/evaluationContent';
 import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getNodeEvaluation,
+  type Evaluation,
+} from 'sentry/views/insights/pages/agents/utils/evaluation';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {useInvalidEvaluationDetection} from 'sentry/views/insights/pages/agents/utils/useInvalidEvaluationDetection';
 import {
   getDurationComparison,
   MIN_PCT_DURATION_DIFFERENCE,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/durationComparison';
-import {getHighlightedSpanAttributes} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/highlightedAttributes';
-import {IssueList} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/issues/issues';
-import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
+} from 'sentry/views/performance/traceDetails/traceDrawer/details/durationComparison';
+import {getHighlightedSpanAttributes} from 'sentry/views/performance/traceDetails/traceDrawer/details/highlightedAttributes';
+import {IssueList} from 'sentry/views/performance/traceDetails/traceDrawer/details/issues/issues';
+import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {
   getAIInputMessages,
   getAIToolInput,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiInput';
+} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiInput';
 import {
   getAIOutputData,
   getAIToolOutput,
-} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiOutput';
-import {AttributesContent} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/attributes';
-import {TraceDrawerComponents} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/styles';
-import {isEAPSpanNode} from 'sentry/views/performance/newTraceDetails/traceGuards';
-import {traceGridCssVariables} from 'sentry/views/performance/newTraceDetails/traceWaterfallStyles';
+} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
+import {AttributesContent} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/attributes';
+import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
+import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
+import {traceGridCssVariables} from 'sentry/views/performance/traceDetails/traceWaterfallStyles';
 
 const AI_SPAN_INPUT_JSON_MAX_DEFAULT_DEPTH = 3;
 const AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH = 100;
@@ -118,11 +128,18 @@ export function ConversationSpanDetail({
     timestamp: eapValue?.start_timestamp,
     enabled: Boolean(eapValue),
   });
+  const attributes = data?.attributes;
+
+  // Memoized so the invalid-evaluation report fires once per span.
+  const evaluation = useMemo(
+    () => (node && !isAttributesLoading ? getNodeEvaluation(node, attributes) : null),
+    [node, attributes, isAttributesLoading]
+  );
+  useInvalidEvaluationDetection(evaluation);
+
   if (isLoading || !node) {
     return <SpanDetailSkeleton embedded={embedded} />;
   }
-
-  const attributes = data?.attributes;
 
   const title = node.op || node.description || t('Span');
   const duration = getNodeTimeBounds(node).duration;
@@ -170,7 +187,7 @@ export function ConversationSpanDetail({
         {isAttributesLoading ? (
           <SpanMetadataSkeleton />
         ) : (
-          <SpanMetadata node={node} attributes={attributes} />
+          <SpanMetadata node={node} attributes={attributes} evaluation={evaluation} />
         )}
       </Stack>
 
@@ -215,10 +232,25 @@ export function ConversationSpanDetail({
               `}
             >
               <TabPanels.Item key="input">
-                <InputTab node={node} attributes={attributes} />
+                {evaluation?.rawInput ? (
+                  <EvaluationInputTab
+                    input={evaluation.input}
+                    raw={evaluation.rawInput}
+                  />
+                ) : (
+                  <InputTab node={node} attributes={attributes} />
+                )}
               </TabPanels.Item>
               <TabPanels.Item key="output">
-                <OutputTab node={node} attributes={attributes} />
+                {evaluation?.rawOutput ? (
+                  <EvaluationOutputTab
+                    answers={evaluation.answers}
+                    questions={evaluation.input?.questions}
+                    raw={evaluation.rawOutput}
+                  />
+                ) : (
+                  <OutputTab node={node} attributes={attributes} />
+                )}
               </TabPanels.Item>
               <TabPanels.Item key="attributes">
                 <AttributesTab node={node} attributes={attributes} />
@@ -234,8 +266,10 @@ export function ConversationSpanDetail({
 function SpanMetadata({
   node,
   attributes,
+  evaluation,
 }: {
   attributes: SpanAttributes;
+  evaluation: Evaluation | null;
   node: AITraceSpanNode;
 }) {
   const rows = getHighlightedSpanAttributes({
@@ -243,6 +277,18 @@ function SpanMetadata({
     spanId: node.id,
     attributes: attributes ?? node.attributes,
   });
+  // Skip the row when no answer has a short label to show.
+  if (evaluation?.answers?.some(answer => answer.kind !== 'invalid')) {
+    rows.push({
+      name: t('Result'),
+      value: (
+        <EvaluationResultSummary
+          answers={evaluation.answers}
+          questions={evaluation.input?.questions}
+        />
+      ),
+    });
+  }
 
   if (rows.length === 0) {
     return null;

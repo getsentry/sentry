@@ -69,7 +69,7 @@ function EditPreviewHighlightSection({
     location,
   });
   const highlightContextRows = highlightContextDataItems.reduce<React.ReactNode[]>(
-    (rowList, {alias, data}) => {
+    (rowList, {alias, data, type}) => {
       const meta = getContextMeta(event, alias);
       const newRows = data.map(item => (
         <Fragment key={`edit-highlight-ctx-${alias}-${item.key}`}>
@@ -83,7 +83,9 @@ function EditPreviewHighlightSection({
             meta={meta}
             item={item}
             alias={alias}
+            type={type}
             config={{
+              attributeDetailsType: 'event',
               includeAliasInSubject: true,
               disableErrors: true,
               disableLink: true,
@@ -99,17 +101,17 @@ function EditPreviewHighlightSection({
 
   const highlightTagItems = getHighlightTagData({event, highlightTags});
   const highlightTagRows = highlightTagItems.map(content => (
-    <Fragment key={`edit-highlight-tag-${content.originalTag.key}`}>
+    <Fragment key={`edit-highlight-tag-${content.original.key}`}>
       <EditButton
         aria-label="Remove from highlights"
         icon={<IconSubtract />}
-        onClick={() => onRemoveTag(content.originalTag.key)}
+        onClick={() => onRemoveTag(content.original.key)}
         data-test-id="highlights-remove-tag"
       />
       <EditPreviewTagItem
         content={content}
         event={event}
-        tagKey={content.originalTag.key}
+        tagKey={content.original.key}
         project={project}
         config={{disableActions: true, disableRichValue: true, disableErrors: true}}
         data-test-id="highlights-preview-tag"
@@ -555,6 +557,7 @@ const EditHighlightColumn = styled('div')`
 
 const EditPreviewColumn = styled(EditHighlightColumn)`
   display: grid;
+  align-items: center;
   grid-template-columns: min-content minmax(auto, 175px) 1fr;
   column-gap: 0;
   row-gap: ${p => p.theme.space['2xs']};

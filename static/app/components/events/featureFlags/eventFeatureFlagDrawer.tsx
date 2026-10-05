@@ -129,7 +129,8 @@ export const CardContainer = styled('div')<{numCols: number}>`
   grid-template-columns: repeat(${p => p.numCols}, 1fr);
   align-items: start;
 
-  div {
+  /* Only the card panels, so dropdown overlays inside rows keep their border. */
+  > div {
     border: none;
     border-radius: ${p => p.theme.space.xs};
   }
