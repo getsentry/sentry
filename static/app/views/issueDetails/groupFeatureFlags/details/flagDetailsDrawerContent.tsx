@@ -113,7 +113,7 @@ export function FlagDetailsDrawerContent({group}: Props) {
         left={`-${theme.space.md}`}
         width={`calc(100% + ${theme.space.md} + ${theme.space.md})`}
       >
-        <Header>
+        <Grid column="1 / -1" columns="subgrid" borderBottom="primary" margin="0 md">
           <Text as="div" wrap="nowrap" variant="muted" bold>
             {t('Provider')}
           </Text>
@@ -127,8 +127,8 @@ export function FlagDetailsDrawerContent({group}: Props) {
             {sortArrow}
             {t('Date')}
           </Text>
-        </Header>
-        <Body>
+        </Grid>
+        <Grid column="1 / -1" columns="subgrid">
           {flagLog.json.data.map((flag, i) => {
             const prev = flagLog.json.data[i - 1];
 
@@ -143,7 +143,7 @@ export function FlagDetailsDrawerContent({group}: Props) {
               </Fragment>
             );
           })}
-        </Body>
+        </Grid>
       </Grid>
       <Pagination
         pageLinks={pageLinks}
@@ -169,7 +169,7 @@ export function FlagDetailsDrawerContent({group}: Props) {
 
 function FlagDetailsRow({flagValue}: {flagValue: RawFlag}) {
   return (
-    <Row>
+    <Row column="1 / -1" columns="subgrid" align="center" radius="xs" padding="2xs md">
       <LeftAlignedValue>{flagValue.provider}</LeftAlignedValue>
       <LeftAlignedValue>
         <code>{flagValue.flag}</code>
@@ -183,7 +183,7 @@ function FlagDetailsRow({flagValue}: {flagValue: RawFlag}) {
 
 function GroupFirstSeenRow({group}: {group: Group}) {
   return (
-    <Row>
+    <Row column="1 / -1" columns="subgrid" align="center" radius="xs" padding="2xs md">
       <LeftAlignedValue>{t('Issue First Seen')}</LeftAlignedValue>
       <LeftAlignedValue />
       <LeftAlignedValue />
@@ -241,25 +241,10 @@ function FlagValueActionsMenu({flagValue}: {flagValue: RawFlag}) {
   );
 }
 
-const Body = styled('div')`
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
-`;
-
-const Header = styled(Body)`
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  margin: 0 ${p => p.theme.space.md};
-`;
-
-const Row = styled(Body)`
+const Row = styled(Grid)`
   &:nth-child(even) {
     background: ${p => p.theme.tokens.background.secondary};
   }
-  align-items: center;
-  border-radius: 4px;
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
-
   .invisible {
     visibility: hidden;
   }
