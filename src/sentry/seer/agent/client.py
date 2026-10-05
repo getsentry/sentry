@@ -345,9 +345,7 @@ class SeerAgentClient:
         self.category_key = category_key
         self.category_value = category_value
         self.is_interactive = is_interactive
-        self.enable_bash_mode = enable_bash_mode and features.has(
-            "organizations:seer-explorer-allow-bash-mode", organization, actor=user
-        )
+        self.enable_bash_mode = enable_bash_mode
         self.enable_code_mode_tools = enable_code_mode_tools
         self.code_review_enabled = code_review_enabled
         self.max_iterations = max_iterations
