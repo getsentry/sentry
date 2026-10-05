@@ -14,8 +14,6 @@ import {
 } from 'sentry/views/automations/components/actionFilters/comparisonBranches';
 import {
   COMPARISON_INTERVAL_CHOICES,
-  FREQUENCY_COUNT_DEFAULT_COMPARISON,
-  FREQUENCY_PERCENT_DEFAULT_COMPARISON,
   INTERVAL_CHOICES,
 } from 'sentry/views/automations/components/actionFilters/constants';
 import {
@@ -26,6 +24,7 @@ import {
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
 
 function getIntervalLabel(interval: string): string {
   const label = INTERVAL_CHOICES.find(choice => choice.value === interval)?.label;
@@ -126,9 +125,7 @@ function ComparisonTypeField() {
           type: option.value,
           comparison: {
             ...condition.comparison,
-            ...(option.value === DataConditionType.EVENT_FREQUENCY_PERCENT
-              ? FREQUENCY_PERCENT_DEFAULT_COMPARISON
-              : FREQUENCY_COUNT_DEFAULT_COMPARISON),
+            ...dataConditionNodesMap.get(option.value)?.defaultComparison,
           },
         });
         removeError(condition.id);

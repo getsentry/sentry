@@ -12,8 +12,6 @@ import {
 } from 'sentry/views/automations/components/actionFilters/comparisonBranches';
 import {
   COMPARISON_INTERVAL_CHOICES,
-  FREQUENCY_COUNT_DEFAULT_COMPARISON,
-  FREQUENCY_PERCENT_DEFAULT_COMPARISON,
   PERCENT_INTERVAL_CHOICES,
 } from 'sentry/views/automations/components/actionFilters/constants';
 import {
@@ -24,6 +22,7 @@ import {
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
 
 export function PercentSessionsCountDetails({condition}: {condition: DataCondition}) {
   const hasSubfilters = condition.comparison.filters?.length > 0;
@@ -120,9 +119,7 @@ function ComparisonTypeField() {
           type: option.value,
           comparison: {
             ...condition.comparison,
-            ...(option.value === DataConditionType.PERCENT_SESSIONS_PERCENT
-              ? FREQUENCY_PERCENT_DEFAULT_COMPARISON
-              : FREQUENCY_COUNT_DEFAULT_COMPARISON),
+            ...dataConditionNodesMap.get(option.value)?.defaultComparison,
           },
         });
         removeError(condition.id);
