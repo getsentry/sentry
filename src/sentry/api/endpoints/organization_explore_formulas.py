@@ -47,12 +47,14 @@ from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, DurationU
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.spans_rpc import Spans
+from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 DATASETS = {
     ExploreSavedQueryDataset.SPANS: Spans,
     ExploreSavedQueryDataset.OURLOGS: OurLogs,
+    ExploreSavedQueryDataset.METRICS: TraceMetrics,
 }
 
 
