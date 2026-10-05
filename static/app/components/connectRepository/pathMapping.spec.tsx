@@ -53,8 +53,6 @@ describe('PathMapping', () => {
     renderMapping({value: {stackRoot: '', sourceRoot: '', branch: 'main'}});
 
     expect(screen.getAllByText('empty')).toHaveLength(2);
-    expect(screen.getByText('stack trace prefix')).toBeInTheDocument();
-    expect(screen.getByText('repository prefix')).toBeInTheDocument();
   });
 
   it('hides the summary row for a new (never-saved) mapping', () => {

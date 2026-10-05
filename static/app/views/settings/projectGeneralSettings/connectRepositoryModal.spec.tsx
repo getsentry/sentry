@@ -340,8 +340,9 @@ describe('ConnectRepositoryModal', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/code-mappings/`,
       method: 'GET',
-      // repoId '11' (relay) owns the conflicting mapping, not '10' (sentry)
-      body: [{repoId: '11', stackRoot: '', sourceRoot: ''}],
+      // A different repo owns a mapping, but not the empty row this form
+      // saves — that exact match is blocked in the UI before Save.
+      body: [{repoId: '11', stackRoot: 'lib/', sourceRoot: 'packages/'}],
     });
 
     renderModal(closeModal);
@@ -467,7 +468,7 @@ describe('ConnectRepositoryModal', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/code-mappings/`,
       method: 'GET',
-      body: new Promise(() => {}),
+      asyncDelay: new Promise(() => {}),
     });
 
     renderModal();
