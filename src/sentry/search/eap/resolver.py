@@ -39,6 +39,7 @@ from sentry import features
 from sentry.api import event_search
 from sentry.discover import arithmetic
 from sentry.exceptions import InvalidSearchQuery
+from sentry.explore.models import ExploreSavedFormula
 from sentry.models.group import Group, parse_short_id
 from sentry.models.project import Project
 from sentry.search.eap import constants
@@ -1300,9 +1301,14 @@ class SearchResolver:
 
         if self.config.saved_formulas is not None:
             if function_name in self.config.saved_formulas:
-                return self.resolve_formula(
+                resolved_column, contexts = self.resolve_formula(
                     self.config.saved_formulas[function_name], columns, alias
                 )
+                if not isinstance(resolved_column, ResolvedFunction):
+                    raise InvalidSearchQuery(
+                        f"The formula {function_name} must resolve to a function or equation"
+                    )
+                return resolved_column, contexts
 
         function_definition = self.get_function_definition(function_name)
         if (
@@ -1450,7 +1456,7 @@ class SearchResolver:
             default_value=default_value,
         )
 
-        resolved_context: list[VirtualColumnContext | None] = [None]
+        resolved_context: list[VirtualColumnDefinition | None] = [None]
         if default_value is None:
             self._resolved_function_cache[alias] = (resolved_function, resolved_context)
             return self._resolved_function_cache[alias]
@@ -1617,7 +1623,9 @@ class SearchResolver:
 
         return value
 
-    def resolve_formula(self, formula, columns, alias):
+    def resolve_formula(
+        self, formula: ExploreSavedFormula, columns: str, alias: str
+    ) -> tuple[ResolvedColumn, list[VirtualColumnDefinition | None]]:
         """Given a formula object, parse the arguments, then resolve it as an equation
 
         Like equations these aren't cached

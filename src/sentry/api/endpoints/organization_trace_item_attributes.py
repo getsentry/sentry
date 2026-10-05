@@ -1438,10 +1438,12 @@ class TraceItemAttributeValuesAutocompletionExecutor:
         values: Sequence[str] = rpc_response.values
         counts: Sequence[int] = rpc_response.counts
         if self.context_definitions:
-            for context in self.context_definitions:
-                if context is not None:
-                    context = self.context_definition.constructor(self.snuba_params, self.resolver)
-                    values = [context.value_map.get(value, value) for value in values]
+            for context_definition in self.context_definitions:
+                if context_definition is not None:
+                    constructed_context = context_definition.constructor(
+                        self.snuba_params, self.resolver
+                    )
+                    values = [constructed_context.value_map.get(value, value) for value in values]
 
         return [
             TagValue(
