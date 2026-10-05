@@ -17,12 +17,12 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useIssueListSearchBarDataProvider} from 'sentry/views/issueList/searchBar';
 import {getSortLabel, IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import type {DatasetConfig} from './base';
 import {
   type IssuesSeriesResponse,
   transformIssuesResponseToSeries,
 } from './utils/transformIssuesResponseToSeries';
 import {transformIssuesResponseToTable} from './utils/transformIssuesResponseToTable';
+import type {DatasetConfig} from './base';
 
 const DEFAULT_TABLE_WIDGET_QUERY: WidgetQuery = {
   name: '',
