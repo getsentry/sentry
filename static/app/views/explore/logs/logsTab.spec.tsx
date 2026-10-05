@@ -703,16 +703,18 @@ describe('LogsTabContent', () => {
       },
       additionalWrapper: ProviderWrapper,
     });
-    await waitFor(() => expect(eventsTimeSeriesMock).toHaveBeenCalled());
-    await waitFor(() => expect(droppedDataMock).toHaveBeenCalled());
-    const initialChartCallCount = eventsTimeSeriesMock.mock.calls.length;
-    const initialDroppedDataCallCount = droppedDataMock.mock.calls.length;
+    await waitFor(() => {
+      expect(eventsTimeSeriesMock).toHaveBeenCalled();
+      expect(droppedDataMock).toHaveBeenCalled();
+    });
+    eventsTimeSeriesMock.mockClear();
+    droppedDataMock.mockClear();
 
     await userEvent.click(await screen.findByRole('button', {name: 'Refresh'}));
 
     await waitFor(() => {
-      expect(eventsTimeSeriesMock).toHaveBeenCalledTimes(initialChartCallCount + 1);
-      expect(droppedDataMock).toHaveBeenCalledTimes(initialDroppedDataCallCount + 1);
+      expect(eventsTimeSeriesMock).toHaveBeenCalledTimes(1);
+      expect(droppedDataMock).toHaveBeenCalledTimes(1);
     });
   });
 
