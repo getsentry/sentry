@@ -7,6 +7,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 
 import {DEFAULT_BRANCH, normalizePathMapping} from './normalization';
 import {PathMapping} from './pathMapping';
@@ -57,7 +58,7 @@ export const PathMappingList = withForm({
   },
   props: {} as {
     defaultBranch?: string;
-    existingMappings?: Array<{repoName: string; sourceRoot: string; stackRoot: string}>;
+    existingMappings?: RepositoryProjectPathConfig[];
     projectSlug?: string;
     providerKey?: string;
   },

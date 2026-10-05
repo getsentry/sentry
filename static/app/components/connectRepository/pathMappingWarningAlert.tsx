@@ -9,9 +9,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {PathMappingWarning} from './warnings';
 
 interface PathMappingWarningAlertProps {
-  warning: PathMappingWarning | null | undefined;
-  // Required when warning.type === 'codeOwner' to build the ownership link.
   projectSlug?: string;
+  warning?: PathMappingWarning;
 }
 
 function displayRoot(root: string, emptyLabel: string) {

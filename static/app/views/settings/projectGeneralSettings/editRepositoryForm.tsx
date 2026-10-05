@@ -82,10 +82,7 @@ function EditRepositoryFormBody({
     onSubmit: () => {},
   });
 
-  // Mappings from other repos — for across-repo duplicate detection in the list.
-  const existingMappings = allMappings
-    .filter(m => m.repoId !== repositoryId)
-    .map(m => ({repoName: m.repoName, stackRoot: m.stackRoot, sourceRoot: m.sourceRoot}));
+  const existingMappings = allMappings.filter(m => m.repoId !== repositoryId);
 
   const editMutation = useMutation({
     mutationFn: editProjectRepoMappings,

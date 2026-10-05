@@ -26,7 +26,7 @@ interface PathMappingSummaryProps extends PathMappingValue {
   onDelete: () => void;
   onExpandToggle: () => void;
   defaultBranch?: string;
-  warning?: PathMappingWarning | null;
+  warning?: PathMappingWarning;
 }
 
 const CODE_OWNER_DELETE_TOOLTIP = t(

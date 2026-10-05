@@ -25,7 +25,7 @@ export const PathMappingEdit = withFieldGroup({
     hasCodeOwner?: boolean;
     projectSlug?: string;
     providerKey?: string;
-    warning?: PathMappingWarning | null;
+    warning?: PathMappingWarning;
   },
   render: ({group, defaultBranch, hasCodeOwner, projectSlug, providerKey, warning}) => {
     const branchFallback = defaultBranch ?? DEFAULT_BRANCH;

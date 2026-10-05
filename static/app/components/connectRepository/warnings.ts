@@ -1,3 +1,5 @@
+import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
+
 import {normalizeRoot} from './normalization';
 import type {PathMappingValue} from './type';
 
@@ -7,19 +9,18 @@ export type PathMappingWarning =
   | {sourceRoot: string; stackRoot: string; type: 'exactInForm'}
   | {repoName: string; sourceRoot: string; stackRoot: string; type: 'exactAcrossRepos'};
 
-type ExistingMapping = {repoName: string; sourceRoot: string; stackRoot: string};
-
 type NormalizedRow = {hasCodeOwner: boolean; sourceRoot: string; stackRoot: string};
+
+type NormalizedExisting = {repoName: string; sourceRoot: string; stackRoot: string};
 
 function deriveWarning(
   row: NormalizedRow,
   index: number,
   rows: NormalizedRow[],
-  existing: ExistingMapping[]
-): PathMappingWarning | null {
+  existing: NormalizedExisting[]
+): PathMappingWarning | undefined {
   const {stackRoot, sourceRoot, hasCodeOwner} = row;
 
-  // Exact duplicates always take priority over Code Owners.
   const inFormDuplicate = rows.find(
     (other, i) =>
       i !== index && other.stackRoot === stackRoot && other.sourceRoot === sourceRoot
@@ -48,26 +49,26 @@ function deriveWarning(
     return {type: 'catchAll'};
   }
 
-  return null;
+  return undefined;
 }
 
 export function isExactWarning(
-  warning: PathMappingWarning | null | undefined
+  warning: PathMappingWarning | undefined
 ): warning is Extract<PathMappingWarning, {type: 'exactInForm' | 'exactAcrossRepos'}> {
   return warning?.type === 'exactInForm' || warning?.type === 'exactAcrossRepos';
 }
 
 export function getPathMappingWarnings(
   values: PathMappingValue[],
-  existingMappings: ExistingMapping[] = []
-): Array<PathMappingWarning | null> {
+  existingMappings: RepositoryProjectPathConfig[] = []
+): Array<PathMappingWarning | undefined> {
   const rows = values.map(v => ({
     stackRoot: normalizeRoot(v.stackRoot),
     sourceRoot: normalizeRoot(v.sourceRoot),
     hasCodeOwner: v.hasCodeOwner ?? false,
   }));
 
-  const normalizedExisting = existingMappings.map(m => ({
+  const normalizedExisting: NormalizedExisting[] = existingMappings.map(m => ({
     repoName: m.repoName,
     stackRoot: normalizeRoot(m.stackRoot),
     sourceRoot: normalizeRoot(m.sourceRoot),

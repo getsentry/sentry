@@ -100,10 +100,9 @@ export function ConnectRepositoryForm({
     </Text>
   );
 
-  // Mappings from other repos — used by the list for across-repo duplicate detection.
-  const existingMappings = codeMappings
-    .filter(m => !selectedOption || m.repoId !== selectedOption.repositoryId)
-    .map(m => ({repoName: m.repoName, stackRoot: m.stackRoot, sourceRoot: m.sourceRoot}));
+  const existingMappings = codeMappings.filter(
+    m => !selectedOption || m.repoId !== selectedOption.repositoryId
+  );
 
   const pathsSection = selectedOption ? (
     <Container paddingTop="2xl">

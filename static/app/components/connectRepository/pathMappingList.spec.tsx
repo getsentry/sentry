@@ -4,6 +4,7 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
 import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
 import type {PathMappingValue} from 'sentry/components/connectRepository/type';
+import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 
 const MAPPINGS: PathMappingValue[] = [
   {stackRoot: 'app/', sourceRoot: 'static/app/', branch: 'main'},
@@ -22,7 +23,7 @@ function renderList({
   existingMappings,
 }: {
   defaultBranch?: string;
-  existingMappings?: Array<{repoName: string; sourceRoot: string; stackRoot: string}>;
+  existingMappings?: RepositoryProjectPathConfig[];
   initialPathMappings?: PathMappingValue[];
   pathMappings?: PathMappingValue[];
   providerKey?: string;
@@ -292,7 +293,11 @@ describe('PathMappingList', () => {
       renderList({
         pathMappings: [{stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'}],
         existingMappings: [
-          {repoName: 'getsentry/relay', stackRoot: 'src/', sourceRoot: 'src/app/'},
+          {
+            repoName: 'getsentry/relay',
+            stackRoot: 'src/',
+            sourceRoot: 'src/app/',
+          } as RepositoryProjectPathConfig,
         ],
       });
 

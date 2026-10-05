@@ -18,7 +18,7 @@ interface PathMappingProps {
   defaultBranch?: string;
   projectSlug?: string;
   providerKey?: string;
-  warning?: PathMappingWarning | null;
+  warning?: PathMappingWarning;
 }
 
 export function PathMapping({
@@ -43,7 +43,7 @@ export function PathMapping({
           {...value}
           defaultBranch={defaultBranch}
           expanded={editing}
-          warning={warning ?? null}
+          warning={warning}
           onDelete={onDelete}
           onExpandToggle={onExpandToggle}
         />
@@ -57,7 +57,7 @@ export function PathMapping({
           defaultBranch={defaultBranch}
           projectSlug={projectSlug}
           hasCodeOwner={value.hasCodeOwner}
-          warning={warning ?? null}
+          warning={warning}
         />
       )}
     </Stack>
