@@ -61,6 +61,12 @@ export interface ScmInstallation {
    */
   mappingsLoading?: boolean;
   /**
+   * Called when the user clicks a mapped project chip on a repository row.
+   * When set, chips become buttons (not project-details links). When omitted,
+   * chips keep their default link behavior.
+   */
+  onMappedProjectClick?: (repo: Repository, project: AvatarProject) => void;
+  /**
    * Called when the user clicks the settings button. When omitted the button
    * is hidden.
    */
@@ -80,12 +86,6 @@ export interface ScmInstallation {
    * omitted or empty, the menu trigger is hidden.
    */
   overflowMenuItems?: MenuItemProps[];
-  /**
-   * Called when the user clicks a mapped project chip on a repository row.
-   * When set, chips become buttons (not project-details links). When omitted,
-   * chips keep their default link behavior.
-   */
-  onMappedProjectClick?: (repo: Repository, project: AvatarProject) => void;
   /**
    * Renders an action element in the right slot of each repository row.
    * Only called when `mappedProjectSlugsByRepoId` is set on the installation.

@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -14,6 +14,7 @@ import {
   LockedRepoField,
   getApiErrorMessage,
 } from 'sentry/components/connectRepository/connectionModalFrame';
+import {DEFAULT_BRANCH} from 'sentry/components/connectRepository/normalization';
 import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
 import {
   orgProjectsOptions,
@@ -27,7 +28,6 @@ import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtualizedMenuList';
 import {t, tct} from 'sentry/locale';
-import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -94,17 +94,34 @@ export function RepoLockedConnectForm({
     defaultBranchFromMappings: null,
   });
 
+  // Seed exactly one blank row once the project is chosen AND the branch lookup
+  // has settled. The form resets to [] on every project change so PathMappingList
+  // stays unmounted (its row state is initialized once from form state).
+  useEffect(() => {
+    if (!selectedProject || isBranchPending) return;
+    if (form.state.values.pathMappings.length > 0) return;
+    form.setFieldValue('pathMappings', [
+      {stackRoot: '', sourceRoot: '', branch: defaultBranch || DEFAULT_BRANCH},
+    ]);
+  }, [selectedProject, isBranchPending, defaultBranch, form]);
+
   // Fetch existing code mappings for the selected project so the save gate can
-  // block on across-repo exact duplicates, consistent with project-locked flow.
-  const {data: projectCodeMappings = []} = useQuery({
+  // block on across-repo exact duplicates, consistent with the project-locked flow.
+  const {
+    data: projectCodeMappings,
+    isPending: codeMappingsPending,
+    isError: codeMappingsError,
+  } = useQuery({
     ...projectCodeMappingsOptions({
       orgSlug: organization.slug,
       projectId: selectedProject?.id ?? '',
     }),
     enabled: Boolean(selectedProject),
-  }) as {data: RepositoryProjectPathConfig[]};
+  });
 
-  const existingMappings = projectCodeMappings.filter(m => m.repoId !== repositoryId);
+  const existingMappings = (projectCodeMappings ?? []).filter(
+    m => m.repoId !== repositoryId
+  );
 
   const saveMutation = useMutation({
     mutationFn: saveProjectRepoConnection,
@@ -141,9 +158,8 @@ export function RepoLockedConnectForm({
       onChange={option => {
         const opt = option as (typeof projectOptions)[number] | null;
         setSelectedProject(opt?.project ?? null);
-        form.setFieldValue('pathMappings', [
-          {stackRoot: '', sourceRoot: '', branch: defaultBranch ?? ''},
-        ]);
+        // Reset to empty; the useEffect above seeds a row once the branch resolves.
+        form.setFieldValue('pathMappings', []);
         saveMutation.reset();
       }}
       placeholder={t('Search projects')}
@@ -153,30 +169,6 @@ export function RepoLockedConnectForm({
     />
   );
 
-  const pathsSection =
-    selectedProject && isBranchPending ? (
-      <Flex justify="center" paddingTop="2xl">
-        <LoadingIndicator mini />
-      </Flex>
-    ) : selectedProject ? (
-      <Container paddingTop="2xl">
-        <PathMappingList
-          key={selectedProject.id}
-          form={form}
-          providerKey={providerKey ?? undefined}
-          defaultBranch={defaultBranch ?? undefined}
-          existingMappings={existingMappings}
-        />
-      </Container>
-    ) : (
-      <Stack gap="xs" paddingTop="2xl">
-        <Text size="sm" bold>
-          {t('Paths')}
-        </Text>
-        <PathsPlaceholder />
-      </Stack>
-    );
-
   return (
     <form.AppForm form={form}>
       <form.Subscribe selector={state => state.values.pathMappings}>
@@ -184,15 +176,54 @@ export function RepoLockedConnectForm({
           const canSave =
             selectedProject !== null &&
             pathMappings.length > 0 &&
+            !codeMappingsPending &&
+            !codeMappingsError &&
             !hasExactDuplicate(pathMappings, existingMappings) &&
             Boolean(integrationId) &&
             !isBranchPending;
 
-          const alerts = saveMutation.isError ? (
-            <Alert.Container>
-              <Alert variant="danger">{getApiErrorMessage(saveMutation.error)}</Alert>
-            </Alert.Container>
-          ) : null;
+          const alerts = (
+            <Stack gap="xs">
+              {codeMappingsError && (
+                <Alert.Container>
+                  <Alert variant="danger">
+                    {t('Failed to load existing path mappings. Try again before saving.')}
+                  </Alert>
+                </Alert.Container>
+              )}
+              {saveMutation.isError && (
+                <Alert.Container>
+                  <Alert variant="danger">{getApiErrorMessage(saveMutation.error)}</Alert>
+                </Alert.Container>
+              )}
+            </Stack>
+          );
+
+          // Show a spinner until the project is chosen, the branch resolves, and
+          // the initial row has been seeded into the form.
+          const pathsSection =
+            selectedProject && (isBranchPending || pathMappings.length === 0) ? (
+              <Flex justify="center" paddingTop="2xl">
+                <LoadingIndicator mini />
+              </Flex>
+            ) : selectedProject ? (
+              <Container paddingTop="2xl">
+                <PathMappingList
+                  key={selectedProject.id}
+                  form={form}
+                  providerKey={providerKey ?? undefined}
+                  defaultBranch={defaultBranch ?? undefined}
+                  existingMappings={existingMappings}
+                />
+              </Container>
+            ) : (
+              <Stack gap="xs" paddingTop="2xl">
+                <Text size="sm" bold>
+                  {t('Paths')}
+                </Text>
+                <PathsPlaceholder />
+              </Stack>
+            );
 
           return (
             <ConnectionModalFrame
