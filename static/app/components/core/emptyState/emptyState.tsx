@@ -43,7 +43,7 @@ export function EmptyState({
           </Flex>
         )}
         <Stack gap="xl">
-          <Stack gap="md" width="100%" maxWidth="48ch">
+          <Stack gap={illustration ? 'md' : 'sm'} width="100%" maxWidth="48ch">
             <Heading as="h3" size="lg" align={textAlign}>
               {title}
             </Heading>
