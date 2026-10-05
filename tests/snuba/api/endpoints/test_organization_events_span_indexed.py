@@ -7726,3 +7726,58 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
                 "count()": 1,
             }
         ]
+
+    def test_user_formula(self) -> None:
+        self.store_spans([self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago)])
+        self.create_explore_saved_formula(
+            organization=self.organization,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["formula.apdex(span.duration, 300)"],
+                "project": self.project.id,
+                "dataset": "spans",
+            },
+            features={"organizations:explore-saved-formulas": True},
+        )
+        assert response.status_code == 200, response.content
+        assert response.data["data"] == [{"formula.apdex(span.duration, 300)": 0.5}]
+        assert response.data["meta"]["fields"] == {
+            "formula.apdex(span.duration, 300)": "number",
+        }
+
+    def test_user_formula_invalid_arguments(self) -> None:
+        self.store_spans([self.create_span({"description": "foo"}, start_ts=self.ten_mins_ago)])
+        self.create_explore_saved_formula(
+            organization=self.organization,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["formula.apdex(span.duration, fan.duration)"],
+                "project": self.project.id,
+                "dataset": "spans",
+            },
+            features={"organizations:explore-saved-formulas": True},
+        )
+        assert response.status_code == 400, response.content
+        assert (
+            "threshold expected a number but got 'fan.duration' instead" in response.data["detail"]
+        )
+
+    def test_unknown_formula(self) -> None:
+        self.create_explore_saved_formula(
+            organization=self.organization,
+        )
+
+        response = self.do_request(
+            {
+                "field": ["formula.altisaur(span.duration, fan.duration)"],
+                "project": self.project.id,
+                "dataset": "spans",
+            },
+            features={"organizations:explore-saved-formulas": True},
+        )
+        assert response.status_code == 400, response.content
+        assert "Unknown function formula.altisaur" in response.data["detail"]
