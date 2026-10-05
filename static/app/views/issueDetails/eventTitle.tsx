@@ -124,33 +124,35 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
                   />
                 )}
               </Text>
-              <Flex align="center" gap="xs" className="hidden-xs">
+              <Flex align="center" gap="xs" display={{zero: 'none', xl: 'flex'}}>
                 <Divider />
-                <ExternalLink
-                  href={jsonUrl}
-                  css={cssTheme => css`
-                    color: ${cssTheme.tokens.content.secondary};
-                    text-decoration: underline;
-                    text-decoration-color: ${color(cssTheme.colors.gray400)
-                      .alpha(0.5)
-                      .string()};
+                <Text variant="muted" underline>
+                  {linkTextProps => (
+                    <ExternalLink
+                      {...linkTextProps}
+                      href={jsonUrl}
+                      css={cssTheme => css`
+                        text-decoration-color: ${color(cssTheme.colors.gray400)
+                          .alpha(0.5)
+                          .string()};
 
-                    &:hover {
-                      color: ${cssTheme.tokens.content.secondary};
-                      text-decoration: underline;
-                      text-decoration-color: ${cssTheme.tokens.content.secondary};
-                    }
-                  `}
-                  onClick={() =>
-                    trackAnalytics('issue_details.event_json_clicked', {
-                      organization,
-                      group_id: parseInt(`${event.groupID}`, 10),
-                      streamline: true,
-                    })
-                  }
-                >
-                  {t('JSON')}
-                </ExternalLink>
+                        &:hover {
+                          color: ${cssTheme.tokens.content.secondary};
+                          text-decoration-color: ${cssTheme.tokens.content.secondary};
+                        }
+                      `}
+                      onClick={() =>
+                        trackAnalytics('issue_details.event_json_clicked', {
+                          organization,
+                          group_id: parseInt(`${event.groupID}`, 10),
+                          streamline: true,
+                        })
+                      }
+                    >
+                      {t('JSON')}
+                    </ExternalLink>
+                  )}
+                </Text>
               </Flex>
               {actionableItems && actionableItems.length > 0 && (
                 <Fragment>
@@ -166,8 +168,6 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
                     icon={<IconWarning variant="danger" />}
                     css={cssTheme => css`
                       color: ${cssTheme.colors.red400};
-                      font-weight: ${cssTheme.font.weight.sans.regular};
-                      font-size: ${cssTheme.font.size.sm};
 
                       &:hover {
                         color: ${cssTheme.colors.red400};
@@ -180,7 +180,9 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
                       setEventErrorCollapsed(false);
                     }}
                   >
-                    {t('Processing Error')}
+                    <Text size="sm" bold={false} variant="inherit">
+                      {t('Processing Error')}
+                    </Text>
                   </Button>
                 </Fragment>
               )}
