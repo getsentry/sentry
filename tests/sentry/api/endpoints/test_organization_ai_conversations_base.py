@@ -24,6 +24,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
         op="gen_ai.chat",
         description=None,
         status="ok",
+        operation_name=None,
         operation_type=None,
         tokens=None,
         input_tokens=None,
@@ -64,6 +65,7 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             op: The span operation (default: "gen_ai.chat")
             description: Span description
             status: Span status (default: "ok")
+            operation_name: The gen_ai.operation.name attribute
             operation_type: The gen_ai.operation.type attribute
             tokens: Token count (gen_ai.usage.total_tokens)
             input_tokens: Input token count (gen_ai.usage.input_tokens)
@@ -101,6 +103,8 @@ class BaseAIConversationsTestCase(BaseSpansTestCase, SpanTestCase, APITestCase):
             # deprecated in favour of `ai_conversation_id` down below.
             "gen_ai.conversation.id": conversation_id,
         }
+        if operation_name is not None:
+            span_data["gen_ai.operation.name"] = operation_name
         if operation_type:
             span_data["gen_ai.operation.type"] = operation_type
         if tokens is not None:

@@ -11,10 +11,7 @@ import {METRICS_ARTIFACT_TYPES} from 'sentry/views/settings/project/preprod/type
 
 import {applyAttributeSearchFieldOverrides} from './applyAttributeSearchFieldOverrides';
 import {ATTRIBUTE_SEARCH_SECONDARY_ALIASES} from './getAttributeSearchSecondaryAliases';
-import {
-  ATTRIBUTE_SEARCH_FIELD_DEFINITIONS,
-  getFieldDefinitionFromAttributeSearchMetadata,
-} from './getFieldDefinitionFromAttributeSearchMetadata';
+import {ATTRIBUTE_SEARCH_FIELD_DEFINITIONS} from './getFieldDefinitionFromAttributeSearchMetadata';
 import {mergeAttributeSearchMetadata} from './mergeAttributeSearchMetadata';
 import {pickAttributeSearchFieldDefinitions} from './pickAttributeSearchFieldDefinitions';
 import {
@@ -2329,7 +2326,15 @@ const EVENT_FIELD_DEFINITIONS = applyAttributeSearchFieldOverrides(
     ...PROFILE_FIELD_DEFINITIONS,
     ...OTA_FIELD_DEFINITIONS,
   },
-  FIELD_DEFINITION_OVERRIDES
+  {
+    ...FIELD_DEFINITION_OVERRIDES,
+    [FieldKey.ID]: {
+      ...FIELD_DEFINITION_OVERRIDES[FieldKey.ID],
+      desc: t('The event identification number'),
+    },
+    [FieldKey.TRANSACTION]: {desc: t('Error or transaction name identifier')},
+    [FieldKey.HTTP_URL]: {desc: t('Full URL of the request without parameters')},
+  }
 );
 
 const SPAN_FIELD_DEFINITIONS = applyAttributeSearchFieldOverrides(
@@ -3483,15 +3488,17 @@ export const getFieldDefinition = (
   if (definition) {
     return mergeAttributeSearchMetadata(key, definition, {
       keepLocalDescription:
+        type === 'event' ||
         type === 'replay' ||
         type === 'feedback' ||
-        (type === 'event' && key === FieldKey.TYPE) ||
         (type === 'tracemetric' && key === TraceMetricKnownFieldKey.ID),
     });
   }
 
-  if (type === 'span' || type === 'log' || type === 'tracemetric' || type === 'preprod') {
-    return getFieldDefinitionFromAttributeSearchMetadata(key);
+  if (type === 'span' || type === 'log' || type === 'tracemetric') {
+    return Object.hasOwn(ATTRIBUTE_SEARCH_FIELD_DEFINITIONS, key)
+      ? (ATTRIBUTE_SEARCH_FIELD_DEFINITIONS[key] ?? null)
+      : null;
   }
 
   return null;

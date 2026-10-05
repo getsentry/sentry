@@ -47,7 +47,6 @@ describe('useVisualizeFields', () => {
       'gen_ai.usage.total_tokens',
       'span.duration',
       'span.self_time',
-      'gen_ai.usage.total_cost',
       'score.ttfb',
     ]);
   });

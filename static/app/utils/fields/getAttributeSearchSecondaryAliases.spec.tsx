@@ -6,6 +6,13 @@ import {
 import {FieldKind} from './types';
 
 describe('ATTRIBUTE_SEARCH_SECONDARY_ALIASES', () => {
+  it.each(['constructor', 'toString', '__proto__'])(
+    'does not treat inherited key %s as attribute search metadata',
+    key => {
+      expect(getPreferredAttributeSearchKey(key)).toBeUndefined();
+    }
+  );
+
   it('maps deprecated names onto preferred search aliases', () => {
     expect(ATTRIBUTE_SEARCH_SECONDARY_ALIASES['ai.completion_tokens.used']).toEqual({
       key: 'ai.completion_tokens.used',

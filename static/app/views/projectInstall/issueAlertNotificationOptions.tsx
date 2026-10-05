@@ -46,7 +46,9 @@ interface MessagingProviderDetail {
  * Providers disagree on what identifies a channel. Slack and MS Teams resolve
  * a channel by name (`find_channel_id` matches Teams channels by name only),
  * Discord by id. Each picker is keyed by the field its backend resolves, so a
- * picked channel and its action target are the same value.
+ * picked channel and its action target are the same value. A Slack action
+ * also carries the id of a channel picked from the list (see
+ * `buildIntegrationAction`).
  */
 export const providerDetails = {
   slack: {
@@ -174,12 +176,17 @@ export type NotificationSelection = {
  * Builds the serializable IntegrationAction for a messaging selection.
  * Returns undefined if any required selection field is absent or the provider
  * is not recognized.
+ *
+ * `channelId` is the id of a channel picked from the `/channels/` list. Slack
+ * checks a channel by id when the action has one, because its lookup by name
+ * does not find some channels the list returns.
  */
 export function buildIntegrationAction({
   provider,
   integrationId,
   channel,
-}: Partial<NotificationSelection>): IntegrationAction | undefined {
+  channelId,
+}: Partial<NotificationSelection> & {channelId?: string}): IntegrationAction | undefined {
   if (!provider || !integrationId || !channel) {
     return undefined;
   }
@@ -190,6 +197,7 @@ export function buildIntegrationAction({
         id: IssueAlertActionType.SLACK,
         workspace: integrationId,
         channel,
+        channel_id: channelId,
       };
     case 'discord':
       return {
@@ -361,6 +369,7 @@ function useNotificationPicker(resolveRestore: RestoreResolver) {
         provider,
         integrationId: integration?.id,
         channel: getChannelTarget(provider, channel),
+        channelId: channel?.channelId,
       });
       if (!integrationAction) {
         return;

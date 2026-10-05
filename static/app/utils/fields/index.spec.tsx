@@ -35,11 +35,25 @@ describe('getFieldDefinition attribute search metadata', () => {
   );
 
   it('keeps the issue-specific description for type', () => {
-    expect(getFieldDefinition(FieldKey.TYPE)?.desc).toBe(
+    const eventDefinition = getFieldDefinition(FieldKey.TYPE);
+    const spanDefinition = getFieldDefinition(FieldKey.TYPE, 'span');
+
+    expect(eventDefinition?.desc).toBe(
       'Type of event (Errors, transactions, csp and default)'
     );
-    expect(getFieldDefinition(FieldKey.TYPE, 'span')?.desc).toBe(
-      ATTRIBUTE_SEARCH_METADATA[FieldKey.TYPE]?.brief
+    expect(spanDefinition?.desc).toBe(ATTRIBUTE_SEARCH_METADATA[FieldKey.TYPE]?.brief);
+    expect(getFieldDefinition(FieldKey.TYPE)).toBe(eventDefinition);
+    expect(getFieldDefinition(FieldKey.TYPE, 'span')).toBe(spanDefinition);
+  });
+
+  it.each([
+    [FieldKey.ID, 'The event identification number'],
+    [FieldKey.TRANSACTION, 'Error or transaction name identifier'],
+    [FieldKey.HTTP_URL, 'Full URL of the request without parameters'],
+  ])('keeps the event-specific description for %s', (key, description) => {
+    expect(getFieldDefinition(key)?.desc).toBe(description);
+    expect(getFieldDefinition(key, 'span')?.desc).toBe(
+      ATTRIBUTE_SEARCH_METADATA[key]?.brief
     );
   });
 
@@ -50,6 +64,17 @@ describe('getFieldDefinition attribute search metadata', () => {
     expect(getFieldDefinition(TraceMetricKnownFieldKey.ID, 'span')?.desc).toBe(
       ATTRIBUTE_SEARCH_METADATA[TraceMetricKnownFieldKey.ID]?.brief
     );
+  });
+
+  it('keeps custom field kinds independent across repeated lookups', () => {
+    expect(getFieldDefinition('checkout.cart_size', 'span')).toBeNull();
+    expect(
+      getFieldDefinition('checkout.cart_size', 'span', FieldKind.MEASUREMENT)?.valueType
+    ).toBe(FieldValueType.NUMBER);
+    expect(
+      getFieldDefinition('checkout.cart_size', 'span', FieldKind.TAG)?.valueType
+    ).toBe(FieldValueType.STRING);
+    expect(getFieldDefinition('checkout.cart_size', 'span')).toBeNull();
   });
 
   it('sources event and explore field definitions from conventions', () => {

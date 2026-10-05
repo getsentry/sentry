@@ -11,10 +11,10 @@ from sentry.tasks.store import (
     preprocess_event,
     process_event,
     save_event,
+    save_event_attachments,
     save_event_transaction,
     should_process,
 )
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.viewer_context import ActorType, get_viewer_context
 
@@ -311,7 +311,6 @@ def test_save_event_sets_viewer_context(default_project) -> None:
 
 
 @django_db_all
-@override_options({"post_process.delete-processing-store-in-save-event": True})
 def test_save_event_deletes_processing_store_at_end(
     default_project, mock_event_processing_store
 ) -> None:
@@ -351,7 +350,6 @@ def test_save_event_deletes_processing_store_at_end(
 
 
 @django_db_all
-@override_options({"post_process.delete-processing-store-in-save-event": True})
 def test_save_event_deletes_processing_store_on_failure(
     default_project, mock_event_processing_store
 ) -> None:
@@ -369,6 +367,40 @@ def test_save_event_deletes_processing_store_on_failure(
         save_event(cache_key="e:test", event_id=EVENT_ID, project_id=default_project.id)
 
     mock_event_processing_store.delete_by_key.assert_called_once_with("e:test")
+
+
+@django_db_all
+@pytest.mark.parametrize("cache_key", (None, "", "e:working-event"))
+def test_discard_event_cleans_up_attachments_with_optional_cache_key(
+    default_project, cache_key
+) -> None:
+    data = {
+        "project": default_project.id,
+        "platform": "python",
+        "event_id": EVENT_ID,
+        "_attachments": [
+            {
+                "key": "e:attachment-event",
+                "id": 0,
+                "name": "attachment.txt",
+                "stored_id": "stored-attachment",
+            }
+        ],
+    }
+
+    with (
+        mock.patch.object(EventManager, "save", side_effect=HashDiscarded("discarded")),
+        mock.patch("sentry.attachments.get_session") as get_session,
+    ):
+        save_event_attachments(
+            cache_key=cache_key,
+            data=data,
+            project_id=default_project.id,
+            start_time=time(),
+        )
+
+    get_session.return_value.delete.assert_called_once_with("stored-attachment")
+    assert "_attachments" not in data
 
 
 @pytest.fixture(params=["org", "project"])

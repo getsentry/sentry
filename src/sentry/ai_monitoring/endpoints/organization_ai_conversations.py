@@ -171,9 +171,33 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     ):
         """Return AI conversations ordered by latest span time.
 
-        `query` uses Sentry search syntax against spans. A conversation matches when
-        any span matches. Summary values then include all conversation spans inside
-        selected project, environment, and time filters.
+        `query` uses Sentry search syntax.
+
+        **Span filters**
+
+        - Description: `"payment failed"`; status: `span.status:[error,internal_error]`.
+        - Operation: `gen_ai.operation.type:tool`; tool: `gen_ai.tool.name:get_weather`.
+        - Duration: `span.duration:>2s`; ID: `gen_ai.conversation.id:"session:123"`
+          or `conversation.conversationId:"session:123"`.
+
+        **Conversation filters**
+
+        - Calls: `conversation.llmCalls` or `conversation.messages`, and
+          `conversation.toolCalls`; failures: `conversation.errors` and
+          `conversation.toolErrors`.
+        - Usage: `conversation.inputTokens`, `conversation.outputTokens`,
+          `conversation.totalTokens`, and `conversation.totalCost`.
+        - Duration: `conversation.duration` sums AI spans;
+          `conversation.generationDuration` sums LLM calls.
+
+        Use numeric comparisons such as `conversation.toolCalls:>2`. Queries return
+        conversations, not spans. Each `AND` condition may match a different span.
+        Returned totals include all AI spans in selected project, environment, and time
+        filters, not only matching spans.
+
+        Negation means no span matches, including when an attribute is absent. Payloads
+        are searchable only when recorded and not scrubbed. Payload failure text does
+        not mark a span as failed; set `span.status:error` for reliable failure search.
         """
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -309,6 +333,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
     ) -> list[AIConversationData]:
         operation_filter = "has:gen_ai.operation.type"
         ai_client_filter = "gen_ai.operation.type:ai_client"
+        # Some SDKs put messages on the agent span instead of its generation spans.
+        agent_filter = "gen_ai.operation.type:agent"
         results = Spans.run_table_query(
             params=snuba_params,
             query_string=build_escaped_term_filter("gen_ai.conversation.id", conversation_ids),
@@ -331,6 +357,8 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
                 f"max_if(`{ai_client_filter} has:gen_ai.output.messages`, timestamp) as output_messages_timestamp",
                 f"last_if(`{ai_client_filter}`, gen_ai.response.text, timestamp) as response_text",
                 f"max_if(`{ai_client_filter} has:gen_ai.response.text`, timestamp) as response_text_timestamp",
+                f"first_if(`{agent_filter} has:gen_ai.input.messages`, gen_ai.input.messages, timestamp) as agent_input_messages",
+                f"last_if(`{agent_filter} has:gen_ai.output.messages`, gen_ai.output.messages, timestamp) as agent_output_messages",
             ],
             orderby=None,
             offset=0,

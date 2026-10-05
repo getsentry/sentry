@@ -1,7 +1,4 @@
-import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions/attributes/search';
-
-import {attributeSearchTypeToFieldValueType} from './attributeSearchTypeToFieldValueType';
-import {getFieldDefinitionFromAttributeSearchMetadata} from './getFieldDefinitionFromAttributeSearchMetadata';
+import {ATTRIBUTE_SEARCH_FIELD_DEFINITIONS} from './getFieldDefinitionFromAttributeSearchMetadata';
 import {FieldKind, FieldValueType, type FieldDefinition} from './types';
 
 const UNIT_FIELD_VALUE_TYPES = new Set<FieldValueType>([
@@ -14,17 +11,26 @@ const UNIT_FIELD_VALUE_TYPES = new Set<FieldValueType>([
   FieldValueType.PERCENT_CHANGE,
 ]);
 
+const mergedDefinitions = new WeakMap<FieldDefinition, Map<string, FieldDefinition>>();
+
 export function mergeAttributeSearchMetadata(
   key: string,
   definition: FieldDefinition,
   {keepLocalDescription = false}: {keepLocalDescription?: boolean} = {}
 ): FieldDefinition {
-  const metadata = ATTRIBUTE_SEARCH_METADATA[key];
-  if (!Object.hasOwn(ATTRIBUTE_SEARCH_METADATA, key) || !metadata) {
+  const fromSearch = ATTRIBUTE_SEARCH_FIELD_DEFINITIONS[key];
+  if (!Object.hasOwn(ATTRIBUTE_SEARCH_FIELD_DEFINITIONS, key) || !fromSearch) {
     return definition;
   }
 
-  const valueTypeFromSearch = attributeSearchTypeToFieldValueType(metadata.type);
+  const cacheKey = `${keepLocalDescription}:${key}`;
+  let cache = mergedDefinitions.get(definition);
+  const cached = cache?.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
+  const valueTypeFromSearch = fromSearch.valueType;
   // DATE has no AttributeSearchType variant, so overlapping local date fields
   // (e.g. timestamp) would otherwise be replaced by string/number and break
   // date filter UI. Unit types are kept only when conventions collapse to
@@ -36,12 +42,11 @@ export function mergeAttributeSearchMetadata(
       (valueTypeFromSearch === FieldValueType.NUMBER ||
         valueTypeFromSearch === FieldValueType.INTEGER));
 
-  const fromSearch = getFieldDefinitionFromAttributeSearchMetadata(key)!;
   const keywords = [
     ...new Set([...(fromSearch.keywords ?? []), ...(definition.keywords ?? [])]),
   ];
 
-  return {
+  const merged = {
     ...fromSearch,
     ...definition,
     desc: keepLocalDescription ? (definition.desc ?? fromSearch.desc) : fromSearch.desc,
@@ -49,4 +54,11 @@ export function mergeAttributeSearchMetadata(
     ...(fromSearch.kind === FieldKind.ARRAY ? {kind: FieldKind.ARRAY} : {}),
     ...(keywords.length ? {keywords} : {}),
   };
+
+  if (!cache) {
+    cache = new Map();
+    mergedDefinitions.set(definition, cache);
+  }
+  cache.set(cacheKey, merged);
+  return merged;
 }
