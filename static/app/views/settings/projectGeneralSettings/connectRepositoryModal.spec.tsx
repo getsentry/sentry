@@ -6,22 +6,9 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-// Mock the virtualizer so all menu items render in JSDOM (no layout engine).
-jest.mock('@tanstack/react-virtual', () => ({
-  useVirtualizer: jest.fn(({count, paddingStart = 0, paddingEnd = 0}) => ({
-    getVirtualItems: () =>
-      Array.from({length: count}, (_, i) => ({
-        key: i,
-        index: i,
-        start: paddingStart + i * 36,
-        size: 36,
-      })),
-    getTotalSize: () => paddingStart + count * 36 + paddingEnd,
-    measure: jest.fn(),
-    measureElement: jest.fn(),
-    scrollToIndex: jest.fn(),
-  })),
-}));
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
+
+mockElementSize();
 
 import {
   makeClosableHeader,
