@@ -201,40 +201,26 @@ export function IssueListActions({
   const queryExcludingPerformanceIssues = `${query ?? ''} issue.category:error`;
 
   function handleDelete() {
-    actionSelectedGroups(itemIds => {
-      bulkDelete(
-        api,
-        {
+    actionSelectedGroups(async itemIds => {
+      try {
+        await bulkDelete(api, {
           orgId: organization.slug,
           itemIds,
           query: queryExcludingPerformanceIssues,
           project: selection.projects,
           environment: selection.environments,
           ...selection.datetime,
-        },
-        {
-          complete: () => {
-            onDelete();
-          },
-        }
-      );
+        });
+      } catch {
+        // GroupStore already shows the error
+      } finally {
+        onDelete();
+      }
     });
   }
 
   function handleMerge() {
-    actionSelectedGroups(itemIds => {
-      mergeGroups(
-        api,
-        {
-          orgId: organization.slug,
-          itemIds,
-          query: queryExcludingPerformanceIssues,
-          project: selection.projects,
-          environment: selection.environments,
-          ...selection.datetime,
-        },
-        {}
-      );
+    actionSelectedGroups(async itemIds => {
       if (selection.projects[0]) {
         const trackProject = ProjectsStore.getById(`${selection.projects[0]}`);
         trackAnalytics('issues_stream.merged', {
@@ -244,6 +230,19 @@ export function IssueListActions({
           items_merged: allInQuerySelected ? 'all_in_query' : itemIds?.length,
           area,
         });
+      }
+
+      try {
+        await mergeGroups(api, {
+          orgId: organization.slug,
+          itemIds,
+          query: queryExcludingPerformanceIssues,
+          project: selection.projects,
+          environment: selection.environments,
+          ...selection.datetime,
+        });
+      } catch {
+        // GroupStore already shows the error
       }
     });
   }

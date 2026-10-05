@@ -100,8 +100,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:migrate-transaction-alerts-to-spans", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable migration of AM1 metrics alerts to transactions
     manager.add("organizations:migrate-am1-metrics-alerts-to-transactions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
-    # Enable deprecation of Discover as a product
-    manager.add("organizations:deprecate-discover", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable custom dynamic sampling rates
     manager.add("organizations:dynamic-sampling-custom", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable dynamic sampling minimum sample rate
@@ -186,8 +184,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:onboarding-agentic-setup", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable SCM-first onboarding flow with provider connection, platform detection, and feature selection steps
     manager.add("organizations:onboarding-scm", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Experiment: SCM onboarding A/B test measuring conversion impact
-    manager.add("organizations:onboarding-scm-experiment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Experiment: SCM onboarding messaging step A/B test (treatment adds a messaging/alerting step before SDK setup)
     manager.add("organizations:onboarding-scm-messaging-experiment", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable SCM-first project creation flow
@@ -488,12 +484,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:trace-waterfall-time-compression", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the informational message re: moving the trace waterfall data source from transaction events to EAP spans
     manager.add("organizations:trace-waterfall-version-message", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable the unified Agents overview in Explore
-    manager.add("organizations:gen-ai-agents-overview", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Conversation focused views in AI Insights
     manager.add("organizations:gen-ai-conversations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable query enhancements for AI conversation lists
-    manager.add("organizations:gen-ai-conversations-querying-enhancements", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI conversation title generation from gen_ai spans
     manager.add("organizations:gen-ai-conversation-title-generation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables Conduit demo endpoint and UI
