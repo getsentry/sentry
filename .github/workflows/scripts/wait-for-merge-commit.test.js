@@ -26,13 +26,17 @@ function mockContext({headSha = 'approved'} = {}) {
   };
 }
 
-function makeGithub({headSha = 'approved', mergeable = true} = {}) {
+function makeGithub({
+  headSha = 'approved',
+  mergeable = true,
+  mergeCommitSha = 'merge',
+} = {}) {
   return {
     rest: {
       pulls: {
         get: async () => ({
           status: 200,
-          data: {mergeable, merge_commit_sha: 'merge', head: {sha: headSha}},
+          data: {mergeable, merge_commit_sha: mergeCommitSha, head: {sha: headSha}},
         }),
       },
     },
@@ -59,6 +63,18 @@ describe('waitForMergeCommit', () => {
     assert.equal(core.outputs.mergeCommitSha, null);
     assert.equal(core.failures.length, 1);
     assert.match(core.failures[0], /head moved from approved to pushed-after-approval/);
+  });
+
+  it('does not report a head change when the merge commit is not computed yet', async () => {
+    const core = mockCore();
+    await waitForMergeCommit({
+      github: makeGithub({mergeCommitSha: null}),
+      context: mockContext(),
+      core,
+    });
+
+    assert.equal(core.outputs.mergeCommitSha, null);
+    assert.deepEqual(core.failures, []);
   });
 
   it('fails when the PR is not mergeable', async () => {

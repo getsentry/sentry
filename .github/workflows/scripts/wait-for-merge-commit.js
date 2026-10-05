@@ -61,7 +61,7 @@ export async function waitForMergeCommit({github, context, core}) {
   if (!mergeable) {
     // setFailed will cause the action to fail
     core.setFailed(`PR #${pullNumber} is not mergeable`);
-  } else if (mergeCommitSha === null) {
+  } else if (currentHeadSha !== pullRequest.head.sha) {
     core.setFailed(
       `PR #${pullNumber} head moved from ${pullRequest.head.sha} to ${currentHeadSha} since this run was triggered`
     );
