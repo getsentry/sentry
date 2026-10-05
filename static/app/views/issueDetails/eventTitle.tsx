@@ -1,5 +1,5 @@
 import {type CSSProperties, Fragment} from 'react';
-import styled from '@emotion/styled';
+import {css} from '@emotion/react';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
@@ -126,8 +126,21 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
               </Text>
               <Flex align="center" gap="xs" className="hidden-xs">
                 <Divider />
-                <JsonLink
+                <ExternalLink
                   href={jsonUrl}
+                  css={cssTheme => css`
+                    color: ${cssTheme.tokens.content.secondary};
+                    text-decoration: underline;
+                    text-decoration-color: ${color(cssTheme.colors.gray400)
+                      .alpha(0.5)
+                      .string()};
+
+                    &:hover {
+                      color: ${cssTheme.tokens.content.secondary};
+                      text-decoration: underline;
+                      text-decoration-color: ${cssTheme.tokens.content.secondary};
+                    }
+                  `}
                   onClick={() =>
                     trackAnalytics('issue_details.event_json_clicked', {
                       organization,
@@ -137,12 +150,12 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
                   }
                 >
                   {t('JSON')}
-                </JsonLink>
+                </ExternalLink>
               </Flex>
               {actionableItems && actionableItems.length > 0 && (
                 <Fragment>
                   <Divider />
-                  <ProcessingErrorButton
+                  <Button
                     tooltipProps={{
                       title: t(
                         'Sentry has detected configuration issues with this event. Click for more info.'
@@ -151,6 +164,15 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
                     variant="transparent"
                     size="zero"
                     icon={<IconWarning variant="danger" />}
+                    css={cssTheme => css`
+                      color: ${cssTheme.colors.red400};
+                      font-weight: ${cssTheme.font.weight.sans.regular};
+                      font-size: ${cssTheme.font.size.sm};
+
+                      &:hover {
+                        color: ${cssTheme.colors.red400};
+                      }
+                    `}
                     onClick={() => {
                       document
                         .getElementById(SectionKey.PROCESSING_ERROR)
@@ -159,7 +181,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
                     }}
                   >
                     {t('Processing Error')}
-                  </ProcessingErrorButton>
+                  </Button>
                 </Fragment>
               )}
             </Flex>
@@ -170,24 +192,3 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
     </div>
   );
 }
-
-const ProcessingErrorButton = styled(Button)`
-  color: ${p => p.theme.colors.red400};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  font-size: ${p => p.theme.font.size.sm};
-  :hover {
-    color: ${p => p.theme.colors.red400};
-  }
-`;
-
-const JsonLink = styled(ExternalLink)`
-  color: ${p => p.theme.tokens.content.secondary};
-  text-decoration: underline;
-  text-decoration-color: ${p => color(p.theme.colors.gray400).alpha(0.5).string()};
-
-  :hover {
-    color: ${p => p.theme.tokens.content.secondary};
-    text-decoration: underline;
-    text-decoration-color: ${p => p.theme.tokens.content.secondary};
-  }
-`;
