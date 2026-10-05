@@ -1,6 +1,5 @@
+import {unreachable} from 'sentry/utils/unreachable';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
-
-import {traceReducerExhaustiveActionCheck} from './traceReducerUtils';
 
 type Tab = {
   node: BaseNode | 'trace' | 'profiles' | 'vitals';
@@ -147,7 +146,7 @@ export function traceTabsReducer(
     }
 
     default: {
-      traceReducerExhaustiveActionCheck(action);
+      unreachable(action);
       return state;
     }
   }

@@ -1,7 +1,6 @@
+import {unreachable} from 'sentry/utils/unreachable';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import type {TraceSearchResult} from 'sentry/views/performance/traceDetails/traceSearch/traceSearchEvaluator';
-
-import {traceReducerExhaustiveActionCheck} from './traceReducerUtils';
 
 type TraceSearchAction =
   | {query: string; type: 'set query'; source?: 'external'}
@@ -180,7 +179,7 @@ export function traceSearchReducer(
       };
 
     default: {
-      traceReducerExhaustiveActionCheck(action);
+      unreachable(action);
       return state;
     }
   }

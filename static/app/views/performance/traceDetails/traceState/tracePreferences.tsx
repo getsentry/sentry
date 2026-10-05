@@ -2,8 +2,7 @@ import * as Sentry from '@sentry/react';
 
 import {localStorageWrapper as localStorage} from 'sentry/utils/localStorage';
 import {clamp} from 'sentry/utils/number/clamp';
-
-import {traceReducerExhaustiveActionCheck} from './traceReducerUtils';
+import {unreachable} from 'sentry/utils/unreachable';
 
 type TraceLayoutPreferences = 'drawer left' | 'drawer bottom' | 'drawer right';
 
@@ -235,7 +234,7 @@ export function tracePreferencesReducer(
         },
       };
     default:
-      traceReducerExhaustiveActionCheck(action);
+      unreachable(action);
       return state;
   }
 }

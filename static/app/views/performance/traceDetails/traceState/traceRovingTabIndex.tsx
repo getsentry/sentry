@@ -1,6 +1,5 @@
+import {unreachable} from 'sentry/utils/unreachable';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
-
-import {traceReducerExhaustiveActionCheck} from './traceReducerUtils';
 
 interface TraceRovingTabIndexState {
   index: number | null;
@@ -42,7 +41,7 @@ export function traceRovingTabIndexReducer(
     case 'clear roving index':
       return {...state, index: null, node: null};
     default:
-      traceReducerExhaustiveActionCheck(action);
+      unreachable(action);
       return state;
   }
 }
