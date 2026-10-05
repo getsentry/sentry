@@ -1309,10 +1309,7 @@ function SaveQueryButton({
     );
     if (starred) {
       try {
-        await starQuery(
-          {queryId: Number(sq.id), queryType: SavedQueryType.DISCOVER},
-          true
-        );
+        await starQuery({...sq, queryType: SavedQueryType.DISCOVER}, true);
       } catch (err) {
         Sentry.captureException(err);
       }
