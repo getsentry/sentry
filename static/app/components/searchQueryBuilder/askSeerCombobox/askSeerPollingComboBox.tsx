@@ -133,7 +133,6 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
       searchQuery={searchQuery}
       onSearchQueryChange={setSearchQuery}
       queries={queries}
-      strategy={strategy}
       unsupportedReason={unsupportedReason}
       submitQuery={submitQuery}
       isPending={isSessionPending || isPolling}

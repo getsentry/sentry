@@ -229,7 +229,6 @@ export function SpansTabSeerComboBox() {
   return (
     <AskSeerComboBox
       initialQuery={initialSeerQuery}
-      strategy="Traces"
       askSeerMutationOptions={spansTabAskSeerMutationOptions}
       applySeerSearchQuery={applySeerSearchQuery}
     />

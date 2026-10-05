@@ -3,10 +3,8 @@ import styled from '@emotion/styled';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import type {
-  AskSeerStrategy,
-  QueryTokensProps,
-} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {useAiQueryContext} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
+import type {QueryTokensProps} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
 import {
   formatDateRange,
   getCrossEventFilterQuery,
@@ -23,12 +21,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 const MAX_PROJECT_CHIPS = 3;
 const MAX_FIELD_CHIPS = 3;
 
-interface QueryTokensComponentProps extends QueryTokensProps {
-  /** Seer strategy for the surface, used to hide chips it can't apply. */
-  strategy?: AskSeerStrategy;
-}
-
-export function QueryTokens(props: QueryTokensComponentProps) {
+export function QueryTokens(props: QueryTokensProps) {
   const normalizedDateTimeParams = normalizeSeerDateTimeParams(props);
 
   return <NewQueryTokens {...props} {...normalizedDateTimeParams} />;
@@ -46,9 +39,9 @@ function NewQueryTokens({
   expandedProjectIds,
   crossEvents,
   extraFields,
-  strategy,
-}: QueryTokensComponentProps) {
+}: QueryTokensProps) {
   const tokens: React.ReactNode[] = [];
+  const {strategy} = useAiQueryContext();
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
   const {projects} = useProjects();
   // Project is applied to the page-level project selector, so surface it as the
