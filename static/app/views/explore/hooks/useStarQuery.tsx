@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   SavedQueryType,
@@ -13,7 +13,6 @@ import {
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 
 export function useStarQuery() {
-  const api = useApi();
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const invalidateSavedQueries = useInvalidateSavedQueries();
@@ -27,25 +26,30 @@ export function useStarQuery() {
       savedQuery: CombinedSavedQuery;
       starred: boolean;
     }) =>
-      api.requestPromise(
-        savedQuery.queryType === SavedQueryType.EXPLORE
-          ? getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/starred/', {
-              path: {
-                organizationIdOrSlug: organization.slug,
-                id: String(savedQuery.id),
-              },
-            })
-          : getApiUrl(
-              '/organizations/$organizationIdOrSlug/discover/saved/$id/starred/',
-              {
-                path: {
-                  organizationIdOrSlug: organization.slug,
-                  id: String(savedQuery.id),
-                },
-              }
-            ),
-        {method: 'POST', data: {starred}}
-      ),
+      fetchMutation({
+        url:
+          savedQuery.queryType === SavedQueryType.EXPLORE
+            ? getApiUrl(
+                '/organizations/$organizationIdOrSlug/explore/saved/$id/starred/',
+                {
+                  path: {
+                    organizationIdOrSlug: organization.slug,
+                    id: String(savedQuery.id),
+                  },
+                }
+              )
+            : getApiUrl(
+                '/organizations/$organizationIdOrSlug/discover/saved/$id/starred/',
+                {
+                  path: {
+                    organizationIdOrSlug: organization.slug,
+                    id: String(savedQuery.id),
+                  },
+                }
+              ),
+        method: 'POST',
+        data: {starred},
+      }),
     onMutate: ({
       savedQuery,
       starred,
