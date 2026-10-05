@@ -13,6 +13,7 @@ from sentry.utils.cache import cache
 from sentry.workflow_engine.handlers.condition.utils.age import AgeComparisonType
 from sentry.workflow_engine.handlers.condition.utils.releases import (
     get_first_last_release_for_group_cache_key,
+    get_latest_adopted_release_cache_key,
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
@@ -298,6 +299,19 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         assert cache.get(cache_key) is None
 
         self.assert_passes(self.dc, self.event_data)
+
+    def test_release_environment_clears_cache(self) -> None:
+        cache_key = get_latest_adopted_release_cache_key(self.project.id, self.prod_env.id)
+        cache.set(cache_key, self.oldest_release, 600)
+
+        self.create_release(
+            project=self.project,
+            version="test@3.0",
+            environments=[self.prod_env],
+            adopted=self.now,
+        )
+
+        assert cache.get(cache_key) is None
 
     @patch("sentry.search.utils.get_first_last_release_for_group", side_effect=Release.DoesNotExist)
     def test_release_does_not_exist(self, mock_get_first_last_release: MagicMock) -> None:
