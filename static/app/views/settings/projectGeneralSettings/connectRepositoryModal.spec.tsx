@@ -576,7 +576,7 @@ describe('ConnectRepositoryModal', () => {
       const branchInput = screen.getByRole('textbox', {name: /branch/i});
       expect(stackInput).toBeDisabled();
       expect(sourceInput).toBeDisabled();
-      expect(branchInput).not.toBeDisabled();
+      expect(branchInput).toBeEnabled();
     });
 
     it('seeds new mappings with the repository default branch', async () => {

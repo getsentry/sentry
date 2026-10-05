@@ -41,8 +41,8 @@ export type EditFormProps = ModalRenderProps & {
 interface EditRepositoryFormBodyProps extends EditFormProps {
   allMappings: RepositoryProjectPathConfig[];
   defaultBranch: string | null;
-  seededMappings: RepositoryProjectPathConfig[];
   invalidateQueries: () => Promise<unknown[]>;
+  seededMappings: RepositoryProjectPathConfig[];
 }
 
 function EditRepositoryFormBody({
