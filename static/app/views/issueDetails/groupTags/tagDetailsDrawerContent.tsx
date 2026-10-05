@@ -1,12 +1,12 @@
 import {Fragment, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -94,7 +94,16 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
   return (
     <Fragment>
       {tag && tagValues?.length && (
-        <Table data-test-id="group-tag-value">
+        <Grid
+          data-test-id="group-tag-value"
+          columns="1fr 0.22fr min-content min-content 45px min-content"
+          gap={{zero: 'xs md', '5xl': 'xs xl'}}
+          css={theme =>
+            css`
+              margin: 0 -${theme.space.md};
+            `
+          }
+        >
           <Header>
             <ColumnTitle>{t('Value')}</ColumnTitle>
             <ColumnSort
@@ -135,7 +144,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
               />
             ))}
           </Body>
-        </Table>
+        </Grid>
       )}
       <Pagination
         caption={paginationCaption}
@@ -348,18 +357,6 @@ function TagValueActionsMenu({
     />
   );
 }
-
-const Table = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 0.22fr min-content min-content 45px min-content;
-  column-gap: ${p => p.theme.space.md};
-  row-gap: ${p => p.theme.space.xs};
-  margin: 0 -${p => p.theme.space.md};
-
-  @container (min-width: ${p => p.theme.container['5xl']}) {
-    column-gap: ${p => p.theme.space.xl};
-  }
-`;
 
 const ColumnTitle = styled('div')`
   white-space: nowrap;

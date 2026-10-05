@@ -81,7 +81,13 @@ export function GroupReplaysPlayer({
         }
 
         return (
-          <PlayerContainer data-test-id="player-container">
+          <FluidHeight
+            data-test-id="player-container"
+            position="relative"
+            maxHeight={`${REPLAY_LOADING_HEIGHT_LARGE}px`}
+            minHeight={{xl: `${REPLAY_LOADING_HEIGHT_LARGE}px`}}
+            overflow="visible"
+          >
             <ReplayPlayerPluginsContextProvider>
               <ReplayReaderProvider replay={replay}>
                 <ReplayPlayerStateContextProvider>
@@ -99,21 +105,12 @@ export function GroupReplaysPlayer({
                 </ReplayPlayerStateContextProvider>
               </ReplayReaderProvider>
             </ReplayPlayerPluginsContextProvider>
-          </PlayerContainer>
+          </FluidHeight>
         );
       }}
     </ReplayLoadingState>
   );
 }
-
-const PlayerContainer = styled(FluidHeight)`
-  position: relative;
-  max-height: ${REPLAY_LOADING_HEIGHT_LARGE}px;
-  @container (min-width: ${p => p.theme.container.xl}) {
-    min-height: ${REPLAY_LOADING_HEIGHT_LARGE}px;
-  }
-  overflow: unset;
-`;
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
   height: ${REPLAY_LOADING_HEIGHT_LARGE}px;

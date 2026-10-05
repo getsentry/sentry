@@ -1,4 +1,7 @@
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+
+import {Container, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {ProgressBar} from 'sentry/components/progressBar';
 import {t, tct, tn} from 'sentry/locale';
@@ -10,6 +13,10 @@ type Props = {
 };
 
 export function ReprocessingProgress({totalEvents, pendingEvents}: Props) {
+  const theme = useTheme();
+  const hasWideContainer = useResponsivePropValue({zero: false, xl: true});
+  const wrapperMargin = hasWideContainer ? '40px' : `${theme.space['3xl']} 40px`;
+
   const remainingEventsToReprocess = totalEvents - pendingEvents;
   const remainingEventsToReprocessPercent = percent(
     remainingEventsToReprocess,
@@ -17,7 +24,13 @@ export function ReprocessingProgress({totalEvents, pendingEvents}: Props) {
   );
 
   return (
-    <Wrapper>
+    <Container
+      flex={1}
+      css={css`
+        margin: ${wrapperMargin};
+        text-align: center;
+      `}
+    >
       <Inner>
         <Header>
           <Title>{t('Reprocessing\u2026')}</Title>
@@ -34,19 +47,9 @@ export function ReprocessingProgress({totalEvents, pendingEvents}: Props) {
           })}
         </Content>
       </Inner>
-    </Wrapper>
+    </Container>
   );
 }
-
-const Wrapper = styled('div')`
-  margin: ${p => p.theme.space['3xl']} 40px;
-  flex: 1;
-  text-align: center;
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    margin: 40px;
-  }
-`;
 
 const Content = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};

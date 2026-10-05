@@ -1,10 +1,11 @@
 import {Fragment, useEffect, useState} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {Stack} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 
@@ -103,7 +104,15 @@ export function FlagDetailsDrawerContent({group}: Props) {
 
   return (
     <Fragment>
-      <Table>
+      <Grid
+        columns="0.4fr 0.7fr 0.3fr 0.5fr min-content"
+        gap={{zero: 'xs md', '5xl': 'xs xl'}}
+        css={theme =>
+          css`
+            margin: 0 -${theme.space.md};
+          `
+        }
+      >
         <Header>
           <ColumnTitle>{t('Provider')}</ColumnTitle>
           <ColumnTitle>{t('Flag Name')}</ColumnTitle>
@@ -129,7 +138,7 @@ export function FlagDetailsDrawerContent({group}: Props) {
             );
           })}
         </Body>
-      </Table>
+      </Grid>
       <Pagination
         pageLinks={pageLinks}
         onCursor={(cursor, path, query) => {
@@ -225,18 +234,6 @@ function FlagValueActionsMenu({flagValue}: {flagValue: RawFlag}) {
     />
   );
 }
-
-const Table = styled('div')`
-  display: grid;
-  grid-template-columns: 0.4fr 0.7fr 0.3fr 0.5fr min-content;
-  column-gap: ${p => p.theme.space.md};
-  row-gap: ${p => p.theme.space.xs};
-  margin: 0 -${p => p.theme.space.md};
-
-  @container (min-width: ${p => p.theme.container['5xl']}) {
-    column-gap: ${p => p.theme.space.xl};
-  }
-`;
 
 const ColumnTitle = styled('div')`
   white-space: nowrap;

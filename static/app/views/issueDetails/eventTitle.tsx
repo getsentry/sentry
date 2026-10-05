@@ -94,7 +94,15 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
         }
         minHeight={`${MIN_NAV_HEIGHT}px`}
       >
-        <EventInfo>
+        <Flex
+          align="center"
+          direction="row"
+          gap="sm"
+          paddingTop={{zero: 'md', xl: '0'}}
+          css={css`
+            line-height: 1.2;
+          `}
+        >
           <EventIdWrapper>
             <span onClick={handleCopyEventId}>
               {t('ID: %s', getShortEventId(event.id))}
@@ -153,7 +161,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
               </ProcessingErrorButton>
             </Fragment>
           )}
-        </EventInfo>
+        </Flex>
         <IssueDetailsJumpTo />
       </Grid>
     </div>
@@ -164,18 +172,6 @@ const StyledTimeSince = styled(TimeSince)`
   color: ${p => p.theme.tokens.content.secondary};
   font-weight: ${p => p.theme.font.weight.sans.regular};
   white-space: nowrap;
-`;
-
-const EventInfo = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.sm};
-  flex-direction: row;
-  align-items: center;
-  line-height: 1.2;
-
-  @container (max-width: ${p => p.theme.container.xl}) {
-    padding-top: ${p => p.theme.space.md};
-  }
 `;
 
 const ProcessingErrorButton = styled(Button)`

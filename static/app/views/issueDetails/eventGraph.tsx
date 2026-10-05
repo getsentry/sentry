@@ -1,11 +1,11 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs, useResizeObserver} from '@react-aria/utils';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
-import {Flex, Grid, type FlexProps, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, type FlexProps, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {BarChart, type BarChartSeries} from 'sentry/components/charts/barChart';
@@ -517,7 +517,15 @@ export function EventGraph({
       ) : (
         <div />
       )}
-      <ChartContainer role="figure" ref={chartContainerRef}>
+      <Container
+        role="figure"
+        ref={chartContainerRef}
+        position="relative"
+        padding={{zero: 'sm 0', '5xl': 'sm md sm 0'}}
+        css={css`
+          margin-right: -2px;
+        `}
+      >
         <BarChart
           ref={mergedChartRef}
           height={100}
@@ -575,7 +583,7 @@ export function EventGraph({
           }}
           {...chartZoomProps}
         />
-      </ChartContainer>
+      </Container>
     </Grid>
   );
 }
@@ -611,14 +619,4 @@ function SummaryContainer(props: FlexProps) {
 const CalloutButton = styled(Button)`
   height: unset;
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
-`;
-
-const ChartContainer = styled('div')`
-  position: relative;
-  padding: ${p => p.theme.space.sm} 0 ${p => p.theme.space.sm} 0;
-  margin-right: -2px;
-
-  @container (min-width: ${p => p.theme.container['5xl']}) {
-    padding: ${p => p.theme.space.sm} ${p => p.theme.space.md} ${p => p.theme.space.sm} 0;
-  }
 `;

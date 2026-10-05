@@ -5,7 +5,7 @@ import color from 'color';
 
 import {FeatureBadge, Tag} from '@sentry/scraps/badge';
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -99,13 +99,15 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
               <BreadcrumbList.Title item={issueItem} />
             </TopBar.Slot>
             {hasErrorUpsampling && (
-              <Tooltip
-                title={t(
-                  'Error counts on this page have been upsampled based on your sampling rate.'
-                )}
-              >
-                <StyledTag variant="muted">{t('Errors Upsampled')}</StyledTag>
-              </Tooltip>
+              <Container display={{zero: 'none', sm: 'block'}}>
+                <Tooltip
+                  title={t(
+                    'Error counts on this page have been upsampled based on your sampling rate.'
+                  )}
+                >
+                  <Tag variant="muted">{t('Errors Upsampled')}</Tag>
+                </Tooltip>
+              </Container>
             )}
           </Flex>
           <Grid flow="column" align="center" gap="xs">
@@ -320,10 +322,4 @@ const Title = styled('div')`
   grid-template-columns: minmax(0, max-content) min-content;
   align-items: center;
   column-gap: ${p => p.theme.space.sm};
-`;
-
-const StyledTag = styled(Tag)`
-  @container (max-width: ${p => p.theme.container.sm}) {
-    display: none;
-  }
 `;
