@@ -15,7 +15,6 @@ from sentry.constants import DataCategory, ObjectStatus
 from sentry.models.project import Project
 from sentry.models.relay import Relay
 from sentry.quotas.base import RETENTIONS_CONFIG_MAPPING, RetentionSettings
-from sentry.testutils.helpers import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import safe
 
@@ -249,11 +248,7 @@ def test_relays_dyamic_sampling(call_endpoint, default_project) -> None:
     """
     Tests that dynamic sampling configuration set in project details are retrieved in relay configs
     """
-    with Feature(
-        {
-            "organizations:dynamic-sampling": True,
-        }
-    ):
+    with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5):
         result, status_code = call_endpoint()
         assert status_code < 400
         dynamic_sampling = safe.get_path(

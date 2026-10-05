@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase, SpanTestCase
@@ -12,8 +14,9 @@ class OrganizationSamplingEffectiveSampleRateEndpointTest(APITestCase, SnubaTest
         super().setUp()
         self.login_as(user=self.user)
 
-    def test_without_feature(self) -> None:
-        self.get_error_response(self.organization.slug, status_code=404)
+    def test_without_quota_rate(self) -> None:
+        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=None):
+            self.get_error_response(self.organization.slug, status_code=404)
 
     def test_get(self) -> None:
         project = self.create_project(teams=[self.team])
@@ -31,7 +34,7 @@ class OrganizationSamplingEffectiveSampleRateEndpointTest(APITestCase, SnubaTest
             ]
         )
 
-        with self.feature("organizations:dynamic-sampling"):
+        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5):
             response = self.get_success_response(self.organization.slug)
 
         assert response.data == {"eapEffectiveSampleRate": pytest.approx(0.5, rel=1e-6)}
@@ -39,7 +42,7 @@ class OrganizationSamplingEffectiveSampleRateEndpointTest(APITestCase, SnubaTest
     def test_no_data(self) -> None:
         self.create_project(teams=[self.team])
 
-        with self.feature("organizations:dynamic-sampling"):
+        with patch("sentry.quotas.backend.get_blended_sample_rate", return_value=0.5):
             response = self.get_success_response(self.organization.slug)
 
         assert response.data == {"eapEffectiveSampleRate": None}

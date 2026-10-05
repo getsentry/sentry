@@ -13,7 +13,6 @@ from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, PolymorphicRule
 from sentry.models.project import Project
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 
 BLENDED_SAMPLE_RATE = 0.25
@@ -77,7 +76,6 @@ class PerOrgEndToEndTest(TestCase, SnubaTestCase, SpanTestCase):
         rules = {rule["id"]: rule for rule in generate_rules(project)}
         return rules[RESERVED_IDS[rule_type]]
 
-    @with_feature("organizations:dynamic-sampling")
     @override_options({"dynamic-sampling.per_org.rollout-rate": 1.0})
     @patch("sentry.quotas.backend.get_blended_sample_rate", return_value=BLENDED_SAMPLE_RATE)
     def test_stored_segments_end_up_as_project_rules(self, get_blended_sample_rate) -> None:

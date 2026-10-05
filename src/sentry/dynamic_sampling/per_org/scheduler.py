@@ -6,7 +6,6 @@ from datetime import UTC, datetime, timedelta
 
 from taskbroker_client.retry import Retry
 
-from sentry import features
 from sentry.dynamic_sampling.per_org.cache import write_caches
 from sentry.dynamic_sampling.per_org.calculations import (
     apply_project_sample_rate_overrides,
@@ -32,7 +31,7 @@ from sentry.dynamic_sampling.per_org.telemetry import (
     track_dynamic_sampling,
 )
 from sentry.dynamic_sampling.rules.utils import OrganizationId
-from sentry.dynamic_sampling.utils import DYNAMIC_SAMPLING_FEATURE
+from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.models.organization import Organization
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -130,12 +129,7 @@ def schedule_per_org_calculations() -> None:
         return True
 
     def keep_orgs_with_dynamic_sampling(organizations: Sequence[Organization]) -> list[int]:
-        # A None result means the check failed, which would otherwise read as "none of them".
-        results = features.batch_has_for_organizations(DYNAMIC_SAMPLING_FEATURE, organizations)
-        if results is None:
-            raise RuntimeError(f"Unable to evaluate {DYNAMIC_SAMPLING_FEATURE} for a batch of orgs")
-
-        kept = [org.id for org in organizations if results.get(f"organization:{org.id}", False)]
+        kept = [org.id for org in organizations if has_dynamic_sampling(org)]
         emit_status(
             SCHEDULER_BUCKET_ORG_STATUS_METRIC,
             DynamicSamplingStatus.ORG_HAS_NO_DYNAMIC_SAMPLING,

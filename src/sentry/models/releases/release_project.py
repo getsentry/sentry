@@ -5,7 +5,6 @@ from typing import ClassVar
 
 from django.db import models
 
-from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
@@ -23,12 +22,13 @@ class ReleaseProjectModelManager(BaseManager["ReleaseProject"]):
     @staticmethod
     def _on_post(project, trigger):
         from sentry.dynamic_sampling import ProjectBoostedReleases
+        from sentry.dynamic_sampling.utils import has_dynamic_sampling
 
         project_boosted_releases = ProjectBoostedReleases(project)
         # We want to invalidate the project config only if dynamic sampling is enabled and there exists boosted releases
         # in the project.
         if (
-            features.has("organizations:dynamic-sampling", project.organization)
+            has_dynamic_sampling(project.organization)
             and project_boosted_releases.has_boosted_releases
         ):
             schedule_invalidate_project_config(project_id=project.id, trigger=trigger)
