@@ -54,7 +54,7 @@ describe('ScmRepositoryTable', () => {
       <ScmRepositoryTable provider={provider} installations={[makeInstallation()]} />
     );
 
-    const region = screen.getByRole('region', {name: 'GitHub'});
+    const region = screen.getByRole('region', {name: 'hb-testing'});
     const repoList = within(region).getByRole('list', {name: 'Repositories'});
     expect(within(repoList).getAllByRole('listitem')).toHaveLength(3);
     expect(within(repoList).getByText('org/aardvark')).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe('ScmRepositoryTable', () => {
         />
       );
 
-      const region = screen.getByRole('region', {name: 'GitHub'});
+      const region = screen.getByRole('region', {name: '@second-org'});
       expect(screen.queryByText('second/repo')).not.toBeInTheDocument();
 
       await userEvent.click(
@@ -104,7 +104,7 @@ describe('ScmRepositoryTable', () => {
       expect(onUninstall).toHaveBeenCalled();
     });
 
-    it('shows a manage repositories link when manageUrl is provided', () => {
+    it('shows a manage link when manageUrl is provided', () => {
       render(
         <ScmRepositoryTable
           provider={provider}
@@ -114,7 +114,7 @@ describe('ScmRepositoryTable', () => {
         />
       );
 
-      expect(screen.getByRole('button', {name: 'Manage repositories'})).toHaveAttribute(
+      expect(screen.getByRole('button', {name: 'Manage'})).toHaveAttribute(
         'href',
         'https://github.com/apps/sentry-io'
       );
@@ -138,10 +138,9 @@ describe('ScmRepositoryTable', () => {
         />
       );
 
-      const region = screen.getByRole('region', {name: 'GitHub'});
-      const repoLists = within(region).getAllByRole('list', {name: 'Repositories'});
-      // The second installation's list should contain the matched repo.
-      expect(within(repoLists[1]!).getByText('second')).toBeInTheDocument();
+      const region = screen.getByRole('region', {name: '@second-org'});
+      const repoList = within(region).getByRole('list', {name: 'Repositories'});
+      expect(within(repoList).getByText('second')).toBeInTheDocument();
     });
 
     it('does not toggle expansion when a button inside the row is clicked', async () => {
@@ -195,8 +194,7 @@ describe('ScmRepositoryTable', () => {
       // Tag shows the count with a loading indicator icon.
       expect(screen.getByText('0 repositories')).toBeInTheDocument();
       // Body shows loading text when no repos have arrived yet.
-      const repoList = screen.getByRole('list', {name: 'Repositories'});
-      expect(within(repoList).getByText('Loading repositories')).toBeInTheDocument();
+      expect(screen.getByText('Loading repositories')).toBeInTheDocument();
     });
 
     it('hides repos that do not match repoMatches', () => {
@@ -225,10 +223,7 @@ describe('ScmRepositoryTable', () => {
         />
       );
 
-      const repoList = screen.getByRole('list', {name: 'Repositories'});
-      expect(
-        within(repoList).getByText('No repositories match your search')
-      ).toBeInTheDocument();
+      expect(screen.getByText('No repositories match your search')).toBeInTheDocument();
     });
   });
 

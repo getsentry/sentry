@@ -27,7 +27,7 @@ describe('ConnectProviderDropdown', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Connect new provider'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Integration'}));
 
     expect(screen.getByRole('menuitemradio', {name: 'GitHub'})).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'GitLab'})).toBeInTheDocument();
@@ -42,7 +42,7 @@ describe('ConnectProviderDropdown', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Connect new provider'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Integration'}));
 
     const githubItem = screen.getByRole('menuitemradio', {name: 'GitHub'});
     const bitbucketItem = screen.getByRole('menuitemradio', {name: 'Bitbucket'});
@@ -59,7 +59,7 @@ describe('ConnectProviderDropdown', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Connect new provider'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Integration'}));
 
     expect(screen.getByText(/Compatible with/)).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Seer'})).toHaveAttribute(
@@ -76,7 +76,7 @@ describe('ConnectProviderDropdown', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Connect new provider'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Integration'}));
 
     expect(screen.queryByText(/Compatible with/)).not.toBeInTheDocument();
   });
@@ -89,7 +89,7 @@ describe('ConnectProviderDropdown', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Connect new provider'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Integration'}));
 
     expect(screen.getByRole('menuitemradio', {name: 'GitHub'})).toHaveAttribute(
       'aria-disabled',
@@ -107,7 +107,7 @@ describe('ConnectProviderDropdown', () => {
       />
     );
 
-    await userEvent.click(screen.getByRole('button', {name: 'Connect new provider'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Add Integration'}));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'GitHub'}));
 
     expect(openPipelineModalSpy).toHaveBeenCalledWith(

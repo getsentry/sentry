@@ -93,14 +93,15 @@ describe('OrganizationRepositories', () => {
 
     const connectButtons = screen.getAllByRole('button', {name: 'Add integration'});
     expect(connectButtons).toHaveLength(2);
+    expect(screen.queryByPlaceholderText('Search repositories')).not.toBeInTheDocument();
   });
 
-  it('shows the connect provider button in the header when integrations are installed', async () => {
+  it('shows the add integration button when integrations are installed', async () => {
     setupDefaultMocks();
     render(<OrganizationRepositories />);
 
     expect(
-      await screen.findByRole('button', {name: 'Connect new provider'})
+      await screen.findByRole('button', {name: 'Add Integration'})
     ).toBeInTheDocument();
   });
 
@@ -327,7 +328,7 @@ describe('OrganizationRepositories', () => {
         .spyOn(pipelineModal, 'openPipelineModal')
         .mockImplementation(() => {});
 
-      await userEvent.click(screen.getByRole('button', {name: 'Connect new provider'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Add Integration'}));
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'GitHub'}));
 
       return openPipelineModalSpy.mock.calls[0]![0].onComplete!;
