@@ -75,7 +75,7 @@ export const ORG_ROLES: OrgRole[] = [
 ];
 
 type PermissionChoice = {
-  label: 'No Access' | 'Read' | 'Read & Write' | 'Read, Write & Delete' | 'Admin';
+  label: 'No Access' | 'Read' | 'Read & Write' | 'Admin';
   scopes: Scope[];
 };
 
@@ -83,7 +83,6 @@ export type PermissionObj = {
   choices: {
     'no-access': PermissionChoice;
     admin?: PermissionChoice;
-    delete?: PermissionChoice;
     read?: PermissionChoice;
     write?: PermissionChoice;
   };
@@ -119,23 +118,73 @@ export const CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION: SpecialPermissionObj 
   scope: 'org:ci',
 };
 
-// Permissions backed by granular scopes (see GRANULAR_SCOPES in
-// sentry/conf/server.py). Only offered on personal tokens while
-// `organizations:granular-permission-scopes-ui` is rolling out.
-export const GRANULAR_SENTRY_APP_PERMISSIONS: PermissionObj[] = [
+export type GranularPermissionObj = {
+  label: string;
+  /**
+   * Access levels in ascending order. Selecting a level also grants every
+   * level before it.
+   */
+  levels: string[];
+  /**
+   * Scope prefix, e.g. `dashboard` for `dashboard:read`.
+   */
+  resource: string;
+  /**
+   * Scopes granted independently of the selected level, shown as checkboxes.
+   */
+  extras?: string[];
+};
+
+// Granular permissions replace SENTRY_APP_PERMISSIONS on personal tokens while
+// `organizations:granular-permission-scopes-ui` is enabled. Scopes listed here
+// that the backend hasn't registered yet are rejected when creating a token.
+//
+// `project_v2:distribution` is left out: personal tokens can't be used for
+// Distribution (see DISPLAYED_PERMISSIONS in apiNewToken.tsx).
+export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
+  {resource: 'alerts', label: 'Alerts', levels: ['read', 'write', 'delete']},
   {
-    resource: 'Dashboard',
-    help: 'Dashboards and their widgets',
-    choices: {
-      'no-access': {label: 'No Access', scopes: []},
-      read: {label: 'Read', scopes: ['dashboard:read']},
-      write: {label: 'Read & Write', scopes: ['dashboard:read', 'dashboard:write']},
-      delete: {
-        label: 'Read, Write & Delete',
-        scopes: ['dashboard:read', 'dashboard:write', 'dashboard:delete'],
-      },
-    },
+    resource: 'dashboard',
+    label: 'Dashboards',
+    levels: ['read', 'create', 'write', 'delete', 'admin'],
   },
+  {
+    resource: 'issueview',
+    label: 'Issue Views',
+    levels: ['read', 'write', 'delete', 'admin'],
+  },
+  {
+    resource: 'savedquery',
+    label: 'Saved Queries',
+    levels: ['read', 'write', 'delete', 'admin'],
+  },
+  {resource: 'user_preferences', label: 'User Preferences', levels: ['read', 'write']},
+  {
+    resource: 'project_v2',
+    label: 'Projects',
+    levels: ['read', 'create', 'write', 'admin'],
+    extras: ['releases'],
+  },
+  {resource: 'event', label: 'Events', levels: ['read', 'write', 'admin']},
+  {
+    resource: 'member',
+    label: 'Members',
+    levels: ['read', 'write', 'admin'],
+    extras: ['invite'],
+  },
+  {resource: 'issue', label: 'Issues', levels: ['read', 'write', 'delete', 'admin']},
+  {resource: 'telemetry', label: 'Telemetry', levels: ['read', 'write', 'admin']},
+  {
+    resource: 'org_v2',
+    label: 'Organization',
+    levels: ['read', 'write', 'admin'],
+    extras: ['billing'],
+  },
+  {resource: 'team_v2', label: 'Teams', levels: ['read', 'write', 'delete', 'admin']},
+  {resource: 'releases', label: 'Releases', levels: ['read', 'write', 'delete']},
+  {resource: 'source_maps', label: 'Source Maps', levels: ['read', 'write', 'delete']},
+  {resource: 'repositories', label: 'Repositories', levels: ['read', 'write', 'delete']},
+  {resource: 'integration', label: 'Integrations', levels: ['read', 'write', 'delete']},
 ];
 
 export const SPECIAL_SENTRY_APP_PERMISSIONS: SpecialPermissionObj[] = [

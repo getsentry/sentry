@@ -102,9 +102,6 @@ export const API_ACCESS_SCOPE_DETAILS = {
 export const ALLOWED_SCOPES = [
   'alerts:read',
   'alerts:write',
-  'dashboard:delete',
-  'dashboard:read',
-  'dashboard:write',
   'event:admin',
   'event:read',
   'event:write',

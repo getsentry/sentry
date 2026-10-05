@@ -19,7 +19,6 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {
   DISTRIBUTION_SENTRY_APP_PERMISSION,
-  GRANULAR_SENTRY_APP_PERMISSIONS,
   SENTRY_APP_PERMISSIONS,
 } from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
@@ -32,6 +31,11 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  GranularPermissionSelection,
+  granularPermissionsToScopes,
+  type GranularPermissions,
+} from 'sentry/views/settings/account/granularPermissionSelection';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {
@@ -54,9 +58,6 @@ const INITIAL_PERMISSIONS: Permissions = {
   Organization: 'no-access',
   Alerts: 'no-access',
   Distribution: 'no-access',
-  ...Object.fromEntries(
-    GRANULAR_SENTRY_APP_PERMISSIONS.map(({resource}) => [resource, 'no-access'] as const)
-  ),
 };
 
 // Personal tokens can't be used for Distribution. The point of
@@ -72,17 +73,18 @@ function getPermissionsPreview(scopes: string[]): string {
 
 export default function ApiNewToken() {
   const [permissions, setPermissions] = useState({...INITIAL_PERMISSIONS});
+  const [granularPermissions, setGranularPermissions] = useState<GranularPermissions>({
+    levels: {},
+    extraScopes: [],
+  });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const organization = useOrganization({allowNull: true});
 
   // Personal tokens aren't tied to an organization, so the flag is read from
   // the organization currently in context.
-  const displayedPermissions = organization?.features.includes(
-    'granular-permission-scopes-ui'
-  )
-    ? [...DISPLAYED_PERMISSIONS, ...GRANULAR_SENTRY_APP_PERMISSIONS]
-    : DISPLAYED_PERMISSIONS;
+  const hasGranularPermissions =
+    organization?.features.includes('granular-permission-scopes-ui') ?? false;
 
   const handleGoBack = useCallback(
     () => navigate(normalizeUrl(API_INDEX_ROUTE)),
@@ -90,10 +92,12 @@ export default function ApiNewToken() {
   );
 
   const scopes = Array.from(
-    new Set(
-      permissionStateToList(permissions, false, displayedPermissions).filter(
-        (value): value is NonNullable<typeof value> => value !== undefined
-      )
+    new Set<string>(
+      hasGranularPermissions
+        ? granularPermissionsToScopes(granularPermissions)
+        : permissionStateToList(permissions, false).filter(
+            (value): value is NonNullable<typeof value> => value !== undefined
+          )
     )
   ).sort();
 
@@ -172,15 +176,22 @@ export default function ApiNewToken() {
           <Panel>
             <PanelHeader>{t('Permissions')}</PanelHeader>
             <PanelBody>
-              <PermissionSelection
-                appPublished={false}
-                displaySpecialPermissions={false}
-                permissions={permissions}
-                onChange={nextPermissions => {
-                  setPermissions({...nextPermissions});
-                }}
-                displayedPermissions={displayedPermissions}
-              />
+              {hasGranularPermissions ? (
+                <GranularPermissionSelection
+                  permissions={granularPermissions}
+                  onChange={setGranularPermissions}
+                />
+              ) : (
+                <PermissionSelection
+                  appPublished={false}
+                  displaySpecialPermissions={false}
+                  permissions={permissions}
+                  onChange={nextPermissions => {
+                    setPermissions({...nextPermissions});
+                  }}
+                  displayedPermissions={DISPLAYED_PERMISSIONS}
+                />
+              )}
             </PanelBody>
             <FieldGroup
               label={t('Permissions Preview')}
