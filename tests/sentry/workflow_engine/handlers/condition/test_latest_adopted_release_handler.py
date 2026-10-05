@@ -7,13 +7,13 @@ from jsonschema import ValidationError
 
 from sentry.models.environment import Environment
 from sentry.models.release import Release
-from sentry.rules.age import AgeComparisonType
-from sentry.rules.filters.latest_adopted_release_filter import (
-    LatestAdoptedReleaseFilter,
-    get_first_last_release_for_group_cache_key,
-)
+from sentry.rules.filters.latest_adopted_release_filter import LatestAdoptedReleaseFilter
 from sentry.search.utils import LatestReleaseOrders
 from sentry.utils.cache import cache
+from sentry.workflow_engine.handlers.condition.utils.age import AgeComparisonType
+from sentry.workflow_engine.handlers.condition.utils.releases import (
+    get_first_last_release_for_group_cache_key,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase

@@ -6,9 +6,12 @@ import pytest
 from jsonschema import ValidationError
 
 from sentry.models.release import Release
-from sentry.rules.filters.latest_release import LatestReleaseFilter, get_project_release_cache_key
+from sentry.rules.filters.latest_release import LatestReleaseFilter
 from sentry.testutils.skips import requires_snuba
 from sentry.utils.cache import cache
+from sentry.workflow_engine.handlers.condition.utils.releases import (
+    get_latest_release_cache_key as get_project_release_cache_key,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase

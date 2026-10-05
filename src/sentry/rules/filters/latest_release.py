@@ -9,12 +9,9 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.rules.filters.base import EventFilter
 from sentry.utils.cache import cache
-
-
-def get_project_release_cache_key(project_id: int, environment_id: int | None = None) -> str:
-    if environment_id is None:
-        return f"project:{project_id}:latest_release"
-    return f"project:{project_id}:env:{environment_id}:latest_release"
+from sentry.workflow_engine.handlers.condition.utils.releases import (
+    get_latest_release_cache_key as get_project_release_cache_key,
+)
 
 
 # clear the cache given a Release object
