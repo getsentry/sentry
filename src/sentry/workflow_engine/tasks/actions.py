@@ -1,5 +1,6 @@
 import sentry_sdk
-from taskbroker_client.retry import Retry, retry_task
+from taskbroker_client.retry import Retry, RetryTaskError
+from taskbroker_client.state import current_task
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.eventstream.base import GroupState
@@ -32,6 +33,20 @@ TRIGGER_ACTION_RETRY_IGNORED_EXCEPTIONS = (
     ProjectNotActiveError,
     Workflow.DoesNotExist,
 )
+
+TRIGGER_ACTION_RETRY_TIMES = 3
+
+
+def _is_final_attempt() -> bool:
+    # Don't use retry_task(raise_on_no_retries=False) here. It decides from the activation's
+    # retry_state.max_attempts, which the worker rewrites to `times + 1` when it schedules a
+    # retry, so on the final attempt it still raises RetryTaskError and the worker reports
+    # NoRetriesRemainingError. The worker decides whether to retry from the task's own Retry
+    # policy (attempts start at 0, `times` at 1), so check against that instead.
+    current = current_task()
+    if current is None:
+        return False
+    return current.attempt >= TRIGGER_ACTION_RETRY_TIMES - 1
 
 
 def build_trigger_action_task_params(
@@ -83,7 +98,7 @@ def build_trigger_action_task_params(
     namespace=namespaces.workflow_engine_tasks,
     processing_deadline_duration=30,
     retry=Retry(
-        times=3,
+        times=TRIGGER_ACTION_RETRY_TIMES,
         delay=5,
         on=(Exception, ProcessingDeadlineExceeded),
         ignore=TRIGGER_ACTION_RETRY_IGNORED_EXCEPTIONS,
@@ -163,5 +178,6 @@ def trigger_action(
         except (Exception, ProcessingDeadlineExceeded) as error:
             # Action triggering is best effort. This raises while attempts remain, but returns
             # after the final attempt so giving up does not count as a task failure.
-            retry_task(raise_on_no_retries=False)
+            if not _is_final_attempt():
+                raise RetryTaskError()
             sentry_sdk.capture_exception(error)
