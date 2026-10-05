@@ -26,6 +26,16 @@ import {
   type LatestTodos,
 } from './toolUse';
 
+function latestToolSummary(group: Block[]): string | null {
+  for (let i = group.length - 1; i >= 0; i--) {
+    const summary = group[i]?.tool_summary?.trim();
+    if (summary) {
+      return summary;
+    }
+  }
+  return null;
+}
+
 /**
  * One assistant response: a run of consecutive `assistant`/`tool_use` blocks that follows a user
  * message. The server emits a turn as many blocks (a `tool_use` block per reasoning+tool step, then
@@ -93,8 +103,8 @@ function finalAnswer(group: Block[]): Block | null {
  *
  * Prefers the Code Mode call records (their labels are what the rows show), then falls back to a
  * classic tool's label — skipping Code Mode's own tool names, which name nothing ("Used
- * sentry_api_execute tool"). Deliberately never reads `thinking_content`: the title is visible even
- * when the reasoning is toggled off, so it must not leak it.
+ * sentry_api_execute tool"). The title comes from the explicit `tool_summary` field rather than
+ * trying to infer one from the displayed thinking prose.
  */
 function latestBlockActivity(block: Block): string | null {
   const finished = (block.tool_results ?? []).flatMap(
@@ -127,6 +137,10 @@ function latestBlockActivity(block: Block): string | null {
  * back to a plain "Thinking" before any tool has run.
  */
 export function deriveThinkingTitle(group: Block[]): string {
+  const summary = latestToolSummary(group);
+  if (summary) {
+    return summary;
+  }
   for (let i = group.length - 1; i >= 0; i--) {
     const label = latestBlockActivity(group[i]!);
     if (label) {
@@ -197,6 +211,7 @@ export const ResponseGroup = memo(function ResponseGroup({
   const answer = finalAnswer(group);
   const settledAnswer = answer && !answer.loading ? answer : null;
   const active = group.some(block => block.loading);
+  const toolSummary = latestToolSummary(group);
 
   // The reasoning trace is everything except the answer's content: thinking prose (gated on the
   // `showThinking` toggle), any intermediate narration, and the tool calls.
@@ -227,10 +242,11 @@ export const ResponseGroup = memo(function ResponseGroup({
           readOnly={readOnly ?? false}
           respondToUserInput={respondToUserInput}
         >
-          {active || hasTrace ? (
+          {active || hasTrace || toolSummary ? (
             <MessageRow from="assistant" density="compact">
               <ThinkingBlock
                 title={deriveThinkingTitle(group)}
+                completedTitle={toolSummary ?? undefined}
                 startTime={startTime}
                 endTime={endTime}
               >
