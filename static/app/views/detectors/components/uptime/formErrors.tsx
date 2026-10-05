@@ -319,7 +319,7 @@ export function AssertionFormError({op, erroredOp}: AssertionFormErrorProps) {
 
   return (
     <Container marginTop="xs">
-      <Tooltip title={message} forceVisible overlayStyle={{zIndex: 1}}>
+      <Tooltip title={message} forceVisible>
         <IconWarning variant="danger" size="sm" />
       </Tooltip>
     </Container>

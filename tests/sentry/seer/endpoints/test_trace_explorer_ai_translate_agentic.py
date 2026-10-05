@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+from django.test import override_settings
 from rest_framework import status
 
 from sentry.testutils.cases import APITestCase
@@ -7,7 +8,7 @@ from sentry.testutils.helpers.features import with_feature
 
 
 @with_feature("organizations:seer-explorer")
-@with_feature("organizations:gen-ai-features")
+@override_settings(SENTRY_SELF_HOSTED=False)
 class SearchAgentTranslateEndpointTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -51,11 +52,18 @@ class SearchAgentTranslateEndpointTest(APITestCase):
             [self.project.id],
             "Find slow transactions",
             strategy="Traces",
+            user_email=self.user.email,
+            timezone=None,
             model_name=None,
             metric_context=None,
             viewer_context={
                 "organization_id": self.organization.id,
                 "user_id": self.user.id,
+            },
+            options={
+                "cross_event": False,
+                "reflection_step": False,
+                "code_mode": False,
             },
         )
 

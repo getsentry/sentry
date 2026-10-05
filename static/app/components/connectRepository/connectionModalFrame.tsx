@@ -1,6 +1,5 @@
 import {Fragment, type ReactNode} from 'react';
 
-import {Alert} from '@sentry/scraps/alert';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -16,15 +15,35 @@ import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 export function getApiErrorMessage(error: unknown): string {
-  if (error instanceof RequestError) {
-    const detail = error.responseJSON?.detail;
-    if (typeof detail === 'string') {
-      return detail;
-    }
-    if (typeof detail?.message === 'string') {
-      return detail.message;
+  if (!(error instanceof RequestError)) {
+    return t('Failed to connect repository');
+  }
+
+  const json = error.responseJSON;
+
+  if (typeof (json as unknown) === 'string') {
+    return json as unknown as string;
+  }
+
+  const {detail} = json ?? {};
+  if (typeof detail === 'string' && detail) {
+    return detail;
+  }
+  if (detail && typeof detail === 'object' && typeof detail.message === 'string') {
+    return detail.message;
+  }
+
+  const nonFieldErrors = json?.nonFieldErrors ?? json?.non_field_errors;
+  if (Array.isArray(nonFieldErrors) && typeof nonFieldErrors[0] === 'string') {
+    return nonFieldErrors[0];
+  }
+
+  for (const value of Object.values(json ?? {})) {
+    if (Array.isArray(value) && typeof value[0] === 'string') {
+      return value[0];
     }
   }
+
   return t('Failed to connect repository');
 }
 
@@ -54,7 +73,7 @@ function LockedSelectField({
   );
 }
 
-export function LockedProjectField({project}: {project: Project}) {
+function LockedProjectField({project}: {project: Project}) {
   return (
     <LockedSelectField
       ariaLabel={t('Project')}

@@ -1,41 +1,42 @@
-import {useState} from 'react';
+import {useDroppedDataAnnotationsEnabled} from 'sentry/components/droppedData/useDroppedDataAnnotationsEnabled';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import {useChartInterval} from 'sentry/utils/useChartInterval';
 
-import {useDrawer} from '@sentry/scraps/drawer';
+const REFERRER = 'api.explore.dropped-data-annotations';
 
-import {DroppedDataDrawer} from 'sentry/components/droppedData/droppedDataDrawer';
-import {useHasDroppedDataAnnotations} from 'sentry/components/droppedData/useHasDroppedDataAnnotations';
-import type {DroppedData} from 'sentry/components/droppedData/utils';
-import {t} from 'sentry/locale';
-import {defined} from 'sentry/utils/defined';
-import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+// Trace metrics needs `count(value)`.
+function getYAxis(dataset: DiscoverDatasets): string {
+  return dataset === DiscoverDatasets.TRACEMETRICS ? 'count(value)' : 'count()';
+}
 
-export function useDroppedData(meta: EventsTimeSeriesResponse['meta']) {
-  const hasAnnotations = useHasDroppedDataAnnotations();
-  const {openDrawer} = useDrawer();
-  const [showDroppedData, setShowDroppedData] = useState(true);
+interface UseDroppedDataOptions {
+  dataset: DiscoverDatasets;
+}
 
-  const dropped = hasAnnotations ? meta?.droppedAnnotations : undefined;
-  const accepted = hasAnnotations ? meta?.acceptedAnnotations : undefined;
-  const hasDroppedData = defined(dropped) && dropped.length > 0;
+/**
+ * Dropped and accepted annotations for the current page filters and chart
+ * interval
+ */
+export function useDroppedData({dataset}: UseDroppedDataOptions) {
+  const annotationsEnabled = useDroppedDataAnnotationsEnabled();
+  const [interval] = useChartInterval();
 
-  const chartProps: DroppedData = {
-    dropped,
-    accepted,
-    visible: showDroppedData,
-    onClick: () => {
-      if (!hasDroppedData) {
-        return;
-      }
-      openDrawer(() => <DroppedDataDrawer droppedDataAnnotations={dropped} />, {
-        ariaLabel: t('Dropped Data'),
-      });
+  // TODO: change this hook to the dedicated endpoint when it's ready.
+  const {data, isPending} = useFetchEventsTimeSeries(
+    dataset,
+    {
+      yAxis: getYAxis(dataset),
+      interval,
+      includeAnnotations: true,
+      enabled: annotationsEnabled,
     },
-  };
+    REFERRER
+  );
 
   return {
-    chartProps,
-    hasDroppedData,
-    showDroppedData,
-    setShowDroppedData,
+    droppedAnnotations: data?.meta?.droppedAnnotations,
+    acceptedAnnotations: data?.meta?.acceptedAnnotations,
+    isPending,
   };
 }

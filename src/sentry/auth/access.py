@@ -986,6 +986,14 @@ def from_request_org_and_scopes(
         return _from_rpc_sentry_app(rpc_user_org_context)
 
     if is_active_superuser(request):
+        su = getattr(request, "superuser", None)
+        if (
+            su
+            and su.requires_org_auth(rpc_user_org_context.organization)
+            and rpc_user_org_context.member is None
+        ):
+            setattr(request, "_superuser_needs_org_auth", rpc_user_org_context.organization.slug)
+
         member = rpc_user_org_context.member
         auth_state = access_service.get_user_auth_state(
             user_id=request.user.id,

@@ -1,11 +1,12 @@
 import styled from '@emotion/styled';
 
+import {InfoText} from '@sentry/scraps/info';
 import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 const AccentHighlight = styled(Container)`
   background: ${p => p.theme.tokens.background.transparent.accent.muted};
+  color: ${p => p.theme.tokens.content.accent};
 `;
 
 interface AccentPathSegmentProps {
@@ -21,21 +22,23 @@ export function AccentPathSegment({value, ellipsis}: AccentPathSegmentProps) {
       padding="0 xs"
       maxWidth={ellipsis ? '100%' : undefined}
     >
-      {props => {
-        const text = (
-          <Text {...props} monospace variant="accent" ellipsis={ellipsis || undefined}>
+      {props =>
+        ellipsis ? (
+          <InfoText
+            {...props}
+            title={value}
+            mode="overflowOnly"
+            monospace
+            variant="inherit"
+          >
+            {value}
+          </InfoText>
+        ) : (
+          <Text {...props} monospace variant="inherit">
             {value}
           </Text>
-        );
-
-        return ellipsis ? (
-          <Tooltip title={value} showOnlyOnOverflow skipWrapper>
-            {text}
-          </Tooltip>
-        ) : (
-          text
-        );
-      }}
+        )
+      }
     </AccentHighlight>
   );
 }

@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 import {useIsInsideInteractiveElement} from '@sentry/scraps/useIsInsideInteractiveElement';
 
 import {IconBroadcast} from 'sentry/icons/iconBroadcast';

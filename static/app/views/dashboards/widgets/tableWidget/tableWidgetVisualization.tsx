@@ -75,7 +75,7 @@ interface TableWidgetVisualizationProps {
    */
   aliases?: Record<string, string>;
   /**
-   * The cell actions that may appear when a user clicks on a table cell. By default, copying text and opening external links are enabled.
+   * The cell actions that may appear in the table cell actions menu. By default, copying text and opening external links are enabled.
    */
   allowedCellActions?: Actions[] | GetAllowedCellActionsFn;
   /**

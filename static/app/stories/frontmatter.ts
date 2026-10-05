@@ -10,6 +10,7 @@ export interface MDXFrontmatter {
   description: string;
   title: string;
   category?: ComponentCategory;
+  keywords?: string[];
   layout?: 'document';
   resources?: StoryResources;
   source?: string;

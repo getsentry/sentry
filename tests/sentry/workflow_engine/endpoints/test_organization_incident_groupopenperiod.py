@@ -137,3 +137,103 @@ class OrganizationIncidentGroupOpenPeriodIndexGetTest(
         self.get_error_response(
             self.organization.slug, incident_identifier=str(nonexistent_fake_id), status_code=404
         )
+
+
+@cell_silo_test
+class OrganizationIncidentGroupOpenPeriodProjectAccessTest(
+    OrganizationIncidentGroupOpenPeriodAPITestCase
+):
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self.member = self.create_user(is_superuser=False)
+        self.create_member(
+            user=self.member, organization=self.organization, role="member", teams=[]
+        )
+        self.login_as(self.member)
+
+    def assert_mapping_requires_project_access(self, **params: int) -> None:
+        self.get_error_response(self.organization.slug, **params, status_code=404)
+
+        self.create_team_membership(team=self.team, user=self.member)
+        response = self.get_success_response(self.organization.slug, **params)
+        assert response.data == serialize(self.igop_1, self.member)
+
+    def test_incident_id_requires_project_access(self) -> None:
+        self.assert_mapping_requires_project_access(incident_id=self.incident_1.id)
+
+    def test_incident_identifier_requires_project_access(self) -> None:
+        self.assert_mapping_requires_project_access(incident_identifier=self.incident_1.identifier)
+
+    def test_group_id_requires_project_access(self) -> None:
+        self.assert_mapping_requires_project_access(group_id=self.group_1.id)
+
+    def test_open_period_id_requires_project_access(self) -> None:
+        self.assert_mapping_requires_project_access(open_period_id=self.open_period_1.id)
+
+    def assert_fallback_requires_project_access(self, lookup: str) -> None:
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+        open_period = GroupOpenPeriod.objects.get(group=group)
+        fake_id = get_fake_id_from_object_id(open_period.id)
+        params = {lookup: fake_id}
+        self.get_error_response(self.organization.slug, **params, status_code=404)
+
+        self.create_team_membership(team=self.team, user=self.member)
+        response = self.get_success_response(self.organization.slug, **params)
+        assert response.data == {
+            "incidentId": str(fake_id),
+            "incidentIdentifier": str(fake_id),
+            "groupId": str(group.id),
+            "openPeriodId": str(open_period.id),
+        }
+
+    def test_fallback_incident_id_requires_project_access(self) -> None:
+        self.assert_fallback_requires_project_access("incident_id")
+
+    def test_fallback_incident_identifier_requires_project_access(self) -> None:
+        self.assert_fallback_requires_project_access("incident_identifier")
+
+    def test_open_membership_allows_project_access(self) -> None:
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+        response = self.get_success_response(self.organization.slug, incident_id=self.incident_1.id)
+        assert response.data == serialize(self.igop_1, self.member)
+
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+        open_period = GroupOpenPeriod.objects.get(group=group)
+        fake_id = get_fake_id_from_object_id(open_period.id)
+        response = self.get_success_response(self.organization.slug, incident_id=fake_id)
+        assert response.data == {
+            "incidentId": str(fake_id),
+            "incidentIdentifier": str(fake_id),
+            "groupId": str(group.id),
+            "openPeriodId": str(open_period.id),
+        }
+
+    def test_mapping_requires_matching_organization(self) -> None:
+        other_organization = self.create_organization(owner=self.member)
+        self.create_team_membership(team=self.team, user=self.member)
+        self.get_error_response(
+            other_organization.slug, incident_id=self.incident_1.id, status_code=404
+        )
+        self.get_error_response(
+            other_organization.slug,
+            incident_identifier=self.incident_1.identifier,
+            status_code=404,
+        )
+        self.get_error_response(other_organization.slug, group_id=self.group_1.id, status_code=404)
+        self.get_error_response(
+            other_organization.slug, open_period_id=self.open_period_1.id, status_code=404
+        )
+
+    def test_fallback_requires_matching_organization(self) -> None:
+        other_organization = self.create_organization(owner=self.member)
+        self.create_team_membership(team=self.team, user=self.member)
+        group = self.create_group(project=self.project, type=MetricIssue.type_id)
+        open_period = GroupOpenPeriod.objects.get(group=group)
+        fake_id = get_fake_id_from_object_id(open_period.id)
+        self.get_error_response(other_organization.slug, incident_id=fake_id, status_code=404)
+        self.get_error_response(
+            other_organization.slug, incident_identifier=fake_id, status_code=404
+        )

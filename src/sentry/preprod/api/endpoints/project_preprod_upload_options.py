@@ -16,7 +16,6 @@ from sentry.api.utils import generate_locality_url
 from sentry.models.project import Project
 from sentry.objectstore import UsecaseId, get_session
 from sentry.objectstore.types import ObjectstoreUploadOptions
-from sentry.preprod.snapshots.storage import get_snapshot_usecase
 from sentry.utils.http import absolute_uri
 
 
@@ -33,7 +32,7 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
         if requested is None:
             usecase = UsecaseId.PREPROD
         elif requested == "auto":
-            usecase = get_snapshot_usecase()
+            usecase = UsecaseId.PREPROD_SNAPSHOTS
         else:
             return Response({"detail": "Invalid usecase"}, status=400)
 

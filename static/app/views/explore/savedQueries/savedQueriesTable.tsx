@@ -34,12 +34,12 @@ import {
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {useFromSavedQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
-import {isLogsEnabled} from 'sentry/views/explore/logs/isLogsEnabled';
 import {ExploreParams} from 'sentry/views/explore/savedQueries/exploreParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   confirmDeleteSavedQuery,
   getSavedQueryTraceItemUrl,
+  getYAxisDiscoverSavedQuery,
 } from 'sentry/views/explore/utils';
 
 type Props = {
@@ -64,9 +64,6 @@ export function SavedQueriesTable({
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
-  const showDatasetColumn =
-    isLogsEnabled(organization) ||
-    organization.features.includes('discover-queries-in-all-queries');
   const cursor = decodeScalar(location.query[cursorKey]);
   const {data, isLoading, pageLinks, isFetched, isError} = useGetSavedQueries({
     sortBy: ['starred', sort],
@@ -186,7 +183,7 @@ export function SavedQueriesTable({
     <Container containerType="inline-size">
       <TableHeading>{title}</TableHeading>
       <SavedEntityTable
-        columns={savedQueryColumns(showDatasetColumn)}
+        columns={savedQueryColumns()}
         pageSize={perPage}
         isLoading={isLoading}
         header={
@@ -195,9 +192,7 @@ export function SavedQueriesTable({
             <SavedEntityTable.HeaderCell divider={false}>
               {t('Name')}
             </SavedEntityTable.HeaderCell>
-            {showDatasetColumn && (
-              <SavedEntityTable.HeaderCell>{t('Type')}</SavedEntityTable.HeaderCell>
-            )}
+            <SavedEntityTable.HeaderCell>{t('Type')}</SavedEntityTable.HeaderCell>
             <SavedEntityTable.HeaderCell>{t('Project')}</SavedEntityTable.HeaderCell>
             <SavedEntityTable.HeaderCell>{t('Envs')}</SavedEntityTable.HeaderCell>
             <SavedEntityTable.HeaderCell>{t('Query')}</SavedEntityTable.HeaderCell>
@@ -213,6 +208,10 @@ export function SavedQueriesTable({
         {filteredData.map((query, index) => {
           const isExplore = isExploreSavedQuery(query);
           const isPrebuilt = isExplore && Boolean(query.isPrebuilt);
+          const allowRegexOperators =
+            isExplore &&
+            getSavedQueryTraceItemDataset(query.dataset) === TraceItemDataset.LOGS &&
+            organization.features.includes('ourlogs-regex-searches');
 
           return (
             <SavedEntityTable.Row
@@ -229,17 +228,16 @@ export function SavedQueriesTable({
               <SavedEntityTable.Cell>
                 <SavedEntityTable.CellName
                   to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
+                  title={query.name}
                 >
                   {query.name}
                 </SavedEntityTable.CellName>
               </SavedEntityTable.Cell>
-              {showDatasetColumn && (
-                <SavedEntityTable.Cell>
-                  {isExploreSavedQuery(query)
-                    ? getSavedQueryDatasetLabel(query.dataset)
-                    : 'Errors'}
-                </SavedEntityTable.Cell>
-              )}
+              <SavedEntityTable.Cell>
+                {isExploreSavedQuery(query)
+                  ? getSavedQueryDatasetLabel(query.dataset)
+                  : 'Errors'}
+              </SavedEntityTable.Cell>
               <SavedEntityTable.Cell>
                 <SavedEntityTable.CellProjects projects={[...(query.projects ?? [])]} />
               </SavedEntityTable.Cell>
@@ -251,6 +249,7 @@ export function SavedQueriesTable({
               <SavedEntityTable.Cell>
                 {isExplore ? (
                   <StyledExploreParams
+                    allowRegexOperators={allowRegexOperators}
                     query={query.query[0].query}
                     visualizes={query.query[0].visualize}
                     groupBys={query.query[0].groupby}
@@ -259,7 +258,7 @@ export function SavedQueriesTable({
                 ) : (
                   <StyledExploreParams
                     query={query.query ?? ''}
-                    visualizes={query.yAxis?.length ? [{yAxes: query.yAxis}] : []}
+                    visualizes={getYAxisDiscoverSavedQuery(query)}
                   />
                 )}
               </SavedEntityTable.Cell>
@@ -364,19 +363,15 @@ export function SavedQueriesTable({
   );
 }
 
-function savedQueryColumns(showDatasetColumn: boolean): TableColumnConfig[] {
+function savedQueryColumns(): TableColumnConfig[] {
   return [
     {key: 'star', width: '40px'},
     {key: 'name', width: {zero: '30%', xl: '20%'}},
-    ...(showDatasetColumn
-      ? [
-          {
-            key: 'dataset',
-            visible: {xl: true},
-            width: 'min-content',
-          } satisfies TableColumnConfig,
-        ]
-      : []),
+    {
+      key: 'dataset',
+      visible: {xl: true},
+      width: 'min-content',
+    } satisfies TableColumnConfig,
     {key: 'project', visible: {xl: true}, width: 'minmax(auto, 120px)'},
     {key: 'envs', visible: {'3xl': true}, width: 'minmax(auto, 120px)'},
     {key: 'query', width: 'minmax(0, 1fr)'},

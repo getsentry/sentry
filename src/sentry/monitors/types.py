@@ -32,6 +32,9 @@ class CheckinPayload(TypedDict):
 
 
 def slugify_monitor_slug(slug: str) -> str:
+    # Keep in sync with `slugify_monitor_slug` in Relay, which uses the result
+    # for the check-in routing key and rate limit dimensions:
+    # https://github.com/getsentry/relay/blob/master/relay-monitors/src/lib.rs
     return slugify(slug)[:DEFAULT_SLUG_MAX_LENGTH].strip("-")
 
 

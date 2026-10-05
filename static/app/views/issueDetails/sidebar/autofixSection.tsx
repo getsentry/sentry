@@ -1,11 +1,9 @@
 import {useMemo} from 'react';
-import {useQuery} from '@tanstack/react-query';
 
-import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Button} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {
   type AutofixSection,
   getAutofixArtifactFromSection,
@@ -28,6 +26,10 @@ import {
   RootCausePreview,
   SolutionPreview,
 } from 'sentry/components/events/autofix/v3/autofixPreviews';
+import {
+  AutofixSetupCard,
+  useAutofixSetupStep,
+} from 'sentry/components/events/autofix/v3/autofixSetupCard';
 import {AutofixStartCard} from 'sentry/components/events/autofix/v3/autofixStartCard';
 import {useAutoTriggerAutofix} from 'sentry/components/events/autofix/v3/useAutoTriggerAutofix';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
@@ -37,10 +39,8 @@ import {IconSeer} from 'sentry/icons/iconSeer';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
@@ -59,6 +59,7 @@ interface AutofixSectionProps {
 
 export function AutofixSection({group, project}: AutofixSectionProps) {
   const aiConfig = useAiConfig(group, project);
+  const isOnAutofixTab = useCurrentTab() === Tab.AUTOFIX;
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
@@ -91,6 +92,11 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
 
   return (
     <SidebarFoldSection
+      // The autofix tab already shows the full analysis, so start collapsed
+      // there. Opening it on that tab shouldn't change the saved preference
+      // for every other tab, and the key remounts it so each tab starts from
+      // its own state.
+      key={isOnAutofixTab ? 'autofix-tab' : 'default'}
       title={
         <Flex align="center" gap="xs">
           <Text size="md">{t('Seer Autofix')}</Text>
@@ -99,6 +105,8 @@ export function AutofixSection({group, project}: AutofixSectionProps) {
       }
       sectionKey={SectionKey.SEER}
       preventCollapse={false}
+      initialCollapse={isOnAutofixTab}
+      disableCollapsePersistence={isOnAutofixTab}
     >
       <AutofixQuotaContent aiConfig={aiConfig} group={group} project={project} />
     </SidebarFoldSection>
@@ -114,13 +122,10 @@ export const AutofixQuotaContent = registerLLMContext(
 );
 
 export function AutofixContent({aiConfig, group, project}: AutofixContentProps) {
-  const organization = useOrganization();
-  const analyticsArea = useAnalyticsArea() || 'seer';
-  const setupAnalyticsEventKey = `${analyticsArea}.seer_setup_clicked`;
   const autofix = useExplorerAutofix(group);
-  const {data: setupCheck, isPending} = useQuery(
-    getSeerOnboardingCheckQueryOptions({organization})
-  );
+  const {isPending, needOrgSetup, needProjSetup, setupType} = useAutofixSetupStep({
+    seerReposLinked: aiConfig.seerReposLinked,
+  });
 
   useAutoTriggerAutofix({autofix, group});
 
@@ -174,14 +179,6 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
 
   useLLMContext(autofixContextData);
 
-  const needOrgSetup =
-    // scm integration doesn't exist
-    !setupCheck?.hasSupportedScmIntegration;
-
-  const needProjSetup =
-    // scm integration not linked to project
-    !aiConfig.seerReposLinked;
-
   useRouteAnalyticsParams({
     seerNeedOrgSetup: isPending ? undefined : needOrgSetup,
     seerNeedProjSetup:
@@ -201,57 +198,8 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
     return <Placeholder height="160px" />;
   }
 
-  // legacy seer plans are allowed to run autofix without the SCM integration
-  if (!organization.features.includes('seer-added')) {
-    if (needOrgSetup || needProjSetup) {
-      return (
-        <Stack border="muted" radius="md" padding="lg" gap="lg">
-          <Text bold>{t('Finish Configuring Seer')}</Text>
-          <Text>
-            {t(
-              'Your organization has access to Seer, which will allow you to run Autofix on your issues, but you aren’t getting the most out of it.'
-            )}
-          </Text>
-          <Text>{t('Autofix can:')}</Text>
-          <Container as="ol" margin="0">
-            <li>{t('Determine the root cause of your issue and how to reproduce it')}</li>
-            <li>{t('Propose a solution')}</li>
-            <li>{t('Create a code fix')}</li>
-          </Container>
-          <Flex>
-            {needOrgSetup ? (
-              <LinkButton
-                to={`/settings/${organization.slug}/seer/onboarding/`}
-                icon={<IconSeer />}
-                analyticsEventKey={setupAnalyticsEventKey}
-                analyticsEventName={
-                  analyticsArea === 'issue_inbox'
-                    ? 'Issue Inbox: Seer Setup Clicked'
-                    : 'Seer: Setup Clicked'
-                }
-                analyticsParams={{group_id: group.id, setup_type: 'organization'}}
-              >
-                {t('Set Up Seer')}
-              </LinkButton>
-            ) : needProjSetup ? (
-              <LinkButton
-                to={`/settings/${organization.slug}/projects/${project.slug}/seer/`}
-                icon={<IconSeer />}
-                analyticsEventKey={setupAnalyticsEventKey}
-                analyticsEventName={
-                  analyticsArea === 'issue_inbox'
-                    ? 'Issue Inbox: Seer Setup Clicked'
-                    : 'Seer: Setup Clicked'
-                }
-                analyticsParams={{group_id: group.id, setup_type: 'project'}}
-              >
-                {t('Set Up Seer for This Project')}
-              </LinkButton>
-            ) : null}
-          </Flex>
-        </Stack>
-      );
-    }
+  if (setupType) {
+    return <AutofixSetupCard group={group} project={project} setupType={setupType} />;
   }
 
   return <AutofixArtifacts autofix={autofix} group={group} project={project} />;
