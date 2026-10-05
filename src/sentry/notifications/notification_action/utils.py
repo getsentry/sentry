@@ -77,12 +77,6 @@ def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
             extra={"detector_id": invocation.detector.id, "action_id": invocation.action.id},
         )
         return execute_via_issue_alert_handler(invocation)
-    except Exception:
-        logger.exception(
-            "Error executing via group type registry",
-            extra={"detector_id": invocation.detector.id, "action_id": invocation.action.id},
-        )
-        raise
 
 
 def execute_via_issue_alert_handler(invocation: ActionInvocation) -> None:
@@ -100,12 +94,6 @@ def execute_via_issue_alert_handler(invocation: ActionInvocation) -> None:
             extra={"action_id": invocation.action.id, "detector_id": invocation.detector.id},
         )
         raise
-    except Exception:
-        logger.exception(
-            "Error executing via issue alert handler",
-            extra={"action_id": invocation.action.id, "detector_id": invocation.detector.id},
-        )
-        raise
 
 
 def execute_via_metric_alert_handler(invocation: ActionInvocation) -> None:
@@ -119,12 +107,6 @@ def execute_via_metric_alert_handler(invocation: ActionInvocation) -> None:
         logger.exception(
             "No notification handler found for action type: %s",
             invocation.action.type,
-            extra={"action_id": invocation.action.id, "detector_id": invocation.detector.id},
-        )
-        raise
-    except Exception:
-        logger.exception(
-            "Error executing via metric alert handler in legacy registry",
             extra={"action_id": invocation.action.id, "detector_id": invocation.detector.id},
         )
         raise

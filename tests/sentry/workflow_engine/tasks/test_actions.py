@@ -9,6 +9,7 @@ from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.eventstream.base import GroupState
 from sentry.services.eventstore.models import GroupEvent
+from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
@@ -88,7 +89,7 @@ FINAL_ATTEMPT = RetryState(attempts=2, max_attempts=4)
 class TestTriggerAction(TestCase):
     def call_trigger_action(self, action: Mock, retry_state: RetryState) -> None:
         event_data = Mock()
-        detector = Mock(type="error")
+        detector = Mock(id=7, type="error")
         set_current_task(TaskActivation(retry_state=retry_state))
         self.addCleanup(clear_current_task)
 
@@ -129,7 +130,8 @@ class TestTriggerAction(TestCase):
 
         self.call_trigger_action(action, retry_state=FINAL_ATTEMPT)
 
-        mock_capture_exception.assert_called_once_with(error)
+        mock_capture_exception.assert_called_once()
+        assert mock_capture_exception.call_args.args == (error,)
 
     @patch("sentry.workflow_engine.tasks.actions.sentry_sdk.capture_exception")
     def test_reports_and_suppresses_processing_deadline_on_final_attempt(
@@ -141,7 +143,26 @@ class TestTriggerAction(TestCase):
 
         self.call_trigger_action(action, retry_state=FINAL_ATTEMPT)
 
-        mock_capture_exception.assert_called_once_with(error)
+        mock_capture_exception.assert_called_once()
+        assert mock_capture_exception.call_args.args == (error,)
+
+    @patch("sentry.workflow_engine.tasks.actions.sentry_sdk.capture_exception")
+    def test_reports_wrapped_cause_with_action_context_on_final_attempt(
+        self, mock_capture_exception: Mock
+    ) -> None:
+        cause = ApiUnauthorized("Could not authenticate")
+        wrapped = RetryTaskError()
+        wrapped.__cause__ = cause
+        action = Mock(id=1, type=Action.Type.OPSGENIE)
+        action.trigger.side_effect = wrapped
+
+        self.call_trigger_action(action, retry_state=FINAL_ATTEMPT)
+
+        mock_capture_exception.assert_called_once_with(
+            cause,
+            tags={"action_type": Action.Type.OPSGENIE, "detector_type": "error"},
+            extras={"action_id": 1, "workflow_id": 1, "detector_id": 7},
+        )
 
     @patch("sentry.workflow_engine.tasks.actions.sentry_sdk.capture_exception")
     def test_suppresses_ignored_trigger_exception(self, mock_capture_exception: Mock) -> None:
