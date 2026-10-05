@@ -9,6 +9,7 @@ import {useModal} from '@sentry/scraps/modal';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -311,6 +312,9 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   }, [autorefreshEnabled]);
 
   const rawLogCounts = useRawCounts({dataset: DiscoverDatasets.OURLOGS});
+  const {refetch: refetchDroppedData} = useDroppedData({
+    dataset: DiscoverDatasets.OURLOGS,
+  });
 
   const yAxes = useMemo(() => {
     const uniqueYAxes = new Set(visualizes.map(visualize => visualize.yAxis));
@@ -367,7 +371,11 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
       }
       return data;
     });
-    await Promise.all([tableData.refetch(), timeseriesResult.refetch()]);
+    await Promise.all([
+      tableData.refetch(),
+      timeseriesResult.refetch(),
+      refetchDroppedData?.(),
+    ]);
   };
 
   const openColumnEditor = () => {
@@ -424,7 +432,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
       return {
         canManuallyRefresh: false,
         manualRefreshDisabledReason: t(
-          'Auto-refresh is enabled. Please disable auto-refresh to manually refresh the table.'
+          'Auto-refresh is enabled. Please disable auto-refresh to manually refresh.'
         ),
       };
     }

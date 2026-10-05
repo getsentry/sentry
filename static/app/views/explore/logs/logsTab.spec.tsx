@@ -702,6 +702,34 @@ describe('LogsTabContent', () => {
     );
   });
 
+  it('refetches the dropped data annotations when the refresh button is clicked', async () => {
+    PageFiltersStore.updateDateTime({period: '1h', start: null, end: null, utc: null});
+    const droppedDataMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: {timeSeries: [TimeSeriesFixture()]},
+      match: [
+        MockApiClient.matchQuery({referrer: 'api.explore.dropped-data-annotations'}),
+      ],
+    });
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig,
+      organization: {
+        ...organization,
+        features: [...organization.features, 'explore-data-fidelity-annotations'],
+      },
+      additionalWrapper: ProviderWrapper,
+    });
+    await waitFor(() => expect(droppedDataMock).toHaveBeenCalled());
+    const initialCallCount = droppedDataMock.mock.calls.length;
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Refresh'}));
+
+    await waitFor(() =>
+      expect(droppedDataMock).toHaveBeenCalledTimes(initialCallCount + 1)
+    );
+  });
+
   it('warns that results may be incomplete when no logs are found and the sort is not timestamp descending', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,

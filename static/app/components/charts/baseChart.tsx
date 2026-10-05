@@ -807,8 +807,14 @@ export function BaseChart({
   // update is safe: once the instance is (re)created, echarts-for-react applies
   // the current `option` prop. Called from `componentDidUpdate`, so reading the
   // ref here happens outside of render.
+  // Look the instance up through the DOM, not `echartsInstanceRef`: when the
+  // forwarded `ref` changes, React nulls the merged ref until after
+  // `componentDidUpdate`, which would skip every update.
   const shouldSetOption = () => {
-    const instance = echartsInstanceRef.current?.getEchartsInstance();
+    const echartsElement = chartContainerRef.current?.querySelector<HTMLElement>(
+      ':scope > .echarts-for-react'
+    );
+    const instance = echartsElement && echarts.getInstanceByDom(echartsElement);
     return !!instance && !instance.isDisposed();
   };
 

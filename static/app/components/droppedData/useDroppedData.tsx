@@ -23,7 +23,7 @@ export function useDroppedData({dataset}: UseDroppedDataOptions) {
   const [interval] = useChartInterval();
 
   // TODO: change this hook to the dedicated endpoint when it's ready.
-  const {data, isPending} = useFetchEventsTimeSeries(
+  const {data, isPending, refetch} = useFetchEventsTimeSeries(
     dataset,
     {
       yAxis: getYAxis(dataset),
@@ -38,5 +38,6 @@ export function useDroppedData({dataset}: UseDroppedDataOptions) {
     droppedAnnotations: data?.meta?.droppedAnnotations,
     acceptedAnnotations: data?.meta?.acceptedAnnotations,
     isPending,
+    refetch: annotationsEnabled ? refetch : undefined,
   };
 }
