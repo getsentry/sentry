@@ -262,6 +262,7 @@ class OrganizationTraceItemAttributesMergedEndpointTest(
 
         assert first_page.status_code == 200, first_page.content
         assert len(first_page.data) == 2
+        assert int(first_page["X-Hits"]) == int(second_page["X-Hits"]) > 2
         assert links["next"]["results"] == "true"
         assert second_page.status_code == 200, second_page.content
         assert {attribute["name"] for attribute in first_page.data}.isdisjoint(

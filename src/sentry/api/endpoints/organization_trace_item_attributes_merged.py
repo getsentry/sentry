@@ -234,7 +234,7 @@ class OrganizationTraceItemAttributesMergedEndpoint(OrganizationTraceItemAttribu
             merge_attributes_across_datasets(attributes_by_dataset), serialized["sort"]
         )
 
-        return self.paginate(
+        response = self.paginate(
             request=request,
             paginator=GenericOffsetPaginator(
                 data_fn=lambda offset, limit: merged[offset : offset + limit]
@@ -242,3 +242,5 @@ class OrganizationTraceItemAttributesMergedEndpoint(OrganizationTraceItemAttribu
             default_per_page=100,
             max_per_page=max_attributes,
         )
+        response["X-Hits"] = len(merged)
+        return response
