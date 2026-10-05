@@ -103,7 +103,15 @@ def get_timeout_at(
 def get_new_timeout_at(
     checkin: MonitorCheckIn, new_status: int, date_updated: datetime
 ) -> datetime | None:
-    return get_timeout_at(checkin.monitor.get_validated_config(), new_status, date_updated)
+    timeout_at = get_timeout_at(checkin.monitor.get_validated_config(), new_status, date_updated)
+    if timeout_at is None:
+        return None
+
+    # In-progress updates may not extend a check-in past MAX_TIMEOUT from its start
+    max_timeout_at = checkin.date_added.replace(second=0, microsecond=0) + timedelta(
+        minutes=MAX_TIMEOUT
+    )
+    return min(timeout_at, max_timeout_at)
 
 
 # Used to check valid implicit durations for closing check-ins without a duration specified

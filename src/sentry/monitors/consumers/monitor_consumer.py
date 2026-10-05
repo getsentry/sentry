@@ -9,7 +9,7 @@ from collections.abc import Mapping
 from concurrent.futures import Future, wait
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from copy import deepcopy
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from functools import partial
 from typing import Any, Literal, NotRequired, TypedDict
 
@@ -456,7 +456,20 @@ def update_existing_check_in(
         already_user_complete and updated_status == CheckInStatus.IN_PROGRESS
     )
 
-    if already_user_complete and not updated_duration_only and not is_out_of_order_in_progress:
+    # Check-ins can not change once they are older than MAX_TIMEOUT
+    is_past_max_timeout = start_time > existing_check_in.date_added + timedelta(minutes=MAX_TIMEOUT)
+
+    # In-progress updates can not reopen a timed out check-in
+    is_reopening_timeout = (
+        existing_check_in.status == CheckInStatus.TIMEOUT
+        and updated_status == CheckInStatus.IN_PROGRESS
+    )
+
+    if (
+        (already_user_complete and not updated_duration_only and not is_out_of_order_in_progress)
+        or is_past_max_timeout
+        or is_reopening_timeout
+    ):
         finished_error: CheckinFinished = {
             "type": ProcessingErrorType.CHECKIN_FINISHED,
         }
