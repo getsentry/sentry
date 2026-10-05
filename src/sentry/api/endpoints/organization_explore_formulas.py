@@ -1,5 +1,6 @@
 from collections.abc import Iterator
 from contextlib import contextmanager
+from types import SimpleNamespace
 from typing import Any, Mapping, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
@@ -26,6 +27,12 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import Serializer, serialize
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
+from sentry.discover.arithmetic import (
+    ArithmeticParseError,
+    ArithmeticValidationError,
+    parse_arithmetic,
+)
+from sentry.exceptions import InvalidSearchQuery
 from sentry.explore.models import (
     ExploreSavedFormula,
     ExploreSavedQueryDataset,
@@ -34,9 +41,23 @@ from sentry.explore.models import (
     ParamItemTypes,
 )
 from sentry.models.organization import Organization
+from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.utils import parse_formula
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
+from sentry.search.events.types import SnubaParams
+from sentry.snuba.ourlogs import OurLogs
+from sentry.snuba.spans_rpc import Spans
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
+
+FORMAT_RE = r"\{((?:\w|\.)+)\}"
+CALCULATION = ParamItemTypes.get_type_name(ParamItemTypes.CALCULATION)
+COLUMN = ParamItemTypes.get_type_name(ParamItemTypes.COLUMN)
+NUMBER = ParamItemTypes.get_type_name(ParamItemTypes.NUMBER)
+DATASETS = {
+    ExploreSavedQueryDataset.SPANS: Spans,
+    ExploreSavedQueryDataset.OURLOGS: OurLogs,
+}
 
 
 class ExploreSavedReference(TypedDict):
@@ -132,11 +153,16 @@ class ParamSerializer(ReferenceSerializer):
     type = CharField(source="param_type")
     order = IntegerField(min_value=0, max_value=3)
 
-    def validate_type(self, value: str) -> int:
-        param_type = ParamItemTypes.get_id_for_type_name(value)
+    def validate_type(self, parameter_type: str) -> int:
+        param_type = ParamItemTypes.get_id_for_type_name(parameter_type)
         if param_type is None:
             raise ValidationError("Invalid param type")
         return param_type
+
+    def validate(self, data):
+        if data["param_type"] == ParamItemTypes.CALCULATION and not data["value"]:
+            raise ValidationError({"value": "Calculations must have a value"})
+        return data
 
 
 class FormulaSerializer(RequestSerializer):
@@ -159,18 +185,63 @@ class FormulaSerializer(RequestSerializer):
         required=True,
     )
 
-    # TODO: still need to validate that the formula & params resolve to a parseable equation
-
     def validate_dataset(self, dataset: str) -> int:
         dataset_id = ExploreSavedQueryDataset.get_id_for_type_name(dataset)
         if dataset_id is None:
             raise ValidationError("Invalid dataset value")
+        if dataset_id not in DATASETS:
+            raise ValidationError(
+                f"{dataset} is not supported yet, currently only Spans and Logs are supported"
+            )
         return dataset_id
 
     def validate_name(self, name: str) -> str:
         if not name.startswith("formula."):
             raise ValidationError("Formula names must begin with `formula`")
         return name
+
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
+        # Convert the dicts to simplenamespace objects so they; can be used in parse_formula
+        data["params"] = sorted(data["params"], key=lambda p: p["order"])
+        calculations = [
+            SimpleNamespace(**param)
+            for param in data["params"]
+            if param["param_type"] == ParamItemTypes.CALCULATION
+        ]
+        parameters = [
+            SimpleNamespace(**param)
+            for param in data["params"]
+            if param["param_type"] != ParamItemTypes.CALCULATION
+        ]
+
+        dataset = data["dataset"]
+        resolved_dataset = DATASETS.get(dataset)
+        if resolved_dataset is None:
+            raise ValidationError(
+                f"{dataset} is not supported yet, currently only Spans and Logs are supported"
+            )
+
+        resolver = resolved_dataset.get_resolver(SnubaParams(), SearchResolverConfig())
+        try:
+            formula = parse_formula(
+                data["formula"],
+                [
+                    "1" if param.param_type == ParamItemTypes.NUMBER else "span.duration"
+                    for param in parameters
+                ],
+                parameters,
+                calculations,
+                [SimpleNamespace(**param) for param in data["references"]],
+                resolver.resolve_column,
+            )
+        except InvalidSearchQuery as e:
+            raise ValidationError(str(e))
+        try:
+            parse_arithmetic(formula)
+        except (ArithmeticParseError, ArithmeticValidationError) as e:
+            raise ValidationError(str(e))
+
+        return data
 
 
 class OrganizationExploreFormulaBase(OrganizationEndpoint):
