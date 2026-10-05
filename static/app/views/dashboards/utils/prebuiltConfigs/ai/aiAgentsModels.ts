@@ -108,7 +108,9 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
 const MODELS_TABLE: PrebuiltWidget = {
   id: 'ai-agents-models-table',
   title: t('Models'),
-  description: t('LLM requests, errors, duration, cost, and token usage by response model.'),
+  description: t(
+    'LLM requests, errors, duration, cost, and token usage by response model.'
+  ),
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
   interval: '1h',
