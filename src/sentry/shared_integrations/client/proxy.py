@@ -274,7 +274,7 @@ class IntegrationProxyClient(ApiClient):
     def set_proxy_request_options(
         self,
         prepared_request: PreparedRequest,
-        timeout: int | float | tuple[float, float] | None,
+        timeout: float | tuple[float, float] | None,
     ) -> None:
         """
         Forward the resolved per-call timeout to the Control Silo proxy so the
