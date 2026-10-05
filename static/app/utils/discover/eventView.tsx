@@ -1,5 +1,4 @@
 import type {Location, Query} from 'history';
-import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
@@ -751,7 +750,7 @@ export class EventView {
 
     stringifyQueryParams(output);
 
-    return cloneDeep(output as any);
+    return structuredClone(output as any);
   }
 
   isValid(): boolean {
@@ -1279,7 +1278,7 @@ export class EventView {
         path: '/results/',
         organization,
       }),
-      query: cloneDeep(output),
+      query: structuredClone(output),
     };
   }
 
@@ -1313,7 +1312,7 @@ export class EventView {
 
     stringifyQueryParams(output);
 
-    const query = cloneDeep(output as any);
+    const query = structuredClone(output as any);
     return {
       pathname: normalizeUrl(
         `${getTransactionSummaryBaseUrl(organization, options.view)}/events/`

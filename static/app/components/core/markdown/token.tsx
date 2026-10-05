@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {createContext, useContext, type ReactNode} from 'react';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 
@@ -36,6 +36,13 @@ import type {ExtendedToken, Token as TokenType} from './marked';
 import {isSafeHref, isInternalHref, sanitizeHtml} from './marked';
 
 const TAG_START_RE = /\{%\s+[\w-]/;
+
+/**
+ * Whether the document is still streaming in. Only then can an unclosed `{% name`
+ * be the start of a tag whose closing marker has not arrived yet; in settled
+ * content it is text the author wrote and must render as written.
+ */
+export const MarkdownStreamingContext = createContext(false);
 
 function stripPartialTag(text: string): string {
   const idx = text.lastIndexOf('{%');
@@ -79,6 +86,8 @@ export function Token({
   components: MarkdownComponents;
   token: ExtendedToken;
 }): ReactNode {
+  const isStreaming = useContext(MarkdownStreamingContext);
+
   switch (token.type) {
     case 'space':
       // Blank-line tokens — layout gap is handled by the parent flex container
@@ -268,7 +277,7 @@ export function Token({
       if (token.tokens) {
         return renderInline(token.tokens, components);
       }
-      const text = stripPartialTag(token.text);
+      const text = isStreaming ? stripPartialTag(token.text) : token.text;
       const TextComponent = components.Text;
       if (TextComponent) {
         return <TextComponent Default={DefaultText}>{text}</TextComponent>;
