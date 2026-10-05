@@ -65,6 +65,7 @@ describe('useErrorsSeriesQuery', () => {
         expect.objectContaining({
           query: expect.objectContaining({
             dataset: DiscoverDatasets.ERRORS,
+            partial: '1',
           }),
         })
       );

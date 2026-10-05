@@ -1,8 +1,8 @@
 import pytest
 
 from sentry.rules.conditions.tagged_event import TaggedEventCondition, TaggedEventForm
-from sentry.rules.match import MatchType
 from sentry.testutils.cases import RuleTestCase
+from sentry.workflow_engine.handlers.condition.utils.match import MatchType
 
 
 class TaggedEventConditionTest(RuleTestCase):
