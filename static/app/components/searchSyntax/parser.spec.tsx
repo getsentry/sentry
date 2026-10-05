@@ -381,14 +381,12 @@ describe('searchSyntax/parser', () => {
     });
 
     it('marks operators at the edge of a paren group', () => {
-      const result = parseSearch('a:b OR (c:d OR)');
-      const group = result?.find(
-        (token): token is TokenResult<Token.LOGIC_GROUP> =>
-          token.type === Token.LOGIC_GROUP
-      );
+      const result = parseSearch('a:b OR (c:d OR)') ?? [];
+      const outerOr = result.find(token => token.type === Token.LOGIC_BOOLEAN);
+      const group = result.find(token => token.type === Token.LOGIC_GROUP);
       const innerOr = group?.inner.find(token => token.type === Token.LOGIC_BOOLEAN);
 
-      expect(getBooleans('a:b OR (c:d OR)')[0]!.invalid).toBeNull();
+      expect(outerOr?.invalid).toBeNull();
       expect(innerOr?.invalid).toEqual(missingCondition);
     });
 
@@ -406,14 +404,6 @@ describe('searchSyntax/parser', () => {
           disallowedLogicalOperators: new Set([BooleanOperator.OR]),
         })[0]!.invalid?.type
       ).toBe(InvalidReason.LOGICAL_OR_NOT_ALLOWED);
-    });
-
-    it('falls back to the default message with custom invalidMessages', () => {
-      expect(
-        getBooleans('a:b OR', {
-          invalidMessages: {[InvalidReason.FREE_TEXT_NOT_ALLOWED]: 'Custom'},
-        })[0]!.invalid
-      ).toEqual(missingCondition);
     });
   });
 

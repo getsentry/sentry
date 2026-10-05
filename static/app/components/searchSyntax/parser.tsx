@@ -1744,9 +1744,7 @@ function markDanglingLogicalOperators(
     if (missingLeft || missingRight) {
       token.invalid = {
         type: InvalidReason.LOGICAL_OPERATOR_MISSING_CONDITION,
-        reason:
-          config.invalidMessages[InvalidReason.LOGICAL_OPERATOR_MISSING_CONDITION] ??
-          defaultConfig.invalidMessages[InvalidReason.LOGICAL_OPERATOR_MISSING_CONDITION],
+        reason: config.invalidMessages[InvalidReason.LOGICAL_OPERATOR_MISSING_CONDITION],
       };
     }
   });
