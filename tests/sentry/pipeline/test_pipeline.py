@@ -477,6 +477,30 @@ class PipelineApiModeTestCase(TestCase):
         assert pipeline.fetch_state("confirmed") is True
 
     @patch("sentry.pipeline.base.bind_organization_context")
+    def test_api_advance_retries_after_finish_error(self, mock_bind_org_context: MagicMock) -> None:
+        pipeline = ApiDummyPipeline(self.request, "dummy", self.org)
+        pipeline.initialize()
+
+        pipeline.api_advance(self.request, {"thing": "thing_b"})
+
+        with patch.object(
+            pipeline, "api_finish_pipeline", return_value=PipelineStepResult.error("Invalid setup")
+        ):
+            result = pipeline.api_advance(self.request, {})
+
+        assert result.action == PipelineStepAction.ERROR
+        assert result.data == {"detail": "Invalid setup"}
+        assert pipeline.step_index == 1
+
+        with patch.object(
+            pipeline, "api_finish_pipeline", return_value=PipelineStepResult.complete()
+        ):
+            result = pipeline.api_advance(self.request, {})
+
+        assert result.action == PipelineStepAction.COMPLETE
+        assert pipeline.step_index == 1
+
+    @patch("sentry.pipeline.base.bind_organization_context")
     def test_api_advance_raises_on_validation_error(self, mock_bind_org_context: MagicMock) -> None:
         """When a serializer is provided and validation fails, a ValidationError is raised."""
         from rest_framework.exceptions import ValidationError
