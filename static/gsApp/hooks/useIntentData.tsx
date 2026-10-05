@@ -33,7 +33,7 @@ export function usePaymentIntentData({queryKey}: {queryKey: ApiQueryKey}): HookR
   };
 }
 
-export function getIntentErrorMessage(error: Error | null): string | undefined {
+function getIntentErrorMessage(error: Error | null): string | undefined {
   if (!(error instanceof RequestError)) {
     return error?.message;
   }
