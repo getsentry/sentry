@@ -120,6 +120,10 @@ export const CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION: SpecialPermissionObj 
 
 export type GranularPermissionObj = {
   /**
+   * Short description shown under the label.
+   */
+  help: string;
+  /**
    * Row label. Also identifies the row, since a resource can have several rows.
    */
   label: string;
@@ -142,53 +146,124 @@ export type GranularPermissionObj = {
 // Distribution (see DISPLAYED_PERMISSIONS in apiNewToken.tsx).
 export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
   // Ordered by how often people need them, most important first.
-  {resource: 'issue', label: 'Issues', levels: ['read', 'write', 'delete', 'admin']},
-  {resource: 'monitors', label: 'Monitors', levels: ['read', 'write', 'delete']},
+  {
+    resource: 'issue',
+    label: 'Issues',
+    help: 'Issues and their workflow statuses',
+    levels: ['read', 'write', 'delete', 'admin'],
+  },
+  {
+    resource: 'monitors',
+    label: 'Monitors',
+    help: 'Monitors and the alerts they trigger',
+    levels: ['read', 'write', 'delete'],
+  },
   {
     resource: 'dashboard',
     label: 'Dashboards',
+    help: 'Dashboards and their widgets',
     levels: ['read', 'create', 'write', 'delete', 'admin'],
   },
-  {resource: 'event', label: 'Events', levels: ['read', 'write', 'admin']},
+  {
+    resource: 'event',
+    label: 'Events',
+    help: 'Events sent to your projects',
+    levels: ['read', 'write', 'admin'],
+  },
   {
     resource: 'project_v2',
     label: 'Projects',
+    help: 'Projects, tags, debug files, and feedback',
     levels: ['read', 'create', 'write', 'admin'],
   },
   // Not a level above admin, so it gets its own row.
-  {resource: 'project_v2', label: 'Project Releases', levels: ['releases']},
-  {resource: 'team_v2', label: 'Teams', levels: ['read', 'write', 'delete', 'admin']},
+  {
+    resource: 'project_v2',
+    label: 'Project Releases',
+    help: 'Releases, commits, and related files within projects',
+    levels: ['releases'],
+  },
+  {
+    resource: 'team_v2',
+    label: 'Teams',
+    help: 'Teams and team membership',
+    levels: ['read', 'write', 'delete', 'admin'],
+  },
   {
     resource: 'member',
     label: 'Members',
+    help: 'Organization members and their roles',
     levels: ['read', 'write', 'admin'],
   },
   // Not a level above admin, so it gets its own row.
-  {resource: 'member', label: 'Member Invites', levels: ['invite']},
+  {
+    resource: 'member',
+    label: 'Member Invites',
+    help: 'Invite new members to the organization',
+    levels: ['invite'],
+  },
   {
     resource: 'org_v2',
     label: 'Organization',
+    help: 'Organization details and settings',
     levels: ['read', 'write', 'admin'],
   },
   // Not a level above admin, so it gets its own row.
-  {resource: 'org_v2', label: 'Billing', levels: ['billing']},
+  {
+    resource: 'org_v2',
+    label: 'Billing',
+    help: 'Subscription, usage, and billing details',
+    levels: ['billing'],
+  },
   {
     resource: 'issueview',
     label: 'Issue Views',
+    help: 'Saved views of the issue stream',
     levels: ['read', 'write', 'delete', 'admin'],
   },
   {
     resource: 'savedquery',
     label: 'Saved Queries',
+    help: 'Saved Discover and Explore queries',
     levels: ['read', 'write', 'delete', 'admin'],
   },
-  {resource: 'telemetry', label: 'Telemetry', levels: ['read', 'write', 'admin']},
-  {resource: 'user_preferences', label: 'User Preferences', levels: ['read', 'write']},
+  {
+    resource: 'telemetry',
+    label: 'Telemetry',
+    help: 'Telemetry data such as spans, logs, and metrics',
+    levels: ['read', 'write', 'admin'],
+  },
+  {
+    resource: 'user_preferences',
+    label: 'User Preferences',
+    help: 'Your personal settings and preferences',
+    levels: ['read', 'write'],
+  },
   // CI and integrations
-  {resource: 'releases', label: 'Releases', levels: ['read', 'write', 'delete']},
-  {resource: 'source_maps', label: 'Source Maps', levels: ['read', 'write', 'delete']},
-  {resource: 'repositories', label: 'Repositories', levels: ['read', 'write', 'delete']},
-  {resource: 'integration', label: 'Integrations', levels: ['read', 'write', 'delete']},
+  {
+    resource: 'releases',
+    label: 'Releases',
+    help: 'Create and manage releases, typically from CI',
+    levels: ['read', 'write', 'delete'],
+  },
+  {
+    resource: 'source_maps',
+    label: 'Source Maps',
+    help: 'Upload and manage source maps',
+    levels: ['read', 'write', 'delete'],
+  },
+  {
+    resource: 'repositories',
+    label: 'Repositories',
+    help: 'Connected code repositories',
+    levels: ['read', 'write', 'delete'],
+  },
+  {
+    resource: 'integration',
+    label: 'Integrations',
+    help: 'Installed integrations and their configuration',
+    levels: ['read', 'write', 'delete'],
+  },
 ];
 
 export const SPECIAL_SENTRY_APP_PERMISSIONS: SpecialPermissionObj[] = [
