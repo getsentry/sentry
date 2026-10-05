@@ -60,13 +60,32 @@ export function quoteFilterKey(key: string): string {
 }
 
 /**
- * Strips a trailing array-membership operator (`[`, `[*`, or `[*]`) from a filter
- * key, returning the base attribute key. The `[*]` operator is query syntax, not
- * part of the key's identity, so this normalizes the key for lookups/matching.
+ * Strips the array-membership operator (`[`, `[*`, or `[*]`) from a filter key,
+ * returning the base attribute key. The `[*]` operator is query syntax, not part
+ * of the key's identity, so this normalizes the key for lookups/matching.
+ *
+ * Handles both the bare first-class form, where the operator trails the name
+ * (`name[*]` -> `name`), and the tag form, where it sits on the name inside the
+ * bracket (`tags[name[*],array]` -> `tags[name,array]`).
  */
 export function stripArrayMembershipOperator(key: string): string {
-  const stripped = key.replace(/\[\*?\]?$/, '');
+  const stripped = key.replace(/\[\*?\]?,array\]$/, ',array]').replace(/\[\*?\]?$/, '');
   return stripped || key;
+}
+
+/**
+ * Adds the array-membership operator (`[*]`) to a base attribute key, the
+ * inverse of `stripArrayMembershipOperator`. For the tag form the operator goes
+ * on the name inside the bracket (`tags[name,array]` -> `tags[name[*],array]`);
+ * for the bare first-class form it trails the name (`name` -> `name[*]`). A key
+ * that already carries the operator is returned unchanged.
+ */
+export function addArrayMembershipOperator(key: string): string {
+  if (stripArrayMembershipOperator(key) !== key) {
+    return key;
+  }
+  const tagArrayMatch = key.match(/^(tags\[.+),array\]$/);
+  return tagArrayMatch ? `${tagArrayMatch[1]}[*],array]` : `${key}[*]`;
 }
 
 type TreeResultLocatorOpts<T> = {
@@ -402,7 +421,12 @@ export function stringifyToken(token: TokenResult<Token>): string {
     case Token.KEY_EXPLICIT_ARRAY_TAG:
       return `${token.prefix}[${stringifyToken(token.key)},array]`;
     case Token.KEY_ARRAY_INCLUDES:
-      return `${stringifyToken(token.key)}[${token.index}]`;
+      // The `[*]` membership operator sits on the attribute name. For the tag
+      // form it goes inside the bracket (`tags[name[*],array]`); for the bare
+      // first-class form it trails the name (`name[*]`).
+      return token.key.type === Token.KEY_EXPLICIT_ARRAY_TAG
+        ? `${token.key.prefix}[${stringifyToken(token.key.key)}[${token.index}],array]`
+        : `${stringifyToken(token.key)}[${token.index}]`;
     case Token.KEY_EXPLICIT_FLAG:
       return `flags[${stringifyToken(token.key)}]`;
     case Token.KEY_EXPLICIT_NUMBER_FLAG:
