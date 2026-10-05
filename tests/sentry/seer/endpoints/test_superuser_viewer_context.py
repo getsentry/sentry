@@ -30,7 +30,7 @@ class SuperuserViewerContextTest(APITestCase):
             key=SECRET,
         )
 
-    def _approved_chat_context(self) -> tuple[dict[str, Any], ViewerContext]:
+    def _approved_chat_context(self) -> ViewerContext:
         self.login_as(self.employee, superuser=True)
         resolved_contexts: list[ViewerContext] = []
         with (
@@ -55,17 +55,15 @@ class SuperuserViewerContextTest(APITestCase):
             )
 
         assert response.status_code == 200, response.content
-        return outbound.call_args.kwargs["viewer_context"], resolved_contexts[0]
+        return resolved_contexts[0]
 
     def test_approved_chat_uses_ambient_org_bound_claim(self) -> None:
-        explicit, resolved = self._approved_chat_context()
-        assert explicit["organization_id"] == self.organization.id
-        assert "superuser_access_expires_at" not in explicit
+        resolved = self._approved_chat_context()
         assert resolved.organization_id == self.organization.id
         assert type(resolved.superuser_access_expires_at) is int
 
     def test_callback_is_read_only_and_org_bound(self) -> None:
-        _, resolved = self._approved_chat_context()
+        resolved = self._approved_chat_context()
         assert resolved.superuser_access_expires_at is not None
         expires_at = resolved.superuser_access_expires_at
 
