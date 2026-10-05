@@ -6,12 +6,9 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
 import {DataTable} from 'sentry/components/tables/dataTable';
 import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -252,13 +249,9 @@ export function SuspectFunctionsTable({
         </DataTable.Head>
         <DataTable.Body>
           {flamegraphQuery.isPending ? (
-            <DataTable.Status>
-              <LoadingIndicator />
-            </DataTable.Status>
+            <DataTable.Loading />
           ) : flamegraphQuery.isError ? (
-            <DataTable.Status>
-              <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </DataTable.Status>
+            <DataTable.Error />
           ) : flamegraphQuery.isFetched && metrics.length > 0 ? (
             metrics.map((metric, i) => (
               <TableEntry
@@ -271,11 +264,7 @@ export function SuspectFunctionsTable({
               />
             ))
           ) : (
-            <DataTable.Status>
-              <EmptyStateWarning>
-                <p>{t('No functions found')}</p>
-              </EmptyStateWarning>
-            </DataTable.Status>
+            <DataTable.Empty>{t('No functions found')}</DataTable.Empty>
           )}
         </DataTable.Body>
       </DataTable>

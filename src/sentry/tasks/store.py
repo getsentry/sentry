@@ -581,7 +581,9 @@ def _do_save_event(
         attachments = []
         project = None
         try:
-            if cache_key and has_attachments:
+            if has_attachments:
+                # Attachment cache keys are carried in _attachments, independently
+                # of whether the event payload itself is in the processing store.
                 all_attachments = list(get_attachments_for_event(data))
                 # we won’t be needing the transient attachments after this anymore
                 data.pop("_attachments", None)

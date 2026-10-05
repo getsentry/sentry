@@ -2,28 +2,24 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 
-import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DataTable} from 'sentry/components/tables/dataTable';
 import {getNextDirection} from 'sentry/components/tables/getNextSort';
 import {IconStack} from 'sentry/icons/iconStack';
-import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {parseCursor} from 'sentry/utils/cursor';
-import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {prettifyTagKey, type FieldValueType} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {CellAction} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
@@ -177,13 +173,9 @@ export function AggregatesTable({
         </DataTable.Head>
         <DataTable.Body>
           {result.isPending ? (
-            <DataTable.Status>
-              <LoadingIndicator />
-            </DataTable.Status>
+            <DataTable.Loading />
           ) : result.isError ? (
-            <DataTable.Status>
-              <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </DataTable.Status>
+            <DataTable.Error />
           ) : result.isFetched && result.data?.length ? (
             result.data?.map((row, i) => {
               const menuItems: MenuItemProps[] = [
@@ -230,17 +222,23 @@ export function AggregatesTable({
                       !parseCursor(aggregateCursor)?.offset && (
                         <TopResultsIndicator color={palette[i]!} />
                       )}
-                    <CellAction
-                      column={VIEW_SAMPLES_COLUMN}
-                      dataRow={row}
-                      handleCellAction={() => null}
-                      allowActions={[]}
-                      extraMenuItems={menuItems}
-                    >
-                      <IconTriggerContent>
-                        <IconStack />
-                      </IconTriggerContent>
-                    </CellAction>
+                    <DropdownMenu
+                      items={menuItems}
+                      usePortal
+                      strategy="fixed"
+                      size="sm"
+                      offset={4}
+                      minMenuWidth={0}
+                      trigger={triggerProps => (
+                        <OverlayTrigger.IconButton
+                          {...triggerProps}
+                          aria-label={t('View Samples')}
+                          icon={<IconStack />}
+                          variant="transparent"
+                          size="zero"
+                        />
+                      )}
+                    />
                   </DataTable.Cell>
                   {visibleAggregateFields.map((aggregateField, j) => {
                     const field = isGroupBy(aggregateField)
@@ -263,11 +261,7 @@ export function AggregatesTable({
               );
             })
           ) : (
-            <DataTable.Status>
-              <EmptyStateWarning>
-                <p>{t('No spans found')}</p>
-              </EmptyStateWarning>
-            </DataTable.Status>
+            <DataTable.Empty>{t('No spans found')}</DataTable.Empty>
           )}
         </DataTable.Body>
       </DataTable>
@@ -308,19 +302,3 @@ const TopResultsIndicator = styled('div')<{color: string}>`
 
   background-color: ${p => p.color};
 `;
-
-const IconTriggerContent = styled('span')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  line-height: 0;
-`;
-
-const VIEW_SAMPLES_COLUMN: TableColumn<keyof TableDataRow> = {
-  key: 'view-samples',
-  name: 'view-samples',
-  column: {kind: 'field', field: 'view-samples'},
-  isSortable: false,
-  type: 'string',
-};

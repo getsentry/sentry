@@ -1,9 +1,11 @@
+import {QueryClientProvider} from '@tanstack/react-query';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   render,
   screen,
@@ -26,6 +28,7 @@ import {
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
+import {groupEventApiOptions} from 'sentry/views/issueDetails/utils';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {
   makeEAPError,
@@ -454,6 +457,47 @@ describe('groupEventDetails', () => {
       })
     );
   });
+
+  it.each([
+    {statusCode: 503, buttonName: 'Copy Event ID'},
+    {statusCode: 403, buttonName: 'Retry'},
+  ])(
+    'handles a $statusCode refresh failure with cached event data',
+    async ({statusCode, buttonName}) => {
+      const props = makeDefaultMockData();
+      mockGroupApis(props.organization, props.project, props.group, props.event);
+      const queryClient = makeTestQueryClient();
+      const eventOptions = {
+        ...groupEventApiOptions({
+          orgSlug: props.organization.slug,
+          groupId: props.group.id,
+          eventId: 'recommended',
+          environments: [],
+        }),
+        staleTime: 0,
+      };
+      await queryClient.fetchQuery(eventOptions);
+      MockApiClient.addMockResponse({
+        url: `/organizations/${props.organization.slug}/issues/${props.group.id}/events/recommended/`,
+        statusCode,
+      });
+      await expect(queryClient.fetchQuery(eventOptions)).rejects.toMatchObject({
+        status: statusCode,
+      });
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <GroupEventDetails />
+        </QueryClientProvider>,
+        {
+          organization: props.organization,
+          initialRouterConfig: props.initialRouterConfig,
+        }
+      );
+
+      expect(await screen.findByRole('button', {name: buttonName})).toBeInTheDocument();
+    }
+  );
 
   it.each([
     {statusCode: 400, detail: 'Invalid search query.', message: 'Invalid search query.'},

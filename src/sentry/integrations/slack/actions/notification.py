@@ -31,6 +31,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
+from sentry.notifications.types import RuleFuture
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
@@ -38,7 +39,6 @@ from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.entrypoints.slack.entrypoint import prepare_slack_thread_for_autofix_updates
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.services.eventstore.models import GroupEvent
-from sentry.types.rules import RuleFuture
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.utils import metrics
 from sentry.workflow_engine.models.action import Action

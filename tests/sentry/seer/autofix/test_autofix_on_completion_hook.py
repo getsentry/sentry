@@ -1436,6 +1436,30 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
 
     @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_failed_pr_creation_does_not_emit_pr_activities(self, mock_broadcast, mock_emit):
+        state = run_state(blocks=[code_changes_memory_block()])
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                pr_creation_status="error",
+            )
+        }
+
+        with patch(
+            "sentry.seer.autofix.on_completion_hook.SeerAutofixOperator.has_access",
+            return_value=True,
+        ):
+            AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        mock_broadcast.assert_not_called()
+        mock_emit.assert_not_called()
+        assert not Activity.objects.filter(
+            group=self.group,
+            type=ActivityType.SEER_PR_CREATED.value,
+        ).exists()
+
+    @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     def test_pr_is_ready_on_open(self, mock_broadcast, mock_emit):
         state = self._pr_created_state()
         with patch(

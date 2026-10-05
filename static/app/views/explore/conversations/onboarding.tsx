@@ -60,7 +60,10 @@ import {
   getAgentSetupPrompt,
 } from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {AgentIntegration} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
-import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
+import {
+  AI_AGENTS_GETTING_STARTED_DOCS_LINK,
+  AI_INSTRUMENTATION_DOCS_LINKS,
+} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 import {useAgentOnboardingOptions} from 'sentry/views/insights/pages/agents/utils/useAgentOnboardingOptions';
 import {
   BulletList,
@@ -763,8 +766,8 @@ function UnsupportedPlatformOnboarding({
                 <ExternalLink
                   href={
                     project.platform?.startsWith('javascript')
-                      ? 'https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module-browser/#manual-span-creation'
-                      : AI_INSTRUMENTATION_DOCS_LINKS.python
+                      ? `${AI_INSTRUMENTATION_DOCS_LINKS.javascript}manual-instrumentation/`
+                      : `${AI_INSTRUMENTATION_DOCS_LINKS.python}manual-instrumentation/`
                   }
                 />
               ),
@@ -807,9 +810,7 @@ function NoDocsOnboarding({
           {tct(
             'Follow our [link:documentation] to get started, or let an AI coding agent handle the setup for you.',
             {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/getting-started/" />
-              ),
+              link: <ExternalLink href={AI_AGENTS_GETTING_STARTED_DOCS_LINK} />,
             }
           )}
         </Text>

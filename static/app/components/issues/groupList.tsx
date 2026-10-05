@@ -41,7 +41,7 @@ export type GroupListColumn =
   | 'firstSeen'
   | 'lastSeen';
 
-type Props = {
+export type GroupListProps = {
   /**
    * Number of placeholder rows to show during loading
    */
@@ -120,7 +120,7 @@ export function GroupList({
   useFilteredStats = true,
   useTintRow = true,
   withHeader = true,
-}: Props) {
+}: GroupListProps) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
