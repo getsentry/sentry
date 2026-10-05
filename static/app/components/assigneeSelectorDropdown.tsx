@@ -1,4 +1,4 @@
-import {Fragment, type Ref} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
@@ -558,7 +558,6 @@ export function AssigneeSelectorDropdown({
 
   const makeTrigger = (props: TriggerProps) => {
     if (shouldUseNewUI) {
-      const {children: _, ref, ...triggerProps} = props;
       const suggestedActors = getSuggestedAssignees();
       const actor = group.assignedTo ?? suggestedActors[0];
       const assignee = group.assignedTo
@@ -581,7 +580,7 @@ export function AssigneeSelectorDropdown({
 
       const avatarButton = (
         <AvatarButton
-          {...triggerProps}
+          {...props}
           aria-label={t('Modify issue assignee: %s', triggerLabel)}
           avatar={
             actor
@@ -595,7 +594,6 @@ export function AssigneeSelectorDropdown({
           busy={loading}
           data-test-id="assignee-selector"
           disabled={loading}
-          ref={ref as Ref<HTMLButtonElement>}
           size="xs"
           tooltipProps={showLabel ? undefined : {maxWidth: 300, title: tooltipTitle}}
         />
@@ -607,7 +605,7 @@ export function AssigneeSelectorDropdown({
 
       return (
         <Tooltip maxWidth={300} skipWrapper title={tooltipTitle}>
-          <Flex as="label" align="center" gap="sm" htmlFor={triggerProps.id}>
+          <Flex as="label" align="center" gap="sm" htmlFor={props.id}>
             {avatarButton}
             <AssigneeLabel ellipsis>{triggerLabel}</AssigneeLabel>
           </Flex>

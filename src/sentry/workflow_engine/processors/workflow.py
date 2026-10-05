@@ -10,6 +10,7 @@ from django.db.models import Q
 from sentry import features, options
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
+from sentry.models.groupenvironment import GroupEnvironment
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils.tracing import trace
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
@@ -408,9 +409,38 @@ def get_environment_by_event(event_data: WorkflowEventData) -> Environment | Non
 
         return environment
     elif isinstance(event_data.event, Activity):
-        return None
+        if "activity_environment" not in event_data._cache:
+            event_data._cache["activity_environment"] = _get_environment_by_group(
+                event_data.group.id
+            )
+        return event_data._cache["activity_environment"]
 
     raise TypeError(f"Cannot access the environment from, {type(event_data.event)}.")
+
+
+def _get_environment_by_group(group_id: int) -> Environment | None:
+    """
+    Activities carry no environment of their own, so use the group's. Returns None unless the
+    group has exactly one existing environment.
+    """
+    environment_ids = list(
+        GroupEnvironment.objects.filter(group_id=group_id).values_list("environment_id", flat=True)
+    )
+
+    environment: Environment | None = None
+    if not environment_ids:
+        outcome = "missing"
+    elif len(environment_ids) > 1:
+        outcome = "ambiguous"
+    else:
+        try:
+            environment = Environment.objects.get_from_cache(id=environment_ids[0])
+            outcome = "resolved"
+        except Environment.DoesNotExist:
+            outcome = "deleted"
+
+    metrics_incr("process_workflows.activity_environment", tags={"outcome": outcome})
+    return environment
 
 
 def _get_associated_workflows(

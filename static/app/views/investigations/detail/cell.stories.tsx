@@ -12,6 +12,7 @@ import {
   InvestigationBlockFixture,
   InvestigationDetailFixture,
   InvestigationExecutionDetailFixture,
+  InvestigationQueryOutputFixture,
   InvestigationTranscriptBlockFixture,
 } from 'sentry/views/investigations/fixtures';
 
@@ -164,6 +165,38 @@ const cancelledPanelBlock = InvestigationBlockFixture({
 const terminalPanelInvestigation = InvestigationDetailFixture({
   id: 'cell-terminal-panels',
   blocks: [completedPanelBlock, failedPanelBlock, cancelledPanelBlock],
+});
+
+const QUERY_TABLE =
+  '| Span id | Duration (ms) |\n| --- | ---: |\n| 8e8dfa084777de00 | 1490.45 |\n| be478bc8e2a904ae | 1414.67 |';
+const queryResultBlocks = [
+  {id: 'bare-table-query', title: 'Bare table', tableMarkdown: QUERY_TABLE},
+  {
+    id: 'prose-table-query',
+    title: 'Prose above the table',
+    tableMarkdown: `Slowest **checkout** transactions in the breach window, sorted by duration.\n\n${QUERY_TABLE}`,
+  },
+  {
+    id: 'surrounded-table-query',
+    title: 'Prose around the table',
+    tableMarkdown: `Top spans by duration.\n\n${QUERY_TABLE}\n\nNo sampled row has a profile attached.`,
+  },
+].map(({id, title, tableMarkdown}, position) =>
+  InvestigationBlockFixture({
+    id,
+    position,
+    kind: 'query',
+    title,
+    content: '',
+    display: {type: 'table'},
+    outputStatus: 'completed',
+    output: InvestigationQueryOutputFixture({tableMarkdown}),
+    currentExecution: InvestigationBlockExecutionFixture({id: `${id}-run`}),
+  })
+);
+const queryResultInvestigation = InvestigationDetailFixture({
+  id: 'cell-query-results',
+  blocks: queryResultBlocks,
 });
 
 export default Storybook.story('Investigations — Cells', story => {
@@ -408,6 +441,24 @@ export default Storybook.story('Investigations — Cells', story => {
           canRun
           investigation={terminalPanelInvestigation}
         />
+      </Stack>
+    </InvestigationFixtureApi>
+  ));
+
+  story('Query results', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-cell-query-results"
+      details={[queryResultInvestigation]}
+    >
+      <Stack gap="2xl">
+        {queryResultBlocks.map(block => (
+          <InvestigationCell
+            key={block.id}
+            block={block}
+            canRun
+            investigation={queryResultInvestigation}
+          />
+        ))}
       </Stack>
     </InvestigationFixtureApi>
   ));

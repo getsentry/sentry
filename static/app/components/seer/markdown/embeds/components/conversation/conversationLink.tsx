@@ -15,13 +15,6 @@ import {
 export type ConversationData = EmbedOutput<'conversation'>;
 
 /**
- * The detail view scopes its span query to the URL's time range, so the window
- * is padded either side of the conversation's own timestamps -- the same hour
- * `getConversationDetailUrl` pads by for a row in the conversations table.
- */
-const CONVERSATION_WINDOW_PADDING_MS = 60 * 60 * 1000;
-
-/**
  * `getConversationDetailUrl` needs a full `Conversation` row, which an embed
  * never has -- the tag carries an id and, at best, the conversation's first and
  * last span timestamps. Build the same path from those instead.
@@ -35,16 +28,10 @@ export function getConversationHref(
 
   const params = new URLSearchParams();
   if (data.start) {
-    params.set(
-      'start',
-      new Date(Date.parse(data.start) - CONVERSATION_WINDOW_PADDING_MS).toISOString()
-    );
+    params.set('start', new Date(Date.parse(data.start)).toISOString());
   }
   if (data.end) {
-    params.set(
-      'end',
-      new Date(Date.parse(data.end) + CONVERSATION_WINDOW_PADDING_MS).toISOString()
-    );
+    params.set('end', new Date(Date.parse(data.end)).toISOString());
   }
   for (const project of data.projects ?? []) {
     params.append('project', String(project));

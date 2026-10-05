@@ -370,5 +370,6 @@ const ClipFade = styled('div')`
 
 const CollapseButton = styled('div')`
   text-align: center;
+  margin-top: ${p => p.theme.space.lg};
   margin-bottom: ${p => p.theme.space.lg};
 `;

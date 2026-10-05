@@ -33,7 +33,7 @@ import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import QueryList from './queryList';
-import {getDiscoverDeprecation, getPrebuiltQueries} from './utils';
+import {getPrebuiltQueries} from './utils';
 
 const SORT_OPTIONS = [
   {label: t('My Queries'), value: 'myqueries'},
@@ -186,19 +186,14 @@ function DiscoverLanding() {
       features="discover-query"
       renderDisabled={() => <NoAccess />}
     >
-      <SentryDocumentTitle
-        title={getDiscoverDeprecation(organization) ? t('Errors') : t('Discover')}
-        orgSlug={organization.slug}
-      >
+      <SentryDocumentTitle title={t('Errors')} orgSlug={organization.slug}>
         <Stack flex={1}>
           <TopBar.Slot name="breadcrumbs">
             <BreadcrumbList
               items={[
                 {
                   type: 'link',
-                  label: getDiscoverDeprecation(organization)
-                    ? t('Errors')
-                    : t('Discover'),
+                  label: t('Errors'),
                   to: getDiscoverLandingUrl(organization),
                 },
               ]}
@@ -263,38 +258,20 @@ function DiscoverLanding() {
                 <LoadingError message={error.message} />
               ) : (
                 <QueriesContainer>
-                  {organization.features.includes('expose-migrated-discover-queries') &&
-                    (getDiscoverDeprecation(organization) ? (
-                      <Alert variant="info">
-                        {tct(
-                          'Your saved transactions queries are no longer available in this UI. Try them out in the [exploreLink:Explore Queries] page instead.',
-                          {
-                            exploreLink: (
-                              <Link
-                                to={`/organizations/${organization.slug}/explore/saved-queries/`}
-                              />
-                            ),
-                          }
-                        )}
-                      </Alert>
-                    ) : (
-                      organization.features.includes(
-                        'expose-migrated-discover-queries'
-                      ) && (
-                        <Alert variant="info">
-                          {tct(
-                            'Your saved transactions queries are also available in the new Explore UI. Try them out in [exploreLink:Explore] instead.',
-                            {
-                              exploreLink: (
-                                <Link
-                                  to={`/organizations/${organization.slug}/explore/saved-queries/`}
-                                />
-                              ),
-                            }
-                          )}
-                        </Alert>
-                      )
-                    ))}
+                  {organization.features.includes('expose-migrated-discover-queries') && (
+                    <Alert variant="info">
+                      {tct(
+                        'Your saved transactions queries are no longer available in this UI. Try them out in the [exploreLink:Explore Queries] page instead.',
+                        {
+                          exploreLink: (
+                            <Link
+                              to={`/organizations/${organization.slug}/explore/saved-queries/`}
+                            />
+                          ),
+                        }
+                      )}
+                    </Alert>
+                  )}
                   <QueryList
                     pageLinks={savedQueriesPageLinks ?? ''}
                     savedQueries={savedQueries}

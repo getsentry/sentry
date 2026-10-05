@@ -4,9 +4,10 @@ import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
 import {useTimezone} from '@sentry/scraps/datetime';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {defined} from 'sentry/utils/defined';
@@ -114,22 +115,28 @@ export function RelativeTime({
           {label}
         </Tooltip.Header>
       )}
-      <Tooltip.Grid columns="max-content 1fr max-content">
-        {!isViewerUtc && (
+      <Tooltip.Grid>
+        <DescriptionList
+          columns="max-content 1fr max-content"
+          gap="2xs sm"
+          align="center"
+        >
+          {!isViewerUtc && (
+            <TimestampRow
+              date={date}
+              abbreviation={abbreviation}
+              variant="info"
+              showSeconds={showSeconds}
+            />
+          )}
           <TimestampRow
             date={date}
-            abbreviation={abbreviation}
-            variant="info"
+            abbreviation={UTC}
+            variant="muted"
             showSeconds={showSeconds}
+            utc
           />
-        )}
-        <TimestampRow
-          date={date}
-          abbreviation={UTC}
-          variant="muted"
-          showSeconds={showSeconds}
-          utc
-        />
+        </DescriptionList>
       </Tooltip.Grid>
     </Fragment>
   );
@@ -154,11 +161,18 @@ function TimestampRow({
   utc?: boolean;
 }) {
   return (
-    <Tooltip.Row
-      leadingItems={<TimezoneTag variant={variant}>{abbreviation}</TimezoneTag>}
-      trailingItems={
-        // Pinned right so the times form a column against the dates. The grid
-        // already reads from the left, so only this cell states an alignment.
+    <Fragment>
+      <DescriptionList.Term>
+        <TimezoneTag variant={variant}>{abbreviation}</TimezoneTag>
+      </DescriptionList.Term>
+      <DescriptionList.Details>
+        <Text tabular wrap="nowrap">
+          <DateTime date={date} dateOnly year utc={utc} timeZone={false} />
+        </Text>
+      </DescriptionList.Details>
+      <DescriptionList.Details>
+        {/* Pinned right so the times form a column against the dates. The list
+            already reads from the left, so only this cell states an alignment. */}
         <Text align="right" tabular wrap="nowrap">
           <DateTime
             date={date}
@@ -168,12 +182,8 @@ function TimestampRow({
             timeZone={false}
           />
         </Text>
-      }
-    >
-      <Text tabular wrap="nowrap">
-        <DateTime date={date} dateOnly year utc={utc} timeZone={false} />
-      </Text>
-    </Tooltip.Row>
+      </DescriptionList.Details>
+    </Fragment>
   );
 }
 
