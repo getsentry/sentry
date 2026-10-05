@@ -54,9 +54,13 @@ export class Request {
   }
 
   cancel() {
+    // Cancelled requests stay in `activeRequests`, so `Client.clear()` can
+    // cancel the same request more than once. Only count the first abort.
+    if (this.alive) {
+      Sentry.metrics.count('ui.api-request.abort', 1);
+    }
     this.alive = false;
     this.aborter?.abort();
-    Sentry.metrics.count('ui.api-request.abort', 1);
   }
 }
 
@@ -430,6 +434,18 @@ export class Client {
     const startTime = performance.now();
     const url = sanitizePath(path);
 
+    const recordRequestMetric = (outcome: 'success' | 'error', status?: number) => {
+      // Skip requests cancelled while in flight (e.g. with `skipAbort`), which
+      // are already counted as aborts
+      if (!this.activeRequests[id]?.alive) {
+        return;
+      }
+      Sentry.metrics.distribution('ui.api-request', performance.now() - startTime, {
+        unit: 'millisecond',
+        attributes: {status, outcome, url, method},
+      });
+    };
+
     /**
      * Called when the request completes with a 2xx status
      */
@@ -438,10 +454,7 @@ export class Client {
       textStatus: string,
       responseData: any
     ) => {
-      Sentry.metrics.distribution('ui.api-request', performance.now() - startTime, {
-        unit: 'millisecond',
-        attributes: {status: resp?.status, outcome: 'success', url},
-      });
+      recordRequestMetric('success', resp?.status);
       if (options.success !== undefined) {
         this.wrapCallback<[any, string, ResponseMeta]>(id, options.success)(
           responseData,
@@ -459,10 +472,7 @@ export class Client {
       textStatus: string,
       errorThrown: string
     ) => {
-      Sentry.metrics.distribution('ui.api-request', performance.now() - startTime, {
-        unit: 'millisecond',
-        attributes: {status: resp?.status, outcome: 'error', url},
-      });
+      recordRequestMetric('error', resp?.status);
 
       this.handleRequestError(
         {id, path, requestOptions: options},
