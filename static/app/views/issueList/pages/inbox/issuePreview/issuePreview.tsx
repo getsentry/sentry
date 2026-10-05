@@ -46,9 +46,9 @@ import {
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
 import {
-  IssuePreviewActions,
+  IssuePreviewHeaderActions,
   OpenIssueButton,
-} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewActions';
+} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewHeaderActions';
 import {IssuePreviewSection} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSection';
 import {
   IssuePreviewSeerContent,
@@ -236,7 +236,7 @@ function IssuePreviewContent() {
         wrap="wrap"
         gap="md"
       >
-        <IssuePreviewActions
+        <IssuePreviewHeaderActions
           group={group}
           project={project}
           disabled={disableActions}
