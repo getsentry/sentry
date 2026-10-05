@@ -107,32 +107,46 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
             <Text as="div" wrap="nowrap" variant="muted" bold>
               {t('Value')}
             </Text>
-            <ColumnSort
-              to={{
-                pathname: location.pathname,
-                query: {
-                  ...currentQuery,
-                  tagDrawerCursor: undefined,
-                  tagDrawerSort: 'date',
-                },
-              }}
-            >
-              {sort === 'date' && sortArrow}
-              {t('Last Seen')}
-            </ColumnSort>
-            <ColumnSort
-              to={{
-                pathname: location.pathname,
-                query: {
-                  ...currentQuery,
-                  tagDrawerCursor: undefined,
-                  tagDrawerSort: 'count',
-                },
-              }}
-            >
-              {sort === 'count' && sortArrow}
-              {t('Count')}
-            </ColumnSort>
+            <Flex gap="xs" align="center">
+              {props => (
+                <Link
+                  {...props}
+                  to={{
+                    pathname: location.pathname,
+                    query: {
+                      ...currentQuery,
+                      tagDrawerCursor: undefined,
+                      tagDrawerSort: 'date',
+                    },
+                  }}
+                >
+                  {sort === 'date' && sortArrow}
+                  <Text wrap="nowrap" variant="muted" bold underline="dotted">
+                    {t('Last Seen')}
+                  </Text>
+                </Link>
+              )}
+            </Flex>
+            <Flex gap="xs" align="center">
+              {props => (
+                <Link
+                  {...props}
+                  to={{
+                    pathname: location.pathname,
+                    query: {
+                      ...currentQuery,
+                      tagDrawerCursor: undefined,
+                      tagDrawerSort: 'count',
+                    },
+                  }}
+                >
+                  {sort === 'count' && sortArrow}
+                  <Text wrap="nowrap" variant="muted" bold underline="dotted">
+                    {t('Count')}
+                  </Text>
+                </Link>
+              )}
+            </Flex>
             <Text as="div" wrap="nowrap" variant="muted" bold align="center">
               {t('Share')}
             </Text>
@@ -360,21 +374,6 @@ function TagValueActionsMenu({
     />
   );
 }
-
-const ColumnSort = styled(Link)`
-  display: flex;
-  gap: ${p => p.theme.space.xs};
-  align-items: center;
-  white-space: nowrap;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  text-decoration: underline;
-  text-decoration-style: dotted;
-  text-decoration-color: ${p => p.theme.tokens.content.primary};
-  &:hover {
-    color: ${p => p.theme.tokens.content.secondary};
-  }
-`;
 
 const Body = styled('div')`
   display: grid;

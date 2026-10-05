@@ -82,7 +82,6 @@ export function GroupReplaysPlayer({
 
         return (
           <FluidHeight
-            data-test-id="player-container"
             position="relative"
             maxHeight={`${REPLAY_LOADING_HEIGHT_LARGE}px`}
             minHeight={{xl: `${REPLAY_LOADING_HEIGHT_LARGE}px`}}
