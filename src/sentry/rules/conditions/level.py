@@ -5,8 +5,10 @@ from collections.abc import Callable
 from django import forms
 
 from sentry.constants import LOG_LEVELS
-from sentry.rules import LEVEL_MATCH_CHOICES as MATCH_CHOICES
 from sentry.rules.conditions.base import EventCondition
+from sentry.workflow_engine.handlers.condition.utils.match import (
+    LEVEL_MATCH_CHOICES as MATCH_CHOICES,
+)
 
 key: Callable[[tuple[int, str]], int] = lambda x: x[0]
 LEVEL_CHOICES = {f"{k}": v for k, v in sorted(LOG_LEVELS.items(), key=key, reverse=True)}
