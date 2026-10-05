@@ -21,7 +21,6 @@ from sentry.relocation.api.endpoints.index import (
     validate_relocation_uniqueness,
 )
 from sentry.relocation.models.relocation import Relocation
-from sentry.relocation.tasks.process import uploading_start
 from sentry.types.cell import CellResolutionError, get_local_cell, get_locality_name_for_cell
 from sentry.utils.db import atomic_transaction
 
@@ -173,6 +172,10 @@ class OrganizationForkEndpoint(Endpoint):
         # Kick off the asynchronous process of exporting the relocation from the partner region.
         # When we received this back (via RPC call), we'll be able to continue with the usual
         # relocation flow, picking up from the `uploading_complete` task.
+        #
+        # Imported here so web workers do not load the Cloud KMS and Cloud Build clients at boot.
+        from sentry.relocation.tasks.process import uploading_start
+
         uploading_start.apply_async(
             args=[str(new_relocation.uuid), replying_cell_name, org_mapping.slug]
         )

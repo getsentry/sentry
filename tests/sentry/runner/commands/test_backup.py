@@ -206,7 +206,7 @@ class GoodCompareCommandEncryptionTests(TestCase):
                     findings = json.load(findings_file)
                     assert len(findings) == 0
 
-    @patch("sentry.backup.crypto.KeyManagementServiceClient")
+    @patch("sentry.backup.crypto.get_kms_client")
     def test_compare_decrypt_with_gcp_kms(self, fake_kms_client: mock.Mock) -> None:
         with TemporaryDirectory() as tmp_dir:
             (tmp_priv_key_path, _, tmp_encrypted_path) = create_encryption_test_files(tmp_dir)
@@ -305,7 +305,7 @@ class GoodEncryptDecryptCommandTests(TransactionTestCase):
                 target_json = json.load(target)
                 assert source_json == target_json
 
-    @patch("sentry.backup.crypto.KeyManagementServiceClient")
+    @patch("sentry.backup.crypto.get_kms_client")
     def test_use_gcp_kms(self, fake_kms_client: mock.Mock) -> None:
         with TemporaryDirectory() as tmp_dir:
             tmp_decrypted_path = Path(tmp_dir).joinpath("decrypted.tar")
@@ -440,7 +440,7 @@ class GoodSanitizeCommandEncryptionTests(TestCase):
             )
             assert rv.exit_code == 0, rv.output
 
-    @patch("sentry.backup.crypto.KeyManagementServiceClient")
+    @patch("sentry.backup.crypto.get_kms_client")
     def test_sanitize_with_gcp_kms_decryption_and_encryption(
         self, fake_kms_client: mock.Mock
     ) -> None:
@@ -766,7 +766,7 @@ class GoodImportExportCommandEncryptionTests(TransactionTestCase):
         self.cli_encrypted_import_then_export_use_local("organizations")
         self.cli_encrypted_import_then_export_use_local("users")
 
-    @patch("sentry.backup.crypto.KeyManagementServiceClient")
+    @patch("sentry.backup.crypto.get_kms_client")
     def test_encryption_with_gcp_kms_decryption(self, fake_kms_client: mock.Mock) -> None:
         self.cli_encrypted_import_then_export_use_gcp_kms("global", fake_kms_client)
         self.cli_encrypted_import_then_export_use_gcp_kms("config", fake_kms_client)

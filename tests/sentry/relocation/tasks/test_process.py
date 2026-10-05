@@ -220,7 +220,7 @@ class RelocationTaskTestCase(TestCase):
         fake_message_builder.return_value.send_async.return_value = Mock()
 
 
-@patch("sentry.backup.crypto.KeyManagementServiceClient")
+@patch("sentry.backup.crypto.get_kms_client")
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.uploading_complete.apply_async")
 @cell_silo_test(cells=SAAS_TO_SAAS_TEST_REGIONS)
@@ -527,7 +527,7 @@ class UploadingCompleteTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_UPLOADING_FAILED
 
 
-@patch("sentry.backup.crypto.KeyManagementServiceClient")
+@patch("sentry.backup.crypto.get_kms_client")
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.preprocessing_transfer.apply_async")
 class PreprocessingScanTest(RelocationTaskTestCase):
@@ -944,7 +944,7 @@ class PreprocessingTransferTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_PREPROCESSING_INTERNAL
 
 
-@patch("sentry.backup.crypto.KeyManagementServiceClient")
+@patch("sentry.backup.crypto.get_kms_client")
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.preprocessing_colliding_users.apply_async")
 class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
@@ -1047,7 +1047,7 @@ class PreprocessingBaselineConfigTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_PREPROCESSING_INTERNAL
 
 
-@patch("sentry.backup.crypto.KeyManagementServiceClient")
+@patch("sentry.backup.crypto.get_kms_client")
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.relocation.tasks.process.preprocessing_complete.apply_async")
 class PreprocessingCollidingUsersTest(RelocationTaskTestCase):
@@ -1807,7 +1807,7 @@ class ValidatingCompleteTest(RelocationTaskTestCase):
         assert relocation.failure_reason == ERR_VALIDATING_INTERNAL
 
 
-@patch("sentry.backup.crypto.KeyManagementServiceClient")
+@patch("sentry.backup.crypto.get_kms_client")
 @patch("sentry.relocation.tasks.process.postprocessing.apply_async")
 class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
     def setUp(self) -> None:
@@ -2526,7 +2526,7 @@ class CompletedTest(RelocationTaskTestCase):
         assert not relocation.failure_reason
 
 
-@patch("sentry.backup.crypto.KeyManagementServiceClient")
+@patch("sentry.backup.crypto.get_kms_client")
 @patch("sentry.relocation.tasks.process.CloudBuildClient")
 @patch("sentry.relocation.utils.MessageBuilder")
 @patch("sentry.signals.relocated.send_robust")

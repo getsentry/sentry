@@ -97,7 +97,7 @@ class GetRelocationArtifactDetailsGoodTest(GetRelocationArtifactDetailsTest):
         )
 
     @override_options({"staff.ga-rollout": False})
-    @patch("sentry.backup.crypto.KeyManagementServiceClient")
+    @patch("sentry.backup.crypto.get_kms_client")
     def test_good_unencrypted_with_superuser(self, fake_kms_client: mock.Mock) -> None:
         self.mock_kms_client(fake_kms_client)
         self.add_user_permission(self.superuser, RELOCATION_ADMIN_PERMISSION)
@@ -110,7 +110,7 @@ class GetRelocationArtifactDetailsGoodTest(GetRelocationArtifactDetailsTest):
         )
 
     @override_options({"staff.ga-rollout": False})
-    @patch("sentry.backup.crypto.KeyManagementServiceClient")
+    @patch("sentry.backup.crypto.get_kms_client")
     def test_good_encrypted_with_superuser(self, fake_kms_client: mock.Mock) -> None:
         self.mock_kms_client(fake_kms_client)
         self.add_user_permission(self.superuser, RELOCATION_ADMIN_PERMISSION)
@@ -121,7 +121,7 @@ class GetRelocationArtifactDetailsGoodTest(GetRelocationArtifactDetailsTest):
         assert str(response.data["contents"]) == f'"runs/{self.relocation.uuid}/encrypted/file.tar"'
 
     @override_options({"staff.ga-rollout": True})
-    @patch("sentry.backup.crypto.KeyManagementServiceClient")
+    @patch("sentry.backup.crypto.get_kms_client")
     def test_good_unencrypted_with_staff(self, fake_kms_client: mock.Mock) -> None:
         self.mock_kms_client(fake_kms_client)
         self.add_user_permission(self.staff_user, RELOCATION_ADMIN_PERMISSION)
@@ -134,7 +134,7 @@ class GetRelocationArtifactDetailsGoodTest(GetRelocationArtifactDetailsTest):
         )
 
     @override_options({"staff.ga-rollout": True})
-    @patch("sentry.backup.crypto.KeyManagementServiceClient")
+    @patch("sentry.backup.crypto.get_kms_client")
     def test_good_encrypted_with_staff(self, fake_kms_client: mock.Mock) -> None:
         self.mock_kms_client(fake_kms_client)
         self.add_user_permission(self.staff_user, RELOCATION_ADMIN_PERMISSION)

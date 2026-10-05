@@ -16,7 +16,6 @@ from sentry.relocation.api.endpoints import (
     ERR_UNKNOWN_RELOCATION_STEP,
 )
 from sentry.relocation.models.relocation import Relocation
-from sentry.relocation.tasks.process import get_first_task_for_step
 
 ERR_NOT_UNPAUSABLE_STATUS = Template(
     """Relocations can only be unpaused if they are already paused; this relocation is
@@ -94,6 +93,9 @@ class RelocationUnpauseEndpoint(Endpoint):
 
         relocation.status = Relocation.Status.IN_PROGRESS.value
         relocation.latest_task_attempts = 0
+
+        # Imported here so web workers do not load the Cloud KMS and Cloud Build clients at boot.
+        from sentry.relocation.tasks.process import get_first_task_for_step
 
         task = get_first_task_for_step(Relocation.Step(relocation.step))
         if task is None:

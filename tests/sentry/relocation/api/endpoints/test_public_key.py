@@ -10,7 +10,7 @@ from sentry.testutils.helpers.backups import generate_rsa_key_pair
 from sentry.testutils.helpers.options import override_options
 
 
-@patch("sentry.backup.crypto.KeyManagementServiceClient")
+@patch("sentry.backup.crypto.get_kms_client")
 class GetRelocationPublicKeyTest(APITestCase):
     endpoint = "sentry-api-0-relocations-public-key"
     method = "get"

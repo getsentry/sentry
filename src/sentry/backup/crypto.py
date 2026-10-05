@@ -4,17 +4,26 @@ import io
 import tarfile
 from abc import ABC, abstractmethod
 from functools import lru_cache
-from typing import IO, Any, NamedTuple
+from typing import IO, TYPE_CHECKING, Any, NamedTuple
 
 import orjson
 from cryptography.fernet import Fernet
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import padding
-from google.cloud.kms import KeyManagementServiceClient
 from google_crc32c import value as crc32c
 
 from sentry.utils.env import gcp_project_id
+
+if TYPE_CHECKING:
+    from google.cloud.kms import KeyManagementServiceClient
+
+
+def get_kms_client() -> KeyManagementServiceClient:
+    # Imported here so web workers do not load the Cloud KMS client at boot.
+    from google.cloud.kms import KeyManagementServiceClient
+
+    return KeyManagementServiceClient()
 
 
 class CryptoKeyVersion(NamedTuple):
@@ -101,7 +110,7 @@ class GCPKMSEncryptor(Encryptor):
                     `location`, `key_ring`, `key`, and `version`, with all values as strings."""
                 )
 
-        kms_client = KeyManagementServiceClient()
+        kms_client = get_kms_client()
         key_name = kms_client.crypto_key_version_path(
             project=self.crypto_key_version.project_id,
             location=self.crypto_key_version.location,
@@ -295,7 +304,7 @@ class GCPKMSDecryptor(Decryptor):
                 `location`, `key_ring`, `key`, and `version`, with all values as strings."""
             )
 
-        kms_client = KeyManagementServiceClient()
+        kms_client = get_kms_client()
         key_name = kms_client.crypto_key_version_path(
             project=crypto_key_version.project_id,
             location=crypto_key_version.location,

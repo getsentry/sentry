@@ -26,7 +26,6 @@ from sentry.models.files.file import File
 from sentry.relocation.api.endpoints import ERR_FEATURE_DISABLED
 from sentry.relocation.api.serializers.relocation import RelocationSerializer
 from sentry.relocation.models.relocation import Relocation, RelocationFile
-from sentry.relocation.tasks.process import uploading_start
 from sentry.relocation.utils import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE
 from sentry.search.utils import tokenize_query
 from sentry.signals import relocation_link_promo_code
@@ -296,6 +295,9 @@ class RelocationIndexEndpoint(Endpoint):
         relocation_link_promo_code.send_robust(
             relocation_uuid=relocation.uuid, promo_code=promo_code, sender=self.__class__
         )
+        # Imported here so web workers do not load the Cloud KMS and Cloud Build clients at boot.
+        from sentry.relocation.tasks.process import uploading_start
+
         uploading_start.apply_async(args=[str(relocation.uuid), None, None])
         try:
             analytics.record(
