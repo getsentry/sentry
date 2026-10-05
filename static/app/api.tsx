@@ -11,7 +11,6 @@ import {
   SUPERUSER_REQUIRED,
 } from 'sentry/constants/apiErrorCodes';
 import type {ApiResult, ResponseMeta} from 'sentry/types/api';
-import {metric} from 'sentry/utils/analytics';
 import {isSimilarOrigin} from 'sentry/utils/api/isSimilarOrigin';
 import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -57,7 +56,7 @@ export class Request {
   cancel() {
     this.alive = false;
     this.aborter?.abort();
-    metric('app.api.request-abort', 1);
+    Sentry.metrics.count('app.api.request-abort', 1);
   }
 }
 
@@ -428,9 +427,7 @@ export class Client {
     }
 
     const id = uniqueId();
-    const startMarker = `api-request-start-${id}`;
-
-    metric.mark({name: startMarker});
+    const startTime = performance.now();
 
     /**
      * Called when the request completes with a 2xx status
@@ -440,11 +437,11 @@ export class Client {
       textStatus: string,
       responseData: any
     ) => {
-      metric.measure({
-        name: 'app.api.request-success',
-        start: startMarker,
-        data: {status: resp?.status},
-      });
+      Sentry.metrics.distribution(
+        'app.api.request-success',
+        performance.now() - startTime,
+        {unit: 'millisecond', attributes: {status: resp?.status}}
+      );
       if (options.success !== undefined) {
         this.wrapCallback<[any, string, ResponseMeta]>(id, options.success)(
           responseData,
@@ -462,11 +459,11 @@ export class Client {
       textStatus: string,
       errorThrown: string
     ) => {
-      metric.measure({
-        name: 'app.api.request-error',
-        start: startMarker,
-        data: {status: resp?.status},
-      });
+      Sentry.metrics.distribution(
+        'app.api.request-error',
+        performance.now() - startTime,
+        {unit: 'millisecond', attributes: {status: resp?.status}}
+      );
 
       this.handleRequestError(
         {id, path, requestOptions: options},

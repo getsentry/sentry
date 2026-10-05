@@ -241,35 +241,6 @@ type RecordMetric = Overrides['metrics:event'] & {
      * Name of the metric event
      */
     name: string;
-    /**
-     * Additional data that will be sent with measure()
-     * This is useful if you want to track initial state
-     */
-    data?: Record<PropertyKey, unknown>;
-  }) => void;
-
-  measure: (opts: {
-    /**
-     * Additional data to send with metric event.
-     * If a key collide with the data in mark(), this will overwrite them
-     */
-    data?: Record<PropertyKey, unknown>;
-    /**
-     * Name of ending mark
-     */
-    end?: string;
-    /**
-     * Name of the metric event
-     */
-    name?: string;
-    /**
-     * Do not clean up marks and measurements when completed
-     */
-    noCleanup?: boolean;
-    /**
-     * Name of starting mark
-     */
-    start?: string;
   }) => void;
 
   startSpan: (opts: {
@@ -285,11 +256,6 @@ type RecordMetric = Overrides['metrics:event'] & {
 };
 
 /**
- * Used to pass data between metric.mark() and metric.measure()
- */
-const metricDataStore = new Map<string, Record<PropertyKey, unknown>>();
-
-/**
  * Record metrics.
  */
 export const metric: RecordMetric = (name, value, tags) =>
@@ -303,7 +269,7 @@ export const CAN_MARK =
   typeof window.performance.getEntriesByName === 'function' &&
   typeof window.performance.clearMeasures === 'function';
 
-metric.mark = function metricMark({name, data = {}}) {
+metric.mark = function metricMark({name}) {
   // Just ignore if browser is old enough that it doesn't support this
   if (!CAN_MARK) {
     return;
@@ -314,57 +280,6 @@ metric.mark = function metricMark({name, data = {}}) {
   }
 
   window.performance.mark(name);
-  metricDataStore.set(name, data);
-};
-
-/**
- * Performs a measurement between `start` and `end` (or now if `end` is not
- * specified) Calls `metric` with `name` and the measured time difference.
- */
-metric.measure = function metricMeasure({name, start, end, data = {}, noCleanup}) {
-  // Just ignore if browser is old enough that it doesn't support this
-  if (!CAN_MARK) {
-    return;
-  }
-
-  if (!name || !start) {
-    throw new Error('Invalid arguments provided to `metric.measure`');
-  }
-
-  let endMarkName = end;
-
-  // Can't destructure from performance
-  const {performance} = window;
-
-  // NOTE: Edge REQUIRES an end mark if it is given a start mark
-  // If we don't have an end mark, create one now.
-  if (!end) {
-    endMarkName = `${start}-end`;
-    performance.mark(endMarkName);
-  }
-
-  // Check if starting mark exists
-  if (!performance.getEntriesByName(start, 'mark').length) {
-    return;
-  }
-
-  performance.measure(name, start, endMarkName);
-  const startData = metricDataStore.get(start) || {};
-
-  // Retrieve measurement entries
-  performance
-    .getEntriesByName(name, 'measure')
-    .forEach(measurement =>
-      metric(measurement.name, measurement.duration, {...startData, ...data})
-    );
-
-  // By default, clean up measurements
-  if (!noCleanup) {
-    performance.clearMeasures(name);
-    performance.clearMarks(start);
-    performance.clearMarks(endMarkName);
-    metricDataStore.delete(start);
-  }
 };
 
 /**
