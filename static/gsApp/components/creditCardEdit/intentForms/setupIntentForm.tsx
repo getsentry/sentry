@@ -36,11 +36,6 @@ export function SetupIntentForm(props: IntentFormProps) {
         );
       }
 
-      const stripeResult = await elements.submit();
-      if (stripeResult.error) {
-        throw new Error(stripeResult.error.message ?? t('Setup failed.'));
-      }
-
       const intentData = await fetchMutation<PaymentSetupCreateResponse>({
         url: setupIntentUrl,
         method: 'POST',
@@ -87,6 +82,13 @@ export function SetupIntentForm(props: IntentFormProps) {
       isSubmitting={isPending}
       buttonText={props.buttonText}
       handleSubmit={async ({stripe, elements}) => {
+        if (elements) {
+          const {error} = await elements.submit();
+          if (error) {
+            // Stripe displays validation errors beside the affected fields.
+            return;
+          }
+        }
         await savePaymentMethod({stripe, elements});
       }}
     />

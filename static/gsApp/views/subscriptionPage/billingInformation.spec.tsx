@@ -1,3 +1,4 @@
+import type {StripeElements} from '@stripe/stripe-js';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {BillingConfigFixture} from 'getsentry-test/fixtures/billingConfig';
@@ -295,6 +296,35 @@ describe('Subscription > BillingInformation', () => {
     rerender(<BillingInformation subscription={updatedSubscription} />);
     expect(inCardPanel.getByText('Visa ****1111 12/30')).toBeInTheDocument();
     expect(inCardPanel.getByText('United States 94107')).toBeInTheDocument();
+  });
+
+  it('leaves Stripe field validation errors beside the fields', async () => {
+    const stripeImport = await import('@stripe/react-stripe-js');
+    const originalElements = stripeImport.useElements();
+    const submit = jest.fn().mockResolvedValue({
+      error: {message: 'Your card number is incomplete.'},
+    });
+    const useElementsSpy = jest.spyOn(stripeImport, 'useElements').mockReturnValue({
+      submit,
+    } as unknown as StripeElements);
+    const createSetupIntent = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/setup/`,
+      method: 'POST',
+      body: {clientSecret: 'seti_abc123'},
+    });
+
+    render(<BillingInformation subscription={subscription} />, {organization});
+
+    const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
+    await userEvent.click(
+      within(cardPanel).getByRole('button', {name: 'Edit payment method'})
+    );
+    await userEvent.click(within(cardPanel).getByRole('button', {name: 'Save Changes'}));
+
+    await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
+    expect(createSetupIntent).not.toHaveBeenCalled();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    useElementsSpy.mockReturnValue(originalElements);
   });
 
   it('shows an error if the setupintent creation fails', async () => {
