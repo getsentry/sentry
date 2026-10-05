@@ -1,0 +1,102 @@
+name: no-naive-utc-datetime
+severity: warning
+tags: [python, migration, deprecation, datetime]
+
+why: |
+  Python 3.12 deprecated `datetime.utcnow()` and `datetime.utcfromtimestamp()`.
+  Both return a *naive* datetime: a UTC wall-clock value with no `tzinfo`, which
+  the rest of Python treats as local time. That is why `.timestamp()`,
+  `time.mktime()` and `.astimezone()` on these values are only correct on hosts
+  whose clock is set to UTC. Mixing one with an aware datetime (every Django
+  model field, `django.utils.timezone.now()`) raises `TypeError` on subtraction
+  or `<`/`>`, and `==` silently returns `False`.
+
+  `sentry.utils.dates.deprecated_utcnow()` was added to silence the warning while
+  the remaining callers move. It returns the same naive value, so every call to it
+  is still a pending migration — only without the warning that would remind
+  anyone.
+
+  The pytest config in `pyproject.toml` ignores both deprecation warnings
+  ("TODO: we should fix these"). Once no callers remain, `deprecated_utcnow` and
+  those two `filterwarnings` entries can be deleted, and new code gets the
+  warning-as-error that the rest of the test suite already enforces.
+
+  See: https://docs.python.org/3/library/datetime.html#datetime.datetime.utcnow
+
+detect: |
+  Detected by `no-naive-utc-datetime.detect.py`, which walks the Python AST of
+  `src/` and `tests/` and reports each reference to:
+    - `datetime.utcnow` / `datetime.datetime.utcnow`
+    - `datetime.utcfromtimestamp` / `datetime.datetime.utcfromtimestamp`
+    - `deprecated_utcnow` from `sentry.utils.dates`
+
+  Calls and bare references passed as a callable (`default=datetime.utcnow`)
+  both count. Imports, the `deprecated_utcnow` definition itself, comments,
+  strings and unrelated attributes such as `self.utcnow` do not. Runs via
+  detect_command; no LLM needed.
+
+fix: |
+  Replace the naive value with a timezone-aware one, then follow it to every
+  place it is compared, stored or converted.
+
+    - `datetime.utcnow()` / `deprecated_utcnow()` → `django.utils.timezone.now()`
+      (the most common idiom in `src/`; `datetime.now(UTC)` is fine where Django
+      is not imported).
+    - `datetime.utcfromtimestamp(ts)` → `datetime.fromtimestamp(ts, UTC)`.
+    - In tests, prefer `before_now(...)` from `sentry.testutils.helpers.datetime`
+      or `timezone.now()`; both are aware.
+    - Drop the `deprecated_utcnow` import when the file has no calls left.
+
+  Example before:
+    from sentry.utils.dates import deprecated_utcnow
+
+    end = deprecated_utcnow() + timedelta(seconds=1)
+
+  Example after:
+    from django.utils import timezone
+
+    end = timezone.now() + timedelta(seconds=1)
+
+  Gotchas:
+    1. Aware and naive datetimes cannot be subtracted or ordered, and `==`
+       between them is always `False`. If the old value met another naive value
+       (a parsed string, another `utcnow()`, a third-party API result), convert
+       both sides in the same change.
+    2. Values persisted as strings change shape: `str()` and `isoformat()` of an
+       aware datetime end in `+00:00`. When a naive string is already stored in
+       Redis, a cache or the database and read back with `fromisoformat()`, old
+       entries stay naive until they expire. Make the reader tolerant — for
+       example `parsed.replace(tzinfo=UTC)` when `parsed.tzinfo is None` — so a
+       deploy does not raise `TypeError` on stale data.
+    3. `time.mktime(naive.timetuple())` reads the fields as local time, so it is
+       only right on a UTC host; `calendar.timegm(naive.timetuple())` is right
+       but exists only to work around the missing `tzinfo`. With an aware value
+       use `int(aware.timestamp())`, or `int(time.time())` for "now".
+    4. If a library genuinely requires a naive UTC value, convert at that
+       boundary with `timezone.now().replace(tzinfo=None)` and a comment naming
+       the library — do not reintroduce `deprecated_utcnow()`.
+    5. Tests that compare against model fields or serializer output often only
+       worked because both sides were naive, or were stringified; check the
+       assertion still means the same thing after the change.
+
+examples:
+  bad:
+    - 'now = datetime.utcnow()'
+    - 'exp = datetime.datetime.utcnow() + datetime.timedelta(minutes=10)'
+    - 'created = datetime.utcfromtimestamp(payload["ts"])'
+    - |
+      from sentry.utils.dates import deprecated_utcnow
+
+      timestamp = int(time.mktime(deprecated_utcnow().timetuple()))
+  good:
+    - |
+      from django.utils import timezone
+
+      now = timezone.now()
+    - 'exp = datetime.now(UTC) + timedelta(minutes=10)'
+    - 'created = datetime.fromtimestamp(payload["ts"], UTC)'
+    - 'timestamp = int(time.time())'
+
+# Standard library only, so it runs on the workflow's system python3 without the
+# Sentry virtualenv.
+detect_command: 'python3 {convention_dir}/no-naive-utc-datetime.detect.py {repo_path}'
