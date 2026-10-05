@@ -64,7 +64,7 @@ export function GroupReplaysPlayer({
       renderLoading={() => (
         <Container height={`${REPLAY_LOADING_HEIGHT_LARGE}px`} radius="md">
           {props => (
-            <NegativeSpaceContainer {...props} data-test-id="replay-loading-placeholder">
+            <NegativeSpaceContainer {...props}>
               <LoadingIndicator />
             </NegativeSpaceContainer>
           )}
