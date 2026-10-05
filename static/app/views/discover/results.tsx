@@ -1216,6 +1216,7 @@ function SaveQueryButton({
   yAxis,
   setSavedQuery,
   errorCode,
+  isHomepage,
 }: {
   errorCode: number;
   eventView: EventView;
@@ -1223,6 +1224,7 @@ function SaveQueryButton({
   organization: Organization;
   setSavedQuery: (savedQuery?: SavedQuery) => void;
   yAxis: string[];
+  isHomepage?: boolean;
   savedQuery?: SavedQuery;
 }) {
   const api = useApi();
@@ -1232,11 +1234,11 @@ function SaveQueryButton({
 
   // Whether the current view is an existing saved query
   const isSavedQuery = useMemo(() => {
-    if (!savedQuery) {
+    if (isHomepage || !savedQuery || !defined(eventView.id)) {
       return false;
     }
     return EventView.fromSavedQuery(savedQuery).id === eventView.id;
-  }, [eventView, savedQuery]);
+  }, [eventView, savedQuery, isHomepage]);
 
   const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
     location,
@@ -1470,6 +1472,7 @@ function DiscoverPageFilters({
           yAxis={yAxis}
           setSavedQuery={setSavedQuery}
           errorCode={errorCode}
+          isHomepage={isHomepage}
         />
       </Flex>
     </Flex>
