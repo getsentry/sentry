@@ -115,6 +115,7 @@ dependencies = [
   "tldextract>=5.1.2",
   "toronado>=0.1.0",
   "typing-extensions>=4.12.0",
+  "tzdata>=2026.4",
   "ua-parser>=0.10.0",
   "unidiff>=0.7.4",
   # note: we cannot resolve urllib3[brotli] but brotli is installed
@@ -634,7 +635,6 @@ module = [
     "sentry.api.serializers.models.release_threshold",
     "sentry.api.serializers.models.repository",
     "sentry.api.serializers.models.role",
-    "sentry.api.serializers.models.rule",
     "sentry.api.serializers.models.seer_agentic_triage_run",
     "sentry.api.serializers.models.tagvalue",
     "sentry.api.serializers.models.team",
@@ -1220,7 +1220,6 @@ module = [
     "sentry.rules.actions.base",
     "sentry.rules.actions.notify_event_service",
     "sentry.rules.actions.services",
-    "sentry.rules.actions.utils",
     "sentry.rules.age",
     "sentry.rules.base",
     "sentry.rules.filters.*",

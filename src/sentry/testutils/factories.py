@@ -44,6 +44,7 @@ from sentry.data_secrecy.models.data_access_grant import DataAccessGrant
 from sentry.event_manager import EventManager
 from sentry.explore.models import (
     ExploreSavedFormula,
+    ExploreSavedQueryDataset,
     ExploreSavedVariable,
     KindItemTypes,
     ParamItemTypes,
@@ -60,8 +61,6 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleActivity,
-    AlertRuleActivityType,
     AlertRuleDetectionType,
     AlertRuleProjects,
     AlertRuleSeasonality,
@@ -2178,12 +2177,6 @@ class Factories:
             INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
             snuba_query,
         )
-        AlertRuleActivity.objects.create(
-            alert_rule=alert_rule,
-            user_id=user.id if user else None,
-            type=AlertRuleActivityType.CREATED.value,
-        )
-
         if date_added is not None:
             alert_rule.update(date_added=date_added)
 
@@ -2623,6 +2616,7 @@ class Factories:
                 "name": "formula.apdex",
                 "formula": "({count_satisfied} + {count_tolerating} / 2) / count()",
                 "unit": None,
+                "dataset": "spans",
                 "references": [
                     {
                         "name": "count_satisfied",
@@ -2665,6 +2659,7 @@ class Factories:
     ) -> ExploreSavedFormula:
         payload = Factories.explore_apdex_formula_data() if data is None else dict(data)
         payload.update(kwargs)
+        payload["dataset"] = ExploreSavedQueryDataset.get_id_for_type_name(payload["dataset"])
         references = list(payload.pop("references", []))
         params = list(payload.pop("params", []))
         formula = ExploreSavedFormula.objects.create(organization=organization, **payload)

@@ -115,7 +115,7 @@ describe('attributesTree', () => {
           organization,
         }}
         getCustomActions={content => {
-          if (!content.originalAttribute) {
+          if (!content.original) {
             return [];
           }
 
@@ -287,9 +287,8 @@ describe('attributesTree', () => {
       />
     );
 
-    expect(screen.getByTestId('tree-key-sentry.logger.name')).toHaveAttribute(
-      'title',
-      'logger.name'
+    expect(screen.getByTitle('logger.name')).toContainElement(
+      screen.getByTestId('tree-key-sentry.logger.name')
     );
   });
 });

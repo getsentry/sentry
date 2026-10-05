@@ -21,7 +21,7 @@ import {
   DisplayModes,
   SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
-import {AggregationKey, WebVital} from 'sentry/utils/fields';
+import {AggregationKey} from 'sentry/utils/fields';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
@@ -2554,41 +2554,6 @@ describe('EventView.getSorts()', () => {
   });
 });
 
-describe('EventView.getQuery()', () => {
-  it('with query', () => {
-    const eventView = new EventView({
-      ...REQUIRED_CONSTRUCTOR_PROPS,
-      fields: [],
-      sorts: [],
-      project: [],
-      query: 'event.type:error',
-    });
-
-    expect(eventView.getQuery()).toBe('event.type:error');
-    expect(eventView.getQuery(null)).toBe('event.type:error');
-    expect(eventView.getQuery('hello')).toBe('event.type:error hello');
-    expect(eventView.getQuery(['event.type:error', 'hello'])).toBe(
-      'event.type:error hello'
-    );
-  });
-
-  it('without query', () => {
-    const eventView = new EventView({
-      ...REQUIRED_CONSTRUCTOR_PROPS,
-      fields: [],
-      sorts: [],
-      project: [],
-    });
-
-    expect(eventView.getQuery()).toBe('');
-    expect(eventView.getQuery(null)).toBe('');
-    expect(eventView.getQuery('hello')).toBe('hello');
-    expect(eventView.getQuery(['event.type:error', 'hello'])).toBe(
-      'event.type:error hello'
-    );
-  });
-});
-
 describe('EventView.getQueryWithAdditionalConditions', () => {
   it('with overlapping conditions', () => {
     const eventView = new EventView({
@@ -2779,23 +2744,6 @@ describe('EventView.sortOnField()', () => {
       ...modifiedState,
       sorts: [{field: 'title', kind: 'desc'}],
     });
-  });
-
-  it('sorts on a field using function format', () => {
-    const modifiedState: ConstructorParameters<typeof EventView>[0] = {
-      ...state,
-      fields: [...state.fields, {field: 'count()'}],
-    };
-
-    const eventView = new EventView(modifiedState);
-    expect(eventView).toMatchObject(modifiedState);
-
-    const field = modifiedState.fields[2]!;
-
-    let sortedEventView = eventView.sortOnField(field, meta, undefined, true);
-    expect(sortedEventView.sorts).toEqual([{field: 'count()', kind: 'asc'}]);
-    sortedEventView = sortedEventView.sortOnField(field, meta, undefined, true);
-    expect(sortedEventView.sorts).toEqual([{field: 'count()', kind: 'desc'}]);
   });
 });
 
@@ -3113,7 +3061,6 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', () => {
   const organization = OrganizationFixture();
   const showTransactions = EventsDisplayFilterName.P99;
   const breakdown = SpanOperationBreakdownFilter.HTTP;
-  const webVital = WebVital.LCP;
 
   it('generates a URL with non-customer domain context', () => {
     ConfigStore.set('customerDomain', null);
@@ -3121,7 +3068,6 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', () => {
     const result = view.getPerformanceTransactionEventsViewUrlTarget(organization, {
       showTransactions,
       breakdown,
-      webVital,
     });
     expect(result.pathname).toBe('/organizations/org-slug/insights/summary/events/');
     expect(result.query.query).toEqual(state.query);
@@ -3130,7 +3076,6 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', () => {
     expect(result.query.transaction).toEqual(state.name);
     expect(result.query.showTransactions).toEqual(showTransactions);
     expect(result.query.breakdown).toEqual(breakdown);
-    expect(result.query.webVital).toEqual(webVital);
   });
 
   it('generates a URL with customer domain context', () => {
@@ -3138,7 +3083,6 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', () => {
     const result = view.getPerformanceTransactionEventsViewUrlTarget(organization, {
       showTransactions,
       breakdown,
-      webVital,
     });
     expect(result.pathname).toBe('/insights/summary/events/');
     expect(result.query.query).toEqual(state.query);
@@ -3147,7 +3091,6 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', () => {
     expect(result.query.transaction).toEqual(state.name);
     expect(result.query.showTransactions).toEqual(showTransactions);
     expect(result.query.breakdown).toEqual(breakdown);
-    expect(result.query.webVital).toEqual(webVital);
   });
 });
 

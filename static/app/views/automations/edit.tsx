@@ -55,6 +55,7 @@ import {
   makeAutomationDetailsPathname,
 } from 'sentry/views/automations/pathnames';
 import {dataConditionGroupToLLMContext} from 'sentry/views/automations/utils/automationLLMContext';
+import {mapAutomationFormErrors} from 'sentry/views/automations/utils/mapAutomationFormErrors';
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
@@ -186,7 +187,9 @@ function AutomationEditForm({automation}: {automation: Automation}) {
     removeError,
   } = useAutomationBuilderErrors();
 
-  const {mutateAsync: updateAutomation, error} = useUpdateAutomation();
+  const {mutateAsync: updateAutomation, error} = useUpdateAutomation({
+    suppressErrorMessage: true,
+  });
 
   const handleFormSubmit = useCallback<OnSubmitCallback>(
     async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
@@ -273,6 +276,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       hideFooter
       model={model}
       initialData={initialData}
+      mapFormErrors={mapAutomationFormErrors}
       onSubmit={handleFormSubmit}
     >
       <AutomationFormProvider automation={automation}>
