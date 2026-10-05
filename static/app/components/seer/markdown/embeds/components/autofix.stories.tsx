@@ -121,7 +121,7 @@ const PLANNED_SOLUTION = autofix(
       {
         title: 'Add a checkout smoke test with zero items',
         description:
-          'Render `/checkout` with an empty cart and assert the quote renders `$0.00` instead of the error state.',
+          'Render `/checkout` with an empty cart in `static/app/views/checkout/components/ThisFilenameIsLongEnoughToOverflowTheAutofixContentPanel.spec.tsx` and assert the quote renders `$0.00` instead of the error state.',
       },
     ],
   }

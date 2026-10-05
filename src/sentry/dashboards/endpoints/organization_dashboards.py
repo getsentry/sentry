@@ -47,7 +47,6 @@ from sentry.locks import locks
 from sentry.models.dashboard import (
     Dashboard,
     DashboardFavoriteUser,
-    DashboardHiddenUser,
     DashboardLastVisited,
 )
 from sentry.models.organization import Organization
@@ -375,10 +374,10 @@ def sync_prebuilt_dashboards_favorited(organization: Organization, user_id: int)
 
 class OrganizationDashboardsPermission(OrganizationPermission):
     scope_map = {
-        "GET": ["org:read", "org:write", "org:admin"],
-        "POST": ["org:read", "org:write", "org:admin"],
-        "PUT": ["org:read", "org:write", "org:admin"],
-        "DELETE": ["org:read", "org:write", "org:admin"],
+        "GET": ["org:read", "org:write", "org:admin", "dashboard:read"],
+        "POST": ["org:read", "org:write", "org:admin", "dashboard:write"],
+        "PUT": ["org:read", "org:write", "org:admin", "dashboard:write"],
+        "DELETE": ["org:read", "org:write", "org:admin", "dashboard:delete"],
     }
 
     def has_object_permission(
@@ -520,13 +519,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
             if hidden_prebuilt_ids:
                 dashboards = dashboards.exclude(prebuilt_id__in=hidden_prebuilt_ids)
-
-        if "showUserHidden" not in filters:
-            dashboards = dashboards.exclude(
-                id__in=DashboardHiddenUser.objects.filter(user_id=request.user.id).values(
-                    "dashboard_id"
-                )
-            )
 
         query = request.GET.get("query")
         prebuilt_ids = request.GET.getlist("prebuiltId")

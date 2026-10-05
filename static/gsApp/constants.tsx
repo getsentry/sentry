@@ -4,6 +4,8 @@ import {DataCategoryExact} from 'sentry/types/core';
 
 import type {BilledDataCategoryInfo} from 'getsentry/types';
 
+export const THREE_DS_REFERRER = '3ds-required';
+
 export const MONTHLY = 'monthly';
 export const ANNUAL = 'annual';
 

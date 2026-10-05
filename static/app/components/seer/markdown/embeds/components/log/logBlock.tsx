@@ -2,11 +2,9 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import {useQuery} from '@tanstack/react-query';
 
-import {Tag} from '@sentry/scraps/badge';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {LogAttributesView} from 'sentry/components/seer/markdown/embeds/components/log/logAttributesView';
@@ -20,7 +18,6 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {toSplicedSorted} from 'sentry/utils/array/toSplicedSorted';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getShortEventId} from 'sentry/utils/events';
-import type {TagVariant} from 'sentry/utils/theme/types';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
@@ -42,11 +39,10 @@ import {
 import {
   getLogRowTimestampMillis,
   getLogSeverityLevel,
-  SeverityLevel,
-  severityLevelToText,
 } from 'sentry/views/explore/logs/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
+import {LogSeverityDot, LogTimestamp} from './logRowParts';
 import {
   getLogPageFilters,
   getLogRowUrl,
@@ -134,31 +130,6 @@ function toLogAttributes(
     },
     (a, b) => a.name.localeCompare(b.name)
   );
-}
-
-/**
- * `Tag` offers the semantic variants rather than the logs table's per-level
- * colors. That is the right trade here: those finer shades exist to be scanned
- * down a column of rows, and a single embedded row has no column.
- */
-function severityTagVariant(level: SeverityLevel): TagVariant {
-  switch (level) {
-    case SeverityLevel.FATAL:
-    case SeverityLevel.ERROR:
-      return 'danger';
-    case SeverityLevel.WARN:
-      return 'warning';
-    case SeverityLevel.INFO:
-      return 'info';
-    case SeverityLevel.TRACE:
-    case SeverityLevel.DEBUG:
-    case SeverityLevel.DEFAULT:
-    case SeverityLevel.UNKNOWN:
-      return 'muted';
-    default:
-      unreachable(level);
-      return 'muted';
-  }
 }
 
 function rowTimestampMillis(row: OurLogsResponseItem | undefined): number | null {
@@ -281,6 +252,7 @@ export default function LogBlock(props: LogData) {
     traceId: resolvedTraceId ?? '',
     traceItemType: TraceItemDataset.LOGS,
     referrer: LOG_DETAILS_REFERRER,
+    routingHint: row ? rowQuery.data?.meta?.routingHint : undefined,
     // The details endpoint takes unix seconds, not an ISO string.
     timestamp: lookupTimestampMs === null ? undefined : lookupTimestampMs / 1000,
     enabled: canFetchDetails,
@@ -327,13 +299,6 @@ export default function LogBlock(props: LogData) {
 
   return (
     <SeerEmbedBlock
-      badge={
-        displayTimestampMs === null ? null : (
-          <Text size="sm" variant="muted">
-            <DateTime date={displayTimestampMs} />
-          </Text>
-        )
-      }
       // The resolved identity, not the raw props: when Seer gave only an id,
       // the link would otherwise scope Explore to My Projects and miss the very
       // row this card just loaded.
@@ -341,7 +306,7 @@ export default function LogBlock(props: LogData) {
       icon={IconList}
       linkLabel={t('View Log')}
       testId="seer-log-embed"
-      title={t('Log %s', getShortEventId(id))}
+      title={getShortEventId(id)}
     >
       {isPending ? (
         <Flex justify="center" padding="md">
@@ -351,13 +316,28 @@ export default function LogBlock(props: LogData) {
         <Text variant="danger">{t('Unable to load log details')}</Text>
       ) : (
         <Stack gap="lg">
-          <Flex align="baseline" gap="sm">
+          {/* The logs table's row, left to right: severity, time, message. */}
+          <Flex align="baseline" gap="md">
+            <Flex align="center" flexShrink="0" alignSelf="center">
+              <LogSeverityDot
+                severity={attributeValues[OurLogKnownFieldKey.SEVERITY]}
+                severityNumber={attributeValues[OurLogKnownFieldKey.SEVERITY_NUMBER]}
+              />
+            </Flex>
+            <Flex flexShrink="0">
+              <Text size="sm">
+                <LogTimestamp
+                  timestamp={displayTimestampMs ?? undefined}
+                  timestampPrecise={
+                    attributeValues[OurLogKnownFieldKey.TIMESTAMP_PRECISE] ??
+                    row?.[OurLogKnownFieldKey.TIMESTAMP_PRECISE]
+                  }
+                />
+              </Text>
+            </Flex>
             <Text monospace size="sm">
               {String(message ?? '')}
             </Text>
-            <Flex flexShrink="0">
-              <Tag variant={severityTagVariant(level)}>{severityLevelToText(level)}</Tag>
-            </Flex>
           </Flex>
           <LogBlockContent
             attribute={attribute}
