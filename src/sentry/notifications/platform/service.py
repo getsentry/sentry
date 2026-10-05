@@ -29,6 +29,7 @@ from sentry.notifications.platform.threading import (
     ThreadingOptions,
     ThreadingService,
 )
+from sentry.notifications.platform.tracking import NotificationTrackingContext, record_sent
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -146,6 +147,16 @@ class NotificationService[T: NotificationData]:
                         lifecycle.record_halt(halt_reason=result.exception, create_issue=False)
                     case SendFailureStatus.FAILURE:
                         lifecycle.record_failure(failure_reason=result.exception, create_issue=True)
+            else:
+                record_sent(
+                    NotificationTrackingContext(
+                        source=self.data.source,
+                        provider=target.provider_key,
+                        category=template.category,
+                        notification_uuid=self.data.notification_uuid,
+                        organization_id=self.data.organization_id,
+                    )
+                )
 
             # Step 5: Store threading result
             if threading_options is not None:
@@ -392,6 +403,16 @@ def notify_target_async(
                     lifecycle.record_halt(halt_reason=result.exception, create_issue=False)
                 case SendFailureStatus.FAILURE:
                     lifecycle.record_failure(failure_reason=result.exception, create_issue=True)
+        else:
+            record_sent(
+                NotificationTrackingContext(
+                    source=notification_data.source,
+                    provider=target.provider_key,
+                    category=template.category,
+                    notification_uuid=notification_data.notification_uuid,
+                    organization_id=notification_data.organization_id,
+                )
+            )
 
         # Step 6: Store threading result
         if options is not None:
