@@ -459,33 +459,30 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert self.snuba_query.query == "hello"
         assert self.condition.comparison == 50
 
-    def assert_put_feature_gate(self, gate: FeatureGate) -> None:
-        original_state = self.get_detector_state()
-        with self.feature({gate.name: False}):
-            self.get_error_response(
-                self.organization.slug, self.detector.id, **self.valid_data, status_code=404
-            )
-        assert self.get_detector_state() == original_state
-
-        with self.feature(gate.name), self.tasks():
-            response = self.get_success_response(
-                self.organization.slug, self.detector.id, **self.valid_data
-            )
-        self.detector.refresh_from_db()
-        data_source = DataSource.objects.get(detector=self.detector)
-        subscription = QuerySubscription.objects.get(id=data_source.source_id)
-        self.condition.refresh_from_db()
-        assert response.data == serialize(self.detector)
-        self.assert_detector_updated(self.detector)
-        self.assert_snuba_query_updated(subscription.snuba_query)
-        self.assert_data_condition_updated(self.condition)
-        assert data_source.organization_id == self.organization.id
-
     def test_put_operation_feature_gate_preserves_state(self) -> None:
         gate = FeatureGate("organizations:workflow-engine-log-evaluations")
         settings = detector_settings_registry.get(MetricIssue.slug)
+        original_state = self.get_detector_state()
         with mock.patch.object(settings, "api_availability", {DetectorAPIOperation.PUT: gate}):
-            self.assert_put_feature_gate(gate)
+            with self.feature({gate.name: False}):
+                self.get_error_response(
+                    self.organization.slug, self.detector.id, **self.valid_data, status_code=404
+                )
+            assert self.get_detector_state() == original_state
+
+            with self.feature(gate.name), self.tasks():
+                response = self.get_success_response(
+                    self.organization.slug, self.detector.id, **self.valid_data
+                )
+            self.detector.refresh_from_db()
+            data_source = DataSource.objects.get(detector=self.detector)
+            subscription = QuerySubscription.objects.get(id=data_source.source_id)
+            self.condition.refresh_from_db()
+            assert response.data == serialize(self.detector)
+            self.assert_detector_updated(self.detector)
+            self.assert_snuba_query_updated(subscription.snuba_query)
+            self.assert_data_condition_updated(self.condition)
+            assert data_source.organization_id == self.organization.id
 
     def test_put_excluded_target_type_preserves_state(self) -> None:
         original_name = self.detector.name
@@ -1330,25 +1327,22 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         ).exists()
         assert DataSourceDetector.objects.filter(id=self.data_source_detector.id).exists()
 
-    def assert_delete_feature_gate(self, gate: FeatureGate) -> None:
-        original_state = self.get_detector_state()
-        with self.feature({gate.name: False}):
-            self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
-        assert self.get_detector_state() == original_state
-
-        with self.feature(gate.name), outbox_runner():
-            self.get_success_response(self.organization.slug, self.detector.id)
-        self.detector.refresh_from_db()
-        assert self.detector.status == ObjectStatus.PENDING_DELETION
-        assert CellScheduledDeletion.objects.filter(
-            model_name="Detector", object_id=self.detector.id
-        ).exists()
-
     def test_delete_operation_feature_gate_preserves_state(self) -> None:
         gate = FeatureGate("organizations:workflow-engine-log-evaluations")
         settings = detector_settings_registry.get(MetricIssue.slug)
+        original_state = self.get_detector_state()
         with mock.patch.object(settings, "api_availability", {DetectorAPIOperation.DELETE: gate}):
-            self.assert_delete_feature_gate(gate)
+            with self.feature({gate.name: False}):
+                self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
+            assert self.get_detector_state() == original_state
+
+            with self.feature(gate.name), outbox_runner():
+                self.get_success_response(self.organization.slug, self.detector.id)
+            self.detector.refresh_from_db()
+            assert self.detector.status == ObjectStatus.PENDING_DELETION
+            assert CellScheduledDeletion.objects.filter(
+                model_name="Detector", object_id=self.detector.id
+            ).exists()
 
     @with_feature({"organizations:change-alerts": False})
     @mock.patch.object(

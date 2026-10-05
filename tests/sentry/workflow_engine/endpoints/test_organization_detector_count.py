@@ -9,9 +9,14 @@ from sentry.models.environment import Environment
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
+from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import DetectorAPIOperation, FeatureGate
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+from tests.sentry.workflow_engine.endpoints.test_helpers import (
+    assert_querysets_unchanged,
+    override_detector_api_availability,
+)
 
 
 @cell_silo_test
@@ -144,59 +149,48 @@ class OrganizationDetectorCountTest(APITestCase):
             "total": 2,
         }
 
+    def create_metric_detectors(self) -> list[Detector]:
+        return [
+            self.create_detector(
+                project=self.project,
+                type=MetricIssue.slug,
+                enabled=enabled,
+                config={"detection_type": AlertRuleDetectionType.STATIC.value},
+            )
+            for enabled in (True, False)
+        ]
+
     def test_get_excluded_types_are_not_counted(self) -> None:
-        active_detector = self.create_detector(
-            project=self.project,
-            type=MetricIssue.slug,
-            enabled=True,
-            config={"detection_type": AlertRuleDetectionType.STATIC.value},
-        )
-        inactive_detector = self.create_detector(
-            project=self.project,
-            type=MetricIssue.slug,
-            enabled=False,
-            config={"detection_type": AlertRuleDetectionType.STATIC.value},
-        )
-        settings = detector_settings_registry.get(MetricIssue.slug)
-        with patch.object(settings, "api_availability", {DetectorAPIOperation.GET: False}):
+        detectors = self.create_metric_detectors()
+        with (
+            override_detector_api_availability(MetricIssue.slug, {DetectorAPIOperation.GET: False}),
+            assert_querysets_unchanged(
+                detectors=Detector.objects.filter(id__in=[detector.id for detector in detectors])
+            ),
+        ):
             response = self.get_success_response(self.organization.slug)
             assert response.data == {"active": 2, "inactive": 0, "total": 2}
             response = self.get_success_response(
                 self.organization.slug, qs_params={"type": MetricIssue.slug}
             )
             assert response.data == {"active": 0, "inactive": 0, "total": 0}
-
-        active_detector.refresh_from_db()
-        inactive_detector.refresh_from_db()
-        assert active_detector.enabled
-        assert not inactive_detector.enabled
 
     def test_list_excluded_types_are_not_counted(self) -> None:
-        active_detector = self.create_detector(
-            project=self.project,
-            type=MetricIssue.slug,
-            enabled=True,
-            config={"detection_type": AlertRuleDetectionType.STATIC.value},
-        )
-        inactive_detector = self.create_detector(
-            project=self.project,
-            type=MetricIssue.slug,
-            enabled=False,
-            config={"detection_type": AlertRuleDetectionType.STATIC.value},
-        )
-        settings = detector_settings_registry.get(MetricIssue.slug)
-        with patch.object(settings, "api_availability", {DetectorAPIOperation.LIST: False}):
+        detectors = self.create_metric_detectors()
+        with (
+            override_detector_api_availability(
+                MetricIssue.slug, {DetectorAPIOperation.LIST: False}
+            ),
+            assert_querysets_unchanged(
+                detectors=Detector.objects.filter(id__in=[detector.id for detector in detectors])
+            ),
+        ):
             response = self.get_success_response(self.organization.slug)
             assert response.data == {"active": 2, "inactive": 0, "total": 2}
             response = self.get_success_response(
                 self.organization.slug, qs_params={"type": MetricIssue.slug}
             )
             assert response.data == {"active": 0, "inactive": 0, "total": 0}
-
-        active_detector.refresh_from_db()
-        inactive_detector.refresh_from_db()
-        assert active_detector.enabled
-        assert not inactive_detector.enabled
 
     def test_list_feature_gate_keeps_list_and_counts_in_sync(self) -> None:
         error_detector = self.create_detector(project=self.project, type=ErrorGroupType.slug)
