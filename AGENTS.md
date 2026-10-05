@@ -19,6 +19,11 @@ For AI agents: always use `required_permissions: ['all']` for Python commands to
 
 ### Backend Development Commands
 
+All outbound Sentry-to-Seer HTTP requests must use
+`sentry.seer.signed_seer_api.make_signed_seer_api_request`. Do not call
+`.urlopen()` directly on Seer connection pools; the shared transport provides
+ViewerContext propagation, request signing, tracing, and metrics.
+
 #### Setup
 
 ```bash
