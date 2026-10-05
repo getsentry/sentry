@@ -185,7 +185,7 @@ function ChipRoot({size = 'md', readonly = false, children, ...rest}: ChipRootPr
 
   return (
     <ChipContext.Provider value={context}>
-      <ChipRootElement ref={rootRef} chipSize={size} {...rest}>
+      <ChipRootElement ref={rootRef} chipSize={size} data-chip="" {...rest}>
         {children}
       </ChipRootElement>
     </ChipContext.Provider>
@@ -416,6 +416,7 @@ Chip.Value = ChipValue;
 Chip.Dismiss = ChipDismiss;
 
 const ChipRootElement = styled('div')<{chipSize: ChipSize}>`
+  --chip-inline-padding: ${p => p.theme.space[SIZES[p.chipSize].pad]};
   display: inline-flex;
   align-items: stretch;
   box-sizing: border-box;

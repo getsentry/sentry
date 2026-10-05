@@ -444,7 +444,7 @@ const ActionButton = styled(Button)<{active?: boolean}>`
 
 const PositionedSearchIconContainer = styled('div')`
   position: absolute;
-  left: ${p => p.theme.space.lg};
+  left: ${p => p.theme.space.md};
   top: ${p => p.theme.space.sm};
 `;
 

@@ -1,4 +1,5 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {triggerResizeObservers} from 'sentry-test/resizeObserver';
 
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
@@ -66,6 +67,40 @@ describe('InputGroup', () => {
     await userEvent.tab();
     expect(screen.getByRole('button', {name: 'Trailing Button'})).toHaveFocus();
   });
+
+  it.each(['leading', 'trailing'] as const)(
+    'remeasures %s items and clears padding after removal',
+    side => {
+      const offsetWidthSpy = jest
+        .spyOn(HTMLElement.prototype, 'offsetWidth', 'get')
+        .mockReturnValue(24);
+      const Items =
+        side === 'leading' ? InputGroup.LeadingItems : InputGroup.TrailingItems;
+      try {
+        const {rerender} = render(
+          <InputGroup>
+            <Items>
+              <Button>Action</Button>
+            </Items>
+            <InputGroup.Input />
+          </InputGroup>
+        );
+        const group = screen.getByRole('textbox').parentElement!;
+        expect(group.style.getPropertyValue(`--input-${side}-width`)).toBe('24px');
+        offsetWidthSpy.mockReturnValue(48);
+        act(() => triggerResizeObservers());
+        expect(group.style.getPropertyValue(`--input-${side}-width`)).toBe('48px');
+        rerender(
+          <InputGroup>
+            <InputGroup.Input />
+          </InputGroup>
+        );
+        expect(group.style.getPropertyValue(`--input-${side}-width`)).toBe('');
+      } finally {
+        offsetWidthSpy.mockRestore();
+      }
+    }
+  );
 
   it('does not remeasure items when their parent rerenders', () => {
     const offsetWidthSpy = jest
