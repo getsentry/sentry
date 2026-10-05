@@ -2,7 +2,8 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -13,19 +14,18 @@ import {IconStack} from 'sentry/icons/iconStack';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {parseCursor} from 'sentry/utils/cursor';
-import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
 import {prettifyTagKey, type FieldValueType} from 'sentry/utils/fields';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {CellAction} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 import {isGroupBy} from 'sentry/views/explore/contexts/pageParamsContext/aggregateFields';
+import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/topEventsConstants';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
-import {TOP_EVENTS_LIMIT, useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {
   useQueryParamsAggregateCursor,
   useQueryParamsAggregateFields,
@@ -223,17 +223,23 @@ export function AggregatesTable({
                       !parseCursor(aggregateCursor)?.offset && (
                         <TopResultsIndicator color={palette[i]!} />
                       )}
-                    <CellAction
-                      column={VIEW_SAMPLES_COLUMN}
-                      dataRow={row}
-                      handleCellAction={() => null}
-                      allowActions={[]}
-                      extraMenuItems={menuItems}
-                    >
-                      <IconTriggerContent>
-                        <IconStack />
-                      </IconTriggerContent>
-                    </CellAction>
+                    <DropdownMenu
+                      items={menuItems}
+                      usePortal
+                      strategy="fixed"
+                      size="sm"
+                      offset={4}
+                      minMenuWidth={0}
+                      trigger={triggerProps => (
+                        <OverlayTrigger.IconButton
+                          {...triggerProps}
+                          aria-label={t('View Samples')}
+                          icon={<IconStack />}
+                          variant="transparent"
+                          size="zero"
+                        />
+                      )}
+                    />
                   </DataTable.Cell>
                   {visibleAggregateFields.map((aggregateField, j) => {
                     const field = isGroupBy(aggregateField)
@@ -297,19 +303,3 @@ const TopResultsIndicator = styled('div')<{color: string}>`
 
   background-color: ${p => p.color};
 `;
-
-const IconTriggerContent = styled('span')`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  line-height: 0;
-`;
-
-const VIEW_SAMPLES_COLUMN: TableColumn<keyof TableDataRow> = {
-  key: 'view-samples',
-  name: 'view-samples',
-  column: {kind: 'field', field: 'view-samples'},
-  isSortable: false,
-  type: 'string',
-};

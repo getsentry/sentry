@@ -33,7 +33,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
   type Actions,
-  ActionTriggerType,
   CellAction,
   updateQuery,
 } from 'sentry/views/discover/table/cellAction';
@@ -321,7 +320,6 @@ function BaseExploreFieldRenderer({
 
   return (
     <CellAction
-      triggerType={ActionTriggerType.ELLIPSIS}
       column={column}
       dataRow={data as TableDataRow}
       handleCellAction={(actions, value) => {

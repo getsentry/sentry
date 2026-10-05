@@ -161,6 +161,7 @@ def _notify_webhook_disabled(
         return
 
     data = SentryAppWebhookDisabled(
+        organization_id=owner_org.id,
         sentry_app_slug=sentry_app.slug,
         sentry_app_name=sentry_app.name,
         webhook_url=sentry_app.webhook_url or "",

@@ -33,7 +33,7 @@ from sentry.seer.autofix.constants import AutofixReferrer, SeerAutomationSource
 from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.issue_summary import referrer_map
 from sentry.seer.autofix.steps import AutofixStep
-from sentry.seer.models import SeerPermissionError
+from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.testutils.cases import TestCase
 from sentry.types.activity import ActivityType
@@ -1229,6 +1229,78 @@ class TestTriggerAutofixAgent(TestCase):
         prompt_metadata = mock_client.start_run.call_args.kwargs["prompt_metadata"]
         assert "base_shas" not in prompt_metadata
         mock_scm_new.assert_not_called()
+
+
+def _trigger_attempts(mock_incr: MagicMock) -> list[dict[str, str]]:
+    return [
+        call.kwargs["tags"]
+        for call in mock_incr.call_args_list
+        if call.args and call.args[0] == "autofix.trigger.attempt"
+    ]
+
+
+@patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
+@patch("sentry.quotas.backend.record_seer_run")
+@patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+@patch("sentry.utils.metrics.incr")
+@patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+class TestTriggerAutofixAgentAttemptMetric(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+
+    def test_counts_success(
+        self, mock_client_class, mock_incr, mock_check_quota, mock_record_run, mock_broadcast
+    ):
+        mock_client_class.return_value.start_run.return_value = MagicMock(seer_run_state_id=123)
+
+        trigger_autofix_agent(
+            group=self.group,
+            step=AutofixStep.CODE_CHANGES,
+            referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+        )
+
+        assert _trigger_attempts(mock_incr) == [
+            {"referrer": "api.group_ai_autofix", "step": "code_changes", "outcome": "success"}
+        ]
+
+    def test_counts_declined_when_no_quota(
+        self, mock_client_class, mock_incr, mock_check_quota, mock_record_run, mock_broadcast
+    ):
+        mock_check_quota.return_value = False
+
+        with pytest.raises(NoSeerQuotaException):
+            trigger_autofix_agent(
+                self.group,
+                AutofixStep.ROOT_CAUSE,
+                AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY,
+            )
+
+        assert _trigger_attempts(mock_incr) == [
+            {
+                "referrer": "issue_summary.post_process_fixability",
+                "step": "root_cause",
+                "outcome": "declined",
+            }
+        ]
+
+    def test_counts_error_when_seer_rejects_run(
+        self, mock_client_class, mock_incr, mock_check_quota, mock_record_run, mock_broadcast
+    ):
+        mock_client_class.return_value.start_run.side_effect = SeerApiError(
+            "Seer request failed", 500
+        )
+
+        with pytest.raises(SeerApiError):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.CODE_CHANGES,
+                referrer=AutofixReferrer.SLACK,
+            )
+
+        assert _trigger_attempts(mock_incr) == [
+            {"referrer": "slack", "step": "code_changes", "outcome": "error"}
+        ]
 
 
 class TestBuildRepoPins(TestCase):

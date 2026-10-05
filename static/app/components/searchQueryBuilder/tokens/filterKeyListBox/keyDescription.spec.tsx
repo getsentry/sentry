@@ -27,9 +27,7 @@ describe('KeyDescription', () => {
     expect(screen.getByText('release')).toBeInTheDocument();
     expect(screen.getByText('string')).toBeInTheDocument();
     expect(screen.getByText('Description')).toBeInTheDocument();
-    expect(
-      screen.getByText('The version of your code deployed to an environment')
-    ).toBeInTheDocument();
+    expect(screen.getByText('The sentry release.')).toBeInTheDocument();
     expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
   });
 
