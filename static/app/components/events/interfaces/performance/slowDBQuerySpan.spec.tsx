@@ -125,12 +125,12 @@ describe('Slow-query evidence from the spans dataset', () => {
 
       renderEvidence(event);
 
-      expect(await screen.findByRole('row', {name: /^Slow DB Query /})).toHaveTextContent(
-        'SELECT id FROM books'
-      );
-      expect(screen.getByRole('row', {name: /^Slow DB Query /})).toHaveTextContent(
-        '/app/books.py in getBooks at line 42'
-      );
+      expect(
+        await screen.findByTestId('span-evidence-key-value-list.slow-db-query')
+      ).toHaveTextContent('SELECT id FROM books');
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.slow-db-query')
+      ).toHaveTextContent('/app/books.py in getBooks at line 42');
       expect(screen.getByText(/25%/)).toBeInTheDocument();
       expect(screen.getByRole('link', {name: 'More Samples'})).toHaveAttribute(
         'href',
@@ -155,7 +155,9 @@ describe('Slow-query evidence from the spans dataset', () => {
     MockApiClient.addMockResponse({url: detailsUrl, body: spanResponse()});
     renderEvidence(occurrenceEvent({entries: recordedSpanEntries()}));
 
-    const evidence = await screen.findByRole('row', {name: /^Slow DB Query /});
+    const evidence = await screen.findByTestId(
+      'span-evidence-key-value-list.slow-db-query'
+    );
     expect(evidence).toHaveTextContent('SELECT id FROM books');
     expect(evidence).not.toHaveTextContent('recorded_books');
   });
@@ -177,9 +179,9 @@ describe('Slow-query evidence from the spans dataset', () => {
       MockApiClient.addMockResponse({url: detailsUrl, body: response});
       renderEvidence(occurrenceEvent({entries: recordedSpanEntries()}));
 
-      expect(await screen.findByRole('row', {name: /^Slow DB Query /})).toHaveTextContent(
-        'SELECT id FROM recorded_books'
-      );
+      expect(
+        await screen.findByTestId('span-evidence-key-value-list.slow-db-query')
+      ).toHaveTextContent('SELECT id FROM recorded_books');
       expect(screen.getByText(/50%/)).toBeInTheDocument();
       expect(screen.queryByText(/\/app\/books.py/)).not.toBeInTheDocument();
     }
@@ -200,7 +202,7 @@ describe('Slow-query evidence from the spans dataset', () => {
         await screen.findByText('Span evidence is unavailable.')
       ).toBeInTheDocument();
       expect(
-        screen.queryByRole('cell', {name: 'Duration Impact'})
+        screen.queryByTestId('span-evidence-key-value-list.duration-impact')
       ).not.toBeInTheDocument();
     }
   );
@@ -232,10 +234,14 @@ describe('Slow-query evidence from the spans dataset', () => {
     });
     renderEvidence(occurrenceEvent({entries: recordedSpanEntries()}));
 
-    const evidence = await screen.findByRole('row', {name: /^Slow DB Query /});
+    const evidence = await screen.findByTestId(
+      'span-evidence-key-value-list.slow-db-query'
+    );
     expect(evidence).toHaveTextContent('SELECT id FROM books');
     expect(evidence).not.toHaveTextContent('recorded_books');
-    expect(screen.queryByRole('cell', {name: 'Duration Impact'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('span-evidence-key-value-list.duration-impact')
+    ).not.toBeInTheDocument();
   });
 
   it('uses the full occurrence time range for long segments', async () => {
@@ -245,7 +251,7 @@ describe('Slow-query evidence from the spans dataset', () => {
     });
     renderEvidence(occurrenceEvent({endTimestamp: startTimestamp + 7200}));
 
-    await screen.findByRole('row', {name: /^Slow DB Query /});
+    await screen.findByTestId('span-evidence-key-value-list.slow-db-query');
     expect(request.mock.calls[0]![1].query).toMatchObject({
       start: new Date(startTimestamp * 1000 - 1000).toISOString(),
       end: new Date((startTimestamp + 7200) * 1000 + 1000).toISOString(),
@@ -264,9 +270,9 @@ describe('Slow-query evidence from the spans dataset', () => {
       });
       renderEvidence(occurrenceEvent({entries: recordedSpanEntries()}));
 
-      expect(await screen.findByRole('row', {name: /^Slow DB Query /})).toHaveTextContent(
-        'SELECT id FROM recorded_books'
-      );
+      expect(
+        await screen.findByTestId('span-evidence-key-value-list.slow-db-query')
+      ).toHaveTextContent('SELECT id FROM recorded_books');
       expect(screen.getByText(/50%/)).toBeInTheDocument();
       expect(request).toHaveBeenCalledTimes(1);
     }
@@ -281,7 +287,9 @@ describe('Slow-query evidence from the spans dataset', () => {
     renderEvidence();
 
     expect(await screen.findByText('Span evidence is unavailable.')).toBeInTheDocument();
-    expect(screen.queryByRole('cell', {name: 'Duration Impact'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('span-evidence-key-value-list.duration-impact')
+    ).not.toBeInTheDocument();
   });
 
   it('does not request span data when the flag is disabled', () => {
@@ -291,9 +299,9 @@ describe('Slow-query evidence from the spans dataset', () => {
     });
     renderEvidence(occurrenceEvent({entries: recordedSpanEntries()}), []);
 
-    expect(screen.getByRole('row', {name: /^Slow DB Query /})).toHaveTextContent(
-      'SELECT id FROM recorded_books'
-    );
+    expect(
+      screen.getByTestId('span-evidence-key-value-list.slow-db-query')
+    ).toHaveTextContent('SELECT id FROM recorded_books');
     expect(request).not.toHaveBeenCalled();
   });
 
@@ -312,9 +320,9 @@ describe('Slow-query evidence from the spans dataset', () => {
       []
     );
 
-    expect(screen.getByRole('row', {name: /^Duration Impact /})).toHaveTextContent(
-      '0% (0ms/1s)'
-    );
+    expect(
+      screen.getByTestId('span-evidence-key-value-list.duration-impact')
+    ).toHaveTextContent('0% (0ms/1s)');
   });
 
   it('uses recorded evidence if trace references are missing', () => {
@@ -324,9 +332,9 @@ describe('Slow-query evidence from the spans dataset', () => {
     });
     renderEvidence(occurrenceEvent({contexts: {}, entries: recordedSpanEntries()}));
 
-    expect(screen.getByRole('row', {name: /^Slow DB Query /})).toHaveTextContent(
-      'SELECT id FROM recorded_books'
-    );
+    expect(
+      screen.getByTestId('span-evidence-key-value-list.slow-db-query')
+    ).toHaveTextContent('SELECT id FROM recorded_books');
     expect(request).not.toHaveBeenCalled();
     expect(screen.getByRole('button', {name: 'View Full Trace'})).toBeInTheDocument();
   });
@@ -355,8 +363,10 @@ describe('Slow-query evidence from the spans dataset', () => {
     MockApiClient.addMockResponse({url: detailsUrl, body: response});
     renderEvidence();
 
-    await screen.findByRole('row', {name: /^Slow DB Query /});
-    expect(screen.queryByRole('cell', {name: 'Duration Impact'})).not.toBeInTheDocument();
+    await screen.findByTestId('span-evidence-key-value-list.slow-db-query');
+    expect(
+      screen.queryByTestId('span-evidence-key-value-list.duration-impact')
+    ).not.toBeInTheDocument();
   });
 
   it('supports replacement code-location attribute names', async () => {
@@ -373,15 +383,15 @@ describe('Slow-query evidence from the spans dataset', () => {
     MockApiClient.addMockResponse({url: detailsUrl, body: response});
     renderEvidence();
 
-    expect(await screen.findByRole('row', {name: /^Slow DB Query /})).toHaveTextContent(
-      '/app/books.py in getBooks at line 42'
-    );
+    expect(
+      await screen.findByTestId('span-evidence-key-value-list.slow-db-query')
+    ).toHaveTextContent('/app/books.py in getBooks at line 42');
   });
 
   it('loads the newly selected occurrence without keeping the previous span', async () => {
     MockApiClient.addMockResponse({url: detailsUrl, body: spanResponse()});
     const {rerender} = renderEvidence();
-    await screen.findByRole('row', {name: /^Slow DB Query /});
+    await screen.findByTestId('span-evidence-key-value-list.slow-db-query');
 
     const nextSpanId = 'fedcba0987654321';
     const nextEvent = occurrenceEvent();
@@ -397,13 +407,13 @@ describe('Slow-query evidence from the spans dataset', () => {
     rerender(<SpanEvidenceKeyValueList event={nextEvent} projectSlug={project.slug} />);
 
     await waitFor(() =>
-      expect(screen.getByRole('row', {name: /^Slow DB Query /})).toHaveTextContent(
-        'SELECT id FROM authors'
-      )
+      expect(
+        screen.getByTestId('span-evidence-key-value-list.slow-db-query')
+      ).toHaveTextContent('SELECT id FROM authors')
     );
     expect(request).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('row', {name: /^Slow DB Query /})).not.toHaveTextContent(
-      'SELECT id FROM books'
-    );
+    expect(
+      screen.getByTestId('span-evidence-key-value-list.slow-db-query')
+    ).not.toHaveTextContent('SELECT id FROM books');
   });
 });

@@ -266,8 +266,12 @@ describe('Core StackTrace', () => {
     expect(screen.queryByText('System')).not.toBeInTheDocument();
   });
 
-  it('renders captured python frame variables', async () => {
-    render(<ExampleStackTrace />);
+  it('renders captured frame variables through the tree', async () => {
+    render(<ExampleStackTrace />, {
+      organization: OrganizationFixture({
+        features: ['native-variable-extraction'],
+      }),
+    });
 
     expect(await screen.findByText('args')).toBeInTheDocument();
     expect(screen.getByText('dsn')).toBeInTheDocument();

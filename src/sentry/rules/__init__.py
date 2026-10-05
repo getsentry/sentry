@@ -1,9 +1,8 @@
-from .base import EventState, RuleBase
+from .base import RuleBase
 from .match import LEVEL_MATCH_CHOICES, MATCH_CHOICES, MatchType, match_values
 from .registry import RuleRegistry
 
 __all__ = (
-    "EventState",
     "init_registry",
     "LEVEL_MATCH_CHOICES",
     "MATCH_CHOICES",

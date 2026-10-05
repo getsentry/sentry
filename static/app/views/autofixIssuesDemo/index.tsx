@@ -171,7 +171,6 @@ export default function AutofixIssuesDemo() {
               data={issues}
               columnOrder={columnOrder}
               grid={{
-                renderHeadCell: column => column.name,
                 renderBodyCell,
               }}
               emptyMessage={t('No autofix issues found for this organization.')}
