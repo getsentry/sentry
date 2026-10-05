@@ -140,7 +140,14 @@ class IntegrationProxyClient(ApiClient):
         # IntegrationProxyClient, then the IntegrationProxyClient will need to have a smaller timeout value.
         # Otherwise, the CellSiloClient will timeout before it can receive a response from the IntegrationProxyClient.
         if options.get("hybridcloud.integrationproxy.long-server-wait-is-enabled"):
-            # 30 second wait for data. 30 second wait for connect ((1 attempt + 5 retries) * 3 seconds).
+            # 3 second wait for connection. 30 second wait for data. Its assumed because this is within our internal
+            # network that 3 seconds should be more than enough time under normal operating conditions. Under degraded
+            # conditions a longer wait is likely to strain system resources in excess of what is necessary. Its better
+            # to shed load with a lower timeout value and have users retry.
+            #
+            # Because this is a proxied integration request we don't know what the other end is going to do. Giving
+            # slow responders ample time to respond once the connection is established means slow but functioning
+            # servers do not create a retry storm within our network. (as we've seen in the case of self-hosted GitLab).
             self.timeout = (3, 30)
         else:
             self.timeout = 10
