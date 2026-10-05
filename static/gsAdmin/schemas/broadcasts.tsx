@@ -10,9 +10,6 @@ import {
   TRIALCHOICES,
 } from 'getsentry/utils/broadcasts';
 
-const mapChoices = (choices: ReadonlyArray<readonly [string, string]>) =>
-  choices.map(([value, label]) => ({value, label}));
-
 export function getBroadcastSchema(): Field[] {
   return [
     {
@@ -59,7 +56,7 @@ export function getBroadcastSchema(): Field[] {
       type: 'choice',
       required: false,
       label: 'Category',
-      options: mapChoices(CATEGORYCHOICES),
+      options: CATEGORYCHOICES,
       allowClear: true,
     },
     {
@@ -67,7 +64,7 @@ export function getBroadcastSchema(): Field[] {
       type: 'choice',
       required: false,
       label: 'Region',
-      options: mapChoices(REGIONCHOICES),
+      options: REGIONCHOICES,
       allowClear: true,
     },
     {
@@ -84,7 +81,7 @@ export function getBroadcastSchema(): Field[] {
       required: false,
       multiple: true,
       label: 'Product',
-      options: mapChoices(PRODUCTCHOICES),
+      options: PRODUCTCHOICES,
     },
     {
       name: 'roles',
@@ -92,7 +89,7 @@ export function getBroadcastSchema(): Field[] {
       required: false,
       multiple: true,
       label: 'Roles',
-      options: mapChoices(ROLECHOICES),
+      options: ROLECHOICES,
     },
     {
       name: 'plans',
@@ -100,7 +97,7 @@ export function getBroadcastSchema(): Field[] {
       required: false,
       multiple: true,
       label: 'Plans',
-      options: mapChoices(AVAILABLE_PLANCHOICES),
+      options: AVAILABLE_PLANCHOICES,
     },
     {
       name: 'trialStatus',
@@ -108,7 +105,7 @@ export function getBroadcastSchema(): Field[] {
       required: false,
       multiple: true,
       label: 'Trial Status',
-      options: mapChoices(TRIALCHOICES),
+      options: TRIALCHOICES,
     },
     {
       name: 'earlyAdopter',

@@ -211,9 +211,7 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
               <field.Select
                 value={field.state.value}
                 onChange={field.handleChange}
-                options={CATEGORYCHOICES.map(
-                  ([value, label]): {label: string; value: string} => ({value, label})
-                )}
+                options={CATEGORYCHOICES}
               />
             </field.Layout.Stack>
           )}
@@ -254,9 +252,7 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
                 multiple
                 value={field.state.value}
                 onChange={field.handleChange}
-                options={ROLECHOICES.map(
-                  ([value, label]): {label: string; value: string} => ({value, label})
-                )}
+                options={ROLECHOICES}
               />
             </field.Layout.Stack>
           )}
@@ -268,9 +264,7 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
                 multiple
                 value={field.state.value}
                 onChange={field.handleChange}
-                options={ALL_PLANCHOICES.map(
-                  ([value, label]): {label: string; value: string} => ({value, label})
-                )}
+                options={ALL_PLANCHOICES}
               />
             </field.Layout.Stack>
           )}
@@ -282,9 +276,7 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
                 multiple
                 value={field.state.value}
                 onChange={field.handleChange}
-                options={TRIALCHOICES.map(
-                  ([value, label]): {label: string; value: string} => ({value, label})
-                )}
+                options={TRIALCHOICES}
               />
             </field.Layout.Stack>
           )}
@@ -311,9 +303,7 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
                 clearable
                 value={field.state.value}
                 onChange={field.handleChange}
-                options={REGIONCHOICES.map(
-                  ([value, label]): {label: string; value: string} => ({value, label})
-                )}
+                options={REGIONCHOICES}
               />
             </field.Layout.Stack>
           )}
@@ -337,9 +327,7 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
                 multiple
                 value={field.state.value}
                 onChange={field.handleChange}
-                options={PRODUCTCHOICES.map(
-                  ([value, label]): {label: string; value: string} => ({value, label})
-                )}
+                options={PRODUCTCHOICES}
               />
             </field.Layout.Stack>
           )}

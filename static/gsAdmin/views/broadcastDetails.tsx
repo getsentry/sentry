@@ -145,14 +145,14 @@ export function BroadcastDetails() {
 
 function formatData(
   item: string[] | string | null | undefined,
-  choices: ReadonlyArray<readonly string[]>
+  choices: ReadonlyArray<{label: string; value: string}>
 ) {
   if (!item || (Array.isArray(item) && item.length === 0)) {
     return '-';
   }
   const values = Array.isArray(item) ? item : [item];
   return values
-    .map(value => choices.find(([name]) => name === value)?.[1] ?? value)
+    .map(value => choices.find(choice => choice.value === value)?.label ?? value)
     .join(', ');
 }
 
