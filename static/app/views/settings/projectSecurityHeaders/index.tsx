@@ -74,7 +74,7 @@ function ProjectSecurityHeaders() {
               }
             )}
           </TextBlock>
-          <DescriptionList>
+          <DescriptionList striped>
             <DescriptionList.Term>sentry_environment</DescriptionList.Term>
             <DescriptionList.Details>
               {t('The environment name (e.g. production).')}

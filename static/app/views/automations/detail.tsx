@@ -4,7 +4,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
@@ -215,20 +215,22 @@ function AutomationDetailContentInner({automation}: {automation: Automation}) {
             </DetailSection>
             <DetailSection title={t('Details')}>
               <ErrorBoundary mini>
-                <DescriptionList>
-                  <DescriptionList.Term>{t('Date created')}</DescriptionList.Term>
-                  <DescriptionList.Details>
-                    <DateTime date={automation.dateCreated} dateOnly year />
-                  </DescriptionList.Details>
-                  <DescriptionList.Term>{t('Created by')}</DescriptionList.Term>
-                  <DescriptionList.Details>
-                    <UserDisplayName id={automation.createdBy} />
-                  </DescriptionList.Details>
-                  <DescriptionList.Term>{t('Last modified')}</DescriptionList.Term>
-                  <DescriptionList.Details>
-                    <TimeSince date={automation.dateUpdated} />
-                  </DescriptionList.Details>
-                </DescriptionList>
+                <Container marginBottom="xl">
+                  <DescriptionList striped>
+                    <DescriptionList.Term>{t('Date created')}</DescriptionList.Term>
+                    <DescriptionList.Details>
+                      <DateTime date={automation.dateCreated} dateOnly year />
+                    </DescriptionList.Details>
+                    <DescriptionList.Term>{t('Created by')}</DescriptionList.Term>
+                    <DescriptionList.Details>
+                      <UserDisplayName id={automation.createdBy} />
+                    </DescriptionList.Details>
+                    <DescriptionList.Term>{t('Last modified')}</DescriptionList.Term>
+                    <DescriptionList.Details>
+                      <TimeSince date={automation.dateUpdated} />
+                    </DescriptionList.Details>
+                  </DescriptionList>
+                </Container>
               </ErrorBoundary>
             </DetailSection>
           </DetailLayout.Sidebar>

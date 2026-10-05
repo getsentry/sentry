@@ -59,7 +59,7 @@ export type KeyValueTuple = {
 
 export function keyValueTableOrNotFound(data: KeyValueTuple[], notFoundText: string) {
   return data.length ? (
-    <NetworkDescriptionList gap="0">
+    <NetworkDescriptionList striped>
       {data.map(({key, value, type}) => (
         <Fragment key={key}>
           <DescriptionList.Term data-warning={type === 'warning' || undefined}>
@@ -143,18 +143,22 @@ export function SectionItem({
 }
 
 const NetworkDescriptionList = styled(DescriptionList)`
-  font-size: ${p => p.theme.font.size.sm};
-
-  & > dt,
-  & > dd {
-    padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
-  }
-
   & > dt {
+    font-size: ${p => p.theme.font.size.sm};
     padding-left: ${p => p.theme.space['3xl']};
   }
-
-  & > [data-warning] {
-    background: ${p => p.theme.tokens.background.transparent.warning.muted};
+  & > dd {
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: ${p => p.theme.font.size.sm};
+    display: flex;
+    justify-content: flex-end;
+    white-space: normal;
+    text-align: right;
+  }
+  & > dt[data-warning],
+  & > dd[data-warning] {
+    background-color: ${p => p.theme.tokens.background.transparent.warning.muted};
   }
 `;

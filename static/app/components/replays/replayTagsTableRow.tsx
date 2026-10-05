@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {DescriptionList} from '@sentry/scraps/descriptionList';
-import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -112,12 +111,9 @@ export function ReplayTagsTableRow({name, values, generateUrl}: Props) {
   return (
     <Fragment>
       <DescriptionList.Term>
-        {/* Terms size to max-content, so cap long tag names for their overflow tooltip */}
-        <Container maxWidth="50cqi">
-          <StyledTooltip title={name} showOnlyOnOverflow>
-            {name}
-          </StyledTooltip>
-        </Container>
+        <StyledTooltip title={name} showOnlyOnOverflow>
+          {name}
+        </StyledTooltip>
       </DescriptionList.Term>
       <DescriptionList.Details>
         <ErrorBoundary mini>
@@ -149,6 +145,8 @@ const ValueContainer = styled('div')`
     font-size: ${p => p.theme.font.size.md};
   }
   display: flex;
+  padding: ${p => p.theme.space['2xs']};
+  justify-content: flex-end;
 `;
 
 const StyledTooltip = styled(Tooltip)`
@@ -157,13 +155,11 @@ const StyledTooltip = styled(Tooltip)`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  /* Clipping overflow moves the wrapper's baseline to its bottom edge, which
-     drags the row out of line with the baseline-aligned grid around it. */
-  vertical-align: top;
 `;
 
 const StyledVersionContainer = styled('div')`
   display: flex;
+  justify-content: flex-end;
   gap: ${p => p.theme.space.sm};
 
   .invisible-button {

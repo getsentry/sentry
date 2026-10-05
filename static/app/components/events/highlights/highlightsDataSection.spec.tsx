@@ -139,7 +139,7 @@ describe('HighlightsDataSection', () => {
     await userEvent.hover(await screen.findByText('User: email'));
 
     expect(await screen.findByText('user.email')).toBeInTheDocument();
-    expect(screen.getByText('Email address of the user')).toBeInTheDocument();
+    expect(screen.getByText('User email address.')).toBeInTheDocument();
     expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
   });
 });

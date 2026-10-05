@@ -3,7 +3,7 @@ import moment from 'moment-timezone';
 
 import {Button} from '@sentry/scraps/button';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -45,125 +45,131 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
     <SidebarSection.Wrap>
       <SidebarSection.Title>{t('Project Release Details')}</SidebarSection.Title>
       <SidebarSection.Content>
-        <DescriptionList>
-          <DescriptionList.Term>{t('Created')}</DescriptionList.Term>
-          <DescriptionList.Details>
-            <DateTime date={dateCreated} />
-          </DescriptionList.Details>
-          <DescriptionList.Term>
-            <Flex gap="sm" align="center">
-              {t('Finalized')}
-              <Tooltip
-                skipWrapper
-                title={tct(
-                  'By default a release is created "unreleased".[br]Finalizing a release means that we populate a second timestamp on the release record, which is prioritized over [code:date_created] when sorting releases. [docs:Read more].',
-                  {
-                    br: <br />,
-                    code: <code />,
-                    docs: (
-                      <ExternalLink href="https://docs.sentry.io/cli/releases/#finalizing-releases" />
-                    ),
-                  }
-                )}
-              >
-                <IconInfo />
-              </Tooltip>
-            </Flex>
-          </DescriptionList.Term>
-          <DescriptionList.Details>
-            {dateReleased ? (
-              <DateTime date={dateReleased} />
-            ) : (
-              <Tooltip
-                title={t(
-                  'Set release date to %s',
-                  moment
-                    .tz(
-                      release.firstEvent ?? release.dateCreated,
-                      options?.timezone ?? ''
-                    )
-                    .format(
-                      options?.clock24Hours
-                        ? 'MMMM D, YYYY HH:mm z'
-                        : 'MMMM D, YYYY h:mm A z'
-                    )
-                )}
-              >
-                <FinalizeButton
-                  size="zero"
-                  onClick={() => {
-                    finalizeRelease.mutate([release], {
-                      onSettled() {
-                        window.location.reload();
-                      },
-                    });
-                  }}
+        <Container marginBottom="xl">
+          <DescriptionList striped>
+            <DescriptionList.Term>{t('Created')}</DescriptionList.Term>
+            <DescriptionList.Details>
+              <DateTime date={dateCreated} />
+            </DescriptionList.Details>
+            <DescriptionList.Term>
+              <Flex gap="sm" align="center">
+                {t('Finalized')}
+                <Tooltip
+                  skipWrapper
+                  title={tct(
+                    'By default a release is created "unreleased".[br]Finalizing a release means that we populate a second timestamp on the release record, which is prioritized over [code:date_created] when sorting releases. [docs:Read more].',
+                    {
+                      br: <br />,
+                      code: <code />,
+                      docs: (
+                        <ExternalLink href="https://docs.sentry.io/cli/releases/#finalizing-releases" />
+                      ),
+                    }
+                  )}
                 >
-                  {t('Finalize')}
-                </FinalizeButton>
-              </Tooltip>
-            )}
-          </DescriptionList.Details>
-          <DescriptionList.Term>{t('Version')}</DescriptionList.Term>
-          <DescriptionList.Details>
-            <StyledTextOverflow ellipsisDirection="left">
-              <Version version={version} anchor={false} />
-            </StyledTextOverflow>
-          </DescriptionList.Details>
-          <DescriptionList.Term>
-            <Flex gap="sm" align="center">
-              {t('Semver')}
-              <Tooltip
-                skipWrapper
-                title={tct(
-                  'Semver packages format their versions as [code:package@version] or [code:package@version+build]. [docs:Read more].',
-                  {
-                    code: <code />,
-                    docs: (
-                      <ExternalLink href="https://docs.sentry.io/cli/releases/#creating-releases" />
-                    ),
-                  }
-                )}
+                  <IconInfo />
+                </Tooltip>
+              </Flex>
+            </DescriptionList.Term>
+            <DescriptionList.Details>
+              {dateReleased ? (
+                <DateTime date={dateReleased} />
+              ) : (
+                <ButtonContainer>
+                  <Tooltip
+                    title={t(
+                      'Set release date to %s',
+                      moment
+                        .tz(
+                          release.firstEvent ?? release.dateCreated,
+                          options?.timezone ?? ''
+                        )
+                        .format(
+                          options?.clock24Hours
+                            ? 'MMMM D, YYYY HH:mm z'
+                            : 'MMMM D, YYYY h:mm A z'
+                        )
+                    )}
+                  >
+                    <FinalizeButton
+                      size="zero"
+                      onClick={() => {
+                        finalizeRelease.mutate([release], {
+                          onSettled() {
+                            window.location.reload();
+                          },
+                        });
+                      }}
+                    >
+                      {t('Finalize')}
+                    </FinalizeButton>
+                  </Tooltip>
+                </ButtonContainer>
+              )}
+            </DescriptionList.Details>
+            <DescriptionList.Term>{t('Version')}</DescriptionList.Term>
+            <DescriptionList.Details>
+              <StyledTextOverflow ellipsisDirection="left">
+                <Version version={version} anchor={false} />
+              </StyledTextOverflow>
+            </DescriptionList.Details>
+            <DescriptionList.Term>
+              <Flex gap="sm" align="center">
+                {t('Semver')}
+                <Tooltip
+                  skipWrapper
+                  title={tct(
+                    'Semver packages format their versions as [code:package@version] or [code:package@version+build]. [docs:Read more].',
+                    {
+                      code: <code />,
+                      docs: (
+                        <ExternalLink href="https://docs.sentry.io/cli/releases/#creating-releases" />
+                      ),
+                    }
+                  )}
+                >
+                  <IconInfo />
+                </Tooltip>
+              </Flex>
+            </DescriptionList.Term>
+            <DescriptionList.Details>
+              {versionInfo && isVersionInfoSemver(versionInfo.version)
+                ? t('Yes')
+                : t('No')}
+            </DescriptionList.Details>
+            <DescriptionList.Term>{t('Package')}</DescriptionList.Term>
+            <DescriptionList.Details>
+              <StyledTextOverflow ellipsisDirection="left">
+                {versionInfo?.package ?? '\u2014'}
+              </StyledTextOverflow>
+            </DescriptionList.Details>
+            <DescriptionList.Term>{t('First Activity')}</DescriptionList.Term>
+            <DescriptionList.Details>
+              {firstEvent ? <TimeSince date={firstEvent} /> : '\u2014'}
+            </DescriptionList.Details>
+            <DescriptionList.Term>{t('Last Activity')}</DescriptionList.Term>
+            <DescriptionList.Details>
+              {lastEvent ? <TimeSince date={lastEvent} /> : '\u2014'}
+            </DescriptionList.Details>
+            <DescriptionList.Term>{t('Source Maps')}</DescriptionList.Term>
+            <DescriptionList.Details>
+              <Link
+                to={
+                  isArtifactBundle
+                    ? `/settings/${orgSlug}/projects/${
+                        project.slug
+                      }/source-maps/?query=${encodeURIComponent(version)}`
+                    : `/settings/${orgSlug}/projects/${
+                        project.slug
+                      }/source-maps/${encodeURIComponent(version)}/`
+                }
               >
-                <IconInfo />
-              </Tooltip>
-            </Flex>
-          </DescriptionList.Term>
-          <DescriptionList.Details>
-            {versionInfo && isVersionInfoSemver(versionInfo.version) ? t('Yes') : t('No')}
-          </DescriptionList.Details>
-          <DescriptionList.Term>{t('Package')}</DescriptionList.Term>
-          <DescriptionList.Details>
-            <StyledTextOverflow ellipsisDirection="left">
-              {versionInfo?.package ?? '\u2014'}
-            </StyledTextOverflow>
-          </DescriptionList.Details>
-          <DescriptionList.Term>{t('First Activity')}</DescriptionList.Term>
-          <DescriptionList.Details>
-            {firstEvent ? <TimeSince date={firstEvent} /> : '\u2014'}
-          </DescriptionList.Details>
-          <DescriptionList.Term>{t('Last Activity')}</DescriptionList.Term>
-          <DescriptionList.Details>
-            {lastEvent ? <TimeSince date={lastEvent} /> : '\u2014'}
-          </DescriptionList.Details>
-          <DescriptionList.Term>{t('Source Maps')}</DescriptionList.Term>
-          <DescriptionList.Details>
-            <Link
-              to={
-                isArtifactBundle
-                  ? `/settings/${orgSlug}/projects/${
-                      project.slug
-                    }/source-maps/?query=${encodeURIComponent(version)}`
-                  : `/settings/${orgSlug}/projects/${
-                      project.slug
-                    }/source-maps/${encodeURIComponent(version)}/`
-              }
-            >
-              <Count value={releaseFileCount} />{' '}
-              {tn('artifact', 'artifacts', releaseFileCount)}
-            </Link>
-          </DescriptionList.Details>
-        </DescriptionList>
+                <Count value={releaseFileCount} />{' '}
+                {tn('artifact', 'artifacts', releaseFileCount)}
+              </Link>
+            </DescriptionList.Details>
+          </DescriptionList>
+        </Container>
       </SidebarSection.Content>
     </SidebarSection.Wrap>
   );
@@ -171,6 +177,14 @@ export function ProjectReleaseDetails({release, releaseMeta, project}: Props) {
 
 const StyledTextOverflow = styled(TextOverflow)`
   line-height: inherit;
+  text-align: right;
+`;
+
+const ButtonContainer = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: 1lh;
 `;
 
 const FinalizeButton = styled(Button)`

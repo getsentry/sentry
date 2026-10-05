@@ -351,6 +351,44 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             },
         ]
 
+    def test_errors_top_events(self) -> None:
+        for message, minutes in [("very bad", 1), ("very bad", 2), ("oh my", 3)]:
+            self.store_event(
+                data={
+                    "message": message,
+                    "timestamp": (self.start + timedelta(minutes=minutes)).isoformat(),
+                    "fingerprint": [message],
+                },
+                project_id=self.project.id,
+            )
+
+        response = self.do_request(
+            data={
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "yAxis": "count()",
+                "groupBy": ["count()", "message"],
+                "orderby": ["-count()"],
+                "topEvents": 1,
+                "project": [self.project.id],
+                "dataset": "errors",
+            },
+        )
+
+        assert response.status_code == 200, response.content
+        assert len(response.data["timeSeries"]) == 2
+
+        other, top = response.data["timeSeries"]
+        assert top["groupBy"] == [{"key": "message", "value": "very bad"}]
+        assert top["meta"]["isOther"] is False
+        assert top["meta"]["order"] == 0
+        assert top["values"][0]["value"] == 2
+
+        assert other["groupBy"] is None
+        assert other["meta"]["isOther"] is True
+        assert other["meta"]["order"] == 1
+
     def test_incomplete_bucket(self):
         with freeze_time(self.end):
             response = self.do_request(

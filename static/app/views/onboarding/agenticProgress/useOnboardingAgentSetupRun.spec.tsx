@@ -6,14 +6,16 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 import type {RequestOptions} from 'sentry/api';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 
-import {
-  useOnboardingAgenticProgressInit,
-  useRestartAgenticRun,
-} from './useAgenticProgressInit';
+import {useOnboardingAgentSetupRun} from './useOnboardingAgentSetupRun';
 
-describe('useOnboardingAgenticProgressInit', () => {
+describe('useOnboardingAgentSetupRun', () => {
   const organization = OrganizationFixture();
   const endpoint = `/organizations/${organization.slug}/onboarding/agent/runs/`;
+
+  beforeEach(() => {
+    const run = AgenticProgressRunFixture();
+    MockApiClient.addMockResponse({url: `${endpoint}${run.runId}/`, body: run});
+  });
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
@@ -27,7 +29,7 @@ describe('useOnboardingAgenticProgressInit', () => {
       body: AgenticProgressRunFixture(),
     });
 
-    renderHookWithProviders(() => useOnboardingAgenticProgressInit({enabled: false}), {
+    renderHookWithProviders(() => useOnboardingAgentSetupRun({enabled: false}), {
       organization,
     });
 
@@ -43,12 +45,12 @@ describe('useOnboardingAgenticProgressInit', () => {
     });
 
     const {result, rerender} = renderHookWithProviders(
-      () => useOnboardingAgenticProgressInit({enabled: true}),
+      () => useOnboardingAgentSetupRun({enabled: true}),
       {organization}
     );
 
-    await waitFor(() => expect(result.current.data).toEqual(run));
-    expect(result.current.data?.onboardingCode).toBe('Lg1iSt2qeQ');
+    await waitFor(() => expect(result.current.run).toEqual(run));
+    expect(result.current.onboardingCode).toBe('Lg1iSt2qeQ');
     expect(request).toHaveBeenCalledTimes(1);
 
     rerender();
@@ -68,11 +70,11 @@ describe('useOnboardingAgenticProgressInit', () => {
     };
 
     const firstRender = renderHookWithProviders(
-      () => useOnboardingAgenticProgressInit({enabled: true}),
+      () => useOnboardingAgentSetupRun({enabled: true}),
       options
     );
 
-    await waitFor(() => expect(firstRender.result.current.data).toEqual(run));
+    await waitFor(() => expect(firstRender.result.current.run).toEqual(run));
     await waitFor(() =>
       expect(
         JSON.parse(sessionStorage.getItem('onboarding') ?? '{}')
@@ -86,11 +88,11 @@ describe('useOnboardingAgenticProgressInit', () => {
     firstRender.unmount();
 
     const secondRender = renderHookWithProviders(
-      () => useOnboardingAgenticProgressInit({enabled: true}),
+      () => useOnboardingAgentSetupRun({enabled: true}),
       options
     );
 
-    await waitFor(() => expect(secondRender.result.current.data).toEqual(run));
+    await waitFor(() => expect(secondRender.result.current.run).toEqual(run));
     expect(request).toHaveBeenCalledTimes(2);
     expect(request.mock.calls[1]?.[1]?.data).toEqual({
       clientRunId: storedClientRunId,
@@ -132,11 +134,11 @@ describe('useOnboardingAgenticProgressInit', () => {
     );
 
     const {result} = renderHookWithProviders(
-      () => useOnboardingAgenticProgressInit({enabled: true}),
+      () => useOnboardingAgentSetupRun({enabled: true}),
       {organization, additionalWrapper: OnboardingContextProvider}
     );
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.run).toBeDefined());
     expect(conflictRequest).toHaveBeenCalledWith(
       endpoint,
       expect.objectContaining({
@@ -171,14 +173,11 @@ describe('useOnboardingAgenticProgressInit', () => {
     sessionStorage.setItem('onboarding', JSON.stringify({selectedPlatform}));
 
     const {result} = renderHookWithProviders(
-      () => ({
-        initialization: useOnboardingAgenticProgressInit({enabled: true}),
-        restartRun: useRestartAgenticRun(),
-      }),
+      () => useOnboardingAgentSetupRun({enabled: true}),
       {organization, additionalWrapper: OnboardingContextProvider}
     );
 
-    await waitFor(() => expect(result.current.initialization.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.run).toBeDefined());
     const originalSession = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
 
     act(() => result.current.restartRun());
