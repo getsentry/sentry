@@ -46,11 +46,6 @@ export function SetupIntentForm(props: IntentFormProps) {
       const intentData = await fetchMutation<PaymentSetupCreateResponse>({
         url: setupIntentUrl,
         method: 'POST',
-      }).catch(error => {
-        throw new Error(
-          getIntentErrorMessage(error instanceof Error ? error : null) ??
-            t('Setup failed.')
-        );
       });
 
       const result = await stripe.confirmSetup({
@@ -93,7 +88,7 @@ export function SetupIntentForm(props: IntentFormProps) {
       handleSubmit={async ({stripe, elements}) => {
         await savePaymentMethod({stripe, elements});
       }}
-      errorMessage={submissionError?.message}
+      errorMessage={getIntentErrorMessage(submissionError)}
     />
   );
 }
