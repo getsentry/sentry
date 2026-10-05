@@ -333,6 +333,30 @@ describe('Subscription > BillingInformation', () => {
     );
   });
 
+  it('shows a useful error when updating the payment method fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/setup/`,
+      method: 'POST',
+      body: {clientSecret: 'seti_abc123'},
+    });
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      method: 'PUT',
+      statusCode: 400,
+      body: {},
+    });
+
+    const sub: TSubscription = {...subscription, paymentSource: null};
+    render(<BillingInformation subscription={sub} />, {organization});
+
+    const cardPanel = await screen.findByTestId('credit-card-panel');
+    await userEvent.click(within(cardPanel).getByRole('button', {name: 'Save Changes'}));
+
+    expect(
+      await within(cardPanel).findByText('Could not update payment method.')
+    ).toBeInTheDocument();
+  });
+
   it('shows an error when confirmSetup fails', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/setup/`,

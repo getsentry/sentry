@@ -6,10 +6,10 @@ import {t} from 'sentry/locale';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 
 import {InnerIntentForm} from 'getsentry/components/creditCardEdit/intentForms/innerIntentForm';
 import type {IntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
-import {getIntentErrorMessage} from 'getsentry/hooks/useIntentData';
 import type {PaymentSetupCreateResponse, Subscription} from 'getsentry/types';
 
 export function SetupIntentForm(props: IntentFormProps) {
@@ -69,8 +69,6 @@ export function SetupIntentForm(props: IntentFormProps) {
           paymentMethod: result.setupIntent.payment_method,
           ftcConsentLocation,
         },
-      }).catch(() => {
-        throw new Error(t('Could not update payment method.'));
       });
     },
     onSuccess: (data: Subscription) => {
@@ -88,7 +86,14 @@ export function SetupIntentForm(props: IntentFormProps) {
       handleSubmit={async ({stripe, elements}) => {
         await savePaymentMethod({stripe, elements});
       }}
-      errorMessage={getIntentErrorMessage(submissionError)}
+      errorMessage={
+        submissionError
+          ? getRequestErrorUserMessage(
+              submissionError,
+              t('Could not update payment method.')
+            )
+          : undefined
+      }
     />
   );
 }
