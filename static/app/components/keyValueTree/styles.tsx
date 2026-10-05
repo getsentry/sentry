@@ -2,12 +2,6 @@ import styled from '@emotion/styled';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 
-export const TreeContainer = styled('div')<{columnCount: number}>`
-  display: grid;
-  grid-template-columns: repeat(${p => p.columnCount}, 1fr);
-  align-items: start;
-`;
-
 export const TreeColumn = styled('div')`
   display: grid;
   grid-column-gap: ${p => p.theme.space['2xl']};
