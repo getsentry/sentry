@@ -281,7 +281,7 @@ const appConfig: Configuration = {
      * This generates a single "sentry.css" file that imports ALL component styles
      * for use on Django-powered pages.
      */
-    sentry: 'less/sentry.less',
+    sentry: './less/sentry.less',
   },
   context: staticPrefix,
   incremental: DEV_MODE,
@@ -515,7 +515,6 @@ const appConfig: Configuration = {
       'getsentry-test': path.join(import.meta.dirname, 'tests', 'js', 'getsentry-test'),
       admin: path.join(staticPrefix, 'gsAdmin'),
 
-      less: path.join(staticPrefix, 'less'),
       'sentry-test': path.join(import.meta.dirname, 'tests', 'js', 'sentry-test'),
       'sentry-locale': path.join(import.meta.dirname, 'src', 'sentry', 'locale'),
       'ios-device-list': path.join(
