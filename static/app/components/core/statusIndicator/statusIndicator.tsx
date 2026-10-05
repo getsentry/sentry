@@ -71,12 +71,12 @@ function getDotTokens(
       };
     case 'warning':
       return {
-        dot: theme.tokens.background.warning.vibrant,
+        dot: theme.tokens.graphics.warning.vibrant,
         pulse: theme.tokens.background.transparent.warning.muted,
       };
     case 'success':
       return {
-        dot: theme.tokens.background.success.vibrant,
+        dot: theme.tokens.graphics.success.vibrant,
         pulse: theme.tokens.background.transparent.success.muted,
       };
     case 'promotion':
