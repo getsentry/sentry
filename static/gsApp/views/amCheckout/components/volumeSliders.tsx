@@ -56,7 +56,7 @@ function PerformanceUnitDecoration() {
   );
 }
 
-export function renderPerformanceHovercard() {
+export function PerformanceHovercard() {
   return (
     <StyledHovercard
       position="top"

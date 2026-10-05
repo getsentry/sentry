@@ -93,8 +93,17 @@ export function getDisabledProducts(organization: Organization): DisabledProduct
 // NOTE: Please keep the prefix in alphabetical order
 export const platformProductAvailability = {
   'apple-macos': [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.PROFILING],
-  bun: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  bun: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
   capacitor: [ProductSolution.PERFORMANCE_MONITORING, ProductSolution.LOGS],
+  deno: [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
   dotnet: [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
@@ -301,6 +310,12 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
+  'node-eve': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
   'node-express': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
@@ -308,6 +323,12 @@ export const platformProductAvailability = {
     ProductSolution.METRICS,
   ],
   'node-fastify': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'node-flue': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
@@ -332,6 +353,12 @@ export const platformProductAvailability = {
     ProductSolution.METRICS,
   ],
   'node-koa': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'node-mastra': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,

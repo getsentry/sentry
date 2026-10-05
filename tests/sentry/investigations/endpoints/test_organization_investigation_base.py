@@ -9,6 +9,7 @@ from sentry.investigations.models import (
     InvestigationBlockExecutionStatus,
     InvestigationBlockExecutor,
 )
+from sentry.investigations.services import create_agentic_manual_investigation
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -26,19 +27,33 @@ class OrganizationInvestigationBaseTest(APITestCase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def test_closed_membership_organizations_are_not_supported(self) -> None:
-        """
-        Investigations are organization-visible with no per-investigation access
-        control, so the initial pass is limited to open-membership orgs.
-        """
-        self.login_as(self.user)
+    def test_closed_membership_organizations_cannot_list_or_create_investigations(self) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()
 
-        url = reverse(
-            "sentry-api-0-organization-investigations",
-            kwargs={"organization_id_or_slug": self.organization.slug},
+        with self.feature(FEATURE):
+            assert self.client.get(self.collection_url).status_code == 404
+            response = self.client.post(
+                self.collection_url, data={"title": "Unavailable"}, format="json"
+            )
+
+        assert response.status_code == 404
+        assert not Investigation.objects.filter(organization=self.organization).exists()
+
+    def test_closed_membership_organizations_cannot_view_investigations(self) -> None:
+        investigation = self.create_investigation(
+            organization=self.organization, created_by=self.user, title="Existing investigation"
         )
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        url = reverse(
+            "sentry-api-0-organization-investigation-details",
+            kwargs={
+                "organization_id_or_slug": self.organization.slug,
+                "investigation_id": investigation.id,
+            },
+        )
+
         with self.feature(FEATURE):
             assert self.client.get(url).status_code == 404
 
@@ -100,16 +115,19 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
 
         assert self.client.get(url).status_code == 404
 
-    def test_orchestration_routes_require_every_selected_project(self) -> None:
+    def test_members_without_project_membership_can_read_and_cancel_orchestration(self) -> None:
         restricted_team = self.create_team(organization=self.organization)
         restricted_project = self.create_project(
             organization=self.organization, teams=[restricted_team]
         )
-        investigation = self.create_investigation(
-            organization=self.organization, created_by=self.user, title="Restricted"
+        investigation, _ = create_agentic_manual_investigation(
+            organization=self.organization,
+            user_id=self.user.id,
+            title="Shared investigation",
+            source={"type": "manual", "prompt": "Investigate latency"},
+            project_ids=[restricted_project.id],
+            filters={},
         )
-        self.create_investigation_project(investigation=investigation, project=restricted_project)
-        self.create_investigation_orchestration_run(investigation=investigation)
         viewer = self.create_user()
         self.create_member(organization=self.organization, user=viewer, role="member", teams=[])
         self.login_as(viewer)
@@ -129,7 +147,7 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
             },
         )
 
-        assert self.client.get(orchestration_url).status_code == 403
+        assert self.client.get(orchestration_url).status_code == 200
         response = self.client.post(
             command_url,
             data={
@@ -139,7 +157,7 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
             },
             format="json",
         )
-        assert response.status_code == 403
+        assert response.status_code == 200
 
     def test_empty_project_scope_does_not_require_every_organization_project(self) -> None:
         investigation = self.create_investigation(
@@ -162,7 +180,7 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
 
         assert response.status_code == 200
 
-    def test_detail_requires_result_project_access_but_list_remains_visible(self) -> None:
+    def test_members_can_read_results_and_summaries_without_project_membership(self) -> None:
         create_response = self.client.post(
             self.collection_url, data={"title": "Output"}, format="json"
         )
@@ -212,45 +230,22 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
         )
         self.login_as(viewer)
         response = self.client.get(detail_url)
-        assert response.status_code == 403
+        assert response.status_code == 200
+        assert response.data["blocks"][0]["output"]["rows"] == [[42]]
+        assert response.data["summary"] == investigation.summary
 
         list_response = self.client.get(self.collection_url)
         assert list_response.status_code == 200
         listed = next(item for item in list_response.data if item["id"] == str(investigation.id))
-        assert listed["summary"] is None
-        assert listed["summaryDescription"] is None
+        assert listed["summary"] == investigation.summary
+        assert listed["summaryDescription"] == investigation.summary_description
 
-    def test_project_query_param_cannot_widen_the_access_check(self) -> None:
-        team = self.create_team(organization=self.organization)
-        restricted = self.create_project(organization=self.organization, teams=[team])
-        investigation = self.create_investigation(
-            organization=self.organization, created_by=self.user, title="Restricted"
-        )
-        block = self.create_investigation_block(
-            investigation=investigation, position=0, kind="query"
-        )
-        execution = self.create_investigation_block_execution(
-            block=block,
-            executor="manual",
-            block_version=1,
-            input_fingerprint="f" * 64,
-            status=InvestigationBlockExecutionStatus.COMPLETED,
-            result={"schemaVersion": 1},
-        )
-        self.create_investigation_block_execution_project(execution=execution, project=restricted)
-        block.update(current_execution=execution, result_execution=execution)
+    def test_non_member_cannot_list_or_create_investigations(self) -> None:
+        self.login_as(self.create_user())
 
-        viewer = self.create_user()
-        self.create_member(organization=self.organization, user=viewer, role="member", teams=[])
-        self.login_as(viewer)
-        url = reverse(
-            "sentry-api-0-organization-investigation-details",
-            kwargs={
-                "organization_id_or_slug": self.organization.slug,
-                "investigation_id": investigation.id,
-            },
+        assert self.client.get(self.collection_url).status_code == 403
+        response = self.client.post(
+            self.collection_url, data={"title": "Unauthorized"}, format="json"
         )
-
-        assert self.client.get(url).status_code == 403
-        assert self.client.get(f"{url}?project=-1").status_code == 403
-        assert self.client.get(f"{url}?project={restricted.id}").status_code == 403
+        assert response.status_code == 403
+        assert not Investigation.objects.filter(organization=self.organization).exists()

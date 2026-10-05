@@ -164,7 +164,10 @@ describe('EditAccessModal', () => {
 
     expect(await screen.findByRole('checkbox', {name: 'team1'})).toBeDisabled();
     expect(selectAllCheckbox()).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Apply'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Apply'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('explains why the controls are inert for users who cannot manage access', async () => {

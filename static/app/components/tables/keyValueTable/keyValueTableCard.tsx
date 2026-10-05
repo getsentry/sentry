@@ -12,6 +12,7 @@ import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 import {
   KeyValueTableDataRow,
   type KeyValueTableDataRowProps,
+  type KeyValueTableVariant,
 } from './keyValueTableDataRow';
 
 interface KeyValueTableCardProps {
@@ -35,6 +36,10 @@ interface KeyValueTableCardProps {
    * Content item length which, when exceeded, displays a 'Show more' option
    */
   truncateLength?: number;
+  /**
+   * Subject column typography and row padding. Defaults to `code`.
+   */
+  variant?: KeyValueTableVariant;
 }
 
 export function KeyValueTableCard({
@@ -43,6 +48,7 @@ export function KeyValueTableCard({
   truncateLength = Infinity,
   sortAlphabetically = false,
   expandLeft = false,
+  variant = 'code',
 }: KeyValueTableCardProps) {
   const [isTruncated, setIsTruncated] = useState(contentItems.length > truncateLength);
 
@@ -65,6 +71,7 @@ export function KeyValueTableCard({
         <KeyValueTableDataRow
           expandLeft={expandLeft}
           key={String(index)}
+          variant={variant}
           {...itemProps}
         />
       ))}

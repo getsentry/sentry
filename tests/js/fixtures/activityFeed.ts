@@ -8,6 +8,7 @@ import {GroupActivityType, IssueCategory, IssueType} from 'sentry/types/group';
 
 export function ActivityFeedFixture(params: Partial<Activity> = {}): Activity {
   return {
+    commentId: params.id ?? '42',
     data: {text: 'Very interesting comment'},
     dateCreated: '2019-04-29T21:43:32.280Z',
     user: UserFixture({

@@ -3,14 +3,12 @@ from __future__ import annotations
 import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
-from unittest import mock
 from urllib.parse import parse_qs, urlparse
 
 import pytest
 import responses
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.cursor_origin.client import CursorOriginApiClient
 from sentry.integrations.cursor_origin.constants import CURSOR_ORIGIN_API_BASE_URL, PAGE_SIZE
 from sentry.integrations.cursor_origin.repository import (
     MAX_COMPARE_COMMITS_OPTION_KEY,
@@ -18,8 +16,9 @@ from sentry.integrations.cursor_origin.repository import (
 )
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.base import bindings
-from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -45,14 +44,21 @@ class CursorOriginRepositoryProviderTest(TestCase):
             provider="cursor_origin",
             name="acme",
             external_id=INSTALLATION_ID,
+            metadata={
+                "access_token": "oit_stored",
+                "expires_at": (datetime.now(UTC) + timedelta(minutes=14))
+                .isoformat()
+                .replace("+00:00", "Z"),
+            },
             status=ObjectStatus.ACTIVE,
         )
         self.provider = CursorOriginRepositoryProvider("integrations:cursor_origin")
 
+    @responses.activate
     def _repository_data(self, identifier: str = REPO) -> dict[str, Any]:
+        responses.add(responses.GET, f"{CURSOR_ORIGIN_API_BASE_URL}/repos/{REPO}", json=ORIGIN_REPO)
         config: dict[str, Any] = {"installation": self.integration.id, "identifier": identifier}
-        with mock.patch.object(CursorOriginApiClient, "get_repo", return_value=ORIGIN_REPO):
-            return dict(self.provider.get_repository_data(self.organization, config))
+        return dict(self.provider.get_repository_data(self.organization, config))
 
     def test_registered_for_the_repository_picker(self) -> None:
         provider = bindings.get("integration-repository.provider").get("integrations:cursor_origin")
@@ -81,13 +87,18 @@ class CursorOriginRepositoryProviderTest(TestCase):
             "integration_id": self.integration.id,
         }
 
+    @responses.activate
     def test_an_unreadable_repository_is_an_integration_error(self) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/repos/acme/nope",
+            json={"code": 5, "message": "not found"},
+            status=404,
+        )
         config = {"installation": self.integration.id, "identifier": "acme/nope"}
-        with mock.patch.object(
-            CursorOriginApiClient, "get_repo", side_effect=ApiError("nope", code=404)
-        ):
-            with pytest.raises(IntegrationError):
-                self.provider.get_repository_data(self.organization, config)
+
+        with pytest.raises(IntegrationError):
+            self.provider.get_repository_data(self.organization, config)
 
     def test_the_external_slug_is_the_full_name(self) -> None:
         assert self.provider.repository_external_slug(Repository(name=REPO)) == REPO
@@ -96,6 +107,57 @@ class CursorOriginRepositoryProviderTest(TestCase):
         url = self.provider.pull_request_url(Repository(name=REPO), PullRequest(key="7"))
 
         assert url == f"{WEB}/{REPO}/pull/7"
+
+
+class ReinstallTransferTest(TestCase):
+    """No silo decorator: `Repository` is a region model and this writes one."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="acme",
+            external_id=INSTALLATION_ID,
+            status=ObjectStatus.ACTIVE,
+        )
+        self.provider = CursorOriginRepositoryProvider("integrations:cursor_origin")
+
+    def test_a_reinstall_adopts_the_old_installation_s_repository(self) -> None:
+        """Origin issues a new installation id, and a repository is unique per org."""
+        stranded_integration = self.create_integration(
+            organization=self.organization,
+            provider="cursor_origin",
+            name="acme",
+            external_id="i_01previous",
+            status=ObjectStatus.DISABLED,
+        )
+        stranded = Repository.objects.create(
+            organization_id=self.organization.id,
+            name=REPO,
+            provider="integrations:cursor_origin",
+            integration_id=stranded_integration.id,
+            external_id=ORIGIN_REPO["id"],
+            status=ObjectStatus.DISABLED,
+        )
+
+        _, repo = self.provider.create_repository(
+            {
+                "installation": self.integration.id,
+                "identifier": REPO,
+                "external_id": ORIGIN_REPO["id"],
+                "name": REPO,
+                "default_branch": "main",
+                "integration_id": self.integration.id,
+            },
+            serialize_rpc_organization(self.organization),
+        )
+
+        assert repo.id == stranded.id
+        assert Repository.objects.count() == 1
+        stranded.refresh_from_db()
+        assert stranded.integration_id == self.integration.id
+        assert stranded.status == ObjectStatus.ACTIVE
 
 
 def _commit(sha: str, message: str = "a change", email: str = "dev@example.com") -> dict[str, Any]:

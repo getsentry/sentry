@@ -1,4 +1,8 @@
-from sentry.issues.action_log.types import PullRequestClosedAction, SetRegressedAction
+from sentry.issues.action_log.types import (
+    PullRequestClosedAction,
+    SetRegressedAction,
+    SetResolvedInReleaseAction,
+)
 from sentry.models.activity import Activity
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
@@ -73,13 +77,17 @@ class ActivityToActionTest(TestCase):
         assert activity_to_action(act) == PullRequestClosedAction(pull_request=123)
 
     def test_optional_field(self) -> None:
-        act = Factories.create_group_activity(
-            group=self.group,
-            type=ActivityType.SET_REGRESSION.value,
-            data={"version": "abc"},
-        )
+        for activity_type, expected_action in (
+            (ActivityType.SET_REGRESSION, SetRegressedAction(version="abc")),
+            (ActivityType.SET_RESOLVED_IN_RELEASE, SetResolvedInReleaseAction(version="abc")),
+        ):
+            act = Factories.create_group_activity(
+                group=self.group,
+                type=activity_type.value,
+                data={"version": "abc"},
+            )
 
-        assert activity_to_action(act) == SetRegressedAction(version="abc")
+            assert activity_to_action(act) == expected_action
 
     def test_strips_null_bytes_from_string_fields(self) -> None:
         # Activity data is stored in a text JSON column that tolerates NUL bytes,
