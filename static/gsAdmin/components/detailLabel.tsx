@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {Tag} from '@sentry/scraps/badge';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 
 type Props = {
   /**
@@ -20,12 +21,12 @@ type Props = {
 export function DetailLabel({title, yesNo, children}: Props) {
   return (
     <Fragment>
-      <dt>{title}:</dt>
-      <dd>
+      <DescriptionList.Term>{title}:</DescriptionList.Term>
+      <DescriptionList.Details>
         {yesNo !== undefined &&
           (yesNo ? <Tag variant="success">yes</Tag> : <Tag variant="danger">no</Tag>)}
         {children}
-      </dd>
+      </DescriptionList.Details>
     </Fragment>
   );
 }

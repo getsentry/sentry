@@ -1,9 +1,10 @@
-import {Fragment, useState} from 'react';
+import {Fragment} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Select, components} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -19,9 +20,8 @@ import type {Project} from 'sentry/types/project';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  saveProjectRepoConnection,
   projectRepoInfiniteOptions,
-  type RepoSelectOption,
+  saveProjectRepoConnection,
   useGroupedRepoOptions,
 } from 'sentry/views/settings/projectGeneralSettings/queries';
 
@@ -110,9 +110,17 @@ export function ConnectRepositoryModal({
 }: Props) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const [selectedOption, setSelectedOption] = useState<RepoSelectOption | null>(null);
-  const [pathMappings, setPathMappings] = useState<PathMappingValue[]>([]);
   const {groupedOptions, isPending} = useGroupedRepoOptions(organization.slug);
+  const flatOptions = groupedOptions.flatMap(g => g.options);
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      repository: null as string | null,
+      pathMappings: [] as PathMappingValue[],
+    },
+    onSubmit: () => {},
+  });
 
   const saveMutation = useMutation({
     mutationFn: saveProjectRepoConnection,
@@ -127,109 +135,141 @@ export function ConnectRepositoryModal({
     },
   });
 
-  const canSave = selectedOption !== null && pathMappings.length > 0;
   const saveError = saveMutation.isError ? getApiErrorMessage(saveMutation.error) : null;
 
   return (
-    <Fragment>
-      <Header closeButton>
-        <Heading as="h4">
-          {tct('Connect a repository to [project]', {project: project.slug})}
-        </Heading>
-      </Header>
-      <Body>
-        <Stack gap="xl">
-          {saveError && (
-            <Alert.Container>
-              <Alert variant="danger">{saveError}</Alert>
-            </Alert.Container>
-          )}
-          <Text as="p">
-            {tct(
-              'Link a repo to [project] so an error can take you straight to the line of code that caused it.',
-              {
-                project: (
-                  <Text as="span" bold>
-                    {project.slug}
-                  </Text>
-                ),
-              }
+    <form.AppForm form={form}>
+      <Fragment>
+        <Header closeButton>
+          <Heading as="h4">
+            {tct('Connect a repository to [project]', {project: project.slug})}
+          </Heading>
+        </Header>
+        <Body>
+          <Stack gap="xl">
+            {saveError && (
+              <Alert.Container>
+                <Alert variant="danger">{saveError}</Alert>
+              </Alert.Container>
             )}
-          </Text>
-
-          <Grid columns="1fr auto 1fr" gap="xs md" align="center">
-            <Text size="sm" bold>
-              {t('Project')}
+            <Text as="p">
+              {tct(
+                'Link a repo to [project] so an error can take you straight to the line of code that caused it.',
+                {
+                  project: (
+                    <Text as="span" bold>
+                      {project.slug}
+                    </Text>
+                  ),
+                }
+              )}
             </Text>
-            <Container />
-            <Text size="sm" bold>
-              {t('Repository')}
-            </Text>
-            <Container minWidth={0}>
-              <LockedProjectField project={project} />
-            </Container>
-            <IconArrow direction="right" />
-            <Container minWidth={0}>
-              <Select
-                aria-label={t('Repository')}
-                options={groupedOptions}
-                value={selectedOption?.value ?? null}
-                onChange={option => {
-                  setSelectedOption(option as RepoSelectOption | null);
-                  setPathMappings([]);
-                  saveMutation.reset();
-                }}
-                placeholder={t('Search repositories')}
-                isLoading={isPending}
-                searchable
-                components={{MenuList: ScmVirtualizedMenuList}}
-              />
-            </Container>
-          </Grid>
 
-          {selectedOption ? (
-            <Container paddingTop="2xl">
-              <PathMappingList
-                key={selectedOption.value}
-                providerKey={selectedOption.providerKey}
-                defaultBranch={selectedOption.defaultBranch ?? undefined}
-                onChange={setPathMappings}
-              />
-            </Container>
-          ) : (
-            <Stack gap="xs" paddingTop="2xl">
+            <Grid columns="1fr auto 1fr" gap="xs md" align="center">
               <Text size="sm" bold>
-                {t('Paths')}
+                {t('Project')}
               </Text>
-              <PathsPlaceholder />
-            </Stack>
-          )}
-        </Stack>
-      </Body>
-      <Footer>
-        <Flex justify="end" gap="md">
-          <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button
-            variant="primary"
-            disabled={!canSave || saveMutation.isPending}
-            busy={saveMutation.isPending}
-            onClick={() => {
-              if (!selectedOption) {
-                return;
+              <Container />
+              <Text size="sm" bold>
+                {t('Repository')}
+              </Text>
+              <Container minWidth={0}>
+                <LockedProjectField project={project} />
+              </Container>
+              <IconArrow direction="right" />
+              <Container minWidth={0}>
+                <form.AppField name="repository">
+                  {field => (
+                    <field.Select
+                      aria-label={t('Repository')}
+                      clearable
+                      options={groupedOptions as any}
+                      value={field.state.value}
+                      disabled={saveMutation.isPending}
+                      onChange={repoValue => {
+                        field.handleChange(repoValue as string | null);
+                        const selected = flatOptions.find(o => o.value === repoValue);
+                        form.setFieldValue('pathMappings', [
+                          {
+                            stackRoot: '',
+                            sourceRoot: '',
+                            branch: selected?.defaultBranch ?? '',
+                          },
+                        ]);
+                        saveMutation.reset();
+                      }}
+                      placeholder={t('Search repositories')}
+                      isLoading={isPending}
+                      isSearchable
+                      components={{MenuList: ScmVirtualizedMenuList}}
+                    />
+                  )}
+                </form.AppField>
+              </Container>
+            </Grid>
+
+            <form.Subscribe selector={state => state.values.repository}>
+              {repository =>
+                repository ? (
+                  <Container paddingTop="2xl">
+                    <PathMappingList
+                      key={repository}
+                      form={form}
+                      providerKey={
+                        flatOptions.find(o => o.value === repository)?.providerKey
+                      }
+                      defaultBranch={
+                        flatOptions.find(o => o.value === repository)?.defaultBranch ??
+                        undefined
+                      }
+                    />
+                  </Container>
+                ) : (
+                  <Stack gap="xs" paddingTop="2xl">
+                    <Text size="sm" bold>
+                      {t('Paths')}
+                    </Text>
+                    <PathsPlaceholder />
+                  </Stack>
+                )
               }
-              saveMutation.mutate({
-                orgSlug: organization.slug,
-                project,
-                repositoryId: selectedOption.repositoryId,
-                integrationId: selectedOption.integrationId,
-                pathMappings,
-              });
-            }}
-          >
-            {t('Save')}
-          </Button>
-        </Flex>
-      </Footer>
-    </Fragment>
+            </form.Subscribe>
+          </Stack>
+        </Body>
+        <Footer>
+          <Flex justify="end" gap="md">
+            <Button onClick={closeModal}>{t('Cancel')}</Button>
+            <form.Subscribe selector={state => state.values.repository !== null}>
+              {canSave => (
+                <Button
+                  variant="primary"
+                  disabled={!canSave || saveMutation.isPending}
+                  busy={saveMutation.isPending}
+                  onClick={() => {
+                    const {repository, pathMappings} = form.state.values;
+                    if (!repository) {
+                      return;
+                    }
+                    const selected = flatOptions.find(o => o.value === repository);
+                    if (!selected) {
+                      return;
+                    }
+                    saveMutation.mutate({
+                      orgSlug: organization.slug,
+                      project,
+                      repositoryId: selected.repositoryId,
+                      integrationId: selected.integrationId,
+                      pathMappings,
+                    });
+                  }}
+                >
+                  {t('Save')}
+                </Button>
+              )}
+            </form.Subscribe>
+          </Flex>
+        </Footer>
+      </Fragment>
+    </form.AppForm>
   );
 }

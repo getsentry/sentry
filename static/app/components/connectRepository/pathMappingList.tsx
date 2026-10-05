@@ -1,29 +1,20 @@
-import {useEffect, useRef, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {withForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 
-import {DEFAULT_BRANCH, normalizedPathMappingSchema} from './normalization';
+import {DEFAULT_BRANCH, normalizePathMapping} from './normalization';
 import {PathMapping} from './pathMapping';
 import type {PathMappingValue} from './type';
 
-interface PathMappingListProps {
-  onChange: (pathMappings: PathMappingValue[]) => void;
-  defaultBranch?: string;
-  pathMappings?: PathMappingValue[];
-  providerKey?: string;
-}
-
-interface Entry {
+interface RowMeta {
   id: number;
-  // New rows show only the edit form while expanded; existing rows pin the
-  // summary above the form. Cleared when a new row with content is collapsed.
   isNew: boolean;
-  value: PathMappingValue;
 }
 
 const EMPTY_MAPPING: PathMappingValue = {stackRoot: '', sourceRoot: '', branch: ''};
@@ -31,149 +22,157 @@ const EMPTY_MAPPING: PathMappingValue = {stackRoot: '', sourceRoot: '', branch: 
 const hasContent = (value: PathMappingValue) =>
   value.stackRoot.trim() !== '' || value.sourceRoot.trim() !== '';
 
-const mappingKey = (value: PathMappingValue) => {
-  const {stackRoot, sourceRoot, branch} = normalizedPathMappingSchema.parse(value);
+const mappingKey = (value: PathMappingValue, branchFallback: string) => {
+  const {stackRoot, sourceRoot, branch} = normalizePathMapping(value, branchFallback);
   return `${stackRoot}\0${sourceRoot}\0${branch}`;
 };
 
-const hasDuplicateMappings = (entries: Entry[]) => {
-  const keys = entries
-    .filter(entry => hasContent(entry.value))
-    .map(entry => mappingKey(entry.value));
+const hasDuplicateMappings = (values: PathMappingValue[], branchFallback: string) => {
+  const keys = values.map(value => mappingKey(value, branchFallback));
   return new Set(keys).size !== keys.length;
 };
 
-// Collapsing a filled new row promotes it to an established mapping so
-// reopening it shows the summary pinned above the editor.
-const clearNewOnCollapse = (entries: Entry[], collapsingId: number | null) =>
-  collapsingId === null
-    ? entries
-    : entries.map(entry =>
-        entry.id === collapsingId && hasContent(entry.value)
-          ? {...entry, isNew: false}
-          : entry
-      );
-
-export function PathMappingList({
-  pathMappings,
-  onChange,
-  providerKey,
-  defaultBranch,
-}: PathMappingListProps) {
-  const newRowValue: PathMappingValue = {
-    ...EMPTY_MAPPING,
-    branch: defaultBranch ?? DEFAULT_BRANCH,
-  };
-
-  const [entries, setEntries] = useState<Entry[]>(() => {
-    const seeded = (pathMappings ?? []).map((value, index) => ({
-      id: index,
-      isNew: false,
-      value,
-    }));
-    return seeded.length > 0 ? seeded : [{id: 0, isNew: true, value: newRowValue}];
-  });
-
-  // IDs start after the initial entries so that subsequent additions never
-  // collide with the seeded ids (0, 1, ..., n-1).
-  const idRef = useRef(entries.length);
-  const nextId = () => idRef.current++;
-
-  const [openId, setOpenId] = useState<number | null>(() =>
-    entries.length === 1 && entries[0]!.isNew ? entries[0]!.id : null
+const clearIsNewOnCollapse = (
+  meta: RowMeta[],
+  collapsingId: number | null,
+  values: PathMappingValue[]
+): RowMeta[] => {
+  if (collapsingId === null) {
+    return meta;
+  }
+  return meta.map((m, i) =>
+    m.id === collapsingId && hasContent(values[i] ?? EMPTY_MAPPING)
+      ? {...m, isNew: false}
+      : m
   );
+};
 
-  // Report filled entries to the parent after every entries change.
-  // Calling onChange inside a setEntries updater would update a different
-  // component during the render phase, which React disallows.
-  useEffect(() => {
-    onChange(entries.map(entry => entry.value));
-  }, [entries, onChange]);
+export const PathMappingList = withForm({
+  defaultValues: {
+    repository: null as string | null,
+    pathMappings: [] as PathMappingValue[],
+  },
+  props: {} as {
+    defaultBranch?: string;
+    providerKey?: string;
+  },
+  render: function PathMappingListRender({form, providerKey, defaultBranch}) {
+    const branchFallback = defaultBranch ?? DEFAULT_BRANCH;
+    const newRowValue: PathMappingValue = {...EMPTY_MAPPING, branch: branchFallback};
 
-  const handleChange = (id: number, value: PathMappingValue) => {
-    setEntries(prev => prev.map(entry => (entry.id === id ? {...entry, value} : entry)));
-  };
+    const idRef = useRef(0);
+    const nextId = () => idRef.current++;
 
-  const handleDelete = (id: number) => {
-    // Compute a fresh id now so the updater doesn't need to capture stale state.
-    const freshId = nextId();
-    setEntries(prev => {
-      const remaining = prev.filter(entry => entry.id !== id);
-      // Deleting the last mapping reseeds a fresh open row — matching mount behavior.
-      if (remaining.length === 0) {
-        setOpenId(freshId);
-        return [{id: freshId, isNew: true, value: newRowValue}];
-      }
-      setOpenId(open => (open === id ? null : open));
-      return remaining;
+    const [rowMeta, setRowMeta] = useState<RowMeta[]>(() => {
+      const initial = form.state.values.pathMappings;
+      idRef.current = initial.length;
+      return initial.map((v, i) => ({id: i, isNew: !hasContent(v)}));
     });
-  };
 
-  const handleAddAnother = () => {
-    const last = entries.at(-1);
-    // If the trailing row is still empty, reopen it rather than stacking another blank.
-    if (last && !hasContent(last.value)) {
-      setEntries(prev => clearNewOnCollapse(prev, openId));
-      setOpenId(last.id);
-      return;
-    }
-    const id = nextId();
-    setEntries(prev => [
-      ...clearNewOnCollapse(prev, openId),
-      {id, isNew: true, value: newRowValue},
-    ]);
-    setOpenId(id);
-  };
+    const [openId, setOpenId] = useState<number | null>(() =>
+      rowMeta.length === 1 && rowMeta[0]!.isNew ? rowMeta[0]!.id : null
+    );
 
-  const toggle = (id: number) => {
-    setEntries(prev => clearNewOnCollapse(prev, openId));
-    setOpenId(open => (open === id ? null : id));
-  };
+    const toggle = (id: number) => {
+      const currentValues = form.state.values.pathMappings;
+      setRowMeta(prev => clearIsNewOnCollapse(prev, openId, currentValues));
+      setOpenId(prev => (prev === id ? null : id));
+    };
 
-  const duplicate = hasDuplicateMappings(entries);
-  const addDisabledReason = duplicate
-    ? t('Resolve the duplicate path mapping first')
-    : undefined;
+    return (
+      <Stack gap="lg">
+        <Stack gap="xs">
+          <Text bold>{tct('Paths ([count])', {count: rowMeta.length})}</Text>
+          <Text size="sm" variant="muted">
+            {t(
+              'Tell Sentry how to translate file paths, so errors open the right line of code.'
+            )}
+          </Text>
+        </Stack>
 
-  return (
-    <Stack gap="lg">
-      <Stack gap="xs">
-        <Text bold>{tct('Paths ([count])', {count: entries.length})}</Text>
-        <Text size="sm" variant="muted">
-          {t(
-            'Tell Sentry how to translate file paths, so errors open the right line of code.'
-          )}
-        </Text>
+        <form.AppField name="pathMappings" mode="array">
+          {field => {
+            const handleDelete = (i: number) => {
+              const freshId = nextId();
+              if (form.state.values.pathMappings.length === 1) {
+                form.setFieldValue('pathMappings', [newRowValue]);
+                setRowMeta([{id: freshId, isNew: true}]);
+                setOpenId(freshId);
+              } else {
+                field.removeValue(i);
+                setRowMeta(prev => prev.filter((_, idx) => idx !== i));
+                setOpenId(prev => (prev === rowMeta[i]!.id ? null : prev));
+              }
+            };
+
+            const handleAddAnother = () => {
+              const id = nextId();
+              const currentValues = form.state.values.pathMappings;
+              field.pushValue(newRowValue);
+              setRowMeta(prev => [
+                ...clearIsNewOnCollapse(prev, openId, currentValues),
+                {id, isNew: true},
+              ]);
+              setOpenId(id);
+            };
+
+            // Subscribe to live per-row values so the duplicate check and
+            // collapsed summaries update while the user types.
+            return (
+              <form.Subscribe selector={state => state.values.pathMappings}>
+                {pathMappings => {
+                  const addDisabledReason = hasDuplicateMappings(
+                    pathMappings,
+                    branchFallback
+                  )
+                    ? t('Resolve the duplicate path mapping first')
+                    : undefined;
+
+                  return (
+                    <Fragment>
+                      <Stack gap="md">
+                        {pathMappings.map((value, i) => {
+                          const meta = rowMeta[i]!;
+                          const fields: `pathMappings[${number}]` = `pathMappings[${i}]`;
+                          return (
+                            <PathMapping
+                              key={meta.id}
+                              editing={openId === meta.id}
+                              fields={fields}
+                              form={form}
+                              isNew={meta.isNew}
+                              value={value}
+                              providerKey={providerKey}
+                              defaultBranch={defaultBranch}
+                              onDelete={() => handleDelete(i)}
+                              onExpandToggle={() => toggle(meta.id)}
+                            />
+                          );
+                        })}
+                      </Stack>
+
+                      <Flex justify="end">
+                        <Button
+                          size="xs"
+                          variant="transparent"
+                          icon={<IconAdd />}
+                          disabled={Boolean(addDisabledReason)}
+                          tooltipProps={{title: addDisabledReason}}
+                          onClick={handleAddAnother}
+                        >
+                          {t('Add another path')}
+                        </Button>
+                      </Flex>
+                    </Fragment>
+                  );
+                }}
+              </form.Subscribe>
+            );
+          }}
+        </form.AppField>
       </Stack>
+    );
+  },
+});
 
-      <Stack gap="md">
-        {entries.map(entry => (
-          <PathMapping
-            key={entry.id}
-            {...entry.value}
-            editing={openId === entry.id}
-            isNew={entry.isNew}
-            providerKey={providerKey}
-            defaultBranch={defaultBranch}
-            onChange={value => handleChange(entry.id, value)}
-            onDelete={() => handleDelete(entry.id)}
-            onExpandToggle={() => toggle(entry.id)}
-          />
-        ))}
-      </Stack>
-
-      <Flex justify="end">
-        <Button
-          size="xs"
-          variant="transparent"
-          icon={<IconAdd />}
-          disabled={Boolean(addDisabledReason)}
-          tooltipProps={{title: addDisabledReason}}
-          onClick={handleAddAnother}
-        >
-          {t('Add another path')}
-        </Button>
-      </Flex>
-    </Stack>
-  );
-}
+export type ConnectRepoForm = React.ComponentProps<typeof PathMappingList>['form'];

@@ -1,13 +1,13 @@
 import {Button} from '@sentry/scraps/button';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconArrow, IconBranch, IconChevron, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import {AccentPathSegment} from './accentPathSegment';
-import {normalizedPathMappingSchema} from './normalization';
+import {DEFAULT_BRANCH, normalizePathMapping} from './normalization';
 import type {PathMappingValue} from './type';
 
 const PATH_RATIO = 35;
@@ -17,6 +17,7 @@ interface PathMappingSummaryProps extends PathMappingValue {
   expanded: boolean;
   onDelete: () => void;
   onExpandToggle: () => void;
+  defaultBranch?: string;
 }
 
 function PathSegment({value}: {value: string}) {
@@ -40,12 +41,16 @@ export function PathMappingSummary({
   expanded,
   onDelete,
   onExpandToggle,
+  defaultBranch,
 }: PathMappingSummaryProps) {
   const {
     stackRoot: normalizedStackRoot,
     sourceRoot: normalizedSourceRoot,
     branch: branchName,
-  } = normalizedPathMappingSchema.parse({stackRoot, sourceRoot, branch});
+  } = normalizePathMapping(
+    {stackRoot, sourceRoot, branch},
+    defaultBranch ?? DEFAULT_BRANCH
+  );
 
   return (
     <Container padding="md xl">
@@ -66,12 +71,9 @@ export function PathMappingSummary({
           maxWidth="max-content"
         >
           <Container flexShrink={0}>{props => <IconBranch {...props} />}</Container>
-          {/* eslint-disable-next-line @sentry/scraps/prefer-info-text -- InfoText has no showOnlyOnOverflow support */}
-          <Tooltip title={branchName} showOnlyOnOverflow skipWrapper>
-            <Text variant="muted" ellipsis>
-              {branchName}
-            </Text>
-          </Tooltip>
+          <InfoText title={branchName} mode="overflowOnly" variant="muted">
+            {branchName}
+          </InfoText>
         </Flex>
 
         <Flex align="center" gap="xs" flexShrink={0}>

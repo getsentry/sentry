@@ -6,10 +6,19 @@ from time import time
 import rb
 from sentry_redis_tools.clients import RedisCluster
 
+from sentry import options
 from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
-from sentry.quotas.base import NotRateLimited, Quota, QuotaConfig, QuotaScope, RateLimited
+from sentry.quotas.base import (
+    NotRateLimited,
+    Quota,
+    QuotaConfig,
+    QuotaDimension,
+    QuotaGroupBy,
+    QuotaScope,
+    RateLimited,
+)
 from sentry.utils.redis import (
     get_dynamic_cluster_from_options,
     is_instance_rb_cluster,
@@ -91,6 +100,28 @@ class RedisQuota(Quota):
                     )
                 )
 
+        if options.get("crons.per_monitor_relay_quota.enabled"):
+            from sentry.monitors.rate_limit import PER_MONITOR_MAX_CARDINALITY, QUOTA_WINDOW
+
+            results.append(
+                QuotaConfig(
+                    id="mrl_env",
+                    limit=options.get("crons.per_monitor_rate_limit"),
+                    window=QUOTA_WINDOW,
+                    scope=QuotaScope.PROJECT,
+                    scope_id=project.id,
+                    categories=[DataCategory.MONITOR],
+                    reason_code="monitor_env_rate_limit",
+                    group_by=QuotaGroupBy(
+                        max_cardinality=PER_MONITOR_MAX_CARDINALITY,
+                        dimensions=(
+                            QuotaDimension.CHECK_IN_SLUG,
+                            QuotaDimension.CHECK_IN_ENVIRONMENT,
+                        ),
+                    ),
+                )
+            )
+
         if key and not keys:
             keys = [key]
         elif not keys:
@@ -116,42 +147,6 @@ class RedisQuota(Quota):
                     )
 
         return results
-
-    def get_usage(
-        self, organization_id: int, quotas: list[QuotaConfig], timestamp: float | None = None
-    ) -> list[int | None]:
-        if timestamp is None:
-            timestamp = time()
-
-        def get_usage_for_quota(
-            client: RedisCluster, quota: QuotaConfig
-        ) -> tuple[str | None, str | None]:
-            if not quota.should_track:
-                return None, None
-
-            key = self.__get_redis_key(
-                quota, timestamp, organization_id % quota.window, organization_id
-            )
-            refund_key = self.get_refunded_quota_key(key)
-
-            return client.get(key), client.get(refund_key)
-
-        def get_value_for_result(result, refund_result) -> int | None:
-            if result is None:
-                return None
-
-            return int(result.value or 0) - int(refund_result.value or 0)
-
-        if is_instance_redis_cluster(self.cluster, self.is_redis_cluster):
-            results = [get_usage_for_quota(self.cluster, quota) for quota in quotas]
-        elif is_instance_rb_cluster(self.cluster, self.is_redis_cluster):
-            with self.cluster.fanout() as client:
-                target = client.target_key(str(organization_id))
-                results = [get_usage_for_quota(target, quota) for quota in quotas]
-        else:
-            AssertionError("unreachable")
-
-        return [get_value_for_result(*r) for r in results]
 
     def get_refunded_quota_key(self, key: str) -> str:
         return f"r:{key}"

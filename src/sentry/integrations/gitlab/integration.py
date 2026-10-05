@@ -23,10 +23,10 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
-from sentry.integrations.gitlab.constants import GITLAB_WEBHOOK_VERSION, GITLAB_WEBHOOK_VERSION_KEY
 from sentry.integrations.gitlab.types import GitLabIssueStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.referrer_ids import GITLAB_PR_BOT_REFERRER
 from sentry.integrations.services.integration import integration_service
@@ -41,6 +41,7 @@ from sentry.integrations.source_code_management.repository import (
     RepositoryInfo,
     RepositoryIntegration,
 )
+from sentry.integrations.source_code_management.sync_repos import sync_repos_for_org
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -456,9 +457,6 @@ class GitlabIntegration(
                         unresolved_status=statuses["on_unresolve"],
                     )
 
-        # Check webhook version BEFORE updating config to determine if migration is needed
-        current_webhook_version = config.get(GITLAB_WEBHOOK_VERSION_KEY, 0)
-
         config.update(data)
 
         org_integration = integration_service.update_organization_integration(
@@ -468,12 +466,10 @@ class GitlabIntegration(
         if org_integration is not None:
             self.org_integration = org_integration
 
-        # Only update webhooks if the webhook version is outdated
-        if current_webhook_version < GITLAB_WEBHOOK_VERSION:
-            repository_service.schedule_update_gitlab_project_webhooks(
-                integration_id=self.model.id,
-                organization_id=self.organization_id,
-            )
+        repository_service.schedule_update_gitlab_project_webhooks(
+            integration_id=self.model.id,
+            organization_id=self.organization_id,
+        )
 
     # CommitContextIntegration methods
 
@@ -662,10 +658,17 @@ class GitlabIntegrationProvider(IntegrationProvider):
         if not options.get("gitlab.webhook-update-on-install.enabled"):
             return
 
-        # Retained repositories may still have stale tokens even at the current webhook version.
+        org_integration = OrganizationIntegration.objects.get(
+            organization_id=organization.id, integration_id=integration.id
+        )
+        # Discover and relink repositories without waiting for the daily sync cycle.
+        sync_repos_for_org.delay(organization_integration_id=org_integration.id)
+
+        # A recent settings save must not suppress repair of retained hooks on reinstall.
         repository_service.schedule_update_gitlab_project_webhooks(
             organization_id=organization.id,
             integration_id=integration.id,
+            force=True,
         )
 
     def get_group_info(self, access_token, installation_data):

@@ -224,6 +224,17 @@ export interface SearchQueryBuilderProps {
    * a scrollable container.
    */
   portalTarget?: HTMLElement | null;
+  /**
+   * Keys that should be sorted above all other keys in the filter key
+   * autocomplete, regardless of how they score against the typed value.
+   * Relative ordering within the prioritized group still follows the search
+   * score.
+   *
+   * Useful when a subset of keys maps to what the user already sees on the
+   * page (e.g. table headers), so those should win over raw attributes that
+   * happen to match the input more literally.
+   */
+  prioritizedFilterKeys?: string[];
   queryInterface?: QueryInterfaceType;
 
   /**

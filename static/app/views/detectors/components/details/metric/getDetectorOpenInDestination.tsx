@@ -12,7 +12,6 @@ import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getLogsUrl} from 'sentry/views/explore/logs/utils';
 import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
@@ -225,7 +224,7 @@ function getDetectorMetricsUrl({
 export function getDetectorOpenInDestination(
   options: GetDetectorDestinationOptions
 ): OpenInDestination | null {
-  const {snubaQuery, organization} = options;
+  const {snubaQuery} = options;
 
   if (!defined(snubaQuery)) {
     return null;
@@ -256,9 +255,7 @@ export function getDetectorOpenInDestination(
       };
     case DetectorDataset.ERRORS:
       return {
-        buttonText: getDiscoverDeprecation(organization)
-          ? t('Open in Explore')
-          : t('Open in Discover'),
+        buttonText: t('Open in Explore'),
         to: getDetectorDiscoverUrl(options),
       };
     case DetectorDataset.RELEASES:

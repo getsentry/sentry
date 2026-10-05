@@ -19,6 +19,7 @@ import {AddOnCategory, type ProductTrial} from 'getsentry/types';
 import {
   formatReservedWithUnits,
   formatUsageWithUnits,
+  getLineItemUnitType,
   getPercentage,
   getReservedBudgetCategoryForAddOn,
   getSoftCapType,
@@ -180,18 +181,22 @@ export function UsageOverviewTableRow({
           : prepaid;
     percentUsed = rawPrepaid ? getPercentage(usage, rawPrepaid) : 0;
 
+    const unitType = getLineItemUnitType(subscription.planDetails, billedCategory);
     formattedUsage = formatUsageWithUnits(usage, billedCategory, {
       isAbbreviated: true,
       useUnitScaling: true,
+      unitType,
     });
     formattedPrepaid = formatReservedWithUnits(prepaid, billedCategory, {
       useUnitScaling: true,
       isAbbreviated: true,
+      unitType,
     });
     formattedFree = free
       ? formatReservedWithUnits(free, billedCategory, {
           useUnitScaling: true,
           isAbbreviated: true,
+          unitType,
         })
       : null;
 

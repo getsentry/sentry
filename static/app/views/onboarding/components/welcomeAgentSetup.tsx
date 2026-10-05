@@ -13,7 +13,7 @@ import {AgenticProgress} from 'sentry/views/onboarding/agenticProgress/agenticPr
 import type {AgenticProgressRun} from 'sentry/views/onboarding/agenticProgress/types';
 import {useAgenticProgress} from 'sentry/views/onboarding/agenticProgress/useAgenticProgress';
 import {
-  useAgenticProgressInit,
+  useOnboardingAgenticProgressInit,
   useRestartAgenticRun,
 } from 'sentry/views/onboarding/agenticProgress/useAgenticProgressInit';
 import {
@@ -27,7 +27,7 @@ const MotionContainer = motion.create(Container);
 const CARD_MORPH_TRANSITION = {duration: 0.25, ease: 'easeOut'} as const;
 
 export function useWelcomeAgentRun({enabled}: {enabled: boolean}) {
-  const initialization = useAgenticProgressInit({enabled});
+  const initialization = useOnboardingAgenticProgressInit({enabled});
   const restartRun = useRestartAgenticRun();
   const {agenticProgressOnboardingCode} = useOnboardingContext();
   const progress = useAgenticProgress({

@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import {
   canvasMutation,
   EventType,
@@ -7,9 +8,8 @@ import {
   type eventWithTime,
   type Replayer,
   type ReplayPlugin,
-} from '@sentry-internal/rrweb';
-import type {CanvasArg} from '@sentry-internal/rrweb-types';
-import * as Sentry from '@sentry/react';
+} from '@sentry/rrweb';
+import type {CanvasArg} from '@sentry/rrweb-types';
 import debounce from 'lodash/debounce';
 
 import {deserializeCanvasArg} from './deserializeCanvasArgs';

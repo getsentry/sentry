@@ -183,6 +183,7 @@ export function FiltersBar({
     if (urlFilters && urlFilters.length > 0) {
       for (const filter of urlFilters) {
         if (!activeGlobalFilters.some(f => globalFiltersAreEqual(f, filter))) {
+          // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
           setActiveGlobalFilters(mergeGlobalFilters(activeGlobalFilters, urlFilters));
         }
       }

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {InputGroup, type InputProps} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {IconArrow} from 'sentry/icons';
 import {clamp} from 'sentry/utils/profiling/colors/clamp';

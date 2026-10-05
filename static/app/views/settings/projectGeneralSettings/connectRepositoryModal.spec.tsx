@@ -53,6 +53,15 @@ describe('ConnectRepositoryModal', () => {
     );
   }
 
+  async function openRepoMenu() {
+    await userEvent.click(screen.getByText('Search repositories'));
+  }
+
+  async function selectRepository(name: string) {
+    await openRepoMenu();
+    await userEvent.click(await screen.findByText(name));
+  }
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -117,13 +126,25 @@ describe('ConnectRepositoryModal', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('allows selecting a repository', async () => {
+    renderModal();
+
+    await openRepoMenu();
+    expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
+    expect(screen.getByText('getsentry/relay')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('getsentry/sentry'));
+    expect(screen.getByText('getsentry/sentry')).toBeInTheDocument();
+    expect(screen.queryByText('getsentry/relay')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Select a repository first to configure code paths')
+    ).not.toBeInTheDocument();
+  });
+
   it('shows the path list after selecting a repository and gates Save on path content', async () => {
     renderModal();
 
-    await userEvent.click(screen.getByText('Search repositories'));
-    expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
-    expect(screen.getByText('getsentry/relay')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('getsentry/sentry'));
+    await selectRepository('getsentry/sentry');
 
     expect(
       screen.queryByText('Select a repository first to configure code paths')
@@ -149,8 +170,7 @@ describe('ConnectRepositoryModal', () => {
   it('seeds the branch field with the repository default branch', async () => {
     renderModal();
 
-    await userEvent.click(screen.getByText('Search repositories'));
-    await userEvent.click(await screen.findByText('getsentry/relay'));
+    await selectRepository('getsentry/relay');
 
     expect(screen.getByRole('textbox', {name: /branch/i})).toHaveValue('master');
   });
@@ -158,8 +178,7 @@ describe('ConnectRepositoryModal', () => {
   it('supports adding another path inside the modal', async () => {
     renderModal();
 
-    await userEvent.click(screen.getByText('Search repositories'));
-    await userEvent.click(await screen.findByText('getsentry/sentry'));
+    await selectRepository('getsentry/sentry');
 
     await userEvent.type(
       screen.getByRole('textbox', {name: /stack trace prefix/i}),

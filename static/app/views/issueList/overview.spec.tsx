@@ -8,14 +8,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {SearchFixture} from 'sentry-fixture/search';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {
-  act,
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -346,6 +339,7 @@ describe('IssueList', () => {
       await waitFor(() => {
         expect(testRouter.location.query).toEqual({
           cursor: '1443575000:0:0',
+          groupStatsPeriod: 'auto',
           page: '1',
           project: '3559',
           query: DEFAULT_QUERY,
@@ -364,6 +358,7 @@ describe('IssueList', () => {
       await waitFor(() => {
         expect(testRouter.location.query).toEqual({
           cursor: '1443574000:0:0',
+          groupStatsPeriod: 'auto',
           page: '2',
           project: '3559',
           query: DEFAULT_QUERY,
@@ -378,6 +373,7 @@ describe('IssueList', () => {
       await waitFor(() => {
         expect(testRouter.location.query).toEqual({
           cursor: '1443575000:0:1',
+          groupStatsPeriod: 'auto',
           page: '1',
           project: '3559',
           query: DEFAULT_QUERY,
@@ -450,45 +446,6 @@ describe('IssueList', () => {
       // Changing the sort within a view does not overwrite the feed's stored sort
       expect(getStoredIssueSort(featureOrg.slug)).toBe(IssueSortOptions.FREQ);
     });
-
-    it('shows the new-feature badge next to the sort dropdown with the recommended-sort-default feature', async () => {
-      const featureOrg = OrganizationFixture({
-        ...organization,
-        features: ['issue-stream-recommended-sort-default'],
-      });
-      render(<IssueListOverview />, {organization: featureOrg, initialRouterConfig});
-
-      expect(
-        await screen.findByRole('button', {name: /Recommended/})
-      ).toBeInTheDocument();
-      expect(screen.getByLabelText('new')).toBeInTheDocument();
-
-      // The Recommended option inside the dropdown carries the badge too
-      await userEvent.click(screen.getByRole('button', {name: /Recommended/}));
-      const recommendedOption = screen.getByRole('option', {name: /Recommended/});
-      expect(within(recommendedOption).getByLabelText('new')).toBeInTheDocument();
-    });
-
-    it('hides the trigger badge once the user has chosen a sort', async () => {
-      const featureOrg = OrganizationFixture({
-        ...organization,
-        features: ['issue-stream-recommended-sort-default'],
-      });
-      // An explicitly chosen sort (even Recommended itself) means the user has
-      // seen the dropdown, so the announcement badge no longer shows
-      setStoredIssueSort(featureOrg.slug, IssueSortOptions.RECOMMENDED);
-      render(<IssueListOverview />, {organization: featureOrg, initialRouterConfig});
-
-      expect(
-        await screen.findByRole('button', {name: /Recommended/})
-      ).toBeInTheDocument();
-      expect(screen.queryByLabelText('new')).not.toBeInTheDocument();
-
-      // The Recommended option inside the dropdown keeps its badge
-      await userEvent.click(screen.getByRole('button', {name: /Recommended/}));
-      const recommendedOption = screen.getByRole('option', {name: /Recommended/});
-      expect(within(recommendedOption).getByLabelText('new')).toBeInTheDocument();
-    });
   });
 
   describe('transitionTo', () => {
@@ -512,6 +469,7 @@ describe('IssueList', () => {
 
       await waitFor(() => {
         expect(testRouter.location.query).toEqual({
+          groupStatsPeriod: 'auto',
           project: project.id.toString(),
           query: 'is:ignored',
           statsPeriod: '14d',
@@ -632,7 +590,39 @@ describe('IssueList', () => {
         expect(fetchDataMock).toHaveBeenLastCalledWith(
           '/organizations/org-slug/issues/',
           expect.objectContaining({
-            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&shortIdLookup=1&statsPeriod=14d',
+            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&groupStatsPeriod=auto&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&shortIdLookup=1&statsPeriod=14d',
+          })
+        );
+      });
+    });
+
+    it('defaults the row graph period to auto so it follows the global time range', async () => {
+      const {rerender} = render(<IssueListOverview />, {
+        initialRouterConfig: merge({}, initialRouterConfig, {
+          location: {
+            query: {
+              query: DEFAULT_QUERY,
+            },
+          },
+        }),
+      });
+
+      act(() =>
+        PageFiltersStore.onInitializeUrlState({
+          projects: [99],
+          environments: [],
+          datetime: {period: '14d', start: null, end: null, utc: null},
+        })
+      );
+
+      rerender(<IssueListOverview />);
+
+      await waitFor(() => {
+        expect(fetchDataMock).toHaveBeenNthCalledWith(
+          2,
+          '/organizations/org-slug/issues/',
+          expect.objectContaining({
+            data: 'collapse=stats&collapse=unhandled&expand=owners&expand=inbox&groupStatsPeriod=auto&limit=25&project=99&query=is%3Aunresolved%20issue.priority%3A%5Bhigh%2C%20medium%5D&shortIdLookup=1&statsPeriod=14d',
           })
         );
       });

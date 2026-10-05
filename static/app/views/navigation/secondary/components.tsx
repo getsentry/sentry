@@ -416,7 +416,7 @@ function SecondaryNavigationLink({
   onClick,
   ...linkProps
 }: SecondaryNavigationItemProps) {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const location = useLocation();
   const activeToList = Array.isArray(activeTo) ? activeTo : [activeTo];
   const isActive =
