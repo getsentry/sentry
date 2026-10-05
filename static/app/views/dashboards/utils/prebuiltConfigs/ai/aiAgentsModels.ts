@@ -20,6 +20,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
     {
       id: 'ai-agents-model-cost',
       title: t('Model Cost'),
+      description: t('Estimated cost of LLM calls, grouped by response model.'),
       displayType: DisplayType.BAR,
       widgetType: WidgetType.SPANS,
       interval: '1h',
@@ -43,6 +44,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
     {
       id: 'ai-agents-token-usage',
       title: t('Tokens Used'),
+      description: t('Total tokens used by LLM calls, grouped by response model.'),
       displayType: DisplayType.BAR,
       widgetType: WidgetType.SPANS,
       interval: '1h',
@@ -66,6 +68,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
     {
       id: 'ai-agents-token-types',
       title: t('Token Types'),
+      description: t('Input, cached input, output, and reasoning tokens used over time.'),
       displayType: DisplayType.AREA,
       widgetType: WidgetType.SPANS,
       interval: '1h',
@@ -96,7 +99,6 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           orderby: '',
         },
       ],
-      limit: 3,
     },
   ],
   0,
@@ -106,6 +108,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
 const MODELS_TABLE: PrebuiltWidget = {
   id: 'ai-agents-models-table',
   title: t('Models'),
+  description: t('LLM requests, errors, duration, cost, and token usage by response model.'),
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
   interval: '1h',
@@ -145,7 +148,7 @@ const MODELS_TABLE: PrebuiltWidget = {
         WIDGET_COLUMN_LABELS.p95,
         t('Cost'),
         t('Input Tokens'),
-        t('Cached Tokens'),
+        t('Cached Input Tokens'),
         t('Output Tokens'),
         t('Reasoning Tokens'),
       ],
