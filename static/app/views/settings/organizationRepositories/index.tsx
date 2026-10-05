@@ -34,12 +34,12 @@ import type {
   Repository,
 } from 'sentry/types/integrations';
 import type {AvatarProject, Project} from 'sentry/types/project';
-import {useProjects} from 'sentry/utils/useProjects';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isScmProvider} from 'sentry/utils/integrationUtil';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ConnectProviderDropdown} from 'sentry/views/settings/organizationRepositories/components/connectProviderDropdown';
 import {NoIntegrationsEmptyState} from 'sentry/views/settings/organizationRepositories/components/noIntegrationsEmptyState';
