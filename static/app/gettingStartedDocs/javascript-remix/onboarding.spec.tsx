@@ -21,6 +21,14 @@ describe('javascript-remix onboarding docs', () => {
     ).toBeInTheDocument();
   });
 
+  it('documents the supported Remix version', () => {
+    renderWithOnboardingLayout(docs);
+
+    expect(
+      screen.getByText(textWithMarkupMatcher(/supports Remix 2\.x/))
+    ).toBeInTheDocument();
+  });
+
   it('has metrics onboarding configuration', () => {
     expect(docs.metricsOnboarding).toBeDefined();
     expect(docs.metricsOnboarding?.install).toBeDefined();

@@ -78,9 +78,10 @@ relocation.
 
 A [`Detector`](models/detector.py) describes what data to evaluate and can reference an
 optional trigger [`DataConditionGroup`](models/data_condition_group.py). Its `type` is the slug of an
-Issue Platform [`GroupType`](../issues/grouptype.py). The group type's
-[`DetectorSettings`](types.py) selects the runtime detector handler, API validator,
-configuration schema, and optional query filter.
+Issue Platform [`GroupType`](../issues/grouptype.py).
+
+The GroupType is connected to the DetectorHandler through the `DetectorSettings` subclass.
+This class lives in a registry and maps a GroupType slug to a corresponding DetectorSettings class.
 
 Detector implementations usually live in the product module that owns the issue type,
 not in this package. For example, uptime and metric issue handlers live in
@@ -132,13 +133,13 @@ See [Data model](docs/data-model.md) for ownership, constraints, and lifecycle d
 The package initializes registries and signal receivers from
 [`Config.ready`](apps.py). The primary extension points are:
 
-| Extension         | Registration                                 |
-| ----------------- | -------------------------------------------- |
-| Detector type     | Define a `GroupType` with `DetectorSettings` |
-| Data source type  | `data_source_type_registry.register(...)`    |
-| Condition type    | `condition_handler_registry.register(...)`   |
-| Action type       | `action_handler_registry.register(...)`      |
-| Workflow activity | `workflow_activity_registry.register(...)`   |
+| Extension         | Registration                                                                                            |
+| ----------------- | ------------------------------------------------------------------------------------------------------- |
+| Detector type     | Define a `GroupType`, then `detector_settings_registry.register(slug)` on a `DetectorSettings` subclass |
+| Data source type  | `data_source_type_registry.register(...)`                                                               |
+| Condition type    | `condition_handler_registry.register(...)`                                                              |
+| Action type       | `action_handler_registry.register(...)`                                                                 |
+| Workflow activity | `workflow_activity_registry.register(...)`                                                              |
 
 Import-time registration only works when the owning module is imported during
 application startup. Follow an existing product integration and add a focused test that

@@ -957,6 +957,33 @@ describe('ExploreToolbar', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('expands the series filter to match the autocomplete menu width', async () => {
+      const viewportWidth = jest
+        .spyOn(document.documentElement, 'clientWidth', 'get')
+        .mockReturnValue(1200);
+
+      try {
+        render(<ExploreToolbar />, {
+          additionalWrapper: Wrapper,
+          organization: organizationWithConditionalAggregates,
+        });
+
+        const input = await screen.findByPlaceholderText(SERIES_FILTER_PLACEHOLDER);
+        await userEvent.click(input);
+
+        const expandedBar = input.closest<HTMLElement>('[data-expanded="true"]')!;
+        const menu = (await screen.findByRole('listbox')).closest<HTMLElement>(
+          '[data-overlay]'
+        )!;
+
+        expect(expandedBar).toHaveStyle({width: '460px'});
+        expect(screen.getByTestId('search-query-builder-panel')).toContainElement(menu);
+        expect(screen.getByTestId('search-query-builder-panel')).toContainElement(input);
+      } finally {
+        viewportWidth.mockRestore();
+      }
+    });
+
     it('turns a series filter into an _if aggregate', async () => {
       const {router} = render(<ExploreToolbar />, {
         additionalWrapper: Wrapper,
@@ -1202,6 +1229,23 @@ describe('ExploreToolbar', () => {
       await userEvent.click(input);
 
       expect(input.closest('[data-expanded="true"]')).toBeTruthy();
+    });
+
+    it('keeps equation suggestions in the same panel as the input', async () => {
+      render(<ExploreToolbar extras={['equations']} />, {
+        additionalWrapper: Wrapper,
+        organization: organizationWithConditionalAggregates,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Add Equation'}));
+
+      const input = await screen.findByTestId('arithmetic-builder-input');
+      await userEvent.click(input);
+
+      const panel = screen.getByTestId('arithmetic-builder-panel');
+      const listbox = await screen.findByRole('listbox');
+      expect(panel).toContainElement(listbox);
+      expect(panel).toContainElement(input);
     });
 
     it('does not expand the equation editor without the feature', async () => {

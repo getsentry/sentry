@@ -4,6 +4,10 @@ import {API_ACCESS_SCOPES} from 'sentry/constants/apiAccessScopes';
 
 const isoTimestampSchema = z.iso.datetime({offset: true});
 
+// Sentry URLs carry page filter times with no offset (`start=2026-09-11T10:02:00`)
+// and every consumer reads them as UTC, so the agent copies that form back.
+const pageFilterTimestampSchema = z.iso.datetime({offset: true, local: true});
+
 const chartSeriesDataSchema = z
   .array(
     z.object({
@@ -47,8 +51,8 @@ const pageFilterFields = {
     .describe(
       'Relative time range, e.g. "24h" or "7d". Mutually exclusive with start/end.'
     ),
-  start: isoTimestampSchema.optional(),
-  end: isoTimestampSchema.optional(),
+  start: pageFilterTimestampSchema.optional(),
+  end: pageFilterTimestampSchema.optional(),
 };
 
 /**
@@ -145,7 +149,7 @@ export const SEER_EMBED_SCHEMAS = {
       'Never use a markdown link for dashboard references.',
     level: ['inline', 'block'],
     schema: z.object({
-      id: z.string().min(1),
+      id: idString,
       title: z.string().min(1).optional(),
     }),
     examples: [
@@ -185,18 +189,46 @@ export const SEER_EMBED_SCHEMAS = {
   },
   issue: {
     description:
-      'The ONLY way to reference a Sentry issue. Requires the issue short ID ' +
-      '(e.g. "PROJECT-123"). ' +
+      'The ONLY way to reference a Sentry issue. ' +
+      'Pass BOTH ids the issues API returns for the issue: `id` is the numeric ' +
+      'group ID (e.g. "7716642857") and `shortId` is the short ID (e.g. ' +
+      '"JAVASCRIPT-22SP"). Copy each one from the field of the same name — never ' +
+      'put the numeric ID in `shortId`, and never invent a short ID you have not ' +
+      'seen. Omit `shortId` when you genuinely do not have it; the embed reads ' +
+      'better with it, since it labels the link. ' +
       'Inline: renders a compact link with the short id. ' +
       'Block: renders a full interactive issue row with title, events, ' +
       'assignee, and trend graph — do NOT duplicate any of that data as text. ' +
       'When referencing 2+ issues, use `issuesQuery` with an issue ID search. ' +
       'Never use `docs` or markdown links for issue references.',
     level: ['inline', 'block'],
-    schema: z.object({id: z.string()}),
+    schema: z.object({
+      id: idString.describe(
+        'The issue ID exactly as the issues API returns it in `id` — normally ' +
+          'the numeric group ID (e.g. "7716642857"). A short ID is accepted here ' +
+          'when that is the only id you have.'
+      ),
+      shortId: z
+        .string()
+        .min(1)
+        .optional()
+        .describe(
+          'The issue short ID exactly as the issues API returns it in `shortId` ' +
+            '(e.g. "JAVASCRIPT-22SP"): a project slug, a hyphen, and a short ' +
+            'alphanumeric suffix. Omit it rather than guessing one.'
+        ),
+    }),
     examples: [
-      {label: 'Inline', level: 'inline', data: {id: 'JAVASCRIPT-22SP'}},
-      {label: 'Block', level: 'block', data: {id: 'JAVASCRIPT-22SP'}},
+      {
+        label: 'Inline',
+        level: 'inline',
+        data: {id: '7716642857', shortId: 'JAVASCRIPT-22SP'},
+      },
+      {
+        label: 'Block',
+        level: 'block',
+        data: {id: '7716642857', shortId: 'JAVASCRIPT-22SP'},
+      },
     ],
   },
   replay: {
@@ -258,8 +290,8 @@ export const SEER_EMBED_SCHEMAS = {
   chart: {
     description:
       'Display numeric data as a compact Sentry-style chart. For line, area, and bar charts, ' +
-      'prefer at least three points. Use x_axis "time" only with offset-bearing ISO 8601 ' +
-      'timestamps. Category axes are supported for bar charts only. ' +
+      'prefer at least three points. Use x_axis "time" with ISO 8601 timestamps; ' +
+      'timestamps without an offset are read as UTC. Category axes always render as bars. ' +
       'Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes.',
     level: ['block'],
     schema: z
@@ -274,20 +306,12 @@ export const SEER_EMBED_SCHEMAS = {
         series: z.array(chartSeriesSchema).min(1).max(5),
       })
       .superRefine((chart, context) => {
-        if (chart.x_axis === 'category' && chart.visualization !== 'bar') {
-          context.addIssue({
-            code: 'custom',
-            message: 'Category axes are only supported for bar charts',
-            path: ['x_axis'],
-          });
-        }
-
         if (chart.x_axis === 'time') {
           chart.series.forEach((series, seriesIndex) => {
             series.data.forEach((point, pointIndex) => {
               if (
                 typeof point.x !== 'string' ||
-                !isoTimestampSchema.safeParse(point.x).success
+                !pageFilterTimestampSchema.safeParse(point.x).success
               ) {
                 context.addIssue({
                   code: 'custom',
@@ -362,7 +386,9 @@ export const SEER_EMBED_SCHEMAS = {
       steps: z
         .array(z.object({title: z.string(), description: z.string()}))
         .optional()
-        .describe('solution only: the ordered steps needed to resolve the issue.'),
+        .describe(
+          'solution only: ordered steps to resolve the issue. Each element MUST be an object with "title" (string) and "description" (string) — never a plain string.'
+        ),
     }),
     examples: [
       {
@@ -757,6 +783,8 @@ export const SEER_EMBED_SCHEMAS = {
       'The ONLY way to list multiple Sentry issues. Accepts any issue search terms, ' +
       'including a specific list of issue IDs such as ' +
       '`issue:[JAVASCRIPT-22SP,JAVASCRIPT-39HX]`. ' +
+      'The `issue:` filter only accepts short IDs — to search by numeric group ID, ' +
+      'use `issue.id:[7716642857,7716642858]` instead. ' +
       'Inline renders a link; block renders the first five matching issues with ' +
       'title, trend graph, events, priority, and assignee. ' +
       'Do NOT duplicate those issues as text or a markdown table. ' +
@@ -1124,11 +1152,42 @@ export function seerEmbedsToJsonSchemas(): Array<{
 }> {
   return Object.entries(SEER_EMBED_SCHEMAS).map(([name, entry]) => {
     const def: SeerEmbedSchema = entry;
+    const body = z.toJSONSchema(def.schema, {io: 'input'});
+    if (name === 'chart') {
+      // superRefine is not exported. Apply its rules to new generation without
+      // changing the reader used by historical conversations.
+      body.allOf = [
+        {
+          if: {properties: {x_axis: {const: 'category'}}, required: ['x_axis']},
+          then: {
+            properties: {visualization: {const: 'bar'}},
+            required: ['visualization'],
+          },
+          else: {
+            properties: {
+              series: {
+                items: {
+                  properties: {
+                    data: {
+                      items: {
+                        properties: {
+                          x: z.toJSONSchema(isoTimestampSchema, {io: 'input'}),
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      ];
+    }
     return {
       name,
       description: def.description,
       level: [...def.level],
-      body: z.toJSONSchema(def.schema),
+      body,
       ...(def.examples && {
         examples: def.examples.map(e => ({label: e.label, data: e.data})),
       }),

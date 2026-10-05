@@ -117,6 +117,11 @@ class AccountConfirmLink:
         )
 
 
+def delete_verification_key(key: str) -> None:
+    client = _get_redis_client()
+    client.delete(f"auth:one-time-key:{key}")
+
+
 def get_verification_value_from_key(key: str) -> dict[str, Any] | None:
     client = _get_redis_client()
     verification_key = f"auth:one-time-key:{key}"

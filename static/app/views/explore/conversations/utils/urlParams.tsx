@@ -5,8 +5,6 @@ import {
   CONVERSATIONS_DETAIL_SUB_PATH,
 } from 'sentry/views/explore/conversations/settings';
 
-const ONE_HOUR_MS = 60 * 60 * 1000;
-
 interface ConversationsUrlOptions {
   end?: string;
   project?: number | string;
@@ -15,8 +13,9 @@ interface ConversationsUrlOptions {
 }
 
 /**
- * Returns the in-app path to a conversation's detail view, scoped to a time
- * window around the conversation and the given projects.
+ * Returns the in-app path to a conversation's detail view, scoped to the
+ * conversation's time window and the given projects. The detail view pads the
+ * window itself.
  */
 export function getConversationDetailUrl(
   orgSlug: string,
@@ -26,13 +25,10 @@ export function getConversationDetailUrl(
   const basePath = `/organizations/${orgSlug}/explore/${EXPLORE_AGENTS_SUB_PATH}/${CONVERSATIONS_DETAIL_SUB_PATH}/${encodeURIComponent(conversation.conversationId)}/`;
   const params = new URLSearchParams();
   if (conversation.startTimestamp) {
-    params.set(
-      'start',
-      new Date(conversation.startTimestamp - ONE_HOUR_MS).toISOString()
-    );
+    params.set('start', new Date(conversation.startTimestamp).toISOString());
   }
   if (conversation.endTimestamp) {
-    params.set('end', new Date(conversation.endTimestamp + ONE_HOUR_MS).toISOString());
+    params.set('end', new Date(conversation.endTimestamp).toISOString());
   }
   for (const project of projects) {
     params.append('project', String(project));

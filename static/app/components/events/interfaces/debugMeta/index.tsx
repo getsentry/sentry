@@ -7,8 +7,6 @@ import {
   useState,
 } from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
-import {useVirtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
@@ -24,6 +22,7 @@ import {
 import {useDebugMetaSearch} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {SearchBarAction} from 'sentry/components/events/interfaces/searchBarAction';
 import {getImageRange, parseAddress} from 'sentry/components/events/interfaces/utils';
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t} from 'sentry/locale';
 import type {Image, ImageWithCombinedStatus} from 'sentry/types/debugImage';
 import {ImageStatus} from 'sentry/types/debugImage';
@@ -154,6 +153,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     const defaults = (
       'options' in filterOptions[0]! ? filterOptions[0].options : []
     ).filter(opt => opt.value !== ImageStatus.UNUSED);
+    // oxlint-disable-next-line react/set-state-in-effect
     setFilterSelections(defaults);
     setFiltersInitialized(true);
   }, [filterOptions, filtersInitialized]);
@@ -163,16 +163,15 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     [allImages, filterSelections, searchTerm]
   );
 
-  const virtualizer = useVirtualizer({
+  const {totalSize, virtualItems, virtualizer} = useVirtualRows({
     count: filteredImages.length,
     getScrollElement: () => scrollContainer,
     estimateSize: () => ROW_HEIGHT,
-    overscan: 5,
   });
 
-  const totalSize = virtualizer.getTotalSize();
   useLayoutEffect(() => {
     if (!lockHeight && totalSize > MAX_HEIGHT) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setLockHeight(true);
     }
   }, [totalSize, lockHeight]);
@@ -222,42 +221,49 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
           filterSelections={filterSelections}
         />
         <Container border="primary" radius="md" overflow="hidden" marginTop="sm">
-          <Header
+          <Grid
             columns={{
               zero: '0.6fr 1.5fr 0.6fr',
               sm: '0.6fr 2fr 0.6fr',
-              md: '0.6fr 2fr 1fr 0.4fr',
+              lg: '0.6fr 2fr 1fr 0.4fr',
             }}
             background="secondary"
             borderBottom="primary"
           >
             <Flex align="center" minWidth="0" padding="md lg">
-              {t('Status')}
+              <Text bold size="sm" uppercase variant="muted">
+                {t('Status')}
+              </Text>
             </Flex>
             <Flex align="center" minWidth="0" paddingTop="md" paddingBottom="md">
-              {t('Image')}
+              <Text bold size="sm" uppercase variant="muted">
+                {t('Image')}
+              </Text>
             </Flex>
             <Flex
               align="center"
               display={{
                 zero: 'none',
-                md: 'flex',
+                lg: 'flex',
               }}
               minWidth="0"
               paddingTop="md"
               paddingBottom="md"
             >
-              {t('Processing')}
+              <Text bold size="sm" uppercase variant="muted">
+                {t('Processing')}
+              </Text>
             </Flex>
             <div />
-          </Header>
+          </Grid>
           {filteredImages.length ? (
-            <ScrollArea
+            <Container
               ref={setScrollContainer}
+              overflowY="auto"
               style={{height: lockHeight ? MAX_HEIGHT : undefined, maxHeight: MAX_HEIGHT}}
             >
               <div style={{height: totalSize, position: 'relative'}}>
-                {virtualizer.getVirtualItems().map(row => (
+                {virtualItems.map(row => (
                   <div
                     key={row.key}
                     ref={virtualizer.measureElement}
@@ -278,7 +284,7 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
                   </div>
                 ))}
               </div>
-            </ScrollArea>
+            </Container>
           ) : (
             <Stack
               align="center"
@@ -309,14 +315,3 @@ export function DebugMeta({data, projectSlug, groupId, event}: DebugMetaProps) {
     </FoldSection>
   );
 }
-
-const Header = styled(Grid)`
-  font-size: ${p => p.theme.font.size.sm};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  color: ${p => p.theme.tokens.content.secondary};
-  text-transform: uppercase;
-`;
-
-const ScrollArea = styled('div')`
-  overflow-y: auto;
-`;

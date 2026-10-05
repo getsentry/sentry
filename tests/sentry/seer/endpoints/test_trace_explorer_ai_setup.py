@@ -1,7 +1,8 @@
 from unittest.mock import patch
 
+from django.test import override_settings
+
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 
 
 class TraceExplorerAISetupTest(APITestCase):
@@ -9,7 +10,7 @@ class TraceExplorerAISetupTest(APITestCase):
 
     method = "post"
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.seer.endpoints.trace_explorer_ai_setup.fire_setup_request")
     def test_simple(self, mock_fire_setup_request):
         self.login_as(self.user)
@@ -30,7 +31,7 @@ class TraceExplorerAISetupTest(APITestCase):
             },
         )
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.seer.endpoints.trace_explorer_ai_setup.fire_setup_request")
     def test_rejects_project_from_other_org(self, mock_fire_setup_request):
         """Test that requesting projects from another org returns 403"""
@@ -48,7 +49,7 @@ class TraceExplorerAISetupTest(APITestCase):
         assert response.data == {"detail": "You do not have permission to perform this action."}
         mock_fire_setup_request.assert_not_called()
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.seer.endpoints.trace_explorer_ai_setup.fire_setup_request")
     def test_rejects_nonexistent_project(self, mock_fire_setup_request):
         """Test that requesting non-existent project returns same error as inaccessible project"""
@@ -63,7 +64,7 @@ class TraceExplorerAISetupTest(APITestCase):
         assert response.data == {"detail": "You do not have permission to perform this action."}
         mock_fire_setup_request.assert_not_called()
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.seer.endpoints.trace_explorer_ai_setup.fire_setup_request")
     def test_empty_projects_still_calls_seer(self, mock_fire_setup_request):
         """Test that empty project list is handled"""
@@ -85,7 +86,8 @@ class TraceExplorerAISetupTest(APITestCase):
             },
         )
 
-    def test_requires_feature_flag(self) -> None:
+    @override_settings(SENTRY_SELF_HOSTED=True)
+    def test_denied_on_self_hosted(self) -> None:
         self.login_as(self.user)
 
         response = self.get_error_response(
@@ -96,7 +98,7 @@ class TraceExplorerAISetupTest(APITestCase):
 
         assert response.data == {"detail": "Organization does not have access to this feature"}
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.seer.endpoints.trace_explorer_ai_setup.fire_setup_request")
     def test_invalid_project_id_returns_400(self, mock_fire_setup_request):
         """Test that non-integer project_id returns 400"""
@@ -111,7 +113,7 @@ class TraceExplorerAISetupTest(APITestCase):
         assert response.data["detail"] == "Invalid project_id value"
         mock_fire_setup_request.assert_not_called()
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     @patch("sentry.seer.endpoints.trace_explorer_ai_setup.fire_setup_request")
     def test_negative_project_id_returns_400(self, mock_fire_setup_request):
         """Test that negative project_id (like -1 sentinel) returns 400"""
@@ -126,7 +128,7 @@ class TraceExplorerAISetupTest(APITestCase):
         assert response.data["detail"] == "Invalid project_id value"
         mock_fire_setup_request.assert_not_called()
 
-    @with_feature("organizations:gen-ai-features")
+    @override_settings(SENTRY_SELF_HOSTED=False)
     def test_requires_authentication(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
