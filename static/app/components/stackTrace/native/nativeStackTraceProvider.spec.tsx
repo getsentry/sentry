@@ -125,24 +125,24 @@ describe('NativeStackTraceProvider', () => {
       'aria-multiselectable',
       'true'
     );
-    expect(screen.getByRole('listbox', {name: 'Order'})).not.toHaveAttribute(
+    expect(screen.getByRole('listbox', {name: 'Sort'})).not.toHaveAttribute(
       'aria-multiselectable',
       'true'
     );
-    expect(screen.getByRole('listbox', {name: 'Frame Details'})).toHaveAttribute(
+    expect(screen.getByRole('listbox', {name: 'Display'})).toHaveAttribute(
       'aria-multiselectable',
       'true'
     );
 
     await userEvent.click(screen.getByRole('option', {name: 'Absolute Addresses'}));
-    await userEvent.click(screen.getByRole('option', {name: 'Oldest First'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Oldest'}));
     await userEvent.click(screen.getByRole('option', {name: 'Raw Stack Trace'}));
 
-    expect(screen.getByRole('option', {name: 'Oldest First'})).toHaveAttribute(
+    expect(screen.getByRole('option', {name: 'Oldest'})).toHaveAttribute(
       'aria-selected',
       'true'
     );
-    expect(screen.getByRole('option', {name: 'Newest First'})).toHaveAttribute(
+    expect(screen.getByRole('option', {name: 'Newest'})).toHaveAttribute(
       'aria-selected',
       'false'
     );
@@ -166,7 +166,7 @@ describe('NativeStackTraceProvider', () => {
       'aria-selected',
       'true'
     );
-    expect(screen.getByRole('option', {name: 'Oldest First'})).toHaveAttribute(
+    expect(screen.getByRole('option', {name: 'Oldest'})).toHaveAttribute(
       'aria-selected',
       'true'
     );

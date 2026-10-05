@@ -14,17 +14,17 @@ import {t} from 'sentry/locale';
 import {GroupingFrameMarker} from './groupingFrameMarker';
 
 /**
- * Default trailing actions for native frame rows. Mirrors the generic
- * DefaultFrameActions but tailored for native — symbolicator status and the
- * Go-to-images-loaded link are rendered inline in the header itself.
+ * Trailing actions for native frame rows, after any leading `children`.
+ * Symbolicator status and the Go-to-images-loaded link live in the header.
  */
-export function NativeDefaultActions() {
+export function NativeFrameActions({children}: {children?: React.ReactNode}) {
   const {hasAnyExpandableFrames} = useStackTraceContext();
   const {frame, hiddenFrameCount, isUsedForGrouping} = useStackTraceFrameContext();
 
   return (
     <Fragment>
       <Flex align="center" justify="end" wrap="wrap" gap="xs" minWidth={0}>
+        {children}
         {hiddenFrameCount ? <HiddenFramesToggleAction /> : null}
         {isUsedForGrouping ? <GroupingFrameMarker /> : null}
         {frame.inApp ? <Tag variant="info">{t('In App')}</Tag> : null}
@@ -32,4 +32,8 @@ export function NativeDefaultActions() {
       {hasAnyExpandableFrames ? <ChevronAction /> : null}
     </Fragment>
   );
+}
+
+export function NativeDefaultActions() {
+  return <NativeFrameActions />;
 }

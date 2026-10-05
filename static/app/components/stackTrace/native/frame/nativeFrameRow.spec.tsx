@@ -1,3 +1,5 @@
+import {EventFixture} from 'sentry-fixture/event';
+
 import {
   render,
   screen,
@@ -11,13 +13,15 @@ import {
   useDebugMetaSearch,
 } from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
-import {StackTraceDisplayOptionsProvider} from 'sentry/components/stackTrace/displayOptionsContext';
-import {NATIVE_DISPLAY_OPTION} from 'sentry/components/stackTrace/native/nativeDisplayOptionsPersistence';
+import {
+  DISPLAY_OPTION,
+  StackTraceDisplayOptionsProvider,
+} from 'sentry/components/stackTrace/displayOptionsContext';
 import {NativeStackTraceFrames} from 'sentry/components/stackTrace/native/nativeStackTraceFrames';
 import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nativeStackTraceProvider';
 import type {StackTraceMeta, StackTraceView} from 'sentry/components/stackTrace/types';
 import {ImageStatus} from 'sentry/types/debugImage';
-import {EntryType, EventOrGroupType, type Event, type Frame} from 'sentry/types/event';
+import {EntryType, type Event, type Frame} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {IssueDetailsContext, SectionKey} from 'sentry/views/issueDetails/context';
@@ -46,33 +50,24 @@ function makeFrame(overrides: Partial<Frame>): Frame {
   };
 }
 
-function makeEvent(_stacktrace: StacktraceType, images: any[] = []): Event {
+function makeStacktrace(
+  frames: Frame[],
+  overrides: Partial<StacktraceType> = {}
+): StacktraceType {
   return {
-    id: '1',
-    message: 'EXC_BAD_ACCESS',
-    title: 'EXC_BAD_ACCESS',
-    metadata: {},
-    entries: images.length ? [{type: EntryType.DEBUGMETA, data: {images} as any}] : [],
-    projectID: '1',
-    groupID: '1',
-    eventID: '12345678901234567890123456789012',
-    dateCreated: '2019-05-21T18:01:48.762Z',
-    dateReceived: '2019-05-21T18:01:48.762Z',
-    tags: [],
-    errors: [],
-    crashFile: null,
-    size: 0,
-    dist: null,
-    fingerprints: [],
-    culprit: '',
-    user: null,
-    location: '',
-    type: EventOrGroupType.ERROR,
-    occurrence: null,
-    resolvedWith: [],
-    contexts: {},
+    framesOmitted: null,
+    hasSystemFrames: false,
+    registers: null,
+    frames,
+    ...overrides,
+  };
+}
+
+function makeEvent(images: any[] = []): Event {
+  return EventFixture({
     platform: 'cocoa',
-  } as Event;
+    entries: images.length ? [{type: EntryType.DEBUGMETA, data: {images}}] : [],
+  });
 }
 
 function makeImage(overrides: any = {}) {
@@ -165,136 +160,91 @@ function renderFramesWithDebugMeta(stacktrace: StacktraceType, event: Event) {
 
 describe('NativeFrameRow', () => {
   it('renders a relative offset address when a debug image matches', () => {
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: false,
-      registers: null,
-      frames: [makeFrame({instructionAddr: '0x100012abc'})],
-    };
-    renderFrames(stacktrace, makeEvent(stacktrace, [makeImage()]));
+    const stacktrace = makeStacktrace([makeFrame({instructionAddr: '0x100012abc'})]);
+    renderFrames(stacktrace, makeEvent([makeImage()]));
 
     expect(screen.getByText('+0x12abc')).toBeInTheDocument();
   });
 
   it('renders the absolute address when no debug image is found', () => {
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: false,
-      registers: null,
-      frames: [makeFrame({instructionAddr: '0xdeadbeef'})],
-    };
-    renderFrames(stacktrace, makeEvent(stacktrace));
+    const stacktrace = makeStacktrace([makeFrame({instructionAddr: '0xdeadbeef'})]);
+    renderFrames(stacktrace, makeEvent());
 
     expect(screen.getByText('0xdeadbeef')).toBeInTheDocument();
   });
 
-  it('shows a symbolication error icon when debug files are missing', () => {
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: false,
-      registers: null,
-      frames: [
-        makeFrame({
-          symbolicatorStatus: SymbolicatorStatus.MISSING,
-          instructionAddr: '0xdeadbeef',
-        }),
-      ],
-    };
-    renderFrames(stacktrace, makeEvent(stacktrace));
+  // The image's combined debug/unwind status wins over the frame's
+  // symbolicatorStatus. combineStatus treats an image without statuses as
+  // unused, which the legacy renderer flagged with a warning.
+  it.each([
+    {
+      case: 'missing debug files',
+      symbolicatorStatus: SymbolicatorStatus.MISSING,
+      image: undefined,
+      icon: 'symbolication-error-icon',
+    },
+    {
+      case: 'missing symbol',
+      symbolicatorStatus: SymbolicatorStatus.MISSING_SYMBOL,
+      image: undefined,
+      icon: 'symbolication-warning-icon',
+    },
+    {
+      case: "missing image's debug files",
+      symbolicatorStatus: SymbolicatorStatus.SYMBOLICATED,
+      image: makeImage({
+        debug_status: ImageStatus.MISSING,
+        unwind_status: ImageStatus.MISSING,
+      }),
+      icon: 'symbolication-error-icon',
+    },
+    {
+      case: "found image's debug files",
+      symbolicatorStatus: SymbolicatorStatus.SYMBOLICATED,
+      image: makeImage(),
+      icon: null,
+    },
+    {
+      case: 'image without statuses',
+      symbolicatorStatus: undefined,
+      image: makeImage({debug_status: null, unwind_status: null}),
+      icon: null,
+    },
+  ])('shows $icon for $case', ({symbolicatorStatus, image, icon}) => {
+    const stacktrace = makeStacktrace([
+      makeFrame({
+        symbolicatorStatus,
+        instructionAddr: image ? '0x100012abc' : '0xdeadbeef',
+      }),
+    ]);
+    renderFrames(stacktrace, makeEvent(image ? [image] : []));
 
-    expect(screen.getByTestId('symbolication-error-icon')).toBeInTheDocument();
-  });
-
-  it("shows an error icon when the resolved image's debug files are missing", () => {
-    // Image is found for the frame's address, but its debug_status is MISSING.
-    // The image-level status must win over the frame's symbolicatorStatus.
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: false,
-      registers: null,
-      frames: [
-        makeFrame({
-          symbolicatorStatus: SymbolicatorStatus.SYMBOLICATED,
-          instructionAddr: '0x100012abc',
-        }),
-      ],
-    };
-    renderFrames(
-      stacktrace,
-      makeEvent(stacktrace, [
-        makeImage({
-          debug_status: ImageStatus.MISSING,
-          unwind_status: ImageStatus.MISSING,
-        }),
-      ])
-    );
-
-    expect(screen.getByTestId('symbolication-error-icon')).toBeInTheDocument();
-  });
-
-  it("does not show a status icon when the resolved image's debug files are found", () => {
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: false,
-      registers: null,
-      frames: [
-        makeFrame({
-          symbolicatorStatus: SymbolicatorStatus.SYMBOLICATED,
-          instructionAddr: '0x100012abc',
-        }),
-      ],
-    };
-    renderFrames(stacktrace, makeEvent(stacktrace, [makeImage()]));
-
-    expect(screen.queryByTestId('symbolication-error-icon')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('symbolication-warning-icon')).not.toBeInTheDocument();
-  });
-
-  it('does not show a status icon when the resolved image has no debug or unwind status', () => {
-    // combineStatus treats an image without statuses as unused. The legacy
-    // renderer showed an "unknown problem" warning for unused images.
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: false,
-      registers: null,
-      frames: [makeFrame({instructionAddr: '0x100012abc'})],
-    };
-    renderFrames(
-      stacktrace,
-      makeEvent(stacktrace, [makeImage({debug_status: null, unwind_status: null})])
-    );
-
-    expect(screen.queryByTestId('symbolication-error-icon')).not.toBeInTheDocument();
-    expect(screen.queryByTestId('symbolication-warning-icon')).not.toBeInTheDocument();
+    expect(
+      screen
+        .queryAllByTestId(/^symbolication-/)
+        .map(element => element.getAttribute('data-test-id'))
+    ).toEqual(icon ? [icon] : []);
   });
 
   it('shows the symbol in the function name tooltip when there is no raw function', async () => {
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: false,
-      registers: null,
-      frames: [makeFrame({function: 'main', rawFunction: null, symbol: '_main'})],
-    };
-    renderFrames(stacktrace, makeEvent(stacktrace));
+    const stacktrace = makeStacktrace([
+      makeFrame({function: 'main', rawFunction: null, symbol: '_main'}),
+    ]);
+    renderFrames(stacktrace, makeEvent());
 
     await userEvent.hover(screen.getByText('main'));
     expect(await screen.findByText('_main')).toBeInTheDocument();
   });
 
   it('renders the function name and trimmed package', () => {
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: false,
-      registers: null,
-      frames: [
-        makeFrame({
-          function: 'main',
-          package: '/usr/lib/libSystem.B.dylib',
-          instructionAddr: '0x100012abc',
-        }),
-      ],
-    };
-    renderFrames(stacktrace, makeEvent(stacktrace, [makeImage()]));
+    const stacktrace = makeStacktrace([
+      makeFrame({
+        function: 'main',
+        package: '/usr/lib/libSystem.B.dylib',
+        instructionAddr: '0x100012abc',
+      }),
+    ]);
+    renderFrames(stacktrace, makeEvent([makeImage()]));
 
     expect(screen.getByText('main')).toBeInTheDocument();
     expect(screen.getByText('libSystem.B')).toBeInTheDocument();
@@ -303,13 +253,8 @@ describe('NativeFrameRow', () => {
   it.each([null, 'CrashyAppDelegate.m'])(
     'shows the filename tooltip when absPath is %s',
     async absPath => {
-      const stacktrace: StacktraceType = {
-        framesOmitted: null,
-        hasSystemFrames: false,
-        registers: null,
-        frames: [makeFrame({absPath})],
-      };
-      renderFrames(stacktrace, makeEvent(stacktrace));
+      const stacktrace = makeStacktrace([makeFrame({absPath})]);
+      renderFrames(stacktrace, makeEvent());
 
       await userEvent.hover(screen.getByText('(CrashyAppDelegate.m)'));
       expect(await screen.findByText('CrashyAppDelegate.m')).toBeInTheDocument();
@@ -317,18 +262,13 @@ describe('NativeFrameRow', () => {
   );
 
   it('renders redaction metadata on native frame function names', () => {
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: false,
-      registers: null,
-      frames: [
-        makeFrame({
-          function: 'secret_function',
-          instructionAddr: '0x100012abc',
-        }),
-      ],
-    };
-    renderFrames(stacktrace, makeEvent(stacktrace, [makeImage()]), {
+    const stacktrace = makeStacktrace([
+      makeFrame({
+        function: 'secret_function',
+        instructionAddr: '0x100012abc',
+      }),
+    ]);
+    renderFrames(stacktrace, makeEvent([makeImage()]), {
       meta: {
         frames: {
           0: {
@@ -355,19 +295,14 @@ describe('NativeFrameRow', () => {
   });
 
   it('renders grouping markers in default native frame actions', () => {
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: false,
-      registers: null,
-      frames: [
-        makeFrame({
-          function: 'grouping_frame',
-          inApp: false,
-          minGroupingLevel: 0,
-        }),
-      ],
-    };
-    renderFrames(stacktrace, makeEvent(stacktrace), {groupingCurrentLevel: 0});
+    const stacktrace = makeStacktrace([
+      makeFrame({
+        function: 'grouping_frame',
+        inApp: false,
+        minGroupingLevel: 0,
+      }),
+    ]);
+    renderFrames(stacktrace, makeEvent(), {groupingCurrentLevel: 0});
 
     expect(
       screen.getByLabelText('This frame is repeated in every event of this issue')
@@ -378,26 +313,21 @@ describe('NativeFrameRow', () => {
     const storageKey = 'native-frame-row-verbose-functions';
     localStorageWrapper.setItem(
       storageKey,
-      JSON.stringify([NATIVE_DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES])
+      JSON.stringify([DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES])
     );
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: false,
-      registers: null,
-      frames: [
-        makeFrame({
-          function: 'demangled_symbol',
-          inApp: true,
-          rawFunction: '_mangled_symbol',
-        }),
-        makeFrame({
-          function: null,
-          inApp: true,
-          rawFunction: 'raw_only_symbol',
-        }),
-      ],
-    };
-    renderFrames(stacktrace, makeEvent(stacktrace), {
+    const stacktrace = makeStacktrace([
+      makeFrame({
+        function: 'demangled_symbol',
+        inApp: true,
+        rawFunction: '_mangled_symbol',
+      }),
+      makeFrame({
+        function: null,
+        inApp: true,
+        rawFunction: 'raw_only_symbol',
+      }),
+    ]);
+    renderFrames(stacktrace, makeEvent(), {
       storageKey,
     });
 
@@ -407,22 +337,17 @@ describe('NativeFrameRow', () => {
   });
 
   it('drops the status column when no frame has a status icon', () => {
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: false,
-      registers: null,
-      frames: [
-        makeFrame({
-          symbolicatorStatus: SymbolicatorStatus.SYMBOLICATED,
-          instructionAddr: '0x100012abc',
-        }),
-        makeFrame({
-          symbolicatorStatus: SymbolicatorStatus.SYMBOLICATED,
-          instructionAddr: '0x100013000',
-        }),
-      ],
-    };
-    renderFrames(stacktrace, makeEvent(stacktrace, [makeImage()]));
+    const stacktrace = makeStacktrace([
+      makeFrame({
+        symbolicatorStatus: SymbolicatorStatus.SYMBOLICATED,
+        instructionAddr: '0x100012abc',
+      }),
+      makeFrame({
+        symbolicatorStatus: SymbolicatorStatus.SYMBOLICATED,
+        instructionAddr: '0x100013000',
+      }),
+    ]);
+    renderFrames(stacktrace, makeEvent([makeImage()]));
 
     // None of the frames have an error/warning, so the status column shouldn't
     // be reserved on any row.
@@ -432,24 +357,19 @@ describe('NativeFrameRow', () => {
   });
 
   it('reserves the status column on every row when any frame has an icon', () => {
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: false,
-      registers: null,
-      frames: [
-        // Cleanly symbolicated.
-        makeFrame({
-          symbolicatorStatus: SymbolicatorStatus.SYMBOLICATED,
-          instructionAddr: '0x100012abc',
-        }),
-        // Will trigger an error icon (no image, MISSING status).
-        makeFrame({
-          symbolicatorStatus: SymbolicatorStatus.MISSING,
-          instructionAddr: '0xdeadbeef',
-        }),
-      ],
-    };
-    renderFrames(stacktrace, makeEvent(stacktrace, [makeImage()]));
+    const stacktrace = makeStacktrace([
+      // Cleanly symbolicated.
+      makeFrame({
+        symbolicatorStatus: SymbolicatorStatus.SYMBOLICATED,
+        instructionAddr: '0x100012abc',
+      }),
+      // Will trigger an error icon (no image, MISSING status).
+      makeFrame({
+        symbolicatorStatus: SymbolicatorStatus.MISSING,
+        instructionAddr: '0xdeadbeef',
+      }),
+    ]);
+    renderFrames(stacktrace, makeEvent([makeImage()]));
 
     expect(screen.getByTestId('symbolication-error-icon')).toBeInTheDocument();
     // One status cell reserved per frame, even the cleanly symbolicated row,
@@ -461,22 +381,17 @@ describe('NativeFrameRow', () => {
     // Dart sentinels for async frames: filename or absPath = "<asynchronous suspension>"
     // and no real package/function payload. The native renderer should
     // substitute "Dart async" / "Dart" instead of the generic <unknown>.
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: false,
-      registers: null,
-      frames: [
-        makeFrame({
-          filename: '<asynchronous suspension>',
-          absPath: '<asynchronous suspension>',
-          function: null,
-          package: null,
-          symbolicatorStatus: SymbolicatorStatus.SYMBOLICATED,
-          instructionAddr: '0xdeadbeef',
-        }),
-      ],
-    };
-    renderFrames(stacktrace, makeEvent(stacktrace), {defaultView: 'full'});
+    const stacktrace = makeStacktrace([
+      makeFrame({
+        filename: '<asynchronous suspension>',
+        absPath: '<asynchronous suspension>',
+        function: null,
+        package: null,
+        symbolicatorStatus: SymbolicatorStatus.SYMBOLICATED,
+        instructionAddr: '0xdeadbeef',
+      }),
+    ]);
+    renderFrames(stacktrace, makeEvent(), {defaultView: 'full'});
 
     expect(screen.getByText('Dart')).toBeInTheDocument();
     expect(screen.getByText('Dart async')).toBeInTheDocument();
@@ -485,11 +400,8 @@ describe('NativeFrameRow', () => {
   });
 
   it('hides Dart async suspension frames in app-only view', () => {
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: true,
-      registers: null,
-      frames: [
+    const stacktrace = makeStacktrace(
+      [
         makeFrame({
           filename: '<asynchronous suspension>',
           absPath: '<asynchronous suspension>',
@@ -500,40 +412,20 @@ describe('NativeFrameRow', () => {
         }),
         makeFrame({function: 'app_main', inApp: true}),
       ],
-    };
-    renderFrames(stacktrace, makeEvent(stacktrace));
+      {hasSystemFrames: true}
+    );
+    renderFrames(stacktrace, makeEvent());
 
     expect(screen.getByText('app_main')).toBeInTheDocument();
     expect(screen.queryByText('Dart async')).not.toBeInTheDocument();
     expect(screen.queryByText('Dart')).not.toBeInTheDocument();
   });
 
-  it('shows a warning icon when symbolicatorStatus is MISSING_SYMBOL', () => {
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: false,
-      registers: null,
-      frames: [
-        makeFrame({
-          symbolicatorStatus: SymbolicatorStatus.MISSING_SYMBOL,
-          instructionAddr: '0xdeadbeef',
-        }),
-      ],
-    };
-    renderFrames(stacktrace, makeEvent(stacktrace));
-
-    expect(screen.getByTestId('symbolication-warning-icon')).toBeInTheDocument();
-    expect(screen.queryByTestId('symbolication-error-icon')).not.toBeInTheDocument();
-  });
-
   it('preserves expanded details when system frames are hidden and revealed', async () => {
     // Default view is "app", which collapses runs of non-app frames into a
     // "Show N more frames" toggle on the last visible non-app row.
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: true,
-      registers: null,
-      frames: [
+    const stacktrace = makeStacktrace(
+      [
         makeFrame({function: 'app_main', inApp: true}),
         makeFrame({
           function: 'hidden_one',
@@ -545,8 +437,9 @@ describe('NativeFrameRow', () => {
         // Last system frame stays visible (anchor for the toggle).
         makeFrame({function: 'visible_tail', inApp: false}),
       ],
-    };
-    renderFrames(stacktrace, makeEvent(stacktrace));
+      {hasSystemFrames: true}
+    );
+    renderFrames(stacktrace, makeEvent());
 
     expect(screen.getByText('app_main')).toBeInTheDocument();
     expect(screen.getByText('visible_tail')).toBeInTheDocument();
@@ -582,16 +475,14 @@ describe('NativeFrameRow', () => {
   });
 
   it('shows native lead hints only in app-only view', () => {
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: true,
-      registers: null,
-      frames: [
+    const stacktrace = makeStacktrace(
+      [
         makeFrame({function: 'system_entry', inApp: false}),
         makeFrame({function: 'app_main', inApp: true}),
       ],
-    };
-    const event = makeEvent(stacktrace);
+      {hasSystemFrames: true}
+    );
+    const event = makeEvent();
     const {unmount} = renderFrames(stacktrace, event);
 
     expect(screen.getByText('Called from')).toBeInTheDocument();
@@ -607,20 +498,15 @@ describe('NativeFrameRow', () => {
     Element.prototype.scrollIntoView = scrollIntoView;
     const collapseStorageKey = getFoldSectionKey(SectionKey.DEBUGMETA);
     localStorageWrapper.setItem(collapseStorageKey, JSON.stringify(true));
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: false,
-      registers: null,
-      frames: [
-        makeFrame({
-          addrMode: 'rel:0',
-          instructionAddr: '0x100012abc',
-          symbolicatorStatus: SymbolicatorStatus.SYMBOLICATED,
-        }),
-      ],
-    };
+    const stacktrace = makeStacktrace([
+      makeFrame({
+        addrMode: 'rel:0',
+        instructionAddr: '0x100012abc',
+        symbolicatorStatus: SymbolicatorStatus.SYMBOLICATED,
+      }),
+    ]);
 
-    renderFramesWithDebugMeta(stacktrace, makeEvent(stacktrace, [makeImage()]));
+    renderFramesWithDebugMeta(stacktrace, makeEvent([makeImage()]));
 
     const addressButton = screen.getByRole('button', {
       name: 'Go to images loaded for address +0x12abc',
@@ -638,11 +524,8 @@ describe('NativeFrameRow', () => {
   });
 
   it('auto-expands the last in-app frame', () => {
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: true,
-      registers: null,
-      frames: [
+    const stacktrace = makeStacktrace(
+      [
         makeFrame({function: 'app_first', inApp: true, context: [[1, 'first source']]}),
         makeFrame({
           function: 'sys_middle',
@@ -651,8 +534,9 @@ describe('NativeFrameRow', () => {
         }),
         makeFrame({function: 'app_last', inApp: true, context: [[3, 'last source']]}),
       ],
-    };
-    renderFrames(stacktrace, makeEvent(stacktrace));
+      {hasSystemFrames: true}
+    );
+    renderFrames(stacktrace, makeEvent());
 
     // Default newest-first reverses the display order, so app_last (the
     // last in-app frame in the original array, and the auto-expanded one)
@@ -670,11 +554,8 @@ describe('NativeFrameRow', () => {
   });
 
   it('auto-expands the first in-app frame when oldest frames are shown first', () => {
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: true,
-      registers: null,
-      frames: [
+    const stacktrace = makeStacktrace(
+      [
         makeFrame({function: 'app_first', inApp: true, context: [[1, 'first source']]}),
         makeFrame({
           function: 'sys_middle',
@@ -683,8 +564,9 @@ describe('NativeFrameRow', () => {
         }),
         makeFrame({function: 'app_last', inApp: true, context: [[3, 'last source']]}),
       ],
-    };
-    renderFrames(stacktrace, makeEvent(stacktrace), {defaultIsNewestFirst: false});
+      {hasSystemFrames: true}
+    );
+    renderFrames(stacktrace, makeEvent(), {defaultIsNewestFirst: false});
 
     const titles = screen.getAllByTestId('native-stack-trace-frame-title');
     expect(titles[0]).toHaveTextContent('app_first');
@@ -698,11 +580,8 @@ describe('NativeFrameRow', () => {
   });
 
   it('allows a single empty native frame to expand to the empty details message', async () => {
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: false,
-      registers: {},
-      frames: [
+    const stacktrace = makeStacktrace(
+      [
         makeFrame({
           context: [],
           filename: null,
@@ -714,8 +593,9 @@ describe('NativeFrameRow', () => {
           vars: null,
         }),
       ],
-    };
-    renderFrames(stacktrace, makeEvent(stacktrace));
+      {registers: {}}
+    );
+    renderFrames(stacktrace, makeEvent());
 
     const title = screen.getByTestId('native-stack-trace-frame-title');
     const expandButton = within(title).getByRole('button', {
@@ -738,13 +618,8 @@ describe('NativeFrameRow', () => {
   });
 
   it('renders an in-app tag for in-app frames', () => {
-    const stacktrace: StacktraceType = {
-      framesOmitted: null,
-      hasSystemFrames: false,
-      registers: null,
-      frames: [makeFrame({inApp: true})],
-    };
-    renderFrames(stacktrace, makeEvent(stacktrace));
+    const stacktrace = makeStacktrace([makeFrame({inApp: true})]);
+    renderFrames(stacktrace, makeEvent());
 
     expect(screen.getByText('In App')).toBeInTheDocument();
   });

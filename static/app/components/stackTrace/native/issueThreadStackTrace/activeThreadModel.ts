@@ -6,7 +6,6 @@ import {
 import type {StackTraceMeta, StackTraceView} from 'sentry/components/stackTrace/types';
 import type {Event, ExceptionValue, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
-import type {StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils/defined';
 
 function getThreadStacktraceMeta({
@@ -70,52 +69,6 @@ function getThreadTextExceptionValues({
   );
 }
 
-function getActiveExceptionValue({
-  activeThread,
-  exceptionValues,
-}: {
-  activeThread: Thread | undefined;
-  exceptionValues: ExceptionValue[];
-}): ExceptionValue | undefined {
-  return (
-    exceptionValues.find(value => value.threadId === activeThread?.id) ??
-    exceptionValues[0]
-  );
-}
-
-function getActiveStacktrace({
-  activeException,
-  activeThread,
-}: {
-  activeException: ExceptionValue | undefined;
-  activeThread: Thread | undefined;
-}): {
-  minifiedStacktrace: StacktraceType | undefined;
-  stacktrace: StacktraceType | undefined;
-} {
-  return {
-    stacktrace: activeException?.stacktrace ?? activeThread?.stacktrace ?? undefined,
-    minifiedStacktrace:
-      activeException?.rawStacktrace ?? activeThread?.rawStacktrace ?? undefined,
-  };
-}
-
-function getDefaultView({
-  activeThread,
-  exception,
-}: {
-  activeThread: Thread | undefined;
-  exception: ReturnType<typeof getThreadException>;
-}): StackTraceView {
-  if (exception) {
-    return exception.values.some(value => !!value.stacktrace?.hasSystemFrames)
-      ? 'app'
-      : 'full';
-  }
-
-  return activeThread?.stacktrace?.hasSystemFrames ? 'app' : 'full';
-}
-
 export function getActiveThreadStackTraceModel({
   activeThread,
   event,
@@ -124,29 +77,29 @@ export function getActiveThreadStackTraceModel({
   event: Event;
 }) {
   const exception = getThreadException(event, activeThread);
-  const activeException = getActiveExceptionValue({
-    activeThread,
-    exceptionValues: exception?.values ?? [],
-  });
-  const {minifiedStacktrace, stacktrace} = getActiveStacktrace({
-    activeException,
-    activeThread,
-  });
+  const activeException =
+    exception?.values.find(value => value.threadId === activeThread?.id) ??
+    exception?.values[0];
   const platform = inferPlatform(event, activeThread);
   const hasMinifiedStacktrace =
     !!activeThread?.rawStacktrace ||
     !!exception?.values.some(value => !!value.rawStacktrace);
+  const hasSystemFrames = exception
+    ? exception.values.some(value => !!value.stacktrace?.hasSystemFrames)
+    : !!activeThread?.stacktrace?.hasSystemFrames;
+  const defaultView: StackTraceView = hasSystemFrames ? 'app' : 'full';
 
   return {
     activeException,
     activeThread,
     defaultIsNewestFirst: isStacktraceNewestFirst(),
-    defaultView: getDefaultView({activeThread, exception}),
+    defaultView,
     exception,
     hasMinifiedStacktrace,
-    minifiedStacktrace,
+    minifiedStacktrace:
+      activeException?.rawStacktrace ?? activeThread?.rawStacktrace ?? undefined,
     platform,
-    stacktrace,
+    stacktrace: activeException?.stacktrace ?? activeThread?.stacktrace ?? undefined,
     stacktraceMeta: getThreadStacktraceMeta({activeThread, event}),
     textExceptionValues: getThreadTextExceptionValues({activeThread, event}),
   };

@@ -93,30 +93,12 @@ export function IssueThreadStackTraceProviders({
 
   const changeThread = useCallback(
     (direction: 'previous' | 'next') => {
-      setSelectedThreadId(currentId => {
-        if (!threads.length) {
-          return;
-        }
-
-        const selectedThread =
-          threads.find(thread => thread.id === currentId) ?? findBestThread(threads);
-        const currentIndex = threads.findIndex(
-          thread => thread.id === selectedThread?.id
-        );
-        let nextIndex =
-          direction === 'previous'
-            ? (currentIndex === -1 ? 0 : currentIndex) - 1
-            : (currentIndex === -1 ? 0 : currentIndex) + 1;
-        if (nextIndex < 0) {
-          nextIndex = threads.length - 1;
-        } else if (nextIndex >= threads.length) {
-          nextIndex = 0;
-        }
-
-        return threads[nextIndex]?.id;
-      });
+      const index = threads.findIndex(thread => thread.id === activeThread?.id);
+      // `at` wraps negative indexes, the modulo wraps past the end.
+      const nextIndex = (index + (direction === 'next' ? 1 : -1)) % threads.length;
+      setSelectedThreadId(threads.at(nextIndex)?.id);
     },
-    [threads]
+    [activeThread, threads]
   );
 
   useEffect(() => {

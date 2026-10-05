@@ -1,10 +1,5 @@
 import {createContext, useCallback, useContext, useMemo, useState} from 'react';
 
-import {
-  NATIVE_DISPLAY_OPTION,
-  updateNativeDisplayOption,
-  type NativePersistedDisplayOption,
-} from 'sentry/components/stackTrace/native/nativeDisplayOptionsPersistence';
 import {StackTraceViewStateContext} from 'sentry/components/stackTrace/stackTraceContext';
 import type {
   StackTraceView,
@@ -13,12 +8,26 @@ import type {
 } from 'sentry/components/stackTrace/types';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
+/** Values saved to localStorage, shared with the legacy stack trace. */
+export const DISPLAY_OPTION = {
+  ABSOLUTE_ADDRESSES: 'absolute-addresses',
+  ABSOLUTE_FILE_PATHS: 'absolute-file-paths',
+  MINIFIED: 'minified',
+  RAW_STACK_TRACE: 'raw-stack-trace',
+  VERBOSE_FUNCTION_NAMES: 'verbose-function-names',
+} as const;
+
+type DisplayOption = (typeof DISPLAY_OPTION)[keyof typeof DISPLAY_OPTION];
+
+export type NativeFrameDetail =
+  | typeof DISPLAY_OPTION.ABSOLUTE_ADDRESSES
+  | typeof DISPLAY_OPTION.ABSOLUTE_FILE_PATHS
+  | typeof DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES;
+
 interface NativeDisplayOptionsContextValue {
   absoluteAddresses: boolean;
   absoluteFilePaths: boolean;
-  setAbsoluteAddresses: (absoluteAddresses: boolean) => void;
-  setAbsoluteFilePaths: (absoluteFilePaths: boolean) => void;
-  setVerboseFunctionNames: (verboseFunctionNames: boolean) => void;
+  setFrameDetail: (option: NativeFrameDetail, enabled: boolean) => void;
   verboseFunctionNames: boolean;
 }
 
@@ -27,7 +36,7 @@ interface StackTraceDisplayOptionsProviderProps extends StackTraceViewStateProvi
   storageKey?: string;
 }
 
-type PersistedOptions = NativePersistedDisplayOption[];
+type PersistedOptions = DisplayOption[];
 type SetPersistedOptions = React.Dispatch<React.SetStateAction<PersistedOptions>>;
 
 const NativeDisplayOptionsContext =
@@ -37,11 +46,11 @@ function getInitialDisplayOptions(
   storedValue: unknown,
   {defaultIsMinified, defaultView}: StackTraceDisplayOptionsProviderProps
 ): PersistedOptions {
-  return Object.values(NATIVE_DISPLAY_OPTION).filter(
+  return Object.values(DISPLAY_OPTION).filter(
     option =>
       (Array.isArray(storedValue) && storedValue.includes(option)) ||
-      (defaultIsMinified && option === NATIVE_DISPLAY_OPTION.MINIFIED) ||
-      (defaultView === 'raw' && option === NATIVE_DISPLAY_OPTION.RAW_STACK_TRACE)
+      (defaultIsMinified && option === DISPLAY_OPTION.MINIFIED) ||
+      (defaultView === 'raw' && option === DISPLAY_OPTION.RAW_STACK_TRACE)
   );
 }
 
@@ -114,15 +123,16 @@ function StackTraceDisplayOptionsRoot({
   const [isNewestFirst, setIsNewestFirst] = useState(defaultIsNewestFirst);
   const view =
     selectedView ??
-    (persistedOptions.includes(NATIVE_DISPLAY_OPTION.RAW_STACK_TRACE)
-      ? 'raw'
-      : defaultView);
+    (persistedOptions.includes(DISPLAY_OPTION.RAW_STACK_TRACE) ? 'raw' : defaultView);
   const isMinified =
-    hasMinifiedStacktrace && persistedOptions.includes(NATIVE_DISPLAY_OPTION.MINIFIED);
+    hasMinifiedStacktrace && persistedOptions.includes(DISPLAY_OPTION.MINIFIED);
   const setOption = useCallback(
-    (option: NativePersistedDisplayOption, enabled: boolean) => {
+    (option: DisplayOption, enabled: boolean) => {
+      // Rebuilt from DISPLAY_OPTION so stored values keep a stable order.
       setPersistedOptions(previous =>
-        updateNativeDisplayOption(previous, option, enabled)
+        Object.values(DISPLAY_OPTION).filter(value =>
+          value === option ? enabled : previous.includes(value)
+        )
       );
     },
     [setPersistedOptions]
@@ -132,10 +142,10 @@ function StackTraceDisplayOptionsRoot({
       view,
       setView: nextView => {
         setSelectedView(nextView);
-        setOption(NATIVE_DISPLAY_OPTION.RAW_STACK_TRACE, nextView === 'raw');
+        setOption(DISPLAY_OPTION.RAW_STACK_TRACE, nextView === 'raw');
       },
       isMinified,
-      setIsMinified: enabled => setOption(NATIVE_DISPLAY_OPTION.MINIFIED, enabled),
+      setIsMinified: enabled => setOption(DISPLAY_OPTION.MINIFIED, enabled),
       isNewestFirst,
       setIsNewestFirst,
       hasMinifiedStacktrace,
@@ -145,20 +155,11 @@ function StackTraceDisplayOptionsRoot({
   );
   const displayOptions = useMemo<NativeDisplayOptionsContextValue>(
     () => ({
-      absoluteAddresses: persistedOptions.includes(
-        NATIVE_DISPLAY_OPTION.ABSOLUTE_ADDRESSES
-      ),
-      absoluteFilePaths: persistedOptions.includes(
-        NATIVE_DISPLAY_OPTION.ABSOLUTE_FILE_PATHS
-      ),
-      setAbsoluteAddresses: enabled =>
-        setOption(NATIVE_DISPLAY_OPTION.ABSOLUTE_ADDRESSES, enabled),
-      setAbsoluteFilePaths: enabled =>
-        setOption(NATIVE_DISPLAY_OPTION.ABSOLUTE_FILE_PATHS, enabled),
-      setVerboseFunctionNames: enabled =>
-        setOption(NATIVE_DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES, enabled),
+      absoluteAddresses: persistedOptions.includes(DISPLAY_OPTION.ABSOLUTE_ADDRESSES),
+      absoluteFilePaths: persistedOptions.includes(DISPLAY_OPTION.ABSOLUTE_FILE_PATHS),
+      setFrameDetail: setOption,
       verboseFunctionNames: persistedOptions.includes(
-        NATIVE_DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES
+        DISPLAY_OPTION.VERBOSE_FUNCTION_NAMES
       ),
     }),
     [persistedOptions, setOption]

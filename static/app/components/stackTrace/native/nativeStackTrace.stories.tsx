@@ -1,25 +1,10 @@
-import {Fragment, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
 
-import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
-import {ThreadSelector} from 'sentry/components/events/interfaces/threads/threadSelector';
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {StackTraceDisplayOptionsProvider} from 'sentry/components/stackTrace/displayOptionsContext';
-import {
-  ExceptionDescription,
-  ExceptionHeader,
-} from 'sentry/components/stackTrace/exceptionHeader';
-import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
-import {useStackTraceFrameContext} from 'sentry/components/stackTrace/stackTraceContext';
-import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
-import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
-import {IconChevron, IconCopy, IconGithub} from 'sentry/icons';
-import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {ImageStatus} from 'sentry/types/debugImage';
 import {
@@ -29,17 +14,11 @@ import {
   type Frame,
   type Thread,
 } from 'sentry/types/event';
-import type {Organization} from 'sentry/types/organization';
 import type {StacktraceType} from 'sentry/types/stacktrace';
-import {SectionKey} from 'sentry/views/issueDetails/context';
-import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
-import {NativeDefaultActions} from './frame/actions/nativeDefaultActions';
-import {NativeDisplayOptionsMenu} from './nativeDisplayOptions';
-import {getNativeFrameCapabilities} from './nativeFrameAnalysis';
+import {IssueThreadStackTrace} from './issueThreadStackTrace';
 import {NativeStackTraceFrames} from './nativeStackTraceFrames';
 import {NativeStackTraceProvider} from './nativeStackTraceProvider';
-import {RawDownloadAction} from './rawDownloadAction';
 
 type StacktraceWithFrames = StacktraceType & {
   frames: NonNullable<StacktraceType['frames']>;
@@ -88,13 +67,16 @@ function makeImage(addr: string, overrides: Partial<any> = {}) {
   };
 }
 
-function makeEvent(_stacktrace: StacktraceWithFrames, images: any[] = []): Event {
+function makeEvent(images: any[] = [], entries: Event['entries'] = []): Event {
   return {
     id: '1',
     message: 'EXC_BAD_ACCESS',
     title: 'EXC_BAD_ACCESS',
     metadata: {},
-    entries: images.length ? [{type: EntryType.DEBUGMETA, data: {images} as any}] : [],
+    entries: [
+      ...(images.length ? [{type: EntryType.DEBUGMETA, data: {images} as any}] : []),
+      ...entries,
+    ],
     projectID: '1',
     groupID: '1',
     eventID: '12345678901234567890123456789012',
@@ -156,7 +138,7 @@ function makeBasicData(imageOverrides: Partial<any> = {}) {
     frames,
   };
 
-  return {event: makeEvent(stacktrace, [image]), stacktrace};
+  return {event: makeEvent([image]), image, stacktrace};
 }
 
 function StoryProvider({
@@ -180,46 +162,19 @@ function StoryProvider({
   );
 }
 
-function NativeStoryFrameActions({isHovering}: {isHovering: boolean}) {
-  const {isExpanded} = useStackTraceFrameContext();
-  const showHoverActions = isExpanded || isHovering;
-
-  return (
-    <Fragment>
-      <HoverActionsSlot visible={showHoverActions}>
-        <Tooltip title={t('Copy file path')} skipWrapper>
-          <Button
-            size="xs"
-            variant="transparent"
-            aria-label={t('Copy file path')}
-            icon={<IconCopy size="xs" />}
-            onClick={e => e.stopPropagation()}
-          />
-        </Tooltip>
-        <Tooltip title={t('Open this line in GitHub')} skipWrapper>
-          <Button
-            size="xs"
-            variant="transparent"
-            aria-label={t('Open this line in GitHub')}
-            icon={<IconGithub size="xs" />}
-            onClick={e => e.stopPropagation()}
-          />
-        </Tooltip>
-      </HoverActionsSlot>
-      <NativeDefaultActions />
-    </Fragment>
-  );
-}
-
-const HoverActionsSlot = styled(Flex)<{visible: boolean}>`
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  opacity: ${p => (p.visible ? 1 : 0)};
-  pointer-events: ${p => (p.visible ? 'auto' : 'none')};
-`;
-
 export default Storybook.story('Native StackTrace', story => {
-  story('NativeIssueStackTrace - Default', () => <NativeIssueStackTraceStory />);
+  story('Issue Thread Stack Trace', () => {
+    const {event, threads} = makeMultiThreadData();
+    return (
+      <IssueThreadStackTrace
+        event={event}
+        data={{values: threads}}
+        group={undefined}
+        groupingCurrentLevel={0}
+        projectSlug="project-slug"
+      />
+    );
+  });
 
   story('Default', () => {
     const {event, stacktrace} = makeBasicData();
@@ -404,7 +359,7 @@ export default Storybook.story('Native StackTrace', story => {
       frames,
     };
 
-    const event = makeEvent(stacktrace);
+    const event = makeEvent();
 
     return (
       <Fragment>
@@ -423,305 +378,108 @@ export default Storybook.story('Native StackTrace', story => {
   });
 });
 
-type NamedThread = Thread & {platform: 'cocoa' | 'javascript'};
-
-function makeThread(
-  id: number,
-  name: string,
-  stacktrace: StacktraceWithFrames,
-  platform: NamedThread['platform'],
-  overrides: Partial<Thread> = {}
-): NamedThread {
+function makeThread(overrides: Partial<Thread> & Pick<Thread, 'id' | 'name'>): Thread {
   return {
-    id,
-    name,
     crashed: false,
     current: false,
     rawStacktrace: null,
-    stacktrace,
+    stacktrace: null,
     state: 'RUNNABLE',
-    platform,
     ...overrides,
   };
 }
 
+/**
+ * A crashed main thread whose exception borrows the thread's frames, a waiting
+ * worker, and a React Native JavaScript thread that renders generic rows.
+ */
 function makeMultiThreadData() {
-  const image = makeImage('0x100000000');
-
-  const mainThreadStack: StacktraceWithFrames = {
-    framesOmitted: null,
-    hasSystemFrames: true,
-    registers: {rax: '0x0000000000000001', rip: '0x000000010001a000'},
-    frames: [
-      makeFrame({
-        function: 'main',
-        filename: 'main.m',
-        lineNo: 21,
-        instructionAddr: '0x100002000',
-        package: '/build/CrashyApp.app/CrashyApp',
-        inApp: true,
-      }),
-      makeFrame({
-        function: '-[CrashyAppDelegate applicationDidFinishLaunching:]',
-        filename: 'CrashyAppDelegate.m',
-        lineNo: 47,
-        instructionAddr: '0x100012abc',
-        inApp: true,
-      }),
-      makeFrame({
-        function: 'objc_msgSend',
-        package: '/usr/lib/libobjc.A.dylib',
-        instructionAddr: '0x10005f3c4',
-        inApp: false,
-      }),
-    ],
-  };
-
-  const workerThreadStack: StacktraceWithFrames = {
-    framesOmitted: null,
-    hasSystemFrames: true,
-    registers: null,
-    frames: [
-      makeFrame({
-        function: '__pthread_cond_wait',
-        package: '/usr/lib/system/libsystem_pthread.dylib',
-        instructionAddr: '0x10003a100',
-        inApp: false,
-      }),
-      makeFrame({
-        function: 'WorkerPool::run()',
-        filename: 'WorkerPool.cpp',
-        lineNo: 88,
-        instructionAddr: '0x100040500',
-        inApp: true,
-      }),
-    ],
-  };
-
-  // A JavaScript (React Native) thread — rendered with the generic stack trace.
-  const jsThreadStack: StacktraceWithFrames = {
-    framesOmitted: null,
-    hasSystemFrames: true,
-    registers: null,
-    frames: [
-      {
-        absPath: 'app/screens/Home.tsx',
-        colNo: 18,
-        lineNo: 42,
-        filename: 'app/screens/Home.tsx',
-        function: 'Home.onMount',
-        module: 'app.screens.Home',
-        package: null,
-        platform: 'javascript',
-        context: [
-          [40, 'function Home() {'],
-          [41, '  useEffect(() => {'],
-          [42, "    fetch('/api/posts').then(r => r.json())"],
-          [43, '  }, [])'],
-        ],
-        inApp: true,
-        instructionAddr: null,
-        symbolAddr: null,
-        symbol: null,
-        rawFunction: null,
-        trust: null,
-        vars: {},
-      },
-      {
-        absPath: 'app/screens/Home.tsx',
-        colNo: 5,
-        lineNo: 38,
-        filename: 'app/screens/Home.tsx',
-        function: 'Home',
-        module: 'app.screens.Home',
-        package: null,
-        platform: 'javascript',
-        context: [
-          [36, 'export default function Home() {'],
-          [37, '  const [posts, setPosts] = useState([])'],
-          [38, '  const user = useUser()'],
-          [39, '  return <PostList posts={posts} />'],
-        ],
-        inApp: true,
-        instructionAddr: null,
-        symbolAddr: null,
-        symbol: null,
-        rawFunction: null,
-        trust: null,
-        vars: {},
-      },
-    ],
-  };
-
-  const threads: NamedThread[] = [
-    makeThread(0, 'com.apple.main-thread', mainThreadStack, 'cocoa', {
+  const {image, stacktrace} = makeBasicData();
+  const threads = [
+    makeThread({
+      id: 0,
+      name: 'com.apple.main-thread',
       crashed: true,
       current: true,
+      stacktrace,
     }),
-    makeThread(1, 'background-worker', workerThreadStack, 'cocoa', {state: 'WAITING'}),
-    makeThread(2, 'js-bundle', jsThreadStack, 'javascript', {state: 'RUNNABLE'}),
+    makeThread({
+      id: 1,
+      name: 'background-worker',
+      state: 'WAITING',
+      stacktrace: {
+        framesOmitted: null,
+        hasSystemFrames: true,
+        registers: null,
+        frames: [
+          makeFrame({
+            function: '__pthread_cond_wait',
+            package: '/usr/lib/system/libsystem_pthread.dylib',
+            instructionAddr: '0x10003a100',
+            inApp: false,
+          }),
+          makeFrame({
+            function: 'WorkerPool::run()',
+            filename: 'WorkerPool.cpp',
+            lineNo: 88,
+            instructionAddr: '0x100040500',
+          }),
+        ],
+      },
+    }),
+    makeThread({
+      id: 2,
+      name: 'js-bundle',
+      stacktrace: {
+        framesOmitted: null,
+        hasSystemFrames: false,
+        registers: null,
+        frames: [
+          makeFrame({
+            platform: 'javascript',
+            function: 'Home.onMount',
+            filename: 'app/screens/Home.tsx',
+            absPath: 'app/screens/Home.tsx',
+            lineNo: 42,
+            colNo: 18,
+            package: null,
+            instructionAddr: null,
+            symbolAddr: null,
+            context: [
+              [41, '  useEffect(() => {'],
+              [42, "    fetch('/api/posts').then(r => r.json())"],
+              [43, '  }, [])'],
+            ],
+          }),
+        ],
+      },
+    }),
   ];
 
-  const event = {
-    id: '1',
-    message: 'EXC_BAD_ACCESS',
-    title: 'EXC_BAD_ACCESS',
-    metadata: {},
-    entries: [
-      {type: EntryType.DEBUGMETA, data: {images: [image]} as any},
-      {type: EntryType.THREADS, data: {values: threads}} as any,
-    ],
-    projectID: '1',
-    groupID: '1',
-    eventID: '12345678901234567890123456789012',
-    dateCreated: '2019-05-21T18:01:48.762Z',
-    dateReceived: '2019-05-21T18:01:48.762Z',
-    tags: [],
-    errors: [],
-    crashFile: null,
-    size: 0,
-    dist: null,
-    fingerprints: [],
-    culprit: '',
-    user: null,
-    location: '',
-    type: EventOrGroupType.ERROR,
-    occurrence: null,
-    resolvedWith: [],
-    contexts: {},
-    platform: 'cocoa',
-  } as Event;
+  const event = makeEvent(
+    [image],
+    [
+      {
+        type: EntryType.EXCEPTION,
+        data: {
+          excOmitted: null,
+          hasSystemFrames: true,
+          values: [
+            {
+              type: 'EXC_BAD_ACCESS',
+              value: 'Attempted to dereference garbage pointer 0x0000000000000001',
+              module: null,
+              mechanism: {handled: false, type: 'mach', synthetic: false},
+              threadId: 0,
+              stacktrace: null,
+              rawStacktrace: null,
+            },
+          ],
+        },
+      },
+      {type: EntryType.THREADS, data: {values: threads}},
+    ]
+  );
 
   return {event, threads};
-}
-
-function ActiveThreadFrames({event, thread}: {event: Event; thread: NamedThread}) {
-  const stacktrace = thread.stacktrace;
-  if (!stacktrace) {
-    return <Text variant="muted">{t('No stack trace for this thread')}</Text>;
-  }
-
-  if (thread.platform === 'javascript') {
-    return (
-      <StackTraceProvider event={event} stacktrace={stacktrace} platform="javascript">
-        <StackTraceFrames frameContextComponent={FrameContent} />
-      </StackTraceProvider>
-    );
-  }
-
-  return <NativeStackTraceFrames frameActionsComponent={NativeStoryFrameActions} />;
-}
-
-function NativeIssueStackTraceStory() {
-  const {event, threads} = useMemo(() => makeMultiThreadData(), []);
-  const [activeThread, setActiveThread] = useState(threads[0]!);
-
-  const handleChange = (direction: 'previous' | 'next') => {
-    const currentIndex = threads.findIndex(thread => thread.id === activeThread.id);
-    let nextIndex = direction === 'previous' ? currentIndex - 1 : currentIndex + 1;
-    if (nextIndex < 0) {
-      nextIndex = threads.length - 1;
-    } else if (nextIndex >= threads.length) {
-      nextIndex = 0;
-    }
-    setActiveThread(threads[nextIndex]!);
-  };
-
-  const copyItems = CopyAsDropdown.makeDefaultCopyAsOptions({
-    text: () =>
-      (activeThread.stacktrace?.frames ?? [])
-        .map(
-          frame =>
-            `  ${frame.instructionAddr ?? ''}  ${frame.function ?? ''}  (${frame.filename ?? ''})`
-        )
-        .join('\n'),
-    json: undefined,
-    markdown: undefined,
-  });
-
-  const sectionActions = (
-    <Flex align="center" gap="sm">
-      <RawDownloadAction
-        organization={{slug: 'org-slug'} as Organization}
-        projectSlug="project-slug"
-        eventId={event.eventID}
-        threadId={activeThread.id}
-      />
-      <NativeDisplayOptionsMenu
-        {...getNativeFrameCapabilities(activeThread.stacktrace?.frames ?? [])}
-      />
-      <CopyAsDropdown size="xs" items={copyItems} />
-    </Flex>
-  );
-
-  // The provider's stacktrace argument tracks the active thread, but the
-  // native display options (absolute addresses, etc.) live on the same
-  // provider — so they persist across thread switches.
-  const stacktrace = activeThread.stacktrace ?? {
-    framesOmitted: null,
-    hasSystemFrames: false,
-    registers: null,
-    frames: [],
-  };
-
-  return (
-    // Re-key on the active thread so view state (app/full/raw) resets per thread
-    // and the provider sees the correct default platform.
-    <StackTraceDisplayOptionsProvider
-      key={activeThread.id}
-      platform={activeThread.platform}
-      storageKey={DISPLAY_OPTIONS_STORAGE_KEY}
-    >
-      <NativeStackTraceProvider event={event} stacktrace={stacktrace}>
-        <FoldSection
-          title={t('Stack Trace')}
-          sectionKey={SectionKey.EXCEPTION}
-          actions={sectionActions}
-        >
-          <Stack gap="lg">
-            <Stack gap="sm">
-              <ExceptionHeader type="EXC_BAD_ACCESS" module="CrashyApp" />
-              <ExceptionDescription
-                value="Attempted to dereference garbage pointer 0x0000000000000001"
-                mechanism={{handled: false, type: 'mach', synthetic: false}}
-              />
-            </Stack>
-            <Flex align="center" gap="md" wrap="wrap">
-              <ButtonBar>
-                <Button
-                  size="xs"
-                  icon={<IconChevron direction="left" />}
-                  aria-label={t('Previous Thread')}
-                  onClick={() => handleChange('previous')}
-                />
-                <Button
-                  size="xs"
-                  icon={<IconChevron direction="right" />}
-                  aria-label={t('Next Thread')}
-                  onClick={() => handleChange('next')}
-                />
-              </ButtonBar>
-              <ThreadSelector
-                threads={threads}
-                activeThread={activeThread}
-                event={event}
-                onChange={thread => setActiveThread(thread as NamedThread)}
-                exception={undefined}
-              />
-              {activeThread.crashed ? (
-                <Text variant="danger" size="sm" bold>
-                  {t('crashed')}
-                </Text>
-              ) : (
-                <Text variant="muted" size="sm">
-                  {activeThread.state}
-                </Text>
-              )}
-            </Flex>
-            <ActiveThreadFrames event={event} thread={activeThread} />
-          </Stack>
-        </FoldSection>
-      </NativeStackTraceProvider>
-    </StackTraceDisplayOptionsProvider>
-  );
 }

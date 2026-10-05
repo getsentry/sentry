@@ -1,3 +1,4 @@
+import {EventFixture} from 'sentry-fixture/event';
 import {EventStacktraceFrameFixture} from 'sentry-fixture/eventStacktraceFrame';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
@@ -7,7 +8,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {IssueThreadStackTrace} from 'sentry/components/stackTrace/native/issueThreadStackTrace';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event, ExceptionValue, Thread} from 'sentry/types/event';
-import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
@@ -76,11 +77,11 @@ function makeThread(overrides: Partial<Thread>): Thread {
 }
 
 function makeEvent(threads: Thread[], platform: PlatformKey = 'cocoa'): Event {
-  return {
+  return EventFixture({
     id: 'event-id',
-    message: 'EXC_BAD_ACCESS',
-    title: 'EXC_BAD_ACCESS',
-    metadata: {},
+    eventID: 'event-id',
+    projectID: project.id,
+    platform,
     entries: [
       {
         type: EntryType.EXCEPTION,
@@ -100,31 +101,9 @@ function makeEvent(threads: Thread[], platform: PlatformKey = 'cocoa'): Event {
           ],
         },
       },
-      {
-        type: EntryType.THREADS,
-        data: {values: threads},
-      },
+      {type: EntryType.THREADS, data: {values: threads}},
     ],
-    projectID: project.id,
-    groupID: '1',
-    eventID: 'event-id',
-    dateCreated: '2019-05-21T18:01:48.762Z',
-    dateReceived: '2019-05-21T18:01:48.762Z',
-    tags: [],
-    errors: [],
-    crashFile: null,
-    size: 0,
-    dist: null,
-    fingerprints: [],
-    culprit: '',
-    user: null,
-    location: '',
-    type: EventOrGroupType.ERROR,
-    occurrence: null,
-    resolvedWith: [],
-    contexts: {},
-    platform,
-  } as Event;
+  });
 }
 
 function getExceptionEntry(event: Event) {
@@ -606,13 +585,7 @@ describe('IssueThreadStackTrace', () => {
 
   it('renders chained exceptions for exception-backed native threads', async () => {
     const event = makeEvent([makeThread({crashed: true, id: 7})]);
-    const exceptionEntry = event.entries.find(
-      entry => entry.type === EntryType.EXCEPTION
-    );
-    if (exceptionEntry?.type !== EntryType.EXCEPTION) {
-      throw new Error('Expected exception entry');
-    }
-    exceptionEntry.data.values = [
+    setExceptionValues(event, [
       {
         mechanism: null,
         module: null,
@@ -631,7 +604,7 @@ describe('IssueThreadStackTrace', () => {
         type: 'InnerError',
         value: 'inner failure',
       },
-    ];
+    ]);
 
     renderThreadStackTrace(event);
 
@@ -646,13 +619,7 @@ describe('IssueThreadStackTrace', () => {
 
   it('renders available chained exception stack traces when the active exception has no stack trace', async () => {
     const event = makeEvent([makeThread({crashed: true, id: 7, stacktrace: null})]);
-    const exceptionEntry = event.entries.find(
-      entry => entry.type === EntryType.EXCEPTION
-    );
-    if (exceptionEntry?.type !== EntryType.EXCEPTION) {
-      throw new Error('Expected exception entry');
-    }
-    exceptionEntry.data.values = [
+    setExceptionValues(event, [
       {
         mechanism: null,
         module: null,
@@ -671,7 +638,7 @@ describe('IssueThreadStackTrace', () => {
         type: 'InnerError',
         value: 'inner failure',
       },
-    ];
+    ]);
 
     renderThreadStackTrace(event);
 
@@ -723,13 +690,7 @@ describe('IssueThreadStackTrace', () => {
         stacktrace: makeStacktrace('Thread.onlyFrame'),
       }),
     ]);
-    const exceptionEntry = event.entries.find(
-      entry => entry.type === EntryType.EXCEPTION
-    );
-    if (exceptionEntry?.type !== EntryType.EXCEPTION) {
-      throw new Error('Expected exception entry');
-    }
-    exceptionEntry.data.values![0]!.stacktrace = makeStacktrace('Exception.visibleFrame');
+    getExceptionValues(event)[0]!.stacktrace = makeStacktrace('Exception.visibleFrame');
 
     renderThreadStackTrace(event);
 
@@ -800,36 +761,6 @@ describe('IssueThreadStackTrace', () => {
     expect(rawText).toHaveTextContent('CauseError: Original failure');
     expect(rawText).toHaveTextContent('ViewController.causeCrash');
     expect(rawText).not.toHaveTextContent('SecondError');
-  });
-
-  it('applies native frame detail display options to exception-backed native frames', async () => {
-    const event = makeEvent([
-      makeThread({
-        crashed: true,
-        id: 7,
-        stacktrace: makeStacktrace('Thread.onlyFrame'),
-      }),
-    ]);
-    const exceptionEntry = event.entries.find(
-      entry => entry.type === EntryType.EXCEPTION
-    );
-    if (exceptionEntry?.type !== EntryType.EXCEPTION) {
-      throw new Error('Expected exception entry');
-    }
-    exceptionEntry.data.values![0]!.stacktrace = makeStacktrace('Exception.visibleFrame');
-
-    renderThreadStackTrace(event);
-
-    expect(await screen.findByText('Exception.visibleFrame')).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
-    await userEvent.click(
-      await screen.findByRole('option', {name: 'Verbose Function Names'})
-    );
-
-    expect(
-      await screen.findByText('Exception.visibleFrame(Any) -> ()')
-    ).toBeInTheDocument();
   });
 
   it('matches old raw thread logic for exception and non-exception threads', async () => {
@@ -924,12 +855,11 @@ EOF`,
   it('keeps chained exceptions in raw view when Apple crash reports are unavailable', async () => {
     localStorageWrapper.setItem(storageKey, JSON.stringify(['raw-stack-trace']));
     const event = makeEvent([makeThread({crashed: true, id: 7})], 'c');
-    const entry = event.entries.find(value => value.type === EntryType.EXCEPTION)!;
-    const exception = entry.data.values![0]!;
-    entry.data.values = [
+    const exception = getExceptionValues(event)[0]!;
+    setExceptionValues(event, [
       {...exception, type: 'OuterError', stacktrace: makeStacktrace('Outer.frame')},
       {...exception, type: 'InnerError', stacktrace: makeStacktrace('Inner.frame')},
-    ];
+    ]);
 
     renderThreadStackTrace(event);
 
@@ -945,8 +875,7 @@ EOF`,
     'uses inner exception display capabilities when the outer stack is missing: %s',
     async missingOuterStack => {
       const event = makeEvent([makeThread({crashed: true, id: 7, stacktrace: null})]);
-      const entry = event.entries.find(value => value.type === EntryType.EXCEPTION)!;
-      const exception = entry.data.values![0]!;
+      const exception = getExceptionValues(event)[0]!;
       const outer = makeStacktrace('Outer.frame');
       outer.frames = outer.frames!.map(frame => ({
         ...frame,
@@ -958,10 +887,10 @@ EOF`,
       const inner = makeStacktrace('Inner.frame');
       inner.frames![1]!.filename = 'inner.m';
       inner.frames![1]!.absPath = '/src/inner.m';
-      entry.data.values = [
+      setExceptionValues(event, [
         {...exception, type: 'OuterError', stacktrace: missingOuterStack ? null : outer},
         {...exception, type: 'InnerError', stacktrace: inner},
-      ];
+      ]);
 
       renderThreadStackTrace(event);
 
@@ -1022,7 +951,7 @@ EOF`,
     expect(await screen.findByText('Worker.run')).toBeInTheDocument();
     expect(screen.getByText('system_start')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
-    await userEvent.click(screen.getByRole('option', {name: 'Oldest First'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Oldest'}));
     await userEvent.keyboard('{Escape}');
     await userEvent.click(screen.getByRole('button', {name: 'Previous Thread'}));
     await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
@@ -1030,7 +959,7 @@ EOF`,
       'aria-selected',
       'true'
     );
-    expect(screen.getByRole('option', {name: 'Oldest First'})).toHaveAttribute(
+    expect(screen.getByRole('option', {name: 'Oldest'})).toHaveAttribute(
       'aria-selected',
       'true'
     );
