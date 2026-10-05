@@ -31,6 +31,7 @@ import {
   ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WIDGET_BUILDER_ATTRIBUTE_STALE_TIME} from 'sentry/views/dashboards/constants';
@@ -45,7 +46,7 @@ import {
   getTimeseriesSortOptions,
   renderTraceAsLinkable,
   transformEventsResponseToTable,
-} from 'sentry/views/dashboards/datasetConfig/errorsAndTransactions';
+} from 'sentry/views/dashboards/datasetConfig/events';
 import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
 import {
   DisplayType,
@@ -56,13 +57,22 @@ import {
 import {getWidgetTableRowExploreUrlFunction} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {
   isEventsStats,
+  isEventsTimeSeriesResponse,
   isGroupedMultiSeriesEventsStats,
   isMultiSeriesEventsStats,
 } from 'sentry/views/dashboards/utils/isEventsStats';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
+import {
+  getTimeSeriesResultTypes,
+  getTimeSeriesResultUnits,
+  transformTimeSeriesResponseToSeries,
+} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
 import {SpansSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
 import {isPerformanceScoreBreakdownChart} from 'sentry/views/dashboards/widgetBuilder/utils/isPerformanceScoreBreakdownChart';
-import {transformPerformanceScoreBreakdownSeries} from 'sentry/views/dashboards/widgetBuilder/utils/transformPerformanceScoreBreakdownSeries';
+import {
+  transformPerformanceScoreBreakdownSeries,
+  transformPerformanceScoreBreakdownTimeSeries,
+} from 'sentry/views/dashboards/widgetBuilder/utils/transformPerformanceScoreBreakdownSeries';
 import {
   useSpansSeriesQuery,
   useSpansTableQuery,
@@ -72,8 +82,12 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useTraceItemSearchQueryBuilderProps} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {
+  hasConditionalAggregateFilter,
+  withBaseConditionalAggregateField,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 import {SpanFields} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
@@ -283,7 +297,10 @@ function extractSeriesMetadata<T>({
 }
 
 export const SpansConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
+  | EventsStats
+  | MultiSeriesEventsStats
+  | GroupedMultiSeriesEventsStats
+  | EventsTimeSeriesResponse,
   TableData | EventsTableData
 > = {
   defaultCategoryField: 'transaction',
@@ -342,6 +359,9 @@ export const SpansConfig: DatasetConfig<
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);
   },
   getSeriesResultUnit: (data, widgetQuery) => {
+    if (isEventsTimeSeriesResponse(data)) {
+      return getTimeSeriesResultUnits(data);
+    }
     return extractSeriesMetadata({
       data,
       widgetQuery,
@@ -350,6 +370,9 @@ export const SpansConfig: DatasetConfig<
     });
   },
   getSeriesResultType: (data, widgetQuery) => {
+    if (isEventsTimeSeriesResponse(data)) {
+      return getTimeSeriesResultTypes(data);
+    }
     return extractSeriesMetadata({
       data,
       widgetQuery,
@@ -375,16 +398,22 @@ function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryField
     return true;
   }
 
+  // Explore-style `_if` fields explode as `count_unique_if` / `count_if`, but
+  // column filtering must use the base aggregate name.
+  const normalizedField = fieldValue
+    ? withBaseConditionalAggregateField(fieldValue)
+    : fieldValue;
+
   if (
-    fieldValue?.kind === 'function' &&
-    fieldValue?.function[0] === AggregationKey.COUNT
+    normalizedField?.kind === 'function' &&
+    normalizedField?.function[0] === AggregationKey.COUNT
   ) {
     return option.value.meta.name === 'span.duration';
   }
 
   const expectedDataType =
-    fieldValue?.kind === 'function' &&
-    fieldValue?.function[0] === AggregationKey.COUNT_UNIQUE
+    normalizedField?.kind === 'function' &&
+    normalizedField?.function[0] === AggregationKey.COUNT_UNIQUE
       ? 'string'
       : 'number';
 
@@ -414,7 +443,8 @@ function filterSeriesSortOptions(columns: Set<string>) {
   return (option: FieldValueOption) => {
     if (
       option.value.kind === FieldValueKind.FUNCTION ||
-      option.value.kind === FieldValueKind.EQUATION
+      option.value.kind === FieldValueKind.EQUATION ||
+      hasConditionalAggregateFilter(option.value.meta.name)
     ) {
       return true;
     }
@@ -545,9 +575,22 @@ function renderInternalErrorCount(widget?: Widget, dashboardFilters?: DashboardF
 }
 
 function transformSeries(
-  data: EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
+  data:
+    | EventsStats
+    | MultiSeriesEventsStats
+    | GroupedMultiSeriesEventsStats
+    | EventsTimeSeriesResponse,
   widgetQuery: WidgetQuery
 ) {
+  if (isEventsTimeSeriesResponse(data)) {
+    return transformTimeSeriesResponseToSeries(
+      isPerformanceScoreBreakdownChart(widgetQuery)
+        ? transformPerformanceScoreBreakdownTimeSeries(data)
+        : data,
+      widgetQuery
+    );
+  }
+
   let eventsStats = data;
   // Kind of a hack, but performance score breakdown charts need a special transformation to display correctly.
   if (

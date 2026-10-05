@@ -9,9 +9,13 @@ const LazyProfileBlock = lazy(() => import('./profileBlock'));
 export const Profile = defineSeerEmbed({
   name: 'profile',
   render(props, level) {
-    if (level === 'block') {
-      return <LazyLoad LazyComponent={LazyProfileBlock} {...props} />;
+    switch (level) {
+      case 'block':
+        return <LazyLoad LazyComponent={LazyProfileBlock} {...props} />;
+      case 'markdown':
+        return <ProfileLink {...props} format="markdown" />;
+      case 'inline':
+        return <ProfileLink {...props} />;
     }
-    return <ProfileLink {...props} />;
   },
 });

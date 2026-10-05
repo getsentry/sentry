@@ -13,7 +13,7 @@ import type {SymbolicatorStatus} from 'sentry/components/events/interfaces/types
 
 import type {RawCrumb} from './breadcrumbs';
 import type {Image} from './debugImage';
-import type {IssueAttachment, IssueCategory, UserReport} from './group';
+import type {IssueAttachment, IssueCategory, Meta, UserReport} from './group';
 import type {PlatformKey} from './platform';
 import type {Release} from './release';
 import type {StackTraceMechanism, StacktraceType} from './stacktrace';
@@ -763,7 +763,6 @@ interface EventBase {
   _meta?: Record<string, any>;
   context?: Record<string, any>;
   dateCreated?: string;
-  device?: Record<string, any>;
   endTimestamp?: number;
   formatted?: {content: string; format: string};
   groupID?: string;
@@ -855,3 +854,53 @@ export type EventIdResponse = {
   organizationSlug: string;
   projectSlug: string;
 };
+
+/**
+ * Proposed Symbolicator native variable payload. `kind` describes the variable's scope.
+ * TODO(scttcper): Revisit this type once the Symbolicator schema lands and confirm it is still needed.
+ * https://github.com/getsentry/symbolicator/blob/90490595bfc14c929b295b97afd6f9789c3266dc/crates/symbolicator-native/src/interface/variables.rs
+ */
+export interface NativeFrameVariable {
+  formatted: string | null;
+  kind: 'local' | 'parameter';
+  type: string;
+}
+
+interface FrameVariableBase {
+  name: string;
+  /** Annotations for this value; len is the original string or collection length. */
+  meta?: Partial<Meta>;
+  /** Native type label, when provided separately by Symbolicator. */
+  type?: string;
+}
+
+type FrameVariableCollection = FrameVariableBase & {
+  children: readonly FrameVariable[];
+} & ({kind: 'object'} | {kind: 'array'});
+
+interface FrameVariableScalar extends FrameVariableBase {
+  kind: 'number' | 'string' | 'unformatted' | 'boolean';
+  /** Preserve pointer addresses and full numeric precision. */
+  value: string;
+}
+
+interface FrameVariableNull extends FrameVariableBase {
+  kind: 'null';
+  value?: string;
+}
+
+interface FrameVariableUnavailable extends FrameVariableBase {
+  kind: 'unavailable';
+}
+
+/**
+ * Renderer model built from frame.vars. Here `kind` selects the display representation,
+ * unlike NativeFrameVariable.kind, which describes local variables and parameters.
+ * Legacy native strings are preserved verbatim; proposed native payloads supply
+ * a separate type label and an already-formatted value.
+ */
+export type FrameVariable =
+  | FrameVariableCollection
+  | FrameVariableScalar
+  | FrameVariableNull
+  | FrameVariableUnavailable;

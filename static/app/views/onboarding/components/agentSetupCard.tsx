@@ -6,11 +6,13 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {IconBot} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {selectText} from 'sentry/utils/selectText';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AgentInfo} from 'sentry/views/onboarding/components/agentInfo';
 import {SETUP_CARD_ICON_SIZE, SETUP_CARD_MARKER_PX} from 'sentry/views/onboarding/consts';
 
@@ -39,6 +41,10 @@ export function AgentSetupCard({
   onSelectSnippet,
   prompt,
 }: AgentSetupCardProps) {
+  const organization = useOrganization();
+  const installCommand = onboardingCode
+    ? `${INSTALL_PLUGIN_COMMAND} ${organization.slug}#${onboardingCode}`
+    : INSTALL_PLUGIN_COMMAND;
   const installCommandRef = useRef<HTMLDivElement>(null);
   const promptRef = useRef<HTMLDivElement>(null);
 
@@ -69,6 +75,7 @@ export function AgentSetupCard({
     <Grid
       columns={`${SETUP_CARD_MARKER_PX} 1fr`}
       gap="0 md"
+      background="primary"
       border="primary"
       radius="xl"
       padding="xl"
@@ -76,6 +83,7 @@ export function AgentSetupCard({
         "icon  title"
         ".     meta"
         "steps steps"
+        "feedback feedback"
       `}
     >
       <Flex area="icon" align="center" justify="center">
@@ -119,7 +127,7 @@ export function AgentSetupCard({
                 onCopy={() => onCopyCommand('install_command')}
                 wrapMode="wrap"
               >
-                {INSTALL_PLUGIN_COMMAND}
+                {installCommand}
               </CodeBlock>
             </Stack>
             <Flex
@@ -160,6 +168,15 @@ export function AgentSetupCard({
           </ListItem>
         </List>
       </Container>
+
+      <Flex area="feedback" justify="end" paddingTop="lg">
+        <FeedbackButton
+          size="xs"
+          feedbackOptions={{
+            tags: {'feedback.source': 'onboarding-agent-setup'},
+          }}
+        />
+      </Flex>
     </Grid>
   );
 }

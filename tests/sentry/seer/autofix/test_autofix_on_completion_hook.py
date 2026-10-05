@@ -58,6 +58,7 @@ from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.activity import ActivityType
 from sentry.utils import json
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 
 def run_state(
@@ -362,7 +363,7 @@ class TestStoppingPointFromRun(TestCase):
     def test_group_and_referrer_ignores_other_feature_runs(self) -> None:
         self._create_run(
             123,
-            extras={"referrer": AutofixReferrer.NIGHT_SHIFT.value},
+            extras={"referrer": AutofixReferrer.AGENTIC_TRIAGE.value},
             source="night_shift",
         )
         assert _group_and_referrer_from_run(self.organization, 123) == (None, None)
@@ -375,7 +376,7 @@ class TestStoppingPointFromRun(TestCase):
         self._create_run(
             123,
             extras={
-                "referrer": AutofixReferrer.NIGHT_SHIFT.value,
+                "referrer": AutofixReferrer.AGENTIC_TRIAGE.value,
                 "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
             },
         )
@@ -386,7 +387,7 @@ class TestStoppingPointFromRun(TestCase):
 
         AutofixOnCompletionHook.execute(self.organization, 123)
 
-        assert mock_trigger.call_args.kwargs["referrer"] == AutofixReferrer.NIGHT_SHIFT
+        assert mock_trigger.call_args.kwargs["referrer"] == AutofixReferrer.AGENTIC_TRIAGE
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
     def test_state_metadata_takes_precedence_over_the_run_mirror(self, mock_trigger) -> None:
@@ -933,7 +934,7 @@ class TestPrIterationCompletionHook(TestCase):
         assert task_kwargs["run_id"] == 123
         assert task_kwargs["organization_id"] == self.organization.id
         assert task_kwargs["trigger_id"]
-        assert task_kwargs["trigger_source"] == ConsumeTriggerSource.FEEDBACK
+        assert task_kwargs["trigger_source"] == ConsumeTriggerSource.COMPLETION
 
     @patch(f"{HOOK_PATH}.complete_pr_iteration_details")
     def test_no_pull_request_reaches_completion_details_as_that_outcome(self, mock_complete):
@@ -1036,6 +1037,7 @@ class TestFailedRunCompletionHook(TestCase):
             organization_id=self.organization.id,
             iteration_id=iteration_id,
             referrer="github_pr_comment",
+            feedback_types="github_pr_comment",
             feedback_count=2,
             queued_count=1,
             dropped_count=0,
@@ -1066,7 +1068,7 @@ class TestFailedRunCompletionHook(TestCase):
                 group_id=self.group.id,
                 run_id=123,
                 referrer="github_pr_comment",
-                iteration_index=1,
+                feedback_types="github_pr_comment",
                 trigger_source="feedback",
                 feedback_count=2,
                 queued_count=1,
@@ -1156,6 +1158,41 @@ class TestFailedRunCompletionHook(TestCase):
 
         mock_continue.assert_called_once()
         assert is_pr_iteration_paused(run_id=123, organization_id=self.organization.id) is False
+
+    @patch(f"{HOOK_PATH}.complete_pr_iteration_details")
+    @patch(f"{HOOK_PATH}.fetch_run_status")
+    def test_a_failed_run_reaches_completion_details_under_its_reason(
+        self, mock_fetch, mock_complete
+    ):
+        for failure_reason, expected in (
+            ("timeout", PrIterationOutcome.TIMEOUT.value),
+            ("stalled", PrIterationOutcome.STALLED.value),
+            (None, PrIterationOutcome.ERRORED.value),
+        ):
+            with self.subTest(failure_reason=failure_reason):
+                mock_complete.reset_mock()
+                mock_fetch.return_value = self._errored(
+                    [pr_iteration_memory_block(commit_sha="iteration-sha")],
+                    failure_reason=failure_reason,
+                )
+
+                AutofixOnCompletionHook.execute(self.organization, 123)
+
+                assert mock_complete.call_args.kwargs["outcome"] == expected
+
+    @patch(f"{HOOK_PATH}.complete_pr_iteration_details")
+    @patch(f"{HOOK_PATH}.fetch_run_status")
+    def test_a_run_awaiting_user_input_is_not_treated_as_a_failure(self, mock_fetch, mock_complete):
+        """Pausing here would abandon feedback the agent can still act on."""
+        mock_fetch.return_value = run_state(
+            blocks=[pr_iteration_memory_block(commit_sha="iteration-sha")],
+            metadata={"group_id": self.group.id},
+            status="awaiting_user_input",
+        )
+
+        AutofixOnCompletionHook.execute(self.organization, 123)
+
+        mock_complete.assert_not_called()
 
 
 class TestPipelineConstants(TestCase):
@@ -1399,16 +1436,51 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
 
     @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
+    def test_failed_pr_creation_does_not_emit_pr_activities(self, mock_broadcast, mock_emit):
+        state = run_state(blocks=[code_changes_memory_block()])
+        state.repo_pr_states = {
+            "test-repo": RepoPRState(
+                repo_name="test-repo",
+                pr_creation_status="error",
+            )
+        }
+
+        with patch(
+            "sentry.seer.autofix.on_completion_hook.SeerAutofixOperator.has_access",
+            return_value=True,
+        ):
+            AutofixOnCompletionHook._send_step_webhook(self.organization, 123, state, self.group)
+
+        mock_broadcast.assert_not_called()
+        mock_emit.assert_not_called()
+        assert not Activity.objects.filter(
+            group=self.group,
+            type=ActivityType.SEER_PR_CREATED.value,
+        ).exists()
+
+    @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")
+    @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     def test_pr_is_ready_on_open(self, mock_broadcast, mock_emit):
         state = self._pr_created_state()
-        AutofixOnCompletionHook._send_step_webhook(
-            organization=self.organization, run_id=123, state=state, group=self.group
-        )
+        with patch(
+            "sentry.seer.autofix.on_completion_hook.SeerAutofixOperator.has_access",
+            return_value=True,
+        ):
+            AutofixOnCompletionHook._send_step_webhook(
+                organization=self.organization,
+                run_id=123,
+                state=state,
+                group=self.group,
+                fallback_referrer=AutofixReferrer.WEB,
+                actor_user_id=self.user.id,
+            )
 
         mock_emit.assert_called_once()
         kwargs = mock_emit.call_args.kwargs
         assert kwargs["group"] == self.group
         assert kwargs["state"] is state
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SEER_PR_CREATED.value)
+        assert activity.user_id == self.user.id
 
     @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
@@ -1561,18 +1633,43 @@ class TestAutofixOnCompletionHookHandoff(TestCase):
             run_id=123,
             group=self.group,
             handoff_config=handoff_config,
-            referrer=AutofixReferrer.NIGHT_SHIFT,
+            referrer=AutofixReferrer.AGENTIC_TRIAGE,
         )
 
         mock_trigger.assert_called_once()
         call_kwargs = mock_trigger.call_args.kwargs
         assert call_kwargs["run_id"] == 123
         assert call_kwargs["integration_id"] == 123
-        assert call_kwargs["referrer"] == AutofixReferrer.NIGHT_SHIFT
+        assert call_kwargs["referrer"] == AutofixReferrer.AGENTIC_TRIAGE
 
 
 class AutofixOnCompletionHookTest(TestCase):
     """Test the AutofixOnCompletionHook behavior."""
+
+    @patch(
+        "sentry.seer.autofix.on_completion_hook.AutofixOnCompletionHook._maybe_continue_pipeline"
+    )
+    @patch("sentry.seer.autofix.on_completion_hook.AutofixOnCompletionHook._send_step_webhook")
+    @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
+    def test_passes_viewer_actor_to_step_webhook(
+        self, mock_fetch_run_status, mock_send_webhook, mock_continue_pipeline
+    ):
+        group = self.create_group(project=self.project)
+        mock_fetch_run_status.return_value = run_state(
+            blocks=[code_changes_memory_block()],
+            metadata={"group_id": group.id},
+        )
+
+        with viewer_context_scope(
+            ViewerContext(
+                organization_id=self.organization.id,
+                user_id=self.user.id,
+                actor_type=ActorType.USER,
+            )
+        ):
+            AutofixOnCompletionHook.execute(self.organization, 123)
+
+        assert mock_send_webhook.call_args.kwargs["actor_user_id"] == self.user.id
 
     @patch("sentry.seer.autofix.on_completion_hook.fetch_run_status")
     @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")

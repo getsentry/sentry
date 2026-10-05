@@ -2,7 +2,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {getReplayTraceSearchQuery} from 'sentry/views/performance/newTraceDetails/traceApi/replayTraceSearch';
+import {getReplayTraceSearchQuery} from 'sentry/views/performance/traceDetails/traceApi/replayTraceSearch';
 
 import {useReplayTraces} from './useReplayTraces';
 

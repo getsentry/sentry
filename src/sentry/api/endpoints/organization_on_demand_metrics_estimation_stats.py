@@ -67,10 +67,12 @@ class OrganizationOnDemandMetricsEstimationStatsEndpoint(OrganizationEventsEndpo
             return Response({"detail": "missing required parameter yAxis"}, status=400)
 
         with traces.start_span(
-            name="get_full_metrics", attributes={"sentry.op": "discover.metrics.endpoint"}
-        ) as span:
-            span.set_attribute("organization", repr(organization))
-
+            name="get_full_metrics",
+            attributes={
+                "sentry.op": "discover.metrics.endpoint",
+                "organization": repr(organization),
+            },
+        ):
             try:
                 # the discover stats
                 discover_stats = self.get_event_stats_data(

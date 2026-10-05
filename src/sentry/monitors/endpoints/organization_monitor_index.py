@@ -11,6 +11,7 @@ from django.db.models import (
     When,
 )
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from sentry import audit_log, quotas
@@ -18,7 +19,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
-from sentry.api.bases.organization import OrganizationAlertRulePermission
+from sentry.api.bases.organization import OrganizationAlertRulePermission, OrganizationEndpoint
 from sentry.api.helpers.teams import get_teams
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -37,9 +38,9 @@ from sentry.apidocs.parameters import (
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.db.models.query import in_iexact
-from sentry.incidents.endpoints.bases import OrganizationAlertRuleBaseEndpoint
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.monitors.models import (
     DEFAULT_STATUS_ORDER,
     MONITOR_ENVIRONMENT_ORDERING,
@@ -78,7 +79,7 @@ def flip_sort_direction(sort_field: str) -> str:
 
 @cell_silo_endpoint
 @extend_schema(tags=["Crons"])
-class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
+class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
@@ -87,6 +88,17 @@ class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
     }
     owner = ApiOwner.CRONS
     permission_classes = (OrganizationAlertRulePermission,)
+
+    def check_can_create_monitor(self, request: AuthenticatedHttpRequest, project: Project) -> None:
+        if (
+            request.access.has_scope("alerts:write")
+            or request.access.has_scope("org:admin")
+            or request.access.has_scope("org:write")
+        ):
+            return
+
+        if not request.access.has_project_scope(project, "alerts:write"):
+            raise PermissionDenied
 
     @extend_schema(
         operation_id="listOrganizationMonitors",
@@ -289,14 +301,14 @@ class OrganizationMonitorIndexEndpoint(OrganizationAlertRuleBaseEndpoint):
         """
         Create a new monitor.
         """
-        self.check_can_create_alert(request, organization)
-
         validator = MonitorValidator(
             data=request.data,
             context={"organization": organization, "access": request.access, "request": request},
         )
         if not validator.is_valid():
             return self.respond(validator.errors, status=400)
+
+        self.check_can_create_monitor(request, validator.validated_data["project"])
 
         monitor = validator.save()
         return self.respond(serialize(monitor, request.user), status=201)

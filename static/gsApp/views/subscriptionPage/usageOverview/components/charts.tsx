@@ -88,33 +88,31 @@ export function UsageCharts({
     subscription.planDetails.categories.includes(DataCategory.PROFILE_DURATION) &&
     category === DataCategory.TRANSACTIONS;
 
-  const renderFooter = () => {
-    return (
-      <ChartControls>
-        <InlineContainer>
-          <OptionSelector
-            title={t('Type')}
-            selected={transform}
-            options={CHART_OPTIONS_DATA_TRANSFORM}
-            onChange={(val: string) => {
-              trackGetsentryAnalytics(
-                'subscription_page.usage_overview.transform_changed',
-                {
-                  organization,
-                  subscription,
-                  transform: val,
-                }
-              );
-              navigate({
-                pathname: location.pathname,
-                query: {...location.query, transform: val},
-              });
-            }}
-          />
-        </InlineContainer>
-      </ChartControls>
-    );
-  };
+  const footer = (
+    <ChartControls>
+      <InlineContainer>
+        <OptionSelector
+          title={t('Type')}
+          selected={transform}
+          options={CHART_OPTIONS_DATA_TRANSFORM}
+          onChange={(val: string) => {
+            trackGetsentryAnalytics(
+              'subscription_page.usage_overview.transform_changed',
+              {
+                organization,
+                subscription,
+                transform: val,
+              }
+            );
+            navigate({
+              pathname: location.pathname,
+              query: {...location.query, transform: val},
+            });
+          }}
+        />
+      </InlineContainer>
+    </ChartControls>
+  );
 
   return (
     <Container padding="xl">
@@ -126,7 +124,7 @@ export function UsageCharts({
         transform={transform}
         usagePeriodStart={usageData.periodStart}
         usagePeriodEnd={usageData.periodEnd}
-        footer={renderFooter()}
+        footer={footer}
       />
       <Stack gap="xl">
         <UsageTotalsTable

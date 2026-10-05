@@ -86,6 +86,7 @@ describe('useLogsTimeseries', () => {
             isFetching: false,
             isPending: false,
             data: [],
+            routingHintsByRow: new Map(),
             meta: {
               fields: {},
               units: {},

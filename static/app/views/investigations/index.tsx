@@ -5,6 +5,7 @@ import {parseAsString, useQueryStates} from 'nuqs';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -16,7 +17,6 @@ import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -28,18 +28,16 @@ import {
   type GridColumnOrder,
 } from 'sentry/components/tables/gridEditable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconAdd, IconStar} from 'sentry/icons';
+import {IconStar} from 'sentry/icons';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getInvestigationDetailQueryOptions,
   investigationListQueryOptions,
-  useCreateInvestigationMutation,
   useDeleteInvestigationMutation,
   useDuplicateInvestigationMutation,
   useSetInvestigationFavoriteMutation,
@@ -50,7 +48,6 @@ import {RouteError} from 'sentry/views/routeError';
 
 enum ColumnKey {
   NAME = 'title',
-  BLOCKS = 'blockCount',
   CREATED = 'dateCreated',
   STATUS = 'status',
   ACTIONS = 'actions',
@@ -58,7 +55,6 @@ enum ColumnKey {
 
 const COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
   {key: ColumnKey.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
-  {key: ColumnKey.BLOCKS, name: t('Blocks'), width: 116},
   {key: ColumnKey.CREATED, name: t('Created'), width: 160},
   {key: ColumnKey.STATUS, name: t('Status'), width: 160},
   {key: ColumnKey.ACTIONS, name: '', width: 40},
@@ -66,13 +62,65 @@ const COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
 
 const TableWrapper = styled('div')`
   table {
-    grid-template-columns: max-content minmax(240px, 1fr) 116px 160px 160px max-content !important;
+    grid-template-columns: max-content minmax(240px, 1fr) 160px 160px max-content !important;
   }
 `;
 
 function getInvestigationPath(organizationSlug: string, investigationId: string) {
   return normalizeUrl(
     `/organizations/${organizationSlug}/explore/investigations/${investigationId}/`
+  );
+}
+
+function InvestigationActions({
+  investigation,
+  onCopy,
+  onDelete,
+  onDuplicate,
+}: {
+  investigation: InvestigationListItem;
+  onCopy: () => void;
+  onDelete: () => void;
+  onDuplicate: () => void;
+}) {
+  return (
+    <DropdownMenu
+      items={[
+        {
+          key: 'copy-link',
+          label: t('Copy link'),
+          onAction: onCopy,
+        },
+        {
+          key: 'duplicate',
+          label: t('Duplicate'),
+          onAction: onDuplicate,
+        },
+        {
+          key: 'delete',
+          label: t('Delete'),
+          priority: 'danger',
+          onAction: () =>
+            openConfirmModal({
+              message: t('Are you sure you want to delete this investigation?'),
+              priority: 'danger',
+              confirmText: t('Delete'),
+              onConfirm: onDelete,
+            }),
+        },
+      ]}
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          size="sm"
+          variant="transparent"
+          icon={<IconEllipsis />}
+          aria-label={t('More options for %s', investigation.title)}
+        />
+      )}
+      position="bottom-end"
+      usePortal
+    />
   );
 }
 
@@ -101,7 +149,6 @@ function ClosedMembershipPage() {
 
 export function InvestigationsPage() {
   const organization = useOrganization();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const {copy} = useCopyToClipboard();
   const [{query, cursor}, setQueryParams] = useQueryStates({
@@ -123,14 +170,6 @@ export function InvestigationsPage() {
       )
         ? 2000
         : false,
-  });
-
-  const createMutation = useCreateInvestigationMutation(organization.slug, {
-    onSuccess: investigation => {
-      addSuccessMessage(t('Investigation created.'));
-      navigate(getInvestigationPath(organization.slug, investigation.id));
-    },
-    onError: () => addErrorMessage(t('Unable to create investigation.')),
   });
 
   const favoriteMutation = useSetInvestigationFavoriteMutation(organization.slug, {
@@ -170,53 +209,6 @@ export function InvestigationsPage() {
     });
   }
 
-  function renderActions(investigation: InvestigationListItem) {
-    return (
-      <DropdownMenu
-        items={[
-          {
-            key: 'copy-link',
-            label: t('Copy link'),
-            onAction: () =>
-              copy(
-                `${window.location.origin}${getInvestigationPath(
-                  organization.slug,
-                  investigation.id
-                )}`,
-                {successMessage: t('Investigation link copied.')}
-              ),
-          },
-          {
-            key: 'duplicate',
-            label: t('Duplicate'),
-            onAction: () => duplicateMutation.mutate(investigation),
-          },
-          {
-            key: 'delete',
-            label: t('Delete'),
-            priority: 'danger',
-            onAction: () =>
-              openConfirmModal({
-                message: t('Are you sure you want to delete this investigation?'),
-                priority: 'danger',
-                confirmText: t('Delete'),
-                onConfirm: () => deleteMutation.mutate(investigation),
-              }),
-          },
-        ]}
-        triggerProps={{
-          size: 'sm',
-          showChevron: false,
-          variant: 'transparent',
-          icon: <IconEllipsis />,
-          'aria-label': t('More options for %s', investigation.title),
-        }}
-        position="bottom-end"
-        usePortal
-      />
-    );
-  }
-
   const renderBodyCell = (
     column: GridColumnOrder<ColumnKey>,
     investigation: InvestigationListItem
@@ -237,14 +229,27 @@ export function InvestigationsPage() {
             </Link>
           </Text>
         );
-      case ColumnKey.BLOCKS:
-        return investigation.blockCount;
       case ColumnKey.CREATED:
         return <TimeSince date={investigation.dateCreated} />;
       case ColumnKey.STATUS:
         return investigation.status === 'active' ? t('Active') : null;
       case ColumnKey.ACTIONS:
-        return renderActions(investigation);
+        return (
+          <InvestigationActions
+            investigation={investigation}
+            onCopy={() =>
+              copy(
+                `${window.location.origin}${getInvestigationPath(
+                  organization.slug,
+                  investigation.id
+                )}`,
+                {successMessage: t('Investigation link copied.')}
+              )
+            }
+            onDuplicate={() => duplicateMutation.mutate(investigation)}
+            onDelete={() => deleteMutation.mutate(investigation)}
+          />
+        );
       default:
         return null;
     }
@@ -265,7 +270,7 @@ export function InvestigationsPage() {
             <Layout.Body>
               <Layout.Main width="full">
                 <Grid
-                  columns={{zero: 'auto', xl: 'auto max-content max-content'}}
+                  columns={{zero: 'auto', xl: 'auto max-content'}}
                   gap="md"
                   marginBottom="xl"
                 >
@@ -284,21 +289,12 @@ export function InvestigationsPage() {
                     position="bottom-end"
                     data-test-id="investigations-sort"
                   />
-                  <Button
-                    variant="primary"
-                    icon={<IconAdd />}
-                    onClick={() => createMutation.mutate()}
-                    busy={createMutation.isPending}
-                  >
-                    {t('Launch investigation')}
-                  </Button>
                 </Grid>
                 <TableWrapper>
                   <GridEditable
                     data={investigations}
                     columnOrder={COLUMNS}
                     grid={{
-                      renderHeadCell: column => column.name,
                       renderBodyCell,
                       renderPrependColumns: (isHeader, investigation) => {
                         if (isHeader) {

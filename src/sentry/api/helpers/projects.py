@@ -72,9 +72,9 @@ def filter_projects_by_permissions(
     organizations; otherwise access falls back to team membership.
     """
     with traces.start_span(
-        name="apply_project_permissions", attributes={"sentry.op": "apply_project_permissions"}
+        name="apply_project_permissions",
+        attributes={"sentry.op": "apply_project_permissions", "Project Count": len(projects)},
     ) as span:
-        span.set_attribute("Project Count", len(projects))
         if force_global_perms:
             span.set_attribute("mode", "force_global_perms")
             return projects

@@ -253,10 +253,7 @@ export function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps)
     chart: chartQuery,
   };
 
-  const assembleAccordionItems = (provided: ComponentData) =>
-    getItems(provided).map(item => ({header: item, content: getChart(provided)}));
-
-  const getChart = (provided: ComponentData) => {
+  const assembleAccordionItems = (provided: ComponentData) => {
     const transformedReleaseSeries: Record<string, Series> = {};
 
     const series = provided.widgetData.chart.data;
@@ -283,29 +280,32 @@ export function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps)
       });
     }
 
-    return (
-      <Chart
-        height={props.chartHeight}
-        data={Object.values(transformedReleaseSeries)}
-        loading={provided.widgetData.chart.isLoading}
-        grid={{
-          left: '0',
-          right: '0',
-          top: '8px',
-          bottom: '0',
-        }}
-        type={ChartType.LINE}
-        aggregateOutputFormat="duration"
-        tooltipFormatterOptions={{
-          valueFormatter: value =>
-            tooltipFormatterUsingAggregateOutputType(value, 'duration'),
-        }}
-        // @ts-expect-error TS(2339): Property 'error' does not exist on type 'WidgetDat... Remove this comment to see the full error message
-        error={provided.widgetData.chart.error}
-        disableXAxis
-        showLegend={false}
-      />
-    );
+    return getItems(provided).map(item => ({
+      header: item,
+      content: (
+        <Chart
+          height={props.chartHeight}
+          data={Object.values(transformedReleaseSeries)}
+          loading={provided.widgetData.chart.isLoading}
+          grid={{
+            left: '0',
+            right: '0',
+            top: '8px',
+            bottom: '0',
+          }}
+          type={ChartType.LINE}
+          aggregateOutputFormat="duration"
+          tooltipFormatterOptions={{
+            valueFormatter: value =>
+              tooltipFormatterUsingAggregateOutputType(value, 'duration'),
+          }}
+          // @ts-expect-error TS(2339): Property 'error' does not exist on type 'WidgetDat... Remove this comment to see the full error message
+          error={provided.widgetData.chart.error}
+          disableXAxis
+          showLegend={false}
+        />
+      ),
+    }));
   };
 
   const moduleURLBuilder = useModuleURLBuilder();

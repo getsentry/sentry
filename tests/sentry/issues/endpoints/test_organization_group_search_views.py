@@ -447,6 +447,81 @@ class OrganizationGroupSearchViewsPostTest(APITestCase):
         assert "timeFilters" in response.data
 
     @with_feature({"organizations:issue-views": True})
+    def test_invalid_query_with_boolean_operator(self) -> None:
+        """Issue search has allow_boolean=False, so AND/OR must be rejected on write."""
+        data = {
+            "name": "Boolean Query View",
+            "query": "is:unresolved (issue:PROJ-AB1 OR issue:PROJ-CD2)",
+            "querySort": "date",
+            "projects": [],
+            "environments": [],
+            "timeFilters": {"period": "14d"},
+        }
+
+        response = self.get_error_response(self.organization.slug, **data)
+        assert "query" in response.data
+        assert str(response.data["query"][0]) == (
+            "Invalid issue search query: Boolean statements containing "
+            '"OR" or "AND" are not supported in this search'
+        )
+
+        assert not GroupSearchView.objects.filter(
+            organization=self.organization, name="Boolean Query View"
+        ).exists()
+
+    @with_feature({"organizations:issue-views": True})
+    def test_invalid_query_reports_the_parser_reason(self) -> None:
+        """A non-boolean failure gets the parser's own reason, not a generic message."""
+        data = {
+            "name": "Malformed Query View",
+            "query": 'is:unresolved message:"unterminated',
+            "querySort": "date",
+            "projects": [],
+            "environments": [],
+            "timeFilters": {"period": "14d"},
+        }
+
+        response = self.get_error_response(self.organization.slug, **data)
+        assert "query" in response.data
+        assert str(response.data["query"][0]) == (
+            "Invalid issue search query: Invalid quote at '\"unterminated': "
+            "quotes must enclose text or be escaped."
+        )
+
+        assert not GroupSearchView.objects.filter(
+            organization=self.organization, name="Malformed Query View"
+        ).exists()
+
+    @with_feature({"organizations:issue-views": True})
+    def test_create_view_with_issue_list_query(self) -> None:
+        """The list form is how you match several issues; it must keep working."""
+        data = {
+            "name": "Issue List View",
+            "query": "is:unresolved issue:[PROJ-AB1, PROJ-CD2]",
+            "querySort": "date",
+            "projects": [],
+            "environments": [],
+            "timeFilters": {"period": "14d"},
+        }
+
+        response = self.get_success_response(self.organization.slug, **data, status_code=201)
+        assert response.data["query"] == "is:unresolved issue:[PROJ-AB1, PROJ-CD2]"
+
+    @with_feature({"organizations:issue-views": True})
+    def test_create_view_with_blank_query(self) -> None:
+        data = {
+            "name": "Blank Query View",
+            "query": "",
+            "querySort": "date",
+            "projects": [],
+            "environments": [],
+            "timeFilters": {"period": "14d"},
+        }
+
+        response = self.get_success_response(self.organization.slug, **data, status_code=201)
+        assert response.data["query"] == ""
+
+    @with_feature({"organizations:issue-views": True})
     def test_nonexistent_project(self) -> None:
         data = {
             "name": "Nonexistent Project View",

@@ -21,7 +21,9 @@ from sentry.seer.autofix.exceptions import NoSeerQuotaException
 from sentry.seer.autofix.feature.models import (
     FEATURE_ID,
     AutofixFeaturePayload,
+    CodeChangesStepArgs,
     RCAStepArgs,
+    SolutionStepArgs,
 )
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint, is_free_cohort_org
@@ -37,14 +39,14 @@ logger = logging.getLogger(__name__)
 class AutofixFeatureArgs:
     step: AutofixStep
     referrer: AutofixReferrer
-    step_args: RCAStepArgs
+    step_args: RCAStepArgs | SolutionStepArgs | CodeChangesStepArgs
     existing_run_id: int | None = None
     insert_index: int | None = None
     user_context: str | None = None
     stopping_point: AutofixStoppingPoint | None = None
     allow_free_cohort: bool = False
     user: User | RpcUser | AnonymousUser | None = None
-    enable_bash_tools: bool = False
+    enable_bash_mode: bool = False
     flush: bool = True
 
 
@@ -56,7 +58,7 @@ def trigger_autofix_feature(
     from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 
     is_new_run = args.existing_run_id is None
-    # Free cohort orgs bypass quota only when called from night shift
+    # Free cohort orgs bypass quota only when called from agentic triage
     # (allow_free_cohort=True). Not exposed via the API.
     skip_quota = is_new_run and args.allow_free_cohort and is_free_cohort_org(group.organization)
     if is_new_run and not skip_quota:
@@ -90,12 +92,20 @@ def trigger_autofix_feature(
         step_args=args.step_args,
     )
 
+    enable_coding = args.step == AutofixStep.CODE_CHANGES
     client = SeerAgentClient(
         organization=group.organization,
         project=group.project,
         group=group,
         user=args.user,
-        enable_bash_tools=args.enable_bash_tools,
+        enable_bash_mode=args.enable_bash_mode,
+        enable_coding=enable_coding,
+    )
+
+    agent_run_options = AgentRunOptions(
+        is_context_engine_enabled=False,
+        enable_frontend_code_search=False,
+        enable_coding=enable_coding,
     )
 
     extras: dict[str, Any] = {
@@ -113,10 +123,7 @@ def trigger_autofix_feature(
             referrer=args.referrer.value,
             user_org_context=user_org_context,
             proxy_headers=get_proxy_headers(),
-            agent_run_options=AgentRunOptions(
-                is_context_engine_enabled=False,
-                enable_frontend_code_search=False,
-            ),
+            agent_run_options=agent_run_options,
             title=f"Autofix RCA — {payload.short_id}",
             flush=args.flush,
             extras=extras,
@@ -140,10 +147,7 @@ def trigger_autofix_feature(
             referrer=args.referrer.value,
             user_org_context=user_org_context,
             proxy_headers=get_proxy_headers(),
-            agent_run_options=AgentRunOptions(
-                is_context_engine_enabled=False,
-                enable_frontend_code_search=False,
-            ),
+            agent_run_options=agent_run_options,
         )
     else:
         raise Exception("Unhandled run_id branch, this should never happen")
@@ -154,12 +158,15 @@ def trigger_autofix_feature(
         )
 
     metrics.incr(
-        "autofix_feature.trigger", tags={"referrer": args.referrer.value, "step": args.step.value}
+        "autofix_feature.trigger",
+        tags={"referrer": args.referrer.value, "step": args.step.value},
+        sample_rate=1,
     )
 
     logger.info(
         "autofix_feature.dispatch.started",
         extra={
+            "step": args.step.value,
             "group_id": group.id,
             "organization_id": group.organization.id,
             "run_id": run.seer_run_state_id,
@@ -168,7 +175,7 @@ def trigger_autofix_feature(
             "flush": args.flush,
             "allow_free_cohort": args.allow_free_cohort,
             "user_context": args.user_context,
-            "enable_bash_tools": args.enable_bash_tools,
+            "enable_bash_mode": args.enable_bash_mode,
         },
     )
 

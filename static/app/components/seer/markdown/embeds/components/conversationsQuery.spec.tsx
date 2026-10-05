@@ -31,7 +31,12 @@ function conversationFixture(overrides: Record<string, unknown> = {}) {
     traceCount: 1,
     traceIds: ['trace-1'],
     projectId: 1,
-    user: {email: 'user@example.com', id: '1', ip_address: null, username: null},
+    user: {
+      email: 'user@example.com',
+      id: '1',
+      ip_address: null,
+      username: null,
+    },
     ...overrides,
   };
 }
@@ -108,6 +113,12 @@ describe('conversationsQuery embed', () => {
 
     expect(await screen.findByText('Refund request escalated')).toBeInTheDocument();
 
+    // The metric columns are the fields the single `conversation` embed also
+    // reports, under the same labels and in the same order (CW-2008).
+    expect(screen.getAllByRole('columnheader').map(header => header.textContent)).toEqual(
+      ['Conversation', 'Duration', 'Messages', 'Errors', 'Cost']
+    );
+
     const row = screen.getByRole('row', {name: /Refund request escalated/});
     // A UUID id is shown as a short prefix.
     expect(within(row).getByText('8f0e1f6a')).toBeInTheDocument();
@@ -139,11 +150,16 @@ describe('conversationsQuery embed', () => {
   });
 
   it('links each row to its conversation in a new tab', async () => {
-    MockApiClient.addMockResponse({url: LIST_URL, body: [conversationFixture()]});
+    MockApiClient.addMockResponse({
+      url: LIST_URL,
+      body: [conversationFixture()],
+    });
 
     renderEmbed({name: 'conversationsQuery', data: {query: ''}});
 
-    const link = await screen.findByRole('link', {name: 'Refund request escalated'});
+    const link = await screen.findByRole('link', {
+      name: 'Refund request escalated',
+    });
 
     // A new tab keeps the answer the embed is rendered into on screen.
     expect(link).toHaveAttribute('target', '_blank');
@@ -152,9 +168,9 @@ describe('conversationsQuery embed', () => {
       '/organizations/org-slug/explore/agents/conversations/8f0e1f6a-1f2b-4d3c-9e5a-0b1c2d3e4f5a/'
     );
     const params = searchParams(href);
-    // The row's own timestamps, padded the same hour the detail view expects.
-    expect(params.get('start')).toBe('2023-11-14T21:13:20.000Z');
-    expect(params.get('end')).toBe('2023-11-14T23:15:20.000Z');
+    // The row's own timestamps; the detail view pads them.
+    expect(params.get('start')).toBe('2023-11-14T22:13:20.000Z');
+    expect(params.get('end')).toBe('2023-11-14T22:15:20.000Z');
     expect(params.getAll('project')).toEqual(['1']);
     expect(params.get('referrer')).toBe('seer-conversations-query-embed');
   });
@@ -173,7 +189,10 @@ describe('conversationsQuery embed', () => {
   it('shows an empty state when nothing matches', async () => {
     MockApiClient.addMockResponse({url: LIST_URL, body: []});
 
-    renderEmbed({name: 'conversationsQuery', data: {query: 'gen_ai.tool.name:*'}});
+    renderEmbed({
+      name: 'conversationsQuery',
+      data: {query: 'gen_ai.tool.name:*'},
+    });
 
     expect(await screen.findByText('No matching conversations')).toBeInTheDocument();
   });

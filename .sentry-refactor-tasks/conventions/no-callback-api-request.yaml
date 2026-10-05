@@ -20,6 +20,12 @@ detect: |
       without success/error/complete callback options
     - The definition of request() or requestPromise() methods themselves
     - References in comments, documentation, or test mocks
+    - api.requestPromise() returned from a useMutation() mutationFn. The
+      onSuccess/onError/onSettled/onMutate options on the useMutation() object are
+      TanStack Query lifecycle hooks, not callback options on the request.
+    - onSubmitSuccess/onSubmitError parameters of an OnSubmitCallback, called after
+      an awaited requestPromise. These are form lifecycle callbacks passed in as
+      arguments, not callback options on the request.
 
 fix: |
   Convert callback-based api.request() to await api.requestPromise():
@@ -63,10 +69,29 @@ examples:
   good:
     - "const data = await api.requestPromise('/endpoint/');"
     - "await this.api.requestPromise('/endpoint/', { method: 'POST', data });"
+    - |
+      useMutation({
+        mutationFn: (data) => api.requestPromise('/endpoint/', { method: 'POST', data }),
+        onSuccess: () => addSuccessMessage('Saved'),
+        onError: () => addErrorMessage('Failed'),
+      });
+    - |
+      const handleSubmit: OnSubmitCallback = async (data, onSubmitSuccess, onSubmitError) => {
+        try {
+          await api.requestPromise('/endpoint/', { method: 'PUT', data });
+          onSubmitSuccess(data);
+        } catch (error) {
+          onSubmitError(error);
+        }
+      };
 
 include:
   - 'static/app/**/*.tsx'
   - 'static/app/**/*.ts'
+  - 'static/gsApp/**/*.tsx'
+  - 'static/gsApp/**/*.ts'
+  - 'static/gsAdmin/**/*.tsx'
+  - 'static/gsAdmin/**/*.ts'
 exclude:
   - '**/__fixtures__/**'
   - '**/__mocks__/**'
@@ -74,4 +99,4 @@ exclude:
   - '**/*.test.*'
   - '**/test/**'
 
-prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'api\\.request\\(|api\\.requestPromise\\(' {repo_path}/static/"
+prefilter: "grep -rl --include='*.tsx' --include='*.ts' -E 'api\\.request\\(|api\\.requestPromise\\(' {repo_path}/static/app/ {repo_path}/static/gsApp/ {repo_path}/static/gsAdmin/"

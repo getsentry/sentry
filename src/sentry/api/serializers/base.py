@@ -127,10 +127,12 @@ def serialize(
         else:
             return objects
     with traces.start_span(
-        name=type(serializer).__name__, attributes={"sentry.op": "serialize"}
-    ) as span:
-        span.set_attribute("Object Count", len(objects))
-
+        name=type(serializer).__name__,
+        attributes={
+            "sentry.op": "serialize",
+            "Object Count": len(objects),
+        },
+    ):
         with traces.start_span(
             name=type(serializer).__name__, attributes={"sentry.op": "serialize.get_attrs"}
         ):

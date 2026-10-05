@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {IconLock, IconQuestion} from 'sentry/icons';
 import type {SVGIconProps} from 'sentry/icons/svgIcon';

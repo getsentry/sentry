@@ -1,6 +1,6 @@
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {ExportQueryType, useDataExport} from 'sentry/components/exports/useDataExport';
 import {IconDownload} from 'sentry/icons';
 import {t} from 'sentry/locale';

@@ -99,10 +99,12 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         Retrieves explore data for a given organization as a heatmap.
         """
         with traces.start_span(
-            name="filter_params", attributes={"sentry.op": "discover.endpoint"}
-        ) as span:
-            span.set_attribute("organization", repr(organization))
-
+            name="filter_params",
+            attributes={
+                "sentry.op": "discover.endpoint",
+                "organization": repr(organization),
+            },
+        ):
             dataset = self.get_dataset(request, organization)
             if dataset not in HEATMAP_DATASETS:
                 raise ParseError(f"{dataset} is not supported on this endpoint")

@@ -1,7 +1,7 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
@@ -95,66 +95,58 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
     });
   };
 
-  const renderAttachmentsTable = () => {
-    if (isError) {
-      return <LoadingError onRetry={refetch} message={t('Error loading attachments')} />;
-    }
+  const attachmentsTable = isError ? (
+    <LoadingError onRetry={refetch} message={t('Error loading attachments')} />
+  ) : (
+    <GroupEventAttachmentsTable
+      isLoading={isPending}
+      attachments={attachments}
+      projectSlug={project.slug}
+      groupId={group.id}
+      onDelete={handleDelete}
+      emptyMessage={
+        activeAttachmentsTab === EventAttachmentFilter.CRASH_REPORTS
+          ? t('No matching crash reports found')
+          : t('No matching attachments found')
+      }
+    />
+  );
 
-    return (
-      <GroupEventAttachmentsTable
-        isLoading={isPending}
-        attachments={attachments}
-        projectSlug={project.slug}
-        groupId={group.id}
-        onDelete={handleDelete}
-        emptyMessage={
-          activeAttachmentsTab === EventAttachmentFilter.CRASH_REPORTS
-            ? t('No matching crash reports found')
-            : t('No matching attachments found')
-        }
-      />
-    );
-  };
-
-  const renderScreenshotGallery = () => {
-    if (isError) {
-      return <LoadingError onRetry={refetch} message={t('Error loading screenshots')} />;
-    }
-
-    if (isPending) {
-      return <LoadingIndicator />;
-    }
-
-    if (attachments.length > 0) {
-      return (
-        <ScreenshotGrid>
-          {attachments.map(screenshot => {
-            return (
-              <ScreenshotCard
-                key={screenshot.id}
-                eventAttachment={screenshot}
-                eventId={screenshot.event_id}
-                projectSlug={project.slug}
-                groupId={group.id}
-                onDelete={handleDelete}
-                attachments={attachments}
-              />
-            );
-          })}
-        </ScreenshotGrid>
-      );
-    }
-
-    return (
-      <EmptyStateWarning>
-        <p>{t('No screenshots found')}</p>
-      </EmptyStateWarning>
-    );
-  };
+  const screenshotGallery = isError ? (
+    <LoadingError onRetry={refetch} message={t('Error loading screenshots')} />
+  ) : isPending ? (
+    <LoadingIndicator />
+  ) : attachments.length > 0 ? (
+    <Grid
+      columns={{
+        zero: 'minmax(0, 1fr)',
+        '2xs': 'repeat(2, minmax(0, 1fr))',
+        md: 'repeat(3, minmax(0, 1fr))',
+        xl: 'repeat(4, minmax(0, 1fr))',
+      }}
+      gap="xl"
+    >
+      {attachments.map(screenshot => (
+        <ScreenshotCard
+          key={screenshot.id}
+          eventAttachment={screenshot}
+          eventId={screenshot.event_id}
+          projectSlug={project.slug}
+          groupId={group.id}
+          onDelete={handleDelete}
+          attachments={attachments}
+        />
+      ))}
+    </Grid>
+  ) : (
+    <EmptyStateWarning>
+      <p>{t('No screenshots found')}</p>
+    </EmptyStateWarning>
+  );
 
   return (
     <Stack gap="xl">
-      <Flex justify="between">
+      <Flex justify="between" align="center" wrap="wrap" gap="md">
         <Flex align="center" gap="md">
           <IconFilter size="xs" />
           {t('Results are filtered by the selections above.')}
@@ -164,31 +156,12 @@ export function GroupEventAttachments({project, group}: GroupEventAttachmentsPro
         />
       </Flex>
       {activeAttachmentsTab === EventAttachmentFilter.SCREENSHOT
-        ? renderScreenshotGallery()
-        : renderAttachmentsTable()}
+        ? screenshotGallery
+        : attachmentsTable}
       <NoMarginPagination pageLinks={pageLinks} />
     </Stack>
   );
 }
-
-const ScreenshotGrid = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(100px, 1fr);
-  grid-template-rows: repeat(2, max-content);
-  gap: ${p => p.theme.space.xl};
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: repeat(3, minmax(100px, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    grid-template-columns: repeat(4, minmax(100px, 1fr));
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints['2xl']}) {
-    grid-template-columns: repeat(6, minmax(100px, 1fr));
-  }
-`;
 
 const NoMarginPagination = styled(Pagination)`
   margin: 0;

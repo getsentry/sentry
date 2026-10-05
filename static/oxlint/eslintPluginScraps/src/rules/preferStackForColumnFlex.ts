@@ -1,6 +1,10 @@
-import type {Fix} from '@oxlint/plugins';
-import type {Fixer} from '@oxlint/plugins';
-import {defineRule, type ESTree, type Context} from '@oxlint/plugins';
+import {
+  type Fix,
+  type Fixer,
+  defineRule,
+  type ESTree,
+  type Context,
+} from '@oxlint/plugins';
 
 import {createImportTracker} from '../ast/tracker/imports.ts';
 

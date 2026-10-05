@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {DRAG_HANDLE_SIZE, DragHandle} from '@sentry/scraps/dragHandle';
 import {Flex, type Responsive, Stack} from '@sentry/scraps/layout';
 import {useResponsivePropValue} from '@sentry/scraps/layout/styles';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
@@ -211,10 +211,10 @@ export function SplitPanel({
       minWidth="0"
       flex="1"
     >
-      {({className}) => (
+      {props => (
         <RootElement
+          {...props}
           ref={containerRef}
-          className={className}
           data-is-held={isHeld}
           // Hide until measured to avoid a fill-pane flash before the sized
           // pane gets its basis.

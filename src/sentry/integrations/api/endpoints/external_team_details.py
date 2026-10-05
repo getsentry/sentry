@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+from django.http import Http404
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.request import Request
@@ -50,9 +51,26 @@ class ExternalTeamDetailsEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
         args, kwargs = super().convert_args(
             request, organization_id_or_slug, team_id_or_slug, *args, **kwargs
         )
-        kwargs["external_team"] = self.get_external_actor_or_404(
-            external_team_id, kwargs["team"].organization
+        team = kwargs["team"]
+        external_teams = ExternalActor.objects.filter(
+            organization_id=team.organization_id, team__isnull=False
         )
+        # The settings UI remaps via PUT to the destination team's URL with the existing
+        # mapping ID. Allow that lookup, then check the current team's permissions below.
+        # DELETE must only operate on mappings belonging to the URL team.
+        if request.method != "PUT":
+            external_teams = external_teams.filter(team_id=team.id)
+
+        try:
+            external_team = external_teams.select_related("team__organization").get(
+                id=external_team_id
+            )
+        except ExternalActor.DoesNotExist:
+            raise Http404
+
+        if external_team.team_id != team.id:
+            self.check_object_permissions(request, external_team.team)
+        kwargs["external_team"] = external_team
         return args, kwargs
 
     @extend_schema(

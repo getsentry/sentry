@@ -79,9 +79,12 @@ class DjangoAtomicIntegration(Integration):
 
         def _enter(self):
             self._sentry_sdk_span = traces.start_span(
-                name="transaction.atomic", attributes={"sentry.op": "transaction.atomic"}
+                name="transaction.atomic",
+                attributes={
+                    "sentry.op": "transaction.atomic",
+                    "using": self.using,
+                },
             )
-            self._sentry_sdk_span.set_attribute("using", self.using)
             self._sentry_sdk_span.__enter__()
             return original_enter(self)
 

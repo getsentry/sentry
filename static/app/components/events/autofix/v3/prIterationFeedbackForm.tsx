@@ -1,6 +1,5 @@
 import {useRef, useState} from 'react';
 
-import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -83,10 +82,7 @@ export function PrIterationFeedbackForm({
 
   return (
     <Stack gap="xl">
-      <Flex gap="xs" align="center">
-        <Text>{prompt}</Text>
-        <FeatureBadge type="alpha" />
-      </Flex>
+      <Text>{prompt}</Text>
       <Tooltip title={pausedTooltip} disabled={!isPaused} containerDisplayMode="block">
         <InputGroup>
           <InputGroup.TextArea

@@ -169,6 +169,8 @@ def _process_suspect_commits(
                 cache.set(
                     cache_key, True, PREFERRED_GROUP_OWNER_AGE.total_seconds()
                 )  # 1 week in seconds
+            else:
+                cache.set(cache_key, True, timedelta(days=1).total_seconds())
         except Commit.DoesNotExist:
             cache.set(cache_key, True, timedelta(days=1).total_seconds())
             logger.info(

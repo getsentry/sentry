@@ -17,7 +17,6 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.per_org.queries import get_eap_organization_volume
-from sentry.dynamic_sampling.tasks.common import get_effective_sample_rate
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 
@@ -70,6 +69,6 @@ class OrganizationSamplingEffectiveSampleRateEndpoint(OrganizationEndpoint):
             organization, projects, time_interval=SAMPLE_RATE_WINDOW
         )
 
-        return Response(
-            status=200, data={"eapEffectiveSampleRate": get_effective_sample_rate(volume)}
-        )
+        effective_sample_rate = None if volume is None else volume.effective_sample_rate
+
+        return Response(status=200, data={"eapEffectiveSampleRate": effective_sample_rate})

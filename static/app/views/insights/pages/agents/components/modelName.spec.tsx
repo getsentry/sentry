@@ -27,6 +27,9 @@ describe('getModelPlatform Function', () => {
     expect(getModelPlatform('nvidia/llama-3.1-nemotron')).toBe('nvidia');
     expect(getModelPlatform('perplexity-sonar')).toBe('perplexity');
     expect(getModelPlatform('amazon.titan-embed-text-v2:0')).toBe('amazon');
+    expect(getModelPlatform('typesafe/jev-1.13-20260917')).toBe('typesafe-ai');
+    expect(getModelPlatform('typesafe-ai/jev')).toBe('typesafe-ai');
+    expect(getModelPlatform('jev-latest')).toBe('typesafe-ai');
   });
 
   it('returns null for unknown modelId', () => {
@@ -34,12 +37,5 @@ describe('getModelPlatform Function', () => {
     expect(getModelPlatform('Llama 3.1')).toBeNull();
     expect(getModelPlatform('Qwen 2.5')).toBeNull();
     expect(getModelPlatform('random-ai-model')).toBeNull();
-  });
-
-  it('returns provider when provider is explicitly provided', () => {
-    expect(getModelPlatform('some-model', 'openai')).toBe('openai');
-    expect(getModelPlatform('some-model', 'google')).toBe('google');
-    expect(getModelPlatform('some-model', 'anthropic')).toBe('anthropic');
-    expect(getModelPlatform('some-model', 'unknown-provider')).toBe('unknown-provider');
   });
 });

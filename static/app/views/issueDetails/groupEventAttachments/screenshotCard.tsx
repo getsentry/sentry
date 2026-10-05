@@ -2,6 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
@@ -10,7 +11,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Card} from 'sentry/components/card';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {ImageVisualization} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
 import {
   modalCss,
@@ -151,9 +151,9 @@ export function ScreenshotCard({
               onError={() => setLoadingImage(false)}
             />
             {loadingImage && (
-              <StyledLoadingIndicator>
+              <Flex align="center" justify="center" position="absolute" inset="0">
                 <LoadingIndicator mini />
-              </StyledLoadingIndicator>
+              </Flex>
             )}
           </LazyRender>
         </StyledPanelBody>
@@ -196,12 +196,8 @@ const StyledPanelBody = styled(PanelBody)`
   border-radius: ${p => p.theme.radius.md};
 `;
 
-const StyledLoadingIndicator = styled('div')`
-  align-self: center;
-`;
-
 const StyledImageVisualization = styled(ImageVisualization)`
   height: 100%;
-  z-index: 1;
+  object-fit: contain;
   border: 0;
 `;

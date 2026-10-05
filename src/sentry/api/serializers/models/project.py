@@ -376,9 +376,11 @@ class ProjectSerializer(Serializer):
         def measure_span(op_tag):
             span = traces.start_span(
                 name=f"serialize.get_attrs.project.{op_tag}",
-                attributes={"sentry.op": f"serialize.get_attrs.project.{op_tag}"},
+                attributes={
+                    "sentry.op": f"serialize.get_attrs.project.{op_tag}",
+                    "Object Count": len(item_list),
+                },
             )
-            span.set_attribute("Object Count", len(item_list))
             return span
 
         with measure_span("preamble"):
@@ -1247,6 +1249,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             ),
             "sentry:toolbar_allowed_origins": "\n".join(
                 self.get_value_with_default(attrs, "sentry:toolbar_allowed_origins") or []
+            ),
+            "sentry:relay_automatic_json_expansion": bool(
+                self.get_value_with_default(attrs, "sentry:relay_automatic_json_expansion")
             ),
             "sentry:preprod_size_status_checks_enabled": options.get(
                 "sentry:preprod_size_status_checks_enabled", True

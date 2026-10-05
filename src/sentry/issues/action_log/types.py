@@ -597,6 +597,7 @@ class SetResolvedInReleaseAction(GroupAction):
     user_visible = True
     version: Optional[str] = None
     current_release_version: Optional[str] = None
+    commit: Optional[int] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -784,7 +785,7 @@ class SeerPRCreatedAction(GroupAction):
 
 
 class SeerPRReadyForReviewAction(GroupAction):
-    user_visible = False
+    user_visible = True
     run_id: Optional[int] = None
     # Same PR as SeerPRCreatedAction, but will not be in draft mode
     pull_requests: Optional[list[SeerPullRequestItem]] = None

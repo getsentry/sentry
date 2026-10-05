@@ -9,9 +9,13 @@ const LazyLogBlock = lazy(() => import('./logBlock'));
 export const Log = defineSeerEmbed({
   name: 'log',
   render(props, level) {
-    if (level === 'block') {
-      return <LazyLoad LazyComponent={LazyLogBlock} {...props} />;
+    switch (level) {
+      case 'block':
+        return <LazyLoad LazyComponent={LazyLogBlock} {...props} />;
+      case 'markdown':
+        return <LogLink {...props} format="markdown" />;
+      case 'inline':
+        return <LogLink {...props} />;
     }
-    return <LogLink {...props} />;
   },
 });

@@ -8,6 +8,9 @@ import {useSentryAppComponentsData} from 'sentry/stores/useSentryAppComponentsDa
 import type {GroupActivityReprocess, GroupReprocessing} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
+import {isRetryableRequestError} from 'sentry/utils/queryClient';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
+import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -39,6 +42,8 @@ function GroupEventDetails() {
     data: event,
     isPending: isLoadingEvent,
     isError: isEventError,
+    error: eventError,
+    refetch: refetchEvent,
   } = useGroupEvent({
     groupId: params.groupId,
     eventId: params.eventId,
@@ -112,15 +117,21 @@ function GroupEventDetails() {
     return <LoadingError onRetry={refetchGroup} />;
   }
 
-  const renderContent = () => {
-    if (isLoadingEvent) {
-      return <GroupEventDetailsLoading />;
-    }
+  const showEventError =
+    isEventError &&
+    !isNotFoundError(eventError) &&
+    (!event || !isRetryableRequestError(eventError));
 
-    return (
-      <GroupEventDetailsContent group={group} event={eventWithMeta} project={project} />
-    );
-  };
+  const content = isLoadingEvent ? (
+    <GroupEventDetailsLoading />
+  ) : showEventError ? (
+    <LoadingError
+      message={getRequestErrorUserMessage(eventError)}
+      onRetry={refetchEvent}
+    />
+  ) : (
+    <GroupEventDetailsContent group={group} event={eventWithMeta} project={project} />
+  );
 
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
 
@@ -128,7 +139,7 @@ function GroupEventDetails() {
     <AnalyticsArea name="issue_details">
       <VisuallyCompleteWithData
         id="IssueDetails-EventBody"
-        hasData={!isLoadingEvent && !isEventError && defined(eventWithMeta)}
+        hasData={!isLoadingEvent && !showEventError && defined(eventWithMeta)}
         isLoading={isLoadingEvent}
       >
         <div data-test-id="group-event-details">
@@ -143,7 +154,7 @@ function GroupEventDetails() {
               }
             />
           ) : (
-            renderContent()
+            content
           )}
         </div>
       </VisuallyCompleteWithData>
