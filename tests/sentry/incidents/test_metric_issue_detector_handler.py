@@ -429,7 +429,7 @@ class TestMetricIssueDetectorActivationId(BaseMetricIssueTest):
 
             resolution_update_fingerprint = self.fingerprint(self.resolution_packet(2))
 
-            frozen_time.shift(timedelta(seconds=1))
+            frozen_time.shift(MetricIssueDetectorHandler.activation_cooldown)
 
             next_firing_update_fingerprint = self.fingerprint(self.firing_packet(3))
 
@@ -439,6 +439,23 @@ class TestMetricIssueDetectorActivationId(BaseMetricIssueTest):
             assert resolution_update_fingerprint == firing_update_fingerprint
 
             assert next_firing_update_fingerprint != firing_update_fingerprint
+
+    def test_detector_refiring_within_cooldown_regresses_the_same_issue(self) -> None:
+        with (
+            self.feature("organizations:workflow-engine-rotate-activation-id"),
+            freeze_time() as frozen_time,
+        ):
+            firing_update_fingerprint = self.fingerprint(self.firing_packet(1))
+
+            resolution_update_fingerprint = self.fingerprint(self.resolution_packet(2))
+
+            frozen_time.shift(MetricIssueDetectorHandler.activation_cooldown - timedelta(seconds=1))
+
+            next_firing_update_fingerprint = self.fingerprint(self.firing_packet(3))
+
+            assert resolution_update_fingerprint == firing_update_fingerprint
+
+            assert next_firing_update_fingerprint == firing_update_fingerprint
 
     def test_detector_with_flag_off_keeps_stable_fingerprint(self) -> None:
         with self.feature({"organizations:workflow-engine-rotate-activation-id": False}):
