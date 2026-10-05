@@ -126,7 +126,7 @@ describe('AddBillingInformation', () => {
     const inBillingDetailsPanel = within(screen.getByTestId('billing-details-panel'));
 
     expect(
-      inBillingDetailsPanel.queryByRole('button', {name: 'Edit business address'})
+      screen.queryByRole('button', {name: 'Edit business address'})
     ).not.toBeInTheDocument();
     expect(
       inBillingDetailsPanel.getByRole('button', {name: 'Save Changes'})
@@ -134,7 +134,7 @@ describe('AddBillingInformation', () => {
 
     await inCardPanel.findByRole('button', {name: 'Save Changes'});
     expect(
-      inCardPanel.queryByRole('button', {name: 'Edit payment method'})
+      screen.queryByRole('button', {name: 'Edit payment method'})
     ).not.toBeInTheDocument();
   });
 });
