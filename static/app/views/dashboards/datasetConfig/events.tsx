@@ -160,10 +160,7 @@ export function getTimeseriesSortOptions(
   return {...fieldOptions, ...options};
 }
 
-function getEventsTableFieldOptions(
-  organization: Organization,
-  tags?: TagCollection
-) {
+function getEventsTableFieldOptions(organization: Organization, tags?: TagCollection) {
   const measurements = getMeasurements();
 
   return generateFieldOptions({

@@ -449,7 +449,7 @@ export function useRunInvestigationBlockMutation(
   );
 
   return useMutation({
-    mutationFn: ({block, investigationVersion}) =>
+    mutationFn: ({block, investigationVersion}: RunBlockVariables) =>
       fetchMutation<InvestigationBlockExecutionStart>({
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/$blockId/executions/',
