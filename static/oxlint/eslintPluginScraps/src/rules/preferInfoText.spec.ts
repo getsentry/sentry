@@ -74,6 +74,93 @@ ruleTester.run('prefer-info-text', preferInfoText, {
       `,
     },
     {
+      name: 'Mutable variable initialized with Text',
+      code: `
+        import {Text} from '@sentry/scraps/text';
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        let text = <Text>label</Text>;
+        text = <IconInfo />;
+        const x = <Tooltip title="help">{text}</Tooltip>;
+      `,
+    },
+    {
+      name: 'Constant initialized with a non-text component',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const text = <IconInfo />;
+        const x = <Tooltip title="help">{text}</Tooltip>;
+      `,
+    },
+    {
+      name: 'Parameter shadows a text constant',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const text = 'label';
+        function Example(text) {
+          return <Tooltip title="help">{text}</Tooltip>;
+        }
+      `,
+    },
+    {
+      name: 'Block declaration shadows a text constant before its declaration',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const text = 'label';
+        function Example() {
+          const x = <Tooltip title="help">{text}</Tooltip>;
+          const text = <IconInfo />;
+          return x;
+        }
+      `,
+    },
+    {
+      name: 'Text constant from a sibling scope is not resolved',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        function First() {
+          const text = 'label';
+          return text;
+        }
+        function Second() {
+          return <Tooltip title="help">{text}</Tooltip>;
+        }
+      `,
+    },
+    {
+      name: 'Destructured constant is not treated as its initializer',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const {text} = 'label';
+        const x = <Tooltip title="help">{text}</Tooltip>;
+      `,
+    },
+    {
+      name: 'Cyclic constant references',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const first = second;
+        const second = first;
+        const x = <Tooltip title="help">{first}</Tooltip>;
+      `,
+    },
+    {
+      name: 'Cyclic constant reference through JSX',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const text = <span>{text}</span>;
+        const x = <Tooltip title="help">{text}</Tooltip>;
+      `,
+    },
+    {
+      name: 'Conditional constant with a non-text branch',
+      code: `
+        import {Text} from '@sentry/scraps/text';
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const text = condition ? <Text>label</Text> : <IconInfo />;
+        const x = <Tooltip title="help">{text}</Tooltip>;
+      `,
+    },
+    {
       name: 'Tooltip wrapping a complex component child',
       code: `
         import {Tooltip} from '@sentry/scraps/tooltip';
@@ -98,6 +185,102 @@ ruleTester.run('prefer-info-text', preferInfoText, {
   ],
 
   invalid: [
+    {
+      name: 'Tooltip wrapping a Text element stored in a local constant',
+      code: `
+        import {Text} from '@sentry/scraps/text';
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        function Example({value, ellipsis}) {
+          return <Container>{props => {
+            const text = (
+              <Text {...props} monospace variant="accent" ellipsis={ellipsis || undefined}>
+                {value}
+              </Text>
+            );
+            return ellipsis ? (
+              <Tooltip title={value} showOnlyOnOverflow skipWrapper>
+                {text}
+              </Tooltip>
+            ) : text;
+          }}</Container>;
+        }
+      `,
+      errors: [{messageId: 'preferInfoText', suggestions: []}],
+    },
+    {
+      name: 'String constant',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const text = 'label';
+        const x = <Tooltip title="help">{text}</Tooltip>;
+      `,
+      errors: [{messageId: 'preferInfoText', suggestions: []}],
+    },
+    {
+      name: 'Constant initialized with a locale call',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        import {t} from 'sentry/locale';
+        const text = t('label');
+        const x = <Tooltip title="help">{text}</Tooltip>;
+      `,
+      errors: [{messageId: 'preferInfoText', suggestions: []}],
+    },
+    {
+      name: 'Chain of constants initialized with aliased Text',
+      code: `
+        import {Text as Label} from '@sentry/scraps/text';
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const original = <Label>{value}</Label>;
+        const text = original;
+        const x = <Tooltip title="help">{text}</Tooltip>;
+      `,
+      errors: [{messageId: 'preferInfoText', suggestions: []}],
+    },
+    {
+      name: 'Initializer references are resolved in their own scope',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const label = 'label';
+        const text = <span>{label}</span>;
+        function Example(label) {
+          return <Tooltip title="help">{text}</Tooltip>;
+        }
+      `,
+      errors: [{messageId: 'preferInfoText', suggestions: []}],
+    },
+    {
+      name: 'Conditional constant with text branches',
+      code: `
+        import {Text} from '@sentry/scraps/text';
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const text = condition ? <Text>{value}</Text> : <span>label</span>;
+        const x = <Tooltip title="help">{text}</Tooltip>;
+      `,
+      errors: [{messageId: 'preferInfoText', suggestions: []}],
+    },
+    {
+      name: 'Fragment constant',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const text = <>label</>;
+        const x = <Tooltip title="help">{text}</Tooltip>;
+      `,
+      errors: [{messageId: 'preferInfoText', suggestions: []}],
+    },
+    {
+      name: 'Repeated references to the same text constant',
+      code: `
+        import {Tooltip} from '@sentry/scraps/tooltip';
+        const text = 'label';
+        const x = <Tooltip title="help">{text} {text}</Tooltip>;
+        const y = <Tooltip title="help">{text}</Tooltip>;
+      `,
+      errors: [
+        {messageId: 'preferInfoText', suggestions: []},
+        {messageId: 'preferInfoText', suggestions: []},
+      ],
+    },
     {
       name: 'Raw text child',
       code: `

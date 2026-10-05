@@ -25,6 +25,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import json, metrics
 from sentry.utils.hashlib import md5_text
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -194,11 +195,17 @@ def _judge_issue(issue_data_id: int, event_id: str) -> None:
         reasoning="high",
         conversation_id=None,
     )
-    response = make_llm_generate_request(
-        body,
-        timeout=30,
-        viewer_context=SeerViewerContext(organization_id=issue_data.organization_id),
-    )
+    with viewer_context_scope(
+        ViewerContext(
+            organization_id=issue_data.organization_id,
+            actor_type=ActorType.SYSTEM,
+        )
+    ):
+        response = make_llm_generate_request(
+            body,
+            timeout=30,
+            viewer_context=SeerViewerContext(organization_id=issue_data.organization_id),
+        )
     if response.status >= 400:
         raise SeerApiError("Seer autofix issue data judge request failed", response.status)
 

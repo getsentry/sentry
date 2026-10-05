@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 
 TRANSACTION_PREFIX = "cleanup"
 DELETES_BY_PROJECT_CHUNK_SIZE = 100
+_last_progress_log: dict[str, float] = {}
 
 if TYPE_CHECKING:
     from sentry.db.deletion import BulkDeleteQuery
@@ -107,10 +108,6 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
 
     configure()
 
-    progress_logger = logging.getLogger("sentry.cleanup.progress")
-    progress_logger.setLevel(logging.INFO)
-    last_progress_log: dict[str, float] = {}
-
     from sentry import options
     from sentry.utils import metrics
 
@@ -142,21 +139,10 @@ def multiprocess_worker(task_queue: _WorkQueue) -> None:
                 name=f"{TRANSACTION_PREFIX}.multiprocess_worker",
                 transaction=True,
                 custom_sampling_context={
-                    "sample_rate": 0.05 * settings.SENTRY_BACKEND_APM_SAMPLING
+                    "sample_rate": 0.01 * settings.SENTRY_BACKEND_APM_SAMPLING
                 },
             ):
                 task_execution(model_name, chunk, project_id, deferred_filter)
-                if chunk:
-                    now = time.monotonic()
-                    if (
-                        model_name not in last_progress_log
-                        or now - last_progress_log[model_name] >= 300  # 5 min
-                    ):
-                        progress_logger.info(
-                            "cleanup.progress",
-                            extra={"model": model_name, "last_id": chunk[-1]},
-                        )
-                        last_progress_log[model_name] = now
         except Exception:
             metrics.incr(
                 "cleanup.error",
@@ -908,11 +894,34 @@ def _schedule_bulk_delete_chunks(
     Returns:
         Tuple of (chunk_count, total_objects)
     """
+    progress_logger = logging.getLogger("sentry.cleanup.progress")
+    progress_logger.setLevel(logging.INFO)
+
     imp = ".".join((model_tp.__module__, model_tp.__name__))
     chunk_count = 0
     total_objects = 0
 
     for chunk in q.iterator(chunk_size=DELETES_BY_PROJECT_CHUNK_SIZE):
+        now = time.monotonic()
+        if imp not in _last_progress_log or now - _last_progress_log[imp] >= 300:  # 5 min
+            last_timestamp = None
+            if q.dtfield is not None:
+                last_timestamp = (
+                    q.model.objects.using(q.using)
+                    .filter(pk=chunk[-1])
+                    .values_list(q.dtfield, flat=True)
+                    .first()
+                )
+            progress_logger.info(
+                "cleanup.scan_progress",
+                extra={
+                    "model": imp,
+                    "last_id": chunk[-1],
+                    "date_field": q.dtfield,
+                    "last_timestamp": last_timestamp.timestamp() if last_timestamp else None,
+                },
+            )
+            _last_progress_log[imp] = time.monotonic()
         task_queue.put((imp, chunk, project_id, q.deferred_filter))
         chunk_count += 1
         total_objects += len(chunk)

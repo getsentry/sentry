@@ -31,7 +31,7 @@ describe('hasDroppedData', () => {
     ).toBe(false);
   });
 
-  it('is true only when a bucket reaches 5%', () => {
+  it('is true only when a bucket has dropped events', () => {
     function hasDrops(dropped: number, accepted: number) {
       return hasDroppedData(
         [AnnotationFixture({start: 0, eventCount: dropped})],
@@ -39,8 +39,8 @@ describe('hasDroppedData', () => {
       );
     }
 
-    expect(hasDrops(4, 96)).toBe(false);
-    expect(hasDrops(5, 95)).toBe(true);
+    expect(hasDrops(0, 100)).toBe(false);
+    expect(hasDrops(1, 99)).toBe(true);
   });
 });
 
@@ -208,16 +208,17 @@ describe('groupIntoBuckets', () => {
 
 describe('severityColor', () => {
   const theme = ThemeFixture();
-  const warning = theme.tokens.background.warning.vibrant.toUpperCase();
-  const bad = theme.tokens.dataviz.semantic.bad.toUpperCase();
-  const orange = '#FF9500';
+  const opaque = (color: string) => `${color}FF`.toUpperCase();
 
   it.each([
-    [0.049, `${warning}00`],
-    [0.05, `${warning}40`],
-    [0.1, `${orange}8C`],
-    [0.25, `${orange}FF`],
-    [0.5, `${bad}FF`],
+    [0, opaque(theme.tokens.background.secondary)],
+    [0.001, '#F6E5B4FF'],
+    [0.049, '#F6E5B4FF'],
+    [0.05, '#FFCE00FF'],
+    [0.1, '#FF615DFF'],
+    [0.25, '#B5006FFF'],
+    [0.5, '#3A1873FF'],
+    [1, '#3A1873FF'],
   ])('colors a drop ratio of %s', (ratio, expected) => {
     expect(severityColor(ratio, theme)).toBe(expected);
   });

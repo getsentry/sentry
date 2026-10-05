@@ -295,7 +295,6 @@ export function InvestigationsPage() {
                     data={investigations}
                     columnOrder={COLUMNS}
                     grid={{
-                      renderHeadCell: column => column.name,
                       renderBodyCell,
                       renderPrependColumns: (isHeader, investigation) => {
                         if (isHeader) {

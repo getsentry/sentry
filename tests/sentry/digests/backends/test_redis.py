@@ -278,7 +278,9 @@ class RedisClusterBackendTestCase(RedisBackendTestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.enterContext(use_redis_cluster(self.cluster_id))
+        # The digests Lua script makes key names from the namespace in ARGV, so the key prefix
+        # would not reach them. The unique namespace isolates each test instead.
+        self.enterContext(use_redis_cluster(self.cluster_id, prefix_keys=False))
         self.namespace = f"d-{uuid.uuid4().hex}"
 
     def get_backend(self, **options: Any) -> RedisBackend:

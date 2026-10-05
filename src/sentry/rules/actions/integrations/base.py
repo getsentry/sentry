@@ -16,10 +16,10 @@ from sentry.integrations.services.integration import (
 from sentry.mail.analytics import EmailNotificationSent
 from sentry.models.organization import OrganizationStatus
 from sentry.models.rule import Rule
+from sentry.notifications.types import RuleFuture
 from sentry.rules.actions import EventAction
 from sentry.rules.base import CallbackFuture
 from sentry.services.eventstore.models import GroupEvent
-from sentry.types.rules import RuleFuture
 from sentry.utils.tracing import start_span
 
 INTEGRATION_KEY = "integration"

@@ -917,6 +917,11 @@ register("vercel.integration-slug", default="sentry", flags=FLAG_AUTOMATOR_MODIF
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("msteams.app-id")
+register(
+    "msteams.personal-installation-link.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Tenant-specific OAuth authority, required for single-tenant Azure Bots.
 # Empty (default) keeps the historical multi-tenant botframework.com authority.
 register("msteams.tenant-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -1459,14 +1464,6 @@ register(
     type=Float,
     default=0.5,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Fuzzy resolution always runs after an exact email miss so its proposal can be
-# inspected. This controls whether that proposal is used in the delivered prediction.
-register(
-    "seer.smart_assignment.fuzzy_user_matching.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Spread child run_auto_transition_issues_* tasks across this many seconds
@@ -2829,6 +2826,14 @@ register(
     type=Int,
     default=6,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Sends relay a quota that limits each monitor environment to
+# `crons.per_monitor_rate_limit` check-ins per minute.
+register(
+    "crons.per_monitor_relay_quota.enabled",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Deterministic % of check-ins that use the seat-acceptance timeout wrapper.
@@ -4252,12 +4257,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "warmup.url_resolver.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Cap on consecutive automated PR iterations (check suites + bot re-reviews);
 # human feedback resets the streak. See ``automated_iteration_cap_reached``.
