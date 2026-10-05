@@ -35,7 +35,7 @@ export function InnerIntentForm({
     try {
       await handleSubmit({stripe, elements});
     } catch (error) {
-      onError(error instanceof Error ? error.message : t('An unknown error occurred.'));
+      onError?.(error instanceof Error ? error.message : t('An unknown error occurred.'));
     }
   };
 

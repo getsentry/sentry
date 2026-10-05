@@ -13,6 +13,6 @@ export interface InnerIntentFormProps extends IntentFormProps {
     stripe: Stripe | null;
   }) => void | Promise<void>;
   isSubmitting: boolean;
-  onError: (error: string) => void;
   errorMessage?: string;
+  onError?: (error: string) => void;
 }
