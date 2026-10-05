@@ -1,4 +1,4 @@
-import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -17,7 +17,6 @@ export function useBillingDetails() {
         staleTime: 0,
       }
     ),
-    placeholderData: keepPreviousData,
     retry: (failureCount, error) => {
       if (
         error instanceof RequestError &&
