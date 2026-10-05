@@ -94,7 +94,7 @@ describe('Subscription > BillingInformation', () => {
     render(<BillingInformation subscription={subscription} />, {organization});
 
     // panels are collapsed with pre-existing information
-    const cardPanel = await screen.findByTestId('credit-card-panel');
+    const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
     expect(within(cardPanel).getByText('United States 94242')).toBeInTheDocument();
     expect(within(cardPanel).getByText('Visa ****4242 12/77')).toBeInTheDocument();
     expect(
@@ -152,7 +152,7 @@ describe('Subscription > BillingInformation', () => {
     render(<BillingInformation subscription={sub} />, {organization});
 
     // panels are expanded with no pre-existing information
-    const cardPanel = await screen.findByTestId('credit-card-panel');
+    const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
     expect(cardPanel).toBeInTheDocument();
     expect(
       within(cardPanel).queryByRole('button', {name: 'Edit payment method'})
@@ -186,7 +186,7 @@ describe('Subscription > BillingInformation', () => {
     expect(
       screen.queryByRole('button', {name: 'Edit payment method'})
     ).not.toBeInTheDocument();
-    const cardPanel = await screen.findByTestId('credit-card-panel');
+    const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
     const inCardPanel = within(cardPanel);
     expect(inCardPanel.getByRole('button', {name: 'Save Changes'})).toBeInTheDocument();
     expect(
@@ -272,7 +272,7 @@ describe('Subscription > BillingInformation', () => {
 
     await screen.findByText('Payment method');
     await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
-    const cardPanel = await screen.findByTestId('credit-card-panel');
+    const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
     const inCardPanel = within(cardPanel);
 
     expect(
@@ -322,7 +322,7 @@ describe('Subscription > BillingInformation', () => {
 
     await screen.findByText('Payment method');
     await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
-    const cardPanel = await screen.findByTestId('credit-card-panel');
+    const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
     const inCardPanel = within(cardPanel);
 
     expect(createSetupIntent).not.toHaveBeenCalled();
@@ -349,7 +349,7 @@ describe('Subscription > BillingInformation', () => {
     const sub: TSubscription = {...subscription, paymentSource: null};
     render(<BillingInformation subscription={sub} />, {organization});
 
-    const cardPanel = await screen.findByTestId('credit-card-panel');
+    const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
     await userEvent.click(within(cardPanel).getByRole('button', {name: 'Save Changes'}));
 
     expect(
@@ -373,7 +373,7 @@ describe('Subscription > BillingInformation', () => {
 
     render(<BillingInformation subscription={sub} />, {organization});
 
-    const cardPanel = await screen.findByTestId('credit-card-panel');
+    const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
     const inCardPanel = within(cardPanel);
 
     // Panel is already in edit mode because paymentSource is null

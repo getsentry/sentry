@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment, useEffect, useId, useState} from 'react';
 import type {Location} from 'history';
 
 import {Button} from '@sentry/scraps/button';
@@ -42,6 +42,7 @@ export function CreditCardPanel({
   shouldExpandInitially,
   maxPanelWidth,
 }: CreditCardPanelProps) {
+  const headingId = useId();
   const [isEditing, setIsEditing] = useState(false);
   const [fromBillingFailure, setFromBillingFailure] = useState(false);
   const [referrer, setReferrer] = useState<string | undefined>(undefined);
@@ -91,6 +92,8 @@ export function CreditCardPanel({
 
   return (
     <Flex
+      as="section"
+      aria-labelledby={headingId}
       justify={isEditing ? 'start' : 'between'}
       align="start"
       gap="3xl"
@@ -98,11 +101,10 @@ export function CreditCardPanel({
       background="primary"
       border="primary"
       radius="md"
-      data-test-id="credit-card-panel"
       maxWidth={maxPanelWidth}
     >
       <Stack gap="lg" width="100%">
-        <Heading as="h2" size="lg">
+        <Heading as="h2" size="lg" id={headingId}>
           {t('Payment method')}
         </Heading>
         {isEditing ? (
