@@ -6,12 +6,22 @@ import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKey
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import {
+  DEFAULT_ATTRIBUTE_DESCRIPTION,
   DEFAULT_TAG_DESCRIPTION,
   FieldKind,
   FieldValueType,
   type FieldDefinition,
 } from 'sentry/utils/fields';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+
+const SENTRY_DEFINED_KINDS = new Set<FieldKind | undefined>([
+  FieldKind.BREAKDOWN,
+  FieldKind.EQUATION,
+  FieldKind.EVENT_FIELD,
+  FieldKind.FIELD,
+  FieldKind.FUNCTION,
+  FieldKind.ISSUE_FIELD,
+]);
 
 type KeyDescriptionProps = {
   tag: Tag;
@@ -50,13 +60,7 @@ export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
 
   const sentryDescription = fieldDefinition?.desc;
 
-  const description =
-    sentryDescription ??
-    (tag.kind === FieldKind.TAG
-      ? DEFAULT_TAG_DESCRIPTION
-      : tag.kind === FieldKind.FEATURE_FLAG
-        ? t('A feature flag evaluated before an error event')
-        : null);
+  const description = sentryDescription ?? getFallbackDescription(tag, fieldDefinition);
 
   const defaultValueType =
     tag.kind === FieldKind.FEATURE_FLAG ? FieldValueType.BOOLEAN : FieldValueType.STRING;
@@ -72,6 +76,30 @@ export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
       />
     </DescriptionWrapper>
   );
+}
+
+function getFallbackDescription(tag: Tag, fieldDefinition: FieldDefinition | null) {
+  if (tag.attributeSource === 'sentry') {
+    return null;
+  }
+
+  if (tag.kind === FieldKind.FEATURE_FLAG) {
+    return t('A feature flag evaluated before an error event');
+  }
+
+  if (tag.kind === FieldKind.TAG) {
+    return DEFAULT_TAG_DESCRIPTION;
+  }
+
+  // Only trace items carry an attributeSource, and their getters synthesize
+  // definitions for user attributes. Elsewhere, a registered definition or a
+  // Sentry-only kind marks the key as Sentry's, while custom tags (e.g. from
+  // tagStore) arrive with neither.
+  if (!tag.attributeSource && (fieldDefinition || SENTRY_DEFINED_KINDS.has(tag.kind))) {
+    return null;
+  }
+
+  return DEFAULT_ATTRIBUTE_DESCRIPTION;
 }
 
 const DescriptionWrapper = styled('div')<Pick<KeyDescriptionProps, 'size'>>`
