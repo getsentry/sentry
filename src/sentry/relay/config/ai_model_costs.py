@@ -103,6 +103,20 @@ def prefix_glob_model_name(model_id: str) -> str:
     return f"*{model_id}"
 
 
+def canonical_model_name(model_id: str) -> str:
+    """Reduce a model id to the model's own name, the same whichever gateway or
+    cloud reported it.
+
+    Strips a namespace (``anthropic/``, ``models/``), Bedrock's region and vendor
+    (``us.anthropic.``), a snapshot date or version, and spells versions with
+    dashes the way providers do where OpenRouter uses dots (``4.5``).
+    """
+    name = model_id.lower().rsplit("/", 1)[-1]
+    name = re.sub(r"^(?:[a-z]+\.)+", "", name)
+    name = normalize_model_id(name)
+    return re.sub(r"(?<=\d)\.(?=\d)", "-", name)
+
+
 def model_costs(model_id: str, config: AIModelMetadataConfig) -> AIModelCost | None:
     """Look up per-token prices for a model reported on a span.
 
