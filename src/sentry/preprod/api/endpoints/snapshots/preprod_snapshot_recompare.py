@@ -13,7 +13,6 @@ from sentry.api.permissions import StaffPermission
 from sentry.models.organization import Organization
 from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
-from sentry.preprod.snapshots.tasks import compare_snapshots
 from sentry.preprod.snapshots.utils import find_base_snapshot_artifact
 
 logger = logging.getLogger(__name__)
@@ -86,6 +85,9 @@ class PreprodSnapshotRecompareEndpoint(OrganizationEndpoint):
                 "org_id": organization.id,
             },
         )
+
+        # Imported here so web workers do not load the image differ and Pillow at boot.
+        from sentry.preprod.snapshots.tasks import compare_snapshots
 
         compare_snapshots.apply_async(
             kwargs={

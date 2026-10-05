@@ -8,7 +8,6 @@ from uuid import uuid4
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import models, router
 from django.utils.encoding import force_bytes
-from PIL import Image
 
 from sentry import options
 from sentry.backup.scopes import RelocationScope
@@ -84,6 +83,9 @@ class AvatarBase(Model):
         cache_key = self.get_cache_key(size)
         photo = cache.get(cache_key)
         if photo is None:
+            # Imported here so web workers do not load Pillow at boot.
+            from PIL import Image
+
             with file.getfile() as photo_file, Image.open(photo_file) as image:
                 image = image.resize((size, size), Image.LANCZOS)
                 image_file = BytesIO()

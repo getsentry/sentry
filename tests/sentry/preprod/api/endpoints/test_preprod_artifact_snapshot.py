@@ -503,7 +503,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         assert response.status_code == 200
 
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.compare_snapshots")
+    @patch("sentry.preprod.snapshots.tasks.compare_snapshots")
     def test_base_upload_triggers_comparison_for_waiting_head(
         self, mock_compare_snapshots, mock_get_session
     ) -> None:
@@ -589,7 +589,7 @@ class ProjectPreprodSnapshotTest(APITestCase):
         )
 
     @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.get_snapshot_storage")
-    @patch("sentry.preprod.api.endpoints.snapshots.preprod_artifact_snapshot.compare_snapshots")
+    @patch("sentry.preprod.snapshots.tasks.compare_snapshots")
     def test_selective_base_is_matched_for_comparison(
         self, mock_compare_snapshots, mock_get_session
     ) -> None:

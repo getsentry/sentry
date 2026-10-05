@@ -2,7 +2,6 @@ from base64 import b64decode
 from io import BytesIO
 
 from django.conf import settings
-from PIL import Image
 from rest_framework import serializers
 
 from sentry.api.exceptions import SentryAPIException
@@ -46,6 +45,9 @@ class AvatarField(serializers.Field):
         data = b64decode(data)
         if len(data) > self.max_size:
             raise ImageTooLarge()
+
+        # Imported here so web workers do not load Pillow at boot.
+        from PIL import Image
 
         with Image.open(BytesIO(data)) as img:
             if self.is_sentry_app and (

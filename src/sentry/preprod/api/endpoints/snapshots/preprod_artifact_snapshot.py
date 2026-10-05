@@ -80,7 +80,6 @@ from sentry.preprod.snapshots.precompute import (
     refresh_manifest_expiration,
 )
 from sentry.preprod.snapshots.storage import get_snapshot_storage
-from sentry.preprod.snapshots.tasks import compare_snapshots
 from sentry.preprod.snapshots.utils import (
     find_base_snapshot_artifact,
     find_head_snapshot_artifacts_awaiting_base,
@@ -974,6 +973,9 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                         except IntegrityError:
                             pass
 
+                    # Imported here so web workers do not load the image differ and Pillow at boot.
+                    from sentry.preprod.snapshots.tasks import compare_snapshots
+
                     compare_snapshots.apply_async(
                         kwargs={
                             "project_id": project.id,
@@ -1041,6 +1043,8 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                         )
                     except IntegrityError:
                         pass
+
+                    from sentry.preprod.snapshots.tasks import compare_snapshots
 
                     compare_snapshots.apply_async(
                         kwargs={

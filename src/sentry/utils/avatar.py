@@ -15,7 +15,6 @@ from django.core.validators import validate_email
 from django.utils.encoding import force_str
 from django.utils.html import escape, format_html
 from django.utils.safestring import SafeString
-from PIL import Image
 
 from sentry.http import safe_urlopen
 from sentry.utils.hashlib import sha256_text
@@ -149,6 +148,9 @@ def get_platform_avatar(
 
 def is_black_alpha_only(data: IO[bytes]) -> bool:
     """Check if an image has only black pixels (with alpha)"""
+    # Imported here so web workers do not load Pillow at boot.
+    from PIL import Image
+
     result = False
     with Image.open(data) as image:
         if image.mode == "RGBA":
