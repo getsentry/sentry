@@ -138,6 +138,41 @@ describe('ConversationsOverviewPage', () => {
     ).toBeTruthy();
   });
 
+  it('only fetches conversations on the Conversations tab', async () => {
+    const conversationsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/`,
+      body: [],
+    });
+    render(<ConversationsOverviewPage />, {
+      organization,
+      initialRouterConfig: {
+        location: {query: {table: 'traces'}},
+      },
+    });
+
+    expect(
+      await screen.findByPlaceholderText(
+        'Search by trace ID, operation, service, or user'
+      )
+    ).toBeInTheDocument();
+    expect(conversationsRequest).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
+    expect(
+      await screen.findByPlaceholderText(
+        'Search by model, provider, tokens, or operation'
+      )
+    ).toBeInTheDocument();
+    expect(conversationsRequest).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Conversations'}));
+    await waitFor(() => expect(conversationsRequest).toHaveBeenCalledTimes(1));
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Traces'}));
+    await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
+    expect(conversationsRequest).toHaveBeenCalledTimes(1);
+  });
+
   it('tailors the search placeholder to the selected table', async () => {
     render(<ConversationsOverviewPage />, {organization});
 
