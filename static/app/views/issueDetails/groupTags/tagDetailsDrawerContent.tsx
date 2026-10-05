@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
@@ -224,7 +224,38 @@ function TagDetailsRow({
         : `${cappedPercentage.toFixed(0)}%`;
 
   return (
-    <Row column="1 / -1" columns="subgrid">
+    <Grid
+      column="1 / -1"
+      columns="subgrid"
+      align="center"
+      radius="md"
+      padding="2xs md"
+      css={cssTheme => css`
+        &:nth-child(even) {
+          background: ${cssTheme.tokens.background.tertiary};
+        }
+
+        .invisible {
+          /* Keep the trigger focusable when closing the menu restores focus. */
+          opacity: 0;
+          pointer-events: none;
+        }
+        &:hover,
+        &:active,
+        &:focus-within {
+          .invisible {
+            opacity: 1;
+            pointer-events: auto;
+          }
+        }
+        @media (hover: none) {
+          .invisible {
+            opacity: 1;
+            pointer-events: auto;
+          }
+        }
+      `}
+    >
       <TagDetailsValue
         valueLocation={allEventsLocation}
         tagKey={key}
@@ -239,7 +270,7 @@ function TagDetailsRow({
         '--'
       )}
       <TagValueActionsMenu group={group} tag={tag} tagValue={tagValue} />
-    </Row>
+    </Grid>
   );
 }
 
@@ -374,35 +405,6 @@ function TagValueActionsMenu({
     />
   );
 }
-
-const Row = styled(Grid)`
-  &:nth-child(even) {
-    background: ${p => p.theme.tokens.background.tertiary};
-  }
-  align-items: center;
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
-
-  .invisible {
-    /* Keep the trigger focusable when closing the menu restores focus. */
-    opacity: 0;
-    pointer-events: none;
-  }
-  &:hover,
-  &:active,
-  &:focus-within {
-    .invisible {
-      opacity: 1;
-      pointer-events: auto;
-    }
-  }
-  @media (hover: none) {
-    .invisible {
-      opacity: 1;
-      pointer-events: auto;
-    }
-  }
-`;
 
 const RightAlignedValue = styled('div')`
   text-align: right;
