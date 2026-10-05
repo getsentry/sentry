@@ -35,6 +35,7 @@ class ErrorAlertData(NotificationData):
 class ErrorAlertNotificationTemplate(NotificationTemplate[ErrorAlertData]):
     category = NotificationCategory.DEBUG
     example_data = ErrorAlertData(
+        organization_id=1,
         error_type="ValueError",
         error_message="'NoneType' object has no attribute 'get'",
         project_name="my-app",
@@ -106,6 +107,7 @@ class DeploymentNotificationTemplate(NotificationTemplate[DeploymentData]):
     category = NotificationCategory.DEBUG
 
     example_data = DeploymentData(
+        organization_id=1,
         project_name="my-app",
         version="v2.1.3",
         environment="production",
@@ -170,6 +172,7 @@ class SlowLoadMetricAlertData(NotificationData):
 class SlowLoadMetricAlertNotificationTemplate(NotificationTemplate[SlowLoadMetricAlertData]):
     category = NotificationCategory.DEBUG
     example_data = SlowLoadMetricAlertData(
+        organization_id=1,
         alert_type="Slow Product Load",
         severity="critical",
         project_name="example-app",
@@ -215,6 +218,7 @@ class PerformanceAlertData(NotificationData):
 class PerformanceAlertNotificationTemplate(NotificationTemplate[PerformanceAlertData]):
     category = NotificationCategory.DEBUG
     example_data = PerformanceAlertData(
+        organization_id=1,
         metric_name="API response time",
         threshold="500ms",
         current_value="1.2s",
@@ -274,6 +278,7 @@ class TeamUpdateData(NotificationData):
 class TeamUpdateNotificationTemplate(NotificationTemplate[TeamUpdateData]):
     category = NotificationCategory.DEBUG
     example_data = TeamUpdateData(
+        organization_id=1,
         team_name="Engineering",
         update_type="Weekly Standup Reminder",
         message="Don't forget about our weekly standup meeting tomorrow at 10 AM. Please prepare your updates on current sprint progress.",

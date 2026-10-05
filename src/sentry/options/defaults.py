@@ -1459,13 +1459,6 @@ register(
     default=0.10,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "seer.smart_assignment.prefetch_rollout_rate",
-    type=Float,
-    default=0.5,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Spread child run_auto_transition_issues_* tasks across this many seconds
 # after each schedule tick, to smooth burst load (DB/signals/queues).
 register(
@@ -3573,6 +3566,15 @@ register(
 # the string values of `sentry.notifications.platform.types.NotificationSource`.
 register(
     "notifications.platform.killswitch.sources",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Notification sources that record engagement tracking (sent and engagement events).
+# Sources become metric tags, so this list is also what keeps those tags bounded.
+register(
+    "notifications.tracking.sources",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
