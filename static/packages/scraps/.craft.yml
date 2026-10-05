@@ -1,6 +1,5 @@
 minVersion: '2.21.0'
 releaseBranchPrefix: scraps/release
-postReleaseCommand: ''
 changelog:
   filePath: CHANGELOG.md
   policy: simple
