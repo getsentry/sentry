@@ -3,8 +3,11 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from unittest import mock
 
+import orjson
 import pytest
 from django.db.models import F
+from django.test import override_settings
+from urllib3.response import HTTPResponse
 
 from sentry.issues.endpoints.project_performance_issue_settings import InternalProjectOptions
 from sentry.issues.grouptype import (
@@ -40,7 +43,12 @@ from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.types.group import GroupSubStatus
-from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    decode_viewer_context,
+    get_viewer_context,
+)
 
 
 @pytest.fixture
@@ -612,12 +620,13 @@ def test_detect_function_trends_ratelimit(
 
 
 @mock.patch("sentry.tasks.statistical_detectors.emit_function_regression_issue")
-@mock.patch("sentry.statistical_detectors.detector.detect_breakpoints")
+@mock.patch("sentry.seer.breakpoints.seer_breakpoint_connection_pool.urlopen")
 @mock.patch("sentry.search.events.builder.base.raw_snql_query")
+@override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
 @django_db_all
 def test_detect_function_change_points(
     mock_raw_snql_query,
-    mock_detect_breakpoints,
+    mock_urlopen,
     mock_emit_function_regression_issue,
     timestamp,
     project,
@@ -645,29 +654,28 @@ def test_detect_function_change_points(
         ],
     }
 
-    observed_contexts: list[ViewerContext | None] = []
-
-    def detect_breakpoints(*args, **kwargs):
-        observed_contexts.append(get_viewer_context())
-        return {
-            "data": [
-                {
-                    "absolute_percentage_change": 5.0,
-                    "aggregate_range_1": 100000000.0,
-                    "aggregate_range_2": 500000000.0,
-                    "breakpoint": 1687323600,
-                    "change": "regression",
-                    "project": str(project.id),
-                    "transaction": str(fingerprint),
-                    "trend_difference": 400000000.0,
-                    "trend_percentage": 5.0,
-                    "unweighted_p_value": 0.0,
-                    "unweighted_t_value": -float("inf"),
-                },
-            ]
-        }
-
-    mock_detect_breakpoints.side_effect = detect_breakpoints
+    mock_urlopen.return_value = HTTPResponse(
+        orjson.dumps(
+            {
+                "data": [
+                    {
+                        "absolute_percentage_change": 5.0,
+                        "aggregate_range_1": 100000000.0,
+                        "aggregate_range_2": 500000000.0,
+                        "breakpoint": 1687323600,
+                        "change": "regression",
+                        "project": str(project.id),
+                        "transaction": str(fingerprint),
+                        "trend_difference": 400000000.0,
+                        "trend_percentage": 5.0,
+                        "unweighted_p_value": 0.0,
+                        "unweighted_t_value": -float("inf"),
+                    },
+                ]
+            }
+        ),
+        status=200,
+    )
 
     options = {
         "statistical_detectors.enable": True,
@@ -677,12 +685,14 @@ def test_detect_function_change_points(
         detect_function_change_points([(project.id, fingerprint)], timestamp.isoformat())
 
     assert mock_emit_function_regression_issue.called
-    assert observed_contexts == [
-        ViewerContext(
-            organization_id=project.organization_id,
-            actor_type=ActorType.SYSTEM,
-        )
-    ]
+    viewer_context = decode_viewer_context(
+        mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+        key="viewer-context-test-secret",
+    )
+    assert viewer_context == ViewerContext(
+        organization_id=project.organization_id,
+        actor_type=ActorType.SYSTEM,
+    )
 
 
 @mock.patch.object(FunctionRegressionDetector, "detect_regressions")

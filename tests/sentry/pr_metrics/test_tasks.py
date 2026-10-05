@@ -4,8 +4,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.db import OperationalError, connections, router
+from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
+from urllib3.response import HTTPResponse
 
 from sentry import options
 from sentry.models.pullrequest import (
@@ -25,6 +27,7 @@ from sentry.pr_metrics.tasks import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import cell_silo_test
+from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
 
 
 @cell_silo_test
@@ -48,6 +51,26 @@ class ForwardPrToSeerTaskTest(TestCase):
     def test_forwards_resolved_pr_and_repo(self, mock_forward: Any) -> None:
         self._run()
         mock_forward.assert_called_once_with(self.pull_request, self.repo)
+
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+    @patch("sentry.pr_metrics.judge.seer_pr_metrics_connection_pool.urlopen")
+    def test_sends_integration_viewer_context_without_an_ambient_context(
+        self, mock_urlopen: Any
+    ) -> None:
+        mock_urlopen.return_value = HTTPResponse(b"", status=202)
+        self.pull_request.update(head_commit_sha="a" * 40, closed_at=timezone.now())
+        self.repo.update(external_id="repository-external-id")
+
+        self._run()
+
+        viewer_context = decode_viewer_context(
+            mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert viewer_context == ViewerContext(
+            organization_id=self.organization.id,
+            actor_type=ActorType.INTEGRATION,
+        )
 
     @patch("sentry.pr_metrics.tasks.forward_pr_to_seer_judge")
     def test_missing_pull_request_is_dropped(self, mock_forward: Any) -> None:

@@ -447,9 +447,10 @@ def schedule_context_engine_indexing_tasks() -> None:
     processing_deadline_duration=30,
 )
 def index_sentry_knowledge() -> None:
-    response = make_index_sentry_knowledge_request(
-        body=AgentIndexSentryKnowledgeRequest(replace_existing=True)
-    )
+    with viewer_context_scope(ViewerContext(actor_type=ActorType.SYSTEM)):
+        response = make_index_sentry_knowledge_request(
+            body=AgentIndexSentryKnowledgeRequest(replace_existing=True)
+        )
 
     if response.status >= 400:
         raise Exception(

@@ -23,7 +23,7 @@ from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.settings import is_self_hosted
 from sentry.utils.tracing import start_span
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context, viewer_context_scope
 
 logger = logging.getLogger("sentry.tasks.seer_explorer_indexer")
 
@@ -206,16 +206,19 @@ def run_explorer_index_for_projects(
     ]
     payload = AgentIndexRequest(projects=project_list)
 
-    # Only set viewer_context when all projects in the batch share the same org
+    # Only set the organization when all projects in the batch share one.
     org_ids = {org_id for _, org_id in projects}
     if len(org_ids) == 1:
         the_org_id = org_ids.pop()
         viewer_context = SeerViewerContext(organization_id=the_org_id)
         vc = ViewerContext(organization_id=the_org_id, actor_type=ActorType.SYSTEM)
-        scope: contextlib.AbstractContextManager[None] = viewer_context_scope(vc)
     else:
         viewer_context = None
-        scope = contextlib.nullcontext()
+        vc = ViewerContext(actor_type=ActorType.SYSTEM)
+
+    scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
+    if get_viewer_context() is None:
+        scope = viewer_context_scope(vc)
 
     with scope:
         try:

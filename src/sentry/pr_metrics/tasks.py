@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import logging
 import time
 from datetime import datetime, timedelta
@@ -39,6 +40,12 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
 from sentry.utils import metrics
 from sentry.utils.db import statement_timeout
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +129,16 @@ def forward_pr_to_seer_task(
         )
         return
 
-    forward_pr_to_seer_judge(pull_request, repository)
+    scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
+    if get_viewer_context() is None:
+        scope = viewer_context_scope(
+            ViewerContext(
+                organization_id=organization_id,
+                actor_type=ActorType.INTEGRATION,
+            )
+        )
+    with scope:
+        forward_pr_to_seer_judge(pull_request, repository)
 
 
 @instrumented_task(

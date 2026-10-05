@@ -2,19 +2,42 @@ from collections.abc import Mapping
 from typing import Any
 from unittest.mock import Mock, patch
 
+from django.test import override_settings
+from urllib3.response import HTTPResponse
+
 from sentry.models.organization import Organization
-from sentry.seer.oneshot import call_seer_oneshot
+from sentry.seer.oneshot import call_seer_oneshot, run_oneshot
 from sentry.seer.run_questions import QUESTIONS, get_run_questions
 from sentry.testutils.cases import TestCase
 from sentry.viewer_context import (
     ActorType,
     ViewerContext,
+    decode_viewer_context,
     get_viewer_context,
     viewer_context_scope,
 )
 
 
 class CallSeerOneShotTest(TestCase):
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+    @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
+    def test_sends_system_viewer_context_without_an_ambient_context(
+        self, mock_urlopen: Mock
+    ) -> None:
+        mock_urlopen.return_value = HTTPResponse(b'{"result":{"answer":"ok"}}', status=200)
+
+        assert run_oneshot("test", {}, self.organization) == {"answer": "ok"}
+
+        viewer_context = decode_viewer_context(
+            mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+            key="viewer-context-test-secret",
+        )
+        assert viewer_context == ViewerContext(
+            organization_id=self.organization.id,
+            actor_type=ActorType.SYSTEM,
+        )
+        assert get_viewer_context() is None
+
     def test_establishes_viewer_context_for_request(self) -> None:
         observed_contexts: list[ViewerContext | None] = []
         response = Mock(status=200, data=b'{"result": {}}')
