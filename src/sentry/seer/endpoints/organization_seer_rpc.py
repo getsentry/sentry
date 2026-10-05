@@ -38,6 +38,7 @@ from sentry.seer.agent.tools import (
     get_issue_ownership,
     get_log_attributes_for_trace,
     get_metric_attributes_for_trace,
+    get_project_members,
     get_replay_metadata,
     get_repository_definition,
     get_team_members,
@@ -170,6 +171,7 @@ public_project_seer_method_registry: dict[str, SeerRpcMethod] = {
     "get_issues_for_transaction": seer_rpc(
         accept_organization_id_param(rpc_get_issues_for_transaction)
     ),
+    "get_project_members": seer_rpc(get_project_members),
     # Autofix - project-scoped methods
     "get_error_event_details": seer_rpc(accept_organization_id_param(get_error_event_details)),
     "get_profile_details": seer_rpc(get_profile_details),
