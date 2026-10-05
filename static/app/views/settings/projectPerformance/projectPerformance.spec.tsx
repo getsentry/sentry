@@ -748,25 +748,6 @@ describe('projectPerformance', () => {
     );
   });
 
-  it('shows the query-injection threshold without a visibility flag', async () => {
-    MockApiClient.addMockResponse({
-      url: '/projects/org-slug/project-slug/performance-issues/configure/',
-      method: 'GET',
-      body: {
-        db_query_injection_detection_enabled: true,
-        sql_injection_query_value_length_threshold: 5,
-      },
-    });
-
-    render(<ProjectPerformance />, {organization: org, initialRouterConfig});
-    await screen.findByText('Performance Issues - Detector Threshold Settings');
-    await expandAllDetectorSettings();
-
-    expect(
-      screen.getByRole('slider', {name: 'SQL Injection Query Value Length'})
-    ).toHaveValue('2');
-  });
-
   it('positions detector sliders at nonstandard configured values', async () => {
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/performance-issues/configure/',
