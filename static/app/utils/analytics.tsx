@@ -236,13 +236,6 @@ type RecordMetric = Overrides['metrics:event'] & {
     name: string;
   }) => void;
 
-  mark: (opts: {
-    /**
-     * Name of the metric event
-     */
-    name: string;
-  }) => void;
-
   startSpan: (opts: {
     /**
      * Name of transaction
@@ -268,19 +261,6 @@ export const CAN_MARK =
   typeof window.performance.measure === 'function' &&
   typeof window.performance.getEntriesByName === 'function' &&
   typeof window.performance.clearMeasures === 'function';
-
-metric.mark = function metricMark({name}) {
-  // Just ignore if browser is old enough that it doesn't support this
-  if (!CAN_MARK) {
-    return;
-  }
-
-  if (!name) {
-    throw new Error('Invalid argument provided to `metric.mark`');
-  }
-
-  window.performance.mark(name);
-};
 
 /**
  * Used to pass data between startTransaction and endTransaction
