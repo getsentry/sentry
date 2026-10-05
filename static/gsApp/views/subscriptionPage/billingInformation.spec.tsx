@@ -125,9 +125,7 @@ describe('Subscription > BillingInformation', () => {
     ).not.toBeInTheDocument();
 
     // can edit both
-    await userEvent.click(
-      within(cardPanel).getByRole('button', {name: 'Edit payment method'})
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
     expect(
       within(cardPanel).queryByRole('button', {name: 'Edit payment method'})
     ).not.toBeInTheDocument();
@@ -316,9 +314,7 @@ describe('Subscription > BillingInformation', () => {
     render(<BillingInformation subscription={subscription} />, {organization});
 
     const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
-    await userEvent.click(
-      within(cardPanel).getByRole('button', {name: 'Edit payment method'})
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
     await userEvent.click(within(cardPanel).getByRole('button', {name: 'Save Changes'}));
 
     await waitFor(() => expect(submit).toHaveBeenCalledTimes(1));
