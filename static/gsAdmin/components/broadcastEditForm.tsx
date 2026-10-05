@@ -90,7 +90,7 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
           : response
             ? JSON.stringify(response)
             : 'Unknown error';
-      addErrorMessage(`Save failed: ${detail}`);
+      addErrorMessage(detail);
     },
   });
 
