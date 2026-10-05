@@ -144,23 +144,16 @@ class MonitorAlertRuleValidator(serializers.Serializer):
         help_text="Array of dictionaries with information of the user or team to be notified",
     )
 
-    def validate(self, attrs):
-        environment_name = attrs.get("environment")
-        if environment_name is None:
-            attrs["environment_id"] = None
-            return attrs
+    def validate_environment(self, environment: str | None) -> int | None:
+        if environment is None:
+            return None
 
         try:
-            environment = Environment.get_for_organization_id(
-                self.context["organization"].id, environment_name
-            )
+            return Environment.get_for_organization_id(
+                self.context["organization"].id, environment
+            ).id
         except Environment.DoesNotExist:
-            raise serializers.ValidationError(
-                {"environment": "This environment has not been created."}
-            )
-
-        attrs["environment_id"] = environment.id
-        return attrs
+            raise serializers.ValidationError("This environment has not been created.")
 
     @staticmethod
     def validate_targets_for_project(attrs, project: Project) -> None:

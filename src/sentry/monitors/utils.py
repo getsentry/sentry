@@ -331,7 +331,7 @@ def create_issue_alert_rule(
             },
         ],
         frequency=5,
-        environment=validated_issue_alert_rule.get("environment_id"),
+        environment=validated_issue_alert_rule.get("environment"),
         filter_match="all",
         request=request,
         source=RuleSource.CRON_MONITOR,
@@ -385,7 +385,7 @@ def update_issue_alert_rule(
         request=request,
         project=project,
         name=f"Monitor Alert: {monitor.name}"[:64],
-        environment=issue_alert_rule_data.get("environment_id"),
+        environment=issue_alert_rule_data.get("environment"),
         actions=_build_issue_alert_rule_actions(issue_alert_rule_data),
         conditions=conditions,
     ).run()
