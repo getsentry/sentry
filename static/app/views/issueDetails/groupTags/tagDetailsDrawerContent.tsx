@@ -103,7 +103,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
           left={`-${theme.space.md}`}
           width={`calc(100% + ${theme.space.md} + ${theme.space.md})`}
         >
-          <Header>
+          <Grid column="1 / -1" columns="subgrid" borderBottom="primary" margin="0 md">
             <Text as="div" wrap="nowrap" variant="muted" bold>
               {t('Value')}
             </Text>
@@ -150,8 +150,8 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
             <Text as="div" wrap="nowrap" variant="muted" bold align="center">
               {t('Share')}
             </Text>
-          </Header>
-          <Body>
+          </Grid>
+          <Grid column="1 / -1" columns="subgrid">
             {tagValues.map((tv, i) => (
               <TagDetailsRow
                 key={`${tv.value}-${i}`}
@@ -160,7 +160,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
                 tagValue={tv}
               />
             ))}
-          </Body>
+          </Grid>
         </Grid>
       )}
       <Pagination
@@ -224,7 +224,7 @@ function TagDetailsRow({
         : `${cappedPercentage.toFixed(0)}%`;
 
   return (
-    <Row>
+    <Row column="1 / -1" columns="subgrid">
       <TagDetailsValue
         valueLocation={allEventsLocation}
         tagKey={key}
@@ -375,18 +375,7 @@ function TagValueActionsMenu({
   );
 }
 
-const Body = styled('div')`
-  display: grid;
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
-`;
-
-const Header = styled(Body)`
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  margin: 0 ${p => p.theme.space.md};
-`;
-
-const Row = styled(Body)`
+const Row = styled(Grid)`
   &:nth-child(even) {
     background: ${p => p.theme.tokens.background.tertiary};
   }
