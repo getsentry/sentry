@@ -417,14 +417,16 @@ class UptimeMonitorValidator(UptimeValidatorBase):
         )
 
         if "environment" in data:
+            env_name = data["environment"]
+        else:
+            env_name = instance.config["environment"]
+
+        if env_name is None:
+            environment = None
+        else:
             environment = Environment.get_or_create(
                 project=self.context["project"],
-                name=data["environment"],
-            )
-        else:
-            environment = Environment.objects.get(
-                projects=self.context["project"],
-                name=instance.config["environment"],
+                name=env_name,
             )
 
         if "mode" in data:
