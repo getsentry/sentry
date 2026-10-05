@@ -193,9 +193,7 @@ function FlagDetailsRow({flagValue, striped}: {flagValue: RawFlag; striped: bool
           <Text as="div" align="left" variant="inherit">
             {flagValue.provider}
           </Text>
-          <Text as="div" align="left" variant="inherit">
-            <code>{flagValue.flag}</code>
-          </Text>
+          <code>{flagValue.flag}</code>
           {getFlagActionLabel(flagValue.action)}
           <DateTime date={flagValue.createdAt} year timeZone />
           <FlagValueActionsMenu flagValue={flagValue} />
