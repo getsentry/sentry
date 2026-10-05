@@ -42,7 +42,7 @@ ENV PATH="/.venv/bin:$PATH" UV_PROJECT_ENVIRONMENT=/.venv \
     PIP_NO_CACHE_DIR=1 PIP_DISABLE_PIP_VERSION_CHECK=1 \
     UV_COMPILE_BYTECODE=1 UV_NO_CACHE=1
 
-RUN python3 -m pip install --index-url 'https://pypi.devinfra.sentry.io/simple' 'uv==0.12.10'
+RUN python3 -m pip install --index-url 'https://pypi.devinfra.sentry.io/simple' 'uv==0.12.23'
 
 # We don't want uv-managed python, we want to use python from the image.
 # We only want to use uv to manage dependencies.
@@ -55,11 +55,12 @@ ENV \
   GRPC_POLL_STRATEGY=epoll1
 
 # Install dependencies first to leverage Docker layer caching.
-COPY uv.lock pyproject.toml .
+# Only uv.lock is needed (frozen-lockfile), so pyproject.toml edits don't bust this layer.
+COPY uv.lock .
 RUN set -x \
   # --no-build: every locked dependency ships a wheel, so fail rather than
   # silently compile from source (the image has no compiler).
-  && uv sync --frozen --quiet --no-install-project --no-build \
+  && uv sync --frozen --preview-features frozen-lockfile --quiet --no-install-project --no-build \
   # Fully verify that the C extension is correctly installed, it unfortunately
   # requires a full check into maxminddb.extension.Reader
   && python -c 'import maxminddb.extension; maxminddb.extension.Reader' \
