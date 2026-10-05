@@ -36,6 +36,7 @@ GEN_AI_CALL_FILTER = (
 INPUT_TOKENS = "gen_ai.usage.input_tokens"
 MODEL = "gen_ai.request.model"
 SPAN_NAME = "span.name"
+
 # The span name is usually just the SDK wrapper; the agent name is what a reader
 # can find in their code. The operation name stands in where it is missing.
 AGENT_NAME = AgentLabelSource.AGENT_NAME.value
@@ -59,6 +60,7 @@ AVG_INPUT_TOKENS = f"avg({INPUT_TOKENS})"
 SUM_CACHE_READ_TOKENS = f"sum({CACHE_READ_TOKENS})"
 SUM_CACHE_CREATION_TOKENS = f"sum({CACHE_CREATION_TOKENS})"
 COUNT = "count()"
+
 # Unlike `count()`, not extrapolated: the evidence the aggregates rest on.
 COUNT_SAMPLE = "count_sample()"
 
@@ -67,12 +69,13 @@ COUNT_SAMPLE = "count_sample()"
 CALL_SITE_GROUPS_LIMIT = 300
 
 WARMTH_GRANULARITY_SECS = CACHE_TTL_MINUTES * 60
-SAMPLE_CALLS_LIMIT = 3
-# Over-fetched because rows are deduplicated by trace.
-SAMPLE_CALLS_QUERY_LIMIT = SAMPLE_CALLS_LIMIT * 3
 
+# The query limits over-fetch because rows are deduplicated by trace.
+SAMPLE_CALLS_LIMIT = 3
+SAMPLE_CALLS_QUERY_LIMIT = SAMPLE_CALLS_LIMIT * 3
 PROMPT_SAMPLES_LIMIT = 4
 PROMPT_SAMPLES_QUERY_LIMIT = PROMPT_SAMPLES_LIMIT * 3
+
 # Bounds how much customer content is read, generously next to the lengths the
 # diagnosis reasons about.
 PROMPT_MAX_CHARS = 32_768
@@ -320,6 +323,7 @@ def _warmth_buckets(result: SnubaTSResult) -> list[WarmthBucket]:
     sample_counts = processed.sample_count
     return [
         WarmthBucket(
+            start=int(point["time"]),
             call_count=float(point.get(COUNT) or 0),
             sample_count=(
                 float(sample_counts[index].get(COUNT) or 0) if index < len(sample_counts) else 0.0

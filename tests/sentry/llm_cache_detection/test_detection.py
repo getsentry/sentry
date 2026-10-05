@@ -5,7 +5,8 @@ from dataclasses import replace
 import pytest
 
 from sentry.llm_cache_detection.detection import (
-    MIN_AVG_INPUT_TOKENS,
+    CACHE_TTL_MINUTES,
+    DEFAULT_MIN_CACHEABLE_PREFIX_TOKENS,
     MIN_CACHEABLE_SHARE,
     MIN_CALLS_FOR_CONFIDENCE,
     MIN_SAMPLED_CALLS,
@@ -24,6 +25,7 @@ from sentry.llm_cache_detection.detection import (
     classify_call_site,
     diagnose_prompt_divergence,
     find_contrast_anchor,
+    min_cacheable_prefix_tokens,
     resolve_with_cache_presence,
     resolve_with_warmth,
 )
@@ -63,9 +65,20 @@ from tests.sentry.llm_cache_detection.test_utils import make_stats
         ),
         pytest.param(
             # Ineligible: avg input just under the cacheable minimum.
-            make_stats(call_count=20_000, avg_input_tokens=MIN_AVG_INPUT_TOKENS - 1),
+            make_stats(call_count=20_000, avg_input_tokens=DEFAULT_MIN_CACHEABLE_PREFIX_TOKENS - 1),
             Classification(CacheOutcome.INELIGIBLE, OutcomeReason.SMALL_PROMPTS),
             id="ineligible-avg-input-just-under-the-minimum",
+        ),
+        pytest.param(
+            # Long enough for most models, too short for this one's minimum.
+            make_stats(model="claude-haiku-4-5", avg_input_tokens=3_000),
+            Classification(CacheOutcome.INELIGIBLE, OutcomeReason.SMALL_PROMPTS),
+            id="ineligible-under-a-model-specific-minimum",
+        ),
+        pytest.param(
+            make_stats(model="claude-opus-5-5", avg_input_tokens=800),
+            Classification(CacheOutcome.NOT_CACHING, OutcomeReason.ZERO_CACHE_TOKENS),
+            id="eligible-over-a-model-specific-minimum",
         ),
         pytest.param(
             # Ineligible: too few cache-eligible calls to read a ratio off.
@@ -75,7 +88,10 @@ from tests.sentry.llm_cache_detection.test_utils import make_stats
         ),
         pytest.param(
             # Both floors met exactly.
-            make_stats(call_count=MIN_CALLS_FOR_CONFIDENCE, avg_input_tokens=MIN_AVG_INPUT_TOKENS),
+            make_stats(
+                call_count=MIN_CALLS_FOR_CONFIDENCE,
+                avg_input_tokens=DEFAULT_MIN_CACHEABLE_PREFIX_TOKENS,
+            ),
             Classification(CacheOutcome.NOT_CACHING, OutcomeReason.ZERO_CACHE_TOKENS),
             id="eligibility-thresholds-inclusive",
         ),
@@ -150,9 +166,17 @@ def test_classify_call_site(stats: CallSiteStats, expected: Classification) -> N
     assert classify_call_site(stats) == expected
 
 
+def bucket_start(index: int) -> int:
+    return index * CACHE_TTL_MINUTES * 60
+
+
 def unsampled(*call_counts: float) -> list[WarmthBucket]:
-    """Buckets from a project storing every span, where count and evidence agree."""
-    return [WarmthBucket(call_count=count, sample_count=count) for count in call_counts]
+    """Consecutive buckets from a project storing every span, where count and
+    evidence agree."""
+    return [
+        WarmthBucket(start=bucket_start(index), call_count=count, sample_count=count)
+        for index, count in enumerate(call_counts)
+    ]
 
 
 def test_warmth_charges_one_cold_start_per_bucket() -> None:
@@ -163,6 +187,17 @@ def test_warmth_charges_one_cold_start_per_bucket() -> None:
     assert warmth.total_call_count == 9
     assert warmth.warm_call_count == 6
     assert warmth.cacheable_share == pytest.approx(6 / 9)
+
+
+def test_warmth_at_the_long_ttl_reaches_calls_the_default_ttl_misses() -> None:
+    # A call every 20 minutes for two hours: each meets a cache cold at the
+    # default TTL, but all but the first each hour a warm one at the long TTL.
+    warmth = CallSiteWarmth.from_buckets(unsampled(*[1, 0, 0, 0] * 6))
+
+    assert warmth.total_call_count == 6
+    assert warmth.warm_call_count == 0
+    assert warmth.long_ttl_warm_call_count == 4
+    assert warmth.long_ttl_cacheable_share == pytest.approx(4 / 6)
 
 
 def test_warmth_of_a_call_site_that_never_called() -> None:
@@ -189,7 +224,10 @@ def test_warmth_charges_each_stored_span_as_a_cold_start(
     sample_count: int, cacheable_share: float
 ) -> None:
     warmth = CallSiteWarmth.from_buckets(
-        [WarmthBucket(call_count=10, sample_count=sample_count) for _ in range(200)]
+        [
+            WarmthBucket(start=bucket_start(index), call_count=10, sample_count=sample_count)
+            for index in range(200)
+        ]
     )
 
     assert warmth.total_call_count == 2_000
@@ -203,14 +241,27 @@ NOT_CACHING = Classification(CacheOutcome.NOT_CACHING, OutcomeReason.CACHE_ACTIV
     ("warmth", "expected"),
     [
         pytest.param(
-            CallSiteWarmth(total_call_count=50_000, warm_call_count=10_000),
+            CallSiteWarmth(
+                total_call_count=50_000, warm_call_count=10_000, long_ttl_warm_call_count=10_000
+            ),
             Classification(CacheOutcome.INELIGIBLE, OutcomeReason.LOW_CACHEABLE_SHARE),
             id="mostly-isolated-calls",
         ),
         pytest.param(
-            CallSiteWarmth(total_call_count=300, warm_call_count=MIN_CALLS_FOR_CONFIDENCE - 1),
+            CallSiteWarmth(
+                total_call_count=300,
+                warm_call_count=MIN_CALLS_FOR_CONFIDENCE - 1,
+                long_ttl_warm_call_count=MIN_CALLS_FOR_CONFIDENCE - 1,
+            ),
             Classification(CacheOutcome.INELIGIBLE, OutcomeReason.TOO_FEW_WARM_CALLS),
             id="too-few-calls-met-a-warm-cache",
+        ),
+        pytest.param(
+            CallSiteWarmth(
+                total_call_count=50_000, warm_call_count=10_000, long_ttl_warm_call_count=40_000
+            ),
+            Classification(CacheOutcome.INELIGIBLE, OutcomeReason.WARM_ONLY_AT_LONG_TTL),
+            id="warm-only-at-the-long-ttl",
         ),
         # Nothing is known about the gaps between these call sites' calls, which
         # is as good as knowing they are too wide to cache -- but each says why.
@@ -233,6 +284,7 @@ NOT_CACHING = Classification(CacheOutcome.NOT_CACHING, OutcomeReason.CACHE_ACTIV
             CallSiteWarmth(
                 total_call_count=MIN_CALLS_FOR_CONFIDENCE / MIN_CACHEABLE_SHARE,
                 warm_call_count=MIN_CALLS_FOR_CONFIDENCE,
+                long_ttl_warm_call_count=MIN_CALLS_FOR_CONFIDENCE,
             ),
             NOT_CACHING,
             id="both-floors-inclusive",
@@ -241,6 +293,29 @@ NOT_CACHING = Classification(CacheOutcome.NOT_CACHING, OutcomeReason.CACHE_ACTIV
 )
 def test_resolve_with_warmth(warmth: CallSiteWarmth | ProbeGap, expected: Classification) -> None:
     assert resolve_with_warmth(NOT_CACHING, warmth) == expected
+
+
+@pytest.mark.parametrize(
+    ("model", "expected"),
+    [
+        ("claude-haiku-4-5", 4_096),
+        # Matched on the canonical name, however the span spells it.
+        ("us.anthropic.claude-haiku-4-5-20251001-v1:0", 4_096),
+        # A key covers the variants named after it.
+        ("claude-3-5-haiku-latest", 2_048),
+        # The longest key wins: Sonnet 5 keeps the default its 5.5 successor lowers.
+        ("claude-sonnet-5", DEFAULT_MIN_CACHEABLE_PREFIX_TOKENS),
+        ("claude-sonnet-5-5", 512),
+        # A family key covers versions within it, not the next major version.
+        ("claude-opus-4-1", DEFAULT_MIN_CACHEABLE_PREFIX_TOKENS),
+        ("gemini-2.5-pro", 2_048),
+        ("gemini-3.1-pro-preview", 4_096),
+        ("gpt-5.6", DEFAULT_MIN_CACHEABLE_PREFIX_TOKENS),
+        ("some-self-hosted-model", DEFAULT_MIN_CACHEABLE_PREFIX_TOKENS),
+    ],
+)
+def test_min_cacheable_prefix_tokens(model: str, expected: int) -> None:
+    assert min_cacheable_prefix_tokens(model) == expected
 
 
 @pytest.mark.parametrize(

@@ -32,9 +32,10 @@ from sentry.testutils.helpers.datetime import before_now
 
 DETECTION_FEATURE = "organizations:llm-cache-detection"
 
-# Above MIN_AVG_INPUT_TOKENS so eligibility turns purely on the call count,
-# which each test lowers to keep the seeded span volume small.
-INPUT_TOKENS = 2_000
+# Above the cacheable minimum of every model used here, so eligibility turns
+# purely on the call count, which each test lowers to keep the seeded span
+# volume small.
+INPUT_TOKENS = 3_000
 CALLS_PER_CALL_SITE = 6
 
 # Synthetic, invented for the test. Real prompt text never goes in a fixture.
@@ -132,7 +133,7 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
             agent_name="Researcher",
             span_name="generate_content gemini",
             model=GEMINI,
-            cache_read_tokens=1_800,
+            cache_read_tokens=2_700,
         )
         self.store_call_site(
             agent_name="Reviewer",
@@ -269,15 +270,15 @@ class FetchCallSiteStatsTest(LLMCacheDetectionIntegrationTest):
         # Most integrations emit the deprecated aliases, backfilled at ingestion.
         self.store_call_site(
             model=CLAUDE,
-            cache_read_tokens=1_200,
-            cache_creation_tokens=300,
+            cache_read_tokens=1_800,
+            cache_creation_tokens=450,
             deprecated_attribute_names=True,
         )
 
         stats = self.fetch_call_site()
 
-        assert stats.sum_cache_read_tokens == 1_200 * CALLS_PER_CALL_SITE
-        assert stats.sum_cache_creation_tokens == 300 * CALLS_PER_CALL_SITE
+        assert stats.sum_cache_read_tokens == 1_800 * CALLS_PER_CALL_SITE
+        assert stats.sum_cache_creation_tokens == 450 * CALLS_PER_CALL_SITE
         assert stats.hit_rate == 0.6
 
     def test_does_not_double_count_across_attribute_families(self) -> None:
@@ -327,8 +328,8 @@ class FetchCallSiteWarmthTest(LLMCacheDetectionIntegrationTest):
         assert warmth.total_call_count == CALLS_PER_CALL_SITE
         assert warmth.warm_call_count == CALLS_PER_CALL_SITE - 1
 
-    def test_counts_calls_spaced_wider_than_the_cache_ttl_as_cold(self) -> None:
-        # An hour between calls outlives any prompt cache, so no volume of them
+    def test_counts_calls_spaced_wider_than_the_long_ttl_as_cold(self) -> None:
+        # Two hours between calls outlive even the long TTL, so no volume of them
         # adds up to a call site that can cache.
         self.store_spans(
             [
@@ -336,9 +337,9 @@ class FetchCallSiteWarmthTest(LLMCacheDetectionIntegrationTest):
                     agent_name="Researcher",
                     model=CLAUDE,
                     cache_read_tokens=0,
-                    start_ts=before_now(hours=hour + 1),
+                    start_ts=before_now(hours=2 * index + 1),
                 )
-                for hour in range(CALLS_PER_CALL_SITE)
+                for index in range(CALLS_PER_CALL_SITE)
             ]
         )
 
@@ -348,6 +349,30 @@ class FetchCallSiteWarmthTest(LLMCacheDetectionIntegrationTest):
         assert warmth is not None
         assert warmth.total_call_count == CALLS_PER_CALL_SITE
         assert warmth.warm_call_count == 0
+        assert warmth.long_ttl_warm_call_count == 0
+
+    def test_counts_calls_warm_only_at_the_long_ttl(self) -> None:
+        # Twenty minutes apart: cold at the default TTL, but six calls over 100
+        # minutes share an hour with at least one other.
+        self.store_spans(
+            [
+                self.gen_ai_span(
+                    agent_name="Researcher",
+                    model=CLAUDE,
+                    cache_read_tokens=0,
+                    start_ts=before_now(minutes=20 * index + 1),
+                )
+                for index in range(CALLS_PER_CALL_SITE)
+            ]
+        )
+
+        stats = self.fetch_call_site()
+        warmth = fetch_call_site_warmth(self.project, stats, self.window)
+
+        assert warmth is not None
+        assert warmth.total_call_count == CALLS_PER_CALL_SITE
+        assert warmth.warm_call_count == 0
+        assert warmth.long_ttl_warm_call_count > 0
 
     def test_reads_warmth_across_an_agents_operation_names(self) -> None:
         # One call site across two operation names: one cold start, not two.

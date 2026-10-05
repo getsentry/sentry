@@ -67,12 +67,20 @@ def counted(mock_count: MagicMock, name: str) -> list[tuple[float, dict[str, Any
 
 def bursty(stats: CallSiteStats) -> CallSiteWarmth:
     """Warmth for a call site whose calls arrive close enough together to cache."""
-    return CallSiteWarmth(total_call_count=stats.call_count, warm_call_count=stats.call_count * 0.9)
+    return CallSiteWarmth(
+        total_call_count=stats.call_count,
+        warm_call_count=stats.call_count * 0.9,
+        long_ttl_warm_call_count=stats.call_count * 0.9,
+    )
 
 
 def sparse(stats: CallSiteStats) -> CallSiteWarmth:
     """Warmth for a call site whose calls mostly arrive too far apart to cache."""
-    return CallSiteWarmth(total_call_count=stats.call_count, warm_call_count=stats.call_count * 0.1)
+    return CallSiteWarmth(
+        total_call_count=stats.call_count,
+        warm_call_count=stats.call_count * 0.1,
+        long_ttl_warm_call_count=stats.call_count * 0.1,
+    )
 
 
 # Not caching: near-zero hit rate at eligible volume.
@@ -128,7 +136,7 @@ GEMINI_ZERO_STATS = make_stats(
     agent_label="Summarizer",
     model="gemini-3.1-flash-lite",
     call_count=500_000,
-    avg_input_tokens=3_000,
+    avg_input_tokens=6_000,
 )
 
 

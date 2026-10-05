@@ -59,9 +59,11 @@ LLM_CACHE_DETECTION_FEATURE = "organizations:llm-cache-detection"
 
 # Mirrors the per-project creation quota the issue type will have.
 FINDINGS_PER_PROJECT_LIMIT = 5
+
 # Keeps the sequential probe queries inside the processing deadline. Presence is
 # only probed after a warmth probe answered, so this bounds it as well.
 MAX_WARMTH_PROBES_PER_PROJECT = 20
+
 PROJECTS_PER_BATCH = 1_000
 
 # Failures scoped to the call site a query was about, so the run goes on.

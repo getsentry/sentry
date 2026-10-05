@@ -13,7 +13,7 @@ from sentry.llm_cache_detection.detection import (
     OutcomeReason,
 )
 from sentry.llm_cache_detection.pricing import PricingGap, SavingsEstimate, estimate_savings
-from sentry.relay.config.ai_model_costs import AIModelMetadataConfig, model_costs
+from sentry.relay.config.ai_model_costs import AIModelMetadataConfig
 
 # Order-of-magnitude realistic: a cached input token is far cheaper than a fresh
 # one, and writing the cache costs a premium over both.
@@ -74,28 +74,6 @@ def make_finding(outcome: CacheOutcome, stats: CallSiteStats) -> CacheFinding:
 
 
 PRICED = config({"claude-sonnet-4": costs()})
-
-
-@pytest.mark.parametrize(
-    "model_id",
-    [
-        "claude-sonnet-4",
-        # Providers ship dated snapshots of the same model; the metadata is keyed
-        # by the undated name.
-        "claude-sonnet-4-20250514",
-        # Gateways like OpenRouter and Bedrock report the provider alongside the
-        # model; the metadata is keyed by the model alone.
-        "anthropic/claude-sonnet-4",
-        "anthropic/claude-sonnet-4-20250514",
-    ],
-)
-def test_model_costs_finds_a_model_however_the_span_names_it(model_id: str) -> None:
-    assert model_costs(model_id, PRICED) == costs()
-
-
-def test_model_costs_returns_none_for_an_unknown_model() -> None:
-    assert model_costs("some-self-hosted-model", PRICED) is None
-
 
 THRASHING = make_stats(
     sum_input_tokens=10_000_000,

@@ -8,26 +8,55 @@ from __future__ import annotations
 
 import math
 import re
+from collections import defaultdict
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from difflib import SequenceMatcher
 from enum import StrEnum
 
+from sentry.relay.config.ai_model_costs import canonical_model_name
+
 DETECTION_WINDOW_DAYS = 7
 
-# The shortest TTL any provider sells: a call meets a warm cache only when the
-# same call site made an earlier one within this long.
+# Warmth is judged at the shortest default TTL, Anthropic's. Under a longer one,
+# such as Anthropic's opt-in hour or OpenAI's 30-minute default on recent models,
+# calls further apart still meet a warm cache. The span does not say which TTL a
+# call site sets, so traffic warm only at the long TTL is reported, not flagged.
 CACHE_TTL_MINUTES = 5
-# Provider minimum cacheable prefix; below this caching cannot engage.
-MIN_AVG_INPUT_TOKENS = 1024
+LONG_CACHE_TTL_MINUTES = 60
+
+# The shortest prompt prefix a model caches, where it differs from the default.
+# Neither feed model prices come from carries it, so it is copied from the
+# providers' docs. Keys are canonical names (see `canonical_model_name`); a key
+# covers its variants and snapshots, and the longest matching key wins.
+MIN_CACHEABLE_PREFIX_TOKENS_BY_MODEL: dict[str, int] = {
+    "claude-fable-5": 512,
+    "claude-mythos-5": 512,
+    "claude-opus-5": 512,
+    "claude-sonnet-5-5": 512,
+    "claude-3-5-haiku": 2_048,
+    "claude-mythos-preview": 2_048,
+    "claude-opus-4-7": 2_048,
+    "claude-haiku-4-5": 4_096,
+    "claude-opus-4-5": 4_096,
+    "claude-opus-4-6": 4_096,
+    "gemini-2-5-flash": 2_048,
+    "gemini-2-5-pro": 2_048,
+    "gemini-3": 4_096,
+}
+
+# OpenAI's, and most Claude models'.
+DEFAULT_MIN_CACHEABLE_PREFIX_TOKENS = 1_024
 
 # Where token ratios settle enough to act on; a question of evidence, not caching.
 MIN_CALLS_FOR_CONFIDENCE = 200
+
 # The floor above counts extrapolated calls, but ratios are computed over the
 # stored spans, so those need a floor of their own. Lower, because the rates are
 # bimodal: telling near-zero from healthy takes few observations.
 MIN_SAMPLED_CALLS = 50
+
 # Hit rates count every call, including ones no warm cache could have served.
 # Requiring most calls to be cache-eligible keeps isolated traffic from diluting
 # a rate below the not-caching cutoff on its own.
@@ -37,6 +66,7 @@ MIN_CACHEABLE_SHARE = 0.5
 NOT_CACHING_MAX_HIT_RATE = 0.05
 
 THRASH_MAX_HIT_RATE = 0.30
+
 # With the hit-rate ceiling, this puts the write:read ratio above 1:1, so the
 # ratio needs no threshold of its own. Whether that costs money depends on the
 # write premium, which pricing knows and the span does not.
@@ -49,6 +79,7 @@ CONTRAST_ANCHOR_MIN_HIT_RATE = 0.50
 # attributes there are a genuine 0% hit rate rather than a gap. Nothing on the
 # span names the provider, so the model name stands in.
 POSITIVE_ONLY_CACHE_REPORTING_MODEL_MARKERS = ("gemini", "gpt")
+
 # OpenAI reasoning models (`o3`, `openai/o1-preview`), anchored so that arbitrary
 # deployment names do not claim the exemption.
 POSITIVE_ONLY_CACHE_REPORTING_MODEL_PATTERN = re.compile(r"(?:^|[/:])o\d")
@@ -96,6 +127,9 @@ class OutcomeReason(StrEnum):
     # Ineligible on how the traffic is spaced.
     TOO_FEW_WARM_CALLS = "too_few_warm_calls"
     LOW_CACHEABLE_SHARE = "low_cacheable_share"
+    # Spaced too far apart for the default TTL but not for the long one: a broken
+    # cache if the call site sets the long TTL, too short a TTL if it does not.
+    WARM_ONLY_AT_LONG_TTL = "warm_only_at_long_ttl"
     CACHE_ACTIVITY = "cache_activity"
     # No cache tokens at all, before the presence probe has said whether the
     # spans carry the attributes.
@@ -136,16 +170,48 @@ class Classification:
 
 @dataclass(frozen=True)
 class WarmthBucket:
-    """One cache-TTL bucket of a call site's traffic: extrapolated calls, and
-    the stored spans that estimate rests on."""
+    """One cache-TTL bucket of a call site's traffic: when it starts (epoch
+    seconds), extrapolated calls, and the stored spans that estimate rests on."""
 
+    start: int
     call_count: float
     sample_count: float
 
 
+def _warm_call_count(buckets: Iterable[WarmthBucket]) -> float:
+    calls = 0.0
+    cold_starts = 0.0
+    for bucket in buckets:
+        if bucket.call_count <= 0:
+            continue
+        calls += bucket.call_count
+        cold_starts += (
+            bucket.call_count / bucket.sample_count
+            if bucket.sample_count > 0
+            else bucket.call_count
+        )
+    return max(calls - cold_starts, 0.0)
+
+
+def _widen_buckets(buckets: Iterable[WarmthBucket], minutes: int) -> list[WarmthBucket]:
+    """Merge buckets into wider ones aligned to ``minutes``; both counts add up."""
+    width = minutes * 60
+    call_counts: defaultdict[int, float] = defaultdict(float)
+    sample_counts: defaultdict[int, float] = defaultdict(float)
+    for bucket in buckets:
+        start = bucket.start - bucket.start % width
+        call_counts[start] += bucket.call_count
+        sample_counts[start] += bucket.sample_count
+    return [
+        WarmthBucket(start=start, call_count=call_count, sample_count=sample_counts[start])
+        for start, call_count in call_counts.items()
+    ]
+
+
 @dataclass(frozen=True)
 class CallSiteWarmth:
-    """How much of a call site's traffic could have met a warm cache.
+    """How much of a call site's traffic could have met a warm cache, at the
+    default TTL and at the long one.
 
     EAP cannot take the gap between consecutive calls, so calls are bucketed at
     the TTL: within a bucket every call after the first had a warm cache. A
@@ -156,30 +222,30 @@ class CallSiteWarmth:
 
     total_call_count: float
     warm_call_count: float
+    long_ttl_warm_call_count: float
 
     @classmethod
-    def from_buckets(cls, buckets: Iterable[WarmthBucket]) -> CallSiteWarmth:
-        total_call_count = 0.0
-        cold_starts = 0.0
-        for bucket in buckets:
-            if bucket.call_count <= 0:
-                continue
-            total_call_count += bucket.call_count
-            cold_starts += (
-                bucket.call_count / bucket.sample_count
-                if bucket.sample_count > 0
-                else bucket.call_count
-            )
+    def from_buckets(cls, buckets: Sequence[WarmthBucket]) -> CallSiteWarmth:
         return cls(
-            total_call_count=total_call_count,
-            warm_call_count=max(total_call_count - cold_starts, 0.0),
+            total_call_count=sum(bucket.call_count for bucket in buckets if bucket.call_count > 0),
+            warm_call_count=_warm_call_count(buckets),
+            long_ttl_warm_call_count=_warm_call_count(
+                _widen_buckets(buckets, LONG_CACHE_TTL_MINUTES)
+            ),
         )
+
+    def _share(self, warm_call_count: float) -> float:
+        if self.total_call_count <= 0:
+            return 0.0
+        return warm_call_count / self.total_call_count
 
     @property
     def cacheable_share(self) -> float:
-        if self.total_call_count <= 0:
-            return 0.0
-        return self.warm_call_count / self.total_call_count
+        return self._share(self.warm_call_count)
+
+    @property
+    def long_ttl_cacheable_share(self) -> float:
+        return self._share(self.long_ttl_warm_call_count)
 
 
 @dataclass(frozen=True)
@@ -301,7 +367,9 @@ def classify_call_site(stats: CallSiteStats) -> Classification:
     ``needs_cache_presence_probe`` says the zero sums are ambiguous. A healthy
     hit rate needs neither, being proof by itself that the cache warms.
     """
-    if stats.avg_input_tokens < MIN_AVG_INPUT_TOKENS:
+    # The average bounds the prefix from above: below the minimum, most calls
+    # cannot have a cacheable one.
+    if stats.avg_input_tokens < min_cacheable_prefix_tokens(stats.model):
         return Classification(CacheOutcome.INELIGIBLE, OutcomeReason.SMALL_PROMPTS)
     if stats.call_count < MIN_CALLS_FOR_CONFIDENCE:
         return Classification(CacheOutcome.INELIGIBLE, OutcomeReason.LOW_VOLUME)
@@ -329,6 +397,26 @@ def classify_call_site(stats: CallSiteStats) -> Classification:
     return Classification(CacheOutcome.HEALTHY, OutcomeReason.CACHE_ACTIVITY)
 
 
+def min_cacheable_prefix_tokens(model: str) -> int:
+    name = canonical_model_name(model)
+    matches = [
+        key
+        for key in MIN_CACHEABLE_PREFIX_TOKENS_BY_MODEL
+        if name == key or name.startswith(f"{key}-")
+    ]
+    if not matches:
+        return DEFAULT_MIN_CACHEABLE_PREFIX_TOKENS
+    return MIN_CACHEABLE_PREFIX_TOKENS_BY_MODEL[max(matches, key=len)]
+
+
+def _warmth_shortfall(warm_call_count: float, cacheable_share: float) -> OutcomeReason | None:
+    if warm_call_count < MIN_CALLS_FOR_CONFIDENCE:
+        return OutcomeReason.TOO_FEW_WARM_CALLS
+    if cacheable_share < MIN_CACHEABLE_SHARE:
+        return OutcomeReason.LOW_CACHEABLE_SHARE
+    return None
+
+
 def resolve_with_warmth(
     classification: Classification, warmth: CallSiteWarmth | ProbeGap
 ) -> Classification:
@@ -336,11 +424,12 @@ def resolve_with_warmth(
     arithmetic, not a defect. Unmeasured warmth is treated the same."""
     if isinstance(warmth, ProbeGap):
         return Classification(CacheOutcome.INELIGIBLE, PROBE_GAP_REASONS[warmth])
-    if warmth.warm_call_count < MIN_CALLS_FOR_CONFIDENCE:
-        return Classification(CacheOutcome.INELIGIBLE, OutcomeReason.TOO_FEW_WARM_CALLS)
-    if warmth.cacheable_share < MIN_CACHEABLE_SHARE:
-        return Classification(CacheOutcome.INELIGIBLE, OutcomeReason.LOW_CACHEABLE_SHARE)
-    return classification
+    shortfall = _warmth_shortfall(warmth.warm_call_count, warmth.cacheable_share)
+    if shortfall is None:
+        return classification
+    if _warmth_shortfall(warmth.long_ttl_warm_call_count, warmth.long_ttl_cacheable_share) is None:
+        return Classification(CacheOutcome.INELIGIBLE, OutcomeReason.WARM_ONLY_AT_LONG_TTL)
+    return Classification(CacheOutcome.INELIGIBLE, shortfall)
 
 
 def reports_only_positive_cache_values(model: str) -> bool:

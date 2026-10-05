@@ -25,6 +25,7 @@ from sentry.llm_cache_detection.detection import (
     ProbeGap,
     PromptDiagnosisGap,
     PromptDivergence,
+    min_cacheable_prefix_tokens,
 )
 from sentry.llm_cache_detection.pricing import PricingGap, SavingsEstimate
 from sentry.llm_cache_detection.query import CallSiteQueryResult, SampleCall
@@ -107,6 +108,7 @@ def _candidate_fields(report: CandidateReport) -> dict[str, Any]:
         "uncached_tokens": stats.uncached_tokens,
         "unrecouped_cache_write_tokens": stats.unrecouped_cache_write_tokens,
         "cache_exceeds_input": stats.cache_exceeds_input,
+        "min_cacheable_prefix_tokens": min_cacheable_prefix_tokens(stats.model),
     }
     if finding.anchor is not None:
         fields.update({f"contrast_{key}": value for key, value in asdict(finding.anchor).items()})
@@ -124,7 +126,11 @@ def _candidate_fields(report: CandidateReport) -> dict[str, Any]:
             fields[f"{name}_gap"] = measurement.value
 
     if isinstance(finding.warmth, CallSiteWarmth):
-        fields.update(asdict(finding.warmth), cacheable_share=finding.warmth.cacheable_share)
+        fields.update(
+            asdict(finding.warmth),
+            cacheable_share=finding.warmth.cacheable_share,
+            long_ttl_cacheable_share=finding.warmth.long_ttl_cacheable_share,
+        )
     if isinstance(finding.spans_with_cache_attributes, int):
         fields["spans_with_cache_attributes"] = finding.spans_with_cache_attributes
     if isinstance(report.pricing, SavingsEstimate):
