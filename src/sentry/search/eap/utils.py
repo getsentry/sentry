@@ -1,8 +1,8 @@
 import math
 import re
-from collections.abc import Collection, Mapping
+from collections.abc import Collection, Iterable, Mapping
 from datetime import datetime
-from typing import Any, Callable, Literal
+from typing import Callable, Literal, Protocol
 
 from django.db.models import Q
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -513,8 +513,18 @@ def check_attribute_names_exist(
 FORMAT_RE = r"\{((?:\w|\.)+)\}"
 
 
+class FormulaParam(Protocol):
+    name: str
+    param_type: int | None
+
+
+class FormulaTerm(Protocol):
+    name: str
+    value: str
+
+
 def get_and_parse_formula(
-    formula: str, organization: Organization, resolve_column: Callable[[str], Any]
+    formula: str, organization: Organization, resolve_column: Callable[[str], object]
 ) -> str:
     """Given a formula, parse its parameters and create its rpc definition"""
     match = is_function(formula)
@@ -551,11 +561,11 @@ def get_and_parse_formula(
 def parse_formula(
     formula_definition: str,
     arguments: list[str],
-    saved_args,
-    saved_calculations,
-    saved_references,
-    resolve_column: Callable[[str], Any],
-):
+    saved_args: Iterable[FormulaParam],
+    saved_calculations: Iterable[FormulaTerm],
+    saved_references: Iterable[FormulaTerm],
+    resolve_column: Callable[[str], object],
+) -> str:
     # Create a dict of param name -> the arg the user passed
     variables = {}
     for saved_arg, arg in zip(saved_args, arguments):

@@ -43,17 +43,13 @@ from sentry.explore.models import (
 from sentry.models.organization import Organization
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.eap.utils import parse_formula
-from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
+from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, DurationUnit, SizeUnit
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.spans_rpc import Spans
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
-FORMAT_RE = r"\{((?:\w|\.)+)\}"
-CALCULATION = ParamItemTypes.get_type_name(ParamItemTypes.CALCULATION)
-COLUMN = ParamItemTypes.get_type_name(ParamItemTypes.COLUMN)
-NUMBER = ParamItemTypes.get_type_name(ParamItemTypes.NUMBER)
 DATASETS = {
     ExploreSavedQueryDataset.SPANS: Spans,
     ExploreSavedQueryDataset.OURLOGS: OurLogs,
@@ -144,6 +140,27 @@ class ExploreSavedFormulaSerializer(Serializer[ExploreSavedFormulaResponse]):
         return data
 
 
+class FormulaParamData(TypedDict):
+    name: str
+    value: str
+    param_type: int
+    order: int
+
+
+class FormulaReferenceData(TypedDict):
+    name: str
+    value: str
+
+
+class FormulaData(TypedDict):
+    formula: str
+    name: str
+    unit: SizeUnit | DurationUnit | None
+    params: list[FormulaParamData]
+    references: list[FormulaReferenceData]
+    dataset: int
+
+
 class ReferenceSerializer(RequestSerializer):
     name = CharField(max_length=200)
     value = CharField(max_length=200, allow_blank=True)
@@ -159,7 +176,7 @@ class ParamSerializer(ReferenceSerializer):
             raise ValidationError("Invalid param type")
         return param_type
 
-    def validate(self, data):
+    def validate(self, data: FormulaParamData) -> FormulaParamData:
         if data["param_type"] == ParamItemTypes.CALCULATION and not data["value"]:
             raise ValidationError({"value": "Calculations must have a value"})
         return data
@@ -200,7 +217,7 @@ class FormulaSerializer(RequestSerializer):
             raise ValidationError("Formula names must begin with `formula`")
         return name
 
-    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
+    def validate(self, data: FormulaData) -> FormulaData:
         # Convert the dicts to simplenamespace objects so they; can be used in parse_formula
         data["params"] = sorted(data["params"], key=lambda p: p["order"])
         calculations = [
