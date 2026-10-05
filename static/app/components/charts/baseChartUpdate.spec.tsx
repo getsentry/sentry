@@ -1,38 +1,25 @@
+import ReactEchartsCore from 'echarts-for-react/lib/core';
+
 import {render} from 'sentry-test/reactTestingLibrary';
 
 import {BaseChart} from 'sentry/components/charts/baseChart';
 
 const mockShouldSetOptionResults: boolean[] = [];
 
-jest.mock('echarts/core', () => ({
-  ...jest.requireActual('echarts/core'),
-  getInstanceByDom: (dom: HTMLElement | null) =>
-    dom ? {isDisposed: () => false} : undefined,
-}));
-
 jest.mock('echarts-for-react/lib/core', () => {
   const ReactActual = require('react');
 
   return class extends ReactActual.Component {
-    ele: HTMLDivElement | null = null;
-
     componentDidUpdate(prevProps: unknown) {
       mockShouldSetOptionResults.push(this.props.shouldSetOption(prevProps, this.props));
     }
 
     getEchartsInstance() {
-      return require('echarts/core').getInstanceByDom(this.ele);
+      return {isDisposed: () => false};
     }
 
     render() {
-      return (
-        <div
-          className="echarts-for-react"
-          ref={(ele: HTMLDivElement | null) => {
-            this.ele = ele;
-          }}
-        />
-      );
+      return null;
     }
   };
 });
@@ -48,5 +35,16 @@ describe('BaseChart', () => {
     rerender(<BaseChart ref={() => {}} series={[{type: 'bar', data: [[1, 2]]}]} />);
 
     expect(mockShouldSetOptionResults).toEqual([true]);
+  });
+
+  it('passes the chart instance to a new ref when the ref changes', () => {
+    const firstRef = jest.fn();
+    const secondRef = jest.fn();
+    const {rerender} = render(<BaseChart ref={firstRef} series={[]} />);
+
+    rerender(<BaseChart ref={secondRef} series={[]} />);
+
+    expect(firstRef.mock.calls).toEqual([[expect.any(ReactEchartsCore)], [null]]);
+    expect(secondRef.mock.calls).toEqual([[expect.any(ReactEchartsCore)]]);
   });
 });
