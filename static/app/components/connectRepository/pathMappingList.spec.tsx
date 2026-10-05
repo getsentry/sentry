@@ -1,16 +1,56 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+
 import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
 import type {PathMappingValue} from 'sentry/components/connectRepository/type';
-
-function renderList(props: Partial<Parameters<typeof PathMappingList>[0]> = {}) {
-  return render(<PathMappingList onChange={() => {}} {...props} />);
-}
+import type {ExistingMapping} from 'sentry/components/connectRepository/warnings';
 
 const MAPPINGS: PathMappingValue[] = [
   {stackRoot: 'app/', sourceRoot: 'static/app/', branch: 'main'},
   {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'frontend'},
 ];
+
+/**
+ * Mirrors how ConnectRepositoryModal uses PathMappingList: the form is seeded
+ * with at least one row before the list mounts (or with the provided mappings).
+ */
+function renderList({
+  initialPathMappings,
+  pathMappings,
+  defaultBranch,
+  providerKey,
+  existingMappings,
+}: {
+  defaultBranch?: string;
+  existingMappings?: ExistingMapping[];
+  initialPathMappings?: PathMappingValue[];
+  pathMappings?: PathMappingValue[];
+  providerKey?: string;
+} = {}) {
+  const branchSeed = defaultBranch ?? 'main';
+  const seeded = pathMappings ??
+    initialPathMappings ?? [{stackRoot: '', sourceRoot: '', branch: branchSeed}];
+
+  function Wrapper() {
+    const form = useScrapsForm({
+      ...defaultFormOptions,
+      defaultValues: {repository: null as string | null, pathMappings: seeded},
+      onSubmit: () => {},
+    });
+    return (
+      <form.AppForm form={form}>
+        <PathMappingList
+          form={form}
+          defaultBranch={defaultBranch}
+          providerKey={providerKey}
+          existingMappings={existingMappings}
+        />
+      </form.AppForm>
+    );
+  }
+  return render(<Wrapper />);
+}
 
 describe('PathMappingList', () => {
   describe('empty', () => {
@@ -23,18 +63,17 @@ describe('PathMappingList', () => {
       ).toBeInTheDocument();
     });
 
-    it('reports filled values through onChange', async () => {
-      const onChange = jest.fn();
-      renderList({onChange});
+    it('updates the input as the user types', async () => {
+      renderList();
 
       await userEvent.type(
         screen.getByRole('textbox', {name: /stack trace prefix/i}),
         'lib/'
       );
 
-      expect(onChange).toHaveBeenLastCalledWith([
-        expect.objectContaining({stackRoot: 'lib/', branch: 'main'}),
-      ]);
+      expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveValue(
+        'lib/'
+      );
     });
 
     it('pins the summary when reopening a filled row that was collapsed', async () => {
@@ -55,7 +94,7 @@ describe('PathMappingList', () => {
 
   describe('with existing mappings', () => {
     it('renders each mapping as a collapsed summary', () => {
-      renderList({pathMappings: MAPPINGS});
+      renderList({initialPathMappings: MAPPINGS});
 
       expect(screen.getByText(/Paths \(2\)/)).toBeInTheDocument();
       expect(screen.getByText('app/')).toBeInTheDocument();
@@ -66,7 +105,7 @@ describe('PathMappingList', () => {
     });
 
     it('expands a single mapping at a time', async () => {
-      renderList({pathMappings: MAPPINGS});
+      renderList({initialPathMappings: MAPPINGS});
 
       const [first, second] = screen.getAllByRole('button', {
         name: 'Expand path mapping',
@@ -87,7 +126,7 @@ describe('PathMappingList', () => {
     });
 
     it('adds a new mapping when "Add another path" is clicked', async () => {
-      renderList({pathMappings: MAPPINGS});
+      renderList({initialPathMappings: MAPPINGS});
 
       await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
 
@@ -95,30 +134,24 @@ describe('PathMappingList', () => {
       expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveValue('');
     });
 
-    it('removes a mapping and reports the change', async () => {
-      const onChange = jest.fn();
-      renderList({pathMappings: MAPPINGS, onChange});
+    it('removes a mapping', async () => {
+      renderList({initialPathMappings: MAPPINGS});
 
       const [firstDelete] = screen.getAllByRole('button', {name: 'Delete path mapping'});
       await userEvent.click(firstDelete!);
 
       expect(screen.getByText(/Paths \(1\)/)).toBeInTheDocument();
-      expect(onChange).toHaveBeenLastCalledWith([
-        expect.objectContaining({stackRoot: 'src/'}),
-      ]);
+      expect(screen.getByText('src/')).toBeInTheDocument();
+      expect(screen.queryByText('app/')).not.toBeInTheDocument();
     });
 
     it('falls back to a fresh open row when the last mapping is deleted', async () => {
-      const onChange = jest.fn();
-      renderList({pathMappings: [MAPPINGS[0]!], onChange});
+      renderList({initialPathMappings: [MAPPINGS[0]!]});
 
       await userEvent.click(screen.getByRole('button', {name: 'Delete path mapping'}));
 
       expect(screen.getByText(/Paths \(1\)/)).toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveValue('');
-      expect(onChange).toHaveBeenLastCalledWith([
-        expect.objectContaining({stackRoot: '', sourceRoot: ''}),
-      ]);
     });
   });
 
@@ -128,7 +161,7 @@ describe('PathMappingList', () => {
         {stackRoot: 'app/', sourceRoot: 'static/app/', branch: 'main'},
         {stackRoot: 'app/', sourceRoot: 'static/app/', branch: 'main'},
       ];
-      renderList({pathMappings: duplicates});
+      renderList({initialPathMappings: duplicates});
 
       expect(screen.getByRole('button', {name: 'Add another path'})).toHaveAttribute(
         'aria-disabled',
@@ -141,7 +174,7 @@ describe('PathMappingList', () => {
         {stackRoot: 'app/', sourceRoot: 'static/app/', branch: ''},
         {stackRoot: 'app/', sourceRoot: 'static/app/', branch: 'main'},
       ];
-      renderList({pathMappings: duplicates});
+      renderList({initialPathMappings: duplicates});
 
       expect(screen.getByRole('button', {name: 'Add another path'})).toHaveAttribute(
         'aria-disabled',
@@ -154,7 +187,7 @@ describe('PathMappingList', () => {
         {stackRoot: 'src', sourceRoot: 'src/app/', branch: 'main'},
         {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
       ];
-      renderList({pathMappings: duplicates});
+      renderList({initialPathMappings: duplicates});
 
       expect(screen.getByRole('button', {name: 'Add another path'})).toHaveAttribute(
         'aria-disabled',
@@ -164,44 +197,35 @@ describe('PathMappingList', () => {
   });
 
   describe('add another path', () => {
-    it('reopens a trailing empty row instead of stacking a new one', async () => {
-      renderList({pathMappings: [MAPPINGS[0]!]});
+    it('blocks adding a third empty row as a duplicate of the second', async () => {
+      renderList({initialPathMappings: [MAPPINGS[0]!]});
 
       await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
       expect(screen.getByText(/Paths \(2\)/)).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
-      expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveValue(
-        'app/'
+      await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
+      expect(screen.getByText(/Paths \(3\)/)).toBeInTheDocument();
+
+      expect(screen.getByRole('button', {name: 'Add another path'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
       );
-
-      await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
-
-      expect(screen.getByText(/Paths \(2\)/)).toBeInTheDocument();
-      expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveValue('');
     });
   });
 
   describe('defaultBranch', () => {
     it('seeds the initial row with the provided default branch', () => {
-      const onChange = jest.fn();
-      renderList({defaultBranch: 'master', onChange});
+      renderList({defaultBranch: 'master'});
 
-      expect(onChange).toHaveBeenLastCalledWith([
-        expect.objectContaining({branch: 'master'}),
-      ]);
+      expect(screen.getByRole('textbox', {name: /branch/i})).toHaveValue('master');
     });
 
     it('seeds new rows added via "Add another path" with the provided default branch', async () => {
-      const onChange = jest.fn();
-      renderList({pathMappings: [MAPPINGS[0]!], defaultBranch: 'master', onChange});
+      renderList({initialPathMappings: [MAPPINGS[0]!], defaultBranch: 'master'});
 
       await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
 
-      expect(onChange).toHaveBeenLastCalledWith([
-        MAPPINGS[0],
-        expect.objectContaining({stackRoot: '', sourceRoot: '', branch: 'master'}),
-      ]);
+      expect(screen.getByRole('textbox', {name: /branch/i})).toHaveValue('master');
     });
   });
 
@@ -299,8 +323,7 @@ describe('PathMappingList', () => {
 
   describe('field normalization', () => {
     it('adds a trailing slash to the stack root on blur', async () => {
-      const onChange = jest.fn();
-      renderList({onChange});
+      renderList();
 
       await userEvent.type(
         screen.getByRole('textbox', {name: /stack trace prefix/i}),
@@ -308,26 +331,22 @@ describe('PathMappingList', () => {
       );
       await userEvent.tab();
 
-      expect(onChange).toHaveBeenLastCalledWith([
-        expect.objectContaining({stackRoot: 'src/'}),
-      ]);
+      expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveValue(
+        'src/'
+      );
     });
 
     it('converts invalid branch characters to dashes', async () => {
-      const onChange = jest.fn();
-      renderList({onChange});
+      renderList();
 
       await userEvent.type(
         screen.getByRole('textbox', {name: /stack trace prefix/i}),
         'src/'
       );
-      // Clear the pre-seeded default branch before typing a custom value.
       await userEvent.clear(screen.getByRole('textbox', {name: /branch/i}));
       await userEvent.type(screen.getByRole('textbox', {name: /branch/i}), 'my branch');
 
-      expect(onChange).toHaveBeenLastCalledWith([
-        expect.objectContaining({branch: 'my-branch'}),
-      ]);
+      expect(screen.getByRole('textbox', {name: /branch/i})).toHaveValue('my-branch');
     });
   });
 });

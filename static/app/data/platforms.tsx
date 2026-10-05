@@ -469,6 +469,13 @@ export const platforms: PlatformIntegration[] = [
     hidden: true,
   },
   {
+    id: 'node-eve',
+    name: 'Eve',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/node/agent-tracing/eve/',
+  },
+  {
     id: 'node-express',
     name: 'Express',
     type: 'framework',
@@ -481,6 +488,13 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'node',
     link: 'https://docs.sentry.io/platforms/javascript/guides/fastify/',
+  },
+  {
+    id: 'node-flue',
+    name: 'Flue',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/node/agent-tracing/flue/',
   },
   {
     id: 'node-hapi',
@@ -509,6 +523,13 @@ export const platforms: PlatformIntegration[] = [
     type: 'framework',
     language: 'node',
     link: 'https://docs.sentry.io/platforms/javascript/guides/koa/',
+  },
+  {
+    id: 'node-mastra',
+    name: 'Mastra',
+    type: 'framework',
+    language: 'node',
+    link: 'https://docs.sentry.io/platforms/javascript/guides/node/agent-tracing/mastra/',
   },
   {
     id: 'node-nestjs',

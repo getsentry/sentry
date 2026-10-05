@@ -7,7 +7,6 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {useHasDroppedDataAnnotations} from 'sentry/components/droppedData/useHasDroppedDataAnnotations';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -265,12 +264,10 @@ function SpanTabContentSectionInner({
     error: parseError(tracesTableQuery.error),
   } satisfies TracesTableResult;
 
-  const hasDroppedDataAnnotations = useHasDroppedDataAnnotations();
   const {result: timeseriesResult, samplingMode: timeseriesSamplingMode} =
     useExploreTimeseries({
       query,
       enabled: isReady,
-      includeAnnotations: hasDroppedDataAnnotations,
       queryExtras: {
         caseInsensitive,
         ...crossEventQueries,

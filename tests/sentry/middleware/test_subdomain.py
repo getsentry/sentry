@@ -17,27 +17,39 @@ from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.silo import no_silo_test
 
 
+def request_with_host(host: str) -> tuple[HttpRequest, HttpResponseBase]:
+    got_request = None
+
+    def get_response(request: HttpRequest) -> HttpResponseBase:
+        nonlocal got_request
+        got_request = request
+        return mock.sentinel.response
+
+    subdomain_middleware = SubdomainMiddleware(get_response)
+    request = RequestFactory().get("/", HTTP_HOST=host)
+    response = subdomain_middleware(request)
+    return (request, response)
+
+
+def run_request(host: str) -> HttpRequest:
+    return request_with_host(host)[0]
+
+
+def run_response(host: str) -> HttpResponseBase:
+    return request_with_host(host)[1]
+
+
 class SubdomainMiddlewareTest(TestCase):
+    @override_settings(ALLOWED_HOSTS=["web-default.sentry-internal", "web.sentry.io"])
+    @mock.patch("sentry.middleware.subdomain.sentry_sdk.capture_exception")
+    def test_disallowed_host_captured(self, mock_capture) -> None:
+        assert run_response("web-default.sentry-internal") == mock.sentinel.response
+        assert not mock_capture.called
+
+        assert isinstance(run_response("not-allowed"), HttpResponseRedirect)
+        assert mock_capture.called
+
     def test_attaches_subdomain_attribute(self) -> None:
-        def request_with_host(host: str) -> tuple[HttpRequest, HttpResponseBase]:
-            got_request = None
-
-            def get_response(request: HttpRequest) -> HttpResponseBase:
-                nonlocal got_request
-                got_request = request
-                return mock.sentinel.response
-
-            subdomain_middleware = SubdomainMiddleware(get_response)
-            request = RequestFactory().get("/", HTTP_HOST=host)
-            response = subdomain_middleware(request)
-            return (request, response)
-
-        def run_request(host: str) -> HttpRequest:
-            return request_with_host(host)[0]
-
-        def run_response(host: str) -> HttpResponseBase:
-            return request_with_host(host)[1]
-
         with override_settings(SENTRY_BASE_HOSTNAME="us.dev.getsentry.net:8000"):
             assert run_request("foobar").subdomain is None
             assert run_request("dev.getsentry.net:8000").subdomain is None

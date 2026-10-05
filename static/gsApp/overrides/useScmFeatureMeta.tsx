@@ -32,7 +32,7 @@ const DYNAMIC_FORMATS: Partial<Record<ProductSolution, DynamicCategoryFormat>> =
     formatVolume: quantity => t('%s errors / mo', quantity),
     formatTooltip: quantity =>
       t(
-        'Free plan includes %s errors / month. Upgrade to Team or Business to send more.',
+        'Your Free plan includes %s errors / month. Upgrade to Team or Business to send more.',
         quantity
       ),
   },
@@ -43,7 +43,7 @@ const DYNAMIC_FORMATS: Partial<Record<ProductSolution, DynamicCategoryFormat>> =
     formatVolume: quantity => t('%s spans / mo', quantity),
     formatTooltip: quantity =>
       t(
-        'Free plan includes %s spans / month. Upgrade to Team or Business to send more.',
+        'Your Free plan includes %s spans / month. Upgrade to Team or Business to send more.',
         quantity
       ),
   },
@@ -53,7 +53,7 @@ const DYNAMIC_FORMATS: Partial<Record<ProductSolution, DynamicCategoryFormat>> =
     formatVolume: quantity => t('%s replays / mo', quantity),
     formatTooltip: quantity =>
       t(
-        'Free plan includes %s replays / month. Upgrade to Team or Business to send more.',
+        'Your Free plan includes %s replays / month. Upgrade to Team or Business to send more.',
         quantity
       ),
   },
@@ -64,7 +64,7 @@ const DYNAMIC_FORMATS: Partial<Record<ProductSolution, DynamicCategoryFormat>> =
     formatVolume: quantity => t('%s logs / mo', quantity),
     formatTooltip: quantity =>
       t(
-        'Free plan includes %s logs / month. Upgrade to Team or Business to send more.',
+        'Your Free plan includes %s logs / month. Upgrade to Team or Business to send more.',
         quantity
       ),
   },
@@ -75,7 +75,7 @@ const DYNAMIC_FORMATS: Partial<Record<ProductSolution, DynamicCategoryFormat>> =
     formatVolume: quantity => t('%s / mo', quantity),
     formatTooltip: quantity =>
       t(
-        'Free plan includes %s metrics / month. Upgrade to Team or Business to send more.',
+        'Your Free plan includes %s metrics / month. Upgrade to Team or Business to send more.',
         quantity
       ),
   },

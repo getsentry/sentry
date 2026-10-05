@@ -2024,6 +2024,34 @@ describe('SearchQueryBuilder', () => {
       ).toHaveTextContent('bro');
     });
 
+    it('sorts prioritized filter keys above better scoring matches', async () => {
+      // Options render the key followed by its value type, e.g. "agedate".
+      const keyOrder = () =>
+        screen
+          .getAllByRole('option')
+          .map(option => option.textContent ?? '')
+          .filter(text => text.startsWith('age') || text.startsWith('message'));
+
+      const {rerender} = render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
+      await userEvent.click(getLastInput());
+      await userEvent.type(getLastInput(), 'age');
+
+      // "age" scores better against the `age` key than against `message`
+      await screen.findByRole('option', {name: 'age'});
+      expect(keyOrder()[0]).toMatch(/^age/);
+
+      rerender(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery=""
+          prioritizedFilterKeys={['message']}
+        />
+      );
+
+      await screen.findByRole('option', {name: 'message'});
+      expect(keyOrder()[0]).toMatch(/^message/);
+    });
+
     it('does not highlight non-contiguous fuzzy filter key matches', async () => {
       render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
       await userEvent.click(getLastInput());
@@ -6683,6 +6711,7 @@ describe('SearchQueryBuilder', () => {
             disallowUnsupportedFilters
             initialQuery="foo:bar"
             filterKeyAliases={{foo: {key: 'foo', name: 'foo'}}}
+            invalidFilterKeys={['foo']}
           />
         );
 
@@ -7540,11 +7569,7 @@ describe('SearchQueryBuilder', () => {
 
   describe('ask seer', () => {
     it('renders ask seer in the footer', async () => {
-      render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
-        organization: {
-          features: ['gen-ai-features'],
-        },
-      });
+      render(<SearchQueryBuilder {...defaultProps} enableAISearch />);
 
       await userEvent.click(getLastInput());
 
@@ -7566,12 +7591,7 @@ describe('SearchQueryBuilder', () => {
             onCaseInsensitiveClick={jest.fn()}
           />
           <button>Next control</button>
-        </Fragment>,
-        {
-          organization: {
-            features: ['gen-ai-features'],
-          },
-        }
+        </Fragment>
       );
 
       await userEvent.click(getLastInput());
@@ -7608,12 +7628,7 @@ describe('SearchQueryBuilder', () => {
           {...defaultProps}
           enableAISearch
           initialQuery="browser.name:Firefox"
-        />,
-        {
-          organization: {
-            features: ['gen-ai-features'],
-          },
-        }
+        />
       );
 
       await userEvent.click(
@@ -7627,11 +7642,7 @@ describe('SearchQueryBuilder', () => {
     });
 
     it('does not render ask seer in the footer when AI search is disabled', async () => {
-      render(<SearchQueryBuilder {...defaultProps} />, {
-        organization: {
-          features: ['gen-ai-features'],
-        },
-      });
+      render(<SearchQueryBuilder {...defaultProps} />);
 
       await userEvent.click(getLastInput());
 
@@ -7738,12 +7749,7 @@ describe('SearchQueryBuilder', () => {
         render(
           <AskSeerWrapper>
             <SearchQueryBuilder {...defaultProps} />
-          </AskSeerWrapper>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          </AskSeerWrapper>
         );
 
         await userEvent.click(getLastInput());
@@ -7824,11 +7830,7 @@ describe('SearchQueryBuilder', () => {
       }
 
       it('keeps ask seer in the footer when searching free text', async () => {
-        render(<SearchQueryBuilder {...defaultProps} enableAISearch />, {
-          organization: {
-            features: ['gen-ai-features'],
-          },
-        });
+        render(<SearchQueryBuilder {...defaultProps} enableAISearch />);
 
         await userEvent.click(getLastInput());
         await userEvent.type(screen.getByRole('combobox'), 'some free text');
@@ -7854,12 +7856,7 @@ describe('SearchQueryBuilder', () => {
             <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
-          </SearchQueryBuilderProvider>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          </SearchQueryBuilderProvider>
         );
 
         await userEvent.click(getLastInput());
@@ -7896,12 +7893,7 @@ describe('SearchQueryBuilder', () => {
             <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
-          </SearchQueryBuilderProvider>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          </SearchQueryBuilderProvider>
         );
 
         await userEvent.click(getLastInput());
@@ -7938,12 +7930,7 @@ describe('SearchQueryBuilder', () => {
             <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
-          </SearchQueryBuilderProvider>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          </SearchQueryBuilderProvider>
         );
 
         await userEvent.click(getLastInput());
@@ -7971,12 +7958,7 @@ describe('SearchQueryBuilder', () => {
             <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
-          </SearchQueryBuilderProvider>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          </SearchQueryBuilderProvider>
         );
 
         await userEvent.click(screen.getByRole('row', {name: 'find slow'}));
@@ -8013,12 +7995,7 @@ describe('SearchQueryBuilder', () => {
             <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
-          </SearchQueryBuilderProvider>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          </SearchQueryBuilderProvider>
         );
 
         await userEvent.click(getLastInput());
@@ -8049,12 +8026,7 @@ describe('SearchQueryBuilder', () => {
             <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
-          </SearchQueryBuilderProvider>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          </SearchQueryBuilderProvider>
         );
 
         await userEvent.click(getLastInput());
@@ -8086,12 +8058,7 @@ describe('SearchQueryBuilder', () => {
             <AskSeerAutoSubmitTestComponent mockAskSeer={mockAskSeer}>
               <SearchQueryBuilder {...props} />
             </AskSeerAutoSubmitTestComponent>
-          </SearchQueryBuilderProvider>,
-          {
-            organization: {
-              features: ['gen-ai-features'],
-            },
-          }
+          </SearchQueryBuilderProvider>
         );
 
         await userEvent.click(getLastInput());
@@ -8665,6 +8632,7 @@ describe('SearchQueryBuilder', () => {
         screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
       );
       await userEvent.click(screen.getByRole('option', {name: 'matches regex'}));
+      await userEvent.keyboard('{Enter}');
 
       expect(
         within(
@@ -8677,6 +8645,127 @@ describe('SearchQueryBuilder', () => {
           expect.anything()
         );
       });
+    });
+
+    it('focuses the value input when matches regex is selected', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery='browser.name:""'
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'matches regex'}));
+
+      await waitFor(() => {
+        expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+      });
+    });
+
+    it('does not mark an empty pattern invalid until the value is committed', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery='browser.name:""'
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
+      );
+      await userEvent.click(screen.getByRole('option', {name: 'matches regex'}));
+
+      expect(
+        await screen.findByRole('row', {name: 'browser.name:////', hidden: true})
+      ).toHaveAttribute('aria-invalid', 'false');
+
+      await userEvent.keyboard('{Enter}');
+
+      expect(screen.getByRole('row', {name: 'browser.name:////'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+    });
+
+    it('shows slashes when the value is a non-empty regex', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery="browser.name://^a.*b//"
+        />
+      );
+
+      const valueButton = await screen.findByRole('button', {
+        name: 'Edit value for filter: browser.name',
+      });
+
+      expect(within(valueButton).getAllByText('/')).toHaveLength(2);
+      expect(within(valueButton).getByText('^a.*b')).toBeInTheDocument();
+    });
+
+    it('shows slashes when the value is an empty regex', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery="browser.name:////"
+        />
+      );
+
+      const valueButton = await screen.findByRole('button', {
+        name: 'Edit value for filter: browser.name',
+      });
+
+      expect(within(valueButton).getAllByText('/')).toHaveLength(2);
+    });
+
+    it('keeps slashes around the input while editing a regex value', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery="browser.name://^a.*b//"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+
+      expect(
+        within(screen.getByTestId('filter-value-editing')).getAllByText('/')
+      ).toHaveLength(2);
+      expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveValue(
+        '^a.*b'
+      );
+    });
+
+    it('keeps the input focused when a slash is clicked while editing', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery="browser.name://^a.*b//"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+      await userEvent.click(
+        within(screen.getByTestId('filter-value-editing')).getAllByText('/')[1]!
+      );
+
+      expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+      expect(mockOnChange).not.toHaveBeenCalled();
     });
 
     it('offers the regex operators for an array membership filter', async () => {
@@ -8697,6 +8786,7 @@ describe('SearchQueryBuilder', () => {
       );
       expect(screen.getByRole('option', {name: 'includes'})).toBeInTheDocument();
       await userEvent.click(screen.getByRole('option', {name: 'matches regex'}));
+      await userEvent.keyboard('{Enter}');
 
       expect(
         within(
@@ -8762,6 +8852,7 @@ describe('SearchQueryBuilder', () => {
         screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
       );
       await userEvent.click(screen.getByRole('option', {name: 'does not match regex'}));
+      await userEvent.keyboard('{Enter}');
 
       await waitFor(() => {
         expect(mockOnChange).toHaveBeenCalledWith(
@@ -8793,6 +8884,93 @@ describe('SearchQueryBuilder', () => {
           expect.anything()
         );
       });
+    });
+
+    it('displays the pattern in the filter when the operator is matches regex', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery="browser.name://fire.*fox//"
+        />
+      );
+
+      expect(
+        within(
+          await screen.findByRole('row', {name: 'browser.name://fire.*fox//'})
+        ).getByText('fire.*fox')
+      ).toBeInTheDocument();
+    });
+
+    it('displays the pattern over the input when editing a regex value', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery="browser.name://fire.*fox//"
+        />
+      );
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+      );
+
+      expect(
+        await screen.findByRole('combobox', {name: 'Edit filter value'})
+      ).toHaveValue('fire.*fox');
+      expect(
+        screen.getByText('fire.*fox', {selector: '[aria-hidden="true"] *'})
+      ).toBeInTheDocument();
+    });
+  });
+
+  describe('regex pattern validation', () => {
+    it('marks a pattern that RE2 rejects invalid once the engine loads', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery="browser.name://(?=a)b//"
+        />
+      );
+
+      await waitFor(() => {
+        expect(
+          screen.getByRole('row', {name: 'browser.name://(?=a)b//'})
+        ).toHaveAttribute('aria-invalid', 'true');
+      });
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{ArrowLeft}');
+
+      expect(
+        await screen.findByText(
+          'Invalid regex (RE2 syntax): invalid or unsupported Perl syntax'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('does not mark valid RE2 patterns as invalid', async () => {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          allowRegexOperators
+          initialQuery="browser.name://^a.*b//"
+        />
+      );
+
+      expect(
+        await screen.findByRole('row', {name: 'browser.name://^a.*b//'})
+      ).toHaveAttribute('aria-invalid', 'false');
+    });
+
+    it('does not mark a pattern invalid when regex operators are disabled', async () => {
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="browser.name://(?=a)b//" />
+      );
+
+      expect(
+        await screen.findByRole('row', {name: 'browser.name://(?=a)b//'})
+      ).toHaveAttribute('aria-invalid', 'false');
     });
   });
 

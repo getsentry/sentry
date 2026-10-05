@@ -127,6 +127,7 @@ export type IssueEventParameters = {
   'issue_details.header_view_replay_clicked': GroupEventParams;
   'issue_details.issue_content_selected': {
     content: string;
+    surface: 'tabs' | 'dropdown';
   };
   'issue_details.issue_status_docs_clicked': Record<string, unknown>;
   'issue_details.issue_tags_click': Record<string, unknown>;

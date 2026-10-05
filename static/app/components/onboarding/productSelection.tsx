@@ -310,6 +310,12 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
+  'node-eve': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
   'node-express': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
@@ -317,6 +323,12 @@ export const platformProductAvailability = {
     ProductSolution.METRICS,
   ],
   'node-fastify': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'node-flue': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,
@@ -341,6 +353,12 @@ export const platformProductAvailability = {
     ProductSolution.METRICS,
   ],
   'node-koa': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.PROFILING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
+  'node-mastra': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
     ProductSolution.LOGS,

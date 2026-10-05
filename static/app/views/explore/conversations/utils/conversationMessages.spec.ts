@@ -3,7 +3,8 @@ import {SpanFields} from 'sentry/views/insights/types';
 import {
   buildConversationTurns,
   embeddingSpansToMessages,
-  enrichAnthropicAgentMessages,
+  enrichAgentMessages,
+  evaluationSpansToMessages,
   extractMessagesFromNodes,
   getInputMessageStats,
   getNodeTimestamp,
@@ -107,6 +108,37 @@ function createMockEmbeddingNode(overrides: {
       [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: input,
       [SpanFields.GEN_AI_RESPONSE_MODEL]: model,
       ...(tokens === undefined ? {} : {[SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: tokens}),
+    },
+    errors: new Set(),
+  };
+}
+
+// Mirrors the node `useConversation` produces for an evaluation span: it reports
+// gen_ai.operation.type "ai_client" like an LLM call and is recognized by
+// gen_ai.operation.name.
+function createMockEvaluationNode(overrides: {id: string; startTimestamp?: number}) {
+  const {id, startTimestamp = 1000} = overrides;
+  const end = startTimestamp + 500;
+  return {
+    id,
+    type: 'span' as const,
+    op: 'gen_ai.evaluate',
+    startTimestamp,
+    endTimestamp: end,
+    value: {start_timestamp: startTimestamp, end_timestamp: end},
+    attributes: {
+      [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
+      [SpanFields.GEN_AI_OPERATION_NAME]: 'evaluate',
+      [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+        {
+          type: 'evaluation',
+          state: 'I cannot log in.',
+          questions: {urgency: {type: 'score', criteria: ['low', 'medium', 'high']}},
+        },
+      ]),
+      [SpanFields.GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
+        {type: 'evaluation', answers: {urgency: {type: 'score', score: 1.6}}},
+      ]),
     },
     errors: new Set(),
   };
@@ -596,6 +628,36 @@ describe('conversationMessages utilities', () => {
       const result = partitionSpansByType([embeddingNode] as any);
 
       expect(result.embeddingSpans.map(s => s.id)).toEqual(['embed-1']);
+    });
+
+    it('separates evaluation spans from generations even though operation.type reports ai_client', () => {
+      const result = partitionSpansByType([
+        createMockNode({id: 'gen-1'}),
+        createMockEvaluationNode({id: 'eval-1'}),
+      ] as any);
+
+      expect(result.evaluationSpans.map(s => s.id)).toEqual(['eval-1']);
+      expect(result.generationSpans.map(s => s.id)).toEqual(['gen-1']);
+    });
+  });
+
+  describe('evaluationSpansToMessages', () => {
+    it('maps an evaluation span to a standalone message', () => {
+      const [message] = evaluationSpansToMessages([
+        createMockEvaluationNode({id: 'eval-1'}) as any,
+      ]);
+
+      expect(message).toMatchObject({
+        id: 'evaluation-eval-1',
+        role: 'evaluation',
+        content: '',
+        nodeId: 'eval-1',
+        duration: 500,
+      });
+      expect(message?.evaluation?.input?.state).toBe('I cannot log in.');
+      expect(message?.evaluation?.answers).toEqual([
+        {kind: 'score', key: 'urgency', score: 1.6},
+      ]);
     });
   });
 
@@ -1600,6 +1662,16 @@ describe('conversationMessages utilities', () => {
   });
 
   describe('messagesToMarkdown', () => {
+    it('formats evaluations with the evaluated text and answers', () => {
+      const messages = evaluationSpansToMessages([
+        createMockEvaluationNode({id: 'eval-1'}) as any,
+      ]);
+
+      expect(messagesToMarkdown(messages)).toBe(
+        '### Evaluation\n\n> I cannot log in.\n\n- urgency: high (1.6)'
+      );
+    });
+
     it('formats user messages with email', () => {
       const result = messagesToMarkdown([
         {
@@ -1773,13 +1845,12 @@ describe('conversationMessages utilities', () => {
     });
   });
 
-  describe('enrichAnthropicAgentMessages (Anthropic invoke_agent fallback)', () => {
-    const ANTHROPIC_INPUT = JSON.stringify([
+  describe('enrichAgentMessages', () => {
+    const AGENT_INPUT = JSON.stringify([
       {role: 'user', parts: [{type: 'text', content: 'Weather in Vienna?'}]},
     ]);
-    // One assistant step per generation, interleaved with a tool result, exactly
-    // as Anthropic's OTel SDK records it on the invoke_agent span.
-    const ANTHROPIC_OUTPUT = JSON.stringify([
+    // One assistant step per generation, interleaved with a tool result.
+    const AGENT_OUTPUT = JSON.stringify([
       {
         role: 'assistant',
         parts: [
@@ -1797,7 +1868,6 @@ describe('conversationMessages utilities', () => {
       attributes?: Record<string, string | number>;
       endTimestamp?: number;
       name?: string;
-      origin?: string;
       parentId?: string;
       startTimestamp?: number;
     }) {
@@ -1805,8 +1875,7 @@ describe('conversationMessages utilities', () => {
         id,
         opType,
         attributes = {},
-        name = 'anthropic.model_request',
-        origin = 'auto.otlp.spans',
+        name = 'gen_ai.generate',
         parentId,
         startTimestamp = 1000,
         endTimestamp,
@@ -1826,33 +1895,30 @@ describe('conversationMessages utilities', () => {
         },
         attributes: {
           [SpanFields.GEN_AI_OPERATION_TYPE]: opType,
-          [SpanFields.SENTRY_ORIGIN]: origin,
           ...attributes,
         },
         errors: new Set(),
       } as any;
     }
 
-    function createAnthropicTurn(
+    function createAgentTurn(
       agentId: string,
-      overrides: {input?: string; name?: string; origin?: string; output?: string} = {}
+      overrides: {input?: string; output?: string} = {}
     ) {
       const agent = createSpan({
         id: agentId,
         opType: 'agent',
-        name: overrides.name ?? 'anthropic.session.turn',
-        origin: overrides.origin,
+        name: 'gen_ai.invoke_agent',
         startTimestamp: 1000,
         endTimestamp: 1300,
         attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: overrides.input ?? ANTHROPIC_INPUT,
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: overrides.output ?? ANTHROPIC_OUTPUT,
+          [SpanFields.GEN_AI_INPUT_MESSAGES]: overrides.input ?? AGENT_INPUT,
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: overrides.output ?? AGENT_OUTPUT,
         },
       });
       const gen1 = createSpan({
         id: `${agentId}-gen1`,
         opType: 'ai_client',
-        origin: overrides.origin,
         parentId: agentId,
         startTimestamp: 1000,
         endTimestamp: 1100,
@@ -1860,8 +1926,7 @@ describe('conversationMessages utilities', () => {
       const tool = createSpan({
         id: `${agentId}-tool`,
         opType: 'tool',
-        name: 'anthropic.tool_use web_fetch',
-        origin: overrides.origin,
+        name: 'gen_ai.execute_tool web_fetch',
         parentId: agentId,
         startTimestamp: 1120,
         endTimestamp: 1180,
@@ -1870,7 +1935,6 @@ describe('conversationMessages utilities', () => {
       const gen2 = createSpan({
         id: `${agentId}-gen2`,
         opType: 'ai_client',
-        origin: overrides.origin,
         parentId: agentId,
         startTimestamp: 1200,
         endTimestamp: 1300,
@@ -1879,7 +1943,7 @@ describe('conversationMessages utilities', () => {
     }
 
     it('renders a full transcript from generation spans that carry no messages', () => {
-      const {agent, gen1, tool, gen2} = createAnthropicTurn('agent-1');
+      const {agent, gen1, tool, gen2} = createAgentTurn('agent-1');
 
       const messages = extractMessagesFromNodes([agent, gen1, tool, gen2]);
 
@@ -1901,50 +1965,40 @@ describe('conversationMessages utilities', () => {
     });
 
     it('backfills the k-th assistant step onto the k-th generation, user onto the first', () => {
-      const {agent, gen1, tool, gen2} = createAnthropicTurn('agent-1');
+      const {agent, gen1, tool, gen2} = createAgentTurn('agent-1');
 
-      const enriched = enrichAnthropicAgentMessages([agent, gen1, tool, gen2]);
+      const enriched = enrichAgentMessages([agent, gen1, tool, gen2]);
       const attrsOf = (id: string): Record<string, string> =>
         (enriched.find(n => n.id === id) as any).attributes;
 
-      expect(attrsOf('agent-1-gen1')[SpanFields.GEN_AI_INPUT_MESSAGES]).toBe(
-        ANTHROPIC_INPUT
-      );
+      expect(attrsOf('agent-1-gen1')[SpanFields.GEN_AI_INPUT_MESSAGES]).toBe(AGENT_INPUT);
       expect(
         JSON.parse(attrsOf('agent-1-gen1')[SpanFields.GEN_AI_OUTPUT_MESSAGES]!)
-      ).toEqual([JSON.parse(ANTHROPIC_OUTPUT)[0]]);
+      ).toEqual([JSON.parse(AGENT_OUTPUT)[0]]);
       // The second generation gets the final assistant step, and no user input
       // (so the user message is not duplicated per generation).
       expect(attrsOf('agent-1-gen2')[SpanFields.GEN_AI_INPUT_MESSAGES]).toBeUndefined();
       expect(
         JSON.parse(attrsOf('agent-1-gen2')[SpanFields.GEN_AI_OUTPUT_MESSAGES]!)
-      ).toEqual([JSON.parse(ANTHROPIC_OUTPUT)[2]]);
+      ).toEqual([JSON.parse(AGENT_OUTPUT)[2]]);
     });
 
-    it('leaves nodes untouched when the origin is not OTLP', () => {
-      const nodes = Object.values(
-        createAnthropicTurn('agent-1', {origin: 'auto.http.node'})
-      );
+    it('leaves nodes untouched when the parent span is not an agent', () => {
+      const {agent, gen1, tool, gen2} = createAgentTurn('agent-1');
+      agent.attributes[SpanFields.GEN_AI_OPERATION_TYPE] = 'workflow';
+      const nodes = [agent, gen1, tool, gen2];
 
-      expect(enrichAnthropicAgentMessages(nodes)).toBe(nodes);
+      expect(enrichAgentMessages(nodes)).toBe(nodes);
     });
 
-    it('leaves nodes untouched when the span name lacks the anthropic prefix', () => {
-      const nodes = Object.values(
-        createAnthropicTurn('agent-1', {name: 'gen_ai.invoke_agent'})
-      );
-
-      expect(enrichAnthropicAgentMessages(nodes)).toBe(nodes);
-    });
-
-    it('keeps inference as the source when a generation child has its own messages', () => {
-      const {agent, gen1, tool, gen2} = createAnthropicTurn('agent-1');
+    it('keeps generation spans as the source when a child has its own messages', () => {
+      const {agent, gen1, tool, gen2} = createAgentTurn('agent-1');
       gen1.attributes[SpanFields.GEN_AI_OUTPUT_MESSAGES] = JSON.stringify([
         {role: 'assistant', content: 'own message'},
       ]);
       const nodes = [agent, gen1, tool, gen2];
 
-      expect(enrichAnthropicAgentMessages(nodes)).toBe(nodes);
+      expect(enrichAgentMessages(nodes)).toBe(nodes);
     });
 
     it('falls back to user-first, full-output-last when steps do not map 1:1', () => {
@@ -1954,15 +2008,13 @@ describe('conversationMessages utilities', () => {
         {role: 'assistant', parts: [{type: 'tool_call', id: 'b', name: 'web_fetch'}]},
         {role: 'assistant', parts: [{type: 'text', content: 'Final answer'}]},
       ]);
-      const {agent, gen1, gen2} = createAnthropicTurn('agent-1', {output});
+      const {agent, gen1, gen2} = createAgentTurn('agent-1', {output});
 
-      const enriched = enrichAnthropicAgentMessages([agent, gen1, gen2]);
+      const enriched = enrichAgentMessages([agent, gen1, gen2]);
       const attrsOf = (id: string): Record<string, string> =>
         (enriched.find(n => n.id === id) as any).attributes;
 
-      expect(attrsOf('agent-1-gen1')[SpanFields.GEN_AI_INPUT_MESSAGES]).toBe(
-        ANTHROPIC_INPUT
-      );
+      expect(attrsOf('agent-1-gen1')[SpanFields.GEN_AI_INPUT_MESSAGES]).toBe(AGENT_INPUT);
       expect(attrsOf('agent-1-gen2')[SpanFields.GEN_AI_OUTPUT_MESSAGES]).toBe(output);
     });
   });

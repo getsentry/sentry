@@ -49,7 +49,7 @@ export function projectRepoInfiniteOptions({
   );
 }
 
-export type RepoSelectOption = SelectValue<string> & {
+type RepoSelectOption = SelectValue<string> & {
   integrationId: string;
   repositoryId: string;
   defaultBranch?: string | null;

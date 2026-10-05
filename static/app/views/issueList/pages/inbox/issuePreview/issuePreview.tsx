@@ -254,7 +254,7 @@ function IssuePreviewContent() {
         </Flex>
       </Flex>
       {/* Top sections load asynchronously, so block everything to avoid pop-in. */}
-      {previewSeer.isLoading || linkedPullRequests.isPending ? (
+      {previewSeer.state === 'loading' || linkedPullRequests.isPending ? (
         <LoadingIndicator />
       ) : (
         <Dividers>
@@ -270,14 +270,12 @@ function IssuePreviewContent() {
               </IssuePreviewSection.Content>
             </IssuePreviewSection>
           ) : null}
-          {previewSeer.hasAutofix && (
-            <IssuePreviewSeerContent
-              key={group.id}
-              group={group}
-              project={project}
-              previewSeer={previewSeer}
-            />
-          )}
+          <IssuePreviewSeerContent
+            key={group.id}
+            group={group}
+            project={project}
+            previewSeer={previewSeer}
+          />
           <Container>
             <ErrorBoundary mini>
               <FoldSection

@@ -1,21 +1,20 @@
 import {Container, Stack} from '@sentry/scraps/layout';
 
 import {PathMappingEdit} from './pathMappingEdit';
+import type {ConnectRepoForm} from './pathMappingList';
 import {PathMappingSummary} from './pathMappingSummary';
 import type {PathMappingValue} from './type';
 import type {PathMappingWarning} from './warnings';
 
-interface PathMappingProps extends PathMappingValue {
-  /**
-   * When true, renders the editable form. Existing mappings keep their summary
-   * pinned above the form; new mappings (isNew) hide it since there is nothing
-   * to collapse back to yet.
-   */
+interface PathMappingProps {
   editing: boolean;
+  fields: `pathMappings[${number}]`;
+  form: ConnectRepoForm;
   isNew: boolean;
-  onChange: (value: PathMappingValue) => void;
   onDelete: () => void;
   onExpandToggle: () => void;
+  /** Current field values — used by the collapsed summary row. */
+  value: PathMappingValue;
   defaultBranch?: string;
   providerKey?: string;
   warning?: PathMappingWarning | null;
@@ -23,14 +22,15 @@ interface PathMappingProps extends PathMappingValue {
 
 export function PathMapping({
   editing,
+  fields,
+  form,
   isNew,
-  onChange,
+  value,
   onDelete,
   onExpandToggle,
   defaultBranch,
   providerKey,
   warning,
-  ...value
 }: PathMappingProps) {
   const showSummary = !(editing && isNew);
 
@@ -39,6 +39,7 @@ export function PathMapping({
       {showSummary && (
         <PathMappingSummary
           {...value}
+          defaultBranch={defaultBranch}
           expanded={editing}
           warning={warning}
           onDelete={onDelete}
@@ -48,11 +49,11 @@ export function PathMapping({
       {showSummary && editing && <Container borderTop="muted" />}
       {editing && (
         <PathMappingEdit
-          {...value}
+          form={form}
+          fields={fields}
           providerKey={providerKey}
           defaultBranch={defaultBranch}
           warning={warning}
-          onChange={onChange}
         />
       )}
     </Stack>

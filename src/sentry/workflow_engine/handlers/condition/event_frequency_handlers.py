@@ -13,14 +13,19 @@ from sentry.workflow_engine.handlers.condition.tagged_event_handler import (
     TaggedEventConditionHandler,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.preview import UnsupportedPreviewBehavior
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, DataConditionResult
+from sentry.workflow_engine.types import (
+    ActionFilterDataConditionHandler,
+    DataConditionHandler,
+    DataConditionResult,
+)
 
 
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_COUNT)
 @condition_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_COUNT)
-class EventFrequencyCountHandler(DataConditionHandler[list[int]]):
-    group = DataConditionHandler.Group.ACTION_FILTER
+class EventFrequencyCountHandler(ActionFilterDataConditionHandler[list[int]]):
+    preview_behavior = UnsupportedPreviewBehavior("Event frequency requires event data")
     subgroup = DataConditionHandler.Subgroup.FREQUENCY
     label_template = "The issue is seen more than {value} times in {interval}"
 
@@ -52,8 +57,8 @@ class EventFrequencyCountHandler(DataConditionHandler[list[int]]):
 
 @condition_handler_registry.register(Condition.EVENT_FREQUENCY_PERCENT)
 @condition_handler_registry.register(Condition.EVENT_UNIQUE_USER_FREQUENCY_PERCENT)
-class EventFrequencyPercentHandler(DataConditionHandler[list[int]]):
-    group = DataConditionHandler.Group.ACTION_FILTER
+class EventFrequencyPercentHandler(ActionFilterDataConditionHandler[list[int]]):
+    preview_behavior = UnsupportedPreviewBehavior("Event frequency requires event data")
     subgroup = DataConditionHandler.Subgroup.FREQUENCY
     label_template = "The issue is seen more than {value} times in {interval}"
 
@@ -87,7 +92,7 @@ class EventFrequencyPercentHandler(DataConditionHandler[list[int]]):
 # Percent sessions values must be between 0-100 (%)
 @condition_handler_registry.register(Condition.PERCENT_SESSIONS_COUNT)
 class PercentSessionsCountHandler(EventFrequencyCountHandler):
-    group = DataConditionHandler.Group.ACTION_FILTER
+    preview_behavior = UnsupportedPreviewBehavior("Session frequency requires event data")
     subgroup = DataConditionHandler.Subgroup.FREQUENCY
     label_template = "The issue affects more than {value} percent of sessions in {interval}"
     comparison_json_schema = {
@@ -113,7 +118,7 @@ class PercentSessionsCountHandler(EventFrequencyCountHandler):
 # This percent value can be > 100 (%)
 @condition_handler_registry.register(Condition.PERCENT_SESSIONS_PERCENT)
 class PercentSessionsPercentHandler(EventFrequencyPercentHandler):
-    group = DataConditionHandler.Group.ACTION_FILTER
+    preview_behavior = UnsupportedPreviewBehavior("Session frequency requires event data")
     subgroup = DataConditionHandler.Subgroup.FREQUENCY
     label_template = "The issue affects more than {value} percent of sessions in {interval}"
     comparison_json_schema = {

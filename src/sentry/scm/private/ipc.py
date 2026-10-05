@@ -419,6 +419,8 @@ def deserialize_raw_event(event: SubscriptionEvent) -> EventType | None:
         raise SCMProviderNotSupported("Bitbucket has not been implemented.")
     elif event["type"] == "gitlab":
         raise SCMProviderNotSupported("GitLab has not been implemented.")
+    elif event["type"] == "cursor_origin":
+        raise SCMProviderNotSupported("Cursor Origin has not been implemented.")
     else:
         assert_never(event["type"])
 
