@@ -494,7 +494,7 @@ describe('OrganizationRepositories', () => {
     const PROJECT = ProjectFixture({id: 'proj-1', slug: 'my-project'});
     const organization = OrganizationFixture({features: ['code-mappings-refactor']});
 
-    function setupRepoMocks(codeMappingBody: Record<PropertyKey, unknown>[]) {
+    function setupRepoMocks(codeMappingBody: Array<Record<PropertyKey, unknown>>) {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/config/integrations/',
         body: {providers: [GITHUB_PROVIDER]},
