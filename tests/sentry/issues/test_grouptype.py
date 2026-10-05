@@ -10,7 +10,10 @@ from sentry.issues.grouptype import (
     GroupCategory,
     GroupType,
     GroupTypeRegistry,
+    LLMDetectedExperimentalGroupTypeV2,
     NoiseConfig,
+    PerformanceNPlusOneAPICallsExperimentalGroupType,
+    PerformanceNPlusOneExperimentalGroupType,
     PerformanceNPlusOneGroupType,
     PerformanceSlowDBQueryGroupType,
     QueryInjectionVulnerabilityGroupType,
@@ -176,13 +179,20 @@ class ShouldCreateGroupTest(TestCase):
 
 
 class GroupTypeReleasedTest(BaseGroupTypeTest):
-    def test_query_injection_released(self) -> None:
+    def test_released_issue_types(self) -> None:
         registry = GroupTypeRegistry()
-        registry.add(QueryInjectionVulnerabilityGroupType)
+        group_types = [
+            QueryInjectionVulnerabilityGroupType,
+            PerformanceNPlusOneExperimentalGroupType,
+            PerformanceNPlusOneAPICallsExperimentalGroupType,
+            LLMDetectedExperimentalGroupTypeV2,
+        ]
+        for group_type in group_types:
+            registry.add(group_type)
+            assert group_type.allow_ingest(self.organization)
+            assert group_type.allow_post_process_group(self.organization)
 
-        assert QueryInjectionVulnerabilityGroupType.allow_ingest(self.organization)
-        assert QueryInjectionVulnerabilityGroupType.allow_post_process_group(self.organization)
-        assert registry.get_visible(self.organization) == [QueryInjectionVulnerabilityGroupType]
+        assert registry.get_visible(self.organization) == group_types
 
     def test_released(self) -> None:
         @dataclass(frozen=True)
