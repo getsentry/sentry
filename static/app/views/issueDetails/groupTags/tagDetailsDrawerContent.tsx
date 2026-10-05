@@ -104,7 +104,9 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
           width={`calc(100% + ${theme.space.md} + ${theme.space.md})`}
         >
           <Header>
-            <ColumnTitle>{t('Value')}</ColumnTitle>
+            <Text as="div" wrap="nowrap" variant="muted" bold>
+              {t('Value')}
+            </Text>
             <ColumnSort
               to={{
                 pathname: location.pathname,
@@ -131,7 +133,9 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
               {sort === 'count' && sortArrow}
               {t('Count')}
             </ColumnSort>
-            <ShareColumnTitle>{t('Share')}</ShareColumnTitle>
+            <Text as="div" wrap="nowrap" variant="muted" bold align="center">
+              {t('Share')}
+            </Text>
           </Header>
           <Body>
             {tagValues.map((tv, i) => (
@@ -356,16 +360,6 @@ function TagValueActionsMenu({
     />
   );
 }
-
-const ColumnTitle = styled('div')`
-  white-space: nowrap;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const ShareColumnTitle = styled(ColumnTitle)`
-  text-align: center;
-`;
 
 const ColumnSort = styled(Link)`
   display: flex;
