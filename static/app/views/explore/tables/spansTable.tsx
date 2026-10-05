@@ -257,10 +257,8 @@ export function SpansTable({
                 routingHint={routingHint}
               />
             ))
-          ) : emptyMessage ? (
-            <DataTable.Status>{emptyMessage}</DataTable.Status>
           ) : (
-            <DataTable.Empty>{t('No spans found')}</DataTable.Empty>
+            <DataTable.Empty>{emptyMessage ?? t('No spans found')}</DataTable.Empty>
           )}
         </DataTable.Body>
       </DataTable>
