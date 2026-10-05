@@ -1,4 +1,4 @@
-import {z} from 'zod';
+import type {PathMappingValue} from './type';
 
 export const DEFAULT_BRANCH = 'main';
 
@@ -16,14 +16,13 @@ export const resolveBranch = (branch: string, fallback: string = DEFAULT_BRANCH)
 export const normalizeRoot = (root: string) =>
   root === '' || root.endsWith('/') ? root : `${root}/`;
 
-const schema = z.object({
-  stackRoot: z.string(),
-  sourceRoot: z.string(),
-  branch: z.string(),
-});
-
-export const normalizedPathMappingSchema = schema.extend({
-  stackRoot: z.string().transform(normalizeRoot),
-  sourceRoot: z.string().transform(normalizeRoot),
-  branch: z.string().transform(v => resolveBranch(v)),
-});
+export function normalizePathMapping(
+  value: PathMappingValue,
+  branchFallback: string = DEFAULT_BRANCH
+) {
+  return {
+    stackRoot: normalizeRoot(value.stackRoot),
+    sourceRoot: normalizeRoot(value.sourceRoot),
+    branch: resolveBranch(value.branch, branchFallback),
+  };
+}

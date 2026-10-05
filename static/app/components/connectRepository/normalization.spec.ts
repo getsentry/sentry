@@ -1,5 +1,5 @@
 import {
-  normalizedPathMappingSchema,
+  normalizePathMapping,
   normalizeRoot,
   resolveBranch,
   sanitizeBranch,
@@ -47,14 +47,14 @@ describe('sanitizeBranch', () => {
   });
 });
 
-describe('normalizedPathMappingSchema', () => {
+describe('normalizePathMapping', () => {
   it('treats src and src/ as the same root', () => {
-    const a = normalizedPathMappingSchema.parse({
+    const a = normalizePathMapping({
       stackRoot: 'src',
       sourceRoot: '',
       branch: 'main',
     });
-    const b = normalizedPathMappingSchema.parse({
+    const b = normalizePathMapping({
       stackRoot: 'src/',
       sourceRoot: '',
       branch: 'main',
@@ -63,7 +63,7 @@ describe('normalizedPathMappingSchema', () => {
   });
 
   it('treats an empty branch as the default', () => {
-    const result = normalizedPathMappingSchema.parse({
+    const result = normalizePathMapping({
       stackRoot: '',
       sourceRoot: '',
       branch: '',

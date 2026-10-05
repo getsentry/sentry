@@ -70,11 +70,13 @@ class IssueDetailsPage(BasePage):
         self.browser.click('[aria-label="Resolve"]')
         # Resolve should become unresolve
         self.browser.wait_until('[aria-label="Unresolve"]')
+        self.browser.wait_until(xpath="//*[@role='status'][contains(., 'Issue resolved')]")
 
     def archive_issue(self):
         self.browser.click('[aria-label="Archive"]')
         # Archive should become unarchive
         self.browser.wait_until('[aria-label="Unarchive"]')
+        self.browser.wait_until(xpath="//*[@role='status'][contains(., 'Issue archived')]")
 
     def bookmark_issue(self):
         self.browser.click('button[aria-label="More Actions"]')

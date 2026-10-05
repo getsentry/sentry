@@ -139,7 +139,7 @@ That does not conflict with Shape B's "give the displaced leaf a `to`" — they 
 6. Render both slots, `breadcrumbs` then `title`. Wrap them in a `Fragment` when the component returns them directly. Then check what the old wrapper has left: **if a `Layout.Header` or `Layout.HeaderContent` is now left holding only `TopBar.Slot` children, delete it.** Slots render nothing in place, and `Layout.Header` is a real `<Grid as="header">` with padding and a bottom border — leaving it ships an empty bordered strip above the page body. Keep it only if it still has non-slot children, such as `Layout.HeaderTabs`.
 7. Delete only what the move orphaned — see the checklist guard below.
 8. Fix the specs. → `references/tests.md`
-9. Verify: `pnpm run typecheck` (whole project, takes no paths), `.venv/bin/prek run -q --files <files>`, `pnpm test-ci <spec>`, and re-run the count — it must have decreased and still be at or above 4.
+9. Verify: `pnpm run typecheck` (whole project, takes no paths), `.venv/bin/prek run -q --files <files>`, `pnpm test-ci <spec>`, and re-run the count — it must have decreased and still be at or above 3.
 
 Step 3 precedes step 5 because it determines which crumbs are left. Building `items` first ships the leaf twice and forces a redo of both slots.
 
@@ -167,7 +167,7 @@ Already migrated, simplest first. Each answers one question.
 
 ## Intentionally not migrated
 
-Four importers keep the legacy component — its own spec, plus three call sites that render outside the page `<h1>` and need a `<nav>` landmark `BreadcrumbList` has no mode for. **The count floors at 4; driving it to 0 destroys a landmark.** The route-driven `SettingsBreadcrumb` system is out of scope too. Both lists are in `references/call-site-inventory.md`.
+Three importers keep the legacy component — its own spec, plus two call sites that render outside the page `<h1>` and need a `<nav>` landmark `BreadcrumbList` has no mode for. **The count floors at 3; driving it to 0 destroys a landmark.** The route-driven `SettingsBreadcrumb` system is out of scope too. Both lists are in `references/call-site-inventory.md`.
 
 ## Rollout
 
@@ -196,6 +196,6 @@ Each item is a grep or a compile, because every judgment-shaped check here was o
 - [ ] Array `trailingActions` use `null` for absent entries; a lone action is a bare object, not a one-element array.
 - [ ] Every touched spec mounts `<TopBar />` inside `<TopBar.Slot.Provider>`, or declares a `breadcrumbs` outlet — a spec stubbing only `title`/`actions`/`feedback` renders no parent crumbs and fails as if the component were broken.
 - [ ] The leaf is asserted **absent** from the trail, not just present as the heading.
-- [ ] The count decreased and is still at or above 4.
+- [ ] The count decreased and is still at or above 3.
 
 Overflow collapse is deliberately absent from this list — jsdom never evaluates container queries. See `references/tests.md`.

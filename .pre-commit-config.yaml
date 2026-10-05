@@ -147,7 +147,7 @@ repos:
         exclude: ^fixtures/
       - id: trailing-whitespace
         exclude_types: [svg]
-        exclude: ^(fixtures/|scripts/patches/)
+        exclude: ^(fixtures/|scripts/patches/|patches/)
       - id: debug-statements
       - id: name-tests-test
         args: [--pytest-test-first]

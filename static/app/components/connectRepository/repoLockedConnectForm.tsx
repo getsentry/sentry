@@ -3,26 +3,29 @@ import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
-import type {PathMappingValue} from 'sentry/components/connectRepository/type';
-import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
-import {t, tct} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ConnectionModalFrame,
   LockedRepoField,
   getApiErrorMessage,
 } from 'sentry/components/connectRepository/connectionModalFrame';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
+import type {PathMappingValue} from 'sentry/components/connectRepository/type';
+import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
+import {t, tct} from 'sentry/locale';
+import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
+import type {Project} from 'sentry/types/project';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtualizedMenuList';
 import {
   orgProjectsOptions,
+  projectCodeMappingsOptions,
   saveProjectRepoConnection,
   useEditRepoInfo,
   useInvalidateRepoQueries,
@@ -68,8 +71,16 @@ export function RepoLockedConnectForm({
 }: RepoLockedConnectFormProps) {
   const organization = useOrganization();
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [pathMappings, setPathMappings] = useState<PathMappingValue[]>([]);
   const invalidateQueries = useInvalidateRepoQueries(organization.slug);
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      repository: null as string | null,
+      pathMappings: [] as PathMappingValue[],
+    },
+    onSubmit: () => {},
+  });
 
   const {data: projects = [], isPending: isProjectsPending} = useQuery(
     orgProjectsOptions(organization.slug)
@@ -85,6 +96,18 @@ export function RepoLockedConnectForm({
     defaultBranchFromMappings: null,
   });
 
+  // Fetch existing code mappings for the selected project so the save gate can
+  // block on across-repo exact duplicates, consistent with project-locked flow.
+  const {data: projectCodeMappings = []} = useQuery({
+    ...projectCodeMappingsOptions({
+      orgSlug: organization.slug,
+      projectId: selectedProject?.id ?? '',
+    }),
+    enabled: Boolean(selectedProject),
+  }) as {data: RepositoryProjectPathConfig[]};
+
+  const existingMappings = projectCodeMappings.filter(m => m.repoId !== repositoryId);
+
   const saveMutation = useMutation({
     mutationFn: saveProjectRepoConnection,
     onSuccess: async () => {
@@ -92,12 +115,6 @@ export function RepoLockedConnectForm({
       closeModal();
     },
   });
-
-  const canSave =
-    selectedProject !== null &&
-    pathMappings.length > 0 &&
-    !hasExactDuplicate(pathMappings) &&
-    Boolean(integrationId);
 
   const title = tct('Connect a project to [repo]', {repo: repoName});
 
@@ -116,12 +133,6 @@ export function RepoLockedConnectForm({
     </Text>
   );
 
-  const saveAlert = saveMutation.isError ? (
-    <Alert.Container>
-      <Alert variant="danger">{getApiErrorMessage(saveMutation.error)}</Alert>
-    </Alert.Container>
-  ) : null;
-
   const projectOptions = buildProjectOptions(projects);
 
   const projectField = (
@@ -132,7 +143,9 @@ export function RepoLockedConnectForm({
       onChange={option => {
         const opt = option as (typeof projectOptions)[number] | null;
         setSelectedProject(opt?.project ?? null);
-        setPathMappings([]);
+        form.setFieldValue('pathMappings', [
+          {stackRoot: '', sourceRoot: '', branch: defaultBranch ?? ''},
+        ]);
         saveMutation.reset();
       }}
       placeholder={t('Search projects')}
@@ -151,9 +164,10 @@ export function RepoLockedConnectForm({
       <Container paddingTop="2xl">
         <PathMappingList
           key={selectedProject.id}
+          form={form}
           providerKey={providerKey ?? undefined}
           defaultBranch={defaultBranch ?? undefined}
-          onChange={setPathMappings}
+          existingMappings={existingMappings}
         />
       </Container>
     ) : (
@@ -166,33 +180,54 @@ export function RepoLockedConnectForm({
     );
 
   return (
-    <ConnectionModalFrame
-      Header={Header}
-      Body={Body}
-      Footer={Footer}
-      closeModal={closeModal}
-      title={title}
-      intro={intro}
-      alerts={saveAlert}
-      leftLabel={t('Repository')}
-      leftField={<LockedRepoField repoName={repoName} providerKey={providerKey} />}
-      rightLabel={t('Project')}
-      rightField={projectField}
-      pathsSection={pathsSection}
-      canSave={canSave}
-      isSaving={saveMutation.isPending}
-      onSave={() => {
-        if (!selectedProject || !integrationId) {
-          return;
-        }
-        saveMutation.mutate({
-          orgSlug: organization.slug,
-          project: selectedProject,
-          repositoryId,
-          integrationId,
-          pathMappings,
-        });
-      }}
-    />
+    <form.AppForm form={form}>
+      <form.Subscribe selector={state => state.values.pathMappings}>
+        {pathMappings => {
+          const canSave =
+            selectedProject !== null &&
+            pathMappings.length > 0 &&
+            !hasExactDuplicate(pathMappings, existingMappings) &&
+            Boolean(integrationId) &&
+            !isBranchPending;
+
+          const alerts = saveMutation.isError ? (
+            <Alert.Container>
+              <Alert variant="danger">{getApiErrorMessage(saveMutation.error)}</Alert>
+            </Alert.Container>
+          ) : null;
+
+          return (
+            <ConnectionModalFrame
+              Header={Header}
+              Body={Body}
+              Footer={Footer}
+              closeModal={closeModal}
+              title={title}
+              intro={intro}
+              alerts={alerts}
+              leftLabel={t('Repository')}
+              leftField={<LockedRepoField repoName={repoName} providerKey={providerKey} />}
+              rightLabel={t('Project')}
+              rightField={projectField}
+              pathsSection={pathsSection}
+              canSave={canSave}
+              isSaving={saveMutation.isPending}
+              onSave={() => {
+                if (!selectedProject || !integrationId) {
+                  return;
+                }
+                saveMutation.mutate({
+                  orgSlug: organization.slug,
+                  project: selectedProject,
+                  repositoryId,
+                  integrationId,
+                  pathMappings,
+                });
+              }}
+            />
+          );
+        }}
+      </form.Subscribe>
+    </form.AppForm>
   );
 }

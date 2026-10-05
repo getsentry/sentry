@@ -1,8 +1,12 @@
 import {InfoText} from '@sentry/scraps/info';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ExternalLink} from 'sentry/components/links/externalLink';
 import {tct} from 'sentry/locale';
-import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
+import {
+  formatLLMCosts,
+  formatLLMCostsExact,
+} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 
 const COST_DOCS_URL = 'https://docs.sentry.io/ai/monitoring/agents/costs/';
 
@@ -15,7 +19,8 @@ interface LLMCostsProps {
  * Renders an LLM cost via `formatLLMCosts`. A missing (null) or exactly-zero
  * cost both mean "no cost recorded" and render as a `—` wrapped in a tooltip
  * explaining how cost is calculated, so it reads as "no data" rather than a
- * free ($0) call.
+ * free ($0) call. Any other cost shows its full-precision amount in a tooltip,
+ * since small costs are rounded (e.g. `$0.01`, `<$0.01`).
  */
 export function LLMCosts({cost, className}: LLMCostsProps) {
   if (cost === null || Number(cost) === 0) {
@@ -34,15 +39,8 @@ export function LLMCosts({cost, className}: LLMCostsProps) {
   }
 
   return (
-    <span
-      className={className}
-      title={Number(cost).toLocaleString(undefined, {
-        style: 'currency',
-        currency: 'USD',
-        maximumFractionDigits: 8,
-      })}
-    >
-      {formatLLMCosts(cost)}
-    </span>
+    <Tooltip title={formatLLMCostsExact(cost)} skipWrapper>
+      <span className={className}>{formatLLMCosts(cost)}</span>
+    </Tooltip>
   );
 }

@@ -116,7 +116,7 @@ export function EventFeatureFlagDrawer({
         {actions}
       </EventNavigator>
       <EventDrawerBody>
-        <CardContainer numCols={1}>
+        <CardContainer>
           <KeyValueTableCard expandLeft contentItems={searchResults} />
         </CardContainer>
       </EventDrawerBody>
@@ -124,12 +124,9 @@ export function EventFeatureFlagDrawer({
   );
 }
 
-export const CardContainer = styled('div')<{numCols: number}>`
-  display: grid;
-  grid-template-columns: repeat(${p => p.numCols}, 1fr);
-  align-items: start;
-
-  div {
+export const CardContainer = styled('div')`
+  /* Only the card panels, so dropdown overlays inside rows keep their border. */
+  > div {
     border: none;
     border-radius: ${p => p.theme.space.xs};
   }

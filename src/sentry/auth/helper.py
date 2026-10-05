@@ -21,7 +21,6 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
-from flagpole.conditions import glob_star_match
 from sentry import audit_log, features, options
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.audit_log.services.log import AuditLogEvent, log_service
@@ -40,6 +39,7 @@ from sentry.auth.exceptions import (
 )
 from sentry.auth.idpmigration import (
     SSO_VERIFICATION_KEY,
+    delete_verification_key,
     get_verification_value_from_key,
     send_one_time_account_confirm_link,
 )
@@ -73,6 +73,7 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import auth, metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cache import cache
+from sentry.utils.glob import glob_star_match
 from sentry.utils.hashlib import md5_text
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
@@ -576,6 +577,7 @@ class AuthIdentityHandler:
         return bool(
             verification_value["email"] == self.identity["email"]
             and verification_value["user_id"] == self.user.id
+            and verification_value.get("organization_id") == self.organization.id
         )
 
     @property
@@ -747,6 +749,8 @@ class AuthIdentityHandler:
         try:
             if op == "confirm" and (self.request.user.is_authenticated or is_account_verified):
                 auth_identity = self.handle_attach_identity()
+                if is_account_verified and verification_key:
+                    delete_verification_key(verification_key)
             elif op == "confirm":
                 logger.info(
                     "sso.login-pipeline.merge-failed",

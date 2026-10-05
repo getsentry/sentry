@@ -6,22 +6,9 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-// Mock the virtualizer so all menu items render in JSDOM (no layout engine).
-jest.mock('@tanstack/react-virtual', () => ({
-  useVirtualizer: jest.fn(({count, paddingStart = 0, paddingEnd = 0}) => ({
-    getVirtualItems: () =>
-      Array.from({length: count}, (_, i) => ({
-        key: i,
-        index: i,
-        start: paddingStart + i * 36,
-        size: 36,
-      })),
-    getTotalSize: () => paddingStart + count * 36 + paddingEnd,
-    measure: jest.fn(),
-    measureElement: jest.fn(),
-    scrollToIndex: jest.fn(),
-  })),
-}));
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
+
+mockElementSize();
 
 import {
   makeClosableHeader,
@@ -84,6 +71,15 @@ describe('ConnectRepositoryModal', () => {
     );
   }
 
+  async function openRepoMenu() {
+    await userEvent.click(screen.getByText('Search repositories'));
+  }
+
+  async function selectRepository(name: string) {
+    await openRepoMenu();
+    await userEvent.click(await screen.findByText(name));
+  }
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -131,6 +127,11 @@ describe('ConnectRepositoryModal', () => {
         }),
       ],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'GET',
+      body: [],
+    });
   });
 
   it('renders initial modal state', async () => {
@@ -148,13 +149,25 @@ describe('ConnectRepositoryModal', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('allows selecting a repository', async () => {
+    renderModal();
+
+    await openRepoMenu();
+    expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
+    expect(screen.getByText('getsentry/relay')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('getsentry/sentry'));
+    expect(screen.getByText('getsentry/sentry')).toBeInTheDocument();
+    expect(screen.queryByText('getsentry/relay')).not.toBeInTheDocument();
+    expect(
+      screen.queryByText('Select a repository first to configure code paths')
+    ).not.toBeInTheDocument();
+  });
+
   it('shows the path list after selecting a repository and gates Save on path content', async () => {
     renderModal();
 
-    await userEvent.click(screen.getByText('Search repositories'));
-    expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
-    expect(screen.getByText('getsentry/relay')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('getsentry/sentry'));
+    await selectRepository('getsentry/sentry');
 
     expect(
       screen.queryByText('Select a repository first to configure code paths')
@@ -180,8 +193,7 @@ describe('ConnectRepositoryModal', () => {
   it('seeds the branch field with the repository default branch', async () => {
     renderModal();
 
-    await userEvent.click(screen.getByText('Search repositories'));
-    await userEvent.click(await screen.findByText('getsentry/relay'));
+    await selectRepository('getsentry/relay');
 
     expect(screen.getByRole('textbox', {name: /branch/i})).toHaveValue('master');
   });
@@ -189,8 +201,7 @@ describe('ConnectRepositoryModal', () => {
   it('supports adding another path inside the modal', async () => {
     renderModal();
 
-    await userEvent.click(screen.getByText('Search repositories'));
-    await userEvent.click(await screen.findByText('getsentry/sentry'));
+    await selectRepository('getsentry/sentry');
 
     await userEvent.type(
       screen.getByRole('textbox', {name: /stack trace prefix/i}),
@@ -308,6 +319,77 @@ describe('ConnectRepositoryModal', () => {
     expect(closeModal).toHaveBeenCalled();
   });
 
+  it('treats a duplicate mapping as success when this repo already owns it', async () => {
+    const closeModal = jest.fn();
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/repo/`,
+      method: 'POST',
+      body: {id: '99', projectId: project.id, repositoryId: '10', created: false},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        nonFieldErrors: [
+          'Code path config already exists with this project, stack trace root, and source root',
+        ],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'GET',
+      body: [{repoId: '10', stackRoot: '', sourceRoot: ''}],
+    });
+
+    renderModal(closeModal);
+
+    await userEvent.click(screen.getByText('Search repositories'));
+    await userEvent.click(await screen.findByText('getsentry/sentry'));
+    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+
+    await waitFor(() => expect(closeModal).toHaveBeenCalled());
+  });
+
+  it('shows an error when a duplicate mapping belongs to a different repo', async () => {
+    const closeModal = jest.fn();
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/repo/`,
+      method: 'POST',
+      body: {id: '99', projectId: project.id, repositoryId: '10', created: true},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {
+        nonFieldErrors: [
+          'Code path config already exists with this project, stack trace root, and source root',
+        ],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'GET',
+      // A different repo owns a mapping, but not the empty row this form
+      // saves — that exact match is blocked in the UI before Save.
+      body: [{repoId: '11', stackRoot: 'lib/', sourceRoot: 'packages/'}],
+    });
+
+    renderModal(closeModal);
+
+    await userEvent.click(screen.getByText('Search repositories'));
+    await userEvent.click(await screen.findByText('getsentry/sentry'));
+    await userEvent.click(await screen.findByRole('button', {name: 'Save'}));
+
+    expect(
+      await screen.findByText(
+        /Code path config already exists with this project, stack trace root, and source root/
+      )
+    ).toBeInTheDocument();
+    expect(closeModal).not.toHaveBeenCalled();
+  });
+
   it('shows an inline error and keeps the modal open when save fails', async () => {
     const closeModal = jest.fn();
     MockApiClient.addMockResponse({
@@ -325,7 +407,7 @@ describe('ConnectRepositoryModal', () => {
       url: `/organizations/${organization.slug}/code-mappings/`,
       method: 'POST',
       statusCode: 400,
-      body: {detail: 'Repository does not exist'},
+      body: {repositoryId: ['Repository does not exist']},
     });
 
     renderModal(closeModal);
@@ -494,7 +576,7 @@ describe('ConnectRepositoryModal', () => {
       const branchInput = screen.getByRole('textbox', {name: /branch/i});
       expect(stackInput).toBeDisabled();
       expect(sourceInput).toBeDisabled();
-      expect(branchInput).not.toBeDisabled();
+      expect(branchInput).toBeEnabled();
     });
 
     it('seeds new mappings with the repository default branch', async () => {
@@ -647,6 +729,145 @@ describe('ConnectRepositoryModal', () => {
       await waitFor(() => expect(closeModal).toHaveBeenCalled());
       expect(retryPut).toHaveBeenCalled();
     });
+
+    it('disables Save when another repo has the same mapping', async () => {
+      const conflictingMapping = {
+        id: '99',
+        repoId: '11',
+        repoName: 'getsentry/relay',
+        projectId: project.id,
+        stackRoot: 'src/',
+        sourceRoot: 'app/',
+        defaultBranch: 'main',
+        integrationId: integration.id,
+        hasCodeOwner: false,
+      };
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/`,
+        method: 'GET',
+        body: [seededMapping, conflictingMapping],
+      });
+
+      renderEditModal();
+
+      expect(await screen.findByText('src/')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
+
+      expect(await screen.findByText(/getsentry\/relay/)).toBeInTheDocument();
+      expect(screen.getByText(/Only one can be used for matching/)).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
+    });
+  });
+
+  it('shows an across-repos warning when another repo has the same mapping and blocks Save', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'GET',
+      body: [
+        {
+          id: '5',
+          projectId: project.id,
+          projectSlug: project.slug,
+          repoId: '11',
+          repoName: 'getsentry/relay',
+          stackRoot: 'src/',
+          sourceRoot: 'app/',
+          integrationId: integration.id,
+          provider: integration.provider,
+        },
+      ],
+    });
+
+    renderModal();
+
+    await userEvent.click(screen.getByText('Search repositories'));
+    await userEvent.click(await screen.findByText('getsentry/sentry'));
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: /stack trace prefix/i}),
+      'src/'
+    );
+    await userEvent.type(
+      screen.getByRole('textbox', {name: /repository prefix/i}),
+      'app/'
+    );
+
+    expect(await screen.findByText(/getsentry\/relay/)).toBeInTheDocument();
+    expect(screen.getByText(/Only one can be used for matching/)).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
+  });
+
+  it('does not warn when the conflicting mapping belongs to the same repo', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'GET',
+      body: [
+        {
+          id: '5',
+          projectId: project.id,
+          projectSlug: project.slug,
+          repoId: '10',
+          repoName: 'getsentry/sentry',
+          stackRoot: 'src/',
+          sourceRoot: 'app/',
+          integrationId: integration.id,
+          provider: integration.provider,
+        },
+      ],
+    });
+
+    renderModal();
+
+    await userEvent.click(screen.getByText('Search repositories'));
+    await userEvent.click(await screen.findByText('getsentry/sentry'));
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: /stack trace prefix/i}),
+      'src/'
+    );
+    await userEvent.type(
+      screen.getByRole('textbox', {name: /repository prefix/i}),
+      'app/'
+    );
+
+    expect(screen.queryByRole('img', {name: 'Warning'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
+  });
+
+  it('keeps Save disabled while the code-mappings fetch is pending', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'GET',
+      asyncDelay: new Promise(() => {}),
+    });
+
+    renderModal();
+
+    await userEvent.click(screen.getByText('Search repositories'));
+    await userEvent.click(await screen.findByText('getsentry/sentry'));
+
+    expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
+  });
+
+  it('disables Save and shows a danger alert when the code-mappings fetch fails', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'GET',
+      statusCode: 500,
+      body: {},
+    });
+
+    renderModal();
+
+    await userEvent.click(screen.getByText('Search repositories'));
+    await userEvent.click(await screen.findByText('getsentry/sentry'));
+
+    expect(
+      await screen.findByText(
+        'Failed to load existing path mappings. Try again before saving.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
   });
 
   describe('repo-locked mode (lockedSide="repo")', () => {

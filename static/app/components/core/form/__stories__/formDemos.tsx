@@ -17,7 +17,7 @@ import {
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 // form.mdx demos
 
@@ -221,6 +221,30 @@ export function NumberFieldDemo() {
               min={0}
             />
           </field.Layout.Row>
+        )}
+      </form.AppField>
+    </form.AppForm>
+  );
+}
+
+export function CheckboxFieldDemo() {
+  const {t} = useTranslation();
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {subscribe: false},
+    validators: {onDynamic: z.object({subscribe: z.boolean()})},
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <form.AppField name="subscribe">
+        {field => (
+          <field.Checkbox
+            checked={field.state.value}
+            onChange={field.handleChange}
+            label={t('Send me the newsletter')}
+            hintText={t('Get product updates by email.')}
+          />
         )}
       </form.AppField>
     </form.AppForm>
