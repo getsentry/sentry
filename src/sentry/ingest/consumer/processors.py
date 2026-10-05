@@ -16,6 +16,7 @@ from sentry.constants import DataCategory
 from sentry.event_manager import save_attachment
 from sentry.feedback.lib.utils import FeedbackCreationSource, is_in_feedback_denylist
 from sentry.feedback.usecases.ingest.userreport import Conflict, save_userreport
+from sentry.ingest.consumer import CACHE_TIMEOUT
 from sentry.ingest.types import ConsumerType
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.organization import Organization
@@ -38,8 +39,6 @@ from sentry.utils.snuba import RateLimitExceeded
 from sentry.utils.tracing import start_span
 
 logger = logging.getLogger(__name__)
-
-CACHE_TIMEOUT = 3600
 
 IngestMessage = Mapping[str, Any]
 

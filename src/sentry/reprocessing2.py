@@ -229,7 +229,7 @@ def pull_event_data(project_id: int, event_id: str) -> ReprocessableEvent:
 
 
 def reprocess_event(project_id: int, event_id: str, start_time: float) -> None:
-    from sentry.ingest.consumer.processors import CACHE_TIMEOUT
+    from sentry.ingest.consumer import CACHE_TIMEOUT
     from sentry.tasks.store import preprocess_event_from_reprocessing
 
     reprocessable_event = pull_event_data(project_id, event_id)
