@@ -6,12 +6,9 @@ from typing import Any
 from unittest import mock
 from uuid import uuid4
 
-import orjson
 import pytest
 from django.db import router, transaction
-from django.test import override_settings
 from django.utils import timezone
-from urllib3.response import HTTPResponse
 
 from sentry.investigations.models import (
     InvestigationBlock,
@@ -37,7 +34,6 @@ from sentry.tasks.seer.investigation import (
     dispatch_investigation_orchestration_create,
 )
 from sentry.testutils.cases import TestCase
-from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
 
 
 class InvestigationAutoRunTest(TestCase):
@@ -354,23 +350,16 @@ class InvestigationOrchestrationDispatchTest(TestCase):
     @mock.patch(
         "sentry.tasks.seer.investigation.dispatch_investigation_orchestration_commands.delay"
     )
-    @mock.patch("sentry.investigations.seer_client.investigation_connection_pool.urlopen")
-    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+    @mock.patch("sentry.tasks.seer.investigation.create_investigation_orchestration_run")
     def test_create_dispatch_persists_projection_and_starts_commands(
         self,
-        mock_urlopen: mock.Mock,
+        create_run: mock.Mock,
         dispatch_commands: mock.Mock,
     ) -> None:
-        mock_urlopen.return_value = HTTPResponse(
-            orjson.dumps(
-                {
-                    "runId": self.seer_run_id,
-                    "created": True,
-                    "projection": self.projection(workflow_version=1),
-                }
-            ),
-            status=200,
-        )
+        create_run.return_value = {
+            "runId": self.seer_run_id,
+            "projection": self.projection(workflow_version=1),
+        }
 
         dispatch_investigation_orchestration_create(self.orchestration_run.id)
 
@@ -379,15 +368,10 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         assert self.orchestration_run.seer_run.seer_run_state_id == self.seer_run_id
         assert self.orchestration_run.phase == "broad_scan"
         assert self.orchestration_run.status == "processing"
-        viewer_context = decode_viewer_context(
-            mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
-            key="viewer-context-test-secret",
-        )
-        assert viewer_context == ViewerContext(
-            organization_id=self.organization.id,
-            user_id=self.user.id,
-            actor_type=ActorType.USER,
-        )
+        assert create_run.call_args.kwargs["viewer_context"] == {
+            "organization_id": self.organization.id,
+            "user_id": self.user.id,
+        }
         dispatch_commands.assert_called_once_with(self.orchestration_run.id)
 
     @mock.patch("sentry.tasks.seer.investigation.current_task")

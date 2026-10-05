@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -10,6 +10,7 @@ from django.utils import timezone
 from urllib3.response import HTTPResponse
 
 from sentry import options
+from sentry.integrations.utils.webhook_viewer_context import webhook_viewer_context
 from sentry.models.pullrequest import (
     PullRequest,
     PullRequestActivity,
@@ -24,6 +25,7 @@ from sentry.pr_metrics.tasks import (
     reap_stuck_judge_verdicts_task,
     sweep_unattributed_pr_activity_task,
 )
+from sentry.taskworker.adapters import ViewerContextHook
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import cell_silo_test
@@ -52,16 +54,27 @@ class ForwardPrToSeerTaskTest(TestCase):
         self._run()
         mock_forward.assert_called_once_with(self.pull_request, self.repo)
 
-    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+    @override_settings(
+        SEER_API_SHARED_SECRET="viewer-context-test-secret",
+        SENTRY_VIEWER_CONTEXT_ENABLED=True,
+    )
     @patch("sentry.pr_metrics.judge.seer_pr_metrics_connection_pool.urlopen")
-    def test_sends_integration_viewer_context_without_an_ambient_context(
-        self, mock_urlopen: Any
-    ) -> None:
+    def test_propagates_webhook_viewer_context_to_seer(self, mock_urlopen: Any) -> None:
         mock_urlopen.return_value = HTTPResponse(b"", status=202)
         self.pull_request.update(head_commit_sha="a" * 40, closed_at=timezone.now())
         self.repo.update(external_id="repository-external-id")
+        kwargs = {
+            "pull_request_id": self.pull_request.id,
+            "organization_id": self.organization.id,
+            "repository_id": self.repo.id,
+        }
 
-        self._run()
+        with webhook_viewer_context(self.organization.id):
+            task = cast(Any, forward_pr_to_seer_task).__wrapped__
+            activation = task.create_activation(args=[], kwargs=kwargs)
+
+        with ViewerContextHook().on_execute(dict(activation.headers)):
+            forward_pr_to_seer_task(**kwargs)
 
         viewer_context = decode_viewer_context(
             mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],

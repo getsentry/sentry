@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import logging
 
 from django.db import router, transaction
@@ -43,12 +42,6 @@ from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.users.services.user.service import user_service
-from sentry.viewer_context import (
-    ActorType,
-    ViewerContext,
-    get_viewer_context,
-    viewer_context_scope,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -59,20 +52,6 @@ COMMAND_VERSION_CONFLICT_MESSAGE = (
     "The investigation changed before this update could be applied. "
     "Progress was refreshed; try again."
 )
-
-
-def _request_viewer_context_scope(
-    organization_id: int, user_id: int | None
-) -> contextlib.AbstractContextManager[None]:
-    if get_viewer_context() is not None:
-        return contextlib.nullcontext()
-    return viewer_context_scope(
-        ViewerContext(
-            organization_id=organization_id,
-            user_id=user_id,
-            actor_type=ActorType.USER if user_id is not None else ActorType.SYSTEM,
-        )
-    )
 
 
 def _is_last_dispatch_attempt() -> bool:
@@ -337,10 +316,7 @@ def dispatch_investigation_orchestration_create(orchestration_run_id: int) -> No
     if run.investigation.created_by_id is not None:
         viewer_context["user_id"] = run.investigation.created_by_id
     try:
-        with _request_viewer_context_scope(
-            run.investigation.organization_id, run.investigation.created_by_id
-        ):
-            response = create_investigation_orchestration_run(run, viewer_context=viewer_context)
+        response = create_investigation_orchestration_run(run, viewer_context=viewer_context)
         seer_run_id = response["runId"]
         projection = response["projection"]
         synchronize_orchestration_projection(
@@ -413,11 +389,10 @@ def dispatch_investigation_orchestration_commands(orchestration_run_id: int) -> 
         if command.actor_id is not None:
             viewer_context["user_id"] = command.actor_id
         try:
-            with _request_viewer_context_scope(run.investigation.organization_id, command.actor_id):
-                response = dispatch_investigation_orchestration_command(
-                    command,
-                    viewer_context=viewer_context,
-                )
+            response = dispatch_investigation_orchestration_command(
+                command,
+                viewer_context=viewer_context,
+            )
             response_run_id = response["runId"]
             projection = response["projection"]
             if response.get("requestId") != str(command.request_id):
@@ -439,10 +414,7 @@ def dispatch_investigation_orchestration_commands(orchestration_run_id: int) -> 
                     },
                 )
                 try:
-                    with _request_viewer_context_scope(
-                        run.investigation.organization_id, command.actor_id
-                    ):
-                        _reconcile_command_version_conflict(run, command, viewer_context)
+                    _reconcile_command_version_conflict(run, command, viewer_context)
                 except (SeerApiError, HTTPError):
                     if _is_last_dispatch_attempt():
                         logger.exception(

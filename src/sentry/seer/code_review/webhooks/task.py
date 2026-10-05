@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import contextlib
 import logging
 from collections.abc import Mapping
 from typing import Any
@@ -22,12 +21,6 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_code_review_tasks
 from sentry.utils import json, metrics
-from sentry.viewer_context import (
-    ActorType,
-    ViewerContext,
-    get_viewer_context,
-    viewer_context_scope,
-)
 
 from ..metrics import WebhookFilteredReason, record_webhook_enqueued, record_webhook_filtered
 from ..utils import (
@@ -124,22 +117,10 @@ def process_github_webhook_event(
     try:
         sentry_sdk.set_tags(tags)
         viewer_context: SeerViewerContext | None = None
-        organization_id: int | None = None
         if org_id := tags.get("sentry_organization_id"):
-            organization_id = int(org_id)
-            viewer_context = SeerViewerContext(organization_id=organization_id)
+            viewer_context = SeerViewerContext(organization_id=int(org_id))
 
-        scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
-        if get_viewer_context() is None:
-            scope = viewer_context_scope(
-                ViewerContext(
-                    organization_id=organization_id,
-                    actor_type=ActorType.INTEGRATION,
-                )
-            )
-
-        with scope:
-            make_seer_request(path=seer_path, payload=event_payload, viewer_context=viewer_context)
+        make_seer_request(path=seer_path, payload=event_payload, viewer_context=viewer_context)
     except Exception as e:
         status = e.__class__.__name__
         raise
