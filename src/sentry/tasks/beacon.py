@@ -7,7 +7,6 @@ from hashlib import sha1
 from typing import Any
 from uuid import uuid4
 
-import psutil
 from django.conf import settings
 from django.utils import timezone
 
@@ -136,6 +135,9 @@ def send_beacon() -> None:
     )
     event_categories_count = get_category_event_count_24h()
     byte_in_gibibyte = 1024**3
+
+    # Imported here so web workers do not load psutil at boot.
+    import psutil
 
     payload = {
         "install_id": install_id,
