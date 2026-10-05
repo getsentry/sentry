@@ -13,7 +13,7 @@ import {
   useReplayContext,
 } from 'sentry/components/replays/replayContext';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
-import type {RawReplayError} from 'sentry/utils/replays/types';
+import type {RawReplayError, RecordingFrame} from 'sentry/utils/replays/types';
 import {EventType} from 'sentry/utils/replays/types';
 
 const mockPause = jest.fn();
@@ -28,7 +28,7 @@ jest.mock('@sentry/rrweb', () => {
     ...actual,
     Replayer: jest
       .fn()
-      .mockImplementation((_events: unknown, {root}: {root: HTMLElement}) => {
+      .mockImplementation((events: RecordingFrame[], {root}: {root: HTMLElement}) => {
         const wrapper = document.createElement('div');
         root.appendChild(wrapper);
         return {
@@ -41,7 +41,13 @@ jest.mock('@sentry/rrweb', () => {
             mockReplayerHandlers.set(event, handler);
           }),
           pause: mockPause,
-          play: mockPlay,
+          play: (timeOffset?: number) => {
+            // rrweb's `play` writes `delay` onto the events it was given
+            for (const event of events) {
+              event.delay = event.timestamp - events[0]!.timestamp;
+            }
+            mockPlay(timeOffset);
+          },
           setConfig: jest.fn(),
           wrapper,
         };
@@ -88,15 +94,20 @@ function VideoFrameEventFixture() {
 function makeReader({
   attachments,
   errors = [],
+  finishedAt,
 }: {
   attachments: unknown[];
   errors?: RawReplayError[];
+  finishedAt?: Date;
 }) {
   return ReplayReader.factory({
     attachments,
     errors,
     fetching: false,
-    replayRecord: ReplayRecordFixture({started_at: startedAt}),
+    replayRecord: ReplayRecordFixture({
+      started_at: startedAt,
+      ...(finishedAt && {finished_at: finishedAt}),
+    }),
   });
 }
 
@@ -232,6 +243,79 @@ describe('replayContext', () => {
     );
 
     expect(Replayer).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['at the start of the replay', startedAt],
+    ['after the start of the replay', new Date(startedAt.getTime() + 1_000)],
+  ])(
+    'keeps the player when the reader is rebuilt during playback of a recording that begins %s',
+    async (_, recordingStartedAt) => {
+      const attachments = [
+        ...RRWebInitFrameEventsFixture({timestamp: recordingStartedAt}),
+        RRWebFullSnapshotFrameEventFixture({timestamp: recordingStartedAt}),
+      ];
+      const {rerender} = render(
+        <ReplayContextProvider
+          analyticsContext=""
+          isFetching={false}
+          replay={makeReader({attachments})}
+        >
+          <TestPlayer />
+        </ReplayContextProvider>
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Play'}));
+
+      rerender(
+        <ReplayContextProvider
+          analyticsContext=""
+          isFetching={false}
+          replay={makeReader({
+            attachments,
+            errors: [RawReplayErrorFixture({timestamp: startedAt})],
+          })}
+        >
+          <TestPlayer />
+        </ReplayContextProvider>
+      );
+
+      expect(Replayer).toHaveBeenCalledTimes(1);
+    }
+  );
+
+  it('rebuilds the player during playback when the recording end changes', async () => {
+    const attachments = [
+      ...RRWebInitFrameEventsFixture({timestamp: startedAt}),
+      RRWebFullSnapshotFrameEventFixture({timestamp: startedAt}),
+    ];
+    const {rerender} = render(
+      <ReplayContextProvider
+        analyticsContext=""
+        isFetching={false}
+        replay={makeReader({
+          attachments,
+          finishedAt: new Date(startedAt.getTime() + 5_000),
+        })}
+      >
+        <TestPlayer />
+      </ReplayContextProvider>
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Play'}));
+
+    rerender(
+      <ReplayContextProvider
+        analyticsContext=""
+        isFetching={false}
+        replay={makeReader({
+          attachments,
+          finishedAt: new Date(startedAt.getTime() + 10_000),
+        })}
+      >
+        <TestPlayer />
+      </ReplayContextProvider>
+    );
+
+    expect(Replayer).toHaveBeenCalledTimes(2);
   });
 
   it('rebuilds the player when the recording gains frames', () => {

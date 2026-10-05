@@ -460,6 +460,7 @@ const LargeInThisIssueText = styled('div')`
 
 const EventNavigationWrapper = styled('div')`
   flex-grow: 1;
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
   flex-direction: column;
