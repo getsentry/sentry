@@ -1,0 +1,49 @@
+---
+title: Flamegraph Attachment
+description: Count-based flamegraphs for version-1 event attachments.
+category: patterns
+source: sentry/components/events/flamegraphAttachment
+---
+
+import {FlamegraphAttachment} from 'sentry/components/events/flamegraphAttachment';
+import * as Storybook from 'sentry/stories';
+
+Use this viewer for parsed `event.flamegraph` attachments. Each call tree represents an independent sample population. The selector changes the displayed tree without combining counts across threads.
+
+Existing MetricKit stacktrace flamegraphs continue to use `StacktraceFlamegraph`.
+
+## Independent Call Trees
+
+The first tree contains 10 samples. Six continue into `process` and four end at `main`. The second tree contains three samples from another thread.
+
+<Storybook.Demo>
+  <FlamegraphAttachment
+    data={{
+      version: '1',
+      platform: 'cocoa',
+      frames: [
+        {function: 'main', instruction_addr: '0x1000', in_app: true},
+        {function: 'process', filename: 'Processor.swift', lineno: 42, in_app: true},
+        {function: 'system_call', instruction_addr: '0x2000', in_app: false},
+      ],
+      trees: [
+        {
+          thread_id: '1',
+          thread_attributed: true,
+          roots: [
+            {frame_id: 0, sample_count: 10, children: [{frame_id: 1, sample_count: 6}]},
+          ],
+        },
+        {thread_id: '2', roots: [{frame_id: 2, sample_count: 3}]},
+      ],
+    }}
+  />
+</Storybook.Demo>
+
+## Props
+
+| Prop   | Type                       | Description                                                                                                     |
+| ------ | -------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `data` | `FlamegraphAttachmentData` | Validated version-1 frames and call trees. Use `parseFlamegraphAttachment` at the attachment download boundary. |
+
+The graph reuses the profiling canvas renderer and hover tooltips. The call-tree selector has an accessible label, and the selected tree's sample total is displayed as text.

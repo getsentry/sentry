@@ -85,6 +85,12 @@ import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
 
+const LazyEventFlamegraph = lazy(() =>
+  import('sentry/components/events/eventFlamegraph').then(module => ({
+    default: module.EventFlamegraph,
+  }))
+);
+
 const LazyEventViewHierarchy = lazy(() =>
   import('sentry/components/events/eventViewHierarchy').then(module => ({
     default: module.EventViewHierarchy,
@@ -338,6 +344,12 @@ export function EventDetailsContent({
         <EventFeatureFlagSection group={group} project={project} event={event} />
       </ErrorBoundary>
       <EventExtraData event={event} />
+      <LazyLoad
+        LazyComponent={LazyEventFlamegraph}
+        event={event}
+        project={project}
+        loadingFallback={null}
+      />
       <LazyLoad
         LazyComponent={LazyEventViewHierarchy}
         event={event}
