@@ -119,7 +119,9 @@ export function mergeSeerExtraFields(
   extraFields: readonly string[] | undefined,
   limit = 10
 ): string[] {
-  const filteredExtra = extraFields?.filter(field => !currentFields.includes(field));
+  const filteredExtra = [
+    ...new Set(extraFields?.filter(field => !currentFields.includes(field))),
+  ];
   if (!filteredExtra?.length) {
     return [...currentFields];
   }
