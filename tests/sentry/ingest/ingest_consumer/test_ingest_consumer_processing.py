@@ -844,7 +844,9 @@ def test_individual_attachments(
             project=default_project,
         )
 
-    attachments = list(EventAttachment.objects.filter(project_id=project_id, event_id=event_id))
+    model = EventAttachment if with_group else PendingEventAttachment
+
+    attachments = list(model.objects.filter(project_id=project_id, event_id=event_id))
 
     if not feature_enabled:
         assert not attachments
