@@ -59,7 +59,7 @@ import {
   type BaseVisualize,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
-import {generateTargetQuery} from 'sentry/views/explore/utils';
+import {generateTargetQuery} from 'sentry/views/explore/utils/generateTargetQuery';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 const {warn, fmt} = Sentry.logger;

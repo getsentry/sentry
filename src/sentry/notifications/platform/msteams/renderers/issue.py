@@ -188,6 +188,9 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
     def build_action_payload(
         cls, *, action_type: ACTION_TYPE, data: IssueNotificationData, rules: Sequence[Rule]
     ) -> dict[str, Any]:
+        # Keep this lazy to avoid initializing the msteams package during notifications app startup.
+        from sentry.integrations.msteams.card_builder.issues import get_workflow_ids
+
         # Teams posts this back to the webhook when the action is used, and only handles it
         # correctly when the contents are nested under a `payload` key.
         return {
@@ -196,6 +199,7 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
                 "groupId": data.group_id,
                 "eventId": data.event_id,
                 "rules": [rule.id for rule in rules],
+                "workflows": get_workflow_ids(rules),
             }
         }
 

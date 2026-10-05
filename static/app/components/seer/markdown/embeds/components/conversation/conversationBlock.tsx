@@ -5,12 +5,10 @@ import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
+import {hasError} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 
 import {getConversationHref, type ConversationData} from './conversationLink';
-import {
-  ConversationMetricsBar,
-  getConversationMetricsFromNodes,
-} from './conversationMetrics';
+import {ConversationMetricsBar} from './conversationMetrics';
 
 function toTimestampMs(isoTimestamp: string | undefined): number | undefined {
   if (!isoTimestamp) {
@@ -46,12 +44,18 @@ function toProjectIds(projects: ConversationData['projects']): number[] | undefi
  */
 export default function ConversationBlock({data}: {data: ConversationData}) {
   const organization = useOrganization();
-  const {nodes, isLoading, error, title} = useConversation({
+  const {stats, nodes, isLoading, error, title} = useConversation({
     conversationId: data.id,
     projects: toProjectIds(data.projects),
     startTimestamp: toTimestampMs(data.start),
     endTimestamp: toTimestampMs(data.end),
   });
+  const metrics = {
+    cost: stats && stats.totalCost !== 0 ? stats.totalCost : null,
+    errors: nodes.filter(hasError).length,
+    generationDuration: stats?.generationDuration ?? 0,
+    messages: stats?.llmCalls ?? 0,
+  };
 
   return (
     <QueryEmbedCard
@@ -67,10 +71,7 @@ export default function ConversationBlock({data}: {data: ConversationData}) {
       ) : !isLoading && nodes.length === 0 ? (
         <Text variant="muted">{t('No messages in this conversation')}</Text>
       ) : (
-        <ConversationMetricsBar
-          metrics={getConversationMetricsFromNodes(nodes)}
-          isLoading={isLoading}
-        />
+        <ConversationMetricsBar metrics={metrics} isLoading={isLoading} />
       )}
     </QueryEmbedCard>
   );

@@ -1,12 +1,15 @@
 import {AnnotationFixture} from 'sentry-fixture/annotation';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
+import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
+
 import {
   groupIntoBuckets,
   hasDroppedData,
   reasonDescription,
   reasonTitle,
-  severityStyle,
+  severityColor,
+  withAlpha,
 } from './utils';
 
 describe('hasDroppedData', () => {
@@ -28,7 +31,7 @@ describe('hasDroppedData', () => {
     ).toBe(false);
   });
 
-  it('is true only when a bucket reaches 5%', () => {
+  it('is true only when a bucket has dropped events', () => {
     function hasDrops(dropped: number, accepted: number) {
       return hasDroppedData(
         [AnnotationFixture({start: 0, eventCount: dropped})],
@@ -36,8 +39,8 @@ describe('hasDroppedData', () => {
       );
     }
 
-    expect(hasDrops(4, 96)).toBe(false);
-    expect(hasDrops(5, 95)).toBe(true);
+    expect(hasDrops(0, 100)).toBe(false);
+    expect(hasDrops(1, 99)).toBe(true);
   });
 });
 
@@ -203,20 +206,40 @@ describe('groupIntoBuckets', () => {
   });
 });
 
-describe('severityStyle', () => {
+describe('severityColor', () => {
   const theme = ThemeFixture();
-  const warning = theme.tokens.background.warning.vibrant;
-  const bad = theme.tokens.dataviz.semantic.bad;
-  const orange = '#FF9500';
+  const opaque = (color: string) => `${color}FF`.toUpperCase();
 
   it.each([
-    [0.049, {fill: warning, opacity: 0}],
-    [0.05, {fill: warning, opacity: 0.25}],
-    [0.1, {fill: orange, opacity: 0.55}],
-    [0.25, {fill: orange, opacity: 1}],
-    [0.5, {fill: bad, opacity: 1}],
-  ])('styles a drop ratio of %s', (ratio, expected) => {
-    expect(severityStyle(ratio, theme)).toEqual(expected);
+    [0, opaque(theme.tokens.background.secondary)],
+    [0.001, '#F6E5B4FF'],
+    [0.049, '#F6E5B4FF'],
+    [0.05, '#FFCE00FF'],
+    [0.1, '#FF615DFF'],
+    [0.25, '#B5006FFF'],
+    [0.5, '#3A1873FF'],
+    [1, '#3A1873FF'],
+  ])('colors a drop ratio of %s', (ratio, expected) => {
+    expect(severityColor(ratio, theme)).toBe(expected);
+  });
+
+  it.each([
+    ['light', lightTheme],
+    ['dark', darkTheme],
+  ])('returns #RRGGBBAA colors in the %s theme', (_, themeVariant) => {
+    for (const ratio of [0, 0.05, 0.1, 0.25, 0.5]) {
+      expect(severityColor(ratio, themeVariant)).toMatch(/^#[0-9A-F]{8}$/);
+    }
+  });
+});
+
+describe('withAlpha', () => {
+  it('appends an alpha channel to a #RRGGBB color', () => {
+    expect(withAlpha('#ff9500', 0.5)).toBe('#FF950080');
+  });
+
+  it('replaces the alpha channel of a #RRGGBBAA color', () => {
+    expect(withAlpha('#FF9500FF', 0)).toBe('#FF950000');
   });
 });
 

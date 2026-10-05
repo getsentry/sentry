@@ -13,9 +13,11 @@ from sentry.investigations.models import (
     InvestigationOrchestrationRun,
 )
 from sentry.net.http import connection_from_url
+from sentry.seer.agent.client_utils import collect_user_org_context
 from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
 from sentry.seer.models import SeerApiError
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
+from sentry.users.services.user.service import user_service
 
 _CREATE_REQUEST_NAMESPACE = UUID("3bed27f2-9ab9-49ce-8d64-7d78d5c3fd76")
 investigation_connection_pool = connection_from_url(
@@ -152,6 +154,17 @@ def create_investigation_orchestration_run(
     viewer_context: SeerViewerContext,
 ) -> InvestigationRunResponse:
     _validate_viewer_organization(viewer_context, run.investigation.organization_id)
+    user_id = viewer_context.get("user_id")
+    user = user_service.get_user(user_id=user_id) if user_id else None
+    user_org_context = collect_user_org_context(user, run.investigation.organization)
+    project_ids = set(run.investigation.projects.values_list("id", flat=True))
+    if project_ids:
+        user_org_context["all_org_projects"] = [
+            project
+            for project in user_org_context.get("all_org_projects", [])
+            if project["id"] in project_ids
+        ]
+    user_org_context["user_projects"] = user_org_context.get("all_org_projects", [])
     body: dict[str, Any] = {
         "requestId": str(
             uuid5(
@@ -161,6 +174,7 @@ def create_investigation_orchestration_run(
         ),
         "investigationId": run.investigation_id,
         "source": run.source,
+        "userOrgContext": user_org_context,
         "activeTimeBudgetSeconds": 1800,
     }
     monitoring_providers = get_monitoring_provider_connections(

@@ -20,6 +20,15 @@ import type {
   ExplorerFilePatch,
   RepoPRState,
 } from 'sentry/views/seerExplorer/types';
+import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
+
+jest.mock('sentry/views/seerExplorer/useSeerExplorerContext', () => {
+  const actual = jest.requireActual('sentry/views/seerExplorer/useSeerExplorerContext');
+  return {
+    ...actual,
+    useSeerExplorerContext: jest.fn(actual.useSeerExplorerContext),
+  };
+});
 
 jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
   FileDiffViewer: ({defaultExpanded}: {defaultExpanded?: boolean}) => (
@@ -161,6 +170,125 @@ describe('ArtifactCard', () => {
     jest.clearAllMocks();
   });
 
+  describe('on the Autofix page', () => {
+    const chatOrganization = OrganizationFixture({
+      features: ['autofix-page', 'seer-explorer-chat-prompts', 'seer-explorer'],
+      openMembership: true,
+      hideAiFeatures: false,
+    });
+    const openChatPrompt = jest.fn();
+    const {useSeerExplorerContext: actualUseSeerExplorerContext} = jest.requireActual(
+      'sentry/views/seerExplorer/useSeerExplorerContext'
+    );
+
+    beforeEach(() => {
+      jest.mocked(useSeerExplorerContext).mockImplementation(() => ({
+        ...actualUseSeerExplorerContext(),
+        openChatPrompt,
+      }));
+    });
+
+    afterEach(() => {
+      jest
+        .mocked(useSeerExplorerContext)
+        .mockImplementation(actualUseSeerExplorerContext);
+    });
+
+    it.each([
+      [
+        'root cause',
+        () => (
+          <RootCauseCard
+            autofix={mockAutofixWithRunState}
+            groupId="1"
+            section={makeSection('root_cause', 'completed', [
+              makeRootCauseArtifact({one_line_description: 'Bug', five_whys: []}),
+            ])}
+          />
+        ),
+        'root_cause',
+        'How can this root cause be improved?',
+      ],
+      [
+        'plan',
+        () => (
+          <SolutionCard
+            autofix={mockAutofixWithRunState}
+            section={makeSection('solution', 'completed', [
+              makeSolutionArtifact({one_line_summary: 'Fix it', steps: []}),
+            ])}
+          />
+        ),
+        'solution',
+        'How can this plan be improved?',
+      ],
+      [
+        'code changes',
+        () => (
+          <CodeChangesCard
+            autofix={mockAutofixWithRunState}
+            groupId="1"
+            section={makeSection('code_changes', 'completed', [
+              [makePatch('org/repo', 'src/app.py')],
+            ])}
+          />
+        ),
+        'code_changes',
+        'How can this code change be improved?',
+      ],
+    ])(
+      'opens Seer Agent from the %s re-run button',
+      async (_name, card, step, question) => {
+        render(card(), {organization: chatOrganization});
+
+        expect(
+          screen.queryByRole('button', {name: 'Re-run step'})
+        ).not.toBeInTheDocument();
+        const chatButton = screen.getByRole('button', {
+          name: 'Chat with Seer about this step',
+        });
+        await userEvent.hover(chatButton);
+        expect(
+          await screen.findByText(
+            'Chat with Seer about this step, or provide more context for it to re-run'
+          )
+        ).toBeInTheDocument();
+
+        await userEvent.click(chatButton);
+
+        expect(openChatPrompt).toHaveBeenCalledWith({
+          prompt: question,
+          context: {autofixStep: step},
+        });
+        expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+      }
+    );
+
+    it('keeps the re-run prompt without chat prompts', async () => {
+      render(
+        <RootCauseCard
+          autofix={mockAutofixWithRunState}
+          groupId="1"
+          section={makeSection('root_cause', 'completed', [
+            makeRootCauseArtifact({one_line_description: 'Bug', five_whys: []}),
+          ])}
+        />,
+        {
+          organization: OrganizationFixture({
+            features: ['autofix-page', 'seer-explorer'],
+            openMembership: true,
+            hideAiFeatures: false,
+          }),
+        }
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Re-run step'}));
+
+      expect(openChatPrompt).not.toHaveBeenCalled();
+      expect(screen.getByRole('textbox')).toBeInTheDocument();
+    });
+  });
+
   describe('RootCauseCard', () => {
     it('renders title and one_line_description summary', () => {
       const artifact = makeRootCauseArtifact({
@@ -179,6 +307,25 @@ describe('ArtifactCard', () => {
 
       expect(screen.getByText('Root Cause')).toBeInTheDocument();
       expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
+    });
+
+    it('renders unclosed embed syntax in the description as literal text', () => {
+      const description =
+        "Users clicking 'Ask Seer' trigger Seer chat that emits {% autofix %} embeds.";
+      const artifact = makeRootCauseArtifact({
+        one_line_description: description,
+        five_whys: [],
+      });
+
+      render(
+        <RootCauseCard
+          autofix={mockAutofix}
+          groupId="1"
+          section={makeSection('root_cause', 'completed', [artifact])}
+        />
+      );
+
+      expect(screen.getByText(description)).toBeInTheDocument();
     });
 
     it('renders five_whys list items and heading', () => {
@@ -644,6 +791,29 @@ describe('ArtifactCard', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('hides an unclosed embed tag in a block that is still loading', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofix}
+          section={makeSection(
+            'code_changes',
+            'processing',
+            [],
+            [
+              {
+                ...makeAssistantBlock('Looking at {% issue %}{"id":"1"'),
+                loading: true,
+              },
+            ]
+          )}
+        />
+      );
+
+      expect(screen.getByText(/Looking at/)).toBeInTheDocument();
+      expect(screen.queryByText(/\{%/)).not.toBeInTheDocument();
+    });
+
     it('does not render file diff viewers in error state', () => {
       render(
         <CodeChangesCard
@@ -689,6 +859,31 @@ describe('ArtifactCard', () => {
           'Seer failed to generate a code change. This one is on us. Try running it again.'
         )
       ).not.toBeInTheDocument();
+    });
+
+    it('renders embeds in the agent explanation instead of raw tags', () => {
+      render(
+        <CodeChangesCard
+          groupId="1"
+          autofix={mockAutofixWithRunState}
+          section={makeSection(
+            'code_changes',
+            'completed',
+            [],
+            [
+              makeAssistantBlock(
+                'See {% docs %}{"href":"https://docs.sentry.io/product/issues/","title":"Issues"}{% /docs %} for details.'
+              ),
+            ]
+          )}
+        />
+      );
+
+      expect(screen.getByRole('link', {name: /Issues/})).toHaveAttribute(
+        'href',
+        'https://docs.sentry.io/product/issues/'
+      );
+      expect(screen.queryByText(/\{% docs %\}/)).not.toBeInTheDocument();
     });
 
     it('opens and consumes a requested context prompt without an explanation', async () => {

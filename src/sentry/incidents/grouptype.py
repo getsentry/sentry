@@ -187,6 +187,8 @@ def get_alert_type_from_aggregate_dataset(
 
 
 class MetricIssueDetectorHandler(StatefulDetectorHandler[MetricUpdate, MetricResult]):
+    activation_creates_new_issue = True
+
     def build_detector_evidence_data(
         self,
         group_evaluation: DataConditionGroupEvaluation,
@@ -353,7 +355,7 @@ class MetricIssue(GroupType):
     slug = "metric_issue"
     description = "Metric issue triggered"
     category = GroupCategory.METRIC.value
-    creation_quota = Quota(3600, 60, 100)
+    creation_quota = Quota(3600, 60, 1000)
     default_priority = PriorityLevel.HIGH
     released = True
     enable_auto_resolve = False

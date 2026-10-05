@@ -268,7 +268,13 @@ const config: Config.InitialOptions = {
     '^sentry/stories/storyManifest\\.generated$':
       '<rootDir>/tests/js/sentry-test/mocks/storyManifestMock.ts',
     '^sentry/(.*)': '<rootDir>/static/app/$1',
-    '^@sentry/scraps/(.*)': '<rootDir>/static/app/components/core/$1',
+    '^@sentry/scraps/text$': '<rootDir>/static/app/components/core/text',
+    '^@sentry/scraps$': '<rootDir>/static/packages/scraps/src/index.ts',
+    // The app falls back to core components until they move into scraps.
+    '^@sentry/scraps/(.*)$': [
+      '<rootDir>/static/packages/scraps/src/$1',
+      '<rootDir>/static/app/components/core/$1',
+    ],
     '^getsentry/(.*)': '<rootDir>/static/gsApp/$1',
     '^admin/(.*)': '<rootDir>/static/gsAdmin/$1',
     '^sentry-fixture/(.*)': '<rootDir>/tests/js/fixtures/$1',
@@ -299,7 +305,10 @@ const config: Config.InitialOptions = {
   testMatch: testMatch?.length
     ? testMatch
     : ['<rootDir>/(static|tests/js)/**/?(*.)+(spec|test).[jt]s?(x)'],
-  testPathIgnorePatterns: ['<rootDir>/tests/sentry/lang/javascript/'],
+  testPathIgnorePatterns: [
+    '<rootDir>/tests/sentry/lang/javascript/',
+    '<rootDir>/static/packages/scraps/',
+  ],
   // Coding agents check out nested git worktrees under .claude/worktrees/, each a
   // full copy of this repo. jest-haste-map crawls all of rootDir, so every manual
   // mock in static/ collides with its copies and the file that ends up backing
@@ -339,7 +348,8 @@ const config: Config.InitialOptions = {
         dsn: Boolean(CI) && Boolean(GITHUB_PR_REF) && SENTRY_DSN ? SENTRY_DSN : false,
         // Use production env to reduce sampling of commits on master
         environment: CI ? (IS_MASTER_BRANCH ? 'ci:master' : 'ci:pull_request') : 'local',
-        tracesSampleRate: CI ? 0.75 : 0,
+        // Trace every master run so failures there are always traceable; sample PRs
+        tracesSampleRate: CI ? (IS_MASTER_BRANCH ? 1 : 0.75) : 0,
         profilesSampleRate: 0,
         transportOptions: {keepAlive: true},
       },
