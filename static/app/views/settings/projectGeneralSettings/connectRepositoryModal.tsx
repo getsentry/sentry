@@ -8,9 +8,9 @@ type ConnectRepositoryModalProps = ModalRenderProps & {
 } & (
     | {mode: 'connect'}
     | {
-        mode: 'edit';
         externalId: string | null;
         integrationId: string | null;
+        mode: 'edit';
         providerKey: string | null;
         repoName: string;
         repositoryId: string;

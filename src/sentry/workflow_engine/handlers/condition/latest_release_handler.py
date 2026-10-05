@@ -14,8 +14,13 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
 from sentry.workflow_engine.caches import CacheMapping
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.preview import UnsupportedPreviewBehavior
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import DataConditionHandler, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ActionFilterDataConditionHandler,
+    DataConditionHandler,
+    WorkflowEventData,
+)
 
 CACHE_TTL_SECONDS = 600
 
@@ -126,8 +131,8 @@ def _get_latest_release_for_env_impl[K](
 
 
 @condition_handler_registry.register(Condition.LATEST_RELEASE)
-class LatestReleaseConditionHandler(DataConditionHandler[WorkflowEventData]):
-    group = DataConditionHandler.Group.ACTION_FILTER
+class LatestReleaseConditionHandler(ActionFilterDataConditionHandler[WorkflowEventData]):
+    preview_behavior = UnsupportedPreviewBehavior("Release comparisons require event data")
     subgroup = DataConditionHandler.Subgroup.EVENT_ATTRIBUTES
     comparison_json_schema = {"type": "boolean"}
     label_template = "The event is from the latest release"

@@ -171,6 +171,51 @@ describe('GroupReplays', () => {
   });
 
   describe('Replay Feature Enabled', () => {
+    it('retries a failed replay ID lookup without clearing the environment', async () => {
+      const {organization} = init({});
+      MockApiClient.addMockResponse({
+        url: mockReplayCountUrl,
+        match: [MockApiClient.matchQuery({returnIds: true})],
+        statusCode: 503,
+        body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: mockReplayCountUrl,
+        match: [(_url, options) => !options.query?.returnIds],
+        body: {[mockGroup.id]: 0},
+      });
+      const {router} = render(<GroupReplays />, {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {...initialRouterConfig.location, query: {environment: 'production'}},
+        },
+      });
+
+      expect(
+        await screen.findByText(
+          'The server is temporarily unavailable. Please try again in a few moments.'
+        )
+      ).toBeInTheDocument();
+      expect(screen.queryByText('No replay data available.')).not.toBeInTheDocument();
+      const retry = MockApiClient.addMockResponse({
+        url: mockReplayCountUrl,
+        match: [MockApiClient.matchQuery({returnIds: true})],
+        body: {[mockGroup.id]: []},
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
+
+      expect(await screen.findByText('No replay data available.')).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
+      expect(router.location.query.environment).toBe('production');
+      expect(retry).toHaveBeenCalledWith(
+        mockReplayCountUrl,
+        expect.objectContaining({
+          query: expect.objectContaining({environment: 'production', returnIds: true}),
+        })
+      );
+    });
+
     it('should query the replay-count endpoint with the fetched replayIds', async () => {
       const {organization} = init({});
 
@@ -208,6 +253,7 @@ describe('GroupReplays', () => {
         );
       });
       // Expect api path to have the correct query params
+      await waitFor(() => expect(mockReplayApi).toHaveBeenCalled());
       expect(mockReplayApi).toHaveBeenCalledWith(
         mockReplayUrl,
         expect.objectContaining({
@@ -380,7 +426,7 @@ describe('GroupReplays', () => {
       await waitFor(() => {
         expect(mockReplayCountApi).toHaveBeenCalled();
       });
-      expect(mockReplayApi).toHaveBeenCalledTimes(1);
+      await waitFor(() => expect(mockReplayApi).toHaveBeenCalledTimes(1));
     });
 
     it('should show a list of replays and have the correct values', async () => {

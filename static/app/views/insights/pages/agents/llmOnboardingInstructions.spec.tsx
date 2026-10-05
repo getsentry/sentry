@@ -32,29 +32,19 @@ describe('getAgentSetupPrompt', () => {
   );
 
   it.each([
-    ['node', 'guides/node'],
-    ['javascript-nextjs', 'guides/nextjs'],
-    ['bun', 'guides/bun'],
-    ['deno', 'guides/deno'],
+    'node',
+    'javascript-nextjs',
+    'node-cloudflare-workers',
+    'node-cloudflare-pages',
+    'bun',
+    'deno',
+    'python',
+    'python-fastapi',
+    'php-laravel',
+    'other',
+    undefined,
   ] as const)(
-    'asks about AI inputs and outputs on %s, linking its guide',
-    (platform, guidePath) => {
-      const prompt = getAgentSetupPrompt({
-        organizationSlug: OrganizationFixture().slug,
-        project: ProjectFixture({platform}),
-        dsn: ProjectKeysFixture()[0]!.dsn.public,
-      });
-
-      expect(prompt).toContain('which AI inputs and outputs the SDK sends');
-      expect(prompt).toContain(
-        `https://docs.sentry.io/platforms/javascript/${guidePath}/configuration/options/#dataCollection`
-      );
-    }
-  );
-
-  // The prompt also renders for unsupported platforms; they must not get JS guidance.
-  it.each(['python', 'python-fastapi', 'php-laravel', 'other', undefined] as const)(
-    'omits the question on %s, which does not expose dataCollection',
+    'delegates data collection guidance to the instrument skill on %s',
     platform => {
       const prompt = getAgentSetupPrompt({
         organizationSlug: OrganizationFixture().slug,
@@ -62,6 +52,7 @@ describe('getAgentSetupPrompt', () => {
         dsn: ProjectKeysFixture()[0]!.dsn.public,
       });
 
+      expect(prompt).toContain('https://skills.sentry.dev/instrument');
       expect(prompt).not.toContain('which AI inputs and outputs the SDK sends');
       expect(prompt).not.toContain('#dataCollection');
     }

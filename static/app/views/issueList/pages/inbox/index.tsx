@@ -10,9 +10,9 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
-import {parseAsString, useQueryState} from 'nuqs';
+import {parseAsString, useQueryStates} from 'nuqs';
 
-import {ActorAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {ActorAvatar, ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -62,8 +62,8 @@ import {IssuePreview} from 'sentry/views/issueList/pages/inbox/issuePreview/issu
 import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/pages/inbox/utils';
 import {InboxEmptyState} from 'sentry/views/issueList/pages/inboxEmptyState';
 import {
+  assignmentFilterParser,
   type AssignmentFilter,
-  useAssignmentFilter,
 } from 'sentry/views/issueList/pages/useAssignmentFilter';
 import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPreviewPrefetch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -303,11 +303,14 @@ function InboxContent() {
   const isMobile = layout === 'mobile';
   const resizableContainerRef = useRef<HTMLDivElement>(null);
   const organization = useOrganization();
-  const [assignmentFilter, setAssignmentFilter] = useAssignmentFilter();
-  const [selectedIssueId, setSelectedIssueId] = useQueryState(
-    SELECTED_ISSUE_QUERY_PARAM,
-    parseAsString.withOptions({history: 'replace'})
-  );
+  const [{assignment: assignmentFilter, preview: selectedIssueId}, setInboxQueryState] =
+    useQueryStates(
+      {
+        assignment: assignmentFilterParser,
+        [SELECTED_ISSUE_QUERY_PARAM]: parseAsString,
+      },
+      {history: 'replace'}
+    );
   const issueIdToRestoreScroll = useRef(selectedIssueId);
   const restoreSelectedIssueScroll = useCallback<RestoreSelectedIssueScroll>(
     (issueId, element) => {
@@ -335,7 +338,7 @@ function InboxContent() {
 
   const handleInitialSectionResult = useSelectFirstLoadedIssue({
     disabled: !isDesktop || selectedIssueId !== null,
-    onSelect: issueId => void setSelectedIssueId(issueId),
+    onSelect: issueId => void setInboxQueryState({preview: issueId}),
     resetKey: assignmentFilter,
     sections: SECTIONS,
   });
@@ -346,7 +349,7 @@ function InboxContent() {
       organization,
       assignment_filter: filter,
     });
-    setAssignmentFilter(filter);
+    void setInboxQueryState({assignment: filter, preview: null});
   };
 
   const alternateInboxAction = alternateInbox
@@ -452,7 +455,7 @@ function InboxContent() {
                 size="xs"
                 variant="link"
                 icon={<IconArrow direction="left" size="xs" />}
-                onClick={() => void setSelectedIssueId(null)}
+                onClick={() => void setInboxQueryState({preview: null})}
               >
                 {t('Back to inbox')}
               </Button>
@@ -751,7 +754,16 @@ function InboxIssueCard({
               {title}
             </Heading>
             <EventMessage level={group.level} message={message} type={group.type} />
-            <Container height="18px" />
+            {showPullRequests ? (
+              <Container height="18px" />
+            ) : (
+              <Flex height="18px" minWidth={0} align="center" gap="2xs">
+                <ProjectAvatar project={group.project} size={12} />
+                <Text size="xs" variant="muted" ellipsis>
+                  {group.shortId}
+                </Text>
+              </Flex>
+            )}
           </Stack>
           <Stack align="end" justify="between">
             {group.derivedData?.lastProgressedAt ? (
@@ -799,7 +811,7 @@ function InboxIssueCard({
           </Stack>
         </Grid>
       </IssueCardLink>
-      {showPullRequests && <InboxPullRequestBadges group={group} />}
+      {showPullRequests && <InboxPullRequestMetadata group={group} />}
     </Container>
   );
 }
@@ -812,7 +824,7 @@ const PULL_REQUEST_BADGE_VARIANTS = {
   unknown: 'muted',
 } satisfies Record<PullRequestStatus, ComponentProps<typeof Badge>['variant']>;
 
-function InboxPullRequestBadges({group}: {group: Group}) {
+function InboxPullRequestMetadata({group}: {group: Group}) {
   const {data} = useLinkedPullRequests({group, includeChecksAndReview: false});
   const {currentPullRequests} = partitionLinkedPullRequests(
     data?.pullRequests ?? [],
@@ -821,10 +833,6 @@ function InboxPullRequestBadges({group}: {group: Group}) {
   const pullRequests = currentPullRequests.filter(
     pullRequest => pullRequest.status !== 'closed'
   );
-
-  if (!pullRequests?.length) {
-    return null;
-  }
 
   return (
     <PullRequestBadgePositioner>
@@ -848,6 +856,12 @@ function InboxPullRequestBadges({group}: {group: Group}) {
               </Badge>
             </PullRequestBadgeLink>
           ))}
+          <Flex minWidth={0} align="center" gap="2xs">
+            <ProjectAvatar project={group.project} size={12} />
+            <Text size="xs" variant="muted" ellipsis>
+              {group.shortId}
+            </Text>
+          </Flex>
         </Flex>
         <span />
       </Grid>

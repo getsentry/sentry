@@ -4,23 +4,40 @@ import type {PathMappingValue} from './type';
 export type PathMappingWarning =
   | {type: 'catchAll'}
   | {type: 'codeOwner'}
-  | {sourceRoot: string; stackRoot: string; type: 'exact'};
+  | {sourceRoot: string; stackRoot: string; type: 'exactInForm'}
+  | {repoName: string; sourceRoot: string; stackRoot: string; type: 'exactAcrossRepos'};
+
+type ExistingMapping = {repoName: string; sourceRoot: string; stackRoot: string};
 
 type NormalizedRow = {hasCodeOwner: boolean; sourceRoot: string; stackRoot: string};
 
 function deriveWarning(
   row: NormalizedRow,
   index: number,
-  rows: NormalizedRow[]
+  rows: NormalizedRow[],
+  existing: ExistingMapping[]
 ): PathMappingWarning | null {
   const {stackRoot, sourceRoot, hasCodeOwner} = row;
 
-  const duplicate = rows.find(
+  // Exact duplicates always take priority over Code Owners.
+  const inFormDuplicate = rows.find(
     (other, i) =>
       i !== index && other.stackRoot === stackRoot && other.sourceRoot === sourceRoot
   );
-  if (duplicate) {
-    return {sourceRoot: duplicate.sourceRoot, stackRoot, type: 'exact'};
+  if (inFormDuplicate) {
+    return {sourceRoot: inFormDuplicate.sourceRoot, stackRoot, type: 'exactInForm'};
+  }
+
+  const acrossReposDuplicate = existing.find(
+    other => other.stackRoot === stackRoot && other.sourceRoot === sourceRoot
+  );
+  if (acrossReposDuplicate) {
+    return {
+      repoName: acrossReposDuplicate.repoName,
+      sourceRoot: acrossReposDuplicate.sourceRoot,
+      stackRoot,
+      type: 'exactAcrossRepos',
+    };
   }
 
   if (hasCodeOwner) {
@@ -34,8 +51,15 @@ function deriveWarning(
   return null;
 }
 
+export function isExactWarning(
+  warning: PathMappingWarning | null | undefined
+): warning is Extract<PathMappingWarning, {type: 'exactInForm' | 'exactAcrossRepos'}> {
+  return warning?.type === 'exactInForm' || warning?.type === 'exactAcrossRepos';
+}
+
 export function getPathMappingWarnings(
-  values: PathMappingValue[]
+  values: PathMappingValue[],
+  existingMappings: ExistingMapping[] = []
 ): Array<PathMappingWarning | null> {
   const rows = values.map(v => ({
     stackRoot: normalizeRoot(v.stackRoot),
@@ -43,9 +67,15 @@ export function getPathMappingWarnings(
     hasCodeOwner: v.hasCodeOwner ?? false,
   }));
 
-  return rows.map((row, index) => deriveWarning(row, index, rows));
+  const normalizedExisting = existingMappings.map(m => ({
+    repoName: m.repoName,
+    stackRoot: normalizeRoot(m.stackRoot),
+    sourceRoot: normalizeRoot(m.sourceRoot),
+  }));
+
+  return rows.map((row, index) => deriveWarning(row, index, rows, normalizedExisting));
 }
 
 export function hasExactDuplicate(mappings: PathMappingValue[]): boolean {
-  return getPathMappingWarnings(mappings).some(w => w?.type === 'exact');
+  return getPathMappingWarnings(mappings).some(isExactWarning);
 }

@@ -237,6 +237,25 @@ class AuthorizeRequestTest(TestCase):
 
         assert request.headers["Authorization"] == "Bearer oit_stored"
 
+    @responses.activate
+    @mock.patch("sentry.integrations.cursor_origin.client.get_jwt", return_value=JWT)
+    def test_an_scm_platform_request_names_a_credential_set(self, mock_jwt: mock.MagicMock) -> None:
+        responses.add(
+            responses.GET,
+            f"{CURSOR_ORIGIN_API_BASE_URL}/app/installations/{INSTALLATION_ID}",
+            json={"id": INSTALLATION_ID, "scopes": ["repository:contents:read"]},
+        )
+
+        response = self.origin_client.request(
+            "GET",
+            f"/app/installations/{INSTALLATION_ID}",
+            raw_response=True,
+            credentials_set="application",
+        )
+
+        assert response.json()["scopes"] == ["repository:contents:read"]
+        assert responses.calls[0].request.headers["Authorization"] == f"Bearer {JWT}"
+
 
 @control_silo_test
 class PaginateTest(TestCase):
