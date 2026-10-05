@@ -148,7 +148,7 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.END,
             VisibilityParams.DATASET,
             VisibilityParams.FIELD,
-            VisibilityParams.QUERY,
+            VisibilityParams.EXPLORE_QUERY,
             VisibilityParams.SORT,
         ],
         responses={

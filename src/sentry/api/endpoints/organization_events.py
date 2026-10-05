@@ -184,7 +184,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.STATS_PERIOD,
             VisibilityParams.FIELD,
             VisibilityParams.PER_PAGE,
-            VisibilityParams.QUERY,
+            VisibilityParams.EXPLORE_QUERY,
             VisibilityParams.SORT,
             VisibilityParams.DATASET,
             VisibilityParams.ALLOW_AGGREGATE_CONDITIONS,
