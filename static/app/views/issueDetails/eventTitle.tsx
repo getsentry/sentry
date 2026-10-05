@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import color from 'color';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
@@ -81,7 +81,19 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
 
   return (
     <div {...props} ref={ref}>
-      <EventInfoJumpToWrapper hasProcessingError={!!actionableItems}>
+      <Grid
+        columns={
+          actionableItems
+            ? {zero: '1fr', '4xl': '1fr auto'}
+            : {zero: '1fr', xl: '1fr auto'}
+        }
+        gap={actionableItems ? {zero: 'xs', '4xl': 'md'} : {zero: 'xs', xl: 'md'}}
+        align="center"
+        padding={
+          actionableItems ? {zero: 'xs xl', '4xl': '0 lg'} : {zero: 'xs xl', xl: '0 lg'}
+        }
+        minHeight={`${MIN_NAV_HEIGHT}px`}
+      >
         <EventInfo>
           <EventIdWrapper>
             <span onClick={handleCopyEventId}>
@@ -143,7 +155,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
           )}
         </EventInfo>
         <IssueDetailsJumpTo />
-      </EventInfoJumpToWrapper>
+      </Grid>
     </div>
   );
 }
@@ -154,22 +166,6 @@ const StyledTimeSince = styled(TimeSince)`
   white-space: nowrap;
 `;
 
-const EventInfoJumpToWrapper = styled('div')<{hasProcessingError: boolean}>`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  padding: 0 ${p => p.theme.space.lg};
-  min-height: ${MIN_NAV_HEIGHT}px;
-
-  @media (max-width: ${p =>
-    p.hasProcessingError ? p.theme.breakpoints.lg : p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr;
-    gap: ${p => p.theme.space.xs};
-    padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
-  }
-`;
-
 const EventInfo = styled('div')`
   display: flex;
   gap: ${p => p.theme.space.sm};
@@ -177,7 +173,7 @@ const EventInfo = styled('div')`
   align-items: center;
   line-height: 1.2;
 
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
+  @container (max-width: ${p => p.theme.container.xl}) {
     padding-top: ${p => p.theme.space.md};
   }
 `;

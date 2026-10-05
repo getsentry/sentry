@@ -618,7 +618,7 @@ const ChartContainer = styled('div')`
   padding: ${p => p.theme.space.sm} 0 ${p => p.theme.space.sm} 0;
   margin-right: -2px;
 
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
+  @container (min-width: ${p => p.theme.container['5xl']}) {
     padding: ${p => p.theme.space.sm} ${p => p.theme.space.md} ${p => p.theme.space.sm} 0;
   }
 `;

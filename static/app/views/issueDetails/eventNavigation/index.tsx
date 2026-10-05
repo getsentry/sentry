@@ -467,7 +467,7 @@ const EventNavigationWrapper = styled('div')`
   justify-content: space-between;
   font-size: ${p => p.theme.font.size.sm};
 
-  @media (min-width: ${p => p.theme.breakpoints.xs}) {
+  @container (min-width: ${p => p.theme.container.sm}) {
     flex-direction: row;
     align-items: center;
   }
@@ -478,7 +478,7 @@ const NavigationWrapper = styled('div')`
   gap: ${p => p.theme.space['2xs']};
   justify-content: space-between;
 
-  @media (min-width: ${p => p.theme.breakpoints.xs}) {
+  @container (min-width: ${p => p.theme.container.sm}) {
     gap: ${p => p.theme.space.xs};
   }
 `;

@@ -170,7 +170,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
                 disabled={disableActions}
                 event={event}
               />
-              <WorkflowActions>
+              <Flex justify={{zero: 'start', '4xl': 'end'}} gap="0 xl" wrap="wrap">
                 <Workflow>
                   {t('Priority')}
                   <GroupPriority group={group} />
@@ -183,7 +183,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
                     event={event}
                   />
                 </Workflow>
-              </WorkflowActions>
+              </Flex>
             </ActionBar>
           </div>
         )}
@@ -308,16 +308,6 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
   }
 `;
 
-const WorkflowActions = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  column-gap: ${p => p.theme.space.xl};
-  flex-wrap: wrap;
-  @media (max-width: ${p => p.theme.breakpoints.lg}) {
-    justify-content: flex-start;
-  }
-`;
-
 const Workflow = styled('div')`
   display: flex;
   align-items: center;
@@ -333,7 +323,7 @@ const Title = styled('div')`
 `;
 
 const StyledTag = styled(Tag)`
-  @media (max-width: ${p => p.theme.breakpoints.xs}) {
+  @container (max-width: ${p => p.theme.container.sm}) {
     display: none;
   }
 `;

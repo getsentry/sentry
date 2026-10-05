@@ -339,7 +339,9 @@ function TagValueActionsMenu({
           key: 'copy-value',
           label: t('Copy tag value to clipboard'),
           onAction: () =>
-            copy(tagValue.value, {successMessage: t('Copied tag value to clipboard')}),
+            copy(tagValue.value, {
+              successMessage: t('Copied tag value to clipboard'),
+            }),
           hidden: tagValue.value === '',
         },
       ]}
@@ -354,7 +356,7 @@ const Table = styled('div')`
   row-gap: ${p => p.theme.space.xs};
   margin: 0 -${p => p.theme.space.md};
 
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
+  @container (min-width: ${p => p.theme.container['5xl']}) {
     column-gap: ${p => p.theme.space.xl};
   }
 `;

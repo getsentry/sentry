@@ -43,7 +43,7 @@ const Wrapper = styled('div')`
   flex: 1;
   text-align: center;
 
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     margin: 40px;
   }
 `;

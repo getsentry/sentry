@@ -109,7 +109,7 @@ export function GroupReplaysPlayer({
 const PlayerContainer = styled(FluidHeight)`
   position: relative;
   max-height: ${REPLAY_LOADING_HEIGHT_LARGE}px;
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     min-height: ${REPLAY_LOADING_HEIGHT_LARGE}px;
   }
   overflow: unset;

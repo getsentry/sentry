@@ -217,7 +217,9 @@ function FlagValueActionsMenu({flagValue}: {flagValue: RawFlag}) {
           key: 'copy-value',
           label: t('Copy flag value to clipboard'),
           onAction: () =>
-            copy(flagValue.flag, {successMessage: t('Copied flag value to clipboard')}),
+            copy(flagValue.flag, {
+              successMessage: t('Copied flag value to clipboard'),
+            }),
         },
       ]}
     />
@@ -231,7 +233,7 @@ const Table = styled('div')`
   row-gap: ${p => p.theme.space.xs};
   margin: 0 -${p => p.theme.space.md};
 
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
+  @container (min-width: ${p => p.theme.container['5xl']}) {
     column-gap: ${p => p.theme.space.xl};
   }
 `;

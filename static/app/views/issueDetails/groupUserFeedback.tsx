@@ -54,11 +54,11 @@ function GroupUserFeedback() {
 
   if (isPending || isPendingGroup) {
     return (
-      <StyledLayoutBody>
+      <Layout.Body border="primary" radius="md" padding={{zero: 'lg 0', '3xl': 'lg'}}>
         <Layout.Main width="full">
           <LoadingIndicator />
         </Layout.Main>
-      </StyledLayoutBody>
+      </Layout.Body>
     );
   }
 
@@ -67,7 +67,7 @@ function GroupUserFeedback() {
   const hasUserFeedback = group.project.hasUserReports;
 
   return (
-    <StyledLayoutBody>
+    <Layout.Body border="primary" radius="md" padding={{zero: 'lg 0', '3xl': 'lg'}}>
       <Layout.Main width="full">
         {hasUserFeedback && (
           <FilterMessage>
@@ -90,19 +90,9 @@ function GroupUserFeedback() {
           </Stack>
         )}
       </Layout.Main>
-    </StyledLayoutBody>
+    </Layout.Body>
   );
 }
-
-const StyledLayoutBody = styled(Layout.Body)`
-  border: 1px solid ${p => p.theme.tokens.border.primary};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space.lg} 0;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: ${p => p.theme.space.lg};
-  }
-`;
 
 const FilterMessage = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
