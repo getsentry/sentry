@@ -194,9 +194,13 @@ class ConfigValidator(serializers.Serializer):
         required=False,
         allow_null=True,
         default=None,
-        help_text="How long (in minutes) is the checkin allowed to run for in CheckInStatus.IN_PROGRESS before it is considered failed.",
+        help_text="How long (in minutes) is the checkin allowed to run for in CheckInStatus.IN_PROGRESS before it is considered failed. "
+        f"Maximum {MAX_TIMEOUT} ({MAX_TIMEOUT // 1440} days).",
         min_value=1,
         max_value=MAX_TIMEOUT,
+        error_messages={
+            "max_value": f"Max runtime must be {MAX_TIMEOUT} minutes ({MAX_TIMEOUT // 1440} days) or less. Lower it to save this monitor."
+        },
     )
 
     timezone = serializers.ChoiceField(
