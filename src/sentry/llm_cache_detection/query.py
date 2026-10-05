@@ -429,7 +429,7 @@ def fetch_sample_prompts(
     seen_trace_ids: set[str] = set()
     for row in result.get("data", []):
         trace_id = row.get("trace")
-        if trace_id and trace_id in seen_trace_ids:
+        if trace_id in seen_trace_ids:
             continue
         prompt = next(
             (str(row[attribute]) for attribute in PROMPT_ATTRIBUTES if row.get(attribute)), None

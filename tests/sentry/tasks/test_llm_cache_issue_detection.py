@@ -1,5 +1,4 @@
 from collections import Counter
-from contextlib import AbstractContextManager
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -10,11 +9,7 @@ from django.db.models import F
 
 from sentry import features
 from sentry.exceptions import InvalidSearchQuery
-from sentry.llm_cache_detection.detection import (
-    AgentLabelSource,
-    CallSiteStats,
-    CallSiteWarmth,
-)
+from sentry.llm_cache_detection.detection import CallSiteStats, CallSiteWarmth
 from sentry.llm_cache_detection.query import CallSiteQueryResult, DroppedRowReason, SampleCall
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -28,6 +23,7 @@ from sentry.tasks.llm_cache_issue_detection import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.snuba_rpc import SnubaRPCError
+from tests.sentry.llm_cache_detection.test_utils import make_stats
 
 DETECTION_FEATURE = "organizations:llm-cache-detection"
 INTERVAL_OPTION = "issue-detection.llm-cache-detection.interval-hours"
@@ -61,94 +57,78 @@ DIVERGING_PROMPTS = [
 ]
 
 
+def counted(mock_count: MagicMock, name: str) -> list[tuple[float, dict[str, Any]]]:
+    return [
+        (call.args[1], call.kwargs["attributes"])
+        for call in mock_count.call_args_list
+        if call.args[0] == METRIC_PREFIX + name
+    ]
+
+
 def bursty(stats: CallSiteStats) -> CallSiteWarmth:
     """Warmth for a call site whose calls arrive close enough together to cache."""
     return CallSiteWarmth(total_call_count=stats.call_count, warm_call_count=stats.call_count * 0.9)
 
 
+def sparse(stats: CallSiteStats) -> CallSiteWarmth:
+    """Warmth for a call site whose calls mostly arrive too far apart to cache."""
+    return CallSiteWarmth(total_call_count=stats.call_count, warm_call_count=stats.call_count * 0.1)
+
+
 # Not caching: near-zero hit rate at eligible volume.
-NOT_CACHING_STATS = CallSiteStats(
-    agent_label="PR Review",
-    agent_label_source=AgentLabelSource.AGENT_NAME,
-    span_name="generate_content generate_structured",
+NOT_CACHING_STATS = make_stats(
+    agent_label="Reviewer",
     model="gemini-2.5-pro",
-    call_count=169_000,
-    sampled_call_count=169_000,
-    sum_input_tokens=464_412_000,
-    sum_cache_read_tokens=40_868,
-    sum_cache_creation_tokens=0,
-    avg_input_tokens=2_748,
+    call_count=100_000,
+    avg_input_tokens=3_000,
+    hit_rate=0.0001,
 )
 
 # Healthy call site on the same model: the contrast anchor for NOT_CACHING_STATS.
-ANCHOR_STATS = CallSiteStats(
-    agent_label="Explorer",
-    agent_label_source=AgentLabelSource.AGENT_NAME,
-    span_name="generate_content gemini_generation",
+ANCHOR_STATS = make_stats(
+    agent_label="Researcher",
+    span_name="generate_content research",
     model="gemini-2.5-pro",
-    call_count=21_000,
-    sampled_call_count=21_000,
-    sum_input_tokens=558_600_000,
-    sum_cache_read_tokens=477_603_000,
-    sum_cache_creation_tokens=0,
-    avg_input_tokens=26_600,
+    call_count=20_000,
+    avg_input_tokens=25_000,
+    hit_rate=0.85,
 )
 
 # Thrash: cache writes vastly exceed reads.
-THRASH_STATS = CallSiteStats(
-    agent_label="Malicious Issue Detection",
-    agent_label_source=AgentLabelSource.AGENT_NAME,
-    span_name="generate_content anthropic_generation",
+THRASH_STATS = make_stats(
+    agent_label="Classifier",
+    span_name="generate_content classify",
     model="claude-sonnet-5",
-    call_count=2_805,
-    sampled_call_count=2_805,
-    sum_input_tokens=15_149_805,
-    sum_cache_read_tokens=1_302_883,
-    sum_cache_creation_tokens=13_940_848,
-    avg_input_tokens=5_401,
+    call_count=3_000,
+    avg_input_tokens=5_000,
+    hit_rate=0.08,
+    write_read_ratio=12.0,
 )
 
 # Ineligible: avg input below the cacheable minimum.
-INELIGIBLE_STATS = CallSiteStats(
-    agent_label="Supergroup Summarization",
-    agent_label_source=AgentLabelSource.AGENT_NAME,
-    span_name="generate_content generate_structured",
+INELIGIBLE_STATS = make_stats(
+    agent_label="Tagger",
     model="gemini-3.1-flash-lite",
-    call_count=1_760_000,
-    sampled_call_count=1_760_000,
-    sum_input_tokens=795_520_000,
-    sum_cache_read_tokens=0,
-    sum_cache_creation_tokens=0,
-    avg_input_tokens=452,
+    call_count=200_000,
+    avg_input_tokens=500,
 )
 
 # Instrumentation gap candidate: no cache attributes recorded at all.
-GAP_STATS = CallSiteStats(
-    agent_label="PR Review",
-    agent_label_source=AgentLabelSource.AGENT_NAME,
-    span_name="generate_content anthropic_web_search",
+GAP_STATS = make_stats(
+    agent_label="Reviewer",
+    span_name="generate_content web_search",
     model="claude-haiku-4-5",
-    call_count=62_553,
-    sampled_call_count=62_553,
-    sum_input_tokens=2_203_429_425,
-    sum_cache_read_tokens=0,
-    sum_cache_creation_tokens=0,
-    avg_input_tokens=35_225,
+    call_count=50_000,
+    avg_input_tokens=30_000,
 )
 
 # Gemini never records zero cache values, so wholly-absent attributes on an
 # eligible workload are a genuine 0% hit rate, not an instrumentation gap.
-GEMINI_ZERO_STATS = CallSiteStats(
-    agent_label="Lightweight RCA",
-    agent_label_source=AgentLabelSource.AGENT_NAME,
-    span_name="generate_content generate_structured",
+GEMINI_ZERO_STATS = make_stats(
+    agent_label="Summarizer",
     model="gemini-3.1-flash-lite",
-    call_count=5_236_000,
-    sampled_call_count=5_236_000,
-    sum_input_tokens=15_006_376_000,
-    sum_cache_read_tokens=0,
-    sum_cache_creation_tokens=0,
-    avg_input_tokens=2_866,
+    call_count=500_000,
+    avg_input_tokens=3_000,
 )
 
 
@@ -163,15 +143,10 @@ class RunLLMCacheIssueDetectionTest(TestCase):
     def dispatched_project_ids(self, mock_delay: MagicMock) -> set[int]:
         return {call.args[0] for call in mock_delay.call_args_list}
 
-    def test_dispatches_sub_tasks_when_enabled(self, mock_delay: MagicMock) -> None:
-        project = self.create_agent_project()
-
-        with self.feature({DETECTION_FEATURE: True}):
-            run_llm_cache_issue_detection()
-
-        assert self.dispatched_project_ids(mock_delay) == {project.id}
-
-    def test_skips_projects_without_agent_monitoring_spans(self, mock_delay: MagicMock) -> None:
+    @patch("sentry_sdk.metrics.count")
+    def test_skips_projects_without_agent_monitoring_spans(
+        self, mock_count: MagicMock, mock_delay: MagicMock
+    ) -> None:
         self.create_project()
         agent_project = self.create_agent_project()
 
@@ -179,14 +154,23 @@ class RunLLMCacheIssueDetectionTest(TestCase):
             run_llm_cache_issue_detection()
 
         assert self.dispatched_project_ids(mock_delay) == {agent_project.id}
+        # A reason that skipped nothing is left out.
+        assert counted(mock_count, "projects.skipped") == [(1, {"reason": "no_agent_spans"})]
+        assert counted(mock_count, "projects.dispatched") == [(1, {})]
 
-    def test_skips_when_detection_feature_disabled(self, mock_delay: MagicMock) -> None:
+    @patch("sentry_sdk.metrics.count")
+    def test_skips_when_detection_feature_disabled(
+        self, mock_count: MagicMock, mock_delay: MagicMock
+    ) -> None:
         self.create_agent_project()
 
         with self.feature({DETECTION_FEATURE: False}):
             run_llm_cache_issue_detection()
 
         assert not mock_delay.called
+        assert counted(mock_count, "projects.skipped") == [(1, {"reason": "detection_disabled"})]
+        # Reported at zero: the signal that nothing went out.
+        assert counted(mock_count, "projects.dispatched") == [(0, {})]
 
     def test_dispatches_across_multiple_batches(self, mock_delay: MagicMock) -> None:
         projects = [self.create_agent_project() for _ in range(3)]
@@ -230,9 +214,7 @@ class RunLLMCacheIssueDetectionTest(TestCase):
             with freeze_time(midnight + timedelta(hours=5)):
                 run_llm_cache_issue_detection()
             assert not mock_delay.called
-            mock_count.assert_any_call(
-                f"{METRIC_PREFIX}fan_out.skipped", 1, attributes={"reason": "interval"}
-            )
+            assert counted(mock_count, "fan_out.skipped") == [(1, {"reason": "interval"})]
 
             with freeze_time(midnight):
                 run_llm_cache_issue_detection()
@@ -270,11 +252,6 @@ def query_result(
         dropped_calls=Counter(dropped_calls or {}),
         truncated=truncated,
     )
-
-
-def sparse(stats: CallSiteStats) -> CallSiteWarmth:
-    """Warmth for a call site whose calls mostly arrive too far apart to cache."""
-    return CallSiteWarmth(total_call_count=stats.call_count, warm_call_count=stats.call_count * 0.1)
 
 
 def agents(stats: CallSiteStats, count: int) -> list[CallSiteStats]:
@@ -329,11 +306,8 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
 
     def detect(self, *call_sites: CallSiteStats, **result: Any) -> None:
         self.mock_fetch_stats.return_value = query_result(*call_sites, **result)
-        with self.enabled_features():
+        with self.feature({DETECTION_FEATURE: True}):
             detect_llm_cache_issues_for_project(self.project.id)
-
-    def enabled_features(self) -> AbstractContextManager[Any]:
-        return self.feature({DETECTION_FEATURE: True})
 
     def candidates(self) -> list[dict[str, Any]]:
         return [
@@ -360,11 +334,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         return summary
 
     def counted(self, name: str) -> list[tuple[float, dict[str, Any]]]:
-        return [
-            (call.args[1], call.kwargs["attributes"])
-            for call in self.mock_count.call_args_list
-            if call.args[0] == METRIC_PREFIX + name
-        ]
+        return counted(self.mock_count, name)
 
     def distributed(self, name: str) -> list[float]:
         return [
@@ -393,12 +363,12 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         assert not_caching["disposition"] == "would_create"
         assert not_caching["model"] == "gemini-2.5-pro"
         assert not_caching["agent_label_source"] == "gen_ai.agent.name"
-        assert not_caching["call_count"] == 169_000
-        assert not_caching["hit_rate"] == pytest.approx(0.000088, rel=1e-2)
-        assert not_caching["uncached_tokens"] == 464_371_132
+        assert not_caching["call_count"] == 100_000
+        assert not_caching["hit_rate"] == pytest.approx(0.0001)
+        assert not_caching["uncached_tokens"] == pytest.approx(299_970_000)
         assert not_caching["cacheable_share"] == pytest.approx(0.9)
-        assert not_caching["contrast_agent_label"] == "Explorer"
-        assert not_caching["contrast_hit_rate"] == pytest.approx(0.855)
+        assert not_caching["contrast_agent_label"] == "Researcher"
+        assert not_caching["contrast_hit_rate"] == pytest.approx(0.85)
         assert not_caching["contrast_call_count"] == ANCHOR_STATS.call_count
         assert [sample["trace_id"] for sample in not_caching["sample_calls"]] == [
             sample.trace_id for sample in SAMPLE_CALLS
@@ -410,7 +380,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         thrash = self.candidate(THRASH_STATS)
         assert thrash["outcome"] == "thrash"
         assert thrash["disposition"] == "would_create"
-        assert thrash["write_read_ratio"] == pytest.approx(10.7, rel=1e-3)
+        assert thrash["write_read_ratio"] == pytest.approx(12.0)
         # No same-model healthy call site: no contrast anchor attached.
         assert "contrast_agent_label" not in thrash
 
@@ -486,14 +456,14 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         assert not self.counted("findings")
 
     def test_keeps_a_finding_whose_spans_record_explicit_zeros(self) -> None:
-        self.mock_count_cache_attrs.return_value = 1_484_483
+        self.mock_count_cache_attrs.return_value = 500
 
         self.detect(GAP_STATS)
 
         candidate = self.candidate(GAP_STATS)
         assert candidate["outcome"] == "not_caching"
         assert candidate["reason"] == "explicit_zero_cache_tokens"
-        assert candidate["spans_with_cache_attributes"] == 1_484_483
+        assert candidate["spans_with_cache_attributes"] == 500
         assert candidate["disposition"] == "would_create"
 
     def test_keeps_a_positive_only_reporter_without_probing(self) -> None:

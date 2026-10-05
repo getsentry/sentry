@@ -60,9 +60,9 @@ def estimate_savings(
             return PricingGap.NO_WRITE_PREMIUM
         # A stable prefix would have turned those writes into reads.
         savings = stats.sum_cache_creation_tokens * (cache_write_price - cached_input_price)
-        overpay = stats.sum_cache_creation_tokens * (
-            cache_write_price - input_price
-        ) - stats.sum_cache_read_tokens * (input_price - cached_input_price)
+        write_premium = stats.sum_cache_creation_tokens * (cache_write_price - input_price)
+        read_discount = stats.sum_cache_read_tokens * (input_price - cached_input_price)
+        overpay = write_premium - read_discount
         overpay_vs_no_cache_usd = overpay if overpay > 0 else None
     else:
         # An upper bound: how much of each prompt is a shared prefix is unknown.

@@ -40,7 +40,7 @@ def costs(
 def config(models: dict[str, Any]) -> AIModelMetadataConfig:
     return {
         "version": 1,
-        "models": {model: {"costs": model_costs} for model, model_costs in models.items()},
+        "models": {model: {"costs": prices} for model, prices in models.items()},
     }
 
 
@@ -73,49 +73,30 @@ def make_finding(outcome: CacheOutcome, stats: CallSiteStats) -> CacheFinding:
     )
 
 
-class TestModelCostsLookup:
-    def test_matches_the_model_id_as_reported(self) -> None:
-        found = model_costs("claude-sonnet-4", config({"claude-sonnet-4": costs()}))
+PRICED = config({"claude-sonnet-4": costs()})
 
-        assert found is not None
-        assert found["inputPerToken"] == INPUT_PRICE
 
-    def test_matches_after_stripping_a_date_suffix(self) -> None:
+@pytest.mark.parametrize(
+    "model_id",
+    [
+        "claude-sonnet-4",
         # Providers ship dated snapshots of the same model; the metadata is keyed
         # by the undated name.
-        found = model_costs("claude-sonnet-4-20250514", config({"claude-sonnet-4": costs()}))
-
-        assert found is not None
-
-    def test_matches_a_model_the_span_reports_namespaced(self) -> None:
+        "claude-sonnet-4-20250514",
         # Gateways like OpenRouter and Bedrock report the provider alongside the
         # model; the metadata is keyed by the model alone.
-        found = model_costs("anthropic/claude-sonnet-4", config({"claude-sonnet-4": costs()}))
-
-        assert found is not None
-
-    def test_matches_a_namespaced_model_carrying_a_date_suffix(self) -> None:
-        found = model_costs(
-            "anthropic/claude-sonnet-4-20250514", config({"claude-sonnet-4": costs()})
-        )
-
-        assert found is not None
-
-    def test_matches_the_bare_key_beside_a_wildcard_prefixed_one(self) -> None:
-        # The feed registers a `*`-prefixed key for relay to glob-match against,
-        # always alongside the bare key. Nothing here reads the starred one, so
-        # this is the shape the fetcher really produces, not the starred key alone.
-        found = model_costs(
-            "claude-sonnet-4", config({"claude-sonnet-4": costs(), "*claude-sonnet-4": costs()})
-        )
-
-        assert found is not None
-
-    def test_returns_none_for_an_unknown_model(self) -> None:
-        assert model_costs("some-self-hosted-model", config({"claude-sonnet-4": costs()})) is None
+        "anthropic/claude-sonnet-4",
+        "anthropic/claude-sonnet-4-20250514",
+    ],
+)
+def test_model_costs_finds_a_model_however_the_span_names_it(model_id: str) -> None:
+    assert model_costs(model_id, PRICED) == costs()
 
 
-PRICED = config({"claude-sonnet-4": costs()})
+def test_model_costs_returns_none_for_an_unknown_model() -> None:
+    assert model_costs("some-self-hosted-model", PRICED) is None
+
+
 THRASHING = make_stats(
     sum_input_tokens=10_000_000,
     sum_cache_read_tokens=200_000,
@@ -123,10 +104,21 @@ THRASHING = make_stats(
 )
 
 
-def test_prices_uncached_volume_at_the_difference_it_could_have_paid() -> None:
+@pytest.mark.parametrize(
+    "cache_write_price",
+    [
+        pytest.param(CACHE_WRITE_PRICE, id="with-a-write-price"),
+        # Most models the feed prices carry none, and this formula never uses it.
+        pytest.param(0, id="without-a-write-price"),
+    ],
+)
+def test_prices_uncached_volume_at_the_difference_it_could_have_paid(
+    cache_write_price: float,
+) -> None:
+    metadata = config({"claude-sonnet-4": costs(cache_write_price=cache_write_price)})
     stats = make_stats(sum_input_tokens=10_000_000)
 
-    estimate = estimate_savings(make_finding(CacheOutcome.NOT_CACHING, stats), PRICED)
+    estimate = estimate_savings(make_finding(CacheOutcome.NOT_CACHING, stats), metadata)
 
     assert isinstance(estimate, SavingsEstimate)
     assert estimate.estimated_savings_usd == pytest.approx(
@@ -134,21 +126,8 @@ def test_prices_uncached_volume_at_the_difference_it_could_have_paid() -> None:
     )
     assert estimate.price_per_input_token == INPUT_PRICE
     assert estimate.price_per_cached_input_token == CACHED_INPUT_PRICE
-    assert estimate.price_per_cache_write_token == CACHE_WRITE_PRICE
+    assert estimate.price_per_cache_write_token == cache_write_price
     assert estimate.overpay_vs_no_cache_usd is None
-
-
-def test_prices_an_uncached_finding_without_a_cache_write_price() -> None:
-    # Most models the feed prices carry none, and this formula never uses it.
-    stats = make_stats(sum_input_tokens=1_000_000)
-    metadata = config({"claude-sonnet-4": costs(cache_write_price=0)})
-
-    estimate = estimate_savings(make_finding(CacheOutcome.NOT_CACHING, stats), metadata)
-
-    assert isinstance(estimate, SavingsEstimate)
-    assert estimate.estimated_savings_usd == pytest.approx(
-        1_000_000 * (INPUT_PRICE - CACHED_INPUT_PRICE)
-    )
 
 
 def test_prices_thrash_as_writes_that_should_have_been_reads() -> None:

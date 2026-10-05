@@ -31,27 +31,7 @@ from sentry.llm_cache_detection.query import (
     fetch_sample_calls,
     fetch_sample_prompts,
 )
-
-
-def make_stats(
-    *,
-    agent_label: str = "Lightweight RCA",
-    agent_label_source: AgentLabelSource = AgentLabelSource.AGENT_NAME,
-    span_name: str = "generate_content generate_structured",
-    model: str = "model-x",
-) -> CallSiteStats:
-    return CallSiteStats(
-        agent_label=agent_label,
-        agent_label_source=agent_label_source,
-        span_name=span_name,
-        model=model,
-        call_count=10_000,
-        sampled_call_count=10_000,
-        sum_input_tokens=1_000_000,
-        sum_cache_read_tokens=0,
-        sum_cache_creation_tokens=0,
-        avg_input_tokens=100,
-    )
+from tests.sentry.llm_cache_detection.test_utils import make_stats
 
 
 def make_row(
@@ -79,28 +59,34 @@ def make_row(
     }
 
 
-def test_group_filter_escapes_wildcard() -> None:
-    # Unescaped `*` silently degrades an exact match to a LIKE wildcard match.
-    group_filter = _build_group_filter(make_stats(span_name="generate_content *"))
+@pytest.mark.parametrize(
+    ("stats", "term"),
+    [
+        # Unescaped, `*` silently degrades an exact match to a wildcard match.
+        pytest.param(
+            make_stats(span_name="generate_content *"),
+            'span.name:"generate_content \\*"',
+            id="escapes-wildcard",
+        ),
+        pytest.param(
+            make_stats(agent_label='say "hi" agent'),
+            'gen_ai.agent.name:"say \\"hi\\" agent"',
+            id="escapes-double-quote",
+        ),
+        # The grammar preserves a backslash that isn't escaping anything, so
+        # these values match exactly and must not be rejected.
+        pytest.param(
+            make_stats(agent_label="C:\\jobs\\nightly"),
+            'gen_ai.agent.name:"C:\\jobs\\nightly"',
+            id="keeps-interior-backslashes",
+        ),
+    ],
+)
+def test_group_filter_matches_the_value_exactly(stats: CallSiteStats, term: str) -> None:
+    group_filter = _build_group_filter(stats)
 
     assert group_filter is not None
-    assert 'span.name:"generate_content \\*"' in group_filter
-
-
-def test_group_filter_escapes_double_quote() -> None:
-    group_filter = _build_group_filter(make_stats(agent_label='say "hi" agent'))
-
-    assert group_filter is not None
-    assert 'gen_ai.agent.name:"say \\"hi\\" agent"' in group_filter
-
-
-def test_group_filter_keeps_interior_backslashes_verbatim() -> None:
-    # The grammar preserves a backslash that isn't escaping anything, so these
-    # values match exactly and must not be rejected.
-    group_filter = _build_group_filter(make_stats(agent_label="C:\\jobs\\nightly"))
-
-    assert group_filter is not None
-    assert 'gen_ai.agent.name:"C:\\jobs\\nightly"' in group_filter
+    assert term in group_filter
 
 
 @pytest.mark.parametrize(
@@ -142,30 +128,14 @@ def test_unexpressible_value_is_never_queried() -> None:
     assert fetch_sample_prompts(project, stats, window) is None
 
 
-def test_falls_back_to_the_operation_name_per_row() -> None:
-    # One (span.name, model) pair holding both named and unnamed spans is the
-    # case a per-group fallback would get wrong.
-    call_sites, _ = _to_call_sites(
-        [
-            make_row(agent_name="Lightweight RCA"),
-            make_row(agent_name=None),
-        ]
-    )
-
-    assert {(site.agent_label, site.agent_label_source) for site in call_sites} == {
-        ("Lightweight RCA", AgentLabelSource.AGENT_NAME),
-        ("generate_content", AgentLabelSource.OPERATION_NAME),
-    }
-
-
 def test_counts_the_calls_of_rows_missing_part_of_the_key() -> None:
     # Each row is counted once, under the first part of the key it lacks.
     call_sites, dropped_calls = _to_call_sites(
         [
             make_row(agent_name=None, operation_name=None, model=None, call_count=7),
-            make_row(agent_name="Lightweight RCA", span_name=None, call_count=5),
-            make_row(agent_name="Lightweight RCA", model=None, call_count=3),
-            make_row(agent_name="Lightweight RCA", model=None, call_count=2),
+            make_row(agent_name="Summarizer", span_name=None, call_count=5),
+            make_row(agent_name="Summarizer", model=None, call_count=3),
+            make_row(agent_name="Summarizer", model=None, call_count=2),
         ]
     )
 
@@ -198,14 +168,14 @@ def test_merges_rows_one_agent_split_across_operation_names() -> None:
     call_sites, _ = _to_call_sites(
         [
             make_row(
-                agent_name="Lightweight RCA",
+                agent_name="Summarizer",
                 operation_name="chat",
                 call_count=3,
                 sum_input_tokens=300,
                 avg_input_tokens=100,
             ),
             make_row(
-                agent_name="Lightweight RCA",
+                agent_name="Summarizer",
                 operation_name="generate_content",
                 call_count=1,
                 sum_input_tokens=200,

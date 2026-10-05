@@ -57,7 +57,7 @@ logger = logging.getLogger("sentry.tasks.llm_cache_issue_detection")
 
 LLM_CACHE_DETECTION_FEATURE = "organizations:llm-cache-detection"
 
-# Mirrors the creation quota the issue type will have (5/hour/project).
+# Mirrors the per-project creation quota the issue type will have.
 FINDINGS_PER_PROJECT_LIMIT = 5
 # Keeps the sequential probe queries inside the processing deadline. Presence is
 # only probed after a warmth probe answered, so this bounds it as well.
@@ -202,11 +202,9 @@ def run_llm_cache_issue_detection() -> None:
         return
 
     skipped: Counter[str] = Counter()
-    candidate_count = 0
     dispatched_count = 0
 
     for batch in batched(_projects_with_agent_spans(skipped), PROJECTS_PER_BATCH):
-        candidate_count += len(batch)
         # Evaluated once per organization in the batch, not per project.
         enabled_organization_ids = {
             organization.id
@@ -217,25 +215,23 @@ def run_llm_cache_issue_detection() -> None:
         }
 
         for project_id, organization_id in batch:
-            if organization_id not in enabled_organization_ids:
-                continue
-            detect_llm_cache_issues_for_project.delay(project_id)
-            dispatched_count += 1
+            if organization_id in enabled_organization_ids:
+                detect_llm_cache_issues_for_project.delay(project_id)
+                dispatched_count += 1
+            else:
+                skipped["detection_disabled"] += 1
 
-    # A zero dispatch count is the signal that nothing went out; zero skips are noise.
-    for reason, amount in (
-        ("no_agent_spans", skipped["no_agent_spans"]),
-        ("detection_disabled", candidate_count - dispatched_count),
-    ):
-        if amount > 0:
-            report_projects_skipped(reason, amount)
+    # Only reasons that skipped something have an entry, since zero skips are
+    # noise; a zero dispatch count is the signal that nothing went out.
+    for reason, amount in skipped.items():
+        report_projects_skipped(reason, amount)
     report_projects_dispatched(dispatched_count)
 
     logger.info(
         "llm_cache_issue_detection.fan_out_completed",
         extra={
             "projects_without_agent_spans": skipped["no_agent_spans"],
-            "projects_considered": candidate_count,
+            "projects_considered": dispatched_count + skipped["detection_disabled"],
             "projects_dispatched": dispatched_count,
         },
     )

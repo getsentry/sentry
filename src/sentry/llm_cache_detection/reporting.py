@@ -17,7 +17,6 @@ from typing import Any
 import sentry_sdk
 
 from sentry.llm_cache_detection.detection import (
-    FLAGGED_OUTCOMES,
     CacheFinding,
     CallSiteStats,
     CallSiteWarmth,
@@ -239,6 +238,10 @@ def report_project(
     if query_result.truncated:
         _count("call_sites.truncated", **project_attributes)
 
+    # Only a candidate still flagged after the probes gets a disposition.
+    dispositions = Counter(
+        report.disposition.value for report in candidates if report.disposition is not None
+    )
     logger.info(
         "llm_cache_issue_detection.project_processed",
         extra={
@@ -252,22 +255,14 @@ def report_project(
             },
             "cache_exceeds_input_count": anomalies.total(),
             "candidate_count": len(candidates),
-            "finding_count": sum(
-                1 for report in candidates if report.finding.outcome in FLAGGED_OUTCOMES
-            ),
+            "finding_count": dispositions.total(),
             "outcome_reasons": dict(
                 Counter(
                     f"{classification.outcome.value}:{classification.reason.value}"
                     for _, classification in classified
                 )
             ),
-            "dispositions": dict(
-                Counter(
-                    report.disposition.value
-                    for report in candidates
-                    if report.disposition is not None
-                )
-            ),
+            "dispositions": dict(dispositions),
             "warmth_probes_sent": warmth_probes_sent,
         },
     )

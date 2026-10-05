@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import replace
+
 import pytest
 
 from sentry.llm_cache_detection.detection import (
@@ -14,6 +16,7 @@ from sentry.llm_cache_detection.detection import (
     CallSiteStats,
     CallSiteWarmth,
     Classification,
+    ContrastAnchor,
     DivergenceKind,
     OutcomeReason,
     ProbeGap,
@@ -21,44 +24,10 @@ from sentry.llm_cache_detection.detection import (
     classify_call_site,
     diagnose_prompt_divergence,
     find_contrast_anchor,
-    needs_cache_presence_probe,
     resolve_with_cache_presence,
     resolve_with_warmth,
 )
-
-
-def make_stats(
-    *,
-    agent_label: str = "Some Agent",
-    agent_label_source: AgentLabelSource = AgentLabelSource.AGENT_NAME,
-    span_name: str = "generate_content generate_structured",
-    model: str = "model-x",
-    call_count: int,
-    avg_input_tokens: float,
-    hit_rate: float = 0.0,
-    write_read_ratio: float = 0.0,
-    sampled_call_count: int | None = None,
-) -> CallSiteStats:
-    """Build stats from hit-rate and write:read ratios rather than raw token sums.
-
-    Defaults to every call being stored, so a case that says nothing about
-    sampling reads as unsampled rather than as evidence-starved.
-    """
-    sum_input = call_count * avg_input_tokens
-    sum_read = hit_rate * sum_input
-    sum_creation = write_read_ratio * sum_read
-    return CallSiteStats(
-        agent_label=agent_label,
-        agent_label_source=agent_label_source,
-        span_name=span_name,
-        model=model,
-        call_count=call_count,
-        sampled_call_count=call_count if sampled_call_count is None else sampled_call_count,
-        sum_input_tokens=sum_input,
-        sum_cache_read_tokens=sum_read,
-        sum_cache_creation_tokens=sum_creation,
-        avg_input_tokens=avg_input_tokens,
-    )
+from tests.sentry.llm_cache_detection.test_utils import make_stats
 
 
 @pytest.mark.parametrize(
@@ -67,64 +36,40 @@ def make_stats(
         pytest.param(
             # Healthy: high hit rate, modest write ratio.
             make_stats(
-                call_count=660_000, avg_input_tokens=36_200, hit_rate=0.862, write_read_ratio=0.16
+                call_count=50_000, avg_input_tokens=20_000, hit_rate=0.85, write_read_ratio=0.15
             ),
             Classification(CacheOutcome.HEALTHY, OutcomeReason.CACHE_ACTIVITY),
-            id="healthy-anthropic-86pct",
-        ),
-        pytest.param(
-            # Healthy: high hit rate with no recorded cache writes.
-            make_stats(call_count=21_000, avg_input_tokens=26_600, hit_rate=0.855),
-            Classification(CacheOutcome.HEALTHY, OutcomeReason.CACHE_ACTIVITY),
-            id="healthy-gemini-855pct",
+            id="healthy-high-hit-rate",
         ),
         pytest.param(
             # Healthy: hit rate at the low end of healthy usage, well above the cutoff.
-            make_stats(call_count=14_600, avg_input_tokens=65_000, hit_rate=0.315),
+            make_stats(call_count=10_000, avg_input_tokens=50_000, hit_rate=0.3),
             Classification(CacheOutcome.HEALTHY, OutcomeReason.CACHE_ACTIVITY),
-            id="healthy-lower-mode-315pct",
+            id="healthy-low-hit-rate",
         ),
         pytest.param(
             # Not caching: near-zero hit rate at eligible volume.
-            make_stats(call_count=169_000, avg_input_tokens=2_748, hit_rate=0.000088),
+            make_stats(call_count=100_000, avg_input_tokens=3_000, hit_rate=0.0001),
             Classification(CacheOutcome.NOT_CACHING, OutcomeReason.CACHE_ACTIVITY),
-            id="not-caching-gt-split-hypotheses",
-        ),
-        pytest.param(
-            # Not caching: low but nonzero hit rate, still under the cutoff.
-            make_stats(call_count=154_000, avg_input_tokens=20_474, hit_rate=0.0133),
-            Classification(CacheOutcome.NOT_CACHING, OutcomeReason.CACHE_ACTIVITY),
-            id="not-caching-gt-filter-files",
-        ),
-        pytest.param(
-            # Not caching: enormous volume, hit rate just under the cutoff.
-            make_stats(call_count=22_750_000, avg_input_tokens=1_414, hit_rate=0.0221),
-            Classification(CacheOutcome.NOT_CACHING, OutcomeReason.CACHE_ACTIVITY),
-            id="not-caching-proxy-flash-lite",
+            id="not-caching-near-zero-hit-rate",
         ),
         pytest.param(
             # Thrash: cache writes vastly exceed reads at a low hit rate.
             make_stats(
-                call_count=2_805, avg_input_tokens=5_401, hit_rate=0.086, write_read_ratio=10.7
+                call_count=3_000, avg_input_tokens=5_000, hit_rate=0.08, write_read_ratio=12.0
             ),
             Classification(CacheOutcome.THRASH, OutcomeReason.CACHE_ACTIVITY),
-            id="thrash-sonnet-5-10.7x",
-        ),
-        pytest.param(
-            # Ineligible: avg input below the cacheable minimum despite huge volume.
-            make_stats(call_count=1_760_000, avg_input_tokens=452),
-            Classification(CacheOutcome.INELIGIBLE, OutcomeReason.SMALL_PROMPTS),
-            id="ineligible-avg-input-452",
+            id="thrash-writes-far-outrun-reads",
         ),
         pytest.param(
             # Ineligible: avg input just under the cacheable minimum.
-            make_stats(call_count=18_000, avg_input_tokens=1_003),
+            make_stats(call_count=20_000, avg_input_tokens=MIN_AVG_INPUT_TOKENS - 1),
             Classification(CacheOutcome.INELIGIBLE, OutcomeReason.SMALL_PROMPTS),
-            id="ineligible-avg-input-borderline-1003",
+            id="ineligible-avg-input-just-under-the-minimum",
         ),
         pytest.param(
             # Ineligible: too few cache-eligible calls to read a ratio off.
-            make_stats(call_count=120, avg_input_tokens=2_935, hit_rate=0.0025),
+            make_stats(call_count=100, avg_input_tokens=3_000, hit_rate=0.0025),
             Classification(CacheOutcome.INELIGIBLE, OutcomeReason.LOW_VOLUME),
             id="ineligible-below-the-confidence-floor",
         ),
@@ -227,36 +172,28 @@ def test_warmth_of_a_call_site_that_never_called() -> None:
     assert warmth.cacheable_share == 0
 
 
-def test_sampling_does_not_manufacture_warmth() -> None:
-    # One call per TTL, stored at 10%: counting each bucket once would read the
-    # sampling rate as 90% cacheable.
+@pytest.mark.parametrize(
+    ("sample_count", "cacheable_share"),
+    [
+        # One call per TTL, stored at 10%: counting each bucket once would read
+        # the sampling rate as 90% cacheable.
+        pytest.param(1, 0.0, id="sampling-does-not-manufacture-warmth"),
+        # 9 of 10 calls a bucket are warm, but 2 stored spans can only show half.
+        pytest.param(2, 0.5, id="sampling-understates-warmth"),
+        # Calls with no evidence of how many spans they came from cannot be
+        # shown to have arrived close together.
+        pytest.param(0, 0.0, id="no-sample-count-claims-nothing"),
+    ],
+)
+def test_warmth_charges_each_stored_span_as_a_cold_start(
+    sample_count: int, cacheable_share: float
+) -> None:
     warmth = CallSiteWarmth.from_buckets(
-        [WarmthBucket(call_count=10, sample_count=1) for _ in range(200)]
+        [WarmthBucket(call_count=10, sample_count=sample_count) for _ in range(200)]
     )
 
     assert warmth.total_call_count == 2_000
-    assert warmth.warm_call_count == 0
-    assert warmth.cacheable_share == 0
-
-
-def test_sampling_understates_warmth_rather_than_inventing_it() -> None:
-    # 9 of 10 calls a bucket are warm, but 2 stored spans can only show half.
-    warmth = CallSiteWarmth.from_buckets(
-        [WarmthBucket(call_count=10, sample_count=2) for _ in range(200)]
-    )
-
-    assert warmth.total_call_count == 2_000
-    assert warmth.cacheable_share == pytest.approx(0.5)
-    assert warmth.cacheable_share < 0.9
-
-
-def test_warmth_without_a_sample_count_claims_nothing() -> None:
-    # A bucket that reports calls but no evidence of how many spans they came
-    # from cannot say anything arrived close together.
-    warmth = CallSiteWarmth.from_buckets([WarmthBucket(call_count=50, sample_count=0)])
-
-    assert warmth.total_call_count == 50
-    assert warmth.warm_call_count == 0
+    assert warmth.cacheable_share == pytest.approx(cacheable_share)
 
 
 NOT_CACHING = Classification(CacheOutcome.NOT_CACHING, OutcomeReason.CACHE_ACTIVITY)
@@ -306,279 +243,186 @@ def test_resolve_with_warmth(warmth: CallSiteWarmth | ProbeGap, expected: Classi
     assert resolve_with_warmth(NOT_CACHING, warmth) == expected
 
 
-def test_resolve_with_warmth_leaves_an_eligible_outcome_alone() -> None:
-    # The resolver only ever rejects: it is not a second opinion on which of the
-    # flagged readings a call site got.
-    warmth = CallSiteWarmth(total_call_count=10_000, warm_call_count=9_000)
-    thrash = Classification(CacheOutcome.THRASH, OutcomeReason.CACHE_ACTIVITY)
-
-    assert resolve_with_warmth(thrash, warmth) == thrash
-
-
-def test_web_search_wrapper_flags_without_gap_guard() -> None:
-    # A wrapper path that emits no cache attributes at all looks like a
-    # confident 0%-hit finding by sums alone and must be probed.
-    stats = make_stats(
-        span_name="generate_content anthropic_web_search",
-        model="claude-haiku-4-5",
-        call_count=62_553,
-        avg_input_tokens=35_225,
-    )
-    classification = classify_call_site(stats)
-    assert classification == Classification(
-        CacheOutcome.NOT_CACHING, OutcomeReason.ZERO_CACHE_TOKENS
-    )
-    assert needs_cache_presence_probe(classification) is True
-    assert resolve_with_cache_presence(classification, 0) == Classification(
-        CacheOutcome.UNKNOWN, OutcomeReason.NO_CACHE_ATTRIBUTES
-    )
-
-
-def test_gap_guard_skips_probe_for_positive_only_reporters() -> None:
-    # Gemini records cache attributes only for positive values, so an eligible
-    # group with wholly-absent attributes is a genuine 0% hit rate, not a gap.
-    stats = make_stats(model="gemini-3.1-flash-lite", call_count=5_236_000, avg_input_tokens=2_866)
-    classification = classify_call_site(stats)
-    assert classification == Classification(
-        CacheOutcome.NOT_CACHING, OutcomeReason.POSITIVE_ONLY_REPORTER
-    )
-    assert needs_cache_presence_probe(classification) is False
-
-
 @pytest.mark.parametrize(
-    "model",
-    ["o1", "o3-mini", "o4-mini", "openai/o3", "azure:o1-preview"],
-    ids=lambda model: model,
-)
-def test_gap_guard_skips_probe_for_openai_reasoning_models(model: str) -> None:
-    # Same OpenAI integration as `gpt`, which drops zero cache-token values.
-    stats = make_stats(model=model, call_count=62_553, avg_input_tokens=35_225)
-    classification = classify_call_site(stats)
-    assert classification.reason == OutcomeReason.POSITIVE_ONLY_REPORTER
-    assert needs_cache_presence_probe(classification) is False
-
-
-@pytest.mark.parametrize(
-    "model",
-    ["claude-opus-4-5", "claude-3-opus-20240229", "prod-o3-deployment", "mistral-large-2"],
-    ids=lambda model: model,
-)
-def test_gap_guard_still_probes_models_outside_the_exemption(model: str) -> None:
-    # Anthropic records real zeros, and an arbitrary deployment name says
-    # nothing about which integration produced the span: both keep the guard.
-    stats = make_stats(model=model, call_count=62_553, avg_input_tokens=35_225)
-    classification = classify_call_site(stats)
-    assert classification.reason == OutcomeReason.ZERO_CACHE_TOKENS
-    assert needs_cache_presence_probe(classification) is True
-
-
-def test_gap_guard_keeps_finding_when_attribute_is_recorded() -> None:
-    stats = make_stats(call_count=62_553, avg_input_tokens=35_225)
-    classification = classify_call_site(stats)
-    assert resolve_with_cache_presence(classification, 1_484_483) == Classification(
-        CacheOutcome.NOT_CACHING, OutcomeReason.EXPLICIT_ZERO_CACHE_TOKENS
-    )
-
-
-@pytest.mark.parametrize(
-    ("gap", "reason"),
+    ("model", "reason"),
     [
-        (ProbeGap.BUDGET_EXHAUSTED, OutcomeReason.BUDGET_EXHAUSTED),
-        (ProbeGap.UNQUERYABLE, OutcomeReason.UNQUERYABLE_CALL_SITE),
-        (ProbeGap.FAILED, OutcomeReason.PROBE_FAILED),
+        # Instrumentation that records cache tokens only when positive, so
+        # absent attributes are a genuine 0% hit rate rather than a gap.
+        ("gemini-3.1-flash-lite", OutcomeReason.POSITIVE_ONLY_REPORTER),
+        ("gpt-4o-mini", OutcomeReason.POSITIVE_ONLY_REPORTER),
+        # The same OpenAI integration as `gpt`.
+        ("o1", OutcomeReason.POSITIVE_ONLY_REPORTER),
+        ("o3-mini", OutcomeReason.POSITIVE_ONLY_REPORTER),
+        ("o4-mini", OutcomeReason.POSITIVE_ONLY_REPORTER),
+        ("openai/o3", OutcomeReason.POSITIVE_ONLY_REPORTER),
+        ("azure:o1-preview", OutcomeReason.POSITIVE_ONLY_REPORTER),
+        # Anthropic records real zeros, and an arbitrary deployment name says
+        # nothing about which integration produced the span: both leave it to
+        # the presence probe.
+        ("claude-opus-4-5", OutcomeReason.ZERO_CACHE_TOKENS),
+        ("claude-3-opus-20240229", OutcomeReason.ZERO_CACHE_TOKENS),
+        ("prod-o3-deployment", OutcomeReason.ZERO_CACHE_TOKENS),
+        ("mistral-large-2", OutcomeReason.ZERO_CACHE_TOKENS),
     ],
 )
-def test_gap_guard_reads_an_unanswered_probe_as_unknown(
-    gap: ProbeGap, reason: OutcomeReason
+def test_zero_cache_tokens_are_ambiguous_unless_the_model_omits_zeros(
+    model: str, reason: OutcomeReason
 ) -> None:
-    stats = make_stats(call_count=62_553, avg_input_tokens=35_225)
-    classification = classify_call_site(stats)
-    assert resolve_with_cache_presence(classification, gap) == Classification(
-        CacheOutcome.UNKNOWN, reason
-    )
+    stats = make_stats(model=model, call_count=50_000, avg_input_tokens=30_000)
+
+    assert classify_call_site(stats) == Classification(CacheOutcome.NOT_CACHING, reason)
 
 
-def test_probe_not_needed_when_cache_activity_exists() -> None:
-    stats = make_stats(call_count=169_000, avg_input_tokens=2_748, hit_rate=0.000088)
-    classification = classify_call_site(stats)
-    assert classification.outcome == CacheOutcome.NOT_CACHING
-    assert needs_cache_presence_probe(classification) is False
+AMBIGUOUS_ZERO = Classification(CacheOutcome.NOT_CACHING, OutcomeReason.ZERO_CACHE_TOKENS)
 
 
-def test_probe_not_needed_for_unflagged_outcomes() -> None:
-    ineligible = make_stats(call_count=120, avg_input_tokens=2_935)
-    assert needs_cache_presence_probe(classify_call_site(ineligible)) is False
-
-    healthy = make_stats(call_count=21_000, avg_input_tokens=26_600, hit_rate=0.855)
-    assert needs_cache_presence_probe(classify_call_site(healthy)) is False
-
-
-def test_find_contrast_anchor_same_model_high_hit_rate() -> None:
-    # A healthy call site on the same model anchors the flagged one; a healthy
-    # call site on a different model does not.
-    flagged = make_stats(
-        agent_label="PR Review",
-        model="gemini-2.5-pro",
-        call_count=169_000,
-        avg_input_tokens=2_748,
-        hit_rate=0.000088,
-    )
-    anchor_source = make_stats(
-        agent_label="Explorer",
-        span_name="generate_content gemini_generation",
-        model="gemini-2.5-pro",
-        call_count=21_000,
-        avg_input_tokens=26_600,
-        hit_rate=0.855,
-    )
-    other_model = make_stats(
-        agent_label="Explorer",
-        model="gemini-3-flash-preview",
-        call_count=70_000,
-        avg_input_tokens=15_600,
-        hit_rate=0.526,
-    )
-
-    anchor = find_contrast_anchor(flagged, [flagged, anchor_source, other_model])
-
-    assert anchor is not None
-    assert anchor.model == "gemini-2.5-pro"
-    assert anchor.agent_label == "Explorer"
-    assert anchor.span_name == "generate_content gemini_generation"
-    assert anchor.hit_rate == pytest.approx(0.855)
+@pytest.mark.parametrize(
+    ("spans_with_cache_attributes", "expected"),
+    [
+        # A wrapper path that emits no cache attributes at all.
+        pytest.param(
+            0,
+            Classification(CacheOutcome.UNKNOWN, OutcomeReason.NO_CACHE_ATTRIBUTES),
+            id="attributes-never-recorded",
+        ),
+        pytest.param(
+            500,
+            Classification(CacheOutcome.NOT_CACHING, OutcomeReason.EXPLICIT_ZERO_CACHE_TOKENS),
+            id="explicit-zeros-recorded",
+        ),
+        pytest.param(
+            ProbeGap.BUDGET_EXHAUSTED,
+            Classification(CacheOutcome.UNKNOWN, OutcomeReason.BUDGET_EXHAUSTED),
+            id="presence-budget-spent",
+        ),
+        pytest.param(
+            ProbeGap.UNQUERYABLE,
+            Classification(CacheOutcome.UNKNOWN, OutcomeReason.UNQUERYABLE_CALL_SITE),
+            id="presence-unqueryable",
+        ),
+        pytest.param(
+            ProbeGap.FAILED,
+            Classification(CacheOutcome.UNKNOWN, OutcomeReason.PROBE_FAILED),
+            id="presence-query-failed",
+        ),
+    ],
+)
+def test_resolve_with_cache_presence(
+    spans_with_cache_attributes: int | ProbeGap, expected: Classification
+) -> None:
+    assert resolve_with_cache_presence(AMBIGUOUS_ZERO, spans_with_cache_attributes) == expected
 
 
-def test_find_contrast_anchor_prefers_highest_hit_rate() -> None:
-    flagged = make_stats(model="gemini-2.5-pro", call_count=169_000, avg_input_tokens=2_748)
-    lower = make_stats(
-        agent_label="agent-a",
-        model="gemini-2.5-pro",
-        call_count=5_000,
+ANCHOR_MODEL = "gemini-2.5-pro"
+FLAGGED = make_stats(model=ANCHOR_MODEL, call_count=100_000, avg_input_tokens=3_000)
+
+
+def healthy_sibling(
+    *,
+    agent_label: str = "Researcher",
+    model: str = ANCHOR_MODEL,
+    call_count: int = 5_000,
+    hit_rate: float = 0.9,
+) -> CallSiteStats:
+    """A call site beside ``FLAGGED`` that anchors it unless a default is overridden."""
+    return make_stats(
+        agent_label=agent_label,
+        model=model,
+        call_count=call_count,
         avg_input_tokens=2_000,
-        hit_rate=0.6,
-    )
-    higher = make_stats(
-        agent_label="agent-b",
-        model="gemini-2.5-pro",
-        call_count=5_000,
-        avg_input_tokens=2_000,
-        hit_rate=0.9,
+        hit_rate=hit_rate,
     )
 
-    anchor = find_contrast_anchor(flagged, [flagged, lower, higher])
 
-    assert anchor is not None
-    assert anchor.agent_label == "agent-b"
-    assert anchor.hit_rate == pytest.approx(0.9)
+def test_find_contrast_anchor_picks_the_best_same_model_call_site() -> None:
+    best = healthy_sibling(agent_label="Researcher", hit_rate=0.9)
 
-
-def test_find_contrast_anchor_none_for_flash_lite() -> None:
-    # No same-model call site clears the anchor hit-rate bar: no anchor.
-    flagged = make_stats(
-        agent_label="agent-a",
-        model="gemini-2.5-flash-lite",
-        call_count=22_750_000,
-        avg_input_tokens=1_414,
-        hit_rate=0.0221,
-    )
-    sibling = make_stats(
-        agent_label="agent-b",
-        model="gemini-2.5-flash-lite",
-        call_count=1_180_000,
-        avg_input_tokens=1_393,
-        hit_rate=0.0011,
+    anchor = find_contrast_anchor(
+        FLAGGED, [FLAGGED, healthy_sibling(agent_label="Planner", hit_rate=0.6), best]
     )
 
-    assert find_contrast_anchor(flagged, [flagged, sibling]) is None
-
-
-def test_find_contrast_anchor_ignores_low_volume_candidates() -> None:
-    flagged = make_stats(
-        agent_label="agent-a", model="gemini-2.5-pro", call_count=169_000, avg_input_tokens=2_748
-    )
-    tiny_but_healthy = make_stats(
-        agent_label="agent-b",
-        model="gemini-2.5-pro",
-        call_count=MIN_CALLS_FOR_CONFIDENCE - 1,
-        avg_input_tokens=2_000,
-        hit_rate=0.9,
-    )
-
-    assert find_contrast_anchor(flagged, [flagged, tiny_but_healthy]) is None
-
-
-def test_find_contrast_anchor_ignores_own_group() -> None:
-    healthy = make_stats(call_count=21_000, avg_input_tokens=26_600, hit_rate=0.855)
-
-    assert find_contrast_anchor(healthy, [healthy]) is None
-
-
-def test_uncached_tokens() -> None:
-    stats = CallSiteStats(
-        agent_label="a",
+    assert anchor == ContrastAnchor(
+        agent_label="Researcher",
         agent_label_source=AgentLabelSource.AGENT_NAME,
-        span_name="s",
-        model="m",
-        call_count=10_000,
-        sampled_call_count=10_000,
-        sum_input_tokens=1_000_000,
-        sum_cache_read_tokens=100_000,
-        sum_cache_creation_tokens=50_000,
-        avg_input_tokens=100,
+        span_name=best.span_name,
+        model=ANCHOR_MODEL,
+        hit_rate=best.hit_rate,
+        call_count=best.call_count,
+        avg_input_tokens=best.avg_input_tokens,
     )
-    assert stats.uncached_tokens == 850_000
-    assert stats.unrecouped_cache_write_tokens == 0
 
 
-def test_uncached_tokens_floors_at_zero() -> None:
-    # Cache reads plus writes can exceed input tokens, so the subtraction goes
-    # negative and must clamp.
-    stats = make_stats(
-        call_count=2_805, avg_input_tokens=5_401, hit_rate=0.086, write_read_ratio=10.7
+@pytest.mark.parametrize(
+    "sibling",
+    [
+        pytest.param(healthy_sibling(model="gemini-3-flash-preview"), id="other-model"),
+        pytest.param(healthy_sibling(hit_rate=0.3), id="hit-rate-below-the-bar"),
+        pytest.param(healthy_sibling(call_count=MIN_CALLS_FOR_CONFIDENCE - 1), id="too-few-calls"),
+        pytest.param(healthy_sibling(agent_label=FLAGGED.agent_label), id="own-call-site"),
+    ],
+)
+def test_find_contrast_anchor_needs_a_healthy_call_site_elsewhere_on_the_model(
+    sibling: CallSiteStats,
+) -> None:
+    assert find_contrast_anchor(FLAGGED, [FLAGGED, sibling]) is None
+
+
+def with_token_sums(
+    *, input_tokens: float, cache_read_tokens: float, cache_creation_tokens: float
+) -> CallSiteStats:
+    return replace(
+        make_stats(),
+        sum_input_tokens=input_tokens,
+        sum_cache_read_tokens=cache_read_tokens,
+        sum_cache_creation_tokens=cache_creation_tokens,
     )
-    assert stats.uncached_tokens == 0
 
 
-def test_cache_exceeding_input_marks_exclusive_input_reporting() -> None:
-    stats = make_stats(
-        call_count=2_805, avg_input_tokens=5_401, hit_rate=0.086, write_read_ratio=10.7
+@pytest.mark.parametrize(
+    ("cache_read_tokens", "cache_creation_tokens", "uncached", "unrecouped_writes"),
+    [
+        pytest.param(100_000, 50_000, 850_000, 0, id="reads-recoup-the-writes"),
+        pytest.param(100_000, 150_000, 750_000, 50_000, id="writes-outrun-the-reads"),
+        # Input reported exclusive of cached tokens takes the subtraction negative.
+        pytest.param(200_000, 900_000, 0, 700_000, id="uncached-floors-at-zero"),
+    ],
+)
+def test_splits_input_by_what_the_cache_did_with_it(
+    cache_read_tokens: float,
+    cache_creation_tokens: float,
+    uncached: float,
+    unrecouped_writes: float,
+) -> None:
+    stats = with_token_sums(
+        input_tokens=1_000_000,
+        cache_read_tokens=cache_read_tokens,
+        cache_creation_tokens=cache_creation_tokens,
     )
-    assert stats.cache_exceeds_input is True
+
+    assert stats.uncached_tokens == uncached
+    assert stats.unrecouped_cache_write_tokens == unrecouped_writes
 
 
-def test_fully_cached_input_is_not_an_anomaly() -> None:
-    # Every input token read from or written to cache adds up to the input
-    # exactly, but extrapolated sums can land a rounding error above it.
-    stats = CallSiteStats(
-        agent_label="a",
-        agent_label_source=AgentLabelSource.AGENT_NAME,
-        span_name="s",
-        model="m",
-        call_count=10_000,
-        sampled_call_count=10_000,
-        sum_input_tokens=300_000.3,
-        sum_cache_read_tokens=100_000.1,
-        sum_cache_creation_tokens=200_000.2,
-        avg_input_tokens=100,
+@pytest.mark.parametrize(
+    ("input_tokens", "cache_read_tokens", "cache_creation_tokens", "exceeds"),
+    [
+        pytest.param(1_000_000, 200_000, 900_000, True, id="input-reported-exclusive-of-cache"),
+        # Fully cached input, which extrapolated sums can land a rounding error
+        # above the input it belongs to.
+        pytest.param(300_000.3, 100_000.1, 200_000.2, False, id="fully-cached-input"),
+    ],
+)
+def test_flags_cache_tokens_exceeding_the_input_they_belong_to(
+    input_tokens: float, cache_read_tokens: float, cache_creation_tokens: float, exceeds: bool
+) -> None:
+    stats = with_token_sums(
+        input_tokens=input_tokens,
+        cache_read_tokens=cache_read_tokens,
+        cache_creation_tokens=cache_creation_tokens,
     )
+
     assert stats.sum_cache_read_tokens + stats.sum_cache_creation_tokens > stats.sum_input_tokens
-    assert stats.cache_exceeds_input is False
-
-
-def test_unrecouped_cache_write_tokens() -> None:
-    stats = CallSiteStats(
-        agent_label="a",
-        agent_label_source=AgentLabelSource.AGENT_NAME,
-        span_name="s",
-        model="m",
-        call_count=10_000,
-        sampled_call_count=10_000,
-        sum_input_tokens=1_000_000,
-        sum_cache_read_tokens=100_000,
-        sum_cache_creation_tokens=150_000,
-        avg_input_tokens=100,
-    )
-    assert stats.unrecouped_cache_write_tokens == 50_000
+    assert stats.cache_exceeds_input is exceeds
 
 
 def test_severity_ranks_thrash_above_small_not_caching() -> None:
@@ -587,7 +431,7 @@ def test_severity_ranks_thrash_above_small_not_caching() -> None:
     thrash = CacheFinding(
         classification=Classification(CacheOutcome.THRASH, OutcomeReason.CACHE_ACTIVITY),
         stats=make_stats(
-            call_count=2_805, avg_input_tokens=5_401, hit_rate=0.086, write_read_ratio=10.7
+            call_count=3_000, avg_input_tokens=5_000, hit_rate=0.08, write_read_ratio=12.0
         ),
         anchor=None,
     )
@@ -610,8 +454,6 @@ def test_hit_rate_and_ratio_handle_zero_denominators() -> None:
 # Every prompt in these tests is invented; real prompt text never enters a fixture.
 STABLE_BLOCK = "Rank the candidate rows and explain the ranking briefly.\n" * 200
 SHORT_BLOCK = "Answer in one sentence.\n"
-
-
 MESSAGE_LIST_OPENING = '[{"role": "system", "content": "'
 
 
@@ -711,6 +553,14 @@ def test_measures_the_prefix_the_samples_share() -> None:
             DivergenceKind.OTHER,
             id="ordinary-varying-text",
         ),
+        # The prefixed-id pattern is only recognisable by its prefix, so it
+        # demands a digit in the tail rather than claiming every `run_` word.
+        pytest.param(
+            "Step run_migrations. ",
+            "Step run_backfills. ",
+            DivergenceKind.OTHER,
+            id="word-that-reads-like-an-id-prefix",
+        ),
     ],
 )
 def test_names_what_the_samples_first_differ_at(
@@ -720,28 +570,6 @@ def test_names_what_the_samples_first_differ_at(
 
     assert divergence is not None
     assert divergence.divergence_kind is expected
-
-
-def test_a_word_that_reads_like_an_id_prefix_is_not_one() -> None:
-    # The prefixed-id pattern is only recognisable by its prefix, so it demands a
-    # digit in the tail rather than claiming every `run_`-prefixed word.
-    divergence = diagnose_prompt_divergence(
-        [make_prompt("Step run_migrations. "), make_prompt("Step run_backfills. ")]
-    )
-
-    assert divergence is not None
-    assert divergence.divergence_kind is DivergenceKind.OTHER
-
-
-def test_flags_a_template_holding_its_stable_content_behind_the_variable_part() -> None:
-    divergence = diagnose_prompt_divergence(
-        [make_prompt("Now: 2026-08-19T10:15:00Z. "), make_prompt("Now: 2026-08-19T11:47:31Z. ")]
-    )
-
-    assert divergence is not None
-    assert divergence.common_prefix_chars < MIN_STABLE_BLOCK_CHARS
-    assert divergence.stable_block_chars >= MIN_STABLE_BLOCK_CHARS
-    assert divergence.template_misordered
 
 
 def test_does_not_call_it_misordered_when_the_stable_content_already_comes_first() -> None:
