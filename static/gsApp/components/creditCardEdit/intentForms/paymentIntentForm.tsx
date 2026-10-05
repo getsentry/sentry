@@ -80,7 +80,7 @@ export function PaymentIntentForm(props: IntentFormProps) {
       return;
     }
 
-    stripe
+    await stripe
       .confirmPayment({
         elements,
         clientSecret: intentData.clientSecret,
@@ -149,10 +149,12 @@ export function PaymentIntentForm(props: IntentFormProps) {
     <InnerIntentForm
       {...props}
       buttonText={props.buttonText}
-      busyButtonText={t('Sending Payment...')}
       isSubmitting={isSubmitting}
       intentData={intentData}
-      onError={setErrorMessage}
+      onError={message => {
+        setErrorMessage(message);
+        setIsSubmitting(false);
+      }}
       handleSubmit={handleSubmit}
       errorMessage={errorMessage}
     />

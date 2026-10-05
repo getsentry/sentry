@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 
@@ -71,10 +71,46 @@ describe('InnerIntentForm', () => {
     expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
   });
 
-  it('renders busy button text when submitting', () => {
-    render(<InnerIntentForm {...defaultProps} isSubmitting busyButtonText="Saving..." />);
+  it('keeps the submit label while submitting', () => {
+    render(<InnerIntentForm {...defaultProps} isSubmitting />);
 
-    expect(screen.getByRole('button', {name: 'Saving...'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save Payment Method'})).toBeInTheDocument();
+  });
+
+  it('allows submission before the Stripe element is complete', () => {
+    render(<InnerIntentForm {...defaultProps} />);
+
+    expect(screen.getByRole('button', {name: 'Save Payment Method'})).toBeEnabled();
+  });
+
+  it('reports a rejected submission through onError', async () => {
+    const handleSubmit = jest.fn().mockRejectedValue(new Error('Payment failed'));
+    const onError = jest.fn();
+    render(
+      <InnerIntentForm {...defaultProps} handleSubmit={handleSubmit} onError={onError} />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save Payment Method'}));
+
+    expect(handleSubmit).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onError).toHaveBeenCalledWith('Payment failed'));
+  });
+
+  it('cancels without submitting', async () => {
+    const onCancel = jest.fn();
+    const handleSubmit = jest.fn();
+    render(
+      <InnerIntentForm
+        {...defaultProps}
+        onCancel={onCancel}
+        handleSubmit={handleSubmit}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
+
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(handleSubmit).not.toHaveBeenCalled();
   });
 
   it('displays billing terms when location is defined', async () => {

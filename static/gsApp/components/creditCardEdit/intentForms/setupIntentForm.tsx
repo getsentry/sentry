@@ -90,7 +90,7 @@ export function SetupIntentForm(props: IntentFormProps) {
       return;
     }
 
-    stripe
+    await stripe
       .confirmSetup({
         elements,
         clientSecret: intentData.clientSecret,
@@ -105,9 +105,9 @@ export function SetupIntentForm(props: IntentFormProps) {
           setIsSubmitting(false);
           return;
         }
-        updateSubscription({
+        return updateSubscription({
           paymentMethod: result.setupIntent.payment_method,
-        });
+        }).catch(() => {});
       });
   };
 
@@ -115,10 +115,12 @@ export function SetupIntentForm(props: IntentFormProps) {
     <InnerIntentForm
       {...props}
       isSubmitting={isSubmitting}
-      busyButtonText={t('Saving Changes...')}
       buttonText={props.buttonText}
       intentData={intentData}
-      onError={setErrorMessage}
+      onError={message => {
+        setErrorMessage(message);
+        setIsSubmitting(false);
+      }}
       handleSubmit={handleSubmit}
       errorMessage={errorMessage}
     />

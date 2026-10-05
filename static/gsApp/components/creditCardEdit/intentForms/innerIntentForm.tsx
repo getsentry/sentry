@@ -1,10 +1,8 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useState, type FormEvent} from 'react';
 import {PaymentElement, useElements, useStripe} from '@stripe/react-stripe-js';
-import type {StripePaymentElementChangeEvent} from '@stripe/stripe-js';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -23,33 +21,26 @@ export function InnerIntentForm({
   location,
   handleSubmit,
   isSubmitting,
-  busyButtonText,
   errorMessage,
 }: InnerIntentFormProps) {
   const elements = useElements();
   const stripe = useStripe();
-  const [submitDisabled, setSubmitDisabled] = useState(true);
   const [stripeIsLoading, setStripeIsLoading] = useState(true);
   const [stripeIsBlocked, setStripeIsBlocked] = useState(false);
-  const form = useScrapsForm({
-    ...defaultFormOptions,
-    defaultValues: {},
-    onSubmit: () => {
-      try {
-        handleSubmit({stripe, elements});
-      } catch (error) {
-        onError(error instanceof Error ? error.message : t('An unknown error occurred.'));
-      }
-    },
-  });
-
-  const handleFormChange = (formData: StripePaymentElementChangeEvent) => {
-    setSubmitDisabled(!formData.complete);
+  const submit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (isSubmitting) {
+      return;
+    }
+    try {
+      await handleSubmit({stripe, elements});
+    } catch (error) {
+      onError(error instanceof Error ? error.message : t('An unknown error occurred.'));
+    }
   };
 
   const handleStripeLoadError = useCallback(() => {
     setStripeIsBlocked(true);
-    setSubmitDisabled(true);
     setStripeIsLoading(false);
   }, []);
 
@@ -75,7 +66,7 @@ export function InnerIntentForm({
         </Alert>
       )}
       {errorMessage && <Alert variant="danger">{errorMessage}</Alert>}
-      <form.AppForm form={form}>
+      <form onSubmit={submit}>
         <Stack gap="xl">
           {stripeIsLoading && <LoadingIndicator />}
           <PaymentElement
@@ -83,7 +74,6 @@ export function InnerIntentForm({
             onLoadError={() => {
               handleStripeLoadError();
             }}
-            onChange={handleFormChange}
             options={{
               terms: {card: 'never'}, // we display the terms ourselves
               wallets: {applePay: 'never', googlePay: 'never'},
@@ -112,19 +102,13 @@ export function InnerIntentForm({
             )}
           </Stack>
         </Stack>
-        <Flex align="center" justify="between">
-          {onCancel && (
-            <Button aria-label={t('Cancel')} onClick={onCancel}>
-              {t('Cancel')}
-            </Button>
-          )}
-          <form.SubmitButton disabled={submitDisabled} busy={isSubmitting}>
-            {isSubmitting && busyButtonText
-              ? busyButtonText
-              : (buttonText ?? t('Save Changes'))}
-          </form.SubmitButton>
+        <Flex align="center" justify="end" gap="md">
+          {onCancel && <Button onClick={onCancel}>{t('Cancel')}</Button>}
+          <Button type="submit" variant="primary" busy={isSubmitting}>
+            {buttonText ?? t('Save Changes')}
+          </Button>
         </Flex>
-      </form.AppForm>
+      </form>
     </Stack>
   );
 }

@@ -12,10 +12,9 @@ export interface InnerIntentFormProps extends IntentFormProps {
   }: {
     elements: StripeElements | null;
     stripe: Stripe | null;
-  }) => void;
+  }) => void | Promise<void>;
   isSubmitting: boolean;
   onError: (error: string) => void;
-  busyButtonText?: string;
   errorMessage?: string;
   intentData?: PaymentSetupCreateResponse | PaymentCreateResponse;
 }
