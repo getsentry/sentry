@@ -65,7 +65,6 @@ describe('useErrorsSeriesQuery', () => {
         expect.objectContaining({
           query: expect.objectContaining({
             dataset: DiscoverDatasets.ERRORS,
-            // The backend only keeps the latest partial bucket for `partial=1`
             partial: '1',
           }),
         })
