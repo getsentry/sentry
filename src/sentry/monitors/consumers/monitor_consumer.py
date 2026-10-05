@@ -34,7 +34,7 @@ from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.monitors.clock_dispatch import record_pulse_partitions, try_monitor_clock_tick
-from sentry.monitors.constants import PermitCheckInStatus
+from sentry.monitors.constants import MAX_MARGIN, MAX_TIMEOUT, PermitCheckInStatus
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.logic.monitor_environment import (
@@ -239,6 +239,13 @@ def _ensure_monitor_with_config(
             owner_user_id = owner_actor.id
         elif owner_actor and owner_actor.is_team:
             owner_team_id = owner_actor.id
+
+    # Clamp instead of rejecting so upserts sent with values above the limits
+    # still create and update the monitor.
+    for key, limit in (("max_runtime", MAX_TIMEOUT), ("checkin_margin", MAX_MARGIN)):
+        value = config.get(key)
+        if isinstance(value, (int, float)) and value > limit:
+            config[key] = limit
 
     validator = ConfigValidator(data=config)
 

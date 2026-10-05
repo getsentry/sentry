@@ -1076,6 +1076,21 @@ class MonitorConsumerTest(TestCase):
         assert monitor.exists()
         assert monitor[0].config["checkin_margin"] == 1
 
+    def test_monitor_upsert_limits_clamped(self) -> None:
+        self.send_checkin(
+            "long-running-monitor",
+            monitor_config={
+                "schedule": {"type": "crontab", "value": "13 * * * *"},
+                "max_runtime": 20160,
+                "checkin_margin": 100000,
+            },
+        )
+
+        monitor = Monitor.objects.get(slug="long-running-monitor")
+        assert monitor.config["max_runtime"] == 10080
+        assert monitor.config["checkin_margin"] == 40320
+        assert MonitorCheckIn.objects.filter(guid=self.guid).exists()
+
     def test_monitor_invalid_config(self) -> None:
         # 6 value schedule
         self.send_checkin(
