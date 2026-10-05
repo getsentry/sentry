@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 
-import boto3
 import orjson
 
 from sentry import options
@@ -23,6 +22,8 @@ def gen_aws_client(account_number, region, aws_external_id, service_name="lambda
 
     Returns an aws_lambda_client
     """
+    # Imported here so web workers do not load boto3 and botocore at boot.
+    import boto3
 
     role_arn = f"arn:aws:iam::{account_number}:role/SentryRole"
 
