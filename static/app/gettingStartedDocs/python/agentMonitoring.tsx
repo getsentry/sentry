@@ -311,7 +311,7 @@ sentry_sdk.init(
     if (selected === AgentIntegration.LANGGRAPH) {
       return [langgraphStep];
     }
-    if (selected === AgentIntegration.LITTELLM) {
+    if (selected === AgentIntegration.LITELLM) {
       return [liteLLMStep];
     }
     if (selected === AgentIntegration.GOOGLE_GENAI) {
@@ -584,7 +584,7 @@ print(result.output)
     if (selected === AgentIntegration.LANGGRAPH) {
       return [langgraphVerifyStep];
     }
-    if (selected === AgentIntegration.LITTELLM) {
+    if (selected === AgentIntegration.LITELLM) {
       return [liteLLMVerifyStep];
     }
     if (selected === AgentIntegration.GOOGLE_GENAI) {

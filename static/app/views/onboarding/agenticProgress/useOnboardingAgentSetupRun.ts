@@ -1,13 +1,10 @@
 import {useCallback, useMemo} from 'react';
 
 import type {AgenticRunSession} from 'sentry/components/onboarding/agenticProgress/types';
-import {
-  createAgenticRunSession,
-  useAgenticProgressInit,
-} from 'sentry/components/onboarding/agenticProgress/useAgenticProgressInit';
+import {useAgenticSetupRun} from 'sentry/components/onboarding/agenticProgress/useAgenticSetupRun';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';
 
-function useOnboardingAgentSession() {
+export function useOnboardingAgentSetupRun({enabled}: {enabled: boolean}) {
   const {
     agenticProgressClientRunId,
     agenticProgressOnboardingCode,
@@ -33,19 +30,5 @@ function useOnboardingAgentSession() {
     [setAgenticProgressClientRunId, setAgenticProgressOnboardingCode]
   );
 
-  return {session, onSessionChange};
-}
-
-export function useOnboardingAgenticProgressInit({enabled}: {enabled: boolean}) {
-  const {session, onSessionChange} = useOnboardingAgentSession();
-
-  return useAgenticProgressInit({enabled, session, onSessionChange}).query;
-}
-
-export function useRestartAgenticRun() {
-  const {onSessionChange} = useOnboardingAgentSession();
-
-  return useCallback(() => {
-    onSessionChange(createAgenticRunSession());
-  }, [onSessionChange]);
+  return useAgenticSetupRun({enabled, session, onSessionChange});
 }

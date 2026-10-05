@@ -349,12 +349,30 @@ def serialize_link(link: dict) -> dict:
 
     if attributes := link.get("attributes"):
         clean_link["attributes"] = [
-            {"name": k, "value": v, "type": infer_type(v)}
-            for k, v in attributes.items()
-            if infer_type(v) is not None
+            serialized
+            for name, value in attributes.items()
+            if (serialized := serialize_link_attribute(name, value)) is not None
         ]
 
     return clean_link
+
+
+def serialize_link_attribute(name: str, value: Any) -> dict | None:
+    """
+    Serializes a single span link attribute, returning `None` for unsupported
+    values. The stored value shape depends on the ingest pipeline: the
+    transaction pipeline stores bare scalars (e.g. `"parent"`), while the span
+    pipeline stores typed envelopes (e.g. `{"type": "string", "value": "parent"}`).
+    Normalize both to a bare scalar.
+    """
+    if isinstance(value, dict):
+        value = value.get("value")
+
+    attribute_type = infer_type(value)
+    if attribute_type is None:
+        return None
+
+    return {"name": name, "value": value, "type": attribute_type}
 
 
 def infer_type(value: Any) -> str | None:
