@@ -14,15 +14,6 @@ import {
 } from 'sentry/utils/fields';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-const SENTRY_DEFINED_KINDS = new Set<FieldKind | undefined>([
-  FieldKind.BREAKDOWN,
-  FieldKind.EQUATION,
-  FieldKind.EVENT_FIELD,
-  FieldKind.FIELD,
-  FieldKind.FUNCTION,
-  FieldKind.ISSUE_FIELD,
-]);
-
 type KeyDescriptionProps = {
   tag: Tag;
   size?: 'sm' | 'md';
@@ -60,7 +51,7 @@ export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
 
   const sentryDescription = fieldDefinition?.desc;
 
-  const description = sentryDescription ?? getFallbackDescription(tag, fieldDefinition);
+  const description = sentryDescription ?? getFallbackDescription(tag);
 
   const defaultValueType =
     tag.kind === FieldKind.FEATURE_FLAG ? FieldValueType.BOOLEAN : FieldValueType.STRING;
@@ -78,25 +69,14 @@ export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
   );
 }
 
-function getFallbackDescription(tag: Tag, fieldDefinition: FieldDefinition | null) {
-  if (tag.attributeSource === 'sentry') {
-    return null;
-  }
-
+function getFallbackDescription(tag: Tag) {
   if (tag.kind === FieldKind.FEATURE_FLAG) {
     return t('A feature flag evaluated before an error event');
   }
 
-  if (tag.kind === FieldKind.TAG) {
+  // Sentry's own string attributes are typed as tags, but no user sent them.
+  if (tag.kind === FieldKind.TAG && tag.attributeSource !== 'sentry') {
     return DEFAULT_TAG_DESCRIPTION;
-  }
-
-  // Only trace items carry an attributeSource, and their getters synthesize
-  // definitions for user attributes. Elsewhere, a registered definition or a
-  // Sentry-only kind marks the key as Sentry's, while custom tags (e.g. from
-  // tagStore) arrive with neither.
-  if (!tag.attributeSource && (fieldDefinition || SENTRY_DEFINED_KINDS.has(tag.kind))) {
-    return null;
   }
 
   return DEFAULT_ATTRIBUTE_DESCRIPTION;

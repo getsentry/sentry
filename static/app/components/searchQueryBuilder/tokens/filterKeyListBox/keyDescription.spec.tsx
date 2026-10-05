@@ -56,49 +56,30 @@ describe('KeyDescription', () => {
   });
 
   it.each([
-    ['a number', FieldKind.MEASUREMENT],
-    ['a boolean', FieldKind.BOOLEAN],
-    ['an array', FieldKind.ARRAY],
-    ['a kindless tag', undefined],
-  ])('describes %s attribute generically', (_, kind) => {
-    renderKeyDescription({key: 'checkout.cart_size', name: 'checkout.cart_size', kind});
-
-    expect(
-      screen.getByText('An attribute sent with one or more events')
-    ).toBeInTheDocument();
-  });
-
-  it('describes a user attribute generically when its definition only types it', () => {
-    renderKeyDescription(
-      {
-        key: 'checkout.cart_size',
-        name: 'checkout.cart_size',
-        kind: FieldKind.MEASUREMENT,
-        attributeSource: 'user',
-      },
-      (key, options) => getFieldDefinition(key, 'log', options?.kind)
-    );
-
-    expect(
-      screen.getByText('An attribute sent with one or more events')
-    ).toBeInTheDocument();
-  });
-
-  it.each([
+    ['a number attribute', {kind: FieldKind.MEASUREMENT}],
+    ['a boolean attribute', {kind: FieldKind.BOOLEAN}],
+    ['an array attribute', {kind: FieldKind.ARRAY}],
+    ['a kindless tag', {}],
     [
       'a Sentry-sourced attribute',
-      {key: 'checkout.cart_size', kind: FieldKind.MEASUREMENT, attributeSource: 'sentry'},
+      {kind: FieldKind.MEASUREMENT, attributeSource: 'sentry'},
     ],
-    [
-      'a Sentry-sourced tag',
-      {key: 'checkout.cart_size', kind: FieldKind.TAG, attributeSource: 'sentry'},
-    ],
-    ['a Sentry field', {key: 'checkout.cart_size', kind: FieldKind.FIELD}],
-    ['a kindless key Sentry defines', {key: 'project'}],
-  ] as const)('leaves %s undescribed when Sentry has no description', (_, tag) => {
-    renderKeyDescription({name: tag.key, ...tag});
+    ['a Sentry-sourced tag', {kind: FieldKind.TAG, attributeSource: 'sentry'}],
+    ['a Sentry field', {kind: FieldKind.FIELD}],
+  ] as const)('describes %s generically when it has no description', (_, tag) => {
+    renderKeyDescription({key: 'checkout.cart_size', name: 'checkout.cart_size', ...tag});
 
-    expect(screen.queryByText('Description')).not.toBeInTheDocument();
+    expect(
+      screen.getByText('An attribute sent with one or more events')
+    ).toBeInTheDocument();
+  });
+
+  it('describes a kindless key generically when Sentry defines it without a description', () => {
+    renderKeyDescription({key: 'project', name: 'project'});
+
+    expect(
+      screen.getByText('An attribute sent with one or more events')
+    ).toBeInTheDocument();
   });
 
   it('types a feature flag as a boolean', () => {
