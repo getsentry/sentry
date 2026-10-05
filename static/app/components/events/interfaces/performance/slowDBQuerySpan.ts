@@ -29,6 +29,16 @@ function getCodeLocation(attributes: Parameters<typeof getAttributeValue>[0]) {
   };
 }
 
+// The conventions chains for these keys also match unprefixed custom attributes
+// (e.g. `group`), so read the names the endpoint returns exactly.
+function getExactStringAttribute(
+  attributes: TraceItemDetailsResponse['attributes'],
+  name: string
+) {
+  const value = attributes.find(attribute => attribute.name === name)?.value;
+  return typeof value === 'string' ? value : undefined;
+}
+
 export function slowDBQuerySpanFromTraceItem(
   item: TraceItemDetailsResponse
 ): SlowDBQuerySpan {
@@ -38,9 +48,9 @@ export function slowDBQuerySpanFromTraceItem(
   return {
     ...getCodeLocation(attributes),
     description: getAttributeValue(attributes, 'span.description', 'string'),
-    op: getAttributeValue(attributes, 'span.op', 'string'),
-    group: getAttributeValue(attributes, 'span.group', 'string'),
-    category: getAttributeValue(attributes, 'span.category', 'string'),
+    op: getExactStringAttribute(attributes, 'span.op'),
+    group: getExactStringAttribute(attributes, 'span.group'),
+    category: getExactStringAttribute(attributes, 'span.category'),
     durationMs:
       typeof durationMs === 'number' && durationMs >= 0 ? durationMs : undefined,
   };

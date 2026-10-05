@@ -346,10 +346,13 @@ describe('Slow-query evidence from the spans dataset', () => {
         timestamp: new Date(startTimestamp * 1000).toISOString(),
         meta: {},
         attributes: [
-          {name: 'sentry.group', type: 'str', value: 'dataset-group'},
-          {name: 'sentry.category', type: 'str', value: 'db'},
-          {name: 'sentry.op', type: 'str', value: 'db.sql.query'},
+          {name: 'category', type: 'str', value: 'custom-category'},
+          {name: 'group', type: 'str', value: 'custom-group'},
           {name: 'hash', type: 'str', value: 'detector-hash'},
+          {name: 'op', type: 'str', value: 'custom-op'},
+          {name: 'span.category', type: 'str', value: 'db'},
+          {name: 'span.group', type: 'str', value: 'dataset-group'},
+          {name: 'span.op', type: 'str', value: 'db.sql.query'},
         ],
       })
     ).toMatchObject({group: 'dataset-group', category: 'db', op: 'db.sql.query'});
