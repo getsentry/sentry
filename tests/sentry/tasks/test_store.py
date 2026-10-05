@@ -1,7 +1,10 @@
 from time import time
 from unittest import mock
 
+import orjson
 import pytest
+from django.test import override_settings
+from urllib3.response import HTTPResponse
 
 from sentry import options, quotas
 from sentry.event_manager import EventManager
@@ -15,8 +18,9 @@ from sentry.tasks.store import (
     save_event_transaction,
     should_process,
 )
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.viewer_context import ActorType, get_viewer_context
+from sentry.viewer_context import ActorType, decode_viewer_context, get_viewer_context
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
 
@@ -308,6 +312,49 @@ def test_save_event_sets_viewer_context(default_project) -> None:
     assert captured_vc.organization_id == default_project.organization_id
     assert captured_vc.project_id == default_project.id
     assert captured_vc.actor_type == ActorType.SYSTEM
+
+
+@django_db_all
+@with_feature("projects:first-event-severity-calculation")
+@with_feature("organizations:seer-based-priority")
+@override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
+@mock.patch(
+    "sentry.event_manager.severity_connection_pool.urlopen",
+    return_value=HTTPResponse(body=orjson.dumps({"severity": 0.1231}), status=200),
+)
+def test_save_event_passes_system_viewer_context_to_seer(mock_urlopen, default_project) -> None:
+    data = {
+        "project": default_project.id,
+        "platform": "python",
+        "event_id": EVENT_ID,
+        "timestamp": time(),
+        "level": "error",
+        "exception": {
+            "values": [
+                {
+                    "type": "NopeError",
+                    "value": "Nopey McNopeface",
+                    "mechanism": {"type": "generic", "handled": True},
+                }
+            ]
+        },
+    }
+
+    manager = EventManager(data)
+    manager.normalize()
+    normalized_data = manager.get_data()
+    normalized_data["project"] = default_project.id
+
+    save_event(data=normalized_data, start_time=time())
+
+    viewer_context = decode_viewer_context(
+        mock_urlopen.call_args.kwargs["headers"]["X-Viewer-Context"],
+        key="viewer-context-test-secret",
+    )
+    assert viewer_context.organization_id == default_project.organization_id
+    assert viewer_context.project_id == default_project.id
+    assert viewer_context.user_id is None
+    assert viewer_context.actor_type == ActorType.SYSTEM
 
 
 @django_db_all
