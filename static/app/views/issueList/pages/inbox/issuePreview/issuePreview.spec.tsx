@@ -117,6 +117,32 @@ describe('IssuePreview', () => {
     });
   });
 
+  it('shows standard actions without waiting for Seer setup when AI is hidden', async () => {
+    const setup = Promise.withResolvers<void>();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/autofix/setup/`,
+      body: {integration: {ok: false}, billing: null, seerReposLinked: false},
+      asyncDelay: setup.promise,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/pull-requests/`,
+      body: {pullRequests: []},
+    });
+
+    render(<IssuePreview groupId={group.id} />, {
+      organization: OrganizationFixture({hideAiFeatures: true}),
+    });
+
+    expect(await screen.findByRole('button', {name: 'Resolve'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Archive'})).toBeEnabled();
+    expect(
+      screen.queryByRole('button', {name: 'Find Root Cause'})
+    ).not.toBeInTheDocument();
+
+    setup.resolve();
+    expect(await screen.findByRole('heading', {name: 'Activity'})).toBeInTheDocument();
+  });
+
   it('links to an open user pull request and shows the next Autofix step', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/autofix/`,

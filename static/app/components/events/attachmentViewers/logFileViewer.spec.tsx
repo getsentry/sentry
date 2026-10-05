@@ -58,6 +58,31 @@ describe('LogFileViewer', () => {
     );
   });
 
+  it('renders colored text without escape codes when given ANSI colors', async () => {
+    fetchMock.route(
+      attachmentUrl,
+      fetchMock.Response(new TextEncoder().encode('\x1B[31mfailed\x1B[0m to connect'))
+    );
+
+    render(<ExampleLogFileViewer />);
+
+    expect((await screen.findByText('failed')).style.color).toContain(
+      'color-mix(in srgb,'
+    );
+    expect(screen.getByText('to connect')).toBeInTheDocument();
+  });
+
+  it('renders only the final write when given carriage-return progress updates', async () => {
+    fetchMock.route(
+      attachmentUrl,
+      fetchMock.Response(new TextEncoder().encode('progress 10%\rprogress 100%'))
+    );
+
+    render(<ExampleLogFileViewer />);
+
+    expect(await screen.findByText('progress 100%')).toBeInTheDocument();
+  });
+
   it('renders an error when the attachment cannot be downloaded', async () => {
     fetchMock.route(attachmentUrl, '', {status: 404});
 

@@ -789,6 +789,7 @@ export function getReservedBudgetCategoryForAddOn(addOnCategory: AddOnCategory) 
 export const RETENTION_SETTINGS_CATEGORIES = new Set([
   DataCategory.SPANS,
   DataCategory.LOG_BYTE,
+  DataCategory.TRACE_METRIC_BYTE,
   DataCategory.TRANSACTIONS,
 ]);
 

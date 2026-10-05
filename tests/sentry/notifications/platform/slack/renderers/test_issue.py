@@ -173,7 +173,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         project_slug = self.project.slug
         project_id = self.project.id
         group_id = group.id
-        block_id = json.dumps({"issue": group_id, "rule": workflow_id})
+        block_id = json.dumps({"issue": group_id, "rule": workflow_id, "workflow": workflow_id})
 
         issue_url = (
             f"http://testserver/organizations/{org_slug}/issues/{group_id}/"
@@ -202,7 +202,12 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
                     "type": "section",
                     "text": {"type": "mrkdwn", "text": f"{tags_text}"},
                     "block_id": json.dumps(
-                        {"issue": group_id, "rule": workflow_id, "block": "tags"},
+                        {
+                            "issue": group_id,
+                            "rule": workflow_id,
+                            "workflow": workflow_id,
+                            "block": "tags",
+                        },
                     ),
                 }
             )

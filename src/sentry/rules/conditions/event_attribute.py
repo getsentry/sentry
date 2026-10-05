@@ -1,17 +1,15 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Sequence
-from typing import Any, ClassVar
+from typing import ClassVar
 
-import sentry_sdk
 from django import forms
 
-from sentry.rules import MATCH_CHOICES, EventState, MatchType, match_values
+from sentry.rules import MATCH_CHOICES
 from sentry.rules.conditions.base import EventCondition
 from sentry.services.eventstore.models import GroupEvent
 from sentry.snuba.events import Columns
-from sentry.utils.registry import NoRegistrationExistsError, Registry
+from sentry.utils.registry import Registry
 
 
 class AttributeHandler(ABC):
@@ -108,52 +106,6 @@ class EventAttributeCondition(EventCondition):
             "match": MATCH_CHOICES[self.data["match"]],
         }
         return self.label.format(**data)
-
-    def _passes(self, attribute_values: Sequence[object | None]) -> bool:
-        option_match = self.get_option("match")
-        option_value = self.get_option("value")
-
-        if not (
-            (option_match and option_value)
-            or (option_match in (MatchType.IS_SET, MatchType.NOT_SET))
-        ):
-            return False
-
-        option_value = option_value.lower()
-
-        attr_values = [str(v).lower() for v in attribute_values if v is not None]
-
-        # NOTE: IS_SET condition differs btw tagged_event and event_attribute so not handled by match_values
-        if option_match == MatchType.IS_SET:
-            return bool(attr_values)
-
-        elif option_match == MatchType.NOT_SET:
-            return not attr_values
-
-        return match_values(
-            group_values=attr_values, match_value=option_value, match_type=option_match
-        )
-
-    def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
-        attr = self.get_option("attribute", "")
-        path = attr.split(".")
-
-        first_attr = path[0]
-        try:
-            attr_handler = attribute_registry.get(first_attr)
-        except NoRegistrationExistsError:
-            attr_handler = None
-
-        if not attr_handler:
-            attribute_values = []
-        else:
-            try:
-                attribute_values = attr_handler.handle(path, event)
-            except KeyError as e:
-                attribute_values = []
-                sentry_sdk.capture_exception(e)
-
-        return self._passes(attribute_values)
 
     def get_form_instance(self) -> EventAttributeForm:
         return EventAttributeForm(self.data)

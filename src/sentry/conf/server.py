@@ -1068,10 +1068,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "issues:sentry.tasks.clear_expired_snoozes",
         "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
-    "clear-expired-rulesnoozes": {
-        "task": "issues:sentry.tasks.clear_expired_rulesnoozes",
-        "schedule": crontab("*/5", "*", "*", "*", "*"),
-    },
     "collect-project-platforms": {
         "task": "issues:sentry.tasks.collect_project_platforms",
         "schedule": crontab("0", "3", "*", "*", "*"),
@@ -2507,7 +2503,7 @@ if SENTRY_DEV_DSN:
     # In production, this value is *not* set via an env variable
     # https://github.com/getsentry/getsentry/blob/16a07f72853104b911a368cc8ae2b4b49dbf7408/getsentry/conf/settings/prod.py#L604-L606
     # This is used in case you want to report traces of your development set up to a project of your choice
-    SENTRY_SDK_CONFIG["sentry_mirror_dsn"] = SENTRY_DEV_DSN
+    SENTRY_SDK_CONFIG["backend_dsn"] = SENTRY_DEV_DSN
 
 SENTRY_SDK_THREADING_INTEGRATION = os.environ.get("SENTRY_SDK_DISABLE_THREADING") != "1"
 

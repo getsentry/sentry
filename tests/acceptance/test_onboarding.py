@@ -1,18 +1,43 @@
-import pytest
+from collections.abc import Generator
+from contextlib import contextmanager
+from unittest import mock
 
+import pytest
+from django.utils import timezone
+
+from sentry.integrations.github.integration import GitHubOAuthLoginResult
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.project import Project
+from sentry.models.rule import Rule
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.asserts import assert_existing_projects_status
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import no_silo_test
+from sentry.workflow_engine.defaults.workflows import DEFAULT_WORKFLOW_LABEL
+from sentry.workflow_engine.models import Action, Workflow
 
 pytestmark = pytest.mark.sentry_metrics
 
+SCM_MESSAGING_TREATMENT = {
+    "organizations:onboarding-scm-messaging-experiment": True,
+}
+
+
+def workflow_action_types(workflow: Workflow) -> list[str]:
+    return sorted(
+        Action.objects.filter(
+            dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow=workflow
+        ).values_list("type", flat=True)
+    )
+
 
 @no_silo_test
-# Needed until the frontend stops reading this flag. Remove it with the flag registration.
-@with_feature("organizations:onboarding-scm-experiment")
-class OrganizationOnboardingTest(AcceptanceTestCase):
+# start_onboarding() walks through the agentic setup interstitial to reach the
+# browser flow, which only renders with this flag on.
+@with_feature("organizations:onboarding-agentic-setup")
+class OnboardingTest(AcceptanceTestCase):
     def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user("foo@example.com")
@@ -23,98 +48,849 @@ class OrganizationOnboardingTest(AcceptanceTestCase):
         )
         self.login_as(self.user)
 
+    def create_github_integration(self) -> Integration:
+        integration = self.create_provider_integration(
+            provider="github",
+            name="getsentry",
+            external_id="12345",
+            metadata={"access_token": "ghu_xxxxx"},
+        )
+        integration.add_organization(self.org, self.user)
+        return integration
+
     def start_onboarding(self) -> None:
-        self.browser.get("/onboarding/%s/" % self.org.slug)
+        """Walk the welcome step through to scm-connect.
+
+        The welcome step opens directly on the agentic setup for orgs with the
+        feature, so the manual card is the only click needed to reach the
+        browser flow.
+        """
+        self.browser.get(f"/onboarding/{self.org.slug}/")
         self.browser.wait_until('[data-test-id="onboarding-step-welcome"]')
-        self.browser.click('[data-test-id="onboarding-welcome-start"]')
+        self.browser.click('[data-test-id="onboarding-setup-in-browser"]')
         self.browser.wait_until('[data-test-id="onboarding-step-scm-connect"]')
+
+    @contextmanager
+    def projects_born_active(self) -> Generator[None]:
+        """Mark newly-created Projects as active so useRecentCreatedProject sees
+        isProjectActive=true on the first render of setup-docs.
+
+        Without this, tests must write first_event after setup-docs mounts, then
+        wait for the hook's 1s poll to observe it — racing the test's click on
+        Back. Mutating the returned instance lets ProjectSummarySerializer
+        surface firstEvent in the create response, so the frontend never sees
+        the inactive state.
+        """
+        original_create = Project.objects.create
+
+        def create_active(*args: object, **kwargs: object) -> Project:
+            project = original_create(*args, **kwargs)
+            now = timezone.now()
+            Project.objects.filter(id=project.id).update(first_event=now)
+            project.first_event = now
+            return project
+
+        with mock.patch.object(Project.objects, "create", side_effect=create_active):
+            yield
+
+    @contextmanager
+    def slack_resolves_alerts_channel(self) -> Generator[None]:
+        """Answer every Slack lookup in the flow with one channel, #alerts.
+
+        The picker lists channels through conversations_list. Workflow creation
+        and channel-validate (which runs when a saved destination is restored)
+        both resolve the channel name with get_channel_id.
+        """
+        channel = SlackChannelIdData(prefix="#", channel_id="C125", timed_out=False)
+        with (
+            mock.patch(
+                "sentry.integrations.slack.sdk_client.SlackSdkClient.conversations_list"
+            ) as conversations_list,
+            mock.patch(
+                "sentry.integrations.slack.actions.form.get_channel_id",
+                return_value=channel,
+            ),
+            mock.patch(
+                "sentry.integrations.api.endpoints.organization_integration_channel_validate.get_channel_id",
+                return_value=channel,
+            ),
+        ):
+            conversations_list.return_value.data = {
+                "ok": True,
+                "channels": [{"id": "C125", "name": "alerts", "is_private": False}],
+            }
+            yield
+
+    def continue_past_platform_features(self, platform_search: str, platform_label: str) -> None:
+        """Skip connect → pick platform → Continue.
+
+        Control auto-creates the project and lands on setup-docs; treatment
+        lands on the messaging step with no project yet.
+        """
         self.browser.click(xpath='//button[contains(., "Continue without a repo")]')
+
         self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-
-    def select_platform(self, platform: str) -> None:
-        input_element = self.browser.element('input[aria-autocomplete="list"]')
-        input_element.clear()
-        input_element.send_keys(platform)
-        selector = f'//p[@data-test-id="menu-list-item-label"][text()="{platform}"]'
-        self.browser.wait_until(xpath=selector)
-        self.browser.click(xpath=selector)
-
-    def continue_to_docs(self) -> None:
+        self.browser.wait_until('input[aria-autocomplete="list"]')
+        input_el = self.browser.element('input[aria-autocomplete="list"]')
+        input_el.send_keys(platform_search)
+        self.browser.wait_until(
+            xpath=f'//p[@data-test-id="menu-list-item-label"][text()="{platform_label}"]'
+        )
+        self.browser.click(
+            xpath=f'//p[@data-test-id="menu-list-item-label"][text()="{platform_label}"]'
+        )
         self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
         self.browser.click(xpath='//button[contains(., "Continue")]')
 
-    def test_onboarding_happy_path(self) -> None:
+    def confirm_slack_destination(self) -> None:
+        """On the messaging step, pick #alerts in the connected Slack row and
+        Confirm and continue, which creates the project."""
+        self.browser.wait_until('[data-test-id="onboarding-step-scm-messaging"]')
+        self.browser.click(xpath='//button[@aria-label="Set up Slack"]')
+        input_el = self.browser.element('input[aria-autocomplete="list"]')
+        input_el.send_keys("alerts")
+        self.browser.wait_until(xpath='//*[@data-test-id="menu-list-item-label"][text()="#alerts"]')
+        self.browser.click(xpath='//*[@data-test-id="menu-list-item-label"][text()="#alerts"]')
+        self.browser.wait_until_clickable(xpath='//button[contains(., "Confirm and continue")]')
+        self.browser.click(xpath='//button[contains(., "Confirm and continue")]')
+
+    def test_scm_onboarding_reload_restores_connected_repo(self) -> None:
+        """Reloading the platform-features step restores the connected repo from
+        session storage and re-runs detection. Guards the stale-optimistic-repo
+        cleanup on load against dropping a resolved repo (real id): if it did,
+        the auto-detected section would be replaced by the manual picker."""
+        self.create_github_integration()
+
+        mock_repos = [
+            {
+                "name": "sentry",
+                "identifier": "getsentry/sentry",
+                "default_branch": "master",
+                "external_id": "12345",
+            },
+        ]
+        mock_platforms = {
+            "platforms": [
+                {
+                    "platform": "python-django",
+                    "language": "Python",
+                    "bytes": 50000,
+                    "confidence": "high",
+                    "priority": 1,
+                }
+            ],
+            "k_candidate": 0,
+            "k_reads_realized": 0,
+            "tree_entry_count": 0,
+            "is_truncated": False,
+        }
+
+        with (
+            mock.patch(
+                "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+                return_value=mock_repos,
+            ),
+            mock.patch(
+                "sentry.integrations.github.repository.GitHubRepositoryProvider._validate_repo",
+                return_value={"id": "12345"},
+            ),
+            mock.patch(
+                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms_multi",
+                return_value=mock_platforms,
+            ),
+        ):
+            self.start_onboarding()
+
+            # Connect a repo and advance to the platform-features step.
+            self.browser.wait_until('input[aria-autocomplete="list"]')
+            input_el = self.browser.element('input[aria-autocomplete="list"]')
+            input_el.send_keys("sentry")
+            self.browser.wait_until('[data-test-id="menu-list-item-label"]')
+            self.browser.click('[data-test-id="menu-list-item-label"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+            self.browser.wait_until(xpath='//*[contains(text(), "Detected from")]')
+            self.browser.wait_until('[role="radio"]')
+
+            # Reload the step. The connected repo (real id) must survive the
+            # session restore so detection re-runs and the auto-detected section
+            # renders again rather than falling back to the manual picker.
+            self.browser.get(f"/onboarding/{self.org.slug}/scm-platform-features/")
+
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+            self.browser.wait_until(xpath='//*[contains(text(), "Detected from")]')
+            self.browser.wait_until('[role="radio"]')
+
+    def test_scm_onboarding_switch_repo_updates_detection(self) -> None:
+        """Switching the connected repo re-runs detection for the new repo and
+        does not leak the previous repo's detected platform."""
+        self.create_github_integration()
+
+        mock_repos = [
+            {
+                "name": "sentry",
+                "identifier": "getsentry/sentry",
+                "default_branch": "master",
+                "external_id": "11111",
+            },
+            {
+                "name": "frontend",
+                "identifier": "getsentry/frontend",
+                "default_branch": "main",
+                "external_id": "22222",
+            },
+        ]
+
+        # Key off "frontend" — a substring unique to the second repo — so the
+        # match holds whether detect_platforms_multi/_validate_repo receive the repo
+        # name or the identifier.
+        def platforms_for(client: object, repo: str) -> dict[str, object]:
+            if "frontend" in repo:
+                platforms: list[dict[str, object]] = [
+                    {
+                        "platform": "javascript-react",
+                        "language": "JavaScript",
+                        "bytes": 50000,
+                        "confidence": "high",
+                        "priority": 1,
+                    }
+                ]
+            else:
+                platforms = [
+                    {
+                        "platform": "python-django",
+                        "language": "Python",
+                        "bytes": 50000,
+                        "confidence": "high",
+                        "priority": 1,
+                    }
+                ]
+            return {
+                "platforms": platforms,
+                "k_candidate": 0,
+                "k_reads_realized": 0,
+                "tree_entry_count": 0,
+                "is_truncated": False,
+            }
+
+        def validate_for(client: object, installation: object, repo: str) -> dict[str, str]:
+            return {"id": "22222" if "frontend" in repo else "11111"}
+
+        with (
+            mock.patch(
+                "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+                return_value=mock_repos,
+            ),
+            mock.patch(
+                "sentry.integrations.github.repository.GitHubRepositoryProvider._validate_repo",
+                side_effect=validate_for,
+            ),
+            mock.patch(
+                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms_multi",
+                side_effect=platforms_for,
+            ),
+        ):
+            self.start_onboarding()
+
+            # Connect the first repo; detection resolves to Django.
+            self.browser.wait_until('input[aria-autocomplete="list"]')
+            input_el = self.browser.element('input[aria-autocomplete="list"]')
+            input_el.send_keys("sentry")
+            self.browser.wait_until('[data-test-id="menu-list-item-label"]')
+            self.browser.click('[data-test-id="menu-list-item-label"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+            self.browser.wait_until(xpath='//*[@role="radio"][contains(., "Django")]')
+
+            # Go back and switch to the second repo; detection must re-run for it.
+            self.browser.click('[aria-label="Back"]')
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-connect"]')
+            # Don't click the input: the selected repo's SingleValueLabel overlays
+            # it and intercepts the click. send_keys focuses and filters directly,
+            # matching the initial-selection path above.
+            input_el = self.browser.element('input[aria-autocomplete="list"]')
+            input_el.send_keys("frontend")
+            self.browser.wait_until('[data-test-id="menu-list-item-label"]')
+            self.browser.click('[data-test-id="menu-list-item-label"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            # New repo's platform is detected; the previous repo's is not shown.
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+            self.browser.wait_until(xpath='//*[@role="radio"][contains(., "React")]')
+            self.browser.wait_until_not(xpath='//*[@role="radio"][contains(., "Django")]')
+
+    def test_scm_onboarding_header_skip_onboarding(self) -> None:
+        """Header skip on scm-platform-features navigates to issues with step-specific referrer."""
         self.start_onboarding()
-        self.select_platform("React")
-        self.continue_to_docs()
+
+        # SCM Connect: skip for now to advance to platform features
+        self.browser.click(xpath='//button[contains(., "Continue without a repo")]')
+        self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+
+        # Click the header "Skip setup" button
+        self.browser.click(xpath='//a[contains(., "Skip setup")]')
+
+        # Navigation leaves the onboarding step and carries the step-specific referrer
+        self.browser.wait_until_not('[data-test-id="onboarding-step-scm-platform-features"]')
+        assert "onboarding-scm-platform-features-skip" in self.browser.current_url
+
+    def test_scm_onboarding_with_integration_install(self) -> None:
+        """Install flow: welcome → install GitHub via API pipeline → repo search → detected platform → create project."""
+        mock_repos = [
+            {
+                "name": "sentry",
+                "identifier": "getsentry/sentry",
+                "default_branch": "master",
+                "external_id": "12345",
+            },
+        ]
+
+        mock_platforms = {
+            "platforms": [
+                {
+                    "platform": "python-django",
+                    "language": "Python",
+                    "bytes": 50000,
+                    "confidence": "high",
+                    "priority": 1,
+                }
+            ],
+            "k_candidate": 0,
+            "k_reads_realized": 0,
+            "tree_entry_count": 0,
+            "is_truncated": False,
+        }
+
+        mock_installation_response = {
+            "id": "12345",
+            "app_id": "1",
+            "account": {
+                "login": "getsentry",
+                "avatar_url": "https://example.com/avatar.png",
+                "html_url": "https://github.com/getsentry",
+                "type": "Organization",
+                "id": 67890,
+            },
+        }
+
+        with (
+            mock.patch(
+                "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+                return_value=mock_repos,
+            ),
+            mock.patch(
+                "sentry.integrations.github.repository.GitHubRepositoryProvider._validate_repo",
+                return_value={"id": "12345"},
+            ),
+            mock.patch(
+                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms_multi",
+                return_value=mock_platforms,
+            ),
+            mock.patch(
+                "sentry.integrations.github.integration.exchange_github_oauth",
+                return_value=GitHubOAuthLoginResult(
+                    authenticated_user="testuser",
+                    installation_info=[],
+                ),
+            ),
+            mock.patch(
+                "sentry.integrations.github.integration.GitHubIntegrationProvider.get_installation_info",
+                return_value=mock_installation_response,
+            ),
+        ):
+            self.start_onboarding()
+
+            # SCM Connect: no integration installed, provider pills are shown.
+            # Override window.open so the pipeline popup steps (OAuth and app
+            # install) return `window` as the popup reference. This lets us
+            # inject postMessage from the same window and pass the
+            # `event.source === popupRef.current` check.
+            self.browser.driver.execute_script(
+                """
+                window.__testOpenUrl = null;
+                window.open = function(url) {
+                    window.__testOpenUrl = url;
+                    return window;
+                };
+                """
+            )
+
+            # Wait for the providers to load, then click Install GitHub.
+            # This opens the API-driven pipeline modal (not a popup).
+            self.browser.wait_until(xpath='//button[contains(., "GitHub")]')
+            self.browser.click(xpath='//button[contains(., "GitHub")]')
+
+            # Step 1: OAuth Login — the modal shows "Authorize GitHub".
+            self.browser.wait_until(xpath='//button[contains(., "Authorize GitHub")]')
+            self.browser.click(xpath='//button[contains(., "Authorize GitHub")]')
+
+            # The OAuth popup was intercepted. Extract the state parameter from
+            # the captured URL and send a postMessage callback.
+            oauth_url = self.browser.driver.execute_script("return window.__testOpenUrl")
+            assert oauth_url is not None
+            state = dict(pair.split("=") for pair in oauth_url.split("?")[1].split("&")).get(
+                "state", ""
+            )
+            self.browser.driver.execute_script(
+                "window.postMessage(arguments[0], window.location.origin);",
+                {
+                    "_pipeline_source": "sentry-pipeline",
+                    "code": "fake_oauth_code",
+                    "state": state,
+                },
+            )
+
+            # Step 2: Org Selection — fresh install, shows "Install GitHub App".
+            self.browser.wait_until(xpath='//button[contains(., "Install GitHub App")]')
+            self.browser.driver.execute_script("window.__testOpenUrl = null;")
+            self.browser.click(xpath='//button[contains(., "Install GitHub App")]')
+
+            # The install popup was intercepted. Send a postMessage callback
+            # with the installation_id. The backend validates and completes
+            # the pipeline, creating the integration.
+            self.browser.driver.execute_script(
+                "window.postMessage(arguments[0], window.location.origin);",
+                {
+                    "_pipeline_source": "sentry-pipeline",
+                    "installation_id": "12345",
+                },
+            )
+
+            # Wait for the pipeline modal to close and the connected state.
+            self.browser.wait_until('input[aria-autocomplete="list"]')
+
+            # Repo search (same flow as happy path from here on).
+            input_el = self.browser.element('input[aria-autocomplete="list"]')
+            input_el.send_keys("sentry")
+            self.browser.wait_until('[data-test-id="menu-list-item-label"]')
+            self.browser.click('[data-test-id="menu-list-item-label"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            # Platform Features: select detected platform, Continue auto-creates the project
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+            self.browser.wait_until('[role="radio"]')
+            self.browser.click('[role="radio"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            # Setup Docs
+            self.browser.wait_until(xpath='//h2[text()="Configure Django SDK"]')
+
+            project = Project.objects.get(organization=self.org)
+            assert project.platform == "python-django"
+            assert project.name == "python-django"
+            assert project.slug == "python-django"
+            assert_existing_projects_status(
+                self.org, active_project_ids=[project.id], deleted_project_ids=[]
+            )
+
+    def test_scm_onboarding_detection_error_falls_back_to_manual_picker(self) -> None:
+        """When platform detection fails, user can still select a platform manually."""
+        self.create_github_integration()
+
+        mock_repos = [
+            {
+                "name": "sentry",
+                "identifier": "getsentry/sentry",
+                "default_branch": "master",
+                "external_id": "12345",
+            },
+        ]
+
+        with (
+            mock.patch(
+                "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+                return_value=mock_repos,
+            ),
+            mock.patch(
+                "sentry.integrations.github.repository.GitHubRepositoryProvider._validate_repo",
+                return_value={"id": "12345"},
+            ),
+            mock.patch(
+                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms_multi",
+                side_effect=ApiError("GitHub API error"),
+            ),
+        ):
+            self.start_onboarding()
+
+            # SCM Connect: select a repo
+            self.browser.wait_until('input[aria-autocomplete="list"]')
+            input_el = self.browser.element('input[aria-autocomplete="list"]')
+            input_el.send_keys("sentry")
+            self.browser.wait_until('[data-test-id="menu-list-item-label"]')
+            self.browser.click('[data-test-id="menu-list-item-label"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            # Platform Features: detection failed, should show manual picker
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+            self.browser.wait_until('input[aria-autocomplete="list"]')
+            input_el = self.browser.element('input[aria-autocomplete="list"]')
+            input_el.send_keys("React")
+            self.browser.wait_until(
+                xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]'
+            )
+            self.browser.click(xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            # Setup Docs: Continue auto-creates the project
+            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+
+            project = Project.objects.get(organization=self.org)
+            assert project.platform == "javascript-react"
+            assert project.name == "javascript-react"
+            assert project.slug == "javascript-react"
+            assert_existing_projects_status(
+                self.org, active_project_ids=[project.id], deleted_project_ids=[]
+            )
+
+    def test_scm_onboarding_repo_search_no_results(self) -> None:
+        """Empty search results show a helpful message about permissions."""
+        self.create_github_integration()
+
+        with (
+            mock.patch(
+                "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+                return_value=[],
+            ),
+        ):
+            self.start_onboarding()
+
+            # SCM Connect: integration detected, search returns no results
+            self.browser.wait_until('input[aria-autocomplete="list"]')
+            input_el = self.browser.element('input[aria-autocomplete="list"]')
+            input_el.send_keys("nonexistent-repo")
+            self.browser.wait_until(xpath='//*[contains(text(), "No repositories found")]')
+
+    def test_welcome_start_without_agentic_setup(self) -> None:
+        """Without agentic setup, the welcome step's Start button leads to scm-connect."""
+        with self.feature({"organizations:onboarding-agentic-setup": False}):
+            self.browser.get(f"/onboarding/{self.org.slug}/")
+            self.browser.wait_until('[data-test-id="onboarding-step-welcome"]')
+            self.browser.click('[data-test-id="onboarding-welcome-start"]')
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-connect"]')
+
+    def test_scm_onboarding_control_skip_integration(self) -> None:
+        """Control path skip flow: skip connect → manual platform → Continue auto-creates project."""
+        self.start_onboarding()
+        self.continue_past_platform_features("React", "React")
+
+        # Skips scm-project-details entirely and lands on setup-docs.
         self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
-        project = Project.objects.get(organization=self.org, slug="javascript-react")
-        assert project.name == "javascript-react"
+        assert not self.browser.element_exists(
+            '[data-test-id="onboarding-step-scm-project-details"]'
+        )
+
+        project = Project.objects.get(organization=self.org)
         assert project.platform == "javascript-react"
+        assert project.slug == "javascript-react"
+        assert not Rule.objects.filter(project=project).exists()
+        assert Workflow.objects.filter(
+            organization=project.organization, name=DEFAULT_WORKFLOW_LABEL
+        ).exists()
         assert_existing_projects_status(
             self.org, active_project_ids=[project.id], deleted_project_ids=[]
         )
 
-    def test_project_deletion_on_going_back(self) -> None:
-        self.start_onboarding()
-        self.select_platform("Next.js")
-        self.continue_to_docs()
-        self.browser.wait_until(xpath='//h2[text()="Configure Next.js SDK"]')
-        project1 = Project.objects.get(organization=self.org, slug="javascript-nextjs")
-        assert project1.name == "javascript-nextjs"
-        assert project1.platform == "javascript-nextjs"
-        self.browser.click('[aria-label="Back"]')
-        self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-        self.select_platform("React")
-        self.continue_to_docs()
-        self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
-        project2 = Project.objects.get(organization=self.org, slug="javascript-react")
-        assert project2.name == "javascript-react"
-        assert project2.platform == "javascript-react"
-        self.browser.back()
-        self.browser.click(xpath='//a[contains(., "Skip setup")]')
-        self.browser.get("/organizations/%s/projects/" % self.org.slug)
-        self.browser.wait_until(xpath='//*[text()="Remain Calm"]')
-        assert_existing_projects_status(
-            self.org, active_project_ids=[], deleted_project_ids=[project1.id, project2.id]
-        )
-
     def test_framework_modal_open_by_selecting_vanilla_platform(self) -> None:
+        """Picking a vanilla platform asks about frameworks; Configure SDK keeps the vanilla platform."""
         self.start_onboarding()
-        self.select_platform("Browser JavaScript")
+        self.browser.click(xpath='//button[contains(., "Continue without a repo")]')
+        self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+
+        input_el = self.browser.element('input[aria-autocomplete="list"]')
+        input_el.send_keys("Browser JavaScript")
+        platform_label = '//p[@data-test-id="menu-list-item-label"][text()="Browser JavaScript"]'
+        self.browser.wait_until(xpath=platform_label)
+        self.browser.click(xpath=platform_label)
         self.browser.wait_until(xpath='//h6[text()="Do you use a framework?"]')
         self.browser.click('[aria-label="Close Modal"]')
         self.browser.wait_until_not(xpath='//h6[text()="Do you use a framework?"]')
-        self.select_platform("Browser JavaScript")
+
+        input_el = self.browser.element('input[aria-autocomplete="list"]')
+        input_el.clear()
+        input_el.send_keys("Browser JavaScript")
+        self.browser.wait_until(xpath=platform_label)
+        self.browser.click(xpath=platform_label)
         self.browser.click('[aria-label="Configure SDK"]')
-        self.continue_to_docs()
+        self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+        self.browser.click(xpath='//button[contains(., "Continue")]')
+
         self.browser.wait_until(xpath='//h2[text()="Configure Browser JavaScript SDK"]')
         project = Project.objects.get(organization=self.org, slug="javascript")
-        assert project.name == "javascript"
         assert project.platform == "javascript"
         assert_existing_projects_status(
             self.org, active_project_ids=[project.id], deleted_project_ids=[]
         )
 
-    def test_create_delete_create_same_platform(self) -> None:
-        "This test ensures that the regression fixed in PR https://github.com/getsentry/sentry/pull/87869 no longer occurs."
+    def test_scm_onboarding_control_happy_path(self) -> None:
+        """Control path full flow: connect repo → detected platform → Continue auto-creates project."""
+        self.create_github_integration()
+
+        mock_repos = [
+            {
+                "name": "sentry",
+                "identifier": "getsentry/sentry",
+                "default_branch": "master",
+                "external_id": "12345",
+            },
+        ]
+        mock_platforms = {
+            "platforms": [
+                {
+                    "platform": "python-django",
+                    "language": "Python",
+                    "bytes": 50000,
+                    "confidence": "high",
+                    "priority": 1,
+                }
+            ],
+            "k_candidate": 0,
+            "k_reads_realized": 0,
+            "tree_entry_count": 0,
+            "is_truncated": False,
+        }
+
+        with (
+            mock.patch(
+                "sentry.integrations.github.integration.GitHubIntegration.get_repositories",
+                return_value=mock_repos,
+            ),
+            mock.patch(
+                "sentry.integrations.github.repository.GitHubRepositoryProvider._validate_repo",
+                return_value={"id": "12345"},
+            ),
+            mock.patch(
+                "sentry.integrations.api.endpoints.organization_repository_platforms.detect_platforms_multi",
+                return_value=mock_platforms,
+            ),
+        ):
+            self.start_onboarding()
+
+            self.browser.wait_until('input[aria-autocomplete="list"]')
+            input_el = self.browser.element('input[aria-autocomplete="list"]')
+            input_el.send_keys("sentry")
+            self.browser.wait_until('[data-test-id="menu-list-item-label"]')
+            self.browser.click('[data-test-id="menu-list-item-label"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+            self.browser.wait_until('[role="radio"]')
+            self.browser.click('[role="radio"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            self.browser.wait_until(xpath='//h2[text()="Configure Django SDK"]')
+            assert not self.browser.element_exists(
+                '[data-test-id="onboarding-step-scm-project-details"]'
+            )
+
+            project = Project.objects.get(organization=self.org)
+            assert project.platform == "python-django"
+            assert project.name == "python-django"
+            assert project.slug == "python-django"
+            assert_existing_projects_status(
+                self.org, active_project_ids=[project.id], deleted_project_ids=[]
+            )
+
+    def test_scm_back_from_setup_docs_control_non_active_project(self) -> None:
+        """Control path: non-active project is deleted on back-nav; Continue creates a fresh one
+        that survives Skip setup. Guards the regression fixed in
+        https://github.com/getsentry/sentry/pull/87869."""
         self.start_onboarding()
-        self.select_platform("Next.js")
-        self.continue_to_docs()
-        self.browser.wait_until(xpath='//h2[text()="Configure Next.js SDK"]')
-        project1 = Project.objects.get(organization=self.org, slug="javascript-nextjs")
-        assert project1.name == "javascript-nextjs"
-        assert project1.platform == "javascript-nextjs"
+        self.continue_past_platform_features("React", "React")
+
+        self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+        project1 = Project.objects.get(organization=self.org)
+        assert project1.platform == "javascript-react"
+
+        # Back from setup-docs lands on scm-platform-features; project has no
+        # events, so useBackActions deletes it.
         self.browser.click('[aria-label="Back"]')
         self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
-        self.continue_to_docs()
-        self.browser.wait_until(xpath='//h2[text()="Configure Next.js SDK"]')
-        project2 = Project.objects.get(organization=self.org, slug="javascript-nextjs")
-        assert project2.name == "javascript-nextjs"
-        assert project2.platform == "javascript-nextjs"
+        self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+        self.browser.click(xpath='//button[contains(., "Continue")]')
+
+        self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+        project2 = Project.objects.get(organization=self.org, slug="javascript-react", status=0)
+        assert project2.id != project1.id
+
         self.browser.click(xpath='//a[contains(., "Skip setup")]')
-        self.browser.get("/organizations/%s/projects/" % self.org.slug)
-        self.browser.wait_until("[data-test-id='javascript-nextjs']")
+        self.browser.get(f"/organizations/{self.org.slug}/projects/")
+        self.browser.wait_until("[data-test-id='javascript-react']")
         assert_existing_projects_status(
-            self.org, active_project_ids=[project2.id], deleted_project_ids=[project1.id]
+            self.org,
+            active_project_ids=[project2.id],
+            deleted_project_ids=[project1.id],
         )
+
+    def test_skip_after_going_back_deletes_projects(self) -> None:
+        """Projects created during onboarding are deleted when the user goes back
+        from setup-docs and then skips setup."""
+        self.start_onboarding()
+        self.continue_past_platform_features("Next.js", "Next.js")
+
+        self.browser.wait_until(xpath='//h2[text()="Configure Next.js SDK"]')
+        project1 = Project.objects.get(organization=self.org, slug="javascript-nextjs")
+        assert project1.platform == "javascript-nextjs"
+
+        self.browser.click('[aria-label="Back"]')
+        self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+        input_el = self.browser.element('input[aria-autocomplete="list"]')
+        input_el.send_keys("React")
+        self.browser.wait_until(xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]')
+        self.browser.click(xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]')
+        self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+        self.browser.click(xpath='//button[contains(., "Continue")]')
+
+        self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+        project2 = Project.objects.get(organization=self.org, slug="javascript-react")
+        assert project2.platform == "javascript-react"
+
+        self.browser.back()
+        self.browser.click(xpath='//a[contains(., "Skip setup")]')
+        self.browser.get(f"/organizations/{self.org.slug}/projects/")
+        self.browser.wait_until(xpath='//*[text()="Remain Calm"]')
+        assert_existing_projects_status(
+            self.org, active_project_ids=[], deleted_project_ids=[project1.id, project2.id]
+        )
+
+    def test_scm_back_from_setup_docs_control_active_project_no_changes(self) -> None:
+        """Control path: active project survives back-nav; Continue reuses it (no duplicate)."""
+        with self.projects_born_active():
+            self.start_onboarding()
+            self.continue_past_platform_features("React", "React")
+
+            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+            project = Project.objects.get(organization=self.org)
+
+            self.browser.click('[aria-label="Back"]')
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+            assert Project.objects.filter(organization=self.org, status=0).count() == 1
+            assert_existing_projects_status(
+                self.org, active_project_ids=[project.id], deleted_project_ids=[]
+            )
+
+    def test_scm_back_from_setup_docs_control_active_project_platform_changed(self) -> None:
+        """Control path: active project survives back-nav; changing platform creates a new project."""
+        with self.projects_born_active():
+            self.start_onboarding()
+            self.continue_past_platform_features("React", "React")
+
+            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+            project1 = Project.objects.get(organization=self.org)
+
+            self.browser.click('[aria-label="Back"]')
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+            self.browser.wait_until('input[aria-autocomplete="list"]')
+            input_el = self.browser.element('input[aria-autocomplete="list"]')
+            input_el.send_keys("Vue")
+            self.browser.wait_until(xpath='//p[@data-test-id="menu-list-item-label"][text()="Vue"]')
+            self.browser.click(xpath='//p[@data-test-id="menu-list-item-label"][text()="Vue"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            self.browser.wait_until(xpath='//h2[text()="Configure Vue SDK"]')
+            project2 = Project.objects.get(organization=self.org, platform="javascript-vue")
+            assert project2.id != project1.id
+            assert_existing_projects_status(
+                self.org,
+                active_project_ids=[project1.id, project2.id],
+                deleted_project_ids=[],
+            )
+
+    def test_scm_treatment_set_up_later_creates_email_only_project(self) -> None:
+        """Treatment defers creation to the messaging step: no project exists on
+        arrival, and Set up later creates one with only the default email workflow."""
+        with self.feature(SCM_MESSAGING_TREATMENT):
+            self.start_onboarding()
+            self.continue_past_platform_features("React", "React")
+
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-messaging"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Set up later")]')
+            assert not Project.objects.filter(organization=self.org).exists()
+
+            self.browser.click(xpath='//button[contains(., "Set up later")]')
+            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+
+            project = Project.objects.get(organization=self.org)
+            assert project.platform == "javascript-react"
+            workflow = Workflow.objects.get(organization=self.org)
+            assert workflow.name == DEFAULT_WORKFLOW_LABEL
+            assert workflow_action_types(workflow) == [Action.Type.EMAIL]
+            assert_existing_projects_status(
+                self.org, active_project_ids=[project.id], deleted_project_ids=[]
+            )
+
+    def test_scm_treatment_slack_destination_creates_messaging_workflow(self) -> None:
+        """Treatment happy path: Confirm and continue with a Slack channel creates
+        the project and one workflow that notifies both email and the channel."""
+        integration = self.create_slack_integration(self.org, user=self.user)
+
+        with self.feature(SCM_MESSAGING_TREATMENT), self.slack_resolves_alerts_channel():
+            self.start_onboarding()
+            self.continue_past_platform_features("React", "React")
+            self.confirm_slack_destination()
+
+            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+
+            project = Project.objects.get(organization=self.org)
+            assert project.platform == "javascript-react"
+            workflow = Workflow.objects.get(organization=self.org)
+            assert workflow_action_types(workflow) == [Action.Type.EMAIL, Action.Type.SLACK]
+            slack_action = Action.objects.get(
+                dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow=workflow,
+                type=Action.Type.SLACK,
+            )
+            assert slack_action.integration_id == integration.id
+            assert slack_action.config["target_display"] == "#alerts"
+            assert slack_action.config["target_identifier"] == "C125"
+            assert_existing_projects_status(
+                self.org, active_project_ids=[project.id], deleted_project_ids=[]
+            )
+
+    def test_scm_treatment_back_from_setup_docs_restores_destination_and_reuses_project(
+        self,
+    ) -> None:
+        """Back from setup-docs returns to the messaging step with the saved
+        destination revalidated; Continue reuses the active project instead of
+        creating a second one."""
+        self.create_slack_integration(self.org, user=self.user)
+
+        with (
+            self.feature(SCM_MESSAGING_TREATMENT),
+            self.slack_resolves_alerts_channel(),
+            self.projects_born_active(),
+        ):
+            self.start_onboarding()
+            self.continue_past_platform_features("React", "React")
+            self.confirm_slack_destination()
+
+            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+            project = Project.objects.get(organization=self.org)
+
+            self.browser.click('[aria-label="Back"]')
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-messaging"]')
+            # Continue enables only once the restored destination is revalidated.
+            self.browser.wait_until(xpath='//*[text()="#alerts"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+            assert Project.objects.filter(organization=self.org, status=0).count() == 1
+            assert Workflow.objects.filter(organization=self.org).count() == 1
+            assert_existing_projects_status(
+                self.org, active_project_ids=[project.id], deleted_project_ids=[]
+            )
