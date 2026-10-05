@@ -1,4 +1,4 @@
-minVersion: '2.21.0'
+minVersion: '2.33.1'
 releaseBranchPrefix: scraps/release
 changelog:
   filePath: CHANGELOG.md
