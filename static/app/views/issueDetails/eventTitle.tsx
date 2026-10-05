@@ -1,5 +1,4 @@
 import {type CSSProperties, Fragment} from 'react';
-import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
@@ -7,6 +6,7 @@ import color from 'color';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
 
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
@@ -46,7 +46,6 @@ export const MIN_NAV_HEIGHT = 44;
 
 export function EventTitle({event, group, ref, ...props}: EventNavigationProps) {
   const organization = useOrganization();
-  const theme = useTheme();
 
   const [_isEventErrorCollapsed, setEventErrorCollapsed] = useSyncedLocalStorageState(
     getFoldSectionKey(SectionKey.PROCESSING_ERROR),
@@ -58,11 +57,6 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
     project: group.project,
     isShare: false,
   });
-
-  const grayText = css`
-    color: ${theme.tokens.content.secondary};
-    font-weight: ${theme.font.weight.sans.regular};
-  `;
 
   const host = organization.links.regionUrl;
   const jsonUrl = `${host}/api/0/projects/${organization.slug}/${group.project.slug}/events/${event.id}/json/`;
@@ -104,26 +98,32 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
               gap="sm"
               paddingTop={{zero: 'md', xl: '0'}}
             >
-              <EventIdWrapper>
-                <span onClick={handleCopyEventId}>
+              <RevealOnHover gap="2xs" align="center">
+                <Text bold wrap="nowrap" onClick={handleCopyEventId}>
                   {t('ID: %s', getShortEventId(event.id))}
-                </span>
-                <Button
-                  aria-label={t('Copy Event ID')}
-                  tooltipProps={{title: t('Copy Event ID')}}
-                  onClick={handleCopyEventId}
-                  size="zero"
-                  variant="transparent"
-                  icon={<IconCopyId size="xs" variant="muted" />}
-                />
-              </EventIdWrapper>
-              <StyledTimeSince
-                tooltipBody={<EventCreatedTooltip event={event} />}
-                maxWidth={300}
-                date={event.dateCreated ?? event.dateReceived}
-                css={grayText}
-                aria-label={t('Event timestamp')}
-              />
+                </Text>
+                <RevealOnHover.Action>
+                  <Button
+                    aria-label={t('Copy Event ID')}
+                    tooltipProps={{title: t('Copy Event ID')}}
+                    onClick={handleCopyEventId}
+                    size="zero"
+                    variant="transparent"
+                    icon={<IconCopyId size="xs" variant="muted" />}
+                  />
+                </RevealOnHover.Action>
+              </RevealOnHover>
+              <Text variant="muted" wrap="nowrap">
+                {timeTextProps => (
+                  <TimeSince
+                    {...timeTextProps}
+                    tooltipBody={<EventCreatedTooltip event={event} />}
+                    maxWidth={300}
+                    date={event.dateCreated ?? event.dateReceived}
+                    aria-label={t('Event timestamp')}
+                  />
+                )}
+              </Text>
               <Flex align="center" gap="xs" className="hidden-xs">
                 <Divider />
                 <JsonLink
@@ -171,12 +171,6 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
   );
 }
 
-const StyledTimeSince = styled(TimeSince)`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-weight: ${p => p.theme.font.weight.sans.regular};
-  white-space: nowrap;
-`;
-
 const ProcessingErrorButton = styled(Button)`
   color: ${p => p.theme.colors.red400};
   font-weight: ${p => p.theme.font.weight.sans.regular};
@@ -195,21 +189,5 @@ const JsonLink = styled(ExternalLink)`
     color: ${p => p.theme.tokens.content.secondary};
     text-decoration: underline;
     text-decoration-color: ${p => p.theme.tokens.content.secondary};
-  }
-`;
-
-const EventIdWrapper = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space['2xs']};
-  align-items: center;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  white-space: nowrap;
-
-  button {
-    visibility: hidden;
-  }
-
-  &:hover button {
-    visibility: visible;
   }
 `;
