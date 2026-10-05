@@ -16,7 +16,7 @@ export const resolveBranch = (branch: string, fallback: string = DEFAULT_BRANCH)
 export const normalizeRoot = (root: string) =>
   root === '' || root.endsWith('/') ? root : `${root}/`;
 
-export const pathMappingSchema = z.object({
+const pathMappingSchema = z.object({
   stackRoot: z.string(),
   sourceRoot: z.string(),
   branch: z.string(),
