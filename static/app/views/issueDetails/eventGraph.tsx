@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {mergeRefs, useResizeObserver} from '@react-aria/utils';
 
@@ -522,9 +522,7 @@ export function EventGraph({
         ref={chartContainerRef}
         position="relative"
         padding={{zero: 'sm 0', '5xl': 'sm md sm 0'}}
-        css={css`
-          margin-right: -2px;
-        `}
+        width="calc(100% + 2px)"
       >
         <BarChart
           ref={mergedChartRef}

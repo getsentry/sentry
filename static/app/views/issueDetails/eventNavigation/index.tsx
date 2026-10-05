@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useRef, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import {useResizeObserver} from '@react-aria/utils';
 import {keepPreviousData} from '@tanstack/react-query';
 
@@ -306,13 +306,10 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   aria-description={TabName[currentTab]}
                   analyticsEventName="Issue Details: Issue Content Dropdown Opened"
                   analyticsEventKey="issue_details.issue_content_dropdown_opened"
-                  css={buttonTheme => css`
-                    font-size: ${buttonTheme.font.size.lg};
-                    font-weight: ${buttonTheme.font.weight.sans.medium};
-                    padding-right: ${buttonTheme.space.xs};
-                  `}
                 >
-                  {TabName[currentTab] ?? TabName[Tab.DETAILS]}
+                  <Text size="lg" bold variant="inherit">
+                    {TabName[currentTab] ?? TabName[Tab.DETAILS]}
+                  </Text>
                 </DropdownButton>
               )
             }

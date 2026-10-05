@@ -7,6 +7,7 @@ import color from 'color';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -94,74 +95,76 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
         }
         minHeight={`${MIN_NAV_HEIGHT}px`}
       >
-        <Flex
-          align="center"
-          direction="row"
-          gap="sm"
-          paddingTop={{zero: 'md', xl: '0'}}
-          css={css`
-            line-height: 1.2;
-          `}
-        >
-          <EventIdWrapper>
-            <span onClick={handleCopyEventId}>
-              {t('ID: %s', getShortEventId(event.id))}
-            </span>
-            <Button
-              aria-label={t('Copy Event ID')}
-              tooltipProps={{title: t('Copy Event ID')}}
-              onClick={handleCopyEventId}
-              size="zero"
-              variant="transparent"
-              icon={<IconCopyId size="xs" variant="muted" />}
-            />
-          </EventIdWrapper>
-          <StyledTimeSince
-            tooltipBody={<EventCreatedTooltip event={event} />}
-            maxWidth={300}
-            date={event.dateCreated ?? event.dateReceived}
-            css={grayText}
-            aria-label={t('Event timestamp')}
-          />
-          <Flex align="center" gap="xs" className="hidden-xs">
-            <Divider />
-            <JsonLink
-              href={jsonUrl}
-              onClick={() =>
-                trackAnalytics('issue_details.event_json_clicked', {
-                  organization,
-                  group_id: parseInt(`${event.groupID}`, 10),
-                  streamline: true,
-                })
-              }
+        <Text density="default" variant="inherit">
+          {textProps => (
+            <Flex
+              {...textProps}
+              align="center"
+              direction="row"
+              gap="sm"
+              paddingTop={{zero: 'md', xl: '0'}}
             >
-              {t('JSON')}
-            </JsonLink>
-          </Flex>
-          {actionableItems && actionableItems.length > 0 && (
-            <Fragment>
-              <Divider />
-              <ProcessingErrorButton
-                tooltipProps={{
-                  title: t(
-                    'Sentry has detected configuration issues with this event. Click for more info.'
-                  ),
-                }}
-                variant="transparent"
-                size="zero"
-                icon={<IconWarning variant="danger" />}
-                onClick={() => {
-                  document
-                    .getElementById(SectionKey.PROCESSING_ERROR)
-                    ?.scrollIntoView({block: 'start', behavior: 'smooth'});
-                  setEventErrorCollapsed(false);
-                }}
-              >
-                {t('Processing Error')}
-              </ProcessingErrorButton>
-            </Fragment>
+              <EventIdWrapper>
+                <span onClick={handleCopyEventId}>
+                  {t('ID: %s', getShortEventId(event.id))}
+                </span>
+                <Button
+                  aria-label={t('Copy Event ID')}
+                  tooltipProps={{title: t('Copy Event ID')}}
+                  onClick={handleCopyEventId}
+                  size="zero"
+                  variant="transparent"
+                  icon={<IconCopyId size="xs" variant="muted" />}
+                />
+              </EventIdWrapper>
+              <StyledTimeSince
+                tooltipBody={<EventCreatedTooltip event={event} />}
+                maxWidth={300}
+                date={event.dateCreated ?? event.dateReceived}
+                css={grayText}
+                aria-label={t('Event timestamp')}
+              />
+              <Flex align="center" gap="xs" className="hidden-xs">
+                <Divider />
+                <JsonLink
+                  href={jsonUrl}
+                  onClick={() =>
+                    trackAnalytics('issue_details.event_json_clicked', {
+                      organization,
+                      group_id: parseInt(`${event.groupID}`, 10),
+                      streamline: true,
+                    })
+                  }
+                >
+                  {t('JSON')}
+                </JsonLink>
+              </Flex>
+              {actionableItems && actionableItems.length > 0 && (
+                <Fragment>
+                  <Divider />
+                  <ProcessingErrorButton
+                    tooltipProps={{
+                      title: t(
+                        'Sentry has detected configuration issues with this event. Click for more info.'
+                      ),
+                    }}
+                    variant="transparent"
+                    size="zero"
+                    icon={<IconWarning variant="danger" />}
+                    onClick={() => {
+                      document
+                        .getElementById(SectionKey.PROCESSING_ERROR)
+                        ?.scrollIntoView({block: 'start', behavior: 'smooth'});
+                      setEventErrorCollapsed(false);
+                    }}
+                  >
+                    {t('Processing Error')}
+                  </ProcessingErrorButton>
+                </Fragment>
+              )}
+            </Flex>
           )}
-        </Flex>
+        </Text>
         <IssueDetailsJumpTo />
       </Grid>
     </div>

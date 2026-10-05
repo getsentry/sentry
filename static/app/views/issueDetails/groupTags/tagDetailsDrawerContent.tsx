@@ -1,5 +1,5 @@
 import {Fragment, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
@@ -45,6 +45,7 @@ type TagSort = 'date' | 'count';
 const DEFAULT_SORT: TagSort = 'count';
 
 export function TagDetailsDrawerContent({group}: {group: Group}) {
+  const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -98,11 +99,9 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
           data-test-id="group-tag-value"
           columns="1fr 0.22fr min-content min-content 45px min-content"
           gap={{zero: 'xs md', '5xl': 'xs xl'}}
-          css={theme =>
-            css`
-              margin: 0 -${theme.space.md};
-            `
-          }
+          position="relative"
+          left={`-${theme.space.md}`}
+          width={`calc(100% + ${theme.space.md} + ${theme.space.md})`}
         >
           <Header>
             <ColumnTitle>{t('Value')}</ColumnTitle>
