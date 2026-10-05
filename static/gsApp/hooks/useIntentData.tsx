@@ -1,9 +1,9 @@
-import {useEffect, useState} from 'react';
+import {useEffect} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
 import {parseQueryKey, type ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {PaymentCreateResponse, PaymentSetupCreateResponse} from 'getsentry/types';
 
@@ -26,42 +26,20 @@ export function useSetupIntentData({
 }: {
   queryKey: ApiQueryKey;
 }): HookResult<PaymentSetupCreateResponse> {
-  const [setupIntentData, setSetupIntentData] = useState<
-    PaymentSetupCreateResponse | undefined
-  >(undefined);
   const {url} = parseQueryKey(queryKey);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | undefined>(undefined);
-  const {mutate: loadSetupIntentData} = useMutation<
-    PaymentSetupCreateResponse,
-    RequestError
-  >({
-    mutationFn: () => fetchMutation({url, method: 'POST'}),
-    onSuccess: data => {
-      setSetupIntentData(data);
-      setIsLoading(false);
-    },
-    onError: err => {
-      const errorMessage =
-        typeof err?.responseJSON?.detail === 'string'
-          ? err?.responseJSON?.detail
-          : (err?.responseJSON?.detail?.message ?? err?.message);
-      setError(errorMessage);
-      setIsLoading(false);
-    },
+  const {data, error, isError, isSuccess, mutate} = useMutation({
+    mutationFn: () => fetchMutation<PaymentSetupCreateResponse>({url, method: 'POST'}),
   });
 
   useEffect(() => {
-    // oxlint-disable-next-line react/set-state-in-effect
-    setIsLoading(true);
-    loadSetupIntentData();
-  }, [loadSetupIntentData]);
+    mutate();
+  }, [mutate]);
 
   return {
-    intentData: setupIntentData,
-    isLoading,
-    isError: !!error,
-    error,
+    intentData: data,
+    isLoading: !isSuccess && !isError,
+    isError,
+    error: getIntentErrorMessage(error),
   };
 }
 
@@ -83,15 +61,18 @@ export function usePaymentIntentData({
     staleTime: Infinity,
   });
 
-  const errorMessage =
-    typeof error?.responseJSON?.detail === 'string'
-      ? error?.responseJSON?.detail
-      : (error?.responseJSON?.detail?.message ?? error?.message);
-
   return {
     intentData: paymentIntentData,
     isLoading: isLoading || isPending,
     isError,
-    error: errorMessage,
+    error: getIntentErrorMessage(error),
   };
+}
+
+function getIntentErrorMessage(error: Error | null): string | undefined {
+  if (!(error instanceof RequestError)) {
+    return error?.message;
+  }
+  const detail = error.responseJSON?.detail;
+  return typeof detail === 'string' ? detail : (detail?.message ?? error.message);
 }

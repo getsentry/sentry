@@ -12,6 +12,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import {BillingDetailsForm} from 'getsentry/components/billingDetails/form';
 import {useBillingDetails} from 'getsentry/hooks/useBillingDetails';
@@ -50,7 +51,11 @@ export function BillingDetailsPanel({
   } = useBillingDetails();
 
   useEffect(() => {
-    if (loadError && loadError.status !== 401 && loadError.status !== 403) {
+    if (
+      loadError &&
+      (!(loadError instanceof RequestError) ||
+        (loadError.status !== 401 && loadError.status !== 403))
+    ) {
       Sentry.captureException(loadError);
     }
   }, [loadError]);
