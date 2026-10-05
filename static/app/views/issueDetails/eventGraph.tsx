@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {mergeRefs, useResizeObserver} from '@react-aria/utils';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -597,24 +596,27 @@ function GraphButton({
   const textVariant = undefined;
 
   return (
-    <CalloutButton aria-label={`${t('Toggle graph series')} - ${label}`} {...props}>
-      <Stack gap="xs">
-        <Text size="sm" variant={textVariant}>
-          {label}
-        </Text>
-        <Text size="lg" variant={textVariant}>
-          {count ? formatAbbreviatedNumber(count) : '-'}
-        </Text>
-      </Stack>
-    </CalloutButton>
+    <Container height="unset" padding="xs lg">
+      {layoutProps => (
+        <Button
+          aria-label={`${t('Toggle graph series')} - ${label}`}
+          {...props}
+          className={`${layoutProps.className} ${props.className ?? ''}`}
+        >
+          <Stack gap="xs">
+            <Text size="sm" variant={textVariant}>
+              {label}
+            </Text>
+            <Text size="lg" variant={textVariant}>
+              {count ? formatAbbreviatedNumber(count) : '-'}
+            </Text>
+          </Stack>
+        </Button>
+      )}
+    </Container>
   );
 }
 
 function SummaryContainer(props: FlexProps) {
   return <Stack padding="lg xs lg lg" gap="sm" radius="md" {...props} />;
 }
-
-const CalloutButton = styled(Button)`
-  height: unset;
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg};
-`;

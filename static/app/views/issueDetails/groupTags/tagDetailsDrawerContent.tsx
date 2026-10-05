@@ -1,12 +1,11 @@
 import {Fragment, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -261,9 +260,15 @@ function TagDetailsRow({
         tagKey={key}
         tagValue={tagValue}
       />
-      <OverflowTimeSince date={tagValue.lastSeen} />
-      <RightAlignedValue>{tagValue.count.toLocaleString()}</RightAlignedValue>
-      <RightAlignedValue>{displayPercentage}</RightAlignedValue>
+      <Text ellipsis variant="inherit">
+        {props => <TimeSince {...props} date={tagValue.lastSeen} />}
+      </Text>
+      <Text as="div" align="right" variant="inherit">
+        {tagValue.count.toLocaleString()}
+      </Text>
+      <Text as="div" align="right" variant="inherit">
+        {displayPercentage}
+      </Text>
       {tag.totalValues ? (
         <TagBar percentage={percentage} style={{height: theme.space.lg}} />
       ) : (
@@ -314,16 +319,34 @@ function TagDetailsValue({
 
   return (
     <Flex gap="xs" align="center" minWidth={0} overflow="hidden">
-      <ValueLink to={valueLocation}>{valueComponent}</ValueLink>
+      <Container minWidth={0} overflow="hidden">
+        {layoutProps => (
+          <Text variant="primary">
+            {textProps => (
+              <Link
+                className={`${layoutProps.className} ${textProps.className}`}
+                to={valueLocation}
+              >
+                {valueComponent}
+              </Link>
+            )}
+          </Text>
+        )}
+      </Container>
       {isValidUrl(tagValue.value) && (
-        <ExternalLinkbutton
-          variant="link"
-          icon={<IconOpen />}
-          aria-label="Open link"
-          data-test-id="group-tag-url"
-          size="xs"
-          onClick={() => openNavigateToExternalLinkModal({linkText: tagValue.value})}
-        />
+        <Text variant="muted">
+          {props => (
+            <Button
+              {...props}
+              variant="link"
+              icon={<IconOpen />}
+              aria-label="Open link"
+              data-test-id="group-tag-url"
+              size="xs"
+              onClick={() => openNavigateToExternalLinkModal({linkText: tagValue.value})}
+            />
+          )}
+        </Text>
       )}
     </Flex>
   );
@@ -405,25 +428,3 @@ function TagValueActionsMenu({
     />
   );
 }
-
-const RightAlignedValue = styled('div')`
-  text-align: right;
-`;
-
-const ValueLink = styled(Link)`
-  color: ${p => p.theme.tokens.content.primary};
-  min-width: 0;
-  overflow: hidden;
-`;
-
-const OverflowTimeSince = styled(TimeSince)`
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const ExternalLinkbutton = styled(Button)`
-  color: ${p => p.theme.tokens.content.secondary};
-`;

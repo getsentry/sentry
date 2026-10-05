@@ -1,8 +1,8 @@
-import styled from '@emotion/styled';
 import type {Query} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import {REPLAY_LOADING_HEIGHT_LARGE} from 'sentry/components/events/eventReplay/constants';
@@ -62,9 +62,13 @@ export function GroupReplaysPlayer({
         </Alert.Container>
       )}
       renderLoading={() => (
-        <StyledNegativeSpaceContainer data-test-id="replay-loading-placeholder">
-          <LoadingIndicator />
-        </StyledNegativeSpaceContainer>
+        <Container height={`${REPLAY_LOADING_HEIGHT_LARGE}px`} radius="md">
+          {props => (
+            <NegativeSpaceContainer {...props} data-test-id="replay-loading-placeholder">
+              <LoadingIndicator />
+            </NegativeSpaceContainer>
+          )}
+        </Container>
       )}
     >
       {({replay}) => {
@@ -110,8 +114,3 @@ export function GroupReplaysPlayer({
     </ReplayLoadingState>
   );
 }
-
-const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)`
-  height: ${REPLAY_LOADING_HEIGHT_LARGE}px;
-  border-radius: ${p => p.theme.radius.md};
-`;

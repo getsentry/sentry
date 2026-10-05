@@ -1,12 +1,13 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
+import {css} from '@emotion/react';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
 import {FeatureBadge, Tag} from '@sentry/scraps/badge';
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -79,7 +80,15 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
 
   return (
     <Fragment>
-      <Header>
+      <Container
+        as="header"
+        background="primary"
+        paddingTop="md"
+        paddingBottom="md"
+        css={theme => css`
+          padding-inline: var(--issue-details-inset, ${theme.space['2xl']});
+        `}
+      >
         <Flex justify="between">
           <Flex align="center" gap="md">
             <TopBar.Slot name="breadcrumbs">
@@ -115,46 +124,78 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
             <HeaderActions group={group} />
           </Grid>
         </Flex>
-        <HeaderGrid>
+        <Grid columns="minmax(150px, 1fr) auto auto" gap="xl" align="center">
           <Grid columns="minmax(0, max-content) min-content" align="center" gap="sm">
-            <Tooltip title={primaryTitle} skipWrapper showOnlyOnOverflow delay={1000}>
-              <PrimaryTitle>{primaryTitle}</PrimaryTitle>
-            </Tooltip>
+            <InfoText
+              title={primaryTitle}
+              mode="overflowOnly"
+              delay={1000}
+              size="xl"
+              bold
+            >
+              {primaryTitle}
+            </InfoText>
             {isAIDetectedIssue && <FeatureBadge type="new" />}
           </Grid>
-          <StatTitle>
-            {issueTypeConfig.eventAndUserCounts.enabled && (
-              <StatLink
-                to={`${baseUrl}events/${location.search}`}
-                aria-label={t('View events')}
+          <Container justifySelf="end">
+            {layoutProps => (
+              <Text
+                {...layoutProps}
+                as="div"
+                size="sm"
+                variant="muted"
+                bold
+                density="compressed"
               >
-                {t('Events (total)')}
-              </StatLink>
+                {issueTypeConfig.eventAndUserCounts.enabled && (
+                  <StatLink
+                    to={`${baseUrl}events/${location.search}`}
+                    aria-label={t('View events')}
+                  >
+                    {t('Events (total)')}
+                  </StatLink>
+                )}
+              </Text>
             )}
-          </StatTitle>
-          <StatTitle>
-            {issueTypeConfig.eventAndUserCounts.enabled &&
-              (userCount === 0 ? (
-                t('Users %s', userCountPeriod)
-              ) : (
-                <StatLink
-                  to={`${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}user/${location.search}`}
-                  aria-label={t('View affected users')}
-                >
-                  {t('Users %s', userCountPeriod)}
-                </StatLink>
-              ))}
-          </StatTitle>
+          </Container>
+          <Container justifySelf="end">
+            {layoutProps => (
+              <Text
+                {...layoutProps}
+                as="div"
+                size="sm"
+                variant="muted"
+                bold
+                density="compressed"
+              >
+                {issueTypeConfig.eventAndUserCounts.enabled &&
+                  (userCount === 0 ? (
+                    t('Users %s', userCountPeriod)
+                  ) : (
+                    <StatLink
+                      to={`${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}user/${location.search}`}
+                      aria-label={t('View affected users')}
+                    >
+                      {t('Users %s', userCountPeriod)}
+                    </StatLink>
+                  ))}
+              </Text>
+            )}
+          </Container>
           <EventMessage level={group.level} message={secondaryTitle} type={group.type} />
           {issueTypeConfig.eventAndUserCounts.enabled && (
             <Fragment>
-              <StatCount value={eventCount} aria-label={t('Event count')} />
-              <StatCount value={userCount} aria-label={t('User count')} />
+              <Text as="div" size="xl" density="compressed" align="right">
+                <Count value={eventCount} aria-label={t('Event count')} />
+              </Text>
+              <Text as="div" size="xl" density="compressed" align="right">
+                <Count value={userCount} aria-label={t('User count')} />
+              </Text>
             </Fragment>
           )}
           <GroupStatusSubtitle group={group} project={project} />
-        </HeaderGrid>
-      </Header>
+        </Grid>
+      </Container>
       <TourElement<IssueDetailsTour>
         tourContext={IssueDetailsTourContext}
         id={IssueDetailsTour.WORKFLOWS}
@@ -166,7 +207,46 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
       >
         {tourProps => (
           <div {...tourProps}>
-            <ActionBar isComplete={isComplete} role="banner">
+            <Flex
+              justify="between"
+              gap="md"
+              wrap="wrap"
+              paddingTop="md"
+              paddingBottom="md"
+              borderBottom="primary"
+              position="relative"
+              background={isComplete ? undefined : 'primary'}
+              role="banner"
+              css={theme => css`
+                padding-inline: var(--issue-details-inset, ${theme.space['2xl']});
+                transition: background 0.3s ease-in-out;
+                &:before {
+                  z-index: -1;
+                  position: absolute;
+                  inset: 0;
+                  content: '';
+                  background: linear-gradient(
+                    to right,
+                    ${theme.tokens.background.primary},
+                    ${color(theme.tokens.content.success)
+                      .lighten(0.5)
+                      .alpha(0.15)
+                      .string()}
+                  );
+                }
+                &:after {
+                  content: '';
+                  position: absolute;
+                  top: 0;
+                  right: 0;
+                  left: var(--issue-details-inset, ${theme.space['2xl']});
+                  bottom: unset;
+                  height: 1px;
+                  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+                  background: ${theme.tokens.border.primary};
+                }
+              `}
+            >
               <GroupActions
                 group={group}
                 project={project}
@@ -187,7 +267,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
                   />
                 </Flex>
               </Flex>
-            </ActionBar>
+            </Flex>
           </div>
         )}
       </TourElement>
@@ -232,81 +312,14 @@ function HeaderActions({group}: {group: Group}) {
   return null;
 }
 
-const Header = styled('header')`
-  background-color: ${p => p.theme.tokens.background.primary};
-  padding: ${p => p.theme.space.md}
-    var(--issue-details-inset, ${p => p.theme.space['2xl']});
-`;
-
-const HeaderGrid = styled('div')`
-  display: grid;
-  grid-template-columns: minmax(150px, 1fr) auto auto;
-  column-gap: ${p => p.theme.space.xl};
-  align-items: center;
-`;
-
-const PrimaryTitle = styled('span')`
-  overflow-x: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 20px;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  flex-shrink: 0;
-`;
-
-const StatTitle = styled('div')`
-  display: block;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  line-height: 1;
-  justify-self: flex-end;
-`;
-
-const StatLink = styled(Link)`
-  color: ${p => p.theme.tokens.content.secondary};
-  text-decoration: ${p => (p['aria-disabled'] ? 'none' : 'underline')};
-  text-decoration-style: dotted;
-`;
-
-const StatCount = styled(Count)`
-  display: block;
-  font-size: 20px;
-  line-height: 1;
-  text-align: right;
-`;
-
-const ActionBar = styled('div')<{isComplete: boolean}>`
-  display: flex;
-  justify-content: space-between;
-  gap: ${p => p.theme.space.md};
-  flex-wrap: wrap;
-  padding: ${p => p.theme.space.md}
-    var(--issue-details-inset, ${p => p.theme.space['2xl']});
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
-  position: relative;
-  transition: background 0.3s ease-in-out;
-  background: ${p => (p.isComplete ? 'transparent' : p.theme.tokens.background.primary)};
-  &:before {
-    z-index: -1;
-    position: absolute;
-    inset: 0;
-    content: '';
-    background: linear-gradient(
-      to right,
-      ${p => p.theme.tokens.background.primary},
-      ${p => color(p.theme.tokens.content.success).lighten(0.5).alpha(0.15).string()}
-    );
-  }
-  &:after {
-    content: '';
-    position: absolute;
-    top: 0;
-    right: 0;
-    left: var(--issue-details-inset, ${p => p.theme.space['2xl']});
-    bottom: unset;
-    height: 1px;
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-    background: ${p => p.theme.tokens.border.primary};
-  }
-`;
+function StatLink({children, ...props}: LinkProps) {
+  return (
+    <Text variant="muted" underline={props['aria-disabled'] ? false : 'dotted'}>
+      {textProps => (
+        <Link {...props} {...textProps}>
+          {children}
+        </Link>
+      )}
+    </Text>
+  );
+}
