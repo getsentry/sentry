@@ -186,7 +186,8 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
             DataSource.objects.filter(organization=self.organization).count() == data_source_count
         )
 
-    def assert_post_feature_gate(self, gate: FeatureGate) -> None:
+    def test_post_operation_feature_gate_preserves_state(self) -> None:
+        gate = FeatureGate("organizations:workflow-engine-log-evaluations")
         querysets = (
             Detector.objects.filter(project=self.project),
             DataSource.objects.filter(organization=self.organization),
@@ -198,41 +199,39 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
             DetectorWorkflow.objects.filter(detector__project=self.project),
         )
         original_state = [list(queryset.order_by("id").values()) for queryset in querysets]
-        with self.feature({gate.name: False}):
-            response = self.get_error_response(
-                self.organization.slug,
-                self.project.slug,
-                **self.valid_data,
-                status_code=400,
-            )
-        assert "type" in response.data
-        assert [list(queryset.order_by("id").values()) for queryset in querysets] == original_state
-
-        with self.feature(gate.name), self.tasks():
-            response = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                **self.valid_data,
-                status_code=201,
-            )
-        detector = Detector.objects.get(id=response.data["id"])
-        assert response.data == serialize(detector)
-        assert detector.type == MetricIssue.slug
-        assert detector.name == self.valid_data["name"]
-        assert detector.project_id == self.project.id
-        data_source = DataSource.objects.get(detector=detector)
-        subscription = QuerySubscription.objects.get(id=data_source.source_id)
-        assert subscription.snuba_query.query == "test query"
-        assert DetectorWorkflow.objects.filter(
-            detector=detector, workflow=self.connected_workflow
-        ).exists()
-
-    def test_post_operation_feature_gate_preserves_state(self) -> None:
-        gate = FeatureGate("organizations:workflow-engine-log-evaluations")
         with mock.patch.object(
             MetricIssue.detector_settings, "api_availability", {DetectorAPIOperation.POST: gate}
         ):
-            self.assert_post_feature_gate(gate)
+            with self.feature({gate.name: False}):
+                response = self.get_error_response(
+                    self.organization.slug,
+                    self.project.slug,
+                    **self.valid_data,
+                    status_code=400,
+                )
+            assert "type" in response.data
+            assert [
+                list(queryset.order_by("id").values()) for queryset in querysets
+            ] == original_state
+
+            with self.feature(gate.name), self.tasks():
+                response = self.get_success_response(
+                    self.organization.slug,
+                    self.project.slug,
+                    **self.valid_data,
+                    status_code=201,
+                )
+            detector = Detector.objects.get(id=response.data["id"])
+            assert response.data == serialize(detector)
+            assert detector.type == MetricIssue.slug
+            assert detector.name == self.valid_data["name"]
+            assert detector.project_id == self.project.id
+            data_source = DataSource.objects.get(detector=detector)
+            subscription = QuerySubscription.objects.get(id=data_source.source_id)
+            assert subscription.snuba_query.query == "test query"
+            assert DetectorWorkflow.objects.filter(
+                detector=detector, workflow=self.connected_workflow
+            ).exists()
 
     def test_reject_upsampled_count_aggregate(self) -> None:
         """Users should not be able to submit upsampled_count() directly in ACI."""
