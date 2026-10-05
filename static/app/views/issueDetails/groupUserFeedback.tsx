@@ -1,8 +1,9 @@
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
+import {Separator} from '@sentry/scraps/separator';
+import {Text} from '@sentry/scraps/text';
 
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -70,10 +71,10 @@ function GroupUserFeedback() {
     <Layout.Body border="primary" radius="md" padding={{zero: 'lg 0', '3xl': 'lg'}}>
       <Layout.Main width="full">
         {hasUserFeedback && (
-          <FilterMessage>
+          <Text as="div" variant="muted">
             {t('The feedback shown below is not subject to search filters.')}
-            <StyledBreak />
-          </FilterMessage>
+            <Separator orientation="horizontal" margin="md 0" />
+          </Text>
         )}
         {reportList.length === 0 ? (
           <FeedbackEmptyState projectIds={[group.project.id]} issueTab />
@@ -93,15 +94,5 @@ function GroupUserFeedback() {
     </Layout.Body>
   );
 }
-
-const FilterMessage = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const StyledBreak = styled('hr')`
-  margin-top: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.md};
-  border-color: ${p => p.theme.tokens.border.primary};
-`;
 
 export default GroupUserFeedback;
