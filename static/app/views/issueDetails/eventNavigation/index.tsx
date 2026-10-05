@@ -236,11 +236,6 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
       direction={{zero: 'column', sm: 'row'}}
       justify="between"
       align={{sm: 'center'}}
-      css={navigationTheme =>
-        css`
-          font-size: ${navigationTheme.font.size.sm};
-        `
-      }
     >
       {showContentTabs ? (
         <Tabs
