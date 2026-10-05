@@ -24,11 +24,18 @@ class Migration(CheckedMigration):
         ("sentry", "1193_remove_grouprulestatus_fk_constraints"),
     ]
 
+    # Build the wider index before dropping the (group, status) index it supersedes, so
+    # group/status lookups are never left without an index. makemigrations emits the
+    # opposite order.
     operations = [
         migrations.AddIndex(
             model_name="grouphistory",
             index=models.Index(
                 fields=["group", "status", "date_added"], name="sentry_grou_group_i_8812f4_idx"
             ),
+        ),
+        migrations.RemoveIndex(
+            model_name="grouphistory",
+            name="sentry_grou_group_i_c61acb_idx",
         ),
     ]
