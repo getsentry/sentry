@@ -375,7 +375,7 @@ class SeerAgentClient:
             raise ValueError("category_key and category_value must be provided together")
 
         # Validate base Seer access on init (agent-specific flag checks are done at the endpoint level)
-        has_access, error = has_seer_access_with_detail(organization, user)
+        has_access, error = has_seer_access_with_detail(organization)
         if not has_access:
             raise SeerPermissionError(error or "Access denied")
 
@@ -570,7 +570,7 @@ class SeerAgentClient:
         synchronously (mirror -> FAILED, raises SeerApiError, no retry).
 
         flush=False: leave the row for the async outbox runner to drain and
-        retry. Use for background callers (e.g. night shift).
+        retry. Use for background callers (e.g. agentic triage).
 
         Explicit agent_run_options override any options derived from organization
         configuration.

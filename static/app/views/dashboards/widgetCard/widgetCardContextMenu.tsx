@@ -41,7 +41,6 @@ import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetric
 import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
@@ -179,7 +178,8 @@ export function getMenuOptions(
   onDelete?: () => void,
   onDuplicate?: () => void,
   onEdit?: () => void,
-  timeseriesResults?: Series[]
+  timeseriesResults?: Series[],
+  onAskSeer?: () => void
 ) {
   const menuOptions: MenuItemProps[] = [];
 
@@ -203,9 +203,7 @@ export function getMenuOptions(
       );
       menuOptions.push({
         key: 'open-in-discover',
-        label: getDiscoverDeprecation(organization)
-          ? t('Open in Explore')
-          : t('Open in Discover'),
+        label: t('Open in Explore'),
         to: optionDisabled
           ? undefined
           : widget.queries.length === 1
@@ -364,6 +362,14 @@ export function getMenuOptions(
       key: 'open-in-issues',
       label: t('Open in Issues'),
       to: issuesLocation,
+    });
+  }
+
+  if (onAskSeer) {
+    menuOptions.push({
+      key: 'ask-seer',
+      label: t('Ask Seer'),
+      onAction: onAskSeer,
     });
   }
 

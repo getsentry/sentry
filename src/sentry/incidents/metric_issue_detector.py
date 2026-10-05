@@ -208,9 +208,7 @@ def format_extrapolation_mode(
 
 
 class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
-    data_sources = serializers.ListField(
-        child=SnubaQueryValidator(timeWindowSeconds=True), required=False
-    )
+    data_sources = serializers.ListField(child=SnubaQueryValidator(), required=False)
     condition_group = MetricIssueConditionGroupValidator(required=True)
 
     def validate_eap_rule(self, attrs: dict[str, Any]) -> None:
@@ -280,8 +278,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
         comparison_delta: int | float | None,
     ) -> timedelta:
         """
-        Compute the appropriate SnubaQuery resolution for a given time window
-        (in seconds), mirroring the logic in create_alert_rule / update_alert_rule.
+        Compute the appropriate SnubaQuery resolution for a given time window in seconds.
         """
         organization = self.context["organization"]
 

@@ -13,10 +13,6 @@ import {AI_AGENTS_GETTING_STARTED_DOCS_LINK} from 'sentry/views/insights/pages/a
 import ConversationsOverviewPage from './overview';
 
 const organization = OrganizationFixture({
-  features: ['gen-ai-agents-overview', 'gen-ai-conversations'],
-});
-
-const organizationWithoutAgentsOverview = OrganizationFixture({
   features: ['gen-ai-conversations'],
 });
 
@@ -103,36 +99,17 @@ describe('ConversationsOverviewPage', () => {
       url: `/organizations/${organization.slug}/recent-searches/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/recent-searches/`,
+      method: 'POST',
+      body: {},
+    });
   });
 
   afterEach(() => {
     localStorage.clear();
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
-  });
-
-  it('shows the existing conversations overview when the agents overview is disabled', async () => {
-    render(<ConversationsOverviewPage />, {
-      organization: organizationWithoutAgentsOverview,
-    });
-
-    expect(
-      await screen.findByRole('button', {name: 'Conversation Count'})
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('tab', {name: 'Conversations'})).not.toBeInTheDocument();
-    expect(screen.queryByText('Agent runs')).not.toBeInTheDocument();
-    expect(screen.queryByText(MISSING_AGENT_SPANS_MESSAGE)).not.toBeInTheDocument();
-  });
-
-  it('shows conversation onboarding when the agents overview is disabled without conversation data', async () => {
-    localStorage.clear();
-    render(<ConversationsOverviewPage />, {
-      organization: organizationWithoutAgentsOverview,
-    });
-
-    expect(await screen.findByRole('button', {name: 'Copy prompt'})).toBeInTheDocument();
-    expect(screen.queryByRole('tab', {name: 'Conversations'})).not.toBeInTheDocument();
-    expect(screen.queryByText('Agent runs')).not.toBeInTheDocument();
   });
 
   it('defaults to conversations when conversation data is known', async () => {
@@ -159,6 +136,30 @@ describe('ConversationsOverviewPage', () => {
     expect(
       tabList.compareDocumentPosition(tableSearch) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
+  });
+
+  it('tailors the search placeholder to the selected table', async () => {
+    render(<ConversationsOverviewPage />, {organization});
+
+    expect(
+      await screen.findByPlaceholderText(
+        'Search by conversation ID, user, model, or message'
+      )
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Traces'}));
+    expect(
+      await screen.findByPlaceholderText(
+        'Search by trace ID, operation, service, or user'
+      )
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
+    expect(
+      await screen.findByPlaceholderText(
+        'Search by model, provider, tokens, or operation'
+      )
+    ).toBeInTheDocument();
   });
 
   it('only shows the cost chart and setup banner without agent or tool spans', async () => {
@@ -286,6 +287,50 @@ describe('ConversationsOverviewPage', () => {
     expect(await screen.findByRole('button', {name: 'Copy prompt'})).toBeInTheDocument();
   });
 
+  it('opens a pasted conversation ID from the traces tab', async () => {
+    const {router} = render(<ConversationsOverviewPage />, {organization});
+
+    await userEvent.click(await screen.findByRole('tab', {name: 'Traces'}));
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/agents/conversations/`,
+      body: [
+        {
+          conversationId: 'abcdef12',
+          duration: 1000,
+          endTimestamp: 2000,
+          errors: 0,
+          firstInput: null,
+          generationDuration: 500,
+          inputTokens: 0,
+          lastOutput: null,
+          llmCalls: 1,
+          outputTokens: 0,
+          projectId: null,
+          startTimestamp: 1000,
+          toolCalls: 0,
+          toolErrors: 0,
+          toolNames: [],
+          totalCost: null,
+          totalTokens: 100,
+          traceCount: 1,
+          traceIds: ['trace-id'],
+          user: null,
+        },
+      ],
+      headers: {'X-Sentry-Direct-Hit': '1'},
+    });
+
+    await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+    await userEvent.keyboard('abcdef12{Enter}');
+
+    await waitFor(() => {
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/explore/agents/conversations/abcdef12/`
+      );
+    });
+  });
+
   it('shows conversation onboarding without data tabs when there are no gen AI spans', async () => {
     localStorage.clear();
     ProjectsStore.loadInitialData([
@@ -340,17 +385,17 @@ describe('ConversationsOverviewPage', () => {
     render(<ConversationsOverviewPage />, {organization});
 
     expect(
-      await screen.findByRole('heading', {name: 'Capture Your Conversation Messages'})
+      await screen.findByText(/These conversations' inputs and outputs weren't captured/)
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', {name: 'Traces'}));
     expect(
-      screen.getByRole('heading', {name: 'Capture Your Conversation Messages'})
+      screen.getByText(/These conversations' inputs and outputs weren't captured/)
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', {name: 'LLM Calls'}));
     expect(
-      screen.getByRole('heading', {name: 'Capture Your Conversation Messages'})
+      screen.getByText(/These conversations' inputs and outputs weren't captured/)
     ).toBeInTheDocument();
   });
 

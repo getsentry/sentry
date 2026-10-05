@@ -7,7 +7,7 @@ import {Container} from '@sentry/scraps/layout';
 
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import type {ChartXRangeSelectionProps} from 'sentry/components/charts/useChartXRangeSelection';
-import type {DroppedData} from 'sentry/components/droppedData/utils';
+import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
@@ -28,7 +28,7 @@ interface ChartVisualizationProps {
   chartInfo: ChartInfo;
   chartRef?: Ref<ReactEchartsRef>;
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
-  droppedData?: DroppedData;
+  droppedData?: DroppedDataProps;
 }
 
 export function useChartVisualizationPlottables(chartInfo: ChartInfo) {

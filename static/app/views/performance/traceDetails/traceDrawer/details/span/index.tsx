@@ -51,6 +51,7 @@ import {AIInputSection} from 'sentry/views/performance/traceDetails/traceDrawer/
 import {AIIOAlert} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiIOAlert';
 import {AIOutputSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import {AttributesSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/attributes';
+import {CacheLifecycleSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/cacheLifecycle';
 import {Contexts} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/contexts';
 import {MCPInputSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/mcpInput';
 import {MCPOutputSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/mcpOutput';
@@ -370,6 +371,17 @@ function EAPSpanNodeDetailsContent({
           avgSpanDuration={avgSpanDuration}
           hideNodeActions={hideNodeActions}
         />
+        {organization.features.includes('performance-trace-cache-lifecycle') ? (
+          <CacheLifecycleSection
+            node={node}
+            attributes={attributes}
+            links={links}
+            location={location}
+            organization={organization}
+            tree={tree}
+            onTabScrollToNode={onTabScrollToNode}
+          />
+        ) : null}
         <AIIOAlert node={node} attributes={attributes} />
         <AIInputSection
           node={node}

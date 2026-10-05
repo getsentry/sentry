@@ -27,6 +27,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {ConnectedMonitorsList} from 'sentry/views/automations/components/connectedMonitorsList';
+import {getNoAllProjectsWritePermissionTooltip} from 'sentry/views/automations/hooks/useCanEditAutomation';
 import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
 import {
   canConnectAutomationToDetector,
@@ -333,7 +334,6 @@ function EditConnectedMonitorsContent({
   const [monitorMode, setMonitorMode] = useState<MonitorMode>(initialMode);
   const {form} = useContext(FormContext);
   const errorContext = useContext(AutomationBuilderErrorContext);
-  const organization = useOrganization();
 
   const handleModeChange = useCallback(
     (newMode: MonitorMode) => {
@@ -378,17 +378,10 @@ function EditConnectedMonitorsContent({
   ];
 
   const disabledChoices: Array<[MonitorMode, React.ReactNode?]> = [];
-  if (organization.features.includes('workflow-engine-all-projects-detector')) {
-    monitorModeChoices.push(['allProjects', t('Alert on all issues in all projects')]);
+  monitorModeChoices.push(['allProjects', t('Alert on all issues in all projects')]);
 
-    if (!canEditAllProjects) {
-      disabledChoices.push([
-        'allProjects',
-        t(
-          'Only organization owners and managers can create/modify global issue monitors.'
-        ),
-      ]);
-    }
+  if (!canEditAllProjects) {
+    disabledChoices.push(['allProjects', getNoAllProjectsWritePermissionTooltip()]);
   }
 
   return (

@@ -93,18 +93,38 @@ export function TraceAiConversations({
 
   const {
     nodes: conversationNodes,
-    nodeTraceMap,
-    isLoading,
+    nodeTraceMap: conversationNodeTraceMap,
+    isLoading: isConversationLoading,
     error,
   } = useConversation({
     conversationId: activeConversationId,
     ...traceTimeBounds,
   });
 
-  const traceNodes = useMemo(
-    () => conversationNodes.filter(n => nodeTraceMap.get(n.id) === traceSlug),
-    [conversationNodes, nodeTraceMap, traceSlug]
+  const localNodeTraceMap = useMemo(
+    () => new Map(allAiNodes.map(node => [node.id, traceSlug])),
+    [allAiNodes, traceSlug]
   );
+  const hasActiveConversation = Boolean(activeConversationId);
+  const traceNodes = useMemo(
+    () =>
+      hasActiveConversation
+        ? conversationNodes.filter(
+            node => conversationNodeTraceMap.get(node.id) === traceSlug
+          )
+        : allAiNodes,
+    [
+      allAiNodes,
+      conversationNodes,
+      conversationNodeTraceMap,
+      hasActiveConversation,
+      traceSlug,
+    ]
+  );
+  const nodeTraceMap = hasActiveConversation
+    ? conversationNodeTraceMap
+    : localNodeTraceMap;
+  const isLoading = hasActiveConversation && isConversationLoading;
 
   const conversationOptions = useMemo(
     () => conversationIds.map(id => ({value: id, label: id.slice(0, 8)})),
@@ -163,7 +183,7 @@ export function TraceAiConversations({
               </LinkButton>
             )}
           </Flex>
-          {activeConversationId && (
+          {hasActiveConversation && (
             <TraceConversationHeader
               conversationId={activeConversationId}
               nodes={traceNodes}

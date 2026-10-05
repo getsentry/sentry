@@ -124,6 +124,11 @@ describe('Investigation detail', () => {
     jest.spyOn(indicators, 'addErrorMessage').mockImplementation();
     createFeedbackForm.mockClear();
     ConfigStore.set('customerDomain', null);
+    MockApiClient.addMockResponse({
+      url: `${detailUrl}presence/`,
+      method: 'PUT',
+      body: {viewers: [], total: 0, heartbeatIntervalMs: 5000},
+    });
   });
 
   it('loads and renders the complete investigation response', async () => {
@@ -142,7 +147,6 @@ describe('Investigation detail', () => {
       screen.queryByRole('button', {name: /Ask Seer about/})
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /Rerun/})).not.toBeInTheDocument();
-    expect(screen.queryByText('Ask Seer')).not.toBeInTheDocument();
     expect(screen.queryByText(/"blocks":/)).not.toBeInTheDocument();
     expect(request).toHaveBeenCalledTimes(1);
     expect(screen.queryByTestId('investigation-summary')).not.toBeInTheDocument();
@@ -207,7 +211,6 @@ describe('Investigation detail', () => {
     expect(
       await screen.findByRole('link', {name: 'Checkout error rate'})
     ).toHaveAttribute('href', '/organizations/org-slug/issues/123/');
-    expect(screen.queryByText('Breached metric')).not.toBeInTheDocument();
   });
 
   it('links the issue of a breached metric investigation without a snapshot', async () => {
@@ -228,7 +231,6 @@ describe('Investigation detail', () => {
       'href',
       '/organizations/org-slug/issues/123/'
     );
-    expect(screen.queryByText('Breached metric')).not.toBeInTheDocument();
   });
 
   it('labels a manual investigation without a source link', async () => {
@@ -256,7 +258,6 @@ describe('Investigation detail', () => {
     renderView();
 
     const summary = await screen.findByTestId('investigation-summary');
-    expect(within(summary).queryByText('Current understanding')).not.toBeInTheDocument();
     expect(within(summary).getByText('Errors rose across releases')).toBeInTheDocument();
     expect(
       within(summary).getByText(/All active releases increased together/)
@@ -379,9 +380,6 @@ describe('Investigation detail', () => {
     // The real title is shown, so only the body is a placeholder.
     expect(
       within(cell).queryByTestId('investigation-cell-placeholder-title')
-    ).not.toBeInTheDocument();
-    expect(
-      within(cell).queryByText('Seer is working on this cell…')
     ).not.toBeInTheDocument();
   });
 
@@ -864,8 +862,6 @@ describe('Investigation detail', () => {
     expect(
       screen.queryByLabelText('Cell actions for Latency query')
     ).not.toBeInTheDocument();
-    expect(screen.queryByText('Waiting for previous cells…')).not.toBeInTheDocument();
-    expect(screen.queryByText('This cell has no output yet.')).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Close Seer panel'})
     ).not.toBeInTheDocument();
@@ -890,7 +886,7 @@ describe('Investigation detail', () => {
 
     expect(await screen.findByText('Timeouts began after the deployment.')).toBeVisible();
     expect(await screen.findByText('1.84s')).toBeVisible();
-    expect(screen.getByRole('button', {name: 'Toggle Latency query'})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'Latency query'})).toHaveAttribute(
       'aria-expanded',
       'true'
     );
@@ -946,7 +942,6 @@ describe('Investigation detail', () => {
       expect(
         screen.queryByLabelText('Cell actions for Latency query')
       ).not.toBeInTheDocument();
-      expect(screen.queryByText('This cell has no output yet.')).not.toBeInTheDocument();
     }
   );
 
@@ -1062,7 +1057,6 @@ describe('Investigation detail', () => {
     ).toBeInTheDocument();
     expect(screen.queryByTestId('investigation-cell-block-2')).not.toBeInTheDocument();
     expect(screen.queryByTestId('investigation-cell-block-4')).not.toBeInTheDocument();
-    expect(screen.queryByText('Waiting for previous cells…')).not.toBeInTheDocument();
     expect(
       screen.queryByTestId('investigation-execution-failed')
     ).not.toBeInTheDocument();
@@ -1078,10 +1072,8 @@ describe('Investigation detail', () => {
     await chooseCellAction('Latency query', 'Refine');
 
     const prompt = screen.getByLabelText('Instructions for Seer');
-    expect(screen.getByText('Ask Seer to refine')).toBeInTheDocument();
     expect(prompt).toHaveValue('');
     expect(prompt).toBeVisible();
-    expect(screen.queryByRole('button', {name: 'Ask Seer'})).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Cancel Seer request'}));
     expect(screen.queryByLabelText('Instructions for Seer')).not.toBeInTheDocument();
@@ -1141,7 +1133,6 @@ describe('Investigation detail', () => {
     renderView();
 
     expect(await screen.findByText('Rendered')).toBeInTheDocument();
-    expect(screen.queryByText('Investigation step 1')).not.toBeInTheDocument();
     expect(screen.getByTestId('text-cell-result')).toHaveAttribute(
       'data-cell-variant',
       'unbordered'
@@ -1158,12 +1149,11 @@ describe('Investigation detail', () => {
       'md'
     );
 
-    expect(screen.getByTestId('query-cell-title')).toHaveTextContent('Database latency');
-    expect(screen.queryByText('Evidence/Database latency')).not.toBeInTheDocument();
+    const toggle = screen.getByRole('button', {name: 'Database latency'});
 
-    await userEvent.click(screen.getByTestId('query-cell-title'));
-    expect(screen.queryByText('820ms')).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Toggle Database latency'}));
+    await userEvent.click(toggle);
+    expect(screen.getByText('820ms')).not.toBeVisible();
+    await userEvent.click(toggle);
     expect(screen.getByText('820ms')).toBeVisible();
   });
 
@@ -1196,20 +1186,17 @@ describe('Investigation detail', () => {
 
     renderView();
 
-    const toggle = await screen.findByRole('button', {name: 'Toggle Latency query'});
+    const toggle = await screen.findByRole('button', {name: 'Latency query'});
     expect(toggle).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByText('820ms')).toBeVisible();
-    expect(screen.getByRole('button', {name: 'Show query'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
+    expect(screen.queryByRole('button', {name: 'Show query'})).not.toBeInTheDocument();
     expect(screen.getByTestId('query-cell')).toContainElement(
       screen.getByRole('button', {name: 'Cell actions for Latency query'})
     );
 
     await userEvent.click(toggle);
 
-    expect(screen.queryByText('820ms')).not.toBeInTheDocument();
+    expect(screen.getByText('820ms')).not.toBeVisible();
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
 
     await userEvent.keyboard('{Enter}');
@@ -1226,54 +1213,15 @@ describe('Investigation detail', () => {
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
   });
 
-  it('shows and hides saved queries without collapsing the result', async () => {
-    const investigation = investigationWithQueryResult();
-    investigation.blocks[1]!.output = {
-      ...InvestigationQueryOutputFixture(),
-      queryLinks: [
-        {kind: 'telemetry', params: {query: 'transaction:/api/checkout'}},
-        {kind: 'telemetry', params: {query: 'transaction:/api/checkout'}},
-        {kind: 'telemetry', params: {query: 'span.op:db'}},
-        {kind: 'telemetry', params: {query: 42}},
-        {kind: 'telemetry', params: {query: ' '}},
-        null,
-      ],
-    };
-    MockApiClient.addMockResponse({url: detailUrl, body: investigation});
-
-    renderView();
-
-    const showQuery = await screen.findByRole('button', {name: 'Show query'});
-    expect(showQuery).not.toHaveAttribute('aria-disabled', 'true');
-    expect(screen.queryByText('transaction:/api/checkout')).not.toBeInTheDocument();
-
-    await userEvent.click(showQuery);
-
-    expect(screen.getAllByText('transaction:/api/checkout')).toHaveLength(1);
-    expect(screen.getByText('transaction:/api/checkout')).toBeVisible();
-    expect(screen.getByText('span.op:db')).toBeVisible();
-    expect(screen.getByRole('button', {name: 'Toggle Latency query'})).toHaveAttribute(
-      'aria-expanded',
-      'true'
-    );
-    expect(screen.getByRole('table')).toBeVisible();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Hide query'}));
-
-    expect(screen.queryByText('transaction:/api/checkout')).not.toBeInTheDocument();
-    expect(screen.queryByText('span.op:db')).not.toBeInTheDocument();
-    expect(screen.getByRole('table')).toBeVisible();
-  });
-
   it('renders the outer query title as non-editable text', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
       body: investigationWithQueryResult(),
     });
     renderView();
-    expect(await screen.findByTestId('query-cell-title')).toHaveTextContent(
-      'Latency query'
-    );
+    expect(
+      await screen.findByRole('heading', {level: 3, name: 'Latency query'})
+    ).toBeInTheDocument();
     expect(
       screen.queryByLabelText('Cell title for Latency query')
     ).not.toBeInTheDocument();
@@ -1329,9 +1277,9 @@ describe('Investigation detail', () => {
     renderView();
 
     expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
-    expect(screen.getAllByTestId('query-cell-title')[0]).toHaveTextContent(
-      'Latency query'
-    );
+    expect(
+      screen.getAllByRole('heading', {level: 3, name: 'Latency query'})[0]
+    ).toBeInTheDocument();
     expect(screen.getByText('Latency over time')).toBeInTheDocument();
     expect(
       within(screen.getAllByTestId('query-cell-header')[0]!).getByText(
@@ -2105,6 +2053,11 @@ describe('Investigation detail', () => {
       body: InvestigationDetailFixture({id: 'investigation-2'}),
     });
     MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/investigations/investigation-2/presence/',
+      method: 'PUT',
+      body: {viewers: [], total: 0, heartbeatIntervalMs: 5000},
+    });
+    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/investigations/investigation-2/',
       body: InvestigationDetailFixture({id: 'investigation-2'}),
     });
@@ -2272,12 +2225,6 @@ describe('Investigation detail', () => {
     const {queryClient} = renderView();
 
     expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
-    await userEvent.click(await screen.findByRole('button', {name: /Hypotheses/}));
-    expect(
-      screen.getByRole('heading', {
-        name: 'Database or cache degradation delayed the response',
-      })
-    ).toBeInTheDocument();
     expect(orchestrationRequest).toHaveBeenCalledTimes(1);
     const header = screen.getByRole('banner');
     expect(

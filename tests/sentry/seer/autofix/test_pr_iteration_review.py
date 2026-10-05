@@ -1,6 +1,7 @@
 from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
+import pytest
 from scm.errors import ResourceNotFound
 
 from sentry.models.pullrequest import PullRequest
@@ -15,6 +16,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 from sentry.seer.autofix.pr_iteration.listeners.review import (
     handle_pull_request_review_for_autofix_iteration,
 )
+from sentry.seer.models import SeerUnavailableError
 from sentry.tasks.seer.pr_iteration import _REVIEW_PAGE_SIZE, trigger_pr_iteration_from_review
 from sentry.testutils.cases import TestCase
 
@@ -327,7 +329,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
     def _review_result(self, review: dict[str, Any]) -> dict[str, Any]:
         return {"data": review, "type": "github", "raw": {}}
 
-    def _stored_pr(self, *, external_id: int | None = None) -> PullRequest:
+    def _stored_pr(self, *, external_id: str | None = None) -> PullRequest:
         pr = self.create_pull_request(
             repository_id=self.repo.id,
             organization_id=self.organization.id,
@@ -359,13 +361,13 @@ class TriggerPrIterationFromReviewTest(TestCase):
     def test_resolves_pr_id_from_row_without_calling_github(self) -> None:
         # The pull_request_review payload carries only the PR number; a stored
         # ``external_id`` is what keeps that from costing a REST round-trip.
-        self._stored_pr(external_id=555)
+        self._stored_pr(external_id="555")
 
         self._run()
 
         self.mock_actions.get_pull_request.assert_not_called()
         self.mock_get_state.assert_called_once_with(
-            self.organization.id, "integrations:github", 555
+            self.organization.id, "integrations:github", "555"
         )
 
     def test_writes_external_id_back_on_a_miss(self) -> None:
@@ -377,7 +379,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
             self.mock_make_scm.return_value, "7"
         )
         pr.refresh_from_db()
-        assert pr.external_id == 555
+        assert pr.external_id == "555"
 
     def test_stops_on_a_repo_whose_provider_is_not_pinned(self) -> None:
         # Everything downstream reads github.com off `PR_ITERATION_PROVIDER`
@@ -420,7 +422,7 @@ class TriggerPrIterationFromReviewTest(TestCase):
             self.mock_make_scm.return_value, "7"
         )
         self.mock_get_state.assert_called_once_with(
-            self.organization.id, "integrations:github", 555
+            self.organization.id, "integrations:github", "555"
         )
 
         # Two inline comments + one review body item.
@@ -676,6 +678,14 @@ class TriggerPrIterationFromReviewTest(TestCase):
         self.mock_actions.get_review_comments.assert_not_called()
         self.mock_enqueue.assert_not_called()
         self.mock_consume.assert_not_called()
+
+    def test_seer_unavailable_fails_the_task_so_it_is_retried(self) -> None:
+        self.mock_get_state.side_effect = SeerUnavailableError("Seer request failed", 503)
+
+        with pytest.raises(SeerUnavailableError):
+            self._run()
+
+        self.mock_enqueue.assert_not_called()
 
     def test_bot_review_past_the_automated_streak_cap_is_queued_but_not_consumed(self) -> None:
         # Feedback is always queued. Past the cap the trigger refuses to schedule

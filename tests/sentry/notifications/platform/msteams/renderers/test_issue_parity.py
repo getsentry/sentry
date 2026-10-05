@@ -61,6 +61,7 @@ class IssueCardLegacyParityTest(TestCase):
 
     def platform_card(self) -> AdaptiveCard:
         data = IssueNotificationData(
+            organization_id=1,
             group_id=self.issue_group.id,
             event_id=self.event.event_id,
             notification_uuid="",
