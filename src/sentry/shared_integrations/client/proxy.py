@@ -139,7 +139,11 @@ class IntegrationProxyClient(ApiClient):
         # If the request flow for processing a Webhook outbox message is between the CellSiloClient and the
         # IntegrationProxyClient, then the IntegrationProxyClient will need to have a smaller timeout value.
         # Otherwise, the CellSiloClient will timeout before it can receive a response from the IntegrationProxyClient.
-        self.timeout = 10
+        if options.get("hybridcloud.integrationproxy.long-server-wait-is-enabled"):
+            # 30 second wait for data. 30 second wait for connect ((1 attempt + 5 retries) * 3 seconds).
+            self.timeout = (3, 30)
+        else:
+            self.timeout = 10
 
         if self.determine_whether_should_proxy_to_control():
             self._should_proxy_to_control = True
@@ -158,14 +162,35 @@ class IntegrationProxyClient(ApiClient):
         For all other silo modes, we use the default is_ipaddress_permitted function, which tests against SENTRY_DISALLOWED_IPS.
         """
         if SiloMode.get_current_mode() == SiloMode.CELL:
-            return build_session(
-                is_ipaddress_permitted=is_control_silo_ip_address,
-                max_retries=Retry(
-                    total=options.get("hybridcloud.integrationproxy.retries"),
+            num_retries = options.get("hybridcloud.integrationproxy.retries")
+
+            if options.get("hybridcloud.integrationproxy.long-server-wait-is-enabled"):
+                max_retries = Retry(
+                    total=num_retries,
+                    connect=num_retries,
+                    # If the server could not respond despite a successful connection
+                    # within the data timeout window we will not retry. We're making
+                    # the assumption that the request is not satisfiable given our
+                    # timeout policy. A repeated attempt will consume resources with
+                    # no benefit. Subsequent attempts will likely be made by browser
+                    # client refresh or explicit backend override.
+                    read=0,
+                    other=0,
                     backoff_factor=0.1,
                     status_forcelist=[503],
                     allowed_methods=["PATCH", "HEAD", "PUT", "GET", "DELETE", "POST"],
-                ),
+                )
+            else:
+                max_retries = Retry(
+                    total=num_retries,
+                    backoff_factor=0.1,
+                    status_forcelist=[503],
+                    allowed_methods=["PATCH", "HEAD", "PUT", "GET", "DELETE", "POST"],
+                )
+
+            return build_session(
+                is_ipaddress_permitted=is_control_silo_ip_address,
+                max_retries=max_retries,
             )
         return build_session()
 
