@@ -793,55 +793,56 @@ def test_individual_attachments(
 ):
     retention_days = 66
 
-    event_id = uuid.uuid4().hex
-    attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
-    project_id = default_project.id
-    group_id = None
+    with patch("sentry.features.has", return_value=feature_enabled):
+        event_id = uuid.uuid4().hex
+        attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
+        project_id = default_project.id
+        group_id = None
 
-    if with_group:
-        event = factories.store_event(
-            data={"event_id": event_id, "message": "existence is pain"}, project_id=project_id
-        )
-
-        group_id = event.group.id
-        assert group_id, "this test requires a group to work"
-
-    chunks, attachment_type, content_type = attachment
-    attachment_meta = {
-        "id": attachment_id,
-        "name": "foo.txt",
-        "content_type": content_type,
-        "attachment_type": attachment_type,
-        "chunks": len(chunks),
-        "retention_days": retention_days,
-    }
-    if isinstance(chunks, bytes):
-        attachment_meta["data"] = chunks
-        expected_content = chunks
-    else:
-        for i, chunk in enumerate(chunks):
-            process_attachment_chunk(
-                {
-                    "payload": chunk,
-                    "event_id": event_id,
-                    "project_id": project_id,
-                    "id": attachment_id,
-                    "chunk_index": i,
-                }
+        if with_group:
+            event = factories.store_event(
+                data={"event_id": event_id, "message": "existence is pain"}, project_id=project_id
             )
-        expected_content = b"".join(chunks)
-    attachment_meta["size"] = len(expected_content)
 
-    now = datetime.datetime.now(datetime.timezone.utc)
-    process_individual_attachment(
-        {
-            "type": "attachment",
-            "attachment": attachment_meta,
-            "event_id": event_id,
-            "project_id": project_id,
-        },
-        project=default_project,
-    )
+            group_id = event.group.id
+            assert group_id, "this test requires a group to work"
+
+        chunks, attachment_type, content_type = attachment
+        attachment_meta = {
+            "id": attachment_id,
+            "name": "foo.txt",
+            "content_type": content_type,
+            "attachment_type": attachment_type,
+            "chunks": len(chunks),
+            "retention_days": retention_days,
+        }
+        if isinstance(chunks, bytes):
+            attachment_meta["data"] = chunks
+            expected_content = chunks
+        else:
+            for i, chunk in enumerate(chunks):
+                process_attachment_chunk(
+                    {
+                        "payload": chunk,
+                        "event_id": event_id,
+                        "project_id": project_id,
+                        "id": attachment_id,
+                        "chunk_index": i,
+                    }
+                )
+            expected_content = b"".join(chunks)
+        attachment_meta["size"] = len(expected_content)
+
+        now = datetime.datetime.now(datetime.timezone.utc)
+        process_individual_attachment(
+            {
+                "type": "attachment",
+                "attachment": attachment_meta,
+                "event_id": event_id,
+                "project_id": project_id,
+            },
+            project=default_project,
+        )
 
     attachments = list(EventAttachment.objects.filter(project_id=project_id, event_id=event_id))
 
