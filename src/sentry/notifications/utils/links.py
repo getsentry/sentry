@@ -103,9 +103,15 @@ def get_issue_replay_link(group: Group, sentry_query_params: str = "") -> str:
 
 
 def get_rules(
-    rules: Sequence[Rule], organization: Organization, project: Project, type_id: int | None = None
+    rules: Sequence[Rule | NotificationOrigin],
+    organization: Organization,
+    project: Project,
+    type_id: int | None = None,
 ) -> list[NotificationRuleDetails]:
-    origins = [NotificationOrigin.from_legacy_rule(rule) for rule in rules]
+    origins = [
+        rule if isinstance(rule, NotificationOrigin) else NotificationOrigin.from_legacy_rule(rule)
+        for rule in rules
+    ]
     legacy_rules = [origin for origin in origins if origin.legacy_rule_id is not None]
     workflow_rules = [origin for origin in origins if origin.legacy_rule_id is None]
 

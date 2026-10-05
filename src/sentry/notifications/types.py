@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from sentry.models.rule import Rule
 
 
-@dataclass(frozen=True)
+@dataclass(eq=False, frozen=True)
 class NotificationOrigin:
     """Identifies the rule or workflow that caused a notification."""
 
@@ -21,25 +21,61 @@ class NotificationOrigin:
     legacy_rule_id: int | None
 
     @classmethod
-    def from_legacy_rule(cls, rule: Rule) -> NotificationOrigin:
+    def from_legacy_rule(
+        cls,
+        rule: Rule,
+        *,
+        workflow_id: int | None = None,
+        environment_id: int | None = None,
+    ) -> NotificationOrigin:
         actions = rule.data.get("actions")
         first_action = actions[0] if isinstance(actions, list) and actions else {}
-        workflow_id = first_action.get("workflow_id")
-        legacy_rule_id = first_action.get("legacy_rule_id")
+        embedded_workflow_id = first_action.get("workflow_id")
+        embedded_legacy_rule_id = first_action.get("legacy_rule_id")
 
+        if embedded_workflow_id is not None:
+            embedded_workflow_id = int(embedded_workflow_id)
+        if embedded_legacy_rule_id is not None:
+            embedded_legacy_rule_id = int(embedded_legacy_rule_id)
+
+        effective_workflow_id = workflow_id or embedded_workflow_id
         if workflow_id is not None:
-            workflow_id = int(workflow_id)
-        if legacy_rule_id is not None:
-            legacy_rule_id = int(legacy_rule_id)
-        elif workflow_id is None:
+            legacy_rule_id = rule.id
+        elif embedded_legacy_rule_id is not None:
+            legacy_rule_id = embedded_legacy_rule_id
+        elif embedded_workflow_id is not None:
+            legacy_rule_id = None
+        else:
             legacy_rule_id = rule.id
 
         return cls(
             label=rule.label,
-            environment_id=rule.environment_id,
-            workflow_id=workflow_id,
+            environment_id=environment_id if environment_id is not None else rule.environment_id,
+            workflow_id=effective_workflow_id,
             legacy_rule_id=legacy_rule_id,
         )
+
+    @property
+    def identifier(self) -> tuple[str, int]:
+        if self.workflow_id is not None:
+            return ("workflow", self.workflow_id)
+        assert self.legacy_rule_id is not None
+        return ("legacy-rule", self.legacy_rule_id)
+
+    @property
+    def link_id(self) -> int:
+        if self.legacy_rule_id is not None:
+            return self.legacy_rule_id
+        assert self.workflow_id is not None
+        return self.workflow_id
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, NotificationOrigin):
+            return NotImplemented
+        return self.identifier == other.identifier
+
+    def __hash__(self) -> int:
+        return hash(self.identifier)
 
 
 class RuleFuture(NamedTuple):

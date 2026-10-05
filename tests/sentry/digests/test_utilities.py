@@ -129,7 +129,8 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
 
         rendered_rule = get_rules_from_workflows(project, {workflow_id})[workflow_id]
 
-        assert rendered_rule.id == rule.id
+        assert rendered_rule.legacy_rule_id == rule.id
+        assert rendered_rule.workflow_id == workflow_id
         assert rendered_rule.environment_id == production.id
 
     def test_get_rules_from_workflows_uses_workflow_environment_for_synthetic_rule(self) -> None:
@@ -141,13 +142,14 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
 
         rendered_rule = get_rules_from_workflows(project, {workflow.id})[workflow.id]
 
-        assert rendered_rule.id == workflow.id
+        assert rendered_rule.legacy_rule_id is None
+        assert rendered_rule.workflow_id == workflow.id
         assert rendered_rule.environment_id == environment.id
 
 
 def assert_rule_ids(digest: Digest, expected_rule_ids: list[int]) -> None:
     for rule, groups in digest.items():
-        assert rule.id in expected_rule_ids
+        assert rule.legacy_rule_id in expected_rule_ids
 
 
 def assert_get_personalized_digests(
@@ -324,8 +326,8 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         digest = build_digest(self.project, sort_records(records))[0]
 
         [digest_rule] = digest.keys()
-        assert digest_rule.data["actions"][0]["legacy_rule_id"] == rule.id
-        assert digest_rule.data["actions"][0]["workflow_id"] == workflow_id
+        assert digest_rule.legacy_rule_id == rule.id
+        assert digest_rule.workflow_id == workflow_id
 
     def test_legacy_rule_id_records_without_workflow(self) -> None:
         rule = self.rule_with_legacy_rule_id
@@ -336,8 +338,8 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             digest = build_digest(self.project, sort_records(records))[0]
 
         [digest_rule] = digest.keys()
-        assert digest_rule.data["actions"][0]["legacy_rule_id"] == rule.id
-        assert "workflow_id" not in digest_rule.data["actions"][0]
+        assert digest_rule.legacy_rule_id == rule.id
+        assert digest_rule.workflow_id is None
         mock_logger.error.assert_called_once_with(
             "digests.build_digest.rule_without_workflow",
             extra={"rule_id": rule.id, "project_id": self.project.id},
