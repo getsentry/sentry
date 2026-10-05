@@ -1,6 +1,5 @@
 import {Fragment, type ReactNode} from 'react';
 
-import {Alert} from '@sentry/scraps/alert';
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';

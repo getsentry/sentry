@@ -710,6 +710,34 @@ describe('ConnectRepositoryModal', () => {
       await waitFor(() => expect(closeModal).toHaveBeenCalled());
       expect(retryPut).toHaveBeenCalled();
     });
+
+    it('disables Save when another repo has the same mapping', async () => {
+      const conflictingMapping = {
+        id: '99',
+        repoId: '11',
+        repoName: 'getsentry/relay',
+        projectId: project.id,
+        stackRoot: 'src/',
+        sourceRoot: 'app/',
+        defaultBranch: 'main',
+        integrationId: integration.id,
+        hasCodeOwner: false,
+      };
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/`,
+        method: 'GET',
+        body: [seededMapping, conflictingMapping],
+      });
+
+      renderEditModal();
+
+      expect(await screen.findByText('src/')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
+
+      expect(await screen.findByText(/getsentry\/relay/)).toBeInTheDocument();
+      expect(screen.getByText(/Only one can be used for matching/)).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
+    });
   });
 
   it('shows an across-repos warning when another repo has the same mapping and blocks Save', async () => {

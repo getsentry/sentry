@@ -38,7 +38,7 @@ export type EditFormProps = ModalRenderProps & {
 
 // Inner component — only mounted once seeded mappings and the repo default
 // branch are both ready. This lets useScrapsForm receive stable defaultValues.
-interface EditRepositoryFormBodyProps extends EditFormProps {
+interface EditRepositoryFormBodyProps extends Omit<EditFormProps, 'CloseButton'> {
   allMappings: RepositoryProjectPathConfig[];
   defaultBranch: string | null;
   invalidateQueries: () => Promise<unknown[]>;
@@ -99,7 +99,7 @@ function EditRepositoryFormBody({
           const canSave =
             Boolean(integrationId) &&
             pathMappings.length > 0 &&
-            !hasExactDuplicate(pathMappings);
+            !hasExactDuplicate(pathMappings, existingMappings);
 
           const alerts = (
             <Fragment>

@@ -77,6 +77,9 @@ export function getPathMappingWarnings(
   return rows.map((row, index) => deriveWarning(row, index, rows, normalizedExisting));
 }
 
-export function hasExactDuplicate(mappings: PathMappingValue[]): boolean {
-  return getPathMappingWarnings(mappings).some(isExactWarning);
+export function hasExactDuplicate(
+  mappings: PathMappingValue[],
+  existingMappings: RepositoryProjectPathConfig[] = []
+): boolean {
+  return getPathMappingWarnings(mappings, existingMappings).some(isExactWarning);
 }

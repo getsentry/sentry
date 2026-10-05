@@ -60,7 +60,7 @@ export function projectRepoInfiniteOptions({
   );
 }
 
-type RepoSelectOption = SelectValue<string> & {
+export type RepoSelectOption = SelectValue<string> & {
   integrationId: string;
   repositoryId: string;
   defaultBranch?: string | null;

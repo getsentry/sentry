@@ -10,10 +10,7 @@ import {Text} from '@sentry/scraps/text';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
 import type {PathMappingValue} from 'sentry/components/connectRepository/type';
-import {
-  getPathMappingWarnings,
-  isExactWarning,
-} from 'sentry/components/connectRepository/warnings';
+import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
 import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtualizedMenuList';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -147,17 +144,12 @@ export function ConnectRepositoryForm({
     <form.AppForm form={form}>
       <form.Subscribe selector={state => state.values.pathMappings}>
         {pathMappings => {
-          const hasBlockingWarning = getPathMappingWarnings(
-            pathMappings,
-            existingMappings
-          ).some(isExactWarning);
-
           const canSave =
             selectedOption !== null &&
             pathMappings.length > 0 &&
             !codeMappingsPending &&
             !codeMappingsError &&
-            !hasBlockingWarning;
+            !hasExactDuplicate(pathMappings, existingMappings);
 
           const alerts = (
             <Stack gap="xs">
