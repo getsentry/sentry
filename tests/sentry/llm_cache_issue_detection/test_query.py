@@ -5,12 +5,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sentry.llm_cache_detection.detection import (
+from sentry.llm_cache_issue_detection.detection import (
     AgentLabelSource,
     CallSiteStats,
     DetectionWindow,
 )
-from sentry.llm_cache_detection.query import (
+from sentry.llm_cache_issue_detection.query import (
     AGENT_NAME,
     AVG_INPUT_TOKENS,
     CALL_SITE_GROUPS_LIMIT,
@@ -31,7 +31,7 @@ from sentry.llm_cache_detection.query import (
     fetch_sample_calls,
     fetch_sample_prompts,
 )
-from tests.sentry.llm_cache_detection.test_utils import make_stats
+from tests.sentry.llm_cache_issue_detection.test_utils import make_stats
 
 
 def make_row(
@@ -154,7 +154,7 @@ def test_counts_the_calls_of_rows_missing_part_of_the_key() -> None:
 def test_reports_a_result_cut_off_at_the_row_cap(row_count: int, truncated: bool) -> None:
     rows = [make_row(agent_name=f"agent-{index}") for index in range(row_count)]
     with patch(
-        "sentry.llm_cache_detection.query.Spans.run_table_query", return_value={"data": rows}
+        "sentry.llm_cache_issue_detection.query.Spans.run_table_query", return_value={"data": rows}
     ):
         result = fetch_call_site_stats(MagicMock(), DetectionWindow.ending_now())
 

@@ -12,12 +12,12 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
-from sentry.llm_cache_detection.detection import (
+from sentry.llm_cache_issue_detection.detection import (
     AgentLabelSource,
     CallSiteStats,
     DetectionWindow,
 )
-from sentry.llm_cache_detection.query import (
+from sentry.llm_cache_issue_detection.query import (
     PROMPT_SAMPLES_LIMIT,
     count_spans_with_cache_attributes,
     fetch_call_site_stats,
@@ -30,7 +30,7 @@ from sentry.tasks.llm_cache_issue_detection import detect_llm_cache_issues_for_p
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 
-DETECTION_FEATURE = "organizations:llm-cache-detection"
+DETECTION_FEATURE = "organizations:llm-cache-issue-detection"
 
 # Above the cacheable minimum of every model used here, so eligibility turns
 # purely on the call count, which each test lowers to keep the seeded span
@@ -569,9 +569,9 @@ def findings(mock_logger: MagicMock) -> list[dict[str, Any]]:
 
 # Each seeded call site is a handful of spans; which volumes the eligibility
 # floors let through is settled in the detection tests.
-@patch("sentry.llm_cache_detection.detection.MIN_CALLS_FOR_CONFIDENCE", 1)
-@patch("sentry.llm_cache_detection.detection.MIN_SAMPLED_CALLS", 1)
-@patch("sentry.llm_cache_detection.reporting.logger")
+@patch("sentry.llm_cache_issue_detection.detection.MIN_CALLS_FOR_CONFIDENCE", 1)
+@patch("sentry.llm_cache_issue_detection.detection.MIN_SAMPLED_CALLS", 1)
+@patch("sentry.llm_cache_issue_detection.reporting.logger")
 class DetectLLMCacheIssuesTest(LLMCacheDetectionIntegrationTest):
     def test_flags_a_call_site_that_never_caches(self, mock_logger: MagicMock) -> None:
         self.store_call_site(

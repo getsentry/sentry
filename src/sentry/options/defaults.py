@@ -4228,7 +4228,7 @@ register(
 
 # Hours between LLM prompt-cache detection runs; its scheduler ticks hourly.
 register(
-    "issue-detection.llm-cache-detection.interval-hours",
+    "issue-detection.llm-cache.interval-hours",
     type=Int,
     default=1,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

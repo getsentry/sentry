@@ -4,7 +4,7 @@ from dataclasses import replace
 
 import pytest
 
-from sentry.llm_cache_detection.detection import (
+from sentry.llm_cache_issue_detection.detection import (
     CACHE_TTL_MINUTES,
     DEFAULT_MIN_CACHEABLE_PREFIX_TOKENS,
     MIN_CACHEABLE_SHARE,
@@ -29,7 +29,7 @@ from sentry.llm_cache_detection.detection import (
     resolve_with_cache_presence,
     resolve_with_warmth,
 )
-from tests.sentry.llm_cache_detection.test_utils import make_stats
+from tests.sentry.llm_cache_issue_detection.test_utils import make_stats
 
 
 @pytest.mark.parametrize(

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from enum import StrEnum
 
-from sentry.llm_cache_detection.detection import CacheFinding, CacheOutcome
+from sentry.llm_cache_issue_detection.detection import CacheFinding, CacheOutcome
 from sentry.relay.config.ai_model_costs import AIModelMetadataConfig, model_costs
 
 

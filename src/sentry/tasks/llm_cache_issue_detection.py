@@ -11,7 +11,7 @@ from itertools import batched
 from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidSearchQuery
-from sentry.llm_cache_detection.detection import (
+from sentry.llm_cache_issue_detection.detection import (
     FLAGGED_OUTCOMES,
     CacheFinding,
     CallSiteStats,
@@ -27,8 +27,8 @@ from sentry.llm_cache_detection.detection import (
     resolve_with_cache_presence,
     resolve_with_warmth,
 )
-from sentry.llm_cache_detection.pricing import estimate_savings
-from sentry.llm_cache_detection.query import (
+from sentry.llm_cache_issue_detection.pricing import estimate_savings
+from sentry.llm_cache_issue_detection.query import (
     SampleCall,
     count_spans_with_cache_attributes,
     fetch_call_site_stats,
@@ -36,7 +36,7 @@ from sentry.llm_cache_detection.query import (
     fetch_sample_calls,
     fetch_sample_prompts,
 )
-from sentry.llm_cache_detection.reporting import (
+from sentry.llm_cache_issue_detection.reporting import (
     CandidateReport,
     Disposition,
     report_fan_out_skipped,
@@ -55,7 +55,7 @@ from sentry.utils.snuba_rpc import SnubaRPCError
 
 logger = logging.getLogger("sentry.tasks.llm_cache_issue_detection")
 
-LLM_CACHE_DETECTION_FEATURE = "organizations:llm-cache-detection"
+LLM_CACHE_DETECTION_FEATURE = "organizations:llm-cache-issue-detection"
 
 # Mirrors the per-project creation quota the issue type will have.
 FINDINGS_PER_PROJECT_LIMIT = 5
@@ -172,7 +172,7 @@ def _resolve_candidate(
 def _is_scheduled_run(now: datetime) -> bool:
     """Whether this hourly tick is one the configured interval runs on, counted
     since the epoch so intervals that do not divide 24 stay evenly spaced."""
-    interval_hours = max(options.get("issue-detection.llm-cache-detection.interval-hours"), 1)
+    interval_hours = max(options.get("issue-detection.llm-cache.interval-hours"), 1)
     return int(now.timestamp() // 3600) % interval_hours == 0
 
 

@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from sentry.llm_cache_detection.detection import (
+from sentry.llm_cache_issue_detection.detection import (
     AgentLabelSource,
     CacheFinding,
     CacheOutcome,
@@ -12,7 +12,7 @@ from sentry.llm_cache_detection.detection import (
     Classification,
     OutcomeReason,
 )
-from sentry.llm_cache_detection.pricing import PricingGap, SavingsEstimate, estimate_savings
+from sentry.llm_cache_issue_detection.pricing import PricingGap, SavingsEstimate, estimate_savings
 from sentry.relay.config.ai_model_costs import AIModelMetadataConfig
 
 # Order-of-magnitude realistic: a cached input token is far cheaper than a fresh

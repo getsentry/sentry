@@ -9,7 +9,7 @@ from enum import StrEnum
 
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
-from sentry.llm_cache_detection.detection import (
+from sentry.llm_cache_issue_detection.detection import (
     CACHE_TTL_MINUTES,
     AgentLabelSource,
     CallSiteStats,

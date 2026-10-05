@@ -9,8 +9,8 @@ from django.db.models import F
 
 from sentry import features
 from sentry.exceptions import InvalidSearchQuery
-from sentry.llm_cache_detection.detection import CallSiteStats, CallSiteWarmth
-from sentry.llm_cache_detection.query import CallSiteQueryResult, DroppedRowReason, SampleCall
+from sentry.llm_cache_issue_detection.detection import CallSiteStats, CallSiteWarmth
+from sentry.llm_cache_issue_detection.query import CallSiteQueryResult, DroppedRowReason, SampleCall
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks import llm_cache_issue_detection
@@ -23,10 +23,10 @@ from sentry.tasks.llm_cache_issue_detection import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.snuba_rpc import SnubaRPCError
-from tests.sentry.llm_cache_detection.test_utils import make_stats
+from tests.sentry.llm_cache_issue_detection.test_utils import make_stats
 
-DETECTION_FEATURE = "organizations:llm-cache-detection"
-INTERVAL_OPTION = "issue-detection.llm-cache-detection.interval-hours"
+DETECTION_FEATURE = "organizations:llm-cache-issue-detection"
+INTERVAL_OPTION = "issue-detection.llm-cache.interval-hours"
 METRIC_PREFIX = "llm_cache_issue_detection."
 
 SAMPLE_CALLS = [
@@ -304,7 +304,7 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         self.mock_metadata.return_value = None
 
         self.mock_report_logger = self.enterContext(
-            patch("sentry.llm_cache_detection.reporting.logger")
+            patch("sentry.llm_cache_issue_detection.reporting.logger")
         )
         self.mock_task_logger = self.enterContext(
             patch("sentry.tasks.llm_cache_issue_detection.logger")

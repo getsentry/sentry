@@ -16,7 +16,7 @@ from typing import Any
 
 import sentry_sdk
 
-from sentry.llm_cache_detection.detection import (
+from sentry.llm_cache_issue_detection.detection import (
     CacheFinding,
     CallSiteStats,
     CallSiteWarmth,
@@ -27,8 +27,8 @@ from sentry.llm_cache_detection.detection import (
     PromptDivergence,
     min_cacheable_prefix_tokens,
 )
-from sentry.llm_cache_detection.pricing import PricingGap, SavingsEstimate
-from sentry.llm_cache_detection.query import CallSiteQueryResult, SampleCall
+from sentry.llm_cache_issue_detection.pricing import PricingGap, SavingsEstimate
+from sentry.llm_cache_issue_detection.query import CallSiteQueryResult, SampleCall
 from sentry.models.project import Project
 
 logger = logging.getLogger(__name__)

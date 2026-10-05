@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sentry.llm_cache_detection.detection import AgentLabelSource, CallSiteStats
+from sentry.llm_cache_issue_detection.detection import AgentLabelSource, CallSiteStats
 
 
 def make_stats(
