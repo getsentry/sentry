@@ -211,4 +211,44 @@ describe('Broadcast Details', () => {
       })
     );
   });
+
+  it('shows backend validation errors on the affected field', async () => {
+    ConfigStore.loadInitialData(
+      ConfigFixture({
+        user: UserFixture({permissions: new Set(['broadcasts.admin'])}),
+      })
+    );
+    MockApiClient.addMockResponse({
+      url: '/broadcasts/1359/',
+      body: {
+        id: '1359',
+        title: 'Original title',
+        message: 'Original message',
+        link: 'https://example.com',
+        isActive: true,
+        dateExpires: null,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/broadcasts/1359/',
+      method: 'PUT',
+      statusCode: 400,
+      body: {title: ['This title is already in use.']},
+    });
+
+    render(<BroadcastDetails />, {
+      initialRouterConfig: {
+        location: {pathname: '/_admin/broadcasts/1359/'},
+        route: '/_admin/broadcasts/:broadcastId/',
+      },
+    });
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Broadcasts Actions'})
+    );
+    await userEvent.click(screen.getByText('Edit Broadcast'));
+    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+
+    expect(await screen.findByText('This title is already in use.')).toBeInTheDocument();
+  });
 });

@@ -3,7 +3,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -11,6 +11,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 import type {BroadcastDetailsData} from 'admin/types';
 import {
@@ -76,11 +77,20 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
       onSaved();
     },
     onError: error => {
+      if (
+        error instanceof RequestError &&
+        setFieldErrors(form, requestErrorToFieldErrors(error, form.state.values))
+      ) {
+        return;
+      }
+      const response = error instanceof RequestError ? error.responseJSON : undefined;
       const detail =
-        error instanceof RequestError ? error.responseJSON?.detail : undefined;
-      addErrorMessage(
-        `Save failed: ${typeof detail === 'string' ? detail : 'Unknown error'}`
-      );
+        typeof response?.detail === 'string'
+          ? response.detail
+          : response
+            ? JSON.stringify(response)
+            : 'Unknown error';
+      addErrorMessage(`Save failed: ${detail}`);
     },
   });
 
