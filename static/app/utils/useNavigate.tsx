@@ -1,7 +1,8 @@
 import {useCallback} from 'react';
-import {useNavigate as useReactRouter6Navigate} from 'react-router-dom';
-import type {Router} from '@remix-run/router';
+import {useNavigate as useReactRouterNavigate} from 'react-router-dom';
 import type {LocationDescriptor} from 'history';
+
+import {type DataRouter} from 'sentry/router/reactRouter';
 
 import {locationDescriptorToTo} from './reactRouter6Compat/location';
 
@@ -23,17 +24,17 @@ export interface ReactRouter3Navigate {
  * @see https://reactrouter.com/hooks/use-navigate
  */
 export function useNavigate(): ReactRouter3Navigate {
-  const router6Navigate = useReactRouter6Navigate();
+  const routerNavigate = useReactRouterNavigate();
 
   const navigate = useCallback<ReactRouter3Navigate>(
     (to: LocationDescriptor | number, options: NavigateOptions = {}) => {
       if (typeof to === 'number') {
-        return router6Navigate(to);
+        return routerNavigate(to);
       }
 
-      return router6Navigate(locationDescriptorToTo(to), options);
+      return routerNavigate(locationDescriptorToTo(to), options);
     },
-    [router6Navigate]
+    [routerNavigate]
   );
 
   return navigate;
@@ -44,10 +45,10 @@ export function useNavigate(): ReactRouter3Navigate {
  * the narrow set of non-React modules (e.g. the api client) that need an
  * imperative navigate function. Reach for it as a last resort.
  *
- * Build a `ReactRouter3Navigate`-compatible function from a react-router 6
- * `Router` instance.
+ * Build a `ReactRouter3Navigate`-compatible function from a React Router
+ * instance.
  */
-export function createReactRouter3Navigate(router: Router): ReactRouter3Navigate {
+export function createReactRouter3Navigate(router: DataRouter): ReactRouter3Navigate {
   return (to: LocationDescriptor | number, options: NavigateOptions = {}) => {
     if (typeof to === 'number') {
       router.navigate(to);

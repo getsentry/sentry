@@ -59,7 +59,7 @@ function getSentryIntegrations() {
       // 6 is arbitrary, seems like a nice number
       depth: 6,
     }),
-    Sentry.reactRouterV6BrowserTracingIntegration({
+    Sentry.reactRouterBrowserTracingIntegration({
       useEffect,
       useLocation,
       useNavigationType,

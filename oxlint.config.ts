@@ -46,9 +46,29 @@ const restrictedConventionsImportPattern = {
   message: CONVENTIONS_IMPORT_MESSAGE,
 };
 
+const restrictedRouterImportPattern = {
+  group: [
+    'react-router',
+    'react-router/*',
+    'react-router-dom/*',
+    '@remix-run/router',
+    'nuqs/adapters/react-router',
+    'nuqs/adapters/react-router/*',
+    'sentry/router/reactRouterV*',
+    'sentry-test/routerV*',
+    './reactRouterV6',
+    './reactRouterV8',
+    './routerV6',
+    './routerV8',
+  ],
+  message:
+    "Use 'react-router-dom' for router APIs and 'sentry/router/reactRouter' for the versioned adapter and internal router type.",
+};
+
 const restrictedImportPatterns = [
   restrictedThemeImportPattern,
   restrictedConventionsImportPattern,
+  restrictedRouterImportPattern,
 ];
 
 const CSS_TYPES_MESSAGE =
@@ -1918,6 +1938,25 @@ const config = defineConfig({
       files: ['tests/js/getsentry-test/**/*.{js,mjs,ts,jsx,tsx}'],
       rules: {
         'no-restricted-imports': 'off',
+      },
+    },
+    {
+      files: [
+        'static/app/router/reactRouter.tsx',
+        'static/app/router/reactRouterV{6,8}.tsx',
+        'tests/js/sentry-test/router.ts',
+        'tests/js/sentry-test/routerV{6,8}.ts',
+      ],
+      rules: {
+        'no-restricted-imports': [
+          'error',
+          {
+            patterns: restrictedImportPatterns.filter(
+              pattern => pattern !== restrictedRouterImportPattern
+            ),
+            paths: restrictedImportPaths,
+          },
+        ],
       },
     },
     {

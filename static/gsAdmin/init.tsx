@@ -1,14 +1,14 @@
 import {createRoot} from 'react-dom/client';
 import {createBrowserRouter, RouterProvider} from 'react-router-dom';
-import {wrapCreateBrowserRouterV6} from '@sentry/react';
+import {wrapCreateBrowserRouter} from '@sentry/react';
 import * as Sentry from '@sentry/react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
-import {NuqsAdapter} from 'nuqs/adapters/react-router/v6';
 
 import {setApiNavigate} from 'sentry/api';
 import {commonInitialization} from 'sentry/bootstrap/commonInitialization';
 import {initializeSdk} from 'sentry/bootstrap/initializeSdk';
 import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
+import {NuqsAdapter} from 'sentry/router/reactRouter';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
 import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClient';
@@ -27,7 +27,7 @@ export function init(config: Config) {
 
 const queryClient = new QueryClient(DEFAULT_QUERY_CLIENT_CONFIG);
 
-const sentryCreateBrowserRouter = wrapCreateBrowserRouterV6(createBrowserRouter);
+const sentryCreateBrowserRouter = wrapCreateBrowserRouter(createBrowserRouter);
 const router = sentryCreateBrowserRouter(routes);
 
 setApiNavigate(createReactRouter3Navigate(router));

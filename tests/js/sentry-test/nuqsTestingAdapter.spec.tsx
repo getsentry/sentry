@@ -11,7 +11,30 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
+
+jest.mock('sentry/views/explore/hooks/useTraceItemAttributes');
+
 describe('SentryNuqsTestingAdapter', () => {
+  it('supports automatic mocks alongside real query state', async () => {
+    expect(jest.isMockFunction(useTraceItemDatasetAttributes)).toBe(true);
+
+    function QueryStateButton() {
+      const [query, setQuery] = useQueryState('query', parseAsString);
+      return <button onClick={() => setQuery('updated')}>{query}</button>;
+    }
+
+    const {router} = render(<QueryStateButton />, {
+      initialRouterConfig: {
+        location: {pathname: '/test', query: {query: 'initial'}},
+      },
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'initial'}));
+    expect(await screen.findByRole('button', {name: 'updated'})).toBeInTheDocument();
+    expect(router.location.query.query).toBe('updated');
+  });
+
   it('reads search params from router location', async () => {
     function TestComponent() {
       const [search] = useQueryState('query', parseAsString);

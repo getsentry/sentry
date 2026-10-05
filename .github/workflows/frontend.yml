@@ -146,7 +146,19 @@ jobs:
         id: jest_test_config
         env:
           FRONTEND_ALL_FILES: ${{ needs.files-changed.outputs.frontend_all_files }}
-        run: ./.github/workflows/scripts/jest-test-config.sh
+        run: |
+          config_dir=$(mktemp -d)
+          for router_version in 6 8; do
+            SENTRY_REACT_ROUTER_VERSION="$router_version" \
+              GITHUB_OUTPUT="$config_dir/matrix-$router_version" \
+              ./.github/workflows/scripts/jest-test-config.sh
+            mv jest-test-files.json "$config_dir/tests-$router_version.json"
+          done
+
+          jq -s 'add | unique' "$config_dir"/tests-*.json > jest-test-files.json
+          # Use the larger shard matrix for the combined test list.
+          matrix=$(sed 's/^jest_test_matrix=//' "$config_dir"/matrix-* | jq -sc 'max_by(.total[0])')
+          echo "jest_test_matrix=$matrix" >> "$GITHUB_OUTPUT"
 
       - name: Upload jest test file list
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # 4.6.2
@@ -159,7 +171,7 @@ jobs:
   jest-tests:
     if: needs.files-changed.outputs.testable_rules_changed == 'true' || needs.files-changed.outputs.testable_modified == 'true'
     needs: [files-changed, jest-config]
-    name: Jest
+    name: Jest (Router v${{ matrix.router }}, shard ${{ matrix.index }}/${{ matrix.total }})
     # If you change the runs-on image, you must also change the runner in jest-balance.yml
     # so that the balancer runs in the same environment as the tests.
     runs-on: ubuntu-24.04
@@ -168,7 +180,10 @@ jobs:
       # This helps not having to run multiple jobs because one fails, thus, reducing resource usage
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
-      matrix: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix) }}
+      matrix:
+        index: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix).index }}
+        total: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix).total }}
+        router: ['6', '8']
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -182,10 +197,10 @@ jobs:
           path: |
             .cache/jest
             ~/.cache/swc
-          key: jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-${{ matrix.index }}
+          key: jest-cache-${{ runner.os }}-router-${{ matrix.router }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-${{ matrix.index }}
           restore-keys: |
-            jest-cache-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-
-            jest-cache-${{ runner.os }}-
+            jest-cache-${{ runner.os }}-router-${{ matrix.router }}-${{ hashFiles('pnpm-lock.yaml', 'jest.config.ts') }}-
+            jest-cache-${{ runner.os }}-router-${{ matrix.router }}-
 
       - name: Download jest-test-files.json
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
@@ -212,6 +227,7 @@ jobs:
 
           CI_NODE_TOTAL: ${{ matrix.total }}
           CI_NODE_INDEX: ${{ matrix.index }}
+          SENTRY_REACT_ROUTER_VERSION: ${{ matrix.router }}
 
           GITHUB_PR_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
           GITHUB_PR_REF: ${{ github.event.pull_request.head.ref || github.ref }}

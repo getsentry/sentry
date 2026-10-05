@@ -1,7 +1,7 @@
-import {useRef} from 'react';
-import {useSearchParams} from 'react-router-dom';
+import {lazy, Suspense, useRef} from 'react';
+import {Outlet, useSearchParams} from 'react-router-dom';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Link} from '@sentry/scraps/link';
 
@@ -69,6 +69,39 @@ describe('rerender', () => {
 });
 
 describe('disableRouterMocks', () => {
+  it('shows the fallback immediately when navigating to a suspended route', async () => {
+    const page = Promise.withResolvers<{default: () => React.JSX.Element}>();
+    const LazyPage = lazy(() => page.promise);
+
+    render(
+      <Suspense fallback={<div>Loading page</div>}>
+        <Outlet />
+      </Suspense>,
+      {
+        initialRouterConfig: {
+          route: '/',
+          location: {pathname: '/'},
+          children: [
+            {index: true, element: <Link to="/next/">Next page</Link>},
+            {path: 'next/', element: <LazyPage />},
+          ],
+        },
+      }
+    );
+
+    await userEvent.click(screen.getByRole('link', {name: 'Next page'}));
+
+    expect(screen.getByText('Loading page')).toBeInTheDocument();
+
+    await act(async () => {
+      page.resolve({default: () => <div>Page loaded</div>});
+      await page.promise;
+    });
+
+    expect(screen.getByText('Page loaded')).toBeInTheDocument();
+    expect(screen.queryByText('Loading page')).not.toBeInTheDocument();
+  });
+
   it('starts with the correct initial location', () => {
     const {router} = render(<div />, {
       initialRouterConfig: {location: {pathname: '/foo/'}},

@@ -29,8 +29,11 @@
 
 ### Routing
 
-- Routes defined in `static/app/routes.tsx`
-- Use React Router v6 patterns
+- Routes defined in `static/app/router/routes.tsx`
+- Import router APIs from `react-router-dom`; Rspack and Jest remap application imports to the selected version without remapping dependency imports. TypeScript checks against production's v6 API. Import the versioned `NuqsAdapter` and internal `DataRouter` type from `sentry/router/reactRouter`
+- Local development defaults to React Router v8. Run `SENTRY_REACT_ROUTER_VERSION=6 pnpm dev-ui` to test the v6 fallback; restart the dev server after changing versions
+- Production and CI builds use v6 regardless of the override. Jest accepts `SENTRY_REACT_ROUTER_VERSION=6` or `8` and defaults to v8. Visual snapshots always use production's v6
+- The version implementations disable React navigation transitions; the app's external stores are not compatible with them
 - Lazy load route components when possible
 
 ### Frontend API Calls
