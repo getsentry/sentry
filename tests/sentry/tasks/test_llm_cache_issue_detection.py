@@ -539,6 +539,16 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
             "sample_calls"
         ]
 
+    def test_files_a_finding_whose_sample_calls_could_not_be_queried(self) -> None:
+        self.mock_fetch_samples.return_value = None
+
+        self.detect(NOT_CACHING_STATS)
+
+        candidate = self.candidate(NOT_CACHING_STATS)
+        assert candidate["disposition"] == "would_create"
+        assert candidate["sample_calls_gap"] == "unqueryable_call_site"
+        assert "sample_calls" not in candidate
+
     def test_prices_the_finding_when_the_model_costs_are_known(self) -> None:
         self.mock_metadata.return_value = {
             "version": 1,

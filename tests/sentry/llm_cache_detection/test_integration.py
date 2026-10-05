@@ -479,6 +479,7 @@ class FetchSampleCallsTest(LLMCacheDetectionIntegrationTest):
         stats = self.fetch_call_site()
         samples = fetch_sample_calls(self.project, stats, self.window)
 
+        assert samples is not None
         assert [sample.trace_id for sample in samples] == [trace_id]
 
 

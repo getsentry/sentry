@@ -357,11 +357,11 @@ def count_spans_with_cache_attributes(
 
 def fetch_sample_calls(
     project: Project, stats: CallSiteStats, window: DetectionWindow
-) -> list[SampleCall]:
-    """Sample the call site's largest calls, one per trace."""
+) -> list[SampleCall] | None:
+    """Sample the call site's largest calls, one per trace, or None if unqueryable."""
     group_filter = _build_group_filter(stats)
     if group_filter is None:
-        return []
+        return None
     result = _run_spans_query(
         project,
         window,

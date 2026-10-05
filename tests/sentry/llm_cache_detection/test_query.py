@@ -122,9 +122,9 @@ def test_unexpressible_value_is_never_queried() -> None:
 
     assert count_spans_with_cache_attributes(project, stats, window) is None
     assert fetch_call_site_warmth(project, stats, window) is None
-    assert fetch_sample_calls(project, stats, window) == []
     # None rather than an empty list, so the caller can tell a call site it never
-    # asked about from one whose spans carry no prompt text.
+    # asked about from one with nothing to return.
+    assert fetch_sample_calls(project, stats, window) is None
     assert fetch_sample_prompts(project, stats, window) is None
 
 
