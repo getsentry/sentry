@@ -7,6 +7,7 @@ import {FeatureBadge, Tag} from '@sentry/scraps/badge';
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
@@ -173,18 +174,18 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
                 event={event}
               />
               <Flex justify={{zero: 'start', '4xl': 'end'}} gap="0 xl" wrap="wrap">
-                <Workflow>
-                  {t('Priority')}
+                <Flex align="center" gap="xs">
+                  <Text variant="muted">{t('Priority')}</Text>
                   <GroupPriority group={group} />
-                </Workflow>
-                <Workflow>
-                  {t('Assignee')}
+                </Flex>
+                <Flex align="center" gap="xs">
+                  <Text variant="muted">{t('Assignee')}</Text>
                   <GroupHeaderAssigneeSelector
                     group={group}
                     project={project}
                     event={event}
                   />
-                </Workflow>
+                </Flex>
               </Flex>
             </ActionBar>
           </div>
@@ -308,13 +309,6 @@ const ActionBar = styled('div')<{isComplete: boolean}>`
     /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
     background: ${p => p.theme.tokens.border.primary};
   }
-`;
-
-const Workflow = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  color: ${p => p.theme.tokens.content.secondary};
 `;
 
 const Title = styled('div')`
