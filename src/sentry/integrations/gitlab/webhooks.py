@@ -3,7 +3,7 @@ from __future__ import annotations
 import inspect
 import logging
 from abc import ABC
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import timezone
 from typing import Any, Protocol
 
@@ -174,6 +174,36 @@ class GitlabWebhook(SCMWebhook, ABC):
                 )
                 continue
 
+    def get_interested_organization_ids(
+        self,
+        integration: RpcIntegration,
+        event: Mapping[str, Any],
+        organization_ids: Sequence[int],
+    ) -> set[int]:
+        """
+        Of `organization_ids`, the organizations this event concerns: by default, those that
+        added the event's repository. One query, so an event costs no per-organization work
+        for the installs it doesn't concern.
+        """
+        return set(
+            Repository.objects.filter(
+                organization_id__in=organization_ids,
+                provider=PROVIDER_NAME,
+                external_id=self._get_repo_external_id(integration, event),
+            ).values_list("organization_id", flat=True)
+        )
+
+    def _get_repo_external_id(self, integration: RpcIntegration, event: Mapping[str, Any]) -> str:
+        try:
+            project_id = event["project"]["id"]
+        except KeyError:
+            logger.warning(
+                "gitlab.webhook.missing-projectid", extra={"integration_id": integration.id}
+            )
+            raise Http404()
+
+        return "{}:{}".format(integration.metadata["instance"], project_id)
+
     def get_repo(
         self, integration: RpcIntegration, organization: RpcOrganization, event: Mapping[str, Any]
     ):
@@ -183,17 +213,10 @@ class GitlabWebhook(SCMWebhook, ABC):
         Assumes a 'project' key in event payload.
         """
         try:
-            project_id = event["project"]["id"]
-        except KeyError:
-            logger.warning(
-                "gitlab.webhook.missing-projectid", extra={"integration_id": integration.id}
-            )
-            raise Http404()
-
-        external_id = "{}:{}".format(integration.metadata["instance"], project_id)
-        try:
             repo = Repository.objects.get(
-                organization_id=organization.id, provider=PROVIDER_NAME, external_id=external_id
+                organization_id=organization.id,
+                provider=PROVIDER_NAME,
+                external_id=self._get_repo_external_id(integration, event),
             )
         except Repository.DoesNotExist:
             return None
@@ -245,16 +268,6 @@ class IssuesEventWebhook(GitlabWebhook):
             )
             return
 
-        # This runs once for every organization sharing the integration, and most of them
-        # never linked this issue. Skipping them before any sync-settings lookup keeps the
-        # cost of an event linear in the number of organizations.
-        if not ExternalIssue.objects.filter(
-            organization_id=organization.id,
-            integration_id=integration.id,
-            key=external_issue_key,
-        ).exists():
-            return
-
         # Extract action from object_attributes
         object_attributes = event.get("object_attributes", {})
         action = object_attributes.get("action")
@@ -272,6 +285,25 @@ class IssuesEventWebhook(GitlabWebhook):
                 organization.id,
                 object_attributes.get("updated_at"),
             )
+
+    def get_interested_organization_ids(
+        self,
+        integration: RpcIntegration,
+        event: Mapping[str, Any],
+        organization_ids: Sequence[int],
+    ) -> set[int]:
+        """The organizations that linked the event's issue."""
+        external_issue_key = self._extract_issue_key(event, integration)
+        if not external_issue_key:
+            return set()
+
+        return set(
+            ExternalIssue.objects.filter(
+                organization_id__in=organization_ids,
+                integration_id=integration.id,
+                key=external_issue_key,
+            ).values_list("organization_id", flat=True)
+        )
 
     def _handle_assignment(
         self,
@@ -804,14 +836,21 @@ class GitlabWebhookEndpoint(Endpoint):
             # Control rejects these deliveries before forwarding; monolith and
             # self-hosted installations reach this endpoint directly.
             logger.info("gitlab.webhook.no-organization-integration", extra=extra)
+            return HttpResponse(status=204)
 
+        event_handler = handler()
+        interested_organization_ids = event_handler.get_interested_organization_ids(
+            integration, event, [install.organization_id for install in installs]
+        )
         for install in installs:
+            if install.organization_id not in interested_organization_ids:
+                continue
+
             org_context = organization_service.get_organization_by_id(
                 id=install.organization_id, include_teams=False, include_projects=False
             )
             if org_context:
                 organization = org_context.organization
-                event_handler = handler()
 
                 with (
                     webhook_viewer_context(install.organization_id),

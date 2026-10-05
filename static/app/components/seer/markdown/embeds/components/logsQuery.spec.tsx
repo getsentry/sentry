@@ -48,8 +48,20 @@ describe('logs query embed', () => {
       url: '/organizations/org-slug/events/',
       body: {
         data: [
-          {id: '1', timestamp: '2026-08-27T12:00:00Z', message: 'Connection refused'},
-          {id: '2', timestamp: '2026-08-27T12:01:00Z', message: 'Retrying'},
+          {
+            id: '1',
+            timestamp: '2026-08-27T12:00:00Z',
+            message: 'Connection refused',
+            severity: 'error',
+            severity_number: 17,
+          },
+          {
+            id: '2',
+            timestamp: '2026-08-27T12:01:00Z',
+            message: 'Retrying',
+            severity: 'warn',
+            severity_number: 13,
+          },
         ],
       },
     });
@@ -62,6 +74,8 @@ describe('logs query embed', () => {
 
     expect(await screen.findByText('Connection refused')).toBeInTheDocument();
     expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
+    // Each sample row leads with the logs table's severity dot.
+    expect(screen.getAllByTestId('seer-log-severity')).toHaveLength(2);
 
     await waitFor(() => {
       expect(table).toHaveBeenCalledWith(
@@ -69,8 +83,15 @@ describe('logs query embed', () => {
         expect.objectContaining({
           query: expect.objectContaining({
             dataset: 'ourlogs',
-            // The Logs page's own default sample columns.
-            field: ['timestamp', 'message'],
+            // The Logs page's own default sample columns, plus what the
+            // severity dot and precise timestamp need.
+            field: [
+              'timestamp',
+              'message',
+              'severity',
+              'severity_number',
+              'timestamp_precise',
+            ],
             per_page: 5,
             query: 'severity:error',
           }),
@@ -199,7 +220,7 @@ describe('logs query embed', () => {
     });
   });
 
-  it('falls back to a selected column when samples fields omit the sort', async () => {
+  it('sorts samples newest first when their fields omit the timestamp', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',
       body: {timeSeries: TIME_SERIES},
@@ -209,8 +230,8 @@ describe('logs query embed', () => {
       body: {data: [{message: 'Connection refused'}]},
     });
 
-    // The logs dataset rejects an orderby that names no selected column, so
-    // the default `-timestamp` cannot survive a field list without it.
+    // The logs dataset rejects an orderby that names no selected column, but
+    // samples always fetch the timestamp their rows lead with.
     render(
       <ExampleLogsQueryEmbed
         data={{
@@ -228,8 +249,16 @@ describe('logs query embed', () => {
       expect(table).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({
-          // A lone field serializes as a scalar rather than a one-item list.
-          query: expect.objectContaining({field: 'message', sort: '-message'}),
+          query: expect.objectContaining({
+            field: [
+              'message',
+              'severity',
+              'severity_number',
+              'timestamp',
+              'timestamp_precise',
+            ],
+            sort: '-timestamp',
+          }),
         })
       );
     });

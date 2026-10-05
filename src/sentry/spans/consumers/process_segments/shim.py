@@ -6,15 +6,18 @@ and thus cannot (yet) be refactored to use the new span schema.
 
 import uuid
 from typing import Any
+from urllib.parse import parse_qsl
 
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry.spans.consumers.process_segments.types import (
+    Attribute,
     CompatibleSpan,
     attribute_value,
     get_span_op,
 )
+from sentry.utils import json
 from sentry.utils.dates import to_datetime
 
 EMPTY_ATTRIBUTE_VALUES = frozenset({"", None})
@@ -52,6 +55,38 @@ CONTEXT_FIELDS_BY_ATTRIBUTE_NAME: dict[str, dict[str, str]] = {
     },
 }
 
+USER_FIELDS_BY_ATTRIBUTE_NAME = {
+    ATTRIBUTE_NAMES.USER_ID: "id",
+    ATTRIBUTE_NAMES.USER_EMAIL: "email",
+    ATTRIBUTE_NAMES.USER_NAME: "username",
+    ATTRIBUTE_NAMES.USER_IP_ADDRESS: "ip_address",
+}
+GEO_FIELDS_BY_ATTRIBUTE_NAME = {
+    ATTRIBUTE_NAMES.USER_GEO_CITY: "city",
+    ATTRIBUTE_NAMES.USER_GEO_COUNTRY_CODE: "country_code",
+    ATTRIBUTE_NAMES.USER_GEO_REGION: "region",
+    ATTRIBUTE_NAMES.USER_GEO_SUBDIVISION: "subdivision",
+}
+
+SDK_FIELDS_BY_ATTRIBUTE_NAME = {
+    ATTRIBUTE_NAMES.SENTRY_SDK_NAME: "name",
+    ATTRIBUTE_NAMES.SENTRY_SDK_VERSION: "version",
+}
+
+# There are multiple entries per field here, because which one of these attributes we get is
+# SDK-dependent. They're listed in reverse priority order, with successively-higher-priority
+# attributes overwriting lower-priority ones if they have a value.
+REQUEST_FIELDS_BY_ATTRIBUTE_NAME = {
+    ATTRIBUTE_NAMES.URL_TEMPLATE: "url",
+    ATTRIBUTE_NAMES.HTTP_ROUTE: "url",
+    ATTRIBUTE_NAMES.URL_PATH: "url",
+    ATTRIBUTE_NAMES.URL_FULL: "url",
+    "sentry.transaction.method": "method",
+    ATTRIBUTE_NAMES.HTTP_REQUEST_METHOD: "method",
+    ATTRIBUTE_NAMES.URL_QUERY: "query_string",
+    ATTRIBUTE_NAMES.HTTP_REQUEST_BODY_DATA: "data",
+}
+
 SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_NORMALIZED_DESCRIPTION: "description",
     ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT: "environment",
@@ -60,6 +95,17 @@ SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME = {
     ATTRIBUTE_NAMES.SENTRY_SDK_NAME: "sdk.name",
     "sentry.system": "system",
 }
+
+KNOWN_NON_TAG_ATTRIBUTE_PREFIXES = frozenset({"sentry.", "user.", "browser.web_vital."})
+KNOWN_NON_TAG_ATTRIBUTES = frozenset().union(
+    TOP_LEVEL_FIELDS_BY_ATTRIBUTE_NAME.keys(),
+    USER_FIELDS_BY_ATTRIBUTE_NAME.keys(),
+    GEO_FIELDS_BY_ATTRIBUTE_NAME.keys(),
+    SDK_FIELDS_BY_ATTRIBUTE_NAME.keys(),
+    REQUEST_FIELDS_BY_ATTRIBUTE_NAME.keys(),
+    SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME.keys(),
+    *(inner_dict.keys() for inner_dict in CONTEXT_FIELDS_BY_ATTRIBUTE_NAME.values()),
+)
 
 
 def make_compatible(span: SpanEvent) -> CompatibleSpan:
@@ -100,8 +146,39 @@ def _extract_attribute_values(
     return values_by_field_name
 
 
+def _is_tag_like_attribute(key: str, attribute: Attribute) -> bool:
+    """
+    Decide whether a segment span attribute should be included in the event's `tags` value.
+    """
+    # Insurance - in practice attributes should never be malformed in this way
+    if "value" not in attribute:
+        return False  # type: ignore[unreachable]
+
+    # Tags are always strings, so anything that's not doesn't belong in `tags`. This is also an easy
+    # way to exclude measurement attributes, since they always come through as floats.
+    if attribute.get("type") != "string":
+        return False
+
+    # Attributes we recognize as ones whose data will end up elsewhere in the event
+    if key in KNOWN_NON_TAG_ATTRIBUTES or any(
+        key.startswith(prefix) for prefix in KNOWN_NON_TAG_ATTRIBUTE_PREFIXES
+    ):
+        return False
+
+    # Everything else is kept as a tag
+    return True
+
+
 def _get_event_tags(segment_span: CompatibleSpan) -> list[list[str]]:
-    tags = {"environment": attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT)}
+    """
+    Build the transaction event's `tags` value from data in the segment span.
+    """
+    attributes = segment_span.get("attributes") or {}
+    tags = {
+        key: attribute.get("value")
+        for key, attribute in attributes.items()
+        if attribute and _is_tag_like_attribute(key, attribute)
+    }
 
     # Our processing pipeline expects tags to be a list of key-value pairs, each one itself
     # formatted as a list (`[[<key1>, <value1>], [<key2>, <value2>], ...]`) rather than a dict.
@@ -131,6 +208,44 @@ def _get_event_contexts(segment_span: CompatibleSpan) -> dict[str, Any]:
     }
 
     return contexts
+
+
+def _get_event_user(segment_span: CompatibleSpan) -> dict[str, Any] | None:
+    """
+    Rebuild the event's `user` entry from the `user.*` attributes on the segment span.
+    """
+    user_data = _extract_attribute_values(segment_span, USER_FIELDS_BY_ATTRIBUTE_NAME)
+    geo_data = _extract_attribute_values(segment_span, GEO_FIELDS_BY_ATTRIBUTE_NAME)
+
+    if not user_data and not geo_data:
+        return None
+
+    if geo_data:
+        user_data["geo"] = geo_data
+
+    return user_data
+
+
+def _get_event_request(segment_span: CompatibleSpan) -> dict[str, Any]:
+    request_data = _extract_attribute_values(segment_span, REQUEST_FIELDS_BY_ATTRIBUTE_NAME)
+
+    if "query_string" in request_data:
+        # Convert from a single string to a list of key-value pairs
+        request_data["query_string"] = parse_qsl(request_data["query_string"])
+
+    if "data" in request_data:
+        try:
+            request_data["data"] = json.loads(request_data["data"])
+        except Exception:
+            pass
+
+        # If the JSON failed to parse, or if it parsed successfully but is the wrong shape (arrays
+        # are legal request bodies, though not ones our detectors can handle), drop the data to
+        # avoid storing information we can't use.
+        if not isinstance(request_data["data"], dict):
+            del request_data["data"]
+
+    return request_data
 
 
 def _get_detector_compatible_spans(spans: list[CompatibleSpan]) -> list[CompatibleSpan]:
@@ -188,5 +303,17 @@ def build_shim_event_data(
     event["contexts"] = _get_event_contexts(segment_span)
     event["tags"] = _get_event_tags(segment_span)
     event["spans"] = _get_detector_compatible_spans(spans)
+
+    user_data = _get_event_user(segment_span)
+    if user_data:
+        event["user"] = user_data
+
+    sdk_data = _extract_attribute_values(segment_span, SDK_FIELDS_BY_ATTRIBUTE_NAME)
+    if sdk_data:
+        event["sdk"] = sdk_data
+
+    request_data = _get_event_request(segment_span)
+    if request_data:
+        event["request"] = request_data
 
     return event

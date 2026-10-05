@@ -12,6 +12,7 @@ import {
 } from 'sentry/api';
 import {PROJECT_MOVED} from 'sentry/constants/apiErrorCodes';
 import type {ResponseMeta} from 'sentry/types/api';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 jest.unmock('sentry/api');
@@ -57,6 +58,29 @@ describe('api', () => {
         request.cancel();
 
         await expect(request.requestPromise).rejects.toHaveProperty('name', 'AbortError');
+      });
+    });
+
+    describe('requestPromise()', () => {
+      it('rejects with a RequestError when the fetch itself fails', async () => {
+        fetchMock.mockReject(new TypeError('Failed to fetch'));
+
+        const error = await new Client().requestPromise('/test/').catch(e => e);
+
+        expect(error).toBeInstanceOf(RequestError);
+        expect(error.status).toBeUndefined();
+      });
+
+      it('stays unsettled when the request is cancelled', async () => {
+        fetchMock.mockResponse(() => '');
+        const client = new Client();
+        const settled = jest.fn();
+
+        client.requestPromise('/test/').then(settled, settled);
+        client.clear();
+        await new Promise(resolve => setTimeout(resolve, 0));
+
+        expect(settled).not.toHaveBeenCalled();
       });
     });
   });
