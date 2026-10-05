@@ -2,6 +2,7 @@ import re
 import uuid
 from unittest.mock import ANY, Mock, call, patch
 
+import orjson
 from django.test import override_settings
 
 from sentry.integrations.services.integration import RpcIntegration
@@ -40,6 +41,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
+from sentry.viewer_context import decode_viewer_context
 
 # Note: Detailed tests for the implementation of functions in seer/autofix.py
 # have been moved to tests/sentry/seer/test_autofix.py
@@ -1362,8 +1364,9 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
         mock_state_request.return_value = mock_state_response
 
+    @override_settings(SEER_API_SHARED_SECRET="test-seer-shared-secret")
     @patch("sentry.seer.agent.client_utils.make_agent_state_request")
-    @patch("sentry.seer.agent.client.make_agent_update_request")
+    @patch("sentry.seer.agent.client_utils.agent_connection_pool.urlopen")
     def test_open_pr(self, mock_explorer_update_request, mock_explorer_state_request):
         self.login_as(user=self.user)
         group = self.create_group()
@@ -1379,11 +1382,11 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 202, response.data
         assert response.data == {"run_id": 123, "sentry_run_id": None}
-        payload = mock_explorer_update_request.call_args[0][0]["payload"]
-        assert mock_explorer_update_request.call_args.kwargs["viewer_context"] == {
-            "organization_id": self.organization.id,
-            "user_id": self.user.id,
-        }
+        outbound = mock_explorer_update_request.call_args.kwargs
+        payload = orjson.loads(outbound["body"])["payload"]
+        viewer = decode_viewer_context(outbound["headers"]["X-Viewer-Context"])
+        assert viewer.organization_id == self.organization.id
+        assert viewer.user_id == self.user.id
         assert payload["type"] == "create_pr"
         # No repo name and no GitHub-linked acting user, so neither key is sent.
         assert "repo_name" not in payload
