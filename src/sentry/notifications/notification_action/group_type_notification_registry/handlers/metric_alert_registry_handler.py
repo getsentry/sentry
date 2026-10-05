@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Sequence
 from typing import override
 
@@ -10,8 +11,11 @@ from sentry.notifications.notification_action.registry import (
     metric_alert_handler_registry,
 )
 from sentry.notifications.notification_action.types import LegacyRegistryHandler
+from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action, DataConditionGroupAction
 from sentry.workflow_engine.types import ActionInvocation
+
+logger = logging.getLogger(__name__)
 
 
 @group_type_notification_registry.register(MetricIssue.slug)
@@ -19,11 +23,20 @@ class MetricAlertRegistryHandler(LegacyRegistryHandler):
     @staticmethod
     @override
     def handle_workflow_action(invocation: ActionInvocation) -> None:
-        # A NoRegistrationExistsError propagates to execute_via_group_type_registry, which
-        # routes action types with no metric-alert-specific handler (e.g. WEBHOOK, PLUGIN,
-        # ticketing) to the issue alert handler.
-        handler = metric_alert_handler_registry.get(invocation.action.type)
-        handler.invoke_legacy_registry(invocation)
+        try:
+            handler = metric_alert_handler_registry.get(invocation.action.type)
+            handler.invoke_legacy_registry(invocation)
+        except NoRegistrationExistsError:
+            # Fall through silently: execute_via_group_type_registry catches this
+            # and routes to the issue alert handler for action types (e.g. WEBHOOK,
+            # PLUGIN, ticketing) that have no metric-alert-specific handler.
+            raise
+        except Exception:
+            logger.exception(
+                "Error invoking metric alert handler",
+                extra={"action_id": invocation.action.id},
+            )
+            raise
 
     @staticmethod
     def target(action: Action) -> OrganizationMember | Team | str | None:

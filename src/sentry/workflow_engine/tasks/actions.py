@@ -185,12 +185,4 @@ def trigger_action(
             reported: BaseException = error
             if isinstance(error, RetryTaskError) and error.__cause__ is not None:
                 reported = error.__cause__
-            sentry_sdk.capture_exception(
-                reported,
-                tags={"action_type": action.type, "detector_type": detector.type},
-                extras={
-                    "action_id": action.id,
-                    "workflow_id": workflow_id,
-                    "detector_id": detector.id,
-                },
-            )
+            sentry_sdk.capture_exception(reported)
