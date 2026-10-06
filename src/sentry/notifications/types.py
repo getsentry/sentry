@@ -21,13 +21,7 @@ class NotificationOrigin:
     legacy_rule_id: int | None
 
     @classmethod
-    def from_legacy_rule(
-        cls,
-        rule: Rule,
-        *,
-        workflow_id: int | None = None,
-        environment_id: int | None = None,
-    ) -> NotificationOrigin:
+    def from_legacy_rule(cls, rule: Rule) -> NotificationOrigin:
         actions = rule.data.get("actions")
         first_action = actions[0] if isinstance(actions, list) and actions else {}
         embedded_workflow_id = first_action.get("workflow_id")
@@ -38,10 +32,7 @@ class NotificationOrigin:
         if embedded_legacy_rule_id is not None:
             embedded_legacy_rule_id = int(embedded_legacy_rule_id)
 
-        effective_workflow_id = workflow_id or embedded_workflow_id
-        if workflow_id is not None:
-            legacy_rule_id = rule.id
-        elif embedded_legacy_rule_id is not None:
+        if embedded_legacy_rule_id is not None:
             legacy_rule_id = embedded_legacy_rule_id
         elif embedded_workflow_id is not None:
             legacy_rule_id = None
@@ -50,8 +41,8 @@ class NotificationOrigin:
 
         return cls(
             label=rule.label,
-            environment_id=environment_id if environment_id is not None else rule.environment_id,
-            workflow_id=effective_workflow_id,
+            environment_id=rule.environment_id,
+            workflow_id=embedded_workflow_id,
             legacy_rule_id=legacy_rule_id,
         )
 

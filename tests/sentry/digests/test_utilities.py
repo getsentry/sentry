@@ -133,6 +133,19 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         assert rendered_rule.workflow_id == workflow_id
         assert rendered_rule.environment_id == production.id
 
+    def test_get_rules_from_workflows_uses_unset_workflow_environment(self) -> None:
+        project = self.create_project(fire_project_created=True)
+        environment = self.create_environment(project=project)
+        rule = self.create_project_rule(project=project, environment_id=environment.id)
+        workflow_id = int(rule.data["actions"][0]["workflow_id"])
+        Workflow.objects.filter(id=workflow_id).update(environment_id=None)
+
+        rendered_rule = get_rules_from_workflows(project, {workflow_id})[workflow_id]
+
+        assert rendered_rule.legacy_rule_id == rule.id
+        assert rendered_rule.workflow_id == workflow_id
+        assert rendered_rule.environment_id is None
+
     def test_get_rules_from_workflows_uses_workflow_environment_for_synthetic_rule(self) -> None:
         project = self.create_project(fire_project_created=True)
         environment = self.create_environment(project=project)

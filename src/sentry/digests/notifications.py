@@ -202,10 +202,11 @@ def get_rules_from_workflows(
         if alert_workflow:
             if rule := bulk_rules.get(alert_workflow.rule_id):
                 assert rule.project_id == project.id, "Rule must belong to Project"
-                rules[workflow_id] = NotificationOrigin.from_legacy_rule(
-                    rule,
-                    workflow_id=workflow_id,
+                rules[workflow_id] = NotificationOrigin(
+                    label=rule.label,
                     environment_id=workflow.environment_id,
+                    workflow_id=workflow_id,
+                    legacy_rule_id=rule.id,
                 )
                 continue
 
