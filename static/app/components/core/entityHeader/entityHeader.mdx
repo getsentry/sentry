@@ -133,7 +133,7 @@ A stat value becomes a link with `to`, and so does the title. A metadata item ga
 
 Pass `isLoading` and each slot renders a skeleton sized from the typography it will hold. Because the skeleton comes from the same declarations as the loaded state, the two cannot drift apart — there is no placeholder twin to keep in sync.
 
-Static labels stay visible while loading. They are known before the data arrives, and keeping them stops the row changing width when it resolves.
+Each slot is replaced whole, stat labels included. A label is static and could be shown straight away, but a half-drawn stat next to a loading title reads as broken. Size `loadingWidth` to the content you expect so the row does not jump when the value lands.
 
 <Storybook.Demo>
   <EntityHeader

@@ -186,12 +186,10 @@ describe('EntityHeader', () => {
       // title + subtitle + 2 stats + 2 metadata
       expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(6);
 
-      // Static labels are known before the data arrives, so they stay put and the
-      // row keeps its width across the loading boundary.
-      expect(screen.getByText('Dead Clicks')).toBeInTheDocument();
-      expect(screen.getByText('Errors')).toBeInTheDocument();
-
-      // Values and the title are what is actually unknown.
+      // Every slot is fully replaced, labels included — a half-drawn stat beside a
+      // loading title and metadata row reads as broken.
+      expect(screen.queryByText('Dead Clicks')).not.toBeInTheDocument();
+      expect(screen.queryByText('Errors')).not.toBeInTheDocument();
       expect(screen.queryByRole('heading', {level: 2})).not.toBeInTheDocument();
       expect(screen.queryByText('A subtitle')).not.toBeInTheDocument();
     });
@@ -211,8 +209,10 @@ describe('EntityHeader', () => {
         />
       );
 
-      const statBox = screen.getByText('Seen By').closest('div')!.parentElement!;
-      expect(getEmotionRules(statBox).some(r => /height:\s*32px/.test(r))).toBe(true);
+      const skeleton = screen.getAllByTestId('loading-placeholder')[1]!;
+      expect(
+        getEmotionRules(skeleton.parentElement!).some(r => /height:\s*32px/.test(r))
+      ).toBe(true);
 
       rerender(
         <EntityHeader

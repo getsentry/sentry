@@ -146,6 +146,7 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
               label: t('Dead Clicks'),
               value: deadClicks,
               to: deadClicks ? breadcrumbTab : undefined,
+              loadingWidth: '82px',
             }
           : null,
         showDeadRageClicks
@@ -153,12 +154,13 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
               label: t('Rage Clicks'),
               value: rageClicks,
               to: rageClicks ? breadcrumbTab : undefined,
+              loadingWidth: '82px',
             }
           : null,
         {
           label: t('Errors'),
           value: <ErrorCounts replayErrors={nonFeedbackErrors} />,
-          loadingWidth: '20px',
+          loadingWidth: '64px',
         },
       ],
       metadata: [

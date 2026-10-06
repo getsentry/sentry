@@ -22,7 +22,8 @@ export interface EntityHeaderStatProps {
    */
   icon?: React.ReactNode;
   /**
-   * Width of the skeleton shown in place of `value` while loading.
+   * Width of the skeleton that replaces the whole stat while loading. Size it to
+   * the content you expect, so the row does not jump when the value lands.
    */
   loadingWidth?: string;
   onClick?: () => void;
@@ -36,7 +37,7 @@ export function EntityHeaderStat({
   icon,
   isLoading,
   label,
-  loadingWidth = '24px',
+  loadingWidth = '80px',
   onClick,
   to,
   value,
@@ -46,6 +47,17 @@ export function EntityHeaderStat({
       {value}
     </Text>
   );
+
+  // The whole stat becomes one skeleton, label included. The label is static and
+  // could be shown immediately, but a half-drawn stat reads as broken next to a
+  // title and metadata row that are still loading.
+  if (isLoading) {
+    return (
+      <Flex align="center" height={ROW_HEIGHT} flexShrink={0}>
+        <Placeholder width={loadingWidth} height={STAT_VALUE_HEIGHT} />
+      </Flex>
+    );
+  }
 
   return (
     // The outer box is a fixed height so the row cannot resize as async values
@@ -58,14 +70,12 @@ export function EntityHeaderStat({
         which is the visual signature of the stat row.
       */}
       <Flex align="baseline" gap="xs" minWidth={0}>
-        {icon && !isLoading && (
+        {icon && (
           <Flex align="center" flexShrink={0} aria-hidden>
             {icon}
           </Flex>
         )}
-        {isLoading ? (
-          <Placeholder width={loadingWidth} height={STAT_VALUE_HEIGHT} />
-        ) : to ? (
+        {to ? (
           <Link to={to} onClick={onClick}>
             {valueText}
           </Link>
