@@ -946,12 +946,17 @@ class UpdateGroupsTest(TestCase):
         activity = response.data["activity"]
         assert "note" not in [entry["type"] for entry in activity]
 
-    def _update_status_with_post_update_signal(
-        self, group: Group, data: dict[str, Any], produce_snapshot: Mock
+    def _update_status_and_capture_snapshot_statuses(
+        self,
+        group: Group,
+        data: dict[str, Any],
+        produce_snapshot: Mock,
+        *,
+        post_update_signal_enabled: bool,
     ) -> list[int]:
         """
-        Run the status update the way production does (post_update signal on, manual
-        post_save fallbacks off) and return the group statuses of the snapshots emitted.
+        With the option on (production), snapshots come from the post_update signal and the
+        manual post_save fallbacks are skipped. With it off (CI default), they come from post_save.
         """
         http_request = self.make_request(user=self.user, method="GET")
         http_request.GET = QueryDict(query_string=f"id={group.id}")
@@ -960,21 +965,21 @@ class UpdateGroupsTest(TestCase):
 
         produce_snapshot.reset_mock()
 
-        with self.options({"groups.enable-post-update-signal": True}):
+        with self.options({"groups.enable-post-update-signal": post_update_signal_enabled}):
             update_groups(request, group_list)
 
         return [call.args[0]["status"] for call in produce_snapshot.call_args_list]
 
-    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
-    def test_archive_until_escalating_emits_group_attributes_snapshot(
-        self, produce_snapshot: Mock
+    def _assert_archive_until_escalating_emits_one_snapshot(
+        self, produce_snapshot: Mock, *, post_update_signal_enabled: bool
     ) -> None:
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
 
-        emitted_statuses = self._update_status_with_post_update_signal(
+        emitted_statuses = self._update_status_and_capture_snapshot_statuses(
             group,
             {"status": "ignored", "substatus": "archived_until_escalating"},
             produce_snapshot,
+            post_update_signal_enabled=post_update_signal_enabled,
         )
 
         group.refresh_from_db()
@@ -983,14 +988,16 @@ class UpdateGroupsTest(TestCase):
 
         assert emitted_statuses == [GroupStatus.IGNORED]
 
-    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
-    def test_archive_forever_emits_group_attributes_snapshot(self, produce_snapshot: Mock) -> None:
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
+    def _assert_archive_forever_emits_one_snapshot(
+        self, produce_snapshot: Mock, *, post_update_signal_enabled: bool
+    ) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
 
-        emitted_statuses = self._update_status_with_post_update_signal(
+        emitted_statuses = self._update_status_and_capture_snapshot_statuses(
             group,
             {"status": "ignored", "substatus": "archived_forever"},
             produce_snapshot,
+            post_update_signal_enabled=post_update_signal_enabled,
         )
 
         group.refresh_from_db()
@@ -999,16 +1006,18 @@ class UpdateGroupsTest(TestCase):
 
         assert emitted_statuses == [GroupStatus.IGNORED]
 
-    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
-    def test_unresolve_emits_group_attributes_snapshot(self, produce_snapshot: Mock) -> None:
+    def _assert_unresolve_emits_one_snapshot(
+        self, produce_snapshot: Mock, *, post_update_signal_enabled: bool
+    ) -> None:
         group = self.create_group(
             status=GroupStatus.IGNORED, substatus=GroupSubStatus.UNTIL_ESCALATING
         )
 
-        emitted_statuses = self._update_status_with_post_update_signal(
+        emitted_statuses = self._update_status_and_capture_snapshot_statuses(
             group,
             {"status": "unresolved", "substatus": "ongoing"},
             produce_snapshot,
+            post_update_signal_enabled=post_update_signal_enabled,
         )
 
         group.refresh_from_db()
@@ -1017,18 +1026,68 @@ class UpdateGroupsTest(TestCase):
 
         assert emitted_statuses == [GroupStatus.UNRESOLVED]
 
-    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
-    def test_resolve_emits_group_attributes_snapshot(self, produce_snapshot: Mock) -> None:
-        group = self.create_group(status=GroupStatus.UNRESOLVED)
+    def _assert_resolve_emits_one_snapshot(
+        self, produce_snapshot: Mock, *, post_update_signal_enabled: bool
+    ) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED, substatus=GroupSubStatus.ONGOING)
 
-        emitted_statuses = self._update_status_with_post_update_signal(
-            group, {"status": "resolved"}, produce_snapshot
+        emitted_statuses = self._update_status_and_capture_snapshot_statuses(
+            group,
+            {"status": "resolved", "substatus": None},
+            produce_snapshot,
+            post_update_signal_enabled=post_update_signal_enabled,
         )
 
         group.refresh_from_db()
         assert group.status == GroupStatus.RESOLVED
 
         assert emitted_statuses == [GroupStatus.RESOLVED]
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_archive_until_escalating_emits_snapshot_via_post_update(
+        self, produce_snapshot: Mock
+    ) -> None:
+        self._assert_archive_until_escalating_emits_one_snapshot(
+            produce_snapshot, post_update_signal_enabled=True
+        )
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_archive_until_escalating_emits_snapshot_via_post_save(
+        self, produce_snapshot: Mock
+    ) -> None:
+        self._assert_archive_until_escalating_emits_one_snapshot(
+            produce_snapshot, post_update_signal_enabled=False
+        )
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_archive_forever_emits_snapshot_via_post_update(self, produce_snapshot: Mock) -> None:
+        self._assert_archive_forever_emits_one_snapshot(
+            produce_snapshot, post_update_signal_enabled=True
+        )
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_archive_forever_emits_snapshot_via_post_save(self, produce_snapshot: Mock) -> None:
+        self._assert_archive_forever_emits_one_snapshot(
+            produce_snapshot, post_update_signal_enabled=False
+        )
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_unresolve_emits_snapshot_via_post_update(self, produce_snapshot: Mock) -> None:
+        self._assert_unresolve_emits_one_snapshot(produce_snapshot, post_update_signal_enabled=True)
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_unresolve_emits_snapshot_via_post_save(self, produce_snapshot: Mock) -> None:
+        self._assert_unresolve_emits_one_snapshot(
+            produce_snapshot, post_update_signal_enabled=False
+        )
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_resolve_emits_snapshot_via_post_update(self, produce_snapshot: Mock) -> None:
+        self._assert_resolve_emits_one_snapshot(produce_snapshot, post_update_signal_enabled=True)
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_resolve_emits_snapshot_via_post_save(self, produce_snapshot: Mock) -> None:
+        self._assert_resolve_emits_one_snapshot(produce_snapshot, post_update_signal_enabled=False)
 
 
 class MergeGroupsTest(TestCase):
