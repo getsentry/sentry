@@ -344,8 +344,6 @@ def top_events_timeseries(
         set_span_data(span, "result_count", len(result.get("data", [])))
         result = top_events_builder.process_results(result)
         if len(other_result.get("data", [])):
-            # Without this the Other rows keep their snuba aliases (e.g. `count`)
-            # while the top events use the input format (e.g. `count()`).
             other_result = other_events_builder.process_results(other_result)
 
         issues: Mapping[int, str | None] = {}
