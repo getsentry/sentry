@@ -18,7 +18,7 @@ from sentry.api.bases import OrganizationEndpoint
 from sentry.middleware import is_frontend_request
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import collect_user_org_context, enqueue_seer_run
-from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
+from sentry.seer.endpoints.utils import OrganizationTraceExplorerAIPermission
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
