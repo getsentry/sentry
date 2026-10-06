@@ -54,6 +54,7 @@ describe('InnerIntentForm', () => {
         /To add or update your payment method, you may need to disable any ad or tracker blocking extensions/
       )
     ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save Payment Method'})).toBeDisabled();
 
     jest.useRealTimers();
   });
