@@ -918,6 +918,19 @@ describe('Modals -> DataWidgetViewerModal', () => {
       await renderModal({initialData, widget: mockWidget});
       expect(issuesMock).toHaveBeenCalled();
     });
+
+    it('renders the total issue count', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'GET',
+        match: [MockApiClient.matchData({cursor: undefined})],
+        headers: {'X-Hits': '15'},
+        body: [],
+      });
+      await renderModal({initialData, widget: mockWidget});
+      expect(await screen.findByText('Total Issues:')).toBeInTheDocument();
+      expect(screen.getByText('15')).toBeInTheDocument();
+    });
   });
 
   describe('Release Health Widgets', () => {

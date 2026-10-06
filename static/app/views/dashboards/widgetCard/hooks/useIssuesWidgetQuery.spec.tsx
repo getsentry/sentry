@@ -238,4 +238,38 @@ describe('useIssuesTableQuery', () => {
       );
     });
   });
+
+  it('returns the total issue count from the X-Hits header', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      queries: [
+        {
+          name: 'test',
+          fields: ['issue', 'assignee', 'title'],
+          aggregates: [],
+          columns: ['issue', 'assignee', 'title'],
+          conditions: '',
+          orderby: IssueSortOptions.DATE,
+        },
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      body: [],
+      headers: {'X-Hits': '42'},
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useIssuesTableQuery({
+        widget,
+        organization,
+        pageFilters,
+        enabled: true,
+      })
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.totalCount).toBe('42');
+  });
 });
