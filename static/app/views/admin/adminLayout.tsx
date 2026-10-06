@@ -10,7 +10,7 @@ import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
 export default function AdminLayout() {
   return (
     <SentryDocumentTitle noSuffix title={t('Sentry Admin')}>
-      <Flex flexGrow={1} containerType="inline-size">
+      <Flex flexGrow={1}>
         <BreadcrumbProvider>
           <SettingsLayout>
             <Outlet />
