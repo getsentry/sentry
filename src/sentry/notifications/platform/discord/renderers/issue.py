@@ -50,12 +50,12 @@ class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
             except Exception:
                 raise NotificationRenderError(f"Failed to retrieve event {data.event_id}")
 
-        origins = [data.rule.to_notification_origin()] if data.rule else []
+        rules = [data.rule.to_notification_origin()] if data.rule else []
 
         return DiscordIssuesMessageBuilder(
             group=group,
             event=group_event,
             tags=set(data.tags) if data.tags else None,
-            rules=origins,
+            rules=rules,
             link_to_event=True,
         ).build(notification_uuid=data.notification_uuid)

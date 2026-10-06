@@ -65,14 +65,14 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             except Exception:
                 raise NotificationRenderError(f"Failed to retrieve event {data.event_id}")
 
-        origins = [data.rule.to_notification_origin()] if data.rule else []
+        rules = [data.rule.to_notification_origin()] if data.rule else []
         issue_url = cls.build_issue_url(group=group, notification_uuid=data.notification_uuid)
 
         fields: list[Block | None] = [
             cls.build_description(group=group, event=event),
-            cls.build_footer(group=group, event=event, origins=origins),
+            cls.build_footer(group=group, event=event, rules=rules),
             cls.build_assignee_note(group),
-            cls.build_actions(group=group, data=data, origins=origins),
+            cls.build_actions(group=group, data=data, rules=rules),
         ]
 
         return MSTeamsMessageBuilder().build(
@@ -125,7 +125,7 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
         *,
         group: Group,
         event: Event | GroupEvent | None,
-        origins: Sequence[NotificationOrigin],
+        rules: Sequence[NotificationOrigin],
     ) -> ColumnSetBlock:
         from sentry.integrations.messaging.message_builder import build_footer
         from sentry.integrations.msteams.card_builder import MSTEAMS_URL_FORMAT
@@ -144,7 +144,7 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
 
         project = Project.objects.get_from_cache(id=group.project_id)
         footer_text = build_footer(
-            group=group, project=project, url_format=MSTEAMS_URL_FORMAT, rules=origins
+            group=group, project=project, url_format=MSTEAMS_URL_FORMAT, rules=rules
         )
 
         ts: datetime = group.last_seen
@@ -190,7 +190,7 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
         *,
         action_type: ACTION_TYPE,
         data: IssueNotificationData,
-        origins: Sequence[NotificationOrigin],
+        rules: Sequence[NotificationOrigin],
     ) -> dict[str, Any]:
         # Keep this lazy to avoid initializing the msteams package during notifications app startup.
         from sentry.integrations.msteams.card_builder.issues import get_workflow_ids
@@ -203,7 +203,7 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
                 "groupId": data.group_id,
                 "eventId": data.event_id,
                 "rules": [data.rule.id],
-                "workflows": get_workflow_ids(origins),
+                "workflows": get_workflow_ids(rules),
             }
         }
 
@@ -217,7 +217,7 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
         reverse_action: ACTION_TYPE,
         reverse_action_title: str,
         data: IssueNotificationData,
-        origins: Sequence[NotificationOrigin],
+        rules: Sequence[NotificationOrigin],
         **card_kwargs: Any,
     ) -> Action:
         """
@@ -236,13 +236,11 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             return SubmitAction(
                 type=ActionType.SUBMIT,
                 title=reverse_action_title,
-                data=cls.build_action_payload(
-                    action_type=reverse_action, data=data, origins=origins
-                ),
+                data=cls.build_action_payload(action_type=reverse_action, data=data, rules=rules),
             )
 
         card = MSTeamsIssueMessageBuilder.build_input_choice_card(
-            data=cls.build_action_payload(action_type=action, data=data, origins=origins),
+            data=cls.build_action_payload(action_type=action, data=data, rules=rules),
             **card_kwargs,
         )
         return ShowCardAction(type=ActionType.SHOW_CARD, title=action_title, card=card)
@@ -263,7 +261,7 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
         *,
         group: Group,
         data: IssueNotificationData,
-        origins: Sequence[NotificationOrigin],
+        rules: Sequence[NotificationOrigin],
     ) -> ContainerBlock:
         from sentry.integrations.msteams.card_builder import ME
         from sentry.integrations.msteams.card_builder.block import (
@@ -282,7 +280,7 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             reverse_action=ACTION_TYPE.UNRESOLVE,
             reverse_action_title=IssueConstants.UNRESOLVE,
             data=data,
-            origins=origins,
+            rules=rules,
             card_title=IssueConstants.RESOLVE,
             submit_button_title=IssueConstants.RESOLVE,
             input_id=IssueConstants.RESOLVE_INPUT_ID,
@@ -296,7 +294,7 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             reverse_action=ACTION_TYPE.UNRESOLVE,
             reverse_action_title=IssueConstants.UNARCHIVE,
             data=data,
-            origins=origins,
+            rules=rules,
             card_title=IssueConstants.ARCHIVE_INPUT_TITLE,
             submit_button_title=IssueConstants.ARCHIVE,
             input_id=IssueConstants.ARCHIVE_INPUT_ID,
@@ -315,7 +313,7 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             reverse_action=ACTION_TYPE.UNASSIGN,
             reverse_action_title=IssueConstants.UNASSIGN,
             data=data,
-            origins=origins,
+            rules=rules,
             card_title=IssueConstants.ASSIGN_INPUT_TITLE,
             submit_button_title=IssueConstants.ASSIGN,
             input_id=IssueConstants.ASSIGN_INPUT_ID,

@@ -247,7 +247,7 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
     group_ids = list(groups)
     legacy_rules = Rule.objects.in_bulk(rule_ids)
     workflow_ids_by_rule_id = dict(
-        AlertRuleWorkflow.objects.filter(rule_id__in=legacy_rules).values_list(
+        AlertRuleWorkflow.objects.filter(rule_id__in=legacy_rules.keys()).values_list(
             "rule_id", "workflow_id"
         )
     )

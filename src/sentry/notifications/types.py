@@ -22,32 +22,48 @@ class NotificationOrigin:
 
     @classmethod
     def from_legacy_rule(cls, rule: Rule) -> NotificationOrigin:
-        actions = rule.data.get("actions")
-        first_action = actions[0] if isinstance(actions, list) and actions else {}
-        embedded_workflow_id = first_action.get("workflow_id")
-        embedded_legacy_rule_id = first_action.get("legacy_rule_id")
-
-        if embedded_workflow_id is not None:
-            embedded_workflow_id = int(embedded_workflow_id)
-        if embedded_legacy_rule_id is not None:
-            embedded_legacy_rule_id = int(embedded_legacy_rule_id)
-
-        if embedded_legacy_rule_id is not None:
-            legacy_rule_id = embedded_legacy_rule_id
-        elif embedded_workflow_id is not None:
-            legacy_rule_id = None
-        else:
-            legacy_rule_id = rule.id
-
-        return cls(
+        return cls.from_legacy_data(
             label=rule.label,
             environment_id=rule.environment_id,
-            workflow_id=embedded_workflow_id,
+            data=rule.data,
+            fallback_legacy_rule_id=rule.id,
+        )
+
+    @classmethod
+    def from_legacy_data(
+        cls,
+        *,
+        label: str,
+        environment_id: int | None,
+        data: dict[str, Any],
+        fallback_legacy_rule_id: int,
+    ) -> NotificationOrigin:
+        actions = data.get("actions")
+        first_action = actions[0] if isinstance(actions, list) and actions else {}
+        if not isinstance(first_action, dict):
+            first_action = {}
+        workflow_id = first_action.get("workflow_id")
+        legacy_rule_id = first_action.get("legacy_rule_id")
+
+        workflow_id = int(workflow_id) if workflow_id is not None else None
+        legacy_rule_id = int(legacy_rule_id) if legacy_rule_id is not None else None
+
+        if workflow_id == TEST_NOTIFICATION_ID or legacy_rule_id == TEST_NOTIFICATION_ID:
+            workflow_id = None
+            legacy_rule_id = TEST_NOTIFICATION_ID
+        elif workflow_id is None and legacy_rule_id is None:
+            legacy_rule_id = fallback_legacy_rule_id
+
+        return cls(
+            label=label,
+            environment_id=environment_id,
+            workflow_id=workflow_id,
             legacy_rule_id=legacy_rule_id,
         )
 
     @property
     def identifier(self) -> tuple[str, int]:
+        """Stable identity used to compare and group notification origins."""
         if self.workflow_id is not None:
             return ("workflow", self.workflow_id)
         assert self.legacy_rule_id is not None
@@ -55,6 +71,7 @@ class NotificationOrigin:
 
     @property
     def link_id(self) -> int:
+        """Legacy-compatible ID for contexts that previously consumed Rule.id."""
         if self.legacy_rule_id is not None:
             return self.legacy_rule_id
         assert self.workflow_id is not None

@@ -13,7 +13,7 @@ from sentry.notifications.platform.types import (
     NotificationSource,
     NotificationTemplate,
 )
-from sentry.notifications.types import TEST_NOTIFICATION_ID, NotificationOrigin
+from sentry.notifications.types import NotificationOrigin
 
 
 class SerializableRuleProxy(BaseModel):
@@ -49,17 +49,12 @@ class SerializableRuleProxy(BaseModel):
         legacy_rule_id = self.legacy_rule_id
         if workflow_id is None and legacy_rule_id is None:
             # Compatibility for payloads serialized before identities became top-level fields.
-            actions = self.data.get("actions")
-            first_action = actions[0] if isinstance(actions, list) and actions else {}
-            workflow_id = first_action.get("workflow_id")
-            legacy_rule_id = first_action.get("legacy_rule_id")
-            workflow_id = int(workflow_id) if workflow_id is not None else None
-            legacy_rule_id = int(legacy_rule_id) if legacy_rule_id is not None else None
-            if workflow_id == TEST_NOTIFICATION_ID or legacy_rule_id == TEST_NOTIFICATION_ID:
-                workflow_id = None
-                legacy_rule_id = TEST_NOTIFICATION_ID
-            elif workflow_id is None and legacy_rule_id is None:
-                legacy_rule_id = self.id
+            return NotificationOrigin.from_legacy_data(
+                label=self.label,
+                environment_id=self.environment_id,
+                data=self.data,
+                fallback_legacy_rule_id=self.id,
+            )
 
         return NotificationOrigin(
             label=self.label,
