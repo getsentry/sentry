@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useState} from 'react';
-import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Button} from '@sentry/scraps/button';
@@ -423,6 +422,8 @@ export function OnboardingWithoutContext() {
           <OnboardingStep
             key={stepObj.id}
             {...ONBOARDING_STAGGER}
+            flexGrow={1}
+            justify="center"
             data-test-id={`onboarding-step-${stepObj.id}`}
           >
             {stepObj.Component && (
@@ -468,11 +469,6 @@ function Onboarding() {
   );
 }
 
-const OnboardingStep = styled(motion.div)`
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-`;
+const OnboardingStep = motion.create(Stack);
 
 export default Onboarding;
