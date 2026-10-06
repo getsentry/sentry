@@ -1,31 +1,28 @@
 import {useState} from 'react';
 import {flushSync} from 'react-dom';
 
-import {mockAnimationFrame} from 'sentry-test/mockAnimationFrame';
-import {renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useRAF} from 'sentry/utils/useRAF';
 
 describe('useRAF cleanup', () => {
-  let raf: ReturnType<typeof mockAnimationFrame>;
-
   beforeEach(() => {
-    raf = mockAnimationFrame();
+    jest.useFakeTimers();
   });
 
   afterEach(() => {
-    jest.restoreAllMocks();
+    jest.useRealTimers();
   });
 
   it('does not reschedule after synchronous self-unmount', () => {
     const onFrame = jest.fn((): void => flushSync(unmount));
     const {unmount} = renderHook(() => useRAF(onFrame));
-    expect(raf.frames.size).toBe(1);
+    expect(jest.getTimerCount()).toBe(1);
 
-    raf.advanceFrame();
+    act(() => jest.advanceTimersToNextFrame());
 
     expect(onFrame).toHaveBeenCalledTimes(1);
-    expect(raf.frames.size).toBe(0);
+    expect(jest.getTimerCount()).toBe(0);
   });
 
   it('does not reschedule after the callback synchronously disables polling', () => {
@@ -41,12 +38,12 @@ describe('useRAF cleanup', () => {
       );
       return enabled;
     });
-    expect(raf.frames.size).toBe(1);
+    expect(jest.getTimerCount()).toBe(1);
 
-    raf.advanceFrame();
+    act(() => jest.advanceTimersToNextFrame());
 
     expect(result.current).toBe(false);
     expect(onFrame).toHaveBeenCalledTimes(1);
-    expect(raf.frames.size).toBe(0);
+    expect(jest.getTimerCount()).toBe(0);
   });
 });

@@ -6,7 +6,6 @@ import {
 } from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {mockAnimationFrame} from 'sentry-test/mockAnimationFrame';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
@@ -154,7 +153,7 @@ describe('replayContext', () => {
   it.each([false, true])(
     'keeps polling the player after an unchanged timestamp (video: %s)',
     video => {
-      const {advanceFrame, frames} = mockAnimationFrame();
+      jest.useFakeTimers();
       const replay = makeReader({
         attachments: video
           ? [VideoFrameEventFixture()]
@@ -166,25 +165,27 @@ describe('replayContext', () => {
         </ReplayContextProvider>
       );
 
-      advanceFrame();
+      act(() => jest.advanceTimersToNextFrame());
       mockGetCurrentTime.mockReturnValue(1_000);
-      advanceFrame();
+      act(() => jest.advanceTimersToNextFrame());
       expect(screen.getByText('Current time: 1000')).toBeInTheDocument();
 
       // Polling must also survive an unchanged clock after a React render.
-      advanceFrame();
+      act(() => jest.advanceTimersToNextFrame());
       mockGetCurrentTime.mockReturnValue(2_000);
-      advanceFrame();
+      act(() => jest.advanceTimersToNextFrame());
       expect(screen.getByText('Current time: 2000')).toBeInTheDocument();
 
       unmount();
-      expect(frames.size).toBe(0);
+      mockGetCurrentTime.mockClear();
+      act(() => jest.advanceTimersToNextFrame());
+      expect(mockGetCurrentTime).not.toHaveBeenCalled();
     }
   );
 
   afterEach(() => {
     mockGetCurrentTime.mockReturnValue(0);
-    jest.restoreAllMocks();
+    jest.useRealTimers();
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       value: 'visible',
