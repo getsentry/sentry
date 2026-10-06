@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
@@ -5,6 +6,7 @@ import {getEmotionRules} from 'sentry-test/utils';
 
 import {Tag} from '@sentry/scraps/badge';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 /** The `Grid` that owns the template is the header's only child. */
 function getGridRules() {
@@ -103,6 +105,85 @@ describe('EntityHeader', () => {
       );
       expect(screen.getByText('Rage Clicks')).toBeInTheDocument();
       expect(screen.queryByRole('link', {name: '0'})).not.toBeInTheDocument();
+    });
+
+    it('explains a stat label through a tooltip without restyling it', async () => {
+      render(
+        <EntityHeader
+          title={{label: 'Session'}}
+          stats={[
+            {
+              label: 'Dead Clicks',
+              value: 4,
+              labelTooltip: 'A click that did not change anything.',
+            },
+          ]}
+        />
+      );
+
+      await userEvent.hover(screen.getByText('Dead Clicks'));
+      expect(
+        await screen.findByText('A click that did not change anything.')
+      ).toBeInTheDocument();
+    });
+
+    it('carries a breakdown in the value tooltip rather than in the row', async () => {
+      render(
+        <EntityHeader
+          title={{label: 'Session'}}
+          stats={[
+            {
+              label: 'Errors',
+              value: 3,
+              valueTooltip: (
+                <Fragment>
+                  <Tooltip.Header>Errors</Tooltip.Header>
+                  <Tooltip.Grid columns="1fr max-content">
+                    <Tooltip.Row trailingItems={<span>2</span>}>
+                      <span>javascript</span>
+                    </Tooltip.Row>
+                    <Tooltip.Row trailingItems={<span>1</span>}>
+                      <span>python</span>
+                    </Tooltip.Row>
+                  </Tooltip.Grid>
+                </Fragment>
+              ),
+            },
+          ]}
+        />
+      );
+
+      // The row itself stays a single number.
+      expect(screen.getByText('3')).toBeInTheDocument();
+      expect(screen.queryByText('javascript')).not.toBeInTheDocument();
+
+      await userEvent.hover(screen.getByText('3'));
+      expect(await screen.findByText('javascript')).toBeInTheDocument();
+      expect(screen.getByText('python')).toBeInTheDocument();
+    });
+
+    it('keeps a linked value as a link, with the tooltip attached to it', async () => {
+      render(
+        <EntityHeader
+          title={{label: 'Session'}}
+          stats={[
+            {
+              label: 'Errors',
+              value: 3,
+              to: '/replays/1/?t_main=errors',
+              valueTooltip: 'From 2 projects',
+            },
+          ]}
+        />
+      );
+
+      // A link already reads as interactive, so it keeps its own affordance and
+      // focus stop instead of gaining InfoText's underline and a second one.
+      const link = screen.getByRole('link', {name: '3'});
+      expect(link).toHaveAttribute('href', '/replays/1/?t_main=errors');
+
+      await userEvent.hover(link);
+      expect(await screen.findByText('From 2 projects')).toBeInTheDocument();
     });
 
     it('drops null entries so callers can inline conditionals', () => {

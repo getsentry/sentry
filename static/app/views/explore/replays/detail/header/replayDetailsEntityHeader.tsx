@@ -6,7 +6,6 @@ import {EntityHeader} from '@sentry/scraps/entityHeader';
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {ErrorCounts} from 'sentry/components/replays/header/errorCounts';
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
 import {useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -22,6 +21,7 @@ import {useReplayViewers} from 'sentry/utils/replays/hooks/useReplayViewers';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {ReplayErrorsTooltip} from 'sentry/views/explore/replays/detail/header/replayErrorsTooltip';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
@@ -95,6 +95,11 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
     },
   };
 
+  const errorsTab = {
+    ...location,
+    query: {...location.query, t_main: TabKey.ERRORS},
+  };
+
   const deadClicks = replayRecord?.count_dead_clicks ?? 0;
   const rageClicks = replayRecord?.count_rage_clicks ?? 0;
 
@@ -158,7 +163,11 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
           : null,
         {
           label: t('Errors'),
-          value: <ErrorCounts replayErrors={nonFeedbackErrors} />,
+          value: nonFeedbackErrors.length,
+          to: nonFeedbackErrors.length ? errorsTab : undefined,
+          valueTooltip: nonFeedbackErrors.length ? (
+            <ReplayErrorsTooltip replayErrors={nonFeedbackErrors} />
+          ) : undefined,
           loadingWidth: '64px',
         },
       ],

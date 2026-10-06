@@ -1,26 +1,30 @@
 import {ROW_HEIGHT, STAT_VALUE_HEIGHT} from '@sentry/scraps/entityHeader/constants';
+import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
 
 export interface EntityHeaderStatProps {
   /**
-   * Short, static label such as "Dead Clicks". Never skeletonised — it is known
-   * before the data arrives, so showing it immediately keeps the row stable.
+   * Short, static label such as "Dead Clicks".
    */
   label: string;
   /**
-   * The measurement itself. Accepts a node so rich values (an error count with
-   * platform icons, a viewer avatar list) fit without a second component.
+   * The measurement itself. Keep it to the single number the label names, and
+   * put any breakdown in `valueTooltip` — a stat that renders its own detail
+   * inline fights the density the row is built for.
    */
   value: React.ReactNode;
   /**
-   * Decorative 12x12 graphic rendered before the value.
+   * What the stat measures, for a label that is jargon on its own. Takes
+   * structured content as readily as a string, so it can be built from
+   * `Tooltip.Header`, `Tooltip.Grid` and `Tooltip.Row`.
    */
-  icon?: React.ReactNode;
+  labelTooltip?: React.ReactNode;
   /**
    * Width of the skeleton that replaces the whole stat while loading. Size it to
    * the content you expect, so the row does not jump when the value lands.
@@ -31,23 +35,23 @@ export interface EntityHeaderStatProps {
    * Turns the value into a link.
    */
   to?: LinkProps['to'];
+  /**
+   * What the value is made of — the projects behind an error count, say. Takes
+   * structured content, which is how a breakdown stays out of the row itself.
+   */
+  valueTooltip?: React.ReactNode;
 }
 
 export function EntityHeaderStat({
-  icon,
   isLoading,
   label,
+  labelTooltip,
   loadingWidth = '80px',
   onClick,
   to,
   value,
+  valueTooltip,
 }: EntityHeaderStatProps & {isLoading?: boolean}) {
-  const valueText = (
-    <Text size="lg" bold tabular wrap="nowrap">
-      {value}
-    </Text>
-  );
-
   // The whole stat becomes one skeleton, label included. The label is static and
   // could be shown immediately, but a half-drawn stat reads as broken next to a
   // title and metadata row that are still loading.
@@ -59,32 +63,62 @@ export function EntityHeaderStat({
     );
   }
 
+  const valueStyles = {size: 'lg', bold: true, tabular: true, wrap: 'nowrap'} as const;
+
+  let valueContent: React.ReactNode;
+  if (to) {
+    const link = (
+      <Link to={to} onClick={onClick}>
+        <Text {...valueStyles}>{value}</Text>
+      </Link>
+    );
+    // A link already reads as interactive and carries its own focus stop, so the
+    // tooltip attaches to it. Using InfoText here would add a dotted underline
+    // the link does not need, and a second tab stop inside the anchor.
+    valueContent = valueTooltip ? (
+      <Tooltip title={valueTooltip} skipWrapper>
+        {link}
+      </Tooltip>
+    ) : (
+      link
+    );
+  } else if (valueTooltip) {
+    valueContent = (
+      <InfoText title={valueTooltip} {...valueStyles}>
+        {value}
+      </InfoText>
+    );
+  } else {
+    valueContent = <Text {...valueStyles}>{value}</Text>;
+  }
+
+  const labelStyles = {
+    size: 'sm',
+    bold: true,
+    variant: 'muted',
+    density: 'comfortable',
+    wrap: 'nowrap',
+  } as const;
+
   return (
     // The outer box is a fixed height so the row cannot resize as async values
-    // land — a viewer avatar list and an error count are both taller than the
-    // text they replace, and each one settling would otherwise shift the rows
-    // below. Content is centred inside it rather than growing it.
+    // land — an error count settling is taller than the text it replaces, and
+    // that would otherwise shift the rows below. Content is centred inside it
+    // rather than growing it.
     <Flex align="center" height={ROW_HEIGHT} flexShrink={0} minWidth={0}>
       {/*
         `baseline` is what makes the value and its label sit on a shared line,
         which is the visual signature of the stat row.
       */}
       <Flex align="baseline" gap="xs" minWidth={0}>
-        {icon && (
-          <Flex align="center" flexShrink={0} aria-hidden>
-            {icon}
-          </Flex>
-        )}
-        {to ? (
-          <Link to={to} onClick={onClick}>
-            {valueText}
-          </Link>
+        {valueContent}
+        {labelTooltip ? (
+          <InfoText title={labelTooltip} {...labelStyles}>
+            {label}
+          </InfoText>
         ) : (
-          valueText
+          <Text {...labelStyles}>{label}</Text>
         )}
-        <Text size="sm" bold variant="muted" density="comfortable" wrap="nowrap">
-          {label}
-        </Text>
       </Flex>
     </Flex>
   );

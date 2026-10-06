@@ -11,7 +11,7 @@ resources:
 import {Tag} from '@sentry/scraps/badge';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 
-import {IconCalendar, IconFire} from 'sentry/icons';
+import {IconCalendar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
 export const documentation =
@@ -27,7 +27,7 @@ It deliberately does **not** render breadcrumbs, the page `h1`, or global action
     stats={[
       {label: 'Dead Clicks', value: 0},
       {label: 'Rage Clicks', value: 2},
-      {label: 'Errors', value: 1, icon: <IconFire size="xs" variant="danger" />},
+      {label: 'Errors', value: 1},
     ]}
     metadata={[
       {label: 'Feb 11, 2026 10:56 CET', icon: <IconCalendar size="xs" />},
@@ -43,7 +43,7 @@ It deliberately does **not** render breadcrumbs, the page `h1`, or global action
   stats={[
     {label: 'Dead Clicks', value: 0},
     {label: 'Rage Clicks', value: 2},
-    {label: 'Errors', value: 1, icon: <IconFire size="xs" variant="danger" />},
+    {label: 'Errors', value: 1},
   ]}
   metadata={[
     {label: 'Feb 11, 2026 10:56 CET', icon: <IconCalendar size="xs" />},
@@ -119,7 +119,7 @@ The slot keeps its space while `isLoading`, which is what stops the stats slidin
   title={{label: replay.user.display_name}}
   stats={[
     isVideoReplay ? null : {label: 'Dead Clicks', value: replay.count_dead_clicks},
-    {label: 'Errors', value: <ErrorCounts replayErrors={errors} />},
+    {label: 'Errors', value: errors.length},
   ]}
 />
 ```
@@ -151,6 +151,41 @@ A stat value becomes a link with `to`, and so does the title. A metadata item ga
   ]}
 />
 ```
+
+## Stat tooltips
+
+A stat holds one number. Anything that explains it — what the label means, what the value is made of — belongs in a tooltip, not in the row.
+
+`labelTooltip` covers a label that is jargon on its own. `valueTooltip` carries a breakdown: a replay's errors can come from several projects, so the stat shows the total and the tooltip splits it by project. Both take structured content, so they can be built from `Tooltip.Header`, `Tooltip.Grid` and `Tooltip.Row`.
+
+```jsx
+stats={[
+  {
+    label: t('Dead Clicks'),
+    value: 4,
+    labelTooltip: t('A click that did not change anything on the page.'),
+  },
+  {
+    label: t('Errors'),
+    value: errors.length,
+    to: errorsTab,
+    valueTooltip: (
+      <Fragment>
+        <Tooltip.Header>{t('Errors')}</Tooltip.Header>
+        <Tooltip.Grid columns="max-content 1fr max-content">
+          {byProject.map(([slug, count]) => (
+            <Tooltip.Row key={slug} leadingItems={<ProjectAvatar …/>} trailingItems={count}>
+              {slug}
+            </Tooltip.Row>
+          ))}
+        </Tooltip.Grid>
+      </Fragment>
+    ),
+  },
+]}
+```
+
+A value with a `valueTooltip` and no `to` renders as `InfoText`, so it gains the dotted underline and is reachable by keyboard. A value that also links keeps the link's own affordance and focus stop instead, with the tooltip attached to it — otherwise the anchor would contain a second tab stop.
 
 ## Loading
 
