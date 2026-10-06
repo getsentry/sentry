@@ -169,8 +169,8 @@ const LinkedFeedbackCard = styled(Link)`
   grid-template-columns: max-content 1fr max-content;
   grid-template-rows: max-content 1fr max-content;
   grid-template-areas:
-    'unread user time'
-    'checkbox message message'
+    'checkbox user time'
+    'unread message message'
     '. bottom bottom';
   gap: ${p => p.theme.space.xs} ${p => p.theme.space.md};
   place-items: stretch;

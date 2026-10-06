@@ -131,16 +131,6 @@ function GroupCheckbox({
 
   return (
     <GroupCheckBoxWrapper>
-      {!group.hasSeen && (
-        <GroupUnreadIndicator
-          data-test-id="unread-issue-indicator"
-          onClick={(e: React.MouseEvent) => {
-            // Toggle checkbox on unread indicator misclick
-            e.stopPropagation();
-            handleToggle(e.shiftKey);
-          }}
-        />
-      )}
       <CheckboxLabel>
         <ListItemCheckbox
           id={group.id}
@@ -149,6 +139,7 @@ function GroupCheckbox({
           disabled={!!displayReprocessingLayout}
           onChange={onChange}
         />
+        {!group.hasSeen && <UnreadIndicator data-test-id="unread-issue-indicator" />}
       </CheckboxLabel>
     </GroupCheckBoxWrapper>
   );
@@ -887,22 +878,18 @@ export function StreamGroup({
 
 const CheckboxLabel = styled('label')`
   position: absolute;
-  top: -1px;
+  top: 0;
   left: 0;
   bottom: 0;
   height: 100%;
   width: 32px;
+  padding-top: 13px;
   padding-left: ${p => p.theme.space.xl};
   margin: 0;
-  margin-top: -1px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-`;
-
-const GroupUnreadIndicator = styled(UnreadIndicator)`
-  margin-top: 1px;
-  margin-left: ${p => p.theme.space.xl};
-  z-index: 1;
+  gap: ${p => p.theme.space.sm};
 `;
 
 // Position for wrapper is relative for overlay actions
@@ -981,13 +968,7 @@ const GroupSummary = styled('div')<{canSelect: boolean}>`
 `;
 
 const GroupCheckBoxWrapper = styled('div')`
-  align-self: flex-start;
   width: 32px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding-top: ${p => p.theme.space.md};
   z-index: 1;
 `;
 

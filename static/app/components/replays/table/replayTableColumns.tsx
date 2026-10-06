@@ -419,12 +419,12 @@ export const ReplaySelectColumn: ReplayTableColumn = {
     return (
       <CheckboxClickCapture onClick={e => e.stopPropagation()}>
         <CheckboxCellContainer>
+          <ListItemSelectCheckbox htmlPrefix="replay-table-select" value={replay.id} />
           {replay.has_viewed ? (
             <Container width="8px" height="8px" />
           ) : (
             <UnreadIndicator />
           )}
-          <ListItemSelectCheckbox htmlPrefix="replay-table-select" value={replay.id} />
         </CheckboxCellContainer>
       </CheckboxClickCapture>
     );
