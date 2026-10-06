@@ -946,6 +946,90 @@ class UpdateGroupsTest(TestCase):
         activity = response.data["activity"]
         assert "note" not in [entry["type"] for entry in activity]
 
+    def _update_status_with_post_update_signal(
+        self, group: Group, data: dict[str, Any], produce_snapshot: Mock
+    ) -> list[int]:
+        """
+        Run the status update the way production does (post_update signal on, manual
+        post_save fallbacks off) and return the group statuses of the snapshots emitted.
+        """
+        http_request = self.make_request(user=self.user, method="GET")
+        http_request.GET = QueryDict(query_string=f"id={group.id}")
+        request = _wrap_request(http_request, data=data)
+        group_list = get_group_list(self.organization.id, [self.project], request.GET.getlist("id"))
+
+        produce_snapshot.reset_mock()
+
+        with self.options({"groups.enable-post-update-signal": True}):
+            update_groups(request, group_list)
+
+        return [call.args[0]["status"] for call in produce_snapshot.call_args_list]
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_archive_until_escalating_emits_group_attributes_snapshot(
+        self, produce_snapshot: Mock
+    ) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        emitted_statuses = self._update_status_with_post_update_signal(
+            group,
+            {"status": "ignored", "substatus": "archived_until_escalating"},
+            produce_snapshot,
+        )
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.IGNORED
+        assert group.substatus == GroupSubStatus.UNTIL_ESCALATING
+
+        assert emitted_statuses == [GroupStatus.IGNORED]
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_archive_forever_emits_group_attributes_snapshot(self, produce_snapshot: Mock) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        emitted_statuses = self._update_status_with_post_update_signal(
+            group,
+            {"status": "ignored", "substatus": "archived_forever"},
+            produce_snapshot,
+        )
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.IGNORED
+        assert group.substatus == GroupSubStatus.FOREVER
+
+        assert emitted_statuses == [GroupStatus.IGNORED]
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_unresolve_emits_group_attributes_snapshot(self, produce_snapshot: Mock) -> None:
+        group = self.create_group(
+            status=GroupStatus.IGNORED, substatus=GroupSubStatus.UNTIL_ESCALATING
+        )
+
+        emitted_statuses = self._update_status_with_post_update_signal(
+            group,
+            {"status": "unresolved", "substatus": "ongoing"},
+            produce_snapshot,
+        )
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.UNRESOLVED
+        assert group.substatus == GroupSubStatus.ONGOING
+
+        assert emitted_statuses == [GroupStatus.UNRESOLVED]
+
+    @patch("sentry.issues.attributes.produce_snapshot_to_kafka")
+    def test_resolve_emits_group_attributes_snapshot(self, produce_snapshot: Mock) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+
+        emitted_statuses = self._update_status_with_post_update_signal(
+            group, {"status": "resolved"}, produce_snapshot
+        )
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+
+        assert emitted_statuses == [GroupStatus.RESOLVED]
+
 
 class MergeGroupsTest(TestCase):
     @patch("sentry.api.helpers.group_index.update.handle_merge")
