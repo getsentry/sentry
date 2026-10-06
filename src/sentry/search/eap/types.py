@@ -43,6 +43,7 @@ class SearchResolverConfig:
     # so backend resolution semantics remain unchanged.
     api_attribute_visibility_item_type: str | None = None
     api_attribute_visibility_include_internal: bool = False
+    api_attribute_visibility_include_internal_convention_attributes: bool = False
 
     def extra_conditions(
         self,

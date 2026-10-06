@@ -107,7 +107,7 @@ def test_hydration_uses_one_aggregate_query(run_table_query: MagicMock) -> None:
         'gen_ai.tool.name:["search docs",calculator]',
         'span.description:"literal\\*"',
         "tags[custom,number]:>1.5",
-        "tags[custom,array][*]:value",
+        "tags[custom[*],array]:value",
         "timestamp:2023-06-01",
     ],
 )
