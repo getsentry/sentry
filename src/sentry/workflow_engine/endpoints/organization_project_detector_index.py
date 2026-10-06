@@ -3,12 +3,14 @@ from rest_framework import status
 from rest_framework.exceptions import ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers import serialize
+from sentry.auth.scope_declaration import update_permission_scope_declaration
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -33,8 +35,18 @@ from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeVal
 
 class OrganizationProjectDetectorPermission(ProjectPermission):
     scope_map = {
-        "POST": ["project:write", "project:admin", "alerts:write", "org:write"],
+        "POST": ["project:write", "project:admin", "alerts:write"],
     }
+
+    def has_object_permission(self, request: Request, view: APIView, project: Project) -> bool:  # type: ignore[override]
+        # The validator checks org:write downstream (e.g. for all-projects detector
+        # workflow connections). Declare it here so the scope audit doesn't flag it as
+        # undeclared, without adding it to the admission-gating scope_map.
+        update_permission_scope_declaration(
+            self,
+            {"POST": ["project:write", "project:admin", "alerts:write", "org:write"]},
+        )
+        return super().has_object_permission(request, view, project)
 
 
 @cell_silo_endpoint
