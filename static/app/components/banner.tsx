@@ -1,9 +1,8 @@
 import {useState} from 'react';
-import {css, useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
+import {useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
-import {Container, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconClose} from 'sentry/icons';
@@ -57,65 +56,61 @@ export function Banner({
   }
 
   return (
-    <BannerWrapper backgroundImg={backgroundImg} className={className}>
-      {backgroundComponent}
-      <Grid
-        position="absolute"
-        justifyItems="center"
-        rows="repeat(3, max-content)"
-        padding="3xl"
+    <Container containerType="inline-size">
+      <Flex
+        className={className}
+        align="center"
+        justify="center"
+        position="relative"
+        overflow="hidden"
+        marginBottom="xl"
+        radius="md"
+        height={{zero: '180px', xl: '220px'}}
+        style={{
+          backgroundColor: backgroundImg ? undefined : theme.colors.gray800,
+          backgroundImage: backgroundImg ? `url(${backgroundImg})` : undefined,
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
+          backgroundSize: 'cover',
+          boxShadow: theme.shadow.medium,
+          color: theme.colors.white,
+        }}
       >
-        <Heading as="h1" align="center" size={{zero: '2xl', xl: '4xl'}} variant="inherit">
-          {title}
-        </Heading>
-        <Text as="div" align="center" size={{zero: 'md', xl: 'xl'}} variant="inherit">
-          {subtitle}
-        </Text>
-        <Grid flow="column" align="center" gap="md" width="fit-content" paddingTop="xl">
-          {children}
+        {backgroundComponent}
+        <Grid
+          position="absolute"
+          justifyItems="center"
+          rows="repeat(3, max-content)"
+          padding="3xl"
+        >
+          <Heading
+            as="h1"
+            align="center"
+            size={{zero: '2xl', xl: '4xl'}}
+            variant="inherit"
+          >
+            {title}
+          </Heading>
+          <Text as="div" align="center" size={{zero: 'md', xl: 'xl'}} variant="inherit">
+            {subtitle}
+          </Text>
+          <Grid flow="column" align="center" gap="md" width="fit-content" paddingTop="xl">
+            {children}
+          </Grid>
         </Grid>
-      </Grid>
-      <Container position="absolute" top={theme.space.xl} right={theme.space.xl}>
-        <Button
-          size="xs"
-          variant="link"
-          icon={<IconClose />}
-          onClick={dismiss}
-          aria-label={t('Close')}
-          style={{color: theme.colors.white}}
-        />
-      </Container>
-    </BannerWrapper>
+        <Container position="absolute" top={theme.space.xl} right={theme.space.xl}>
+          <Button
+            size="xs"
+            variant="link"
+            icon={<IconClose />}
+            onClick={dismiss}
+            aria-label={t('Close')}
+            style={{color: theme.colors.white}}
+          />
+        </Container>
+      </Flex>
+    </Container>
   );
 }
 
 Banner.dismiss = dismissBanner;
-
-const BannerWrapper = styled('div')<BannerWrapperProps>`
-  ${p =>
-    p.backgroundImg
-      ? css`
-          background: url(${p.backgroundImg});
-          background-repeat: no-repeat;
-          background-size: cover;
-          background-position: center center;
-        `
-      : css`
-          background-color: ${p.theme.colors.gray800};
-        `}
-  display: flex;
-  overflow: hidden;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  margin-bottom: ${p => p.theme.space.xl};
-  box-shadow: ${p => p.theme.shadow.medium};
-  border-radius: ${p => p.theme.radius.md};
-  height: 180px;
-  color: ${p => p.theme.colors.white};
-  container-type: inline-size;
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    height: 220px;
-  }
-`;
