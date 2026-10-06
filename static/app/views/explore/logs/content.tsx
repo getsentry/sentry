@@ -2,6 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -137,13 +139,18 @@ function LogsHeader() {
           title={{
             type: 'page-title',
             label: title || t('Logs'),
-            help: {
-              docsUrl: 'https://docs.sentry.io/product/explore/logs/',
-              description: t(
-                'Detailed structured logs, linked to errors and traces, for debugging and investigation.'
-              ),
-              linkLabel: t('Read the Docs'),
-            },
+            labelTooltip: (
+              <Stack align="start" gap="md">
+                <Text align="left">
+                  {t(
+                    'Detailed structured logs, linked to errors and traces, for debugging and investigation.'
+                  )}
+                </Text>
+                <ExternalLink href="https://docs.sentry.io/product/explore/logs/">
+                  {t('Read the Docs')}
+                </ExternalLink>
+              </Stack>
+            ),
           }}
         />
       )}

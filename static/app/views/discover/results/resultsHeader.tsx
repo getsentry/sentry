@@ -1,6 +1,10 @@
 import {Fragment, useCallback, useEffect, useState} from 'react';
 import type {Location} from 'history';
 
+import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
+
 import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import type {Client} from 'sentry/api';
@@ -113,12 +117,16 @@ function ResultsHeaderBase({
           title={{
             type: 'page-title',
             label: t('Errors'),
-            help: {
-              docsUrl: 'https://docs.sentry.io/product/discover-queries/',
-              description: t(
-                'Create queries to get insights into the health of your system.'
-              ),
-            },
+            labelTooltip: (
+              <Stack align="start" gap="md">
+                <Text align="left">
+                  {t('Create queries to get insights into the health of your system.')}
+                </Text>
+                <ExternalLink href="https://docs.sentry.io/product/discover-queries/">
+                  {t('Read the Docs')}
+                </ExternalLink>
+              </Stack>
+            ),
           }}
         />
       )}

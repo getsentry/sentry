@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -86,14 +88,18 @@ function ReplaysHeader() {
           title={{
             type: 'page-title',
             label: title || t('Session Replay'),
-            help: title
-              ? undefined
-              : {
-                  description: t(
+            labelTooltip: title ? undefined : (
+              <Stack align="start" gap="md">
+                <Text align="left">
+                  {t(
                     'Video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.'
-                  ),
-                  docsUrl: 'https://docs.sentry.io/product/session-replay/',
-                },
+                  )}
+                </Text>
+                <ExternalLink href="https://docs.sentry.io/product/session-replay/">
+                  {t('Read the Docs')}
+                </ExternalLink>
+              </Stack>
+            ),
           }}
         />
       )}

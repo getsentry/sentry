@@ -10,8 +10,10 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
+import {Text} from '@sentry/scraps/text';
 
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
@@ -418,18 +420,24 @@ function ManageDashboards() {
                   title={{
                     type: 'page-title',
                     label: pageTitle,
-                    help: {
-                      docsUrl: 'https://docs.sentry.io/product/dashboards/',
-                      description: isOnlyPrebuilt
-                        ? t(
-                            'Dashboards built by Sentry to help monitor your application out of the box.'
-                          )
-                        : isOnlyCustom
-                          ? t('Dashboards created by you and your team.')
-                          : t(
-                              "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
-                            ),
-                    },
+                    labelTooltip: (
+                      <Stack align="start" gap="md">
+                        <Text align="left">
+                          {isOnlyPrebuilt
+                            ? t(
+                                'Dashboards built by Sentry to help monitor your application out of the box.'
+                              )
+                            : isOnlyCustom
+                              ? t('Dashboards created by you and your team.')
+                              : t(
+                                  "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
+                                )}
+                        </Text>
+                        <ExternalLink href="https://docs.sentry.io/product/dashboards/">
+                          {t('Read the Docs')}
+                        </ExternalLink>
+                      </Stack>
+                    ),
                   }}
                 />
                 <TopBar.Slot name="actions">

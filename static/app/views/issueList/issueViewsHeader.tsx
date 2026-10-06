@@ -62,7 +62,7 @@ function PageTitle({title, description}: {title: string; description?: ReactNode
       title={{
         type: 'page-title',
         label: title,
-        help: description ? {description} : undefined,
+        labelTooltip: description,
       }}
     />
   );

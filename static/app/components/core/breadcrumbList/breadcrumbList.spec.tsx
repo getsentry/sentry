@@ -5,6 +5,9 @@ import {getEmotionRules} from 'sentry-test/utils';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 /**
  * True when `element` carries the "hide below sm" container-query toggle:
@@ -23,7 +26,7 @@ function hidesBelowSm(element: HTMLElement): boolean {
 }
 
 describe('BreadcrumbList container-query collapse', () => {
-  it('shows page help, feature status, and an accessible status indicator', async () => {
+  it('shows a label tooltip, feature status, and an accessible status indicator', async () => {
     render(
       <BreadcrumbList.Title
         item={{
@@ -31,10 +34,12 @@ describe('BreadcrumbList container-query collapse', () => {
           label: 'Security',
           badge: 'new',
           status: {label: 'Authentication active', variant: 'success'},
-          help: {
-            description: 'Manage authentication.',
-            docsUrl: 'https://example.com/docs/',
-          },
+          labelTooltip: (
+            <Stack align="start" gap="md">
+              <Text align="left">Manage authentication.</Text>
+              <ExternalLink href="https://example.com/docs/">Read the Docs</ExternalLink>
+            </Stack>
+          ),
         }}
       />
     );
@@ -44,7 +49,8 @@ describe('BreadcrumbList container-query collapse', () => {
     expect(
       screen.getByRole('status', {name: 'Authentication active'})
     ).toBeInTheDocument();
-    await userEvent.hover(screen.getByRole('img', {name: 'More information'}));
+    expect(screen.queryByRole('img', {name: 'More information'})).not.toBeInTheDocument();
+    await userEvent.hover(screen.getByText('Security'));
     expect(await screen.findByText('Manage authentication.')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'Read the Docs'})).toHaveAttribute(
       'href',

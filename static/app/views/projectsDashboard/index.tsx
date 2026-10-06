@@ -6,6 +6,8 @@ import uniqBy from 'lodash/uniqBy';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -207,12 +209,18 @@ function Dashboard() {
         title={{
           type: 'page-title',
           label: t('All Projects'),
-          help: {
-            docsUrl: 'https://docs.sentry.io/product/projects/',
-            description: t(
-              "A high-level overview of errors, transactions, and deployments filtered by teams you're part of."
-            ),
-          },
+          labelTooltip: (
+            <Stack align="start" gap="md">
+              <Text align="left">
+                {t(
+                  "A high-level overview of errors, transactions, and deployments filtered by teams you're part of."
+                )}
+              </Text>
+              <ExternalLink href="https://docs.sentry.io/product/projects/">
+                {t('Read the Docs')}
+              </ExternalLink>
+            </Stack>
+          ),
         }}
       />
       <TopBar.Slot name="actions">

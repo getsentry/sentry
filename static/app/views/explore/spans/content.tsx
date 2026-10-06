@@ -4,6 +4,8 @@ import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {getBootstrapOrganizationQueryOptions} from 'sentry/bootstrap/bootstrapRequests';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
@@ -235,13 +237,18 @@ function SpansTabHeader() {
           title={{
             type: 'page-title',
             label: title || t('Traces'),
-            help: {
-              docsUrl: 'https://docs.sentry.io/product/explore/trace-explorer/',
-              description: t(
-                'Find problematic spans/traces or compute real-time metrics via aggregation.'
-              ),
-              linkLabel: t('Read the Docs'),
-            },
+            labelTooltip: (
+              <Stack align="start" gap="md">
+                <Text align="left">
+                  {t(
+                    'Find problematic spans/traces or compute real-time metrics via aggregation.'
+                  )}
+                </Text>
+                <ExternalLink href="https://docs.sentry.io/product/explore/trace-explorer/">
+                  {t('Read the Docs')}
+                </ExternalLink>
+              </Stack>
+            ),
           }}
         />
       )}

@@ -1,4 +1,4 @@
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -58,10 +58,16 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
       title={{
         type: 'page-title',
         label: t('Snapshots'),
-        help: {
-          docsUrl: 'https://docs.sentry.io/product/snapshots/',
-          description: t('Catch visual regressions before they reach users.'),
-        },
+        labelTooltip: (
+          <Stack align="start" gap="md">
+            <Text align="left">
+              {t('Catch visual regressions before they reach users.')}
+            </Text>
+            <ExternalLink href="https://docs.sentry.io/product/snapshots/">
+              {t('Read the Docs')}
+            </ExternalLink>
+          </Stack>
+        ),
       }}
     >
       <Flex align="center" gap="md" minWidth={0} overflow="hidden">

@@ -4,7 +4,9 @@ import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Text} from '@sentry/scraps/text';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -657,12 +659,18 @@ function ReleasesHeader() {
         title={{
           type: 'page-title',
           label: t('Releases'),
-          help: {
-            docsUrl: 'https://docs.sentry.io/product/releases/',
-            description: t(
-              'A visualization of your release adoption from the past 24 hours, providing a high-level view of the adoption stage, percentage of crash-free users and sessions, and more.'
-            ),
-          },
+          labelTooltip: (
+            <Stack align="start" gap="md">
+              <Text align="left">
+                {t(
+                  'A visualization of your release adoption from the past 24 hours, providing a high-level view of the adoption stage, percentage of crash-free users and sessions, and more.'
+                )}
+              </Text>
+              <ExternalLink href="https://docs.sentry.io/product/releases/">
+                {t('Read the Docs')}
+              </ExternalLink>
+            </Stack>
+          ),
         }}
       />
       <TopBar.Slot name="feedback">

@@ -5,8 +5,10 @@ import type {Location} from 'history';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Text} from '@sentry/scraps/text';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -399,12 +401,18 @@ function ProfilingContentPageHeader() {
         title={{
           type: 'page-title',
           label: t('Profiles'),
-          help: {
-            docsUrl: 'https://docs.sentry.io/product/profiling/',
-            description: t(
-              'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
-            ),
-          },
+          labelTooltip: (
+            <Stack align="start" gap="md">
+              <Text align="left">
+                {t(
+                  'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
+                )}
+              </Text>
+              <ExternalLink href="https://docs.sentry.io/product/profiling/">
+                {t('Read the Docs')}
+              </ExternalLink>
+            </Stack>
+          ),
         }}
       />
       <TopBar.Slot name="feedback">

@@ -12,14 +12,12 @@ import {
   LinkButton,
 } from '@sentry/scraps/button';
 import {CompactSelect, type SingleSelectProps} from '@sentry/scraps/compactSelect';
-import {InfoText, InfoTip} from '@sentry/scraps/info';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {InfoText} from '@sentry/scraps/info';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink, type LinkProps} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
-import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
-import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {IconChevron} from 'sentry/icons';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -129,8 +127,6 @@ export interface BreadcrumbItemPageTitleProps {
   label: string;
   /** Feature status shown beside the title. */
   badge?: FeatureBadgeProps['type'];
-  /** Explanatory tooltip with an optional documentation link. */
-  help?: {description: React.ReactNode; docsUrl?: string; linkLabel?: React.ReactNode};
   /** Optional external destination for the title. */
   href?: string;
   /**
@@ -157,14 +153,12 @@ export function BreadcrumbItemPageTitle({
   label,
   badge,
   status,
-  help,
   href,
   labelTooltip,
   leadingGraphic,
   pagination,
   trailingActions,
 }: BreadcrumbItemPageTitleProps) {
-  const {t} = useTranslation();
   const actions = renderTrailingActions(trailingActions);
 
   return (
@@ -243,22 +237,6 @@ export function BreadcrumbItemPageTitle({
         )}
       </Container>
       {badge && <FeatureBadge type={badge} />}
-      {help && (
-        <InfoTip
-          size="sm"
-          position="right"
-          title={
-            <Stack align="start" gap="md">
-              <Text align="left">{help.description}</Text>
-              {help.docsUrl && (
-                <ExternalLink href={help.docsUrl}>
-                  {help.linkLabel ?? t('Read the Docs')}
-                </ExternalLink>
-              )}
-            </Stack>
-          }
-        />
-      )}
       {actions}
     </Flex>
   );

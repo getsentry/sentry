@@ -365,12 +365,18 @@ function InboxContent() {
         title={{
           type: 'page-title',
           label: TITLE,
-          help: {
-            docsUrl: 'https://docs.sentry.io/product/issues/inbox/',
-            description: t(
-              'A personalized view of issues relevant to you, organized by how close you are to fixing them.'
-            ),
-          },
+          labelTooltip: (
+            <Stack align="start" gap="md">
+              <Text align="left">
+                {t(
+                  'A personalized view of issues relevant to you, organized by how close you are to fixing them.'
+                )}
+              </Text>
+              <ExternalLink href="https://docs.sentry.io/product/issues/inbox/">
+                {t('Read the Docs')}
+              </ExternalLink>
+            </Stack>
+          ),
         }}
       />
       <Grid

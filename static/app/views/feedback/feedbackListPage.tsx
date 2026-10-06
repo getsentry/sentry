@@ -4,6 +4,8 @@ import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Grid, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -247,12 +249,18 @@ export default function FeedbackListPage() {
             title={{
               type: 'page-title',
               label: t('User Feedback'),
-              help: {
-                description: t(
-                  'The User Feedback Widget allows users to submit feedback quickly and easily any time they encounter something that isn’t working as expected.'
-                ),
-                docsUrl: 'https://docs.sentry.io/product/user-feedback/',
-              },
+              labelTooltip: (
+                <Stack align="start" gap="md">
+                  <Text align="left">
+                    {t(
+                      'The User Feedback Widget allows users to submit feedback quickly and easily any time they encounter something that isn’t working as expected.'
+                    )}
+                  </Text>
+                  <ExternalLink href="https://docs.sentry.io/product/user-feedback/">
+                    {t('Read the Docs')}
+                  </ExternalLink>
+                </Stack>
+              ),
             }}
           />
           <TopBar.Slot name="feedback">

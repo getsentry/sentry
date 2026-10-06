@@ -266,13 +266,13 @@ Beyond `label`, the optional props are not shared evenly across the item types.
 | `labelTooltip`    |          |       ✓        |                    |
 | `pagination`      |          |       ✓        |                    |
 | `trailingActions` |          |       ✓        |                    |
-| `help`            |          |       ✓        |                    |
 | `badge`           |          |       ✓        |                    |
 | `status`          |          |       ✓        |                    |
 | `href`            |          |       ✓        |                    |
 
-Use `help: {description, docsUrl?, linkLabel?}` for a help tooltip beside the
-title. `badge` accepts a feature badge type, such as `'new'` or `'beta'`.
+Use `labelTooltip` for a tooltip on the title text. It accepts React content,
+including descriptions and documentation links.
+`badge` accepts a feature badge type, such as `'new'` or `'beta'`.
 `status: {label, variant}` adds an accessible status indicator. `href` makes
 the title an external link while keeping its label a string.
 
