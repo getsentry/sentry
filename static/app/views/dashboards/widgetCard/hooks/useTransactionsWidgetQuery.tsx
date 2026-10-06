@@ -28,7 +28,10 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {combineWidgetQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
+import {
+  combineWidgetJsonQueryResults,
+  combineWidgetQueryResults,
+} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
@@ -209,7 +212,7 @@ export function useTransactionsTableQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const {results: queryResults, data: queryData} = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: filteredWidget.queries.map(query => {
       // Clone the query to avoid mutating the original
       const modifiedQuery = cloneDeep(query);
@@ -280,10 +283,8 @@ export function useTransactionsTableQuery(
         select: selectJsonWithHeaders,
       });
     }),
-    combine: combineWidgetQueryResults,
+    combine: combineWidgetJsonQueryResults,
   });
-
-  const rawData = useMemo(() => queryData.map(data => data?.json), [queryData]);
 
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);

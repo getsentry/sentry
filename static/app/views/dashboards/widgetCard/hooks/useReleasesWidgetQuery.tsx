@@ -18,7 +18,7 @@ import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQuery
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {applyDashboardFiltersToWidget} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {combineWidgetQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
+import {combineWidgetJsonQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {requiresCustomReleaseSorting} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
@@ -83,7 +83,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     }
   }, [filteredWidget, organization, pageFilters, widgetInterval]);
 
-  const {results: queryResults, data: queryData} = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: queryRequests.map(requestData => {
       const baseOptions = requestData.useSessionAPI
         ? sessionsApiOptions(requestData)
@@ -111,10 +111,8 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
         select: selectJsonWithHeaders,
       });
     }),
-    combine: combineWidgetQueryResults,
+    combine: combineWidgetJsonQueryResults,
   });
-
-  const rawData = useMemo(() => queryData.map(data => data?.json), [queryData]);
 
   const transformedData = (() => {
     if (validationError) {
@@ -238,7 +236,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
     }
   }, [filteredWidget, organization, pageFilters, limit, cursor]);
 
-  const {results: queryResults, data: queryData} = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: queryRequests.map(requestData => {
       const baseOptions = requestData.useSessionAPI
         ? sessionsApiOptions(requestData)
@@ -266,10 +264,8 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
         select: selectJsonWithHeaders,
       });
     }),
-    combine: combineWidgetQueryResults,
+    combine: combineWidgetJsonQueryResults,
   });
-
-  const rawData = useMemo(() => queryData.map(data => data?.json), [queryData]);
 
   const transformedData = (() => {
     if (validationError) {

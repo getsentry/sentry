@@ -36,7 +36,10 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {combineWidgetQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
+import {
+  combineWidgetJsonQueryResults,
+  combineWidgetQueryResults,
+} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
 import {useEventsTimeseriesSpotCheck} from 'sentry/views/dashboards/widgetCard/hooks/utils/useEventsTimeseriesSpotCheck';
@@ -258,7 +261,7 @@ export function useErrorsTableQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const {results: queryResults, data: queryData} = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: filteredWidget.queries.map(query => {
       const modifiedQuery = cloneDeep(query);
 
@@ -325,10 +328,8 @@ export function useErrorsTableQuery(
         select: selectJsonWithHeaders,
       });
     }),
-    combine: combineWidgetQueryResults,
+    combine: combineWidgetJsonQueryResults,
   });
-
-  const rawData = useMemo(() => queryData.map(data => data?.json), [queryData]);
 
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);

@@ -44,7 +44,10 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {combineWidgetQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
+import {
+  combineWidgetJsonQueryResults,
+  combineWidgetQueryResults,
+} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
 import {useEventsTimeseriesSpotCheck} from 'sentry/views/dashboards/widgetCard/hooks/utils/useEventsTimeseriesSpotCheck';
@@ -586,15 +589,15 @@ export function useSpansTableQuery(
         select: selectJsonWithHeaders,
       });
     }),
-    combine: combineWidgetQueryResults,
+    combine: combineWidgetJsonQueryResults,
   });
 
   // Leave out skipped invalid-_if queries so raw data stays dense
   const rawData = useMemo(
     () =>
-      queryData
-        .filter((_, index) => !skippedConditionalFilterQueryIndexes.includes(index))
-        .map(data => data?.json),
+      queryData.filter(
+        (_, index) => !skippedConditionalFilterQueryIndexes.includes(index)
+      ),
     [queryData, skippedConditionalFilterQueryIndexes]
   );
 

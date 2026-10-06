@@ -1,5 +1,7 @@
 import type {UseQueryResult} from '@tanstack/react-query';
 
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+
 export type WidgetQueryResult<TData> = Pick<
   UseQueryResult<TData>,
   'data' | 'error' | 'isFetching' | 'isPlaceholderData'
@@ -24,5 +26,21 @@ export function combineWidgetQueryResults<TData>(results: Array<UseQueryResult<T
       isPlaceholderData,
     })),
     data: results.map(result => result.data),
+  };
+}
+
+/**
+ * `combineWidgetQueryResults` for queries that select `ApiResponse`s, with `data`
+ * unwrapped to each response's JSON.
+ */
+export function combineWidgetJsonQueryResults<TJson>(
+  results: Array<UseQueryResult<ApiResponse<TJson>>>
+): {
+  data: Array<TJson | undefined>;
+  results: Array<WidgetQueryResult<ApiResponse<TJson>>>;
+} {
+  return {
+    results: combineWidgetQueryResults(results).results,
+    data: results.map(result => result.data?.json),
   };
 }

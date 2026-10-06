@@ -23,7 +23,7 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {combineWidgetQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
+import {combineWidgetJsonQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
@@ -56,7 +56,7 @@ export function useIssuesSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const {results: queryResults, data: queryData} = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: filteredWidget.queries.map((_, queryIndex) => {
       const requestData = getSeriesRequestData(
         filteredWidget,
@@ -125,10 +125,8 @@ export function useIssuesSeriesQuery(
         placeholderData: keepPreviousData,
       });
     }),
-    combine: combineWidgetQueryResults,
+    combine: combineWidgetJsonQueryResults,
   });
-
-  const rawData = useMemo(() => queryData.map(data => data?.json), [queryData]);
 
   const transformedData = (() => {
     const isFetching = queryResults.some(q => q?.isFetching);
@@ -200,7 +198,7 @@ export function useIssuesTableQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const {results: queryResults, data: queryData} = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: filteredWidget.queries.map(query => {
       const queryParams: Record<string, unknown> = {
         project: pageFilters.projects ?? [],
@@ -252,10 +250,8 @@ export function useIssuesTableQuery(
         select: selectJsonWithHeaders,
       });
     }),
-    combine: combineWidgetQueryResults,
+    combine: combineWidgetJsonQueryResults,
   });
-
-  const rawData = useMemo(() => queryData.map(data => data?.json), [queryData]);
 
   const isFetching = queryResults.some(q => q?.isFetching);
   const allHaveData = queryResults.every(q => q?.data?.json);
