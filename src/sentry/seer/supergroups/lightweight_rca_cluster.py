@@ -16,6 +16,7 @@ from sentry.seer.similarity.utils import (
     event_content_has_stacktrace,
 )
 from sentry.utils import metrics
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -85,7 +86,16 @@ def trigger_lightweight_rca_cluster(group: Group) -> None:
     )
     viewer_context = SeerViewerContext(organization_id=group.organization.id)
 
-    response = make_lightweight_rca_cluster_request(body, timeout=30, viewer_context=viewer_context)
+    with viewer_context_scope(
+        ViewerContext(
+            organization_id=group.organization.id,
+            project_id=group.project.id,
+            actor_type=ActorType.SYSTEM,
+        )
+    ):
+        response = make_lightweight_rca_cluster_request(
+            body, timeout=30, viewer_context=viewer_context
+        )
     if response.status >= 400:
         raise SeerApiError("Lightweight RCA cluster request failed", response.status)
 

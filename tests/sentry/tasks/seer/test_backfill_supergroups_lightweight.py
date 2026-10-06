@@ -12,6 +12,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.group import GroupSubStatus
 from sentry.utils.snuba import SnubaError
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 
 TEST_BATCH_SIZE = 5
 
@@ -60,7 +61,15 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
         "sentry.tasks.seer.backfill_supergroups_lightweight.make_lightweight_rca_cluster_request"
     )
     def test_processes_groups_and_sends_to_seer(self, mock_request):
-        mock_request.return_value = MagicMock(status=200)
+        def assert_viewer_context(*_args: object, **_kwargs: object) -> MagicMock:
+            assert get_viewer_context() == ViewerContext(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                actor_type=ActorType.SYSTEM,
+            )
+            return MagicMock(status=200)
+
+        mock_request.side_effect = assert_viewer_context
 
         backfill_supergroups_lightweight_for_org(self.organization.id)
 
@@ -71,6 +80,7 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
         assert body["organization_id"] == self.organization.id
         assert body["issue"]["id"] == self.group.id
         assert len(body["issue"]["events"]) == 1
+        assert get_viewer_context() is None
 
     @with_feature("organizations:supergroups-lightweight-rca-clustering-write")
     @patch(

@@ -1,9 +1,10 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from sentry.seer.supergroups.lightweight_rca_cluster import trigger_lightweight_rca_cluster
 from sentry.testutils.cases import TestCase
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 
 EVENT_DATA_WITH_STACKTRACE = {
     "message": "test error",
@@ -40,7 +41,15 @@ class TriggerLightweightRCAClusterTest(TestCase):
 
     @patch("sentry.seer.supergroups.lightweight_rca_cluster.make_lightweight_rca_cluster_request")
     def test_calls_seer_with_correct_payload(self, mock_request):
-        mock_request.return_value.status = 200
+        def assert_viewer_context(*_args: object, **_kwargs: object) -> MagicMock:
+            assert get_viewer_context() == ViewerContext(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                actor_type=ActorType.SYSTEM,
+            )
+            return MagicMock(status=200)
+
+        mock_request.side_effect = assert_viewer_context
 
         trigger_lightweight_rca_cluster(self.group)
 
@@ -54,6 +63,7 @@ class TriggerLightweightRCAClusterTest(TestCase):
         assert body["issue"]["title"] == self.group.title
         assert "events" in body["issue"]
         assert len(body["issue"]["events"]) == 1
+        assert get_viewer_context() is None
 
     @patch("sentry.seer.supergroups.lightweight_rca_cluster.make_lightweight_rca_cluster_request")
     def test_raises_on_seer_error(self, mock_request):
