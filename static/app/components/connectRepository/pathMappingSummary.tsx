@@ -9,6 +9,7 @@ import {IconArrow, IconBranch, IconChevron, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import {AccentPathSegment} from './accentPathSegment';
+import {AutomaticTag} from './automaticTag';
 import {DEFAULT_BRANCH, normalizePathMapping} from './normalization';
 import {PathMappingDeleteButton} from './pathMappingDeleteButton';
 import type {PathMappingValue} from './type';
@@ -53,6 +54,7 @@ export function PathMappingSummary({
   onExpandToggle,
   defaultBranch,
   warning,
+  automaticallyGenerated,
   hasCodeOwner,
 }: PathMappingSummaryProps) {
   const {
@@ -111,6 +113,7 @@ export function PathMappingSummary({
             aria-label={expanded ? t('Collapse path mapping') : t('Expand path mapping')}
             onClick={onExpandToggle}
           />
+          {onDelete && automaticallyGenerated && <AutomaticTag />}
           {onDelete && (
             <PathMappingDeleteButton hasCodeOwner={hasCodeOwner} onDelete={onDelete} />
           )}

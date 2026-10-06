@@ -63,6 +63,7 @@ export function PathMapping({
           providerKey={providerKey}
           defaultBranch={defaultBranch}
           projectSlug={projectSlug}
+          automaticallyGenerated={value.automaticallyGenerated}
           hasCodeOwner={value.hasCodeOwner}
           warning={warning}
           onDelete={editorOnDelete}

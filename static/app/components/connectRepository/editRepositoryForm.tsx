@@ -80,6 +80,7 @@ function EditRepositoryFormBody({
           stackRoot: m.stackRoot,
           sourceRoot: m.sourceRoot,
           branch: m.defaultBranch ?? DEFAULT_BRANCH,
+          automaticallyGenerated: m.automaticallyGenerated,
           hasCodeOwner: m.hasCodeOwner,
         }))
       : [{stackRoot: '', sourceRoot: '', branch: defaultBranch ?? DEFAULT_BRANCH}];

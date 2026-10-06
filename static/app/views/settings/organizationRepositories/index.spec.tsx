@@ -536,6 +536,7 @@ describe('OrganizationRepositories', () => {
     it('always shows the + button even when a repo already has code mappings', async () => {
       setupRepoMocks([
         {
+          automaticallyGenerated: false,
           hasCodeOwner: false,
           id: '1',
           repoId: REPO.id,
@@ -576,6 +577,7 @@ describe('OrganizationRepositories', () => {
     it('clicking a mapped project chip opens the repo-locked edit modal', async () => {
       setupRepoMocks([
         {
+          automaticallyGenerated: false,
           hasCodeOwner: false,
           id: '1',
           repoId: REPO.id,

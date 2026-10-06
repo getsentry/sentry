@@ -148,6 +148,42 @@ describe('PathMappingList', () => {
       );
     });
 
+    it('shows Automatic tag on a generated row and nowhere else', () => {
+      renderList({
+        initialPathMappings: [
+          {
+            stackRoot: 'app/',
+            sourceRoot: 'static/app/',
+            branch: 'main',
+            automaticallyGenerated: true,
+          },
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'frontend'},
+        ],
+      });
+
+      expect(screen.getAllByText('Automatic')).toHaveLength(1);
+    });
+
+    it('tag follows delete into the editor when the row is expanded with multiple mappings', async () => {
+      renderList({
+        initialPathMappings: [
+          {
+            stackRoot: 'app/',
+            sourceRoot: 'static/app/',
+            branch: 'main',
+            automaticallyGenerated: true,
+          },
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'frontend'},
+        ],
+      });
+
+      const [firstExpand] = screen.getAllByRole('button', {name: 'Expand path mapping'});
+      await userEvent.click(firstExpand!);
+
+      // Delete moved into the editor; the tag should still appear exactly once.
+      expect(screen.getAllByText('Automatic')).toHaveLength(1);
+    });
+
     it('deletes an open mapping from the editor when another mapping exists', async () => {
       renderList({initialPathMappings: MAPPINGS});
 
