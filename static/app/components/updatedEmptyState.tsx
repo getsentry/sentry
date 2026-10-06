@@ -1,11 +1,10 @@
 import {useEffect} from 'react';
-import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
+import {css, useTheme} from '@emotion/react';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Container} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -204,8 +203,28 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
             marginTop="0"
             marginBottom="0"
           />
-          <Body>
-            <Setup>
+          <Grid
+            autoColumns="minmax(0, 1fr)"
+            flow="column"
+            css={css`
+              h4 {
+                margin-bottom: 0;
+              }
+            `}
+          >
+            <Container
+              padding="3xl"
+              css={css`
+                &:after {
+                  content: '';
+                  position: absolute;
+                  right: 50%;
+                  top: 19%;
+                  height: 78%;
+                  border-right: 1px ${theme.tokens.border.primary} solid;
+                }
+              `}
+            >
               <SetupTitle project={project} />
               <GuidedSteps
                 initialStep={decodeInteger(location.query.guidedStep)}
@@ -254,30 +273,35 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                   );
                 })}
               </GuidedSteps>
-            </Setup>
+            </Container>
             <Container padding="3xl">
               <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>
               <Container marginTop="md">
-                <Arcade
+                <iframe
                   src="https://demo.arcade.software/bQko6ZTRFMyTm6fJaDzs?embed"
                   loading="lazy"
                   allowFullScreen
+                  title="Sentry issue preview"
+                  style={{
+                    width: 720,
+                    maxWidth: '100%',
+                    height: 420,
+                    border: 0,
+                    colorScheme: 'auto',
+                  }}
                 />
               </Container>
             </Container>
-          </Body>
+          </Grid>
         </div>
       </TabSelectionScope>
     </AuthTokenGeneratorProvider>
   );
 }
 
-const PulsingIndicator = styled('div')`
-  ${pulsingIndicatorStyles};
-  flex-shrink: 0;
-`;
-
 function EventWaitingIndicator() {
+  const theme = useTheme();
+
   return (
     <Flex
       align="center"
@@ -291,23 +315,10 @@ function EventWaitingIndicator() {
       <Text size="md" variant="promotion">
         {t("Waiting for this project's first error")}
       </Text>
-      <PulsingIndicator />
+      <Container flexShrink={0} css={pulsingIndicatorStyles({theme})} />
     </Flex>
   );
 }
-
-const Setup = styled('div')`
-  padding: ${p => p.theme.space['3xl']};
-
-  &:after {
-    content: '';
-    position: absolute;
-    right: 50%;
-    top: 19%;
-    height: 78%;
-    border-right: 1px ${p => p.theme.tokens.border.primary} solid;
-  }
-`;
 
 export function BodyTitle({children}: {children: React.ReactNode}) {
   return (
@@ -318,21 +329,3 @@ export function BodyTitle({children}: {children: React.ReactNode}) {
     </Container>
   );
 }
-
-const Body = styled('div')`
-  display: grid;
-  grid-auto-columns: minmax(0, 1fr);
-  grid-auto-flow: column;
-
-  h4 {
-    margin-bottom: 0;
-  }
-`;
-
-const Arcade = styled('iframe')`
-  width: 720px;
-  max-width: 100%;
-  height: 420px;
-  border: 0;
-  color-scheme: auto;
-`;
