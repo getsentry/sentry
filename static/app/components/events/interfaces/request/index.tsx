@@ -14,8 +14,6 @@ import {StructuredEventData} from 'sentry/components/structuredEventData';
 import {JsonEventData} from 'sentry/components/structuredEventData/jsonEventData';
 import {
   KeyValueTableCard,
-  KeyValueTableCardPanel,
-  KeyValueTableCardTitle,
   type KeyValueTableDataRowProps,
 } from 'sentry/components/tables/keyValueTable';
 import {Truncate} from 'sentry/components/truncate';
@@ -76,10 +74,9 @@ function RequestBodySection({data, event, meta}: RequestBodyProps) {
 
   if (data.apiTarget === 'graphql' && typeof data.data.query === 'string') {
     return (
-      <KeyValueTableCardPanel block>
-        <KeyValueTableCardTitle>{t('Body')}</KeyValueTableCardTitle>
+      <KeyValueTableCard title={t('Body')}>
         <GraphQlRequestBody data={data.data} {...{event, meta}} />
-      </KeyValueTableCardPanel>
+      </KeyValueTableCard>
     );
   }
 
@@ -104,12 +101,7 @@ function RequestBodySection({data, event, meta}: RequestBodyProps) {
     meta: meta?.data,
     inferredContentType: data.inferredContentType,
   });
-  return (
-    <KeyValueTableCardPanel block>
-      <KeyValueTableCardTitle>{t('Body')}</KeyValueTableCardTitle>
-      {contentBody}
-    </KeyValueTableCardPanel>
-  );
+  return <KeyValueTableCard title={t('Body')}>{contentBody}</KeyValueTableCard>;
 }
 
 export function Request({data, event}: RequestProps) {
