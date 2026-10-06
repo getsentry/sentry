@@ -177,86 +177,93 @@ export function NewWelcomeUI(props: StepProps) {
   };
 
   return (
-    <MotionContainer
-      width="100%"
-      margin="0 auto"
-      maxWidth={SCM_STEP_CONTENT_WIDTH}
-      position="relative"
-    >
-      <MotionFlex direction="column" align="center" {...ONBOARDING_STAGGER}>
-        <Stack gap="3xl" align="center" width="100%">
-          <MotionStack gap="md" width="100%" {...ONBOARDING_STAGGER}>
-            <Stack gap="lg" paddingBottom="xl">
-              <MotionContainer {...ONBOARDING_ENTER}>
-                <Heading as="h2" size="3xl" align="center" wrap="pre-line">
-                  {scmHeading.title}
-                </Heading>
-              </MotionContainer>
-              <MotionContainer {...ONBOARDING_ENTER}>
-                <Text align="center" variant="muted" size="lg" density="comfortable">
-                  {scmHeading.description}
-                </Text>
-              </MotionContainer>
-            </Stack>
-          </MotionStack>
+    <Stack width="100%" containerType="inline-size">
+      <MotionContainer
+        width="100%"
+        margin="0 auto"
+        maxWidth={SCM_STEP_CONTENT_WIDTH}
+        position="relative"
+      >
+        <MotionFlex direction="column" align="center" {...ONBOARDING_STAGGER}>
+          <Stack gap="3xl" align="center" width="100%">
+            <MotionStack gap="md" width="100%" {...ONBOARDING_STAGGER}>
+              <Stack gap="lg" paddingBottom="xl">
+                <MotionContainer {...ONBOARDING_ENTER}>
+                  <Heading as="h2" size="3xl" align="center" wrap="pre-line">
+                    {scmHeading.title}
+                  </Heading>
+                </MotionContainer>
+                <MotionContainer {...ONBOARDING_ENTER}>
+                  <Text align="center" variant="muted" size="lg" density="comfortable">
+                    {scmHeading.description}
+                  </Text>
+                </MotionContainer>
+              </Stack>
+            </MotionStack>
 
-          {/* Let the onboarding step's exit animate through this nested boundary. */}
-          <AnimatePresence mode="wait" initial={false} propagate>
-            {showAgentSetup ? (
-              // Swaps in after the stagger has run, so it drives the variants
-              // itself rather than inheriting the step's.
-              <MotionContainer
-                key="agent-setup"
-                width="100%"
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                {...ONBOARDING_ENTER}
-              >
-                <WelcomeAgentSetup
-                  hasInitFailed={hasInitFailed}
-                  hasProgressFailed={hasProgressFailed}
-                  onRefresh={() => void refreshRun()}
-                  isAgentConnected={isAgentConnected}
-                  onboardingCode={onboardingCode}
-                  onCopyCommand={handleCopyCommand}
-                  onRetry={restartRun}
-                  onSelectSnippet={handleSelectSnippet}
-                  onSetupInBrowser={handleComplete}
-                  run={run}
-                />
-              </MotionContainer>
-            ) : (
-              <MotionStack key="products" gap="3xl" width="100%" {...ONBOARDING_STAGGER}>
-                <MotionGrid
-                  columns={{'screen:xs': '1fr', 'screen:sm': 'repeat(2, 1fr)'}}
+            {/* Let the onboarding step's exit animate through this nested boundary. */}
+            <AnimatePresence mode="wait" initial={false} propagate>
+              {showAgentSetup ? (
+                // Swaps in after the stagger has run, so it drives the variants
+                // itself rather than inheriting the step's.
+                <MotionContainer
+                  key="agent-setup"
+                  width="100%"
+                  initial="initial"
+                  animate="animate"
+                  exit="exit"
+                  {...ONBOARDING_ENTER}
+                >
+                  <WelcomeAgentSetup
+                    hasInitFailed={hasInitFailed}
+                    hasProgressFailed={hasProgressFailed}
+                    onRefresh={() => void refreshRun()}
+                    isAgentConnected={isAgentConnected}
+                    onboardingCode={onboardingCode}
+                    onCopyCommand={handleCopyCommand}
+                    onRetry={restartRun}
+                    onSelectSnippet={handleSelectSnippet}
+                    onSetupInBrowser={handleComplete}
+                    run={run}
+                  />
+                </MotionContainer>
+              ) : (
+                <MotionStack
+                  key="products"
                   gap="3xl"
                   width="100%"
-                  {...ONBOARDING_ENTER}
-                  border="primary"
-                  background="primary"
-                  radius="xl"
-                  padding="xl"
+                  {...ONBOARDING_STAGGER}
                 >
-                  {PRODUCT_OPTIONS.map(product => (
-                    <NewWelcomeProductCard key={product.id} product={product} />
-                  ))}
-                </MotionGrid>
-
-                <MotionFlex {...ONBOARDING_ENTER} width="100%" justify="center">
-                  <Button
-                    variant="primary"
-                    onClick={handleComplete}
-                    data-test-id="onboarding-welcome-start"
+                  <MotionGrid
+                    columns={{zero: '1fr', xl: 'repeat(2, 1fr)'}}
+                    gap="3xl"
+                    width="100%"
+                    {...ONBOARDING_ENTER}
+                    border="primary"
+                    background="primary"
+                    radius="xl"
+                    padding="xl"
                   >
-                    {t('Let’s get started')}
-                  </Button>
-                </MotionFlex>
-              </MotionStack>
-            )}
-          </AnimatePresence>
-        </Stack>
-      </MotionFlex>
-    </MotionContainer>
+                    {PRODUCT_OPTIONS.map(product => (
+                      <NewWelcomeProductCard key={product.id} product={product} />
+                    ))}
+                  </MotionGrid>
+
+                  <MotionFlex {...ONBOARDING_ENTER} width="100%" justify="center">
+                    <Button
+                      variant="primary"
+                      onClick={handleComplete}
+                      data-test-id="onboarding-welcome-start"
+                    >
+                      {t('Let’s get started')}
+                    </Button>
+                  </MotionFlex>
+                </MotionStack>
+              )}
+            </AnimatePresence>
+          </Stack>
+        </MotionFlex>
+      </MotionContainer>
+    </Stack>
   );
 }
