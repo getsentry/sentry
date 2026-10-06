@@ -9,9 +9,8 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {PathMappingWarning} from './warnings';
 
 interface PathMappingWarningAlertProps {
-  warning: PathMappingWarning | null | undefined;
-  // Required when warning.type === 'codeOwner' to build the ownership link.
   projectSlug?: string;
+  warning?: PathMappingWarning;
 }
 
 function displayRoot(root: string, emptyLabel: string) {
@@ -43,20 +42,6 @@ export function PathMappingWarningAlert({
     );
   }
 
-  if (warning?.type === 'exact') {
-    return (
-      <Alert variant="warning" showIcon>
-        {tct(
-          '[stackRoot] is already mapped to [sourceRoot]. Only one can be used for matching.',
-          {
-            stackRoot: displayRoot(warning.stackRoot, t('stack trace prefix')),
-            sourceRoot: displayRoot(warning.sourceRoot, t('repository prefix')),
-          }
-        )}
-      </Alert>
-    );
-  }
-
   if (warning?.type === 'catchAll') {
     const {stackRoot, sourceRoot} = warning;
     const bothEmpty = stackRoot === '' && sourceRoot === '';
@@ -83,12 +68,40 @@ export function PathMappingWarningAlert({
       );
     }
 
-    // sourceRoot is empty, stackRoot is set
     return (
       <Alert variant="muted" showIcon>
         {tct(
           'The repository prefix is empty, so Sentry removes [stackRoot] from the path and looks for the rest at the root of your repo.',
           {stackRoot: <strong>{stackRoot}</strong>}
+        )}
+      </Alert>
+    );
+  }
+
+  if (warning?.type === 'exactInForm') {
+    return (
+      <Alert variant="warning" showIcon>
+        {tct(
+          '[stackRoot] is already mapped to [sourceRoot] in this form. Remove one since only one of them is required for path matching.',
+          {
+            stackRoot: displayRoot(warning.stackRoot, t('stack trace prefix')),
+            sourceRoot: displayRoot(warning.sourceRoot, t('repository prefix')),
+          }
+        )}
+      </Alert>
+    );
+  }
+
+  if (warning?.type === 'exactAcrossRepos') {
+    return (
+      <Alert variant="warning" showIcon>
+        {tct(
+          '[stackRoot] is already mapped to [sourceRoot] in the connection to [repoName] repository. Only one can be used for matching.',
+          {
+            stackRoot: displayRoot(warning.stackRoot, t('stack trace prefix')),
+            sourceRoot: displayRoot(warning.sourceRoot, t('repository prefix')),
+            repoName: <strong>{warning.repoName}</strong>,
+          }
         )}
       </Alert>
     );

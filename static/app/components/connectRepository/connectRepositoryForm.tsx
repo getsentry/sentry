@@ -1,19 +1,21 @@
 import {useState} from 'react';
-import {useMutation} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {
-  getApiErrorMessage,
   ConnectionModalFrame,
   LockedProjectField,
+  getApiErrorMessage,
 } from 'sentry/components/connectRepository/connectionModalFrame';
 import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
 import {
+  projectCodeMappingsOptions,
   saveProjectRepoConnection,
   useGroupedRepoOptions,
   useInvalidateRepoQueries,
@@ -49,9 +51,27 @@ export function ConnectRepositoryForm({
 }: ConnectFormProps) {
   const organization = useOrganization();
   const [selectedOption, setSelectedOption] = useState<RepoSelectOption | null>(null);
-  const [pathMappings, setPathMappings] = useState<PathMappingValue[]>([]);
-  const {groupedOptions, isPending} = useGroupedRepoOptions(organization.slug);
+  const {groupedOptions, isPending: isReposPending} = useGroupedRepoOptions(
+    organization.slug
+  );
   const invalidateQueries = useInvalidateRepoQueries(organization.slug);
+
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      repository: null as string | null,
+      pathMappings: [] as PathMappingValue[],
+    },
+    onSubmit: () => {},
+  });
+
+  const {
+    data: codeMappings = [],
+    isPending: codeMappingsPending,
+    isError: codeMappingsError,
+  } = useQuery(
+    projectCodeMappingsOptions({orgSlug: organization.slug, projectId: project.id})
+  );
 
   const saveMutation = useMutation({
     mutationFn: saveProjectRepoConnection,
@@ -60,11 +80,6 @@ export function ConnectRepositoryForm({
       closeModal();
     },
   });
-
-  const canSave =
-    selectedOption !== null &&
-    pathMappings.length > 0 &&
-    !hasExactDuplicate(pathMappings);
 
   const intro = (
     <Text as="p">
@@ -81,36 +96,18 @@ export function ConnectRepositoryForm({
     </Text>
   );
 
-  const saveAlert = saveMutation.isError ? (
-    <Alert.Container>
-      <Alert variant="danger">{getApiErrorMessage(saveMutation.error)}</Alert>
-    </Alert.Container>
-  ) : null;
-
-  const repoField = (
-    <Select
-      aria-label={t('Repository')}
-      options={groupedOptions}
-      value={selectedOption?.value ?? null}
-      onChange={option => {
-        setSelectedOption(option as RepoSelectOption | null);
-        setPathMappings([]);
-        saveMutation.reset();
-      }}
-      placeholder={t('Search repositories')}
-      isLoading={isPending}
-      searchable
-      components={{MenuList: ScmVirtualizedMenuList}}
-    />
+  const existingMappings = codeMappings.filter(
+    m => !selectedOption || m.repoId !== selectedOption.repositoryId
   );
 
   const pathsSection = selectedOption ? (
     <Container paddingTop="2xl">
       <PathMappingList
         key={selectedOption.value}
+        form={form}
         providerKey={selectedOption.providerKey}
         defaultBranch={selectedOption.defaultBranch ?? undefined}
-        onChange={setPathMappings}
+        existingMappings={existingMappings}
       />
     </Container>
   ) : (
@@ -122,34 +119,86 @@ export function ConnectRepositoryForm({
     </Stack>
   );
 
-  return (
-    <ConnectionModalFrame
-      Header={Header}
-      Body={Body}
-      Footer={Footer}
-      closeModal={closeModal}
-      title={tct('Connect a repository to [project]', {project: project.slug})}
-      intro={intro}
-      alerts={saveAlert}
-      leftLabel={t('Project')}
-      leftField={<LockedProjectField project={project} />}
-      rightLabel={t('Repository')}
-      rightField={repoField}
-      pathsSection={pathsSection}
-      canSave={canSave}
-      isSaving={saveMutation.isPending}
-      onSave={() => {
-        if (!selectedOption) {
-          return;
-        }
-        saveMutation.mutate({
-          orgSlug: organization.slug,
-          project,
-          repositoryId: selectedOption.repositoryId,
-          integrationId: selectedOption.integrationId,
-          pathMappings,
-        });
+  const repoField = (
+    <Select
+      aria-label={t('Repository')}
+      options={groupedOptions}
+      value={selectedOption?.value ?? null}
+      onChange={option => {
+        const repo = option as RepoSelectOption | null;
+        setSelectedOption(repo);
+        form.setFieldValue('pathMappings', [
+          {stackRoot: '', sourceRoot: '', branch: repo?.defaultBranch ?? ''},
+        ]);
+        saveMutation.reset();
       }}
+      placeholder={t('Search repositories')}
+      isLoading={isReposPending}
+      searchable
+      components={{MenuList: ScmVirtualizedMenuList}}
     />
+  );
+
+  return (
+    <form.AppForm form={form}>
+      <form.Subscribe selector={state => state.values.pathMappings}>
+        {pathMappings => {
+          const canSave =
+            selectedOption !== null &&
+            pathMappings.length > 0 &&
+            !codeMappingsPending &&
+            !codeMappingsError &&
+            !hasExactDuplicate(pathMappings, existingMappings);
+
+          const alerts = (
+            <Stack gap="xs">
+              {codeMappingsError && (
+                <Alert.Container>
+                  <Alert variant="danger">
+                    {t('Failed to load existing path mappings. Try again before saving.')}
+                  </Alert>
+                </Alert.Container>
+              )}
+              {saveMutation.isError && (
+                <Alert.Container>
+                  <Alert variant="danger">{getApiErrorMessage(saveMutation.error)}</Alert>
+                </Alert.Container>
+              )}
+            </Stack>
+          );
+
+          return (
+            <ConnectionModalFrame
+              Header={Header}
+              Body={Body}
+              Footer={Footer}
+              closeModal={closeModal}
+              title={tct('Connect a repository to [project]', {project: project.slug})}
+              intro={intro}
+              alerts={alerts}
+              leftLabel={t('Project')}
+              leftField={<LockedProjectField project={project} />}
+              rightLabel={t('Repository')}
+              rightField={repoField}
+              pathsSection={pathsSection}
+              canSave={canSave}
+              isSaving={saveMutation.isPending}
+              onSave={() => {
+                if (!selectedOption) {
+                  return;
+                }
+                saveMutation.mutate({
+                  orgSlug: organization.slug,
+                  project,
+                  repositoryId: selectedOption.repositoryId,
+                  integrationId: selectedOption.integrationId,
+                  pathMappings,
+                });
+              }}
+            />
+          );
+        }}
+      </form.Subscribe>
+    </form.AppForm>
   );
 }

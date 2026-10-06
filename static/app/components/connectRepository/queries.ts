@@ -30,8 +30,8 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export type ProjectRepoListItem = {
-  id: string;
   externalId: string | null;
+  id: string;
   integrationId: string | null;
   mappingCount: number;
   projectId: string;
@@ -283,14 +283,11 @@ export function orgCodeMappingsInfiniteOptions(orgSlug: string) {
 }
 
 export function orgProjectsOptions(orgSlug: string) {
-  return apiOptions.as<Project[]>()(
-    '/organizations/$organizationIdOrSlug/projects/',
-    {
-      path: {organizationIdOrSlug: orgSlug},
-      query: {all_projects: '1', collapse: ['latestDeploys', 'unusedFeatures']},
-      staleTime: 60_000,
-    }
-  );
+  return apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
+    path: {organizationIdOrSlug: orgSlug},
+    query: {all_projects: '1', collapse: ['latestDeploys', 'unusedFeatures']},
+    staleTime: 60_000,
+  });
 }
 
 /**

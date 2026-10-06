@@ -49,6 +49,8 @@ describe('ProjectList', () => {
     const avatars = screen.getAllByTestId(/^platform-icon-/);
     await userEvent.click(avatars[0]!);
     expect(onProjectClick).toHaveBeenCalledTimes(1);
-    expect(onProjectClick).toHaveBeenCalledWith(expect.objectContaining({slug: 'project2'}));
+    expect(onProjectClick).toHaveBeenCalledWith(
+      expect.objectContaining({slug: 'project2'})
+    );
   });
 });

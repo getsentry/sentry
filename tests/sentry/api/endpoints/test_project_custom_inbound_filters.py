@@ -4,9 +4,12 @@ from unittest.mock import patch
 from django.urls import reverse
 
 from sentry import audit_log
-from sentry.api.endpoints.project_custom_inbound_filters import MAX_CONDITIONS_PER_FILTER
+from sentry.api.endpoints.project_custom_inbound_filters import (
+    MAX_CONDITION_VALUE_CHARS_PER_FILTER,
+    MAX_CONDITIONS_PER_FILTER,
+)
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.custominboundfilter import CustomInboundFilter
+from sentry.models.custominboundfilter import CustomInboundFilter, LegacyFilter
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
@@ -23,6 +26,58 @@ class CustomInboundFiltersTest(APITestCase):
         self.team = self.create_team(organization=self.organization)
         self.project = self.create_project(organization=self.organization, teams=[self.team])
         self.login_as(user=self.user)
+
+    def test_get_hides_the_row_of_a_legacy_list(self) -> None:
+        self.create_project_custom_inbound_filter(
+            project=self.project,
+            data_type="all",
+            conditions=[{"type": "release", "value": ["1.*"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
+        )
+        mine = self.create_project_custom_inbound_filter(project=self.project, name="Mine")
+
+        with self.feature(self.features):
+            response = self.get_success_response(self.organization.slug, self.project.slug)
+
+        assert [item["id"] for item in response.data] == [str(mine.id)]
+
+    @patch("sentry.api.endpoints.project_custom_inbound_filters.MAX_FILTERS_PER_PROJECT", 1)
+    def test_post_does_not_count_a_hidden_row_against_the_cap(self) -> None:
+        self.create_project_custom_inbound_filter(
+            project=self.project,
+            data_type="all",
+            conditions=[{"type": "release", "value": ["1.*"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
+        )
+
+        with self.feature(self.features):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                status_code=201,
+                name="Mine",
+                dataType="all",
+                conditions=[{"type": "release", "value": ["2.*"]}],
+            )
+
+    def test_post_cannot_set_legacy_filter(self) -> None:
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                status_code=201,
+                name="Mine",
+                dataType="all",
+                conditions=[{"type": "release", "value": ["1.*"]}],
+                legacyFilter="release-version",
+                legacy_filter="release-version",
+            )
+
+        assert "legacyFilter" not in response.data
+        row = CustomInboundFilter.objects.get(id=response.data["id"])
+        assert row.legacy_filter is None
 
     def test_get(self) -> None:
         first_filter = self.create_project_custom_inbound_filter(
@@ -369,6 +424,41 @@ class CustomInboundFiltersTest(APITestCase):
 
         assert "no more than" in str(response.data["conditions"]["non_field_errors"][0])
 
+    def test_rejects_oversized_condition_values(self) -> None:
+        half = "a" * (MAX_CONDITION_VALUE_CHARS_PER_FILTER // 2)
+        conditions = [
+            {"type": "release", "value": [half]},
+            {"type": "error_message", "value": [half, "x"]},
+        ]
+
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="error",
+                conditions=conditions,
+            )
+
+        assert str(response.data["conditions"][0]) == (
+            f"A filter's condition values can have at most "
+            f"{MAX_CONDITION_VALUE_CHARS_PER_FILTER} characters in total."
+        )
+        assert not CustomInboundFilter.objects.filter(project_id=self.project.id).exists()
+
+    def test_allows_condition_values_at_the_size_cap(self) -> None:
+        conditions = [{"type": "release", "value": ["a" * MAX_CONDITION_VALUE_CHARS_PER_FILTER]}]
+
+        with self.feature(self.features):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                dataType="error",
+                conditions=conditions,
+                status_code=201,
+            )
+
     @patch(
         "sentry.api.endpoints.project_custom_inbound_filters.MAX_FILTERS_PER_PROJECT",
         2,
@@ -423,6 +513,56 @@ class CustomInboundFilterDetailsTest(APITestCase):
             conditions=[{"type": "release", "value": ["1.*"]}],
         )
         self.login_as(user=self.user)
+
+    def test_put_cannot_set_legacy_filter(self) -> None:
+        with self.feature(self.features), outbox_runner():
+            response = self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                self.custom_filter.id,
+                legacyFilter="release-version",
+                legacy_filter="release-version",
+            )
+
+        assert "legacyFilter" not in response.data
+        self.custom_filter.refresh_from_db()
+        assert self.custom_filter.legacy_filter is None
+
+    def test_row_of_a_legacy_list_is_not_reachable(self) -> None:
+        legacy_row = self.create_project_custom_inbound_filter(
+            project=self.project,
+            data_type="all",
+            conditions=[{"type": "release", "value": ["1.*"]}],
+            legacy_filter=LegacyFilter.RELEASE_VERSION,
+        )
+
+        with self.feature(self.features):
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                legacy_row.id,
+                method="get",
+                status_code=404,
+            )
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                legacy_row.id,
+                method="put",
+                status_code=404,
+                name="Renamed",
+            )
+            self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                legacy_row.id,
+                method="delete",
+                status_code=404,
+            )
+
+        legacy_row.refresh_from_db()
+        assert legacy_row.name == "Custom inbound filter"
+        assert legacy_row.conditions == [{"type": "release", "value": ["1.*"]}]
 
     def test_get(self) -> None:
         with self.feature(self.features):
@@ -608,48 +748,61 @@ class CustomInboundFilterDetailsTest(APITestCase):
         error_filter.refresh_from_db()
         assert error_filter.data_type == "error"
 
-    def test_get_returns_null_data_type_for_filter_written_before_the_column(self) -> None:
-        self.custom_filter.update(data_type=None)
-
+    def test_put_rejects_growing_past_the_size_cap(self) -> None:
         with self.feature(self.features):
-            response = self.get_success_response(
+            response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
                 self.custom_filter.id,
-                method="get",
+                conditions=[
+                    {"type": "release", "value": ["a" * (MAX_CONDITION_VALUE_CHARS_PER_FILTER + 1)]}
+                ],
             )
 
-        assert response.data["dataType"] is None
+        assert str(response.data["conditions"][0]) == (
+            f"A filter's condition values can have at most "
+            f"{MAX_CONDITION_VALUE_CHARS_PER_FILTER} characters in total."
+        )
+        self.custom_filter.refresh_from_db()
+        assert self.custom_filter.conditions == [{"type": "release", "value": ["1.*"]}]
 
-    def test_put_refuses_filter_without_data_type_until_one_is_sent(self) -> None:
-        """A row written before the column existed carries no data type."""
-        self.custom_filter.update(data_type=None)
+    def test_put_keeps_stored_oversized_filter_but_refuses_growth(self) -> None:
+        """A filter written before the cap can be edited at its size or smaller."""
+        stored_size = MAX_CONDITION_VALUE_CHARS_PER_FILTER + 10
+        self.custom_filter.update(conditions=[{"type": "release", "value": ["a" * stored_size]}])
 
         with self.feature(self.features):
             response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
                 self.custom_filter.id,
-                name="Renamed filter",
+                conditions=[{"type": "release", "value": ["b" * (stored_size + 1)]}],
             )
 
-        assert (
-            str(response.data["dataType"][0])
-            == "This filter has no data type. Send dataType to update it."
+        assert str(response.data["conditions"][0]) == (
+            f"This filter already exceeds the {MAX_CONDITION_VALUE_CHARS_PER_FILTER} "
+            "character limit for condition values. It can shrink but not grow."
         )
 
-        with self.feature(self.features), outbox_runner():
+        same_size = [
+            {"type": "release", "value": ["b" * (stored_size - 3)]},
+            {"type": "error_message", "value": ["c", "dd"]},
+        ]
+        with self.feature(self.features):
             self.get_success_response(
                 self.organization.slug,
                 self.project.slug,
                 self.custom_filter.id,
-                name="Renamed filter",
-                dataType="error",
+                conditions=same_size,
             )
 
         self.custom_filter.refresh_from_db()
-        assert self.custom_filter.name == "Renamed filter"
-        assert self.custom_filter.data_type == "error"
+        assert self.custom_filter.conditions == same_size
+
+        with self.feature(self.features):
+            self.get_success_response(
+                self.organization.slug, self.project.slug, self.custom_filter.id, active=False
+            )
 
     def test_delete(self) -> None:
         with self.feature(self.features), outbox_runner():

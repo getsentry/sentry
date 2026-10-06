@@ -151,9 +151,9 @@ export function ScreenshotCard({
               onError={() => setLoadingImage(false)}
             />
             {loadingImage && (
-              <StyledLoadingIndicator>
+              <Flex align="center" justify="center" position="absolute" inset="0">
                 <LoadingIndicator mini />
-              </StyledLoadingIndicator>
+              </Flex>
             )}
           </LazyRender>
         </StyledPanelBody>
@@ -196,12 +196,8 @@ const StyledPanelBody = styled(PanelBody)`
   border-radius: ${p => p.theme.radius.md};
 `;
 
-const StyledLoadingIndicator = styled('div')`
-  align-self: center;
-`;
-
 const StyledImageVisualization = styled(ImageVisualization)`
   height: 100%;
-  z-index: 1;
+  object-fit: contain;
   border: 0;
 `;

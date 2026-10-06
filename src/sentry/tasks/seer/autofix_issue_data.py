@@ -25,6 +25,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import json, metrics
 from sentry.utils.hashlib import md5_text
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +34,7 @@ MAX_REVIEWS_PER_ORG_PER_RUN = 20
 ISSUES_PER_JUDGE_TASK = 10
 ORG_STAGGER_SPREAD_DURATION = timedelta(hours=1)
 
-SYSTEM_PROMPT = """Night Shift reviews software issues and may trigger Autofix to investigate
+SYSTEM_PROMPT = """Agentic triage reviews software issues and may trigger Autofix to investigate
 and open a pull request. Your job is to identify issues where opening a pull request would be
 wasteful because the issue cannot be fixed in the relevant codebase.
 
@@ -81,7 +82,7 @@ def _select_candidates(organization_id: int) -> list[SeerAutofixIssueData]:
 def schedule_judging() -> None:
     """Twice-daily cron entry point for negative-label curation.
 
-    Finds orgs that had a Night Shift run in the last 48 hours, keeps those that
+    Finds orgs that had an agentic triage run in the last 48 hours, keeps those that
     are active and have the feature flag, and dispatches one
     `schedule_judging_for_org` task per org. That task samples the org's
     unreviewed rows and fans out the per-issue Opus judge calls. The 48-hour
@@ -194,11 +195,17 @@ def _judge_issue(issue_data_id: int, event_id: str) -> None:
         reasoning="high",
         conversation_id=None,
     )
-    response = make_llm_generate_request(
-        body,
-        timeout=30,
-        viewer_context=SeerViewerContext(organization_id=issue_data.organization_id),
-    )
+    with viewer_context_scope(
+        ViewerContext(
+            organization_id=issue_data.organization_id,
+            actor_type=ActorType.SYSTEM,
+        )
+    ):
+        response = make_llm_generate_request(
+            body,
+            timeout=30,
+            viewer_context=SeerViewerContext(organization_id=issue_data.organization_id),
+        )
     if response.status >= 400:
         raise SeerApiError("Seer autofix issue data judge request failed", response.status)
 
@@ -221,7 +228,7 @@ def _judge_issue(issue_data_id: int, event_id: str) -> None:
             "confidence": result.confidence,
             "reason": result.reason,
             "model": model,
-            "prompt_version": "1",
+            "prompt_version": "2",
             "reviewed_at": reviewed_at.isoformat(),
             "reviewed_event_id": event_id,
         },

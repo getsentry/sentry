@@ -194,6 +194,7 @@ def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[i
         if alert_workflow:
             if rule := bulk_rules.get(alert_workflow.rule_id):
                 assert rule.project_id == project.id, "Rule must belong to Project"
+                rule.environment_id = workflow.environment_id
                 try:
                     rule.data["actions"][0]["legacy_rule_id"] = rule.id
                     rule.data["actions"][0]["workflow_id"] = workflow_id
@@ -211,6 +212,7 @@ def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[i
             label=workflow.name,
             id=workflow_id,
             project_id=project.id,
+            environment_id=workflow.environment_id,
             # We need to do this so that the links are built correctly downstream
             data={"actions": [{"workflow_id": workflow_id}]},
         )
@@ -244,16 +246,34 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
     groups = Group.objects.in_bulk(record.value.event.group_id for record in records)
     group_ids = list(groups)
     rules = Rule.objects.in_bulk(rule_ids)
+    workflow_ids_by_rule_id = dict(
+        AlertRuleWorkflow.objects.filter(rule_id__in=rules.keys()).values_list(
+            "rule_id", "workflow_id"
+        )
+    )
 
     for rule in rules.values():
         try:
-            rule.data["actions"][0]["legacy_rule_id"] = rule.id
+            action = rule.data["actions"][0]
         except KeyError:
             # This shouldn't happen, but isn't a deal breaker if it does
             sentry_sdk.capture_exception(
                 Exception(f"Rule {rule.id} does not have a legacy_rule_id"),
                 level="warning",
             )
+            continue
+
+        action["legacy_rule_id"] = rule.id
+        workflow_id = workflow_ids_by_rule_id.get(rule.id)
+        if workflow_id is None:
+            # Every Rule that can fire is backed by a Workflow, so this most likely
+            # means the Workflow was deleted after the notification was queued.
+            logger.error(
+                "digests.build_digest.rule_without_workflow",
+                extra={"rule_id": rule.id, "project_id": project.id},
+            )
+        else:
+            action["workflow_id"] = workflow_id
 
     rules.update(get_rules_from_workflows(project, workflow_ids))
 

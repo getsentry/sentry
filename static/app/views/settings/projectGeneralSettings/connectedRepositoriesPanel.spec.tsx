@@ -1,30 +1,24 @@
+import {Fragment} from 'react';
 import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {GlobalModal} from '@sentry/scraps/modal';
 
+import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {ConnectedRepositoriesPanel} from 'sentry/views/settings/projectGeneralSettings/connectedRepositoriesPanel';
 
-// Mock the virtualizer so all menu items render in JSDOM (no layout engine).
-jest.mock('@tanstack/react-virtual', () => ({
-  useVirtualizer: jest.fn(({count, paddingStart = 0, paddingEnd = 0}) => ({
-    getVirtualItems: () =>
-      Array.from({length: count}, (_, i) => ({
-        key: i,
-        index: i,
-        start: paddingStart + i * 36,
-        size: 36,
-      })),
-    getTotalSize: () => paddingStart + count * 36 + paddingEnd,
-    measure: jest.fn(),
-    measureElement: jest.fn(),
-    scrollToIndex: jest.fn(),
-  })),
-}));
+mockElementSize();
 
 describe('ConnectedRepositoriesPanel', () => {
   const organization = OrganizationFixture();
@@ -32,13 +26,7 @@ describe('ConnectedRepositoriesPanel', () => {
   const repoUrl = `/projects/${organization.slug}/${project.slug}/repo/`;
 
   function renderPanel() {
-    return render(
-      <div>
-        <GlobalModal />
-        <ConnectedRepositoriesPanel project={project} />
-      </div>,
-      {organization}
-    );
+    return render(<ConnectedRepositoriesPanel project={project} />, {organization});
   }
 
   beforeEach(() => {
@@ -253,7 +241,13 @@ describe('ConnectedRepositoriesPanel', () => {
       ],
     });
 
-    renderPanel();
+    render(
+      <Fragment>
+        <GlobalModal />
+        <ConnectedRepositoriesPanel project={project} />
+      </Fragment>,
+      {organization}
+    );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Edit'}));
 
@@ -315,7 +309,13 @@ describe('ConnectedRepositoriesPanel', () => {
       },
     });
 
-    renderPanel();
+    render(
+      <Fragment>
+        <GlobalModal />
+        <ConnectedRepositoriesPanel project={project} />
+      </Fragment>,
+      {organization}
+    );
 
     await userEvent.click(await screen.findByRole('button', {name: 'Edit'}));
 
@@ -353,7 +353,13 @@ describe('ConnectedRepositoriesPanel', () => {
       method: 'GET',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/code-mappings/`,
+      method: 'GET',
+      body: [],
+    });
 
+    renderGlobalModal({organization});
     renderPanel();
 
     await userEvent.click(
@@ -441,7 +447,13 @@ describe('ConnectedRepositoriesPanel', () => {
       body: {},
     });
 
-    renderPanel();
+    render(
+      <Fragment>
+        <GlobalModal />
+        <ConnectedRepositoriesPanel project={project} />
+      </Fragment>,
+      {organization}
+    );
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Connect repository'})

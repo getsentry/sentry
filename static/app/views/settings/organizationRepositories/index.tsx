@@ -28,13 +28,18 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
-import type {Integration, OrganizationIntegration, Repository} from 'sentry/types/integrations';
-import type {AvatarProject} from 'sentry/types/project';
+import type {
+  Integration,
+  OrganizationIntegration,
+  Repository,
+} from 'sentry/types/integrations';
+import type {AvatarProject, Project} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isScmProvider} from 'sentry/utils/integrationUtil';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {ConnectProviderDropdown} from 'sentry/views/settings/organizationRepositories/components/connectProviderDropdown';
 import {NoIntegrationsEmptyState} from 'sentry/views/settings/organizationRepositories/components/noIntegrationsEmptyState';
@@ -208,18 +213,16 @@ function openMappedProjectEditModal({
   repo,
   avatarProject,
   providerKey,
-  mappedProjectsByRepoId,
+  projectsBySlug,
   openModal,
 }: {
   avatarProject: AvatarProject;
-  mappedProjectsByRepoId: Record<string, Array<{id: string; slug: string}>>;
   openModal: ReturnType<typeof useModal>['openModal'];
+  projectsBySlug: Record<string, Project>;
   providerKey: string;
   repo: Repository;
 }) {
-  const project = mappedProjectsByRepoId[repo.id]?.find(
-    p => p.slug === avatarProject.slug
-  );
+  const project = projectsBySlug[avatarProject.slug];
   if (!project) {
     return;
   }
@@ -241,7 +244,9 @@ function openMappedProjectEditModal({
 export default function OrganizationRepositories() {
   const organization = useOrganization();
   const {openModal} = useModal();
-  const hasCodeMappingsRefactor = organization.features.includes('code-mappings-refactor');
+  const hasCodeMappingsRefactor = organization.features.includes(
+    'code-mappings-refactor'
+  );
   const [searchTerm, setSearchTerm] = useState('');
   const [autoSyncIntegrationId, setAutoSyncIntegrationId] = useState<string | null>(null);
   const clearAutoSync = useCallback(() => setAutoSyncIntegrationId(null), []);
@@ -307,23 +312,21 @@ export default function OrganizationRepositories() {
   );
   useFetchAllPages({result: codeMappingsQuery});
 
-  const {mappedProjectSlugsByRepoId, mappedProjectsByRepoId} = useMemo(() => {
+  const mappedProjectSlugsByRepoId = useMemo(() => {
     const mappings = codeMappingsQuery.data?.pages.flatMap(p => p.json) ?? [];
     const byRepoId = groupBy(mappings, m => m.repoId);
-    return {
-      mappedProjectSlugsByRepoId: mapValues(byRepoId, ms =>
-        uniq(ms.map(m => m.projectSlug))
-      ),
-      // Deduplicated {id, slug} pairs per repo — used to resolve project identity
-      // when opening the edit modal from a project chip click.
-      mappedProjectsByRepoId: mapValues(byRepoId, ms =>
-        uniq(ms.map(m => m.projectId)).map(id => ({
-          id,
-          slug: ms.find(m => m.projectId === id)!.projectSlug,
-        }))
-      ),
-    };
+    return mapValues(byRepoId, ms => uniq(ms.map(m => m.projectSlug)));
   }, [codeMappingsQuery.data]);
+
+  const allMappedSlugs = useMemo(
+    () => uniq(Object.values(mappedProjectSlugsByRepoId).flat()),
+    [mappedProjectSlugsByRepoId]
+  );
+  const {projects: mappedProjects} = useProjects({slugs: allMappedSlugs});
+  const projectsBySlug = useMemo(
+    () => Object.fromEntries(mappedProjects.map(p => [p.slug, p])),
+    [mappedProjects]
+  );
 
   const mappingsLoading =
     codeMappingsQuery.isPending ||
@@ -354,7 +357,7 @@ export default function OrganizationRepositories() {
               repo,
               avatarProject,
               providerKey: integration.provider.key,
-              mappedProjectsByRepoId,
+              projectsBySlug,
               openModal,
             })
         : undefined,
@@ -365,7 +368,7 @@ export default function OrganizationRepositories() {
     reposByIntegrationId,
     reposLoading,
     mappedProjectSlugsByRepoId,
-    mappedProjectsByRepoId,
+    projectsBySlug,
     mappingsLoading,
     hasCodeMappingsRefactor,
     openModal,

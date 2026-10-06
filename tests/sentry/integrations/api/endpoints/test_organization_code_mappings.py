@@ -1,6 +1,9 @@
 from django.urls import reverse
 
-from sentry.integrations.api.endpoints.organization_code_mappings import BRANCH_NAME_ERROR_MESSAGE
+from sentry.integrations.api.endpoints.organization_code_mappings import (
+    BRANCH_NAME_ERROR_MESSAGE,
+    INVALID_SOURCE_ROOT_ERROR_MESSAGE,
+)
 from sentry.models.projectrepository import ProjectRepository
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
@@ -73,6 +76,7 @@ class OrganizationCodeMappingsTest(APITestCase):
 
         assert response.data[0] == {
             "automaticallyGenerated": False,
+            "hasCodeOwner": False,
             "id": str(path_config1.id),
             "projectId": str(self.project1.id),
             "projectSlug": self.project1.slug,
@@ -101,6 +105,7 @@ class OrganizationCodeMappingsTest(APITestCase):
 
         assert response.data[1] == {
             "automaticallyGenerated": False,
+            "hasCodeOwner": False,
             "id": str(path_config2.id),
             "projectId": str(self.project2.id),
             "projectSlug": self.project2.slug,
@@ -143,6 +148,7 @@ class OrganizationCodeMappingsTest(APITestCase):
 
         assert response.data[0] == {
             "automaticallyGenerated": False,
+            "hasCodeOwner": False,
             "id": str(path_config1.id),
             "projectId": str(self.project1.id),
             "projectSlug": self.project1.slug,
@@ -168,6 +174,31 @@ class OrganizationCodeMappingsTest(APITestCase):
             "sourceRoot": "source/root",
             "defaultBranch": "master",
         }
+
+    def test_has_code_owner_reflects_linked_codeowners(self) -> None:
+        mapping_with = self.create_code_mapping(
+            project=self.project1,
+            repo=self.repo1,
+            stack_root="with/owner",
+            source_root="src/owner",
+            default_branch="master",
+        )
+        mapping_without = self.create_code_mapping(
+            project=self.project1,
+            repo=self.repo1,
+            stack_root="without/owner",
+            source_root="src/no-owner",
+            default_branch="master",
+        )
+        self.create_codeowners(project=self.project1, code_mapping=mapping_with)
+
+        url_path = f"{self.url}?integrationId={self.integration.id}"
+        response = self.client.get(url_path, format="json")
+
+        assert response.status_code == 200, response.content
+        by_id = {item["id"]: item for item in response.data}
+        assert by_id[str(mapping_with.id)]["hasCodeOwner"] is True
+        assert by_id[str(mapping_without.id)]["hasCodeOwner"] is False
 
     def test_basic_get_with_no_integrationId_and_projectId(self) -> None:
         self.create_code_mapping(
@@ -230,6 +261,7 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.status_code == 201, response.content
         assert response.data == {
             "automaticallyGenerated": False,
+            "hasCodeOwner": False,
             "id": str(response.data["id"]),
             "projectId": str(self.project1.id),
             "projectSlug": self.project1.slug,
@@ -357,6 +389,41 @@ class OrganizationCodeMappingsTest(APITestCase):
         assert response.data == {
             "stackRoot": ["Path may not contain spaces or quotations"],
         }
+
+    def test_parent_directory_in_stack_root(self) -> None:
+        response = self.make_post({"stackRoot": "../../"})
+        assert response.status_code == 201
+
+    def test_unsafe_source_root(self) -> None:
+        for source_root in (
+            "../config",
+            "src/../../config",
+            "..\\config",
+            "%2e%2e/config",
+            "%25252e%25252e/config",
+            "C:/config",
+            "C:/../config",
+            "C:\\..\\config",
+            "/C:/config",
+            "src/%00/config",
+        ):
+            response = self.make_post({"sourceRoot": source_root})
+            assert response.status_code == 400
+            assert response.data == {"sourceRoot": [INVALID_SOURCE_ROOT_ERROR_MESSAGE]}
+
+    def test_safely_normalizable_source_root(self) -> None:
+        response = self.make_post({"sourceRoot": "src/../app"})
+        assert response.status_code == 201
+
+    def test_null_byte_in_path_root(self) -> None:
+        response = self.make_post({"stackRoot": "src/\x00/file.py"})
+        assert response.status_code == 400
+        assert response.data == {"stackRoot": ["Null characters are not allowed."]}
+
+    def test_null_byte_in_source_root_uses_builtin_validation(self) -> None:
+        response = self.make_post({"sourceRoot": "src/\x00/file.py"})
+        assert response.status_code == 400
+        assert response.data == {"sourceRoot": ["Null characters are not allowed."]}
 
     def test_quote_in_branch(self) -> None:
         response = self.make_post({"defaultBranch": "f'f"})

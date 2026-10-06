@@ -1,23 +1,45 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {PathMapping} from 'sentry/components/connectRepository/pathMapping';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
-const defaultProps = {
-  stackRoot: '',
-  sourceRoot: '',
-  branch: '',
-  editing: false,
-  isNew: false,
-  onChange: jest.fn(),
-  onDelete: jest.fn(),
-  onExpandToggle: jest.fn(),
-};
+import {PathMapping} from 'sentry/components/connectRepository/pathMapping';
+import type {PathMappingValue} from 'sentry/components/connectRepository/type';
+
+function renderMapping({
+  value = {stackRoot: '', sourceRoot: '', branch: ''},
+  editing = false,
+  isNew = false,
+}: {
+  editing?: boolean;
+  isNew?: boolean;
+  value?: PathMappingValue;
+} = {}) {
+  function Wrapper() {
+    const form = useScrapsForm({
+      ...defaultFormOptions,
+      defaultValues: {repository: null as string | null, pathMappings: [value]},
+      onSubmit: () => {},
+    });
+    return (
+      <form.AppForm form={form}>
+        <PathMapping
+          editing={editing}
+          fields="pathMappings[0]"
+          form={form}
+          isNew={isNew}
+          value={value}
+          onDelete={jest.fn()}
+          onExpandToggle={jest.fn()}
+        />
+      </form.AppForm>
+    );
+  }
+  return render(<Wrapper />);
+}
 
 describe('PathMapping', () => {
   it('renders collapsed summary with paths and branch', () => {
-    render(
-      <PathMapping {...defaultProps} stackRoot="src/" sourceRoot="app/" branch="main" />
-    );
+    renderMapping({value: {stackRoot: 'src/', sourceRoot: 'app/', branch: 'main'}});
 
     expect(screen.getByText('src/')).toBeInTheDocument();
     expect(screen.getByText('app/')).toBeInTheDocument();
@@ -28,37 +50,27 @@ describe('PathMapping', () => {
   });
 
   it('shows empty placeholder when paths are blank', () => {
-    render(<PathMapping {...defaultProps} branch="main" />);
+    renderMapping({value: {stackRoot: '', sourceRoot: '', branch: 'main'}});
 
     expect(screen.getAllByText('empty')).toHaveLength(2);
   });
 
   it('hides the summary row for a new (never-saved) mapping', () => {
-    render(
-      <PathMapping
-        {...defaultProps}
-        editing
-        isNew
-        stackRoot="src/"
-        sourceRoot="app/"
-        branch="main"
-      />
-    );
+    renderMapping({
+      editing: true,
+      isNew: true,
+      value: {stackRoot: 'src/', sourceRoot: 'app/', branch: 'main'},
+    });
 
     expect(screen.queryByRole('button', {name: /expand/i})).not.toBeInTheDocument();
     expect(screen.getByRole('textbox', {name: /branch/i})).toBeInTheDocument();
   });
 
   it('renders the edit form when expanded', () => {
-    render(
-      <PathMapping
-        {...defaultProps}
-        editing
-        stackRoot="src/"
-        sourceRoot="app/"
-        branch="main"
-      />
-    );
+    renderMapping({
+      editing: true,
+      value: {stackRoot: 'src/', sourceRoot: 'app/', branch: 'main'},
+    });
 
     expect(screen.getByRole('textbox', {name: /branch/i})).toBeInTheDocument();
     expect(
@@ -68,7 +80,7 @@ describe('PathMapping', () => {
   });
 
   it('shows placeholders on the prefix inputs', () => {
-    render(<PathMapping {...defaultProps} editing isNew />);
+    renderMapping({editing: true, isNew: true});
 
     expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveAttribute(
       'placeholder',
@@ -80,8 +92,8 @@ describe('PathMapping', () => {
     );
   });
 
-  it('always shows the two-column preview headings, even when both prefixes are empty', () => {
-    render(<PathMapping {...defaultProps} editing isNew />);
+  it('renders preview using placeholder example and updates on input', async () => {
+    renderMapping({editing: true, isNew: true});
 
     expect(screen.getByText('Example preview')).toBeInTheDocument();
     expect(screen.getByText('In your stack trace')).toBeInTheDocument();

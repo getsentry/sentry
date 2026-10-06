@@ -596,8 +596,8 @@ export type FilesByRepository = Record<
 >;
 
 interface BaseRepositoryProjectPathConfig {
-  id: string;
   hasCodeOwner: boolean;
+  id: string;
   projectId: string;
   projectSlug: string;
   repoId: string;

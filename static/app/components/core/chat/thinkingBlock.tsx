@@ -4,7 +4,7 @@ import {Global} from '@emotion/react';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {streamingAnimationStyles, useTextDecodeAnimation} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {IconSeer} from 'sentry/icons';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -27,7 +27,7 @@ function useElapsedTime(startTime: Date, endTime: Date | undefined): number {
     return () => clearInterval(id);
   }, [endTime]);
 
-  return (endTime ?? now).getTime() - startTime.getTime();
+  return Math.max(0, (endTime ?? now).getTime() - startTime.getTime());
 }
 
 /**
