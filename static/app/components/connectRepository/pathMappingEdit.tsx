@@ -22,10 +22,12 @@ export const PathMappingEdit = withFieldGroup({
   defaultValues: {stackRoot: '', sourceRoot: '', branch: ''},
   props: {} as {
     defaultBranch?: string;
+    hasCodeOwner?: boolean;
+    projectSlug?: string;
     providerKey?: string;
-    warning?: PathMappingWarning | null;
+    warning?: PathMappingWarning;
   },
-  render: ({group, defaultBranch, providerKey, warning}) => {
+  render: ({group, defaultBranch, hasCodeOwner, projectSlug, providerKey, warning}) => {
     const branchFallback = defaultBranch ?? DEFAULT_BRANCH;
 
     return (
@@ -73,6 +75,7 @@ export const PathMappingEdit = withFieldGroup({
                     value={field.state.value}
                     onChange={field.handleChange}
                     placeholder={STACK_ROOT_PLACEHOLDER}
+                    disabled={hasCodeOwner}
                   />
                 </field.Layout.Stack>
               )}
@@ -110,6 +113,7 @@ export const PathMappingEdit = withFieldGroup({
                     value={field.state.value}
                     onChange={field.handleChange}
                     placeholder={SOURCE_ROOT_PLACEHOLDER}
+                    disabled={hasCodeOwner}
                   />
                 </field.Layout.Stack>
               )}
@@ -131,7 +135,7 @@ export const PathMappingEdit = withFieldGroup({
                 />
               )}
             </group.Subscribe>
-            <PathMappingWarningAlert warning={warning} />
+            <PathMappingWarningAlert warning={warning} projectSlug={projectSlug} />
           </Stack>
         </Stack>
       </Container>

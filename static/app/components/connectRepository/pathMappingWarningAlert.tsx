@@ -1,13 +1,16 @@
 import {Fragment} from 'react';
+import {Link} from 'react-router-dom';
 
 import {Alert} from '@sentry/scraps/alert';
 
 import {t, tct} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {PathMappingWarning} from './warnings';
 
 interface PathMappingWarningAlertProps {
-  warning: PathMappingWarning | null | undefined;
+  projectSlug?: string;
+  warning?: PathMappingWarning;
 }
 
 function displayRoot(root: string, emptyLabel: string) {
@@ -21,7 +24,24 @@ function displayRoot(root: string, emptyLabel: string) {
   );
 }
 
-export function PathMappingWarningAlert({warning}: PathMappingWarningAlertProps) {
+export function PathMappingWarningAlert({
+  warning,
+  projectSlug,
+}: PathMappingWarningAlertProps) {
+  const organization = useOrganization();
+
+  if (warning?.type === 'codeOwner') {
+    const ownershipUrl = `/settings/${organization.slug}/projects/${projectSlug}/ownership/`;
+    return (
+      <Alert variant="warning" showIcon>
+        {tct(
+          'This mapping is linked to a [link:Code Owners] file. Remove the Code Owners connection before editing these paths or deleting this mapping.',
+          {link: <Link to={ownershipUrl} />}
+        )}
+      </Alert>
+    );
+  }
+
   if (warning?.type === 'catchAll') {
     return (
       <Alert variant="info" showIcon>

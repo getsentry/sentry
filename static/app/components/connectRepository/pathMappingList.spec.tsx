@@ -4,7 +4,7 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
 import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
 import type {PathMappingValue} from 'sentry/components/connectRepository/type';
-import type {ExistingMapping} from 'sentry/components/connectRepository/warnings';
+import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 
 const MAPPINGS: PathMappingValue[] = [
   {stackRoot: 'app/', sourceRoot: 'static/app/', branch: 'main'},
@@ -23,7 +23,7 @@ function renderList({
   existingMappings,
 }: {
   defaultBranch?: string;
-  existingMappings?: ExistingMapping[];
+  existingMappings?: RepositoryProjectPathConfig[];
   initialPathMappings?: PathMappingValue[];
   pathMappings?: PathMappingValue[];
   providerKey?: string;
@@ -293,7 +293,11 @@ describe('PathMappingList', () => {
       renderList({
         pathMappings: [{stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'}],
         existingMappings: [
-          {repoName: 'getsentry/relay', stackRoot: 'src/', sourceRoot: 'src/app/'},
+          {
+            repoName: 'getsentry/relay',
+            stackRoot: 'src/',
+            sourceRoot: 'src/app/',
+          } as RepositoryProjectPathConfig,
         ],
       });
 
@@ -318,6 +322,48 @@ describe('PathMappingList', () => {
         'aria-disabled',
         'true'
       );
+    });
+
+    it('shows the exact-duplicate warning on a Code Owners row that duplicates another mapping', async () => {
+      renderList({
+        pathMappings: [
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main', hasCodeOwner: true},
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+        ],
+      });
+
+      // Exact duplicate takes priority: warning icon visible on the Code Owners row.
+      expect(screen.getAllByRole('img', {name: 'Warning'})).toHaveLength(2);
+
+      const [expandCodeOwner] = screen.getAllByRole('button', {
+        name: 'Expand path mapping',
+      });
+      await userEvent.click(expandCodeOwner!);
+
+      expect(
+        screen.getByText(
+          /Remove one since only one of them is required for path matching/
+        )
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/Code Owners/)).not.toBeInTheDocument();
+    });
+
+    it('shows the Code Owners alert on a Code Owners row with no duplicate', async () => {
+      renderList({
+        pathMappings: [
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main', hasCodeOwner: true},
+        ],
+      });
+
+      // No duplicate — no warning icon on the collapsed row.
+      expect(screen.queryByRole('img', {name: 'Warning'})).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
+
+      expect(screen.getByRole('link', {name: 'Code Owners'})).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Only one can be used for matching/)
+      ).not.toBeInTheDocument();
     });
   });
 

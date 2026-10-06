@@ -16,8 +16,9 @@ interface PathMappingProps {
   /** Current field values — used by the collapsed summary row. */
   value: PathMappingValue;
   defaultBranch?: string;
+  projectSlug?: string;
   providerKey?: string;
-  warning?: PathMappingWarning | null;
+  warning?: PathMappingWarning;
 }
 
 export function PathMapping({
@@ -29,6 +30,7 @@ export function PathMapping({
   onDelete,
   onExpandToggle,
   defaultBranch,
+  projectSlug,
   providerKey,
   warning,
 }: PathMappingProps) {
@@ -53,6 +55,8 @@ export function PathMapping({
           fields={fields}
           providerKey={providerKey}
           defaultBranch={defaultBranch}
+          projectSlug={projectSlug}
+          hasCodeOwner={value.hasCodeOwner}
           warning={warning}
         />
       )}

@@ -1,8 +1,17 @@
 import {useMemo} from 'react';
-import {useInfiniteQuery, useQueries, useQuery} from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import type {SelectValue} from '@sentry/scraps/select';
 
+import {
+  normalizeRoot,
+  resolveBranch,
+} from 'sentry/components/connectRepository/normalization';
 import type {PathMappingValue} from 'sentry/components/connectRepository/type';
 import type {
   Integration,
@@ -21,7 +30,9 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export type ProjectRepoListItem = {
+  externalId: string | null;
   id: string;
+  integrationId: string | null;
   mappingCount: number;
   projectId: string;
   providerKey: string | null;
@@ -49,7 +60,7 @@ export function projectRepoInfiniteOptions({
   );
 }
 
-type RepoSelectOption = SelectValue<string> & {
+export type RepoSelectOption = SelectValue<string> & {
   integrationId: string;
   repositoryId: string;
   defaultBranch?: string | null;
@@ -74,14 +85,82 @@ function scmIntegrationsOptions(orgSlug: string) {
   );
 }
 
-function integrationReposOptions(orgSlug: string, integrationId: string) {
+function integrationReposOptions(
+  orgSlug: string,
+  integrationId: string,
+  search?: string
+) {
   return apiOptions.as<{repos: IntegrationRepository[]}>()(
     '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/',
     {
       path: {organizationIdOrSlug: orgSlug, integrationId},
+      query: search ? {search} : undefined,
       staleTime: REPOS_STALE_TIME_MS,
     }
   );
+}
+
+/**
+ * Resolves the default branch for a repository being edited.
+ *
+ * Fast path: when seeded mappings already carry a defaultBranch, return it
+ * immediately with no network calls.
+ *
+ * Slow path: when the repo has no mappings yet (or all have null branches),
+ * fetch the integration's repos filtered by repoName (a single Search API
+ * request on GitHub instead of paginating through the full installation list),
+ * then match by externalId to be collision-safe. retry: false so a 500 fails
+ * fast and the form still renders (falls back to "main").
+ */
+export function useEditRepoInfo({
+  orgSlug,
+  integrationId,
+  externalId,
+  repoName,
+  defaultBranchFromMappings,
+}: {
+  integrationId: string | null;
+  orgSlug: string;
+  // undefined = mappings not yet loaded; null = loaded but no branch found.
+  defaultBranchFromMappings?: string | null;
+  externalId?: string | null;
+  repoName?: string;
+}): {
+  defaultBranch: string | null;
+  isPending: boolean;
+} {
+  const mappingsLoaded = defaultBranchFromMappings !== undefined;
+  const needsBranchLookup =
+    mappingsLoaded &&
+    !defaultBranchFromMappings &&
+    Boolean(integrationId) &&
+    Boolean(externalId);
+
+  const integrationReposQuery = useQuery({
+    ...integrationReposOptions(orgSlug, integrationId ?? '', repoName),
+    enabled: needsBranchLookup,
+    retry: false,
+  });
+
+  const defaultBranch = useMemo(() => {
+    if (defaultBranchFromMappings) {
+      return defaultBranchFromMappings;
+    }
+    if (!externalId || !integrationReposQuery.data) {
+      return null;
+    }
+    return (
+      integrationReposQuery.data.repos.find(r => r.externalId === externalId)
+        ?.defaultBranch ?? null
+    );
+  }, [defaultBranchFromMappings, externalId, integrationReposQuery.data]);
+
+  const isPending =
+    needsBranchLookup &&
+    !integrationReposQuery.isError &&
+    integrationReposQuery.isPending;
+
+  return {defaultBranch, isPending};
 }
 
 // Builds a RepoSelectOption from an integration repo and its matching Sentry
@@ -189,6 +268,54 @@ export function projectCodeMappingsOptions({
   );
 }
 
+// All code mappings for an org — the paginated query used by the Repositories
+// page to build project chips. Extracted here so save/edit can invalidate the
+// same key and keep chips up to date without a full page reload.
+export function orgCodeMappingsInfiniteOptions(orgSlug: string) {
+  return apiOptions.asInfinite<RepositoryProjectPathConfig[]>()(
+    '/organizations/$organizationIdOrSlug/code-mappings/',
+    {
+      path: {organizationIdOrSlug: orgSlug},
+      query: {per_page: 100},
+      staleTime: 10_000,
+    }
+  );
+}
+
+export function orgProjectsOptions(orgSlug: string) {
+  return apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
+    path: {organizationIdOrSlug: orgSlug},
+    query: {all_projects: '1', collapse: ['latestDeploys', 'unusedFeatures']},
+    staleTime: 60_000,
+  });
+}
+
+/**
+ * Returns a function that invalidates all repo-related query caches.
+ * Pass `project` when the project is known (project-locked flows and after
+ * the user picks a project in repo-locked flows) to also refresh the
+ * per-project repo list and code-mappings caches. Always invalidates the
+ * org-level code-mappings cache so project chips on the Repositories page
+ * refresh after a save.
+ */
+export function useInvalidateRepoQueries(orgSlug: string) {
+  const queryClient = useQueryClient();
+  return (project?: {id: string; slug: string}) =>
+    Promise.all([
+      ...(project
+        ? [
+            queryClient.invalidateQueries(
+              projectRepoInfiniteOptions({orgSlug, projectSlug: project.slug})
+            ),
+            queryClient.invalidateQueries(
+              projectCodeMappingsOptions({orgSlug, projectId: project.id})
+            ),
+          ]
+        : []),
+      queryClient.invalidateQueries(orgCodeMappingsInfiniteOptions(orgSlug)),
+    ]);
+}
+
 const DUPLICATE_CODE_MAPPING_MESSAGE = 'Code path config already exists';
 
 function isDuplicateCodeMappingError(error: unknown): boolean {
@@ -231,7 +358,7 @@ export async function saveProjectRepoConnection({
   integrationId: string;
   orgSlug: string;
   pathMappings: PathMappingValue[];
-  project: Project;
+  project: Pick<Project, 'id' | 'slug'>;
   repositoryId: string;
 }) {
   await fetchMutation({
@@ -279,6 +406,130 @@ export async function saveProjectRepoConnection({
       mapping.sourceRoot
     );
     if (!isIdempotentRetry) {
+      throw result.reason;
+    }
+  }
+}
+
+// Form fields coerce a null server branch to "main"; compare normalized values
+// so displaying the default is not treated as an edit.
+function mappingHasChanged(
+  submitted: PathMappingValue,
+  original: RepositoryProjectPathConfig
+): boolean {
+  return (
+    normalizeRoot(submitted.stackRoot) !== normalizeRoot(original.stackRoot) ||
+    normalizeRoot(submitted.sourceRoot) !== normalizeRoot(original.sourceRoot) ||
+    resolveBranch(submitted.branch) !== resolveBranch(original.defaultBranch ?? '')
+  );
+}
+
+export async function editProjectRepoMappings({
+  orgSlug,
+  project,
+  repositoryId,
+  integrationId,
+  seededMappings,
+  submittedMappings,
+}: {
+  integrationId: string;
+  orgSlug: string;
+  project: Pick<Project, 'id' | 'slug'>;
+  repositoryId: string;
+  seededMappings: RepositoryProjectPathConfig[];
+  submittedMappings: PathMappingValue[];
+}): Promise<void> {
+  const submittedIds = new Set(submittedMappings.flatMap(m => (m.id ? [m.id] : [])));
+
+  // Exclude Code Owner–protected mappings: the DB rejects their deletion anyway,
+  // and the UI prevents users from removing them in the first place.
+  const toDelete = seededMappings.filter(m => !submittedIds.has(m.id) && !m.hasCodeOwner);
+  const toUpdate = submittedMappings.filter(m => {
+    if (!m.id) {
+      return false;
+    }
+    const original = seededMappings.find(s => s.id === m.id);
+    return original ? mappingHasChanged(m, original) : false;
+  });
+  const toCreate = submittedMappings.filter(m => !m.id);
+
+  // 1. Deletes first. 404: already deleted on a prior partial save — treat as success.
+  await Promise.all(
+    toDelete.map(async m => {
+      try {
+        await fetchMutation({
+          url: getApiUrl(
+            '/organizations/$organizationIdOrSlug/code-mappings/$configId/',
+            {path: {organizationIdOrSlug: orgSlug, configId: m.id}}
+          ),
+          method: 'DELETE',
+        });
+      } catch (error) {
+        if (error instanceof RequestError && error.status === 404) {
+          return;
+        }
+        throw error;
+      }
+    })
+  );
+
+  // 2. Updates
+  await Promise.all(
+    toUpdate.map(m =>
+      fetchMutation({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/$configId/', {
+          path: {organizationIdOrSlug: orgSlug, configId: m.id!},
+        }),
+        method: 'PUT',
+        data: {
+          integrationId,
+          repositoryId,
+          projectId: project.id,
+          stackRoot: m.stackRoot,
+          sourceRoot: m.sourceRoot,
+          defaultBranch: m.branch,
+        },
+      })
+    )
+  );
+
+  // 3. Creates — same duplicate-ignore logic as saveProjectRepoConnection
+  const createResults = await Promise.allSettled(
+    toCreate.map(m =>
+      fetchMutation({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/code-mappings/', {
+          path: {organizationIdOrSlug: orgSlug},
+        }),
+        method: 'POST',
+        data: {
+          integrationId,
+          repositoryId,
+          projectId: project.id,
+          stackRoot: m.stackRoot,
+          sourceRoot: m.sourceRoot,
+          defaultBranch: m.branch,
+        },
+      })
+    )
+  );
+
+  for (const [result, mapping] of createResults.map(
+    (r, i) => [r, toCreate[i]!] as const
+  )) {
+    if (result.status === 'fulfilled') {
+      continue;
+    }
+    if (!isDuplicateCodeMappingError(result.reason)) {
+      throw result.reason;
+    }
+    const isIdempotent = await repoOwnsCodeMapping(
+      orgSlug,
+      project.id,
+      repositoryId,
+      mapping.stackRoot,
+      mapping.sourceRoot
+    );
+    if (!isIdempotent) {
       throw result.reason;
     }
   }

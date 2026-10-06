@@ -7,12 +7,12 @@ import {Text} from '@sentry/scraps/text';
 
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 
 import {DEFAULT_BRANCH, normalizePathMapping} from './normalization';
 import {PathMapping} from './pathMapping';
 import type {PathMappingValue} from './type';
 import {getPathMappingWarnings} from './warnings';
-import type {ExistingMapping} from './warnings';
 
 interface RowMeta {
   id: number;
@@ -58,7 +58,8 @@ export const PathMappingList = withForm({
   },
   props: {} as {
     defaultBranch?: string;
-    existingMappings?: ExistingMapping[];
+    existingMappings?: RepositoryProjectPathConfig[];
+    projectSlug?: string;
     providerKey?: string;
   },
   render: function PathMappingListRender({
@@ -66,6 +67,7 @@ export const PathMappingList = withForm({
     providerKey,
     defaultBranch,
     existingMappings,
+    projectSlug,
   }) {
     const branchFallback = defaultBranch ?? DEFAULT_BRANCH;
     const newRowValue: PathMappingValue = {...EMPTY_MAPPING, branch: branchFallback};
@@ -153,6 +155,7 @@ export const PathMappingList = withForm({
                               value={value}
                               warning={warnings[i]}
                               providerKey={providerKey}
+                              projectSlug={projectSlug}
                               defaultBranch={defaultBranch}
                               onDelete={() => handleDelete(i)}
                               onExpandToggle={() => toggle(meta.id)}
