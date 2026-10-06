@@ -164,6 +164,8 @@ describe('ConversationViewContent', () => {
     renderView({activeTab: 'transcript'});
 
     const firstAnswer = await screen.findByText('First answer');
+    expect(screen.getByRole('button', {name: 'Load more'})).toBeInTheDocument();
+
     const scrollContainer = Array.from(
       document.querySelectorAll<HTMLElement>('[data-scrollable]')
     ).find(element => element.contains(firstAnswer));

@@ -10,6 +10,7 @@ import {
 import * as Sentry from '@sentry/react';
 import {parseAsStringLiteral, useQueryStates} from 'nuqs';
 
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -61,8 +62,15 @@ export function ConversationViewContent({
 }: ConversationViewContentProps) {
   const isTimeline = activeTab === 'timeline';
 
-  const {nodes, nodeTraceMap, isLoading, isFetchingNextPage, error, loadNextPage} =
-    useConversation(conversation);
+  const {
+    nodes,
+    nodeTraceMap,
+    hasNextPage,
+    isLoading,
+    isFetchingNextPage,
+    error,
+    loadNextPage,
+  } = useConversation(conversation);
 
   const [detailState, setDetailState] = useQueryStates(
     {
@@ -146,12 +154,12 @@ export function ConversationViewContent({
   }, [onDeselectSpan, setDetailState]);
 
   useEffect(() => {
-    if (!isLoading && !error && nodes.length === 0) {
+    if (!isLoading && !error && !hasNextPage && nodes.length === 0) {
       Sentry.captureMessage('User landed on empty conversation detail page', {
         level: 'warning',
       });
     }
-  }, [isLoading, error, nodes.length]);
+  }, [isLoading, error, hasNextPage, nodes.length]);
 
   const isTranscript = !isTimeline;
 
@@ -159,7 +167,7 @@ export function ConversationViewContent({
     return <EmptyMessage>{t('Failed to load conversation')}</EmptyMessage>;
   }
 
-  if (!isLoading && nodes.length === 0) {
+  if (!isLoading && !hasNextPage && nodes.length === 0) {
     return <EmptyMessage>{t('No AI spans found in this conversation')}</EmptyMessage>;
   }
 
@@ -188,15 +196,17 @@ export function ConversationViewContent({
                 compressGaps
               />
             )}
-            {isFetchingNextPage && (
-              <Flex
-                align="center"
-                justify="center"
-                padding="md"
-                role="status"
-                aria-label={t('Loading more spans')}
-              >
-                <LoadingIndicator size={24} />
+            {(hasNextPage || isFetchingNextPage) && (
+              <Flex align="center" justify="center" padding="md">
+                {isFetchingNextPage ? (
+                  <Flex role="status" aria-label={t('Loading more spans')}>
+                    <LoadingIndicator size={24} />
+                  </Flex>
+                ) : (
+                  <Button size="xs" onClick={loadNextPage}>
+                    {t('Load more')}
+                  </Button>
+                )}
               </Flex>
             )}
           </Fragment>
