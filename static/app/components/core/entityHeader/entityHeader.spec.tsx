@@ -223,10 +223,10 @@ describe('EntityHeader', () => {
     });
 
     it('gives a linked value the same metrics as an unlinked one', () => {
-      // `Link` sets text-box-trim but no font size. If it wrapped the value
-      // instead of carrying its styles, it would become a flex item trimmed to
-      // the font it inherits rather than the stat's, and the baseline would jump
-      // the moment a count resolved and turned into a link.
+      // The two types sit side by side in one row, so they have to agree on
+      // their box. `Link` emits text-box-trim but no font size, so an anchor
+      // wrapping the value would be trimmed to the font it inherits from the
+      // row rather than the stat's own.
       const {rerender} = render(
         <EntityHeader
           title={{label: 'Session'}}

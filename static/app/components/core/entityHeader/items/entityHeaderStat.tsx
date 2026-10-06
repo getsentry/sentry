@@ -83,10 +83,15 @@ export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boo
   let valueContent: React.ReactNode;
   if (props.type === 'link') {
     const {to, onClick} = props;
-    // The link takes the value's text styles rather than wrapping an element
-    // that has them, so the anchor is the only box in play. It also keeps the
-    // value `content.primary`: a class beats the global `a { color }` rule on
-    // specificity.
+    // The anchor carries the value's text styles rather than wrapping an
+    // element that has them, the same way `BreadcrumbItemLink` styles its link.
+    //
+    // `Link` emits `text-box-trim` but no font size, so wrapping would leave the
+    // anchor trimmed to the font it inherits from the row while its content sat
+    // at the stat's own size — a link stat and a text stat beside it would not
+    // share a box. Styling the anchor directly also keeps the value
+    // `content.primary`, since a class beats the global `a { color }` rule,
+    // where wrapping only got there via the nested element's own colour.
     valueContent = (
       <Text {...valueStyles}>
         {styleProps => {
