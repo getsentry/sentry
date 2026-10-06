@@ -69,8 +69,8 @@ MAX_WARMTH_PROBES_PER_PROJECT = 20
 
 PROJECT_PROCESSING_DEADLINE_SECS = 300
 
-# `MAX_WARMTH_PROBES_PER_PROJECT` does not bound how long the probes take, and a run cut off by
-# the processing deadline reports nothing. No probe starts past this, leaving
+# `MAX_WARMTH_PROBES_PER_PROJECT` bounds probe count, not time, and a run cut off
+# by the processing deadline reports nothing. No probe starts past this, leaving
 # room for one in flight (up to the Snuba timeout) and the report.
 PROBE_TIME_LIMIT_SECS = PROJECT_PROCESSING_DEADLINE_SECS - 60
 

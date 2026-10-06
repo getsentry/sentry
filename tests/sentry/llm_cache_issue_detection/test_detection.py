@@ -220,7 +220,7 @@ def test_warmth_of_a_call_site_that_never_called() -> None:
         pytest.param(0, 0.0, id="no-sample-count-claims-nothing"),
     ],
 )
-def test_warmth_weights_each_cold_start_by_the_sampling_rate(
+def test_warmth_weights_each_cold_start_by_calls_per_stored_span(
     sample_count: int, cacheable_share: float
 ) -> None:
     warmth = CallSiteWarmth.from_buckets(
@@ -271,8 +271,7 @@ NOT_CACHING = Classification(CacheOutcome.NOT_CACHING, OutcomeReason.CACHE_ACTIV
             Classification(CacheOutcome.INELIGIBLE, OutcomeReason.WARM_ONLY_AT_LONG_TTL),
             id="warm-only-at-the-long-ttl",
         ),
-        # Unknown gaps between calls are treated as too wide to cache. Each gap
-        # still says why it is unknown.
+        # Unmeasured spacing counts as too wide to cache, under a reason per ProbeGap.
         pytest.param(
             ProbeGap.BUDGET_EXHAUSTED,
             Classification(CacheOutcome.INELIGIBLE, OutcomeReason.BUDGET_EXHAUSTED),

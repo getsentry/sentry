@@ -52,8 +52,8 @@ DEFAULT_MIN_CACHEABLE_PREFIX_TOKENS = 1_024
 # Where token ratios settle enough to act on; a question of evidence, not caching.
 MIN_CALLS_FOR_CONFIDENCE = 200
 
-# `MIN_CALLS_FOR_CONFIDENCE` counts extrapolated calls, but ratios come from the
-# stored spans. Lower, because bimodal rates take few observations to tell apart.
+# Ratios come from stored spans, which `MIN_CALLS_FOR_CONFIDENCE` does not count.
+# Lower, because bimodal rates separate on few observations.
 MIN_SAMPLED_CALLS = 50
 
 # Hit rates count calls no warm cache could have served. Requiring most calls to
@@ -66,7 +66,8 @@ NOT_CACHING_MAX_HIT_RATE = 0.05
 THRASH_MAX_HIT_RATE = 0.30
 
 # With the hit-rate ceiling, this puts the write:read ratio above 1:1, so the
-# ratio needs no threshold of its own. Whether that costs money is pricing's call.
+# ratio needs no threshold of its own. Whether that costs money depends on the
+# write premium, which only pricing knows.
 THRASH_MIN_CREATION_INPUT_FRACTION = 0.3
 
 CONTRAST_ANCHOR_MIN_HIT_RATE = 0.50
@@ -114,8 +115,7 @@ FLAGGED_OUTCOMES = frozenset({CacheOutcome.NOT_CACHING, CacheOutcome.THRASH})
 
 
 class OutcomeReason(StrEnum):
-    """The rule that settled a call site's outcome. INELIGIBLE and UNKNOWN each
-    have several, so the outcome alone does not say."""
+    """The rule that settled a call site's outcome; most outcomes have several."""
 
     # Ineligible on the token sums.
     SMALL_PROMPTS = "small_prompts"
