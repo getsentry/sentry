@@ -1444,13 +1444,8 @@ export function SearchInput(props: InputProps) {
 
   return (
     <Input
+      size="sm"
       {...props}
-      style={{
-        fontSize: theme.font.size.md,
-        padding: `${theme.space.xs} ${theme.space.md}`,
-        height: '100%',
-        ...props.style,
-      }}
       css={css`
         &:focus-visible {
           box-shadow: inset 0 0 0 1px ${theme.tokens.focus.default};
