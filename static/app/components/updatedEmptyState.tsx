@@ -42,13 +42,9 @@ export function SetupTitle({project}: {project: Project}) {
     <BodyTitle>
       {tct('Set up the Sentry SDK for [projectBadge]', {
         projectBadge: (
-          <Container
-            display="inline-block"
-            maxWidth="100%"
-            style={{verticalAlign: 'text-top'}}
-          >
+          <Flex as="span" display="inline-flex" maxWidth="100%">
             <ProjectBadge project={project} avatarSize={16} />
-          </Container>
+          </Flex>
         ),
       })}
     </BodyTitle>

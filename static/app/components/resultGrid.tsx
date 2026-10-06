@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import {keyframes} from '@emotion/react';
+import {css, keyframes, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -15,7 +15,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Input} from '@sentry/scraps/input';
+import {Input, type InputProps} from '@sentry/scraps/input';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -709,6 +709,7 @@ export function ResultGrid({
   const api = apiProp ?? defaultApi;
   const location = useLocation();
   const navigate = useNavigate();
+  const theme = useTheme();
 
   const needsRegion = isRegional || isCellScoped;
 
@@ -1291,56 +1292,70 @@ export function ResultGrid({
 
   return (
     <Container data-test-id="result-grid" containerType="inline-size">
-      <SortSearchForm onSubmit={onSearch}>
-        {needsRegion && (
-          <SelectorItem>
-            <CompactSelect
-              trigger={triggerProps => (
-                <OverlayTrigger.Button {...triggerProps} prefix="Region" size="sm" />
-              )}
-              value={allRegions ? ALL_REGIONS : cell ? cell.locality_url : undefined}
-              options={regionOptions}
-              onChange={opt => onChangeCell(opt.value)}
-            />
-          </SelectorItem>
+      <Flex
+        wrap="wrap"
+        gap="lg"
+        marginBottom={hasSelectors || hasSearch || statusNote ? 'md' : '0'}
+        css={css`
+          /* Keep adjacent dropdowns above each other. */
+          button + div {
+            z-index: ${theme.zIndex.dropdown + 2};
+          }
+        `}
+      >
+        {formProps => (
+          <form {...formProps} onSubmit={onSearch}>
+            {needsRegion && (
+              <SelectorItem>
+                <CompactSelect
+                  trigger={triggerProps => (
+                    <OverlayTrigger.Button {...triggerProps} prefix="Region" size="sm" />
+                  )}
+                  value={allRegions ? ALL_REGIONS : cell ? cell.locality_url : undefined}
+                  options={regionOptions}
+                  onChange={opt => onChangeCell(opt.value)}
+                />
+              </SelectorItem>
+            )}
+            {sortOptions && sortOptions.length > 0 && (
+              <SelectorItem>
+                <SortBy options={sortOptions} value={request.sortBy} path={path} />
+              </SelectorItem>
+            )}
+            {Object.keys(filters).map(filterKey => (
+              <SelectorItem key={filterKey}>
+                <Filter
+                  queryKey={filterKey}
+                  value={extractQuery(request.filters[filterKey])}
+                  path={path}
+                  {...filters[filterKey]!}
+                />
+              </SelectorItem>
+            ))}
+            {hasSelectors && !hasSearch && <Container flex="999 1 auto" aria-hidden />}
+            {hasSearch && (
+              <Flex align="center" gap="xs" flex="999 1 auto" minWidth="240px">
+                <SearchInput
+                  type="text"
+                  placeholder="Search"
+                  name="query"
+                  autoComplete="off"
+                  value={queryInput}
+                  onChange={evt => setQueryInput(evt.target.value)}
+                />
+                <Button
+                  type="submit"
+                  icon={<IconSearch />}
+                  variant="primary"
+                  size="sm"
+                  aria-label="Search"
+                />
+              </Flex>
+            )}
+            {statusNote}
+          </form>
         )}
-        {sortOptions && sortOptions.length > 0 && (
-          <SelectorItem>
-            <SortBy options={sortOptions} value={request.sortBy} path={path} />
-          </SelectorItem>
-        )}
-        {Object.keys(filters).map(filterKey => (
-          <SelectorItem key={filterKey}>
-            <Filter
-              queryKey={filterKey}
-              value={extractQuery(request.filters[filterKey])}
-              path={path}
-              {...filters[filterKey]!}
-            />
-          </SelectorItem>
-        ))}
-        {hasSelectors && !hasSearch && <Container flex="999 1 auto" aria-hidden />}
-        {hasSearch && (
-          <Flex align="center" gap="xs" flex="999 1 auto" minWidth="240px">
-            <SearchInput
-              type="text"
-              placeholder="Search"
-              name="query"
-              autoComplete="off"
-              value={queryInput}
-              onChange={evt => setQueryInput(evt.target.value)}
-            />
-            <Button
-              type="submit"
-              icon={<IconSearch />}
-              variant="primary"
-              size="sm"
-              aria-label="Search"
-            />
-          </Flex>
-        )}
-        {statusNote}
-      </SortSearchForm>
+      </Flex>
       <RegionHint
         allRegions={allRegions}
         cell={cell}
@@ -1370,21 +1385,6 @@ export function ResultGrid({
     </Container>
   );
 }
-
-const SortSearchForm = styled('form')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${p => p.theme.space.lg};
-
-  &:not(:empty) {
-    margin-bottom: ${p => p.theme.space.md};
-  }
-
-  /* Gross hack to fix z-index of dropdowns on top of each other */
-  button + div {
-    z-index: ${p => p.theme.zIndex.dropdown + 2};
-  }
-`;
 
 const indeterminateSlide = keyframes`
   0% {
@@ -1432,12 +1432,23 @@ const SelectorItem = styled('div')`
   }
 `;
 
-export const SearchInput = styled(Input)`
-  font-size: ${p => p.theme.font.size.md};
-  padding: ${p => p.theme.space.xs} ${p => p.theme.space.md};
-  height: 100%;
+export function SearchInput(props: InputProps) {
+  const theme = useTheme();
 
-  &:focus-visible {
-    box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
-  }
-`;
+  return (
+    <Input
+      {...props}
+      style={{
+        fontSize: theme.font.size.md,
+        padding: `${theme.space.xs} ${theme.space.md}`,
+        height: '100%',
+        ...props.style,
+      }}
+      css={css`
+        &:focus-visible {
+          box-shadow: inset 0 0 0 1px ${theme.tokens.focus.default};
+        }
+      `}
+    />
+  );
+}
