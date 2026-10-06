@@ -174,7 +174,9 @@ def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> As
 
 
 @trace
-def assemble_file_blobs(task, org_or_project, name, checksum, chunks) -> IO[bytes] | None:
+def assemble_file_blobs(
+    task, org_or_project, name, checksum, chunks
+) -> tuple[IO[bytes], int] | None:
     """Assembles uploaded chunks into a temporary file without creating a ``File``."""
     from sentry.models.files.fileblob import FileBlob
 
@@ -194,7 +196,7 @@ def assemble_file_blobs(task, org_or_project, name, checksum, chunks) -> IO[byte
     try:
         for blob in file_blobs:
             with blob.getfile() as blobfile:
-                for chunk in blobfile.chunks():
+                for chunk in blobfile.chunks(chunk_size=1024 * 1024):
                     assembled_checksum.update(chunk)
                     temp_file.write(chunk)
     except Exception:
@@ -212,9 +214,10 @@ def assemble_file_blobs(task, org_or_project, name, checksum, chunks) -> IO[byte
         )
         return None
 
+    file_size = temp_file.tell()
     temp_file.flush()
     temp_file.seek(0)
-    return temp_file
+    return temp_file, file_size
 
 
 def _get_cache_key(task, scope, checksum):
@@ -308,6 +311,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     sentry_sdk.set_attribute("project", project_id)
 
     file: File | None = None
+    assembled_file_size: int | None = None
     delete_file = False
 
     try:
@@ -317,9 +321,10 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
         if features.has(
             "organizations:objectstore-debugfiles-exclusive-write", project.organization
         ):
-            temp_file = assemble_file_blobs(AssembleTask.DIF, project, name, checksum, chunks)
-            if temp_file is None:
+            assembled_file = assemble_file_blobs(AssembleTask.DIF, project, name, checksum, chunks)
+            if assembled_file is None:
                 return
+            temp_file, assembled_file_size = assembled_file
         else:
             # Assemble the chunks into a legacy File and temporary file.
             rv = assemble_file(
@@ -341,8 +346,15 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
             try:
                 meta = detect_single_dif_from_path(temp_file.name, name=name, debug_id=debug_id)
                 if file is None:
+                    assert assembled_file_size is not None
                     temp_file.seek(0)
-                    dif, created = create_dif_from_fileobj(project, meta, temp_file)
+                    dif, created = create_dif_from_fileobj(
+                        project,
+                        meta,
+                        temp_file,
+                        checksum=checksum,
+                        file_size=assembled_file_size,
+                    )
                 else:
                     dif, created = create_dif_from_file(project, meta, file)
             except BadDif as e:
