@@ -85,12 +85,12 @@ export function Banner({
           <Heading
             as="h1"
             align="center"
-            size={{zero: '2xl', xl: '4xl'}}
+            size={{zero: '2xl', xl: '3xl'}}
             variant="inherit"
           >
             {title}
           </Heading>
-          <Text as="div" align="center" size={{zero: 'md', xl: 'xl'}} variant="inherit">
+          <Text as="div" align="center" size={{zero: 'md', xl: 'lg'}} variant="inherit">
             {subtitle}
           </Text>
           <Grid flow="column" align="center" gap="md" width="fit-content" paddingTop="xl">
