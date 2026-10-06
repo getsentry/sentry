@@ -384,7 +384,16 @@ export function OnboardingWithoutContext() {
   return (
     <Stack as="main" flexGrow={1} data-test-id="targeted-onboarding">
       <SentryDocumentTitle title={stepObj.title} />
-      <Header columns="repeat(2, 1fr)" as="header">
+      <Grid
+        as="header"
+        columns="repeat(2, 1fr)"
+        padding="md 3xl"
+        position="sticky"
+        minHeight="60px"
+        align="center"
+        top={0}
+        style={{zIndex: 100}}
+      >
         <LogoSvg showWordmark={false} />
         <Flex align="center" justify="end" gap="md">
           <Override
@@ -393,7 +402,7 @@ export function OnboardingWithoutContext() {
           />
           <OnboardingSkipButton stepId={stepObj.id} />
         </Flex>
-      </Header>
+      </Grid>
       <Stack
         containerType="inline-size"
         flexGrow={1}
@@ -458,15 +467,6 @@ function Onboarding() {
     </OnboardingContextProvider>
   );
 }
-
-const Header = styled(Grid)`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space['3xl']};
-  position: sticky;
-  min-height: 60px;
-  align-items: center;
-  top: 0;
-  z-index: 100;
-`;
 
 const LogoSvg = styled(LogoSentry)`
   height: 24px;
