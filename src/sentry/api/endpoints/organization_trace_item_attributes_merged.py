@@ -171,7 +171,9 @@ class OrganizationTraceItemAttributesMergedEndpoint(OrganizationTraceItemAttribu
         )
 
         include_internal = is_active_superuser(request) or is_active_staff(request)
-        include_context = "context" in serialized.get("expand", set())
+        sort = serialized["sort"]
+        expand_context = "context" in serialized.get("expand", set())
+        include_context = expand_context or sort.removeprefix("-") == "description"
         include_custom_context = include_context and features.has(
             "organizations:data-browsing-attribute-context", organization, actor=request.user
         )
@@ -231,8 +233,11 @@ class OrganizationTraceItemAttributesMergedEndpoint(OrganizationTraceItemAttribu
                 )
 
         merged = sort_merged_attributes(
-            merge_attributes_across_datasets(attributes_by_dataset), serialized["sort"]
+            merge_attributes_across_datasets(attributes_by_dataset), sort
         )
+        if not expand_context:
+            for attribute in merged:
+                attribute.pop("context", None)
 
         response = self.paginate(
             request=request,

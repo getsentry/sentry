@@ -278,6 +278,23 @@ class OrganizationTraceItemAttributesMergedEndpointTest(
         names = [attribute["name"] for attribute in response.data]
         assert names == sorted(names, reverse=True)
 
+    def test_sorts_by_description_when_context_is_not_expanded(self) -> None:
+        self._store_span_and_log()
+
+        expanded = self.do_request(
+            query={"attributeType": "string", "sort": "description", "expand": "context"}
+        )
+        response = self.do_request(query={"attributeType": "string", "sort": "description"})
+
+        assert response.status_code == 200, response.content
+        assert [attribute["name"] for attribute in response.data] == [
+            attribute["name"] for attribute in expanded.data
+        ]
+        assert [attribute["name"] for attribute in response.data] != sorted(
+            attribute["name"] for attribute in response.data
+        )
+        assert all("context" not in attribute for attribute in response.data)
+
     def test_returns_400_when_sort_is_invalid(self) -> None:
         response = self.do_request(query={"sort": "unknown"})
 
