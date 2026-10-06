@@ -211,4 +211,179 @@ describe('SimpleTable component', () => {
       screen.queryByRole('columnheader', {name: 'No results'})
     ).not.toBeInTheDocument();
   });
+
+  it('renders children as the table sections when given custom sections', () => {
+    render(
+      <SimpleTable customSections>
+        <SimpleTable.Head>
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>A</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        </SimpleTable.Head>
+        <SimpleTable.Body data-test-id="pinned">
+          <SimpleTable.Row>
+            <SimpleTable.RowCell>Pinned</SimpleTable.RowCell>
+          </SimpleTable.Row>
+        </SimpleTable.Body>
+        <SimpleTable.Body data-test-id="rows">
+          <SimpleTable.Row>
+            <SimpleTable.RowCell>Row</SimpleTable.RowCell>
+          </SimpleTable.Row>
+        </SimpleTable.Body>
+      </SimpleTable>
+    );
+
+    expect(screen.getAllByRole('rowgroup')).toHaveLength(3);
+    expect(
+      within(screen.getByTestId('pinned')).getByRole('cell', {name: 'Pinned'})
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('rows')).getByRole('cell', {name: 'Row'})
+    ).toBeInTheDocument();
+  });
+
+  it('renders resize handles when the variant is results', () => {
+    render(
+      <SimpleTable
+        variant="results"
+        columns={[{key: 'a'}, {key: 'b'}]}
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell columnIndex={0}>A</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnIndex={1}>B</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      />
+    );
+
+    expect(screen.getAllByRole('separator')).toHaveLength(1);
+  });
+
+  it('renders no resize handles when the variant is default', () => {
+    render(
+      <SimpleTable
+        columns={[{key: 'a'}, {key: 'b'}]}
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell columnIndex={0}>A</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnIndex={1}>B</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      />
+    );
+
+    expect(screen.queryByRole('separator')).not.toBeInTheDocument();
+  });
+
+  it('fixes the width of the last column when the variant is results', () => {
+    render(
+      <SimpleTable
+        variant="results"
+        columns={[{key: 'a', width: 200}]}
+        data-test-id="table"
+      />
+    );
+
+    expect(screen.getByTestId('table')).toHaveStyle({'grid-template-columns': '200px'});
+  });
+
+  it('lets the last column grow when a results table opts into a flexible last column', () => {
+    render(
+      <SimpleTable
+        variant="results"
+        columns={[{key: 'a', width: 200}]}
+        data-test-id="table"
+        flexibleLastColumn
+      />
+    );
+
+    expect(screen.getByTestId('table')).toHaveStyle({
+      'grid-template-columns': 'minmax(200px, auto)',
+    });
+  });
+
+  it('lets the last column grow when the variant is default', () => {
+    render(<SimpleTable columns={[{key: 'a', width: 200}]} data-test-id="table" />);
+
+    expect(screen.getByTestId('table')).toHaveStyle({
+      'grid-template-columns': 'minmax(200px, auto)',
+    });
+  });
+
+  it('sorts when a results header cell is clicked', async () => {
+    const handleSortClick = jest.fn();
+    render(
+      <SimpleTable
+        variant="results"
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell handleSortClick={handleSortClick}>
+              A
+            </SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'A'}));
+
+    expect(handleSortClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('applies className and style to the panel when the variant is results', () => {
+    render(
+      <SimpleTable
+        variant="results"
+        className="frame"
+        data-test-id="results-table"
+        style={{maxWidth: '300px'}}
+      >
+        <SimpleTable.Row>
+          <SimpleTable.RowCell>Row</SimpleTable.RowCell>
+        </SimpleTable.Row>
+      </SimpleTable>
+    );
+
+    const table = screen.getByTestId('results-table');
+    const frame = table.closest<HTMLElement>('.frame');
+
+    expect(table.tagName).toBe('TABLE');
+    expect(table).not.toHaveClass('frame');
+    expect(table).not.toHaveStyle({maxWidth: '300px'});
+    expect(frame).toHaveStyle({maxWidth: '300px'});
+  });
+
+  it('styles cells by the variant provider when rendered outside a table root', () => {
+    render(
+      <SimpleTable.VariantProvider variant="results">
+        <table>
+          <tbody>
+            <SimpleTable.Row>
+              <SimpleTable.RowCell>Row</SimpleTable.RowCell>
+            </SimpleTable.Row>
+          </tbody>
+        </table>
+      </SimpleTable.VariantProvider>
+    );
+
+    expect(getEmotionRules(screen.getByRole('cell', {name: 'Row'})).join('')).toContain(
+      'min-height: 42px'
+    );
+  });
+
+  it('styles cells as default when a default table is inside a results variant provider', () => {
+    render(
+      <SimpleTable.VariantProvider variant="results">
+        <SimpleTable>
+          <SimpleTable.Row>
+            <SimpleTable.RowCell>Row</SimpleTable.RowCell>
+          </SimpleTable.Row>
+        </SimpleTable>
+      </SimpleTable.VariantProvider>
+    );
+
+    expect(
+      getEmotionRules(screen.getByRole('cell', {name: 'Row'})).join('')
+    ).not.toContain('min-height: 42px');
+  });
 });

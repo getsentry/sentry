@@ -359,6 +359,60 @@ export default Storybook.story('SimpleTable', story => {
       </Fragment>
     );
   });
+
+  story('Results variant', () => {
+    const columns: TableColumnConfig[] = headers.map(header => ({key: header.key}));
+
+    return (
+      <Fragment>
+        <p>
+          Set <Storybook.JSXProperty name="variant" value="'results'" /> for tables that
+          show query results. They sit in a panel, label columns in small uppercase text,
+          and let columns resize by default: give each{' '}
+          <Storybook.JSXNode name="SimpleTable.HeaderCell" /> a{' '}
+          <Storybook.JSXProperty name="columnIndex" value="number" /> to show its handle.
+        </p>
+        <p>
+          Pass <Storybook.JSXProperty name="customSections" value /> to render{' '}
+          <Storybook.JSXNode name="SimpleTable.Head" /> and{' '}
+          <Storybook.JSXNode name="SimpleTable.Body" /> yourself, such as for a sticky
+          header or more than one body. Rows and cells rendered outside a{' '}
+          <Storybook.JSXNode name="SimpleTable" /> can opt into a variant with{' '}
+          <Storybook.JSXNode name="SimpleTable.VariantProvider" />.
+        </p>
+        <SimpleTable
+          variant="results"
+          columns={columns}
+          header={
+            <SimpleTable.HeaderRow>
+              {headers.map((header, index) => (
+                <SimpleTable.HeaderCell
+                  columnIndex={index}
+                  isFirst={index === 0}
+                  key={header.key}
+                >
+                  {header.label}
+                </SimpleTable.HeaderCell>
+              ))}
+            </SimpleTable.HeaderRow>
+          }
+        >
+          {data.map(row => (
+            <SimpleTable.Row key={row.name}>
+              <SimpleTable.RowCell>{row.name}</SimpleTable.RowCell>
+              <SimpleTable.RowCell>
+                {t('%s monitors', row.monitors.length)}
+              </SimpleTable.RowCell>
+              <SimpleTable.RowCell>{row.action}</SimpleTable.RowCell>
+              <SimpleTable.RowCell>
+                <TimeAgoCell date={row.lastTriggered} />
+              </SimpleTable.RowCell>
+            </SimpleTable.Row>
+          ))}
+        </SimpleTable>
+      </Fragment>
+    );
+  });
 });
 
 const SimpleTableWithColumns = styled(SimpleTable)`

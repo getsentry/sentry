@@ -8,6 +8,7 @@ import {Link} from '@sentry/scraps/link';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -393,12 +394,14 @@ export function SampleTableRow({
         })}
       </StickyTableRow>
       {isExpanded && (
-        <MetricDetails
-          dataRow={row}
-          routingHint={routingHint}
-          ref={measureRef}
-          showTelemetry={source === 'metricsPage'}
-        />
+        <SimpleTable.VariantProvider variant="results">
+          <MetricDetails
+            dataRow={row}
+            routingHint={routingHint}
+            ref={measureRef}
+            showTelemetry={source === 'metricsPage'}
+          />
+        </SimpleTable.VariantProvider>
       )}
     </Fragment>
   );

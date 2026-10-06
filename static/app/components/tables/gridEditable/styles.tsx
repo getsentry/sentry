@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {TABLE_HEAD_ROW_HEIGHT} from '@sentry/scraps/table';
 
-import {DataTable} from 'sentry/components/tables/dataTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 export function Header(props: FlexProps) {
   return <Flex justify="between" align="center" marginBottom="md" {...props} />;
@@ -48,7 +48,7 @@ export const GridHeadCellStatic = styled('th')`
   }
 `;
 
-export const GridBodyCellStatic = styled(DataTable.Cell)`
+export const GridBodyCellStatic = styled(SimpleTable.RowCell)`
   /* Need to select the 2nd child to select the first cell
      as the first child is the interaction state layer */
   &:nth-child(2) {

@@ -10,7 +10,7 @@ import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/even
 import {OurlogsDrawer} from 'sentry/components/events/ourlogs/ourlogsDrawer';
 import {useEventLogsUrl} from 'sentry/components/events/ourlogs/useEventLogsUrl';
 import {LazyRender} from 'sentry/components/lazyRender';
-import {DataTable} from 'sentry/components/tables/dataTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -260,23 +260,25 @@ function OurlogsSectionContent({
       title={t('Logs')}
     >
       <Stack>
-        <SmallTable>
-          <DataTable.Body>
-            {abbreviatedTableData?.map((row, index) => (
-              <LogRowContent
-                dataRow={row}
-                routingHint={tableData.routingHintsByRow.get(row)}
-                meta={tableData.meta}
-                highlightTerms={highlightTerms}
-                embedded
-                sharedHoverTimeoutRef={sharedHoverTimeoutRef}
-                key={index}
-                blockRowExpanding
-                onEmbeddedRowClick={onEmbeddedRowClick}
-              />
-            ))}
-          </DataTable.Body>
-        </SmallTable>
+        <SimpleTable.VariantProvider variant="results">
+          <SmallTable>
+            <SimpleTable.Body>
+              {abbreviatedTableData?.map((row, index) => (
+                <LogRowContent
+                  dataRow={row}
+                  routingHint={tableData.routingHintsByRow.get(row)}
+                  meta={tableData.meta}
+                  highlightTerms={highlightTerms}
+                  embedded
+                  sharedHoverTimeoutRef={sharedHoverTimeoutRef}
+                  key={index}
+                  blockRowExpanding
+                  onEmbeddedRowClick={onEmbeddedRowClick}
+                />
+              ))}
+            </SimpleTable.Body>
+          </SmallTable>
+        </SimpleTable.VariantProvider>
         {tableData.data && tableData.data.length > 5 ? (
           <div>
             <Button

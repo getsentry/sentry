@@ -6,7 +6,6 @@ import {Grid} from '@sentry/scraps/layout';
 import {TableResizer} from '@sentry/scraps/table';
 
 import {Panel} from 'sentry/components/panels/panel';
-import {DataTable} from 'sentry/components/tables/dataTable';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {parseCursor} from 'sentry/utils/cursor';
@@ -167,7 +166,7 @@ const StyledGridEditable = styled('div')`
     margin-bottom: 0;
   }
 
-  ${DataTable.Head} {
+  thead {
     min-height: unset;
     font-size: ${p => p.theme.font.size.md};
     ${TableResizer} {
@@ -175,7 +174,7 @@ const StyledGridEditable = styled('div')`
     }
   }
 
-  ${DataTable.HeadCell} {
+  [role='columnheader'] {
     height: 36px;
     padding: 0 ${p => p.theme.space.lg};
     white-space: nowrap;
@@ -201,7 +200,7 @@ const StyledGridEditable = styled('div')`
     }
   }
 
-  ${DataTable.Cell} {
+  [role='cell']:not(:only-child) {
     min-height: unset;
     padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
     font-size: ${p => p.theme.font.size.md};
@@ -210,7 +209,7 @@ const StyledGridEditable = styled('div')`
     white-space: nowrap;
   }
 
-  ${DataTable.Row} {
+  [role='row']:not(:has(> :only-child)) {
     td:nth-child(2) {
       padding-left: ${p => p.theme.space.lg};
     }

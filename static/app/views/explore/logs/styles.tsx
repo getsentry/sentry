@@ -8,13 +8,16 @@ import {Flex, type FlexProps, Stack} from '@sentry/scraps/layout';
 import {MultiHighlight} from 'sentry/components/highlight';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {Panel} from 'sentry/components/panels/panel';
-import {DATA_TABLE_ROW_HEIGHT, DataTable} from 'sentry/components/tables/dataTable';
+import {
+  RESULTS_TABLE_ROW_HEIGHT,
+  SimpleTable,
+} from 'sentry/components/tables/simpleTable';
 import type {ColumnAlign} from 'sentry/components/tables/sortableHeaderCell';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {unreachable} from 'sentry/utils/unreachable';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 
-export const LOGS_GRID_BODY_ROW_HEIGHT = DATA_TABLE_ROW_HEIGHT - 16;
+export const LOGS_GRID_BODY_ROW_HEIGHT = RESULTS_TABLE_ROW_HEIGHT - 16;
 
 interface LogTableRowProps {
   error?: boolean;
@@ -27,7 +30,7 @@ const StyledPanel = styled(Panel)`
   margin-bottom: 0;
 `;
 
-export const LogTableRow = styled(DataTable.Row)<LogTableRowProps>`
+export const LogTableRow = styled(SimpleTable.Row)<LogTableRowProps>`
   margin-right: -1rem;
   padding-right: 1rem;
 
@@ -152,7 +155,9 @@ export const LogAttributeTreeWrapper = styled('div')`
   border-bottom: 0px;
 `;
 
-export const LogTableBodyCell = styled(DataTable.Cell)<{reservePinGutter?: boolean}>`
+export const LogTableBodyCell = styled(SimpleTable.RowCell)<{
+  reservePinGutter?: boolean;
+}>`
   min-height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
 
   padding: 2px ${p => p.theme.space.xl};
@@ -184,11 +189,7 @@ export const LogErrorLabelCell = styled(LogTableBodyCell)`
   }
 `;
 
-function ContentsTable(props: React.ComponentProps<typeof DataTable>) {
-  return <DataTable contentsBody {...props} />;
-}
-
-export const LogTable = styled(ContentsTable)<{minWidth: string; timestampWidth: number}>`
+export const LogTable = styled(SimpleTable)<{minWidth: string; timestampWidth: number}>`
   --logsPinEdgeGap: ${p => p.theme.space.sm};
   --logsTimestampWidth: ${p => p.timestampWidth}ch;
   --logsPinButtonArea: calc(2rem + var(--logsPinEdgeGap));
@@ -201,7 +202,7 @@ export const LogTable = styled(ContentsTable)<{minWidth: string; timestampWidth:
   min-width: ${p => p.minWidth};
 `;
 
-export const LogTableBody = styled(DataTable.Body)<{
+export const LogTableBody = styled(SimpleTable.Body)<{
   disableBodyPadding?: boolean;
   showHeader?: boolean;
 }>`
@@ -225,7 +226,7 @@ export const LogTableBody = styled(DataTable.Body)<{
   min-height: 1px;
 `;
 
-export const LogDetailTableBodyCell = styled(DataTable.Cell)`
+export const LogDetailTableBodyCell = styled(SimpleTable.RowCell)`
   padding: 0;
   ${LogTableRow} & {
     padding: 0;
@@ -234,7 +235,7 @@ export const LogDetailTableBodyCell = styled(DataTable.Cell)`
     padding: 0;
   }
 `;
-export const LogDetailTableActionsCell = styled(DataTable.Cell)`
+export const LogDetailTableActionsCell = styled(SimpleTable.RowCell)`
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
   min-height: 0px;
 
@@ -382,12 +383,14 @@ export const AlignedCellContent = styled('div')<{
   font-size: ${p => p.theme.font.size.sm};
 `;
 
-export const FirstTableHeadCell = styled(DataTable.HeadCell)`
+export const FirstTableHeadCell = styled(SimpleTable.HeaderCell)`
   padding-right: ${p => p.theme.space.md};
   padding-left: ${p => p.theme.space.xl};
 `;
 
-export const LogTableHeadCell = styled(DataTable.HeadCell)<{reservePinGutter?: boolean}>`
+export const LogTableHeadCell = styled(SimpleTable.HeaderCell)<{
+  reservePinGutter?: boolean;
+}>`
   ${p =>
     p.reservePinGutter &&
     css`
