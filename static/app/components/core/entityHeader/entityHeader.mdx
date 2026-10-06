@@ -25,9 +25,9 @@ It deliberately does **not** render breadcrumbs, the page `h1`, or global action
   <EntityHeader
     title={{label: 'anonymous@example.com', tags: [<Tag variant="success">Live</Tag>]}}
     stats={[
-      {label: 'Dead Clicks', value: 0},
-      {label: 'Rage Clicks', value: 2},
-      {label: 'Errors', value: 1},
+      {type: 'text', label: 'Dead Clicks', value: 0},
+      {type: 'text', label: 'Rage Clicks', value: 2},
+      {type: 'text', label: 'Errors', value: 1},
     ]}
     metadata={[
       {label: 'Feb 11, 2026 10:56 CET', icon: <IconCalendar size="xs" />},
@@ -41,9 +41,9 @@ It deliberately does **not** render breadcrumbs, the page `h1`, or global action
 <EntityHeader
   title={{label: 'anonymous@example.com', tags: [<Tag variant="success">Live</Tag>]}}
   stats={[
-    {label: 'Dead Clicks', value: 0},
-    {label: 'Rage Clicks', value: 2},
-    {label: 'Errors', value: 1},
+    {type: 'text', label: 'Dead Clicks', value: 0},
+    {type: 'text', label: 'Rage Clicks', value: 2},
+    {type: 'text', label: 'Errors', value: 1},
   ]}
   metadata={[
     {label: 'Feb 11, 2026 10:56 CET', icon: <IconCalendar size="xs" />},
@@ -118,8 +118,10 @@ The slot keeps its space while `isLoading`, which is what stops the stats slidin
 <EntityHeader
   title={{label: replay.user.display_name}}
   stats={[
-    isVideoReplay ? null : {label: 'Dead Clicks', value: replay.count_dead_clicks},
-    {label: 'Errors', value: errors.length},
+    isVideoReplay
+      ? null
+      : {type: 'text', label: 'Dead Clicks', value: replay.count_dead_clicks},
+    {type: 'text', label: 'Errors', value: errors.length},
   ]}
 />
 ```
@@ -132,7 +134,7 @@ A stat value becomes a link with `to`, and so does the title. A metadata item ga
   <EntityHeader
     title={{label: 'ValueError', to: '/issues/1/'}}
     subtitle="Cannot parse the provided timestamp"
-    stats={[{label: 'Events', value: 168, to: '/issues/1/events/'}]}
+    stats={[{type: 'link', label: 'Events', value: 168, to: '/issues/1/events/'}]}
     metadata={[
       {label: 'Unhandled', variant: 'danger'},
       {label: 'TTFB', tooltip: 'Time to First Byte'},
@@ -144,13 +146,24 @@ A stat value becomes a link with `to`, and so does the title. A metadata item ga
 <EntityHeader
   title={{label: 'ValueError', to: '/issues/1/'}}
   subtitle="Cannot parse the provided timestamp"
-  stats={[{label: 'Events', value: 168, to: '/issues/1/events/'}]}
+  stats={[{type: 'link', label: 'Events', value: 168, to: '/issues/1/events/'}]}
   metadata={[
     {label: 'Unhandled', variant: 'danger'},
     {label: 'TTFB', tooltip: 'Time to First Byte'},
   ]}
 />
 ```
+
+## Stat types
+
+A stat declares whether it is `text` or a `link`. That is not just documentation: a stat whose type depended on its data would render a different element once the data arrived, and swapping a span for an anchor mid-load moves the row. So a stat that links, links from the first render — including when its count is still zero.
+
+```jsx
+{type: 'text', label: t('Rage Clicks'), value: 2}
+{type: 'link', label: t('Errors'), value: errors.length, to: errorsTab}
+```
+
+The value may change as often as it likes. The type may not.
 
 ## Stat tooltips
 
@@ -161,11 +174,13 @@ A stat holds one number. Anything that explains it — what the label means, wha
 ```jsx
 stats={[
   {
+    type: 'text',
     label: t('Dead Clicks'),
     value: 4,
     labelTooltip: t('A click that did not change anything on the page.'),
   },
   {
+    type: 'link',
     label: t('Errors'),
     value: errors.length,
     to: errorsTab,
@@ -198,8 +213,8 @@ Each slot is replaced whole, stat labels included. A label is static and could b
     isLoading
     title={{label: 'anonymous@example.com'}}
     stats={[
-      {label: 'Dead Clicks', value: 0},
-      {label: 'Errors', value: 1},
+      {type: 'text', label: 'Dead Clicks', value: 0},
+      {type: 'text', label: 'Errors', value: 1},
     ]}
     metadata={[{label: 'Feb 11, 2026 10:56 CET'}, {label: 'Chrome 144.0.0'}]}
   />
@@ -221,8 +236,8 @@ Above the `lg` container breakpoint (640px) the stats sit to the right of the ti
   <EntityHeader
     title={{label: 'anonymous@example.com'}}
     stats={[
-      {label: 'Dead Clicks', value: 0},
-      {label: 'Errors', value: 1},
+      {type: 'text', label: 'Dead Clicks', value: 0},
+      {type: 'text', label: 'Errors', value: 1},
     ]}
     metadata={[{label: 'Feb 11, 2026 10:56 CET'}, {label: 'Chrome 144.0.0'}]}
   />

@@ -93,8 +93,13 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{label: 'Session'}}
           stats={[
-            {label: 'Dead Clicks', value: 4, to: '/replays/1/?t_main=breadcrumbs'},
-            {label: 'Rage Clicks', value: 0},
+            {
+              type: 'link',
+              label: 'Dead Clicks',
+              value: 4,
+              to: '/replays/1/?t_main=breadcrumbs',
+            },
+            {type: 'text', label: 'Rage Clicks', value: 0},
           ]}
         />
       );
@@ -113,6 +118,7 @@ describe('EntityHeader', () => {
           title={{label: 'Session'}}
           stats={[
             {
+              type: 'text',
               label: 'Dead Clicks',
               value: 4,
               labelTooltip: 'A click that did not change anything.',
@@ -133,6 +139,7 @@ describe('EntityHeader', () => {
           title={{label: 'Session'}}
           stats={[
             {
+              type: 'text',
               label: 'Errors',
               value: 3,
               valueTooltip: (
@@ -168,6 +175,7 @@ describe('EntityHeader', () => {
           title={{label: 'Session'}}
           stats={[
             {
+              type: 'link',
               label: 'Errors',
               value: 3,
               to: '/replays/1/?t_main=errors',
@@ -188,13 +196,42 @@ describe('EntityHeader', () => {
       expect(await screen.findByText('From 2 projects')).toBeInTheDocument();
     });
 
+    it('keeps the same element when a link stat receives its value', () => {
+      // The type is declared, so a count arriving cannot turn a span into an
+      // anchor. React keeps the node, nothing is re-laid out, and the row holds
+      // still — which is the whole reason `type` is not inferred from `to`.
+      const {rerender} = render(
+        <EntityHeader
+          title={{label: 'Session'}}
+          stats={[
+            {type: 'link', label: 'Errors', value: 0, to: '/replays/1/?t_main=errors'},
+          ]}
+        />
+      );
+      const before = screen.getByRole('link', {name: '0'});
+
+      rerender(
+        <EntityHeader
+          title={{label: 'Session'}}
+          stats={[
+            {type: 'link', label: 'Errors', value: 3, to: '/replays/1/?t_main=errors'},
+          ]}
+        />
+      );
+
+      expect(screen.getByRole('link', {name: '3'})).toBe(before);
+    });
+
     it('gives a linked value the same metrics as an unlinked one', () => {
       // `Link` sets text-box-trim but no font size. If it wrapped the value
       // instead of carrying its styles, it would become a flex item trimmed to
       // the font it inherits rather than the stat's, and the baseline would jump
       // the moment a count resolved and turned into a link.
       const {rerender} = render(
-        <EntityHeader title={{label: 'Session'}} stats={[{label: 'Errors', value: 3}]} />
+        <EntityHeader
+          title={{label: 'Session'}}
+          stats={[{type: 'text', label: 'Errors', value: 3}]}
+        />
       );
       const hasStatFontSize = (element: HTMLElement) =>
         getEmotionRules(element).some(rule => /font-size:\s*16px/.test(rule));
@@ -204,7 +241,9 @@ describe('EntityHeader', () => {
       rerender(
         <EntityHeader
           title={{label: 'Session'}}
-          stats={[{label: 'Errors', value: 3, to: '/replays/1/?t_main=errors'}]}
+          stats={[
+            {type: 'link', label: 'Errors', value: 3, to: '/replays/1/?t_main=errors'},
+          ]}
         />
       );
 
@@ -219,8 +258,10 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{label: 'Session'}}
           stats={[
-            isVideoReplay ? null : {label: 'Dead Clicks', value: 4},
-            {label: 'Errors', value: 2},
+            isVideoReplay
+              ? null
+              : {type: 'text' as const, label: 'Dead Clicks', value: 4},
+            {type: 'text', label: 'Errors', value: 2},
           ]}
           metadata={[
             {label: 'Chrome 144'},
@@ -241,8 +282,11 @@ describe('EntityHeader', () => {
           <EntityHeader
             title={{label: 'Session'}}
             stats={[
-              showViewers ? {label: 'Seen By', value: <span>2 viewers</span>} : null,
+              showViewers
+                ? {type: 'text' as const, label: 'Seen By', value: <span>2 viewers</span>}
+                : null,
               {
+                type: 'text',
                 label: 'Note',
                 value: <input aria-label="Scratch note" defaultValue="" />,
               },
@@ -272,7 +316,7 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{label: 'Session'}}
           people={{users: [], isLoading: true, label: 'Viewed by'}}
-          stats={[{label: 'Errors', value: 2}]}
+          stats={[{type: 'text', label: 'Errors', value: 2}]}
         />
       );
 
@@ -284,7 +328,7 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{label: 'Session'}}
           people={{users, label: 'Viewed by'}}
-          stats={[{label: 'Errors', value: 2}]}
+          stats={[{type: 'text', label: 'Errors', value: 2}]}
         />
       );
 
@@ -314,7 +358,7 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{label: 'Session'}}
           people={{users: [], label: 'Viewed by'}}
-          stats={[{label: 'Errors', value: 2}]}
+          stats={[{type: 'text', label: 'Errors', value: 2}]}
         />
       );
 
@@ -344,8 +388,8 @@ describe('EntityHeader', () => {
           title={{label: 'Session'}}
           subtitle="A subtitle"
           stats={[
-            {label: 'Dead Clicks', value: 4},
-            {label: 'Errors', value: 2},
+            {type: 'text', label: 'Dead Clicks', value: 4},
+            {type: 'text', label: 'Errors', value: 2},
           ]}
           metadata={[{label: 'Chrome 144'}, {label: 'Windows >=10'}]}
         />
@@ -372,7 +416,7 @@ describe('EntityHeader', () => {
           isLoading
           title={{label: 'Session'}}
           people={{users: [], label: 'Viewed by'}}
-          stats={[{label: 'Errors', value: 2}]}
+          stats={[{type: 'text', label: 'Errors', value: 2}]}
         />
       );
 
@@ -384,7 +428,7 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{label: 'Session'}}
           people={{users: [], isLoading: true, label: 'Viewed by'}}
-          stats={[{label: 'Errors', value: 2}]}
+          stats={[{type: 'text', label: 'Errors', value: 2}]}
         />
       );
 
@@ -402,7 +446,7 @@ describe('EntityHeader', () => {
         <EntityHeader
           isLoading
           title={{label: 'Session'}}
-          stats={[{label: 'Seen By', value: null}]}
+          stats={[{type: 'text', label: 'Seen By', value: null}]}
           metadata={[{label: 'Chrome 144'}]}
         />
       );
@@ -415,7 +459,13 @@ describe('EntityHeader', () => {
       rerender(
         <EntityHeader
           title={{label: 'Session'}}
-          stats={[{label: 'Seen By', value: <img alt="" height={25} width={50} />}]}
+          stats={[
+            {
+              type: 'text',
+              label: 'Seen By',
+              value: <img alt="" height={25} width={50} />,
+            },
+          ]}
           metadata={[{label: 'Chrome 144'}]}
         />
       );
@@ -430,7 +480,7 @@ describe('EntityHeader', () => {
       render(
         <EntityHeader
           title={{label: 'Session'}}
-          stats={[{label: 'Errors', value: 2}]}
+          stats={[{type: 'text', label: 'Errors', value: 2}]}
           metadata={[{label: 'Chrome 144'}]}
         />
       );

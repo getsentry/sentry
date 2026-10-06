@@ -145,26 +145,32 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
         isLoading: viewers.isPending,
       },
       stats: [
+        // These link unconditionally. Linking only once a count was non-zero
+        // meant the stat changed element as its data arrived, which moved the
+        // row; a zero count lands on the same tab, filtered and empty.
         showDeadRageClicks
           ? {
+              type: 'link',
               label: t('Dead Clicks'),
               value: deadClicks,
-              to: deadClicks ? breadcrumbTab : undefined,
+              to: breadcrumbTab,
               loadingWidth: '82px',
             }
           : null,
         showDeadRageClicks
           ? {
+              type: 'link',
               label: t('Rage Clicks'),
               value: rageClicks,
-              to: rageClicks ? breadcrumbTab : undefined,
+              to: breadcrumbTab,
               loadingWidth: '82px',
             }
           : null,
         {
+          type: 'link',
           label: t('Errors'),
           value: nonFeedbackErrors.length,
-          to: nonFeedbackErrors.length ? errorsTab : undefined,
+          to: errorsTab,
           valueTooltip: nonFeedbackErrors.length ? (
             <ReplayErrorsTooltip replayErrors={nonFeedbackErrors} />
           ) : undefined,

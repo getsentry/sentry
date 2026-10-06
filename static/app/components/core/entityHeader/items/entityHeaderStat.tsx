@@ -8,7 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
 
-export interface EntityHeaderStatProps {
+interface EntityHeaderStatBase {
   /**
    * Short, static label such as "Dead Clicks".
    */
@@ -30,11 +30,6 @@ export interface EntityHeaderStatProps {
    * the content you expect, so the row does not jump when the value lands.
    */
   loadingWidth?: string;
-  onClick?: () => void;
-  /**
-   * Turns the value into a link.
-   */
-  to?: LinkProps['to'];
   /**
    * What the value is made of — the projects behind an error count, say. Takes
    * structured content, which is how a breakdown stays out of the row itself.
@@ -42,16 +37,36 @@ export interface EntityHeaderStatProps {
   valueTooltip?: React.ReactNode;
 }
 
-export function EntityHeaderStat({
-  isLoading,
-  label,
-  labelTooltip,
-  loadingWidth = '80px',
-  onClick,
-  to,
-  value,
-  valueTooltip,
-}: EntityHeaderStatProps & {isLoading?: boolean}) {
+/**
+ * A stat declares what it is, rather than the component inferring it from
+ * whether a destination happens to be defined.
+ *
+ * This matters at runtime, not just for readability: a stat whose type depended
+ * on its data would render a different element once that data arrived, and
+ * swapping a span for an anchor mid-load moves the row. The value may change as
+ * often as it likes; the type may not.
+ */
+export type EntityHeaderStatProps =
+  | ({type: 'text'} & EntityHeaderStatBase)
+  | ({
+      /**
+       * Where the value leads. Required, so the stat cannot quietly stop being
+       * a link when its count is zero.
+       */
+      to: LinkProps['to'];
+      type: 'link';
+      onClick?: () => void;
+    } & EntityHeaderStatBase);
+
+export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boolean}) {
+  const {
+    isLoading,
+    label,
+    labelTooltip,
+    loadingWidth = '80px',
+    value,
+    valueTooltip,
+  } = props;
   // The whole stat becomes one skeleton, label included. The label is static and
   // could be shown immediately, but a half-drawn stat reads as broken next to a
   // title and metadata row that are still loading.
@@ -66,14 +81,12 @@ export function EntityHeaderStat({
   const valueStyles = {size: 'lg', bold: true, tabular: true, wrap: 'nowrap'} as const;
 
   let valueContent: React.ReactNode;
-  if (to) {
+  if (props.type === 'link') {
+    const {to, onClick} = props;
     // The link takes the value's text styles rather than wrapping an element
-    // that has them. `Link` sets `text-box-trim` but no font size, so as a flex
-    // item it would trim itself to the font it inherits — not the stat's — and
-    // the baseline would move the moment a link appeared. Styling the anchor
-    // directly keeps one element, with one set of metrics, in every state.
-    // It also keeps the value `content.primary`: a class beats the global
-    // `a { color }` rule on specificity.
+    // that has them, so the anchor is the only box in play. It also keeps the
+    // value `content.primary`: a class beats the global `a { color }` rule on
+    // specificity.
     valueContent = (
       <Text {...valueStyles}>
         {styleProps => {
