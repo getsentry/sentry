@@ -6,9 +6,9 @@ import type {PageFilters} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {encodeSort} from 'sentry/utils/queryString';
 import {
   type AnyMutableSearch,
   formatSearchStringForQueryParam,

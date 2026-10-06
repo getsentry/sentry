@@ -10,10 +10,10 @@ import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
 import {fetchMutation} from 'sentry/utils/queryClient';
+import {encodeSort} from 'sentry/utils/queryString';
 import {
   isPreferredAgentProvider,
   parseAgentOption,
@@ -52,7 +52,10 @@ export function getSeerProjectSettingsQueryOptions({
   return apiOptions.as<SeerProjectSettingResponse>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/settings/',
     {
-      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      path: {
+        organizationIdOrSlug: organization.slug,
+        projectIdOrSlug: project.slug,
+      },
       staleTime: 60_000, // 1 minute
     }
   );
@@ -77,7 +80,12 @@ export function getInfiniteSeerProjectsSettingsQueryOptions({
     '/organizations/$organizationIdOrSlug/seer/projects/',
     {
       path: {organizationIdOrSlug: organization.slug},
-      query: {per_page, sortBy: sortQuery, query: mutableSearch?.formatString(), ...rest},
+      query: {
+        per_page,
+        sortBy: sortQuery,
+        query: mutableSearch?.formatString(),
+        ...rest,
+      },
       staleTime: 60_000, // 1 minute
     }
   );
@@ -106,7 +114,10 @@ export function getMutateSeerProjectSettingsOptions({
   queryClient: QueryClient;
   knownAgents?: AgentIntegration[];
 }) {
-  const queryKey = getSeerProjectSettingsQueryOptions({organization, project}).queryKey;
+  const queryKey = getSeerProjectSettingsQueryOptions({
+    organization,
+    project,
+  }).queryKey;
   const [url] = queryKey;
 
   return mutationOptions({
@@ -295,7 +306,10 @@ export function getMutateSeerProjectsSettingsOptions({
       });
     },
     onMutate: async data => {
-      await queryClient.cancelQueries({queryKey: [infiniteUrl], exact: false});
+      await queryClient.cancelQueries({
+        queryKey: [infiniteUrl],
+        exact: false,
+      });
       await queryClient.cancelQueries({
         predicate: q => isSingleProjectSettingsQuery(q.queryKey),
       });

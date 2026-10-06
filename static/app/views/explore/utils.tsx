@@ -14,7 +14,7 @@ import type {Tag, TagCollection} from 'sentry/types/group';
 import type {Confidence, Organization} from 'sentry/types/organization';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
-import {encodeSort, EventView} from 'sentry/utils/discover/eventView';
+import {EventView} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {
   isEquation,
@@ -23,7 +23,7 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {FieldValueType} from 'sentry/utils/fields';
-import {decodeSorts} from 'sentry/utils/queryString';
+import {decodeSorts, encodeSort} from 'sentry/utils/queryString';
 import {determineTimeSeriesConfidence} from 'sentry/utils/timeSeries/determineSeriesConfidence';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -276,7 +276,9 @@ export function getExploreMultiQueryUrl({
     referrer,
   };
 
-  return `/organizations/${organization.slug}/explore/traces/compare/?${qs.stringify(queryParams, {skipNull: true})}`;
+  return `/organizations/${
+    organization.slug
+  }/explore/traces/compare/?${qs.stringify(queryParams, {skipNull: true})}`;
 }
 
 export function combineConfidenceForSeries(series: TimeSeries[]): Confidence {

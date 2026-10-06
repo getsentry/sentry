@@ -8,9 +8,10 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {parseQueryKey, type QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
-import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
+import {type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import {encodeSort} from 'sentry/utils/queryString';
 import {
   useLogsAutoRefresh,
   useLogsAutoRefreshEnabled,
@@ -203,7 +204,9 @@ export function getIngestDelayFilterValue(timestamp: bigint) {
 }
 
 function getIngestDelayFilter() {
-  return ` ${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:${getIngestDelayFilterValue(getMaxIngestDelayTimestamp())}`;
+  return ` ${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:${getIngestDelayFilterValue(
+    getMaxIngestDelayTimestamp()
+  )}`;
 }
 
 function getParamBasedQuery(
@@ -378,7 +381,10 @@ export function useInfiniteLogsQuery({
       ) {
         const retryOptions: QueryKeyEndpointOptions = {
           ...baseOptions,
-          query: {...baseOptions?.query, sampling: SAMPLING_MODE.HIGH_ACCURACY},
+          query: {
+            ...baseOptions?.query,
+            sampling: SAMPLING_MODE.HIGH_ACCURACY,
+          },
         };
         response = await apiFetch<EventsLogsResult>({
           ...fetchContext,
@@ -477,7 +483,10 @@ export function useInfiniteLogsQuery({
     });
   }, [highFidelity, queryClient, queryKeyWithInfinite, sortBys]);
 
-  const {virtualStreamedTimestamp} = useVirtualStreaming({data, highFidelity});
+  const {virtualStreamedTimestamp} = useVirtualStreaming({
+    data,
+    highFidelity,
+  });
 
   // Due to the way we prune empty pages, we cannot simply compute the sum of bytes scanned
   // for all pages as most empty pages would have been evicted already.

@@ -13,10 +13,10 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {encodeSort} from 'sentry/utils/discover/eventView';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
+import {encodeSort} from 'sentry/utils/queryString';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -202,7 +202,10 @@ function WidgetInteractiveTitle({
 
   if (chartDefinition.allowsOpenInDiscover) {
     if (useEap) {
-      menuOptions.push({label: t('Open in Explore'), value: 'open_in_explore'});
+      menuOptions.push({
+        label: t('Open in Explore'),
+        value: 'open_in_explore',
+      });
     } else {
       menuOptions.push({
         label: t('Open in Explore'),
@@ -254,8 +257,7 @@ const StyledCompactSelect = styled(CompactSelect)`
   /* Reset font-weight set by HeaderTitleLegend, buttons are already bold and
    * setting this higher up causes it to trickle into the menus */
   font-weight: ${p => p.theme.font.weight.sans.regular};
-  margin: -${p => p.theme.space.xs} -${p => p.theme.space.md} -${p =>
-      p.theme.space['2xs']};
+  margin: -${p => p.theme.space.xs} -${p => p.theme.space.md} -${p => p.theme.space['2xs']};
   min-width: 0;
 
   button {
