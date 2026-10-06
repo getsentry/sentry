@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from unittest import mock
 
 import pytest
 
@@ -119,7 +120,12 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
             tags=["environment", "level"], notes="test note", notification_uuid="test-uuid-123"
         )
 
-        result = issue_notification_data_factory(invocation)
+        with mock.patch(
+            "sentry.notifications.notification_action.types."
+            "BaseIssueAlertHandler.create_rule_instance_from_action",
+            side_effect=AssertionError("payload creation must not construct a Rule"),
+        ):
+            result = issue_notification_data_factory(invocation)
 
         assert result.source == NotificationSource.ISSUE
         assert result.group_id == invocation.event_data.group.id

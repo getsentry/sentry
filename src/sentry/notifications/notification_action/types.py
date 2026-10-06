@@ -217,25 +217,8 @@ class BaseIssueAlertHandler(ABC):
         :param workflow_id: The workflow ID that triggered this action
         :return: Rule instance
         """
-        data: RuleData = {
-            "actions": [
-                cls.build_rule_action_blob(action, detector.linked_project.organization.id)
-            ],
-        }
         origin = cls.create_notification_origin(detector, event_data, workflow_id)
-
-        # If test event, just set the legacy rule id to -1
-        if origin.legacy_rule_id == TEST_NOTIFICATION_ID:
-            data["actions"][0]["legacy_rule_id"] = TEST_NOTIFICATION_ID
-        else:
-            assert origin.workflow_id is not None
-            data["actions"][0]["workflow_id"] = origin.workflow_id
-            if origin.legacy_rule_id is not None:
-                data["actions"][0]["legacy_rule_id"] = origin.legacy_rule_id
-
-        if workflow_id == TEST_NOTIFICATION_ID and action.type == Action.Type.EMAIL:
-            # mail action needs to have skipDigests set to True
-            data["actions"][0]["skipDigests"] = True
+        data = cls.build_rule_data_from_action(action, detector, origin)
 
         rule = Rule(
             id=action.id,
@@ -248,6 +231,28 @@ class BaseIssueAlertHandler(ABC):
         )
 
         return rule
+
+    @classmethod
+    def build_rule_data_from_action(
+        cls,
+        action: Action,
+        detector: Detector,
+        origin: NotificationOrigin,
+    ) -> RuleData:
+        action_blob = cls.build_rule_action_blob(action, detector.linked_project.organization.id)
+
+        if origin.legacy_rule_id == TEST_NOTIFICATION_ID:
+            action_blob["legacy_rule_id"] = TEST_NOTIFICATION_ID
+        else:
+            assert origin.workflow_id is not None
+            action_blob["workflow_id"] = origin.workflow_id
+            if origin.legacy_rule_id is not None:
+                action_blob["legacy_rule_id"] = origin.legacy_rule_id
+
+        if origin.legacy_rule_id == TEST_NOTIFICATION_ID and action.type == Action.Type.EMAIL:
+            action_blob["skipDigests"] = True
+
+        return {"actions": [action_blob]}
 
     @classmethod
     def create_notification_origin(
