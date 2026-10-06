@@ -24,6 +24,7 @@ const ORIGIN_SPAN_ID = 'b415e097df49bf1c';
 const ORIGIN_TRACE_ID = '6edf623ed48e4172a54e7fbee3b40c5d';
 const CACHE_KEY = '133fefc9b81c';
 const SOURCE_FILE = 'app/(cached-nesting)/mixed-lifetimes/[id]/page.tsx';
+const ORIGIN_SPAN_URL = `/projects/org-slug/project_slug/trace-items/${ORIGIN_SPAN_ID}/`;
 
 describe('CacheLifecycleSection', () => {
   const organization = OrganizationFixture();
@@ -36,6 +37,8 @@ describe('CacheLifecycleSection', () => {
   });
 
   function makeCacheNode(op: string) {
+    // Recent, so the fill time of short-lived entries is inside span retention.
+    const startTimestamp = Date.now() / 1000 - 60;
     return new EapSpanNode(
       null,
       makeEAPSpan({
@@ -43,8 +46,8 @@ describe('CacheLifecycleSection', () => {
         op,
         project_id: 1,
         project_slug: project.slug,
-        start_timestamp: 1000,
-        end_timestamp: 1000.001,
+        start_timestamp: startTimestamp,
+        end_timestamp: startTimestamp + 0.001,
       }),
       {organization}
     );
@@ -102,7 +105,8 @@ describe('CacheLifecycleSection', () => {
 
   function mockOriginSpanRequest() {
     return MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/trace-items/${ORIGIN_SPAN_ID}/`,
+      url: ORIGIN_SPAN_URL,
+      match: [MockApiClient.matchQuery({referrer: 'api.trace-view.cache-origin'})],
       body: {
         itemId: ORIGIN_SPAN_ID,
         timestamp: '2026-10-01T08:43:49Z',
@@ -115,6 +119,11 @@ describe('CacheLifecycleSection', () => {
         links: [],
       },
     });
+  }
+
+  /** The value next to a label in a timeline row's label-value grid. */
+  function getFactValue(label: string) {
+    return screen.getByText(label).nextElementSibling;
   }
 
   function TestSection(props: React.ComponentProps<typeof CacheLifecycleSection>) {
@@ -139,7 +148,7 @@ describe('CacheLifecycleSection', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('shows the hit, entry age and expiry for a cache hit', () => {
+  it('shows the hit, fill time and expiry for a cache hit', () => {
     render(
       <TestSection
         node={makeCacheNode('cache.get')}
@@ -159,11 +168,10 @@ describe('CacheLifecycleSection', () => {
     expect(screen.getByText('Cache filled')).toBeInTheDocument();
     expect(screen.getByText('9s earlier')).toBeInTheDocument();
     expect(screen.getByText('Cache hit')).toBeInTheDocument();
-    expect(screen.getByText('cache.get took 0.21ms')).toBeInTheDocument();
-    expect(screen.getByText(/age 9s/)).toBeInTheDocument();
+    expect(getFactValue('Read')).toHaveTextContent('0.21ms');
     expect(screen.getByText('Expires')).toBeInTheDocument();
     expect(screen.getByText('41s later')).toBeInTheDocument();
-    expect(screen.getByText('ttl 50s')).toBeInTheDocument();
+    expect(getFactValue('TTL')).toHaveTextContent('50s');
     // Without a span link, there is no origin to open.
     expect(
       screen.queryByRole('button', {name: 'Open origin span'})
@@ -190,10 +198,115 @@ describe('CacheLifecycleSection', () => {
     );
 
     expect(await screen.findByText('GET /mixed-lifetimes/[id]')).toBeInTheDocument();
-    expect(screen.getByText(SOURCE_FILE)).toBeInTheDocument();
-    expect(screen.getByText('cache.put took 0.37ms')).toBeInTheDocument();
+    expect(getFactValue('Filled by')).toHaveTextContent('GET /mixed-lifetimes/[id]');
+    expect(getFactValue('Source')).toHaveTextContent(SOURCE_FILE);
+    expect(getFactValue('Write')).toHaveTextContent('0.37ms');
+    expect(getFactValue('Read')).toHaveTextContent('0.21ms');
     expect(screen.getByRole('button', {name: 'Open origin span'})).toBeInTheDocument();
     expect(originRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a skeleton above the button while the origin span loads', async () => {
+    mockOriginSpanRequest();
+
+    render(
+      <TestSection
+        node={makeCacheNode('cache.get')}
+        attributes={makeCacheAttributes({operation: 'get', hit: true, itemAgeSeconds: 9})}
+        links={[makeOriginLink()]}
+        location={location}
+        organization={organization}
+        onTabScrollToNode={jest.fn()}
+      />
+    );
+
+    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(2);
+    expect(screen.getByRole('button', {name: 'Open origin span'})).toBeInTheDocument();
+    expect(await screen.findByText('GET /mixed-lifetimes/[id]')).toBeInTheDocument();
+    expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+  });
+
+  it('skips the fill span request when the fill is past span retention', () => {
+    const originRequest = mockOriginSpanRequest();
+
+    render(
+      <TestSection
+        node={makeCacheNode('cache.get')}
+        attributes={makeCacheAttributes({
+          operation: 'get',
+          hit: true,
+          itemAgeSeconds: 50 * 24 * 60 * 60,
+        })}
+        links={[makeOriginLink()]}
+        location={location}
+        organization={organization}
+        onTabScrollToNode={jest.fn()}
+      />
+    );
+
+    expect(
+      screen.getByText('Origin trace is older than your 30-day span retention')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Open origin span'})
+    ).not.toBeInTheDocument();
+    expect(originRequest).not.toHaveBeenCalled();
+  });
+
+  // A 404 can mean the span is in another project, and the trace view can
+  // still find it there.
+  it.each([404, 500])(
+    'keeps the origin link when the fill span request fails with %s',
+    async statusCode => {
+      MockApiClient.addMockResponse({
+        url: ORIGIN_SPAN_URL,
+        statusCode,
+        body: {detail: 'Error'},
+      });
+
+      render(
+        <TestSection
+          node={makeCacheNode('cache.get')}
+          attributes={makeCacheAttributes({
+            operation: 'get',
+            hit: true,
+            itemAgeSeconds: 9,
+          })}
+          links={[makeOriginLink()]}
+          location={location}
+          organization={organization}
+          onTabScrollToNode={jest.fn()}
+        />
+      );
+
+      expect(await screen.findByText('Span preview unavailable')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Open origin span'})).toBeInTheDocument();
+    }
+  );
+
+  it('does not fetch a fill span from an unsampled trace', () => {
+    const originRequest = mockOriginSpanRequest();
+
+    render(
+      <TestSection
+        node={makeCacheNode('cache.get')}
+        attributes={makeCacheAttributes({operation: 'get', hit: true, itemAgeSeconds: 9})}
+        links={[makeOriginLink({sampled: false})]}
+        location={location}
+        organization={organization}
+        onTabScrollToNode={jest.fn()}
+      />
+    );
+
+    expect(
+      screen.getByText(
+        'The trace that filled this cache entry was not sampled, so it is not available'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Open origin span'})
+    ).not.toBeInTheDocument();
+    expect(originRequest).not.toHaveBeenCalled();
   });
 
   // The backend currently drops typed link attributes (see the TODO in
@@ -236,9 +349,7 @@ describe('CacheLifecycleSection', () => {
     ).not.toBeInTheDocument();
   });
 
-  // Regression: duration and miss message were adjacent JSX text nodes and
-  // rendered merged as "0.21msno entry was found".
-  it('keeps the miss message separate from the read duration', () => {
+  it('shows the missed key and no fill or expiry on a cache miss', () => {
     render(
       <TestSection
         node={makeCacheNode('cache.get')}
@@ -251,25 +362,10 @@ describe('CacheLifecycleSection', () => {
 
     expect(screen.getByText('Miss')).toBeInTheDocument();
     expect(screen.getByText('Cache miss')).toBeInTheDocument();
-    expect(screen.getByText('cache.get took 0.21ms')).toBeInTheDocument();
-    expect(screen.getByText(/no entry for key/)).toBeInTheDocument();
-    expect(screen.getByText(CACHE_KEY)).toBeInTheDocument();
+    expect(getFactValue('Read')).toHaveTextContent('0.21ms');
+    expect(getFactValue('Key')).toHaveTextContent(CACHE_KEY);
     expect(screen.queryByText('Cache filled')).not.toBeInTheDocument();
     expect(screen.queryByText('Expires')).not.toBeInTheDocument();
-  });
-
-  it('falls back to a generic miss message without a cache key', () => {
-    render(
-      <TestSection
-        node={makeCacheNode('cache.get')}
-        attributes={makeCacheAttributes({operation: 'get', hit: false})}
-        location={location}
-        organization={organization}
-        onTabScrollToNode={jest.fn()}
-      />
-    );
-
-    expect(screen.getByText('the entry was not in the cache')).toBeInTheDocument();
   });
 
   it('shows a neutral read row when cache.hit is missing', () => {
@@ -306,12 +402,12 @@ describe('CacheLifecycleSection', () => {
 
     expect(screen.getByText('Cache filled')).toBeInTheDocument();
     expect(screen.getByText('this span')).toBeInTheDocument();
-    expect(screen.getByText('cache.put took 0.21ms')).toBeInTheDocument();
-    expect(screen.getByText(CACHE_KEY)).toBeInTheDocument();
-    expect(screen.getByText(SOURCE_FILE)).toBeInTheDocument();
+    expect(getFactValue('Write')).toHaveTextContent('0.21ms');
+    expect(getFactValue('Key')).toHaveTextContent(CACHE_KEY);
+    expect(getFactValue('Source')).toHaveTextContent(SOURCE_FILE);
     expect(screen.getByText('Expires')).toBeInTheDocument();
     expect(screen.getByText('50s later')).toBeInTheDocument();
-    expect(screen.getByText('ttl 50s')).toBeInTheDocument();
+    expect(getFactValue('TTL')).toHaveTextContent('50s');
   });
 
   it('hides the expiry row when the put span has no ttl', () => {

@@ -71,6 +71,7 @@ class IssueNotificationData(NotificationData):
 class IssueNotificationTemplate(NotificationTemplate[IssueNotificationData]):
     category = NotificationCategory.ISSUE
     example_data = IssueNotificationData(
+        organization_id=1,
         group_id=1,
         event_id="abc123",
         notification_uuid="test-uuid",

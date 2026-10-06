@@ -155,6 +155,7 @@ class ArithmeticVisitor(NodeVisitor):
         "spans.resource",
         "spans.browser",
         "spans.total.time",
+        "span.duration",
         "measurements.app_start_cold",
         "measurements.app_start_warm",
         "measurements.cls",
