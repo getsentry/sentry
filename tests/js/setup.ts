@@ -5,7 +5,7 @@ import '@testing-library/jest-dom';
 import {webcrypto} from 'node:crypto';
 import {TextDecoder, TextEncoder} from 'node:util';
 
-import {type ReactElement} from 'react';
+import React, {type ReactElement} from 'react';
 import {act, configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import {MotionGlobalConfig} from 'framer-motion';
 import {enableFetchMocks} from 'jest-fetch-mock';
@@ -386,6 +386,27 @@ Object.defineProperty(window, 'getComputedStyle', {
   configurable: true,
   writable: true,
 });
+
+// React's development build captures an `Error` for every element it creates so
+// warnings can show owner stacks. In CI that is roughly 7% of test CPU for stacks
+// nobody reads, so pin React's per-render budget at its cap there and elements
+// skip the capture. Warnings still fire; locally the full stacks stay on.
+if (process.env.CI) {
+  const internals = (
+    React as unknown as {
+      __CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE?: {
+        recentlyCreatedOwnerStacks?: number;
+      };
+    }
+  ).__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
+  if (internals && 'recentlyCreatedOwnerStacks' in internals) {
+    Object.defineProperty(internals, 'recentlyCreatedOwnerStacks', {
+      configurable: true,
+      get: () => 10_000,
+      set: () => {},
+    });
+  }
+}
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
