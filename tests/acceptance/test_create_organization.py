@@ -1,7 +1,6 @@
 from django.test import override_settings
 
 from sentry.testutils.cases import AcceptanceTestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import no_silo_test
 
 
@@ -12,7 +11,6 @@ class CreateOrganizationTest(AcceptanceTestCase):
         self.user = self.create_user("foo@example.com")
         self.login_as(self.user)
 
-    @with_feature("organizations:onboarding-scm-project-creation")
     @override_settings(
         PRIVACY_URL="https://sentry.io/privacy/", TERMS_URL="https://sentry.io/terms/"
     )
