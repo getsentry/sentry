@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from django.db import router, transaction
 from django.db.models import QuerySet
 from django.utils.crypto import get_random_string
@@ -28,6 +30,8 @@ from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.utils.db import atomic_transaction
 from sentry.workflow_engine.models import Detector
 
+logger = logging.getLogger(__name__)
+
 
 class MonitorDetailsMixin(BaseEndpointMixin):
     def get_monitor(
@@ -43,11 +47,18 @@ class MonitorDetailsMixin(BaseEndpointMixin):
         # expand=alertRule is slated for removal; track who still relies on it.
         if "alertRule" in expand:
             resolver_match = getattr(request, "resolver_match", None)
+            endpoint = getattr(resolver_match, "url_name", None) or "unknown"
+            ui_request = is_frontend_request(request)
             metrics.incr(
                 "monitors.serializer.expand_alert_rule",
-                tags={
-                    "endpoint": getattr(resolver_match, "url_name", None) or "unknown",
-                    "ui_request": is_frontend_request(request),
+                tags={"endpoint": endpoint, "ui_request": ui_request},
+            )
+            logger.info(
+                "monitors.serializer.expand_alert_rule",
+                extra={
+                    "organization_id": project.organization_id,
+                    "endpoint": endpoint,
+                    "ui_request": ui_request,
                 },
             )
 

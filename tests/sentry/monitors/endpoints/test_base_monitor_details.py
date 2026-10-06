@@ -146,8 +146,11 @@ class BaseMonitorDetailsTest(MonitorTestCase):
         assert issue_alert_rule is not None
         assert issue_alert_rule["environment"] is not None
 
+    @patch("sentry.monitors.endpoints.base_monitor_details.logger")
     @patch("sentry.utils.metrics.incr")
-    def test_expand_issue_alert_rule_metric(self, mock_incr: MagicMock) -> None:
+    def test_expand_issue_alert_rule_metric(
+        self, mock_incr: MagicMock, mock_logger: MagicMock
+    ) -> None:
         monitor = self._create_monitor()
 
         def expand_alert_rule_calls() -> list:
@@ -159,6 +162,7 @@ class BaseMonitorDetailsTest(MonitorTestCase):
 
         self.get_success_response(self.organization.slug, monitor.slug)
         assert expand_alert_rule_calls() == []
+        mock_logger.info.assert_not_called()
 
         self.get_success_response(self.organization.slug, monitor.slug, expand=["alertRule"])
         assert expand_alert_rule_calls() == [
@@ -167,6 +171,14 @@ class BaseMonitorDetailsTest(MonitorTestCase):
                 tags={"endpoint": self.endpoint, "ui_request": True},
             )
         ]
+        mock_logger.info.assert_called_once_with(
+            "monitors.serializer.expand_alert_rule",
+            extra={
+                "organization_id": self.organization.id,
+                "endpoint": self.endpoint,
+                "ui_request": True,
+            },
+        )
 
     def test_with_active_incident_and_detection(self) -> None:
         monitor = self._create_monitor()
