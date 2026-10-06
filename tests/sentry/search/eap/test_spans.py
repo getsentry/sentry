@@ -64,7 +64,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.snuba import SPAN_EAP_COLUMN_MAP
 
 
-class AttributeVisibilityTest(TestCase):
+class TestAttributeVisibility:
     def test_public_convention_attribute_visible_to_everyone(self) -> None:
         assert can_expose_attribute_to_api(
             ATTRIBUTE_NAMES.SENTRY_ENVIRONMENT, SupportedTraceItemType.SPANS
@@ -78,6 +78,37 @@ class AttributeVisibilityTest(TestCase):
             ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT,
             SupportedTraceItemType.SPANS,
             include_internal=True,
+        )
+
+    def test_internal_convention_attribute_visible_with_convention_access(self) -> None:
+        assert can_expose_attribute_to_api(
+            ATTRIBUTE_NAMES.SENTRY_DSC_ENVIRONMENT,
+            SupportedTraceItemType.SPANS,
+            include_internal_convention_attributes=True,
+        )
+
+    @pytest.mark.parametrize(
+        "attribute", ["__sentry_internal_test", "sentry._internal.received_at"]
+    )
+    def test_convention_access_does_not_expose_unrelated_internal_attributes(
+        self, attribute: str
+    ) -> None:
+        assert not can_expose_attribute_to_api(
+            attribute,
+            SupportedTraceItemType.SPANS,
+            include_internal_convention_attributes=True,
+        )
+
+    @pytest.mark.parametrize(
+        "attribute",
+        ["sentry.item_type", "sentry.organization_id", "sentry.links", "sentry._meta.fields.foo"],
+    )
+    def test_convention_access_does_not_expose_private_attributes(self, attribute: str) -> None:
+        assert not can_expose_attribute_to_api(
+            attribute,
+            SupportedTraceItemType.SPANS,
+            include_internal=True,
+            include_internal_convention_attributes=True,
         )
 
     def test_internal_convention_public_alias_is_hidden(self) -> None:
@@ -1020,7 +1051,7 @@ class SearchResolverColumnTest(TestCase):
             params=SnubaParams(projects=[self.project]),
             config=SearchResolverConfig(
                 api_attribute_visibility_item_type=SupportedTraceItemType.SPANS,
-                api_attribute_visibility_include_internal=True,
+                api_attribute_visibility_include_internal_convention_attributes=True,
             ),
             definitions=SPAN_DEFINITIONS,
         )
