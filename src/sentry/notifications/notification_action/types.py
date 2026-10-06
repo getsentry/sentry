@@ -262,7 +262,7 @@ class BaseIssueAlertHandler(ABC):
         workflow_id: WorkflowId,
     ) -> NotificationOrigin:
         environment_id = event_data.workflow_env.id if event_data.workflow_env else None
-        label = None
+        label = detector.name
         legacy_rule_id = None
 
         if workflow_id != TEST_NOTIFICATION_ID:
@@ -270,7 +270,6 @@ class BaseIssueAlertHandler(ABC):
                 workflow = Workflow.objects.get(id=workflow_id)
                 label = workflow.name
             except Workflow.DoesNotExist:
-                # The detector name is the fallback when the workflow was deleted.
                 pass
 
             alert_rule_workflow = AlertRuleWorkflow.objects.filter(
@@ -291,7 +290,7 @@ class BaseIssueAlertHandler(ABC):
                     )
 
         return NotificationOrigin(
-            label=label or detector.name,
+            label=label,
             environment_id=environment_id,
             workflow_id=None if workflow_id == TEST_NOTIFICATION_ID else workflow_id,
             legacy_rule_id=(
