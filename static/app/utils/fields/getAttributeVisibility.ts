@@ -2,13 +2,16 @@ import {ATTRIBUTE_SEARCH_METADATA} from '@sentry/conventions/attributes/search';
 
 import {prettifyTagKey} from 'sentry/utils/fields';
 
+import {getAttributeSearchMetadata} from './getAttributeSearchMetadata';
+import {getAttributeSearchDeprecationAliases} from './getAttributeSearchSecondaryAliases';
+
 const internalAttributeKeys = new Set(
   Object.entries(ATTRIBUTE_SEARCH_METADATA)
     .filter(([, metadata]) => metadata.internal)
     .flatMap(([key, metadata]) => [
       key,
       metadata.canonicalName,
-      ...metadata.deprecationChain,
+      ...getAttributeSearchDeprecationAliases(key, {includeTemplateKeys: true}),
     ])
 );
 
@@ -22,10 +25,7 @@ export function getAttributeVisibility(
   const candidates = new Set(attributeKeys);
 
   for (const key of candidates) {
-    const normalizedKey = prettifyTagKey(key);
-    if (normalizedKey !== key) {
-      candidates.add(normalizedKey);
-    }
+    candidates.add(prettifyTagKey(key));
     if (key.startsWith('dsc.') || key.startsWith('_internal.')) {
       candidates.add(`sentry.${key}`);
     }
@@ -39,12 +39,12 @@ export function getAttributeVisibility(
       return 'internal';
     }
 
-    const searchMetadata = Object.hasOwn(ATTRIBUTE_SEARCH_METADATA, key)
-      ? ATTRIBUTE_SEARCH_METADATA[key]
-      : undefined;
+    const searchMetadata = getAttributeSearchMetadata(key);
     if (searchMetadata) {
       candidates.add(searchMetadata.canonicalName);
-      for (const alias of searchMetadata.deprecationChain) {
+      for (const alias of getAttributeSearchDeprecationAliases(key, {
+        includeTemplateKeys: true,
+      })) {
         candidates.add(alias);
       }
     }
