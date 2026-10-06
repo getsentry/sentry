@@ -224,9 +224,13 @@ def delete_subscription_from_snuba(query_subscription_id: int, **kwargs: Any) ->
 
 
 def _create_in_snuba(subscription: QuerySubscription) -> str:
-    with traces.start_span(name="create_in_snuba", attributes={"sentry.op": "snuba.tasks"}) as span:
-        span.set_attribute("dataset", subscription.snuba_query.dataset)
-
+    with traces.start_span(
+        name="create_in_snuba",
+        attributes={
+            "sentry.op": "snuba.tasks",
+            "dataset": subscription.snuba_query.dataset,
+        },
+    ):
         snuba_query = subscription.snuba_query
         entity_subscription = get_entity_subscription_from_snuba_query(
             snuba_query,
@@ -350,10 +354,13 @@ def subscription_checker(**kwargs: Any) -> None:
         date_updated__lt=timezone.now() - SUBSCRIPTION_STATUS_MAX_AGE,
     ):
         with traces.start_span(
-            name="repair_subscription", attributes={"sentry.op": "repair_subscription"}
-        ) as span:
-            span.set_attribute("subscription_id", subscription.id)
-            span.set_attribute("status", subscription.status)
+            name="repair_subscription",
+            attributes={
+                "sentry.op": "repair_subscription",
+                "subscription_id": subscription.id,
+                "status": subscription.status,
+            },
+        ):
             count += 1
             if subscription.status == QuerySubscription.Status.CREATING.value:
                 create_subscription_in_snuba.delay(query_subscription_id=subscription.id)

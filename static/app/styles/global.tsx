@@ -203,9 +203,6 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
       .theme-dark .loading .loading-indicator {
         background: transparent;
       }
-      .theme-dark .loading.triangle .loading-indicator {
-        background: #fff;
-      }
     `
   }
 
@@ -223,11 +220,6 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
     &:hover {
       color: ${theme.tokens.interactive.link.accent.hover};
     }
-  }
-
-  .group-detail:before {
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-    background: ${theme.tokens.border.primary};
   }
 
   .form-actions {
@@ -295,11 +287,6 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
       transition-duration: 0s !important;
       transition-delay: 0s !important;
     }
-  }
-
-  .ReactVirtualized__Grid:focus-visible,
-  .ReactVirtualized__List:focus-visible {
-    outline: ${theme.tokens.focus.default} auto 1px;
   }
 
   /* Override css in LESS files here as we want to manually control dark mode for now */
@@ -372,53 +359,16 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
           .traceback {
             border-color: ${theme.tokens.border.primary};
 
-            &.in-app-traceback {
-              .frame {
-                &.leads-to-app {
-                  &.collapsed {
-                    .title {
-                      border-color: ${theme.tokens.border.primary};
-                      background: ${theme.tokens.background.primary};
-                    }
-                  }
-                }
-              }
-            }
-
-            .frame,
-            .frame.system-frame {
+            .frame {
               border-top-color: ${theme.tokens.border.primary};
 
-              &.is-expandable .title:hover {
-                background-color: ${theme.tokens.background.primary};
-              }
-              .btn-toggle {
-                color: ${theme.tokens.content.primary};
-                background: transparent;
-              }
-              .title {
-                background-color: ${theme.tokens.background.secondary};
-              }
-              &.is-expandable .title {
-                background-color: ${theme.tokens.background.secondary};
-              }
               .context {
                 background: ${theme.tokens.background.primary};
               }
             }
           }
-          .group-detail h3 em {
-            color: ${theme.tokens.content.secondary};
-          }
           .event-details-container {
             background-color: ${theme.tokens.background.primary};
-            .secondary {
-              border-left-color: ${theme.tokens.border.primary};
-            }
-          }
-          .nav-header a.help-link,
-          .nav-header span.help-link a {
-            color: ${theme.tokens.content.secondary};
           }
 
           /* Global Selection header date picker */

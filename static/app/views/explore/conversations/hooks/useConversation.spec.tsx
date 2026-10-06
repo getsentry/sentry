@@ -130,7 +130,7 @@ describe('useConversation', () => {
 
   it('stops loading after reaching the pagination cap', async () => {
     const url = `/organizations/${organization.slug}/agents/conversations/conv-123/`;
-    const requests = Array.from({length: 10}, (_, index) =>
+    const requests = Array.from({length: 100}, (_, index) =>
       MockApiClient.addMockResponse({
         url,
         match: [
@@ -154,12 +154,12 @@ describe('useConversation', () => {
 
     await waitFor(() => {
       expect(requests.map(request => request.mock.calls.length)).toEqual(
-        Array.from({length: 10}, () => 1)
+        Array.from({length: 100}, () => 1)
       );
     });
 
     expect(result.current.isLoading).toBe(false);
-    expect(result.current.nodes).toHaveLength(10);
+    expect(result.current.nodes).toHaveLength(100);
   });
 
   it('maps gen_ai.input.messages to node attributes', async () => {

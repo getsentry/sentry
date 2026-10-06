@@ -27,6 +27,7 @@ from sentry.apidocs.response_types import (
 )
 from sentry.ingest.inbound_filters import get_supported_condition_types
 from sentry.models.custominboundfilter import (
+    MAX_FILTERS_PER_PROJECT,
     ConditionType,
     CustomInboundFilter,
     DataType,
@@ -35,7 +36,6 @@ from sentry.models.project import Project
 from sentry.tasks.relay import schedule_invalidate_project_config
 
 MAX_CONDITIONS_PER_FILTER = 10
-MAX_FILTERS_PER_PROJECT = 50
 # Relay matches every condition value as a glob against each item, so the size of a
 # filter bounds how much matching work a single filter can cause. A filter stored
 # before this cap keeps its size but cannot grow.
