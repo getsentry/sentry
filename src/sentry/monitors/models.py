@@ -476,7 +476,7 @@ class MonitorCheckIn(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
     guid = UUIDField(unique=True, auto_add=True)
-    project_id = BoundedBigIntegerField(db_index=True)
+    project_id = BoundedBigIntegerField()
     monitor = FlexibleForeignKey("monitors.Monitor", db_index=False)
     monitor_environment = FlexibleForeignKey("monitors.MonitorEnvironment", db_index=False)
     """
@@ -566,12 +566,6 @@ class MonitorCheckIn(Model):
             # Note: If we remove all indexes that start with `monitor`, we need to add the index back on the
             # column
             models.Index(fields=["monitor", "date_added", "status"]),
-            # used for latest on api endpoints
-            models.Index(
-                fields=["monitor", "-date_added"],
-                condition=Q(status=CheckInStatus.IN_PROGRESS),
-                name="api_latest",
-            ),
             # Note: If we remove all indexes that start with `monitor`, we need to add the index back on the
             # column
             models.Index(fields=["monitor", "status", "date_added"]),
