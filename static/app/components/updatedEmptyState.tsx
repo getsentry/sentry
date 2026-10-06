@@ -212,19 +212,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
               }
             `}
           >
-            <Container
-              padding="3xl"
-              css={css`
-                &:after {
-                  content: '';
-                  position: absolute;
-                  right: 50%;
-                  top: 19%;
-                  height: 78%;
-                  border-right: 1px ${theme.tokens.border.primary} solid;
-                }
-              `}
-            >
+            <Container padding="3xl">
               <SetupTitle project={project} />
               <GuidedSteps
                 initialStep={decodeInteger(location.query.guidedStep)}
@@ -273,22 +261,25 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                   );
                 })}
               </GuidedSteps>
+              <Container
+                position="absolute"
+                right="50%"
+                top="19%"
+                height="78%"
+                borderRight="primary"
+              />
             </Container>
             <Container padding="3xl">
               <BodyTitle>{t('Preview a Sentry Issue')}</BodyTitle>
-              <Container marginTop="md">
+              <Container marginTop="md" width="720px" maxWidth="100%">
                 <iframe
                   src="https://demo.arcade.software/bQko6ZTRFMyTm6fJaDzs?embed"
                   loading="lazy"
                   allowFullScreen
                   title="Sentry issue preview"
-                  style={{
-                    width: 720,
-                    maxWidth: '100%',
-                    height: 420,
-                    border: 0,
-                    colorScheme: 'auto',
-                  }}
+                  width="100%"
+                  height={420}
+                  style={{border: 0, colorScheme: 'auto'}}
                 />
               </Container>
             </Container>
