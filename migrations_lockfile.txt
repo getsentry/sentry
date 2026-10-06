@@ -21,7 +21,7 @@ insights: 0001_squashed_0002_backfill_team_starred
 
 investigations: 0010_add_investigation_seen_and_comment
 
-monitors: 0014_add_monitorcheckinconfig
+monitors: 0015_backfill_checkin_config
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
