@@ -31,7 +31,7 @@ export function InnerIntentForm({
   const [isHandlingSubmit, setIsHandlingSubmit] = useState(false);
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (isSubmitting || stripeIsBlocked || submittingRef.current) {
+    if (isSubmitting || submittingRef.current) {
       return;
     }
     submittingRef.current = true;
@@ -122,7 +122,7 @@ export function InnerIntentForm({
               type="submit"
               variant="primary"
               busy={isSubmitting || isHandlingSubmit}
-              disabled={isSubmitting || isHandlingSubmit || stripeIsBlocked}
+              disabled={isSubmitting || isHandlingSubmit}
             >
               {buttonText ?? t('Save Changes')}
             </Button>
