@@ -3,16 +3,16 @@ from typing import Any, Literal, NamedTuple
 from sentry import tagstore
 from sentry.models.environment import Environment
 from sentry.models.release import Release
-from sentry.rules.filters.latest_adopted_release_filter import (
-    get_project_release_cache_key as latest_adopted_release_cache_key,
-)
-from sentry.rules.filters.latest_release import (
-    get_project_release_cache_key as latest_release_cache_key,
-)
 from sentry.search.utils import get_latest_release
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
 from sentry.workflow_engine.caches import CacheMapping
+from sentry.workflow_engine.handlers.condition.utils.releases import (
+    get_latest_adopted_release_cache_key as latest_adopted_release_cache_key,
+)
+from sentry.workflow_engine.handlers.condition.utils.releases import (
+    get_latest_release_cache_key as latest_release_cache_key,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.preview import UnsupportedPreviewBehavior
 from sentry.workflow_engine.registry import condition_handler_registry

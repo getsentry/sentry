@@ -1,0 +1,1090 @@
+/* eslint import/no-nodejs-modules:0 */
+import fs from 'node:fs';
+import {createRequire} from 'node:module';
+import path from 'node:path';
+
+import {defineConfig} from '@rsbuild/core';
+import type {ProxyOptions, RsbuildConfig, ServerConfig} from '@rsbuild/core';
+import {pluginBasicSsl} from '@rsbuild/plugin-basic-ssl';
+import {RsdoctorRspackPlugin} from '@rsdoctor/rspack-plugin';
+import type {
+  Configuration,
+  OptimizationSplitChunksCacheGroup,
+  SwcLoaderOptions,
+} from '@rspack/core';
+import rspack from '@rspack/core';
+import {ReactRefreshRspackPlugin} from '@rspack/plugin-react-refresh';
+import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
+import CompressionPlugin from 'compression-webpack-plugin';
+import HtmlWebpackPlugin from 'html-webpack-plugin';
+import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
+
+import {
+  createHostCheckMiddleware,
+  createHostCheckUpgrade,
+} from './build-utils/dev-server-host-check.ts';
+import LastBuiltPlugin from './build-utils/last-built-plugin.ts';
+import {rehypePlugins, remarkPlugins} from './build-utils/mdx-plugins.ts';
+import {StoryManifestPlugin} from './build-utils/story-manifest.ts';
+import packageJson from './package.json' with {type: 'json'};
+
+const {env} = process;
+
+// Environment configuration
+env.NODE_ENV = env.NODE_ENV ?? 'development';
+const IS_PRODUCTION = env.NODE_ENV === 'production';
+const IS_TEST = env.NODE_ENV === 'test' || !!env.TEST_SUITE;
+
+// This is used to stop rendering dynamic content for tests/snapshots
+// We want it in the case where we are running tests and it is in CI,
+// this should not happen in local
+const IS_CI = !!env.CI;
+
+// We intentionally build in production mode for acceptance tests, so we explicitly use an env var to
+// say that the bundle will be used in acceptance tests. This affects webpack plugins and components
+// with dynamic data that render differently statically in tests.
+//
+// Note, cannot assume it is an acceptance test if `IS_CI` is true, as our image builds has the
+// `CI` env var set.
+const IS_ACCEPTANCE_TEST = !!env.IS_ACCEPTANCE_TEST;
+const IS_DEPLOY_PREVIEW = !!env.NOW_GITHUB_DEPLOYMENT;
+
+const IS_UI_DEV_ONLY = !!env.SENTRY_UI_DEV_ONLY;
+const IS_ADMIN_UI_DEV = !!env.SENTRY_ADMIN_UI_DEV;
+
+const DEV_MODE = !(IS_PRODUCTION || IS_CI);
+const WEBPACK_MODE: Configuration['mode'] = IS_PRODUCTION ? 'production' : 'development';
+const CONTROL_SILO_PORT = env.SENTRY_CONTROL_SILO_PORT;
+
+// Sentry Developer Tool flags. These flags are used to enable / disable different developer tool
+// features in the Sentry UI.
+// TanStack devtools are disabled by default, but can be enabled by setting the USE_TANSTACK_DEVTOOL env var to 'true'
+const USE_TANSTACK_DEVTOOL = !!env.USE_TANSTACK_DEVTOOL;
+
+// Environment variables that are used by other tooling and should
+// not be user configurable.
+//
+// Ports used by webpack dev server to proxy to backend and webpack
+const SENTRY_BACKEND_PORT = env.SENTRY_BACKEND_PORT;
+const SENTRY_WEBPACK_PROXY_HOST = env.SENTRY_WEBPACK_PROXY_HOST;
+const SENTRY_WEBPACK_PROXY_PORT = env.SENTRY_WEBPACK_PROXY_PORT;
+const SENTRY_RELEASE_VERSION = env.SENTRY_RELEASE_VERSION;
+const SENTRY_DEVSERVER_NGROK = env.SENTRY_DEVSERVER_NGROK;
+
+// Used by sentry devserver runner to force using webpack-dev-server
+const FORCE_WEBPACK_DEV_SERVER = !!env.FORCE_WEBPACK_DEV_SERVER;
+const HAS_WEBPACK_DEV_SERVER_CONFIG =
+  !!SENTRY_BACKEND_PORT && !!SENTRY_WEBPACK_PROXY_PORT;
+
+// User/tooling configurable environment variables
+const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
+// Type checking is resource intensive, enable it explicitly with ENABLE_TS_CHECKER=1.
+const SHOULD_CHECK_TYPES = DEV_MODE && Boolean(env.ENABLE_TS_CHECKER);
+const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
+const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
+// Only entry points are eagerly built, lazy build routes. Saves memory and startup time.
+const SHOULD_LAZY_COMPILATION = Boolean(env.LAZY_COMPILATION);
+
+// Deploy previews are built using vercel. We can check if we're in vercel's
+// build process by checking the existence of the PULL_REQUEST env var.
+const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
+  branch: env.NOW_GITHUB_COMMIT_REF,
+  commitSha: env.NOW_GITHUB_COMMIT_SHA,
+  githubOrg: env.NOW_GITHUB_COMMIT_ORG,
+  githubRepo: env.NOW_GITHUB_COMMIT_REPO,
+};
+
+const require = createRequire(import.meta.url);
+
+// When deploy previews are enabled always enable experimental SPA mode --
+// deploy previews are served standalone. Otherwise fallback to the environment
+// configuration.
+const SENTRY_EXPERIMENTAL_SPA =
+  !DEPLOY_PREVIEW_CONFIG && !IS_UI_DEV_ONLY ? !!env.SENTRY_EXPERIMENTAL_SPA : true;
+
+// We should only read from the SENTRY_SPA_DSN env variable if SENTRY_EXPERIMENTAL_SPA
+// is true. This is to make sure we can validate that the experimental SPA mode is
+// working properly.
+const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
+
+// this is the path to the django "sentry" app, we output the webpack build here to `dist`
+// so that `django collectstatic` and so that we can serve the post-webpack bundles
+const sentryDjangoAppPath = path.join(import.meta.dirname, 'src/sentry/static/sentry');
+const distPath = path.join(sentryDjangoAppPath, 'dist');
+const staticPrefix = path.join(import.meta.dirname, 'static');
+const typeLoaderPath = path.resolve(
+  import.meta.dirname,
+  'static/app/stories/typeLoader.ts'
+);
+
+// Locale compilation and optimizations.
+//
+// Locales are code-split from the app and vendor chunk into separate chunks
+// that will be loaded by layout.html depending on the users configured locale.
+//
+// Code splitting happens using the splitChunks plugin, configured under the
+// `optimization` key of the webpack module. We create chunk (cache) groups for
+// each of our supported locales and extract the PO files and moment.js locale
+// files into each chunk.
+//
+// A plugin is used to remove the locale chunks from the app entry's chunk
+// dependency list, so that our compiled bundle does not expect that *all*
+// locale chunks must be loaded
+const localeCatalogPath = path.join(
+  import.meta.dirname,
+  'src',
+  'sentry',
+  'locale',
+  'catalogs.json'
+);
+
+type LocaleCatalog = {
+  supported_locales: string[];
+};
+
+const localeCatalog: LocaleCatalog = JSON.parse(
+  fs.readFileSync(localeCatalogPath, 'utf8')
+);
+
+// Translates a locale name to a language code.
+//
+// * po files are kept in a directory represented by the locale name [0]
+// * moment.js locales are stored as language code files
+//
+// [0] https://docs.djangoproject.com/en/2.1/topics/i18n/#term-locale-name
+const localeToLanguage = (locale: string) => locale.toLowerCase().replace('_', '-');
+const supportedLocales = localeCatalog.supported_locales;
+const supportedLanguages = supportedLocales.map(localeToLanguage);
+
+// A mapping of chunk groups used for locale code splitting
+const localeChunkGroups: Record<string, OptimizationSplitChunksCacheGroup> = {};
+
+for (const locale of supportedLocales) {
+  // No need to split the english locale out as it will be completely empty and
+  // is not included in the django layout.html.
+  if (locale === 'en') {
+    continue;
+  }
+
+  const language = localeToLanguage(locale);
+  const group = `locale/${language}`;
+
+  // We are defining a chunk that combines the django language files with
+  // moment's locales as if you want one, you will want the other.
+  //
+  // In the application code you will still need to import via their module
+  // paths and not the chunk name
+  localeChunkGroups[group] = {
+    chunks: 'async',
+    name: group,
+    test: new RegExp(
+      `(locale\\/${locale}\\/.*\\.po$)|(moment\\/locale\\/${language}\\.js$)`
+    ),
+    enforce: true,
+  };
+}
+
+const DEFINED_ENV_VARS = {
+  'process.env.IS_ACCEPTANCE_TEST': JSON.stringify(IS_ACCEPTANCE_TEST),
+  'process.env.NODE_ENV': JSON.stringify(env.NODE_ENV),
+  'process.env.DEPLOY_PREVIEW_CONFIG': JSON.stringify(DEPLOY_PREVIEW_CONFIG),
+  'process.env.EXPERIMENTAL_SPA': JSON.stringify(SENTRY_EXPERIMENTAL_SPA),
+  'process.env.SPA_DSN': JSON.stringify(SENTRY_SPA_DSN),
+  'process.env.SENTRY_RELEASE_VERSION': JSON.stringify(SENTRY_RELEASE_VERSION),
+  'process.env.USE_TANSTACK_DEVTOOL': JSON.stringify(USE_TANSTACK_DEVTOOL),
+};
+
+const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptions => ({
+  env: {
+    mode: 'usage',
+    // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
+    coreJs: '3.45.0',
+    targets: packageJson.browserslist.production,
+    shippedProposals: true,
+  },
+  jsc: {
+    experimental: {
+      plugins: [
+        [
+          '@swc/plugin-emotion',
+          {
+            sourceMap: true,
+            // The "dev-only" option does not seem to apply correctly
+            autoLabel: DEV_MODE ? 'always' : 'never',
+          },
+        ],
+        [
+          'swc-plugin-component-annotate',
+          Object.assign(
+            {},
+            {
+              'component-attr': 'data-sentry-component',
+              'element-attr': 'data-sentry-element',
+              'source-file-attr': 'data-sentry-source-file',
+              'transparent-components': ['Flex', 'Grid', 'Container', 'Stack'],
+            },
+            // We don't want to add source path attributes in production
+            // as it will unnecessarily bloat the bundle size
+            IS_PRODUCTION
+              ? {}
+              : {
+                  'source-path-attr': 'data-sentry-source-path',
+                }
+          ),
+        ],
+      ],
+    },
+    parser: {
+      syntax: 'typescript',
+      tsx: true,
+    },
+    transform: {
+      // TODO: Enable in production
+      reactCompiler:
+        options.reactCompiler &&
+        (IS_DEPLOY_PREVIEW || IS_ACCEPTANCE_TEST || IS_UI_DEV_ONLY),
+      react: {
+        runtime: 'automatic',
+        development: DEV_MODE,
+        refresh: SHOULD_HOT_MODULE_RELOAD,
+        importSource: '@emotion/react',
+      },
+    },
+  },
+  isModule: 'unknown',
+});
+
+/**
+ * Main Webpack config for Sentry React SPA.
+ */
+
+const appConfig: Configuration = {
+  name: 'app',
+  mode: WEBPACK_MODE,
+  target: 'browserslist',
+  // Fail on first error instead of continuing to build
+  // https://rspack.rs/config/other-options#bail
+  bail: IS_PRODUCTION,
+  entry: {
+    /**
+     * Main Sentry SPA
+     *
+     * The order here matters for `getsentry`
+     */
+    app: ['sentry/utils/setupStatics', 'sentry'],
+
+    // admin interface
+    gsAdmin: ['sentry/utils/setupStatics', path.join(staticPrefix, 'gsAdmin')],
+
+    /**
+     * Legacy CSS Webpack appConfig for Django-powered views.
+     * This generates a single "sentry.css" file that imports ALL component styles
+     * for use on Django-powered pages.
+     */
+    sentry: 'less/sentry.less',
+  },
+  context: staticPrefix,
+  incremental: DEV_MODE,
+  watchOptions: {
+    // StoryManifestPlugin owns these watches so it can update the virtual
+    // manifest before invalidating changed and removed story dependencies. Its
+    // virtual module must also be ignored so the filesystem watcher does not
+    // repeatedly report the intentionally nonexistent file as removed.
+    ignored: ['**/*.stories.tsx', '**/*.mdx', `**/${StoryManifestPlugin.modulePath}`],
+  },
+  experiments: {
+    futureDefaults: true,
+    // https://rspack.rs/config/experiments#experimentsnativewatcher
+    // Switching branches seems to get stuck in build loop https://github.com/web-infra-dev/rspack/issues/11590
+    nativeWatcher: true,
+  },
+  // https://rspack.rs/config/lazy-compilation
+  lazyCompilation: {
+    imports: true,
+    entries: false,
+    // Always lazy-compile type-loader modules (they run the TS compiler and are expensive)
+    test(module) {
+      if ('request' in module && typeof module.request === 'string') {
+        if (module.request.includes(typeLoaderPath)) {
+          return true;
+        }
+      }
+      return SHOULD_LAZY_COMPILATION;
+    },
+  },
+  module: {
+    /**
+     * XXX: Modifying the order/contents of these rules may break `getsentry`
+     * Please remember to test it.
+     */
+    rules: [
+      {
+        test: /\.(?:tsx?|jsx?)$/,
+        oneOf: [
+          {
+            include: /node_modules/,
+            // core-js: Avoids recompiling core-js based on usage imports
+            // react-select: Ships pre-compiled ESM with emotion's keyframes already
+            // compiled via swc. Re-processing with @swc/plugin-emotion causes
+            // "illegal escape sequence" warnings in dev mode.
+            exclude: /node_modules[\\/](core-js|react-select)/,
+            loader: 'builtin:swc-loader',
+            options: swcReactLoaderConfig({reactCompiler: false}),
+          },
+          {
+            // Application code only.
+            exclude: /node_modules/,
+            loader: 'builtin:swc-loader',
+            options: swcReactLoaderConfig({reactCompiler: true}),
+          },
+        ],
+      },
+      {
+        test: /\.mdx?$/,
+        use: [
+          {
+            loader: 'builtin:swc-loader',
+            options: swcReactLoaderConfig({reactCompiler: false}),
+          },
+          {
+            loader: '@mdx-js/loader',
+            options: {
+              remarkPlugins,
+              rehypePlugins,
+            },
+          },
+        ],
+      },
+      {
+        test: /\.po$/,
+        loader: path.resolve(import.meta.dirname, './build-utils/po-catalog-loader.ts'),
+        type: 'javascript/dynamic',
+      },
+      {
+        test: /\.pegjs$/,
+        use: [
+          {loader: path.resolve(import.meta.dirname, './build-utils/peggy-loader.ts')},
+        ],
+      },
+      {
+        test: /\.css$/,
+        use: ['style-loader', 'css-loader'],
+      },
+      {
+        test: /\.less$/,
+        include: [staticPrefix],
+        use: [
+          {
+            loader: rspack.CssExtractRspackPlugin.loader,
+            options: {
+              publicPath: 'auto',
+            },
+          },
+          'css-loader',
+          'less-loader',
+        ],
+      },
+      {
+        test: /\.(?:woff2?|ttf|eot|svg|png|gif|ico|jpe?g|avif|webp|mp4)$/,
+        type: 'asset',
+      },
+    ],
+  },
+  plugins: [
+    /**
+     * Without this, webpack will chunk the locales but attempt to load them all
+     * eagerly.
+     */
+    new rspack.IgnorePlugin({
+      contextRegExp: /moment$/,
+      resourceRegExp: /^\.\/locale$/,
+    }),
+
+    /**
+     * Restrict translation files that are pulled in through app/translations.jsx
+     * and through moment/locale/* to only those which we create bundles for via
+     * locale/catalogs.json.
+     *
+     * Without this, webpack will still output all of the unused locale files despite
+     * the application never loading any of them.
+     */
+    new rspack.ContextReplacementPlugin(
+      /sentry-locale$/,
+      path.join(import.meta.dirname, 'src', 'sentry', 'locale', path.sep),
+      true,
+      new RegExp(`(${supportedLocales.join('|')})/.*\\.po$`)
+    ),
+    new rspack.ContextReplacementPlugin(
+      /moment\/locale/,
+      new RegExp(`(${supportedLanguages.join('|')})\\.js$`)
+    ),
+
+    /**
+     * The platformicons package uses dynamic require() to load SVG files:
+     * require(`../${format === "lg" ? "svg_80x80" : "svg"}/${icon}.svg`)
+     *
+     * This plugin tells rspack where to find those SVG files
+     */
+    new rspack.ContextReplacementPlugin(/platformicons/, /\.svg$/),
+
+    /**
+     * Extract CSS into separate files.
+     * https://rspack.rs/plugins/rspack/css-extract-rspack-plugin
+     */
+    new rspack.CssExtractRspackPlugin({
+      // We want the sentry css file to be unversioned for frontend-only deploys
+      // We will cache using `Cache-Control` headers
+      filename: 'entrypoints/[name].css',
+    }),
+
+    /**
+     * Defines environment specific flags.
+     */
+    new rspack.DefinePlugin(DEFINED_ENV_VARS),
+
+    ...(SHOULD_CHECK_TYPES
+      ? [
+          new TsCheckerRspackPlugin({
+            typescript: {
+              configFile: path.resolve(import.meta.dirname, './tsconfig.json'),
+              typescriptPath: require.resolve('typescript-7/package.json'),
+            },
+            devServer: false,
+          }),
+        ]
+      : []),
+
+    new StoryManifestPlugin(),
+
+    ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorRspackPlugin({})] : []),
+
+    /**
+     * Copies file logo-sentry.svg to the dist/entrypoints directory so that it can be accessed by
+     * the backend
+     */
+    new rspack.CopyRspackPlugin({
+      patterns: [
+        {
+          from: path.join(staticPrefix, 'images/logo-sentry.svg'),
+          to: 'entrypoints/logo-sentry.svg',
+          toType: 'file',
+        },
+        // Add robots.txt when deploying in preview mode so public previews do
+        // not get indexed by bots.
+        ...(IS_DEPLOY_PREVIEW
+          ? [
+              {
+                from: path.join(staticPrefix, 'robots-dev.txt'),
+                to: 'robots.txt',
+                toType: 'file' as const,
+              },
+            ]
+          : []),
+      ],
+    }),
+  ],
+
+  resolveLoader: {
+    alias: {
+      'type-loader': typeLoaderPath,
+    },
+  },
+
+  resolve: {
+    alias: {
+      sentry: path.join(staticPrefix, 'app'),
+      'sentry-images': path.join(staticPrefix, 'images'),
+      'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
+      'sentry-fonts': path.join(staticPrefix, 'fonts'),
+
+      // Keep Prose available until the text barrel is fully isolated.
+      '@sentry/scraps/text$': path.join(
+        staticPrefix,
+        'app',
+        'components',
+        'core',
+        'text'
+      ),
+      '@sentry/scraps': [
+        path.join(staticPrefix, 'packages', 'scraps', 'src'),
+        path.join(staticPrefix, 'app', 'components', 'core'),
+      ],
+
+      getsentry: path.join(staticPrefix, 'gsApp'),
+      'getsentry-images': path.join(staticPrefix, 'images'),
+      'getsentry-test': path.join(import.meta.dirname, 'tests', 'js', 'getsentry-test'),
+      admin: path.join(staticPrefix, 'gsAdmin'),
+
+      // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
+      // to be resolved
+      less: path.join(staticPrefix, 'less'),
+      'sentry-test': path.join(import.meta.dirname, 'tests', 'js', 'sentry-test'),
+      'sentry-locale': path.join(import.meta.dirname, 'src', 'sentry', 'locale'),
+      'ios-device-list': path.join(
+        import.meta.dirname,
+        'node_modules',
+        'ios-device-list',
+        'dist',
+        'ios-device-list.min.js'
+      ),
+    },
+
+    fallback: {
+      vm: false,
+      stream: false,
+      // `pnpm why` says this is only needed in dev deps
+      string_decoder: false,
+    },
+
+    // Prefers local modules over node_modules
+    preferAbsolute: true,
+    modules: ['node_modules'],
+    extensions: ['.tsx', '.ts', '.js', '.json', '.less'],
+    symlinks: true,
+  },
+  output: {
+    crossOriginLoading: 'anonymous',
+    // 'continue' rather than the default 'stop': if the policy name is missing
+    // from the CSP allowlist, keep loading chunks instead of failing to boot.
+    trustedTypes: {policyName: 'sentry-bundler', onPolicyCreationFailure: 'continue'},
+    // Clean the output dir before emit, but keep the service-worker assets
+    // emitted by the separate `workerConfig` compiler below. Both compilers
+    // write to this same `dist` path and run in parallel, so without `keep`
+    // app's clean would race and delete the worker's output.
+    clean: {keep: /(entrypoints|sourcemaps)\/service-worker/},
+    path: distPath,
+    publicPath: '',
+    filename: 'entrypoints/[name].js',
+    chunkFilename: 'chunks/[name].[contenthash].js',
+    sourceMapFilename: 'sourcemaps/[name].[contenthash].js.map',
+    assetModuleFilename: 'assets/[name].[contenthash][ext]',
+  },
+  optimization: {
+    chunkIds: IS_PRODUCTION ? 'compact-hashed' : 'named',
+    moduleIds: IS_PRODUCTION ? 'compact-hashed' : 'named',
+    splitChunks: {
+      // Only affect async chunks, otherwise webpack could potentially split our initial chunks
+      // Which means the app will not load because we'd need these additional chunks to be loaded in our
+      // django template.
+      chunks: 'async',
+      maxInitialRequests: 10, // (default: 30)
+      maxAsyncRequests: 10, // (default: 30)
+      cacheGroups: localeChunkGroups,
+    },
+
+    // This only runs in production mode
+    minimizer: [
+      new rspack.LightningCssMinimizerRspackPlugin(),
+      new rspack.SwcJsMinimizerRspackPlugin(),
+    ],
+  },
+  devtool: IS_PRODUCTION ? 'source-map' : 'cheap-module-source-map',
+};
+
+/**
+ * Separate config for the service-worker entry point.
+ */
+const workerConfig: Configuration = {
+  name: 'service-worker',
+  mode: appConfig.mode,
+  target: 'webworker',
+  bail: appConfig.bail,
+  entry: {
+    'service-worker': 'sentry/serviceWorker/worker/worker',
+  },
+  context: staticPrefix,
+  experiments: appConfig.experiments,
+  lazyCompilation: appConfig.lazyCompilation,
+  module: {
+    rules: [
+      {
+        test: /\.ts$/,
+        // core-js: Avoids recompiling core-js based on usage imports
+        // compiled via swc.
+        exclude: /node_modules[\\/](core-js)/,
+        loader: 'builtin:swc-loader',
+        options: {
+          env: {
+            mode: 'usage',
+            // https://rspack.rs/guide/features/builtin-swc-loader#polyfill-injection
+            coreJs: '3.45.0',
+            targets: packageJson.browserslist.production,
+            shippedProposals: true,
+          },
+          jsc: {
+            parser: {
+              syntax: 'typescript',
+              tsx: true,
+            },
+            transform: {
+              react: {
+                runtime: 'automatic',
+                development: DEV_MODE,
+                refresh: false,
+              },
+            },
+          },
+          isModule: 'unknown',
+        },
+      },
+    ],
+  },
+  plugins: [
+    // Disable progress bar
+    new rspack.ProgressPlugin(() => {}),
+    /**
+     * Without this, webpack will chunk the locales but attempt to load them all
+     * eagerly.
+     */
+    new rspack.IgnorePlugin({
+      contextRegExp: /moment$/,
+      resourceRegExp: /^\.\/locale$/,
+    }),
+
+    /**
+     * Defines environment specific flags.
+     */
+    new rspack.DefinePlugin(DEFINED_ENV_VARS),
+  ],
+  resolveLoader: {},
+  resolve: appConfig.resolve,
+  // Don't clean: app's compiler owns cleaning `dist` (see its `clean.keep`).
+  output: {...appConfig.output, clean: false},
+  optimization: {...appConfig.optimization, runtimeChunk: false},
+  devtool: appConfig.devtool,
+};
+
+if (IS_TEST) {
+  (appConfig.resolve!.alias! as Record<string, string>)['sentry-fixture'] = path.join(
+    import.meta.dirname,
+    'fixtures',
+    'js-stubs'
+  );
+}
+
+if (IS_ACCEPTANCE_TEST) {
+  appConfig.plugins?.push(new LastBuiltPlugin({basePath: import.meta.dirname}));
+  workerConfig.plugins?.push(new LastBuiltPlugin({basePath: import.meta.dirname}));
+}
+
+let serverConfig: ServerConfig = {
+  htmlFallback: false,
+  publicDir: false,
+};
+
+// Dev only! Hot module reloading
+if (
+  FORCE_WEBPACK_DEV_SERVER ||
+  (HAS_WEBPACK_DEV_SERVER_CONFIG && !NO_DEV_SERVER) ||
+  IS_UI_DEV_ONLY
+) {
+  const allowedHosts = [
+    '.sentry.dev',
+    '.dev.getsentry.net',
+    '.localhost',
+    '127.0.0.1',
+    '.docker.internal',
+    ...(SENTRY_WEBPACK_PROXY_HOST ? [SENTRY_WEBPACK_PROXY_HOST] : []),
+    ...(SENTRY_DEVSERVER_NGROK ? [`.${SENTRY_DEVSERVER_NGROK}`] : []),
+  ];
+  const setupHostCheck: ServerConfig['setup'] = ({server}) => {
+    server.middlewares.use(createHostCheckMiddleware(allowedHosts));
+    server.httpServer?.prependListener('upgrade', createHostCheckUpgrade(allowedHosts));
+  };
+
+  // Preserve the previous dev server's errors-only build diagnostics.
+  appConfig.stats = {warnings: false};
+  workerConfig.stats = {warnings: false};
+
+  if (SHOULD_HOT_MODULE_RELOAD) {
+    // Hot reload react components on save
+    // We include the library here as to not break docker/google cloud builds
+    // since we do not install devDeps there.
+    // tools.rspack replaces Rsbuild's plugins, including its HMR plugin.
+    appConfig.plugins?.push(
+      new rspack.HotModuleReplacementPlugin(),
+      new ReactRefreshRspackPlugin()
+    );
+
+    // TODO: figure out why defining output breaks hot reloading
+    if (IS_UI_DEV_ONLY) {
+      // Rsbuild's dev server serves files from output.distPath.root.
+      appConfig.output = {path: distPath};
+    }
+  }
+
+  serverConfig = {
+    ...serverConfig,
+    headers: {
+      'Document-Policy': 'js-profiling',
+    },
+    host: SENTRY_WEBPACK_PROXY_HOST,
+    port: Number(SENTRY_WEBPACK_PROXY_PORT),
+    setup: setupHostCheck,
+  };
+
+  if (!IS_UI_DEV_ONLY) {
+    // This proxies to local backend server
+    const backendAddress = `http://127.0.0.1:${SENTRY_BACKEND_PORT}/`;
+    const relayAddress = 'http://127.0.0.1:7899';
+
+    // If we're running siloed servers we also need to proxy
+    // those requests to the right server.
+    let controlSiloProxy: ProxyOptions[] = [];
+    if (CONTROL_SILO_PORT) {
+      // TODO(hybridcloud) We also need to use this URL pattern
+      // list to select contro/region when making API requests in non-proxied
+      // environments (like production). We'll likely need a way to consolidate this
+      // with the configuration api.Client uses.
+      const controlSiloAddress = `http://127.0.0.1:${CONTROL_SILO_PORT}`;
+      controlSiloProxy = [
+        {
+          pathFilter: [
+            '/auth/**',
+            '/account/**',
+            '/api/0/users/**',
+            '/api/0/api-tokens/**',
+            '/api/0/sentry-apps/**',
+            '/api/0/organizations/*/audit-logs/**',
+            '/api/0/organizations/*/broadcasts/**',
+            '/api/0/organizations/*/integrations/**',
+            '/api/0/organizations/*/config/integrations/**',
+            '/api/0/organizations/*/sentry-apps/**',
+            '/api/0/organizations/*/sentry-app-installations/**',
+            '/api/0/api-authorizations/**',
+            '/api/0/api-applications/**',
+            '/api/0/doc-integrations/**',
+            '/api/0/assistant/**',
+          ],
+          target: controlSiloAddress,
+          changeOrigin: false,
+        },
+      ];
+    }
+
+    serverConfig = {
+      ...serverConfig,
+      publicDir: {
+        name: 'src/sentry/static/sentry',
+        watch: true,
+        copyOnBuild: false,
+      },
+      // Preserve the static URL prefix, with compiled assets taking precedence.
+      setup: [
+        setupHostCheck,
+        ({server}) =>
+          async () => {
+            const {default: sirv} = await import('sirv');
+            server.middlewares.use(
+              '/_static/dist/sentry',
+              sirv(sentryDjangoAppPath, {dev: true, etag: true})
+            );
+          },
+      ],
+      // syntax for matching is using https://www.npmjs.com/package/micromatch
+      proxy: [
+        ...controlSiloProxy,
+        {
+          pathFilter: [
+            '/api/store/**',
+            '/api/{1..9}*({0..9})/**',
+            '/api/0/relays/outcomes/**',
+          ],
+          target: relayAddress,
+          changeOrigin: false,
+        },
+        {
+          pathFilter: ['!/_static/dist/sentry/**'],
+          target: backendAddress,
+          changeOrigin: false,
+        },
+      ],
+    };
+    appConfig.output!.publicPath = '/_static/dist/sentry/';
+  }
+}
+
+// XXX(epurkhiser): Sentry (development) can be run in an experimental
+// pure-SPA mode, where ONLY /api* requests are proxied directly to the API
+// backend (in this case, sentry.io), otherwise ALL requests are rewritten
+// to a development index.html -- thus, completely separating the frontend
+// from serving any pages through the backend.
+//
+// THIS IS EXPERIMENTAL and has limitations (e.g. you can't use SSO)
+//
+// Various sentry pages still rely on django to serve html views.
+if (IS_UI_DEV_ONLY) {
+  // XXX: If you change this also change its sibiling in:
+  // - static/index.ejs
+  // - static/app/utils/extractSlug.tsx
+  const KNOWN_DOMAINS = /\.?((?:localhost|dev\.getsentry\.net|sentry\.dev)(?::\d*)?)$/;
+
+  const extractSlug = (hostname: string) => {
+    const match = hostname.match(KNOWN_DOMAINS);
+    if (!match) {
+      return null;
+    }
+
+    const [
+      matchedExpression, // Expression includes optional leading `.`
+    ] = match;
+
+    const [slug] = hostname.replace(matchedExpression, '').split('.');
+    return slug;
+  };
+
+  // Try and load certificates from mkcert if available. Use $ pnpm mkcert-localhost
+  const certPath = path.join(import.meta.dirname, 'config');
+  const httpsOptions = fs.existsSync(path.join(certPath, 'localhost.pem'))
+    ? {
+        key: fs.readFileSync(path.join(certPath, 'localhost-key.pem')),
+        cert: fs.readFileSync(path.join(certPath, 'localhost.pem')),
+      }
+    : // Rsbuild's basic SSL plugin generates a certificate when mkcert is absent.
+      {};
+
+  serverConfig = {
+    ...serverConfig,
+    // dev.getsentry.net resolves to IPv4; localhost can bind to IPv6 only.
+    host: SENTRY_WEBPACK_PROXY_HOST ?? '127.0.0.1',
+    compress: true,
+    https: httpsOptions,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Credentials': 'true',
+      'Document-Policy': 'js-profiling',
+      'Service-Worker-Allowed': '/',
+    },
+    proxy: [
+      {
+        pathFilter: [
+          '/api/',
+          '/avatar/',
+          '/organization-avatar/',
+          '/team-avatar/',
+          '/extensions/',
+        ],
+        target: 'https://sentry.io',
+        secure: false,
+        changeOrigin: true,
+        headers: {
+          Referer: 'https://sentry.io/',
+          'Document-Policy': 'js-profiling',
+          origin: 'https://sentry.io',
+        },
+        cookieDomainRewrite: {'.sentry.io': 'localhost'},
+        router: req => {
+          const host = req.headers.host?.split(':')[0];
+          const orgSlug = host ? extractSlug(host) : null;
+          return orgSlug ? `https://${orgSlug}.sentry.io` : 'https://sentry.io';
+        },
+      },
+      {
+        // Handle dev-ui region silo requests.
+        // Normally regions act as subdomains, but doing so in dev-ui
+        // would result in requests bypassing webpack proxy and being sent
+        // directly to region servers. These requests would fail because of CORS.
+        // Instead Client prefixes region requests with `/region/$name` which
+        // we rewrite in the proxy.
+        pathFilter: ['/region/'],
+        target: 'https://us.sentry.io',
+        secure: false,
+        changeOrigin: true,
+        headers: {
+          Referer: 'https://sentry.io/',
+          'Document-Policy': 'js-profiling',
+          origin: 'https://sentry.io',
+        },
+        cookieDomainRewrite: {'.sentry.io': 'localhost'},
+        pathRewrite: {
+          '^/region/[^/]*': '',
+        },
+        router: req => {
+          const regionPathPattern = /^\/region\/([^/]+)/;
+          const regionname = (req.url ?? '').match(regionPathPattern);
+          if (regionname?.[1]) {
+            return `https://${regionname[1]}.sentry.io`;
+          }
+          return 'https://sentry.io';
+        },
+      },
+    ],
+    historyApiFallback: {
+      rewrites: [
+        {
+          from: /^(?!\/(?:_assets|api|avatar|organization-avatar|team-avatar|extensions|region)\/).*$/,
+          to: '/_assets/index.html',
+        },
+      ],
+    },
+  };
+  // Hot reloading breaks if we aren't using a single runtime chunk
+  appConfig.optimization!.runtimeChunk = 'single';
+}
+
+if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
+  appConfig.output!.publicPath = '/_assets/';
+
+  /**
+   * Generate a index.html file used for running the app in pure client mode.
+   * This is currently used for PR deploy previews, where only the frontend
+   * is deployed.
+   */
+  appConfig.plugins?.push(
+    new HtmlWebpackPlugin({
+      favicon: path.resolve(sentryDjangoAppPath, 'images', 'favicon-dev.png'),
+      template: path.resolve(staticPrefix, 'index.ejs'),
+      mobile: true,
+      excludeChunks: IS_ADMIN_UI_DEV ? ['app'] : ['gsAdmin'],
+      title: 'Sentry',
+      window: {
+        __SENTRY_DEV_UI: true,
+      },
+    })
+  );
+}
+
+if (IS_PRODUCTION) {
+  if (!IS_DEPLOY_PREVIEW) {
+    // This compression-webpack-plugin generates pre-compressed files
+    // ending in .gz, to be picked up and served by our internal static media
+    // server as well as nginx when paired with the gzip_static module.
+    // Skipped for deploy previews since Vercel handles compression itself.
+    appConfig.plugins?.push(
+      new CompressionPlugin({
+        algorithm: 'gzip',
+        test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
+      })
+    );
+    workerConfig.plugins?.push(
+      new CompressionPlugin({
+        algorithm: 'gzip',
+        test: /\.(js|map|css|svg|html|txt|ico|eot|ttf)$/,
+      })
+    );
+  }
+
+  // Enable sentry-webpack-plugin for production builds
+  appConfig.plugins?.push(
+    sentryWebpackPlugin({
+      applicationKey: 'sentry-spa',
+      telemetry: false,
+      sourcemaps: {
+        disable: true,
+      },
+      release: {
+        create: false,
+      },
+      reactComponentAnnotation: {
+        // Using swc-plugin-react-component-annotate instead
+        enabled: false,
+      },
+      bundleSizeOptimizations: {
+        // This is enabled so that our SDKs send exceptions to Sentry
+        excludeDebugStatements: false,
+        excludeReplayIframe: true,
+        excludeReplayShadowDom: true,
+      },
+    })
+  );
+}
+
+// Cache rspack builds
+if (env.WEBPACK_CACHE_PATH) {
+  appConfig.cache = true;
+  appConfig.cache = {
+    type: 'persistent',
+    // https://rspack.rs/config/cache
+    storage: {
+      type: 'filesystem',
+      directory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
+    },
+  };
+}
+
+export const configs = [appConfig, workerConfig];
+
+// Configure JSON stats explicitly; the CLI defaults to errors and warnings.
+// Keep module detail for bundle analysis without embedding source text.
+if (env.RSPACK_STATS) {
+  for (const config of configs) {
+    config.stats = {
+      all: false,
+      modules: true,
+      nestedModules: true,
+      source: false,
+      assets: true,
+      chunks: true,
+      chunkRelations: true,
+      chunkGroups: true,
+      entrypoints: true,
+      hash: true,
+      timings: true,
+      version: true,
+      errors: true,
+      warnings: true,
+    };
+  }
+}
+
+// Rsbuild owns the dev server and multi-environment lifecycle. Keep the compiler
+// customization here: Django's entrypoint names, asset layout, and the worker's
+// shared output directory are part of the contract with the backend.
+const rsbuildConfig: RsbuildConfig = {
+  root: import.meta.dirname,
+  mode: WEBPACK_MODE,
+  plugins:
+    IS_UI_DEV_ONLY &&
+    !fs.existsSync(path.join(import.meta.dirname, 'config', 'localhost.pem'))
+      ? [
+          pluginBasicSsl({
+            outputPath: path.join(import.meta.dirname, 'node_modules/.cache/basic-ssl'),
+          }),
+        ]
+      : [],
+  dev: {
+    assetPrefix:
+      typeof appConfig.output?.publicPath === 'string'
+        ? appConfig.output.publicPath
+        : '/',
+    hmr: SHOULD_HOT_MODULE_RELOAD,
+    liveReload: !SENTRY_DEVSERVER_NGROK,
+    // Rsbuild defaults the WebSocket host and port to window.location, which
+    // also works when ngrok/Coder terminates HTTPS in front of the dev server.
+    client: {overlay: false},
+  },
+  server: serverConfig,
+  environments: {
+    app: {
+      source: {
+        entry: {
+          app: {import: ['sentry/utils/setupStatics', 'sentry'], html: false},
+          gsAdmin: {
+            import: ['sentry/utils/setupStatics', path.join(staticPrefix, 'gsAdmin')],
+            html: false,
+          },
+          sentry: {import: 'less/sentry.less', html: false},
+        },
+      },
+      output: {target: 'web', distPath: {root: distPath}, cleanDistPath: false},
+      tools: {
+        htmlPlugin: false,
+        rspack: config => ({...config, ...appConfig}),
+      },
+    },
+    'service-worker': {
+      source: {
+        entry: {
+          'service-worker': {import: 'sentry/serviceWorker/worker/worker', html: false},
+        },
+      },
+      output: {target: 'web-worker', distPath: {root: distPath}, cleanDistPath: false},
+      tools: {
+        htmlPlugin: false,
+        rspack: config => ({...config, ...workerConfig}),
+      },
+    },
+  },
+};
+
+export default defineConfig(rsbuildConfig);
