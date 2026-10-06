@@ -18,6 +18,14 @@ describe('CurrencyCell', () => {
     expect(screen.getByText(/^<\$/)).toBeInTheDocument();
   });
 
+  it('shows the full-precision value in a tooltip', async () => {
+    render(<CurrencyCell value={0.005} />);
+
+    await userEvent.hover(screen.getByText(/^<\$/));
+
+    expect(await screen.findByText('$0.005')).toBeInTheDocument();
+  });
+
   it('renders $0 for zero value', () => {
     render(<CurrencyCell value={0} />);
     expect(screen.getByText('$0')).toBeInTheDocument();

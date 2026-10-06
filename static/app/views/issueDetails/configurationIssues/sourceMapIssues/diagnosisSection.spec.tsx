@@ -21,7 +21,21 @@ function TestWrapper() {
     EVENT_ID,
     'sentry.javascript.browser'
   );
-  return <DiagnosisSection sourceMapQuery={sourceMapQuery} />;
+  return (
+    <DiagnosisSection
+      state={
+        sourceMapQuery.isError
+          ? {
+              status: 'error',
+              message: 'Unable to load source map diagnostic information for this event.',
+              onRetry: sourceMapQuery.refetch,
+            }
+          : sourceMapQuery.data
+            ? {status: 'ready', data: sourceMapQuery.data}
+            : {status: 'loading'}
+      }
+    />
+  );
 }
 
 describe('DiagnosisSection', () => {

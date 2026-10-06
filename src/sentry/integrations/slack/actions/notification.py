@@ -19,7 +19,6 @@ from sentry.integrations.repository.notification_action import (
     NewNotificationActionNotificationMessage,
 )
 from sentry.integrations.services.integration import RpcIntegration
-from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.metrics import record_lifecycle_termination_level
 from sentry.integrations.slack.sdk_client import SlackSdkClient
@@ -31,6 +30,9 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
+from sentry.notifications.platform.shadow.capture import record_legacy_render
+from sentry.notifications.platform.types import NotificationProviderKey
+from sentry.notifications.types import RuleFuture
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
@@ -38,7 +40,6 @@ from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.entrypoints.slack.entrypoint import prepare_slack_thread_for_autofix_updates
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.services.eventstore.models import GroupEvent
-from sentry.types.rules import RuleFuture
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
 from sentry.utils import metrics
 from sentry.workflow_engine.models.action import Action
@@ -189,6 +190,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         client = SlackSdkClient(integration_id=integration.id)
         text = str(blocks.get("text"))
+        record_legacy_render(NotificationProviderKey.SLACK, {"blocks": json_blocks, "text": text})
         message_ts: str | None = None
         # Wrap the Slack API call with lifecycle tracking
         with MessagingInteractionEvent(
@@ -385,6 +387,3 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
     def get_tags_list(self) -> Sequence[str]:
         return [s.strip() for s in self.get_option("tags", "").split(",")]
-
-    def get_form_instance(self) -> SlackNotifyServiceForm:
-        return SlackNotifyServiceForm(self.data, integrations=self.get_integrations())

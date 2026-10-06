@@ -288,20 +288,6 @@ class DiscordIssueAlertTest(RuleTestCase):
         assert len(results) == 0
 
     @responses.activate
-    @mock.patch(
-        "sentry.integrations.discord.actions.issue_alert.form.validate_channel_id",
-        return_value=None,
-    )
-    def test_get_form_instance(self, mock_validate_channel_id: mock.MagicMock) -> None:
-        form = self.rule.get_form_instance()
-        form.full_clean()
-        assert form.is_valid()
-        assert int(form.cleaned_data["server"]) == self.discord_integration.id
-        assert form.cleaned_data["channel_id"] == self.channel_id
-        assert form.cleaned_data["tags"] == self.tags
-        assert mock_validate_channel_id.call_count == 1
-
-    @responses.activate
     def test_label(self) -> None:
         label = self.rule.render_label()
         assert (

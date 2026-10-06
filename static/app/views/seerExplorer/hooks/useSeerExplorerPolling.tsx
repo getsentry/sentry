@@ -24,7 +24,7 @@ const STALE_TIME_MS = 120_000;
 const isResponseComplete = (sessionData: SeerExplorerResponse['session'] | undefined) =>
   sessionData &&
   sessionData.status !== 'processing' &&
-  sessionData.blocks.every((block: Block) => !block.loading) &&
+  (sessionData.blocks ?? []).every((block: Block) => !block.loading) &&
   Object.values(sessionData?.repo_pr_states ?? {}).every(
     state => state.pr_creation_status !== 'creating'
   );

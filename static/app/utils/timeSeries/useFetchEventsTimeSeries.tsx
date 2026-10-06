@@ -4,6 +4,7 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -47,7 +48,7 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   groupBy?: Attribute[];
   /**
-   * Whether to request annotations (dropped-data outcomes) on the response's `meta.annotations`. Off by default, and gated behind the `explore-data-fidelity-annotations` feature flag.
+   * Whether to request annotations (dropped-data outcomes) on the response's `meta.droppedAnnotations` and `meta.acceptedAnnotations`. Off by default, and gated behind the `explore-data-fidelity-annotations` feature flag.
    */
   includeAnnotations?: boolean;
   /**
@@ -102,6 +103,14 @@ export function useFetchSpanTimeSeries<
     options,
     referrer
   );
+}
+
+export function makeEventsTimeSeriesQueryKeyPrefix(organizationSlug: string) {
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/events-timeseries/', {
+      path: {organizationIdOrSlug: organizationSlug},
+    }),
+  ] as const;
 }
 
 /**
@@ -196,14 +205,27 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
   });
 }
 
+/**
+ * One time bucket's volume for a system data-fidelity annotation.
+ */
 export interface Annotation {
   category: string;
-  droppedCount: number;
   end: number;
-  label: string;
+  eventCount: number;
+  outcome: string;
   reason: string;
   start: number;
   type: string;
+  /**
+   * Only sent for datasets with a paired byte category (logs today).
+   */
+  byteSize?: number;
+}
+
+interface IngestionMeta {
+  status: 'healthy' | 'stalled' | 'idle' | 'unknown';
+  completeThrough?: number;
+  delaySeconds?: number;
 }
 
 export type EventsTimeSeriesResponse = {
@@ -212,9 +234,8 @@ export type EventsTimeSeriesResponse = {
     dataset: DiscoverDatasets;
     end: number;
     start: number;
-    annotations?: Annotation[];
-    completeThrough?: number;
-    estimatedIngestionDelaySeconds?: number;
-    ingestionDelayStatus?: 'healthy' | 'stalled' | 'idle' | 'unknown';
+    acceptedAnnotations?: Annotation[];
+    droppedAnnotations?: Annotation[];
+    ingestion?: IngestionMeta;
   };
 };

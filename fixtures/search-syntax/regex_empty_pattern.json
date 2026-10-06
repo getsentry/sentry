@@ -1,0 +1,39 @@
+[
+  {
+    "desc": "An empty pattern is flagged rather than searched for",
+    "query": "message:////",
+    "additionalConfig": {
+      "allowRegex": true
+    },
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "text",
+        "key": {
+          "type": "keySimple",
+          "value": "message",
+          "quoted": false
+        },
+        "value": {
+          "type": "valueText",
+          "value": "",
+          "quoted": false
+        },
+        "negated": false,
+        "operator": "//",
+        "invalid": {
+          "type": "filter-must-have-value",
+          "reason": "Filter must have a value"
+        }
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
+  }
+]

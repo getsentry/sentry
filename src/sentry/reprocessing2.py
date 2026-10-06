@@ -92,6 +92,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Literal, overload
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.db import router
@@ -171,7 +172,18 @@ def backup_unprocessed_event(data: Mapping[str, Any]) -> None:
     if options.get("store.reprocessing-force-disable"):
         return
 
-    event_processing_store.store(dict(data), unprocessed=True)
+    data = dict(data)
+    try:
+        metrics.distribution(
+            "events.size.unprocessed",
+            len(orjson.dumps(data)),
+            tags={"platform": data.get("platform") or "null"},
+            unit="byte",
+        )
+    except Exception:
+        logger.warning("reprocessing2.unprocessed_size_metric_failed", exc_info=True)
+
+    event_processing_store.store(data, unprocessed=True)
 
 
 @dataclass

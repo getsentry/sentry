@@ -22,6 +22,7 @@ from sentry.snuba.discover import (
     OTHER_KEY,
     TOP_KEYS_DEFAULT_LIMIT,
     FacetResult,
+    create_groupby_dict,
     create_result_key,
     transform_tips,
     zerofill,
@@ -310,6 +311,11 @@ def top_events_timeseries(
             timeseries_columns=timeseries_columns,
             equations=equations,
             snuba_params=snuba_params,
+            config=QueryBuilderConfig(
+                functions_acl=functions_acl,
+                skip_tag_resolution=True,
+                transform_alias_to_input_format=transform_alias_to_input_format,
+            ),
         )
         result, other_result = bulk_snuba_queries(
             [top_events_builder.get_snql_query(), other_events_builder.get_snql_query()],
@@ -344,6 +350,8 @@ def top_events_timeseries(
         },
     ):
         result = top_events_builder.process_results(result)
+        if len(other_result.get("data", [])):
+            other_result = other_events_builder.process_results(other_result)
 
         issues: Mapping[int, str | None] = {}
         if "issue" in selected_columns:
@@ -355,18 +363,21 @@ def top_events_timeseries(
         translated_groupby = top_events_builder.translated_groupby
 
         results = (
-            {OTHER_KEY: {"order": limit, "data": other_result["data"]}}
+            {OTHER_KEY: {"order": limit, "data": other_result["data"], "is_other": True}}
             if len(other_result.get("data", []))
             else {}
         )
         # Using the top events add the order to the results
         for index, item in enumerate(top_events["data"]):
             result_key = create_result_key(item, translated_groupby, issues)
-            results[result_key] = {"order": index, "data": []}
+            results[result_key] = {"order": index, "data": [], "is_other": False}
         for row in result["data"]:
             result_key = create_result_key(row, translated_groupby, issues)
             if result_key in results:
                 results[result_key]["data"].append(row)
+                results[result_key]["groupby"] = create_groupby_dict(
+                    row, translated_groupby, issues
+                )
             else:
                 logger.warning(
                     "discover.top-events.timeseries.key-mismatch",
@@ -388,8 +399,10 @@ def top_events_timeseries(
                         if zerofill_results
                         else item["data"]
                     ),
+                    "groupby": item.get("groupby", None),
                     "meta": result["meta"],
                     "order": item["order"],
+                    "is_other": item["is_other"],
                 },
                 snuba_params.start_date,
                 snuba_params.end_date,

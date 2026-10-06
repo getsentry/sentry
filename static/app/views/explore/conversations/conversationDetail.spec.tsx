@@ -6,10 +6,12 @@ import {
   screen,
   userEvent,
   waitFor,
+  waitForElementToBeRemoved,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import type {ConversationStats} from 'sentry/views/explore/conversations/hooks/useConversation';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import ConversationDetailPage from './conversationDetail';
@@ -49,13 +51,34 @@ const CONVERSATION_BODY = [
   }),
 ];
 
+const DEFAULT_STATS: ConversationStats = {
+  endTimestamp: 2_000_000,
+  generationDuration: 1000,
+  inputTokens: 0,
+  llmCalls: 2,
+  usageByModel: [],
+  outputTokens: 0,
+  startTimestamp: 1_000_000,
+  toolCalls: 0,
+  toolErrors: 0,
+  toolNames: [],
+  totalCost: 0,
+  totalTokens: 0,
+};
+
 function mockApis(
   title: string | null = null,
-  spans: Array<Record<string, unknown>> = CONVERSATION_BODY
+  spans: Array<Record<string, unknown>> = CONVERSATION_BODY,
+  statOverrides: Partial<ConversationStats> = {}
 ) {
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
-    body: {conversationId: CONVERSATION_ID, title, spans},
+    body: {
+      conversationId: CONVERSATION_ID,
+      title,
+      spans,
+      stats: {...DEFAULT_STATS, ...statOverrides},
+    },
   });
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/trace-items/attributes/',
@@ -67,7 +90,7 @@ function mockApis(
   });
 }
 
-function renderPage(features: string[] = []) {
+function renderPage(features: string[] = [], query?: Record<string, string>) {
   return render(
     <TopBar.Slot.Provider>
       <TopBar />
@@ -79,6 +102,7 @@ function renderPage(features: string[] = []) {
         route: '/organizations/:orgId/explore/agents/conversations/:conversationId/',
         location: {
           pathname: `/organizations/org-slug/explore/agents/conversations/${CONVERSATION_ID}/`,
+          query,
         },
       },
     }
@@ -151,7 +175,9 @@ describe('ConversationDetailPage breadcrumbs', () => {
     const topBar = screen.getByRole('banner');
 
     expect(
-      await within(topBar).findByRole('link', {name: CONVERSATIONS_SIDEBAR_LABEL})
+      await within(topBar).findByRole('link', {
+        name: CONVERSATIONS_SIDEBAR_LABEL,
+      })
     ).toBeInTheDocument();
     // The conversation id is the top-bar identifier, owned by the TopBar title
     // slot, alongside the copy affordance.
@@ -194,7 +220,7 @@ describe('ConversationDetailPage title', () => {
   });
 });
 
-describe('ConversationDetailPage summary aggregates', () => {
+describe('ConversationDetailPage summary stats', () => {
   beforeEach(() => {
     Element.prototype.scrollTo = jest.fn();
     Element.prototype.scrollIntoView = jest.fn();
@@ -205,65 +231,69 @@ describe('ConversationDetailPage summary aggregates', () => {
     });
   });
 
-  it('uses the reported total when a model breakdown is incomplete', async () => {
-    mockApis(null, [
-      spanFixture({
-        span_id: 'span-partial-tokens',
-        'span.name': 'partial token turn',
-        'precise.start_ts': 1000,
-        'precise.finish_ts': 1000.5,
-        'gen_ai.request.messages': JSON.stringify([{role: 'user', content: 'Hello'}]),
-        'gen_ai.response.text': 'Hi',
-        'gen_ai.response.model': '',
-        'gen_ai.request.model': '',
-        'gen_ai.usage.input_tokens': 100,
-        'gen_ai.usage.total_tokens': 150,
-      }),
-    ]);
+  it('shows available token counts from the API', async () => {
+    mockApis(null, CONVERSATION_BODY, {
+      usageByModel: [
+        {
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          inputCost: 0,
+          inputTokens: 100,
+          llmCalls: 1,
+          model: null,
+          outputCost: 0,
+          outputTokens: 0,
+          reasoningTokens: 0,
+          totalCost: 0,
+          totalTokens: 150,
+        },
+      ],
+      totalTokens: 150,
+    });
     renderPage();
 
     const tokenCount = await screen.findByText('150');
     await userEvent.hover(tokenCount.parentElement!);
 
     expect(await screen.findAllByText('150')).toHaveLength(2);
+    expect(screen.getByText('100')).toBeInTheDocument();
     expect(screen.getByText('Unknown model')).toBeInTheDocument();
+    expect(screen.queryByText('Input cost')).not.toBeInTheDocument();
   });
 
-  it('groups token usage by model and sorts highest usage first', async () => {
-    mockApis(null, [
-      spanFixture({
-        span_id: 'span-tokens',
-        'span.name': 'tokenized turn',
-        'precise.start_ts': 1000,
-        'precise.finish_ts': 1000.5,
-        'gen_ai.request.messages': JSON.stringify([{role: 'user', content: 'Hello'}]),
-        'gen_ai.response.text': 'Hi',
-        'gen_ai.response.model': 'model-alpha',
-        'gen_ai.usage.input_tokens': 150,
-        'gen_ai.usage.output_tokens': 50,
-        'gen_ai.usage.total_tokens': 200,
-      }),
-      spanFixture({
-        span_id: 'span-tokens-second-model',
-        'span.name': 'second model turn',
-        'precise.start_ts': 1001,
-        'precise.finish_ts': 1001.5,
-        'gen_ai.response.model': 'model-beta',
-        'gen_ai.usage.input_tokens': 200,
-        'gen_ai.usage.output_tokens': 100,
-        'gen_ai.usage.total_tokens': 300,
-      }),
-      spanFixture({
-        span_id: 'span-tokens-same-model',
-        'span.name': 'same model turn',
-        'precise.start_ts': 1002,
-        'precise.finish_ts': 1002.5,
-        'gen_ai.response.model': 'model-alpha',
-        'gen_ai.usage.input_tokens': 30,
-        'gen_ai.usage.output_tokens': 20,
-        'gen_ai.usage.total_tokens': 50,
-      }),
-    ]);
+  it('uses the API token breakdown ordered by model usage', async () => {
+    mockApis(null, CONVERSATION_BODY, {
+      usageByModel: [
+        {
+          cacheReadTokens: 20,
+          cacheWriteTokens: 10,
+          inputCost: 0.02,
+          inputTokens: 200,
+          llmCalls: 1,
+          model: 'model-beta',
+          outputCost: 0.01,
+          outputTokens: 100,
+          reasoningTokens: 30,
+          totalCost: 0.03,
+          totalTokens: 300,
+        },
+        {
+          cacheReadTokens: 10,
+          cacheWriteTokens: 5,
+          inputCost: 0.015,
+          inputTokens: 180,
+          llmCalls: 1,
+          model: 'model-alpha',
+          outputCost: 0.01,
+          outputTokens: 70,
+          reasoningTokens: 20,
+          totalCost: 0.025,
+          totalTokens: 250,
+        },
+      ],
+      totalCost: 0.055,
+      totalTokens: 550,
+    });
     renderPage();
 
     const tokenCount = await screen.findByText('550');
@@ -276,6 +306,103 @@ describe('ConversationDetailPage summary aggregates', () => {
     expect(modelBeta.compareDocumentPosition(modelAlpha)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING
     );
+  });
+
+  it('orders API call and cost breakdowns by their metric', async () => {
+    mockApis(null, CONVERSATION_BODY, {
+      llmCalls: 3,
+      usageByModel: [
+        {
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          inputCost: 0.02,
+          inputTokens: 70,
+          llmCalls: 2,
+          model: 'model-alpha',
+          outputCost: 0.01,
+          outputTokens: 30,
+          reasoningTokens: 0,
+          totalCost: 0.03,
+          totalTokens: 100,
+        },
+        {
+          cacheReadTokens: 0,
+          cacheWriteTokens: 0,
+          inputCost: 0.03,
+          inputTokens: 50,
+          llmCalls: 1,
+          model: 'model-beta',
+          outputCost: 0.01,
+          outputTokens: 20,
+          reasoningTokens: 0,
+          totalCost: 0.04,
+          totalTokens: 70,
+        },
+      ],
+      totalCost: 0.07,
+    });
+    renderPage();
+
+    const llmCallsStat = (await screen.findByText('LLM Calls')).parentElement!;
+    const llmCalls = await within(llmCallsStat).findByText('3');
+    expect(llmCalls).not.toHaveAttribute('title');
+    await userEvent.hover(llmCalls);
+
+    const callsAlpha = await screen.findByText('model-alpha');
+    const callsBeta = screen.getByText('model-beta');
+    expect(callsAlpha.compareDocumentPosition(callsBeta)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    expect(
+      within(callsAlpha.parentElement!.parentElement!.parentElement!).getByText('2')
+    ).toBeInTheDocument();
+    expect(
+      within(callsBeta.parentElement!.parentElement!.parentElement!).getByText('1')
+    ).toBeInTheDocument();
+
+    await userEvent.unhover(llmCalls);
+    await waitForElementToBeRemoved(callsAlpha);
+
+    const costStat = screen.getByText('Cost').parentElement!;
+    const cost = within(costStat).getByText('$0.07');
+    expect(cost).not.toHaveAttribute('title');
+    await userEvent.hover(cost);
+
+    const costBeta = await screen.findByText('model-beta');
+    const costAlpha = screen.getByText('model-alpha');
+    expect(costBeta.compareDocumentPosition(costAlpha)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    );
+    expect(screen.getAllByText('Input cost')).toHaveLength(2);
+    expect(screen.getAllByText('Output cost')).toHaveLength(2);
+    expect(screen.queryByText('Input')).not.toBeInTheDocument();
+  });
+
+  it('preserves the no-cost explanation when no cost is recorded', async () => {
+    mockApis();
+    renderPage();
+
+    const costStat = (await screen.findByText('Cost')).parentElement!;
+    await userEvent.hover(await within(costStat).findByText('—'));
+
+    expect(await screen.findByText(/No cost recorded/)).toBeInTheDocument();
+  });
+
+  it('does not show empty metric breakdown tooltips', async () => {
+    mockApis(null, CONVERSATION_BODY, {llmCalls: 0});
+    renderPage();
+
+    const llmCallsStat = (await screen.findByText('LLM Calls')).parentElement!;
+    const llmCalls = await within(llmCallsStat).findByText('0');
+    expect(llmCalls).toHaveAttribute('title', '0');
+
+    await userEvent.hover(llmCalls);
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+    await userEvent.unhover(llmCalls);
+
+    const tokensStat = screen.getByText('Tokens').parentElement!;
+    await userEvent.hover(within(tokensStat).getByText('0'));
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
   });
 
   it('renders the fire icon in the summary when a span errored', async () => {
@@ -304,26 +431,30 @@ describe('ConversationDetailPage summary aggregates', () => {
   });
 
   it('leads the tool tags with the ones that errored', async () => {
-    mockApis(null, [
-      ...CONVERSATION_BODY,
-      spanFixture({
-        span_id: 'span-tool-ok',
-        'span.name': 'alpha call',
-        'gen_ai.operation.type': 'tool',
-        'gen_ai.tool.name': 'alpha_tool',
-        'precise.start_ts': 3000,
-        'precise.finish_ts': 3000.5,
-      }),
-      spanFixture({
-        span_id: 'span-tool-failed',
-        'span.name': 'zeta call',
-        'span.status': 'internal_error',
-        'gen_ai.operation.type': 'tool',
-        'gen_ai.tool.name': 'zeta_tool',
-        'precise.start_ts': 4000,
-        'precise.finish_ts': 4000.5,
-      }),
-    ]);
+    mockApis(
+      null,
+      [
+        ...CONVERSATION_BODY,
+        spanFixture({
+          span_id: 'span-tool-ok',
+          'span.name': 'alpha call',
+          'gen_ai.operation.type': 'tool',
+          'gen_ai.tool.name': 'alpha_tool',
+          'precise.start_ts': 3000,
+          'precise.finish_ts': 3000.5,
+        }),
+        spanFixture({
+          span_id: 'span-tool-failed',
+          'span.name': 'zeta call',
+          'span.status': 'internal_error',
+          'gen_ai.operation.type': 'tool',
+          'gen_ai.tool.name': 'zeta_tool',
+          'precise.start_ts': 4000,
+          'precise.finish_ts': 4000.5,
+        }),
+      ],
+      {toolNames: ['alpha_tool', 'zeta_tool']}
+    );
     renderPage();
 
     expect(await screen.findByText('Tools:')).toBeInTheDocument();
@@ -341,5 +472,80 @@ describe('ConversationDetailPage summary aggregates', () => {
     // Wait for the conversation to load before asserting the icon's absence.
     expect(await screen.findByText('First answer')).toBeInTheDocument();
     expect(screen.queryByTestId('conversation-error-icon')).not.toBeInTheDocument();
+  });
+});
+
+describe('ConversationDetailPage time window', () => {
+  beforeEach(() => {
+    Element.prototype.scrollTo = jest.fn();
+    Element.prototype.scrollIntoView = jest.fn();
+    MockApiClient.clearMockResponses();
+    act(() => {
+      PageFiltersStore.reset();
+      PageFiltersStore.init();
+    });
+    mockApis();
+  });
+
+  it('queries the URL time window even when the page filters have not caught up', async () => {
+    // The page filters still hold the list page's selection, as they do right
+    // after navigating from the list.
+    act(() =>
+      PageFiltersStore.onInitializeUrlState({
+        projects: [],
+        environments: [],
+        datetime: {start: null, end: null, period: '7d', utc: null},
+      })
+    );
+    const conversationRequest = MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+      body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
+    });
+
+    renderPage([], {
+      start: '2026-09-24T08:06:04.000Z',
+      end: '2026-09-25T10:29:16.000Z',
+    });
+
+    await waitFor(() => expect(conversationRequest).toHaveBeenCalled());
+    for (const [, options] of conversationRequest.mock.calls) {
+      expect(options.query).toEqual(
+        expect.objectContaining({
+          start: '2026-09-24T07:06:04.000Z',
+          end: '2026-09-25T11:29:16.000Z',
+        })
+      );
+      expect(options.query).not.toHaveProperty('statsPeriod');
+    }
+  });
+
+  it('reads URL times without an offset as UTC', async () => {
+    // The page filters write start/end without an offset. Read in a timezone
+    // behind UTC, they must not shift the queried window.
+    const originalTimezone = process.env.TZ;
+    process.env.TZ = 'America/Los_Angeles';
+    try {
+      const conversationRequest = MockApiClient.addMockResponse({
+        url: `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`,
+        body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
+      });
+
+      renderPage([], {
+        start: '2026-09-24T08:06:04',
+        end: '2026-09-25T10:29:16',
+      });
+
+      await waitFor(() => expect(conversationRequest).toHaveBeenCalled());
+      for (const [, options] of conversationRequest.mock.calls) {
+        expect(options.query).toEqual(
+          expect.objectContaining({
+            start: '2026-09-24T07:06:04.000Z',
+            end: '2026-09-25T11:29:16.000Z',
+          })
+        );
+      }
+    } finally {
+      process.env.TZ = originalTimezone;
+    }
   });
 });

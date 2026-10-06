@@ -1,4 +1,5 @@
-import {EditableText} from 'sentry/components/editableText';
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
@@ -11,18 +12,17 @@ import {handleUpdateQueryName} from './savedQuery/utils';
 type Props = {
   eventView: EventView;
   organization: Organization;
-  isHomepage?: boolean;
   savedQuery?: SavedQuery;
 };
 
 const NAME_DEFAULT = t('Untitled query');
-const HOMEPAGE_DEFAULT = t('New Query');
 
 /**
- * Allows user to edit the name of the query.
- * By pressing Enter or clicking outside the component, the changes will be saved, if valid.
+ * Renders the query name as the page title, editable in place once the query
+ * has been saved. By pressing Enter or clicking outside the component, the
+ * changes will be saved, if valid.
  */
-export function EventInputName({organization, eventView, savedQuery, isHomepage}: Props) {
+export function EventInputName({organization, eventView, savedQuery}: Props) {
   const api = useApi();
   const navigate = useNavigate();
 
@@ -53,19 +53,22 @@ export function EventInputName({organization, eventView, savedQuery, isHomepage}
     );
   }
 
-  const value = isHomepage ? HOMEPAGE_DEFAULT : eventView.name || NAME_DEFAULT;
+  const value = eventView.name || NAME_DEFAULT;
+
+  if (!eventView.id) {
+    return <BreadcrumbList.Title item={{type: 'page-title', label: value}} />;
+  }
 
   return (
-    <div data-test-id={`discover2-query-name-${value}`}>
-      <EditableText
-        value={value}
-        onChange={handleChange}
-        errorMessage={t('Please set a name for this query')}
-        isDisabled={!eventView.id || isHomepage}
-        aria-label={t('Edit query name')}
-        maxLength={255}
-        variant="compact"
-      />
-    </div>
+    <BreadcrumbList.Title
+      item={{
+        type: 'editable-title',
+        value,
+        onChange: handleChange,
+        errorMessage: t('Please set a name for this query'),
+        maxLength: 255,
+        'aria-label': t('Edit query name'),
+      }}
+    />
   );
 }

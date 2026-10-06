@@ -1,10 +1,9 @@
 import 'echarts/theme/v5.js';
 
-import {useEffect, useId, useMemo, useRef} from 'react';
+import {useEffect, useId, useImperativeHandle, useMemo, useRef} from 'react';
 import type {Theme} from '@emotion/react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {mergeRefs} from '@react-aria/utils';
 import type {
   AxisPointerComponentOption,
   ECharts,
@@ -164,7 +163,7 @@ export interface TooltipOption
    * names. Receives the names of the series in the tooltip. Called on each tooltip
    * render, so it can render a React tree to a string.
    */
-  renderSeriesDetails?: (seriesNames: string[]) => string;
+  renderSeriesDetails?: (seriesNames: string[], timestamp: number) => string;
   /**
    * If true does not display sublabels with a value of 0.
    */
@@ -736,10 +735,7 @@ export function BaseChart({
 
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const echartsInstanceRef = useRef<ReactEchartsCore | null>(null);
-  const mergedEchartsInstanceRef = useMemo(
-    () => mergeRefs(ref, echartsInstanceRef),
-    [ref]
-  );
+  useImperativeHandle(ref, () => echartsInstanceRef.current!, []);
 
   // Adds a resize observer to handle echarts instance resizing when container size changes.
   // We use our own resize handler because echarts native autoResize has edge cases caused
@@ -800,6 +796,18 @@ export function BaseChart({
     };
   }, []);
 
+  // echarts-for-react's `getEchartsInstance()` only looks up an existing instance
+  // (`echarts.getInstanceByDom`), and instances are created asynchronously and
+  // disposed on unmount/hide. If the option changes while no instance is attached,
+  // `updateEChartsOption` crashes calling `setOption` on `undefined`. Skipping the
+  // update is safe: once the instance is (re)created, echarts-for-react applies
+  // the current `option` prop. Called from `componentDidUpdate`, so reading the
+  // ref here happens outside of render.
+  const shouldSetOption = () => {
+    const instance = echartsInstanceRef.current?.getEchartsInstance();
+    return !!instance && !instance.isDisposed();
+  };
+
   return (
     <ChartContainer
       ref={chartContainerRef}
@@ -809,12 +817,13 @@ export function BaseChart({
     >
       {isTooltipPortalled && <Global styles={getPortalledTooltipStyles({theme})} />}
       <ReactEchartsCore
-        ref={mergedEchartsInstanceRef}
+        ref={echartsInstanceRef}
         autoResize={false}
         echarts={echarts}
         notMerge={notMerge}
         replaceMerge={replaceMerge}
         lazyUpdate={lazyUpdate}
+        shouldSetOption={shouldSetOption}
         theme={echartsTheme ?? 'v5'}
         onChartReady={onChartReady}
         onEvents={eventsMap}

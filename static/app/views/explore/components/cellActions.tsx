@@ -6,6 +6,4 @@ export const ALLOWED_CELL_ACTIONS: Actions[] = [
   Actions.SHOW_GREATER_THAN,
   Actions.SHOW_LESS_THAN,
   Actions.COPY_TO_CLIPBOARD,
-  Actions.OPEN_EXTERNAL_LINK,
-  Actions.OPEN_INTERNAL_LINK,
 ];

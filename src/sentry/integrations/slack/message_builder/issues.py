@@ -57,7 +57,7 @@ from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
     get_suspect_commit_users,
 )
-from sentry.notifications.utils.rules import get_rule_or_workflow_id
+from sentry.notifications.utils.rules import RuleIdType, get_rule_or_workflow_id
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.services.eventstore.models import Event, GroupEvent
@@ -426,6 +426,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         notes: str | None = None,
         send_nudge: bool = False,
         has_mentions_read_scope: bool = False,
+        workflow_id: int | None = None,
     ) -> None:
         super().__init__()
         self.group = group
@@ -443,6 +444,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.notes = notes
         self.send_nudge = send_nudge
         self.has_mentions_read_scope = has_mentions_read_scope
+        self.workflow_id = workflow_id
         self._has_autofix = SeerAutofixOperator.has_access(
             organization=self.group.organization, entrypoint_key=SeerEntrypointKey.SLACK
         ) and SeerAutofixOperator.can_trigger_autofix(group=self.group)
@@ -602,19 +604,27 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             has_action = False
 
         rule_id = None
+        workflow_id = self.workflow_id
         rule_environment_id = None
-        key = "legacy_rule_id"
+        link_key: RuleIdType = "legacy_rule_id"
+        link_id = None
         if self.rules:
-            key, value = get_rule_or_workflow_id(self.rules[0])
+            # The block id's "rule" is resolved back to a Rule by the Slack action
+            # handler, so it keeps preferring the legacy rule id.
+            _, value = get_rule_or_workflow_id(self.rules[0])
             rule_id = int(value)
+            action = self.rules[0].data.get("actions", [{}])[0]
+            if action.get("workflow_id") is not None:
+                workflow_id = int(action["workflow_id"])
 
-            match key:
+            link_key, link_value = get_rule_or_workflow_id(self.rules[0], prefer="workflow_id")
+            link_id = int(link_value)
+            match link_key:
                 case "workflow_id":
-                    workflow = Workflow.objects.filter(id=rule_id).first()
+                    workflow = Workflow.objects.filter(id=link_id).first()
                     rule_environment_id = workflow.environment_id if workflow else None
                 case "legacy_rule_id":
-                    rule = Rule.objects.filter(id=rule_id).first()
-                    rule_environment_id = rule.environment_id if rule else None
+                    rule_environment_id = self.rules[0].environment_id
 
         # build up actions text
         if self.actions and self.identity and not action_text:
@@ -623,7 +633,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             has_action = True
 
         title_link = None
-        match key:
+        match link_key:
             case "workflow_id":
                 title_link = get_title_link_workflow_engine_ui(
                     self.group,
@@ -632,7 +642,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                     self.issue_details,
                     self.notification,
                     ExternalProviders.SLACK,
-                    rule_id,
+                    link_id,
                     rule_environment_id,
                     notification_uuid=notification_uuid,
                 )
@@ -644,7 +654,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
                     self.issue_details,
                     self.notification,
                     ExternalProviders.SLACK,
-                    rule_id,
+                    link_id,
                     rule_environment_id,
                     notification_uuid=notification_uuid,
                 )
@@ -661,6 +671,8 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         block_id = {"issue": self.group.id}
         if rule_id:
             block_id["rule"] = rule_id
+        if workflow_id:
+            block_id["workflow"] = workflow_id
 
         # build tags block
         tags = get_tags(event_for_tags=event_for_tags, tags=self.tags)

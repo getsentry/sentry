@@ -117,3 +117,12 @@ class ExternalUserTest(APITestCase):
         assert response.data == {
             "detail": "Multiple external associations match the requested actor."
         }
+
+    def test_cursor_origin_post(self) -> None:
+        integration, _ = self.create_provider_integration_for(
+            self.organization, self.user, provider="cursor_origin", name="acme", external_id="i_1"
+        )
+        data = {**self.data, "provider": "cursor_origin", "integrationId": integration.id}
+        with self.feature({"organizations:integrations-codeowners": True}):
+            response = self.get_success_response(self.org_slug, status_code=201, **data)
+        assert response.data["provider"] == "cursor_origin"

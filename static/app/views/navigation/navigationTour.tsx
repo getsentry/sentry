@@ -122,7 +122,7 @@ function useNavigationTourCompleted() {
 }
 
 export function NavigationTourProvider({children}: {children: React.ReactNode}) {
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const isNavigationTourCompleted = useNavigationTourCompleted();
   const initialUrlRef = useRef<string | null>(null);
   const navigate = useNavigate();
@@ -151,6 +151,10 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
 
   const onStepChange = useCallback(
     (stepId: NavigationTour) => {
+      if (!organization) {
+        return;
+      }
+
       const prefix = `organizations/${organization.slug}`;
       switch (stepId) {
         case NavigationTour.ISSUES:
@@ -216,7 +220,7 @@ export function NavigationTourProvider({children}: {children: React.ReactNode}) 
   return (
     <TourContextProvider<NavigationTour>
       tourKey={NAVIGATION_TOUR_GUIDE_KEY}
-      isCompleted={isNavigationTourCompleted}
+      isCompleted={!organization || isNavigationTourCompleted}
       orderedStepIds={ORDERED_NAVIGATION_TOUR}
       TourContext={NavigationTourContext}
       onStartTour={onStartTour}
@@ -236,7 +240,7 @@ export function useNavigationTourModal() {
   const {openModal} = useModal();
 
   const user = useUser();
-  const organization = useOrganization();
+  const organization = useOrganization({allowNull: true});
   const hasOpenedTourModal = useRef(false);
   const {startTour, endTour} = useNavigationTour();
   const {data: assistantData} = useAssistant({
@@ -253,6 +257,7 @@ export function useNavigationTourModal() {
     new Date(user?.dateJoined) > TOUR_MODAL_DATE_THRESHOLD;
 
   const shouldShowTourModal =
+    !!organization &&
     assistantData?.find(item => item.guide === NAVIGATION_TOUR_GUIDE_KEY)?.seen ===
       false &&
     !shouldSkipTourForNewUsers &&
@@ -301,6 +306,7 @@ export function useNavigationTourModal() {
   }, [
     shouldShowTourModal,
     startTour,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     mutateAssistant,
     endTour,
     organization,
