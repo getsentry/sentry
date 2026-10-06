@@ -17,7 +17,7 @@ import {
   ModalFooter,
 } from '@sentry/scraps/modal';
 
-import {ConnectRepositoryModal} from 'sentry/views/settings/projectGeneralSettings/connectRepositoryModal';
+import {ConnectRepositoryModal} from 'sentry/components/connectRepository/connectRepositoryModal';
 
 describe('ConnectRepositoryModal', () => {
   const organization = OrganizationFixture();
@@ -586,7 +586,24 @@ describe('ConnectRepositoryModal', () => {
         body: [],
       });
 
-      // No existing mappings, so the form fetches integrations repos by externalId.
+      // No existing mappings → slow path: fetches integration repos filtered by
+      // repoName (search param) so we avoid paginating the full installation list.
+      const branchLookup = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
+        match: [MockApiClient.matchQuery({search: 'getsentry/relay'})],
+        body: {
+          repos: [
+            {
+              name: 'getsentry/relay',
+              identifier: 'getsentry/relay',
+              externalId: '2',
+              isInstalled: true,
+              defaultBranch: 'master',
+            },
+          ],
+        },
+      });
+
       renderEditModal(jest.fn(), {
         repositoryId: '11',
         repoName: 'getsentry/relay',
@@ -596,6 +613,8 @@ describe('ConnectRepositoryModal', () => {
       });
 
       expect(await screen.findByRole('textbox', {name: /branch/i})).toHaveValue('master');
+      // Assert the search param was actually sent (not the full unfiltered list).
+      expect(branchLookup).toHaveBeenCalled();
     });
 
     it('POSTs with the repo integration id when the connected repo has no mappings', async () => {
@@ -849,5 +868,204 @@ describe('ConnectRepositoryModal', () => {
       )
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
+  });
+
+  describe('repo-locked mode (lockedSide="repo")', () => {
+    const repo = RepositoryFixture({
+      id: '10',
+      name: 'getsentry/sentry',
+      externalId: '1',
+      integrationId: integration.id,
+    });
+
+    const repoIdentity = {
+      repositoryId: repo.id,
+      repoName: repo.name,
+      providerKey: 'github' as const,
+      integrationId: integration.id,
+      externalId: repo.externalId,
+    };
+
+    function renderRepoLockedConnect(closeModal = jest.fn()) {
+      return render(
+        <Fragment>
+          <ConnectRepositoryModal
+            Body={ModalBody}
+            Footer={ModalFooter}
+            Header={makeClosableHeader(jest.fn())}
+            CloseButton={makeCloseButton(closeModal)}
+            closeModal={closeModal}
+            lockedSide="repo"
+            mode="connect"
+            {...repoIdentity}
+          />
+        </Fragment>,
+        {organization}
+      );
+    }
+
+    function renderRepoLockedEdit(closeModal = jest.fn()) {
+      return render(
+        <Fragment>
+          <ConnectRepositoryModal
+            Body={ModalBody}
+            Footer={ModalFooter}
+            Header={makeClosableHeader(jest.fn())}
+            CloseButton={makeCloseButton(closeModal)}
+            closeModal={closeModal}
+            lockedSide="repo"
+            mode="edit"
+            project={project}
+            {...repoIdentity}
+          />
+        </Fragment>,
+        {organization}
+      );
+    }
+
+    describe('connect', () => {
+      beforeEach(() => {
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/projects/`,
+          body: [project],
+        });
+        // Branch lookup for the locked repo (no existing mappings).
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
+          body: {
+            repos: [
+              {
+                name: repo.name,
+                identifier: repo.name,
+                externalId: repo.externalId,
+                isInstalled: true,
+                defaultBranch: 'main',
+              },
+            ],
+          },
+        });
+      });
+
+      it('renders with repository locked and a project selector', async () => {
+        renderRepoLockedConnect();
+
+        expect(
+          await screen.findByText('Connect a project to getsentry/sentry')
+        ).toBeInTheDocument();
+        // Repository field is locked (disabled).
+        expect(screen.getByRole('textbox', {name: /repository/i})).toBeDisabled();
+        // Paths placeholder until a project is chosen.
+        expect(
+          await screen.findByText('Select a project first to configure code paths')
+        ).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
+      });
+
+      it('shows the path list after selecting a project', async () => {
+        renderRepoLockedConnect();
+
+        await userEvent.click(await screen.findByText('Search projects'));
+        await userEvent.click(await screen.findByText(project.slug));
+
+        expect(
+          screen.queryByText('Select a project first to configure code paths')
+        ).not.toBeInTheDocument();
+        expect(
+          screen.getByRole('textbox', {name: /stack trace prefix/i})
+        ).toBeInTheDocument();
+        expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
+      });
+
+      it('POSTs the repo link and code mapping on save', async () => {
+        const closeModal = jest.fn();
+        const postRepo = MockApiClient.addMockResponse({
+          url: `/projects/${organization.slug}/${project.slug}/repo/`,
+          method: 'POST',
+          body: {
+            id: '99',
+            projectId: project.id,
+            repositoryId: repo.id,
+            source: 'scm_onboarding',
+            created: true,
+          },
+        });
+        const postMapping = MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/code-mappings/`,
+          method: 'POST',
+          body: {},
+        });
+
+        renderRepoLockedConnect(closeModal);
+
+        await userEvent.click(await screen.findByText('Search projects'));
+        await userEvent.click(await screen.findByText(project.slug));
+        expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
+        await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+        await waitFor(() =>
+          expect(postRepo).toHaveBeenCalledWith(
+            `/projects/${organization.slug}/${project.slug}/repo/`,
+            expect.objectContaining({method: 'POST', data: {repositoryId: repo.id}})
+          )
+        );
+        expect(postMapping).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/code-mappings/`,
+          expect.objectContaining({
+            method: 'POST',
+            data: expect.objectContaining({
+              integrationId: integration.id,
+              repositoryId: repo.id,
+              projectId: project.id,
+              defaultBranch: 'main',
+            }),
+          })
+        );
+        expect(closeModal).toHaveBeenCalled();
+      });
+    });
+
+    describe('edit', () => {
+      const seededMapping = {
+        id: '5',
+        repoId: repo.id,
+        repoName: repo.name,
+        projectId: project.id,
+        projectSlug: project.slug,
+        stackRoot: 'src/',
+        sourceRoot: 'app/',
+        defaultBranch: 'main',
+        integrationId: integration.id,
+        hasCodeOwner: false,
+      };
+
+      beforeEach(() => {
+        // Per-project code-mappings query used to seed path rows.
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/code-mappings/`,
+          body: [seededMapping],
+          match: [MockApiClient.matchQuery({project: project.id})],
+        });
+      });
+
+      it('locks both repository and project fields and shows seeded paths', async () => {
+        renderRepoLockedEdit();
+
+        // Both selects are locked in edit mode.
+        const [repoSelect, projectSelect] = screen.getAllByRole('textbox');
+        expect(repoSelect).toBeDisabled();
+        expect(projectSelect).toBeDisabled();
+
+        // Seeded row appears; Save enabled once paths load.
+        expect(await screen.findByText('src/')).toBeInTheDocument();
+        expect(await screen.findByRole('button', {name: 'Save'})).toBeEnabled();
+      });
+
+      it('displays the passed project slug in the locked project field', async () => {
+        renderRepoLockedEdit();
+
+        // The locked select renders the slug as visible text content.
+        expect(await screen.findByText(project.slug)).toBeInTheDocument();
+      });
+    });
   });
 });

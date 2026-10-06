@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, type ReactNode, useMemo} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -6,8 +6,20 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {
+  ConnectionModalFrame,
+  LockedProjectField,
+  LockedRepoField,
+  getApiErrorMessage,
+} from 'sentry/components/connectRepository/connectionModalFrame';
 import {DEFAULT_BRANCH} from 'sentry/components/connectRepository/normalization';
 import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
+import {
+  editProjectRepoMappings,
+  projectCodeMappingsOptions,
+  useEditRepoInfo,
+  useInvalidateRepoQueries,
+} from 'sentry/components/connectRepository/queries';
 import type {PathMappingValue} from 'sentry/components/connectRepository/type';
 import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -15,17 +27,6 @@ import {t} from 'sentry/locale';
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  ConnectionModalFrame,
-  getApiErrorMessage,
-  LockedRepoField,
-} from 'sentry/views/settings/projectGeneralSettings/connectionModalFrame';
-import {
-  editProjectRepoMappings,
-  projectCodeMappingsOptions,
-  useEditRepoInfo,
-  useInvalidateRepoQueries,
-} from 'sentry/views/settings/projectGeneralSettings/queries';
 
 export type EditFormProps = ModalRenderProps & {
   externalId: string | null;
@@ -34,6 +35,9 @@ export type EditFormProps = ModalRenderProps & {
   providerKey: string | null;
   repoName: string;
   repositoryId: string;
+  // When 'repo', the repo field is on the left and project on the right.
+  // Defaults to 'project' (project on the left, repo on the right).
+  lockedSide?: 'project' | 'repo';
 };
 
 // Inner component — only mounted once seeded mappings and the repo default
@@ -42,6 +46,10 @@ interface EditRepositoryFormBodyProps extends Omit<EditFormProps, 'CloseButton'>
   allMappings: RepositoryProjectPathConfig[];
   defaultBranch: string | null;
   invalidateQueries: () => Promise<unknown[]>;
+  leftField: ReactNode;
+  leftLabel: string;
+  rightField: ReactNode;
+  rightLabel: string;
   seededMappings: RepositoryProjectPathConfig[];
 }
 
@@ -52,13 +60,16 @@ function EditRepositoryFormBody({
   closeModal,
   project,
   repositoryId,
-  repoName,
   providerKey,
   integrationId,
   allMappings,
   seededMappings,
   defaultBranch,
   invalidateQueries,
+  leftLabel,
+  leftField,
+  rightLabel,
+  rightField,
 }: EditRepositoryFormBodyProps) {
   const organization = useOrganization();
 
@@ -119,10 +130,10 @@ function EditRepositoryFormBody({
               closeModal={closeModal}
               title={t('Edit code mappings')}
               alerts={alerts}
-              project={project}
-              repoField={
-                <LockedRepoField repoName={repoName} providerKey={providerKey} />
-              }
+              leftLabel={leftLabel}
+              leftField={leftField}
+              rightLabel={rightLabel}
+              rightField={rightField}
               pathsSection={
                 <Container paddingTop="2xl">
                   <PathMappingList
@@ -169,13 +180,10 @@ export function EditRepositoryForm({
   providerKey,
   integrationId,
   externalId,
+  lockedSide = 'project',
 }: EditFormProps) {
   const organization = useOrganization();
-  const invalidateQueries = useInvalidateRepoQueries(
-    organization.slug,
-    project.slug,
-    project.id
-  );
+  const invalidateQueries = useInvalidateRepoQueries(organization.slug);
 
   const codeMappingsQuery = useQuery(
     projectCodeMappingsOptions({orgSlug: organization.slug, projectId: project.id})
@@ -200,24 +208,40 @@ export function EditRepositoryForm({
       orgSlug: organization.slug,
       integrationId,
       externalId,
+      repoName,
       defaultBranchFromMappings,
     });
 
   const isPending = codeMappingsQuery.isPending || isRepoInfoPending;
 
-  const sharedFrame = {Header, Body, Footer, closeModal, project, repoName, providerKey};
+  const projectField = <LockedProjectField project={project} />;
+  const repoFieldLocked = (
+    <LockedRepoField repoName={repoName} providerKey={providerKey} />
+  );
+
+  // lockedSide determines field order only; both are always locked in edit mode.
+  const [leftLabel, leftField, rightLabel, rightField] =
+    lockedSide === 'repo'
+      ? [t('Repository'), repoFieldLocked, t('Project'), projectField]
+      : [t('Project'), projectField, t('Repository'), repoFieldLocked];
 
   if (codeMappingsQuery.isError) {
     return (
       <ConnectionModalFrame
-        {...sharedFrame}
+        Header={Header}
+        Body={Body}
+        Footer={Footer}
+        closeModal={closeModal}
         title={t('Edit code mappings')}
         alerts={
           <Alert.Container>
             <Alert variant="danger">{t('Failed to load path mappings.')}</Alert>
           </Alert.Container>
         }
-        repoField={<LockedRepoField repoName={repoName} providerKey={providerKey} />}
+        leftLabel={leftLabel}
+        leftField={leftField}
+        rightLabel={rightLabel}
+        rightField={rightField}
         pathsSection={null}
         canSave={false}
         isSaving={false}
@@ -229,10 +253,16 @@ export function EditRepositoryForm({
   if (isPending || !seededMappings) {
     return (
       <ConnectionModalFrame
-        {...sharedFrame}
+        Header={Header}
+        Body={Body}
+        Footer={Footer}
+        closeModal={closeModal}
         title={t('Edit code mappings')}
         alerts={null}
-        repoField={<LockedRepoField repoName={repoName} providerKey={providerKey} />}
+        leftLabel={leftLabel}
+        leftField={leftField}
+        rightLabel={rightLabel}
+        rightField={rightField}
         pathsSection={
           <Flex justify="center" padding="2xl">
             <LoadingIndicator mini />
@@ -260,7 +290,11 @@ export function EditRepositoryForm({
       allMappings={codeMappingsQuery.data ?? []}
       seededMappings={seededMappings}
       defaultBranch={repoDefaultBranch}
-      invalidateQueries={invalidateQueries}
+      invalidateQueries={() => invalidateQueries(project)}
+      leftLabel={leftLabel}
+      leftField={leftField}
+      rightLabel={rightLabel}
+      rightField={rightField}
     />
   );
 }

@@ -8,24 +8,25 @@ import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
-import type {PathMappingValue} from 'sentry/components/connectRepository/type';
-import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
-import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtualizedMenuList';
-import {t, tct} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ConnectionModalFrame,
+  LockedProjectField,
   getApiErrorMessage,
-} from 'sentry/views/settings/projectGeneralSettings/connectionModalFrame';
+} from 'sentry/components/connectRepository/connectionModalFrame';
+import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
 import {
   projectCodeMappingsOptions,
   saveProjectRepoConnection,
   useGroupedRepoOptions,
   useInvalidateRepoQueries,
   type RepoSelectOption,
-} from 'sentry/views/settings/projectGeneralSettings/queries';
+} from 'sentry/components/connectRepository/queries';
+import type {PathMappingValue} from 'sentry/components/connectRepository/type';
+import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
+import {ScmVirtualizedMenuList} from 'sentry/components/onboarding/scm/scmVirtualizedMenuList';
+import {t, tct} from 'sentry/locale';
+import type {Project} from 'sentry/types/project';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 function PathsPlaceholder() {
   return (
@@ -51,11 +52,7 @@ export function ConnectRepositoryForm({
   const {groupedOptions, isPending: isReposPending} = useGroupedRepoOptions(
     organization.slug
   );
-  const invalidateQueries = useInvalidateRepoQueries(
-    organization.slug,
-    project.slug,
-    project.id
-  );
+  const invalidateQueries = useInvalidateRepoQueries(organization.slug);
 
   const form = useScrapsForm({
     ...defaultFormOptions,
@@ -77,7 +74,7 @@ export function ConnectRepositoryForm({
   const saveMutation = useMutation({
     mutationFn: saveProjectRepoConnection,
     onSuccess: async () => {
-      await invalidateQueries();
+      await invalidateQueries(project);
       closeModal();
     },
   });
@@ -177,8 +174,10 @@ export function ConnectRepositoryForm({
               title={tct('Connect a repository to [project]', {project: project.slug})}
               intro={intro}
               alerts={alerts}
-              project={project}
-              repoField={repoField}
+              leftLabel={t('Project')}
+              leftField={<LockedProjectField project={project} />}
+              rightLabel={t('Repository')}
+              rightField={repoField}
               pathsSection={pathsSection}
               canSave={canSave}
               isSaving={saveMutation.isPending}
