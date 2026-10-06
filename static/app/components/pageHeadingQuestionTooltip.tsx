@@ -14,21 +14,16 @@ interface PageHeadingQuestionTooltipProps {
    * The content to show in the tooltip.
    */
   title: React.ReactNode;
-  /**
-   * The label to use for the external link.
-   */
-  linkLabel?: React.ReactNode;
 }
 
 export function PageHeadingQuestionTooltip({
   docsUrl,
   title,
-  linkLabel,
 }: PageHeadingQuestionTooltipProps) {
   const contents = (
     <Stack align="start" gap="md">
       <Text align="left">{title}</Text>
-      <ExternalLink href={docsUrl}>{linkLabel ?? t('Read the Docs')}</ExternalLink>
+      <ExternalLink href={docsUrl}>{t('Read the Docs')}</ExternalLink>
     </Stack>
   );
 
