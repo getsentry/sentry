@@ -57,9 +57,11 @@ class ProjectCodeMappingStackPrefixesGetTest(APITestCase):
             project=self.project,
             repository=repo,
         )
+        org_integration = integration.organizationintegration_set.first()
+        assert org_integration is not None
         RepositoryProjectPathConfig.objects.create(
             project_repository=project_repo,
-            organization_integration_id=integration.organizationintegration_set.first().id,
+            organization_integration_id=org_integration.id,
             organization_id=self.organization.id,
             integration_id=integration.id,
             stack_root="src",

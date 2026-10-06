@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from snuba_sdk import Column, Condition, Direction, Entity, Op, OrderBy, Query
 from snuba_sdk import Request as SnubaRequest
@@ -66,7 +67,7 @@ def sample_in_app_filenames(project: Project) -> list[str]:
     return _extract_unique_filenames(rows)
 
 
-def _extract_unique_filenames(rows: list[dict]) -> list[str]:
+def _extract_unique_filenames(rows: list[dict[str, Any]]) -> list[str]:
     seen: set[str] = set()
     for row in rows:
         filenames = row.get("exception_frames.filename") or []
