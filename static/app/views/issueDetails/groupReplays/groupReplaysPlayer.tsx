@@ -88,7 +88,7 @@ export function GroupReplaysPlayer({
           <FluidHeight
             position="relative"
             maxHeight={`${REPLAY_LOADING_HEIGHT_LARGE}px`}
-            minHeight={{xl: `${REPLAY_LOADING_HEIGHT_LARGE}px`}}
+            minHeight={{zero: 'auto', xl: `${REPLAY_LOADING_HEIGHT_LARGE}px`}}
             overflow="visible"
           >
             <ReplayPlayerPluginsContextProvider>
