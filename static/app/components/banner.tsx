@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {Grid} from '@sentry/scraps/layout';
 
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -65,11 +65,19 @@ export function Banner({
         onClick={dismiss}
         aria-label={t('Close')}
       />
-      <BannerContent>
+      <Grid
+        position="absolute"
+        justifyItems="center"
+        rows="repeat(3, max-content)"
+        padding="3xl"
+        style={{textAlign: 'center'}}
+      >
         <BannerTitle>{title}</BannerTitle>
         <BannerSubtitle>{subtitle}</BannerSubtitle>
-        <StyledButtonBar>{children}</StyledButtonBar>
-      </BannerContent>
+        <Grid flow="column" align="center" gap="md" width="fit-content" paddingTop="xl">
+          {children}
+        </Grid>
+      </Grid>
     </BannerWrapper>
   );
 }
@@ -105,15 +113,6 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
   }
 `;
 
-const BannerContent = styled('div')`
-  position: absolute;
-  display: grid;
-  justify-items: center;
-  grid-template-rows: repeat(3, max-content);
-  text-align: center;
-  padding: ${p => p.theme.space['3xl']};
-`;
-
 const BannerTitle = styled('h1')`
   margin: 0;
 
@@ -128,13 +127,6 @@ const BannerSubtitle = styled('div')`
   @container (min-width: ${p => p.theme.container.xl}) {
     font-size: ${p => p.theme.font.size.xl};
   }
-`;
-
-const StyledButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="md" {...props} />
-))`
-  margin-top: ${p => p.theme.space.xl};
-  width: fit-content;
 `;
 
 const CloseButton = styled(Button)`

@@ -19,6 +19,7 @@ import {Input} from '@sentry/scraps/input';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {Client} from 'sentry/api';
@@ -1238,7 +1239,14 @@ export function ResultGrid({
   // region failed, a warning icon with a tooltip names the failed regions.
   const statusNote =
     pendingRegions.length > 0 || regionErrors.length > 0 ? (
-      <RegionStatusNote role="status" align="center" gap="sm" wrap="wrap">
+      <Flex
+        role="status"
+        align="center"
+        gap="sm"
+        wrap="wrap"
+        alignSelf="center"
+        marginLeft="auto"
+      >
         {regionErrors.length > 0 && (
           <Tooltip title={`Could not load results from: ${regionErrors.join(', ')}`}>
             <IconWarning
@@ -1250,7 +1258,9 @@ export function ResultGrid({
         )}
         {pendingRegions.length > 0 ? (
           <Fragment>
-            <span>Still loading</span>
+            <Text as="span" size="sm" variant="secondary">
+              Still loading
+            </Text>
             {pendingRegions.map(name => (
               <Tag key={name} variant="muted">
                 {name}
@@ -1258,12 +1268,12 @@ export function ResultGrid({
             ))}
           </Fragment>
         ) : (
-          <span>
+          <Text as="span" size="sm" variant="secondary">
             {regionErrors.length} {regionErrors.length === 1 ? 'region' : 'regions'}{' '}
             failed
-          </span>
+          </Text>
         )}
-      </RegionStatusNote>
+      </Flex>
     ) : probe.probingRegions ? (
       <RegionHintNote>Checking other regions…</RegionHintNote>
     ) : null;
@@ -1298,7 +1308,7 @@ export function ResultGrid({
             />
           </SelectorItem>
         ))}
-        {hasSelectors && !hasSearch && <RowFiller aria-hidden />}
+        {hasSelectors && !hasSearch && <Container flex="999 1 auto" aria-hidden />}
         {hasSearch && (
           <Flex align="center" gap="xs" flex="999 1 auto" minWidth="240px">
             <SearchInput
@@ -1338,11 +1348,11 @@ export function ResultGrid({
         />
       )}
       {hasPagination && allRegions && moreRegions.length > 0 && (
-        <LoadMoreRow justify="center">
+        <Flex justify="center" marginBottom="2xl">
           <Button size="sm" onClick={loadMoreRegions} busy={pendingRegions.length > 0}>
             {`Load more (${moreRegions.join(', ')})`}
           </Button>
-        </LoadMoreRow>
+        </Flex>
       )}
     </Container>
   );
@@ -1407,21 +1417,6 @@ const SelectorItem = styled('div')`
   > div > button {
     width: 100%;
   }
-`;
-
-const RowFiller = styled('div')`
-  flex: 999 1 auto;
-`;
-
-const LoadMoreRow = styled(Flex)`
-  margin-bottom: ${p => p.theme.space['2xl']};
-`;
-
-const RegionStatusNote = styled(Flex)`
-  align-self: center;
-  margin-left: auto;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
 `;
 
 export const SearchInput = styled(Input)`

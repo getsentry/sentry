@@ -6,6 +6,7 @@ import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Container} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -171,13 +172,13 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     <AuthTokenGeneratorProvider projectSlug={project?.slug}>
       <TabSelectionScope>
         <div>
-          <HeaderWrapper>
+          <Container radius="md" padding="3xl">
             <Title>{t('Get Started with Sentry Issues')}</Title>
             <Container maxWidth="340px">
               {t('Your code sleuth eagerly awaits its first mission.')}
             </Container>
             <Image src={waitingForEventImg} />
-          </HeaderWrapper>
+          </Container>
           <Divider />
           <Body>
             <Setup>
@@ -254,25 +255,22 @@ const PulsingIndicator = styled('div')`
 
 function EventWaitingIndicator() {
   return (
-    <EventWaitingIndicatorContainer
+    <Flex
       align="center"
       position="relative"
       padding="0 md"
       paddingRight="3xl"
       gap="md"
       flexGrow={1}
+      style={{zIndex: 10}}
     >
-      {t("Waiting for this project's first error")}
+      <Text size="md" variant="promotion">
+        {t("Waiting for this project's first error")}
+      </Text>
       <PulsingIndicator />
-    </EventWaitingIndicatorContainer>
+    </Flex>
   );
 }
-
-const EventWaitingIndicatorContainer = styled(Flex)`
-  font-size: ${p => p.theme.font.size.md};
-  color: ${p => p.theme.tokens.content.promotion};
-  z-index: 10;
-`;
 
 const ProjectBadgeWrapper = styled('div')`
   display: inline-block;
@@ -283,11 +281,6 @@ const ProjectBadgeWrapper = styled('div')`
 const Title = styled('div')`
   font-size: 26px;
   font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const HeaderWrapper = styled('div')`
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space['3xl']};
 `;
 
 const Setup = styled('div')`
