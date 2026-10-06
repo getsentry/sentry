@@ -446,7 +446,7 @@ class WebhookTest(GitLabWebhookTestCase):
         assert Commit.objects.count() == 2
         assert CommitFileChange.objects.count() == 0
 
-    def test_push_event_duplicate_delivery_does_not_duplicate_file_changes(self) -> None:
+    def test_push_event_duplicate_delivery_is_idempotent(self) -> None:
         self.create_gitlab_repo("getsentry/sentry")
 
         for _ in range(2):

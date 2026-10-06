@@ -743,7 +743,7 @@ class PushEventWebhook(GitlabWebhook):
                             )
                     file_changes = list(file_changes_by_filename.values())
                     if file_changes:
-                        CommitFileChange.objects.bulk_create(file_changes, ignore_conflicts=True)
+                        CommitFileChange.objects.bulk_create(file_changes)
                         post_bulk_create(file_changes)
             except IntegrityError:
                 pass
