@@ -56,7 +56,8 @@ The package does not include application providers, global CSS, or fonts.
 
 ## Prepare a release
 
-Run the `Prepare Scraps release` GitHub workflow with the default `auto` version.
+Run the `Release` GitHub workflow and select the `static/packages/scraps` workspace.
+Leave the version blank to use the workspace's automatic versioning policy.
 Craft uses conventional commits to choose the next version and update
 [CHANGELOG.md](./CHANGELOG.md). To override the version, enter an exact version
-or `major`, `minor`, or `patch`.
+or `major`, `minor`, `patch`, or `auto`.
