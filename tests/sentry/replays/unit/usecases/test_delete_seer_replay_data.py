@@ -9,6 +9,7 @@ from sentry.replays.usecases.delete import (
     SeerDeleteFailed,
     delete_seer_replay_data,
 )
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 
 
 @patch("sentry.replays.usecases.delete.make_replay_delete_request")
@@ -16,7 +17,16 @@ def test_delete_seer_replay_data_success(mock_seer_request: MagicMock) -> None:
     """Test a successful deletion sends the ids and returns quietly."""
     mock_response = Mock()
     mock_response.status = 200
-    mock_seer_request.return_value = mock_response
+
+    def assert_viewer_context(*_args: object, **_kwargs: object) -> Mock:
+        assert get_viewer_context() == ViewerContext(
+            organization_id=456,
+            project_id=123,
+            actor_type=ActorType.SYSTEM,
+        )
+        return mock_response
+
+    mock_seer_request.side_effect = assert_viewer_context
 
     replay_ids = ["replay-1", "replay-2", "replay-3"]
     delete_seer_replay_data(456, 123, replay_ids)
@@ -27,6 +37,7 @@ def test_delete_seer_replay_data_success(mock_seer_request: MagicMock) -> None:
         "organization_id": 456,
         "project_id": 123,
     }
+    assert get_viewer_context() is None
 
 
 @patch("sentry.replays.usecases.delete.make_replay_delete_request")

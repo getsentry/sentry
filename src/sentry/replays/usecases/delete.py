@@ -46,6 +46,7 @@ from sentry.utils.snuba import (
     UnexpectedResponseError,
     parse_snuba_datetime,
 )
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 SNUBA_RETRY_EXCEPTIONS = (
     RateLimitExceeded,
@@ -341,16 +342,23 @@ def delete_seer_replay_data(organization_id: int, project_id: int, replay_ids: l
     propagate rather than being reported, so a caller cannot accidentally treat a refused deletion as
     a completed one. The replay ids are already on the caller's Sentry scope.
     """
-    response = make_replay_delete_request(
-        ReplayDeleteSeerDataRequest(
-            replay_ids=replay_ids,
+    with viewer_context_scope(
+        ViewerContext(
             organization_id=organization_id,
             project_id=project_id,
-        ),
-        timeout=SEER_DELETE_TIMEOUT,
-        retries=SEER_DELETE_RETRY,
-        viewer_context=SeerViewerContext(organization_id=organization_id),
-    )
+            actor_type=ActorType.SYSTEM,
+        )
+    ):
+        response = make_replay_delete_request(
+            ReplayDeleteSeerDataRequest(
+                replay_ids=replay_ids,
+                organization_id=organization_id,
+                project_id=project_id,
+            ),
+            timeout=SEER_DELETE_TIMEOUT,
+            retries=SEER_DELETE_RETRY,
+            viewer_context=SeerViewerContext(organization_id=organization_id),
+        )
 
     if not 200 <= response.status < 300:
         raise SeerDeleteFailed(f"Seer returned {response.status} for {len(replay_ids)} replays")
