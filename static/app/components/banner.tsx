@@ -65,15 +65,15 @@ export function Banner({
       marginBottom="xl"
       radius="md"
       height={{zero: '180px', xl: '220px'}}
-      style={{
-        backgroundColor: backgroundImg ? undefined : theme.colors.gray800,
-        backgroundImage: backgroundImg ? `url(${backgroundImg})` : undefined,
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-        backgroundSize: 'cover',
-        boxShadow: theme.shadow.medium,
-        color: theme.tokens.content.onVibrant.light,
-      }}
+      css={css`
+        background-color: ${backgroundImg ? 'transparent' : theme.colors.gray800};
+        background-image: ${backgroundImg ? `url(${backgroundImg})` : 'none'};
+        background-position: center;
+        background-repeat: no-repeat;
+        background-size: cover;
+        box-shadow: ${theme.shadow.medium};
+        color: ${theme.tokens.content.onVibrant.light};
+      `}
     >
       {backgroundComponent}
       <Grid
@@ -101,10 +101,8 @@ export function Banner({
           aria-label={t('Close')}
           css={css`
             &,
-            &:hover,
-            &:active,
-            &:focus-visible {
-              color: ${theme.tokens.content.onVibrant.light};
+            &:hover {
+              color: inherit;
             }
           `}
         />
