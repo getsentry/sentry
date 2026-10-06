@@ -1,10 +1,14 @@
+from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 
 from sentry.models.apitoken import ApiToken
+from sentry.seer import agent_token
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.impersonation import simulate_impersonation
 from sentry.testutils.silo import control_silo_test
+
+SECRET = "test-seer-api-shared-secret-thirty-two-bytes!"
 
 
 @control_silo_test
@@ -44,7 +48,15 @@ class ApiTokenGetTest(APITestCase):
 
     def test_no_auth(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
-        self.get_error_response(token.id, status_code=status.HTTP_401_UNAUTHORIZED)
+        self.get_error_response(token.id, status_code=status.HTTP_403_FORBIDDEN)
+
+    def test_deny_token_access(self) -> None:
+        token = self.create_user_auth_token(user=self.user, name="token 1")
+        self.get_error_response(
+            token.id,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
 
     def test_invalid_user_id(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
@@ -137,7 +149,18 @@ class ApiTokenPutTest(APITestCase):
         token = ApiToken.objects.create(user=self.user, name="token 1")
         payload = {"name": "new token"}
 
-        self.get_error_response(token.id, status_code=status.HTTP_401_UNAUTHORIZED, **payload)
+        self.get_error_response(token.id, status_code=status.HTTP_403_FORBIDDEN, **payload)
+
+    def test_deny_token_access(self) -> None:
+        token = self.create_user_auth_token(user=self.user, name="token 1")
+        self.get_error_response(
+            token.id,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=status.HTTP_403_FORBIDDEN,
+            name="new token",
+        )
+        token.refresh_from_db()
+        assert token.name == "token 1"
 
     def test_invalid_user_id(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
@@ -181,7 +204,16 @@ class ApiTokenDeleteTest(APITestCase):
     def test_no_auth(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
 
-        self.get_error_response(token.id, status_code=status.HTTP_401_UNAUTHORIZED)
+        self.get_error_response(token.id, status_code=status.HTTP_403_FORBIDDEN)
+
+    def test_deny_token_access(self) -> None:
+        token = self.create_user_auth_token(user=self.user, name="token 1")
+        self.get_error_response(
+            token.id,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+        assert ApiToken.objects.filter(id=token.id).exists()
 
     def test_invalid_user_id(self) -> None:
         token = ApiToken.objects.create(user=self.user, name="token 1")
@@ -224,3 +256,31 @@ class ApiTokenDetailsImpersonationTest(APITestCase):
         with simulate_impersonation(self.impersonator):
             response = self.client.get(url)
         assert response.status_code == status.HTTP_200_OK
+
+
+@control_silo_test
+@override_settings(SEER_API_SHARED_SECRET=SECRET)
+class ApiTokenDetailsAgentTokenTest(APITestCase):
+    def test_agent_token_cannot_manage_personal_tokens(self) -> None:
+        organization = self.create_organization(owner=self.user)
+        bearer, _ = agent_token.encode_agent_token(
+            user_id=self.user.id,
+            organization_id=organization.id,
+            scopes=["org:read", "org:write"],
+            session_id="api-token-details",
+        )
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            for method in ("get", "put", "delete"):
+                with self.subTest(method=method):
+                    personal_token = ApiToken.objects.create(user=self.user, name="personal token")
+                    url = reverse("sentry-api-0-api-token-details", args=[personal_token.id])
+                    response = getattr(self.client, method)(
+                        url,
+                        data={"name": "renamed"},
+                        format="json",
+                        HTTP_AUTHORIZATION=f"Bearer {bearer}",
+                    )
+
+                    assert response.status_code == status.HTTP_403_FORBIDDEN
+                    assert ApiToken.objects.filter(id=personal_token.id).exists()

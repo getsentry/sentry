@@ -1,5 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
@@ -11,13 +12,13 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {TimeSince} from 'sentry/components/timeSince';
 import {Version} from 'sentry/components/version';
+import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {isVersionInfoSemver} from 'sentry/views/explore/releases/utils';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
@@ -80,7 +81,9 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
   const organization = useOrganization();
   const [selectedRelease, setSelectedRelease] = useState<Release | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const debouncedSearch = useDebouncedValue(searchQuery);
+  const [debouncedSearch] = useDebouncedValue(searchQuery, {
+    wait: DEFAULT_DEBOUNCE_DURATION,
+  });
   const currentUser = ConfigStore.get('user');
   const [selectionError, setSelectionError] = useState<string | null>(null);
 
@@ -97,7 +100,7 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
   const shouldLookupExact = canLookupExactRelease(exactSearch);
 
   // Attempt to find the exact release, the list is capped at the most recent 100 releases
-  const {data: exactReleaseResponse} = useQuery({
+  const {data: exactRelease} = useQuery({
     ...apiOptions.as<Release | Release[]>()(
       '/organizations/$organizationIdOrSlug/releases/$version/',
       {
@@ -111,11 +114,9 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
       }
     ),
     retry: false,
+    // Guard against intermediaries normalizing the detail URL to the releases collection.
+    select: response => (Array.isArray(response.json) ? null : response.json),
   });
-  // Guard against intermediaries normalizing the detail URL to the releases collection.
-  const exactRelease = Array.isArray(exactReleaseResponse)
-    ? undefined
-    : exactReleaseResponse;
 
   const visibleReleases = useMemo(
     () =>
@@ -198,7 +199,6 @@ export function CustomResolutionModal(props: CustomResolutionModalProps) {
                 organization,
                 path: `/${encodeURIComponent(selectedRelease.version)}/`,
               })}${props.project ? `?project=${props.project.id}` : ''}`}
-              openInNewTab
             >
               <Flex align="center" gap="xs">
                 {t('View release')} <IconOpen size="xs" />

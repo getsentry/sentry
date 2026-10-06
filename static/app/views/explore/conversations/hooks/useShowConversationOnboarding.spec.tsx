@@ -1,11 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 
 import {useShowConversationOnboarding} from './useShowConversationOnboarding';
 
@@ -13,15 +15,15 @@ jest.mock('sentry/views/insights/common/queries/useDiscover', () => ({
   useSpans: jest.fn(),
 }));
 
+jest.mock('sentry/views/insights/common/queries/useHasFirstSpan');
+
 jest.mock('sentry/utils/useLocalStorageState', () => ({
   useLocalStorageState: jest.fn(),
 }));
 
-jest.mock('sentry/components/pageFilters/usePageFilters');
-
 const mockUseSpans = jest.mocked(useSpans);
+const mockUseHasFirstSpan = jest.mocked(useHasFirstSpan);
 const mockUseLocalStorageState = jest.mocked(useLocalStorageState);
-const mockUsePageFilters = jest.mocked(usePageFilters);
 
 describe('useShowConversationOnboarding', () => {
   const organization = OrganizationFixture();
@@ -29,20 +31,19 @@ describe('useShowConversationOnboarding', () => {
 
   beforeEach(() => {
     mockSetProjectsWithConversations = jest.fn();
+    mockUseHasFirstSpan.mockReturnValue(false);
 
-    mockUsePageFilters.mockReturnValue({
-      isReady: true,
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({
         projects: [1],
         environments: [],
         datetime: {period: '24h', start: null, end: null, utc: false},
-      },
-    } as any);
+      })
+    );
   });
 
   afterEach(() => {
+    PageFiltersStore.reset();
     jest.clearAllMocks();
   });
 
@@ -60,7 +61,26 @@ describe('useShowConversationOnboarding', () => {
     });
 
     expect(result.current.showOnboarding).toBe(true);
+    expect(result.current.hasConversations).toBe(false);
     expect(result.current.isLoading).toBe(false);
+  });
+
+  it('reports agentic spans without conversations', () => {
+    mockUseHasFirstSpan.mockReturnValue(true);
+    mockUseLocalStorageState.mockReturnValue([[], mockSetProjectsWithConversations]);
+    mockUseSpans.mockReturnValue({
+      data: [],
+      isLoading: false,
+      isError: false,
+      refetch: jest.fn(),
+    } as any);
+
+    const {result} = renderHookWithProviders(useShowConversationOnboarding, {
+      organization,
+    });
+
+    expect(result.current.hasAgenticSpans).toBe(true);
+    expect(result.current.hasConversations).toBe(false);
   });
 
   it('does not show onboarding when query returns data', () => {
@@ -77,6 +97,8 @@ describe('useShowConversationOnboarding', () => {
     });
 
     expect(result.current.showOnboarding).toBe(false);
+    expect(result.current.hasConversations).toBe(true);
+    expect(result.current.hasAgenticSpans).toBe(true);
     expect(result.current.isLoading).toBe(false);
   });
 
@@ -115,16 +137,13 @@ describe('useShowConversationOnboarding', () => {
   });
 
   it('shows onboarding for a project not in localStorage even if other projects are', () => {
-    mockUsePageFilters.mockReturnValue({
-      isReady: true,
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({
         projects: [2],
         environments: [],
         datetime: {period: '1h', start: null, end: null, utc: false},
-      },
-    } as any);
+      })
+    );
 
     mockUseLocalStorageState.mockReturnValue([[1], mockSetProjectsWithConversations]);
     mockUseSpans.mockReturnValue({
@@ -159,16 +178,13 @@ describe('useShowConversationOnboarding', () => {
   });
 
   it('merges new project IDs with existing localStorage entries', () => {
-    mockUsePageFilters.mockReturnValue({
-      isReady: true,
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({
         projects: [2],
         environments: [],
         datetime: {period: '24h', start: null, end: null, utc: false},
-      },
-    } as any);
+      })
+    );
 
     mockUseLocalStorageState.mockReturnValue([[1], mockSetProjectsWithConversations]);
     mockUseSpans.mockReturnValue({
@@ -223,16 +239,13 @@ describe('useShowConversationOnboarding', () => {
   });
 
   it('stores -1 sentinel for all-projects selection instead of individual IDs', () => {
-    mockUsePageFilters.mockReturnValue({
-      isReady: true,
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({
         projects: [],
         environments: [],
         datetime: {period: '24h', start: null, end: null, utc: false},
-      },
-    } as any);
+      })
+    );
 
     mockUseLocalStorageState.mockReturnValue([[], mockSetProjectsWithConversations]);
     mockUseSpans.mockReturnValue({
@@ -251,16 +264,13 @@ describe('useShowConversationOnboarding', () => {
   });
 
   it('does not show onboarding for all-projects when -1 is in localStorage', () => {
-    mockUsePageFilters.mockReturnValue({
-      isReady: true,
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({
         projects: [],
         environments: [],
         datetime: {period: '1h', start: null, end: null, utc: false},
-      },
-    } as any);
+      })
+    );
 
     mockUseLocalStorageState.mockReturnValue([
       [ALL_ACCESS_PROJECTS],
@@ -281,16 +291,13 @@ describe('useShowConversationOnboarding', () => {
   });
 
   it('does not show onboarding for all-projects when specific projects have data in localStorage', () => {
-    mockUsePageFilters.mockReturnValue({
-      isReady: true,
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({
         projects: [],
         environments: [],
         datetime: {period: '1h', start: null, end: null, utc: false},
-      },
-    } as any);
+      })
+    );
 
     mockUseLocalStorageState.mockReturnValue([[1], mockSetProjectsWithConversations]);
     mockUseSpans.mockReturnValue({
@@ -308,16 +315,13 @@ describe('useShowConversationOnboarding', () => {
   });
 
   it('does not let all-projects sentinel suppress onboarding for a specific project', () => {
-    mockUsePageFilters.mockReturnValue({
-      isReady: true,
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
+    PageFiltersStore.onInitializeUrlState(
+      PageFiltersFixture({
         projects: [2],
         environments: [],
         datetime: {period: '1h', start: null, end: null, utc: false},
-      },
-    } as any);
+      })
+    );
 
     mockUseLocalStorageState.mockReturnValue([
       [ALL_ACCESS_PROJECTS],

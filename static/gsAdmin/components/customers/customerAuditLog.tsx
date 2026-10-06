@@ -1,18 +1,16 @@
 import {DateTime} from 'sentry/components/dateTime';
+import {ResultGrid} from 'sentry/components/resultGrid';
 
-import {ResultGrid} from 'admin/components/resultGrid';
-
-type Props = Partial<React.ComponentProps<typeof ResultGrid>> & {
+type Props = {
   orgSlug: string;
   targetId: string;
 };
 
-export function CustomerAuditLog({orgSlug, targetId, ...props}: Props) {
+export function CustomerAuditLog({orgSlug, targetId}: Props) {
   return (
     <ResultGrid
       path=""
       endpoint="/audit-logs/"
-      method="GET"
       defaultParams={{target_id: targetId, org_slug: orgSlug, per_page: 100}}
       useQueryString={false}
       hasPagination={false}
@@ -45,7 +43,6 @@ export function CustomerAuditLog({orgSlug, targetId, ...props}: Props) {
         <td key="ticket">{row.ticketId ? <a href={row.ticketId}>Ticket</a> : '—'}</td>,
         <td key="notes">{row.data?.notes ?? '—'}</td>,
       ]}
-      {...props}
     />
   );
 }

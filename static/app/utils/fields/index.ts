@@ -1,28 +1,35 @@
-import {ATTRIBUTE_METADATA} from '@sentry/conventions';
-
-import {t, td} from 'sentry/locale';
-import type {TagCollection} from 'sentry/types/group';
-import {CONDITIONS_ARGUMENTS, WEB_VITALS_QUALITY} from 'sentry/utils/discover/types';
+import {t} from 'sentry/locale';
+import {
+  CONDITIONS_ARGUMENTS,
+  EQUALITY_CONDITIONS_ARGUMENTS,
+  WEB_VITALS_QUALITY,
+} from 'sentry/utils/discover/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {METRICS_ARTIFACT_TYPES} from 'sentry/views/settings/project/preprod/types';
 
-// Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
+import {applyAttributeSearchFieldOverrides} from './applyAttributeSearchFieldOverrides';
+import {ATTRIBUTE_SEARCH_SECONDARY_ALIASES} from './getAttributeSearchSecondaryAliases';
+import {ATTRIBUTE_SEARCH_FIELD_DEFINITIONS} from './getFieldDefinitionFromAttributeSearchMetadata';
+import {mergeAttributeSearchMetadata} from './mergeAttributeSearchMetadata';
+import {pickAttributeSearchFieldDefinitions} from './pickAttributeSearchFieldDefinitions';
+import {
+  FieldKind,
+  FieldValueType,
+  type AggregateParameter,
+  type FieldDefinition,
+} from './types';
 
-export enum FieldKind {
-  TAG = 'tag',
-  FEATURE_FLAG = 'feature_flag',
-  MEASUREMENT = 'measurement',
-  BREAKDOWN = 'breakdown',
-  FIELD = 'field',
-  ISSUE_FIELD = 'issue_field',
-  EVENT_FIELD = 'event_field',
-  FUNCTION = 'function',
-  EQUATION = 'equation',
-  METRICS = 'metric',
-  NUMERIC_METRICS = 'numeric_metric',
-  BOOLEAN = 'boolean',
-}
+export {
+  ATTRIBUTE_SEARCH_SECONDARY_ALIASES,
+  FieldKind,
+  FieldValueType,
+  type AggregateParameter,
+  type FieldDefinition,
+};
+
+// Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
 export enum FieldKey {
   AGE = 'age',
@@ -97,6 +104,7 @@ export enum FieldKey {
   PLATFORM = 'platform',
   PLATFORM_NAME = 'platform.name',
   PROFILE_ID = 'profile.id',
+  PROFILER_ID = 'profiler.id',
   PROJECT = 'project',
   RELEASE = 'release',
   RELEASE_BUILD = 'release.build',
@@ -151,28 +159,18 @@ export enum FieldKey {
 }
 
 type SharedFieldKey =
-  | FieldKey.DIST
-  | FieldKey.ENVIRONMENT
   | FieldKey.EVENT_TIMESTAMP
   | FieldKey.HAS
-  | FieldKey.HTTP_METHOD
   | FieldKey.HTTP_REFERER
-  | FieldKey.HTTP_STATUS_CODE
-  | FieldKey.HTTP_URL
-  | FieldKey.ID
   | FieldKey.MESSAGE
-  | FieldKey.PLATFORM
   | FieldKey.PLATFORM_NAME
-  | FieldKey.PROFILE_ID
   | FieldKey.PROJECT
   | FieldKey.REPLAY_ID
   | FieldKey.TIMESTAMP
   | FieldKey.TITLE
   | FieldKey.TRACE
   | FieldKey.TRACE_PARENT_SPAN
-  | FieldKey.TRACE_SPAN
-  | FieldKey.TRANSACTION
-  | FieldKey.APP_IN_FOREGROUND;
+  | FieldKey.TRACE_SPAN;
 
 type ErrorFieldKey =
   | FieldKey.AGE
@@ -182,7 +180,6 @@ type ErrorFieldKey =
   | FieldKey.CULPRIT
   | FieldKey.ERROR_HANDLED
   | FieldKey.ERROR_MECHANISM
-  | FieldKey.ERROR_TYPE
   | FieldKey.ERROR_UNHANDLED
   | FieldKey.ERROR_VALUE
   | FieldKey.ERROR_RECEIVED
@@ -215,31 +212,11 @@ type ErrorFieldKey =
   | FieldKey.STATUS
   | FieldKey.SYMBOLICATED_IN_APP
   | FieldKey.TIMES_SEEN
-  | FieldKey.USER_COUNT
   | FieldKey.TYPE
+  | FieldKey.USER_COUNT
   | FieldKey.UNREAL_CRASH_TYPE;
 
-type BrowserFieldKey = FieldKey.BROWSER_NAME;
-
-type DeviceFieldKey =
-  | FieldKey.DEVICE
-  | FieldKey.DEVICE_ARCH
-  | FieldKey.DEVICE_BATTERY_LEVEL
-  | FieldKey.DEVICE_BRAND
-  | FieldKey.DEVICE_CHARGING
-  | FieldKey.DEVICE_CLASS
-  | FieldKey.DEVICE_FAMILY
-  | FieldKey.DEVICE_LOCALE
-  | FieldKey.DEVICE_MODEL_ID
-  | FieldKey.DEVICE_NAME
-  | FieldKey.DEVICE_ONLINE
-  | FieldKey.DEVICE_ORIENTATION
-  | FieldKey.DEVICE_SCREEN_DENSITY
-  | FieldKey.DEVICE_SCREEN_DPI
-  | FieldKey.DEVICE_SCREEN_HEIGHT_PIXELS
-  | FieldKey.DEVICE_SCREEN_WIDTH_PIXELS
-  | FieldKey.DEVICE_SIMULATOR
-  | FieldKey.DEVICE_UUID;
+type DeviceFieldKey = FieldKey.DEVICE | FieldKey.DEVICE_ARCH | FieldKey.DEVICE_UUID;
 
 type GeoFieldKey =
   | FieldKey.GEO_CITY
@@ -249,21 +226,15 @@ type GeoFieldKey =
 
 type OsFieldKey =
   | FieldKey.OS
-  | FieldKey.OS_BUILD
-  | FieldKey.OS_KERNEL_VERSION
-  | FieldKey.OS_NAME
   | FieldKey.OS_DISTRIBUTION_NAME
   | FieldKey.OS_DISTRIBUTION_VERSION;
 
 type ReleaseFieldKey =
-  | FieldKey.RELEASE
   | FieldKey.RELEASE_BUILD
   | FieldKey.RELEASE_CREATED
   | FieldKey.RELEASE_PACKAGE
   | FieldKey.RELEASE_STAGE
   | FieldKey.RELEASE_VERSION;
-
-type SDKFieldKey = FieldKey.SDK_NAME | FieldKey.SDK_VERSION;
 
 type TransactionFieldKey =
   | FieldKey.TIMESTAMP_TO_DAY
@@ -274,14 +245,7 @@ type TransactionFieldKey =
   | FieldKey.TRANSACTION_OP
   | FieldKey.TRANSACTION_STATUS;
 
-type UserFieldKey =
-  | FieldKey.USER
-  | FieldKey.USER_DISPLAY
-  | FieldKey.USER_EMAIL
-  | FieldKey.USER_ID
-  | FieldKey.USER_IP
-  | FieldKey.USER_USERNAME
-  | FieldKey.USER_SEGMENT;
+type UserFieldKey = FieldKey.USER | FieldKey.USER_DISPLAY | FieldKey.USER_SEGMENT;
 
 type ProfileFieldKey = FieldKey.FUNCTION_DURATION;
 
@@ -290,21 +254,14 @@ type OTAFieldKey =
   | FieldKey.OTA_UPDATES_RUNTIME_VERSION
   | FieldKey.OTA_UPDATES_UPDATE_ID;
 
-export enum FieldValueType {
-  BOOLEAN = 'boolean',
-  DATE = 'date',
-  DURATION = 'duration',
-  INTEGER = 'integer',
-  NUMBER = 'number',
-  PERCENTAGE = 'percentage',
-  STRING = 'string',
-  NEVER = 'never',
-  SIZE = 'size',
-  RATE = 'rate',
-  PERCENT_CHANGE = 'percent_change',
-  SCORE = 'score',
-  CURRENCY = 'currency',
-}
+/**
+ * What to say about an attribute the field definition registry does not define.
+ */
+export const DEFAULT_TAG_DESCRIPTION = t('A tag sent with one or more events');
+
+export const DEFAULT_ATTRIBUTE_DESCRIPTION = t(
+  'An attribute sent with one or more events'
+);
 
 export enum WebVital {
   FP = 'measurements.fp',
@@ -394,6 +351,7 @@ export enum AggregationKey {
   P100 = 'p100',
   PERCENTILE = 'percentile',
   AVG = 'avg',
+  AVG_IF = 'avg_if',
   APDEX = 'apdex',
   USER_MISERY = 'user_misery',
   FAILURE_RATE = 'failure_rate',
@@ -443,96 +401,6 @@ export function getIsFieldDescriptionFromValue(
     return IsFieldDescriptions[isFieldValue];
   }
   return undefined;
-}
-
-type AggregateColumnParameter = {
-  /**
-   * The types of columns that are valid for this parameter.
-   * Can pass a list of FieldValueTypes or a predicate function.
-   */
-  columnTypes:
-    | FieldValueType[]
-    | ((field: {key: string; valueType: FieldValueType}) => boolean);
-  kind: 'column';
-  name: string;
-  required: boolean;
-  defaultValue?: string;
-};
-
-type AggregateValueParameter = {
-  dataType: FieldValueType;
-  kind: 'value';
-  name: string;
-  required: boolean;
-  defaultValue?: string;
-  options?: Array<{value: string; label?: string}>;
-  placeholder?: string;
-};
-
-export type AggregateParameter = AggregateColumnParameter | AggregateValueParameter;
-
-type ParameterDependentValueType = (parameters: Array<string | null>) => FieldValueType;
-
-export interface FieldDefinition {
-  kind: FieldKind;
-  valueType: FieldValueType | null;
-  /**
-   * Allow all comparison operators to be used with this field.
-   * Useful for fields like `release.version` which accepts text, but
-   * can also be used with operators like `>=` or `<`.
-   */
-  allowComparisonOperators?: boolean;
-  /**
-   * Allow multiple values to be selected for this field.
-   * This is only valid for string and default numeric filters and defaults to true.
-   */
-  allowMultipleValues?: boolean;
-  /**
-   * Allow wildcard (*) matching for this field.
-   * This is only valid for string fields and will default to true.
-   * Note that the `disallowWildcardOperators` setting will override this.
-   */
-  allowWildcard?: boolean;
-  /**
-   * Default value for the field
-   */
-  defaultValue?: string;
-  /**
-   * Is this field being deprecated
-   */
-  deprecated?: boolean;
-  /**
-   * Description of the field
-   */
-  desc?: string;
-  /**
-   * Disallow wildcard (contains, starts with, ends with) operators for this field
-   * This is only valid for string fields and will default to false.
-   * Setting this to true will override `allowWildcard`.
-   */
-  disallowWildcardOperators?: boolean;
-  /**
-   * Feature flag that indicates gating of the field from use
-   */
-  featureFlag?: string;
-  /**
-   * Additional keywords used when filtering via autocomplete
-   */
-  keywords?: string[];
-  /**
-   * Only valid for aggregate fields.
-   * Modifies the value type based on the parameters passed to the function.
-   */
-  parameterDependentValueType?: ParameterDependentValueType;
-  /**
-   * Only valid for aggregate fields.
-   * Defines the number and type of parameters that the function accepts.
-   */
-  parameters?: AggregateParameter[];
-  /**
-   * Potential values for the field
-   */
-  values?: string[];
 }
 
 type ColumnValidator = (field: {key: string; valueType: FieldValueType}) => boolean;
@@ -996,6 +864,47 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
       },
     ],
   },
+  [AggregationKey.AVG_IF]: {
+    desc: t('Returns averages for a selected field, for events matching a condition'),
+    kind: FieldKind.FUNCTION,
+    valueType: null,
+    parameterDependentValueType: getDynamicFieldValueType,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+        ]),
+        defaultValue: 'transaction.duration',
+        required: true,
+      },
+      {
+        name: 'condition_column',
+        kind: 'column',
+        columnTypes: [FieldValueType.STRING],
+        defaultValue: 'transaction',
+        required: true,
+      },
+      {
+        name: 'condition',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: EQUALITY_CONDITIONS_ARGUMENTS[0]!.value,
+        options: EQUALITY_CONDITIONS_ARGUMENTS,
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: '/',
+        required: true,
+      },
+    ],
+  },
   [AggregationKey.APDEX]: {
     desc: t('Performance score based on a duration threshold'),
     kind: FieldKind.FUNCTION,
@@ -1103,12 +1012,61 @@ export const ALLOWED_EXPLORE_VISUALIZE_AGGREGATES: AggregationKey[] = [
   AggregationKey.OPPORTUNITY_SCORE,
 ];
 
+/**
+ * Span aggregates that EAP generates an `_if` combinator for. Used by Explore series
+ * filters and equation builders. See `SPAN_AGGREGATE_COMBINATORS` in
+ * `src/sentry/search/eap/spans/aggregates.py`.
+ */
+export const EXPLORE_FILTERABLE_AGGREGATES: AggregationKey[] = [
+  AggregationKey.COUNT,
+  AggregationKey.COUNT_UNIQUE,
+  AggregationKey.SUM,
+  AggregationKey.AVG,
+  AggregationKey.MIN,
+  AggregationKey.MAX,
+  AggregationKey.P50,
+  AggregationKey.P75,
+  AggregationKey.P90,
+  AggregationKey.P95,
+  AggregationKey.P99,
+  AggregationKey.P100,
+];
+
+/**
+ * EAP conditional aggregates offered in the Explore equation builder
+ * (`avg_if(\`span.op:db\`,span.duration)`). The first argument is a backtick-wrapped
+ * search filter, followed by the base aggregate's parameters. Only included when
+ * `explore-conditional-aggregates` is enabled; see {@link getExploreEquationAggregates}.
+ */
+export const ALLOWED_EXPLORE_EQUATION_CONDITIONAL_AGGREGATES: string[] =
+  EXPLORE_FILTERABLE_AGGREGATES.map(name => `${name}_if`);
+
 export const ALLOWED_EXPLORE_EQUATION_AGGREGATES: AggregationKey[] = [
   ...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+  AggregationKey.AVG_IF,
   AggregationKey.COUNT_IF,
   AggregationKey.APDEX,
   AggregationKey.USER_MISERY,
 ];
+
+/**
+ * Aggregates offered in the Explore equation builder. When
+ * `explore-conditional-aggregates` is on, Discover `avg_if` / `count_if` are replaced by
+ * the EAP `_if` combinators (`avg_if`, `count_if`, `sum_if`, …).
+ */
+export function getExploreEquationAggregates(
+  hasConditionalAggregates: boolean
+): string[] {
+  if (!hasConditionalAggregates) {
+    return ALLOWED_EXPLORE_EQUATION_AGGREGATES;
+  }
+  return [
+    ...ALLOWED_EXPLORE_VISUALIZE_AGGREGATES,
+    ...ALLOWED_EXPLORE_EQUATION_CONDITIONAL_AGGREGATES,
+    AggregationKey.APDEX,
+    AggregationKey.USER_MISERY,
+  ];
+}
 
 const LOG_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
@@ -1329,6 +1287,7 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
             (valueType === FieldValueType.DURATION || valueType === FieldValueType.NUMBER)
           );
         },
+        defaultLabel: 'spans',
         defaultValue: 'span.duration',
         required: false,
       },
@@ -1419,6 +1378,46 @@ const SPAN_AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
           FieldValueType.CURRENCY,
         ]),
         defaultValue: 'span.duration',
+        required: true,
+      },
+    ],
+  },
+  [AggregationKey.AVG_IF]: {
+    ...AGGREGATION_FIELDS[AggregationKey.AVG_IF],
+    parameterDependentValueType: getSpanDynamicFieldValueType,
+    parameters: [
+      {
+        name: 'column',
+        kind: 'column',
+        columnTypes: validateForNumericAggregate([
+          FieldValueType.DURATION,
+          FieldValueType.NUMBER,
+          FieldValueType.PERCENTAGE,
+          FieldValueType.CURRENCY,
+        ]),
+        defaultValue: 'span.duration',
+        required: true,
+      },
+      {
+        name: 'condition_column',
+        kind: 'column',
+        columnTypes: [FieldValueType.STRING],
+        defaultValue: 'span.op',
+        required: true,
+      },
+      {
+        name: 'condition',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: EQUALITY_CONDITIONS_ARGUMENTS[0]!.value,
+        options: EQUALITY_CONDITIONS_ARGUMENTS,
+        required: true,
+      },
+      {
+        name: 'value',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: 'db',
         required: true,
       },
     ],
@@ -1607,6 +1606,35 @@ export const NO_ARGUMENT_SPAN_AGGREGATES: AggregationKey[] = Object.entries(
   .filter(([_, field]) => field.parameters?.length === 0)
   .map(([key]) => key as AggregationKey);
 
+/**
+ * Prepend the EAP `_if` search filter argument to a base span aggregate definition.
+ * Empty backticks are the default so the tokenizer keeps a filter slot until the user
+ * fills it in: `avg_if(``,span.duration)`.
+ */
+function withConditionalFilterParameter(definition: FieldDefinition): FieldDefinition {
+  return {
+    ...definition,
+    parameters: [
+      {
+        name: 'filter',
+        kind: 'value',
+        dataType: FieldValueType.STRING,
+        defaultValue: '``',
+        required: true,
+      },
+      ...(definition.parameters ?? []),
+    ],
+  };
+}
+
+const SPAN_CONDITIONAL_AGGREGATION_FIELDS: Record<string, FieldDefinition> =
+  Object.fromEntries(
+    EXPLORE_FILTERABLE_AGGREGATES.map(name => [
+      `${name}_if`,
+      withConditionalFilterParameter(SPAN_AGGREGATION_FIELDS[name]),
+    ])
+  );
+
 export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition> = {
   [WebVital.FP]: {
     desc: t('Web Vital First Paint'),
@@ -1745,47 +1773,21 @@ const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
   },
 };
 
-type TraceFields =
-  | SpanFields.IS_TRANSACTION
-  | SpanFields.SPAN_ACTION
-  | SpanFields.SPAN_DESCRIPTION
-  | SpanFields.SPAN_DOMAIN
-  | SpanFields.SPAN_DURATION
-  | SpanFields.SPAN_GROUP
-  | SpanFields.SPAN_CATEGORY
-  | SpanFields.SPAN_OP
-  | SpanFields.NORMALIZED_DESCRIPTION
-  // TODO: Remove self time field when it is deprecated
-  | SpanFields.SPAN_SELF_TIME
-  | SpanFields.SPAN_STATUS
-  | SpanFields.SPAN_STATUS_CODE
-  | SpanFields.CACHE_HIT;
-
-const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
+const TRACE_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
+  ...pickAttributeSearchFieldDefinitions([
+    SpanFields.SPAN_ACTION,
+    SpanFields.SPAN_DOMAIN,
+    SpanFields.SPAN_GROUP,
+    SpanFields.SPAN_CATEGORY,
+    SpanFields.SPAN_OP,
+    SpanFields.NORMALIZED_DESCRIPTION,
+    SpanFields.SPAN_STATUS,
+    SpanFields.SPAN_STATUS_CODE,
+    SpanFields.CACHE_HIT,
+  ]),
   /** Indexed Fields */
-  [SpanFields.SPAN_ACTION]: {
-    desc: t(
-      'The Sentry Insights span action, e.g `SELECT` for a SQL span or `POST` for an HTTP client span'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
   [SpanFields.SPAN_DESCRIPTION]: {
     desc: t('Description of the span’s operation'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [SpanFields.NORMALIZED_DESCRIPTION]: {
-    desc: t(
-      'Parameterized and normalized description of the span, commonly used for grouping within insights'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [SpanFields.SPAN_DOMAIN]: {
-    desc: t(
-      'General scope of the span’s action, i.e. the tables involved in a `db` span or the host name in an `http` span'
-    ),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -1794,101 +1796,31 @@ const TRACE_FIELD_DEFINITIONS: Record<TraceFields, FieldDefinition> = {
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
-  [SpanFields.SPAN_GROUP]: {
-    desc: t('Unique hash of the span’s description'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [SpanFields.SPAN_CATEGORY]: {
-    desc: t(
-      'The prefix of the span operation, e.g if `span.op` is `http.client`, then `span.category` is `http`'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [SpanFields.SPAN_OP]: {
-    desc: t('The operation of the span, e.g `http.client`, `middleware`'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
   [SpanFields.SPAN_SELF_TIME]: {
     desc: t('The duration of the span excluding the duration of its child spans'),
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
-  },
-  [SpanFields.SPAN_STATUS]: {
-    desc: t('Status of the operation the span represents'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [SpanFields.SPAN_STATUS_CODE]: {
-    desc: t('The HTTP response status code'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
   },
   [SpanFields.IS_TRANSACTION]: {
     desc: t('The span is also a transaction'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
   },
-  [SpanFields.CACHE_HIT]: {
-    desc: t('`true` if the  cache was hit, `false` otherwise'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.BOOLEAN,
-  },
 };
 
 const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
-  [FieldKey.DIST]: {
-    desc: t(
-      'Distinguishes between build or deployment variants of the same release of an application.'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.ENVIRONMENT]: {
-    desc: t('The environment the event was seen in'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
   [FieldKey.EVENT_TIMESTAMP]: {
     desc: t('Date and time of the event'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DATE,
-  },
-  [FieldKey.HTTP_METHOD]: {
-    desc: t('Method of the request that created the event'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
   },
   [FieldKey.HTTP_REFERER]: {
     desc: t('The web page the resource was requested from'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.HTTP_STATUS_CODE]: {
-    desc: t('Type of response (i.e., 200, 404)'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.HTTP_URL]: {
-    desc: t('Full URL of the request without parameters'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.ID]: {
-    desc: t('The event identification number'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
-  },
   [FieldKey.MESSAGE]: {
     desc: t('Error message or transaction name'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.PLATFORM]: {
-    desc: t('Name of the platform'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -1896,12 +1828,6 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     desc: t('Name of the platform'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
-  },
-  [FieldKey.PROFILE_ID]: {
-    desc: t('The ID of an associated profile'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
   },
   [FieldKey.PROJECT]: {
     kind: FieldKind.FIELD,
@@ -1948,16 +1874,6 @@ const SHARED_FIELD_KEY: Record<SharedFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
     allowWildcard: false,
   },
-  [FieldKey.TRANSACTION]: {
-    desc: t('Error or transaction name identifier'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.APP_IN_FOREGROUND]: {
-    desc: t('Indicates if the app is in the foreground or background'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.BOOLEAN,
-  },
 };
 
 const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
@@ -1996,11 +1912,6 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
   },
   [FieldKey.ERROR_MECHANISM]: {
     desc: t('The mechanism that created the error'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.ERROR_TYPE]: {
-    desc: t('The type of exception'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -2177,27 +2088,19 @@ const ERROR_FIELD_DEFINITION: Record<ErrorFieldKey, FieldDefinition> = {
     valueType: FieldValueType.NUMBER,
     keywords: ['count'],
   },
+  [FieldKey.TYPE]: {
+    desc: t('Type of event (Errors, transactions, csp and default)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
   [FieldKey.USER_COUNT]: {
     desc: t('Number of unique users affected'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.NUMBER,
     keywords: ['users', 'affected'],
   },
-  [FieldKey.TYPE]: {
-    desc: t('Type of event (Errors, transactions, csp and default)'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
   [FieldKey.UNREAL_CRASH_TYPE]: {
     desc: t('Crash type of an Unreal event'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-};
-
-const BROWSER_FIELD_DEFINITION: Record<BrowserFieldKey, FieldDefinition> = {
-  [FieldKey.BROWSER_NAME]: {
-    desc: td(ATTRIBUTE_METADATA[FieldKey.BROWSER_NAME].brief),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
@@ -2213,82 +2116,6 @@ const DEVICE_FIELD_DEFINITION: Record<DeviceFieldKey, FieldDefinition> = {
     desc: t('CPU architecture'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
-  },
-  [FieldKey.DEVICE_BATTERY_LEVEL]: {
-    desc: t('Indicates remaining battery life'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.DEVICE_BRAND]: {
-    desc: t('Brand of device'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.DEVICE_CHARGING]: {
-    desc: t('Charging at the time of the event'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.BOOLEAN,
-  },
-  [FieldKey.DEVICE_CLASS]: {
-    desc: t('The estimated performance level of the device, graded low, medium, or high'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
-  },
-  [FieldKey.DEVICE_FAMILY]: {
-    desc: t('Model name across generations'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.DEVICE_LOCALE]: {
-    desc: t("The locale of the user's device"),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.DEVICE_MODEL_ID]: {
-    desc: t('Internal hardware revision'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.DEVICE_NAME]: {
-    desc: t('Model name as advertised on the market'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.DEVICE_ONLINE]: {
-    desc: t('Online at the time of the event'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.BOOLEAN,
-  },
-  [FieldKey.DEVICE_ORIENTATION]: {
-    desc: t('Portrait or landscape view '),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.DEVICE_SCREEN_DENSITY]: {
-    desc: t('Pixel density of the device screen'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.DEVICE_SCREEN_DPI]: {
-    desc: t('Dots per inch of the device screen'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.DEVICE_SCREEN_HEIGHT_PIXELS]: {
-    desc: t('Height of the device screen in pixels'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.DEVICE_SCREEN_WIDTH_PIXELS]: {
-    desc: t('Width of the device screen in pixels'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.DEVICE_SIMULATOR]: {
-    desc: t('Indicates if it occurred on a simulator'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.BOOLEAN,
   },
   [FieldKey.DEVICE_UUID]: {
     desc: t('Unique device identifier'),
@@ -2326,11 +2153,6 @@ const OS_FIELD_DEFINITIONS: Record<OsFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.OS_BUILD]: {
-    desc: t('Name of the build'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
   [FieldKey.OS_DISTRIBUTION_NAME]: {
     desc: t('Distribution name'),
     kind: FieldKind.FIELD,
@@ -2341,25 +2163,9 @@ const OS_FIELD_DEFINITIONS: Record<OsFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.OS_KERNEL_VERSION]: {
-    desc: t('Version number'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.OS_NAME]: {
-    desc: t('Name of the Operating System'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
 };
 
 const RELEASE_FIELD_DEFINITION: Record<ReleaseFieldKey, FieldDefinition> = {
-  [FieldKey.RELEASE]: {
-    desc: t('The version of your code deployed to an environment'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
-  },
   [FieldKey.RELEASE_BUILD]: {
     desc: t('The full version number that identifies the iteration'),
     kind: FieldKind.FIELD,
@@ -2393,19 +2199,6 @@ const RELEASE_FIELD_DEFINITION: Record<ReleaseFieldKey, FieldDefinition> = {
     allowComparisonOperators: true,
     allowMultipleValues: false,
     disallowWildcardOperators: true,
-  },
-};
-
-const SDK_FIELD_DEFINITIONS: Record<SDKFieldKey, FieldDefinition> = {
-  [FieldKey.SDK_NAME]: {
-    desc: t('Name of the platform that sent the event'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.SDK_VERSION]: {
-    desc: t('Version of the platform that sent the event'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
   },
 };
 
@@ -2458,26 +2251,6 @@ const USER_FIELD_DEFINITIONS: Record<UserFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [FieldKey.USER_EMAIL]: {
-    desc: t('Email address of the user'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.USER_ID]: {
-    desc: t('Application specific internal identifier of the user'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.USER_IP]: {
-    desc: t('IP Address of the user'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FieldKey.USER_USERNAME]: {
-    desc: t('Username of the user'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
   [FieldKey.USER_SEGMENT]: {
     desc: t('Segment of the user'),
     kind: FieldKind.FIELD,
@@ -2511,100 +2284,78 @@ const OTA_FIELD_DEFINITIONS: Record<OTAFieldKey, FieldDefinition> = {
   },
 };
 
-type AllEventFieldKeys =
-  | keyof typeof AGGREGATION_FIELDS
-  | keyof typeof MEASUREMENT_FIELDS
-  | keyof typeof SPAN_OP_FIELDS
-  | keyof typeof TRACE_FIELD_DEFINITIONS
-  | FieldKey;
-
-const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
-  ...AGGREGATION_FIELDS,
-  ...MEASUREMENT_FIELDS,
-  ...SPAN_OP_FIELDS,
-  ...TRACE_FIELD_DEFINITIONS,
-  ...SHARED_FIELD_KEY,
-  ...ERROR_FIELD_DEFINITION,
-  ...BROWSER_FIELD_DEFINITION,
-  ...DEVICE_FIELD_DEFINITION,
-  ...GEO_FIELD_DEFINITIONS,
-  ...OS_FIELD_DEFINITIONS,
-  ...RELEASE_FIELD_DEFINITION,
-  ...SDK_FIELD_DEFINITIONS,
-  ...TRANSACTION_FIELD_DEFINITIONS,
-  ...USER_FIELD_DEFINITIONS,
-  ...PROFILE_FIELD_DEFINITIONS,
-  ...OTA_FIELD_DEFINITIONS,
-};
-
-const SPAN_HTTP_FIELD_DEFINITIONS: Record<SpanHttpField, FieldDefinition> = {
+/**
+ * Product-specific extras conventions don't carry (wildcard, kind, unit).
+ * Only applied to keys already present on a map — never injects new keys.
+ */
+const FIELD_DEFINITION_OVERRIDES: Record<string, Partial<FieldDefinition>> = {
+  [FieldKey.ID]: {allowWildcard: false},
+  [FieldKey.PROFILE_ID]: {allowWildcard: false},
+  [FieldKey.PROFILER_ID]: {allowWildcard: false},
+  [FieldKey.DEVICE_CLASS]: {allowWildcard: false},
+  [FieldKey.RELEASE]: {allowWildcard: false},
   [SpanHttpField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH]: {
-    desc: t('Content length of the decoded response'),
     kind: FieldKind.MEASUREMENT,
-    valueType: FieldValueType.SIZE,
   },
-  [SpanHttpField.HTTP_RESPONSE_CONTENT_LENGTH]: {
-    desc: t('Content length of the response'),
-    kind: FieldKind.MEASUREMENT,
-    valueType: FieldValueType.SIZE,
-  },
-  [SpanHttpField.HTTP_RESPONSE_TRANSFER_SIZE]: {
-    desc: t('Transfer size of the response'),
-    kind: FieldKind.MEASUREMENT,
-    valueType: FieldValueType.SIZE,
-  },
-};
-
-const GEN_AI_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
-  [SpanFields.GEN_AI_COST_INPUT_TOKENS]: {
-    desc: t('The cost of the input tokens'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.CURRENCY,
-  },
+  [SpanHttpField.HTTP_RESPONSE_CONTENT_LENGTH]: {kind: FieldKind.MEASUREMENT},
+  [SpanHttpField.HTTP_RESPONSE_TRANSFER_SIZE]: {kind: FieldKind.MEASUREMENT},
+  [SpanFields.GEN_AI_COST_INPUT_TOKENS]: {valueType: FieldValueType.CURRENCY},
   [SpanFields.GEN_AI_COST_OUTPUT_TOKENS]: {
-    desc: t('The cost of the output tokens'),
-    kind: FieldKind.FIELD,
     valueType: FieldValueType.CURRENCY,
   },
-  [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: {
-    desc: t('The total cost of the input and output tokens'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.CURRENCY,
+  [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: {valueType: FieldValueType.CURRENCY},
+  [OurLogKnownFieldKey.REPLAY_ID]: {
+    kind: FieldKind.TAG,
+    allowWildcard: false,
   },
 };
 
-const SPAN_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
-  ...EVENT_FIELD_DEFINITIONS,
-  ...SPAN_AGGREGATION_FIELDS,
-  ...SPAN_HTTP_FIELD_DEFINITIONS,
-  ...GEN_AI_FIELD_DEFINITIONS,
-  [SpanFields.NAME]: {
-    desc: t(
-      'The span name. A short, human-readable identifier for the operation being performed by the span.'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
+const EVENT_FIELD_DEFINITIONS = applyAttributeSearchFieldOverrides(
+  {
+    // Only FieldKeys that exist in conventions — do not spread the full 780-key map
+    // onto event search (that would make `getFieldDefinition('http.route')` succeed).
+    ...pickAttributeSearchFieldDefinitions(Object.values(FieldKey)),
+    ...AGGREGATION_FIELDS,
+    ...MEASUREMENT_FIELDS,
+    ...SPAN_OP_FIELDS,
+    ...TRACE_FIELD_DEFINITIONS,
+    ...SHARED_FIELD_KEY,
+    ...ERROR_FIELD_DEFINITION,
+    ...DEVICE_FIELD_DEFINITION,
+    ...GEO_FIELD_DEFINITIONS,
+    ...OS_FIELD_DEFINITIONS,
+    ...RELEASE_FIELD_DEFINITION,
+    ...TRANSACTION_FIELD_DEFINITIONS,
+    ...USER_FIELD_DEFINITIONS,
+    ...PROFILE_FIELD_DEFINITIONS,
+    ...OTA_FIELD_DEFINITIONS,
   },
-  [SpanFields.KIND]: {
-    desc: t(
-      'The kind of span. Indicates the type of span such as server, client, internal, producer, or consumer.'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
+  {
+    ...FIELD_DEFINITION_OVERRIDES,
+    [FieldKey.ID]: {
+      ...FIELD_DEFINITION_OVERRIDES[FieldKey.ID],
+      desc: t('The event identification number'),
+    },
+    [FieldKey.TRANSACTION]: {desc: t('Error or transaction name identifier')},
+    [FieldKey.HTTP_URL]: {desc: t('Full URL of the request without parameters')},
+  }
+);
+
+const SPAN_FIELD_DEFINITIONS = applyAttributeSearchFieldOverrides(
+  {
+    ...ATTRIBUTE_SEARCH_FIELD_DEFINITIONS,
+    ...EVENT_FIELD_DEFINITIONS,
+    ...SPAN_AGGREGATION_FIELDS,
+    [SpanFields.NAME]: {
+      desc: t(
+        'The span name. A short, human-readable identifier for the operation being performed by the span.'
+      ),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
   },
-  [SpanFields.SPAN_STATUS]: {
-    desc: t('Span status. Indicates whether the span operation was successful.'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [SpanFields.STATUS_MESSAGE]: {
-    desc: t(
-      'Span status message. If the span operation was not successful, this contains an error message.'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-};
+  FIELD_DEFINITION_OVERRIDES
+);
 
 const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   app_id: {
@@ -2708,10 +2459,17 @@ const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
   },
+  install_groups: {
+    desc: t('The install groups this build distribution belongs to'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
   snapshot_status: {
     desc: t('Status of the snapshot in the comparison pipeline'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowWildcard: false,
     values: [
       'approved',
       'auto_approved',
@@ -2725,91 +2483,113 @@ const PREPROD_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   },
 };
 
-const LOG_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
-  ...LOG_AGGREGATION_FIELDS,
-  ...EVENT_FIELD_DEFINITIONS,
-  [OurLogKnownFieldKey.CODE_FILE_PATH]: {
-    desc: t(
-      'The source code file name that identifies the code unit as uniquely as possible (preferably an absolute file path).'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
+const LOG_FIELD_DEFINITIONS = applyAttributeSearchFieldOverrides(
+  {
+    ...ATTRIBUTE_SEARCH_FIELD_DEFINITIONS,
+    ...LOG_AGGREGATION_FIELDS,
+    ...EVENT_FIELD_DEFINITIONS,
+    [OurLogKnownFieldKey.CODE_LINE_NUMBER]: {
+      desc: t(
+        'The line number in %s best representing the operation. It SHOULD point within the code unit named in %s.',
+        OurLogKnownFieldKey.CODE_FILE_PATH,
+        OurLogKnownFieldKey.CODE_FUNCTION_NAME
+      ),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.INTEGER,
+    },
+    [OurLogKnownFieldKey.MESSAGE]: {
+      desc: t('Log message'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [OurLogKnownFieldKey.PARENT_SPAN_ID]: {
+      desc: t(
+        'The span id of the span that was active when the log was collected. This should not be set if there was no active span.'
+      ),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+      allowWildcard: false,
+    },
+    [OurLogKnownFieldKey.PAYLOAD_SIZE]: {
+      desc: t('The size of the log payload in bytes.'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.SIZE,
+    },
+    [OurLogKnownFieldKey.SEVERITY]: {
+      desc: t('The severity level of the log.'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
+    [OurLogKnownFieldKey.SPAN_ID]: {
+      desc: t('The associated span ID of the log.'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+      allowWildcard: false,
+    },
+    [OurLogKnownFieldKey.TEMPLATE]: {
+      desc: t('The parameterized template string.'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+    },
   },
-  [OurLogKnownFieldKey.CODE_LINE_NUMBER]: {
-    desc: t(
-      'The line number in %s best representing the operation. It SHOULD point within the code unit named in %s.',
-      OurLogKnownFieldKey.CODE_FILE_PATH,
-      OurLogKnownFieldKey.CODE_FUNCTION_NAME
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.INTEGER,
-  },
-  [OurLogKnownFieldKey.CODE_FUNCTION_NAME]: {
-    desc: t(
-      'The method or function name, or equivalent (usually rightmost part of the code unit’s name).'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [OurLogKnownFieldKey.LOGGER]: {
-    desc: t('The name of the logger that generated this event.'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [OurLogKnownFieldKey.MESSAGE]: {
-    desc: t('Log message'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [OurLogKnownFieldKey.PARENT_SPAN_ID]: {
-    desc: t(
-      'The span id of the span that was active when the log was collected. This should not be set if there was no active span.'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
-  },
-  [OurLogKnownFieldKey.PAYLOAD_SIZE]: {
-    desc: t('The size of the log payload in bytes.'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.SIZE,
-  },
-  [OurLogKnownFieldKey.REPLAY_ID]: {
-    desc: t('The ID of an associated sentry replay.'),
-    kind: FieldKind.TAG,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
-  },
-  [OurLogKnownFieldKey.SERVER_ADDRESS]: {
-    desc: t(
-      'Server domain name if available without reverse DNS lookup; otherwise, IP address or Unix domain socket name.'
-    ),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [OurLogKnownFieldKey.SEVERITY]: {
-    desc: t('The severity level of the log.'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [OurLogKnownFieldKey.SPAN_ID]: {
-    desc: t('The associated span ID of the log.'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-    allowWildcard: false,
-  },
-  [OurLogKnownFieldKey.TEMPLATE]: {
-    desc: t('The parameterized template string.'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-};
+  FIELD_DEFINITION_OVERRIDES
+);
 
 const TRACEMETRIC_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
+  ...ATTRIBUTE_SEARCH_FIELD_DEFINITIONS,
   [FieldKey.TIMESTAMP]: {
     desc: t('The time the metric was recorded'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DATE,
+  },
+  [TraceMetricKnownFieldKey.ID]: {
+    desc: t('The unique identifier.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [TraceMetricKnownFieldKey.METRIC_NAME]: {
+    desc: t('The name of the metric.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [TraceMetricKnownFieldKey.METRIC_TYPE]: {
+    desc: t('The type of the metric: counter, gauge, or distribution.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [TraceMetricKnownFieldKey.METRIC_UNIT]: {
+    desc: t('The unit of the metric value, such as millisecond or byte.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [TraceMetricKnownFieldKey.METRIC_VALUE]: {
+    desc: t('The value recorded for this metric sample.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NUMBER,
+  },
+  [TraceMetricKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: {
+    desc: t('The timestamp at which an envelope was received by Relay, in nanoseconds.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NUMBER,
+  },
+  [TraceMetricKnownFieldKey.PROJECT]: {
+    desc: t('The project slug.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [TraceMetricKnownFieldKey.SPAN_ID]: {
+    desc: t('The connected span ID.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [TraceMetricKnownFieldKey.TRACE]: {
+    desc: t('The connected trace ID.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
   },
 };
 
@@ -2873,6 +2653,7 @@ export const ISSUE_EVENT_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.OS_DISTRIBUTION_NAME,
   FieldKey.OS_DISTRIBUTION_VERSION,
   FieldKey.PLATFORM_NAME,
+  FieldKey.PROFILER_ID,
   FieldKey.RELEASE_BUILD,
   FieldKey.RELEASE_PACKAGE,
   FieldKey.RELEASE_VERSION,
@@ -2947,6 +2728,7 @@ export const ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS = new Set<FieldKey>(
   FieldKey.OS_DISTRIBUTION_NAME,
   FieldKey.OS_DISTRIBUTION_VERSION,
   FieldKey.PLATFORM_NAME,
+  FieldKey.PROFILER_ID,
   FieldKey.RELEASE_BUILD,
   FieldKey.RELEASE_PACKAGE,
   FieldKey.RELEASE_VERSION,
@@ -3068,6 +2850,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.TRACE_CLIENT_SAMPLE_RATE,
 
   FieldKey.PROFILE_ID,
+  FieldKey.PROFILER_ID,
 
   // Meta field that returns total count, usually for equations
   FieldKey.TOTAL_COUNT,
@@ -3090,7 +2873,7 @@ export const DISCOVER_FIELDS = [
   FieldKey.OTA_UPDATES_UPDATE_ID,
 ];
 
-export enum ReplayFieldKey {
+enum ReplayFieldKey {
   ACTIVITY = 'activity',
   BROWSER_NAME = 'browser.name',
   BROWSER_VERSION = 'browser.version',
@@ -3121,7 +2904,7 @@ export enum ReplayFieldKey {
   VIEWED_BY_ME = 'viewed_by_me',
 }
 
-export enum ReplayClickFieldKey {
+enum ReplayClickFieldKey {
   CLICK_ALT = 'click.alt',
   CLICK_CLASS = 'click.class',
   CLICK_ID = 'click.id',
@@ -3208,23 +2991,14 @@ export const REPLAY_TAG_ALIASES = {
 
 const SMALL_INTEGER_VALUES = ['1', '10', '100', '1000'];
 
-const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
+const REPLAY_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
+  ...pickAttributeSearchFieldDefinitions(Object.values(ReplayFieldKey)),
   [ReplayFieldKey.ACTIVITY]: {
     desc: t('Amount of activity in the replay from 0 to 10'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.INTEGER,
     defaultValue: SMALL_INTEGER_VALUES[0],
     values: SMALL_INTEGER_VALUES,
-  },
-  [ReplayFieldKey.BROWSER_NAME]: {
-    desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_NAME].brief),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.BROWSER_VERSION]: {
-    desc: td(ATTRIBUTE_METADATA[ReplayFieldKey.BROWSER_VERSION].brief),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.COUNT_DEAD_CLICKS]: {
     desc: t('Number of dead clicks in the replay'),
@@ -3305,16 +3079,6 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.BOOLEAN,
   },
-  [ReplayFieldKey.OS_NAME]: {
-    desc: t('Name of the Operating System'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [ReplayFieldKey.OS_VERSION]: {
-    desc: t('Version number of the Operating System'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
   [ReplayFieldKey.REPLAY_TYPE]: {
     desc: t('The replay recording mode - "session" or "buffer"'),
     kind: FieldKind.FIELD,
@@ -3338,21 +3102,17 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
   },
   [ReplayFieldKey.URL]: {
+    // Replay URL is the visited page, not the deprecated alias of url.full.
     desc: t('A url visited within the replay'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    deprecated: false,
   },
   [ReplayFieldKey.URLS]: {
     desc: t('List of urls that were visited within the replay'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
-  [ReplayFieldKey.USER_GEO_CITY]: EVENT_FIELD_DEFINITIONS[FieldKey.GEO_CITY],
-  [ReplayFieldKey.USER_GEO_COUNTRY_CODE]:
-    EVENT_FIELD_DEFINITIONS[FieldKey.GEO_COUNTRY_CODE],
-  [ReplayFieldKey.USER_GEO_REGION]: EVENT_FIELD_DEFINITIONS[FieldKey.GEO_REGION],
-  [ReplayFieldKey.USER_GEO_SUBDIVISION]:
-    EVENT_FIELD_DEFINITIONS[FieldKey.GEO_SUBDIVISION],
   [ReplayFieldKey.VIEWED_BY_ME]: {
     desc: t('Whether you have seen this replay before. Alias of seen_by_me (true/false)'),
     kind: FieldKind.FIELD,
@@ -3523,17 +3283,13 @@ export const FEEDBACK_FIELDS = [
   FieldKey.USER_USERNAME,
 ];
 
-const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
+const FEEDBACK_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
+  ...pickAttributeSearchFieldDefinitions(Object.values(FeedbackFieldKey)),
   [FeedbackFieldKey.AI_CATEGORIZATION_LABELS]: {
     desc: t('AI-generated labels for categorizing feedback'),
     kind: FieldKind.TAG,
     valueType: FieldValueType.STRING,
     allowWildcard: true,
-  },
-  [FeedbackFieldKey.BROWSER_NAME]: {
-    desc: td(ATTRIBUTE_METADATA[FeedbackFieldKey.BROWSER_NAME].brief),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
   },
   [FeedbackFieldKey.LOCALE_LANG]: {
     desc: t('Language preference of the user'),
@@ -3553,20 +3309,12 @@ const FEEDBACK_FIELD_DEFINITIONS: Record<FeedbackFieldKey, FieldDefinition> = {
     valueType: FieldValueType.STRING,
     allowWildcard: true,
   },
-  [FeedbackFieldKey.OS_NAME]: {
-    desc: t('Name of the operating system'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
-  [FeedbackFieldKey.OS_VERSION]: {
-    desc: t('Version number of the operating system'),
-    kind: FieldKind.FIELD,
-    valueType: FieldValueType.STRING,
-  },
   [FeedbackFieldKey.URL]: {
+    // Feedback URL is the page that triggered the feedback, not url.full.
     desc: t('URL of the page that the feedback is triggered on'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    deprecated: false,
   },
 };
 
@@ -3587,7 +3335,7 @@ function _getFieldFromMappings(
   switch (type) {
     case 'replay':
       if (Object.hasOwn(REPLAY_FIELD_DEFINITIONS, key)) {
-        return REPLAY_FIELD_DEFINITIONS[key as keyof typeof REPLAY_FIELD_DEFINITIONS];
+        return REPLAY_FIELD_DEFINITIONS[key];
       }
       if (Object.hasOwn(REPLAY_CLICK_FIELD_DEFINITIONS, key)) {
         return REPLAY_CLICK_FIELD_DEFINITIONS[
@@ -3607,7 +3355,7 @@ function _getFieldFromMappings(
       return null;
     case 'feedback':
       if (Object.hasOwn(FEEDBACK_FIELD_DEFINITIONS, key)) {
-        return FEEDBACK_FIELD_DEFINITIONS[key as keyof typeof FEEDBACK_FIELD_DEFINITIONS];
+        return FEEDBACK_FIELD_DEFINITIONS[key];
       }
       if (FEEDBACK_FIELDS.includes(key as FieldKey)) {
         if (Object.hasOwn(EVENT_FIELD_DEFINITIONS, key)) {
@@ -3657,6 +3405,10 @@ function _getFieldFromMappings(
         return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
       }
 
+      if (kind === FieldKind.ARRAY) {
+        return {kind: FieldKind.ARRAY, valueType: FieldValueType.STRING};
+      }
+
       return null;
 
     case 'log':
@@ -3677,6 +3429,10 @@ function _getFieldFromMappings(
 
       if (kind === FieldKind.BOOLEAN) {
         return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+      }
+
+      if (kind === FieldKind.ARRAY) {
+        return {kind: FieldKind.ARRAY, valueType: FieldValueType.STRING};
       }
 
       return null;
@@ -3701,12 +3457,15 @@ function _getFieldFromMappings(
         return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
       }
 
+      if (kind === FieldKind.ARRAY) {
+        return {kind: FieldKind.ARRAY, valueType: FieldValueType.STRING};
+      }
+
       return null;
 
     case 'event':
     default:
       if (Object.hasOwn(EVENT_FIELD_DEFINITIONS, key)) {
-        // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
         return EVENT_FIELD_DEFINITIONS[key];
       }
       return null;
@@ -3729,16 +3488,68 @@ export const getFieldDefinition = (
   type: GetFieldDefinitionType = 'event',
   kind?: FieldKind
 ): FieldDefinition | null => {
-  return _getFieldFromMappings(type, key, kind) ?? null;
+  const definition = _getFieldFromMappings(type, key, kind);
+  if (definition) {
+    return mergeAttributeSearchMetadata(key, definition, {
+      keepLocalDescription:
+        type === 'event' ||
+        type === 'replay' ||
+        type === 'feedback' ||
+        (type === 'tracemetric' && key === TraceMetricKnownFieldKey.ID),
+    });
+  }
+
+  if (type === 'span' || type === 'log' || type === 'tracemetric') {
+    return Object.hasOwn(ATTRIBUTE_SEARCH_FIELD_DEFINITIONS, key)
+      ? (ATTRIBUTE_SEARCH_FIELD_DEFINITIONS[key] ?? null)
+      : null;
+  }
+
+  return null;
 };
 
-export function makeTagCollection(fieldKeys: FieldKey[]): TagCollection {
-  return Object.fromEntries(
-    fieldKeys.map(fieldKey => [
-      fieldKey,
-      {key: fieldKey, name: fieldKey, kind: getFieldDefinition(fieldKey)?.kind},
-    ])
-  );
+/**
+ * Span field definitions for the Explore equation builder. When
+ * `explore-conditional-aggregates` is on, `_if` combinators use the EAP filter-first
+ * signature (`avg_if(\`span.op:db\`,span.duration)`), including `count_if`.
+ *
+ * Existing Discover-style calls (`avg_if(span.duration,span.op,equals,db)`) keep the
+ * Discover definition so editing them does not reinterpret the first column as a filter.
+ * EAP-only `_if`s without a Discover definition keep the filter-first signature.
+ */
+export function getExploreEquationFieldDefinition(
+  key: string,
+  kind?: FieldKind,
+  hasConditionalAggregates = false,
+  attributeTexts?: readonly string[]
+): FieldDefinition | null {
+  if (hasConditionalAggregates) {
+    const conditionalDefinition = SPAN_CONDITIONAL_AGGREGATION_FIELDS[key];
+    if (conditionalDefinition) {
+      if (usesDiscoverStyleConditionalAggregateArgs(attributeTexts)) {
+        // Only Discover-defined `_if`s (`avg_if`/`count_if`) should stay on the Discover
+        // arity. EAP-only combinators (`sum_if`, …) have no Discover definition — keep
+        // the filter-first signature even when the first arg is not backtick-wrapped yet.
+        return getFieldDefinition(key, 'span', kind) ?? conditionalDefinition;
+      }
+      return conditionalDefinition;
+    }
+  }
+  return getFieldDefinition(key, 'span', kind);
+}
+
+/**
+ * Discover `_if` aggregates put a column first. EAP filter-first forms wrap the first
+ * argument in backticks (`\`span.op:db\`` or empty `` ` ` ``).
+ */
+function usesDiscoverStyleConditionalAggregateArgs(
+  attributeTexts: readonly string[] | undefined
+): boolean {
+  if (!attributeTexts?.length) {
+    return false;
+  }
+  const first = attributeTexts[0]!.trim();
+  return !(first.startsWith('`') && first.endsWith('`'));
 }
 
 export function isDeviceClass(key: any): boolean {
@@ -3761,6 +3572,24 @@ export function classifyTagKey(key: string): FieldKind {
   }
 
   return FieldKind.TAG;
+}
+
+/**
+ * The trace item attribute type a {@link FieldKind} corresponds to. Inverse of
+ * `fieldKindFromFieldType`.
+ */
+export function attributeTypeFromKind(
+  kind: FieldKind | undefined
+): 'string' | 'number' | 'boolean' {
+  if (kind === FieldKind.MEASUREMENT) {
+    return 'number';
+  }
+
+  if (kind === FieldKind.BOOLEAN) {
+    return 'boolean';
+  }
+
+  return 'string';
 }
 
 export function prettifyTagKey(key: string): string {

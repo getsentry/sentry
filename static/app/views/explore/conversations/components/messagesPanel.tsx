@@ -5,38 +5,43 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {MessageRow} from '@sentry/scraps/chat';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
+import {CollapsibleChatRow} from 'sentry/components/ai/chat/collapsibleContent';
 import {
   AssistantMessageBlock,
   UserMessageBlock,
 } from 'sentry/components/ai/chat/messageBlock';
+import {TURN_META_WIDTH, TurnMeta} from 'sentry/components/ai/chat/turnMeta';
+import {Count} from 'sentry/components/count';
 import {Placeholder} from 'sentry/components/placeholder';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
 import {MessageToolCalls} from 'sentry/views/explore/conversations/components/messageToolCalls';
-import {
-  TURN_META_WIDTH,
-  TurnMeta,
-} from 'sentry/views/explore/conversations/components/turnMeta';
+import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
+import {TranscriptSpanRow} from 'sentry/views/explore/conversations/components/transcriptSpanRow';
 import {
   type ConversationMessage,
   extractMessagesFromNodes,
-  partitionSpansByType,
+  NOT_REPORTED,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
+import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
-import {getNumberAttr} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getNumberAttr,
+  getStringAttr,
+  hasError,
+} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getAiInstrumentationDocsLink} from 'sentry/views/insights/pages/agents/utils/docsLinks';
-import {formatLLMCosts} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
+import {getEvaluationPreview} from 'sentry/views/insights/pages/agents/utils/evaluation';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {detectAIContentType} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
-import {AIContentRenderer} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
+import {detectAIContentType} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
+import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 
 interface MessagesPanelProps {
   nodes: AITraceSpanNode[];
@@ -86,25 +91,23 @@ export function MessagesPanel({
     return <MessagesPanelSkeleton />;
   }
 
+  // Inference spans always produce a transcript, with placeholders when their
+  // content wasn't captured, so an empty one means there are none.
   if (messages.length === 0) {
-    // A conversation with no renderable transcript falls into two buckets we can
-    // tell apart from the spans: inference (generation) spans that ran but never
-    // captured their inputs/outputs, versus a conversation that has no inference
-    // spans at all. Each gets its own explanation.
-    const {generationSpans} = partitionSpansByType(nodes);
     return (
       <PanelContainer>
-        {generationSpans.length > 0 ? (
-          <MissingContentNotice nodes={nodes} />
-        ) : (
-          <NoInferenceSpansNotice onViewTimeline={onViewTimeline} />
-        )}
+        <NoInferenceSpansNotice onViewTimeline={onViewTimeline} />
       </PanelContainer>
     );
   }
 
+  const hasNotReportedContent = messages.some(
+    message => message.content === NOT_REPORTED
+  );
+
   return (
     <PanelContainer>
+      {hasNotReportedContent && <NotReportedAlert nodes={nodes} />}
       <Stack gap="0" width="100%">
         {messages.map(message => {
           const hasXmlTags = hasXmlByMessageId.get(message.id) ?? false;
@@ -115,6 +118,28 @@ export function MessagesPanel({
                 key={message.id}
                 content={message.content}
                 hasXmlTags={hasXmlTags}
+              />
+            );
+          }
+
+          if (message.role === 'embedding') {
+            return (
+              <EmbeddingTurn
+                key={message.id}
+                message={message}
+                isSelected={message.nodeId === selectedNodeId}
+              />
+            );
+          }
+
+          if (message.role === 'evaluation') {
+            return (
+              <EvaluationTurn
+                key={message.id}
+                message={message}
+                node={nodeMap.get(message.nodeId)}
+                isSelected={message.nodeId === selectedNodeId}
+                onSelectNode={onSelectNode}
               />
             );
           }
@@ -149,13 +174,23 @@ export function MessagesPanel({
 
 // User turns carry no selection state, so their props never change on a
 // selection change — memoized, they render once and always bail out after.
-const UserTurn = memo(function UserTurn({
+const UserTurn = memo(function UserTurnImpl({
   content,
   hasXmlTags,
 }: {
   content: string;
   hasXmlTags: boolean;
 }) {
+  if (content === NOT_REPORTED) {
+    return (
+      <UserMessageBlock>
+        <MessageText align="left" variant="muted">
+          {content}
+        </MessageText>
+      </UserMessageBlock>
+    );
+  }
+
   return (
     <UserMessageBlock expand={hasXmlTags}>
       <MessageText align="left">
@@ -182,7 +217,7 @@ interface AssistantTurnProps {
 // Memoized so a selection change only re-renders the turns that gain or lose
 // selection. This relies on every prop being referentially stable per turn,
 // which is why the click handler is built here rather than passed in.
-const AssistantTurn = memo(function AssistantTurn({
+const AssistantTurn = memo(function AssistantTurnImpl({
   message,
   hasXmlTags,
   isSelected,
@@ -222,21 +257,28 @@ const AssistantTurn = memo(function AssistantTurn({
       )}
       {message.reasoning && (
         <MessageRow from="assistant" density="compact">
-          <ReasoningSection reasoning={message.reasoning} />
-          <Container width={TURN_META_WIDTH} flexShrink={0} />
+          {/* A reasoning-only turn (no assistant bubble to hang meta on) surfaces
+           * the turn's cost/duration in the thinking row's own meta column. */}
+          <ReasoningSection
+            reasoning={message.reasoning}
+            meta={message.content === '' && hasMeta ? meta : undefined}
+          />
         </MessageRow>
       )}
       {message.content === '' ? (
-        // Tool/reasoning-only turn: no bubble, but still surface the turn's cost
-        // and duration, right-aligned to the meta column like other assistant turns.
-        hasMeta && (
+        // Tool-only turn (no reasoning row to carry it): no bubble, but still
+        // surface the turn's cost and duration, right-aligned to the meta column
+        // like other assistant turns. A reasoning row, when present, shows the
+        // meta itself, so skip this fallback then.
+        hasMeta &&
+        !message.reasoning && (
           <MessageRow from="assistant" density="compact">
             <Flex justify="end" width="100%">
               {meta}
             </Flex>
           </MessageRow>
         )
-      ) : message.content === EMPTY_TEXT_CONTENT ? (
+      ) : message.content === EMPTY_TEXT_CONTENT || message.content === NOT_REPORTED ? (
         <AssistantMessageBlock meta={meta} isSelected={isSelected} onClick={handleClick}>
           <MessageText align="left" variant="muted">
             {message.content}
@@ -264,7 +306,7 @@ function AssistantMeta({cost, duration}: {cost?: number; duration?: number}) {
       metric={
         cost === undefined || cost <= 0 ? null : (
           <Text size="xs" variant="muted" tabular align="right">
-            {formatLLMCosts(cost)}
+            <LLMCosts cost={cost} />
           </Text>
         )
       }
@@ -279,21 +321,155 @@ function AssistantMeta({cost, duration}: {cost?: number; duration?: number}) {
   );
 }
 
-function ReasoningSection({reasoning}: {reasoning: string}) {
+// Standalone row for an embeddings span — unlike tool calls and reasoning,
+// embeddings aren't nested inside an assistant turn: they're positioned in the
+// transcript by their own timestamp, so they render even when there's no
+// generation span nearby (or at all) to attach them to.
+const EmbeddingTurn = memo(function EmbeddingTurnImpl({
+  message,
+  isSelected,
+}: {
+  isSelected: boolean;
+  message: ConversationMessage;
+}) {
   const organization = useOrganization();
+  const input = message.embeddingInput ?? '';
+  const tokens = message.embeddingTokens;
 
   return (
-    <CollapsibleContent
-      title={
-        <Text size="sm" variant="muted" monospace>
-          {t('Thinking...')}
+    <MessageRow from="assistant" density="compact">
+      <CollapsibleChatRow
+        defaultOpen={isSelected}
+        title={
+          <Text
+            size="sm"
+            variant={message.embeddingHasError ? 'danger' : 'muted'}
+            ellipsis
+            monospace
+          >
+            {t('Creating embedding...')}
+          </Text>
+        }
+        meta={
+          <TurnMeta
+            metric={
+              tokens === undefined || tokens <= 0 ? null : (
+                <Text size="xs" variant="muted" tabular align="right">
+                  <Count value={tokens} /> {t('tokens')}
+                </Text>
+              )
+            }
+            duration={
+              message.duration === undefined || message.duration <= 0 ? null : (
+                <Text size="xs" variant="muted" tabular align="right">
+                  {getDuration(message.duration, 2, true)}
+                </Text>
+              )
+            }
+          />
+        }
+        onToggle={open =>
+          trackAnalytics('conversations.detail.expand-embedding', {
+            organization,
+            expanded: open,
+          })
+        }
+      >
+        <Flex>
+          <Container paddingTop="xs" paddingBottom="xs" flex="1" minWidth={0}>
+            <MessageText size="sm" align="left" variant="muted" monospace>
+              <AIContentRenderer text={input} inline autoCollapseLimit={10} />
+            </MessageText>
+          </Container>
+          <Container width={TURN_META_WIDTH} flexShrink={0} />
+        </Flex>
+      </CollapsibleChatRow>
+    </MessageRow>
+  );
+});
+
+// Standalone row for an evaluation span, positioned by its own timestamp like
+// embeddings and styled like a tool call: the evaluator, a one-line result and
+// its cost and duration. Selecting it opens the span detail with the questions,
+// answers and raw messages.
+const EvaluationTurn = memo(function EvaluationTurnImpl({
+  message,
+  node,
+  isSelected,
+  onSelectNode,
+}: {
+  isSelected: boolean;
+  message: ConversationMessage;
+  node: AITraceSpanNode | undefined;
+  onSelectNode: (node: AITraceSpanNode) => void;
+}) {
+  const organization = useOrganization();
+  // Spans often report `gen_ai.cost.total_tokens` as 0 when the API omits cost;
+  // treat that as absent, like assistant turns.
+  const cost = node
+    ? getNumberAttr(node, SpanFields.GEN_AI_COST_TOTAL_TOKENS) || undefined
+    : undefined;
+  const evaluator =
+    (node &&
+      (getStringAttr(node, SpanFields.GEN_AI_REQUEST_MODEL) ||
+        getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL))) ||
+    t('evaluate');
+
+  const selectEvaluation = () => {
+    trackAnalytics('conversations.message.click-evaluation', {organization});
+    if (node) {
+      onSelectNode(node);
+    }
+  };
+
+  return (
+    <MessageRow from="assistant" density="compact">
+      <TranscriptSpanRow
+        node={node}
+        isSelected={isSelected}
+        ariaLabel={t('Select evaluation %s', evaluator)}
+        onSelect={selectEvaluation}
+        tag={<ToolTag name={evaluator} hasError={node ? hasError(node) : false} />}
+        preview={getEvaluationPreview(message.evaluation)}
+        meta={<AssistantMeta cost={cost} duration={message.duration} />}
+      />
+    </MessageRow>
+  );
+});
+
+function ReasoningSection({
+  reasoning,
+  meta,
+}: {
+  reasoning: string;
+  meta?: React.ReactNode;
+}) {
+  const organization = useOrganization();
+
+  // There is nothing to expand when the reasoning wasn't captured.
+  if (reasoning === NOT_REPORTED) {
+    return (
+      <Flex align="center" gap="md" width="100%" minWidth={0} padding="sm 0">
+        <Flex flex="1" minWidth={0}>
+          <Text size="sm" variant="muted" ellipsis monospace>
+            {t('Thinking...')} {reasoning}
+          </Text>
+        </Flex>
+        <Container width={TURN_META_WIDTH} flexShrink={0}>
+          {meta}
+        </Container>
+      </Flex>
+    );
+  }
+
+  return (
+    <CollapsibleChatRow
+      meta={meta}
+      title={isOpen => (
+        <Text size="sm" variant="muted" ellipsis monospace>
+          {t('Thinking...')} {isOpen ? null : reasoning}
         </Text>
-      }
-      preview={
-        <Text size="sm" variant="muted" monospace>
-          {reasoning}
-        </Text>
-      }
+      )}
       onToggle={open =>
         trackAnalytics('conversations.detail.expand-thinking', {
           organization,
@@ -301,21 +477,26 @@ function ReasoningSection({reasoning}: {reasoning: string}) {
         })
       }
     >
-      <Container padding="xs md">
-        <MessageText size="sm" align="left" variant="muted" monospace>
-          <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
-        </MessageText>
-      </Container>
-    </CollapsibleContent>
+      <Flex>
+        <Container paddingTop="xs" paddingBottom="xs" flex="1" minWidth={0}>
+          <MessageText size="sm" align="left" variant="muted" monospace>
+            <AIContentRenderer text={reasoning} inline autoCollapseLimit={10} />
+          </MessageText>
+        </Container>
+        {/* Reasoning carries no metadata, but reserve the same column the tool
+         * rows use so the content wraps at the same width. */}
+        <Container width={TURN_META_WIDTH} flexShrink={0} />
+      </Flex>
+    </CollapsibleChatRow>
   );
 }
 
 /**
- * Shown when inference spans ran but captured no input or output data, so
- * there is nothing to render as a transcript. Points to the docs for enabling
- * input/output capture, tailored to the project's platform.
+ * Links to the docs for the conversation's platform, since the transcript was
+ * built from placeholders because its inference spans captured no input or
+ * output data.
  */
-function MissingContentNotice({nodes}: {nodes: AITraceSpanNode[]}) {
+function NotReportedAlert({nodes}: {nodes: AITraceSpanNode[]}) {
   const projectSlug = useMemo(
     () => nodes.find(node => node.projectSlug)?.projectSlug,
     [nodes]
@@ -324,18 +505,13 @@ function MissingContentNotice({nodes}: {nodes: AITraceSpanNode[]}) {
   const platform = projectSlug
     ? projects.find(project => project.slug === projectSlug)?.platform
     : undefined;
-  const docsLink = getAiInstrumentationDocsLink(platform);
 
   return (
-    <EmptyNotice>
-      <Text bold>{t("This conversation's messages weren't captured")}</Text>
-      <Text variant="muted" align="center">
-        {tct(
-          "Its inference spans don't include any input or output data. [link:Enable capturing inputs and outputs] in your SDK to see the transcript here.",
-          {link: <ExternalLink href={docsLink} />}
-        )}
-      </Text>
-    </EmptyNotice>
+    <ConversationMissingMessagesAlert
+      dismissKey="conversation-not-reported-alert"
+      docsLink={getAiInstrumentationDocsLink(platform)}
+      padding="0 xl xl"
+    />
   );
 }
 
@@ -419,12 +595,11 @@ function PanelContainer({children}: {children: React.ReactNode}) {
 const MessageText = styled(Text)`
   word-break: break-word;
 
-  /* Wide block content (tables, code) scrolls within the bubble instead of
-   * overflowing it or forcing it wider. */
-  table,
-  pre {
-    display: block;
-    max-width: 100%;
-    overflow-x: auto;
+  /* word-break: break-word is legacy for overflow-wrap: anywhere, which counts
+   * toward min-content intrinsic size. Inherited into cells, it collapses them to
+   * about one character: the table then fits any container, columns squish, and
+   * its scroll container never overflows. Tables scroll on their own. */
+  table {
+    word-break: normal;
   }
 `;

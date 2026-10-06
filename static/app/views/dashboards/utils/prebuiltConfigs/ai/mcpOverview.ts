@@ -13,9 +13,9 @@ import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltCo
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
 
 const MCP_SERVER_FILTER = `${SpanFields.SPAN_OP}:mcp.server`;
-const MCP_TOOL_FILTER = `${MCP_SERVER_FILTER} has:${SpanFields.MCP_TOOL_NAME}`;
+const MCP_TOOL_FILTER = `${MCP_SERVER_FILTER} has:${SpanFields.GEN_AI_TOOL_NAME}`;
 const MCP_RESOURCE_FILTER = `${MCP_SERVER_FILTER} has:${SpanFields.MCP_RESOURCE_URI}`;
-const MCP_PROMPT_FILTER = `${MCP_SERVER_FILTER} has:${SpanFields.MCP_PROMPT_NAME}`;
+const MCP_PROMPT_FILTER = `${MCP_SERVER_FILTER} has:${SpanFields.GEN_AI_PROMPT_NAME}`;
 
 const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
   [
@@ -67,10 +67,10 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          conditions: `${MCP_SERVER_FILTER} has:${SpanFields.MCP_TRANSPORT}`,
-          fields: [SpanFields.MCP_TRANSPORT, 'count()'],
+          conditions: `${MCP_SERVER_FILTER} has:${SpanFields.NETWORK_TRANSPORT}`,
+          fields: [SpanFields.NETWORK_TRANSPORT, 'count()'],
           aggregates: ['count()'],
-          columns: [SpanFields.MCP_TRANSPORT],
+          columns: [SpanFields.NETWORK_TRANSPORT],
           fieldAliases: [t('Transport'), WIDGET_COLUMN_LABELS.count],
           orderby: '-count()',
         },
@@ -95,15 +95,15 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           conditions: MCP_TOOL_FILTER,
-          fields: [SpanFields.MCP_TOOL_NAME, `count(${SpanFields.SPAN_DURATION})`],
+          fields: [SpanFields.GEN_AI_TOOL_NAME, `count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
-          columns: [SpanFields.MCP_TOOL_NAME],
+          columns: [SpanFields.GEN_AI_TOOL_NAME],
           fieldAliases: [t('Tool'), WIDGET_COLUMN_LABELS.count],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
           linkedDashboards: [
             {
               dashboardId: '-1',
-              field: SpanFields.MCP_TOOL_NAME,
+              field: SpanFields.GEN_AI_TOOL_NAME,
               staticDashboardId: 20,
             },
           ],
@@ -149,15 +149,15 @@ const SECOND_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
         {
           name: '',
           conditions: MCP_PROMPT_FILTER,
-          fields: [SpanFields.MCP_PROMPT_NAME, `count(${SpanFields.SPAN_DURATION})`],
+          fields: [SpanFields.GEN_AI_PROMPT_NAME, `count(${SpanFields.SPAN_DURATION})`],
           aggregates: [`count(${SpanFields.SPAN_DURATION})`],
-          columns: [SpanFields.MCP_PROMPT_NAME],
+          columns: [SpanFields.GEN_AI_PROMPT_NAME],
           fieldAliases: [t('Prompt'), WIDGET_COLUMN_LABELS.count],
           orderby: `-count(${SpanFields.SPAN_DURATION})`,
           linkedDashboards: [
             {
               dashboardId: '-1',
-              field: SpanFields.MCP_PROMPT_NAME,
+              field: SpanFields.GEN_AI_PROMPT_NAME,
               staticDashboardId: 22,
             },
           ],

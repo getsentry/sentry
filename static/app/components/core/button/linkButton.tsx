@@ -2,11 +2,13 @@ import isPropValid from '@emotion/is-prop-valid';
 import {type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
+import type {DistributedOmit} from 'type-fest';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Tooltip} from '@sentry/scraps/tooltip';
+import {useClickTracking} from '@sentry/scraps/trackingContext';
 
 import {IconDefaultsProvider} from 'sentry/icons/useIconDefaults';
 
@@ -14,10 +16,14 @@ import {
   DO_NOT_USE_BUTTON_ICON_SIZES as BUTTON_ICON_SIZES,
   DO_NOT_USE_getButtonStyles as getButtonStyles,
 } from './styles';
-import type {DO_NOT_USE_LinkButtonProps as LinkButtonProps} from './types';
+import type {ButtonSize, DO_NOT_USE_LinkButtonProps as LinkButtonProps} from './types';
 import {useButtonFunctionality} from './useButtonFunctionality';
 
 export type {LinkButtonProps};
+
+type ResolvedLinkButtonProps = DistributedOmit<LinkButtonProps, 'size'> & {
+  size: ButtonSize;
+};
 
 export function LinkButton({
   disabled,
@@ -26,8 +32,8 @@ export function LinkButton({
   ...props
 }: LinkButtonProps) {
   const contextSize = useSizeContext();
-  const size = explicitSize ?? contextSize ?? 'md';
-  const {handleClick, hasChildren, accessibleLabel} = useButtonFunctionality({
+  const size = useResponsivePropValue(explicitSize ?? contextSize ?? 'md');
+  const {hasChildren, accessibleLabel} = useButtonFunctionality({
     ...props,
     disabled,
   });
@@ -58,7 +64,6 @@ export function LinkButton({
                 // We cast it to the correct value to avoid a rightfully raised type error.
                 (undefined as unknown as LocationDescriptor)
         }
-        onClick={handleClick}
       >
         <Flex
           as="span"
@@ -94,7 +99,9 @@ const StyledLinkButton = styled(
     size: _size,
     shapeVariant: _shapeVariant,
     ...props
-  }: LinkButtonProps & {shapeVariant: 'rectangular' | 'square'}) => {
+  }: ResolvedLinkButtonProps & {shapeVariant: 'rectangular' | 'square'}) => {
+    const {handleClick} = useClickTracking(props, 'link');
+
     if ('to' in props && props.to) {
       const {openInNewTab, ...linkProps} = props;
       return (
@@ -108,10 +115,19 @@ const StyledLinkButton = styled(
     }
 
     if ('href' in props && props.href) {
-      const {external, ...rest} = props;
+      const {
+        external,
+        analyticsEventKey: _analyticsEventKey,
+        analyticsEventName: _analyticsEventName,
+        analyticsParams: _analyticsParams,
+        busy: _busy,
+        variant: _variant,
+        ...rest
+      } = props;
       return (
         <a
           {...rest}
+          onClick={handleClick}
           {...(external ? {target: '_blank', rel: 'noreferrer noopener'} : {})}
           role="button"
         />
@@ -123,28 +139,35 @@ const StyledLinkButton = styled(
       replace: _r,
       preventScrollReset: _p,
       openInNewTab: _o,
+      analyticsEventKey: _analyticsEventKey,
+      analyticsEventName: _analyticsEventName,
+      analyticsParams: _analyticsParams,
+      busy: _busy,
+      variant: _variant,
       ...rest
       // cast because props cannot be statically determined at this point
     } = props as any;
-    return <a {...rest} role="button" />;
+    return <a {...rest} onClick={handleClick} role="button" />;
   },
   {
     shouldForwardProp: prop =>
+      prop === 'analyticsEventKey' ||
+      prop === 'analyticsEventName' ||
+      prop === 'analyticsParams' ||
+      prop === 'busy' ||
       prop === 'external' ||
       prop === 'replace' ||
       prop === 'preventScrollReset' ||
       prop === 'openInNewTab' ||
+      prop === 'variant' ||
       (typeof prop === 'string' && isPropValid(prop)),
   }
-)<Omit<LinkButtonProps, 'size'> & {size: NonNullable<LinkButtonProps['size']>}>`
+)<ResolvedLinkButtonProps>`
   ${p => getLinkButtonStyles(p, p.theme)}
 `;
 
 const getLinkButtonStyles = (
-  p: Omit<LinkButtonProps, 'size'> & {
-    shapeVariant: 'rectangular' | 'square';
-    size: NonNullable<LinkButtonProps['size']>;
-  },
+  p: ResolvedLinkButtonProps & {shapeVariant: 'rectangular' | 'square'},
   theme: Theme
 ) => {
   const buttonStyles = getButtonStyles({...p, theme, shapeVariant: p.shapeVariant});

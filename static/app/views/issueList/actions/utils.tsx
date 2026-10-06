@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import type {QueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
+import type {ResponsiveKey} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {bulkUpdate} from 'sentry/actionCreators/group';
@@ -169,19 +170,18 @@ export function getLabel(numIssues: number, allInQuerySelected: boolean) {
   };
 }
 
-// A mapping of which container sizes will trigger the column to disappear
-// e.g. 'Trend': screen.small => 'Trend' column will disappear on screen.small widths
+// The container breakpoint at which each issue-list column becomes visible.
 export const COLUMN_BREAKPOINTS = {
   ISSUE: undefined, // Issue column is always visible
-  TREND: '800px',
-  LAST_SEEN: '500px',
-  FIRST_SEEN: '900px',
-  EVENTS: '700px',
-  USERS: '900px',
-  PRIORITY: '1100px',
-  PROGRESS: '400px',
-  ASSIGNEE: '500px',
-};
+  TREND: 'xl',
+  LAST_SEEN: 'sm',
+  FIRST_SEEN: '2xl',
+  EVENTS: 'lg',
+  USERS: '2xl',
+  PRIORITY: '4xl',
+  PROGRESS: '2xs',
+  ASSIGNEE: 'sm',
+} as const satisfies Record<string, ResponsiveKey | undefined>;
 
 function getSelectedProjectIds({
   selectedGroupIds,
@@ -234,14 +234,13 @@ export function invalidateIssueQueries({
   });
 }
 
-export function performBulkUpdate({
+export async function performBulkUpdate({
   api,
   data,
   itemIds,
   organizationSlug,
   query,
   selection,
-  onError,
   onSuccess,
 }: {
   api: Client;
@@ -250,7 +249,6 @@ export function performBulkUpdate({
   organizationSlug: string;
   query: string;
   selection: PageFilters;
-  onError?: () => void;
   onSuccess?: (itemIds: string[] | undefined) => void;
 }) {
   const projectConstraints = {
@@ -259,9 +257,8 @@ export function performBulkUpdate({
 
   addLoadingMessage(t('Saving changes…'));
 
-  bulkUpdate(
-    api,
-    {
+  try {
+    await bulkUpdate(api, {
       orgId: organizationSlug,
       itemIds,
       data,
@@ -270,17 +267,11 @@ export function performBulkUpdate({
       failSilently: true,
       ...projectConstraints,
       ...selection.datetime,
-    },
-    {
-      success: () => {
-        clearIndicators();
-        onSuccess?.(itemIds);
-      },
-      error: () => {
-        clearIndicators();
-        addErrorMessage(t('Unable to update issues'));
-        onError?.();
-      },
-    }
-  );
+    });
+    clearIndicators();
+    onSuccess?.(itemIds);
+  } catch {
+    clearIndicators();
+    addErrorMessage(t('Unable to update issues'));
+  }
 }

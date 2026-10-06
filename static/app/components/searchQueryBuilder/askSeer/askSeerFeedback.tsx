@@ -1,12 +1,12 @@
-import {Fragment} from 'react';
-
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {AskSeerLabel} from 'sentry/components/searchQueryBuilder/askSeer/components';
 import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/context';
-import {IconSeer, IconThumb} from 'sentry/icons';
+import {IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -27,33 +27,30 @@ export function AskSeerFeedback() {
     });
     askSeerNLQueryRef.current = null;
     askSeerSuggestedQueryRef.current = null;
+    addSuccessMessage(t('Thanks for the feedback!'));
     setDisplayAskSeerFeedback(false);
   };
 
   return (
-    <Fragment>
+    <Flex align="center" gap="md">
       <AskSeerLabel fontWeight="normal">
-        <IconSeer />
-        <Text variant="primary">{t('We loaded the results. Does this look right?')}</Text>
+        <Text variant="primary">{t('How did we do?')}</Text>
       </AskSeerLabel>
-      <div style={{display: 'flex', alignItems: 'center', gap: '8px'}}>
+
+      <Flex align="center" gap="sm">
         <Button
           size="zero"
           icon={<IconThumb />}
           onClick={() => handleClick('positive')}
           aria-label="Yep, correct results"
-        >
-          Yep
-        </Button>
+        />
         <Button
           size="zero"
           icon={<IconThumb direction="down" />}
           onClick={() => handleClick('negative')}
           aria-label="Nope, incorrect results"
-        >
-          Nope
-        </Button>
-      </div>
-    </Fragment>
+        />
+      </Flex>
+    </Flex>
   );
 }

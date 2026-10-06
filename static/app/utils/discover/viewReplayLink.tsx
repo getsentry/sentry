@@ -25,7 +25,7 @@ export function ViewReplayLink({
     return (
       <Tooltip
         title={t(
-          'This replay may been rate-limited, deleted, or not stored due to the error-based replay sampling rate.'
+          'This replay may have been rate-limited, deleted, or not stored due to the error-based replay sampling rate.'
         )}
       >
         <EmptyValueContainer>{t('(missing)')}</EmptyValueContainer>

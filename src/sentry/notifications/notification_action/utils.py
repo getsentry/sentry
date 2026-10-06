@@ -1,9 +1,5 @@
 import logging
 
-import sentry_sdk
-
-from sentry import features
-from sentry.incidents.charts import build_metric_alert_chart
 from sentry.incidents.grouptype import MetricIssue
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.models.activity import Activity
@@ -60,7 +56,7 @@ def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
                 extra={
                     "action_id": invocation.action.id,
                     "detector_id": invocation.detector.id,
-                    "organization_id": invocation.detector.project.organization_id,
+                    "organization_id": invocation.detector.linked_project.organization_id,
                 },
             )
         return invocation.event_data.event.send_notification()
@@ -150,6 +146,7 @@ def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotifi
     event_id = getattr(event_data.event, "event_id", None) if event_data.event else None
 
     return IssueNotificationData(
+        organization_id=event_data.group.project.organization_id,
         tags=tag_list,
         notes=notes,
         event_id=event_id,
@@ -161,11 +158,9 @@ def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotifi
 
 def metric_alert_notification_data_factory(
     issue_notif_context: IssueNotificationContext,
+    *,
+    chart_url: str | None,
 ) -> MetricAlertNotificationData:
-    from sentry.notifications.notification_action.metric_alert_registry.handlers.utils import (
-        get_detector_serializer,
-    )
-
     notification_context = issue_notif_context.notification_context
     alert_context = issue_notif_context.alert_context
     metric_issue_context = issue_notif_context.metric_issue_context
@@ -187,22 +182,6 @@ def metric_alert_notification_data_factory(
         referrer=referrer,
     )
 
-    detector_serialized_response = get_detector_serializer(issue_notif_context.detector)
-
-    chart_url = None
-    if features.has("organizations:metric-alert-chartcuterie", organization):
-        try:
-            chart_url = build_metric_alert_chart(
-                organization=organization,
-                snuba_query=metric_issue_context.snuba_query,
-                alert_context=alert_context,
-                open_period_context=open_period_context,
-                subscription=metric_issue_context.subscription,
-                detector_serialized_response=detector_serialized_response,
-            )
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-
     return MetricAlertNotificationData(
         group_id=metric_issue_context.id,
         organization_id=organization.id,
@@ -214,6 +193,7 @@ def metric_alert_notification_data_factory(
         title_link=attachment_info["title_link"],
         text=attachment_info["text"],
         chart_url=chart_url,
+        notes=notification_context.notes,
     )
 
 

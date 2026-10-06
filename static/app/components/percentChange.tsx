@@ -3,9 +3,8 @@ import styled from '@emotion/styled';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 
-interface Props extends React.HTMLAttributes<HTMLSpanElement> {
+interface Props {
   value: number;
-  colorize?: boolean;
   minimumValue?: number;
   preferredPolarity?: Polarity;
 }
@@ -14,19 +13,13 @@ export type Polarity = '+' | '-' | '';
 
 type Rating = 'good' | 'bad' | 'neutral';
 
-export function PercentChange({
-  value,
-  colorize = true,
-  preferredPolarity = '+',
-  minimumValue,
-  ...props
-}: Props) {
+export function PercentChange({value, preferredPolarity = '+', minimumValue}: Props) {
   const polarity = getPolarity(value);
   const rating = getPolarityRating(polarity, preferredPolarity);
 
   return (
-    <NumberContainer {...props}>
-      <ColorizedRating rating={colorize ? rating : 'neutral'} data-rating={rating}>
+    <NumberContainer>
+      <ColorizedRating rating={rating} data-rating={rating}>
         {polarity}
         {formatPercentage(Math.abs(value), 2, {minimumValue})}
       </ColorizedRating>

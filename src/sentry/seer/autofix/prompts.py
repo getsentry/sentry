@@ -9,6 +9,12 @@ if TYPE_CHECKING:
     from sentry.seer.agent.client_models import SeerRunState
 
 
+_CHECK_COMMAND_SOURCES = (
+    "Take the commands from the repository itself — its README/contributing docs, Makefile,"
+    " package.json scripts, tox/pyproject config, or CI workflow files — rather than guessing."
+)
+
+
 class PromptBuilder(Protocol):
     """Signature shared by all autofix step prompt builders."""
 
@@ -20,6 +26,7 @@ class PromptBuilder(Protocol):
         culprit: str,
         artifact_key: str | None,
         run_state: "SeerRunState | None" = None,
+        should_run_repo_checks: bool = False,
     ) -> str: ...
 
 
@@ -30,29 +37,9 @@ def root_cause_prompt(
     culprit: str,
     artifact_key: str | None,
     run_state: "SeerRunState | None" = None,
+    should_run_repo_checks: bool = False,
 ) -> str:
-    return dedent(
-        f"""\
-        Analyze issue {short_id}: "{title}" (culprit: {culprit})
-
-        Your task is to find the ROOT CAUSE of this issue. Do not propose fixes - only identify why the error is happening.
-
-        Guidelines:
-        1. Use your tools to fetch the issue details and examine the evidence
-        2. Investigate the trace, replay, logs, other issues, trends, and other telemetry when available to gain a deeper understanding of the issue
-        3. Investigate the relevant code in the codebase
-        4. Ask "why" repeatedly to find the TRUE root cause (not just symptoms)
-        5. Use your todo list to track multiple hypotheses for complex bugs
-
-        If you have previously generated this artifact, disregard the prior attempt and produce a completely new one from scratch.
-
-        When you have enough information, always generate the root_cause artifact {artifact_tool_str(artifact_key)}:
-        - one_line_description: A concise summary under 30 words
-        - five_whys: Chain of brief "why" statements leading to the root cause. (do not write the questions, only the answers; e.g. prefer "x -> y -> z", NOT "x -> why x? y -> why y? z")
-        - reproduction_steps: Steps that would reproduce this issue, each under 15 words.
-        - relevant_repo: The full repository name (e.g. "owner/repo") where the fix should be made. Pick the one repo most directly responsible for the root cause.
-        """
-    )
+    raise RuntimeError("Root cause prompts must run through the Seer Autofix feature")
 
 
 def solution_prompt(
@@ -62,31 +49,9 @@ def solution_prompt(
     culprit: str,
     artifact_key: str | None,
     run_state: "SeerRunState | None" = None,
+    should_run_repo_checks: bool = False,
 ) -> str:
-    return dedent(
-        f"""\
-        Plan a solution for issue {short_id}: "{title}" (culprit: {culprit})
-
-        Based on the root cause analysis, design a solution to fix this issue.
-
-        Steps:
-        1. Review the root cause that was identified
-        2. Explore the codebase to understand the affected areas
-        3. Consider different possible approaches and pick the single most pragmatic one.
-
-        Do NOT include testing as part of your plan.
-
-        If you have previously generated this artifact, disregard the prior attempt and produce a completely new one from scratch.
-
-        When you have a solid plan, always generate the solution artifact {artifact_tool_str(artifact_key)}:
-        - one_line_summary: A concise summary of the fix in under 30 words
-        - steps: Ordered list of steps to implement the solution, each with:
-          - title: Short name for the step
-          - description: What needs to be done
-
-        Do NOT implement the solution - only plan it.
-        """
-    )
+    raise RuntimeError("Solution prompts must run through the Seer Autofix feature")
 
 
 def code_changes_prompt(
@@ -96,8 +61,9 @@ def code_changes_prompt(
     culprit: str,
     artifact_key: str | None,
     run_state: "SeerRunState | None" = None,
+    should_run_repo_checks: bool = False,
 ) -> str:
-    return dedent(
+    prompt = dedent(
         f"""\
         Implement the fix for issue {short_id}: "{title}" (culprit: {culprit})
 
@@ -114,6 +80,20 @@ def code_changes_prompt(
         """
     )
 
+    if should_run_repo_checks:
+        prompt += dedent(
+            f"""
+            Before you finish, verify your changes with the repository's own tooling:
+            - Set the repository up first. The checkout has no dependencies installed, so run the project's install/setup commands (e.g. `npm install`, `yarn install`, `pip install -e .`, `make bootstrap`) before running any checks.
+            - Run the linter/formatter over the files you changed.
+            - Run the tests covering the code you changed, scoping the run to the affected area when the suite is large.
+            - Fix any failures your changes introduced, then re-run until they pass.
+
+            {_CHECK_COMMAND_SOURCES} If a check cannot be run, report that instead of claiming it passed."""
+        )
+
+    return prompt
+
 
 def pr_iteration_prompt(
     *,
@@ -122,6 +102,7 @@ def pr_iteration_prompt(
     culprit: str,
     artifact_key: str | None,
     run_state: "SeerRunState | None" = None,
+    should_run_repo_checks: bool = False,
 ) -> str:
     prompt = dedent(
         f"""\

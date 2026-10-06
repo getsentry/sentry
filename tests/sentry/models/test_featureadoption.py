@@ -18,6 +18,11 @@ class TestFeatureAdoptionRedisCache(TestCase):
         self.cache.bulk_set_cache(self.org_id, *fids)
         assert self.cache.get_all_cache(self.org_id) == fids
 
+    def test_bulk_set_cache_sets_ttl(self) -> None:
+        self.cache.bulk_set_cache(self.org_id, 90)
+        org_key = self.cache.key_tpl.format(self.org_id)
+        assert self.cache.get_client(org_key).ttl(org_key) > 0
+
 
 class TestFeatureAdoptionRedisClusterCache(TestFeatureAdoptionRedisCache):
     def setUp(self) -> None:

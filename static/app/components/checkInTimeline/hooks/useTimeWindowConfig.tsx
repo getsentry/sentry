@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
 
+import {useTimezone} from '@sentry/scraps/datetime';
+
 import {getConfigFromTimeRange} from 'sentry/components/checkInTimeline/utils/getConfigFromTimeRange';
-import {useTimezone} from 'sentry/components/timezoneProvider';
 
 import {usePageFilterDates} from './useMonitorDates';
 

@@ -14,7 +14,6 @@ from sentry.api.endpoints.organization_on_demand_metrics_estimation_stats import
     estimate_stats_quality,
     estimate_volume,
 )
-from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.testutils.cases import APITestCase, BaseMetricsLayerTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.samples import load_data
@@ -26,7 +25,12 @@ MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
 SECOND = timedelta(seconds=1)
 MINUTE = timedelta(minutes=1)
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [
+    pytest.mark.sentry_metrics,
+    pytest.mark.skip(
+        reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+    ),
+]
 
 
 @freeze_time(MOCK_DATETIME)
@@ -94,7 +98,7 @@ class OrganizationOnDemandMetricsEstimationStatsEndpointTest(APITestCase, BaseMe
             # transaction metrics
             for _ in range(transaction_metrics[idx]):
                 self.store_performance_metric(
-                    name=TransactionMRI.DURATION.value,
+                    name="d:transactions/duration@millisecond",
                     tags={"transaction": "t1"},
                     minutes_before_now=minutes_before,
                     value=3.14,

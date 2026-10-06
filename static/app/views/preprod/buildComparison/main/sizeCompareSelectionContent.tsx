@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {InputGroup} from '@sentry/scraps/input';
@@ -15,9 +16,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {parseApiError} from 'sentry/utils/parseApiError';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {decodeScalar} from 'sentry/utils/queryString';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -37,22 +36,18 @@ import {SizeCompareSelectedBuilds} from './sizeCompareSelectedBuilds';
 
 interface SizeCompareSelectionContentProps {
   headBuildDetails: BuildDetailsApiResponse;
-  baseBuildDetails?: BuildDetailsApiResponse;
 }
 
 export function SizeCompareSelectionContent({
   headBuildDetails,
-  baseBuildDetails,
 }: SizeCompareSelectionContentProps) {
   const organization = useOrganization();
   const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
-  const {cursor} = useLocationQuery({
-    fields: {
-      cursor: decodeScalar,
-    },
-  });
-  const [selectedBaseBuild, setSelectedBaseBuild] = useState(baseBuildDetails);
+  const [cursor] = useQueryState('cursor', parseAsString.withDefault(''));
+  const [selectedBaseBuild, setSelectedBaseBuild] = useState<
+    BuildDetailsApiResponse | undefined
+  >();
   const [searchQuery, setSearchQuery] = useState('');
 
   const searchFilters: string[] = [`state:${BuildDetailsState.PROCESSED}`];

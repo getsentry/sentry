@@ -1,9 +1,11 @@
+import {AnnotationFixture} from 'sentry-fixture/annotation';
 import {initializeLogsTest} from 'sentry-fixture/log';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
@@ -82,71 +84,72 @@ describe('LogsTabContent', () => {
     route: '/organizations/:orgId/explore/logs/',
   };
 
-  setupPageFilters();
+  const eventTableResponseBody = {
+    data: [
+      {
+        [OurLogKnownFieldKey.ID]: '019621262d117e03bce898cb8f4f6ff7',
+        [OurLogKnownFieldKey.PROJECT_ID]: 1,
+        [OurLogKnownFieldKey.TRACE_ID]: '17cc0bae407042eaa4bf6d798c37d026',
+        [OurLogKnownFieldKey.SEVERITY_NUMBER]: 9,
+        [OurLogKnownFieldKey.SEVERITY]: 'info',
+        [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-10T19:21:12+00:00',
+        [OurLogKnownFieldKey.MESSAGE]: 'some log message1',
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.7443128722090732e18,
+      },
+      {
+        [OurLogKnownFieldKey.ID]: '0196212624a17144aa392d01420256a2',
+        [OurLogKnownFieldKey.PROJECT_ID]: 1,
+        [OurLogKnownFieldKey.TRACE_ID]: 'c331c2df93d846f5a2134203416d40bb',
+        [OurLogKnownFieldKey.SEVERITY_NUMBER]: 9,
+        [OurLogKnownFieldKey.SEVERITY]: 'info',
+        [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-10T19:21:10+00:00',
+        [OurLogKnownFieldKey.MESSAGE]: 'some log message2',
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.744312870049196e18,
+      },
+    ],
+    meta: {
+      fields: {
+        [OurLogKnownFieldKey.ID]: 'string',
+        [OurLogKnownFieldKey.PROJECT_ID]: 'string',
+        [OurLogKnownFieldKey.TRACE_ID]: 'string',
+        [OurLogKnownFieldKey.SEVERITY_NUMBER]: 'integer',
+        [OurLogKnownFieldKey.SEVERITY]: 'string',
+        [OurLogKnownFieldKey.TIMESTAMP]: 'string',
+        [OurLogKnownFieldKey.MESSAGE]: 'string',
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 'number',
+      },
+      units: {
+        [OurLogKnownFieldKey.ID]: null,
+        [OurLogKnownFieldKey.PROJECT_ID]: null,
+        [OurLogKnownFieldKey.TRACE_ID]: null,
+        [OurLogKnownFieldKey.SEVERITY_NUMBER]: null,
+        [OurLogKnownFieldKey.SEVERITY]: null,
+        [OurLogKnownFieldKey.TIMESTAMP]: null,
+        [OurLogKnownFieldKey.MESSAGE]: null,
+        [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: null,
+      },
+      isMetricsData: false,
+      isMetricsExtractedData: false,
+      tips: {},
+      datasetReason: 'unchanged',
+      dataset: 'ourlogs',
+      dataScanned: 'full',
+      accuracy: {
+        confidence: [{}, {}],
+      },
+    },
+    confidence: [{}, {}],
+  };
 
   beforeEach(() => {
+    setupPageFilters();
     MockApiClient.clearMockResponses();
 
     // Default API mocks
     eventTableMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {
-        data: [
-          {
-            [OurLogKnownFieldKey.ID]: '019621262d117e03bce898cb8f4f6ff7',
-            [OurLogKnownFieldKey.PROJECT_ID]: 1,
-            [OurLogKnownFieldKey.TRACE_ID]: '17cc0bae407042eaa4bf6d798c37d026',
-            [OurLogKnownFieldKey.SEVERITY_NUMBER]: 9,
-            [OurLogKnownFieldKey.SEVERITY]: 'info',
-            [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-10T19:21:12+00:00',
-            [OurLogKnownFieldKey.MESSAGE]: 'some log message1',
-            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.7443128722090732e18,
-          },
-          {
-            [OurLogKnownFieldKey.ID]: '0196212624a17144aa392d01420256a2',
-            [OurLogKnownFieldKey.PROJECT_ID]: 1,
-            [OurLogKnownFieldKey.TRACE_ID]: 'c331c2df93d846f5a2134203416d40bb',
-            [OurLogKnownFieldKey.SEVERITY_NUMBER]: 9,
-            [OurLogKnownFieldKey.SEVERITY]: 'info',
-            [OurLogKnownFieldKey.TIMESTAMP]: '2025-04-10T19:21:10+00:00',
-            [OurLogKnownFieldKey.MESSAGE]: 'some log message2',
-            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.744312870049196e18,
-          },
-        ],
-        meta: {
-          fields: {
-            [OurLogKnownFieldKey.ID]: 'string',
-            [OurLogKnownFieldKey.PROJECT_ID]: 'string',
-            [OurLogKnownFieldKey.TRACE_ID]: 'string',
-            [OurLogKnownFieldKey.SEVERITY_NUMBER]: 'integer',
-            [OurLogKnownFieldKey.SEVERITY]: 'string',
-            [OurLogKnownFieldKey.TIMESTAMP]: 'string',
-            [OurLogKnownFieldKey.MESSAGE]: 'string',
-            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 'number',
-          },
-          units: {
-            [OurLogKnownFieldKey.ID]: null,
-            [OurLogKnownFieldKey.PROJECT_ID]: null,
-            [OurLogKnownFieldKey.TRACE_ID]: null,
-            [OurLogKnownFieldKey.SEVERITY_NUMBER]: null,
-            [OurLogKnownFieldKey.SEVERITY]: null,
-            [OurLogKnownFieldKey.TIMESTAMP]: null,
-            [OurLogKnownFieldKey.MESSAGE]: null,
-            [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: null,
-          },
-          isMetricsData: false,
-          isMetricsExtractedData: false,
-          tips: {},
-          datasetReason: 'unchanged',
-          dataset: 'ourlogs',
-          dataScanned: 'full',
-          accuracy: {
-            confidence: [{}, {}],
-          },
-        },
-        confidence: [{}, {}],
-      },
+      body: eventTableResponseBody,
     });
 
     eventsTimeSeriesMock = MockApiClient.addMockResponse({
@@ -255,8 +258,18 @@ describe('LogsTabContent', () => {
       dataset: [],
       environment: [],
       field: [
-        {attrType: 'number', error: null, name: 'custom.duration', valid: true},
-        {attrType: 'boolean', error: null, name: 'custom.enabled', valid: true},
+        {
+          attrType: 'number',
+          error: null,
+          name: 'custom.duration',
+          valid: true,
+        },
+        {
+          attrType: 'boolean',
+          error: null,
+          name: 'custom.enabled',
+          valid: true,
+        },
         {
           attrType: null,
           error: 'unknown attribute',
@@ -333,7 +346,12 @@ describe('LogsTabContent', () => {
       dataset: [],
       environment: [],
       field: [
-        {attrType: 'number', error: null, name: 'custom.duration', valid: true},
+        {
+          attrType: 'number',
+          error: null,
+          name: 'custom.duration',
+          valid: true,
+        },
         {
           attrType: null,
           error: 'unknown attribute',
@@ -406,7 +424,12 @@ describe('LogsTabContent', () => {
       dataset: [],
       environment: [],
       field: [
-        {attrType: 'number', error: null, name: 'custom.duration', valid: true},
+        {
+          attrType: 'number',
+          error: null,
+          name: 'custom.duration',
+          valid: true,
+        },
         {
           attrType: null,
           error: 'unknown attribute',
@@ -506,6 +529,74 @@ describe('LogsTabContent', () => {
     );
   });
 
+  it('leaves the aggregate fields alone when switching to aggregates while ungrouped', async () => {
+    const {router} = render(
+      <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />,
+      {
+        initialRouterConfig,
+        organization,
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Aggregates'}));
+
+    await waitFor(() => {
+      expect(router.location.query.mode).toBe(Mode.AGGREGATE);
+    });
+    expect(router.location.query[LOGS_AGGREGATE_FIELD_KEY]).toBeUndefined();
+  });
+
+  it('keeps the sample columns as group bys when switching to aggregates', async () => {
+    const samplesRouterConfig = {
+      ...initialRouterConfig,
+      location: {
+        ...initialRouterConfig.location,
+        query: {
+          ...initialRouterConfig.location.query,
+          mode: Mode.SAMPLES,
+          [LOGS_FIELDS_KEY]: [
+            'timestamp',
+            'message',
+            'tags[ds_proj_id,number]',
+            'tags[relative_deviation,number]',
+          ],
+          [LOGS_SORT_BYS_KEY]: ['-timestamp'],
+          [LOGS_AGGREGATE_FIELD_KEY]: [
+            JSON.stringify({groupBy: 'message'}),
+            JSON.stringify({yAxes: ['avg(tags[relative_deviation,number])']}),
+          ],
+        },
+      },
+    };
+
+    const {router} = render(
+      <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />,
+      {
+        initialRouterConfig: samplesRouterConfig,
+        organization,
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Aggregates'}));
+
+    await waitFor(() => {
+      expect(router.location.query[LOGS_AGGREGATE_FIELD_KEY]).toEqual([
+        JSON.stringify({groupBy: 'message'}),
+        JSON.stringify({groupBy: 'tags[ds_proj_id,number]'}),
+        JSON.stringify({yAxes: ['avg(tags[relative_deviation,number])']}),
+      ]);
+    });
+    expect(router.location.query.mode).toBe(Mode.AGGREGATE);
+    expect(router.location.query[LOGS_FIELDS_KEY]).toEqual([
+      'timestamp',
+      'message',
+      'tags[ds_proj_id,number]',
+      'tags[relative_deviation,number]',
+    ]);
+  });
+
   it('should pass caseInsensitive to the query', async () => {
     render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
       initialRouterConfig,
@@ -588,7 +679,166 @@ describe('LogsTabContent', () => {
       organization,
       additionalWrapper: ProviderWrapper,
     });
-    const refreshButton = await screen.findByRole('button', {name: 'Refresh'});
+    const refreshButton = await screen.findByRole('button', {
+      name: 'Refresh',
+    });
     expect(refreshButton).toBeDisabled();
+  });
+
+  it('refetches the chart and its dropped data annotations when the refresh button is clicked', async () => {
+    PageFiltersStore.updateDateTime({period: '1h', start: null, end: null, utc: null});
+    const droppedDataMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: {timeSeries: [TimeSeriesFixture()]},
+      match: [
+        MockApiClient.matchQuery({referrer: 'api.explore.dropped-data-annotations'}),
+      ],
+    });
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig,
+      organization: {
+        ...organization,
+        features: [...organization.features, 'explore-data-fidelity-annotations'],
+      },
+      additionalWrapper: ProviderWrapper,
+    });
+    await waitFor(() => {
+      expect(eventsTimeSeriesMock).toHaveBeenCalled();
+      expect(droppedDataMock).toHaveBeenCalled();
+    });
+    eventsTimeSeriesMock.mockClear();
+    droppedDataMock.mockClear();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Refresh'}));
+
+    await waitFor(() => {
+      expect(eventsTimeSeriesMock).toHaveBeenCalledTimes(1);
+      expect(droppedDataMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('warns that results may be incomplete when no logs are found and the sort is not timestamp descending', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}, dataScanned: 'partial'},
+      },
+    });
+
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
+
+    expect(
+      await screen.findByText(
+        /we only scan your full log volume when sorting by timestamp in descending order/
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('does not warn that results may be incomplete when sorting by timestamp descending', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        data: [],
+        meta: {fields: {}, units: {}, dataScanned: 'partial'},
+      },
+    });
+    const timestampSortRouterConfig = structuredClone(initialRouterConfig);
+    timestampSortRouterConfig.location.query[LOGS_FIELDS_KEY] = ['timestamp', 'message'];
+    timestampSortRouterConfig.location.query[LOGS_SORT_BYS_KEY] = ['-timestamp'];
+
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig: timestampSortRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
+    await screen.findByText('No logs found');
+
+    expect(
+      screen.queryByText(
+        /we only scan your full log volume when sorting by timestamp in descending order/
+      )
+    ).not.toBeInTheDocument();
+  });
+
+  it('warns that results may be incomplete when the scan is partial and the sort is not timestamp descending', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      method: 'GET',
+      body: {
+        ...eventTableResponseBody,
+        meta: {...eventTableResponseBody.meta, dataScanned: 'partial'},
+      },
+    });
+
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig,
+      organization,
+      additionalWrapper: ProviderWrapper,
+    });
+
+    expect(
+      await screen.findByText(
+        /we only scan your full log volume when sorting by timestamp in descending order/
+      )
+    ).toBeInTheDocument();
+  });
+
+  describe('dropped data layer', () => {
+    function mockDroppedData() {
+      return MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events-timeseries/`,
+        method: 'GET',
+        match: [
+          MockApiClient.matchQuery({referrer: 'api.explore.dropped-data-annotations'}),
+        ],
+        body: {
+          timeSeries: [],
+          meta: {droppedAnnotations: [AnnotationFixture()], acceptedAnnotations: []},
+        },
+      });
+    }
+
+    it('shows the Layers control when logs were dropped', async () => {
+      const droppedDataMock = mockDroppedData();
+
+      render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+        initialRouterConfig,
+        organization: {
+          ...organization,
+          features: [...organization.features, 'explore-data-fidelity-annotations'],
+        },
+        additionalWrapper: ProviderWrapper,
+      });
+
+      expect(await screen.findByLabelText('Chart layers')).toBeInTheDocument();
+      expect(droppedDataMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events-timeseries/`,
+        expect.objectContaining({
+          query: expect.objectContaining({dataset: 'ourlogs', includeAnnotations: 1}),
+        })
+      );
+    });
+
+    it('hides the Layers control without the feature flag', async () => {
+      const droppedDataMock = mockDroppedData();
+
+      render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+        initialRouterConfig,
+        organization,
+        additionalWrapper: ProviderWrapper,
+      });
+
+      await screen.findByText('some log message1');
+      expect(droppedDataMock).not.toHaveBeenCalled();
+      expect(screen.queryByLabelText('Chart layers')).not.toBeInTheDocument();
+    });
   });
 });

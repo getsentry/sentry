@@ -12,6 +12,7 @@ from uuid import uuid4
 
 import orjson
 from django.http.response import HttpResponseBase
+from django.test import override_settings
 
 from sentry import options
 from sentry.integrations.github.webhook import GitHubIntegrationsWebhookEndpoint
@@ -140,9 +141,10 @@ class GitHubWebhookTestCase(APITestCase):
         )
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class GitHubWebhookCodeReviewTestCase(GitHubWebhookTestCase):
     # Code review features are org features as set in options automator
-    CODE_REVIEW_FEATURES = {"organizations:gen-ai-features", "organizations:code-review-beta"}
+    CODE_REVIEW_FEATURES = {"organizations:code-review-beta"}
     # Options to set are regional options as set in options automator
     OPTIONS_TO_SET: dict[str, Any] = {}
     # Org options are org options as set via OrganizationOption.objects.set_value
@@ -205,11 +207,10 @@ class GitHubWebhookCodeReviewTestCase(GitHubWebhookTestCase):
         if pr_author_external_id:
             OrganizationContributors.objects.get_or_create(
                 organization_id=self.organization.id,
-                integration_id=integration.id,
+                provider=integration.provider,
+                hostname=instance_hostname(integration),
                 external_identifier=pr_author_external_id,
                 defaults={
-                    "provider": integration.provider,
-                    "hostname": instance_hostname(integration),
                     "alias": (
                         self.event_dict.get("sender", {}).get("login")
                         or self.event_dict.get("issue", {}).get("user", {}).get("login")

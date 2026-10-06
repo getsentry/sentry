@@ -2,12 +2,13 @@ import moment from 'moment-timezone';
 
 import {getDiffInMinutes} from 'sentry/components/charts/utils';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
-import type {PageFilters} from 'sentry/types/core';
+import type {StatsPeriodRange} from 'sentry/components/pageFilters/types';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 
-type DateTimeFilter = PageFilters['datetime'];
+type DateTimeFilter = PageFilterDatetime;
 
 /**
  * A loading window for a Heat Map visualization. Heat Maps load data in
@@ -16,8 +17,8 @@ type DateTimeFilter = PageFilters['datetime'];
  */
 export type HeatMapWindow =
   | {end: string; start: string}
-  | {statsPeriodEnd: string; statsPeriodStart: string}
-  | {statsPeriod: string};
+  | {statsPeriod: string}
+  | StatsPeriodRange;
 
 /** An epoch-ms time span (the heat map's X-axis domain) */
 export interface TimeDomain {

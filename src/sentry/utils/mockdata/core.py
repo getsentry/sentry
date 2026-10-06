@@ -23,9 +23,6 @@ from sentry.constants import ObjectStatus
 from sentry.exceptions import HashDiscarded
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
-from sentry.incidents.logic import create_alert_rule, create_alert_rule_trigger, create_incident
-from sentry.incidents.models.alert_rule import AlertRuleThresholdType
-from sentry.incidents.models.incident import IncidentType
 from sentry.ingest.consumer.processors import (
     process_attachment_chunk,
     process_individual_attachment,
@@ -240,7 +237,7 @@ def create_sample_time_series(event, release=None):
             project=project, release=release, environment=environment, datetime=now
         )
 
-        grouprelease = GroupRelease.get_or_create(
+        GroupRelease.get_or_create(
             group=group, release=release, environment=environment, datetime=now
         )
 
@@ -277,17 +274,6 @@ def create_sample_time_series(event, release=None):
             int(count * 0.1),
         )
 
-        frequencies = [
-            (TSDBModel.frequent_issues_by_project, {project.id: {group.id: count}}),
-            (TSDBModel.frequent_environments_by_group, {group.id: {environment.id: count}}),
-        ]
-        if release:
-            frequencies.append(
-                (TSDBModel.frequent_releases_by_group, {group.id: {grouprelease.id: count}})
-            )
-
-        tsdb.backend.record_frequency_multi(frequencies, now)
-
         now = now - timedelta(seconds=1)
 
     for _ in range(24 * 30):
@@ -316,17 +302,6 @@ def create_sample_time_series(event, release=None):
             now,
             int(count * 0.1),
         )
-
-        frequencies = [
-            (TSDBModel.frequent_issues_by_project, {project.id: {group.id: count}}),
-            (TSDBModel.frequent_environments_by_group, {group.id: {environment.id: count}}),
-        ]
-        if release:
-            frequencies.append(
-                (TSDBModel.frequent_releases_by_group, {group.id: {grouprelease.id: count}})
-            )
-
-        tsdb.backend.record_frequency_multi(frequencies, now)
 
         now = now - timedelta(hours=1)
 
@@ -738,29 +713,6 @@ def generate_events(
         )
 
     return generated_events
-
-
-def create_metric_alert_rule(organization: Organization, project: Project) -> None:
-    # Metric alerts
-    alert_rule = create_alert_rule(
-        organization,
-        [project],
-        "My Alert Rule",
-        "level:error",
-        "count()",
-        10,
-        AlertRuleThresholdType.ABOVE,
-        1,
-    )
-    create_alert_rule_trigger(alert_rule, "critical", 10)
-    create_incident(
-        organization,
-        incident_type=IncidentType.ALERT_TRIGGERED,
-        title="My Incident",
-        date_started=datetime.now(timezone.utc),
-        alert_rule=alert_rule,
-        projects=[project],
-    )
 
 
 def create_mock_transactions(
@@ -1354,7 +1306,6 @@ def main(
                 user=user,
                 commits=raw_commits,
             )
-            create_metric_alert_rule(organization, project)
             events = generate_events(
                 project=project,
                 release=release,

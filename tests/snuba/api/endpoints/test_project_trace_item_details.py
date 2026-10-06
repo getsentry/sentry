@@ -12,9 +12,11 @@ from sentry.testutils.cases import (
     SnubaTestCase,
     SpanTestCase,
     TraceAttachmentTestCase,
+    TraceMetricsTestCase,
 )
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.options import override_options
+from sentry.utils import json
 from sentry.utils.snuba_rpc import SnubaRPCRateLimitExceeded
 
 
@@ -24,6 +26,7 @@ class ProjectTraceItemDetailsEndpointTest(
     OurLogTestCase,
     SpanTestCase,
     TraceAttachmentTestCase,
+    TraceMetricsTestCase,
     OccurrenceTestCase,
 ):
     def setUp(self) -> None:
@@ -57,6 +60,14 @@ class ProjectTraceItemDetailsEndpointTest(
                 item_details_url,
                 data,
             )
+
+    def test_invalid_routing_hint(self) -> None:
+        response = self.do_request(
+            "spans", "0123456789abcdef", extra_data={"routing_hint": "invalid"}
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": "Invalid trace item details request."}
 
     def test_simple(self) -> None:
         log = self.create_ourlog(
@@ -427,6 +438,89 @@ class ProjectTraceItemDetailsEndpointTest(
             + "Z",
         }
 
+    def test_serialized_event_json_attributes(self) -> None:
+        contexts = {"trace": {"trace_id": self.trace_uuid, "span_id": "abc123"}}
+        extra = {"custom_key": "custom_value", "count": 3}
+        breadcrumbs = [{"type": "default", "message": "first"}, {"type": "http", "message": "req"}]
+        log = self.create_ourlog(
+            {
+                "body": "foo",
+                "trace_id": self.trace_uuid,
+            },
+            attributes={
+                "sentry.event.serialized_contexts": json.dumps(contexts),
+                "sentry.event.serialized_extra": json.dumps(extra),
+                "sentry.event.serialized_breadcrumbs": json.dumps(breadcrumbs),
+            },
+            timestamp=self.one_min_ago,
+        )
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
+
+        trace_details_response = self.do_request("logs", item_id)
+
+        assert trace_details_response.status_code == 200, trace_details_response.content
+        assert trace_details_response.data["event"] == {
+            "contexts": contexts,
+            "extra": extra,
+            "breadcrumbs": breadcrumbs,
+        }
+
+    def test_serialized_event_json_attributes_partial(self) -> None:
+        extra = {"custom_key": "custom_value"}
+        log = self.create_ourlog(
+            {
+                "body": "foo",
+                "trace_id": self.trace_uuid,
+            },
+            attributes={
+                "sentry.event.serialized_extra": json.dumps(extra),
+            },
+            timestamp=self.one_min_ago,
+        )
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
+
+        trace_details_response = self.do_request("logs", item_id)
+
+        assert trace_details_response.status_code == 200, trace_details_response.content
+        assert trace_details_response.data["event"] == {"extra": extra}
+
+    def test_serialized_event_json_attributes_absent(self) -> None:
+        log = self.create_ourlog(
+            {
+                "body": "foo",
+                "trace_id": self.trace_uuid,
+            },
+            timestamp=self.one_min_ago,
+        )
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
+
+        trace_details_response = self.do_request("logs", item_id)
+
+        assert trace_details_response.status_code == 200, trace_details_response.content
+        assert "event" not in trace_details_response.data
+
+    def test_serialized_event_json_attributes_invalid_json(self) -> None:
+        log = self.create_ourlog(
+            {
+                "body": "foo",
+                "trace_id": self.trace_uuid,
+            },
+            attributes={
+                "sentry.event.serialized_contexts": "not valid json",
+            },
+            timestamp=self.one_min_ago,
+        )
+        self.store_eap_items([log])
+        item_id = log.item_id.hex()
+
+        trace_details_response = self.do_request("logs", item_id)
+
+        assert trace_details_response.status_code == 200, trace_details_response.content
+        assert "event" not in trace_details_response.data
+
     def test_sentry_links(self) -> None:
         span_1 = self.create_span(
             {
@@ -498,6 +592,41 @@ class ProjectTraceItemDetailsEndpointTest(
             }
         ]
 
+    def test_sentry_links_with_typed_attribute_values(self) -> None:
+        """
+        The span pipeline stores link attribute values as typed envelopes
+        (`{"type": ..., "value": ...}`), unlike the transaction pipeline, which
+        stores bare scalars. Both must serialize to the same output; values of
+        unsupported types are omitted.
+        """
+        span_1 = self.create_span(
+            {
+                "description": "foo",
+                "sentry_tags": {
+                    "links": '[{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"8873a98879faf06d","sampled":true,"attributes":{"sentry.link.type":{"type":"string","value":"cache_origin"},"sentry.dropped_attributes_count":{"type":"integer","value":2},"unsupported":{"type":"map","value":{"nested":"object"}}}}]',
+                },
+            },
+            start_ts=self.one_min_ago,
+        )
+        span_1["trace_id"] = self.trace_uuid
+        item_id = span_1["span_id"]
+
+        self.store_span(span_1)
+
+        trace_details_response = self.do_request("spans", item_id)
+        assert trace_details_response.status_code == 200, trace_details_response.content
+        assert trace_details_response.data["links"] == [
+            {
+                "traceId": "d099bf9ad5a143cf8f83a98081d0ed3b",
+                "itemId": "8873a98879faf06d",
+                "sampled": True,
+                "attributes": [
+                    {"name": "sentry.link.type", "value": "cache_origin", "type": "str"},
+                    {"name": "sentry.dropped_attributes_count", "value": 2, "type": "int"},
+                ],
+            }
+        ]
+
     def test_sentry_internal_attributes(self) -> None:
         span_1 = self.create_span(
             {
@@ -534,6 +663,38 @@ class ProjectTraceItemDetailsEndpointTest(
         assert "normal_attr" in attribute_names
         assert "__sentry_internal_span_buffer_outcome" in attribute_names
         assert "__sentry_internal_test" in attribute_names
+
+    def test_internal_convention_attributes_without_elevated_mode(self) -> None:
+        span = self.create_span(
+            {
+                "sentry_tags": {"dsc.environment": "production"},
+                "tags": {
+                    "normal_attr": "visible",
+                    "__sentry_internal_test": "internal",
+                    "sentry._internal.received_at": "internal",
+                },
+            },
+            start_ts=self.one_min_ago,
+        )
+        span["trace_id"] = self.trace_uuid
+        self.store_spans([span])
+
+        for flags, include_conventions in (
+            ({}, False),
+            ({"is_staff": True}, True),
+            ({"is_superuser": True}, True),
+        ):
+            user = self.create_user(**flags)
+            self.create_member(user=user, organization=self.organization, teams=[self.team])
+            self.login_as(user=user)
+
+            response = self.do_request("spans", span["span_id"])
+            assert response.status_code == 200, response.data
+            attribute_names = {attr["name"] for attr in response.data["attributes"]}
+            assert "normal_attr" in attribute_names
+            assert ("dsc.environment" in attribute_names) == include_conventions
+            assert "__sentry_internal_test" not in attribute_names
+            assert "sentry._internal.received_at" not in attribute_names
 
     def test_attachment(self) -> None:
         attachment = self.create_trace_attachment(trace_id=self.trace_uuid, attributes={"foo": 2})
@@ -776,3 +937,27 @@ class ProjectTraceItemDetailsEndpointTest(
         response = self.do_request("logs", item_id)
         assert response.status_code == 429
         assert b"Rate limit exceeded" in response.content
+
+    def test_trace_metric_segment_name_mapped_to_transaction(self) -> None:
+        trace_metric = self.create_trace_metric(
+            metric_name="request_duration",
+            metric_value=100.0,
+            metric_type="distribution",
+            trace_id=self.trace_uuid,
+            attributes={"sentry.segment.name": "/api/users"},
+        )
+        self.store_eap_items([trace_metric])
+        item_id = uuid.UUID(bytes=trace_metric.item_id).hex
+
+        response = self.do_request(
+            "tracemetrics",
+            item_id,
+            features={**self.features, "organizations:tracemetrics-enabled": True},
+        )
+        assert response.status_code == 200, response.content
+
+        by_name = {attr["name"]: attr for attr in response.data["attributes"]}
+        assert "transaction" in by_name
+        assert by_name["transaction"]["value"] == "/api/users"
+        assert by_name["transaction"]["type"] == "str"
+        assert "sentry.segment.name" not in by_name

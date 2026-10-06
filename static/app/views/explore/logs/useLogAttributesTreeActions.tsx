@@ -1,48 +1,29 @@
 import {useCallback} from 'react';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t} from 'sentry/locale';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
+import {useAttributeTreeSearchActions} from 'sentry/views/explore/components/traceItemAttributes/useAttributeTreeSearchActions';
 import {useLogsSidebar} from 'sentry/views/explore/logs/logsSidebarContext';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {
   useQueryParamsFields,
   useQueryParamsGroupBys,
-  useQueryParamsSearch,
   useSetQueryParamsFields,
   useSetQueryParamsGroupBys,
-  useSetQueryParamsSearch,
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 
 export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
-  const setLogsSearch = useSetQueryParamsSearch();
-  const search = useQueryParamsSearch();
+  const getSearchActions = useAttributeTreeSearchActions();
   const fields = useQueryParamsFields();
   const setLogFields = useSetQueryParamsFields();
   const groupBys = useQueryParamsGroupBys();
   const setGroupBys = useSetQueryParamsGroupBys();
   const sidebar = useLogsSidebar();
 
-  const addSearchFilter = useCallback(
-    (content: AttributesTreeContent, negated?: boolean) => {
-      const originalAttribute = content.originalAttribute;
-      if (!originalAttribute) {
-        return;
-      }
-      const newSearch = search.copy();
-      newSearch.addFilterValue(
-        `${negated ? '!' : ''}${originalAttribute.original_attribute_key}`,
-        String(content.value)
-      );
-      setLogsSearch(newSearch);
-    },
-    [setLogsSearch, search]
-  );
-
   const addColumn = useCallback(
     (content: AttributesTreeContent) => {
-      const originalAttribute = content.originalAttribute;
+      const originalAttribute = content.original;
       if (!originalAttribute) {
         return;
       }
@@ -59,10 +40,10 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
 
   const addGroupBy = useCallback(
     (content: AttributesTreeContent) => {
-      if (!content.originalAttribute) {
+      if (!content.original) {
         return;
       }
-      const key = content.originalAttribute.original_attribute_key;
+      const key = content.original.original_attribute_key;
       // Drop empty placeholder group bys, dedupe, then append the new key.
       const newGroupBys = groupBys.filter(Boolean);
       if (!newGroupBys.includes(key)) {
@@ -76,36 +57,29 @@ export function useLogAttributesTreeActions({embedded}: {embedded: boolean}) {
   );
 
   return (content: AttributesTreeContent) => {
-    if (!content.originalAttribute) {
+    if (!content.original) {
       return [];
     }
 
-    const items: MenuItemProps[] = [
-      {
-        key: 'search-for-value',
-        label: t('Add to filter'),
-        onAction: () => addSearchFilter(content),
-      },
-      {
-        key: 'search-for-negated-value',
-        label: t('Exclude this value'),
-        onAction: () => addSearchFilter(content, true),
-      },
+    const key = content.original.original_attribute_key;
+    const items = getSearchActions(content);
+
+    items.push(
       {
         key: 'add-column',
         label: t('Add this as table column'),
         hidden: embedded,
-        disabled: fields.includes(content.originalAttribute.original_attribute_key),
+        disabled: fields.includes(key),
         onAction: () => addColumn(content),
       },
       {
         key: 'add-group-by',
         label: t('Group by attribute'),
         hidden: embedded,
-        disabled: groupBys.includes(content.originalAttribute.original_attribute_key),
+        disabled: groupBys.includes(key),
         onAction: () => addGroupBy(content),
-      },
-    ];
+      }
+    );
 
     return items;
   };

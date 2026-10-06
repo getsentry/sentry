@@ -6,7 +6,6 @@ import type {ParntershipAgreementType} from './overrides';
 import type {User} from './user';
 
 export enum SentryInitRenderReactComponent {
-  INDICATORS = 'Indicators',
   SETUP_WIZARD = 'SetupWizard',
   WEB_AUTHN_ASSSERT = 'WebAuthnAssert',
   SU_STAFF_ACCESS_FORM = 'SuperuserStaffAccessForm',
@@ -93,11 +92,11 @@ declare global {
      */
     __sentry_preload?: {
       orgSlug?: string;
-      organization?: Promise<ApiResult>;
+      organization?: Promise<ApiResult | null>;
       organization_fallback?: Promise<ApiResult>;
-      projects?: Promise<ApiResult>;
+      projects?: Promise<ApiResult | null>;
       projects_fallback?: Promise<ApiResult>;
-      teams?: Promise<ApiResult>;
+      teams?: Promise<ApiResult | null>;
       teams_fallback?: Promise<ApiResult>;
     };
     /**

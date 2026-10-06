@@ -13,35 +13,6 @@ describe('utils', () => {
     },
   };
 
-  describe('discountPrice', () => {
-    it('discounts price correctly', () => {
-      expect(
-        utils.getDiscountedPrice({
-          basePrice: 1000,
-          amount: 10 * 100,
-          discountType: 'percentPoints',
-          creditCategory: 'subscription',
-        })
-      ).toBe(900);
-      expect(
-        utils.getDiscountedPrice({
-          basePrice: 8900,
-          amount: 40 * 100,
-          discountType: 'percentPoints',
-          creditCategory: 'subscription',
-        })
-      ).toBe(5340);
-      expect(
-        utils.getDiscountedPrice({
-          basePrice: 10000,
-          amount: 1000,
-          discountType: 'amountCents',
-          creditCategory: 'subscription',
-        })
-      ).toBe(9000);
-    });
-  });
-
   describe('formatPrice', () => {
     it('formats price correctly', () => {
       expect(utils.formatPrice({cents: 0})).toBe('0');

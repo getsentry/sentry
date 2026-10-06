@@ -2,7 +2,6 @@ import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {loadStripe} from '@stripe/stripe-js';
-import type {QueryClient} from '@tanstack/react-query';
 import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import moment from 'moment-timezone';
@@ -44,7 +43,6 @@ import type {
   OnDemandBudgets,
   Plan,
   PreviewData,
-  PromotionData,
   Subscription,
 } from 'getsentry/types';
 import {
@@ -55,9 +53,7 @@ import {
   isNewPayingCustomer,
   isTrial,
 } from 'getsentry/utils/billing';
-import {getCompletedOrActivePromotion} from 'getsentry/utils/promotions';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
-import {withPromotions} from 'getsentry/utils/withPromotions';
 import {Cart} from 'getsentry/views/amCheckout/components/cart';
 import {CheckoutSuccess} from 'getsentry/views/amCheckout/components/checkoutSuccess';
 import {AddBillingInformation} from 'getsentry/views/amCheckout/steps/addBillingInfo';
@@ -74,13 +70,9 @@ import {
 
 type Props = {
   api: Client;
-  isError: boolean;
-  isLoading: boolean;
   location: Location;
   navigate: ReactRouter3Navigate;
-  queryClient: QueryClient;
   subscription: Subscription;
-  promotionData?: PromotionData;
 };
 
 export type State = {
@@ -97,7 +89,7 @@ export type State = {
 
 function AMCheckout(props: Props) {
   const organization = useOrganization();
-  const {api, isLoading, location, navigate, subscription, promotionData} = props;
+  const {api, location, navigate, subscription} = props;
 
   const hasFetchedBillingConfig = useRef(false);
   const [loading, setLoading] = useState(true);
@@ -194,7 +186,7 @@ function AMCheckout(props: Props) {
         );
       });
     },
-    [subscription?.planDetails?.billingInterval]
+    [subscription.planDetails.billingInterval]
   );
 
   /**
@@ -250,7 +242,7 @@ function AMCheckout(props: Props) {
     [
       subscription.plan,
       subscription.planDetails.name,
-      subscription.planDetails?.billingInterval,
+      subscription.planDetails.billingInterval,
       getBusinessPlan,
       shouldDefaultToBusiness,
     ]
@@ -265,7 +257,7 @@ function AMCheckout(props: Props) {
         subscription.planDetails.billingInterval === initialPlan.billingInterval
       );
     },
-    [subscription?.planDetails]
+    [subscription.planDetails]
   );
 
   const getValidData = useCallback(
@@ -500,7 +492,7 @@ function AMCheckout(props: Props) {
       if (!isEqual(validData.reserved, data.reserved)) {
         Sentry.withScope(scope => {
           scope.setExtras({validData, updatedData, previous: formData});
-          scope.setLevel('warning' as any);
+          scope.setLevel('warning');
           Sentry.captureException(new Error('Plan event levels do not match'));
         });
       }
@@ -619,7 +611,7 @@ function AMCheckout(props: Props) {
     );
   }, [subscription]);
 
-  if (loading || isLoading) {
+  if (loading) {
     return <LoadingIndicator />;
   }
 
@@ -660,11 +652,6 @@ function AMCheckout(props: Props) {
     );
   }
 
-  const promotionClaimed = getCompletedOrActivePromotion(promotionData);
-  const promo = promotionClaimed?.promotion;
-
-  const discountInfo = promo?.discountInfo;
-
   const overviewProps = {
     formData,
     billingConfig,
@@ -672,28 +659,39 @@ function AMCheckout(props: Props) {
     onUpdate: handleUpdate,
     organization,
     subscription,
-    discountInfo: discountInfo ?? undefined,
   };
 
   const showAnnualTerms =
     subscription.billingInterval === ANNUAL || activePlan.billingInterval === ANNUAL;
 
-  const promotionDisclaimerText =
-    promotionData?.activePromotions?.[0]?.promotion.discountInfo.disclaimerText;
-
   const isOnSponsoredPartnerPlan =
     (subscription.partner?.isActive && subscription.isSponsored) || false;
 
-  const renderCheckoutContent = () => (
+  const checkoutContent = (
     <Fragment>
-      <CheckoutBody>
+      <Stack
+        align="start"
+        width="100%"
+        maxWidth={{zero: '100%', '2xl': '47.5rem'}}
+        padding="0 2xl 3xl"
+        paddingTop={{zero: '0', '2xl': 'md'}}
+      >
         {renderPartnerAlert()}
         <CheckoutStepsContainer data-test-id="checkout-steps">
           {renderSteps()}
         </CheckoutStepsContainer>
-      </CheckoutBody>
-      <SidePanel>
-        <OverviewContainer>
+      </Stack>
+      <Stack
+        as="aside"
+        width="100%"
+        maxWidth={{zero: '100%', '2xl': '26rem'}}
+        position={{zero: 'static', '2xl': 'sticky'}}
+        top={{zero: 'auto', '2xl': '6.25rem'}}
+        borderTop={{zero: 'primary', '2xl': 'none'}}
+        padding={{zero: '0 2xl', '2xl': '0 2xl 3xl 3xl'}}
+        background={{zero: 'secondary', '2xl': 'primary'}}
+      >
+        <Stack gap="xl" padding={{zero: '2xl 0', '2xl': '0'}}>
           <Cart
             {...overviewProps}
             referrer={referrer}
@@ -760,8 +758,8 @@ function AMCheckout(props: Props) {
               </Text>
             )}
           </Stack>
-        </OverviewContainer>
-      </SidePanel>
+        </Stack>
+      </Stack>
     </Fragment>
   );
 
@@ -777,11 +775,6 @@ function AMCheckout(props: Props) {
               moment(subscription.billingPeriodEnd).format('ll')
             )}
           </Alert>
-        </Alert.Container>
-      )}
-      {promotionDisclaimerText && (
-        <Alert.Container>
-          <Alert variant="info">{promotionDisclaimerText}</Alert>
         </Alert.Container>
       )}
       <CheckoutHeader>
@@ -807,7 +800,7 @@ function AMCheckout(props: Props) {
       </CheckoutHeader>
 
       <Flex
-        direction={{'screen:xs': 'column', 'screen:md': 'row'}}
+        direction={{zero: 'column', '2xl': 'row'}}
         gap="md 3xl"
         justify="between"
         width="100%"
@@ -815,7 +808,7 @@ function AMCheckout(props: Props) {
         align="start"
         paddingTop="3xl"
       >
-        {renderCheckoutContent()}
+        {checkoutContent}
       </Flex>
     </Stack>
   );
@@ -844,57 +837,6 @@ const OrgSlug = styled('div')`
   text-align: right;
 `;
 
-const CheckoutBody = styled('div')`
-  padding: 0 ${p => p.theme.space['2xl']} ${p => p.theme.space['3xl']}
-    ${p => p.theme.space['2xl']};
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    max-width: 47.5rem;
-    padding-top: ${p => p.theme.space.md};
-  }
-`;
-
-const SidePanel = styled('aside')`
-  width: 100%;
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  display: flex;
-  flex-direction: column;
-  padding: 0 ${p => p.theme.space['2xl']};
-  background-color: ${p => p.theme.tokens.background.secondary};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    position: sticky;
-    right: 0;
-    top: 6.25rem;
-    max-width: 26rem;
-    border-top: none;
-    padding-left: ${p => p.theme.space['3xl']};
-    background-color: ${p => p.theme.tokens.background.primary};
-    padding-bottom: ${p => p.theme.space['3xl']};
-  }
-`;
-
-/**
- * Hide overview at smaller screen sizes in old checkout
- * Bring overview to bottom at smaller screen sizes in new checkout
- * Cancel subscription button is always visible
- */
-const OverviewContainer = styled('div')`
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  gap: ${p => p.theme.space.xl};
-  padding: ${p => p.theme.space['2xl']} 0;
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    padding: 0;
-  }
-`;
-
 const CheckoutStepsContainer = styled('div')`
   display: flex;
   flex-direction: column;
@@ -907,4 +849,4 @@ const CheckoutStepsContainer = styled('div')`
   }
 `;
 
-export default withPromotions(withApi(withSubscription(AMCheckout)));
+export default withApi(withSubscription(AMCheckout));

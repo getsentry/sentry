@@ -1,8 +1,8 @@
 import {useState} from 'react';
-import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {IconThumb} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -37,19 +37,23 @@ export function SuspectCommitFeedback({
 
   if (feedbackSubmitted) {
     return (
-      <FeedbackContainer>
-        <ThankYouText>{t('Thanks!')}</ThankYouText>
-      </FeedbackContainer>
+      <Flex align="center" gap="xs" display={{zero: 'none', sm: 'flex'}}>
+        <Text as="span" size="md" variant="secondary" wrap="nowrap">
+          {t('Thanks!')}
+        </Text>
+      </Flex>
     );
   }
 
   return (
-    <FeedbackContainer>
-      <FeedbackText>{t('Is this correct?')}</FeedbackText>
+    <Flex align="center" gap="xs" display={{zero: 'none', sm: 'flex'}}>
+      <Text as="span" size="md" variant="secondary" wrap="nowrap">
+        {t('Is this correct?')}
+      </Text>
       <Flex gap="2xs">
         <Button
           size="zero"
-          icon={<IconThumb direction="up" size="xs" />}
+          icon={<IconThumb size="xs" />}
           onClick={() => handleFeedback(true)}
           aria-label={t('Yes, this suspect commit is correct')}
         />
@@ -60,31 +64,6 @@ export function SuspectCommitFeedback({
           aria-label={t('No, this suspect commit is incorrect')}
         />
       </Flex>
-    </FeedbackContainer>
+    </Flex>
   );
 }
-
-const FeedbackContainer = styled('div')`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-
-  @media (max-width: ${p => p.theme.breakpoints.xs}) {
-    display: none;
-  }
-`;
-
-const FeedbackText = styled('span')`
-  font-size: ${p => p.theme.font.size.md};
-  line-height: 1.5;
-  color: ${p => p.theme.tokens.content.secondary};
-  white-space: nowrap;
-`;
-
-const ThankYouText = styled('span')`
-  font-size: ${p => p.theme.font.size.md};
-  line-height: 1.5;
-  color: ${p => p.theme.tokens.content.secondary};
-  white-space: nowrap;
-`;

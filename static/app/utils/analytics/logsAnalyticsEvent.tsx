@@ -19,6 +19,7 @@ export type LogsAnalyticsEventParameters = {
     page_source: LogsAnalyticsPageSource;
     toggleState: 'enabled' | 'disabled';
   };
+  'logs.delete_query': Record<string, unknown>;
   'logs.explorer.continue_searching_clicked': {
     bytes_scanned: number;
     organization: Organization;
@@ -66,11 +67,6 @@ export type LogsAnalyticsEventParameters = {
     platform: PlatformKey | 'unknown';
     supports_onboarding_checklist: boolean;
   };
-  'logs.onboarding_ai_prompt_copied': {
-    organization: Organization;
-    platform: PlatformKey | 'unknown';
-    source: 'install_command' | 'prompt';
-  };
   'logs.onboarding_platform_docs_viewed': {
     organization: Organization;
     platform: PlatformKey | 'unknown';
@@ -82,7 +78,11 @@ export type LogsAnalyticsEventParameters = {
   'logs.save_query_modal': {
     action: 'open' | 'submit';
     save_type: 'save_new_query' | 'rename_query';
-    ui_source: 'toolbar' | 'table';
+    ui_source: 'toolbar' | 'table' | 'explorer';
+  };
+  'logs.star_query': {
+    save_type: 'star_query' | 'unstar_query';
+    ui_source: 'table' | 'explorer';
   };
   'logs.table.row_copied_as_json': {
     log_id: string;
@@ -125,8 +125,6 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
   'logs.explorer.setup_button_clicked': 'Logs Setup Button Clicked',
   'logs.explorer.table_tab_changed': 'Logs Explorer: Table Tab Changed',
   'logs.onboarding': 'Logs Explore Empty State (Onboarding)',
-  'logs.onboarding_ai_prompt_copied':
-    'Logs Explore Empty State (Onboarding) - AI Prompt Copied',
   'logs.issue_details.drawer_opened': 'Issues Page Logs Drawer Opened',
   'logs.timestamp_tooltip.add_timezone_clicked':
     'Logs Timestamp Tooltip Add Timezone Clicked',
@@ -138,6 +136,8 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
     'Logs Tracing Onboarding Platform Docs Viewed',
   'logs.save_as': 'Logs Save As',
   'logs.save_query_modal': 'Logs Save Query Modal',
+  'logs.star_query': 'Logs Star Query',
+  'logs.delete_query': 'Logs Delete Query',
   'logs.onboarding_platform_docs_viewed':
     'Logs Explore Empty State (Onboarding) - Platform Docs Viewed',
   'logs.table.row_copied_as_json': 'Logs Row Copied as JSON',

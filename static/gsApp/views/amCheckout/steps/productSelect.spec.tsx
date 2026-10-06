@@ -14,6 +14,19 @@ import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {AddOnCategory} from 'getsentry/types';
 import AMCheckout from 'getsentry/views/amCheckout/';
 
+async function findLegacySeerOption() {
+  const legacyOptionText = await screen.findByText(/Includes \$25\/mo in credits/);
+  const legacyOption = legacyOptionText.closest('[role="checkbox"]');
+  expect(legacyOption).toBeInTheDocument();
+  return legacyOption!;
+}
+
+function querySeerOption() {
+  return screen
+    .queryAllByRole('checkbox', {name: 'Add Seer to plan'})
+    .find(option => option.textContent?.includes('/ active contributor / month'));
+}
+
 // XXX(isabella): This tests with both legacy Seer and Seer
 // which wouldn't happen in production but is useful for testing
 describe('ProductSelect', () => {
@@ -49,11 +62,6 @@ describe('ProductSelect', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/promotions/trigger-check/`,
-      method: 'POST',
-      body: {},
-    });
-    MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
       method: 'GET',
     });
@@ -72,11 +80,11 @@ describe('ProductSelect', () => {
       {organization}
     );
 
-    expect(await screen.findByTestId('product-option-legacySeer')).toBeInTheDocument();
+    expect(await findLegacySeerOption()).toBeInTheDocument();
     expect(screen.getAllByTestId(/product-option-feature/)).toHaveLength(3); // each subcategory + included credits
-    expect(screen.getByTestId('product-option-seer')).toBeInTheDocument();
+    expect(querySeerOption()).toBeInTheDocument();
     expect(screen.getByTestId('product-option-description')).toBeInTheDocument();
-    expect(screen.getAllByRole('checkbox', {name: /Add Seer to plan/})).toHaveLength(4); // role is on entire box + checkbox within box; both options are named Seer
+    expect(screen.getAllByRole('checkbox', {name: 'Add Seer to plan'})).toHaveLength(2);
   });
 
   it('does not render products if unavailable', async () => {
@@ -97,8 +105,8 @@ describe('ProductSelect', () => {
       {organization}
     );
 
-    expect(await screen.findByTestId('product-option-legacySeer')).toBeInTheDocument();
-    expect(screen.queryByTestId('product-option-seer')).not.toBeInTheDocument();
+    expect(await findLegacySeerOption()).toBeInTheDocument();
+    expect(querySeerOption()).toBeUndefined();
   });
 
   it('renders with correct monthly price and credits for products', async () => {
@@ -107,7 +115,7 @@ describe('ProductSelect', () => {
       {organization}
     );
 
-    const seerProduct = await screen.findByTestId('product-option-legacySeer');
+    const seerProduct = await findLegacySeerOption();
     expect(seerProduct).toHaveTextContent('$20/mo');
     expect(seerProduct).toHaveTextContent('Includes $25/mo in credits');
   });
@@ -124,7 +132,7 @@ describe('ProductSelect', () => {
       {organization}
     );
 
-    const seerProduct = await screen.findByTestId('product-option-legacySeer');
+    const seerProduct = await findLegacySeerOption();
     expect(seerProduct).toHaveTextContent('$216/yr');
     expect(seerProduct).toHaveTextContent('Includes $25/mo in credits');
   });
@@ -138,7 +146,7 @@ describe('ProductSelect', () => {
       {organization}
     );
 
-    const legacySeerCheckbox = await screen.findByTestId('product-option-legacySeer');
+    const legacySeerCheckbox = await findLegacySeerOption();
     expect(legacySeerCheckbox).toBeChecked();
   });
 
@@ -152,7 +160,7 @@ describe('ProductSelect', () => {
       {organization}
     );
 
-    const legacySeerCheckbox = await screen.findByTestId('product-option-legacySeer');
+    const legacySeerCheckbox = await findLegacySeerOption();
     expect(legacySeerCheckbox).not.toBeChecked();
   });
 });

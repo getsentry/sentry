@@ -43,7 +43,6 @@ __all__ = (
     "get_num_intervals",
     "to_intervals",
     "OP_REGEX",
-    "CUSTOM_MEASUREMENT_DATASETS",
     "DATASET_COLUMNS",
     "NON_RESOLVABLE_TAG_VALUES",
 )
@@ -99,9 +98,6 @@ MetricType = Literal[
     "distribution",
     "numeric",
     "generic_counter",
-    "generic_set",
-    "generic_distribution",
-    "generic_gauge",
 ]
 
 MetricEntity = Literal[
@@ -109,9 +105,6 @@ MetricEntity = Literal[
     "metrics_sets",
     "metrics_distributions",
     "generic_metrics_counters",
-    "generic_metrics_sets",
-    "generic_metrics_distributions",
-    "generic_metrics_gauges",
 ]
 
 
@@ -121,9 +114,6 @@ def is_metric_entity(s: str) -> TypeIs[MetricEntity]:
         "metrics_sets",
         "metrics_distributions",
         "generic_metrics_counters",
-        "generic_metrics_sets",
-        "generic_metrics_distributions",
-        "generic_metrics_gauges",
     }
 
 
@@ -157,17 +147,6 @@ OP_TO_SNUBA_FUNCTION: dict[MetricEntity, dict[MetricOperationType, str]] = {
 }
 GENERIC_OP_TO_SNUBA_FUNCTION: dict[MetricEntity, dict[MetricOperationType, str]] = {
     "generic_metrics_counters": OP_TO_SNUBA_FUNCTION["metrics_counters"],
-    "generic_metrics_distributions": OP_TO_SNUBA_FUNCTION["metrics_distributions"],
-    "generic_metrics_sets": OP_TO_SNUBA_FUNCTION["metrics_sets"],
-    # Gauges are not supported by non-generic metrics.
-    "generic_metrics_gauges": {
-        "min": "minIf",
-        "max": "maxIf",
-        "sum": "sumIf",
-        "count": "countIf",
-        "last": "lastIf",
-        "avg": "avg",
-    },
 }
 
 USE_CASE_ID_TO_ENTITY_KEYS = {
@@ -178,23 +157,15 @@ USE_CASE_ID_TO_ENTITY_KEYS = {
     },
     UseCaseID.SPANS: {
         EntityKey.GenericMetricsCounters,
-        EntityKey.GenericMetricsSets,
-        EntityKey.GenericMetricsDistributions,
-        EntityKey.GenericMetricsGauges,
     },
     UseCaseID.TRANSACTIONS: {
         EntityKey.GenericMetricsCounters,
-        EntityKey.GenericMetricsSets,
-        EntityKey.GenericMetricsDistributions,
     },
     UseCaseID.PROFILES: {
         EntityKey.GenericMetricsCounters,
-        EntityKey.GenericMetricsSets,
-        EntityKey.GenericMetricsDistributions,
     },
     UseCaseID.METRIC_STATS: {
         EntityKey.GenericMetricsCounters,
-        EntityKey.GenericMetricsGauges,
     },
 }
 
@@ -261,9 +232,6 @@ METRIC_TYPE_TO_METRIC_ENTITY: dict[MetricType, MetricEntity] = {
     "set": "metrics_sets",
     "distribution": "metrics_distributions",
     "generic_counter": "generic_metrics_counters",
-    "generic_set": "generic_metrics_sets",
-    "generic_distribution": "generic_metrics_distributions",
-    "generic_gauge": "generic_metrics_gauges",
 }
 METRIC_TYPE_TO_ENTITY: Mapping[MetricType, EntityKey] = {
     k: EntityKey(v) for k, v in METRIC_TYPE_TO_METRIC_ENTITY.items()
@@ -378,9 +346,6 @@ UNIT_TO_TYPE: dict[str, MetricOperationType] = {
 }
 UNALLOWED_TAGS = {"session.status"}
 DATASET_COLUMNS = {"project_id", "metric_id"}
-
-# Custom measurements are always extracted as a distribution
-CUSTOM_MEASUREMENT_DATASETS: frozenset[MetricType] = frozenset(("generic_distribution",))
 
 
 def combine_dictionary_of_list_values[K, V](

@@ -2,9 +2,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
-import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
+import type {TooltipProps} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {tn} from 'sentry/locale';
 
 import {getAggregateStatus} from './utils/getAggregateStatus';
@@ -104,64 +103,6 @@ export function CheckInTimeline<Status extends string>({
               data-test-id="monitor-checkin-tick"
             />
           </CheckInTooltip>
-        );
-      })}
-    </Container>
-  );
-}
-
-interface MockCheckInTimelineProps<
-  Status extends string,
-> extends CheckInTimelineConfig<Status> {
-  mockTimestamps: Date[];
-  /**
-   * The status to use for each mocked tick
-   */
-  status: Status;
-}
-
-function getBucketedCheckInsPosition(
-  timestamp: number,
-  timelineStart: Date,
-  msPerPixel: number
-) {
-  const elapsedSinceStart = new Date(timestamp).getTime() - timelineStart.getTime();
-  return elapsedSinceStart / msPerPixel;
-}
-
-export function MockCheckInTimeline<Status extends string>({
-  mockTimestamps,
-  timeWindowConfig,
-  status,
-  statusStyle,
-}: MockCheckInTimelineProps<Status>) {
-  const {periodStart, elapsedMinutes, timelineWidth, rollupConfig} = timeWindowConfig;
-  const msPerPixel = (elapsedMinutes * 60 * 1000) / timelineWidth;
-  const startOffset = rollupConfig.timelineUnderscanWidth;
-
-  return (
-    <Container width="100%" height="14px" overflow="hidden" position="relative">
-      {mockTimestamps.map(ts => {
-        const timestampMs = ts.getTime();
-        const left =
-          startOffset + getBucketedCheckInsPosition(timestampMs, periodStart, msPerPixel);
-
-        return (
-          <Tooltip
-            key={left}
-            title={
-              <DateTime date={timestampMs} format={timeWindowConfig.dateLabelFormat} />
-            }
-            skipWrapper
-          >
-            <JobTick
-              style={{left}}
-              css={theme => getTickStyle(statusStyle, status, theme)}
-              roundedLeft
-              roundedRight
-              data-test-id="monitor-checkin-tick"
-            />
-          </Tooltip>
         );
       })}
     </Container>

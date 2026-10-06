@@ -12,6 +12,7 @@ interface Props {
 export function useDimensions({elementRef}: Props) {
   const [dimensions, setDimensions] = useState({height: 0, width: 0});
 
+  // oxlint-disable-next-line react/refs
   const element = elementRef.current;
 
   // Ensures that dimensions are set before the browser paints on first render

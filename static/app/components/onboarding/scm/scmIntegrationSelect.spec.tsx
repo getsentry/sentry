@@ -76,7 +76,7 @@ describe('ScmIntegrationSelect', () => {
     expect(onChange).toHaveBeenCalledWith(gitlabAcme);
   });
 
-  it('links the Manage providers footer to SCM integration settings', async () => {
+  it('links the Manage providers footer to repository settings', async () => {
     render(
       <ScmIntegrationSelect
         analyticsFlow="project-creation"
@@ -91,7 +91,7 @@ describe('ScmIntegrationSelect', () => {
 
     expect(await screen.findByRole('button', {name: 'Manage providers'})).toHaveAttribute(
       'href',
-      '/settings/org-slug/integrations/?category=source%20code%20management'
+      '/settings/org-slug/repos/'
     );
   });
 

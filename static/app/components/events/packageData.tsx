@@ -1,11 +1,14 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
 
-import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
-import {KeyValueData} from 'sentry/components/keyValueData';
+import {Grid} from '@sentry/scraps/layout';
+
+import {KeyValueTableDataRow} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
+import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import {useContainerColumnCount} from 'sentry/utils/useContainerColumnCount';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
@@ -15,7 +18,7 @@ type Props = {
 
 export function EventPackageData({event}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const columnCount = useIssueDetailsColumnCount(containerRef) + 1;
+  const columnCount = useContainerColumnCount(containerRef) + 1;
   let title: string;
 
   const packages = Object.entries(event.packages || {}).map(([key, value]) => ({
@@ -41,22 +44,12 @@ export function EventPackageData({event}: Props) {
   }
 
   const componentItems = packages.map((item, i) => (
-    <KeyValueData.Content
+    <KeyValueTableDataRow
       key={`content-card-${item.key}-${i}`}
       item={item}
       meta={item.meta}
     />
   ));
-
-  const columns: React.ReactNode[] = [];
-  const columnSize = Math.ceil(componentItems.length / columnCount);
-  for (let i = 0; i < componentItems.length; i += columnSize) {
-    columns.push(
-      <Column key={`highlight-column-${i}`}>
-        {componentItems.slice(i, i + columnSize)}
-      </Column>
-    );
-  }
 
   return (
     <FoldSection
@@ -65,16 +58,14 @@ export function EventPackageData({event}: Props) {
       ref={containerRef}
       initialCollapse
     >
-      <ColumnsContainer columnCount={columnCount}>{columns}</ColumnsContainer>
+      <Grid align="start" columns={`repeat(${columnCount}, 1fr)`}>
+        {splitIntoColumns(componentItems, columnCount).map((column, index) => (
+          <Column key={index}>{column}</Column>
+        ))}
+      </Grid>
     </FoldSection>
   );
 }
-
-const ColumnsContainer = styled('div')<{columnCount: number}>`
-  display: grid;
-  align-items: start;
-  grid-template-columns: repeat(${p => p.columnCount}, 1fr);
-`;
 
 const Column = styled('div')`
   display: grid;

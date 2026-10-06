@@ -1,14 +1,17 @@
 import {Children} from 'react';
-import styled from '@emotion/styled';
 
-export const FiltersGrid = styled('div')`
-  display: grid;
-  gap: ${p => p.theme.space.md};
-  grid-template-columns:
-    repeat(${p => Children.toArray(p.children).length - 1}, max-content)
-    1fr;
-  margin-bottom: ${p => p.theme.space.md};
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    margin-top: ${p => p.theme.space.md};
-  }
-`;
+import {Grid, type GridProps} from '@sentry/scraps/layout';
+
+export function FiltersGrid({children, ...props}: GridProps) {
+  return (
+    <Grid
+      {...props}
+      columns={`repeat(${Children.toArray(children).length - 1}, max-content) 1fr`}
+      gap="md"
+      marginBottom="md"
+      marginTop={{zero: 'md', xl: '0'}}
+    >
+      {children}
+    </Grid>
+  );
+}

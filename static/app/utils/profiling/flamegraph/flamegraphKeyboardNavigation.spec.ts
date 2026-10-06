@@ -44,13 +44,13 @@ describe('selectNearestFrame', () => {
     const root = createFlamegraphFrame();
     const firstChild = addChild(root);
 
-    const next = selectNearestFrame(root as any, 'down');
+    const next = selectNearestFrame(root, 'down');
     expect(next).toBe(firstChild);
   });
   it('selects parent when walking up', () => {
     const root = createFlamegraphFrame();
     const firstChild = addChild(root);
-    const next = selectNearestFrame(firstChild as any, 'up');
+    const next = selectNearestFrame(firstChild, 'up');
     expect(next).toBe(root);
   });
 
@@ -58,7 +58,7 @@ describe('selectNearestFrame', () => {
     const root = createFlamegraphFrame();
     const leftGrandChild = addChildrenToDepth(root, 2);
     const rightGrandChild = addChildrenToDepth(root, 2);
-    const next = selectNearestFrame(leftGrandChild as any, 'right');
+    const next = selectNearestFrame(leftGrandChild, 'right');
     expect(next).toBe(rightGrandChild);
     expect(next.depth).toBe(rightGrandChild.depth);
   });
@@ -67,7 +67,7 @@ describe('selectNearestFrame', () => {
     const root = createFlamegraphFrame();
     const leftGrandChild = addChildrenToDepth(root, 4);
     const rightGrandChild = addChildrenToDepth(root, 2);
-    const next = selectNearestFrame(leftGrandChild as any, 'right');
+    const next = selectNearestFrame(leftGrandChild, 'right');
     expect(next).toBe(rightGrandChild);
     expect(next.depth).not.toBe(leftGrandChild.depth);
   });
@@ -76,7 +76,7 @@ describe('selectNearestFrame', () => {
     const root = createFlamegraphFrame();
     const leftGrandChild = addChildrenToDepth(root, 2);
     const rightGrandChild = addChildrenToDepth(root, 2);
-    const next = selectNearestFrame(rightGrandChild as any, 'left');
+    const next = selectNearestFrame(rightGrandChild, 'left');
     expect(next).toBe(leftGrandChild);
     expect(next.depth).toBe(rightGrandChild.depth);
   });
@@ -85,21 +85,21 @@ describe('selectNearestFrame', () => {
     const root = createFlamegraphFrame();
     const leftGrandChild = addChildrenToDepth(root, 2);
     const rightGrandChild = addChildrenToDepth(root, 4);
-    const next = selectNearestFrame(rightGrandChild as any, 'left');
+    const next = selectNearestFrame(rightGrandChild, 'left');
     expect(next).toBe(leftGrandChild);
     expect(next.depth).not.toBe(rightGrandChild.depth);
   });
 
   it('returns current node when moving up from root', () => {
     const root = createFlamegraphFrame();
-    const next = selectNearestFrame(root as any, 'up');
+    const next = selectNearestFrame(root, 'up');
     expect(next).toBe(root);
   });
 
   it('returns current node when at max depth at bottom boundary and no adjacent stack', () => {
     const root = createFlamegraphFrame();
     const grandChild = addChildrenToDepth(root, 2);
-    const next = selectNearestFrame(grandChild as any, 'down');
+    const next = selectNearestFrame(grandChild, 'down');
     expect(next).toBe(grandChild);
   });
 
@@ -107,7 +107,7 @@ describe('selectNearestFrame', () => {
     const root = createFlamegraphFrame();
     const leftGrandChild = addChildrenToDepth(root, 2);
     const rightGrandChild = addChildrenToDepth(root, 2);
-    const next = selectNearestFrame(leftGrandChild as any, 'down');
+    const next = selectNearestFrame(leftGrandChild, 'down');
     expect(next).toBe(rightGrandChild.parent);
   });
 
@@ -118,7 +118,7 @@ describe('selectNearestFrame', () => {
       },
     });
     const leftChild = addChildrenToDepth(root, 1);
-    const next = selectNearestFrame(leftChild as any, 'up');
+    const next = selectNearestFrame(leftChild, 'up');
     expect(next).toBe(leftChild);
   });
 });

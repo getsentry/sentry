@@ -32,6 +32,8 @@ from sentry.search.events.constants import (
     NO_CONVERSION_FIELDS,
     OPERATOR_NEGATION_MAP,
     OPERATOR_TO_DJANGO,
+    PROFILER_ID_ALIAS,
+    PROFILER_ID_CONTEXT_COLUMN,
     PROJECT_ALIAS,
     PROJECT_NAME_ALIAS,
     RELEASE_ALIAS,
@@ -242,6 +244,46 @@ def _error_handled_filter_converter(
     if value in ("0", 0):
         return [["notHandled", []], "=", 1]
     raise InvalidSearchQuery("Invalid value for error.handled condition. Accepted values are 1, 0")
+
+
+def _profiler_id_filter_converter(
+    search_filter: SearchFilter,
+    name: str,
+    params: FilterConvertParams | None,
+) -> list[Any]:
+    # This converter is only reached by the errors/issue platform group-search path (this
+    # alias resolves to a real, indexed column on transactions elsewhere). Keep existence
+    # checks null-safe because missing profiler ids can read as NULL through this group
+    # search path.
+
+    # Generic wildcard-list splitting returns nested legacy conditions whose boolean
+    # behavior is inconsistent in group search. Keep wildcard lists as one regex union
+    # so `profiler.id:[abc*, exact]` means `(abc* OR exact)` and the negated form means
+    # `NOT (abc* OR exact)`.
+    if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
+        return [["ifNull", [PROFILER_ID_CONTEXT_COLUMN, "''"]], search_filter.operator, ""]
+
+    if search_filter.operator in ("IN", "NOT IN") and search_filter.value.is_wildcard():
+        operator = "!=" if search_filter.operator == "NOT IN" else "="
+        return [
+            ["match", [PROFILER_ID_CONTEXT_COLUMN, f"'(?i){search_filter.value.value}'"]],
+            operator,
+            1,
+        ]
+
+    if search_filter.value.is_wildcard():
+        converted_filter = convert_search_filter_to_snuba_query(
+            SearchFilter(
+                SearchKey(PROFILER_ID_CONTEXT_COLUMN),
+                search_filter.operator,
+                search_filter.value,
+            ),
+            params=params,
+        )
+        assert converted_filter is not None
+        return list(converted_filter)
+
+    return [PROFILER_ID_CONTEXT_COLUMN, search_filter.operator, search_filter.value.value]
 
 
 def _team_key_transaction_filter_converter(
@@ -533,6 +575,7 @@ key_conversion_map: dict[
     USER_DISPLAY_ALIAS: _user_display_filter_converter,
     ERROR_UNHANDLED_ALIAS: _error_unhandled_filter_converter,
     "error.handled": _error_handled_filter_converter,
+    PROFILER_ID_ALIAS: _profiler_id_filter_converter,
     TEAM_KEY_TRANSACTION_ALIAS: _team_key_transaction_filter_converter,
     RELEASE_STAGE_ALIAS: _release_stage_filter_converter,
     SEMVER_ALIAS: _semver_filter_converter,

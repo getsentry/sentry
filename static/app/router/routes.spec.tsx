@@ -2,6 +2,7 @@ import {matchRoutes, type RouteObject} from 'react-router-dom';
 
 import * as constants from 'sentry/constants';
 import {buildRoutes} from 'sentry/router/routes';
+import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 // Setup a module mock so that we can replace
@@ -76,7 +77,31 @@ function getMatchedPaths(routes: RouteObject[], url: string): string[] {
   return matches.map(m => m.route.path ?? '(layout)');
 }
 
+/**
+ * Resolves the URL a redirect route sends the user to, the same way the
+ * `Redirect` element does at runtime.
+ */
+function getRedirectTarget(routes: RouteObject[], url: string): string | undefined {
+  const matches = matchRoutes(routes, url);
+  const match = matches?.at(-1);
+  const to = (match?.route.element as React.ReactElement<{to?: string}> | undefined)
+    ?.props.to;
+
+  return to === undefined ? undefined : replaceRouterParams(to, match!.params);
+}
+
 describe('buildRoutes()', () => {
+  it.each([
+    ['/manage/settings/', ['Settings', 'Settings']],
+    ['/manage/status/mail/', ['Settings', 'Mail']],
+    ['/manage/users/', ['Settings', 'Users']],
+  ])('shows the admin breadcrumb for %s', (url, names) => {
+    const matches = matchRoutes(buildRoutes(), url);
+    expect(
+      matches?.flatMap(match => (match.route.handle as {name?: string})?.name ?? [])
+    ).toEqual(names);
+  });
+
   // Until customer-domains is enabled for single-tenant, self-hosted and path
   // based slug routes are removed we need to ensure
   // that each orgId route also has slugless path.
@@ -122,6 +147,26 @@ describe('buildRoutes()', () => {
   });
 
   describe('explore route catch-all', () => {
+    it('matches investigation details before the catch-all', () => {
+      const spy = jest.spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get');
+
+      spy.mockReturnValue(true);
+      let matchedPaths = getMatchedPaths(
+        buildRoutes(),
+        '/explore/investigations/investigation-1/'
+      );
+      expect(matchedPaths).toContain('investigations/:investigationId/');
+      expect(matchedPaths).not.toContain('*');
+
+      spy.mockReturnValue(false);
+      matchedPaths = getMatchedPaths(
+        buildRoutes(),
+        '/organizations/test-org/explore/investigations/investigation-1/'
+      );
+      expect(matchedPaths).toContain('investigations/:investigationId/');
+      expect(matchedPaths).not.toContain('*');
+    });
+
     it('catches unknown subpaths under /explore/', () => {
       const spy = jest.spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get');
 
@@ -136,7 +181,23 @@ describe('buildRoutes()', () => {
         routes,
         '/organizations/test-org/explore/nonexistent-page/also-nonexistent-page/'
       );
-      expect(matchedPaths).toContain(':catchAll/*');
+      expect(matchedPaths).toContain('*');
+    });
+  });
+
+  describe('legacy insights module redirects', () => {
+    // Sub-paths collapse onto the module landing page rather than carrying
+    // over, since a `redirectTo` string cannot interpolate a wildcard match.
+    it.each([
+      ['/organizations/test-org/performance/database/', '/insights/backend/database/'],
+      [
+        '/organizations/test-org/performance/database/spans/span/abc123/',
+        '/insights/backend/database/',
+      ],
+      ['/organizations/test-org/performance/http/domains/', '/insights/backend/http/'],
+      ['/organizations/test-org/performance/pageloads/', '/insights/frontend/pageloads/'],
+    ])('redirects %s to %s', (from, to) => {
+      expect(getRedirectTarget(buildRoutes(), from)).toBe(to);
     });
   });
 
@@ -149,6 +210,7 @@ describe('buildRoutes()', () => {
     expect(matchedPaths).toEqual([
       '(layout)',
       '/',
+      '(layout)',
       '(layout)',
       '/:orgId/:projectId/',
       'events/:eventId/',

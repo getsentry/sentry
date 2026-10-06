@@ -9,10 +9,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {GroupActivity, ResolvedStatusDetails} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
-import {
-  ActivityResolutionReason,
-  DefaultResolutionReason,
-} from 'sentry/views/issueDetails/actions/resolutionReason';
+import {ActivityResolutionReason} from 'sentry/views/issueDetails/actions/resolutionReason';
 
 const project = ProjectFixture();
 const actor = UserFixture({name: 'David Cramer'});
@@ -37,27 +34,30 @@ const activity = {
   user: actor,
 } satisfies GroupActivity;
 
-function renderReason({
+const organization = OrganizationFixture();
+
+function ExampleResolutionReason({
   activities = [activity],
-  variant = 'activity',
   statusDetails,
 }: {
   statusDetails: ResolvedStatusDetails;
   activities?: GroupActivity[];
-  variant?: 'activity' | 'default';
 }) {
-  const Component =
-    variant === 'activity' ? ActivityResolutionReason : DefaultResolutionReason;
-
-  return render(
-    <Component activities={activities} project={project} statusDetails={statusDetails} />,
-    {organization: OrganizationFixture()}
+  return (
+    <ActivityResolutionReason
+      activities={activities}
+      project={project}
+      statusDetails={statusDetails}
+    />
   );
 }
 
 describe('ResolutionReason', () => {
   it('shows the resolving pull request and canonical release for activity', () => {
-    const {container} = renderReason({statusDetails: {actor, inRelease: release}});
+    const {container} = render(
+      <ExampleResolutionReason statusDetails={{actor, inRelease: release}} />,
+      {organization}
+    );
 
     expect(container).toHaveTextContent(
       'David Cramer resolved via #1234 released in 1.2.3'
@@ -68,42 +68,37 @@ describe('ResolutionReason', () => {
     );
   });
 
-  it('keeps the default release reason', () => {
-    const {container} = renderReason({
-      statusDetails: {actor, inRelease: release},
-      variant: 'default',
-    });
-
-    expect(container).toHaveTextContent(
-      'David Cramer marked this issue as resolved in version 1.2.3.'
-    );
-  });
-
   it('shows an exact release without a pull request for activity', () => {
-    const {container} = renderReason({
-      activities: [
-        {
-          ...activity,
-          data: {version: 'frontend@1.2.3'},
-        },
-      ],
-      statusDetails: {actor, inRelease: release},
-    });
+    const {container} = render(
+      <ExampleResolutionReason
+        activities={[
+          {
+            ...activity,
+            data: {version: 'frontend@1.2.3'},
+          },
+        ]}
+        statusDetails={{actor, inRelease: release}}
+      />,
+      {organization}
+    );
 
     expect(container).toHaveTextContent('David Cramer resolved in 1.2.3');
     expect(screen.queryByRole('link', {name: '#1234'})).not.toBeInTheDocument();
   });
 
   it('shows the first release that will contain the resolution for activity', () => {
-    const {container} = renderReason({
-      activities: [
-        {
-          ...activity,
-          data: {current_release_version: 'backend@1.0.0'},
-        },
-      ],
-      statusDetails: {actor, inNextRelease: true},
-    });
+    const {container} = render(
+      <ExampleResolutionReason
+        activities={[
+          {
+            ...activity,
+            data: {current_release_version: 'backend@1.0.0'},
+          },
+        ]}
+        statusDetails={{actor, inNextRelease: true}}
+      />,
+      {organization}
+    );
 
     expect(container).toHaveTextContent(
       'David Cramer resolved starting with a release after 1.0.0'
@@ -111,10 +106,13 @@ describe('ResolutionReason', () => {
   });
 
   it('shows an upcoming release without a known current release for activity', () => {
-    const {container} = renderReason({
-      activities: [],
-      statusDetails: {actor, inNextRelease: true},
-    });
+    const {container} = render(
+      <ExampleResolutionReason
+        activities={[]}
+        statusDetails={{actor, inNextRelease: true}}
+      />,
+      {organization}
+    );
 
     expect(container).toHaveTextContent(
       'David Cramer set this to resolve in the upcoming release'
@@ -123,18 +121,21 @@ describe('ResolutionReason', () => {
 
   it('shows the resolving commit for activity', () => {
     const commit = CommitFixture({repository});
-    const {container} = renderReason({
-      activities: [
-        {
-          type: GroupActivityType.SET_RESOLVED_IN_COMMIT,
-          id: 'resolved-in-commit-1',
-          dateCreated: '2020-01-01T00:00:00',
-          data: {commit},
-          user: actor,
-        },
-      ],
-      statusDetails: {inCommit: {commit: commit.id}},
-    });
+    const {container} = render(
+      <ExampleResolutionReason
+        activities={[
+          {
+            type: GroupActivityType.SET_RESOLVED_IN_COMMIT,
+            id: 'resolved-in-commit-1',
+            dateCreated: '2020-01-01T00:00:00',
+            data: {commit},
+            user: actor,
+          },
+        ]}
+        statusDetails={{inCommit: {commit: commit.id}}}
+      />,
+      {organization}
+    );
 
     expect(container).toHaveTextContent('David Cramer resolved via f7f395d');
     expect(screen.getByRole('link', {name: /f7f395d/})).toHaveAttribute(
@@ -145,18 +146,21 @@ describe('ResolutionReason', () => {
 
   it('prefers the pull request associated with a resolving commit', () => {
     const commit = CommitFixture({pullRequest, repository});
-    const {container} = renderReason({
-      activities: [
-        {
-          type: GroupActivityType.SET_RESOLVED_IN_COMMIT,
-          id: 'resolved-in-commit-1',
-          dateCreated: '2020-01-01T00:00:00',
-          data: {commit},
-          user: actor,
-        },
-      ],
-      statusDetails: {inCommit: {commit: commit.id}},
-    });
+    const {container} = render(
+      <ExampleResolutionReason
+        activities={[
+          {
+            type: GroupActivityType.SET_RESOLVED_IN_COMMIT,
+            id: 'resolved-in-commit-1',
+            dateCreated: '2020-01-01T00:00:00',
+            data: {commit},
+            user: actor,
+          },
+        ]}
+        statusDetails={{inCommit: {commit: commit.id}}}
+      />,
+      {organization}
+    );
 
     expect(container).toHaveTextContent('David Cramer resolved via #1234');
     expect(screen.getByRole('link', {name: '#1234'})).toHaveAttribute(

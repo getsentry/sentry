@@ -13,6 +13,7 @@ from django.http import HttpRequest, HttpResponse
 from django.utils.crypto import constant_time_compare
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from sentry_sdk import traces
 
 from sentry import options
 from sentry.api.api_owners import ApiOwner
@@ -40,6 +41,7 @@ from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.github_enterprise.client import GitHubEnterpriseApiClient
 from sentry.integrations.utils.metrics import IntegrationWebhookEvent
 from sentry.integrations.utils.scope import clear_organization_info
+from sentry.issues.action_log import ActionSource, action_context_scope, resolve_action_actor
 from sentry.scm.private.stream_producer import produce_event_to_scm_stream
 from sentry.utils import metrics
 
@@ -48,7 +50,6 @@ from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
-from sentry.utils.tracing import set_span_tag, start_span
 
 SHA1_PATTERN = r"^sha1=[0-9a-fA-F]{40}$"
 SHA256_PATTERN = r"^sha256=[0-9a-fA-F]{64}$"
@@ -102,6 +103,7 @@ def get_installation_metadata(event, host):
         external_id=external_id,
         provider=IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
         status=ObjectStatus.ACTIVE,
+        using_replica=options.get("integration_service.get_integration.using_replica"),
     )
     if integration is None:
         metrics.incr("integrations.github_enterprise.does_not_exist")
@@ -237,6 +239,11 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             return metadata.get("webhook_secret")
         else:
             return None
+
+    @method_decorator(csrf_exempt)
+    def post(self, request: HttpRequest) -> HttpResponse:
+        with action_context_scope(ActionSource.GITHUB_ENTERPRISE, resolve_action_actor(request)):
+            return self._handle(request)
 
     def _handle(self, request: HttpRequest) -> HttpResponse:
         clear_organization_info()
@@ -383,11 +390,16 @@ class GitHubEnterpriseWebhookBase(Endpoint):
 
         # Create a new transaction for each webhook event to ensure separate traces
         transaction_name = f"github_enterprise.webhook.{github_event}"
-        with start_span(
-            op="webhook", name=transaction_name, source="component", transaction=True
-        ) as span:
-            set_span_tag(span, "github_event", github_event)
-
+        traces.new_trace()
+        with traces.start_span(
+            name=transaction_name,
+            attributes={
+                "sentry.op": "webhook",
+                "sentry.span.source": "component",
+                "github_event": github_event,
+            },
+            parent_span=None,
+        ):
             with IntegrationWebhookEvent(
                 interaction_type=event_handler.event_type,
                 domain=IntegrationDomain.SOURCE_CODE_MANAGEMENT,
@@ -395,9 +407,9 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             ).capture():
                 event_handler(event, host=host, github_event=webhook_type)
 
-        # Publish the request to the unified SCM (source control management) subscription's
-        # platform. This is a replacement for the handlers defined above. Handlers should be
-        # defined as consumers of the SCM subscriptions Kafka topic.
+        # Publish the request to the unified SCM event stream, which normalizes the event
+        # and dispatches a Taskbroker task for each registered listener. New handlers should
+        # register with scm_event_stream and be imported in sentry/scm/stream.py.
         #
         # NOTE: Publication of the event assumes the event has been properly authorized (as it has
         #       been above).
@@ -439,10 +451,6 @@ class GitHubEnterpriseWebhookEndpoint(GitHubEnterpriseWebhookBase):
 
         return super().dispatch(request, *args, **kwargs)
 
-    @method_decorator(csrf_exempt)
-    def post(self, request: HttpRequest) -> HttpResponse:
-        return self._handle(request)
-
 
 @cell_silo_endpoint
 class GitHubEnterpriseGitHubComWebhookEndpoint(GitHubEnterpriseWebhookBase):
@@ -466,4 +474,4 @@ class GitHubEnterpriseGitHubComWebhookEndpoint(GitHubEnterpriseWebhookBase):
             "integrations.github_enterprise.webhook.routed",
             tags={"variant": "github_com"},
         )
-        return self._handle(request)
+        return super().post(request)

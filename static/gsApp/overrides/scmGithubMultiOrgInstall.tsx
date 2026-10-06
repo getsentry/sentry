@@ -1,9 +1,9 @@
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {
   buildInstallationMenuItems,
   NEW_INSTALL_KEY,
@@ -17,7 +17,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useBillingConfig} from 'getsentry/hooks/useBillingConfig';
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {BillingConfig, Subscription} from 'getsentry/types';
-import {displayPlanName} from 'getsentry/utils/billing';
+import {displayPlanName, isBizPlanFamily} from 'getsentry/utils/billing';
 
 export function ScmGithubMultiOrgInstall({
   installations,
@@ -46,7 +46,7 @@ export function ScmGithubMultiOrgInstall({
   );
 
   return (
-    <Stack gap="lg" align="start">
+    <Stack gap="lg" align="start" width="100%">
       {needsUpgrade && (
         <Alert
           variant="warning"
@@ -129,10 +129,11 @@ function getRequiredPlanName(billingConfig: BillingConfig | undefined): string |
     return null;
   }
 
+  // Sharing GitHub installations across orgs is a Business-and-above feature.
   const plan = billingConfig.planList
     .filter(p => p.userSelectable)
     .sort((a, b) => a.totalPrice - b.totalPrice)
-    .find(p => p.features.includes('integrations-scm-multi-org'));
+    .find(isBizPlanFamily);
 
   if (!plan) {
     return null;

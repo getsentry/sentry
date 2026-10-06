@@ -10,7 +10,7 @@ from urllib.parse import urlparse
 
 from django.http.request import QueryDict
 
-from sentry import analytics, features
+from sentry import analytics, features, options
 from sentry.api import client
 from sentry.charts import backend as charts
 from sentry.charts.types import ChartSize, ChartType
@@ -542,7 +542,8 @@ def _unfurl_explore(
     user: User | RpcUser | None = None,
 ) -> UnfurledUrl:
     org_integrations = integration_service.get_organization_integrations(
-        integration_id=integration.id
+        integration_id=integration.id,
+        using_replica=options.get("integration_service.get_integration.using_replica"),
     )
     organizations = Organization.objects.filter(
         id__in=[oi.organization_id for oi in org_integrations]

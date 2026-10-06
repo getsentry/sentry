@@ -1,11 +1,11 @@
 import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {PlatformIcon} from 'platformicons';
 
 import emptyTraceImg from 'sentry-images/spot/profiling-empty-state.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
@@ -29,7 +29,6 @@ import {DocsPageLocation} from 'sentry/components/onboarding/gettingStartedDoc/t
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
-import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -50,15 +49,12 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {LLM_ONBOARDING_COPY_MARKDOWN} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {
-  AGENT_INTEGRATION_ICONS,
-  AGENT_INTEGRATION_LABELS,
-  DENO_AGENT_INTEGRATIONS,
-  NODE_AGENT_INTEGRATIONS,
-  PHP_AGENT_INTEGRATIONS,
-  PYTHON_AGENT_INTEGRATIONS,
-} from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
+  AI_AGENTS_GETTING_STARTED_DOCS_LINK,
+  AI_INSTRUMENTATION_DOCS_LINKS,
+} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 import {getHasAiSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
+import {useAgentOnboardingOptions} from 'sentry/views/insights/pages/agents/utils/useAgentOnboardingOptions';
 import {
   BulletList,
   HeaderText,
@@ -99,6 +95,7 @@ function useAiSpanWaiter(project: Project) {
 
   useEffect(() => {
     if (hasEvents && shouldRefetch) {
+      // oxlint-disable-next-line react/set-state-in-effect
       setShouldRefetch(false);
     }
   }, [hasEvents, shouldRefetch]);
@@ -167,7 +164,7 @@ function OnboardingPanel({
         <AuthTokenGeneratorProvider projectSlug={project?.slug}>
           <TabSelectionScope>
             <div>
-              <HeaderWrapper>
+              <Flex justify="between" gap="2xl" radius="md" padding="3xl">
                 <HeaderText>
                   <Title>{t('Monitor AI Agents')}</Title>
                   <SubTitle>
@@ -198,8 +195,10 @@ function OnboardingPanel({
                     </li>
                   </BulletList>
                 </HeaderText>
-                <Image src={emptyTraceImg} />
-              </HeaderWrapper>
+                <Container display={{zero: 'none', xl: 'block'}}>
+                  {imageProps => <Image {...imageProps} src={emptyTraceImg} />}
+                </Container>
+              </Flex>
               <Divider />
               <Body>
                 <Setup>{children}</Setup>
@@ -238,42 +237,16 @@ export function Onboarding() {
     projSlug: project?.slug,
   });
 
-  // Local integration options for Agent Monitoring only
-  const isPythonPlatform = (project?.platform ?? '').startsWith('python');
-  const isDenoPlatform = project?.platform === 'deno';
-  const isPhpPlatform = (project?.platform ?? '').startsWith('php');
-
-  const integrations = isPythonPlatform
-    ? PYTHON_AGENT_INTEGRATIONS
-    : isDenoPlatform
-      ? DENO_AGENT_INTEGRATIONS
-      : isPhpPlatform
-        ? PHP_AGENT_INTEGRATIONS
-        : NODE_AGENT_INTEGRATIONS;
-
-  const integrationOptions = {
-    integration: {
-      label: t('Integration'),
-      items: integrations.map(integration => ({
-        label: isPhpPlatform
-          ? (currentPlatform?.name ?? t('Laravel'))
-          : AGENT_INTEGRATION_LABELS[integration],
-        value: integration,
-        leadingItems: (
-          <PlatformIcon
-            platform={
-              isPhpPlatform
-                ? (project?.platform ?? 'php-laravel')
-                : AGENT_INTEGRATION_ICONS[integration]
-            }
-            size={16}
-          />
-        ),
-      })),
-    },
-  };
-
-  const selectedPlatformOptions = useUrlPlatformOptions(integrationOptions);
+  const {
+    deploymentTarget,
+    integrationDeploymentTarget,
+    platformOptions,
+    projectAgentIntegration,
+    selectedPlatformOptions,
+  } = useAgentOnboardingOptions({
+    platform: project?.platform,
+    platformInfo: currentPlatform,
+  });
 
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -318,7 +291,7 @@ export function Onboarding() {
       isLoading: isLoadingRegistry,
       data: registryData,
     },
-    platformOptions: selectedPlatformOptions,
+    platformOptions: {...selectedPlatformOptions, deploymentTarget},
     docsLocation: DocsPageLocation.PROFILING_PAGE,
     urlPrefix,
     isSelfHosted,
@@ -335,24 +308,39 @@ export function Onboarding() {
   return (
     <OnboardingPanel project={project}>
       <SetupTitle project={project} />
-      <OptionsWrapper>
-        <PlatformOptionDropdown platformOptions={integrationOptions} />
-      </OptionsWrapper>
-      {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
-      <DescriptionWrapper>
-        <p>
-          {tct(
-            'To use [link:Conversations], set a conversation ID for each chat. Sentry uses the [code:gen_ai.conversation.id] attribute to group related AI spans.',
-            {
-              code: <code />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/ai/monitoring/conversations/" />
-              ),
+      {!projectAgentIntegration && (
+        <OptionsWrapper>
+          <PlatformOptionDropdown
+            platformOptions={platformOptions}
+            connectors={{deploymentTarget: t('on')}}
+            lockedValues={
+              integrationDeploymentTarget
+                ? {deploymentTarget: integrationDeploymentTarget}
+                : undefined
             }
-          )}
-        </p>
-      </DescriptionWrapper>
+          />
+        </OptionsWrapper>
+      )}
+      {introduction && <DescriptionWrapper>{introduction}</DescriptionWrapper>}
+      {!projectAgentIntegration && (
+        <DescriptionWrapper>
+          <p>
+            {tct(
+              'To use [link:Conversations], set a conversation ID for each chat. Sentry uses the [code:gen_ai.conversation.id] attribute to group related AI spans.',
+              {
+                code: <code />,
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/agents/conversations/" />
+                ),
+              }
+            )}
+          </p>
+        </DescriptionWrapper>
+      )}
       <GuidedSteps
+        // Remount when the integration or runtime changes so the stepper doesn't
+        // carry over stale per-step state from the previous selection.
+        key={`${selectedPlatformOptions.integration}-${deploymentTarget}`}
         initialStep={decodeInteger(location.query.guidedStep)}
         onStepChange={step => {
           navigate({
@@ -433,7 +421,13 @@ export function UnsupportedPlatformOnboarding({
             'You can [link:manually instrument] your agents using the Sentry SDK tracing API, or click [bold:Copy instructions] to have an AI coding agent do it for you.',
             {
               link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/python/tracing/instrumentation/custom-instrumentation/ai-agents-module/" />
+                <ExternalLink
+                  href={
+                    project.platform?.startsWith('javascript')
+                      ? `${AI_INSTRUMENTATION_DOCS_LINKS.javascript}manual-instrumentation/`
+                      : `${AI_INSTRUMENTATION_DOCS_LINKS.python}manual-instrumentation/`
+                  }
+                />
               ),
               bold: <strong />,
             }
@@ -459,9 +453,7 @@ export function NoDocsOnboarding({project}: {project: Project}) {
           {tct(
             'You can set up the Sentry SDK by following our [link:documentation], or click [bold:Copy instructions] to have an AI coding agent do it for you.',
             {
-              link: (
-                <ExternalLink href="https://docs.sentry.io/product/insights/ai/agents/getting-started/" />
-              ),
+              link: <ExternalLink href={AI_AGENTS_GETTING_STARTED_DOCS_LINK} />,
               bold: <strong />,
             }
           )}
@@ -493,14 +485,6 @@ const EventWaitingIndicator = styled((p: React.HTMLAttributes<HTMLDivElement>) =
 const Title = styled('div')`
   font-size: 26px;
   font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
-const HeaderWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  gap: ${p => p.theme.space['2xl']};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space['3xl']};
 `;
 
 const BodyTitle = styled('div')`
@@ -546,14 +530,9 @@ const Arcade = styled('iframe')`
 `;
 
 const Image = styled('img')`
-  display: block;
   pointer-events: none;
   height: 120px;
   overflow: hidden;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
 `;
 
 const Divider = styled('hr')`

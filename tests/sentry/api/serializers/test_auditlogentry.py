@@ -2,6 +2,7 @@ from django.utils import timezone
 
 from sentry import audit_log
 from sentry.api.serializers import AuditLogEntrySerializer, serialize
+from sentry.audit_log.metadata import AGENT_DELEGATION_DATA_KEY, SEER_AGENT_DELEGATION
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
@@ -26,6 +27,28 @@ class AuditLogEntrySerializerTest(TestCase):
         assert result["actor"]["username"] == self.user.username
         assert result["dateCreated"] == datetime
         assert result["data"] == {"slug": "New Team"}
+        assert result["agentDelegation"] is None
+
+    def test_agent_delegation_is_visible_without_polluting_note_data(self) -> None:
+        log = AuditLogEntry.objects.create(
+            organization_id=self.organization.id,
+            event=audit_log.get_event_id("ORG_EDIT"),
+            actor=self.user,
+            datetime=timezone.now(),
+            data={
+                "name": "Example Organization",
+                AGENT_DELEGATION_DATA_KEY: SEER_AGENT_DELEGATION,
+            },
+        )
+
+        result = serialize(log, serializer=AuditLogEntrySerializer())
+
+        assert result["actor"]["username"] == self.user.username
+        assert result["agentDelegation"] == SEER_AGENT_DELEGATION
+        assert result["note"] == (
+            "edited the organization setting: name Example Organization (via Seer agent)"
+        )
+        assert result["data"] == {"name": "Example Organization"}
 
     def test_data_field_filtering(self) -> None:
         """Test that only allowed fields are present in the data field"""

@@ -9,12 +9,12 @@ import type {Node} from '@react-types/shared';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
+import {FilterKeyDetailsTooltip} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKeyDetailsTooltip';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {
@@ -36,10 +36,10 @@ import {
   type Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
-import {getKeyName} from 'sentry/components/searchSyntax/utils';
+import {getKeyName, isRegexOperator} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {FieldDefinition} from 'sentry/utils/fields';
+import {type FieldDefinition} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface FilterOperatorProps {
@@ -76,19 +76,16 @@ function FilterKeyOperatorLabel({
   includeKeyLabel?: boolean;
   opLabel?: string;
 }) {
-  const {getFieldDefinition} = useSearchQueryBuilderConfig();
-  const fieldDefinition = getFieldDefinition(keyValue);
-
   if (!includeKeyLabel) {
     return <OpLabel>{opLabel}</OpLabel>;
   }
 
   return (
     <Flex align="center" gap="sm">
-      <Tooltip title={fieldDefinition?.desc}>
+      <FilterKeyDetailsTooltip keyName={keyValue}>
         <span>{keyLabel}</span>
         {opLabel ? <OpLabel> {opLabel}</OpLabel> : null}
-      </Tooltip>
+      </FilterKeyDetailsTooltip>
     </Flex>
   );
 }
@@ -101,9 +98,11 @@ export function getOperatorInfo({
   filterToken,
   fieldDefinition,
   disallowNegation,
+  allowRegexOperators,
 }: {
   fieldDefinition: FieldDefinition | null;
   filterToken: TokenResult<Token.FILTER>;
+  allowRegexOperators?: boolean;
   disallowNegation?: boolean;
 }): {
   label: ReactNode;
@@ -130,7 +129,7 @@ export function getOperatorInfo({
     };
   }
 
-  const {operator, label} = getLabelAndOperatorFromToken(filterToken);
+  const {operator} = getLabelAndOperatorFromToken(filterToken);
 
   if (filterToken.filter === FilterType.IS) {
     return {
@@ -216,12 +215,69 @@ export function getOperatorInfo({
     };
   }
 
+  if (filterToken.filter === FilterType.ARRAY_INCLUDES) {
+    // Array membership uses the default operator; `[*]` on the key conveys
+    // membership and `!` negation reads as "does not include".
+    const includesLabel = 'includes';
+    const doesNotIncludeLabel = 'does not include';
+    const membershipLabel =
+      operator === TermOperator.NOT_EQUAL ? doesNotIncludeLabel : includesLabel;
+
+    const regexOps = getValidOpsForFilter({
+      filterToken,
+      fieldDefinition,
+      allowRegexOperators,
+    })
+      .filter(op => isRegexOperator(op))
+      .filter(op => !disallowNegation || !isNegationOperator(op));
+
+    return {
+      operator,
+      label: (
+        <OpLabel>
+          {isRegexOperator(operator) ? OP_LABELS[operator] : membershipLabel}
+        </OpLabel>
+      ),
+      options: [
+        {
+          value: TermOperator.DEFAULT,
+          label: <OpLabel>{includesLabel}</OpLabel>,
+          textValue: includesLabel,
+        },
+        ...(disallowNegation
+          ? []
+          : [
+              {
+                value: TermOperator.NOT_EQUAL,
+                label: <OpLabel>{doesNotIncludeLabel}</OpLabel>,
+                textValue: doesNotIncludeLabel,
+              },
+            ]),
+        ...regexOps.map((op): SelectOption<TermOperator> => {
+          const optionOpLabel = OP_LABELS[op] ?? op;
+
+          return {
+            value: op,
+            label: <OpLabel>{optionOpLabel}</OpLabel>,
+            textValue: optionOpLabel,
+          };
+        }),
+      ],
+    };
+  }
+
   const keyLabel = filterToken.key.text;
+
+  const validOps = getValidOpsForFilter({
+    filterToken,
+    fieldDefinition,
+    allowRegexOperators,
+  });
 
   return {
     operator,
-    label: <OpLabel>{label}</OpLabel>,
-    options: getValidOpsForFilter({filterToken, fieldDefinition})
+    label: <OpLabel>{OP_LABELS[operator] ?? operator}</OpLabel>,
+    options: validOps
       .filter(op => op !== TermOperator.EQUAL)
       .filter(op => !disallowNegation || !isNegationOperator(op))
       .map((op): SelectOption<TermOperator> => {
@@ -239,8 +295,14 @@ export function getOperatorInfo({
 export function FilterOperator({state, item, token, onOpenChange}: FilterOperatorProps) {
   const organization = useOrganization();
   const {dispatch, query, focusOverride} = useSearchQueryBuilderState();
-  const {searchSource, recentSearches, disabled, disallowNegation, getFieldDefinition} =
-    useSearchQueryBuilderConfig();
+  const {
+    allowRegexOperators,
+    searchSource,
+    recentSearches,
+    disabled,
+    disallowNegation,
+    getFieldDefinition,
+  } = useSearchQueryBuilderConfig();
   const filterButtonProps = useFilterButtonProps({state, item});
   const {focusWithinProps} = useFocusWithin({});
 
@@ -250,8 +312,9 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
         filterToken: token,
         fieldDefinition: getFieldDefinition(token.key.text),
         disallowNegation,
+        allowRegexOperators,
       }),
-    [token, getFieldDefinition, disallowNegation]
+    [token, getFieldDefinition, disallowNegation, allowRegexOperators]
   );
 
   const onlyOperator = token.filter === FilterType.IS || token.filter === FilterType.HAS;
@@ -264,10 +327,12 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
 
   useLayoutEffect(() => {
     if (focusOverride?.itemKey === item.key && focusOverride.part === 'op') {
+      // oxlint-disable-next-line react/set-state-in-effect
       setAutoFocus(true);
       initialOpSettingRef.current = true;
       dispatch({type: 'RESET_FOCUS_OVERRIDE'});
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [dispatch, focusOverride, item.key, onOpenChange]);
 
   return (
@@ -322,17 +387,21 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
           filter_key: getKeyName(token.key),
         });
 
+        const focusValue =
+          initialOpSettingRef.current ||
+          (isRegexOperator(option.value) && !isRegexOperator(token.operator));
+
         dispatch({
           type: 'UPDATE_FILTER_OP',
           token,
           op: option.value,
-          focusOverride: initialOpSettingRef.current
+          focusOverride: focusValue
             ? {
                 itemKey: `${item.key}`,
                 part: 'value',
               }
             : undefined,
-          shouldCommitQuery: !initialOpSettingRef.current,
+          shouldCommitQuery: !focusValue,
         });
         initialOpSettingRef.current = false;
         setAutoFocus(false);

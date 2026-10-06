@@ -14,8 +14,7 @@ type IssueSelectionAction =
   | {groupId: string; type: 'SHIFT_TOGGLE_SELECT'; visibleGroupIds: string[]}
   | {type: 'TOGGLE_SELECT_ALL_VISIBLE'}
   | {type: 'DESELECT_ALL'}
-  | {type: 'SET_ALL_IN_QUERY_SELECTED'; value: boolean}
-  | {groupIds: string[]; type: 'SET_SELECTION_FOR_IDS'; value: boolean};
+  | {type: 'SET_ALL_IN_QUERY_SELECTED'; value: boolean};
 
 interface IssueSelectionSummary extends IssueSelectionState {
   anySelected: boolean;
@@ -28,7 +27,6 @@ interface IssueSelectionActions {
   deselectAll: () => void;
   reconcileVisibleGroupIds: (groupIds: string[]) => void;
   setAllInQuerySelected: (value: boolean) => void;
-  setSelectionForIds: (groupIds: string[], value: boolean) => void;
   shiftToggleSelect: (groupId: string) => void;
   toggleSelect: (groupId: string) => void;
   toggleSelectAllVisible: () => void;
@@ -195,19 +193,6 @@ function issueSelectionReducer(
         records: nextRecords,
       };
     }
-    case 'SET_SELECTION_FOR_IDS': {
-      const nextRecords = new Map(state.records);
-      for (const id of action.groupIds) {
-        if (nextRecords.has(id)) {
-          nextRecords.set(id, action.value);
-        }
-      }
-      return {
-        ...state,
-        allInQuerySelected: false,
-        records: nextRecords,
-      };
-    }
     case 'SET_ALL_IN_QUERY_SELECTED':
       return {...state, allInQuerySelected: action.value};
     default:
@@ -226,7 +211,9 @@ export function IssueSelectionProvider({
   );
   const previousVisibleGroupIdsRef = useRef(visibleGroupIds);
 
+  // oxlint-disable-next-line react/refs
   if (!isEqual(previousVisibleGroupIdsRef.current, visibleGroupIds)) {
+    // oxlint-disable-next-line react/refs
     previousVisibleGroupIdsRef.current = visibleGroupIds;
     dispatch({type: 'RECONCILE_VISIBLE_GROUP_IDS', groupIds: visibleGroupIds});
   }
@@ -258,10 +245,6 @@ export function IssueSelectionProvider({
     dispatch({type: 'DESELECT_ALL'});
   }, []);
 
-  const setSelectionForIds = useCallback((groupIds: string[], value: boolean) => {
-    dispatch({type: 'SET_SELECTION_FOR_IDS', groupIds, value});
-  }, []);
-
   const setAllInQuerySelected = useCallback((value: boolean) => {
     dispatch({type: 'SET_ALL_IN_QUERY_SELECTED', value});
   }, []);
@@ -290,7 +273,6 @@ export function IssueSelectionProvider({
       shiftToggleSelect,
       toggleSelectAllVisible,
       deselectAll,
-      setSelectionForIds,
       setAllInQuerySelected,
       reconcileVisibleGroupIds,
     }),
@@ -299,7 +281,6 @@ export function IssueSelectionProvider({
       shiftToggleSelect,
       toggleSelectAllVisible,
       deselectAll,
-      setSelectionForIds,
       setAllInQuerySelected,
       reconcileVisibleGroupIds,
     ]

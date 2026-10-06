@@ -389,6 +389,56 @@ def test_parse_highlighted_events_click_events_missing_node() -> None:
     assert len(builder.result.click_events) == 0
 
 
+def test_parse_highlighted_events_click_events_scrubbed_timestamp() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1674298825,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "timestamp": "[Filtered]",
+                "type": "default",
+                "category": "ui.click",
+                "message": "div#hello.hello.world",
+                "data": {
+                    "nodeId": 1,
+                    "node": {
+                        "id": 1,
+                        "tagName": "div",
+                        "attributes": {"id": "hello"},
+                        "textContent": "Hello, world!",
+                    },
+                },
+            },
+        },
+    }
+
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=False)
+    assert len(builder.result.click_events) == 0
+
+
+def test_parse_highlighted_events_with_tap_event_scrubbed_timestamp() -> None:
+    event = {
+        "type": 5,
+        "timestamp": 1758523985314,
+        "data": {
+            "tag": "breadcrumb",
+            "payload": {
+                "type": "default",
+                "timestamp": "[Filtered]",
+                "category": "ui.tap",
+                "message": "send_user_feedback",
+                "data": {"view.id": "send_user_feedback"},
+            },
+        },
+    }
+
+    builder = HighlightedEventsBuilder()
+    builder.add(which(event), event, sampled=True)
+    assert len(builder.result.tap_events) == 0
+
+
 def test_parse_highlighted_events_click_event_str_payload() -> None:
     event = {"type": 5, "data": {"tag": "breadcrumb", "payload": "hello world"}}
     builder = HighlightedEventsBuilder()
@@ -1198,6 +1248,19 @@ def test_parse_highlighted_events_fault_tolerance(event: dict[str, Any]) -> None
     # If the test raises an exception we fail. All of these events are invalid.
     builder = HighlightedEventsBuilder()
     builder.add(which(event), event, sampled=True)
+
+
+def test_parse_highlighted_events_contains_value_error() -> None:
+    event = {"type": 5, "data": {"tag": "breadcrumb", "payload": {"category": "ui.click"}}}
+
+    with mock.patch(
+        "sentry.replays.usecases.ingest.event_parser.as_highlighted_event",
+        side_effect=ValueError("Value was not a string."),
+    ):
+        builder = HighlightedEventsBuilder()
+        builder.add(which(event), event, sampled=True)
+
+    assert builder.result.click_events == []
 
 
 # Tests for trace item functions

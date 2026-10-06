@@ -2,6 +2,7 @@ import {Fragment, useMemo, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {getPrismLanguage} from '@sentry/scraps/code';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -15,7 +16,6 @@ import {
 import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {getPrismLanguage} from 'sentry/utils/prism';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 interface FileDiffViewerProps {
@@ -30,6 +30,11 @@ interface FileDiffViewerProps {
    * Default: false (collapsed by default)
    */
   defaultExpanded?: boolean;
+  /**
+   * Hides the built-in header (path + added/removed) for consumers that render
+   * their own. Default: false
+   */
+  hideHeader?: boolean;
   /**
    * Optional repo name to display in the file header.
    * If provided, will show as "repoName:filePath", otherwise just "filePath"
@@ -112,6 +117,7 @@ export function FileDiffViewer({
   useFlexForDeleted = false,
   collapsible = false,
   defaultExpanded = false,
+  hideHeader = false,
 }: FileDiffViewerProps) {
   const [isExpanded, setIsExpanded] = useState(collapsible ? defaultExpanded : true);
   const isDelete = patch.type === DiffFileType.DELETED;
@@ -119,18 +125,22 @@ export function FileDiffViewer({
 
   return (
     <FileDiffWrapper showBorder={showBorder}>
-      <FileHeader
-        collapsible={collapsible}
-        onClick={collapsible ? () => setIsExpanded(value => !value) : undefined}
-      >
-        {collapsible && <InteractionStateLayer />}
-        <Flex align="center" gap="md">
-          <FileAdded>+{patch.added}</FileAdded>
-          <FileRemoved>-{patch.removed}</FileRemoved>
-        </Flex>
-        <FilePathName title={filePath}>{filePath}</FilePathName>
-        {collapsible && <IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />}
-      </FileHeader>
+      {!hideHeader && (
+        <FileHeader
+          collapsible={collapsible}
+          onClick={collapsible ? () => setIsExpanded(value => !value) : undefined}
+        >
+          {collapsible && <InteractionStateLayer />}
+          <Flex align="center" gap="md">
+            <FileAdded>+{patch.added}</FileAdded>
+            <FileRemoved>-{patch.removed}</FileRemoved>
+          </Flex>
+          <FilePathName title={filePath}>{filePath}</FilePathName>
+          {collapsible && (
+            <IconChevron size="xs" direction={isExpanded ? 'up' : 'down'} />
+          )}
+        </FileHeader>
+      )}
       {isExpanded && (
         <Fragment>
           {isDelete ? (

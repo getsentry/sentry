@@ -4,13 +4,14 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 
+from sentry_sdk import traces
+
 from sentry import features
 from sentry.dynamic_sampling.rules.helpers.time_to_adoptions import Platform
 from sentry.dynamic_sampling.rules.utils import BOOSTED_RELEASES_LIMIT, get_redis_client_for_ds
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.tasks.relay import schedule_invalidate_project_config
-from sentry.utils.tracing import set_span_data, set_span_tag, start_span, trace
 
 ENVIRONMENT_SEPARATOR = ":e:"
 BOOSTED_RELEASE_CACHE_KEY_REGEX = re.compile(
@@ -284,13 +285,14 @@ class LatestReleaseBias:
 
     OBSERVED_VALUE = "1"
     ONE_DAY_TIMEOUT_MS = 60 * 60 * 24 * 1000
+    LATEST_RELEASE_TIMEOUT_SECS = 60 * 60 * 24 * 90
 
     def __init__(self, latest_release_params: LatestReleaseParams):
         self.redis_client = get_redis_client_for_ds()
         self.latest_release_params = latest_release_params
         self.project_boosted_releases = ProjectBoostedReleases(self.latest_release_params.project)
 
-    @trace
+    @traces.trace
     def observe_release(self, on_boosted_release_added: Callable[[], None]) -> None:
         # Here we want to evaluate the observed first, so that if it is false, we don't bother verifying whether it
         # is a latest release.
@@ -319,7 +321,7 @@ class LatestReleaseBias:
         incoming_release_date = self._get_release_date_from_incoming_release()
         latest_release_date = self._get_release_date_from_latest_release()
 
-        if incoming_release_date is not None:
+        if incoming_release_date is not None and self._is_recent_release(incoming_release_date):
             # We also accept release with the same timestamp because that covers the case in which we have the same
             # release with a different environment.
             #
@@ -332,9 +334,18 @@ class LatestReleaseBias:
 
         return False
 
+    def _is_recent_release(self, release_date: float) -> bool:
+        """
+        Tells whether a release is new enough to be worth boosting.
+        """
+        age = datetime.now(timezone.utc).timestamp() - release_date
+        return age <= self.LATEST_RELEASE_TIMEOUT_SECS
+
     def _update_latest_release_date(self, timestamp: float) -> None:
         cache_key = self._generate_cache_key_for_project_latest_release()
-        self.redis_client.set(cache_key, timestamp)
+        # The expiry goes in the same command as the value, so the key can never be left without
+        # one.
+        self.redis_client.set(cache_key, timestamp, ex=self.LATEST_RELEASE_TIMEOUT_SECS)
 
     def _get_release_date_from_incoming_release(self) -> float | None:
         release = self.latest_release_params.release
@@ -371,22 +382,22 @@ def record_latest_release(project: Project, release: Release, environment: str |
         return
 
     def on_release_boosted() -> None:
-        set_span_tag(
-            span,
+        span.set_attribute(
             "dynamic_sampling.observe_release_status",
             "(release, environment) pair observed and boosted",
         )
-        set_span_data(span, "release", release.id)
-        set_span_data(span, "environment", environment)
+        span.set_attribute("release", release.id)
+        if environment is not None:
+            span.set_attribute("environment", environment)
 
         schedule_invalidate_project_config(
             project_id=project.id,
             trigger="dynamic_sampling:boost_release",
         )
 
-    with start_span(
-        op="event_manager.dynamic_sampling_observe_latest_release",
+    with traces.start_span(
         name="event_manager.dynamic_sampling_observe_latest_release",
+        attributes={"sentry.op": "event_manager.dynamic_sampling_observe_latest_release"},
     ) as span:
         params = LatestReleaseParams(release=release, project=project, environment=environment)
         LatestReleaseBias(params).observe_release(on_release_boosted)

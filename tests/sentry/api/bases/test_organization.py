@@ -13,6 +13,7 @@ from rest_framework.views import APIView
 
 from sentry.api.authentication import ViewerContextAuthentication
 from sentry.api.bases.organization import (
+    ControlSiloOrganizationEndpoint,
     NoProjects,
     OrganizationAndStaffPermission,
     OrganizationEndpoint,
@@ -29,6 +30,7 @@ from sentry.api.exceptions import (
 from sentry.api.utils import MAX_STATS_PERIOD
 from sentry.auth.access import NoAccess, from_request
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.auth.superuser import Superuser
 from sentry.constants import ALL_ACCESS_PROJECTS_SLUG
 from sentry.models.apikey import ApiKey
 from sentry.models.authidentity import AuthIdentity
@@ -57,6 +59,11 @@ class MockSuperUser:
     @property
     def is_active(self) -> bool:
         return True
+
+
+class LightweightControlSiloOrganizationEndpoint(ControlSiloOrganizationEndpoint):
+    include_organization_projects = False
+    include_organization_teams = False
 
 
 class PermissionBaseTestCase(TestCase):
@@ -352,6 +359,52 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
         permission = self.permission_cls()
         permission.determine_access(request=drf_request, organization=self.org)
 
+    def _make_superuser_request(self, user):
+        """Set up a superuser request, bypassing access form validation."""
+        with mock.patch.object(Superuser, "_needs_validation", return_value=False):
+            request = self.make_request(user=user, is_superuser=True)
+        return request
+
+    @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
+    def test_superuser_non_member_requires_org_auth(self) -> None:
+        user = self.create_user(is_superuser=True)
+        request = self._make_superuser_request(user)
+        drf_request = drf_request_from_request(request)
+        perm = self.permission_cls()
+        with pytest.raises(SuperuserRequired):
+            perm.has_object_permission(drf_request, APIView(), self.org)
+
+    @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
+    def test_superuser_member_does_not_require_org_auth(self) -> None:
+        user = self.create_user(is_superuser=True)
+        self.create_member(user=user, organization=self.org, role="member")
+        request = self._make_superuser_request(user)
+        drf_request = drf_request_from_request(request)
+        perm = self.permission_cls()
+        assert perm.has_object_permission(drf_request, APIView(), self.org)
+
+    @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
+    def test_superuser_authorized_org_allowed(self) -> None:
+        user = self.create_user(is_superuser=True)
+        request = self._make_superuser_request(user)
+        request.superuser.authorize_org(self.org.slug, "for_unit_test", "testing")
+        drf_request = drf_request_from_request(request)
+        perm = self.permission_cls()
+        assert perm.has_object_permission(drf_request, APIView(), self.org)
+
+    @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
+    def test_staff_endpoint_skips_per_org_auth(self) -> None:
+        user = self.create_user(is_superuser=True)
+        request = self._make_superuser_request(user)
+        drf_request = drf_request_from_request(request)
+
+        class StaffView(APIView):
+            permission_classes = (OrganizationAndStaffPermission,)
+
+        view = StaffView()
+        perm = OrganizationAndStaffPermission()
+        assert perm.has_object_permission(drf_request, view, self.org)
+
 
 class OrganizationAndStaffPermissionTest(PermissionBaseTestCase):
     def setUp(self) -> None:
@@ -416,6 +469,77 @@ class BaseOrganizationEndpointTest(TestCase):
         request.auth = None
         request.access = from_request(drf_request_from_request(request), self.org)
         return request
+
+
+class ControlSiloOrganizationEndpointTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user()
+        self.organization = self.create_organization(owner=self.user)
+
+    def build_request(self):
+        request = RequestFactory().get("/")
+        request.session = SessionBase()
+        request.user = self.user
+        request.auth = None
+        return drf_request_from_request(request)
+
+    @mock.patch.object(
+        organization_service,
+        "get_organization_by_slug",
+        wraps=organization_service.get_organization_by_slug,
+    )
+    def test_convert_args_includes_projects_and_teams_by_default(
+        self, mock_get_organization: mock.MagicMock
+    ) -> None:
+        ControlSiloOrganizationEndpoint().convert_args(self.build_request(), self.organization.slug)
+
+        mock_get_organization.assert_called_once_with(
+            slug=self.organization.slug,
+            only_visible=False,
+            user_id=self.user.id,
+            include_projects=True,
+            include_teams=True,
+        )
+
+    @mock.patch.object(
+        organization_service,
+        "get_organization_by_slug",
+        wraps=organization_service.get_organization_by_slug,
+    )
+    def test_convert_args_can_omit_projects_and_teams_for_slug(
+        self, mock_get_organization: mock.MagicMock
+    ) -> None:
+        LightweightControlSiloOrganizationEndpoint().convert_args(
+            self.build_request(), self.organization.slug
+        )
+
+        mock_get_organization.assert_called_once_with(
+            slug=self.organization.slug,
+            only_visible=False,
+            user_id=self.user.id,
+            include_projects=False,
+            include_teams=False,
+        )
+
+    @mock.patch.object(
+        organization_service,
+        "get_organization_by_id",
+        wraps=organization_service.get_organization_by_id,
+    )
+    def test_convert_args_can_omit_projects_and_teams_for_id(
+        self, mock_get_organization: mock.MagicMock
+    ) -> None:
+        LightweightControlSiloOrganizationEndpoint().convert_args(
+            self.build_request(), self.organization.id
+        )
+
+        mock_get_organization.assert_called_once_with(
+            id=self.organization.id,
+            user_id=self.user.id,
+            include_projects=False,
+            include_teams=False,
+        )
 
 
 class OrganizationEndpointViewerContextTest(BaseOrganizationEndpointTest):

@@ -1,10 +1,18 @@
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any, TypedDict
 
-from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel, DetectorResult
+from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.workflow_engine.types import (
+    ConditionError,
+    DetectorGroupKey,
+    DetectorPriorityLevel,
+    DetectorResult,
+)
 
-from .base import BaseWorkflowEngineEvaluation
-from .condition_group import DataConditionGroupEvaluation
+from .base import BaseWorkflowEngineEvaluation, BaseWorkflowEngineEvaluationArtifact
+from .condition_group import DataConditionGroupEvaluation, DataConditionGroupEvaluationArtifact
 
 
 class DetectorEvaluationData(TypedDict):
@@ -13,11 +21,30 @@ class DetectorEvaluationData(TypedDict):
     event_data: dict[str, Any] | None  # TODO - improve this typing, for now migrating
 
 
+class DetectorEvaluationOutcome(StrEnum):
+    COMPLETED = "completed"
+    ERROR = "error"
+    NO_RESULTS = "no_results"
+    NOT_TRIGGERED = "not_triggered"
+    RESOLVED = "resolved"
+    TRIGGERED = "triggered"
+
+
+@dataclass(frozen=True)
+class DetectorEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
+    event_id: str | None
+    group_key: DetectorGroupKey
+    outcome: DetectorEvaluationOutcome
+    priority: int
+    trigger_evaluation: DataConditionGroupEvaluationArtifact
+
+
 @dataclass(frozen=True, kw_only=True)
 class DetectorEvaluation(
     BaseWorkflowEngineEvaluation[
         DetectorResult,
         DetectorEvaluationData,
+        DetectorEvaluationArtifact,
     ]
 ):
     """
@@ -39,3 +66,55 @@ class DetectorEvaluation(
 
     result: DetectorResult = None
     priority: DetectorPriorityLevel
+
+    @property
+    def outcome(self) -> DetectorEvaluationOutcome:
+        if self.error:
+            return DetectorEvaluationOutcome.ERROR
+        if isinstance(self.result, StatusChangeMessage):
+            return DetectorEvaluationOutcome.RESOLVED
+        if self.triggered or isinstance(self.result, IssueOccurrence):
+            return DetectorEvaluationOutcome.TRIGGERED
+        return DetectorEvaluationOutcome.NOT_TRIGGERED
+
+    def _build_artifact(self, *, triggered: bool, error: str | None) -> DetectorEvaluationArtifact:
+        # Each trigger group evaluation will log the value used in evaluation
+        # We only need to extract the top level detector items for tracking here.
+        event_data = self.data["event_data"] or {}
+        event_id = event_data.get("event_id")
+        return DetectorEvaluationArtifact(
+            triggered=triggered,
+            error=error,
+            event_id=str(event_id) if event_id else None,
+            group_key=self.data["group_key"],
+            outcome=self.outcome,
+            priority=self.priority.value,
+            trigger_evaluation=self.data["trigger_group_evaluation"].to_artifact(),
+        )
+
+
+@dataclass(frozen=True, kw_only=True)
+class ProcessDetectorsResult:
+    detector_id: int
+    detector_type: str
+    project_id: int | None
+    evaluations: dict[DetectorGroupKey, DetectorEvaluation]
+    error: ConditionError | None = None
+
+    @property
+    def evaluation_error(self) -> ConditionError | None:
+        return self.error or next(
+            (evaluation.error for evaluation in self.evaluations.values() if evaluation.error),
+            None,
+        )
+
+    @property
+    def outcome(self) -> DetectorEvaluationOutcome:
+        if self.evaluation_error:
+            return DetectorEvaluationOutcome.ERROR
+        if self.evaluations:
+            return DetectorEvaluationOutcome.COMPLETED
+        return DetectorEvaluationOutcome.NO_RESULTS
+
+    def evaluation_artifacts(self) -> tuple[DetectorEvaluationArtifact, ...]:
+        return tuple(evaluation.to_artifact() for evaluation in self.evaluations.values())

@@ -6,7 +6,7 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.models.incident import Incident, IncidentActivity
+from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentStatusMethod
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.issues.ingest import save_issue_occurrence
 from sentry.issues.issue_occurrence import IssueOccurrenceData
@@ -53,7 +53,7 @@ class IncidentGroupOpenPeriodTest(TestCase):
                 event_types=[SnubaQueryEventType.EventType.ERROR],
             )
             self.query_subscription = create_snuba_subscription(
-                project=self.detector.project,
+                project=self.detector.linked_project,
                 subscription_type=INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
                 snuba_query=self.snuba_query,
             )
@@ -110,8 +110,10 @@ class IncidentGroupOpenPeriodTest(TestCase):
 
         assert result is not None
         incident = Incident.objects.get(id=result.incident_id)
-        activity = IncidentActivity.objects.filter(incident_id=incident.id)
-        assert len(activity) == 3  # detected, created, status change
+        assert incident.status == IncidentStatus.CRITICAL.value
+        assert incident.status_method == IncidentStatusMethod.RULE_TRIGGERED.value
+        assert incident.date_closed is None
+        assert result.incident_identifier == incident.identifier
         assert result.group_open_period == open_period
 
     def test_create_from_occurrence_no_alert_id(self) -> None:

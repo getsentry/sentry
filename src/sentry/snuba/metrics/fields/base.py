@@ -14,7 +14,6 @@ from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
-from sentry.search.events.constants import MISERY_ALPHA, MISERY_BETA
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_weak
@@ -24,13 +23,10 @@ from sentry.snuba.metrics.fields.snql import (
     abnormal_sessions,
     abnormal_users,
     addition,
-    all_duration_transactions,
     all_sessions,
     all_spans,
-    all_transactions,
     all_users,
     anr_users,
-    apdex,
     complement,
     count_transaction_name_snql_factory,
     count_web_vitals_snql_factory,
@@ -39,14 +35,11 @@ from sentry.snuba.metrics.fields.snql import (
     division_float,
     errored_all_users,
     errored_preaggr_sessions,
-    failure_count_transaction,
     foreground_anr_users,
     histogram_snql_factory,
     http_error_count_span,
-    http_error_count_transaction,
     max_timestamp,
     min_timestamp,
-    miserable_users,
     on_demand_apdex_snql_factory,
     on_demand_count_unique_snql_factory,
     on_demand_count_web_vitals_snql_factory,
@@ -56,12 +49,10 @@ from sentry.snuba.metrics.fields.snql import (
     on_demand_failure_rate_snql_factory,
     on_demand_user_misery_snql_factory,
     rate_snql_factory,
-    satisfaction_count_transaction,
     session_duration_filters,
     subtraction,
     sum_if_column_snql,
     team_key_transaction_snql,
-    tolerated_count_transaction,
     unhandled_sessions,
     unhandled_users,
     uniq_aggregation_on_metric,
@@ -194,9 +185,6 @@ _PREFIX_TO_METRIC_ENTITY: dict[str, MetricEntity] = {
 
 _PREFIX_TO_GENERIC_METRIC_ENTITY: dict[str, MetricEntity] = {
     "c": "generic_metrics_counters",
-    "d": "generic_metrics_distributions",
-    "s": "generic_metrics_sets",
-    "g": "generic_metrics_gauges",
 }
 
 
@@ -207,18 +195,28 @@ def _get_known_entity_of_metric_mri(metric_mri: str) -> MetricEntity | None:
         return _PREFIX_TO_METRIC_ENTITY[entity_prefix]
     except (ValueError, IndexError, KeyError):
         pass
+
+    try:
+        entity_prefix, namespace = metric_mri.split(":", 1)
+    except ValueError:
+        return None
+
+    # Sessions still own s/d. Every other leftover generic set/gauge/distribution
+    # must fail closed instead of falling through to generic_metrics_counters.
+    if entity_prefix in ("s", "g", "d") and not namespace.startswith("sessions"):
+        raise InvalidParams(f"Generic metrics type '{entity_prefix}' is no longer supported")
+
     try:
         TransactionMRI(metric_mri)
-        entity_prefix = metric_mri.split(":")[0]
         return _PREFIX_TO_GENERIC_METRIC_ENTITY[entity_prefix]
-    except (ValueError, IndexError, KeyError):
+    except (ValueError, KeyError):
         pass
-    try:
-        entity_prefix, namespace = metric_mri.split(":")
-        if namespace.startswith("custom"):
+
+    if namespace.startswith("custom"):
+        try:
             return _PREFIX_TO_GENERIC_METRIC_ENTITY[entity_prefix]
-    except (ValueError, IndexError, KeyError):
-        pass
+        except KeyError:
+            raise InvalidParams(f"Generic metrics type '{entity_prefix}' is no longer supported")
 
     return None
 
@@ -239,13 +237,7 @@ def _get_entity_of_metric_mri(
 
     entity_keys_set: frozenset[EntityKey]
     if use_case_id in [UseCaseID.TRANSACTIONS, UseCaseID.SPANS]:
-        entity_keys_set = frozenset(
-            {
-                EntityKey.GenericMetricsCounters,
-                EntityKey.GenericMetricsSets,
-                EntityKey.GenericMetricsDistributions,
-            }
-        )
+        entity_keys_set = frozenset({EntityKey.GenericMetricsCounters})
     elif use_case_id is UseCaseID.SESSIONS:
         entity_keys_set = frozenset(
             {EntityKey.MetricsCounters, EntityKey.MetricsSets, EntityKey.MetricsDistributions}
@@ -453,16 +445,6 @@ class RawOp(MetricOperation):
 
         return function
 
-    def _gauge_avg(self, aggregate_filter: Function, alias: str) -> Function:
-        return Function(
-            "divide",
-            [
-                Function("sumIf", [Column("value"), aggregate_filter]),
-                Function("countIf", [Column("value"), aggregate_filter]),
-            ],
-            alias=alias,
-        )
-
     def generate_snql_function(
         self,
         entity: MetricEntity,
@@ -480,15 +462,7 @@ class RawOp(MetricOperation):
         else:
             snuba_function = OP_TO_SNUBA_FUNCTION[entity][self.op]
 
-        # The average of a gauge is a special case of operation that is derived of two sub-operations
-        # , and it could have been implemented with `DerivedOp` but in order to disambiguate between `avg` of
-        # a gauge or `avg` of a distribution, significant code changes would have to be done, since metric
-        # factory is used all over the code and lacks the entity parameter that would make the dataset inference
-        # simpler.
-        if entity == "generic_metrics_gauges" and self.op == "avg":
-            function = self._gauge_avg(aggregate_filter, alias)
-        else:
-            function = Function(snuba_function, [Column("value"), aggregate_filter], alias=alias)
+        function = Function(snuba_function, [Column("value"), aggregate_filter], alias=alias)
 
         return self._wrap_quantiles(function, alias)
 
@@ -1701,66 +1675,6 @@ DERIVED_METRICS = {
             post_query_func=lambda *args: max(0, *args),
         ),
         SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.ALL.value,
-            metrics=[TransactionMRI.DURATION.value, TransactionMRI.MEASUREMENTS_LCP.value],
-            unit="transactions",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: all_transactions(
-                project_ids=project_ids, org_id=org_id, metric_ids=metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.ALL_DURATION.value,
-            metrics=[TransactionMRI.DURATION.value],
-            unit="transactions",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: all_duration_transactions(
-                metric_ids=metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.FAILURE_COUNT.value,
-            metrics=[TransactionMRI.DURATION.value],
-            unit="transactions",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: failure_count_transaction(
-                org_id, metric_ids=metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.FAILURE_RATE.value,
-            metrics=[
-                TransactionMRI.FAILURE_COUNT.value,
-                TransactionMRI.ALL_DURATION.value,
-            ],
-            unit="transactions",
-            snql=lambda failure_count,
-            tx_count,
-            project_ids,
-            org_id,
-            metric_ids,
-            alias=None: division_float(failure_count, tx_count, alias=alias),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.HTTP_ERROR_COUNT.value,
-            metrics=[TransactionMRI.DURATION.value],
-            unit="transactions",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: http_error_count_transaction(
-                org_id, metric_ids=metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.HTTP_ERROR_RATE.value,
-            metrics=[
-                TransactionMRI.HTTP_ERROR_COUNT.value,
-                TransactionMRI.ALL_DURATION.value,
-            ],
-            unit="transactions",
-            snql=lambda http_error_count,
-            tx_count,
-            project_ids,
-            org_id,
-            metric_ids,
-            alias=None: division_float(http_error_count, tx_count, alias=alias),
-        ),
-        SingularEntityDerivedMetric(
             metric_mri=SpanMRI.ALL.value,
             metrics=[SpanMRI.SELF_TIME.value],
             unit="spans",
@@ -1820,71 +1734,6 @@ DERIVED_METRICS = {
             metric_ids,
             alias=None: division_float(http_error_count, tx_count, alias=alias),
         ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.SATISFIED.value,
-            metrics=[TransactionMRI.DURATION.value, TransactionMRI.MEASUREMENTS_LCP.value],
-            unit="transactions",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: satisfaction_count_transaction(
-                project_ids=project_ids, org_id=org_id, metric_ids=metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.TOLERATED.value,
-            metrics=[TransactionMRI.DURATION.value, TransactionMRI.MEASUREMENTS_LCP.value],
-            unit="transactions",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: tolerated_count_transaction(
-                project_ids=project_ids, org_id=org_id, metric_ids=metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.APDEX.value,
-            metrics=[
-                TransactionMRI.SATISFIED.value,
-                TransactionMRI.TOLERATED.value,
-                TransactionMRI.ALL.value,
-            ],
-            unit="percentage",
-            snql=lambda satisfied,
-            tolerated,
-            total,
-            project_ids,
-            org_id,
-            metric_ids,
-            alias=None: apdex(satisfied, tolerated, total, alias=alias),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.MISERABLE_USER.value,
-            metrics=[
-                TransactionMRI.USER.value,
-            ],
-            unit="users",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: miserable_users(
-                org_id=org_id, metric_ids=metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.ALL_USER.value,
-            metrics=[TransactionMRI.USER.value],
-            unit="percentage",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: uniq_aggregation_on_metric(
-                metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.USER_MISERY.value,
-            metrics=[TransactionMRI.MISERABLE_USER.value, TransactionMRI.ALL_USER.value],
-            unit="percentage",
-            snql=lambda miserable_user,
-            user,
-            project_ids,
-            org_id,
-            metric_ids,
-            alias=None: division_float(
-                addition(miserable_user, MISERY_ALPHA),
-                addition(user, MISERY_ALPHA + MISERY_BETA),
-                alias,
-            ),
-        ),
     ]
 }
 
@@ -1928,7 +1777,7 @@ DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
         #         op="team_key_transaction",
         #         # This has entity type set, which is the entity type of the select (in the select you can only have
         #         one entity type across selections if you use the team_key_transaction in the order by).
-        #         metric_mri=TransactionMRI.USER.value,
+        #         metric_mri=TransactionMRI.COUNT_PER_ROOT_PROJECT.value,
         #         params={
         #             "team_key_condition_rhs": [
         #                 (self.project.id, "foo_transaction"),

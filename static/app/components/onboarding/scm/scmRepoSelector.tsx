@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useRef, useState} from 'react';
 
 import {Select} from '@sentry/scraps/select';
 
@@ -18,6 +18,41 @@ const REPO_SELECTED_EVENT = {
   'project-creation': 'project_creation.connect_repo_selected',
 } as const;
 
+function getRepositoryNameTokens(label: string) {
+  return label
+    .replace(/([a-z\d])([A-Z])/g, '$1 $2')
+    .split(/[-_.\s/]+/)
+    .filter(Boolean)
+    .map(token => token.toLowerCase());
+}
+
+function getSearchRank(label: string, search: string) {
+  const normalizedLabel = label.toLowerCase();
+  const normalizedSearch = search.trim().toLowerCase();
+
+  if (!normalizedSearch) {
+    return 0;
+  }
+  if (normalizedLabel === normalizedSearch) {
+    return 0;
+  }
+
+  const exactTokenIndex = getRepositoryNameTokens(label).indexOf(normalizedSearch);
+  if (exactTokenIndex === 0) {
+    return 1;
+  }
+  if (exactTokenIndex > 0) {
+    return 2;
+  }
+  if (normalizedLabel.startsWith(normalizedSearch)) {
+    return 3;
+  }
+  if (normalizedLabel.includes(normalizedSearch)) {
+    return 4;
+  }
+  return 5;
+}
+
 interface ScmRepoSelectorProps {
   // Which flow this component is rendered in. Drives analytics event names.
   analyticsFlow: ScmAnalyticsFlow;
@@ -30,6 +65,9 @@ interface ScmRepoSelectorProps {
   onClearDerivedState: () => void;
   onRepositoryChange: (repo: Repository | undefined) => void;
   selectedRepository: Repository | undefined;
+  // Focus the search field on mount, for a host that swaps this selector in
+  // for a control that had focus.
+  autoFocus?: boolean;
 }
 
 export function ScmRepoSelector({
@@ -38,8 +76,11 @@ export function ScmRepoSelector({
   onClearDerivedState,
   onRepositoryChange,
   selectedRepository,
+  autoFocus,
 }: ScmRepoSelectorProps) {
   const organization = useOrganization();
+  const [search, setSearch] = useState('');
+  const selectRef = useRef<{focus: () => void} | null>(null);
   const {reposByIdentifier, dropdownItems, isFetching, isError} = useScmRepos(
     integration.id,
     selectedRepository
@@ -62,17 +103,41 @@ export function ScmRepoSelector({
       {
         value: selectedSlug,
         label: selectedRepository.name,
+        textValue: selectedRepository.name,
         disabled: true,
       },
       ...dropdownItems,
     ];
   }, [dropdownItems, selectedRepository]);
 
+  const rankedOptions = useMemo(
+    () =>
+      options
+        .map((option, originalIndex) => ({
+          option,
+          originalIndex,
+          rank: getSearchRank(option.label, search),
+        }))
+        .toSorted((a, b) => a.rank - b.rank || a.originalIndex - b.originalIndex)
+        // react-select preserves focus by object identity. Clone reordered
+        // options so keyboard focus follows the highest-ranked result.
+        .map(({option}) => ({...option})),
+    [options, search]
+  );
+
   function handleChange(option: {value: string} | null) {
+    // The field stays enabled while a pick registers so it keeps focus; a
+    // second pick in that window is ignored.
+    if (busy) {
+      return;
+    }
     onClearDerivedState();
 
     if (option === null) {
       handleRemove();
+      // The clear button unmounts with the value, so put focus back in the
+      // field rather than letting it fall to body.
+      selectRef.current?.focus();
     } else {
       const repo = reposByIdentifier.get(option.value);
       if (repo) {
@@ -98,13 +163,22 @@ export function ScmRepoSelector({
 
   return (
     <Select
+      ref={selectRef}
+      // react-select does not tie the placeholder to the input, so the field
+      // needs its own name.
+      aria-label={t('Search repositories')}
+      autoFocus={autoFocus}
       placeholder={t('Search repositories')}
-      options={options}
+      options={rankedOptions}
       value={selectedRepository?.externalSlug ?? null}
       onChange={handleChange}
+      inputValue={search}
+      onInputChange={setSearch}
       noOptionsMessage={noOptionsMessage}
-      isLoading={isFetching}
-      isDisabled={busy}
+      isLoading={isFetching || busy}
+      // The core Select blurs single selects on pick, which drops keyboard
+      // focus to body. Keep it in the field.
+      blurInputOnSelect={false}
       clearable
       searchable
       components={{Control: ScmSearchControl, MenuList: ScmVirtualizedMenuList}}

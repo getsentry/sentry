@@ -1,15 +1,8 @@
-import {
-  EnvironmentPageFilter,
-  type EnvironmentPageFilterProps,
-} from 'sentry/components/pageFilters/environment/environmentPageFilter';
+import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 
-type Props = Omit<EnvironmentPageFilterProps, 'storageNamespace'>;
-
-export function InsightsEnvironmentSelector(props: Props) {
+export function InsightsEnvironmentSelector() {
   const {view} = useDomainViewFilters();
 
-  const storageNamespace = view;
-
-  return <EnvironmentPageFilter {...props} storageNamespace={storageNamespace} />;
+  return <EnvironmentPageFilter storageNamespace={view} />;
 }

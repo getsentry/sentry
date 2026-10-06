@@ -1,5 +1,4 @@
 import responses
-from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from sentry.integrations.jira_server import JiraServerCreateTicketAction, JiraServerIntegration
@@ -153,38 +152,23 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         )
 
         # Create a new Rule
-        response = self.client.post(
-            reverse(
-                "sentry-api-0-project-rules",
-                kwargs={
-                    "organization_id_or_slug": self.organization.slug,
-                    "project_id_or_slug": self.project.slug,
-                },
-            ),
-            format="json",
-            data={
-                "name": "hello world",
-                "owner": self.user.id,
-                "environment": None,
-                "actionMatch": "any",
-                "frequency": 5,
-                "actions": [
-                    {
-                        "id": "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
-                        "integration": self.integration.id,
-                        "dynamic_form_fields": [{"name": "project"}],
-                        "issuetype": "1",
-                        "name": "Create a Jira ticket in the Jira Cloud account",
-                        "project": "10000",
-                    }
-                ],
-                "conditions": [],
-            },
+        rule_object = self.create_project_rule(
+            project=self.project,
+            name="hello world",
+            action_match="any",
+            frequency=5,
+            action_data=[
+                {
+                    "id": "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
+                    "integration": self.integration.id,
+                    "dynamic_form_fields": [{"name": "project"}],
+                    "issuetype": "1",
+                    "name": "Create a Jira ticket in the Jira Cloud account",
+                    "project": "10000",
+                }
+            ],
         )
-        assert response.status_code == 200
 
-        # Get the rule from DB
-        rule_object = Rule.objects.get(id=response.data["id"])
         event = self.get_group_event()
 
         # Trigger its `after`
@@ -205,37 +189,3 @@ class JiraServerTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
         # assert new ticket NOT created in DB
         assert ExternalIssue.objects.count() == external_issue_count
-
-    def test_fails_validation(self) -> None:
-        """
-        Test that the absence of dynamic_form_fields in the action fails validation
-        """
-        # Create a new Rule
-        response = self.client.post(
-            reverse(
-                "sentry-api-0-project-rules",
-                kwargs={
-                    "organization_id_or_slug": self.organization.slug,
-                    "project_id_or_slug": self.project.slug,
-                },
-            ),
-            format="json",
-            data={
-                "name": "hello world",
-                "environment": None,
-                "actionMatch": "any",
-                "frequency": 5,
-                "actions": [
-                    {
-                        "id": "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
-                        "integration": self.integration.id,
-                        "issuetype": "1",
-                        "name": "Create a Jira ticket in the Jira Server account",
-                        "project": "10000",
-                    }
-                ],
-                "conditions": [],
-            },
-        )
-        assert response.status_code == 400
-        assert response.data["actions"][0] == "Must configure issue link settings."

@@ -20,6 +20,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
     {
       id: 'ai-agents-model-cost',
       title: t('Model Cost'),
+      description: t('Estimated cost of LLM calls, grouped by response model.'),
       displayType: DisplayType.BAR,
       widgetType: WidgetType.SPANS,
       interval: '1h',
@@ -43,6 +44,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
     {
       id: 'ai-agents-token-usage',
       title: t('Tokens Used'),
+      description: t('Total tokens used by LLM calls, grouped by response model.'),
       displayType: DisplayType.BAR,
       widgetType: WidgetType.SPANS,
       interval: '1h',
@@ -66,6 +68,7 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
     {
       id: 'ai-agents-token-types',
       title: t('Token Types'),
+      description: t('Input, cached input, output, and reasoning tokens used over time.'),
       displayType: DisplayType.AREA,
       widgetType: WidgetType.SPANS,
       interval: '1h',
@@ -76,15 +79,15 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           conditions: AI_GENERATIONS_FILTER,
           fields: [
             `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS})`,
-            `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED})`,
+            `sum(${SpanFields.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS})`,
             `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS})`,
-            `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING})`,
+            `sum(${SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS})`,
           ],
           aggregates: [
             `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS})`,
-            `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED})`,
+            `sum(${SpanFields.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS})`,
             `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS})`,
-            `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING})`,
+            `sum(${SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS})`,
           ],
           columns: [],
           fieldAliases: [
@@ -96,7 +99,6 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
           orderby: '',
         },
       ],
-      limit: 3,
     },
   ],
   0,
@@ -106,6 +108,9 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
 const MODELS_TABLE: PrebuiltWidget = {
   id: 'ai-agents-models-table',
   title: t('Models'),
+  description: t(
+    'LLM requests, errors, duration, cost, and token usage by response model.'
+  ),
   displayType: DisplayType.TABLE,
   widgetType: WidgetType.SPANS,
   interval: '1h',
@@ -121,9 +126,9 @@ const MODELS_TABLE: PrebuiltWidget = {
         `p95(${SpanFields.SPAN_DURATION})`,
         `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,
         `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS})`,
-        `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED})`,
+        `sum(${SpanFields.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS})`,
         `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS})`,
-        `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING})`,
+        `sum(${SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS})`,
       ],
       aggregates: [
         'count()',
@@ -132,9 +137,9 @@ const MODELS_TABLE: PrebuiltWidget = {
         `p95(${SpanFields.SPAN_DURATION})`,
         `sum(${SpanFields.GEN_AI_COST_TOTAL_TOKENS})`,
         `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS})`,
-        `sum(${SpanFields.GEN_AI_USAGE_INPUT_TOKENS_CACHED})`,
+        `sum(${SpanFields.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS})`,
         `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS})`,
-        `sum(${SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS_REASONING})`,
+        `sum(${SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS})`,
       ],
       columns: [SpanFields.GEN_AI_RESPONSE_MODEL],
       fieldAliases: [
@@ -145,7 +150,7 @@ const MODELS_TABLE: PrebuiltWidget = {
         WIDGET_COLUMN_LABELS.p95,
         t('Cost'),
         t('Input Tokens'),
-        t('Cached Tokens'),
+        t('Cached Input Tokens'),
         t('Output Tokens'),
         t('Reasoning Tokens'),
       ],

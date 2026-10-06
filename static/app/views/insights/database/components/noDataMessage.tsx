@@ -62,18 +62,17 @@ export function NoDataMessage({Wrapper = DivWrapper, isDataAvailable}: Props) {
 
 interface ProjectListProps {
   projects: Project[];
-  limit?: number;
 }
 
-function ProjectList({projects, limit = MAX_LISTED_PROJECTS}: ProjectListProps) {
+function ProjectList({projects}: ProjectListProps) {
   const organization = useOrganization();
 
-  const visibleProjects = projects.slice(0, limit + 1);
+  const visibleProjects = projects.slice(0, MAX_LISTED_PROJECTS + 1);
   const hasMoreProjectsThanVisible = projects.length > MAX_LISTED_PROJECTS;
 
   return (
     <Fragment>
-      {visibleProjects.slice(0, limit).map((project, projectIndex) => {
+      {visibleProjects.slice(0, MAX_LISTED_PROJECTS).map((project, projectIndex) => {
         return (
           <span key={project.id}>
             <Link
@@ -90,7 +89,7 @@ function ProjectList({projects, limit = MAX_LISTED_PROJECTS}: ProjectListProps) 
       })}
       {hasMoreProjectsThanVisible &&
         tct(' and [count] more.', {
-          count: projects.length - limit,
+          count: projects.length - MAX_LISTED_PROJECTS,
         })}{' '}
     </Fragment>
   );

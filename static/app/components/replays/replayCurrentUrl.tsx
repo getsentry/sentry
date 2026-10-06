@@ -64,7 +64,6 @@ export function ReplayCurrentUrl() {
             ),
           }
         )}
-        isHoverable
       >
         <TextCopyInput aria-label={t('Current URL')} size="sm">
           {url}

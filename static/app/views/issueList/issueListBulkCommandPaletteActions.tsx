@@ -11,7 +11,6 @@ import {IconCheckmark, IconClock, IconIssues, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
-import type {BaseGroup} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus, PriorityLevel} from 'sentry/types/group';
 import type {Member} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -69,7 +68,7 @@ function AssignActionItems({
   const {data: members = []} = useOrgMembers();
 
   const sortedTeams = useMemo(
-    () => [...teams].sort((a, b) => a.slug.localeCompare(b.slug)),
+    () => teams.toSorted((a, b) => a.slug.localeCompare(b.slug)),
     [teams]
   );
 
@@ -157,15 +156,13 @@ function AssignActionItems({
 function AssignActions({
   onConfirmBulkUpdate,
   onBulkUpdate,
-  label = t('Assign to'),
 }: {
   onBulkUpdate: (data: Record<string, unknown>) => void;
-  label?: string;
   onConfirmBulkUpdate?: (actionLabel: string, onConfirm: () => void) => void;
 }) {
   return (
     <CMDKAction
-      display={{label, icon: <IconUser />}}
+      display={{label: t('Assign to'), icon: <IconUser />}}
       keywords={['assign', 'owner', 'assignee']}
       prompt={t('Search assignees...')}
     >
@@ -188,7 +185,7 @@ function PriorityActions({
       keywords={['priority', 'urgency', 'critical', 'high', 'medium', 'low']}
     >
       <CMDKAction
-        display={{label: t('High'), icon: <IconCellSignal bars={3} />}}
+        display={{label: t('High'), icon: <IconCellSignal />}}
         onAction={() =>
           onConfirmUpdate(t('set issue priority to high'), {
             priority: PriorityLevel.HIGH,
@@ -232,9 +229,9 @@ function useIssueListBulkCommandPaletteActions({
 
   const selectedIssues = useMemo(
     () =>
-      [...selectedIdsSet]
-        .map(issueId => GroupStore.get(issueId))
-        .filter((issue): issue is BaseGroup => !!issue),
+      Array.from(selectedIdsSet, issueId => GroupStore.get(issueId)).filter(
+        issue => issue !== undefined
+      ),
     [selectedIdsSet]
   );
 

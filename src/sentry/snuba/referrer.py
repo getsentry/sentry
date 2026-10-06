@@ -25,6 +25,7 @@ class Referrer(StrEnum):
         "api.auth-token.events.metrics-enhanced.primary"
     )
     API_AUTH_TOKEN_EVENTS = "api.auth-token.events"
+    API_AUTH_TOKEN_EVENTS_FIND_TOPN = "api.auth-token.events.find-topn"
 
     # ** Dashboards **
 
@@ -128,6 +129,7 @@ class Referrer(StrEnum):
     API_EXPLORE_TRACEMETRICS_METRICS_LIST = "api.explore.tracemetrics.metrics-list"
     API_EXPLORE_SPANS_AGGREGATES_TABLE = "api.explore.spans-aggregates-table"
     API_EXPLORE_SPANS_SAMPLES_TABLE = "api.explore.spans-samples-table"
+    API_EXPLORE_SPAN_ITEM_DETAILS = "api.explore.span-item-details"
     API_EXPLORE_SPANS_EXTRAPOLATION_META = "api.explore.spans-extrapolation-meta"
     API_EXPLORE_LOGS_TABLE = "api.explore.logs-table"
     API_EXPLORE_LOGS_TABLE_ROW = "api.explore.logs-table-row"
@@ -225,6 +227,7 @@ class Referrer(StrEnum):
     API_INSIGHTS_WEB_VITAL_TRANSACTION = "api.insights.web-vitals.transaction"
     API_INSIGHTS_WEB_VITAL_TRANSACTIONS_SCORES = "api.insights.web-vitals.transactions-scores"
     API_INSIGHTS_WEB_VITAL_PROFILE_EXISTS = "api.insights.web-vitals.profile-exists"
+    API_INSIGHTS_WEB_VITAL_NAVIGATION_TYPE_COUNTS = "api.insights.web-vitals.navigation-type-counts"
 
     # Mobile vitals
     API_INSIGHTS_MOBILE_UI_SPAN_OPERATION_TABLE = "api.insights.mobile.ui.span-table"
@@ -438,6 +441,7 @@ class Referrer(StrEnum):
     API_METRICS_TOTALS = "api.metrics.totals"
     API_METRICS_TOTALS_INITIAL_QUERY = "api.metrics.totals.initial_query"
     API_METRICS_TOTALS_SECOND_QUERY = "api.metrics.totals.second_query"
+    API_METRICS_SERIES = "api.metrics.series"
     API_METRICS_SERIES_SECOND_QUERY = "api.metrics.series.second_query"
 
     API_ORGANIZATION_TRACE_ITEM_DETAILS = "api.organization-trace-item-details"
@@ -497,13 +501,13 @@ class Referrer(StrEnum):
     API_ORGANIZATION_METRICS_EAP_QUERY = "api.organization.metrics-eap-query"
     API_ORGANIZATION_ISSUES_COUNT = "api.organization-issues-count"
     API_ORGANIZATION_ISSUE_REPLAY_COUNT = "api.organization-issue-replay-count"
+    API_ISSUE_DETAILS_VERIFY_RECOMMENDED_REPLAY = "api.issue-details-verify-recommended-replay"
     API_ORGANIZATION_SDK_UPDATES = "api.organization-sdk-updates"
+    API_ORGANIZATION_SPAN_REPLAY_COUNT = "api.organization-span-replay-count"
     API_ORGANIZATION_VITALS_PER_PROJECT = "api.organization-vitals-per-project"
     API_ORGANIZATION_VITALS = "api.organization-vitals"
     API_AI_CONVERSATIONS = "api.ai-conversations"
     API_AI_CONVERSATIONS_COMPLETE = "api.ai-conversations.complete"
-    API_AI_CONVERSATIONS_ENRICHMENT = "api.ai-conversations.enrichment"
-    API_AI_CONVERSATIONS_FIRST_LAST_IO = "api.ai-conversations.first-last-io"
     API_AI_CONVERSATION_DETAILS = "api.ai-conversation-details"
     API_AI_CONVERSATION_DETAILS_ISSUES = "api.ai-conversation-details.issues"
     API_AI_PIPELINES_VIEW = "api.ai-pipelines.view"
@@ -598,6 +602,7 @@ class Referrer(StrEnum):
     API_SPAN_SAMPLE_GET_SPAN_IDS = "api.spans.sample-get-span-ids"
     API_SPAN_SAMPLE_GET_SPAN_DATA = "api.spans.sample-get-span-data"
     API_SERIALIZER_PROJECTS_GET_STATS = "api.serializer.projects.get_stats"
+    API_SERIALIZER_PROJECTS_GET_TRANSACTION_STATS = "api.serializer.projects.get_transaction_stats"
     API_SERIALIZER_CHECKINS_TRACE_IDS = "api.serializer.checkins.trace-ids"
     API_TRACE_VIEW_ERRORS_VIEW = "api.trace-view.errors-view"
     API_TRACE_VIEW_GET_TIMESTAMP_PROJECTS = "api.trace-view.get-timestamp-projects"
@@ -617,6 +622,7 @@ class Referrer(StrEnum):
     API_TRACE_VIEW_GET_PARENTS = "api.trace-view.get-parents"
     API_TRACE_VIEW_GET_OCCURRENCE_IDS = "api.trace-view.get-occurrence-ids"
     API_TRACE_VIEW_LINKED_TRACES = "api.trace-view.linked-traces"
+    API_TRACE_VIEW_CACHE_ORIGIN = "api.trace-view.cache-origin"
     API_TRENDS_GET_EVENT_STATS = "api.trends.get-event-stats"
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS = "api.trends.get-event-statsv2.top-events"
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS_PRIMARY = (
@@ -639,24 +645,13 @@ class Referrer(StrEnum):
     DASHBOARDS_SLACK_UNFURL = "dashboards.slack.unfurl"
     DISCOVER_SLACK_UNFURL = "discover.slack.unfurl"
     EXPLORE_SLACK_UNFURL = "explore.slack.unfurl"
-    DYNAMIC_SAMPLING_COUNTERS_GET_ORG_TRANSACTION_VOLUMES = (
-        "dynamic_sampling.counters.get_org_transaction_volumes"
-    )
-    DYNAMIC_SAMPLING_DISTRIBUTION_FETCH_PROJECTS_WITH_COUNT_PER_ROOT = (
-        "dynamic_sampling.distribution.fetch_projects_with_count_per_root_total_volumes"
-    )
+    INGESTION_DELAY_MEASUREMENT = "ingestion_delay.measurement"
     DYNAMIC_SAMPLING_PER_ORG_GET_EAP_ORG_VOLUME = "dynamic_sampling.per_org.get_eap_org_volume"
     DYNAMIC_SAMPLING_PER_ORG_GET_EAP_PROJECT_VOLUMES = (
         "dynamic_sampling.per_org.get_eap_project_volumes"
     )
     DYNAMIC_SAMPLING_PER_ORG_GET_EAP_TRANSACTION_VOLUMES = (
         "dynamic_sampling.per_org.get_eap_transaction_volumes"
-    )
-    DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_COUNT_PER_TRANSACTION = (
-        "dynamic_sampling.counters.fetch_projects_with_count_per_transaction_volumes"
-    )
-    DYNAMIC_SAMPLING_COUNTERS_FETCH_PROJECTS_WITH_TRANSACTION_TOTALS = (
-        "dynamic_sampling.counters.fetch_projects_with_transaction_totals"
     )
     DYNAMIC_SAMPLING_SETTINGS_GET_SPAN_COUNTS = "dynamic_sampling.settings.get_project_span_counts"
     ESCALATING_GROUPS = "sentry.issues.escalating"
@@ -676,6 +671,7 @@ class Referrer(StrEnum):
     GROUP_FILTER_BY_EVENT_ID = "group.filter_by_event_id"
     GROUP_GET_HELPFUL = "Group.get_helpful"
     GROUP_GET_LATEST = "Group.get_latest"
+    GROUP_GET_LATEST_BULK = "Group.get_latest_bulk"
     GROUP_UNHANDLED_FLAG = "group.unhandled-flag"
     GROUPING_RECORDS_BACKFILL_REFERRER = "getsentry.tasks.backfill_grouping_records"
     INCIDENTS_GET_INCIDENT_AGGREGATES_PRIMARY = "incidents.get_incident_aggregates.primary"
@@ -783,6 +779,7 @@ class Referrer(StrEnum):
     REPLAYS_QUERY_BROWSE_SIMPLE_AGGREGATION = "replays.query.browse_simple_aggregation"
     REPLAYS_FILE_REFERRER = "replays.query.download_replay_segments"
     REPLAYS_SCRIPTS_DELETE_REPLAYS = "replays.scripts.delete_replays"
+    REPLAYS_DELETE_REPLAYS_BULK = "replays.delete_replays_bulk"
     FEEDBACKS_LABEL_QUERY = "feedbacks.label_query"
     EU_DATA_EXPORT = "sentry.internal.eu-compliance-data-export"
     REPORTS_KEY_ERROR_ISSUES = "reports.key_errors"
@@ -797,8 +794,10 @@ class Referrer(StrEnum):
     SEARCH_SAMPLE = "search_sample"
     SEARCH = "search"
     SEARCH_GROUP_INDEX = "search.group_index"
-    SEER_NIGHT_SHIFT_FIXABILITY_SCORE_STRATEGY = "seer.night_shift.fixability_score_strategy"
+    SEER_AGENTIC_TRIAGE_FIXABILITY_SCORE_STRATEGY = "seer.night_shift.fixability_score_strategy"
     SEARCH_GROUP_INDEX_SAMPLE = "search.group_index_sample"
+    SEARCH_GROUP_INDEX_API = "search.group_index.api"
+    SEARCH_GROUP_INDEX_API_SAMPLE = "search.group_index.api_sample"
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_QUERY = "search.snuba.group_attributes_search.query"
     SEARCH_SNUBA_GROUP_ATTRIBUTES_SEARCH_HITS = "search.snuba.group_attributes_search.hits"
     SEER_RPC = "seer.rpc"
@@ -923,14 +922,7 @@ class Referrer(StrEnum):
     TSDB_MODELID_801 = "tsdb-modelid:801"
 
     TSDB_MODELID_4_frequency_snoozes = "tsdb-modelid:4.frequency_snoozes"
-    TSDB_MODELID_4_alert_event_frequency = "tsdb-modelid:4.alert_event_frequency"
-    TSDB_MODELID_4_alert_event_frequency_percent = "tsdb-modelid:4.alert_event_frequency_percent"
-    TSDB_MODELID_4_batch_alert_event_frequency = "tsdb-modelid:4.batch_alert_event_frequency"
-    TSDB_MODELID_20_alert_event_frequency = "tsdb-modelid:20.alert_event_frequency"
     TSDB_MODELID_300_user_count_snoozes = "tsdb-modelid:300.user_count_snoozes"
-    TSDB_MODELID_300_alert_event_uniq_user_frequency = (
-        "tsdb-modelid:300.alert_event_uniq_user_frequency"
-    )
     TSDB_MODELID_4_wf_batch_alert_event_frequency = "tsdb-modelid:4.wf_batch_alert_event_frequency"
     TSDB_MODELID_4_wf_batch_alert_event_frequency_percent = (
         "tsdb-modelid:4.wf_batch_alert_event_frequency_percent"
@@ -956,8 +948,6 @@ class Referrer(StrEnum):
     TEST_QUERY_PRIMARY = "test_query.primary"
     TEST_QUERY = "test_query"
     METRIC_VALIDATION = "metric_validation"
-
-    JOB_COMPARE_TIMESERIES = "job-runner.compare-timeseries"
 
 
 VALUES = {referrer.value for referrer in Referrer}
@@ -990,6 +980,6 @@ def validate_referrer(referrer: str | None) -> bool:
         raise Exception(error_message)
     except Exception:
         metrics.incr("snql.sdk.api.new_referrers", tags={"referrer": referrer})
-        logger.warning(error_message, exc_info=True)
+        logger.warning(error_message, extra={"referrer": referrer}, exc_info=True)
 
     return False

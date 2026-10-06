@@ -17,8 +17,7 @@ import {
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
-
-import {t} from 'sentry/locale';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 // form.mdx demos
 
@@ -28,6 +27,7 @@ const quickStartSchema = z.object({
 });
 
 export function QuickStartDemo() {
+  const {t} = useTranslation();
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
@@ -78,6 +78,7 @@ export function QuickStartDemo() {
 }
 
 export function CompactDemo() {
+  const {t} = useTranslation();
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {field1: '', field2: '', field3: '', field4: ''},
@@ -141,6 +142,7 @@ const conditionalSchema = z.object({
 });
 
 export function ConditionalDemo() {
+  const {t} = useTranslation();
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {plan: 'free', billingEmail: ''},
@@ -199,7 +201,58 @@ export function ConditionalDemo() {
 
 // fields.mdx demos
 
+export function NumberFieldDemo() {
+  const {t} = useTranslation();
+  const defaultValues: {amount: number | null} = {amount: 0};
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues,
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <form.AppField name="amount">
+        {field => (
+          <field.Layout.Row label={t('Amount')}>
+            <field.Number
+              leadingItems="$"
+              value={field.state.value}
+              onChange={field.handleChange}
+              min={0}
+            />
+          </field.Layout.Row>
+        )}
+      </form.AppField>
+    </form.AppForm>
+  );
+}
+
+export function CheckboxFieldDemo() {
+  const {t} = useTranslation();
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {subscribe: false},
+    validators: {onDynamic: z.object({subscribe: z.boolean()})},
+  });
+
+  return (
+    <form.AppForm form={form}>
+      <form.AppField name="subscribe">
+        {field => (
+          <field.Checkbox
+            checked={field.state.value}
+            onChange={field.handleChange}
+            label={t('Send me the newsletter')}
+            hintText={t('Get product updates by email.')}
+          />
+        )}
+      </form.AppField>
+    </form.AppForm>
+  );
+}
+
 export function BaseFieldDemo() {
+  const {t} = useTranslation();
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {color: '#3c74dd'},
@@ -253,6 +306,7 @@ const basicSchema = z.object({
 });
 
 export function BasicAutoSaveDemo() {
+  const {t} = useTranslation();
   // Simulated server state for demonstration
   const [serverState, setServerState] = useState({displayName: 'Jane Doe'});
 
@@ -300,6 +354,7 @@ const TAG_OPTIONS = [
 ];
 
 export function FullAutoSaveDemo() {
+  const {t} = useTranslation();
   const fullMutationOptions = {
     mutationFn: async (data: Record<string, unknown>) => {
       await sleep(1000);

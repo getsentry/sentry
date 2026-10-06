@@ -1,16 +1,13 @@
-import {useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
+import {useEffect, useState} from 'react';
+import {css} from '@emotion/react';
 import type {Location} from 'history';
 import {createParser, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Grid} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
-import Feature from 'sentry/components/acl/feature';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
@@ -21,13 +18,11 @@ import {
   RELEASES_SORT_OPTIONS,
   ReleasesSortOption,
 } from 'sentry/constants/releases';
-import {IconAdd, IconClock} from 'sentry/icons';
+import {IconClock} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {DataCategory} from 'sentry/types/core';
 import type {User} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
-import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
@@ -39,6 +34,7 @@ import {
   mergeGlobalFilters,
 } from 'sentry/views/dashboards/globalFilter/utils';
 import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
+import {useDashboardMaxPickableDays} from 'sentry/views/dashboards/hooks/useDashboardMaxPickableDays';
 import {useDatasetSearchBarData} from 'sentry/views/dashboards/hooks/useDatasetSearchBarData';
 import {useInvalidateStarredDashboards} from 'sentry/views/dashboards/hooks/useInvalidateStarredDashboards';
 import {getDashboardFiltersFromURL} from 'sentry/views/dashboards/utils';
@@ -47,6 +43,12 @@ import {
   type PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {DataSet} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {NavigationTypeSwitcher} from 'sentry/views/insights/browser/webVitals/navigationType/navigationTypeSwitcher';
+import {
+  hidesNavigationTypeChip,
+  showsNavigationTypeSwitcher,
+  useNavigationTypeExperiment,
+} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 
 import {checkUserHasEditAccess} from './utils/checkUserHasEditAccess';
 import {SortableReleasesSelect} from './sortableReleasesSelect';
@@ -55,53 +57,8 @@ import type {
   DashboardFilters,
   DashboardPermissions,
   GlobalFilter,
-  Widget,
 } from './types';
-import {DashboardFilterKeys, WidgetType} from './types';
-
-/**
- * Maps widget types to data categories for determining max pickable days
- */
-function getDataCategoriesFromWidgets(
-  widgets: Widget[]
-): [DataCategory, ...DataCategory[]] {
-  const categories = new Set<DataCategory>();
-
-  for (const widget of widgets) {
-    const widgetType = widget.widgetType ?? WidgetType.DISCOVER;
-
-    switch (widgetType) {
-      case WidgetType.SPANS:
-        categories.add(DataCategory.SPANS);
-        break;
-      case WidgetType.TRANSACTIONS:
-        categories.add(DataCategory.TRANSACTIONS);
-        break;
-      case WidgetType.TRACEMETRICS:
-        categories.add(DataCategory.TRACE_METRICS);
-        break;
-      case WidgetType.LOGS:
-        categories.add(DataCategory.LOG_ITEM);
-        break;
-      case WidgetType.ERRORS:
-      case WidgetType.DISCOVER:
-      case WidgetType.ISSUE:
-      case WidgetType.RELEASE:
-      case WidgetType.METRICS:
-      default:
-        // For error-like widgets, use TRANSACTIONS as a safe default
-        // since it has the most permissive date range
-        categories.add(DataCategory.TRANSACTIONS);
-        break;
-    }
-  }
-
-  // Return as tuple with at least one element (required by useMaxPickableDays)
-  const categoriesArray = Array.from(categories);
-  return categoriesArray.length > 0
-    ? (categoriesArray as [DataCategory, ...DataCategory[]])
-    : [DataCategory.TRANSACTIONS];
-}
+import {DashboardFilterKeys} from './types';
 
 export type FiltersBarProps = {
   filters: DashboardFilters;
@@ -131,36 +88,23 @@ export function FiltersBar({
   isEditingDashboard,
   isPreview,
   location,
-  onAddWidget,
   onCancel,
   onDashboardFilterChange,
   onSave,
   shouldBusySaveButton,
   prebuiltDashboardId,
   storageNamespace,
-  widgetLimitReached = false,
 }: FiltersBarProps) {
   const organization = useOrganization();
   const currentUser = useUser();
   const {teams: userTeams} = useUserTeams();
-  const getSearchBarData = useDatasetSearchBarData();
+  const {getSearchBarData, onFilterKeySearch} = useDatasetSearchBarData();
   const isPrebuiltDashboard = defined(prebuiltDashboardId);
   const prebuiltDashboardFilters = prebuiltDashboardId
     ? (PREBUILT_DASHBOARDS[prebuiltDashboardId].filters.globalFilter ?? [])
     : [];
 
-  // Determine data categories based on widget types in the dashboard
-  const dataCategories = useMemo(() => {
-    if (!dashboard?.widgets || dashboard.widgets.length === 0) {
-      // Default to TRANSACTIONS if no widgets
-      return [DataCategory.TRANSACTIONS] as [DataCategory, ...DataCategory[]];
-    }
-
-    return getDataCategoriesFromWidgets(dashboard.widgets);
-  }, [dashboard?.widgets]);
-
-  // Calculate maxPickableDays based on the data categories
-  const maxPickableDaysOptions = useMaxPickableDays({dataCategories});
+  const maxPickableDaysOptions = useDashboardMaxPickableDays(dashboard?.widgets);
 
   // Release sort state - validates and defaults to DATE via custom parser
   const [releaseSort, setReleaseSort] = useQueryState('sortReleasesBy', parseReleaseSort);
@@ -239,6 +183,7 @@ export function FiltersBar({
     if (urlFilters && urlFilters.length > 0) {
       for (const filter of urlFilters) {
         if (!activeGlobalFilters.some(f => globalFiltersAreEqual(f, filter))) {
+          // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
           setActiveGlobalFilters(mergeGlobalFilters(activeGlobalFilters, urlFilters));
         }
       }
@@ -255,34 +200,40 @@ export function FiltersBar({
 
   const hasTemporaryFilters = activeGlobalFilters.some(filter => filter.isTemporary);
 
-  const [interval, setInterval, intervalOptions] = useDashboardChartInterval();
-  const addWidgetDropdownItems: MenuItemProps[] = [
-    {
-      key: 'create-custom-widget',
-      label: t('Create Custom Widget'),
-      onAction: () => onAddWidget?.(DataSet.ERRORS, false),
-    },
-    {
-      key: 'from-widget-library',
-      label: t('From Widget Library'),
-      onAction: () => onAddWidget?.(DataSet.ERRORS, true),
-    },
-  ];
-  const addWidgetTooltipMessage = hasEditAccess
-    ? widgetLimitReached
-      ? t('Max widgets reached.')
-      : null
-    : t('You do not have permission to edit this dashboard');
-  const showAddWidgetButton =
-    !isPrebuiltDashboard &&
-    !isEditingDashboard &&
-    !isPreview &&
-    defined(dashboard?.id) &&
-    defined(onAddWidget);
+  // The insights route omits `prebuiltDashboardId`, since passing it would
+  // surface the prebuilt chips there, so fall back to the dashboard's own ID.
+  const {isEnabled: isNavigationTypeExperimentEnabled} = useNavigationTypeExperiment(
+    prebuiltDashboardId ?? dashboard?.prebuiltId
+  );
+  const isNavigationTypeSwitcherShown = showsNavigationTypeSwitcher(
+    activeGlobalFilters,
+    organization,
+    isNavigationTypeExperimentEnabled
+  );
 
+  const [interval, setInterval, intervalOptions] = useDashboardChartInterval();
   return (
-    <Wrapper>
-      <FiltersRow>
+    <Flex
+      align={{zero: 'stretch', xl: 'start'}}
+      direction={{zero: 'column', xl: 'row'}}
+      wrap="wrap"
+      gap="lg"
+      marginBottom="0"
+      padding="lg xl xl"
+    >
+      <Flex
+        css={css`
+          & button[aria-haspopup] {
+            height: 100%;
+            width: 100%;
+          }
+        `}
+        direction="row"
+        flex={{zero: '0 1 auto', xl: `1 1 ${FILTERS_ROW_FLEX_BASIS_PX}px`}}
+        gap="lg"
+        minWidth={0}
+        wrap="wrap"
+      >
         <PageFilterBar condensed>
           <ProjectPageFilter
             disabled={isEditingDashboard}
@@ -327,41 +278,57 @@ export function FiltersBar({
           }}
           onSortChange={setReleaseSort}
         />
-        {activeGlobalFilters.map(filter => (
-          <GenericFilterSelector
-            disableRemoveFilter={
-              isPrebuiltDashboard &&
-              prebuiltDashboardFilters.some(
-                prebuiltFilter =>
-                  prebuiltFilter.tag.key === filter.tag.key &&
-                  prebuiltFilter.dataset === filter.dataset
-              )
-            }
-            key={filter.tag.key + filter.value}
-            globalFilter={filter}
-            searchBarData={getSearchBarData(filter.dataset)}
-            onUpdateFilter={updatedFilter => {
-              updateGlobalFilters(
-                activeGlobalFilters.map(f =>
-                  globalFilterKeysAreEqual(f, updatedFilter) ? updatedFilter : f
-                )
-              );
-            }}
-            onRemoveFilter={removedFilter => {
-              updateGlobalFilters(
-                activeGlobalFilters.filter(
-                  f => !globalFilterKeysAreEqual(f, removedFilter)
-                )
-              );
-              trackAnalytics('dashboards2.global_filter.remove', {
-                organization,
-              });
-            }}
+        {isNavigationTypeSwitcherShown && (
+          <NavigationTypeSwitcher
+            globalFilters={activeGlobalFilters}
+            onChange={updateGlobalFilters}
           />
-        ))}
+        )}
+        {activeGlobalFilters
+          .filter(
+            filter =>
+              !hidesNavigationTypeChip(
+                filter,
+                organization,
+                isNavigationTypeSwitcherShown
+              )
+          )
+          .map(filter => (
+            <GenericFilterSelector
+              disableRemoveFilter={
+                isPrebuiltDashboard &&
+                prebuiltDashboardFilters.some(
+                  prebuiltFilter =>
+                    prebuiltFilter.tag.key === filter.tag.key &&
+                    prebuiltFilter.dataset === filter.dataset
+                )
+              }
+              key={filter.tag.key + filter.value}
+              globalFilter={filter}
+              searchBarData={getSearchBarData(filter.dataset)}
+              onUpdateFilter={updatedFilter => {
+                updateGlobalFilters(
+                  activeGlobalFilters.map(f =>
+                    globalFilterKeysAreEqual(f, updatedFilter) ? updatedFilter : f
+                  )
+                );
+              }}
+              onRemoveFilter={removedFilter => {
+                updateGlobalFilters(
+                  activeGlobalFilters.filter(
+                    f => !globalFilterKeysAreEqual(f, removedFilter)
+                  )
+                );
+                trackAnalytics('dashboards2.global_filter.remove', {
+                  organization,
+                });
+              }}
+            />
+          ))}
         <AddFilter
           globalFilters={activeGlobalFilters}
           getSearchBarData={getSearchBarData}
+          onFilterKeySearch={onFilterKeySearch}
           onAddFilter={newFilter => {
             updateGlobalFilters([...activeGlobalFilters, newFilter]);
             trackAnalytics('dashboards2.global_filter.add', {
@@ -409,7 +376,7 @@ export function FiltersBar({
               </Button>
             </Grid>
           )}
-      </FiltersRow>
+      </Flex>
       <Grid flow="column" align="center" gap="md">
         <CompactSelect
           value={interval}
@@ -420,34 +387,8 @@ export function FiltersBar({
           menuTitle={t('Interval')}
           options={intervalOptions}
         />
-        {showAddWidgetButton && (
-          <Feature features="organizations:dashboards-edit">
-            {({hasFeature}) =>
-              hasFeature ? (
-                <Tooltip
-                  title={addWidgetTooltipMessage}
-                  disabled={!widgetLimitReached && hasEditAccess}
-                >
-                  <DropdownMenu
-                    items={addWidgetDropdownItems}
-                    isDisabled={widgetLimitReached || !hasEditAccess}
-                    triggerLabel={t('Add Widget')}
-                    triggerProps={{
-                      'aria-label': t('Add Widget'),
-                      size: 'sm',
-                      showChevron: true,
-                      icon: <IconAdd size="sm" />,
-                      variant: 'primary',
-                    }}
-                    position="bottom-end"
-                  />
-                </Tooltip>
-              ) : null
-            }
-          </Feature>
-        )}
       </Grid>
-    </Wrapper>
+    </Flex>
   );
 }
 
@@ -461,23 +402,5 @@ const parseReleaseSort = createParser({
   serialize: (value: ReleasesSortOption): string => value,
 }).withDefault(DEFAULT_RELEASES_SORT);
 
-const Wrapper = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${p => p.theme.space.lg};
-  margin-bottom: ${p => p.theme.space.xl};
-  align-items: flex-start;
-`;
-
-const FiltersRow = styled('div')`
-  display: flex;
-  flex-direction: row;
-  gap: ${p => p.theme.space.lg};
-  flex-wrap: wrap;
-  flex: 1;
-
-  & button[aria-haspopup] {
-    height: 100%;
-    width: 100%;
-  }
-`;
+// Filters row starts wrapping siblings at this width.
+const FILTERS_ROW_FLEX_BASIS_PX = 480;

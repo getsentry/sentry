@@ -31,7 +31,7 @@ class UIFrames {
   frames: readonly UIFrameNode[] = [];
   toUnit = 'nanoseconds';
   minFrameDuration: number = Number.MAX_SAFE_INTEGER;
-  configSpace: Rect = Rect.Empty();
+  configSpace: Rect = Rect.empty();
 
   formatter = makeFormatter('nanoseconds');
   timelineFormatter = makeTimelineFormatter('nanoseconds');
@@ -54,7 +54,7 @@ class UIFrames {
       slowOrDefaultFrames,
       frozenOrDefaultFrames
     );
-    this.configSpace = configSpace ?? Rect.Empty();
+    this.configSpace = configSpace ?? Rect.empty();
 
     this.timelineFormatter = makeTimelineFormatter(this.toUnit);
     this.formatter = makeFormatter(this.toUnit);
@@ -78,8 +78,8 @@ class UIFrames {
     const toSlowFinalUnit = makeFormatTo(slowFrames.unit, this.toUnit);
     const toFrozenFinalUnit = makeFormatTo(frozenFrames.unit, this.toUnit);
 
-    const slowFramesQueue = [...slowFrames.values].sort(sortFramesByStartedTime);
-    const frozenFramesQueue = [...frozenFrames.values].sort(sortFramesByStartedTime);
+    const slowFramesQueue = slowFrames.values.toSorted(sortFramesByStartedTime);
+    const frozenFramesQueue = frozenFrames.values.toSorted(sortFramesByStartedTime);
 
     while (slowFramesQueue.length > 0 || frozenFramesQueue.length > 0) {
       const nextType = slowFramesQueue.length

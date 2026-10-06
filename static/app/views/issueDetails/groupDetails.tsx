@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
+import {parseAsBoolean, useQueryState} from 'nuqs';
 import * as qs from 'query-string';
 
 import {useDrawer} from '@sentry/scraps/drawer';
@@ -22,9 +23,10 @@ import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {GroupStatus, IssueType} from 'sentry/types/group';
+import {GroupStatus} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {
@@ -36,13 +38,11 @@ import {
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
-import {decodeBoolean} from 'sentry/utils/queryString';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
@@ -219,7 +219,7 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
             groupId: storeGroup.id,
             organizationSlug: organization.slug,
             environments: incomingEnvs,
-            expandDerivedData: organization.features.includes('issue-stream-progress-ui'),
+            expandDerivedData: organization.features.includes('issue-inbox'),
           }).queryKey,
           prev => (prev ? {...prev, json: storeGroup as Group} : prev)
         );
@@ -228,7 +228,7 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
   }, [groupId, incomingEnvs, organization, queryClient]);
 }
 
-function useFetchGroupDetails(): FetchGroupDetailsState {
+export function useFetchGroupDetails(): FetchGroupDetailsState {
   const api = useApi();
   const organization = useOrganization();
   const location = useLocation();
@@ -265,14 +265,14 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
    * This is not closer to the GroupEventHeader because it is unmounted
    * between route changes like latest event => eventId
    */
-  const previousEvent = useMemoWithPrevious<typeof event | null>(
+  const previousEvent = useMemoWithPrevious<{event: Event; groupId: string} | null>(
     previousInstance => {
       if (event) {
-        return event;
+        return {event, groupId};
       }
       return previousInstance;
     },
-    [event]
+    [event, groupId]
   );
 
   // If the environment changes, we need to refetch the group, but we can
@@ -316,6 +316,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
     if (defined(group)) {
       GroupStore.loadInitialData([group]);
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [groupId, group]);
 
   useSyncGroupStore(groupId, environments);
@@ -332,7 +333,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       });
 
       if (reprocessingNewRoute) {
-        navigate(reprocessingNewRoute);
+        navigate(reprocessingNewRoute, {replace: true});
       }
     }
   }, [
@@ -392,6 +393,7 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
       // something smarter.
       delete locationQuery._allp;
       navigate({...window.location, query: locationQuery}, {replace: true});
+      // oxlint-disable-next-line react/set-state-in-effect
       setAllProjectChanged(true);
     }
   }, [group?.project.id, allProjectChanged, navigate]);
@@ -416,8 +418,8 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
 
   const refetchData = useCallback(() => {
     refetchEvent();
-    refetchGroup();
-  }, [refetchGroup, refetchEvent]);
+    refetchGroupCall();
+  }, [refetchGroupCall, refetchEvent]);
 
   // Refetch when group is stale
   useEffect(() => {
@@ -437,8 +439,10 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   return {
     loadingGroup,
     group,
-    // Allow previous event to be displayed while new event is loading
-    event: (loadingEvent ? (event ?? previousEvent) : event) ?? null,
+    // Only retain an event while loading another event from the same issue.
+    event:
+      event ??
+      (loadingEvent && previousEvent?.groupId === groupId ? previousEvent.event : null),
     errorType,
     error: isGroupError,
     refetchData,
@@ -574,7 +578,8 @@ type IssueView =
   | 'replays'
   | 'attachments'
   | 'distributions'
-  | 'distributions-tag-detail';
+  | 'distributions-tag-detail'
+  | 'autofix';
 
 const ISSUE_VIEW_PREAMBLES: Record<IssueView, string> = {
   'specific-event':
@@ -591,6 +596,8 @@ const ISSUE_VIEW_PREAMBLES: Record<IssueView, string> = {
     'Sentry issue tag detail page. The user is drilling into a specific tag distribution. You can get issue tag values for the tagKey below to see exact counts and percentages.',
   'issue-overview':
     'Sentry issue detail page. Shows a single grouped issue with its latest event.',
+  autofix:
+    "Sentry issue autofix tab. The user is viewing Seer's analysis of this issue — root cause, proposed solution, code changes and any pull requests it opened.",
 };
 
 function getIssueDetailContextHint(view: IssueView): string {
@@ -624,11 +631,7 @@ function GroupDetailsContentInner({
   const {isAnyDrawerOpen} = useDrawer();
 
   const {currentTab} = useGroupDetailsRoute();
-  const {seerDrawer} = useLocationQuery({
-    fields: {
-      seerDrawer: decodeBoolean,
-    },
-  });
+  const [seerDrawer] = useQueryState('seerDrawer', parseAsBoolean.withDefault(false));
 
   const {hasAutofixQuota} = useAiConfig(group, project);
 
@@ -688,6 +691,8 @@ function GroupDetailsContentInner({
     issueView = 'replays';
   } else if (currentTab === Tab.ATTACHMENTS) {
     issueView = 'attachments';
+  } else if (currentTab === Tab.AUTOFIX) {
+    issueView = 'autofix';
   } else if (currentTab === Tab.DISTRIBUTIONS) {
     issueView = tagKey ? 'distributions-tag-detail' : 'distributions';
   }
@@ -739,9 +744,7 @@ interface GroupDetailsPageContentProps extends FetchGroupDetailsState {
 
 function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
   const projectSlug = props.group?.project?.slug;
-  const api = useApi();
   const organization = useOrganization();
-  const [injectedEvent, setInjectedEvent] = useState(null);
   const {
     projects,
     initiallyLoaded: projectsLoaded,
@@ -770,9 +773,6 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
   const project = projects.find(({slug}) => slug === projectSlug);
   const projectWithFallback = project ?? projects[0];
 
-  const isRegressionIssue =
-    props.group?.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
-
   useEffect(() => {
     if (props.group && projectsLoaded && !project) {
       Sentry.withScope(scope => {
@@ -786,25 +786,6 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
       });
     }
   }, [props.group, project, projects, projectsLoaded]);
-
-  useEffect(() => {
-    const fetchLatestEvent = async () => {
-      const event = await api.requestPromise(
-        `/organizations/${organization.slug}/issues/${props.group?.id}/events/latest/`
-      );
-      setInjectedEvent(event);
-    };
-    if (isRegressionIssue && !defined(props.event)) {
-      fetchLatestEvent();
-    }
-  }, [
-    api,
-    organization.slug,
-    props.event,
-    props.group,
-    props.group?.id,
-    isRegressionIssue,
-  ]);
 
   if (props.error) {
     return (
@@ -822,13 +803,7 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
     );
   }
 
-  const regressionIssueLoaded = defined(injectedEvent ?? props.event);
-  if (
-    !projectsLoaded ||
-    !projectWithFallback ||
-    !props.group ||
-    (isRegressionIssue && !regressionIssueLoaded)
-  ) {
+  if (!projectsLoaded || !projectWithFallback || !props.group) {
     return <LoadingIndicator />;
   }
 
@@ -844,7 +819,7 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
         <GroupDetailsContent
           project={projectWithFallback}
           group={props.group}
-          event={props.event ?? injectedEvent}
+          event={props.event}
         >
           {props.children}
         </GroupDetailsContent>
@@ -864,8 +839,8 @@ function GroupDetails() {
       return defaultTitle;
     }
 
-    const {title} = getTitle(group);
-    const message = getMessage(group);
+    const title = stripAnsi(getTitle(group).title ?? '');
+    const message = stripAnsi(getMessage(group) ?? '');
 
     const eventDetails = `${organization.slug} — ${group.project.slug}`;
 

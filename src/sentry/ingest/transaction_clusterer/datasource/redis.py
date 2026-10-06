@@ -1,12 +1,10 @@
 """Write transactions into redis sets"""
 
 import logging
-from collections.abc import Callable, Iterator, Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from typing import Any
 
-import orjson
 from django.conf import settings
-from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_redis_tools.clients import RedisCluster
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
@@ -17,7 +15,6 @@ from sentry.ingest.transaction_clusterer.datasource import (
 )
 from sentry.models.project import Project
 from sentry.options.rollout import in_random_rollout
-from sentry.spans.consumers.process_segments.types import CompatibleSpan, attribute_value
 from sentry.utils import redis
 from sentry.utils.safe import safe_execute
 from sentry.utils.tracing import start_span
@@ -129,79 +126,31 @@ def record_transaction_name(project: Project, event_data: Mapping[str, Any], **k
             safe_execute(_bump_rule_lifetime, project, event_data)
 
 
-def record_segment_name(project: Project, segment_span: CompatibleSpan) -> None:
-    if segment_name := _should_store_segment_name(segment_span):
-        safe_execute(
-            _record_sample,
-            ClustererNamespace.TRANSACTIONS,
-            project,
-            segment_name,
-        )
-        if in_random_rollout("txnames.bump-lifetime-sample-rate"):
-            safe_execute(
-                _bump_rule_lifetime_for_segment,
-                project,
-                segment_span,
-            )
-
-
 def _should_store_transaction_name(event_data: Mapping[str, Any]) -> str | None:
     transaction_name = event_data.get("transaction")
     transaction_info = event_data.get("transaction_info") or {}
     source = transaction_info.get("source")
 
-    def is_404() -> bool:
-        tags = event_data.get("tags") or []
-        return HTTP_404_TAG in tags
-
-    return _should_store_segment_name_inner(transaction_name, source, is_404)
-
-
-def _should_store_segment_name(segment_span: CompatibleSpan) -> str | None:
-    segment_name = attribute_value(
-        segment_span, ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME
-    ) or segment_span.get("name")
-    source = attribute_value(segment_span, ATTRIBUTE_NAMES.SENTRY_SPAN_SOURCE)
-
-    def is_404() -> bool:
-        status_code = attribute_value(segment_span, ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE)
-        return status_code == 404
-
-    return _should_store_segment_name_inner(segment_name, source, is_404)
-
-
-def _should_store_segment_name_inner(
-    name: str | None, source: str | None, is_404: Callable[[], bool]
-) -> str | None:
-    if not name:
+    if not transaction_name:
         return None
     source_matches = source in (TRANSACTION_SOURCE_URL, TRANSACTION_SOURCE_SANITIZED) or (
         # Relay leaves source None if it expects it to be high cardinality, (otherwise it sets it to "unknown")
         # (see https://github.com/getsentry/relay/blob/2d07bef86415cc0ae8af01d16baecde10cdb23a6/relay-general/src/store/transactions/processor.rs#L369-L373).
         #
         # Our data shows that a majority of these `None` source transactions contain slashes, so treat them as URL transactions:
-        source is None and "/" in name
+        source is None and "/" in transaction_name
     )
     if not source_matches:
         return None
-    if is_404():
+    tags = event_data.get("tags") or []
+    if HTTP_404_TAG in tags:
         return None
-    return name
+    return transaction_name
 
 
 def _bump_rule_lifetime(project: Project, event_data: Mapping[str, Any]) -> None:
     applied_rules = event_data.get("_meta", {}).get("transaction", {}).get("", {}).get("rem", [])
     _bump_rule_lifetime_inner(project, applied_rules)
-
-
-def _bump_rule_lifetime_for_segment(project: Project, segment_span: CompatibleSpan) -> None:
-    meta_str: str | None = attribute_value(
-        segment_span, f"sentry._meta.fields.attributes.{ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME}"
-    )
-    if meta_str:
-        meta = orjson.loads(meta_str)
-        applied_rules = meta.get("meta", {}).get("", {}).get("rem", [])
-        _bump_rule_lifetime_inner(project, applied_rules)
 
 
 def _bump_rule_lifetime_inner(project: Project, applied_rules: Sequence):

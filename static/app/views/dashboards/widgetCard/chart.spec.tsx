@@ -61,7 +61,7 @@ describe('WidgetCardChart', () => {
       ['workflowName']
     );
 
-    expect(screen.getByText('No data to plot')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'No data to plot.'})).toBeInTheDocument();
   });
 
   it('renders "No Data" when the widget has no X-axis column', () => {
@@ -76,6 +76,6 @@ describe('WidgetCardChart', () => {
       []
     );
 
-    expect(screen.getByText('No data to plot')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'No data to plot.'})).toBeInTheDocument();
   });
 });

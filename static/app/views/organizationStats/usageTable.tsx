@@ -1,23 +1,22 @@
-import {Component} from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {IdBadge} from 'sentry/components/idBadge';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {Panel} from 'sentry/components/panels/panel';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconGraph, IconSettings, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
-import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
@@ -27,8 +26,6 @@ const DOCS_URL = 'https://docs.sentry.io/product/accounts/membership/#restrictin
 type Props = {
   dataCategory: DataCategoryInfo;
   headers: React.ReactNode[];
-  location: Location;
-  navigate: ReactRouter3Navigate;
   usageStats: TableStat[];
   errors?: Record<string, Error>;
   isEmpty?: boolean;
@@ -49,41 +46,51 @@ export type TableStat = {
   total: number;
 };
 
-class UsageTable extends Component<Props> {
-  getErrorMessage = (errorMessage: any) => {
-    if (errorMessage.projectStats.responseJSON.detail === 'No projects available') {
-      return (
-        <EmptyMessage
-          icon={<IconWarning />}
-          title={t(
-            "You don't have access to any projects, or your organization has no projects."
-          )}
-        >
-          {tct('Learn more about [link:Project Access]', {
-            link: <ExternalLink href={DOCS_URL} />,
-          })}
-        </EmptyMessage>
-      );
-    }
-    return <IconWarning variant="muted" legacySize="48px" />;
-  };
-
-  loadProject(projectId: number) {
-    updateProjects([projectId], this.props.location, this.props.navigate, {
-      save: true,
-      environments: [], // Clear environments when switching projects
-    });
-    window.scrollTo({top: 0, left: 0, behavior: 'smooth'});
+function getErrorMessage(errorMessage: any) {
+  if (errorMessage.projectStats.responseJSON.detail === 'No projects available') {
+    return (
+      <EmptyMessage
+        icon={<IconWarning />}
+        title={t(
+          "You don't have access to any projects, or your organization has no projects."
+        )}
+      >
+        {tct('Learn more about [link:Project Access]', {
+          link: <ExternalLink href={DOCS_URL} />,
+        })}
+      </EmptyMessage>
+    );
   }
+  return <IconWarning variant="muted" legacySize="48px" />;
+}
 
-  renderTableRow(stat: TableStat & {project: Project}) {
-    const {dataCategory, showStoredOutcome} = this.props;
-    const {project, total, accepted, accepted_stored, filtered, invalid, rate_limited} =
-      stat;
+function UsageTableRow({
+  dataCategory,
+  showStoredOutcome,
+  stat,
+}: {
+  dataCategory: DataCategoryInfo;
+  stat: TableStat;
+  showStoredOutcome?: boolean;
+}) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const {
+    project,
+    projectLink,
+    projectSettingsLink,
+    total,
+    accepted,
+    accepted_stored,
+    filtered,
+    invalid,
+    rate_limited,
+  } = stat;
 
-    return [
-      <CellProject key={0}>
-        <Link to={stat.projectLink}>
+  return (
+    <SimpleTable.Row>
+      <RowCellProject>
+        <Link to={projectLink}>
           <StyledIdBadge
             avatarSize={16}
             disableLink
@@ -92,15 +99,15 @@ class UsageTable extends Component<Props> {
             displayName={project.slug}
           />
         </Link>
-      </CellProject>,
-      <CellStat key={1}>
+      </RowCellProject>
+      <RowCellStat>
         {formatUsageWithUnits(
           total,
           dataCategory.plural,
           getFormatUsageOptions(dataCategory.plural)
         )}
-      </CellStat>,
-      <CellStat key={2}>
+      </RowCellStat>
+      <RowCellStat>
         {formatUsageWithUnits(
           accepted,
           dataCategory.plural,
@@ -115,94 +122,135 @@ class UsageTable extends Component<Props> {
             )})`}
           </SubText>
         )}
-      </CellStat>,
-      <CellStat key={3}>
+      </RowCellStat>
+      <RowCellStat>
         {formatUsageWithUnits(
           filtered,
           dataCategory.plural,
           getFormatUsageOptions(dataCategory.plural)
         )}
-      </CellStat>,
-      <CellStat key={4}>
+      </RowCellStat>
+      <RowCellStat>
         {formatUsageWithUnits(
           rate_limited,
           dataCategory.plural,
           getFormatUsageOptions(dataCategory.plural)
         )}
-      </CellStat>,
-      <CellStat key={5}>
+      </RowCellStat>
+      <RowCellStat>
         {formatUsageWithUnits(
           invalid,
           dataCategory.plural,
           getFormatUsageOptions(dataCategory.plural)
         )}
-      </CellStat>,
-      <CellStat key={6}>
+      </RowCellStat>
+      <RowCellStat>
         <Grid flow="column" align="center" gap="md">
           <Button
             icon={<IconGraph type="bar" />}
             data-test-id={project.slug}
             size="xs"
             onClick={() => {
-              this.loadProject(parseInt(stat.project.id, 10));
+              updateProjects([parseInt(project.id, 10)], location, navigate, {
+                save: true,
+                environments: [], // Clear environments when switching projects
+              });
+              window.scrollTo({top: 0, left: 0, behavior: 'smooth'});
             }}
           >
             {t('View Project Stats')}
           </Button>
-          <LinkButton icon={<IconSettings />} size="xs" to={stat.projectSettingsLink}>
+          <LinkButton icon={<IconSettings />} size="xs" to={projectSettingsLink}>
             {t('Project Settings')}
           </LinkButton>
         </Grid>
-      </CellStat>,
-    ];
-  }
+      </RowCellStat>
+    </SimpleTable.Row>
+  );
+}
 
-  render() {
-    const {isEmpty, isLoading, isError, errors, headers, usageStats} = this.props;
-
-    if (isError) {
-      return (
-        <Panel>
-          <ErrorPanel height="256px">{this.getErrorMessage(errors)}</ErrorPanel>
-        </Panel>
-      );
-    }
-
+export function UsageTable({
+  dataCategory,
+  headers,
+  usageStats,
+  errors,
+  isEmpty,
+  isError,
+  isLoading,
+  showStoredOutcome,
+}: Props) {
+  if (isError) {
     return (
-      <StyledPanelTable isLoading={isLoading} isEmpty={isEmpty} headers={headers}>
-        {usageStats.map(s => this.renderTableRow(s))}
-      </StyledPanelTable>
+      <Panel>
+        <ErrorPanel height="256px">{getErrorMessage(errors)}</ErrorPanel>
+      </Panel>
     );
   }
+
+  return (
+    <SimpleTable
+      columns={USAGE_COLUMNS}
+      header={
+        <SimpleTable.HeaderRow>
+          {headers.map((header, i) => (
+            <SimpleTable.HeaderCell key={i}>{header}</SimpleTable.HeaderCell>
+          ))}
+        </SimpleTable.HeaderRow>
+      }
+    >
+      {isLoading && <SimpleTable.Loading />}
+      {!isLoading && isEmpty && (
+        <SimpleTable.Empty>{t('No data available')}</SimpleTable.Empty>
+      )}
+      {!isLoading &&
+        usageStats.map(stat => (
+          <UsageTableRow
+            key={stat.project.id}
+            dataCategory={dataCategory}
+            showStoredOutcome={showStoredOutcome}
+            stat={stat}
+          />
+        ))}
+    </SimpleTable>
+  );
 }
 
-/**
- * Wrapper that injects `navigate` and `location` hooks into UsageTable.
- */
-function UsageTableWithHooks(props: Omit<Props, 'navigate' | 'location'>) {
-  const navigate = useNavigate();
-  const location = useLocation();
-  return <UsageTable {...props} navigate={navigate} location={location} />;
-}
+const STAT_COLUMN_WIDTH = {zero: 'auto', xl: 'minmax(0, auto)'};
 
-// eslint-disable-next-line @sentry/no-default-exports
-export default UsageTableWithHooks;
+const USAGE_COLUMNS: TableColumnConfig[] = [
+  {key: 'project', width: {zero: 'auto', xl: '1fr'}},
+  {key: 'total', width: STAT_COLUMN_WIDTH},
+  {key: 'accepted', width: STAT_COLUMN_WIDTH},
+  {key: 'filtered', width: STAT_COLUMN_WIDTH},
+  {key: 'rateLimited', width: STAT_COLUMN_WIDTH},
+  {key: 'invalid', width: STAT_COLUMN_WIDTH},
+  {key: 'actions', width: STAT_COLUMN_WIDTH},
+];
 
-const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: repeat(7, auto);
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: 1fr repeat(6, minmax(0, auto));
-  }
-`;
-
-export const CellStat = styled('div')`
+const cellStatStyle = css`
   display: flex;
   align-items: center;
   font-variant-numeric: tabular-nums;
   justify-content: right;
 `;
 
+/**
+ * Header cells; `usageStatsProjects` builds the `headers` array out of these, so
+ * they stay plain elements rather than table cells.
+ */
+export const CellStat = styled('div')`
+  ${cellStatStyle}
+`;
+
 export const CellProject = styled(CellStat)`
+  justify-content: left;
+`;
+
+const RowCellStat = styled(SimpleTable.RowCell)`
+  ${cellStatStyle}
+`;
+
+const RowCellProject = styled(RowCellStat)`
   justify-content: left;
 `;
 

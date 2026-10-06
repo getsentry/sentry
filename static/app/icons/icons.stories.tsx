@@ -187,11 +187,11 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'seer-waiting',
+        id: 'seer-idle',
         groups: ['product', 'seer'],
         keywords: ['seer', 'ai', 'eye', 'pyramid'],
         name: 'Seer',
-        defaultProps: {animation: 'waiting'},
+        defaultProps: {animation: 'idle'},
       },
       {
         id: 'seer-loading',
@@ -679,6 +679,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'circleDashed',
+        groups: ['status'],
+        keywords: ['shape', 'round', 'indicator', 'progress', 'pending', 'not started'],
+        name: 'CircleDashed',
+        defaultProps: {},
+      },
+      {
         id: 'circleFill',
         groups: ['status'],
         keywords: ['shape', 'round', 'dot', 'indicator', 'filled'],
@@ -994,6 +1001,13 @@ const SECTIONS: TSection[] = [
         groups: ['action'],
         keywords: ['duplicate', 'clone', 'clipboard'],
         name: 'Copy',
+        defaultProps: {},
+      },
+      {
+        id: 'copyId',
+        groups: ['action'],
+        keywords: ['duplicate', 'clone', 'clipboard', 'id', 'identifier'],
+        name: 'CopyId',
         defaultProps: {},
       },
       {
@@ -1724,6 +1738,7 @@ const PLUGIN_ICON_KEYS: Array<PluginIconProps['pluginId']> = [
   'bitbucket',
   'bitbucket_pipelines',
   'bitbucket_server',
+  'cursor_origin',
   'discord',
   'github',
   'github_enterprise',
@@ -1911,9 +1926,9 @@ function Section(props: CategorySectionProps) {
       </Container>
       <Grid
         columns={{
-          'screen:xs': 'repeat(2, 1fr)',
-          'screen:sm': 'repeat(3, 1fr)',
-          'screen:lg': 'repeat(4, 1fr)',
+          zero: 'repeat(2, 1fr)',
+          sm: 'repeat(3, 1fr)',
+          xl: 'repeat(4, 1fr)',
         }}
         align="center"
         gap="md"
@@ -1951,7 +1966,6 @@ function IconCard(props: IconCardProps) {
   return (
     <Tooltip
       maxWidth={640}
-      isHoverable
       title={
         <Stack gap="md">
           <CodeBlock language="jsx" code={snippets.all} />

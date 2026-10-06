@@ -36,6 +36,32 @@ describe('prettifyQueryConditions', () => {
     );
   });
 
+  it('wildcards each item of a list value', () => {
+    const contains = `${NAMESPACE_SYMBOL}Contains${NAMESPACE_SYMBOL}`;
+    const startsWith = `${NAMESPACE_SYMBOL}StartsWith${NAMESPACE_SYMBOL}`;
+    expect(prettifyQueryConditions(`span.op:${contains}[db,http]`)).toBe(
+      'span.op:[*db*,*http*]'
+    );
+    expect(prettifyQueryConditions(`span.op:${startsWith}[db,http]`)).toBe(
+      'span.op:[db*,http*]'
+    );
+  });
+
+  it('wildcards inside quoted values', () => {
+    const contains = `${NAMESPACE_SYMBOL}Contains${NAMESPACE_SYMBOL}`;
+    expect(prettifyQueryConditions(`transaction:${contains}"GET /foo"`)).toBe(
+      'transaction:"*GET /foo*"'
+    );
+    expect(prettifyQueryConditions(`transaction:${contains}["GET /foo, /bar",baz]`)).toBe(
+      'transaction:["*GET /foo, /bar*",*baz*]'
+    );
+  });
+
+  it('leaves an empty list alone', () => {
+    const contains = `${NAMESPACE_SYMBOL}Contains${NAMESPACE_SYMBOL}`;
+    expect(prettifyQueryConditions(`span.op:${contains}[]`)).toBe('span.op:[]');
+  });
+
   it('passes through plain conditions unchanged', () => {
     expect(prettifyQueryConditions('browser:Chrome')).toBe('browser:Chrome');
   });

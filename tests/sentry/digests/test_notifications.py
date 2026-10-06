@@ -32,8 +32,7 @@ class BindRecordsTestCase(TestCase):
 
     @cached_property
     def rule(self) -> Rule:
-        rule = self.event.project.rule_set.all().order_by("id")[0]
-        rule.data["actions"][0]["legacy_rule_id"] = rule.id
+        rule = self.create_project_rule(project=self.project)
         rule.save()
         return rule
 
@@ -72,7 +71,7 @@ class GroupRecordsTestCase(TestCase):
 
     @cached_property
     def rule(self) -> Rule:
-        return self.project.rule_set.all().order_by("id")[0]
+        return self.create_project_rule(project=self.project)
 
     def test_success(self) -> None:
         events = [
@@ -99,7 +98,15 @@ class SortDigestTestCase(TestCase):
         return self.create_project(fire_project_created=True)
 
     def test_success(self) -> None:
-        self.create_project_rule(
+        first_rule = self.create_project_rule(
+            project=self.project,
+            name="Send a notification for new issues",
+            condition_data=[
+                {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"}
+            ],
+            action_data=[{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
+        )
+        second_rule = self.create_project_rule(
             project=self.project,
             name="Send a notification for regressions",
             condition_data=[
@@ -108,7 +115,7 @@ class SortDigestTestCase(TestCase):
             action_data=[{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
         )
 
-        rules = list(self.project.rule_set.all())
+        rules = [first_rule, second_rule]
         groups = [self.create_group() for _ in range(3)]
 
         event_counts = {groups[0].id: 10, groups[1].id: 5, groups[2].id: 5}

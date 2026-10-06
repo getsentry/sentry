@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {useState} from 'react';
 
 import {
@@ -32,7 +31,9 @@ import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
  *
  */
 export type EventType = {
-  [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
+  [
+    K in keyof typeof DATA_CATEGORY_INFO
+  ]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
     ? (typeof DATA_CATEGORY_INFO)[K]['singular']
     : never;
 }[keyof typeof DATA_CATEGORY_INFO];

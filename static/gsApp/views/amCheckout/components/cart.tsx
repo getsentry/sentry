@@ -7,12 +7,12 @@ import moment from 'moment-timezone';
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconChevron, IconLightning, IconLock, IconSentry} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -156,13 +156,11 @@ function ItemWithPrice({
   price,
   shouldBoldItem,
   isVariableCost,
-  isCredit,
 }: {
   item: React.ReactNode;
   price: React.ReactNode;
   shouldBoldItem: boolean;
   'data-test-id'?: string;
-  isCredit?: boolean;
   isVariableCost?: boolean;
 }) {
   return (
@@ -170,10 +168,7 @@ function ItemWithPrice({
       <Text bold={shouldBoldItem} variant={isVariableCost ? 'muted' : 'primary'}>
         {item}
       </Text>
-      <Text
-        align="right"
-        variant={isVariableCost ? 'muted' : isCredit ? 'success' : 'primary'}
-      >
+      <Text align="right" variant={isVariableCost ? 'muted' : 'primary'}>
         {price}
       </Text>
     </ItemFlex>
@@ -477,7 +472,7 @@ function SubtotalSummary({
                   price={
                     <Fragment>
                       {t('Variable cost')}{' '}
-                      <QuestionTooltip
+                      <InfoTip
                         size="xs"
                         position="bottom"
                         title={t(
@@ -738,7 +733,7 @@ function TotalSummary({
               aria-label={t('Migrate Now')}
               variant="danger"
               onClick={() => onSubmit(true)}
-              disabled={buttonDisabled || previewDataLoading}
+              disabled={buttonDisabled || previewDataLoading || isSubmitting}
               tooltipProps={{title: buttonDisabled ? buttonDisabledText : undefined}}
               icon={<IconLightning />}
             >
@@ -749,7 +744,7 @@ function TotalSummary({
             aria-label={buttonText}
             variant="primary"
             onClick={() => onSubmit()}
-            disabled={buttonDisabled || previewDataLoading}
+            disabled={buttonDisabled || previewDataLoading || isSubmitting}
             tooltipProps={{title: buttonDisabled ? buttonDisabledText : undefined}}
             icon={<IconLock locked />}
           >

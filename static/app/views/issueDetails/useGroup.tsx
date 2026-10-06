@@ -58,7 +58,7 @@ export function useGroup({groupId, options}: UseGroupOptions) {
       organizationSlug: organization.slug,
       groupId,
       environments,
-      expandDerivedData: organization.features.includes('issue-stream-progress-ui'),
+      expandDerivedData: organization.features.includes('issue-inbox'),
     }),
     gcTime: 30_000,
     retry: false,

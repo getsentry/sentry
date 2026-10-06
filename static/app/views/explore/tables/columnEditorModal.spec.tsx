@@ -68,6 +68,15 @@ const enrichedBooleanTags: TagCollection = {
   },
 };
 
+// Array attributes are keyed by their backend form and carry the array kind.
+const arrayTags: TagCollection = {
+  'tags[my.tags,array]': {
+    key: 'tags[my.tags,array]',
+    name: 'my.tags',
+    kind: FieldKind.ARRAY,
+  },
+};
+
 describe('ColumnEditorModal', () => {
   it('allows closes modal on apply', async () => {
     const onClose = jest.fn();
@@ -425,6 +434,67 @@ describe('ColumnEditorModal', () => {
     expect(columns[1]).toHaveTextContent('string');
   });
 
+  it('displays array tags in column options with correct type', async () => {
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <ColumnEditorModal
+            {...modalProps}
+            columns={['id']}
+            onColumnsChange={() => {}}
+            stringTags={stringTags}
+            numberTags={numberTags}
+            booleanTags={{}}
+            arrayTags={arrayTags}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    const column = screen.getByTestId('editor-column');
+    await userEvent.click(within(column).getByRole('button', {name: 'Column id string'}));
+
+    const columnOptions = await screen.findAllByRole('option');
+    const arrayOptions = columnOptions.filter(option =>
+      option.textContent?.includes('array')
+    );
+    expect(arrayOptions).toHaveLength(1);
+    expect(arrayOptions[0]).toHaveTextContent('my.tags');
+    expect(arrayOptions[0]).toHaveTextContent('array');
+  });
+
+  it('renders existing array column with correct type badge', async () => {
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <ColumnEditorModal
+            {...modalProps}
+            columns={['tags[my.tags,array]', 'id']}
+            onColumnsChange={() => {}}
+            stringTags={stringTags}
+            numberTags={numberTags}
+            booleanTags={{}}
+            arrayTags={arrayTags}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    expect(await screen.findByRole('button', {name: 'Apply'})).toBeInTheDocument();
+
+    const columns = screen.getAllByTestId('editor-column');
+    expect(columns[0]).toHaveTextContent('my.tags');
+    expect(columns[0]).toHaveTextContent('array');
+    expect(columns[1]).toHaveTextContent('id');
+    expect(columns[1]).toHaveTextContent('string');
+  });
+
   it('renders existing columns with types from supplied tags', async () => {
     renderGlobalModal();
 
@@ -478,5 +548,91 @@ describe('ColumnEditorModal', () => {
     const column = screen.getByTestId('editor-column');
     expect(column).toHaveTextContent('sentry.duration');
     expect(column).toHaveTextContent('number');
+  });
+
+  it('keeps user-sent attributes that collide with a hidden field selectable', async () => {
+    const onColumnsChange = jest.fn();
+
+    renderGlobalModal();
+
+    const stringTagsWithCollision: TagCollection = {
+      ...stringTags,
+      'organization.id': {
+        key: 'organization.id',
+        name: 'organization.id',
+        kind: FieldKind.TAG,
+        attributeSource: 'user',
+      },
+      'sentry.organization.id': {
+        key: 'sentry.organization.id',
+        name: 'organization.id',
+        kind: FieldKind.TAG,
+        attributeSource: 'sentry',
+      },
+    };
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <ColumnEditorModal
+            {...modalProps}
+            columns={['id']}
+            onColumnsChange={onColumnsChange}
+            stringTags={stringTagsWithCollision}
+            numberTags={{}}
+            booleanTags={{}}
+            hiddenKeys={['organization.id']}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add a Column'}));
+
+    const addedColumn = screen.getAllByTestId('editor-column')[1]!;
+    await userEvent.click(within(addedColumn).getByRole('button', {name: 'Column —'}));
+
+    // Only the user-sent attribute survives the hidden list; the Sentry-sourced
+    // field of the same display name is dropped.
+    const orgIdOptions = (await screen.findAllByRole('option')).filter(option =>
+      option.textContent?.includes('organization.id')
+    );
+    expect(orgIdOptions).toHaveLength(1);
+
+    await userEvent.click(orgIdOptions[0]!);
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+    expect(onColumnsChange).toHaveBeenCalledWith(['id', 'organization.id']);
+  });
+
+  it('does not offer a hidden field as an option when it is a selected column', async () => {
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <ColumnEditorModal
+            {...modalProps}
+            columns={['id', 'sentry.organization_id']}
+            onColumnsChange={jest.fn()}
+            stringTags={stringTags}
+            numberTags={{}}
+            booleanTags={{}}
+            hiddenKeys={['sentry.organization_id']}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add a Column'}));
+
+    const addedColumn = screen.getAllByTestId('editor-column')[2]!;
+    await userEvent.click(within(addedColumn).getByRole('button', {name: 'Column —'}));
+
+    const hiddenOptions = (await screen.findAllByRole('option')).filter(option =>
+      option.textContent?.includes('sentry.organization_id')
+    );
+    expect(hiddenOptions).toHaveLength(0);
   });
 });

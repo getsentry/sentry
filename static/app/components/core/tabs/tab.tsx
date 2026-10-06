@@ -95,25 +95,27 @@ const innerWrapStyles = ({
   padding: ${paddingPerSize(theme, orientation)[size]};
   border-radius: ${theme.radius.md};
   transform: translateY(1px);
-  margin-bottom: ${orientation === 'horizontal' && variant === 'flat'
-    ? theme.space.xs
-    : 0};
+  margin-bottom: ${
+    orientation === 'horizontal' && variant === 'flat' ? theme.space.xs : 0
+  };
 
-  ${orientation === 'horizontal'
-    ? css`
-        gap: ${theme.space.md};
-      `
-    : css`
-        gap: ${theme.space.sm};
-        /**
+  ${
+    orientation === 'horizontal'
+      ? css`
+          gap: ${theme.space.md};
+        `
+      : css`
+          gap: ${theme.space.sm};
+          /**
           * To align the SelectionIndicator (2px width, 4px spacing)
           */
-        margin-left: ${variant === 'flat'
-          ? `calc(${theme.space.xs} + ${selectionIndicatorSize})`
-          : 0};
-        /* static padding towards SelectionIndicator */
-        padding-left: ${theme.space.md};
-      `}
+          margin-left: ${
+            variant === 'flat' ? `calc(${theme.space.xs} + ${selectionIndicatorSize})` : 0
+          };
+          /* static padding towards SelectionIndicator */
+          padding-left: ${theme.space.md};
+        `
+  }
 
   li[aria-disabled]:hover & {
     background-color: transparent;
@@ -125,33 +127,44 @@ const innerWrapStyles = ({
   }
 
   li:not([aria-disabled]):hover & {
-    background-color: ${selected
-      ? variant === 'floating'
-        ? theme.tokens.interactive.transparent.accent.selected.background.hover
-        : theme.tokens.interactive.transparent.accent.selected.background.rest
-      : theme.tokens.interactive.transparent.neutral.background.hover};
-    color: ${selected
-      ? theme.tokens.interactive.link.accent.hover
-      : theme.tokens.interactive.link.neutral.hover};
+    background-color: ${
+      selected
+        ? variant === 'floating'
+          ? theme.tokens.interactive.transparent.accent.selected.background.hover
+          : theme.tokens.interactive.transparent.accent.selected.background.rest
+        : theme.tokens.interactive.transparent.neutral.background.hover
+    };
+    color: ${
+      selected
+        ? theme.tokens.interactive.link.accent.hover
+        : theme.tokens.interactive.link.neutral.hover
+    };
   }
 
   li:not([aria-disabled]):active & {
-    background-color: ${selected
-      ? variant === 'floating'
-        ? theme.tokens.interactive.transparent.accent.selected.background.active
-        : theme.tokens.interactive.transparent.accent.selected.background.hover
-      : theme.tokens.interactive.transparent.neutral.background.active};
-    color: ${selected
-      ? theme.tokens.interactive.link.accent.active
-      : theme.tokens.interactive.link.neutral.active};
+    background-color: ${
+      selected
+        ? variant === 'floating'
+          ? theme.tokens.interactive.transparent.accent.selected.background.active
+          : theme.tokens.interactive.transparent.accent.selected.background.hover
+        : theme.tokens.interactive.transparent.neutral.background.active
+    };
+    color: ${
+      selected
+        ? theme.tokens.interactive.link.accent.active
+        : theme.tokens.interactive.link.neutral.active
+    };
   }
 
-  ${variant === 'floating' &&
-  selected &&
-  css`
-    background-color: ${theme.tokens.interactive.transparent.accent.selected.background
-      .rest};
-  `}
+  ${
+    variant === 'floating' &&
+    selected &&
+    css`
+      background-color: ${
+        theme.tokens.interactive.transparent.accent.selected.background.rest
+      };
+    `
+  }
 `;
 
 const StyledTabSelectionIndicator = styled('div')<{

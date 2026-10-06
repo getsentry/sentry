@@ -10,7 +10,6 @@ import {AiSetupDataConsent} from 'getsentry/components/ai/AiSetupDataConsent';
 import CronsBillingBanner from 'getsentry/components/crons/cronsBillingBanner';
 import {DashboardBanner} from 'getsentry/components/dashboardBanner';
 import DataConsentBanner from 'getsentry/components/dataConsentBanner';
-import {DataConsentOrgCreationCheckbox} from 'getsentry/components/dataConsentCheckbox';
 import DataConsentPriorityLearnMore from 'getsentry/components/dataConsentPriorityLearnMore';
 import DateRangeQueryLimitFooter from 'getsentry/components/features/dateRangeQueryLimitFooter';
 import {DisabledAlertWizard} from 'getsentry/components/features/disabledAlertWizard';
@@ -21,10 +20,9 @@ import DisabledDateRange from 'getsentry/components/features/disabledDateRange';
 import {DisabledDiscardGroup} from 'getsentry/components/features/disabledDiscardGroup';
 import {DisabledRateLimits} from 'getsentry/components/features/disabledRateLimits';
 import DisabledSelectorItems from 'getsentry/components/features/disabledSelectorItems';
-import InsightsDateRangeQueryLimitFooter from 'getsentry/components/features/insightsDateRangeQueryLimitFooter';
 import {PerformanceNewProjectPrompt} from 'getsentry/components/features/performanceNewProjectPrompt';
 import {ProjectPerformanceScoreCard} from 'getsentry/components/features/projectPerformanceScoreCard';
-import {HelpSearchFooter} from 'getsentry/components/helpSearchFooter';
+import {FeedbackInit} from 'getsentry/components/feedbackInit';
 import {InviteMembersButtonCustomization} from 'getsentry/components/inviteMembersButtonCustomization';
 import LabelWithPowerIcon from 'getsentry/components/labelWithPowerIcon';
 import MemberInviteModalCustomization from 'getsentry/components/memberInviteModalCustomization';
@@ -38,7 +36,6 @@ import {PrimaryNavSeerConfigReminder} from 'getsentry/components/primaryNavSeerC
 import {ProductSelectionAvailability} from 'getsentry/components/productSelectionAvailability';
 import {ProductUnavailableCTA} from 'getsentry/components/productUnavailableCTA';
 import {ReplayInit} from 'getsentry/components/replayInit';
-import ReplayOnboardingCTA from 'getsentry/components/replayOnboardingCTA';
 import {
   shouldExcludeOrg,
   SuperuserWarning,
@@ -71,15 +68,13 @@ import {useBillingNavigationConfig} from 'getsentry/overrides/useBillingNavigati
 import {useDashboardDatasetRetentionLimit} from 'getsentry/overrides/useDashboardDatasetRetentionLimit';
 import {useExperiment} from 'getsentry/overrides/useExperiment';
 import {useMetricDetectorLimit} from 'getsentry/overrides/useMetricDetectorLimit';
-import {useProductBillingAccess} from 'getsentry/overrides/useProductBillingAccess';
 import {useReplayForCriticalFlow} from 'getsentry/overrides/useReplayForCriticalFlow';
 import {useScmFeatureMeta} from 'getsentry/overrides/useScmFeatureMeta';
 import {rawTrackAnalyticsEvent} from 'getsentry/utils/rawTrackAnalyticsEvent';
-import {trackMetric} from 'getsentry/utils/trackMetric';
+import SeerAutomationTrial from 'getsentry/views/seerAutomation/trial';
 
 import {GsBillingCommandPaletteActions} from './components/gsBillingCommandPaletteActions';
 import {PrimaryNavigationQuotaExceeded} from './components/navBillingStatus';
-import {OpenInDiscoverBtn} from './components/openInDiscoverBtn';
 import {ContinuousProfilingBillingRequirementBanner} from './components/profiling/alerts';
 import {ReplaySettingsAlert} from './components/replaySettingsAlert';
 import {useButtonTracking} from './overrides/useButtonTracking';
@@ -134,7 +129,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
    */
   'analytics:raw-track-event': rawTrackAnalyticsEvent,
   'analytics:init-user': analyticsInitUser,
-  'metrics:event': trackMetric,
 
   /**
    * Sidebar augmentation
@@ -154,13 +148,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   ),
 
   /**
-   * Augment the global help search modal with a contact support button
-   */
-  'help-modal:footer': ({closeModal}) => (
-    <HelpSearchFooter key="help-search-footer" closeModal={closeModal} />
-  ),
-
-  /**
    * Registers usage & billing org settings as globally-available CMDK actions.
    */
   'cmdk:global-settings-actions': () => <GsBillingCommandPaletteActions />,
@@ -175,6 +162,7 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
    * like `/onboarding/*` are covered too.
    */
   'component:replay-init': ReplayInit,
+  'component:feedback-init': FeedbackInit,
 
   /**
    * Augment the header with the getsentry banners. This includes banners
@@ -223,13 +211,9 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
     <SpikeProtectionProjectSettings {...p} />
   ),
 
-  /**
-   *   Given a module name, if applicable, displays the appropriate upsell page
-   */
-  'component:insights-date-range-query-limit-footer': () =>
-    InsightsDateRangeQueryLimitFooter,
   'component:ai-configure-seer-quota-sidebar': () => AiConfigureSeerQuotaSidebar,
   'component:ai-setup-data-consent': () => AiSetupDataConsent,
+  'component:seer-trial-cta': () => SeerAutomationTrial,
   'component:continuous-profiling-billing-requirement-banner': () =>
     ContinuousProfilingBillingRequirementBanner,
   'component:header-date-page-filter-upsell-footer': () => DateRangeQueryLimitFooter,
@@ -250,7 +234,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   'component:first-party-integration-additional-cta': () =>
     FirstPartyIntegrationAdditionalCTA,
   'component:scm-github-multi-org-install': () => ScmGithubMultiOrgInstall,
-  'component:replay-onboarding-cta': () => ReplayOnboardingCTA,
   'component:replay-settings-alert': () => ReplaySettingsAlert,
   'component:product-unavailable-cta': () => ProductUnavailableCTA,
   'component:product-selection-availability': () => ProductSelectionAvailability,
@@ -266,7 +249,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   'react-hook:use-metric-detector-limit': useMetricDetectorLimit,
   'react-hook:use-dashboard-dataset-retention-limit': useDashboardDatasetRetentionLimit,
   'react-hook:use-experiment': useExperiment,
-  'react-hook:use-product-billing-access': useProductBillingAccess,
   'react-hook:use-replay-for-critical-flow': useReplayForCriticalFlow,
   'react-hook:use-scm-feature-meta': useScmFeatureMeta,
   'component:partnership-agreement': p => (
@@ -275,7 +257,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   'component:dashboards-limit-provider': () => DashboardsLimitProvider,
   'component:data-consent-banner': () => DataConsentBanner,
   'component:data-consent-priority-learn-more': () => DataConsentPriorityLearnMore,
-  'component:data-consent-org-creation-checkbox': () => DataConsentOrgCreationCheckbox,
   'component:organization-membership-settings': () => OrganizationMembershipSettingsForm,
   'component:metric-alert-quota-message': MetricAlertQuotaMessage,
   'component:metric-alert-quota-icon': MetricAlertQuotaIcon,
@@ -360,7 +341,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </PowerFeatureHovercard>
   ),
-  'feature-disabled:open-in-discover': p => <OpenInDiscoverBtn {...p} />,
   'feature-disabled:issue-views': p => (
     <PowerFeatureHovercard
       features={['organizations:issue-views']}

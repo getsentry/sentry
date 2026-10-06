@@ -11,7 +11,9 @@ from sentry.models.project import Project
 from ..base import DetectorType, PerformanceDetector
 from ..detectors.utils import (
     fingerprint_resource_span,
+    get_browser_name,
     get_notification_attachment_body,
+    get_numeric_value_from_span,
     get_span_duration,
     get_span_evidence_value,
 )
@@ -52,18 +54,25 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
         if op not in allowed_span_ops:
             return
 
-        data = span.get("data", None)
         # TODO(nar): The sentence-style keys can be removed once SDK adoption has increased and
         # we are receiving snake_case keys consistently, likely beyond October 2023
-        transfer_size = data and (
-            data.get("http.response_transfer_size", None) or data.get("Transfer Size", None)
+        transfer_size = get_numeric_value_from_span(
+            span,
+            keys=["http.response_transfer_size", "Transfer Size"],
+            detector="uncompressed_asset",
+            number_type=int,
         )
-        encoded_body_size = data and (
-            data.get("http.response_content_length", None) or data.get("Encoded Body Size", None)
+        encoded_body_size = get_numeric_value_from_span(
+            span,
+            keys=["http.response_content_length", "Encoded Body Size"],
+            detector="uncompressed_asset",
+            number_type=int,
         )
-        decoded_body_size = data and (
-            data.get("http.decoded_response_content_length", None)
-            or data.get("Decoded Body Size", None)
+        decoded_body_size = get_numeric_value_from_span(
+            span,
+            keys=["http.decoded_response_content_length", "Decoded Body Size"],
+            detector="uncompressed_asset",
+            number_type=int,
         )
         if not (encoded_body_size and decoded_body_size and transfer_size):
             return
@@ -147,19 +156,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
 
     @classmethod
     def is_event_eligible(cls, event: dict[str, Any], project: Project | None = None) -> bool:
-        tags = event.get("tags", [])
-        browser_name = next(
-            (
-                tag[1]
-                for tag in tags
-                if tag is not None
-                and tag[0] == "browser.name"
-                and len(tag) == 2
-                and tag[1] is not None
-            ),
-            "",
-        )
-        if browser_name.lower() in [
+        if get_browser_name(event).lower() in [
             "chrome",
             "firefox",
             "safari",

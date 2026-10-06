@@ -102,15 +102,18 @@ export function markRowAsClicked(
   if (clickedRowKey !== null) {
     const clickedRow = renderedItems.find(row => row.key === clickedRowKey);
     if (clickedRow) {
-      updateGhostRow({
-        element: ghostRowRef,
-        interaction: 'clicked',
-        rowHeight,
-        scrollTop,
-        selectedNodeIndex: clickedRow.key,
-        theme,
-      });
+      ghostRowRef?.style.setProperty('opacity', '0');
+      return;
     }
+
+    updateGhostRow({
+      element: ghostRowRef,
+      interaction: 'clicked',
+      rowHeight,
+      scrollTop,
+      selectedNodeIndex: clickedRowKey,
+      theme,
+    });
   }
 }
 
@@ -181,7 +184,7 @@ export interface VirtualizedTreeRenderedRow<T> {
   item: VirtualizedTreeNode<T>;
   key: number;
   ref: HTMLElement | null;
-  styles: React.CSSProperties;
+  styles: {position: 'absolute'; top: `${number}px`};
 }
 
 export interface VirtualizedTreeRenderedRowHandlers<T> {
@@ -250,7 +253,7 @@ export function findRenderedItems<T extends TreeLike>({
       renderedRows[visibleItemIndex] = {
         key: indexPointer,
         ref: null,
-        styles: {position: 'absolute', top: elementTop},
+        styles: {position: 'absolute', top: `${elementTop}px`},
         item: items[indexPointer]!,
       };
 

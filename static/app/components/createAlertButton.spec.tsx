@@ -38,7 +38,7 @@ describe('CreateAlertFromViewButton', () => {
         onClick={onClickMock}
       />
     );
-    await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
     expect(onClickMock).toHaveBeenCalledTimes(1);
   });
 
@@ -70,7 +70,7 @@ describe('CreateAlertFromViewButton', () => {
       }
     );
 
-    expect(screen.getByRole('button', {name: 'Create Alert'})).toHaveAttribute(
+    expect(screen.getByRole('button', {name: 'Create Monitor'})).toHaveAttribute(
       'aria-disabled',
       'true'
     );
@@ -100,7 +100,7 @@ describe('CreateAlertFromViewButton', () => {
       }
     );
 
-    expect(screen.getByRole('button', {name: 'Create Alert'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Create Monitor'})).toBeEnabled();
   });
 
   it('enables the button for team-admin', () => {
@@ -139,12 +139,12 @@ describe('CreateAlertFromViewButton', () => {
       }
     );
 
-    expect(screen.getByRole('button', {name: 'Create Alert'})).toBeEnabled();
+    expect(screen.getByRole('button', {name: 'Create Monitor'})).toBeEnabled();
   });
 
-  it('redirects to alert wizard with no project', async () => {
+  it('redirects to monitor creation with no project', async () => {
     const {router} = render(
-      <CreateAlertButton aria-label="Create Alert" organization={organization} />,
+      <CreateAlertButton aria-label="Create Monitor" organization={organization} />,
       {
         organization,
         initialRouterConfig: {
@@ -158,16 +158,16 @@ describe('CreateAlertFromViewButton', () => {
     await userEvent.click(screen.getByRole('button'));
     expect(router.location).toEqual(
       expect.objectContaining({
-        pathname: '/organizations/org-slug/issues/alerts/wizard/',
+        pathname: '/organizations/org-slug/monitors/new/',
         query: {},
       })
     );
   });
 
-  it('redirects to alert wizard with a project', () => {
+  it('redirects to monitor creation with a project', () => {
     render(
       <CreateAlertButton
-        aria-label="Create Alert"
+        aria-label="Create Monitor"
         organization={organization}
         projectSlug="proj-slug"
       />,
@@ -178,7 +178,7 @@ describe('CreateAlertFromViewButton', () => {
 
     expect(screen.getByRole('button')).toHaveAttribute(
       'href',
-      '/organizations/org-slug/issues/alerts/wizard/?project=proj-slug'
+      '/organizations/org-slug/monitors/new/?project=proj-slug'
     );
   });
 
@@ -202,71 +202,12 @@ describe('CreateAlertFromViewButton', () => {
     await userEvent.click(screen.getByRole('button'));
     expect(router.location).toEqual(
       expect.objectContaining({
-        pathname: '/organizations/org-slug/issues/alerts/new/metric/',
+        pathname: '/organizations/org-slug/monitors/new/settings',
         query: expect.objectContaining({
+          detectorType: 'metric_issue',
           query: 'event.type:error ',
-          project: 'project-slug',
+          project: '2',
         }),
-      })
-    );
-  });
-
-  it('shows monitor label and link when workflow engine is enabled', () => {
-    const workflowOrg = OrganizationFixture({
-      ...organization,
-      features: ['workflow-engine-ui'],
-    });
-
-    render(<CreateAlertButton organization={workflowOrg} projectSlug="proj-slug" />, {
-      organization: workflowOrg,
-    });
-
-    const button = screen.getByRole('button', {name: 'Create Monitor'});
-    expect(button).toHaveTextContent('Create Monitor');
-    expect(button).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/monitors/new/?project=proj-slug'
-    );
-  });
-
-  it('deep links to monitor creation from discover when workflow engine is enabled', async () => {
-    const workflowOrg = OrganizationFixture({
-      ...organization,
-      features: ['workflow-engine-ui'],
-    });
-    const projects = [
-      ProjectFixture({
-        id: '2',
-        slug: 'project-slug',
-      }),
-    ];
-    ProjectsStore.loadInitialData(projects);
-
-    const eventView = EventView.fromSavedQuery({
-      ...DEFAULT_EVENT_VIEW,
-      query: 'event.type:error',
-      projects: [2],
-    });
-    const {router} = render(
-      <CreateAlertFromViewButton
-        organization={workflowOrg}
-        eventView={eventView}
-        projects={projects}
-        onClick={onClickMock}
-      />,
-      {
-        organization: workflowOrg,
-      }
-    );
-
-    await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
-    expect(router.location.pathname).toBe(
-      '/organizations/org-slug/monitors/new/settings'
-    );
-    expect(router.location.query).toEqual(
-      expect.objectContaining({
-        project: '2',
-        detectorType: 'metric_issue',
       })
     );
   });

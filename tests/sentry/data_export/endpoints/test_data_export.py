@@ -3,6 +3,8 @@ from __future__ import annotations
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from django.urls import reverse
+
 from sentry.api.authentication import (
     ApiKeyAuthentication,
     OrgAuthTokenAuthentication,
@@ -16,7 +18,8 @@ from sentry.data_export.models import ExportedData
 from sentry.data_export.writers import OutputMode
 from sentry.search.utils import parse_datetime_string
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.utils import json
 from sentry.utils.snuba import MAX_FIELDS
 
 
@@ -535,6 +538,99 @@ class DataExportTest(APITestCase):
         query_info = data_export.query_info
         assert query_info["field"] == ["message", "timestamp"]
         assert query_info["dataset"] == "logs"
+
+    def test_explore_valid_dataset_tracemetrics(self) -> None:
+        """
+        Tests that the tracemetrics dataset is valid for explore queries
+        """
+        payload = self.make_payload(
+            "explore",
+            {
+                "field": ["model", "sum(value,llm.token_usage,distribution,-)"],
+                "dataset": "tracemetrics",
+            },
+        )
+        with self.feature("organizations:discover-query"):
+            response = self.get_success_response(self.org.slug, status_code=201, **payload)
+        data_export = ExportedData.objects.get(id=response.data["id"])
+        query_info = data_export.query_info
+        assert query_info["field"] == ["model", "sum(value,llm.token_usage,distribution,-)"]
+        assert query_info["dataset"] == "tracemetrics"
+
+    def test_full_export_valid_dataset_tracemetrics(self) -> None:
+        """
+        Tests that the tracemetrics dataset is valid for full exports
+        """
+        payload = {
+            "query_type": ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR,
+            "format": OutputMode.JSONL.value,
+            "query_info": {
+                "field": [],
+                "query": "",
+                "project": [self.project.id],
+                "dataset": "tracemetrics",
+            },
+        }
+        url = reverse(
+            "sentry-api-0-organization-data-export",
+            kwargs={"organization_id_or_slug": self.org.slug},
+        )
+        with self.feature("organizations:discover-query"):
+            response = self.client.post(
+                url, data=json.dumps(payload), content_type="application/json"
+            )
+        assert response.status_code == 201, response.content
+        data_export = ExportedData.objects.get(id=json.loads(response.content)["id"])
+        assert data_export.query_type == ExportQueryType.TRACE_ITEM_FULL_EXPORT
+        assert data_export.query_info["dataset"] == "tracemetrics"
+
+    def _post_full_export(self, extras: dict[str, Any]) -> Any:
+        query_info: dict[str, Any] = {
+            "field": [],
+            "query": "",
+            "project": [self.project.id],
+            "dataset": "logs",
+        }
+        query_info.update(extras)
+        payload = {
+            "query_type": ExportQueryType.TRACE_ITEM_FULL_EXPORT_STR,
+            "format": OutputMode.JSONL.value,
+            "query_info": query_info,
+        }
+        url = reverse(
+            "sentry-api-0-organization-data-export",
+            kwargs={"organization_id_or_slug": self.org.slug},
+        )
+        with self.feature("organizations:discover-query"):
+            return self.client.post(url, data=json.dumps(payload), content_type="application/json")
+
+    def test_full_export_rejects_window_past_retention(self) -> None:
+        """A full export ending past the org's retention period is rejected up front."""
+        with self.options({"system.event-retention-days": 30}):
+            response = self._post_full_export(
+                {
+                    "start": before_now(days=40).isoformat(),
+                    "end": before_now(days=33).isoformat(),
+                }
+            )
+        assert response.status_code == 400, response.content
+        assert json.loads(response.content) == {
+            "non_field_errors": ["The requested time range is outside your data retention period."]
+        }
+        assert not ExportedData.objects.filter(organization=self.org).exists()
+
+    def test_full_export_allows_window_within_retention(self) -> None:
+        """A full export ending inside retention is accepted even if it starts past it."""
+        with self.options({"system.event-retention-days": 30}):
+            response = self._post_full_export(
+                {
+                    "start": before_now(days=40).isoformat(),
+                    "end": before_now(days=1).isoformat(),
+                }
+            )
+        assert response.status_code == 201, response.content
+        data_export = ExportedData.objects.get(id=json.loads(response.content)["id"])
+        assert data_export.query_type == ExportQueryType.TRACE_ITEM_FULL_EXPORT
 
     def test_explore_valid_jsonl_format(self) -> None:
         payload = self.make_payload("explore", {"format": "jsonl"})

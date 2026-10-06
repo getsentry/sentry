@@ -32,7 +32,7 @@ class ConditionTestCase(BaseWorkflowTest):
         evaluation = data_condition.evaluate_value(job)
 
         assert evaluation.data == job
-        assert evaluation.outcome.triggered is True
+        assert evaluation.triggered is True
         assert evaluation.result == data_condition.get_condition_result()
 
     def assert_does_not_pass(
@@ -40,7 +40,7 @@ class ConditionTestCase(BaseWorkflowTest):
     ) -> None:
         evaluation = data_condition.evaluate_value(job)
         assert evaluation.data == job
-        assert evaluation.outcome.triggered is False
+        assert evaluation.triggered is False
         assert evaluation.result != data_condition.get_condition_result()
 
     def assert_slow_condition_passes(self, data_condition: DataCondition, value: list[int]) -> None:
@@ -51,7 +51,7 @@ class ConditionTestCase(BaseWorkflowTest):
         self, data_condition: DataCondition, value: list[int]
     ) -> None:
         evaluation = data_condition.evaluate_value(value)
-        assert evaluation.outcome.triggered is False
+        assert evaluation.triggered is False
         assert evaluation.result != data_condition.get_condition_result()
 
 

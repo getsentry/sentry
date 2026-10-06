@@ -53,8 +53,9 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
         response = self.client.get(url, {"statsPeriod": "14d"}, format="json")
         assert response.status_code == 200, response.content
         data = response.data
-        data.sort(key=lambda val: val["totalValues"], reverse=True)
+        data.sort(key=lambda val: (-val["totalValues"], val["key"]))
         assert data == [
+            {"name": "Interface Type", "key": "interface_type", "totalValues": 4},
             {"name": "Level", "key": "level", "totalValues": 4},
             {"name": "Fruit", "key": "fruit", "totalValues": 3},
             {"name": "Some Tag", "key": "some_tag", "totalValues": 1},
@@ -139,6 +140,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
         data.sort(key=lambda val: val["name"])
         assert data == [
             {"name": "Berry", "key": "berry", "totalValues": 1},
+            {"name": "Interface Type", "key": "interface_type", "totalValues": 1},
             {"name": "Level", "key": "level", "totalValues": 1},
         ]
 
@@ -217,6 +219,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
         data = response.data
         data.sort(key=lambda val: val["name"])
         assert data == [
+            {"name": "Interface Type", "key": "interface_type", "totalValues": 1},
             {"name": "Level", "key": "level", "totalValues": 1},
             {"name": "Stone Fruit", "key": "stone_fruit", "totalValues": 1},
         ]
@@ -272,6 +275,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
         eventsData.sort(key=lambda val: val["name"])
         assert eventsData == [
             {"name": "Berry", "key": "berry", "totalValues": 1},
+            {"name": "Interface Type", "key": "interface_type", "totalValues": 1},
             {"name": "Level", "key": "level", "totalValues": 1},
         ]
 
@@ -288,6 +292,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
         issuePlatformData = issuePlatformResponse.data
         issuePlatformData.sort(key=lambda val: val["name"])
         assert issuePlatformData == [
+            {"name": "Interface Type", "key": "interface_type", "totalValues": 1},
             {"name": "Level", "key": "level", "totalValues": 1},
             {"name": "Stone Fruit", "key": "stone_fruit", "totalValues": 1},
         ]
@@ -469,6 +474,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
         data = response.data
         data.sort(key=lambda val: val["name"])
         assert data == [
+            {"name": "Interface Type", "key": "interface_type", "totalValues": 1},
             {"name": "Level", "key": "level", "totalValues": 1},
             {"key": "project", "name": "Project", "totalValues": 1},
             {"name": "Tags[Status]", "key": "tags[status]", "totalValues": 1},

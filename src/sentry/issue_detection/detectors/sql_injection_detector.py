@@ -93,9 +93,15 @@ class SQLInjectionDetector(PerformanceDetector):
         First, any pairs where the key and value are the same are ignored. This is so that when we look for user inputs in the description, we don't match on the key.
         Second, if the value is a SQL keyword, it is ignored. For example, we don't want to match on the value "SELECT".
         """
-        self.query_string = event.get("request", {}).get("query_string", None)
-        self.request_body = event.get("request", {}).get("data", None)
-        self.request_url = event.get("request", {}).get("url", None)
+        # Use `or {}` rather than `.get("request", {})` because some SDKs (e.g.
+        # the Next.js SDK for server actions) explicitly send `"request": null`
+        # when there is no HTTP request context. `dict.get(key, default)` only
+        # falls back to the default when the key is *absent*; it still returns
+        # `None` when the key is present with a null value.
+        request = event.get("request") or {}
+        self.query_string = request.get("query_string", None)
+        self.request_body = request.get("data", None)
+        self.request_url = request.get("url", None)
 
         if not self.query_string and not self.request_body:
             return

@@ -1,12 +1,10 @@
-import {Fragment} from 'react';
-
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Confirm} from 'sentry/components/confirm';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -25,27 +23,27 @@ export function OrganizationFeatureFlagsProviderRow({
   const {isPending: isUserPending, data: user} = useUserFromId({id: secret.createdBy});
 
   return (
-    <Fragment>
-      <div>
+    <SimpleTable.Row>
+      <SimpleTable.RowCell>
         <div>{secret.provider}</div>
         <Text variant="secondary" aria-label={t('Secret preview')}>
           {secret.secret}
         </Text>
-      </div>
+      </SimpleTable.RowCell>
 
-      <Flex align="center" gap="xs">
+      <SimpleTable.RowCell gap="xs">
         <TimeSince date={secret.createdAt} />
-      </Flex>
+      </SimpleTable.RowCell>
 
-      <Flex align="center">
+      <SimpleTable.RowCell>
         {isUserPending ? (
           <LoadingIndicator mini />
         ) : (
           (user?.name ?? t('Deactivated user'))
         )}
-      </Flex>
+      </SimpleTable.RowCell>
 
-      <Flex justify="end">
+      <SimpleTable.RowCell justify="end">
         <Tooltip
           title={t(
             'You must be an organization owner, manager or admin to remove a secret.'
@@ -70,7 +68,7 @@ export function OrganizationFeatureFlagsProviderRow({
             </Button>
           </Confirm>
         </Tooltip>
-      </Flex>
-    </Fragment>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }

@@ -14,7 +14,12 @@ from sentry.workflow_engine.processors.evaluations import (
     DataConditionEvaluationException,
 )
 from sentry.workflow_engine.registry import condition_handler_registry
-from sentry.workflow_engine.types import ConditionError, DataConditionResult, DetectorPriorityLevel
+from sentry.workflow_engine.types import (
+    ConditionError,
+    DataConditionHandler,
+    DataConditionResult,
+    DetectorPriorityLevel,
+)
 from sentry.workflow_engine.utils import scopedstats
 
 logger = logging.getLogger(__name__)
@@ -38,13 +43,14 @@ class Condition(StrEnum):
     EVENT_ATTRIBUTE = "event_attribute"
     EVENT_CREATED_BY_DETECTOR = "event_created_by_detector"
     EVENT_SEEN_COUNT = "event_seen_count"
+    EVERY_EVENT = "every_event"
     EXISTING_HIGH_PRIORITY_ISSUE = "existing_high_priority_issue"
     FIRST_SEEN_EVENT = "first_seen_event"
     ISSUE_CATEGORY = "issue_category"
     ISSUE_OCCURRENCES = "issue_occurrences"
     ISSUE_OPEN_DURATION = "issue_open_duration"
-    ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
     ISSUE_PRIORITY_DEESCALATING = "issue_priority_deescalating"
+    ISSUE_PRIORITY_EQUALS = "issue_priority_equals"
     ISSUE_PRIORITY_GREATER_OR_EQUAL = "issue_priority_greater_or_equal"
     ISSUE_RESOLUTION_CHANGE = "issue_resolution_change"
     ISSUE_RESOLVED_TRIGGER = "issue_resolved_trigger"
@@ -65,19 +71,9 @@ class Condition(StrEnum):
     PERCENT_SESSIONS_COUNT = "percent_sessions_count"
     PERCENT_SESSIONS_PERCENT = "percent_sessions_percent"
 
-    # Migration Only
-    EVERY_EVENT = "every_event"
-
     # Activity trigger conditions
     SEER_ACTIVITY_TRIGGER = "seer_activity_trigger"
 
-
-TRIGGER_CONDITIONS = [
-    Condition.FIRST_SEEN_EVENT,
-    Condition.ISSUE_RESOLVED_TRIGGER,
-    Condition.REAPPEARED_EVENT,
-    Condition.REGRESSION_EVENT,
-]
 
 CONDITION_OPS = {
     Condition.EQUAL: operator.eq,
@@ -260,6 +256,18 @@ class DataCondition(DefaultFieldsModel):
             result=result,
             data=value,
         )
+
+
+def get_condition_handler(
+    condition_type: Condition,
+) -> type[DataConditionHandler[Any]] | None:
+    if condition_type not in CONDITION_OPS:
+        try:
+            return condition_handler_registry.get(condition_type)
+        except registry.NoRegistrationExistsError:
+            pass
+
+    return None
 
 
 def is_slow_condition(condition: DataCondition) -> bool:

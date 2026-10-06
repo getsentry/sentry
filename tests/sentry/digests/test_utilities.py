@@ -1,8 +1,15 @@
 from __future__ import annotations
 
 from collections.abc import Collection, Iterable, Mapping, Sequence
+from unittest.mock import patch
 
-from sentry.digests.notifications import Digest, DigestInfo, build_digest, event_to_record
+from sentry.digests.notifications import (
+    Digest,
+    DigestInfo,
+    build_digest,
+    event_to_record,
+    get_rules_from_workflows,
+)
 from sentry.digests.types import IdentifierKey, Record
 from sentry.digests.utils import (
     get_event_from_groups_in_digest,
@@ -20,6 +27,8 @@ from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.types.actor import ActorType
+from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 
 
 def _get_records(project: Project, rules: Collection[RuleModel], event: Event) -> list[Record]:
@@ -38,7 +47,7 @@ def _get_records(project: Project, rules: Collection[RuleModel], event: Event) -
 class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
     def test_get_event_from_groups_in_digest(self) -> None:
         project = self.create_project(fire_project_created=True)
-        rule = project.rule_set.all().order_by("id")[0]
+        rule = self.create_project_rule(project=project)
 
         events = [
             self.store_event(
@@ -108,6 +117,32 @@ class UtilitiesHelpersTestCase(TestCase, SnubaTestCase):
         record = records[0]
         assert record.value.identifier_key == IdentifierKey.RULE
         assert record.value.rules == [rule.data["actions"][0]["legacy_rule_id"]]
+
+    def test_get_rules_from_workflows_uses_workflow_environment_for_linked_rule(self) -> None:
+        project = self.create_project(fire_project_created=True)
+        development = self.create_environment(project=project, name="development")
+        production = self.create_environment(project=project, name="production")
+        rule = self.create_project_rule(project=project, environment_id=development.id)
+        workflow_id = int(rule.data["actions"][0]["workflow_id"])
+        workflow = Workflow.objects.get(id=workflow_id)
+        workflow.update(environment_id=production.id)
+
+        rendered_rule = get_rules_from_workflows(project, {workflow_id})[workflow_id]
+
+        assert rendered_rule.id == rule.id
+        assert rendered_rule.environment_id == production.id
+
+    def test_get_rules_from_workflows_uses_workflow_environment_for_synthetic_rule(self) -> None:
+        project = self.create_project(fire_project_created=True)
+        environment = self.create_environment(project=project)
+        workflow = self.create_workflow(
+            organization=project.organization, environment_id=environment.id
+        )
+
+        rendered_rule = get_rules_from_workflows(project, {workflow.id})[workflow.id]
+
+        assert rendered_rule.id == workflow.id
+        assert rendered_rule.environment_id == environment.id
 
 
 def assert_rule_ids(digest: Digest, expected_rule_ids: list[int]) -> None:
@@ -279,6 +314,33 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
         assert_get_personalized_digests(self.project, digest, expected_result)
         assert_rule_ids(
             digest, [self.rule_with_legacy_rule_id.data["actions"][0]["legacy_rule_id"]]
+        )
+
+    def test_legacy_rule_id_records_include_workflow_id(self) -> None:
+        rule = self.rule_with_legacy_rule_id
+        workflow_id = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow_id
+        records = _get_records(self.project, (rule,), self.team1_events[0])
+
+        digest = build_digest(self.project, sort_records(records))[0]
+
+        [digest_rule] = digest.keys()
+        assert digest_rule.data["actions"][0]["legacy_rule_id"] == rule.id
+        assert digest_rule.data["actions"][0]["workflow_id"] == workflow_id
+
+    def test_legacy_rule_id_records_without_workflow(self) -> None:
+        rule = self.rule_with_legacy_rule_id
+        AlertRuleWorkflow.objects.filter(rule_id=rule.id).delete()
+        records = _get_records(self.project, (rule,), self.team1_events[0])
+
+        with patch("sentry.digests.notifications.logger") as mock_logger:
+            digest = build_digest(self.project, sort_records(records))[0]
+
+        [digest_rule] = digest.keys()
+        assert digest_rule.data["actions"][0]["legacy_rule_id"] == rule.id
+        assert "workflow_id" not in digest_rule.data["actions"][0]
+        mock_logger.error.assert_called_once_with(
+            "digests.build_digest.rule_without_workflow",
+            extra={"rule_id": rule.id, "project_id": self.project.id},
         )
 
     def test_direct_email(self) -> None:

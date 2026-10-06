@@ -46,7 +46,6 @@ from sentry.notifications.utils.links import (
     get_integration_link,
     get_issue_replay_link,
     get_rules,
-    get_snooze_url,
 )
 from sentry.notifications.utils.participants import get_owner_reason, get_send_to
 from sentry.notifications.utils.rules import get_rule_or_workflow_id
@@ -132,7 +131,6 @@ class AlertRuleNotification(ProjectNotification):
             event=self.event,
             notification_type_enum=self.notification_setting_type_enum,
             fallthrough_choice=self.fallthrough_choice,
-            rules=self.rules,
             notification_uuid=self.notification_uuid,
         )
 
@@ -184,8 +182,7 @@ class AlertRuleNotification(ProjectNotification):
         rule_details = get_rules(self.rules, self.organization, self.project, self.group.type)
         sentry_query_params = self.get_sentry_query_params(ExternalProviders.EMAIL)
         for rule in rule_details:
-            rule.url = rule.url + sentry_query_params
-            rule.status_url = rule.url + sentry_query_params
+            rule.status_url = rule.status_url + sentry_query_params
 
         notification_reason = get_owner_reason(
             project=self.project,
@@ -270,20 +267,9 @@ class AlertRuleNotification(ProjectNotification):
                 },
             )
 
-        # We don't show the snooze alert if the organization has not enabled the workflow engine UI because in the new UI/system a user can't individually disable a workflow
-        if not features.has("organizations:workflow-engine-ui", self.organization):
-            if len(self.rules) > 0:
-                context["snooze_alert"] = True
-                context["snooze_alert_url"] = get_snooze_url(
-                    self.rules[0],
-                    self.organization,
-                    self.project,
-                    sentry_query_params,
-                    self.group.type,
-                )
-        else:
-            context["snooze_alert"] = False
-            context["snooze_alert_url"] = None
+        # We don't show the snooze alert because in the new UI/system a user can't individually disable a workflow
+        context["snooze_alert"] = False
+        context["snooze_alert_url"] = None
 
         if isinstance(self.event, GroupEvent) and self.event.occurrence:
             context["issue_title"] = self.event.occurrence.issue_title
@@ -309,7 +295,7 @@ class AlertRuleNotification(ProjectNotification):
         title_str = "Alert triggered"
 
         if self.rules:
-            key, value = get_rule_or_workflow_id(self.rules[0])
+            key, value = get_rule_or_workflow_id(self.rules[0], prefer="workflow_id")
 
             match key:
                 case "workflow_id":

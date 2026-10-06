@@ -5,13 +5,11 @@ import type {StrictCSSObject, Theme} from 'sentry/utils/theme';
 
 import {
   type ButtonVariant,
+  type ButtonSize,
   type DO_NOT_USE_CommonButtonProps as CommonButtonProps,
 } from './types';
 
-export const DO_NOT_USE_BUTTON_ICON_SIZES: Record<
-  NonNullable<CommonButtonProps['size']>,
-  SVGIconProps['size']
-> = {
+export const DO_NOT_USE_BUTTON_ICON_SIZES: Record<ButtonSize, SVGIconProps['size']> = {
   zero: 'xs',
   xs: 'xs',
   sm: 'sm',
@@ -23,19 +21,23 @@ const elevation = {
   sm: '2px',
   xs: '1px',
   zero: '0px',
-} satisfies Record<NonNullable<ButtonProps['size']>, string>;
+} satisfies Record<ButtonSize, string>;
 
 const hoverElevation = '1px';
 
 export function DO_NOT_USE_getButtonStyles(
   p: Pick<CommonButtonProps, 'variant' | 'busy'> &
-    Pick<ButtonProps, 'disabled'> & {
+    Pick<ButtonProps, 'disabled' | 'aria-disabled'> & {
       shapeVariant: 'rectangular' | 'square';
-      size: NonNullable<ButtonProps['size']>;
+      size: ButtonSize;
       theme: Theme;
     }
 ): StrictCSSObject {
   const variant = p.variant ?? 'secondary';
+  // A button that is only aria-disabled stays focusable (so its tooltip can
+  // open on focus) but must look and hover like a disabled one.
+  const ariaDisabled = p['aria-disabled'];
+  const disabled = p.disabled || ariaDisabled === true || ariaDisabled === 'true';
 
   const buttonSizes = {
     ...p.theme.form,
@@ -51,6 +53,8 @@ export function DO_NOT_USE_getButtonStyles(
   const buttonElevation = elevation[p.size];
 
   return {
+    '--button-lift': buttonElevation,
+
     position: 'relative',
     display: 'inline-flex',
     alignItems: 'center',
@@ -59,10 +63,10 @@ export function DO_NOT_USE_getButtonStyles(
 
     fontWeight: p.theme.font.weight.sans.medium,
 
-    opacity: p.disabled ? 0.6 : undefined,
+    opacity: disabled ? 0.6 : undefined,
 
     cursor: 'pointer',
-    '&[disabled]': {
+    '&[disabled], &[aria-disabled="true"]': {
       cursor: 'not-allowed',
     },
 
@@ -105,18 +109,22 @@ export function DO_NOT_USE_getButtonStyles(
       background: buttonTheme.surface,
       borderRadius: 'inherit',
       border: `1px solid ${buttonTheme.background}`,
-      transform: `translateY(-${buttonElevation})`,
+      transform: 'translateY(calc(-1 * var(--button-lift)))',
       transition: `transform ${p.theme.motion.snap.fast}`,
     },
 
     '&:focus-visible': {
       outline: 'none',
-      color: p.disabled || p.busy ? undefined : buttonTheme.color,
+      color: disabled || p.busy ? undefined : buttonTheme.color,
 
-      '&::after': {
-        border: `1px solid ${p.theme.tokens.focus.default}`,
-        boxShadow: `0 0 0 1px ${p.theme.tokens.focus.default}`,
-      },
+      '&::after': buttonTheme.focus
+        ? {border: `2px dotted ${buttonTheme.focus}`}
+        : {
+            // Three layers: the chonk color masks the offset ring copy, then
+            // the ring is drawn at the lift offset and again at rest, so it
+            // closes around the surface and chonk as a single outline.
+            boxShadow: `0 var(--button-lift) 0 0 ${buttonTheme.background}, 0 var(--button-lift) 0 2px ${p.theme.tokens.focus.default}, 0 0 0 2px ${p.theme.tokens.focus.default}`,
+          },
     },
 
     '&[aria-busy="true"] > span:last-child': {
@@ -135,28 +143,17 @@ export function DO_NOT_USE_getButtonStyles(
       overflow: 'hidden',
 
       whiteSpace: 'nowrap',
-      transform: `translateY(-${buttonElevation})`,
+      transform: 'translateY(calc(-1 * var(--button-lift)))',
       transition: `transform ${p.theme.motion.snap.fast}`,
     },
 
     '&:hover': {
-      color: p.disabled || p.busy ? undefined : buttonTheme.color,
-
-      '&::after': {
-        transform: `translateY(calc(-${buttonElevation} - ${hoverElevation}))`,
-      },
-      '> span:last-child': {
-        transform: `translateY(calc(-${buttonElevation} - ${hoverElevation}))`,
-      },
+      '--button-lift': `calc(${buttonElevation} + ${hoverElevation})`,
+      color: disabled || p.busy ? undefined : buttonTheme.color,
     },
 
     '&:active, &[aria-expanded="true"], &[aria-checked="true"]': {
-      '&::after': {
-        transform: 'translateY(0px)',
-      },
-      '> span:last-child': {
-        transform: 'translateY(0px)',
-      },
+      '--button-lift': '0px',
     },
 
     '&[aria-expanded="true"], &[aria-checked="true"]': {
@@ -169,12 +166,7 @@ export function DO_NOT_USE_getButtonStyles(
     },
 
     '&:disabled, &[aria-disabled="true"], &[aria-busy="true"]': {
-      '&::after': {
-        transform: 'translateY(0px)',
-      },
-      '> span:last-child': {
-        transform: 'translateY(0px)',
-      },
+      '--button-lift': '0px',
     },
 
     '&[aria-busy="true"]': {
@@ -218,7 +210,7 @@ export function DO_NOT_USE_getButtonStyles(
           transform: 'translateY(0px)',
         },
         backgroundColor:
-          p.busy || p.disabled || variant === 'link' ? 'inherit' : p.theme.colors.gray100,
+          p.busy || disabled || variant === 'link' ? 'inherit' : p.theme.colors.gray100,
       },
 
       '&:active': {
@@ -227,7 +219,7 @@ export function DO_NOT_USE_getButtonStyles(
         },
 
         backgroundColor:
-          p.busy || p.disabled || variant === 'link' ? 'inherit' : p.theme.colors.gray200,
+          p.busy || disabled || variant === 'link' ? 'inherit' : p.theme.colors.gray200,
       },
     }),
 
@@ -259,6 +251,7 @@ function getButtonTheme(variant: ButtonVariant, theme: Theme) {
         surface: theme.tokens.interactive.chonky.embossed.accent.background,
         background: theme.tokens.interactive.chonky.embossed.accent.chonk,
         color: theme.tokens.interactive.chonky.embossed.accent.content,
+        focus: theme.tokens.focus.onVibrant.light,
       };
     case 'secondary':
       return {
@@ -271,12 +264,14 @@ function getButtonTheme(variant: ButtonVariant, theme: Theme) {
         surface: theme.tokens.interactive.chonky.embossed.warning.background,
         background: theme.tokens.interactive.chonky.embossed.warning.chonk,
         color: theme.tokens.interactive.chonky.embossed.warning.content,
+        focus: theme.tokens.focus.onVibrant.dark,
       };
     case 'danger':
       return {
         surface: theme.tokens.interactive.chonky.embossed.danger.background,
         background: theme.tokens.interactive.chonky.embossed.danger.chonk,
         color: theme.tokens.interactive.chonky.embossed.danger.content,
+        focus: theme.tokens.focus.onVibrant.light,
       };
     case 'transparent':
       return {
@@ -295,7 +290,7 @@ function getButtonTheme(variant: ButtonVariant, theme: Theme) {
   }
 }
 
-function getButtonSizeTheme(size: ButtonProps['size'], theme: Theme): StrictCSSObject {
+function getButtonSizeTheme(size: ButtonSize, theme: Theme): StrictCSSObject {
   switch (size) {
     case 'md':
       return {

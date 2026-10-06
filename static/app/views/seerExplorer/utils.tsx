@@ -1,4 +1,13 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type RefObject,
+} from 'react';
 import {useMatches} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import type {LocationDescriptor} from 'history';
@@ -10,34 +19,17 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {Sort} from 'sentry/utils/discover/fields';
-import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {isUUID} from 'sentry/utils/string/isUUID';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/results/data';
-import {
-  LOGS_GROUP_BY_KEY,
-  LOGS_QUERY_KEY,
-} from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {getConversationsUrlForExternalUse} from 'sentry/views/explore/conversations/utils/urlParams';
-import {DEFAULT_YAXIS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
-import {
-  defaultAggregateSortBys,
-  defaultMetricQuery,
-  encodeMetricQueryParams,
-  type TraceMetric,
-} from 'sentry/views/explore/metrics/metricQuery';
-import {makeMetricsAggregate} from 'sentry/views/explore/metrics/utils';
-import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
-import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+import {resolveLink, subjectFromToolLink} from 'sentry/views/seerExplorer/links';
 import type {
+  Artifact,
   Block,
   SeerExplorerRunId,
   SeerExplorerSidebarPosition,
@@ -76,7 +68,7 @@ export const makeSeerExplorerQueryKey = (
  * Registry of custom tool formatters.
  * Add new tools here to customize their display.
  */
-const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
+export const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   telemetry_index_list_nodes: (args, isLoading) => {
     const keyword = args.keyword || 'items';
     return isLoading ? `Scanning for ${keyword}...` : `Scanned for ${keyword}`;
@@ -95,10 +87,11 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
   telemetry_live_search: (args, isLoading, resultMetadata) => {
     const question = args.question || 'data';
     const dataset = args.dataset || 'spans';
-    const projectSlugs = args.project_slugs;
+    const projectSlugs: string[] = args.project_slugs
+      ? ([] as string[]).concat(args.project_slugs)
+      : [];
 
-    const projectInfo =
-      projectSlugs && projectSlugs.length > 0 ? ` in ${projectSlugs.join(', ')}` : '';
+    const projectInfo = projectSlugs.length > 0 ? ` in ${projectSlugs.join(', ')}` : '';
 
     if (dataset === 'issues') {
       return isLoading
@@ -379,6 +372,32 @@ const TOOL_FORMATTERS: Record<string, ToolFormatter> = {
       ? `Asking ${count} ${questionWord}...`
       : `Asked ${count} ${questionWord}`;
   },
+
+  read_file: (args, isLoading) => {
+    const repo = args.repo_name || 'repository';
+    const path = args.path || 'file';
+    return isLoading ? `Reading ${path} from ${repo}...` : `Read ${path} from ${repo}`;
+  },
+
+  edit_file: (args, isLoading) => {
+    const repo = args.repo_name || 'repository';
+    const path = args.path || 'file';
+    return isLoading ? `Editing ${path} in ${repo}...` : `Edited ${path} in ${repo}`;
+  },
+
+  write_file: (args, isLoading) => {
+    const repo = args.repo_name || 'repository';
+    const path = args.path || 'file';
+    return isLoading ? `Writing ${path} in ${repo}...` : `Wrote ${path} in ${repo}`;
+  },
+
+  bash: (args, isLoading) => {
+    if (!args.description || typeof args.description !== 'string') {
+      return isLoading ? 'Using bash tool' : 'Used bash tool';
+    }
+    const description = args.description || '';
+    return (description[0] || '').toUpperCase() + args.description.slice(1);
+  },
 };
 
 /**
@@ -439,435 +458,6 @@ export function getToolsStringFromBlock(block: Block): string[] {
   return tools;
 }
 
-/**
- * Validate an ISO string and return it with 'Z' suffix stripped.
- * Returns undefined if invalid.
- */
-function validateIso(val: unknown): string | undefined {
-  if (!val || typeof val !== 'string') {
-    return undefined;
-  }
-  const d = new Date(val);
-  return isNaN(d.getTime()) ? undefined : d.toISOString().replace(/Z$/, '');
-}
-
-function getStringArray(value: unknown): string[] {
-  if (Array.isArray(value)) {
-    return value.filter((item): item is string => typeof item === 'string');
-  }
-  return typeof value === 'string' ? [value] : [];
-}
-
-function getTraceMetricFromParams(params: Record<string, any>): TraceMetric | null {
-  const rawTraceMetric = params.trace_metric;
-  if (
-    !rawTraceMetric ||
-    typeof rawTraceMetric !== 'object' ||
-    typeof rawTraceMetric.name !== 'string' ||
-    typeof rawTraceMetric.type !== 'string'
-  ) {
-    return null;
-  }
-
-  const traceMetric: TraceMetric = {
-    name: rawTraceMetric.name,
-    type: rawTraceMetric.type,
-  };
-  if (typeof rawTraceMetric.unit === 'string') {
-    traceMetric.unit = rawTraceMetric.unit;
-  }
-  return traceMetric;
-}
-
-function getMetricYAxis(yAxis: string, traceMetric: TraceMetric): string {
-  const visualize = new VisualizeFunction(yAxis);
-  const aggregate = visualize.parsedFunction?.name;
-  if (!aggregate) {
-    return yAxis;
-  }
-
-  return makeMetricsAggregate({aggregate, traceMetric});
-}
-
-function getDefaultMetricYAxis(traceMetric: TraceMetric): string {
-  return makeMetricsAggregate({
-    aggregate: DEFAULT_YAXIS_BY_TYPE[traceMetric.type] ?? 'sum',
-    traceMetric,
-  });
-}
-
-function parseMetricsSort(
-  sort: unknown,
-  normalizedYAxesByOriginal: Map<string, string>
-): Sort | undefined {
-  if (typeof sort !== 'string' || !sort) {
-    return undefined;
-  }
-
-  const kind = sort.startsWith('-') ? 'desc' : 'asc';
-  const sortField = sort.replace(/^-/, '');
-  const normalizedYAxis = normalizedYAxesByOriginal.get(sortField);
-  if (normalizedYAxis) {
-    return {field: normalizedYAxis, kind};
-  }
-
-  const sortFunction = new VisualizeFunction(sortField).parsedFunction;
-  if (sortFunction) {
-    for (const mappedYAxis of normalizedYAxesByOriginal.values()) {
-      const yAxisFunction = new VisualizeFunction(mappedYAxis).parsedFunction;
-      if (yAxisFunction?.name === sortFunction.name) {
-        return {field: mappedYAxis, kind};
-      }
-    }
-  }
-
-  return {field: sortField, kind};
-}
-
-function buildMetricsQueryParam(params: Record<string, any>): string[] | undefined {
-  const traceMetric = getTraceMetricFromParams(params);
-  if (!traceMetric) {
-    return undefined;
-  }
-
-  const mode = params.mode === 'aggregates' ? Mode.AGGREGATE : Mode.SAMPLES;
-  const base = defaultMetricQuery();
-
-  // Seer y-axes use short names like "avg(duration)"; normalize them to fully
-  // qualified metric aggregates like "avg(metrics.foo.duration)".
-  const yAxes = getStringArray(params.y_axes);
-  const resolvedYAxes = yAxes.length ? yAxes : [getDefaultMetricYAxis(traceMetric)];
-  const normalizedYAxesByOriginal = resolvedYAxes.reduce((map, yAxis) => {
-    map.set(yAxis, getMetricYAxis(yAxis, traceMetric));
-    return map;
-  }, new Map<string, string>());
-  // VisualizeFunction instances that the Explore page uses to render charts.
-  const visualizes = resolvedYAxes.map(
-    yAxis => new VisualizeFunction(normalizedYAxesByOriginal.get(yAxis)!)
-  );
-
-  const aggregateFields: AggregateField[] = [
-    ...getStringArray(params.group_by).map(groupBy => ({groupBy})),
-    ...visualizes,
-  ];
-  const sortBys = parseMetricsSort(params.sort, normalizedYAxesByOriginal);
-
-  const queryParams = base.queryParams.replace({
-    query: typeof params.query === 'string' ? params.query : '',
-    mode,
-    aggregateFields,
-    aggregateSortBys:
-      mode === Mode.AGGREGATE && sortBys
-        ? [sortBys]
-        : defaultAggregateSortBys(aggregateFields),
-    sortBys: mode === Mode.SAMPLES && sortBys ? [sortBys] : base.queryParams.sortBys,
-  });
-
-  return [encodeMetricQueryParams({metric: traceMetric, queryParams})];
-}
-
-/**
- * Build a URL/LocationDescriptor for a tool link based on its kind and params
- */
-export function buildToolLinkUrl(
-  toolLink: ToolLink | undefined,
-  organization: Organization,
-  projects?: Array<{id: string; slug: string}>
-): LocationDescriptor | null {
-  if (!toolLink) {
-    return null;
-  }
-
-  const orgSlug = organization.slug;
-
-  switch (toolLink.kind) {
-    case 'telemetry_live_search': {
-      const {dataset, project_slugs, query, sort, stats_period, start, end} =
-        toolLink.params;
-
-      const queryParams: Record<string, any> = {
-        query: query || '',
-        project: null,
-      };
-      if (stats_period) {
-        queryParams.statsPeriod = stats_period;
-      }
-      if (sort) {
-        queryParams.sort = sort;
-      }
-
-      // page filter expects no timezone (treated as UTC) or +HH:MM offset.
-      if (start) {
-        queryParams.start = start.replace(/Z$/, '');
-      }
-      if (end) {
-        queryParams.end = end.replace(/Z$/, '');
-      }
-
-      // If project_slugs is provided, look up the IDs and include them in qparams
-      if (project_slugs && project_slugs.length > 0 && projects) {
-        const projectIds = project_slugs
-          .map((slug: string) => projects.find(p => p.slug === slug)?.id)
-          .filter((id: string | undefined) => id !== undefined);
-        if (projectIds.length > 0) {
-          queryParams.project = projectIds;
-        }
-      }
-
-      if (dataset === 'issues') {
-        return {
-          pathname: `/organizations/${orgSlug}/issues/`,
-          query: queryParams,
-        };
-      }
-
-      if (dataset === 'errors') {
-        queryParams.dataset = 'errors';
-        queryParams.queryDataset = 'error-events';
-
-        const {y_axes, group_by} = toolLink.params;
-        if (y_axes) {
-          queryParams.yAxis = y_axes;
-        }
-
-        // In Discover, group_by values become selected columns (field param)
-        // along with the y_axes aggregates
-        const fields: string[] = [];
-        if (group_by) {
-          const groupByArray = Array.isArray(group_by) ? group_by : [group_by];
-          fields.push(...groupByArray);
-        }
-        if (y_axes) {
-          const yAxesArray = Array.isArray(y_axes) ? y_axes : [y_axes];
-          fields.push(...yAxesArray);
-        }
-
-        // make sure we always force some fields as discover will re-route to the
-        // saved default query in the event that no fields are specified
-        if (fields.length === 0) {
-          const defaultErrorView = DEFAULT_EVENT_VIEW_MAP[SavedQueryDatasets.ERRORS];
-          fields.push(...defaultErrorView.fields);
-        }
-
-        queryParams.field = fields;
-
-        // Discover sort strips parentheses from aggregates: -count() -> -count
-        if (queryParams.sort) {
-          queryParams.sort = queryParams.sort.replace(/\(\)/g, '');
-        }
-
-        return {
-          pathname: `/organizations/${orgSlug}/explore/discover/homepage/`,
-          query: queryParams,
-        };
-      }
-
-      if (dataset === 'logs') {
-        queryParams[LOGS_QUERY_KEY] = query || '';
-        delete queryParams.query;
-
-        if (sort) {
-          queryParams[LOGS_SORT_BYS_KEY] = sort;
-          delete queryParams.sort;
-        }
-
-        const {group_by, mode} = toolLink.params;
-        if (group_by) {
-          const groupByArray = Array.isArray(group_by) ? group_by : [group_by];
-          queryParams[LOGS_GROUP_BY_KEY] = groupByArray;
-        }
-        if (mode) {
-          queryParams.mode = mode === 'aggregates' ? 'aggregate' : 'samples';
-        }
-
-        return {
-          pathname: `/organizations/${orgSlug}/explore/logs/`,
-          query: queryParams,
-        };
-      }
-
-      if (dataset === 'metrics' || dataset === 'tracemetrics') {
-        const metric = buildMetricsQueryParam(toolLink.params);
-        if (!metric) {
-          return null;
-        }
-        queryParams.metric = metric;
-
-        return {
-          pathname: `/organizations/${orgSlug}/explore/metrics/`,
-          query: queryParams,
-        };
-      }
-
-      // Default to spans (traces) search
-      const {y_axes, group_by, mode} = toolLink.params;
-      const aggregateFields: string[] = [];
-
-      if (y_axes) {
-        const axes = Array.isArray(y_axes) ? y_axes : [y_axes];
-        const stringifiedAxes = axes.map(axis => JSON.stringify(axis));
-        queryParams.visualize = stringifiedAxes;
-        queryParams.yAxes = stringifiedAxes;
-        aggregateFields.push(JSON.stringify({yAxes: axes}));
-      }
-      if (group_by) {
-        const groupByArray = Array.isArray(group_by) ? group_by : [group_by];
-        // Each groupBy value becomes a separate query param and aggregateField entry
-        queryParams.groupBy = groupByArray;
-        for (const groupByValue of groupByArray) {
-          aggregateFields.push(JSON.stringify({groupBy: groupByValue}));
-        }
-      }
-      if (mode) {
-        queryParams.mode = mode === 'aggregates' ? 'aggregate' : 'samples';
-      }
-      if (mode === 'traces') {
-        queryParams.table = 'trace';
-      }
-
-      if (aggregateFields.length > 0) {
-        queryParams.aggregateField = aggregateFields;
-      }
-
-      return {
-        pathname: `/organizations/${orgSlug}/traces/`,
-        query: queryParams,
-      };
-    }
-    case 'get_trace_waterfall': {
-      const {trace_id, span_id, timestamp} = toolLink.params;
-      if (!trace_id) {
-        return null;
-      }
-
-      const pathname = `/explore/traces/trace/${trace_id}/`;
-      const query: Record<string, string> = {};
-
-      if (span_id) {
-        query.node = `span-${span_id}`;
-      }
-
-      if (timestamp) {
-        query.timestamp = timestamp;
-      }
-
-      return {
-        pathname,
-        query,
-      };
-    }
-    case 'get_issue_details': {
-      const {issue_id, start, end, event_id} = toolLink.params;
-      const query = {
-        start: validateIso(start),
-        end: validateIso(end),
-      };
-
-      if (issue_id) {
-        if (event_id) {
-          // Should only be present in older version (get_issue_and_event_details)
-          return {pathname: `/issues/${issue_id}/events/${event_id}/`, query};
-        }
-        return {pathname: `/issues/${issue_id}/`, query};
-      }
-
-      return null;
-    }
-    case 'get_event_details': {
-      const {event_id, issue_id, start, end} = toolLink.params;
-
-      if (event_id && issue_id) {
-        const query = {
-          start: validateIso(start),
-          end: validateIso(end),
-        };
-        return {pathname: `/issues/${issue_id}/events/${event_id}/`, query};
-      }
-
-      return null;
-    }
-    case 'get_replay_details': {
-      const {replay_id} = toolLink.params;
-      if (!replay_id) {
-        return null;
-      }
-
-      return {
-        pathname: makeReplaysPathname({
-          path: `/${replay_id}/`,
-          organization,
-        }),
-      };
-    }
-    case 'get_profile_flamegraph': {
-      const {profile_id, project_id, is_continuous, start_ts, end_ts, thread_id} =
-        toolLink.params;
-      if (!profile_id || !project_id) {
-        return null;
-      }
-
-      // Look up project slug from project_id
-      const project = projects?.find(p => p.id === String(project_id));
-      if (!project) {
-        return null;
-      }
-
-      if (is_continuous) {
-        // Continuous profiles need start/end timestamps as query params
-        if (!start_ts || !end_ts) {
-          return null;
-        }
-
-        // Convert Unix timestamps to ISO date strings
-        const startDate = new Date(start_ts * 1000).toISOString();
-        const endDate = new Date(end_ts * 1000).toISOString();
-
-        return {
-          pathname: `/explore/profiles/profile/${project.slug}/flamegraph/`,
-          query: {
-            start: startDate,
-            end: endDate,
-            profilerId: profile_id,
-            ...(thread_id && {tid: thread_id}),
-          },
-        };
-      }
-
-      // Transaction profiles use profile_id in the path
-      return {
-        pathname: `/organizations/${orgSlug}/explore/profiles/profile/${project.slug}/${profile_id}/flamegraph/`,
-        ...(thread_id && {query: {tid: thread_id}}),
-      };
-    }
-    case 'get_log_attributes': {
-      const {trace_id} = toolLink.params;
-      if (!trace_id) {
-        return null;
-      }
-
-      // TODO: Currently no way to pass substring filter to this page, update with params.log_message_substring when it's supported.
-      return {
-        pathname: `/organizations/${orgSlug}/explore/logs/trace/${trace_id}/`,
-        query: {tab: 'logs'},
-      };
-    }
-    case 'get_metric_attributes': {
-      const {trace_id} = toolLink.params;
-      if (!trace_id) {
-        return null;
-      }
-
-      // TODO: Currently no way to pass name filter to this page, update with params.metric_name when it's supported.
-      return {
-        pathname: `/organizations/${orgSlug}/explore/metrics/trace/${trace_id}/`,
-        query: {tab: 'metrics'},
-      };
-    }
-    default:
-      return null;
-  }
-}
-
 export function getValidToolLinks(
   tool_links: Array<ToolLink | null>,
   tool_results: Array<ToolResult | null>,
@@ -893,7 +483,9 @@ export function getValidToolLinks(
       const toolCallIndex = toolCallId
         ? tool_calls.findIndex(call => call.id === toolCallId)
         : -1;
-      const canBuildUrl = buildToolLinkUrl(link, organization, projects) !== null;
+      const canBuildUrl =
+        resolveLink(subjectFromToolLink(link), {organization, projects})?.url !==
+        undefined;
 
       if (toolCallIndex !== undefined && toolCallIndex >= 0 && canBuildUrl) {
         return {link, toolCallIndex};
@@ -1000,7 +592,8 @@ function formatSessionData(
       const validLink =
         validLinkIdx === undefined ? null : (sortedToolLinks[validLinkIdx] ?? null);
       const location = validLink
-        ? buildToolLinkUrl(validLink, organization, projects)
+        ? (resolveLink(subjectFromToolLink(validLink), {organization, projects})?.url ??
+          null)
         : null;
       const url = location ? locationToUrl(location) : null;
 
@@ -1074,8 +667,32 @@ export function parseRunIdParam(value: string): SeerExplorerRunId | null {
   return isUUID(value) ? value : null;
 }
 
+const SeerExplorerDeepLinkParamContext = createContext<RefObject<
+  string | undefined
+> | null>(null);
+
 /**
- * useEffect which listens for run ID query param in the current location. If found, it removes the query param and runs a callback.
+ * Holds the last run ID query param value seen by any `useSeerExplorerDeepLink` listener. The
+ * listeners mount and remount independently (the provider, the drawer, the sidebar, the popped-out
+ * window), so tracking it per listener would make a freshly mounted one treat an already-handled
+ * param as a new link, e.g. switching back to the linked run right after starting a new chat.
+ */
+export function SeerExplorerDeepLinkParamProvider({children}: {children: ReactNode}) {
+  const lastSeenParamRef = useRef<string | undefined>(undefined);
+  return (
+    <SeerExplorerDeepLinkParamContext.Provider value={lastSeenParamRef}>
+      {children}
+    </SeerExplorerDeepLinkParamContext.Provider>
+  );
+}
+
+/**
+ * useEffect which listens for the run ID query param in the current location and runs a callback
+ * whenever its value changes. The param is left in the URL so the link stays shareable and
+ * survives a reload.
+ *
+ * Values seen while disabled are still recorded, so re-enabling (e.g. closing the drawer) doesn't
+ * re-open a run that was already handled.
  */
 export function useSeerExplorerDeepLink({
   callback,
@@ -1085,27 +702,79 @@ export function useSeerExplorerDeepLink({
   enabled?: boolean;
 }) {
   const location = useLocation();
-  const navigate = useNavigate();
+  const sharedLastSeenParamRef = useContext(SeerExplorerDeepLinkParamContext);
+  const ownLastSeenParamRef = useRef<string | undefined>(undefined);
+  const lastSeenParamRef = sharedLastSeenParamRef ?? ownLastSeenParamRef;
 
   useEffect(() => {
-    if (!enabled) {
-      return;
-    }
-
     const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
-    if (!paramValue || typeof paramValue !== 'string') {
+    const value = typeof paramValue === 'string' ? paramValue : undefined;
+    if (value === lastSeenParamRef.current) {
+      return;
+    }
+    lastSeenParamRef.current = value;
+
+    if (!enabled || !value) {
       return;
     }
 
-    const runId = parseRunIdParam(paramValue);
+    const runId = parseRunIdParam(value);
     if (runId === null) {
       return;
     }
 
-    const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query ?? {};
-    navigate({...location, query: restQuery}, {replace: true});
     callback(runId);
-  }, [location, navigate, callback, enabled]);
+  }, [location, callback, enabled, lastSeenParamRef]);
+}
+
+/**
+ * Returns a callback that removes the run ID query param from the current URL, if it's there.
+ * Pushes a history entry, so browser back returns to the URL with the chat open.
+ */
+export function useRemoveSeerExplorerRunIdParam() {
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  return useCallback(() => {
+    if (location.query?.[RUN_ID_QUERY_PARAM] === undefined) {
+      return;
+    }
+    const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query;
+    navigate({...location, query: restQuery});
+  }, [location, navigate]);
+}
+
+/**
+ * Keeps the run ID query param in sync with the active run, but only when the param is already in
+ * the URL (i.e. the page was opened from a chat link). Switching runs rewrites the param; starting
+ * a new chat removes it, since there is no run to link to yet.
+ */
+export function useSyncSeerExplorerRunIdToUrl(runId: SeerExplorerRunId | null) {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const prevRunIdRef = useRef(runId);
+
+  useEffect(() => {
+    // Only react to run changes. Syncing on mount would overwrite an incoming deep link with the
+    // previously active run before the deep link is handled.
+    if (prevRunIdRef.current === runId) {
+      return;
+    }
+    prevRunIdRef.current = runId;
+
+    const paramValue = location.query?.[RUN_ID_QUERY_PARAM];
+    if (paramValue === undefined || paramValue === String(runId)) {
+      return;
+    }
+
+    // Push rather than replace, so the browser back button returns to the previous
+    // conversation (the deep link listener switches to it when the param changes).
+    const {[RUN_ID_QUERY_PARAM]: _runId, ...restQuery} = location.query ?? {};
+    navigate({
+      ...location,
+      query: runId === null ? restQuery : {...restQuery, [RUN_ID_QUERY_PARAM]: runId},
+    });
+  }, [runId, location, navigate]);
 }
 
 /**
@@ -1164,10 +833,6 @@ export function getRelativeExplorerUrl(
   return url.pathname + url.search;
 }
 
-export function getLangfuseUrl(runId: number | string): string {
-  return `https://langfuse.getsentry.net/project/clx9kma1k0001iebwrfw4oo0z/sessions/${runId}`;
-}
-
 export function getExplorerFeedbackOptions(
   runId: SeerExplorerRunId | null
 ): UseFeedbackOptions {
@@ -1175,14 +840,13 @@ export function getExplorerFeedbackOptions(
     formTitle: 'Seer Agent Feedback',
     messagePlaceholder: 'How can we make Seer better for you?',
     tags: {
-      ['feedback.source']: 'seer_explorer',
-      ['feedback.owner']: 'ml-ai',
-      ...(runId === null ? {} : {['seer.run_id']: runId.toString()}),
-      ...(runId === null ? {} : {['explorer_url']: getExplorerUrl(runId)}),
-      ...(runId === null ? {} : {['langfuse_url']: getLangfuseUrl(runId)}),
+      'feedback.source': 'seer_explorer',
+      'feedback.owner': 'ml-ai',
+      ...(runId === null ? {} : {'seer.run_id': runId.toString()}),
+      ...(runId === null ? {} : {explorer_url: getExplorerUrl(runId)}),
       ...(runId === null
         ? {}
-        : {['conversations_url']: getConversationsUrlForExternalUse('sentry', runId)}),
+        : {conversations_url: getConversationsUrlForExternalUse('sentry', runId)}),
     },
   };
 }
@@ -1190,9 +854,8 @@ export function getExplorerFeedbackOptions(
 /**
  * Checks if Seer Explorer is enabled for the organization.
  * Requires the rollout flag and:
- * - 'gen-ai-features' feature flag
+ * - AI features allowed for the organization (see areAiFeaturesAllowed)
  * - Organization has not disabled open membership
- * - Organization has not disabled AI features (hideAiFeatures is false)
  */
 export function isSeerExplorerEnabled(organization: Organization | null): boolean {
   if (!organization) {
@@ -1201,8 +864,7 @@ export function isSeerExplorerEnabled(organization: Organization | null): boolea
 
   return (
     organization.openMembership &&
-    !organization.hideAiFeatures &&
-    organization.features.includes('gen-ai-features') &&
+    areAiFeaturesAllowed(organization) &&
     organization.features.includes('seer-explorer')
   );
 }
@@ -1230,24 +892,76 @@ export const SEER_EXPLORER_SIDEBAR_SEER_SIZE_KEY = {
   bottom: 'seer-explorer-sidebar-seer-size:bottom',
 } as const;
 
+/** Pixel step used when bucketing layout sizes for analytics cardinality. */
+const SEER_EXPLORER_ANALYTICS_PIXEL_BUCKET = 50;
+
+/**
+ * Round a CSS-pixel layout size into coarse buckets for analytics (default 50px).
+ * Keeps Amplitude distributions useful without exploding cardinality on exact
+ * device widths/heights or drag endpoints.
+ */
+export function roundSeerExplorerAnalyticsPixels(value: number): number {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+  return (
+    Math.round(Math.max(0, value) / SEER_EXPLORER_ANALYTICS_PIXEL_BUCKET) *
+    SEER_EXPLORER_ANALYTICS_PIXEL_BUCKET
+  );
+}
+
+/** Current browser viewport size, bucketed for Seer Explorer analytics events. */
+export function getSeerExplorerAnalyticsBrowserSize(): {
+  browser_height: number;
+  browser_width: number;
+} {
+  return {
+    browser_width: roundSeerExplorerAnalyticsPixels(window.innerWidth),
+    browser_height: roundSeerExplorerAnalyticsPixels(window.innerHeight),
+  };
+}
+
 type SeerExplorerSidebarOrientation = 'right' | 'bottom';
 
 /**
- * Resolves the dock preference to a concrete orientation. `auto` docks right on
- * wide viewports (≥ `xl`) and on short landscape viewports (e.g. phones in
- * landscape), and bottom otherwise. Shared by the layout (to lay out the split)
- * and the provider (to persist the popped-out window's size to the right key).
+ * Resolves the dock preference to a concrete orientation. `auto` docks right
+ * whenever the split container is wide enough to fit both panes side by side
+ * (`fitsSideBySide`), and on short landscape viewports (e.g. phones in
+ * landscape) where a bottom dock has no room; bottom otherwise.
+ *
+ * `fitsSideBySide` is measured on the container that wraps *both* the app and
+ * Seer, not on the app pane (`#main`): the app pane shrinks when Seer docks
+ * right, so gating on its width would flip the dock back and forth.
  */
 export function useSeerExplorerSidebarOrientation(
-  sidebarPosition: SeerExplorerSidebarPosition
+  sidebarPosition: SeerExplorerSidebarPosition,
+  fitsSideBySide: boolean
 ): SeerExplorerSidebarOrientation {
   const theme = useTheme();
-  const isWideScreen = useMedia(`(min-width: ${theme.breakpoints.xl})`);
   const isShortLandscape = useMedia(
     `(orientation: landscape) and (max-height: ${theme.breakpoints.xs})`
   );
   if (sidebarPosition === 'auto') {
-    return isWideScreen || isShortLandscape ? 'right' : 'bottom';
+    return fitsSideBySide || isShortLandscape ? 'right' : 'bottom';
   }
   return sidebarPosition;
+}
+
+/**
+ * Every artifact in the conversation, from whichever channel carried it.
+ *
+ * A classic artifact tool appends to `block.artifacts`; Code Mode returns them on a tool result's
+ * `structuredContent.artifacts`. Neither is converted into the other, so both are walked in run
+ * order — blocks in sequence, and within a block its tool results in sequence
+ * (codemode-structured-content-only).
+ */
+export function collectArtifacts(blocks: Block[]): Artifact[] {
+  const artifacts: Artifact[] = [];
+  for (const block of blocks) {
+    artifacts.push(...(block.artifacts ?? []));
+    for (const result of block.tool_results ?? []) {
+      artifacts.push(...(result?.structuredContent?.artifacts ?? []));
+    }
+  }
+  return artifacts;
 }

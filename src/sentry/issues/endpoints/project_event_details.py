@@ -42,6 +42,7 @@ def wrap_event_response(
     legacy_conditions: list[Any] | None = None,
     start: datetime | None = None,
     end: datetime | None = None,
+    use_snql: bool = False,
 ) -> GroupEventDetailsResponse | None:
     event_data = serialize(
         event,
@@ -64,7 +65,7 @@ def wrap_event_response(
         legacy_conditions = []
 
     if event.group_id:
-        if options.get("eventstore.adjacent_event_ids_use_snql"):
+        if use_snql or options.get("eventstore.adjacent_event_ids_use_snql"):
             prev_ids, next_ids = eventstore.backend.get_adjacent_event_ids_snql(
                 organization_id=event.organization.id,
                 project_id=event.project_id,
@@ -157,6 +158,8 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
         if event is None:
             return Response({"detail": "Event not found"}, status=404)
 
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
+
         environments = set(request.GET.getlist("environment"))
 
         # TODO: Remove `for_group` check once performance issues are moved to the issue platform
@@ -167,7 +170,6 @@ class ProjectEventDetailsEndpoint(ProjectEndpoint):
             request_user=request.user,
             event=event,
             environments=list(environments),
-            include_full_release_data=True,
             start=start,
             end=end,
         )
@@ -192,6 +194,8 @@ class EventJsonEndpoint(ProjectEndpoint):
 
         if not event:
             return Response({"detail": "Event not found"}, status=404)
+
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
 
         event_dict = event.as_dict()
         if isinstance(event_dict["datetime"], datetime):

@@ -1,3 +1,4 @@
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Badge} from '@sentry/scraps/badge';
@@ -20,8 +21,17 @@ export function EnvironmentPageFilterTrigger({
   label,
   ...props
 }: EnvironmentPageFilterTriggerProps) {
-  const isAllEnvironmentsSelected =
-    value.length === 0 || environments.every(env => value.includes(env));
+  const isAllEnvironmentsSelected = useMemo(() => {
+    if (value.length === 0) {
+      return true;
+    }
+    if (value.length !== environments.length) {
+      return false;
+    }
+
+    const selectedEnvironments = new Set(value);
+    return environments.every(env => selectedEnvironments.has(env));
+  }, [environments, value]);
 
   // Show 2 environments only if the combined string's length does not exceed 25.
   // Otherwise show only 1 environment.

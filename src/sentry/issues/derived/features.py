@@ -16,14 +16,19 @@ VIEW_COUNT = Feature[int]("view_count", default=0)
 
 # Status of the issue based on the log.
 STATUS = Feature[IssueStatus](
-    "status", default=IssueStatus.OPEN, codec=EnumCodec(IssueStatus), version=1
+    "status", default=IssueStatus.OPEN, codec=EnumCodec(IssueStatus), version=2
 )
+
+# IDs of the first 20 ReconcileStatusActions whose target equaled the current status.
+# Never cleared. Used to find reconciles that can be deleted while keeping storage bounded.
+NO_CHANGE_RECONCILE_IDS = Feature[list[int]]("no_change_reconcile_ids", default_factory=list)
 
 # The current Progress of the issue.
 PROGRESS = Feature[IssueProgressState | None](
     "progress",
     default=IssueProgressState.IDENTIFIED,
     codec=OptionalCodec(EnumCodec(IssueProgressState)),
+    version=2,
 )
 
 # The last time the progress was advanced.
@@ -36,6 +41,9 @@ HAS_OPEN_FIX_PR = Feature[bool]("has_open_fix_pr", default=False)
 
 # Whether the issue currently has an assignee.
 IS_ASSIGNED = Feature[bool]("is_assigned", default=False)
+
+# The action-log entry which first assigned this issue.
+FIRST_ASSIGNMENT_ACTION_ID = Feature[int | None]("first_assignment_action_id", default=None)
 
 # Whether the issue has a root cause identified.
 HAS_ROOT_CAUSE = Feature[bool]("has_root_cause", default=False)

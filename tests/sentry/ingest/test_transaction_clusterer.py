@@ -1,8 +1,6 @@
 from unittest import mock
 
-import orjson
 import pytest
-from sentry_conventions.attributes import ATTRIBUTE_NAMES
 
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.base import ReplacementRule
@@ -15,11 +13,11 @@ from sentry.ingest.transaction_clusterer.datasource.redis import (
     get_active_projects,
     get_redis_client,
     get_transaction_names,
-    record_segment_name,
     record_transaction_name,
 )
 from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
 from sentry.ingest.transaction_clusterer.rules import (
+    TRANSACTION_NAME_RULE_TTL_SECS,
     ProjectOptionRuleStore,
     RedisRuleStore,
     _sort,
@@ -210,47 +208,6 @@ def test_record_transactions(
             "transaction": txname,
             "transaction_info": {"source": source},
         },
-    )
-    assert len(mocked_record.mock_calls) == expected
-
-
-@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis._record_sample")
-@django_db_all
-@pytest.mark.parametrize(
-    "source, segment_name, attributes, expected",
-    [
-        ("url", "/a/b/c", {}, 1),
-        (
-            "url",
-            "/a/b/c",
-            {ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: {"type": "integer", "value": 200}},
-            1,
-        ),
-        ("route", "/", {}, 0),
-        ("url", None, {}, 0),
-        (
-            "url",
-            "/a/b/c",
-            {ATTRIBUTE_NAMES.HTTP_RESPONSE_STATUS_CODE: {"type": "integer", "value": 404}},
-            0,
-        ),
-        (None, "/a/b/c", {}, 1),
-        (None, "foo", {}, 0),
-    ],
-)
-def test_record_segment_name(
-    mocked_record, default_organization, source, segment_name, attributes, expected
-) -> None:
-    project = Project(id=111, name="project", organization_id=default_organization.id)
-    record_segment_name(
-        project,
-        {
-            "name": segment_name,
-            "attributes": {
-                ATTRIBUTE_NAMES.SENTRY_SPAN_SOURCE: {"type": "string", "value": source},
-                **attributes,
-            },
-        },  # type: ignore[typeddict-item]
     )
     assert len(mocked_record.mock_calls) == expected
 
@@ -557,66 +514,6 @@ def test_transaction_clusterer_bumps_rules(_, default_organization) -> None:
         assert get_rules(ClustererNamespace.TRANSACTIONS, project1) == {"/user/*/**": 2}
 
 
-@mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 10)
-@mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 5)
-@mock.patch(
-    "sentry.ingest.transaction_clusterer.tasks.cluster_projects.delay",
-    wraps=cluster_projects,  # call immediately
-)
-@django_db_all
-def test_segment_clusterer_bumps_rules(_, default_organization) -> None:
-    project1 = Project(id=123, name="project1", organization_id=default_organization.id)
-    project1.save()
-
-    with override_options({"txnames.bump-lifetime-sample-rate": 1.0}):
-        for i in range(10):
-            _record_sample(
-                ClustererNamespace.TRANSACTIONS, project1, f"/user/tx-{project1.name}-{i}/settings"
-            )
-
-        with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 1):
-            spawn_clusterers()
-
-        assert get_rules(ClustererNamespace.TRANSACTIONS, project1) == {"/user/*/**": 1}
-
-        with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 2):
-            record_segment_name(
-                project1,
-                {
-                    "name": "/user/*/settings",
-                    "attributes": {
-                        ATTRIBUTE_NAMES.SENTRY_SPAN_SOURCE: {
-                            "type": "string",
-                            "value": "sanitized",
-                        },
-                        f"sentry._meta.fields.attributes.{ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME}": {
-                            "type": "string",
-                            "value": orjson.dumps(
-                                {
-                                    "meta": {
-                                        "": {
-                                            "rem": [["int", "s", 0, 0], ["/user/*/**", "s"]],
-                                            "val": "/user/tx-project1-pi/settings",
-                                        }
-                                    }
-                                }
-                            ).decode(),
-                        },
-                    },
-                },  # type: ignore[typeddict-item]
-            )
-
-        # _get_rules fetches from project options, which arent updated yet.
-        assert get_redis_rules(ClustererNamespace.TRANSACTIONS, project1) == {"/user/*/**": 2}
-        assert get_rules(ClustererNamespace.TRANSACTIONS, project1) == {"/user/*/**": 1}
-        # Update rules to update the project option storage.
-        with mock.patch("sentry.ingest.transaction_clusterer.rules._now", lambda: 3):
-            assert 0 == update_rules(ClustererNamespace.TRANSACTIONS, project1, [])
-        # After project options are updated, the last_seen should also be updated.
-        assert get_redis_rules(ClustererNamespace.TRANSACTIONS, project1) == {"/user/*/**": 2}
-        assert get_rules(ClustererNamespace.TRANSACTIONS, project1) == {"/user/*/**": 2}
-
-
 @mock.patch("sentry.ingest.transaction_clusterer.datasource.redis.MAX_SET_SIZE", 3)
 @mock.patch("sentry.ingest.transaction_clusterer.tasks.MERGE_THRESHOLD", 2)
 @mock.patch(
@@ -697,6 +594,71 @@ def test_bump_last_used() -> None:
         "foo": 1,
         "bar": 946688400,
     }
+
+
+# `ClustererNamespace` has a single member today, but each member has its own key
+# prefix, so the redis tests run for every namespace that exists.
+@pytest.mark.parametrize("namespace", list(ClustererNamespace))
+def test_write_sets_ttl(namespace: ClustererNamespace) -> None:
+    """The rules hash expires with the same lifetime as the rules it holds."""
+    project = Project(id=1231, name="ttl-write")
+    store = RedisRuleStore(namespace=namespace)
+    store.write(project, {ReplacementRule("foo"): 1, ReplacementRule("bar"): 2})
+
+    client = get_redis_client()
+    key = store._get_rules_key(project)
+    ttl = client.ttl(key)
+    assert 0 < ttl <= TRANSACTION_NAME_RULE_TTL_SECS
+    assert ttl > TRANSACTION_NAME_RULE_TTL_SECS - 60
+
+
+@pytest.mark.parametrize("namespace", list(ClustererNamespace))
+def test_write_empty_rules_leaves_no_key(namespace: ClustererNamespace) -> None:
+    """An empty rule set deletes the key. It must not be re-created by the expiry."""
+    project = Project(id=1232, name="ttl-empty")
+    store = RedisRuleStore(namespace=namespace)
+    store.write(project, {ReplacementRule("foo"): 1})
+    store.write(project, {})
+
+    client = get_redis_client()
+    key = store._get_rules_key(project)
+    assert client.exists(key) == 0
+    # -2 is the redis answer for "no such key", not "key without expiry" (-1).
+    assert client.ttl(key) == -2
+    assert store.read(project) == {}
+
+
+@pytest.mark.parametrize("namespace", list(ClustererNamespace))
+def test_update_rule_refreshes_ttl(namespace: ClustererNamespace) -> None:
+    """A bump of last_used pushes the expiry back to the full lifetime."""
+    project = Project(id=1233, name="ttl-update")
+    store = RedisRuleStore(namespace=namespace)
+    store.write(project, {ReplacementRule("foo"): 1, ReplacementRule("bar"): 2})
+
+    client = get_redis_client()
+    key = store._get_rules_key(project)
+    # Simulate a key that is close to the end of its lifetime.
+    client.expire(key, 10)
+    assert client.ttl(key) <= 10
+
+    store.update_rule(project, "bar", 946688400)
+
+    ttl = client.ttl(key)
+    assert ttl > TRANSACTION_NAME_RULE_TTL_SECS - 60
+    assert store.read(project) == {"foo": 1, "bar": 946688400}
+
+
+@pytest.mark.parametrize("namespace", list(ClustererNamespace))
+def test_update_rule_missing_rule_does_not_create_key(namespace: ClustererNamespace) -> None:
+    """An unknown rule writes nothing, so no key and no expiry are created."""
+    project = Project(id=1234, name="ttl-missing")
+    store = RedisRuleStore(namespace=namespace)
+    store.write(project, {})
+
+    store.update_rule(project, "not-a-stored-rule", 946688400)
+
+    client = get_redis_client()
+    assert client.exists(store._get_rules_key(project)) == 0
 
 
 @django_db_all

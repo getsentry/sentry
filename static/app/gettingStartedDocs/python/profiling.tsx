@@ -96,10 +96,8 @@ export const alternativeProfiling = (params: DocsParams): ContentBlock => ({
 });
 
 export const profiling = ({
-  basePackage = 'sentry-sdk',
   traceLifecycle = 'trace',
 }: {
-  basePackage?: string;
   traceLifecycle?: 'manual' | 'trace';
 } = {}): OnboardingConfig => ({
   install: () => [
@@ -116,7 +114,6 @@ export const profiling = ({
           ),
         },
         getPythonInstallCodeBlock({
-          packageName: basePackage,
           minimumVersion: '2.24.1',
         }),
       ],

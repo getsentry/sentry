@@ -87,6 +87,6 @@ function useNoopExperiment(options: UseExperimentOptions): UseExperimentResult {
  * ```
  */
 export function useExperiment(options: UseExperimentOptions): UseExperimentResult {
-  const useExperimentHook = getOverride('react-hook:use-experiment') ?? useNoopExperiment;
-  return useExperimentHook(options);
+  const useExperimentHook = getOverride('react-hook:use-experiment') ?? useNoopExperiment; // oxlint-disable-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
+  return useExperimentHook(options); // oxlint-disable-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
 }

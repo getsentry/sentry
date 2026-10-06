@@ -8,7 +8,7 @@ export default Storybook.story('LogoSentry', story => {
     </Storybook.SizingWindow>
   ));
 
-  story('Wordmark', () => <LogoSentry showWordmark />);
+  story('Wordmark', () => <LogoSentry />);
 
   story('No wordmark', () => <LogoSentry showWordmark={false} />);
 });

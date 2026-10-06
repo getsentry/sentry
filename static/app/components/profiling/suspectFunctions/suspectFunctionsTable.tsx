@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import clamp from 'lodash/clamp';
 
@@ -6,11 +6,9 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ArrayLinks} from 'sentry/components/profiling/arrayLinks';
+import {DataTable} from 'sentry/components/tables/dataTable';
 import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -26,16 +24,6 @@ import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/r
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  Table,
-  TableBody,
-  TableBodyCell,
-  TableHead,
-  TableHeadCell,
-  TableRow,
-  TableStatus,
-  useTableStyles,
-} from 'sentry/views/explore/components/table';
 import {getProfileTargetId} from 'sentry/views/explore/profiling/utils';
 
 const MAX_EXAMPLES_PER_FRAME = 5;
@@ -211,8 +199,6 @@ export function SuspectFunctionsTable({
   }, [sortedMetrics, pagination]);
 
   const fields = COLUMNS.map(column => column.value);
-  const tableRef = useRef<HTMLTableElement>(null);
-  const {initialTableStyles} = useTableStyles(fields, tableRef);
 
   const baggage: RenderFunctionBaggage = {
     location,
@@ -241,12 +227,12 @@ export function SuspectFunctionsTable({
           />
         </ButtonBar>
       </Flex>
-      <Table ref={tableRef} style={initialTableStyles}>
-        <TableHead>
-          <TableRow>
+      <DataTable fields={fields}>
+        <DataTable.Head>
+          <DataTable.Row>
             {COLUMNS.map((column, i) => {
               return (
-                <TableHeadCell
+                <DataTable.HeadCell
                   key={i}
                   isFirst={i === 0}
                   align={
@@ -256,20 +242,16 @@ export function SuspectFunctionsTable({
                   }
                 >
                   {column.label}
-                </TableHeadCell>
+                </DataTable.HeadCell>
               );
             })}
-          </TableRow>
-        </TableHead>
-        <TableBody>
+          </DataTable.Row>
+        </DataTable.Head>
+        <DataTable.Body>
           {flamegraphQuery.isPending ? (
-            <TableStatus>
-              <LoadingIndicator />
-            </TableStatus>
+            <DataTable.Loading />
           ) : flamegraphQuery.isError ? (
-            <TableStatus>
-              <IconWarning data-test-id="error-indicator" variant="muted" size="lg" />
-            </TableStatus>
+            <DataTable.Error />
           ) : flamegraphQuery.isFetched && metrics.length > 0 ? (
             metrics.map((metric, i) => (
               <TableEntry
@@ -282,14 +264,10 @@ export function SuspectFunctionsTable({
               />
             ))
           ) : (
-            <TableStatus>
-              <EmptyStateWarning>
-                <p>{t('No functions found')}</p>
-              </EmptyStateWarning>
-            </TableStatus>
+            <DataTable.Empty>{t('No functions found')}</DataTable.Empty>
           )}
-        </TableBody>
-      </Table>
+        </DataTable.Body>
+      </DataTable>
     </Fragment>
   );
 }
@@ -310,7 +288,7 @@ function TableEntry({
   project,
 }: TableEntryProps) {
   return (
-    <TableRow>
+    <DataTable.Row>
       {COLUMNS.map(column => {
         if (column.value === 'examples') {
           const items = metric[column.value].map(example => {
@@ -338,9 +316,9 @@ function TableEntry({
             };
           });
           return (
-            <TableBodyCell key={column.value}>
+            <DataTable.Cell key={column.value}>
               <ArrayLinks items={items} />
-            </TableBodyCell>
+            </DataTable.Cell>
           );
         }
 
@@ -349,12 +327,12 @@ function TableEntry({
             ? FIELD_FORMATTERS.duration.renderFunc
             : FIELD_FORMATTERS.string.renderFunc;
         return (
-          <TableBodyCell key={column.value}>
+          <DataTable.Cell key={column.value}>
             {formatter(column.value, metric, baggage)}
-          </TableBodyCell>
+          </DataTable.Cell>
         );
       })}
-    </TableRow>
+    </DataTable.Row>
   );
 }
 

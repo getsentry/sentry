@@ -14,6 +14,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationDetectorPermission, OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.api.permissions import enforce_scope
 from sentry.api.serializers import serialize
 from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import (
@@ -44,6 +45,8 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     can_delete_detector,
     can_edit_detector,
     get_unknown_detector_type_error,
+    is_system_created_detector,
+    should_include_all_projects_detector,
 )
 from sentry.workflow_engine.models import DataSource, Detector
 
@@ -69,32 +72,6 @@ def _check_metric_detector_allowed(detector: Detector, organization: Organizatio
         return
     if not is_metric_subscription_allowed(dataset, organization):
         raise ResourceDoesNotExist
-
-
-def remove_detector(
-    request: Request, organization: Organization, detector: Detector
-) -> Response[None]:
-    """
-    Delete a given detector. This method is used by the OrganizationAlertRuleDetailsEndpoint DELETE method
-    for backwards compatibility and can be moved back under DELETE after API deprecation.
-    """
-    if not can_delete_detector(detector, request):
-        raise PermissionDenied
-
-    validator = get_detector_validator(request, detector.project, detector.type, instance=detector)
-    validator.delete()
-
-    if detector.type == MetricIssue.slug:
-        schedule_update_project_config(detector)
-
-    create_audit_entry(
-        request=request,
-        organization=detector.project.organization,
-        target_object=detector.id,
-        event=audit_log.get_event_id("DETECTOR_REMOVE"),
-        data=detector.get_audit_log_data(),
-    )
-    return Response(status=204)
 
 
 def get_detector_validator(
@@ -133,23 +110,26 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         self, request: Request, detector_id: str, *args: Any, **kwargs: Any
     ) -> tuple[tuple[Any, ...], dict[str, Organization | Detector]]:
         args, kwargs = super().convert_args(request, *args, **kwargs)
+        organization = kwargs["organization"]
         validated_detector_id = to_valid_int_id("detector_id", detector_id, raise_404=True)
         try:
             detector = (
-                Detector.objects.with_type_filters()
+                Detector.objects.by_organization(organization.id)
+                .with_type_filters()
                 .select_related("project")
-                .get(
-                    id=validated_detector_id,
-                    project__organization_id=kwargs["organization"].id,
-                )
+                .get(id=validated_detector_id)
             )
             kwargs["detector"] = detector
         except Detector.DoesNotExist:
             raise ResourceDoesNotExist
 
-        # Verify user has access to the detector's project (respects Open Membership setting)
-        if not request.access.has_project_access(detector.project):
-            raise PermissionDenied
+        if detector.project is None:
+            if not should_include_all_projects_detector(organization=organization, request=request):
+                raise PermissionDenied
+        else:
+            # Verify user has access to the detector's project (respects Open Membership setting)
+            if not request.access.has_project_access(detector.project):
+                raise PermissionDenied
 
         return args, kwargs
 
@@ -218,11 +198,13 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         _check_metric_detector_allowed(detector, organization)
 
         if not can_edit_detector(detector, request):
+            if not is_system_created_detector(detector):
+                enforce_scope(request, "alerts:write")
             raise PermissionDenied
 
         group_type = request.data.get("type") or detector.group_type.slug
         validator = get_detector_validator(
-            request, detector.project, group_type, detector, partial=True
+            request, detector.linked_project, group_type, detector, partial=True
         )
 
         if not validator.is_valid():
@@ -255,4 +237,22 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
         # Intentionally no _check_metric_detector_allowed gate here:
         # orgs should be able to delete detectors they can no longer use
         # (e.g. after a plan downgrade).
-        return remove_detector(request, organization, detector)
+        if not can_delete_detector(detector, request):
+            raise PermissionDenied
+
+        validator = get_detector_validator(
+            request, detector.linked_project, detector.type, instance=detector
+        )
+        validator.delete()
+
+        if detector.type == MetricIssue.slug:
+            schedule_update_project_config(detector)
+
+        create_audit_entry(
+            request=request,
+            organization=detector.linked_project.organization,
+            target_object=detector.id,
+            event=audit_log.get_event_id("DETECTOR_REMOVE"),
+            data=detector.get_audit_log_data(),
+        )
+        return Response(status=204)

@@ -26,7 +26,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
@@ -173,18 +172,16 @@ function DistributionsDrawerButton({
   tags,
   includeFeatureFlags,
   searchQuery,
-  isScreenSmall,
 }: {
   includeFeatureFlags: boolean;
   tags: GroupTag[];
-  isScreenSmall?: boolean;
   searchQuery?: string;
 }) {
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
   const organization = useOrganization();
 
-  if (tags.length === 0 || searchQuery || isScreenSmall) {
+  if (tags.length === 0 || searchQuery) {
     return (
       <VerticalDistributionsDrawerButton
         aria-label={t('View issue tag distributions')}
@@ -196,7 +193,7 @@ function DistributionsDrawerButton({
         replace
         disabled={tags.length === 0}
       >
-        {includeFeatureFlags && !isScreenSmall
+        {includeFeatureFlags
           ? tct('View[nbsp]All Tags[nbsp]&[nbsp]Flags', {
               nbsp: '\u00A0', // non-breaking space unicode character.
             })
@@ -234,8 +231,6 @@ export function IssueTagsPreview({
 }) {
   const searchQuery = useEventQuery();
   const organization = useOrganization();
-  const theme = useTheme();
-  const isScreenSmall = useMedia(`(max-width: ${theme.breakpoints.sm})`);
 
   const {data: detailedProject, isPending: isHighlightPending} = useDetailedProject({
     orgSlug: organization.slug,
@@ -288,16 +283,11 @@ export function IssueTagsPreview({
     project.platform ?? 'other'
   );
 
-  if (
-    searchQuery ||
-    isScreenSmall ||
-    (!isPending && !isHighlightPending && tagsToPreview.length === 0)
-  ) {
+  if (searchQuery || (!isPending && !isHighlightPending && tagsToPreview.length === 0)) {
     return (
       <DistributionsDrawerButton
         tags={tagsToPreview}
         searchQuery={searchQuery}
-        isScreenSmall={isScreenSmall}
         includeFeatureFlags={includeFeatureFlags}
       />
     );
@@ -331,7 +321,8 @@ export function IssueTagsPreview({
 }
 
 const TagsPreview = styled('div')`
-  width: 340px;
+  width: 100%;
+  max-width: 340px;
   display: grid;
   grid-template-columns: auto 30% min-content auto;
   align-items: center;
@@ -339,10 +330,6 @@ const TagsPreview = styled('div')`
   gap: 1px;
   column-gap: ${p => p.theme.space.xs};
   font-size: ${p => p.theme.font.size.sm};
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
 `;
 
 const TagBarPlaceholder = styled('div')`

@@ -1,16 +1,11 @@
-import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {parseFunction} from 'sentry/utils/discover/fields';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-
-jest.mock('sentry/utils/useLocation');
-const mockedUsedLocation = jest.mocked(useLocation);
 
 function useWrapper(yAxis: string) {
   const {attributes: stringTags} = useSpanItemAttributes({}, 'string');
@@ -35,8 +30,6 @@ describe('useVisualizeFields', () => {
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
     });
-
-    mockedUsedLocation.mockReturnValue(LocationFixture());
   });
 
   it('returns numeric fields', () => {
@@ -45,16 +38,15 @@ describe('useVisualizeFields', () => {
     });
 
     expect(result.current.map(field => field.value)).toEqual([
+      'ai.total_cost',
       'gen_ai.cost.input_tokens',
       'gen_ai.cost.output_tokens',
       'gen_ai.cost.total_tokens',
-      'span.duration',
-      'span.self_time',
-      'ai.total_cost',
       'gen_ai.usage.input_tokens',
       'gen_ai.usage.output_tokens',
-      'gen_ai.usage.total_cost',
       'gen_ai.usage.total_tokens',
+      'span.duration',
+      'span.self_time',
       'score.ttfb',
     ]);
   });

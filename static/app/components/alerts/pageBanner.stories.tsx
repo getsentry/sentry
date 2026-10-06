@@ -15,7 +15,7 @@ export default Storybook.story('PageBanner', story => {
   const storiesButton = (
     <LinkButton
       external
-      href="https://sentry.io/orgredirect/organizations/:orgslug/stories"
+      href="https://sentry.io/orgredirect/organizations/:orgslug/scraps"
       variant="primary"
     >
       View Stories
@@ -104,7 +104,7 @@ export default Storybook.story('PageBanner', story => {
           <Fragment>
             Build new products faster by exploring reusable the UI components available
             inside Sentry.{' '}
-            <ExternalLink href="https://sentry.io/orgredirect/organizations/:orgslug/stories">
+            <ExternalLink href="https://sentry.io/orgredirect/organizations/:orgslug/scraps">
               See stories
             </ExternalLink>
           </Fragment>
@@ -114,7 +114,7 @@ export default Storybook.story('PageBanner', story => {
         image={replaysDeadRageBackground}
         title={
           <Fragment>
-            UI Library Available at <Green>https://sentry.io/stories</Green>
+            UI Library Available at <Green>https://sentry.io/scraps</Green>
           </Fragment>
         }
       />

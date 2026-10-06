@@ -3,7 +3,6 @@ import {useHover} from '@react-aria/interactions';
 import {mergeProps} from '@react-aria/utils';
 import {type OverlayTriggerState} from '@react-stately/overlays';
 
-import {Button} from '@sentry/scraps/button';
 import {
   CompactSelect,
   ControlContext,
@@ -24,13 +23,13 @@ interface BreadcrumbDropdownProps extends Omit<
   onCrumbSelect: (value: string) => void;
   route: RouteWithName;
   hasMenu?: boolean;
-  isLast?: boolean;
+  showDivider?: boolean;
 }
 
 export function BreadcrumbDropdown({
   hasMenu,
   route,
-  isLast,
+  showDivider,
   name,
   onCrumbSelect,
   options,
@@ -44,12 +43,10 @@ export function BreadcrumbDropdown({
 
   if (!hasMenu) {
     return (
-      <Button variant="link">
-        <Flex gap="sm" align="center">
-          <Text bold={false}>{name || route.name} </Text>
-          {isLast ? null : <Divider />}
-        </Flex>
-      </Button>
+      <Flex gap="sm" align="center">
+        <Text bold={false}>{name || route.name}</Text>
+        {showDivider && <Divider />}
+      </Flex>
     );
   }
 
@@ -68,6 +65,7 @@ export function BreadcrumbDropdown({
         <MenuCrumb
           crumbLabel={name || route.name}
           menuHasHover={isHovered}
+          showDivider={showDivider}
           {...triggerProps}
         />
       )}
@@ -79,7 +77,7 @@ export function BreadcrumbDropdown({
 type MenuCrumbProps = TriggerProps & {
   crumbLabel: React.ReactNode;
   menuHasHover: boolean;
-  isLast?: boolean;
+  showDivider?: boolean;
 };
 // XXX(epurkhiser): We have a couple hacks in place to get hover-activation of
 // our CompactSelect working well for these breadcrumbs.
@@ -96,7 +94,7 @@ const activeCrumbStates = new Set<OverlayTriggerState | undefined>();
 
 const CLOSE_MENU_TIMEOUT = 250;
 
-function MenuCrumb({crumbLabel, menuHasHover, isLast, ...props}: MenuCrumbProps) {
+function MenuCrumb({crumbLabel, menuHasHover, showDivider, ...props}: MenuCrumbProps) {
   const {overlayState, overlayIsOpen} = useContext(ControlContext);
   const {open, close} = overlayState ?? {};
 
@@ -138,7 +136,7 @@ function MenuCrumb({crumbLabel, menuHasHover, isLast, ...props}: MenuCrumbProps)
         >
           <Flex gap="sm" align="center">
             <Text bold={false}>{crumbLabel} </Text>
-            {isLast ? null : <Divider isHover={overlayIsOpen} />}
+            {showDivider && <Divider isHover={overlayIsOpen} />}
           </Flex>
         </OverlayTrigger.Button>
       )}

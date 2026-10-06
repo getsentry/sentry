@@ -3,10 +3,11 @@ import {Fragment, useState} from 'react';
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {openModal} from 'sentry/actionCreators/modal';
-import {NumberField} from 'sentry/components/forms/fields/numberField';
+import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {Form} from 'sentry/components/forms/form';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
 import type {Subscription} from 'getsentry/types';
@@ -19,8 +20,55 @@ type Props = {
 
 type ModalProps = Props & ModalRenderProps;
 
-function getNumberOrNull(n: number | null | string): number | null {
-  return n === null || n === '' ? null : Number(n);
+const RETENTION_STEP_DAYS = 30;
+const MAX_RETENTION_DAYS = 390;
+
+const RETENTION_DAY_CHOICES = Array.from(
+  {length: MAX_RETENTION_DAYS / RETENTION_STEP_DAYS},
+  (_, i) => (i + 1) * RETENTION_STEP_DAYS
+);
+
+type RetentionOption = {label: string; value: number};
+
+/**
+ * Retention must be picked from multiples of 30. Existing values
+ * that predate this restriction are kept as an option so they aren't silently
+ * dropped when the form is submitted.
+ */
+function getRetentionOptions(currentValue: number | null): RetentionOption[] {
+  const options: RetentionOption[] = RETENTION_DAY_CHOICES.map(days => ({
+    value: days,
+    label: days === currentValue ? `${days} days (current)` : `${days} days`,
+  }));
+
+  if (currentValue !== null && !options.some(option => option.value === currentValue)) {
+    options.unshift({value: currentValue, label: `${currentValue} days (current)`});
+  }
+
+  return options;
+}
+
+type RetentionFieldProps = {
+  label: string;
+  name: string;
+  onChange: (value: number | null) => void;
+  value: number | null;
+};
+
+function RetentionField({name, label, value, onChange}: RetentionFieldProps) {
+  const [options] = useState(() => getRetentionOptions(value));
+
+  return (
+    <SelectField
+      name={name}
+      label={label}
+      defaultValue={value}
+      options={options}
+      onChange={(newValue: number | null | undefined) => onChange(newValue ?? null)}
+      placeholder="Plan default"
+      allowClear
+    />
+  );
 }
 
 function UpdateRetentionSettingsModal({
@@ -33,76 +81,101 @@ function UpdateRetentionSettingsModal({
 }: ModalProps) {
   const api = useApi();
 
-  const [orgStandard, setOrgStandard] = useState<number | null | string>(
+  const [orgStandard, setOrgStandard] = useState<number | null>(
     subscription.orgRetention?.standard ?? null
   );
 
-  const [logBytesStandard, setLogBytesStandard] = useState<number | null | string>(
+  const [logBytesStandard, setLogBytesStandard] = useState<number | null>(
     subscription.categories.logBytes?.retention?.standard ?? null
   );
-  const [logBytesDownsampled, setLogBytesDownsampled] = useState<number | null | string>(
+  const [logBytesDownsampled, setLogBytesDownsampled] = useState<number | null>(
     subscription.categories.logBytes?.retention?.downsampled ?? null
   );
 
-  const [transactionsStandard, setTransactionsStandard] = useState<
-    number | null | string
-  >(subscription.categories.transactions?.retention?.standard ?? null);
-  const [transactionsDownsampled, setTransactionsDownsampled] = useState<
-    number | null | string
-  >(subscription.categories.transactions?.retention?.downsampled ?? null);
+  const [traceMetricBytesStandard, setTraceMetricBytesStandard] = useState<number | null>(
+    subscription.categories.traceMetricBytes?.retention?.standard ?? null
+  );
+  const [traceMetricBytesDownsampled, setTraceMetricBytesDownsampled] = useState<
+    number | null
+  >(subscription.categories.traceMetricBytes?.retention?.downsampled ?? null);
 
-  const [spansStandard, setSpansStandard] = useState<number | null | string>(
+  const [transactionsStandard, setTransactionsStandard] = useState<number | null>(
+    subscription.categories.transactions?.retention?.standard ?? null
+  );
+  const [transactionsDownsampled, setTransactionsDownsampled] = useState<number | null>(
+    subscription.categories.transactions?.retention?.downsampled ?? null
+  );
+
+  const [spansStandard, setSpansStandard] = useState<number | null>(
     subscription.categories.spans?.retention?.standard ?? null
   );
-  const [spansDownsampled, setSpansDownsampled] = useState<number | null | string>(
+  const [spansDownsampled, setSpansDownsampled] = useState<number | null>(
     subscription.categories.spans?.retention?.downsampled ?? null
   );
 
-  const onSubmit = () => {
+  const onSubmit = async () => {
     const retentions: Partial<
       Record<DataCategory, {downsampled: number | null; standard: number | null}>
     > = {};
 
     if (subscription.planDetails.categories.includes(DataCategory.LOG_BYTE)) {
       retentions.logBytes = {
-        standard: getNumberOrNull(logBytesStandard),
-        downsampled: getNumberOrNull(logBytesDownsampled),
+        standard: logBytesStandard,
+        downsampled: logBytesDownsampled,
+      };
+    }
+
+    if (subscription.planDetails.categories.includes(DataCategory.TRACE_METRIC_BYTE)) {
+      retentions.traceMetricBytes = {
+        standard: traceMetricBytesStandard,
+        downsampled: traceMetricBytesDownsampled,
       };
     }
 
     if (subscription.planDetails.categories.includes(DataCategory.TRANSACTIONS)) {
       retentions.transactions = {
-        standard: getNumberOrNull(transactionsStandard),
-        downsampled: getNumberOrNull(transactionsDownsampled),
+        standard: transactionsStandard,
+        downsampled: transactionsDownsampled,
       };
     }
 
     if (subscription.planDetails.categories.includes(DataCategory.SPANS)) {
       retentions.spans = {
-        standard: getNumberOrNull(spansStandard),
-        downsampled: getNumberOrNull(spansDownsampled),
+        standard: spansStandard,
+        downsampled: spansDownsampled,
       };
     }
 
     const orgRetention = {
-      standard: getNumberOrNull(orgStandard),
+      standard: orgStandard,
       downsampled: null,
     };
 
     const data = {retentions, orgRetention};
 
-    api.request(`/_admin/customers/${organization.slug}/retention-settings/`, {
-      method: 'POST',
-      data,
-      success: () => {
-        addSuccessMessage('Retention settings updated successfully.');
-        closeModal();
-        onSuccess();
-      },
-      error: e => {
-        addErrorMessage(e.responseText || 'Failed to update retention settings.');
-      },
-    });
+    try {
+      await api.requestPromise(
+        `/_admin/customers/${organization.slug}/retention-settings/`,
+        {
+          method: 'POST',
+          data,
+          includeAllArgs: true,
+        }
+      );
+      addSuccessMessage('Retention settings updated successfully.');
+      closeModal();
+      onSuccess();
+    } catch (e) {
+      const err = e instanceof RequestError ? e : undefined;
+      const detail = err?.responseJSON?.detail;
+      const message =
+        typeof detail === 'string'
+          ? detail
+          : typeof detail === 'object' && detail?.message
+            ? detail.message
+            : 'Failed to update retention settings.';
+      addErrorMessage(message);
+    }
   };
 
   return (
@@ -111,51 +184,67 @@ function UpdateRetentionSettingsModal({
       <Body>
         <div>
           <p>
-            Update the retention settings for each data category. Null values will default
-            to the plan's retention value for the category.
-          </p>
-          <p>
-            A value of zero for downsampled means that the downsampled retention defaults
-            to the standard retention.
+            Update the retention settings for each data category. Retention must be a
+            multiple of 30 days. Clearing a field defaults to the plan's retention value
+            for the category.
           </p>
         </div>
         <br />
         <Form onSubmit={onSubmit} submitLabel="Update Settings" onCancel={closeModal}>
-          <NumberField
+          <RetentionField
             name="orgStandard"
             label="Org Retention"
-            defaultValue={orgStandard}
+            value={orgStandard}
             onChange={setOrgStandard}
           />
           {subscription.planDetails.categories.includes(DataCategory.LOG_BYTE) && (
             <Fragment>
-              <NumberField
+              <RetentionField
                 name="logBytesStandard"
                 label="Logs Standard"
-                defaultValue={logBytesStandard}
+                value={logBytesStandard}
                 onChange={setLogBytesStandard}
               />
-              <NumberField
+              <RetentionField
                 name="logBytesDownsampled"
                 label="Logs Downsampled"
-                defaultValue={logBytesDownsampled}
+                value={logBytesDownsampled}
                 onChange={setLogBytesDownsampled}
+              />
+            </Fragment>
+          )}
+
+          {subscription.planDetails.categories.includes(
+            DataCategory.TRACE_METRIC_BYTE
+          ) && (
+            <Fragment>
+              <RetentionField
+                name="traceMetricBytesStandard"
+                label="Metrics Standard"
+                value={traceMetricBytesStandard}
+                onChange={setTraceMetricBytesStandard}
+              />
+              <RetentionField
+                name="traceMetricBytesDownsampled"
+                label="Metrics Downsampled"
+                value={traceMetricBytesDownsampled}
+                onChange={setTraceMetricBytesDownsampled}
               />
             </Fragment>
           )}
 
           {subscription.planDetails.categories.includes(DataCategory.TRANSACTIONS) && (
             <Fragment>
-              <NumberField
+              <RetentionField
                 name="transactionsStandard"
                 label="Transactions Standard"
-                defaultValue={transactionsStandard}
+                value={transactionsStandard}
                 onChange={setTransactionsStandard}
               />
-              <NumberField
+              <RetentionField
                 name="transactionsDownsampled"
                 label="Transactions Downsampled"
-                defaultValue={transactionsDownsampled}
+                value={transactionsDownsampled}
                 onChange={setTransactionsDownsampled}
               />
             </Fragment>
@@ -163,16 +252,16 @@ function UpdateRetentionSettingsModal({
 
           {subscription.planDetails.categories.includes(DataCategory.SPANS) && (
             <Fragment>
-              <NumberField
+              <RetentionField
                 name="spansStandard"
                 label="Spans Standard"
-                defaultValue={spansStandard}
+                value={spansStandard}
                 onChange={setSpansStandard}
               />
-              <NumberField
+              <RetentionField
                 name="spansDownsampled"
                 label="Spans Downsampled"
-                defaultValue={spansDownsampled}
+                value={spansDownsampled}
                 onChange={setSpansDownsampled}
               />
             </Fragment>

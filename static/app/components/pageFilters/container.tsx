@@ -6,14 +6,16 @@ import {Stack} from '@sentry/scraps/layout';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {InitializeUrlStateParams} from 'sentry/components/pageFilters/actions';
 import {
+  getOldestPickableStart,
   initializeUrlState,
   updateDateTime,
   updateEnvironments,
   updatePersistence,
   updateProjects,
 } from 'sentry/components/pageFilters/actions';
+import {PageFilterAdjustmentReason} from 'sentry/components/pageFilters/adjustments';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {DAY as DAY_IN_MS} from 'sentry/utils/formatters';
@@ -152,12 +154,10 @@ export function PageFiltersContainer({
     }
 
     // For absolute date ranges, check if the start date is before the allowed window.
-    // Uses same calculation as initialization in pageFilters.tsx
     if (start && end) {
       const periodStart = new Date(start);
       const periodEnd = new Date(end);
-      const maxPeriod = parseStatsPeriod(`${maxPickableDays}d`);
-      const maxStart = new Date(maxPeriod.start);
+      const maxStart = getOldestPickableStart(maxPickableDays);
 
       if (maxDateRange) {
         const maxTimeRange = maxDateRange * DAY_IN_MS;
@@ -190,7 +190,22 @@ export function PageFiltersContainer({
       project: [],
     });
     updateDateTime(newDateState, location, navigate);
-  }, [location, navigate, resetPeriodDays, selection.datetime.utc, shouldResetDateTime]);
+
+    // Recorded after the update, which clears any prior datetime adjustment.
+    PageFiltersStore.addAdjustment('datetime', {
+      reason: maxDateRange
+        ? PageFilterAdjustmentReason.MAX_DATE_RANGE
+        : PageFilterAdjustmentReason.MAX_PICKABLE_DAYS,
+      days: resetPeriodDays,
+    });
+  }, [
+    location,
+    maxDateRange,
+    navigate,
+    resetPeriodDays,
+    selection.datetime.utc,
+    shouldResetDateTime,
+  ]);
 
   // Update store persistence when `disablePersistence` changes
   useEffect(() => updatePersistence(!disablePersistence), [disablePersistence]);

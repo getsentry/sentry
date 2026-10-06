@@ -1,16 +1,21 @@
-# Legacy API Backport Project
+# Legacy Alert API Compatibility
 
-## Goal
+> This document covers remaining legacy alert ID compatibility with Workflow Engine
+> models after the legacy alert APIs were retired. Start with
+> the [Workflow Engine overview](../README.md), [data model](data-model.md), and
+> [execution guide](execution.md) for current architecture.
 
-Reimplement legacy alerts API endpoints using workflow engine abstractions. Backported code paths should not use legacy models (`AlertRule`, `Rule`, `AlertRuleActivity`, `Incident`, etc.) for their core logic.
+## Current Boundary
 
-## The Plan
+The deprecated legacy alert API routes were removed in
+[sentry#121879](https://github.com/getsentry/sentry/pull/121879). Clients must use
+the detector and workflow APIs to manage alerts. The serializer and issue-alert
+POST/PUT rollout flags no longer have consumers and have been retired.
 
-Each legacy endpoint gets a parallel workflow engine implementation, gated behind feature flags. The broad flag `organizations:workflow-engine-rule-serializers` enables the workflow engine path for all backported endpoints. Per-endpoint-method flags allow independent rollout of individual code paths (see [Feature Flag Strategy](#feature-flag-strategy) below). The two implementations live side-by-side in the same endpoint class; the non-workflow engine code is kept untouched as much as possible.
-
-**Read endpoints (GET)** query workflow engine models (`Detector`, `Workflow`, `DataSource`, `GroupOpenPeriod`) and use dedicated serializers that reconstruct the legacy response shape.
-
-**Write endpoints (POST, PUT, DELETE)** translate the legacy API request into a call to the existing workflow engine Validators, so that new data is single-written through the same validation and creation logic used by the native workflow engine APIs. The goal is to reuse, not reimplement, the write path.
+Some compatibility code remains: rule history and statistics resolve legacy rule IDs
+to workflows, lookup endpoints expose associations between legacy and Workflow Engine
+models, and notification code still uses legacy-shaped data. Endpoint retirement does
+not imply that the association tables, serializers, or ID helpers are all unused.
 
 ## Handling IDs
 
@@ -33,38 +38,12 @@ Data created exclusively by the workflow engine with no legacy counterpart. Thes
 
 Endpoints that accept IDs as input must handle both real legacy IDs (via association tables) and manufactured IDs (via `get_object_id_from_fake_id`).
 
-## Endpoints in scope
+## Compatibility Endpoints
 
-All endpoints decorated with `@track_alert_endpoint_execution` are in scope for backport:
-
-**Metric alert rules**
-
-- `OrganizationAlertRuleIndexEndpoint`
-- `OrganizationAlertRuleDetailsEndpoint`
-- `OrganizationCombinedRuleIndexEndpoint`
-- `ProjectAlertRuleIndexEndpoint`
-- `ProjectAlertRuleDetailsEndpoint`
-
-**Incidents**
-
-- `OrganizationIncidentIndexEndpoint`
-- `OrganizationIncidentDetailsEndpoint`
-
-**Issue alert rules**
-
-- `ProjectRulesEndpoint`
-- `ProjectRuleDetailsEndpoint`
-- `ProjectRuleEnableEndpoint`
-- `ProjectRuleTaskDetailsEndpoint`
-
-**Snooze**
-
-- `RuleSnoozeEndpoint`
-- `MetricRuleSnoozeEndpoint`
-
-## Feature Flag Strategy
-
-`organizations:workflow-engine-rule-serializers` enables all backported paths at once (useful for testing). Per-endpoint flags (e.g. `organizations:workflow-engine-combinedruleindex-get`) allow independent prod rollout — each is OR'd with the broad flag. Per-feature flags (e.g. `organizations:workflow-engine-issue-alert-endpoints-post`) allow a subset of endpoints scoped to a feature to be enabled to avoid a large number of individual flags. Naming convention: `organizations:workflow-engine-{lowercaseendpointclass}-{method}`.
+Check the registered routes and their implementations when changing compatibility
+code. Rule history and statistics live in `src/sentry/rules/history/endpoints/`;
+association lookup routes live in `src/sentry/workflow_engine/endpoints/urls.py`.
+The endpoint-tracking decorator was removed with the deprecated routes.
 
 ## Unsupported legacy features
 

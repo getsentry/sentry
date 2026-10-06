@@ -152,7 +152,7 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         integration = self.get_integration(organization.id, integration_id)
         installation = integration.get_installation(organization_id=organization.id)
         try:
-            installation.update_organization_config(request.data)
+            extra_audit_data = installation.update_organization_config(request.data) or {}
         except (IntegrationError, ApiError) as e:
             sentry_sdk.capture_exception(e)
             return self.respond({"detail": str(e)}, status=400)
@@ -164,5 +164,17 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
             event=audit_log.get_event_id("INTEGRATION_EDIT"),
             data={"provider": integration.provider, "name": "config"},
         )
+
+        # `INTEGRATION_EDIT` only records that "config" changed. Project status mappings own
+        # rows of their own, so record what was added and removed under a dedicated event.
+        project_mapping_changes = extra_audit_data.get("sync_status_forward")
+        if project_mapping_changes:
+            self.create_audit_entry(
+                request=request,
+                organization=organization,
+                target_object=integration.id,
+                event=audit_log.get_event_id("INTEGRATION_PROJECT_MAPPINGS_UPDATE"),
+                data={"provider": integration.provider, **project_mapping_changes},
+            )
 
         return self.respond(status=200)

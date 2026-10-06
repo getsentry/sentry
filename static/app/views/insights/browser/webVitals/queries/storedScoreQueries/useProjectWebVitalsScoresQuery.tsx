@@ -1,4 +1,3 @@
-import type {Tag} from 'sentry/types/group';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
@@ -10,14 +9,12 @@ import {SpanFields, type SubregionCode} from 'sentry/views/insights/types';
 type Props = {
   browserTypes?: BrowserType[];
   subregions?: SubregionCode[];
-  tag?: Tag;
   transaction?: string;
   weightWebVital?: WebVitals | 'total';
 };
 
 export const useProjectWebVitalsScoresQuery = ({
   transaction,
-  tag,
   weightWebVital = 'total',
   browserTypes,
   subregions,
@@ -25,9 +22,6 @@ export const useProjectWebVitalsScoresQuery = ({
   const search = new MutableSearch([]);
   if (transaction) {
     search.addFilterValue('transaction', transaction);
-  }
-  if (tag) {
-    search.addFilterValue(tag.key, tag.name);
   }
   if (browserTypes) {
     search.addDisjunctionFilterValues(SpanFields.BROWSER_NAME, browserTypes);

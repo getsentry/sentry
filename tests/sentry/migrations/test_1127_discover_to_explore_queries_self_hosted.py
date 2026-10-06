@@ -1,3 +1,5 @@
+import pytest
+
 from sentry.discover.models import (
     DiscoverSavedQuery,
     DiscoverSavedQueryProject,
@@ -7,6 +9,10 @@ from sentry.explore.models import ExploreSavedQueryDataset
 from sentry.testutils.cases import SnubaTestCase, TestMigrations
 
 
+@pytest.mark.skip(
+    reason="Test fixtures build rows with the current model, which fails once a model "
+    "gains a field newer than migrate_from's schema"
+)
 class MigrateDiscoverQueriesToExploreQueriesSelfHostedTest(TestMigrations, SnubaTestCase):
     migrate_from = "1126_transactions_to_spans_widgets_self_hosted"
     migrate_to = "1127_discover_to_explore_queries_self_hosted"

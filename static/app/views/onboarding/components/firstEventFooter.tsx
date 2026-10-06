@@ -3,11 +3,9 @@ import type {Variants} from 'framer-motion';
 import {motion} from 'framer-motion';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Grid, type GridProps} from '@sentry/scraps/layout';
-import {Link} from '@sentry/scraps/link';
+import {Flex, Grid, type GridProps} from '@sentry/scraps/layout';
 
 import {CreateSampleEventButton} from 'sentry/components/onboarding/createSampleEventButton';
-import {useOnboardingSidebar} from 'sentry/components/onboarding/useOnboardingSidebar';
 import {IconCheckmark} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
@@ -17,7 +15,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {useExperiment} from 'sentry/utils/useExperiment';
+import {ONBOARDING_ENTER, ONBOARDING_STAGGER} from 'sentry/views/onboarding/animations';
 
 import {GridFooter} from './genericFooter';
 
@@ -36,16 +34,13 @@ export function FirstEventFooter({
   isLast,
   leading,
 }: FirstEventFooterProps) {
-  const {activateSidebar} = useOnboardingSidebar();
-  const {inExperiment: hasScmOnboarding} = useExperiment({
-    feature: 'onboarding-scm-experiment',
-    reportExposure: false,
-  });
-
   const {data: issues} = useApiQuery<Group[]>(
     [
       getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/', {
-        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+        path: {
+          organizationIdOrSlug: organization.slug,
+          projectIdOrSlug: project.slug,
+        },
       }),
     ],
     {
@@ -59,55 +54,32 @@ export function FirstEventFooter({
       ? issues.find((issue: Group) => issue.firstSeen === project.firstEvent)
       : undefined;
 
-  const source = 'targeted_onboarding_first_event_footer';
-
   return (
     <GridFooter>
-      {hasScmOnboarding ? (
-        <LeadingSlot>{leading}</LeadingSlot>
-      ) : (
-        <SkipOnboardingLink
-          onClick={() => {
-            trackAnalytics('growth.onboarding_clicked_skip', {
-              organization,
-              source,
-            });
-            activateSidebar({
-              userClicked: false,
-              source: 'targeted_onboarding_first_event_footer_skip',
-            });
-          }}
-          to={`/organizations/${organization.slug}/issues/?referrer=onboarding-first-event-footer-skip`}
-        >
-          {t('Skip Onboarding')}
-        </SkipOnboardingLink>
-      )}
-      <StatusWrapper
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        variants={{
-          initial: {opacity: 0, y: -10},
-          animate: {
-            opacity: 1,
-            y: 0,
-            transition: {
-              when: 'beforeChildren',
-              staggerChildren: 0.35,
-            },
-          },
-          exit: {opacity: 0, y: 10},
-        }}
-      >
-        {project.firstEvent ? (
-          <IconCheckmark variant="success" />
-        ) : (
-          <WaitingIndicator variants={indicatorAnimation} />
+      <LeadingSlot>{leading}</LeadingSlot>
+      <Flex align="center" justify="center" display={{zero: 'none', xl: 'flex'}}>
+        {flexProps => (
+          <motion.div
+            {...flexProps}
+            initial="initial"
+            animate="animate"
+            exit="exit"
+            {...ONBOARDING_STAGGER}
+          >
+            {project.firstEvent ? (
+              <IconCheckmark variant="success" />
+            ) : (
+              <WaitingIndicator variants={indicatorAnimation} />
+            )}
+            <AnimatedText
+              errorReceived={!!project.firstEvent}
+              variants={indicatorAnimation}
+            >
+              {project.firstEvent ? t('Error Received') : t('Waiting for error')}
+            </AnimatedText>
+          </motion.div>
         )}
-        <AnimatedText errorReceived={!!project.firstEvent} variants={indicatorAnimation}>
-          {project.firstEvent ? t('Error Received') : t('Waiting for error')}
-        </AnimatedText>
-      </StatusWrapper>
+      </Flex>
       <OnboardingButtonBar>
         {/* if hasn't sent first event, allow skipping. if last, no secondary cta */}
         {!project.firstEvent && !isLast ? (
@@ -117,17 +89,10 @@ export function FirstEventFooter({
         {project.firstEvent ? (
           <LinkButton
             onClick={() => {
-              if (hasScmOnboarding) {
-                trackAnalytics('onboarding.scm_take_to_error_clicked', {
-                  organization,
-                  platform: project.platform,
-                });
-              } else {
-                trackAnalytics('growth.onboarding_take_to_error', {
-                  organization,
-                  platform: project.platform,
-                });
-              }
+              trackAnalytics('onboarding.scm_take_to_error_clicked', {
+                organization,
+                platform: project.platform,
+              });
             }}
             to={`/organizations/${organization.slug}/issues/${
               firstIssue && 'id' in firstIssue ? `${firstIssue.id}/` : ''
@@ -141,7 +106,7 @@ export function FirstEventFooter({
             project={project}
             source="targeted-onboarding"
             variant="primary"
-            hasScmOnboarding={hasScmOnboarding}
+            hasScmOnboarding
           >
             {t('View Sample Error')}
           </CreateSampleEventButton>
@@ -163,42 +128,20 @@ const AnimatedText = styled(motion.div, {
   shouldForwardProp: prop => prop !== 'errorReceived',
 })<{errorReceived: boolean}>`
   margin-left: ${p => p.theme.space.md};
+  font-size: ${p => p.theme.font.size.md};
   color: ${p =>
     p.errorReceived ? p.theme.tokens.content.success : p.theme.colors.pink500};
 `;
 
-const indicatorAnimation: Variants = {
-  initial: {opacity: 0, y: -10},
-  animate: {opacity: 1, y: 0},
-  exit: {opacity: 0, y: 10},
-};
+const indicatorAnimation: Variants = ONBOARDING_ENTER.variants;
 
 const WaitingIndicator = styled(motion.div)`
   ${pulsingIndicatorStyles};
   background-color: ${p => p.theme.colors.pink400};
 `;
 
-const StatusWrapper = styled(motion.div)`
-  display: flex;
-  align-items: center;
-  font-size: ${p => p.theme.font.size.md};
-  justify-content: center;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
-`;
-
 const LeadingSlot = styled('div')`
   display: flex;
   align-items: center;
   margin: auto ${p => p.theme.space['3xl']};
-`;
-
-const SkipOnboardingLink = styled(Link)`
-  margin: auto ${p => p.theme.space['3xl']};
-  white-space: nowrap;
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
 `;

@@ -7,13 +7,14 @@ from jsonschema import ValidationError
 
 from sentry.models.environment import Environment
 from sentry.models.release import Release
-from sentry.rules.age import AgeComparisonType
-from sentry.rules.filters.latest_adopted_release_filter import (
-    LatestAdoptedReleaseFilter,
-    get_first_last_release_for_group_cache_key,
-)
+from sentry.rules.filters.latest_adopted_release_filter import LatestAdoptedReleaseFilter
 from sentry.search.utils import LatestReleaseOrders
 from sentry.utils.cache import cache
+from sentry.workflow_engine.handlers.condition.utils.age import AgeComparisonType
+from sentry.workflow_engine.handlers.condition.utils.releases import (
+    get_first_last_release_for_group_cache_key,
+    get_latest_adopted_release_cache_key,
+)
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
@@ -156,6 +157,51 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         self.create_group_release(group=group_3, release=self.middle_release)
         self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3, group=group_3))
 
+    @patch("sentry.workflow_engine.handlers.condition.latest_adopted_release_handler.logger")
+    def test_logs_evaluation_result(self, mock_logger: MagicMock) -> None:
+        self.create_group_release(group=self.group, release=self.newest_release)
+
+        self.assert_passes(self.dc, self.event_data)
+
+        mock_logger.debug.assert_called_once_with(
+            "workflow_engine.handlers.latest_adopted_release_handler",
+            extra={
+                "configured_environment": self.prod_env.name,
+                "environment": self.prod_env.name,
+                "latest_project_release": self.middle_release.version,
+                "event_release": self.newest_release.version,
+                "release_age_type": "oldest",
+                "order_type": "SEMVER",
+                "age_comparison": "newer",
+                "evaluation_result": True,
+            },
+        )
+
+    @patch("sentry.workflow_engine.handlers.condition.latest_adopted_release_handler.logger")
+    def test_logs_missing_environment(self, mock_logger: MagicMock) -> None:
+        self.dc.update(
+            comparison={
+                **self.dc.comparison,
+                "environment": "missing",
+            }
+        )
+
+        self.assert_does_not_pass(self.dc, self.event_data)
+
+        mock_logger.debug.assert_called_once_with(
+            "workflow_engine.handlers.latest_adopted_release_handler",
+            extra={
+                "configured_environment": "missing",
+                "environment": None,
+                "latest_project_release": None,
+                "event_release": None,
+                "release_age_type": "oldest",
+                "order_type": "SEMVER",
+                "age_comparison": "newer",
+                "evaluation_result": False,
+            },
+        )
+
     def test_oldest_older(self) -> None:
         self.dc.update(
             comparison={
@@ -253,6 +299,19 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         assert cache.get(cache_key) is None
 
         self.assert_passes(self.dc, self.event_data)
+
+    def test_release_environment_clears_cache(self) -> None:
+        cache_key = get_latest_adopted_release_cache_key(self.project.id, self.prod_env.id)
+        cache.set(cache_key, self.oldest_release, 600)
+
+        self.create_release(
+            project=self.project,
+            version="test@3.0",
+            environments=[self.prod_env],
+            adopted=self.now,
+        )
+
+        assert cache.get(cache_key) is None
 
     @patch("sentry.search.utils.get_first_last_release_for_group", side_effect=Release.DoesNotExist)
     def test_release_does_not_exist(self, mock_get_first_last_release: MagicMock) -> None:

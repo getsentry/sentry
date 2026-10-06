@@ -1,10 +1,10 @@
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t} from 'sentry/locale';
-import {UptimeAssertionsField} from 'sentry/views/alerts/rules/uptime/assertions/field';
-import {useUptimeAssertionFeatures} from 'sentry/views/alerts/rules/uptime/useUptimeAssertionFeatures';
 import {ConnectedAssertionSuggestionsButton} from 'sentry/views/detectors/components/forms/uptime/connectedAssertionSuggestionsButton';
 import {UptimeSectionGrid} from 'sentry/views/detectors/components/forms/uptime/styles';
+import {UptimeAssertionsField} from 'sentry/views/detectors/components/uptime/assertions/field';
+import {useUptimeAssertionFeatures} from 'sentry/views/detectors/components/uptime/useUptimeAssertionFeatures';
 
 export function UptimeDetectorVerificationSection({step}: {step?: number}) {
   const {hasAiAssertionSuggestions} = useUptimeAssertionFeatures();

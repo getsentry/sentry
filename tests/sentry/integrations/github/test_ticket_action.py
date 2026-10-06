@@ -2,19 +2,20 @@ from unittest.mock import patch
 
 import pytest
 import responses
-from django.urls import reverse
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from sentry.integrations.github import client
 from sentry.integrations.github.actions.create_ticket import GitHubCreateTicketAction
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
+from sentry.issues.action_log.types import CreateExternalIssueAction
 from sentry.models.activity import Activity
 from sentry.models.repository import Repository
-from sentry.models.rule import Rule
 from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -114,42 +115,39 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
         )
 
         # Create a new Rule
-        response = self.client.post(
-            reverse(
-                "sentry-api-0-project-rules",
-                kwargs={
-                    "organization_id_or_slug": self.organization.slug,
-                    "project_id_or_slug": self.project.slug,
-                },
-            ),
-            format="json",
-            data={
-                "name": "hello world",
-                "owner": self.user.id,
-                "environment": None,
-                "actionMatch": "any",
-                "frequency": 5,
-                "actions": [
-                    {
-                        "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
-                        "integration": self.integration.id,
-                        "dynamic_form_fields": [{"random": "garbage"}],
-                        "repo": self.repo,
-                        "assignee": self.assignee,
-                        "labels": self.labels,
-                    }
-                ],
-                "conditions": [],
-            },
+        rule_object = self.create_project_rule(
+            project=self.project,
+            name="hello world",
+            action_match="any",
+            frequency=5,
+            action_data=[
+                {
+                    "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
+                    "integration": self.integration.id,
+                    "dynamic_form_fields": [{"random": "garbage"}],
+                    "repo": self.repo,
+                    "assignee": self.assignee,
+                    "labels": self.labels,
+                }
+            ],
         )
-        assert response.status_code == 200
 
-        # Get the rule from DB
-        rule_object = Rule.objects.get(id=response.data["id"])
         event = self.get_group_event()
 
         # Trigger its `after`
-        self.trigger(event, rule_object)
+        with (
+            action_context_scope(ActionSource.SYSTEM),
+            capture_action_log() as action_log,
+        ):
+            self.trigger(event, rule_object)
+
+        action_log.assert_logged(
+            CreateExternalIssueAction,
+            group_id=event.group_id,
+            source=ActionSource.SYSTEM,
+            actor=SYSTEM_ACTOR,
+            provider="github",
+        )
 
         # assert ticket created in DB
         key = self.get_key(event)
@@ -188,39 +186,3 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             ).count()
             == 1
         )
-
-    @responses.activate()
-    def test_fails_validation(self) -> None:
-        """
-        Test that the absence of dynamic_form_fields in the action fails validation
-        """
-        # Create a new Rule
-        response = self.client.post(
-            reverse(
-                "sentry-api-0-project-rules",
-                kwargs={
-                    "organization_id_or_slug": self.organization.slug,
-                    "project_id_or_slug": self.project.slug,
-                },
-            ),
-            format="json",
-            data={
-                "name": "hello world",
-                "owner": self.user.id,
-                "environment": None,
-                "actionMatch": "any",
-                "frequency": 5,
-                "actions": [
-                    {
-                        "id": "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
-                        "integration": self.integration.id,
-                        "repo": self.repo,
-                        "assignee": self.assignee,
-                        "labels": self.labels,
-                    }
-                ],
-                "conditions": [],
-            },
-        )
-        assert response.status_code == 400
-        assert response.data["actions"][0] == "Must configure issue link settings."

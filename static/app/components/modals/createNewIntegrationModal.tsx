@@ -1,7 +1,5 @@
 import type {ReactNode} from 'react';
-import {Fragment, useState} from 'react';
-import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
@@ -10,7 +8,6 @@ import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {t, tct} from 'sentry/locale';
 import {
   platformEventLinkMap,
@@ -24,68 +21,9 @@ import {ExampleIntegrationButton} from 'sentry/views/settings/organizationIntegr
 const analyticsView = 'new_integration_modal';
 
 function CreateNewIntegrationModal({Body, Header, Footer, closeModal}: ModalRenderProps) {
-  const theme = useTheme();
   const organization = useOrganization();
-  const hasCreationTemplates = organization.features.includes(
-    'sentry-apps-creation-templates'
-  );
-  const templates = getSentryAppTemplates(organization);
-  const [option, selectOption] = useState('internal');
+  const templates = getSentryAppTemplates();
   const baseUrl = `/settings/${organization.slug}/developer-settings/`;
-  const choices = [
-    [
-      'internal',
-      <RadioChoiceHeader data-test-id="internal-integration" key="header-internal">
-        {t('Internal Integration')}
-      </RadioChoiceHeader>,
-      <RadioChoiceDescription key="description-internal">
-        {tct(
-          'Internal integrations are meant for custom integrations unique to your organization. See more info on [docsLink].',
-          {
-            docsLink: (
-              <ExternalLink
-                href={platformEventLinkMap[PlatformEvents.INTERNAL_DOCS]}
-                onClick={() => {
-                  trackIntegrationAnalytics(PlatformEvents.INTERNAL_DOCS, {
-                    organization,
-                    view: analyticsView,
-                  });
-                }}
-              >
-                {t('Internal Integrations')}
-              </ExternalLink>
-            ),
-          }
-        )}
-      </RadioChoiceDescription>,
-    ],
-    [
-      'public',
-      <RadioChoiceHeader data-test-id="public-integration" key="header-public">
-        {t('Public Integration')}
-      </RadioChoiceHeader>,
-      <RadioChoiceDescription key="description-public">
-        {tct(
-          'A public integration will be available for all Sentry users for installation. See more info on [docsLink].',
-          {
-            docsLink: (
-              <ExternalLink
-                href={platformEventLinkMap[PlatformEvents.PUBLIC_DOCS]}
-                onClick={() => {
-                  trackIntegrationAnalytics(PlatformEvents.PUBLIC_DOCS, {
-                    organization,
-                    view: analyticsView,
-                  });
-                }}
-              >
-                {t('Public Integrations')}
-              </ExternalLink>
-            ),
-          }
-        )}
-      </RadioChoiceDescription>,
-    ],
-  ] as Array<[string, ReactNode, ReactNode]>;
 
   return (
     <Fragment>
@@ -101,168 +39,145 @@ function CreateNewIntegrationModal({Body, Header, Footer, closeModal}: ModalRend
             {tct(
               'Looking for MCP? Connect Sentry to AI-powered tools and your terminal from the [link:MCP & CLI] page.',
               {
-                link: <Link to={`/settings/${organization.slug}/mcp-cli/`} />,
+                link: (
+                  <Link
+                    to={`/settings/${organization.slug}/mcp-cli/`}
+                    onClick={() => {
+                      trackIntegrationAnalytics(PlatformEvents.MCP_CLI_HINT, {
+                        organization,
+                        view: analyticsView,
+                      });
+                    }}
+                  />
+                ),
               }
             )}
           </Alert>
         </Alert.Container>
-        {hasCreationTemplates ? (
-          <Stack gap="xl">
+        <Stack gap="xl">
+          <Stack gap="sm">
+            <Text bold>{t('Start from scratch')}</Text>
+            <Stack border="primary" radius="md">
+              <ChoiceRow
+                title={t('Internal Integration')}
+                description={tct(
+                  'Internal integrations are meant for custom integrations unique to your organization. See more info on [docsLink].',
+                  {
+                    docsLink: (
+                      <ExternalLink
+                        href={platformEventLinkMap[PlatformEvents.INTERNAL_DOCS]}
+                        onClick={() => {
+                          trackIntegrationAnalytics(PlatformEvents.INTERNAL_DOCS, {
+                            organization,
+                            view: analyticsView,
+                          });
+                        }}
+                      >
+                        {t('Internal Integrations')}
+                      </ExternalLink>
+                    ),
+                  }
+                )}
+                action={
+                  <LinkButton
+                    variant="secondary"
+                    size="sm"
+                    to={`${baseUrl}new-internal/`}
+                    onClick={() => {
+                      trackIntegrationAnalytics(PlatformEvents.CHOSE_INTERNAL, {
+                        organization,
+                        view: analyticsView,
+                      });
+                      closeModal();
+                    }}
+                  >
+                    {t('Get started')}
+                  </LinkButton>
+                }
+              />
+              <Stack.Separator />
+              <ChoiceRow
+                title={t('Public Integration')}
+                description={tct(
+                  'A public integration will be available for all Sentry users for installation. See more info on [docsLink].',
+                  {
+                    docsLink: (
+                      <ExternalLink
+                        href={platformEventLinkMap[PlatformEvents.PUBLIC_DOCS]}
+                        onClick={() => {
+                          trackIntegrationAnalytics(PlatformEvents.PUBLIC_DOCS, {
+                            organization,
+                            view: analyticsView,
+                          });
+                        }}
+                      >
+                        {t('Public Integrations')}
+                      </ExternalLink>
+                    ),
+                  }
+                )}
+                action={
+                  <LinkButton
+                    variant="secondary"
+                    size="sm"
+                    to={`${baseUrl}new-public/`}
+                    onClick={() => {
+                      trackIntegrationAnalytics(PlatformEvents.CHOSE_PUBLIC, {
+                        organization,
+                        view: analyticsView,
+                      });
+                      closeModal();
+                    }}
+                  >
+                    {t('Get started')}
+                  </LinkButton>
+                }
+              />
+            </Stack>
+          </Stack>
+          {templates.length > 0 && (
             <Stack gap="sm">
-              <Text bold>{t('Start from scratch')}</Text>
+              <Stack gap="2xs">
+                <Text bold>{t('Templates')}</Text>
+                <Text variant="muted" size="sm">
+                  {t('Get started with a pre-configured internal integration.')}
+                </Text>
+              </Stack>
               <Stack border="primary" radius="md">
-                <ChoiceRow
-                  title={t('Internal Integration')}
-                  description={tct(
-                    'Internal integrations are meant for custom integrations unique to your organization. See more info on [docsLink].',
-                    {
-                      docsLink: (
-                        <ExternalLink
-                          href={platformEventLinkMap[PlatformEvents.INTERNAL_DOCS]}
+                {templates.map((template, index) => (
+                  <Fragment key={template.slug}>
+                    {index > 0 && <Stack.Separator />}
+                    <ChoiceRow
+                      title={template.heading}
+                      description={template.description}
+                      action={
+                        <LinkButton
+                          variant="secondary"
+                          size="sm"
+                          to={`${baseUrl}new-internal/?template=${template.slug}&referrer=new_integration_modal`}
                           onClick={() => {
-                            trackIntegrationAnalytics(PlatformEvents.INTERNAL_DOCS, {
+                            trackIntegrationAnalytics(PlatformEvents.CHOSE_INTERNAL, {
                               organization,
                               view: analyticsView,
                             });
+                            closeModal();
                           }}
                         >
-                          {t('Internal Integrations')}
-                        </ExternalLink>
-                      ),
-                    }
-                  )}
-                  action={
-                    <LinkButton
-                      variant="secondary"
-                      size="sm"
-                      to={`${baseUrl}new-internal/`}
-                      onClick={() => {
-                        trackIntegrationAnalytics(PlatformEvents.CHOSE_INTERNAL, {
-                          organization,
-                          view: analyticsView,
-                        });
-                        closeModal();
-                      }}
-                    >
-                      {t('Get started')}
-                    </LinkButton>
-                  }
-                />
-                <Stack.Separator />
-                <ChoiceRow
-                  title={t('Public Integration')}
-                  description={tct(
-                    'A public integration will be available for all Sentry users for installation. See more info on [docsLink].',
-                    {
-                      docsLink: (
-                        <ExternalLink
-                          href={platformEventLinkMap[PlatformEvents.PUBLIC_DOCS]}
-                          onClick={() => {
-                            trackIntegrationAnalytics(PlatformEvents.PUBLIC_DOCS, {
-                              organization,
-                              view: analyticsView,
-                            });
-                          }}
-                        >
-                          {t('Public Integrations')}
-                        </ExternalLink>
-                      ),
-                    }
-                  )}
-                  action={
-                    <LinkButton
-                      variant="secondary"
-                      size="sm"
-                      to={`${baseUrl}new-public/`}
-                      onClick={() => {
-                        trackIntegrationAnalytics(PlatformEvents.CHOSE_PUBLIC, {
-                          organization,
-                          view: analyticsView,
-                        });
-                        closeModal();
-                      }}
-                    >
-                      {t('Get started')}
-                    </LinkButton>
-                  }
-                />
+                          {t('Use template')}
+                        </LinkButton>
+                      }
+                    />
+                  </Fragment>
+                ))}
               </Stack>
             </Stack>
-            {templates.length > 0 && (
-              <Stack gap="sm">
-                <Stack gap="2xs">
-                  <Text bold>{t('Templates')}</Text>
-                  <Text variant="muted" size="sm">
-                    {t('Get started with a pre-configured internal integration.')}
-                  </Text>
-                </Stack>
-                <Stack border="primary" radius="md">
-                  {templates.map((template, index) => (
-                    <Fragment key={template.slug}>
-                      {index > 0 && <Stack.Separator />}
-                      <ChoiceRow
-                        title={template.heading}
-                        description={template.description}
-                        action={
-                          <LinkButton
-                            variant="secondary"
-                            size="sm"
-                            to={`${baseUrl}new-internal/?template=${template.slug}&referrer=new_integration_modal`}
-                            onClick={() => {
-                              trackIntegrationAnalytics(PlatformEvents.CHOSE_INTERNAL, {
-                                organization,
-                                view: analyticsView,
-                              });
-                              closeModal();
-                            }}
-                          >
-                            {t('Use template')}
-                          </LinkButton>
-                        }
-                      />
-                    </Fragment>
-                  ))}
-                </Stack>
-              </Stack>
-            )}
-          </Stack>
-        ) : (
-          <StyledRadioGroup
-            choices={choices}
-            label={t('Integration Type')}
-            onChange={value => selectOption(value)}
-            value={option}
-          />
-        )}
+          )}
+        </Stack>
       </Body>
       <Footer>
-        <Button
-          size="sm"
-          onClick={() => closeModal()}
-          style={hasCreationTemplates ? undefined : {marginRight: theme.space.md}}
-        >
+        <Button size="sm" onClick={() => closeModal()}>
           {t('Cancel')}
         </Button>
-        {!hasCreationTemplates && (
-          <LinkButton
-            variant="primary"
-            size="sm"
-            to={`${baseUrl}${option === 'public' ? 'new-public' : 'new-internal'}/`}
-            onClick={() => {
-              trackIntegrationAnalytics(
-                option === 'public'
-                  ? PlatformEvents.CHOSE_PUBLIC
-                  : PlatformEvents.CHOSE_INTERNAL,
-                {
-                  organization,
-                  view: analyticsView,
-                }
-              );
-            }}
-          >
-            {t('Next')}
-          </LinkButton>
-        )}
       </Footer>
     </Fragment>
   );
@@ -289,22 +204,5 @@ function ChoiceRow({
     </Flex>
   );
 }
-
-const StyledRadioGroup = styled(RadioGroup)`
-  grid-auto-columns: auto;
-  & > label:not(:last-child) > div:last-child > * {
-    padding-bottom: ${p => p.theme.space.md};
-  }
-`;
-
-const RadioChoiceHeader = styled('h6')`
-  margin: 0;
-`;
-
-const RadioChoiceDescription = styled('div')`
-  color: ${p => p.theme.colors.gray500};
-  font-size: ${p => p.theme.font.size.md};
-  line-height: 1.6em;
-`;
 
 export default CreateNewIntegrationModal;

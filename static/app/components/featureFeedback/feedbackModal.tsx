@@ -31,7 +31,7 @@ import {useMedia} from 'sentry/utils/useMedia';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 
-export const feedbackClient = new BrowserClient({
+const feedbackClient = new BrowserClient({
   // feedback project under Sentry organization
   dsn: 'https://3c5ef4e344a04a0694d187a1272e96de@o1.ingest.sentry.io/6356259',
   transport: makeFetchTransport,

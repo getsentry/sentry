@@ -50,10 +50,12 @@ class ReplayListTest(ReplaysAcceptanceTestCase):
             self.assert_replay_table_renders()
 
             rows = self.browser.elements('[data-test-id="replay-table"] [role="row"]')
-            assert len(rows) == 1
+            assert len(rows) == 2
 
             for field in self.header_fields:
                 assert field in rows[0].text
+
+            assert "No replays found" in rows[1].text
 
     def test_simple(self) -> None:
         seq1_timestamp = datetime.now() - timedelta(minutes=10, seconds=52)

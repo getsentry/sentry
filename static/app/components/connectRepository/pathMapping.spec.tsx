@@ -1,201 +1,112 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {PathMapping} from 'sentry/components/connectRepository/pathMapping';
+import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
-interface OverrideProps {
-  branch?: string;
+import {PathMapping} from 'sentry/components/connectRepository/pathMapping';
+import type {PathMappingValue} from 'sentry/components/connectRepository/type';
+
+function renderMapping({
+  value = {stackRoot: '', sourceRoot: '', branch: ''},
+  editing = false,
+  isNew = false,
+}: {
   editing?: boolean;
   isNew?: boolean;
-  onChange?: (value: {branch: string; sourceRoot: string; stackRoot: string}) => void;
-  onDelete?: () => void;
-  onExpandToggle?: () => void;
-  sourceRoot?: string;
-  stackRoot?: string;
-}
-
-function renderPathMapping(props: OverrideProps = {}) {
-  return render(
-    <PathMapping
-      stackRoot="app/"
-      sourceRoot="static/app/"
-      branch="main"
-      editing={false}
-      isNew={false}
-      onChange={() => {}}
-      onDelete={() => {}}
-      onExpandToggle={() => {}}
-      {...props}
-    />
-  );
+  value?: PathMappingValue;
+} = {}) {
+  function Wrapper() {
+    const form = useScrapsForm({
+      ...defaultFormOptions,
+      defaultValues: {repository: null as string | null, pathMappings: [value]},
+      onSubmit: () => {},
+    });
+    return (
+      <form.AppForm form={form}>
+        <PathMapping
+          editing={editing}
+          fields="pathMappings[0]"
+          form={form}
+          isNew={isNew}
+          value={value}
+          onDelete={jest.fn()}
+          onExpandToggle={jest.fn()}
+        />
+      </form.AppForm>
+    );
+  }
+  return render(<Wrapper />);
 }
 
 describe('PathMapping', () => {
-  describe('collapsed summary', () => {
-    it('renders the rewritten path and branch without the form', () => {
-      renderPathMapping();
+  it('renders collapsed summary with paths and branch', () => {
+    renderMapping({value: {stackRoot: 'src/', sourceRoot: 'app/', branch: 'main'}});
 
-      expect(screen.getByText('app/')).toBeInTheDocument();
-      expect(screen.getByText('static/app/')).toBeInTheDocument();
-      expect(screen.getByText('main')).toBeInTheDocument();
-
-      expect(
-        screen.queryByRole('textbox', {name: 'Stack trace prefix'})
-      ).not.toBeInTheDocument();
-    });
-
-    it('normalizes paths to a trailing slash in the summary', () => {
-      renderPathMapping({stackRoot: 'app', sourceRoot: 'static/app'});
-
-      expect(screen.getByText('app/')).toBeInTheDocument();
-      expect(screen.getByText('static/app/')).toBeInTheDocument();
-    });
-
-    it('shows an [empty] placeholder for an unset path', () => {
-      renderPathMapping({stackRoot: ''});
-
-      expect(screen.getByText('[empty]')).toBeInTheDocument();
-    });
-
-    it('defaults the branch to main when none is set', () => {
-      renderPathMapping({branch: ''});
-
-      expect(screen.getByText('main')).toBeInTheDocument();
-    });
-
-    it('calls onExpandToggle when the expand control is clicked', async () => {
-      const onExpandToggle = jest.fn();
-      renderPathMapping({onExpandToggle});
-
-      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
-
-      expect(onExpandToggle).toHaveBeenCalledTimes(1);
-    });
-
-    it('calls onDelete when the delete control is clicked', async () => {
-      const onDelete = jest.fn();
-      renderPathMapping({onDelete});
-
-      await userEvent.click(screen.getByRole('button', {name: 'Delete path mapping'}));
-
-      expect(onDelete).toHaveBeenCalledTimes(1);
-    });
+    expect(screen.getByText('src/')).toBeInTheDocument();
+    expect(screen.getByText('app/')).toBeInTheDocument();
+    expect(screen.getByText('main')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', {name: /stack trace prefix/i})
+    ).not.toBeInTheDocument();
   });
 
-  describe('editing', () => {
-    it('shows the form pre-filled and keeps the summary for existing mappings', () => {
-      renderPathMapping({editing: true, isNew: false});
+  it('shows empty placeholder when paths are blank', () => {
+    renderMapping({value: {stackRoot: '', sourceRoot: '', branch: 'main'}});
 
-      expect(screen.getByRole('textbox', {name: 'Stack trace prefix'})).toHaveValue(
-        'app/'
-      );
-      expect(screen.getByRole('textbox', {name: 'Source code replacement'})).toHaveValue(
-        'static/app/'
-      );
-      expect(screen.getByRole('textbox', {name: 'Branch'})).toHaveValue('main');
+    expect(screen.getAllByText('empty')).toHaveLength(2);
+  });
 
-      expect(
-        screen.getByRole('button', {name: 'Collapse path mapping'})
-      ).toBeInTheDocument();
+  it('hides the summary row for a new (never-saved) mapping', () => {
+    renderMapping({
+      editing: true,
+      isNew: true,
+      value: {stackRoot: 'src/', sourceRoot: 'app/', branch: 'main'},
     });
 
-    it('hides the summary while editing a new mapping', () => {
-      renderPathMapping({editing: true, isNew: true});
+    expect(screen.queryByRole('button', {name: /expand/i})).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: /branch/i})).toBeInTheDocument();
+  });
 
-      expect(
-        screen.getByRole('textbox', {name: 'Stack trace prefix'})
-      ).toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', {name: 'Collapse path mapping'})
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', {name: 'Delete path mapping'})
-      ).not.toBeInTheDocument();
+  it('renders the edit form when expanded', () => {
+    renderMapping({
+      editing: true,
+      value: {stackRoot: 'src/', sourceRoot: 'app/', branch: 'main'},
     });
 
-    it('reports edits through onChange', async () => {
-      const onChange = jest.fn();
-      renderPathMapping({editing: true, onChange});
+    expect(screen.getByRole('textbox', {name: /branch/i})).toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', {name: /stack trace prefix/i})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: /repository prefix/i})).toBeInTheDocument();
+  });
 
-      const stackTraceRoot = screen.getByRole('textbox', {name: 'Stack trace prefix'});
-      await userEvent.clear(stackTraceRoot);
-      await userEvent.type(stackTraceRoot, 'lib/');
+  it('shows placeholders on the prefix inputs', () => {
+    renderMapping({editing: true, isNew: true});
 
-      expect(onChange).toHaveBeenLastCalledWith(
-        expect.objectContaining({stackRoot: 'lib/'})
-      );
-    });
+    expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveAttribute(
+      'placeholder',
+      'src/'
+    );
+    expect(screen.getByRole('textbox', {name: /repository prefix/i})).toHaveAttribute(
+      'placeholder',
+      'src/app'
+    );
+  });
 
-    it('adds a trailing slash to a path on blur', async () => {
-      const onChange = jest.fn();
-      renderPathMapping({editing: true, isNew: true, stackRoot: '', onChange});
+  it('renders preview using placeholder example and updates on input', async () => {
+    renderMapping({editing: true, isNew: true});
 
-      const stackTraceRoot = screen.getByRole('textbox', {name: 'Stack trace prefix'});
-      await userEvent.type(stackTraceRoot, 'lib');
-      await userEvent.tab();
+    expect(screen.getByText('In your stack trace')).toBeInTheDocument();
+    expect(screen.getByText('Sentry opens in your repo')).toBeInTheDocument();
 
-      expect(stackTraceRoot).toHaveValue('lib/');
-      expect(onChange).toHaveBeenLastCalledWith(
-        expect.objectContaining({stackRoot: 'lib/'})
-      );
-    });
+    // Preview shows placeholder values while inputs are empty
+    expect(screen.getByText('src/')).toBeInTheDocument();
+    expect(screen.getByText('src/app/')).toBeInTheDocument();
 
-    it('shows the trailing-slash-normalized path in the preview while typing', async () => {
-      renderPathMapping({editing: true, isNew: true, stackRoot: '', sourceRoot: ''});
-
-      await userEvent.type(
-        screen.getByRole('textbox', {name: 'Stack trace prefix'}),
-        'lib'
-      );
-
-      // The preview reflects the transformed path even before the field blurs.
-      expect(screen.getByText('lib/')).toBeInTheDocument();
-    });
-
-    it('sanitizes invalid characters in the branch but keeps valid ones', async () => {
-      const onChange = jest.fn();
-      renderPathMapping({editing: true, branch: '', onChange});
-
-      const branch = screen.getByRole('textbox', {name: 'Branch'});
-      await userEvent.type(branch, 'feature/my branch');
-
-      // Slashes are valid in git branches and are preserved; the space becomes
-      // a dash.
-      expect(branch).toHaveValue('feature/my-branch');
-      expect(onChange).toHaveBeenLastCalledWith(
-        expect.objectContaining({branch: 'feature/my-branch'})
-      );
-    });
-
-    it('keeps a trailing dash (valid in git branch names)', async () => {
-      const onChange = jest.fn();
-      renderPathMapping({editing: true, branch: '', onChange});
-
-      const branch = screen.getByRole('textbox', {name: 'Branch'});
-      await userEvent.type(branch, 'wip-');
-
-      expect(branch).toHaveValue('wip-');
-      expect(onChange).toHaveBeenLastCalledWith(
-        expect.objectContaining({branch: 'wip-'})
-      );
-    });
-
-    it('does not rewrite a valid existing branch when editing other fields', async () => {
-      const onChange = jest.fn();
-      renderPathMapping({editing: true, branch: 'feature/foo_bar.1', onChange});
-
-      const stackTraceRoot = screen.getByRole('textbox', {name: 'Stack trace prefix'});
-      await userEvent.type(stackTraceRoot, 'x');
-
-      expect(onChange).toHaveBeenLastCalledWith(
-        expect.objectContaining({branch: 'feature/foo_bar.1'})
-      );
-    });
-
-    it('renders the preview example', () => {
-      renderPathMapping({editing: true});
-
-      expect(screen.getByText('In your stack trace')).toBeInTheDocument();
-      expect(screen.getByText('Sentry opens in your repo')).toBeInTheDocument();
-    });
+    // Typing updates the stack root in the preview
+    await userEvent.type(
+      screen.getByRole('textbox', {name: /stack trace prefix/i}),
+      'lib/'
+    );
+    expect(screen.getByText('lib/')).toBeInTheDocument();
   });
 });

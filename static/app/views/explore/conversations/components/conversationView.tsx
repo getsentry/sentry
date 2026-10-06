@@ -14,12 +14,13 @@ import {
   useConversation,
   type UseConversationsOptions,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
+import {useConversationScrollRestoration} from 'sentry/views/explore/conversations/hooks/useConversationScrollRestoration';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
 import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
-import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
+import {TraceStateProvider} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
 
 export type ConversationViewTab = 'transcript' | 'timeline';
 
@@ -64,11 +65,6 @@ export function ConversationViewContent({
     onSelectSpan,
     focusedTool,
     isLoading,
-    // The hook never auto-selects a default: `selectedNode` reflects only the
-    // sticky selection from the URL (a user click or a deep link), which is why
-    // it survives switching tabs. The timeline's default span is layered on
-    // below as view-local state so it never leaks back into the transcript.
-    autoSelectDefaultNode: false,
   });
 
   // The timeline opens on its first span by default; the transcript opens on
@@ -79,7 +75,9 @@ export function ConversationViewContent({
 
   // Re-show the timeline default each time the user enters the timeline tab.
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setTimelineDefaultDismissed(false);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [activeTab]);
 
   const displayedNode = useMemo(() => {
@@ -91,6 +89,16 @@ export function ConversationViewContent({
     }
     return;
   }, [selectedNode, isTimeline, timelineDefaultDismissed, defaultTimelineNode]);
+
+  // Each tab keeps its own scroll position in the shared content container; a
+  // selected span is scrolled into view instead when switching tabs. This keys
+  // off the sticky (URL) selection, not `displayedNode`: the timeline's
+  // view-local default span is not a real selection, so entering the timeline
+  // restores its saved offset rather than snapping to that default.
+  const contentRef = useConversationScrollRestoration({
+    activeTab,
+    selectedNodeId: selectedNode?.id ?? null,
+  });
 
   const handleSelectAndOpenDetail = useCallback(
     (node: AITraceSpanNode) => {
@@ -129,6 +137,7 @@ export function ConversationViewContent({
   return (
     <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
       <ConversationContentLayout
+        contentRef={contentRef}
         leftPadding={isTranscript ? '0' : 'md'}
         left={
           isTranscript ? (

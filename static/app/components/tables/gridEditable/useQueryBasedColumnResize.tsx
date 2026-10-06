@@ -9,28 +9,26 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 interface Props<Col extends GridColumnOrder<unknown>> {
   columns: Col[];
-  paramName?: string;
 }
 
 export function useQueryBasedColumnResize<Col extends GridColumnOrder<unknown>>({
   columns,
-  paramName = 'width',
 }: Props<Col>) {
   const location = useLocation();
-  const queryParam = location.query[paramName];
+  const queryParam = location.query.width;
   const navigate = useNavigate();
   const columnsWidthWidths = useMemo(() => {
     const widths = decodeList(queryParam);
 
-    return columns.map((column, i) => {
-      column.width = decodeInteger(widths[i], COL_WIDTH_UNDEFINED);
-      return column;
-    });
+    return columns.map((column, i) => ({
+      ...column,
+      width: decodeInteger(widths[i], column.width ?? COL_WIDTH_UNDEFINED),
+    }));
   }, [columns, queryParam]);
 
   const handleResizeColumn = useCallback(
     (columnIndex: number, resizedColumn: Col) => {
-      const widths = columns.map(
+      const widths = columnsWidthWidths.map(
         (column, i) =>
           (i === columnIndex ? resizedColumn.width : column.width) ?? COL_WIDTH_UNDEFINED
       );
@@ -39,13 +37,13 @@ export function useQueryBasedColumnResize<Col extends GridColumnOrder<unknown>>(
           pathname: location.pathname,
           query: {
             ...location.query,
-            [paramName]: dropRightWhile(widths, width => width === COL_WIDTH_UNDEFINED),
+            width: dropRightWhile(widths, width => width === COL_WIDTH_UNDEFINED),
           },
         },
         {replace: true}
       );
     },
-    [columns, location.pathname, location.query, paramName, navigate]
+    [columnsWidthWidths, location.pathname, location.query, navigate]
   );
 
   return {

@@ -1,0 +1,181 @@
+from __future__ import annotations
+
+from typing import Any
+
+from rest_framework import status
+from rest_framework.exceptions import APIException, PermissionDenied
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.constants import ObjectStatus
+from sentry.investigations.models import (
+    Investigation,
+    InvestigationBlock,
+    InvestigationComment,
+)
+from sentry.investigations.services import (
+    InvestigationConflictError,
+    InvestigationSourceNotFound,
+    InvestigationValidationError,
+)
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+
+FEATURE = "organizations:investigations"
+
+
+class InvestigationArchivedError(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = "Archived investigations are read-only."
+
+
+def feature_enabled(request: Request, organization: Organization) -> bool:
+    return (
+        features.has(FEATURE, organization, actor=request.user)
+        and request.access.has_open_membership
+    )
+
+
+def service_error(error: Exception) -> Response | None:
+    if isinstance(error, InvestigationValidationError):
+        return Response(error.errors, status=status.HTTP_400_BAD_REQUEST)
+    if isinstance(error, InvestigationConflictError):
+        return Response({"detail": str(error)}, status=status.HTTP_409_CONFLICT)
+    if isinstance(error, InvestigationSourceNotFound):
+        raise ResourceDoesNotExist
+    return None
+
+
+def organization_project_ids(organization: Organization) -> set[int]:
+    return set(
+        Project.objects.filter(organization=organization, status=ObjectStatus.ACTIVE).values_list(
+            "id", flat=True
+        )
+    )
+
+
+def user_id(request: Request) -> int:
+    resolved = request.user.id
+    if resolved is None:
+        raise PermissionDenied
+    return resolved
+
+
+def can_request_actor_create_investigation(request: Request) -> bool:
+    return request.user.is_authenticated and not request.user.is_sentry_app
+
+
+def require_authenticated_user(request: Request) -> int:
+    if not can_request_actor_create_investigation(request):
+        raise PermissionDenied
+    return user_id(request)
+
+
+class InvestigationPermission(OrganizationPermission):
+    """
+    Members of open-membership organizations can read and manage investigations
+    across all projects.
+    Mutations require ``org:read`` rather than the default ``org:write``.
+    """
+
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "PATCH": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:read", "org:write", "org:admin"],
+        "PUT": ["org:read", "org:write", "org:admin"],
+        "DELETE": ["org:read", "org:write", "org:admin"],
+    }
+
+
+class OrganizationInvestigationsBaseEndpoint(OrganizationEndpoint):
+    """Base for endpoints addressing the investigation collection."""
+
+    owner = ApiOwner.ML_AI
+    permission_classes = (InvestigationPermission,)
+
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: str | int,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
+        if not feature_enabled(request, kwargs["organization"]):
+            raise ResourceDoesNotExist
+        return args, kwargs
+
+
+class OrganizationInvestigationEndpoint(OrganizationInvestigationsBaseEndpoint):
+    """Base for endpoints addressing a single investigation."""
+
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: str | int,
+        investigation_id: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
+        organization = kwargs["organization"]
+        try:
+            investigation = Investigation.objects.select_related("organization").get(
+                id=investigation_id, organization=organization
+            )
+        except (Investigation.DoesNotExist, ValueError):
+            raise ResourceDoesNotExist
+        kwargs["investigation"] = investigation
+        return args, kwargs
+
+
+class OrganizationInvestigationBlockEndpoint(OrganizationInvestigationEndpoint):
+    """Base for endpoints addressing a single investigation block."""
+
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: str | int,
+        investigation_id: str,
+        block_id: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        args, kwargs = super().convert_args(
+            request, organization_id_or_slug, investigation_id, *args, **kwargs
+        )
+        try:
+            kwargs["block"] = InvestigationBlock.objects.select_related("investigation").get(
+                id=block_id, investigation=kwargs["investigation"]
+            )
+        except (InvestigationBlock.DoesNotExist, ValueError):
+            raise ResourceDoesNotExist
+        return args, kwargs
+
+
+class OrganizationInvestigationCommentEndpoint(OrganizationInvestigationEndpoint):
+    """Base for endpoints addressing a single comment."""
+
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: str | int,
+        investigation_id: str,
+        comment_id: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        args, kwargs = super().convert_args(
+            request, organization_id_or_slug, investigation_id, *args, **kwargs
+        )
+        try:
+            kwargs["comment"] = InvestigationComment.objects.get(
+                id=comment_id, investigation=kwargs["investigation"]
+            )
+        except (InvestigationComment.DoesNotExist, ValueError):
+            raise ResourceDoesNotExist
+        return args, kwargs

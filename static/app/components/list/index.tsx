@@ -10,41 +10,32 @@ type Props = {
   children: ListItemChild | ListItemChild[];
   className?: string;
   'data-test-id'?: string;
-  initialCounterValue?: number;
   symbol?: keyof typeof listSymbol | React.ReactElement;
 };
 
-export const List = styled(
-  ({
-    children,
-    className,
-    symbol,
-    initialCounterValue: _initialCounterValue,
-    ...props
-  }: Props) => {
-    const getWrapperComponent = () => {
-      switch (symbol) {
-        case 'numeric':
-        case 'colored-numeric':
-          return 'ol';
-        default:
-          return 'ul';
-      }
-    };
+export const List = styled(({children, className, symbol, ...props}: Props) => {
+  const getWrapperComponent = () => {
+    switch (symbol) {
+      case 'numeric':
+      case 'colored-numeric':
+        return 'ol';
+      default:
+        return 'ul';
+    }
+  };
 
-    const Wrapper = getWrapperComponent();
+  const Wrapper = getWrapperComponent();
 
-    return (
-      <Wrapper className={className} {...props}>
-        {!symbol || typeof symbol === 'string'
-          ? children
-          : Children.map(children, child =>
-              isValidElement(child) ? cloneElement(child, {symbol}) : child
-            )}
-      </Wrapper>
-    );
-  }
-)`
+  return (
+    <Wrapper className={className} {...props}>
+      {!symbol || typeof symbol === 'string'
+        ? children
+        : Children.map(children, child =>
+            isValidElement(child) ? cloneElement(child, {symbol}) : child
+          )}
+    </Wrapper>
+  );
+})`
   margin: 0;
   padding: 0;
   list-style: none;
@@ -54,5 +45,5 @@ export const List = styled(
   ${p =>
     typeof p.symbol === 'string' &&
     listSymbol[p.symbol] &&
-    getListSymbolStyle(p.theme, p.symbol, p.initialCounterValue)}
+    getListSymbolStyle(p.theme, p.symbol)}
 `;

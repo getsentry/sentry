@@ -1,5 +1,5 @@
+import type {JsonFormAdapterFieldConfig} from 'sentry/components/backendJsonFormAdapter/types';
 import type {ObjectStatus} from 'sentry/types/core';
-import type {IssueConfigField} from 'sentry/types/integrations';
 
 export interface Action {
   config: ActionConfig;
@@ -14,7 +14,7 @@ export interface TicketCreationAction extends Action {
   [key: string]: any;
   data: {
     additional_fields?: Record<string, any>;
-    dynamic_form_fields?: IssueConfigField[];
+    dynamic_form_fields?: JsonFormAdapterFieldConfig[];
   };
   integrationId: string;
 }
@@ -62,6 +62,7 @@ export interface ActionHandler {
   dataSchema: Record<string, any>;
   handlerGroup: ActionGroup;
   type: ActionType;
+  disabledReason?: 'plan';
   integrations?: Integration[];
   sentryApp?: SentryAppContext;
   services?: PluginService[];

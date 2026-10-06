@@ -6,18 +6,53 @@ from unittest.mock import MagicMock
 import pytest
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
+from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
+    TraceItemColumnValues,
+    TraceItemTableRequest,
+    TraceItemTableResponse,
+)
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue
 
 from sentry.exceptions import InvalidSearchQuery
+from sentry.search.eap.columns import ResolvedAttribute
 from sentry.search.eap.types import SearchResolverConfig, SupportedTraceItemType
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.occurrences_rpc import Occurrences
 from sentry.snuba.ourlogs import OurLogs
-from sentry.snuba.rpc_dataset_common import LimitBy, RPCBase, TableQuery
+from sentry.snuba.rpc_dataset_common import LimitBy, RPCBase, TableQuery, TableRequest
 from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.pytest.fixtures import django_db_all
+
+
+@pytest.mark.parametrize("routing_hint", ["", "opaque+/=="])
+@pytest.mark.parametrize("values", [[], ["span-id"]])
+def test_process_table_response_routing_hint(routing_hint: str, values: list[str]) -> None:
+    response = TraceItemTableResponse(
+        routing_hint=routing_hint,
+        column_values=[
+            TraceItemColumnValues(
+                attribute_name="id", results=[AttributeValue(val_str=value) for value in values]
+            )
+        ],
+    )
+    request = TableRequest(
+        rpc_request=TraceItemTableRequest(),
+        columns=[
+            ResolvedAttribute(
+                public_alias="id", internal_name="sentry.item_id", search_type="string"
+            )
+        ],
+    )
+
+    result = RPCBase.process_table_response(response, request)
+
+    assert result["data"] == [{"id": value} for value in values]
+    assert result["meta"].get("routing_hint", "") == routing_hint
+    assert ("routing_hint" in result["meta"]) == bool(routing_hint)
+    assert result["meta"]["fields"] == {"id": "string"}
 
 
 def _make_column_value(string_values: list[str]) -> MagicMock:
@@ -98,6 +133,30 @@ class TestBulkTableQueries(TestCase):
         self.snuba_params = SnubaParams()
         self.config = SearchResolverConfig()
         self.resolver = Spans.get_resolver(self.snuba_params, self.config)
+
+    def test_preserves_each_responses_routing_hint(self) -> None:
+        params = SnubaParams(
+            start=before_now(days=1),
+            end=before_now(minutes=1),
+            organization=self.organization,
+            projects=[self.project],
+        )
+        resolver = Spans.get_resolver(params, self.config)
+        queries = [
+            TableQuery("", ["id"], None, 0, 1, "TestReferrer", None, resolver, name=name)
+            for name in ["first", "second"]
+        ]
+        with mock.patch(
+            "sentry.utils.snuba_rpc.table_rpc",
+            return_value=[
+                TraceItemTableResponse(routing_hint="first-hint"),
+                TraceItemTableResponse(routing_hint="second-hint"),
+            ],
+        ):
+            results = Spans.run_bulk_table_queries(queries)
+
+        assert results["first"]["meta"]["routing_hint"] == "first-hint"
+        assert results["second"]["meta"]["routing_hint"] == "second-hint"
 
     def test_missing_name(self) -> None:
         with pytest.raises(ValueError):
@@ -225,6 +284,61 @@ def test_table_orderby_rejects_hidden_api_attribute() -> None:
         "",
         [hidden_attribute],
         [hidden_attribute],
+        0,
+        1,
+        "TestReferrer",
+        None,
+        resolver,
+    )
+
+    with pytest.raises(
+        InvalidSearchQuery, match="orderby must also be in the selected columns or groupby"
+    ):
+        RPCBase.get_table_rpc_request(table_query)
+
+
+@django_db_all
+@pytest.mark.parametrize("orderby", ([""], ["-"], ["", "-count()"]))
+def test_table_empty_orderby_is_ignored(orderby: list[str]) -> None:
+    """An empty orderby means "no sort", not "sort by the column named ''".
+
+    Dashboard widgets default to an empty orderby, which reaches us as [""] rather than None.
+    """
+    owner = Factories.create_user()
+    organization = Factories.create_organization(owner=owner)
+    project = Factories.create_project(organization=organization)
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=1)
+    snuba_params = SnubaParams(start=start, end=end, organization=organization, projects=[project])
+    resolver = Spans.get_resolver(snuba_params, SearchResolverConfig())
+
+    table_query = TableQuery(
+        "", ["span.description", "count()"], orderby, 0, 1, "TestReferrer", None, resolver
+    )
+
+    rpc_request = RPCBase.get_table_rpc_request(table_query)
+
+    # Only the non-empty entries survive, so [""] and ["-"] produce no ordering at all.
+    assert len(rpc_request.rpc_request.order_by) == len(
+        [entry for entry in orderby if entry.lstrip("-").strip()]
+    )
+
+
+@django_db_all
+def test_table_orderby_still_rejects_unselected_column() -> None:
+    """Dropping empty entries must not make genuinely-invalid orderbys pass."""
+    owner = Factories.create_user()
+    organization = Factories.create_organization(owner=owner)
+    project = Factories.create_project(organization=organization)
+    end = datetime.now(timezone.utc)
+    start = end - timedelta(days=1)
+    snuba_params = SnubaParams(start=start, end=end, organization=organization, projects=[project])
+    resolver = Spans.get_resolver(snuba_params, SearchResolverConfig())
+
+    table_query = TableQuery(
+        "",
+        ["span.description", "count()"],
+        ["-sum(span.self_time)"],
         0,
         1,
         "TestReferrer",

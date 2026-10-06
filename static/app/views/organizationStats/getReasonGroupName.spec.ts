@@ -92,6 +92,8 @@ describe('getReasonGroupName', () => {
     expect(getReasonGroupName(Outcome.FILTERED, 'browser-extensions')).toBe(
       'Browser Extensions'
     );
+    expect(getReasonGroupName(Outcome.FILTERED, 'ip-address')).toBe('IP Address');
+    expect(getReasonGroupName(Outcome.FILTERED, 'invalid-csp')).toBe('Invalid CSP');
 
     expect(getReasonGroupName(Outcome.CLIENT_DISCARD, 'queue_overflow')).toBe(
       ClientDiscardReason.QUEUE_OVERFLOW
@@ -104,6 +106,10 @@ describe('getReasonGroupName', () => {
     expect(getReasonGroupName(Outcome.CLIENT_DISCARD, 'no_parent_span')).toBe(
       ClientDiscardReason.NO_PARENT_SPAN
     );
+
+    expect(getReasonGroupName(Outcome.CLIENT_DISCARD, 'callback_error')).toBe(
+      ClientDiscardReason.CALLBACK_ERROR
+    );
   });
 
   it('handles abuse limit reason types', () => {
@@ -113,6 +119,15 @@ describe('getReasonGroupName', () => {
     expect(getReasonGroupName(Outcome.ABUSE, 'org_abuse_limit')).toBe('org abuse limit');
     expect(getReasonGroupName(Outcome.ABUSE, 'global_abuse_limit')).toBe(
       'global abuse limit'
+    );
+  });
+
+  it('groups every custom inbound filter under one label', () => {
+    expect(getReasonGroupName(Outcome.FILTERED, 'custom-inbound-filter:1')).toBe(
+      'Custom Inbound Filter'
+    );
+    expect(getReasonGroupName(Outcome.FILTERED, 'custom-inbound-filter:2')).toBe(
+      'Custom Inbound Filter'
     );
   });
 

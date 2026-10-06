@@ -1,5 +1,6 @@
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
+from uuid import UUID
 
 import pytest
 from django.conf import settings
@@ -184,7 +185,8 @@ class MonitorValidatorCreateTest(MonitorTestCase):
             )
         ]
 
-    def test_simple_with_alert_rule(self) -> None:
+    @patch("sentry.monitors.validators.metrics.incr")
+    def test_simple_with_alert_rule(self, mock_incr: MagicMock) -> None:
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
@@ -206,6 +208,103 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         )
         assert rule is not None
         assert rule.environment_id == self.environment.id
+        action = rule.data["actions"][0].copy()
+        UUID(action.pop("uuid"))
+        assert action == {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetIdentifier": self.user.id,
+            "targetType": "Member",
+        }
+        assert rule.data == {
+            "actions": rule.data["actions"],
+            "action_match": "any",
+            "conditions": [
+                {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+                {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
+                {
+                    "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                    "key": "monitor.slug",
+                    "match": "eq",
+                    "value": monitor.slug,
+                },
+            ],
+            "filter_match": "all",
+            "frequency": 5,
+        }
+        mock_incr.assert_any_call(
+            "monitors.validator.alert_rule", tags={"operation": "create"}, sample_rate=1.0
+        )
+
+    def test_alert_rule_with_team_target(self) -> None:
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+            "alert_rule": {"targets": [{"targetIdentifier": self.team.id, "targetType": "Team"}]},
+        }
+        validator = MonitorValidator(data=data, context=self.context)
+        assert validator.is_valid(), validator.errors
+
+        monitor = validator.save()
+        rule = Rule.objects.get(id=monitor.config["alert_rule_id"])
+        assert rule.data["actions"][0]["targetIdentifier"] == self.team.id
+        assert rule.data["actions"][0]["targetType"] == "Team"
+
+    def test_alert_rule_rejects_unknown_environment(self) -> None:
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+            "alert_rule": {"environment": "unknown", "targets": []},
+        }
+        validator = MonitorValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors["alertRule"]["environment"] == [
+            ErrorDetail("This environment has not been created.", code="invalid")
+        ]
+
+    def test_alert_rule_rejects_unsupported_target_type(self) -> None:
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+            "alert_rule": {
+                "targets": [{"targetIdentifier": self.user.id, "targetType": "IssueOwners"}]
+            },
+        }
+        validator = MonitorValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert "IssueOwners" in str(validator.errors["alertRule"]["targets"][0]["targetType"])
+
+    def test_alert_rule_rejects_team_outside_project(self) -> None:
+        other_team = self.create_team(organization=self.organization)
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+            "alert_rule": {"targets": [{"targetIdentifier": other_team.id, "targetType": "Team"}]},
+        }
+        validator = MonitorValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors["alertRule"]["targets"][0]["targetIdentifier"] == ErrorDetail(
+            "This team is not part of the project.", code="invalid"
+        )
+
+    def test_alert_rule_rejects_member_outside_project(self) -> None:
+        other_user = self.create_user()
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "config": {"schedule_type": "crontab", "schedule": "@daily"},
+            "alert_rule": {
+                "targets": [{"targetIdentifier": other_user.id, "targetType": "Member"}]
+            },
+        }
+        validator = MonitorValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors["alertRule"]["targets"][0]["targetIdentifier"] == ErrorDetail(
+            "This user is not part of the project.", code="invalid"
+        )
 
     def test_checkin_margin_zero(self) -> None:
         # Invalid checkin margin
@@ -225,6 +324,24 @@ class MonitorValidatorCreateTest(MonitorTestCase):
 
         monitor = validator.save()
         assert monitor.config["checkin_margin"] == 1
+
+    def test_max_runtime_limit(self) -> None:
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "slug": "cron_job",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily", "max_runtime": 10080},
+        }
+        validator = MonitorValidator(data=data, context=self.context)
+        assert validator.is_valid()
+
+        data["config"]["max_runtime"] = 10081
+        validator = MonitorValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors["config"]["maxRuntime"] == [
+            "Max runtime must be 10080 minutes (7 days) or less. Lower it to save this monitor."
+        ]
 
     @patch("sentry.quotas.backend.assign_seat")
     def test_create_monitor_assigns_seat(self, assign_seat):
@@ -1039,7 +1156,7 @@ class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
         assert validator.is_valid(), validator.errors
         validated_data = validator.validated_data
         assert validated_data["name"] == "My Monitor Name"
-        assert validated_data["slug"] == "my-monitor-name"
+        assert "slug" not in validated_data
 
     def test_missing_name_and_slug(self) -> None:
         data = {"config": self.valid_data["config"]}
@@ -1119,6 +1236,40 @@ class MonitorDataSourceValidatorTest(BaseMonitorValidatorTestCase):
         assert not validator.is_valid()
         assert "slug" in validator.errors
         assert 'The slug "test-monitor" is already in use.' in str(validator.errors["slug"])
+
+    def _create_monitor_without_slug(self, name):
+        validator = self._create_validator({"name": name, "config": self._get_base_config()})
+        assert validator.is_valid(), validator.errors
+        return validator.create_source(validator.validated_data)
+
+    def test_duplicate_name_creates_unique_slug(self) -> None:
+        first = self._create_monitor_without_slug("New Monitor")
+        assert first.slug == "new-monitor"
+
+        second = self._create_monitor_without_slug("New Monitor")
+        assert second.slug != first.slug
+        assert second.slug.startswith("new-monitor-")
+        assert (
+            Monitor.objects.filter(organization_id=self.organization.id, slug=second.slug).count()
+            == 1
+        )
+
+    def test_explicit_duplicate_slug_still_errors(self) -> None:
+        self._create_monitor_without_slug("New Monitor")
+
+        data = self._get_valid_data(name="Something Else", slug="new-monitor")
+        validator = self._create_validator(data)
+        assert not validator.is_valid()
+        assert 'The slug "new-monitor" is already in use.' in str(validator.errors["slug"])
+
+    def test_numeric_name_generates_valid_slug(self) -> None:
+        monitor = self._create_monitor_without_slug("1234")
+        assert monitor.slug.startswith("1234-")
+        assert not monitor.slug.isdecimal()
+
+    def test_unslugifiable_name_generates_slug(self) -> None:
+        monitor = self._create_monitor_without_slug("日本語")
+        assert monitor.slug
 
     def test_update_monitor(self) -> None:
         monitor = Monitor.objects.create(

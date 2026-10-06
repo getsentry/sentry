@@ -3,12 +3,27 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import {t} from 'sentry/locale';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
 import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
-import type {NavigationSection} from 'sentry/views/settings/types';
+import type {NavigationItem, NavigationSection} from 'sentry/views/settings/types';
 
 const organizationSettingsPathPrefix = '/settings/:orgId';
 const userSettingsPathPrefix = '/settings/account';
 
 export function getUserOrgNavigationConfiguration(): NavigationSection[] {
+  return [
+    ...getAccountNavigationConfiguration(),
+    ...getOrganizationNavigationConfiguration(),
+    ...getDeveloperNavigationConfiguration(true),
+  ];
+}
+
+export function getUserNavigationConfiguration(): NavigationSection[] {
+  return [
+    ...getAccountNavigationConfiguration(),
+    ...getDeveloperNavigationConfiguration(false),
+  ];
+}
+
+function getAccountNavigationConfiguration(): NavigationSection[] {
   return [
     {
       id: 'settings-account',
@@ -69,6 +84,11 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         },
       ],
     },
+  ];
+}
+
+function getOrganizationNavigationConfiguration(): NavigationSection[] {
+  return [
     {
       id: 'settings-organization',
       name: t('Organization'),
@@ -219,6 +239,7 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
           title: t('Connectors'),
           description: t('Connect monitoring providers to Seer'),
           id: 'seer-connectors',
+          badge: () => <FeatureBadge type="beta" />,
           show: ({organization}) =>
             !!organization &&
             showNewSeer(organization) &&
@@ -301,53 +322,65 @@ export function getUserOrgNavigationConfiguration(): NavigationSection[] {
         },
       ],
     },
+  ];
+}
+
+function getDeveloperNavigationConfiguration(
+  includeOrganization: boolean
+): NavigationSection[] {
+  const items: NavigationItem[] = [
+    {
+      path: `${userSettingsPathPrefix}/api/auth-tokens/`,
+      title: t('Personal Tokens'),
+      keywords: [
+        t('auth'),
+        t('auth token'),
+        t('auth tokens'),
+        t('api token'),
+        t('api key'),
+        t('api keys'),
+        t('token'),
+        t('credentials'),
+        t('user auth tokens'),
+        'SENTRY_AUTH_TOKEN',
+      ],
+      description: t(
+        "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
+      ),
+    },
+    {
+      path: `${userSettingsPathPrefix}/api/applications/`,
+      title: t('OAuth Applications'),
+      description: t('Add and configure OAuth2 applications'),
+    },
+  ];
+
+  if (includeOrganization) {
+    items.unshift({
+      path: `${organizationSettingsPathPrefix}/auth-tokens/`,
+      title: t('Organization Tokens'),
+      keywords: [
+        t('auth'),
+        t('auth token'),
+        t('auth tokens'),
+        t('api token'),
+        t('api key'),
+        t('api keys'),
+        t('token'),
+        t('credentials'),
+        t('user auth tokens'),
+        'SENTRY_AUTH_TOKEN',
+      ],
+      description: t('Manage organization tokens'),
+      id: 'auth-tokens',
+    });
+  }
+
+  return [
     {
       id: 'settings-developer',
       name: t('Developer Settings'),
-      items: [
-        {
-          path: `${organizationSettingsPathPrefix}/auth-tokens/`,
-          title: t('Organization Tokens'),
-          keywords: [
-            t('auth'),
-            t('auth token'),
-            t('auth tokens'),
-            t('api token'),
-            t('api key'),
-            t('api keys'),
-            t('token'),
-            t('credentials'),
-            t('user auth tokens'),
-            'SENTRY_AUTH_TOKEN',
-          ],
-          description: t('Manage organization tokens'),
-          id: 'auth-tokens',
-        },
-        {
-          path: `${userSettingsPathPrefix}/api/auth-tokens/`,
-          title: t('Personal Tokens'),
-          keywords: [
-            t('auth'),
-            t('auth token'),
-            t('auth tokens'),
-            t('api token'),
-            t('api key'),
-            t('api keys'),
-            t('token'),
-            t('credentials'),
-            t('user auth tokens'),
-            'SENTRY_AUTH_TOKEN',
-          ],
-          description: t(
-            "Personal tokens allow you to perform actions against the Sentry API on behalf of your account. They're the easiest way to get started using the API."
-          ),
-        },
-        {
-          path: `${userSettingsPathPrefix}/api/applications/`,
-          title: t('OAuth Applications'),
-          description: t('Add and configure OAuth2 applications'),
-        },
-      ],
+      items,
     },
   ];
 }

@@ -1,12 +1,22 @@
-from unittest.mock import Mock, patch
+from typing import Any
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
+from django.test import override_settings
+from rest_framework import status
 
-from sentry.seer.endpoints.search_agent_start import send_search_agent_start_request
+from sentry.models.apitoken import ApiToken
+from sentry.seer.endpoints.search_agent_start import (
+    SearchAgentResultTarget,
+    send_search_agent_start_request,
+)
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.signed_seer_api import SeerViewerContext
-from sentry.testutils.cases import TestCase
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import APITestCase, TestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class SendSearchAgentStartRequestTest(TestCase):
@@ -64,3 +74,169 @@ class SendSearchAgentStartRequestTest(TestCase):
                 natural_language_query="errors today",
                 viewer_context=viewer_context,
             )
+
+    @patch("sentry.receivers.outbox.cell.make_search_agent_start_request")
+    def test_flag_options_default_to_false(self, mock_request: Mock) -> None:
+        mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 42}))
+
+        send_search_agent_start_request(
+            organization=self.organization,
+            user_id=self.user.id,
+            project_ids=[self.project.id],
+            natural_language_query="errors today",
+        )
+
+        sent_options = mock_request.call_args[0][0]["options"]
+        for flag in ["cross_event", "reflection_step", "code_mode"]:
+            assert sent_options[flag] is False
+        assert "result_target" not in sent_options
+
+    @patch("sentry.receivers.outbox.cell.make_search_agent_start_request")
+    def test_flag_options_are_sent_to_seer(self, mock_request: Mock) -> None:
+        mock_request.return_value = Mock(status=200, json=Mock(return_value={"run_id": 42}))
+
+        send_search_agent_start_request(
+            organization=self.organization,
+            user_id=self.user.id,
+            project_ids=[self.project.id],
+            natural_language_query="errors today",
+            model_name="gpt-5",
+            cross_event=True,
+            reflection_step=True,
+            code_mode=True,
+            result_target=SearchAgentResultTarget.AGENT_SEARCH,
+        )
+
+        sent_options = mock_request.call_args[0][0]["options"]
+        for flag in ["cross_event", "reflection_step", "code_mode"]:
+            assert sent_options[flag] is True
+        assert sent_options["model_name"] == "gpt-5"
+        assert sent_options["result_target"] == "agent_search"
+
+
+@with_feature("organizations:gen-ai-search-agent-translate")
+@override_settings(SENTRY_SELF_HOSTED=False)
+class SearchAgentStartEndpointTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.organization = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.organization)
+        self.url = f"/api/0/organizations/{self.organization.slug}/search-agent/start/"
+
+        self.seer_access_patcher = patch(
+            "sentry.seer.endpoints.search_agent_start.has_seer_access_with_detail",
+            return_value=(True, None),
+        )
+        self.seer_access_patcher.start()
+
+    def tearDown(self) -> None:
+        self.seer_access_patcher.stop()
+        super().tearDown()
+
+    def _post(self, **extra_data: Any) -> Any:
+        return self.client.post(
+            self.url,
+            data={
+                "project_ids": [self.project.id],
+                "natural_language_query": "show errors",
+                **extra_data,
+            },
+            format="json",
+        )
+
+    def _post_with_token(self, **extra_data: Any) -> Any:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=["org:read"])
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+        return self._post(**extra_data)
+
+    @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    @with_feature("organizations:seer-assisted-query-cross-event-explorer")
+    @with_feature("organizations:seer-assisted-query-reflection")
+    @with_feature("organizations:seer-assisted-query-codemode")
+    def test_start_forwards_feature_flags(self, mock_send_request: MagicMock) -> None:
+        """Feature flags are forwarded to Seer as request options. Code mode tested separately."""
+        mock_send_request.return_value = Mock(seer_run_state_id=42, uuid="run-uuid")
+
+        response = self._post()
+
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {"run_id": 42, "sentry_run_id": "run-uuid"}
+        kwargs = mock_send_request.call_args.kwargs
+        assert kwargs["cross_event"] is True
+        assert kwargs["reflection_step"] is True
+
+    @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    def test_issues_strategy_still_gated(self, mock_send_request: MagicMock) -> None:
+        """Issues has not GA'd yet, so its per-strategy flag still gates the endpoint."""
+        with self.feature({"organizations:gen-ai-issues-search": False}):
+            response = self._post(strategy="Issues")
+
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+        mock_send_request.assert_not_called()
+
+    @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    def test_start_without_feature_flags(self, mock_send_request: MagicMock) -> None:
+        """Options are False when the org has none of the flags."""
+        mock_send_request.return_value = Mock(seer_run_state_id=42, uuid="run-uuid")
+
+        response = self._post()
+
+        assert response.status_code == status.HTTP_200_OK
+        kwargs = mock_send_request.call_args.kwargs
+        assert kwargs["cross_event"] is False
+        assert kwargs["reflection_step"] is False
+
+    @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    @with_feature("organizations:seer-assisted-query-codemode")
+    def test_code_mode_enabled_by_flag(self, mock_send_request: MagicMock) -> None:
+        """Code mode follows the flag without callers opting in."""
+        mock_send_request.return_value = Mock(seer_run_state_id=42, uuid="run-uuid")
+
+        response = self._post()
+
+        assert response.status_code == status.HTTP_200_OK
+        assert mock_send_request.call_args.kwargs["code_mode"] is True
+
+    @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    def test_code_mode_option_ignored_without_flag(self, mock_send_request: MagicMock) -> None:
+        """A client-sent code_mode option can't enable code mode without the flag."""
+        mock_send_request.return_value = Mock(seer_run_state_id=42, uuid="run-uuid")
+
+        response = self._post(options={"code_mode": True, "model_name": "gpt-5"})
+
+        assert response.status_code == status.HTTP_200_OK
+        kwargs = mock_send_request.call_args.kwargs
+        assert kwargs["code_mode"] is False
+        assert kwargs["model_name"] == "gpt-5"
+
+    @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    def test_session_request_infers_ui_search(self, mock_send_request: MagicMock) -> None:
+        mock_send_request.return_value = Mock(seer_run_state_id=42, uuid="run-uuid")
+
+        response = self._post()
+
+        assert response.status_code == status.HTTP_200_OK
+        assert (
+            mock_send_request.call_args.kwargs["result_target"] == SearchAgentResultTarget.UI_SEARCH
+        )
+
+    @patch("sentry.seer.endpoints.search_agent_start.send_search_agent_start_request")
+    @patch("django.conf.settings.SEER_AUTOFIX_URL", "https://seer.example.com")
+    def test_token_request_infers_agent_search(self, mock_send_request: MagicMock) -> None:
+        mock_send_request.return_value = Mock(seer_run_state_id=42, uuid="run-uuid")
+
+        response = self._post_with_token()
+
+        assert response.status_code == status.HTTP_200_OK
+        assert (
+            mock_send_request.call_args.kwargs["result_target"]
+            == SearchAgentResultTarget.AGENT_SEARCH
+        )

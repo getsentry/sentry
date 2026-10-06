@@ -6,11 +6,13 @@ import pick from 'lodash/pick';
 
 import {Button} from '@sentry/scraps/button';
 import type {SelectOption, SelectSection} from '@sentry/scraps/compactSelect';
+import {InfoTip} from '@sentry/scraps/info';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {SearchBarAction} from 'sentry/components/events/interfaces/searchBarAction';
-import {PanelTable} from 'sentry/components/panels/panelTable';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import type {Image} from 'sentry/types/debugImage';
 import {CandidateDownloadStatus, ImageStatus} from 'sentry/types/debugImage';
@@ -311,27 +313,45 @@ export class Candidates extends Component<Props, State> {
     const haveCandidatesAtLeastOneAction =
       haveCandidatesOkOrDeletedDebugFile || hasReprocessWarning;
 
+    const {emptyMessage, emptyAction} = this.getEmptyMessage();
+
     return (
-      <Wrapper>
-        <Header>
-          <Title>
-            {t('Debug File Candidates')}
-            <QuestionTooltip
-              title={tct(
-                'These are the Debug Information Files (DIFs) corresponding to this image which have been looked up on [docLink:symbol servers] during the processing of the stacktrace.',
-                {
-                  docLink: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/native/data-management/debug-files/symbol-servers/" />
-                  ),
-                }
-              )}
-              size="xs"
-              position="top"
-              isHoverable
-            />
-          </Title>
+      <Grid gap="lg">
+        <Flex
+          direction={{zero: 'column', xl: 'row'}}
+          gap={{zero: 'sm', xl: '0'}}
+          wrap={{xl: 'wrap'}}
+        >
+          <Text bold variant="muted">
+            {textProps => (
+              <Grid
+                {...textProps}
+                align="center"
+                columns="repeat(2, max-content)"
+                flex={1}
+                gap="xs"
+                height="32px"
+                marginBottom={{zero: '0', xl: 'md'}}
+                paddingRight="3xl"
+              >
+                {t('Debug File Candidates')}
+                <InfoTip
+                  title={tct(
+                    'These are the Debug Information Files (DIFs) corresponding to this image which have been looked up on [docLink:symbol servers] during the processing of the stacktrace.',
+                    {
+                      docLink: (
+                        <ExternalLink href="https://docs.sentry.io/platforms/native/data-management/debug-files/symbol-servers/" />
+                      ),
+                    }
+                  )}
+                  size="xs"
+                  position="top"
+                />
+              </Grid>
+            )}
+          </Text>
           {!!candidates.length && (
-            <StyledSearchBarAction
+            <SearchBarAction
               query={searchTerm}
               onChange={value => this.handleChangeSearchTerm(value)}
               placeholder={t('Search debug file candidates')}
@@ -340,76 +360,63 @@ export class Candidates extends Component<Props, State> {
               onFilterChange={this.handleChangeFilter}
             />
           )}
-        </Header>
-        <StyledPanelTable
-          headers={
-            haveCandidatesAtLeastOneAction
-              ? [t('Status'), t('Information'), '']
-              : [t('Status'), t('Information')]
+        </Flex>
+        <StyledSimpleTable
+          hasActions={haveCandidatesAtLeastOneAction}
+          header={
+            <ResponsiveHeaderRow>
+              <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
+              <SimpleTable.HeaderCell>{t('Information')}</SimpleTable.HeaderCell>
+              {haveCandidatesAtLeastOneAction && <SimpleTable.HeaderCell />}
+            </ResponsiveHeaderRow>
           }
-          isEmpty={!filteredCandidatesByFilter.length}
-          isLoading={isLoading}
-          {...this.getEmptyMessage()}
         >
-          {filteredCandidatesByFilter.map((candidate, index) => (
-            <Candidate
-              key={index}
-              candidate={candidate}
-              organization={organization}
-              baseUrl={baseUrl}
-              projSlug={projSlug}
-              eventDateReceived={eventDateReceived}
-              hasReprocessWarning={hasReprocessWarning}
-              haveCandidatesAtLeastOneAction={haveCandidatesAtLeastOneAction}
-              onDelete={onDelete}
-            />
-          ))}
-        </StyledPanelTable>
-      </Wrapper>
+          {isLoading && <SimpleTable.Loading />}
+          {!isLoading && !filteredCandidatesByFilter.length && (
+            <SimpleTable.Empty>
+              <Stack align="center" gap="xl">
+                {emptyMessage}
+                {emptyAction}
+              </Stack>
+            </SimpleTable.Empty>
+          )}
+          {!isLoading &&
+            filteredCandidatesByFilter.map((candidate, index) => (
+              <Candidate
+                key={index}
+                candidate={candidate}
+                organization={organization}
+                baseUrl={baseUrl}
+                projSlug={projSlug}
+                eventDateReceived={eventDateReceived}
+                hasReprocessWarning={hasReprocessWarning}
+                haveCandidatesAtLeastOneAction={haveCandidatesAtLeastOneAction}
+                onDelete={onDelete}
+              />
+            ))}
+        </StyledSimpleTable>
+      </Grid>
     );
   }
 }
 
-const Wrapper = styled('div')`
-  display: grid;
-`;
-
-const Header = styled('div')`
-  display: flex;
-  flex-direction: column;
-  @media (min-width: ${props => props.theme.breakpoints.sm}) {
-    flex-wrap: wrap;
-    flex-direction: row;
-  }
-`;
-
-const Title = styled('div')`
-  padding-right: ${p => p.theme.space['3xl']};
-  display: grid;
-  gap: ${p => p.theme.space.xs};
-  grid-template-columns: repeat(2, max-content);
-  align-items: center;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  color: ${p => p.theme.colors.gray500};
-  height: 32px;
-  flex: 1;
-
-  @media (min-width: ${props => props.theme.breakpoints.sm}) {
-    margin-bottom: ${p => p.theme.space.md};
-  }
-`;
-
-const StyledPanelTable = styled(PanelTable)`
-  grid-template-columns: ${p =>
-    p.headers.length === 3 ? 'max-content 1fr max-content' : 'max-content 1fr'};
+const StyledSimpleTable = styled(SimpleTable, {
+  shouldForwardProp: prop => prop !== 'hasActions',
+})<{hasActions: boolean}>`
+  grid-template-columns: max-content 1fr;
 
   height: 100%;
 
-  @media (min-width: ${props => props.theme.breakpoints['2xl']}) {
-    overflow: visible;
+  @container (min-width: ${p => p.theme.container.lg}) {
+    grid-template-columns: ${p =>
+      p.hasActions ? 'max-content 1fr max-content' : 'max-content 1fr'};
   }
 `;
 
-const StyledSearchBarAction = styled(SearchBarAction)`
-  margin-bottom: ${p => p.theme.space.lg};
+const ResponsiveHeaderRow = styled(SimpleTable.HeaderRow)`
+  display: none;
+
+  @container (min-width: ${p => p.theme.container.lg}) {
+    display: grid;
+  }
 `;

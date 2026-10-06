@@ -57,6 +57,12 @@ interface FoldSectionProps {
    */
   preventCollapse?: boolean;
   ref?: React.Ref<HTMLDivElement>;
+  /** Accessible label used when the visible title is not a string. */
+  titleLabel?: string;
+  /**
+   * Interactive content displayed beside the title whether the section is open or closed.
+   */
+  titleTrailingItems?: React.ReactNode;
 }
 
 function useOptionalLocalStorageState(
@@ -114,7 +120,9 @@ export function FoldSection({
   ref,
   children,
   title,
+  titleLabel,
   actions,
+  titleTrailingItems,
   sectionKey,
   className,
   initialCollapse = false,
@@ -176,8 +184,10 @@ export function FoldSection({
     setIsCollapsed(!isCollapsed);
   }, [organization, sectionKey, setIsCollapsed, preventCollapse, isCollapsed]);
 
+  const accessibleTitle = titleLabel ?? (typeof title === 'string' ? title : sectionKey);
+  const labelTitle = titleLabel ?? (typeof title === 'string' ? title : null);
   const labelPrefix = expanded ? t('Collapse') : t('View');
-  const labelSuffix = typeof title === 'string' ? title + t(' Section') : t('Section');
+  const labelSuffix = labelTitle ? t('%s Section', labelTitle) : t('Section');
 
   return (
     <Fragment>
@@ -188,8 +198,7 @@ export function FoldSection({
         ref={mergeRefs(ref, scrollToSection)}
         id={sectionKey + additionalIdentifier}
         className={className}
-        // XXX: We should eventually only use titles as string, or explicitly pass them to stay accessible
-        aria-label={typeof title === 'string' ? title : sectionKey}
+        aria-label={accessibleTitle}
         data-test-id={dataTestId ?? sectionKey + additionalIdentifier}
         scrollMargin={navScrollMargin ?? 0}
         expanded={expanded}
@@ -197,9 +206,20 @@ export function FoldSection({
       >
         <Disclosure.Title
           aria-label={`${labelPrefix} ${labelSuffix}`}
-          trailingItems={expanded ? actions : undefined}
+          trailingItems={
+            titleTrailingItems || (expanded && actions) ? (
+              <Fragment>
+                {titleTrailingItems}
+                {expanded ? actions : null}
+              </Fragment>
+            ) : undefined
+          }
         >
-          <Text size="lg">{title}</Text>
+          {typeof title === 'string' ? (
+            <Text size="lg">{title}</Text>
+          ) : (
+            (title ?? undefined)
+          )}
         </Disclosure.Title>
         <Disclosure.Content>
           <ErrorBoundary mini>{expanded ? children : null}</ErrorBoundary>

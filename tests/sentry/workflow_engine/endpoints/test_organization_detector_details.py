@@ -15,6 +15,7 @@ from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.subscription_limits import METRIC_SUBSCRIPTION_FEATURE_FLAGS
 from sentry.models.auditlogentry import AuditLogEntry
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
@@ -25,6 +26,10 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 from sentry.testutils.skips import requires_kafka, requires_snuba
+from sentry.workflow_engine.defaults.detectors import (
+    ensure_default_all_projects_detector,
+    ensure_default_detectors,
+)
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
     DataCondition,
@@ -36,8 +41,63 @@ from sentry.workflow_engine.models import (
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
+from tests.sentry.workflow_engine.test_base import ProjectAccessTestMixin
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
+
+
+@cell_silo_test
+class OrganizationDetectorWorkflowAccessTest(APITestCase, ProjectAccessTestMixin):
+    endpoint = "sentry-api-0-organization-detector-details"
+    method = "PUT"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.setup_project_access_test_data()
+        self.organization.update_option("sentry:alerts_member_write", True)
+        self.login_as(self.limited_user)
+        self.detector = self.create_detector(
+            project=self.user_project, type=MonitorIncidentType.slug
+        )
+        self.connection = self.create_detector_workflow(
+            detector=self.detector, workflow=self.user_workflow
+        )
+
+    def test_workflow_attachment_permissions(self) -> None:
+        workflow_url = (
+            f"/api/0/organizations/{self.organization.slug}/workflows/{self.other_workflow.id}/"
+        )
+        assert self.client.get(workflow_url).status_code == 403
+        original_name = self.detector.name
+
+        self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            name="Unauthorized change",
+            workflowIds=[self.unattached_workflow.id, self.other_workflow.id],
+            status_code=403,
+        )
+
+        self.detector.refresh_from_db()
+        assert self.detector.name == original_name
+        assert list(
+            DetectorWorkflow.objects.filter(detector=self.detector).values_list("id", flat=True)
+        ) == [self.connection.id]
+        assert self.client.get(workflow_url).status_code == 403
+
+        # An authorized replacement still succeeds after the rejected update.
+        self.get_success_response(
+            self.organization.slug,
+            self.detector.id,
+            workflowIds=[self.unattached_workflow.id],
+        )
+
+        assert list(
+            DetectorWorkflow.objects.filter(detector=self.detector).values_list(
+                "workflow_id", flat=True
+            )
+        ) == [self.unattached_workflow.id]
 
 
 @pytest.mark.snuba_ci
@@ -211,13 +271,11 @@ class OrganizationDetectorDetailsGetTest(OrganizationDetectorDetailsBaseTest):
         assert response.data["alertRuleId"] is None
         assert response.data["ruleId"] is None
 
-    def test_metric_detector_not_allowed_returns_404(self) -> None:
-        """
-        When the org lacks the incidents feature, GET for a metric detector
-        should return 404.
-        """
-        with self.feature({"organizations:incidents": False}):
-            self.get_error_response(self.organization.slug, self.detector.id, status_code=404)
+    def test_all_projects_detector_get_success(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        response = self.get_success_response(self.organization.slug, all_projects_detector.id)
+        assert response.data["id"] == str(all_projects_detector.id)
+        assert response.data["projectId"] is None
 
 
 @cell_silo_test
@@ -415,19 +473,6 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
                 status_code=200,
             )
         assert response.data["config"]["comparisonDelta"] == 300
-
-    def test_metric_detector_not_allowed_returns_404(self) -> None:
-        """
-        When the org lacks the incidents feature, PUT for a metric detector
-        should return 404.
-        """
-        with self.feature({"organizations:incidents": False}):
-            self.get_error_response(
-                self.organization.slug,
-                self.detector.id,
-                **self.valid_data,
-                status_code=404,
-            )
 
     def test_update_add_data_condition(self) -> None:
         """
@@ -1067,49 +1112,23 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         assert snuba_query.query_snapshot is not None
         assert snuba_query.query_snapshot.get("user_updated") is True
 
-    def test_update_generic_metrics_dataset_to_transactions(self) -> None:
-        data = {**self.valid_data}
-        data["dataSources"] = [
-            {
-                "queryType": SnubaQuery.Type.PERFORMANCE.value,
-                "dataset": Dataset.PerformanceMetrics.value,
-                "query": "event.type:transaction",
-                "aggregate": "count()",
-                "timeWindow": 60,  # 60 seconds — below the 300-second EAP floor
-                "environment": self.environment.name,
-                "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
-            }
-        ]
-
-        with self.tasks():
-            response = self.get_success_response(
-                self.organization.slug,
-                self.detector.id,
-                **data,
-                status_code=200,
-            )
-
-        assert (
-            response.data["dataSources"][0]["queryObj"]["snubaQuery"]["dataset"]
-            == Dataset.Transactions.value
+    def test_cannot_update_issue_stream_detector(self) -> None:
+        issue_stream_detector = ensure_default_detectors(self.project)[IssueStreamGroupType.slug]
+        self.get_error_response(
+            self.organization.slug,
+            issue_stream_detector.id,
+            **self.valid_data,
+            status_code=403,
         )
-        assert (
-            response.data["dataSources"][0]["queryObj"]["snubaQuery"]["query"]
-            == "event.type:transaction"
-        )
-        assert response.data["dataSources"][0]["queryObj"]["snubaQuery"]["aggregate"] == "count()"
-        assert response.data["dataSources"][0]["queryObj"]["snubaQuery"]["eventTypes"] == [
-            SnubaQueryEventType.EventType.TRANSACTION.name.lower()
-        ]
 
-        detector = Detector.objects.get(id=response.data["id"])
-        data_source = DataSource.objects.get(detector=detector)
-        query_sub = QuerySubscription.objects.get(id=int(data_source.source_id))
-        assert query_sub.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
-        assert query_sub.snuba_query.dataset == Dataset.Transactions.value
-        assert query_sub.snuba_query.query == "event.type:transaction"
-        assert query_sub.snuba_query.aggregate == "count()"
-        assert query_sub.snuba_query.event_types == [SnubaQueryEventType.EventType.TRANSACTION]
+    def test_all_projects_detector_put_forbidden(self) -> None:
+        all_projects_detector = ensure_default_all_projects_detector(self.organization.id)
+        self.get_error_response(
+            self.organization.slug,
+            all_projects_detector.id,
+            name="Updated Name",
+            status_code=403,
+        )
 
 
 @cell_silo_test
@@ -1136,10 +1155,25 @@ class OrganizationDetectorDetailsDeleteTest(OrganizationDetectorDetailsBaseTest)
         assert self.detector.status == ObjectStatus.PENDING_DELETION
         mock_schedule_update_project_config.assert_called_once_with(self.detector)
 
+    def test_delete_denied_without_alert_write_access(self) -> None:
+        self.organization.update_option("sentry:alerts_member_write", False)
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        self.login_as(member)
+
+        self.get_error_response(self.organization.slug, self.detector.id, status_code=403)
+
+        self.detector.refresh_from_db()
+        assert self.detector.status != ObjectStatus.PENDING_DELETION
+        assert not CellScheduledDeletion.objects.filter(
+            model_name="Detector", object_id=self.detector.id
+        ).exists()
+
     def test_delete_allowed_without_metric_subscription_feature(self) -> None:
-        with self.feature({"organizations:incidents": False}):
-            with outbox_runner():
-                self.get_success_response(self.organization.slug, self.detector.id)
+        with outbox_runner():
+            self.get_success_response(self.organization.slug, self.detector.id)
 
         assert CellScheduledDeletion.objects.filter(
             model_name="Detector", object_id=self.detector.id

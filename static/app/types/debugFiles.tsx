@@ -13,6 +13,17 @@ export enum DebugFileFeature {
 
 type Secret = {'hidden-secret': boolean};
 
+type CustomRepoMetadata = {
+  filters?: {
+    filetypes?: string[];
+    path_patterns?: string[];
+    requires_checksum?: boolean;
+  };
+  has_index?: boolean;
+  is_public?: boolean;
+  platforms?: string[];
+};
+
 export type BuiltinSymbolSource = {
   hidden: boolean;
   id: string;
@@ -40,38 +51,68 @@ export enum CustomRepoType {
   HTTP = 'http',
   S3 = 's3',
   GCS = 'gcs',
+  AZURE = 'azure',
 }
 
-export type CustomRepoHttp = {
+export type CustomRepoHttp = CustomRepoMetadata & {
   id: string;
   layout: {casing: string; type: string};
   name: string;
-  password: Secret;
   type: CustomRepoType.HTTP;
   url: string;
-  username: string;
+  password?: Secret;
+  username?: string;
 };
 
-type CustomRepoS3 = {
+export type CustomRepoS3 = CustomRepoMetadata & {
   access_key: string;
   bucket: string;
   id: string;
   layout: {casing: string; type: string};
   name: string;
   region: string;
-  secret_key: Secret;
   type: CustomRepoType.S3;
+  prefix?: string;
+  secret_key?: Secret;
 };
 
-type CustomRepoGCS = {
+export type CustomRepoGCS = CustomRepoMetadata & {
   bucket: string;
   client_email: string;
   id: string;
   layout: {casing: string; type: string};
   name: string;
-  prefix: string;
-  private_key: Secret;
   type: CustomRepoType.GCS;
+  prefix?: string;
+  private_key?: Secret;
 };
 
-export type CustomRepo = CustomRepoHttp | CustomRepoS3 | CustomRepoGCS;
+export type CustomRepoAzure = CustomRepoMetadata & {
+  account: string;
+  client_id: string;
+  container: string;
+  id: string;
+  layout: {casing: string; type: string};
+  name: string;
+  tenant_id: string;
+  type: CustomRepoType.AZURE;
+  client_secret?: Secret;
+  prefix?: string;
+};
+
+export type CustomRepo = CustomRepoHttp | CustomRepoS3 | CustomRepoGCS | CustomRepoAzure;
+
+type FlattenedLayout = {
+  'layout.casing': string;
+  'layout.type': string;
+};
+
+export type CustomRepoFormData =
+  | (Omit<CustomRepoHttp, 'layout' | 'password'> &
+      FlattenedLayout & {password?: Secret | string})
+  | (Omit<CustomRepoS3, 'layout' | 'secret_key'> &
+      FlattenedLayout & {secret_key?: Secret | string})
+  | (Omit<CustomRepoGCS, 'layout' | 'private_key'> &
+      FlattenedLayout & {private_key?: Secret | string})
+  | (Omit<CustomRepoAzure, 'layout' | 'client_secret'> &
+      FlattenedLayout & {client_secret?: Secret | string});

@@ -1,4 +1,4 @@
-import type {UptimeSummary} from 'sentry/views/alerts/rules/uptime/types';
+import type {UptimeSummary} from 'sentry/views/detectors/components/uptime/types';
 
 export function UptimeSummaryFixture(params: Partial<UptimeSummary> = {}): UptimeSummary {
   return {

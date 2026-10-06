@@ -30,7 +30,25 @@ export interface ContextItem {
 }
 
 export function getOrderedContextItems(event: Event): ContextItem[] {
-  const {user, contexts} = event;
+  return getOrderedContextItemsFromContexts({
+    contexts: event.contexts,
+    user: event.user,
+    hasSyntheticTrace: eventHasSyntheticTrace(event),
+  });
+}
+
+/**
+ * Prefer `getOrderedContextItems` when an `Event` is available.
+ */
+export function getOrderedContextItemsFromContexts({
+  contexts,
+  user,
+  hasSyntheticTrace = false,
+}: {
+  contexts: Event['contexts'] | undefined;
+  hasSyntheticTrace?: boolean;
+  user?: Event['user'];
+}): ContextItem[] {
   const {data: customUserData, ...userContext} = user ?? {};
 
   // hide `flags` in the contexts section since we display this
@@ -64,7 +82,7 @@ export function getOrderedContextItems(event: Event): ContextItem[] {
 
   const items = orderedContext
     .filter(([alias, ctxValue]) => {
-      if (alias === 'trace' && eventHasSyntheticTrace(event)) {
+      if (alias === 'trace' && hasSyntheticTrace) {
         return false;
       }
       const contextKeys = Object.keys(ctxValue ?? {});

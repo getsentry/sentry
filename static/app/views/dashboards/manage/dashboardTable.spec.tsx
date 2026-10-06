@@ -14,6 +14,11 @@ import {
 
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
 import {DisplayType, type DashboardListItem} from 'sentry/views/dashboards/types';
+import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+
+async function openRowActions(rowIndex: number) {
+  await userEvent.click(screen.getAllByTestId('dashboard-actions')[rowIndex]!);
+}
 
 describe('Dashboards - DashboardTable', () => {
   let dashboards: DashboardListItem[];
@@ -31,6 +36,10 @@ describe('Dashboards - DashboardTable', () => {
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/teams/',
       body: [],
     });
     dashboards = [
@@ -111,6 +120,7 @@ describe('Dashboards - DashboardTable', () => {
         organization={organization}
         dashboards={[]}
         location={location}
+        isOnlyPrebuilt={false}
       />
     );
 
@@ -127,6 +137,7 @@ describe('Dashboards - DashboardTable', () => {
         organization={organization}
         dashboards={dashboards}
         location={location}
+        isOnlyPrebuilt={false}
       />
     );
 
@@ -141,6 +152,7 @@ describe('Dashboards - DashboardTable', () => {
         organization={organization}
         dashboards={dashboards}
         location={location}
+        isOnlyPrebuilt={false}
       />
     );
 
@@ -164,6 +176,7 @@ describe('Dashboards - DashboardTable', () => {
           ...LocationFixture(),
           query: {sort: 'title', query: 'agent', statsPeriod: '7d'},
         }}
+        isOnlyPrebuilt={false}
       />
     );
 
@@ -180,17 +193,26 @@ describe('Dashboards - DashboardTable', () => {
         dashboards={dashboards}
         location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
+        isOnlyPrebuilt={false}
       />
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getAllByTestId('dashboard-delete')[1]!);
+    await openRowActions(1);
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Delete'}));
 
     expect(deleteMock).not.toHaveBeenCalled();
 
-    await userEvent.click(
-      within(screen.getByRole('dialog')).getByRole('button', {name: /confirm/i})
-    );
+    const dialog = screen.getByRole('dialog');
+    expect(
+      within(dialog).getByText(
+        (_, element) =>
+          element?.textContent ===
+          'Are you sure you want to delete the Dashboard 2 dashboard?'
+      )
+    ).toBeInTheDocument();
+
+    await userEvent.click(within(dialog).getByRole('button', {name: /confirm/i}));
 
     await waitFor(() => {
       expect(deleteMock).toHaveBeenCalled();
@@ -205,11 +227,13 @@ describe('Dashboards - DashboardTable', () => {
         dashboards={dashboards}
         location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
+        isOnlyPrebuilt={false}
       />
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getAllByTestId('dashboard-duplicate')[1]!);
+    await openRowActions(1);
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Duplicate'}));
 
     expect(createMock).not.toHaveBeenCalled();
 
@@ -236,11 +260,13 @@ describe('Dashboards - DashboardTable', () => {
         dashboards={dashboards}
         location={{...LocationFixture(), query: {}}}
         onDashboardsChange={dashboardUpdateMock}
+        isOnlyPrebuilt={false}
       />
     );
     renderGlobalModal();
 
-    await userEvent.click(screen.getAllByTestId('dashboard-duplicate')[1]!);
+    await openRowActions(1);
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Duplicate'}));
 
     expect(postMock).not.toHaveBeenCalled();
 
@@ -255,7 +281,7 @@ describe('Dashboards - DashboardTable', () => {
     expect(dashboardUpdateMock).not.toHaveBeenCalled();
   });
 
-  it('renders access column', async () => {
+  it('opens the permissions modal from the row actions menu', async () => {
     const organizationWithEditAccess = OrganizationFixture({
       features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
     });
@@ -266,20 +292,147 @@ describe('Dashboards - DashboardTable', () => {
         organization={organizationWithEditAccess}
         dashboards={dashboards}
         location={location}
+        isOnlyPrebuilt={false}
       />
     );
 
-    expect(await screen.findAllByTestId('grid-head-cell')).toHaveLength(5);
-    expect(screen.getByText('Access')).toBeInTheDocument();
-    await userEvent.click(screen.getByText('All'));
-    expect(screen.getAllByPlaceholderText('Search Teams')[0]).toBeInTheDocument();
+    renderGlobalModal();
+
+    expect(await screen.findAllByTestId('grid-head-cell')).toHaveLength(4);
+    expect(screen.queryByText('Access')).not.toBeInTheDocument();
+
+    await openRowActions(1);
+    await userEvent.click(
+      await screen.findByRole('menuitemradio', {name: 'View Permissions'})
+    );
+
+    expect(
+      await screen.findByRole('heading', {name: 'View Permissions'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', {name: 'Select All'})).toBeChecked();
+  });
+
+  // Kept deliberately in step with the dashboard detail page, so the same
+  // dashboard offers its actions in the same order wherever it is acted on.
+  it('orders its actions the same way the detail page does', async () => {
+    render(
+      <DashboardTable
+        onDashboardsChange={jest.fn()}
+        organization={organization}
+        dashboards={dashboards}
+        location={location}
+        isOnlyPrebuilt={false}
+      />
+    );
+
+    await openRowActions(1);
+    await screen.findByRole('menuitemradio', {name: 'Rename'});
+
+    expect(
+      screen.getAllByRole('menuitemradio').map(item => item.textContent?.trim())
+    ).toEqual(['Rename', 'Duplicate', 'View Permissions', 'Delete']);
+  });
+
+  it('offers neither rename nor delete on a prebuilt dashboard', async () => {
+    render(
+      <DashboardTable
+        onDashboardsChange={jest.fn()}
+        organization={organization}
+        dashboards={[
+          DashboardListItemFixture({
+            id: '4',
+            title: 'Web Vitals',
+            prebuiltId: PrebuiltDashboardId.WEB_VITALS,
+          }),
+        ]}
+        location={location}
+        isOnlyPrebuilt
+      />
+    );
+
+    await openRowActions(0);
+
+    // The endpoint refuses both on a prebuilt dashboard, so neither is offered
+    // rather than one being hidden and the other shown but disabled.
+    expect(await screen.findByRole('menuitemradio', {name: 'Duplicate'})).toBeVisible();
+    expect(screen.queryByRole('menuitemradio', {name: 'Rename'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitemradio', {name: 'Delete'})).not.toBeInTheDocument();
+  });
+
+  it('hides the actions that write to a dashboard without edit access', async () => {
+    const organizationWithoutAdmin = OrganizationFixture({
+      access: ['org:read'],
+      features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
+    });
+
+    render(
+      <DashboardTable
+        onDashboardsChange={jest.fn()}
+        organization={organizationWithoutAdmin}
+        dashboards={[
+          DashboardListItemFixture({
+            id: '3',
+            title: 'Someone Elses Dashboard',
+            createdBy: UserFixture({id: '99', email: 'someone-else@example.com'}),
+            permissions: {isEditableByEveryone: false, teamsWithEditAccess: []},
+          }),
+        ]}
+        location={location}
+        isOnlyPrebuilt={false}
+      />
+    );
+
+    await openRowActions(0);
+
+    expect(screen.queryByRole('menuitemradio', {name: 'Rename'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('menuitemradio', {name: 'Delete'})).not.toBeInTheDocument();
+    // Duplicating writes a new dashboard rather than changing this one.
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Duplicate'})
+    ).toBeInTheDocument();
+  });
+
+  it('renames a dashboard from the row actions menu', async () => {
+    const renameMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/2/',
+      method: 'PUT',
+      body: {id: '2', title: 'Renamed Dashboard'},
+    });
+    const onDashboardsChange = jest.fn();
+
+    render(
+      <DashboardTable
+        onDashboardsChange={onDashboardsChange}
+        organization={organization}
+        dashboards={dashboards}
+        location={location}
+        isOnlyPrebuilt={false}
+      />
+    );
+
+    renderGlobalModal();
+
+    await openRowActions(1);
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Rename'}));
+
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.clear(within(dialog).getByRole('textbox'));
+    await userEvent.type(within(dialog).getByRole('textbox'), 'Renamed Dashboard');
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Save Changes'}));
+
+    await waitFor(() => expect(renameMock).toHaveBeenCalled());
+    expect(renameMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/dashboards/2/',
+      expect.objectContaining({method: 'PUT', data: {title: 'Renamed Dashboard'}})
+    );
+    await waitFor(() => expect(onDashboardsChange).toHaveBeenCalled());
   });
 
   it('renders favorite column', async () => {
-    MockApiClient.addMockResponse({
+    const favoriteMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/2/favorite/',
       method: 'PUT',
-      body: {isFavorited: false},
+      body: {isFavorited: true},
     });
 
     const organizationWithFavorite = OrganizationFixture({
@@ -292,6 +445,7 @@ describe('Dashboards - DashboardTable', () => {
         organization={organizationWithFavorite}
         dashboards={dashboards}
         location={location}
+        isOnlyPrebuilt={false}
       />,
       {
         organization: organizationWithFavorite,
@@ -303,6 +457,109 @@ describe('Dashboards - DashboardTable', () => {
     expect(screen.queryAllByLabelText('Unstar')).toHaveLength(1);
 
     await userEvent.click(screen.queryAllByLabelText('Star')[0]!);
-    expect(screen.queryAllByLabelText('Unstar')).toHaveLength(2);
+    await waitFor(() =>
+      expect(favoriteMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/2/favorite/',
+        expect.objectContaining({method: 'PUT', data: {shouldFavorite: true}})
+      )
+    );
+  });
+
+  describe('with dashboards-user-last-visited feature flag', () => {
+    const organizationWithLastVisited = OrganizationFixture({
+      features: [
+        'dashboards-basic',
+        'dashboards-edit',
+        'discover-query',
+        'dashboards-user-last-visited',
+      ],
+    });
+
+    let lastVisitedDashboards: DashboardListItem[];
+
+    beforeEach(() => {
+      lastVisitedDashboards = [
+        DashboardListItemFixture({
+          id: '1',
+          title: 'Dashboard With Description',
+          description: 'Some accurate description about this dashboard.',
+          lastVisited: '2021-04-19T13:13:23.962105Z',
+          createdBy: UserFixture({id: '1'}),
+        }),
+        DashboardListItemFixture({
+          id: '2',
+          title: 'Dashboard Without Description',
+          createdBy: UserFixture({id: '1'}),
+        }),
+      ];
+    });
+
+    it('renders all columns in the default view', async () => {
+      render(
+        <DashboardTable
+          onDashboardsChange={jest.fn()}
+          organization={organizationWithLastVisited}
+          dashboards={lastVisitedDashboards}
+          location={location}
+          isOnlyPrebuilt={false}
+        />,
+        {organization: organizationWithLastVisited}
+      );
+
+      const headers = await screen.findAllByTestId('grid-head-cell');
+      expect(headers).toHaveLength(5);
+      expect(headers[0]).toHaveTextContent('Name');
+      expect(headers[1]).toHaveTextContent('Widgets');
+      expect(headers[2]).toHaveTextContent('Owner');
+      expect(headers[3]).toHaveTextContent('Created');
+      expect(headers[4]).toHaveTextContent('Last Visited');
+      // Description is only shown in the Sentry Built view
+      expect(screen.queryByText('Description')).not.toBeInTheDocument();
+
+      expect(screen.getAllByTestId('dashboard-actions')).toHaveLength(
+        lastVisitedDashboards.length
+      );
+    });
+
+    it('renders Sentry Built columns with Description instead of Owner/Created', async () => {
+      render(
+        <DashboardTable
+          onDashboardsChange={jest.fn()}
+          organization={organizationWithLastVisited}
+          dashboards={lastVisitedDashboards}
+          location={location}
+          isOnlyPrebuilt
+        />,
+        {organization: organizationWithLastVisited}
+      );
+
+      const headers = await screen.findAllByTestId('grid-head-cell');
+      expect(headers).toHaveLength(4);
+      expect(headers[0]).toHaveTextContent('Name');
+      expect(headers[1]).toHaveTextContent('Description');
+      expect(headers[2]).toHaveTextContent('Widgets');
+      expect(headers[3]).toHaveTextContent('Last Visited');
+
+      // Owner and Created are omitted from the Sentry Built view
+      expect(screen.queryByText('Owner')).not.toBeInTheDocument();
+      expect(screen.queryByText('Created')).not.toBeInTheDocument();
+    });
+
+    it('renders the description column', async () => {
+      render(
+        <DashboardTable
+          onDashboardsChange={jest.fn()}
+          organization={organizationWithLastVisited}
+          dashboards={lastVisitedDashboards}
+          location={location}
+          isOnlyPrebuilt
+        />,
+        {organization: organizationWithLastVisited}
+      );
+
+      expect(
+        await screen.findByText('Some accurate description about this dashboard.')
+      ).toBeInTheDocument();
+    });
   });
 });

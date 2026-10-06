@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {vec2} from 'gl-matrix';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
@@ -43,8 +42,8 @@ describe('flamegraphRendererWebGL', () => {
           ...theme,
           COLORS: {
             ...theme.COLORS,
-            // @ts-expect-error overridee the colors implementation
-            STACK_TO_COLOR: () => {
+            // @ts-expect-error override the colors implementation
+            stackToColor: () => {
               const colorMap = new Map<string, number[]>([['f0', [1, 0, 0, 1]]]);
               return {
                 colorBuffer: [

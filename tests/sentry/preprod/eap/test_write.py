@@ -47,6 +47,7 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
             commit_comparison=commit_comparison,
             build_configuration=build_config,
             date_built=datetime(2024, 1, 1, 10, 0, 0, tzinfo=dt_timezone.utc),
+            extras={"install_groups": ["alpha", "beta"]},
         )
         self.create_preprod_artifact_mobile_app_info(
             preprod_artifact=artifact,
@@ -115,6 +116,10 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
         assert attrs["artifact_date_built"].int_value == int(artifact.date_built.timestamp())
 
         assert attrs["build_configuration_name"].string_value == "Release"
+        assert [value.string_value for value in attrs["install_groups"].array_value.values] == [
+            "alpha",
+            "beta",
+        ]
 
         assert attrs["git_head_sha"].string_value == "abc123"
         assert attrs["git_base_sha"].string_value == "def456"
@@ -160,6 +165,7 @@ class WritePreprodSizeMetricToEAPTest(TestCase):
         assert "min_install_size" not in attrs
         assert "max_install_size" not in attrs
         assert "build_configuration_name" not in attrs
+        assert "install_groups" not in attrs
         assert "git_head_sha" not in attrs
 
 
@@ -201,6 +207,7 @@ class WritePreprodBuildDistributionToEAPTest(TestCase):
                 "is_simulator": False,
                 "has_missing_dsym_binaries": True,
                 "has_proguard_mapping": False,
+                "install_groups": ["alpha", "beta"],
             },
         )
         self.create_preprod_artifact_mobile_app_info(
@@ -256,6 +263,10 @@ class WritePreprodBuildDistributionToEAPTest(TestCase):
         assert artifact.date_built is not None
         assert attrs["artifact_date_built"].int_value == int(artifact.date_built.timestamp())
         assert attrs["build_configuration_name"].string_value == "Release"
+        assert [value.string_value for value in attrs["install_groups"].array_value.values] == [
+            "alpha",
+            "beta",
+        ]
 
         assert attrs["codesigning_type"].string_value == "AdHoc"
         assert attrs["profile_name"].string_value == "Development Profile"
@@ -309,5 +320,6 @@ class WritePreprodBuildDistributionToEAPTest(TestCase):
 
         assert "codesigning_type" not in attrs
         assert "profile_name" not in attrs
+        assert "install_groups" not in attrs
         assert "build_configuration_name" not in attrs
         assert "git_head_sha" not in attrs

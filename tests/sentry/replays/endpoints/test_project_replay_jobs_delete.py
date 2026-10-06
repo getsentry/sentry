@@ -186,7 +186,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
         assert job.status == "pending"
 
         # Verify task was scheduled
-        mock_task.assert_called_once_with(job.id, offset=0, has_seer_data=False)
+        mock_task.assert_called_once_with(job.id, has_seer_data=False)
 
         with assume_test_silo_mode(SiloMode.CELL):
             CellOutbox(
@@ -460,7 +460,7 @@ class ProjectReplayDeletionJobsIndexTest(APITestCase):
         assert job.project_id == self.project.id
         assert job.status == "pending"
 
-        mock_task.assert_called_once_with(job.id, offset=0, has_seer_data=True)
+        mock_task.assert_called_once_with(job.id, has_seer_data=True)
 
 
 @cell_silo_test

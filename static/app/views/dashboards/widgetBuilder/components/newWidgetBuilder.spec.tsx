@@ -143,7 +143,6 @@ describe('NewWidgetBuilder', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Errors'}));
     expect(await screen.findByRole('option', {name: 'Errors'})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'Transactions'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'Spans'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'Issues'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'Releases'})).toBeInTheDocument();
@@ -205,7 +204,7 @@ describe('NewWidgetBuilder', () => {
     });
     // add a field and see if delete buttons are there
     await userEvent.click(screen.getByText('+ Add Filter'));
-    expect(screen.getAllByLabelText('Remove this filter')).toHaveLength(2);
+    expect(await screen.findAllByLabelText('Remove this filter')).toHaveLength(2);
   });
 
   it('does not render the filter alias field and add filter button on other widgets', async () => {
@@ -380,6 +379,7 @@ function makeContextCapture() {
   const ref: {current: (() => LLMContextSnapshot) | null} = {current: null};
   function ContextCapture() {
     const {getLLMContext} = useLLMContext();
+    // oxlint-disable-next-line react/immutability
     ref.current = getLLMContext;
     return null;
   }

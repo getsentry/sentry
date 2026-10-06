@@ -1,7 +1,7 @@
 import logging
 import re
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, Literal
 from urllib.parse import urlparse
 
 from jsonschema import Draft7Validator
@@ -94,14 +94,8 @@ ISSUE_LINKER_SCHEMA = {
 SCHEMA_LIST = {"select": SELECT_OPTIONS_SCHEMA, "issue_link": ISSUE_LINKER_SCHEMA}
 
 
-def validate(instance, schema_type):
-    schema = SCHEMA_LIST[schema_type]
-    v = Draft7Validator(schema)
-
-    if not v.is_valid(instance):
-        return False
-
-    return True
+def validate(instance: object, schema_type: Literal["select", "issue_link"]) -> bool:
+    return Draft7Validator(SCHEMA_LIST[schema_type]).is_valid(instance)
 
 
 def send_and_save_sentry_app_request(

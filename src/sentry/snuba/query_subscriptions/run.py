@@ -12,7 +12,6 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import (
     snuba_eap_subscriptions_raw_tasks,
     snuba_events_subscriptions_raw_tasks,
-    snuba_generic_metrics_subscriptions_raw_tasks,
     snuba_metrics_subscriptions_raw_tasks,
     snuba_transactions_subscriptions_raw_tasks,
 )
@@ -60,10 +59,6 @@ def _register_subscription_tasks() -> None:
         "events": (Dataset.Events, snuba_events_subscriptions_raw_tasks),
         "transactions": (Dataset.Transactions, snuba_transactions_subscriptions_raw_tasks),
         "metrics": (Dataset.Metrics, snuba_metrics_subscriptions_raw_tasks),
-        "generic_metrics": (
-            Dataset.PerformanceMetrics,
-            snuba_generic_metrics_subscriptions_raw_tasks,
-        ),
         "eap": (Dataset.EventsAnalyticsPlatform, snuba_eap_subscriptions_raw_tasks),
     }
 
@@ -78,7 +73,6 @@ def _register_subscription_tasks() -> None:
         @instrumented_task(
             name=f"sentry.snuba.query_subscriptions.run.process_{name}_subscription_from_kafka",
             namespace=namespace,
-            processing_deadline_duration=60,
             silo_mode=SiloMode.CELL,
         )
         def task_fn(message_bytes: bytes, _d: Dataset = dataset) -> None:

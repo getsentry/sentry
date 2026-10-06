@@ -1,11 +1,7 @@
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
-import {
-  useApiQuery,
-  type UseApiQueryOptions,
-  type UseApiQueryResult,
-} from 'sentry/utils/queryClient';
+import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {GroupTag} from 'sentry/views/issueDetails/groupTags/useGroupTags';
@@ -30,8 +26,7 @@ const makeGroupFlagsQueryKey = ({
 ];
 
 export function useGroupFeatureFlags(
-  parameters: Omit<FetchGroupFlagsParams, 'orgSlug'>,
-  {enabled = true, ...options}: Partial<UseApiQueryOptions<GroupTag[]>> = {}
+  parameters: Omit<FetchGroupFlagsParams, 'orgSlug'>
 ): UseApiQueryResult<GroupTag[], RequestError> {
   const organization = useOrganization();
   return useApiQuery<GroupTag[]>(
@@ -41,8 +36,7 @@ export function useGroupFeatureFlags(
     }),
     {
       staleTime: 30000,
-      enabled: defined(parameters.groupId) && enabled,
-      ...options,
+      enabled: defined(parameters.groupId),
     }
   );
 }

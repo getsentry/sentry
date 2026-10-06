@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -11,16 +12,14 @@ import {IssueTrackingSignals} from 'sentry/components/feedback/list/issueTrackin
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconChat, IconFatal, IconImage, IconPlay} from 'sentry/icons';
+import {IconChat, IconFatal, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {feedbackHasLinkedError} from 'sentry/utils/feedback/hasLinkedError';
 import {type FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useReplayCountForFeedbacks} from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
@@ -31,9 +30,7 @@ interface Props {
 }
 
 function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssueListItem}) {
-  const {feedbackSlug} = useLocationQuery({
-    fields: {feedbackSlug: decodeScalar},
-  });
+  const [feedbackSlug] = useQueryState('feedbackSlug', parseAsString.withDefault(''));
   const [, feedbackId] = feedbackSlug.split(':') ?? [];
   return feedbackId === feedbackItem.id;
 }
@@ -48,7 +45,6 @@ export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
   const location = useLocation();
 
   const hasLinkedError = feedbackHasLinkedError(feedbackItem);
-  const hasAttachments = feedbackItem.latestEventHasAttachments;
   const hasComments = feedbackItem.numComments > 0;
 
   return (
@@ -140,12 +136,6 @@ export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
             {hasReplayId && (
               <Tooltip title={t('Linked Replay')} containerDisplayMode="flex">
                 <IconPlay size="xs" variant="muted" />
-              </Tooltip>
-            )}
-
-            {hasAttachments && (
-              <Tooltip title={t('Has Screenshot')} containerDisplayMode="flex">
-                <IconImage size="xs" variant="muted" />
               </Tooltip>
             )}
 

@@ -28,6 +28,11 @@ function RevealOnHoverRoot(props: RevealOnHoverProps) {
 }
 
 const revealStyles = (p: {theme: import('@emotion/react').Theme}) => `
+  [data-reveal-on-hover][data-reveal-on-hover-visible] {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
   @media (hover: hover) {
     [data-reveal-on-hover] {
       opacity: 0;
@@ -36,7 +41,7 @@ const revealStyles = (p: {theme: import('@emotion/react').Theme}) => `
     }
 
     &:hover [data-reveal-on-hover],
-    &:focus-within [data-reveal-on-hover] {
+    &:has(:focus-visible) [data-reveal-on-hover] {
       opacity: 1;
       pointer-events: auto;
       transition: opacity ${p.theme.motion.enter.moderate};
@@ -65,11 +70,11 @@ interface ActionProps {
 }
 
 function Action({children, visible}: ActionProps) {
-  if (visible) {
-    return children;
-  }
-
-  return <span data-reveal-on-hover="">{children}</span>;
+  return (
+    <span data-reveal-on-hover="" data-reveal-on-hover-visible={visible ? '' : undefined}>
+      {children}
+    </span>
+  );
 }
 
 export const RevealOnHover = Object.assign(RevealOnHoverRoot, {

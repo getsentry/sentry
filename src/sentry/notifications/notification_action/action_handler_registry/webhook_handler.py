@@ -52,7 +52,7 @@ class WebhookActionHandler(ActionHandler):
     @staticmethod
     @override
     def execute(invocation: ActionInvocation) -> None:
-        organization = invocation.detector.project.organization
+        organization = invocation.detector.linked_project.organization
         target_identifier = invocation.action.config.get("target_identifier")
         if target_identifier == "webhooks":
             return _handle_legacy_webhooks(invocation)

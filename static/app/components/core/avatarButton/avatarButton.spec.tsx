@@ -51,4 +51,43 @@ describe('AvatarButton', () => {
 
     expect(spy).toHaveBeenCalledTimes(1);
   });
+
+  it('renders a placeholder icon when no avatar is provided', () => {
+    render(<AvatarButton aria-label="Assign" />);
+
+    const button = screen.getByRole('button', {name: 'Assign'});
+    expect(button).toBeInTheDocument();
+    expect(button.querySelector('img')).not.toBeInTheDocument();
+    expect(button.querySelector('svg')).toBeInTheDocument();
+  });
+
+  it('renders a suggested letter avatar without throwing', () => {
+    render(
+      <AvatarButton
+        aria-label="Suggested assignee"
+        avatar={{
+          type: 'letter_avatar',
+          identifier: 'test-id',
+          name: 'Test User',
+          suggested: true,
+        }}
+      />
+    );
+
+    const button = screen.getByRole('button', {name: 'Suggested assignee'});
+    expect(button).toBeInTheDocument();
+    expect(button).toHaveTextContent('TU');
+  });
+
+  it('accepts a round shape override', () => {
+    render(
+      <AvatarButton
+        aria-label="Open profile"
+        round
+        avatar={{type: 'letter_avatar', identifier: 'test-id', name: 'Test User'}}
+      />
+    );
+
+    expect(screen.getByRole('button', {name: 'Open profile'})).toBeInTheDocument();
+  });
 });

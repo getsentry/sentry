@@ -115,7 +115,7 @@ def handle_onboarding_result(
                 )
                 return
             create_system_audit_entry(
-                organization=detector.project.organization,
+                organization=detector.linked_project.organization,
                 target_object=detector.id,
                 event=audit_log.get_event_id("UPTIME_MONITOR_ADD"),
                 data=get_audit_log_data(detector),

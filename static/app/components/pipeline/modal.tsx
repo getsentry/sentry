@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useEffectEvent} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -27,9 +27,10 @@ interface PipelineModalProps<
   provider: P;
   type: T;
   /** Overrides the step's default descriptive copy. */
-  description?: string;
+  description?: React.ReactNode;
   initialData?: Record<string, string>;
   onComplete?: (data: CompletionDataFor<T, P>) => void;
+  onError?: (error: string) => void;
   /** Overrides the header title (defaults to the pipeline's `actionTitle`). */
   title?: string;
 }
@@ -45,6 +46,7 @@ function PipelineModal<
   provider,
   initialData,
   onComplete,
+  onError,
   title,
   description,
 }: PipelineModalProps<T, P>) {
@@ -59,6 +61,17 @@ function PipelineModal<
     description,
   });
   const {stepDefinition} = pipeline;
+  // Keeps `onError` out of the deps below. Every distinct error is reported, so a
+  // retry that fails again reports again.
+  const reportError = useEffectEvent((error: string) => {
+    onError?.(error);
+  });
+
+  useEffect(() => {
+    if (pipeline.error) {
+      reportError(pipeline.error);
+    }
+  }, [pipeline.error]);
 
   const stepText = (
     <Text variant="muted">
@@ -129,6 +142,7 @@ function PipelineModal<
           {pipeline.error && (
             <Alert
               variant="danger"
+              role="alert"
               trailingItems={
                 <Alert.Button onClick={pipeline.restart}>{t('Start over')}</Alert.Button>
               }
@@ -149,10 +163,11 @@ interface OpenPipelineModalOptions<
 > {
   provider: P;
   type: T;
-  description?: string;
+  description?: React.ReactNode;
   initialData?: Record<string, string>;
   onClose?: () => void;
   onComplete?: (data: CompletionDataFor<T, P>) => void;
+  onError?: (error: string) => void;
   title?: string;
 }
 
@@ -165,6 +180,7 @@ export function openPipelineModal<
   initialData,
   onComplete,
   onClose,
+  onError,
   title,
   description,
 }: OpenPipelineModalOptions<T, P>) {
@@ -176,10 +192,12 @@ export function openPipelineModal<
         provider={provider}
         initialData={initialData}
         onComplete={onComplete}
+        onError={onError}
         title={title}
         description={description}
       />
     ),
-    {onClose, closeEvents: 'none'}
+    // Not 'all': a backdrop click must not lose a half-finished install flow.
+    {onClose, closeEvents: 'escape-key'}
   );
 }

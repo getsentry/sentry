@@ -2,32 +2,26 @@ import {useEffect, useRef} from 'react';
 import {useQueryState} from 'nuqs';
 
 import {openModal} from 'sentry/actionCreators/modal';
-import {AutofixGithubAppPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
-import {t} from 'sentry/locale';
-import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
+import {IntegrationSettingsPermissionsModal} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
+import type {
+  IntegrationProvider,
+  OrganizationIntegration,
+} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import {
-  canManageIntegrations,
-  getGithubPermissionsUpdateUrl,
-} from 'sentry/utils/integrationUtil';
+import {canManageIntegrations} from 'sentry/utils/integrationUtil';
+import {getProviderPermissionsUrl} from 'sentry/views/settings/organizationRepositories/getProviderConfigUrl';
 
 /**
  * Opens the GitHub App update-permissions modal for a single installation.
  * Used both by the auto-open flow below and the manual "Update now" button on
  * the integration detail page.
  */
-export function openGithubPermissionsUpdateModal(integration: Integration) {
-  const installationUrl = integration.externalId
-    ? getGithubPermissionsUpdateUrl(integration.externalId)
-    : undefined;
-
+export function openGithubPermissionsUpdateModal(integration: OrganizationIntegration) {
   openModal(deps => (
-    <AutofixGithubAppPermissionsModal
+    <IntegrationSettingsPermissionsModal
       {...deps}
-      installationUrl={installationUrl}
-      description={t(
-        'This GitHub App installation is missing permissions required for the latest features. Update the installation to grant the required permissions.'
-      )}
+      installationUrl={getProviderPermissionsUrl(integration) ?? undefined}
+      missingFeatures={integration.missingFeatures ?? undefined}
     />
   ));
 }
@@ -42,7 +36,7 @@ interface Props {
   isConfigurationsLoading: boolean;
   organization: Organization;
   /** Installations flagged as requiring a permissions upgrade. */
-  outdatedConfigurations: Integration[];
+  outdatedConfigurations: OrganizationIntegration[];
   provider: IntegrationProvider | undefined;
 }
 

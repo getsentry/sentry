@@ -10,10 +10,6 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-interface Props {
-  defaultTab?: DiffType;
-}
-
 const enum DiffType {
   HTML = 'html',
   SLIDER = 'slider',
@@ -21,7 +17,7 @@ const enum DiffType {
   MUTATIONS = 'mutations',
 }
 
-export function ReplayDiffChooser({defaultTab = DiffType.SLIDER}: Props) {
+export function ReplayDiffChooser() {
   const organization = useOrganization();
   const onTabChange = (tabKey: DiffType) => {
     trackAnalytics('replay.hydration-modal.tab-change', {tabKey, organization});
@@ -29,7 +25,7 @@ export function ReplayDiffChooser({defaultTab = DiffType.SLIDER}: Props) {
 
   return (
     <Grid>
-      <TabStateProvider<DiffType> defaultValue={defaultTab} onChange={onTabChange}>
+      <TabStateProvider<DiffType> defaultValue={DiffType.SLIDER} onChange={onTabChange}>
         <TabList>
           <TabList.Item key={DiffType.SLIDER}>{t('Slider Diff')}</TabList.Item>
           <TabList.Item key={DiffType.VISUAL}>{t('Side By Side Diff')}</TabList.Item>

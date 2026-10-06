@@ -1,11 +1,10 @@
 from __future__ import annotations
 
 import base64
-import logging
 import os
 import re
 import zlib
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from functools import cached_property
 from typing import Any, Literal, overload
@@ -28,8 +27,6 @@ from .exceptions import InvalidEnhancerConfig
 from .matchers import create_match_frame
 from .parser import parse_enhancements
 from .rules import EnhancementRule
-
-logger = logging.getLogger(__name__)
 
 # NOTE: The 1_000 here is pretty arbitrary. Our builtin base enhancements have about ~300 rules,
 # So this leaves quite a bit of headroom for custom enhancement rules as well.
@@ -88,17 +85,18 @@ def _merge_rust_enhancements(
     This will merge the parsed enhancements together with the `bases`.
     It pretty much concatenates all the rules in `bases` (in order) together
     with all the rules in the incoming `rust_enhancements`.
+
+    Note: Assumes all of the passed bases are valid.
     """
     merged_rust_enhancements = RustEnhancements.empty()
     for base_id in bases:
-        base = ENHANCEMENT_BASES.get(base_id)
-        if base:
-            base_rust_enhancements = (
-                base.classifier_rust_enhancements
-                if type == "classifier"
-                else base.contributes_rust_enhancements
-            )
-            merged_rust_enhancements.extend_from(base_rust_enhancements)
+        base = ENHANCEMENT_BASES[base_id]
+        base_rust_enhancements = (
+            base.classifier_rust_enhancements
+            if type == "classifier"
+            else base.contributes_rust_enhancements
+        )
+        merged_rust_enhancements.extend_from(base_rust_enhancements)
     merged_rust_enhancements.extend_from(rust_enhancements)
     return merged_rust_enhancements
 
@@ -129,10 +127,15 @@ def _make_rust_exception_data(
     exception_data: dict[str, Any] | None,
 ) -> RustExceptionData:
     exception_data = exception_data or {}
+    mechanism = exception_data.get("mechanism")
     rust_data = {
         "type": exception_data.get("type"),
         "value": exception_data.get("value"),
-        "mechanism": get_path(exception_data, "mechanism", "type"),
+        "mechanism": (
+            mechanism.get("type")
+            if isinstance(mechanism, Mapping)
+            else getattr(mechanism, "type", None)
+        ),
     }
 
     # Convert string values to bytes
@@ -401,7 +404,8 @@ class EnhancementsConfig:
         self.id = id
         self.rules = rules
         self.version = version or DEFAULT_ENHANCEMENTS_VERSION
-        self.bases = bases or []
+        # To be safe, filter out invalid base ids (shouldn't ever happen in practice, though)
+        self.bases = [base_id for base_id in (bases or []) if base_id in ENHANCEMENT_BASES]
 
         classifier_config, contributes_config = split_enhancement_configs or _split_rules(rules)
 
@@ -661,7 +665,7 @@ class EnhancementsConfig:
             )
 
 
-def _load_configs() -> dict[str, EnhancementsConfig]:
+def _load_enhancement_bases() -> dict[str, EnhancementsConfig]:
     enhancement_bases = {}
     configs_dir = os.path.join(os.path.abspath(os.path.dirname(__file__)), "enhancement-configs")
     for filename in os.listdir(configs_dir):
@@ -679,8 +683,7 @@ def _load_configs() -> dict[str, EnhancementsConfig]:
     return enhancement_bases
 
 
-ENHANCEMENT_BASES = _load_configs()
-del _load_configs
+ENHANCEMENT_BASES = _load_enhancement_bases()
 
 # TODO: Shim to cover the time period before events which have the old default enhancements name
 # encoded in their base64 grouping config expire. Should be able to be deleted after Nov 2025. (Note
@@ -688,3 +691,10 @@ del _load_configs
 # if we make a new default in the meantime, the old name should still point to
 # `all-platforms:2023-01-11`.)
 ENHANCEMENT_BASES["newstyle:2023-01-11"] = ENHANCEMENT_BASES["all-platforms:2023-01-11"]
+
+
+# Enhancements bases which have gone from default to legacy status shouldn't have their rules
+# changed, or it'll undo the point of having a stable secondary config to transition from. We test
+# against these hashes as a hacky but quick way to enforce that. (This should be kept even if empty,
+# because presumably in the future there will be more config transitions.)
+LEGACY_ENHANCEMENT_BASE_HASHES = {"all-platforms:2023-01-11": "56d320de4f8a41213db210fa3d73e130"}

@@ -9,7 +9,7 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import {AnsiText} from 'sentry/components/ansiText';
 import {Count} from 'sentry/components/count';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -22,6 +22,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {AI_DETECTED_ISSUE_TYPES, IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -30,10 +31,7 @@ import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
-import {
-  IssueIdBreadcrumb,
-  useIssueIdBreadcrumbItem,
-} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
+import {useIssueIdBreadcrumbItem} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
@@ -61,9 +59,9 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
   const {count: eventCount, userCount} = group;
   const useGetMaxRetentionDays =
     getOverride('react-hook:use-get-max-retention-days') ?? (() => MAX_PICKABLE_DAYS);
-  const maxRetentionDays = useGetMaxRetentionDays();
+  const maxRetentionDays = useGetMaxRetentionDays(); // oxlint-disable-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
   const userCountPeriod = maxRetentionDays ? `(${maxRetentionDays}d)` : '(30d)';
-  const {title: primaryTitle} = getTitle(group);
+  const {title: primaryTitle = ''} = getTitle(group);
   const secondaryTitle = getMessage(group);
   const isComplete = group.status === 'resolved' || group.status === 'ignored';
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
@@ -78,7 +76,6 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
-  const hasNewBreadcrumbs = organization.features.includes('ui-migration-breadcrumbs');
   const issueItem = useIssueIdBreadcrumbItem({project, group});
 
   return (
@@ -86,44 +83,23 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
       <Header>
         <Flex justify="between">
           <Flex align="center" gap="md">
-            {hasNewBreadcrumbs ? (
-              <Fragment>
-                <TopBar.Slot name="breadcrumbs">
-                  <BreadcrumbList
-                    items={[
-                      {
-                        type: 'link',
-                        label: t('Issues'),
-                        to: {
-                          pathname: `/organizations/${organization.slug}/issues/`,
-                          query,
-                        },
-                      },
-                    ]}
-                  />
-                </TopBar.Slot>
-                <TopBar.Slot name="title">
-                  <BreadcrumbList.Title item={issueItem} />
-                </TopBar.Slot>
-              </Fragment>
-            ) : (
-              <TopBar.Slot name="title">
-                <StyledBreadcrumbs
-                  crumbs={[
-                    {
-                      label: 'Issues',
-                      to: {
-                        pathname: `/organizations/${organization.slug}/issues/`,
-                        query,
-                      },
+            <TopBar.Slot name="breadcrumbs">
+              <BreadcrumbList
+                items={[
+                  {
+                    type: 'link',
+                    label: t('Issues'),
+                    to: {
+                      pathname: `/organizations/${organization.slug}/issues/`,
+                      query,
                     },
-                    {
-                      label: <IssueIdBreadcrumb project={project} group={group} />,
-                    },
-                  ]}
-                />
-              </TopBar.Slot>
-            )}
+                  },
+                ]}
+              />
+            </TopBar.Slot>
+            <TopBar.Slot name="title">
+              <BreadcrumbList.Title item={issueItem} />
+            </TopBar.Slot>
             {hasErrorUpsampling && (
               <Tooltip
                 title={t(
@@ -141,13 +117,14 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
         <HeaderGrid>
           <Title>
             <Tooltip
-              title={primaryTitle}
+              title={stripAnsi(primaryTitle)}
               skipWrapper
-              isHoverable
               showOnlyOnOverflow
               delay={1000}
             >
-              <PrimaryTitle>{primaryTitle}</PrimaryTitle>
+              <PrimaryTitle>
+                <AnsiText>{primaryTitle}</AnsiText>
+              </PrimaryTitle>
             </Tooltip>
             {isAIDetectedIssue && <FeatureBadge type="new" />}
           </Title>
@@ -240,7 +217,7 @@ function HeaderActions({group}: {group: Group}) {
         : 'issue_details_n_plus_one_api_calls';
   const feedbackOptions = {
     messagePlaceholder: t('Please provide feedback on the issue Sentry detected.'),
-    tags: {['feedback.source']: feedbackSource},
+    tags: {'feedback.source': feedbackSource},
   };
   const feedbackLabel = t('Give feedback on the issue Sentry detected');
 
@@ -362,10 +339,6 @@ const Title = styled('div')`
   grid-template-columns: minmax(0, max-content) min-content;
   align-items: center;
   column-gap: ${p => p.theme.space.sm};
-`;
-
-const StyledBreadcrumbs = styled(Breadcrumbs)`
-  padding: 0;
 `;
 
 const StyledTag = styled(Tag)`

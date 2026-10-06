@@ -37,6 +37,7 @@ from .detectors.render_blocking_asset_span_detector import RenderBlockingAssetSp
 from .detectors.slow_db_query_detector import SlowDBQueryDetector
 from .detectors.sql_injection_detector import SQLInjectionDetector
 from .detectors.uncompressed_asset_detector import UncompressedAssetSpanDetector
+from .detectors.utils import get_browser_name
 from .performance_problem import PerformanceProblem
 
 logger = logging.getLogger(__name__)
@@ -126,7 +127,12 @@ PERFORMANCE_WFE_DETECTOR_TYPES: frozenset[str] = frozenset(
 
 # Facade in front of performance detection to limit impact of detection on our events ingestion
 def detect_performance_problems(
-    data: dict[str, Any], project: Project, standalone: bool = False
+    data: dict[str, Any],
+    project: Project,
+    *,
+    detector_classes: list[type[PerformanceDetector]] | None = None,
+    detection_settings: dict[DetectorType, dict[str, Any]] | None = None,
+    standalone: bool = False,
 ) -> list[PerformanceProblem]:
     try:
         rate = options.get("performance.issues.all.problem-detection")
@@ -138,7 +144,14 @@ def detect_performance_problems(
                 metrics.timer("performance.detect_performance_issue", sample_rate=0.01),
                 start_span(op="py.detect_performance_issue", name="none") as sdk_span,
             ):
-                return _detect_performance_problems(data, sdk_span, project, standalone=standalone)
+                return _detect_performance_problems(
+                    data,
+                    sdk_span,
+                    project,
+                    detector_classes=detector_classes,
+                    detection_settings=detection_settings,
+                    standalone=standalone,
+                )
     except Exception:
         logging.exception("Failed to detect performance problems")
     return []
@@ -676,15 +689,27 @@ DETECTOR_CLASSES: list[type[PerformanceDetector]] = [
     QueryInjectionDetector,
 ]
 
+DETECTOR_TYPE_TO_CLASS_MAP = {
+    detector_class.type.value: detector_class for detector_class in DETECTOR_CLASSES
+}
+
 
 def _detect_performance_problems(
-    data: dict[str, Any], sdk_span: Any, project: Project, standalone: bool = False
+    data: dict[str, Any],
+    sdk_span: Span | StreamedSpan,
+    project: Project,
+    *,
+    detector_classes: list[type[PerformanceDetector]] | None = None,
+    detection_settings: dict[DetectorType, dict[str, Any]] | None = None,
+    standalone: bool = False,
 ) -> list[PerformanceProblem]:
     event_id = data.get("event_id", None)
     organization = project.organization
+    detector_classes = detector_classes if detector_classes is not None else DETECTOR_CLASSES
 
-    with start_span(op="function", name="get_detection_settings"):
-        detection_settings = get_detection_settings(project)
+    if detection_settings is None:
+        with start_span(op="function", name="get_detection_settings"):
+            detection_settings = get_detection_settings(project)
 
     # The performance detectors expect the span list to be ordered/flattened in the way they
     # are structured in the tree. This is an implicit assumption in the performance detectors.
@@ -698,7 +723,7 @@ def _detect_performance_problems(
     with start_span(op="initialize", name="PerformanceDetector"):
         detectors: list[PerformanceDetector] = [
             detector_class(detection_settings[detector_class.settings_key], data)
-            for detector_class in DETECTOR_CLASSES
+            for detector_class in detector_classes
             if detector_class.is_detection_allowed_for_system()
         ]
 
@@ -844,11 +869,7 @@ def report_metrics_for_detectors(
         if event_id:
             set_span_tag(sdk_span, "_pi_transaction", event_id)
 
-    tags = event.get("tags", [])
-    browser_name = next(
-        (tag[1] for tag in tags if tag is not None and tag[0] == "browser.name" and len(tag) == 2),
-        None,
-    )
+    browser_name = get_browser_name(event)
     allowed_browser_name = "Other"
     if browser_name in [
         "Chrome",

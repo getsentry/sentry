@@ -36,7 +36,7 @@ def get_query_hash(
             if isinstance(v, str):
                 param_val = percent_encode(v)
             else:
-                param_val = ",".join(percent_encode(val) for val in v)
+                param_val = ",".join(percent_encode(val) for val in sorted(v))
             sorted_query.append(f"{percent_encode(k)}={param_val}")
 
     query_string = "{}&{}&{}".format(method, uri, "&".join(sorted_query))

@@ -1,9 +1,12 @@
 import types
+from unittest.mock import patch
 
 import pytest
 from django.core.cache import caches
 from django.test import override_settings
 
+from sentry.hybridcloud.models.outbox import CellOutboxBase
+from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.options import default_store
 from sentry.runner.initializer import (
     ConfigurationError,
@@ -11,6 +14,7 @@ from sentry.runner.initializer import (
     bind_cache_to_option_store,
     bootstrap_options,
     validate_options,
+    validate_outbox_config,
 )
 from sentry.utils.warnings import DeprecatedSettingWarning
 
@@ -254,6 +258,13 @@ def test_initialize_app(settings) -> None:
     settings.SENTRY_OPTIONS = {"system.secret-key": "secret-key"}
     bootstrap_options(settings)
     apply_legacy_settings(settings)
+
+
+def test_validate_outbox_config_includes_group_action_log_outbox() -> None:
+    with patch.object(CellOutboxBase, "from_outbox_name") as validate_cell_outbox:
+        validate_outbox_config()
+
+    validate_cell_outbox.assert_any_call(GroupActionLogOutbox._meta.label)
 
 
 def test_require_secret_key(settings) -> None:

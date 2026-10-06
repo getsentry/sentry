@@ -11,6 +11,7 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 interface Props {
   children: ReactNode;
   sectionKey: string;
+  actions?: ReactNode;
   collapsible?: boolean;
   icon?: ReactNode;
   title?: ReactNode;
@@ -19,6 +20,7 @@ interface Props {
 export function FeedbackItemSection({
   children,
   sectionKey,
+  actions,
   collapsible,
   icon,
   title,
@@ -39,9 +41,14 @@ export function FeedbackItemSection({
             {icon}
             {title}
           </Flex>
-          {collapsible ? (
-            <IconChevron direction={isCollapsed ? 'down' : 'up'} size="xs" />
-          ) : null}
+          <Flex align="center" gap="sm">
+            {actions ? (
+              <Flex onClick={event => event.stopPropagation()}>{actions}</Flex>
+            ) : null}
+            {collapsible ? (
+              <IconChevron direction={isCollapsed ? 'down' : 'up'} size="xs" />
+            ) : null}
+          </Flex>
         </SectionTitle>
       ) : null}
       {isCollapsed ? null : children}

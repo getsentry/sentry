@@ -27,6 +27,9 @@ from sentry.utils.hashlib import sha1_text
 NULL_UUID = "00000000-00000000-00000000-00000000"
 NULL_STRING = ""
 
+# Must stay in sync with Symbolicator's `object_file_max_decompressed_source_size`
+MAX_SOURCE_FILE_SIZE = 1024 * 1024 * 1024
+
 
 class SourceFileType(Enum):
     SOURCE = 1
@@ -237,6 +240,9 @@ class ArtifactBundleArchive:
     def info(self, filename: str) -> zipfile.ZipInfo:
         return self._zip_file.getinfo(filename)
 
+    def infolist(self) -> list[zipfile.ZipInfo]:
+        return self._zip_file.infolist()
+
     def read(self, filename: str) -> bytes:
         return self._zip_file.read(filename)
 
@@ -292,6 +298,16 @@ class ArtifactBundleArchive:
 
     def has_debug_ids(self):
         return len(self._entries_by_debug_id) > 0
+
+    def has_debug_ids_for_all_files(self) -> bool:
+        """
+        Whether the bundle has files with debug IDs, and every file that can be looked up by URL
+        can also be looked up by debug ID.
+        """
+        files_with_debug_ids = {file_path for file_path, _, _ in self._entries_by_debug_id.values()}
+        return bool(files_with_debug_ids) and all(
+            file_path in files_with_debug_ids for file_path, _ in self._entries_by_url.values()
+        )
 
     def extract_bundle_id(self) -> str | None:
         bundle_id = self.manifest.get("debug_id")

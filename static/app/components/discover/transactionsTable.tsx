@@ -1,22 +1,21 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import type {EventView, MetaType} from 'sentry/utils/discover/eventView';
+import type {EventView} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {fieldAlignment, getAggregateAlias} from 'sentry/utils/discover/fields';
 import {ViewReplayLink} from 'sentry/utils/discover/viewReplayLink';
@@ -52,85 +51,53 @@ type Props = {
   titles?: string[];
 };
 
-export function TransactionsTable(props: Props) {
-  const {
-    eventView,
-    titles,
-    tableData,
-    columnOrder,
-    organization,
-    location,
-    generateLink,
-    handleCellAction,
-    useAggregateAlias,
-    isLoading,
-    referrer,
-  } = props;
+type TransactionsTableResultsProps = Pick<
+  Props,
+  | 'columnOrder'
+  | 'eventView'
+  | 'generateLink'
+  | 'handleCellAction'
+  | 'isLoading'
+  | 'location'
+  | 'organization'
+  | 'referrer'
+  | 'tableData'
+  | 'titles'
+  | 'useAggregateAlias'
+>;
+
+function TransactionsTableResults({
+  eventView,
+  tableData,
+  columnOrder,
+  organization,
+  location,
+  generateLink,
+  handleCellAction,
+  useAggregateAlias,
+  isLoading,
+  referrer,
+  titles,
+}: TransactionsTableResultsProps) {
   const navigate = useNavigate();
   const theme = useTheme();
 
-  const getTitles = () => {
-    return titles ?? eventView.getFields();
-  };
+  if (isLoading) {
+    return null;
+  }
 
-  const renderHeader = () => {
-    const tableMeta = tableData?.meta;
-    const tableTitles = getTitles();
+  const tableMeta = tableData?.meta;
+  const data = tableData?.data;
+  if (!tableMeta || !data) {
+    return null;
+  }
 
-    const headers = tableTitles.map((title, index) => {
-      const column = columnOrder[index]!;
-      const align = fieldAlignment(column.name, column.type, tableMeta);
+  const rows: React.ReactNode[] = [];
+  const fields = eventView.getFields();
+  const colOrder = titles?.length ? columnOrder.slice(0, titles.length) : columnOrder;
 
-      if (column.key === 'span_ops_breakdown.relative') {
-        return (
-          <Container padding="xl" key={index}>
-            <SortLink
-              align={align}
-              title={
-                title === t('operation duration') ? (
-                  <Fragment>
-                    {title}
-                    <StyledIconQuestion
-                      size="xs"
-                      position="top"
-                      title={t(
-                        'Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.'
-                      )}
-                    />
-                  </Fragment>
-                ) : (
-                  title
-                )
-              }
-              direction={undefined}
-              canSort={false}
-            />
-          </Container>
-        );
-      }
-
-      return (
-        <Container padding="xl" key={index}>
-          <SortLink align={align} title={title} direction={undefined} canSort={false} />
-        </Container>
-      );
-    });
-
-    return headers;
-  };
-
-  const renderRow = (
-    row: TableDataRow,
-    rowIndex: number,
-    colOrder: Array<TableColumn<string | number>>,
-    tableMeta: MetaType
-  ): React.ReactNode[] => {
-    const fields = eventView.getFields();
-
-    if (titles?.length) {
-      // Slice to match length of given titles
-      colOrder = colOrder.slice(0, titles.length);
-    }
+  data.forEach((row, rowIndex: number) => {
+    const tableRow = row as TableDataRow;
 
     const resultsRow = colOrder.map((column, index) => {
       const field = String(column.key);
@@ -139,9 +106,14 @@ export function TransactionsTable(props: Props) {
       const fieldType = tableMeta[fieldName];
 
       const fieldRenderer = getFieldRenderer(field, tableMeta, useAggregateAlias);
-      let rendered = fieldRenderer(row, {navigate, organization, location, theme});
+      let rendered = fieldRenderer(tableRow, {
+        navigate,
+        organization,
+        location,
+        theme,
+      });
 
-      const target = generateLink?.[field]?.(organization, row, location);
+      const target = generateLink?.[field]?.(organization, tableRow, location);
       const isEmptyTarget =
         typeof target === 'object' && target !== null && isEmptyObject(target);
 
@@ -160,7 +132,7 @@ export function TransactionsTable(props: Props) {
       } else if (target && !isEmptyTarget) {
         if (fields[index] === 'replayId') {
           rendered = (
-            <ViewReplayLink replayId={row.replayId!} to={target}>
+            <ViewReplayLink replayId={tableRow.replayId!} to={target}>
               {rendered}
             </ViewReplayLink>
           );
@@ -185,7 +157,7 @@ export function TransactionsTable(props: Props) {
         rendered = (
           <CellAction
             column={column}
-            dataRow={row}
+            dataRow={tableRow}
             handleCellAction={handleCellAction(column)}
           >
             {rendered}
@@ -196,28 +168,77 @@ export function TransactionsTable(props: Props) {
       return <BodyCellContainer key={key}>{rendered}</BodyCellContainer>;
     });
 
-    return resultsRow;
+    rows.push(<SimpleTable.Row key={rowIndex}>{resultsRow}</SimpleTable.Row>);
+  });
+
+  return <Fragment>{rows}</Fragment>;
+}
+
+export function TransactionsTable(props: Props) {
+  const {
+    eventView,
+    titles,
+    tableData,
+    columnOrder,
+    organization,
+    location,
+    generateLink,
+    handleCellAction,
+    useAggregateAlias,
+    isLoading,
+    referrer,
+  } = props;
+  const getTitles = () => {
+    return titles ?? eventView.getFields();
   };
 
-  const renderResults = () => {
-    let cells: React.ReactNode[] = [];
+  const columnCount = (titles ?? eventView.getFields()).length;
+  const columns = useMemo<TableColumnConfig[]>(
+    () =>
+      Array.from({length: columnCount}, (_, index) => ({
+        key: String(index),
+        width: 'auto',
+      })),
+    [columnCount]
+  );
 
-    if (isLoading) {
-      return cells;
-    }
-    if (!tableData?.meta || !tableData.data) {
-      return cells;
-    }
+  const renderHeader = () => {
+    const tableMeta = tableData?.meta;
+    const tableTitles = getTitles();
 
-    tableData.data.forEach((row, i: number) => {
-      // Another check to appease tsc
-      if (!tableData.meta) {
-        return;
+    const headers = tableTitles.map((title, index) => {
+      const column = columnOrder[index]!;
+      const align = fieldAlignment(column.name, column.type, tableMeta);
+
+      if (column.key === 'span_ops_breakdown.relative') {
+        return (
+          <SimpleTable.HeaderCell align={align} key={index}>
+            {title === t('operation duration') ? (
+              <Fragment>
+                {title}
+                <StyledIconQuestion
+                  size="xs"
+                  position="top"
+                  title={t(
+                    'Span durations are summed over the course of an entire transaction. Any overlapping spans are only counted once.'
+                  )}
+                />
+              </Fragment>
+            ) : (
+              title
+            )}
+          </SimpleTable.HeaderCell>
+        );
       }
-      // @ts-expect-error TS(2345): Argument of type 'TableDataRow | TrendsTransaction... Remove this comment to see the full error message
-      cells = cells.concat(renderRow(row, i, columnOrder, tableData.meta, theme));
+
+      return (
+        <SimpleTable.HeaderCell align={align} key={index}>
+          {title}
+        </SimpleTable.HeaderCell>
+      );
     });
-    return cells;
+
+    return headers;
   };
 
   const hasResults = tableData?.meta && tableData.data?.length > 0;
@@ -231,21 +252,33 @@ export function TransactionsTable(props: Props) {
       hasData={hasResults}
       isLoading={isLoading}
     >
-      <PanelTable
+      <SimpleTable
         data-test-id="transactions-table"
-        isEmpty={!hasResults}
-        emptyMessage={
-          eventView.query
-            ? t('No transactions found for this filter.')
-            : t('No transactions found.')
-        }
-        headers={renderHeader()}
-        isLoading={isLoading}
-        disablePadding
-        loader={loader}
+        columns={columns}
+        header={<SimpleTable.HeaderRow>{renderHeader()}</SimpleTable.HeaderRow>}
       >
-        {renderResults()}
-      </PanelTable>
+        {isLoading && <SimpleTable.Empty>{loader}</SimpleTable.Empty>}
+        {!isLoading && !hasResults && (
+          <SimpleTable.Empty>
+            {eventView.query
+              ? t('No transactions found for this filter.')
+              : t('No transactions found.')}
+          </SimpleTable.Empty>
+        )}
+        <TransactionsTableResults
+          columnOrder={columnOrder}
+          eventView={eventView}
+          generateLink={generateLink}
+          handleCellAction={handleCellAction}
+          isLoading={isLoading}
+          location={location}
+          organization={organization}
+          referrer={referrer}
+          tableData={tableData}
+          titles={titles}
+          useAggregateAlias={useAggregateAlias}
+        />
+      </SimpleTable>
     </VisuallyCompleteWithData>
   );
 }
@@ -263,7 +296,7 @@ function getProfileAnalyticsHandler(organization: Organization, referrer?: strin
   };
 }
 
-const BodyCellContainer = styled('div')`
+const BodyCellContainer = styled(SimpleTable.RowCell)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   display: block;
   width: 100%;

@@ -12,6 +12,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {MultiHighlight} from 'sentry/components/highlight';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {RowRectangle} from 'sentry/components/performance/waterfall/rowBar';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
@@ -30,8 +31,8 @@ import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {BREAKDOWN_SLICES} from 'sentry/views/explore/hooks/useTraces';
 import type {SpanResult} from 'sentry/views/explore/tables/tracesTable/types';
 import type {SpanFields, SpanResponse} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 
 import type {Field} from './data';
 import {
@@ -519,13 +520,11 @@ interface TraceIdRendererProps {
   traceId: string;
   traceName: string | null;
   onClick?: React.ComponentProps<typeof Link>['onClick'];
-  transactionId?: string;
 }
 
 export function TraceIdRenderer({
   traceId,
   timestamp,
-  transactionId,
   location,
   onClick,
   traceName,
@@ -556,7 +555,6 @@ export function TraceIdRenderer({
     return (
       <Tooltip
         showUnderline
-        isHoverable
         title={
           <Text>
             {tct('Trace is older than 30 days. [similarTraces] in the past 24 hours.', {
@@ -591,13 +589,8 @@ export function TraceIdRenderer({
   const target = getTraceDetailsUrl({
     organization,
     traceSlug: traceId,
-    dateSelection: {
-      start: selection.datetime.start,
-      end: selection.datetime.end,
-      statsPeriod: selection.datetime.period,
-    },
+    dateSelection: normalizeDateTimeParams(selection.datetime),
     timestamp: timestamp / 1000,
-    eventId: transactionId,
     location,
     source: TraceViewSources.TRACES,
   });
@@ -663,7 +656,7 @@ const OMITTED_SPAN_STATUS = ['unknown'];
 /**
  * This display a tag for the status (not to be confused with 'status_code' which has values like '200', '429').
  */
-function StatusTag({status, onClick}: {status: string; onClick?: () => void}) {
+function StatusTag({status}: {status: string}) {
   const tagType = statusToTagType(status);
 
   if (!tagType) {
@@ -673,15 +666,11 @@ function StatusTag({status, onClick}: {status: string; onClick?: () => void}) {
   if (OMITTED_SPAN_STATUS.includes(status)) {
     return null;
   }
-  return (
-    <StyledTag variant={tagType} onClick={onClick}>
-      {status}
-    </StyledTag>
-  );
+  return <StyledTag variant={tagType}>{status}</StyledTag>;
 }
 
 const StyledTag = styled(Tag)`
-  cursor: ${p => (p.onClick ? 'pointer' : 'default')};
+  cursor: default;
 `;
 
 export const Description = styled('div')`

@@ -1,9 +1,16 @@
-from collections.abc import Callable, Sequence
-from typing import cast
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass
+from typing import Any, cast
 
 from django.conf import settings
 from rest_framework import serializers
 
+from sentry.models.custominboundfilter import (
+    MAX_FILTERS_PER_PROJECT,
+    ConditionType,
+    CustomInboundFilter,
+    DataType,
+)
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.relay.types import GenericFilter, GenericFiltersConfig, RuleCondition
@@ -338,7 +345,6 @@ def _error_message_condition(
             message_conditions.append(
                 {"op": "glob", "name": "event.logentry.formatted", "value": [value]}
             )
-
     exception_condition = cast(
         RuleCondition,
         {
@@ -425,8 +431,61 @@ ACTIVE_GENERIC_FILTERS: Sequence[tuple[str, Callable[[], RuleCondition | None]]]
 ]
 
 
+def _generic_filter(filter_id: str, condition: RuleCondition) -> GenericFilter:
+    return {"id": filter_id, "isEnabled": True, "condition": condition}
+
+
+def _log_messages_generic_filters(project: Project) -> list[GenericFilter]:
+    globs = project.get_option(f"sentry:{FilterTypes.LOG_MESSAGES}")
+    if not globs:
+        return []
+
+    condition: RuleCondition = {"op": "glob", "name": "log.body", "value": globs}
+    return [_generic_filter("log-message", condition)]
+
+
+def _trace_metric_names_generic_filters(project: Project) -> list[GenericFilter]:
+    globs = project.get_option(f"sentry:{FilterTypes.TRACE_METRIC_NAMES}")
+    if not globs:
+        return []
+
+    condition: RuleCondition = {"op": "glob", "name": "trace_metric.name", "value": globs}
+    return [_generic_filter("trace-metric-name", condition)]
+
+
+def _ip_denylist_generic_filters(project: Project) -> list[GenericFilter]:
+    """
+    The legacy IP address list as a generic filter. It keeps the outcome reason of the
+    native ``clientIps`` filter it replaces, so filter stats stay continuous.
+    """
+    ips = project.get_option("sentry:blacklisted_ips")
+    if not ips:
+        return []
+
+    return [_generic_filter(FilterStatKeys.IP_ADDRESS, _client_ip_matcher(ips))]
+
+
+@dataclass(frozen=True)
+class InboundFilterFeatures:
+    """
+    Whether each of a project's feature-gated inbound filters is enabled.
+
+    ``custom_inbound_filters`` gates the other three, and additionally gates the
+    legacy ``releases`` and ``errorMessages`` filter settings built by the caller.
+
+    ``generic_ip_filter`` serves the legacy IP address list as a generic filter. The
+    caller then leaves out the native ``clientIps`` setting.
+    """
+
+    custom_inbound_filters: bool = False
+    logs: bool = False
+    metrics: bool = False
+    custom_inbound_filters_v2: bool = False
+    generic_ip_filter: bool = False
+
+
 def get_generic_filters(
-    project: Project, base_generic_filters: list[GenericFilter] | None = None
+    project: Project, filter_features: InboundFilterFeatures
 ) -> GenericFiltersConfig | None:
     """
     Computes the generic inbound filters configuration for inbound filters.
@@ -436,8 +495,18 @@ def get_generic_filters(
     hardcoded set of rules, specific to each type.
     """
     generic_filters: list[GenericFilter] = []
-    if base_generic_filters:
-        generic_filters.extend(base_generic_filters)
+
+    # First, as the native IP filter runs before the other native filters.
+    if filter_features.generic_ip_filter:
+        generic_filters += _ip_denylist_generic_filters(project)
+
+    if filter_features.custom_inbound_filters:
+        if filter_features.logs:
+            generic_filters += _log_messages_generic_filters(project)
+        if filter_features.metrics:
+            generic_filters += _trace_metric_names_generic_filters(project)
+        if filter_features.custom_inbound_filters_v2:
+            generic_filters += get_custom_inbound_filter_generic_filters(project)
 
     for generic_filter_id, generic_filter_fn in ACTIVE_GENERIC_FILTERS:
         # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
@@ -448,13 +517,7 @@ def get_generic_filters(
 
         condition = generic_filter_fn()
         if condition is not None:
-            generic_filters.append(
-                {
-                    "id": generic_filter_id,
-                    "isEnabled": True,
-                    "condition": condition,
-                }
-            )
+            generic_filters.append(_generic_filter(generic_filter_id, condition))
 
     if not generic_filters:
         return None
@@ -465,31 +528,183 @@ def get_generic_filters(
     }
 
 
-def get_log_messages_generic_filter(log_messages: list[str]) -> GenericFilter | None:
-    if not log_messages:
+CUSTOM_INBOUND_FILTER_ID_PREFIX = "custom-inbound-filter:"
+
+
+def _custom_error_message_condition(values: list[str]) -> RuleCondition:
+    """
+    Matches events whose exception type, exception value, or log entry message
+    matches one of the globs.
+
+    The legacy ``errorMessages`` filter matches patterns against the formatted
+    ``"{type}: {value}"`` message. Relay's rule DSL cannot express that
+    concatenation, so type and value are matched individually instead.
+    """
+    patterns: list[tuple[str | None, str | None]] = [(glob, None) for glob in values]
+    patterns += [(None, glob) for glob in values]
+    return _error_message_condition(patterns, match_logentry=True)
+
+
+def _custom_error_type_condition(values: list[str]) -> RuleCondition:
+    """
+    Matches events that carry an exception whose type matches one of the globs.
+
+    Unlike ``error_message``, this reads the exception type alone, so it narrows a
+    filter to a type without also matching events that merely mention it in their
+    message.
+    """
+    return cast(
+        RuleCondition,
+        {
+            "op": "any",
+            "name": "event.exception.values",
+            "inner": {"op": "glob", "name": "ty", "value": values},
+        },
+    )
+
+
+# Builds the Relay condition that matches one filter condition's glob values.
+_ConditionMatcher = Callable[[list[str]], RuleCondition]
+
+# The matcher for each condition type a data type supports.
+_ConditionMatchers = Mapping[ConditionType, _ConditionMatcher]
+
+
+def _field_matcher(name: str) -> _ConditionMatcher:
+    def match(values: list[str]) -> RuleCondition:
+        return {"op": "glob", "name": name, "value": values}
+
+    return match
+
+
+def _cidr_matcher(name: str) -> _ConditionMatcher:
+    def match(values: list[str]) -> RuleCondition:
+        return {"op": "cidr", "name": name, "value": values}
+
+    return match
+
+
+_client_ip_matcher = _cidr_matcher("envelope.client_ip")
+
+
+_CONDITION_MATCHERS: Mapping[
+    ConditionType,
+    _ConditionMatcher | Mapping[DataType, _ConditionMatcher],
+] = {
+    ConditionType.ERROR_TYPE: {
+        DataType.ERROR: _custom_error_type_condition,
+    },
+    ConditionType.ERROR_MESSAGE: {
+        DataType.ERROR: _custom_error_message_condition,
+    },
+    ConditionType.LOG_MESSAGE: {
+        DataType.LOG: _field_matcher("log.body"),
+    },
+    ConditionType.METRIC_NAME: {
+        DataType.METRIC: _field_matcher("trace_metric.name"),
+    },
+    ConditionType.RELEASE: {
+        DataType.ERROR: _field_matcher("event.release"),
+        DataType.LOG: _field_matcher("log.attributes.sentry.release.value"),
+        DataType.METRIC: _field_matcher("trace_metric.attributes.sentry.release.value"),
+        DataType.SPAN: _field_matcher("span.attributes.sentry.release.value"),
+    },
+    ConditionType.IP_ADDRESS: _client_ip_matcher,
+}
+
+_SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}
+
+
+def _any_condition_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionMatcher:
+    # Relay reads a field the item does not carry as no match, so the OR reduces to the
+    # item's own field.
+    def match(values: list[str]) -> RuleCondition:
+        return {"op": "or", "inner": [matcher(values) for matcher in matchers]}
+
+    return match
+
+
+def _matcher(condition_type: ConditionType, data_type: DataType) -> _ConditionMatcher | None:
+    spec = _CONDITION_MATCHERS[condition_type]
+    if callable(spec):
+        return spec
+    if data_type is not DataType.ALL:
+        return spec.get(data_type)
+    if set(spec) != _SINGLE_DATA_TYPES:
+        return None
+    return _any_condition_matcher(list(spec.values()))
+
+
+_MATCHERS_BY_DATA_TYPE: Mapping[DataType, _ConditionMatchers] = {
+    data_type: {
+        condition_type: matcher
+        for condition_type in ConditionType
+        if (matcher := _matcher(condition_type, data_type)) is not None
+    }
+    for data_type in DataType
+}
+
+
+def get_supported_condition_types(
+    data_type: DataType,
+) -> list[ConditionType]:
+    return list(_MATCHERS_BY_DATA_TYPE[data_type])
+
+
+def _custom_filter_condition(
+    conditions: list[dict[str, Any]], data_type: str | None
+) -> RuleCondition | None:
+    """
+    Translates a custom inbound filter's conditions into a Relay rule condition.
+
+    Conditions are combined with AND. Returns None if the filter cannot be translated
+    (a missing data type, a data type, condition type, or value shape unknown to this
+    revision, or a condition type whose field the filter's data type does not carry):
+    since every condition narrows the match, dropping only the broken condition would
+    filter more data than configured.
+    """
+    if not conditions or data_type is None:
         return None
 
-    return {
-        "id": "log-message",
-        "isEnabled": True,
-        "condition": {
-            "op": "glob",
-            "name": "log.body",
-            "value": log_messages,
-        },
-    }
-
-
-def get_trace_metric_names_generic_filter(trace_metric_names: list[str]) -> GenericFilter | None:
-    if not trace_metric_names:
+    try:
+        matchers = _MATCHERS_BY_DATA_TYPE[DataType(data_type)]
+    except ValueError:
         return None
 
-    return {
-        "id": "trace-metric-name",
-        "isEnabled": True,
-        "condition": {
-            "op": "glob",
-            "name": "trace_metric.name",
-            "value": trace_metric_names,
-        },
-    }
+    rule_conditions: list[RuleCondition] = []
+    for condition in conditions:
+        try:
+            condition_type = ConditionType(condition.get("type", ""))
+        except ValueError:
+            return None
+
+        values = condition.get("value")
+        if not (isinstance(values, list) and values and all(isinstance(v, str) for v in values)):
+            return None
+
+        matcher = matchers.get(condition_type)
+        if matcher is None:
+            return None
+        rule_conditions.append(matcher(values))
+
+    if len(rule_conditions) == 1:
+        return rule_conditions[0]
+
+    return {"op": "and", "inner": rule_conditions}
+
+
+def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericFilter]:
+    generic_filters: list[GenericFilter] = []
+    # A row with legacy_filter set is the double write of a legacy list that Relay still receives
+    # through the legacy path, so serving it here would filter the same data twice.
+    custom_filters = CustomInboundFilter.objects.filter(
+        project_id=project.id, active=True, legacy_filter__isnull=True
+    ).order_by("id")[:MAX_FILTERS_PER_PROJECT]
+    for custom_filter in custom_filters:
+        condition = _custom_filter_condition(custom_filter.conditions, custom_filter.data_type)
+        if condition is not None:
+            generic_filters.append(
+                _generic_filter(f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{custom_filter.id}", condition)
+            )
+
+    return generic_filters

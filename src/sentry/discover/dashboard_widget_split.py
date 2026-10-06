@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 
 import sentry_sdk
+from sentry_sdk import traces
 from snuba_sdk.query_visitors import InvalidQueryError
 
 from sentry import features
@@ -32,7 +33,6 @@ from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils import snuba
 from sentry.utils.dates import parse_timestamp
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.tasks.split_discover_query_dataset")
 
@@ -68,11 +68,13 @@ def _save_split_decision_for_widget(
         widget.discover_widget_split = split_decision
     if dataset_source is not None:
         widget.dataset_source = dataset_source.value
+    if widget.widget_type is None:
+        widget.widget_type = DashboardWidgetTypes.DISCOVER
 
     widget.save()
 
 
-@trace
+@traces.trace
 def _get_and_save_split_decision_for_dashboard_widget(
     widget_query: DashboardWidgetQuery, dry_run: bool
 ) -> tuple[int, bool]:

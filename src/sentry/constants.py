@@ -198,6 +198,7 @@ RESERVED_ORGANIZATION_SLUGS = frozenset(
         "services",
         "settings",
         "signup",
+        "solutions",
         "sponsorship",
         "ssh",
         "sso",
@@ -335,24 +336,6 @@ _SENTRY_RULES = (
     "sentry.rules.filters.event_attribute.EventAttributeFilter",
     "sentry.rules.filters.tagged_event.TaggedEventFilter",
     "sentry.rules.filters.level.LevelFilter",
-)
-
-MIGRATED_CONDITIONS = frozenset(
-    [
-        "sentry.rules.conditions.tagged_event.TaggedEventCondition",
-        "sentry.rules.conditions.event_attribute.EventAttributeCondition",
-        "sentry.rules.conditions.level.LevelCondition",
-    ]
-)
-
-TICKET_ACTIONS = frozenset(
-    [
-        "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
-        "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
-        "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
-        "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
-        "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
-    ]
 )
 
 SENTRY_APP_ACTIONS = frozenset(
@@ -527,6 +510,9 @@ class ObjectStatus:
     PENDING_DELETION = 2
     DELETION_IN_PROGRESS = 3
 
+    # HIDDEN and DISABLED are the same value: a filter on one matches rows written with the
+    # other. Code that says "hidden" (e.g. repositories) and code that says "disabled" is
+    # talking about the same rows.
     DISABLED = 1
 
     _CHOICES = (
@@ -764,50 +750,6 @@ DataCategory = sentry_relay.consts.DataCategory
 
 CRASH_RATE_ALERT_SESSION_COUNT_ALIAS = "_total_count"
 CRASH_RATE_ALERT_AGGREGATE_ALIAS = "_crash_rate_alert_aggregate"
-
-# Dynamic sampling denylist composed manually from
-# 1. `src/sentry/event_manager.py:save`. We have function
-# `_derive_interface_tags_many(jobs)` which iterates across all interfaces
-# and execute `iter_tags`, so i've searched usage of `iter_tags`.
-# 2. `src/sentry/event_manager.py:_pull_out_data` we have `set_tag`.
-# 3. `src/sentry/event_manager.py:_get_event_user_many` we have `set_tag`.
-# 4. `src/sentry/event_manager.py:_get_or_create_release_many` we have `set_tag`.
-# 5. `src/sentry/interfaces/exception.py:Mechanism` we have `iter_tags`.
-# 6. `src/sentry/event_manager_auto_tags.py:UrlTagDeriver`.
-# 7. `src/sentry/event_manager_auto_tags.py:InterfaceTypeTagDeriver`.
-# 8. `src/sentry/event_manager_auto_tags.py:BrowserTagDeriver` (and OsTagDeriver, DeviceTagDeriver).
-# Note:
-# should be sorted alphabetically so that it is easy to maintain in future
-# if you update this list please add explanation or source of it
-DS_DENYLIST = frozenset(
-    [
-        "app.device",
-        "browser",
-        "browser.name",
-        "device",
-        "device.family",
-        "environment",
-        "gpu.name",
-        "gpu.vendor",
-        "handled",
-        "interface_type",
-        "level",
-        "logger",
-        "mechanism",
-        "monitor.id",
-        "os",
-        "os.name",
-        "os.rooted",
-        "runtime",
-        "runtime.name",
-        "sentry:dist",
-        "sentry:release",
-        "sentry:user",
-        "transaction",
-        "url",
-    ]
-)
-
 
 # DESCRIBES the globs used to check if a transaction is for a healthcheck endpoint
 # https://kubernetes.io/docs/reference/using-api/health-checks/
@@ -1091,6 +1033,3 @@ EXTENSION_LANGUAGE_MAP = {
 # After this date APIs that are incompatible with cell routing
 # will begin periodic brownouts.
 CELL_API_DEPRECATION_DATE = datetime(2026, 5, 15, 0, 0, 0, tzinfo=UTC)
-ALERTS_API_DEPRECATION_DATE = datetime(2026, 5, 14, 0, 0, 0, tzinfo=UTC)
-# Option key prefix for the deprecated alerts API brownout schedule and duration.
-ALERTS_API_DEPRECATION_KEY = "api.deprecation.alerts"

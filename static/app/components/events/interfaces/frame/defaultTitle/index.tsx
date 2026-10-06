@@ -2,11 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {FunctionName} from 'sentry/components/events/interfaces/frame/functionName';
-import {GroupingIndicator} from 'sentry/components/events/interfaces/frame/groupingIndicator';
 import {
   getPlatform,
   isDotnet,
@@ -40,7 +40,6 @@ type Props = {
    * Determines if the frame potentially originates from a third party
    */
   isPotentiallyThirdParty?: boolean;
-  isUsedForGrouping?: boolean;
   meta?: Record<any, any>;
 };
 
@@ -50,7 +49,6 @@ export function DefaultTitle({
   frame,
   platform,
   isHoverPreviewed,
-  isUsedForGrouping,
   meta,
   isPotentiallyThirdParty,
 }: Props) {
@@ -118,13 +116,14 @@ export function DefaultTitle({
 
     const pathNameOrModule = getPathNameOrModule(shouldPrioritizeModuleName);
     const enablePathTooltip =
-      defined(frame.absPath) && frame.absPath !== pathNameOrModule?.value;
+      (defined(frame.absPath) && frame.absPath !== pathNameOrModule?.value) ||
+      (pathNameOrModule?.value.length ?? 0) > 100;
 
     if (pathNameOrModule) {
       title.push(
         <Tooltip
           key={pathNameOrModule.key}
-          title={frame.absPath}
+          title={frame.absPath || pathNameOrModule.value}
           disabled={!enablePathTooltip}
           delay={tooltipDelay}
           maxWidth={FRAME_TOOLTIP_MAX_WIDTH}
@@ -132,14 +131,24 @@ export function DefaultTitle({
         >
           <code key="filename" className="filename" data-test-id="filename">
             {isPotentiallyThirdParty && frame.absPath ? (
-              <Truncate value={frame.absPath} maxLength={100} leftTrim />
+              <Truncate
+                value={frame.absPath}
+                maxLength={100}
+                leftTrim
+                expandable={false}
+              />
             ) : !!pathNameOrModule.meta && !pathNameOrModule.value ? (
               <AnnotatedText
                 value={pathNameOrModule.value}
                 meta={pathNameOrModule.meta}
               />
             ) : (
-              <Truncate value={pathNameOrModule.value} maxLength={100} leftTrim />
+              <Truncate
+                value={pathNameOrModule.value}
+                maxLength={100}
+                leftTrim
+                expandable={false}
+              />
             )}
           </code>
         </Tooltip>
@@ -226,25 +235,22 @@ export function DefaultTitle({
     title.push(
       <StyledQuestionTooltip
         key="info-tooltip"
-        isHoverable
         size="xs"
         delay={tooltipDelay}
-        overlayStyle={{maxWidth: 400, wordBreak: 'break-all'}}
+        maxWidth={400}
         skipWrapper
         title={
           <Fragment>
             <div>
               <strong>{t('Source Map')}</strong>
             </div>
-            {text}
+            <Text as="div" wordBreak="break-all">
+              {text}
+            </Text>
           </Fragment>
         }
       />
     );
-  }
-
-  if (isUsedForGrouping) {
-    title.push(<StyledGroupingIndicator key="info-tooltip" />);
   }
 
   return <Fragment>{title}</Fragment>;
@@ -259,10 +265,6 @@ const StyledExternalLink = styled(ExternalLink)`
 const InFramePosition = styled('span')`
   color: ${p => p.theme.tokens.content.primary};
   opacity: 0.6;
-`;
-
-const StyledGroupingIndicator = styled(GroupingIndicator)`
-  margin-left: ${p => p.theme.space.sm};
 `;
 
 const StyledQuestionTooltip = styled(QuestionTooltip)`

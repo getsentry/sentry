@@ -3,43 +3,7 @@ import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
-export const SENTRY_SEARCHABLE_SPAN_STRING_TAGS: string[] = [
-  // NOTE: intentionally choose to not expose transaction id
-  // as we're moving toward span ids
-
-  'id', // SpanIndexedField.SPAN_ID is actually `span_id`
-  'profile.id', // SpanIndexedField.PROFILE_ID is actually `profile_id`
-  SpanFields.BROWSER_NAME,
-  SpanFields.ENVIRONMENT,
-  SpanFields.ORIGIN_TRANSACTION,
-  SpanFields.PROJECT,
-  SpanFields.RAW_DOMAIN,
-  SpanFields.RELEASE,
-  SpanFields.SDK_NAME,
-  SpanFields.SDK_VERSION,
-  SpanFields.SPAN_ACTION,
-  SpanFields.SPAN_CATEGORY,
-  SpanFields.SPAN_DESCRIPTION,
-  SpanFields.SPAN_DOMAIN,
-  SpanFields.SPAN_GROUP,
-  SpanFields.SPAN_OP,
-  SpanFields.SPAN_STATUS,
-  SpanFields.TIMESTAMP,
-  SpanFields.TRACE,
-  SpanFields.TRANSACTION,
-  SpanFields.TRANSACTION_METHOD,
-  SpanFields.TRANSACTION_OP,
-  SpanFields.USER,
-  SpanFields.USER_EMAIL,
-  SpanFields.USER_GEO_SUBREGION,
-  SpanFields.USER_ID,
-  SpanFields.USER_IP,
-  SpanFields.USER_USERNAME,
-  SpanFields.NORMALIZED_DESCRIPTION,
-  SpanFields.CACHE_HIT,
-];
-
-export const SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS: string[] = [
+const SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS: string[] = [
   SpanFields.SPAN_DURATION,
   SpanFields.SPAN_SELF_TIME,
 ];
@@ -78,7 +42,6 @@ export const SENTRY_SPAN_NUMBER_TAGS: string[] = [
   SpanFields.GEN_AI_USAGE_INPUT_TOKENS,
   SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS,
   SpanFields.GEN_AI_USAGE_TOTAL_TOKENS,
-  'gen_ai.usage.total_cost',
 ];
 
 export const SENTRY_SPAN_BOOLEAN_TAGS: string[] = [
@@ -115,6 +78,7 @@ export const SENTRY_PREPROD_STRING_TAGS: string[] = [
   'git_base_sha',
   'git_head_ref',
   'git_head_sha',
+  'install_groups',
   'platform_name',
   'snapshot_status',
 ];
@@ -158,6 +122,8 @@ export const HIDDEN_PREPROD_ATTRIBUTES = [
   'tags[metrics_artifact_type,number]',
   'tags[artifact_type,number]',
   ...PREPROD_IMAGE_FIELDS,
+  // Distribution-only; explicitly allowlisted by the Mobile Builds distribution views.
+  'install_groups',
   'snapshot_status',
 ];
 
@@ -177,3 +143,7 @@ export const MAX_PERIOD_FOR_CROSS_EVENTS = '7d';
 export const MAX_DAYS_FOR_CROSS_EVENTS = statsPeriodToDays(MAX_PERIOD_FOR_CROSS_EVENTS);
 
 export const EXPLORE_FIVE_MIN_STALE_TIME = 5 * 60 * 1000;
+
+// Some fields don't make sense to allow users to group by as they create
+// very high cardinality groupings and is not useful.
+export const DISALLOWED_GROUP_BY_FIELDS = new Set(['id', 'timestamp']);

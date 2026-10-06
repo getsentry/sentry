@@ -16,11 +16,9 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import override_options
 from sentry.utils import json
 from sentry.utils.snuba import (
     ROUND_UP,
-    SNUBA_JSON_RESP_COMPRESSION_ROLLOUT,
     RateLimitExceeded,
     RetrySkipTimeout,
     SnubaQueryParams,
@@ -779,19 +777,11 @@ class SnubaResponseCompressionTest(unittest.TestCase):
             )
         )
 
-    @override_options({SNUBA_JSON_RESP_COMPRESSION_ROLLOUT: 1.0})
-    def test_compresses_read_query_if_ff_on(self) -> None:
+    def test_compresses_read_query(self) -> None:
         self._run_query(mock.Mock(spec=Query))
         headers = self.mock_pool.urlopen.call_args.kwargs["headers"]
         assert headers["Accept-Encoding"] == "zstd"
 
-    @override_options({SNUBA_JSON_RESP_COMPRESSION_ROLLOUT: 0.0})
-    def test_does_not_compresses_read_query_if_ff_off(self) -> None:
-        self._run_query(mock.Mock(spec=Query))
-        headers = self.mock_pool.urlopen.call_args.kwargs["headers"]
-        assert "Accept-Encoding" not in headers
-
-    @override_options({SNUBA_JSON_RESP_COMPRESSION_ROLLOUT: 1.0})
     def test_skips_delete_query(self) -> None:
         self._run_query(mock.Mock(spec=DeleteQuery, storage_name="events"))
         headers = self.mock_pool.urlopen.call_args.kwargs["headers"]

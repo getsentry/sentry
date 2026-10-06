@@ -8,7 +8,11 @@ from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.api.bases.organization_events import get_query_columns
 from sentry.models.project import Project
-from sentry.seer.anomaly_detection.store_data import SeerMethod, make_store_data_request
+from sentry.seer.anomaly_detection.store_data import (
+    SeerMethod,
+    make_store_data_request,
+    trim_leading_zeros,
+)
 from sentry.seer.anomaly_detection.types import (
     AlertInSeer,
     AnomalyDetectionConfig,
@@ -123,7 +127,7 @@ def update_detector_data(
             data_source,
             data_condition,
             snuba_query,
-            detector.project,
+            detector.linked_project,
             SeerMethod.UPDATE,
             event_types,
         )
@@ -147,7 +151,12 @@ def send_new_detector_data(detector: Detector) -> None:
 
     try:
         handle_send_historical_data_to_seer(
-            detector, data_source, data_condition, snuba_query, detector.project, SeerMethod.CREATE
+            detector,
+            data_source,
+            data_condition,
+            snuba_query,
+            detector.linked_project,
+            SeerMethod.CREATE,
         )
     except (TimeoutError, MaxRetryError, ParseError, ValidationError):
         raise ValidationError("Couldn't send data to Seer, unable to create detector")
@@ -219,6 +228,8 @@ def send_historical_data_to_seer(
     )
     if not formatted_data:
         raise ValidationError("Unable to get historical data for this detector.")
+
+    formatted_data = trim_leading_zeros(formatted_data)
 
     anomaly_detection_config = AnomalyDetectionConfig(
         time_period=window_min,

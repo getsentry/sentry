@@ -90,7 +90,7 @@ describe('RevisionListItem', () => {
     });
     MockApiClient.addMockResponse({url: BASE_SNAPSHOT_URL, body: makeSnapshot()});
 
-    renderItem({snapshotOverride: makeSnapshot() as any});
+    renderItem({snapshotOverride: makeSnapshot()});
 
     await screen.findByText('No widget changes in this revision.');
     expect(snapshotRequest).not.toHaveBeenCalled();
@@ -102,7 +102,7 @@ describe('RevisionListItem', () => {
     renderItem({
       isCurrentVersion: true,
       revisionId: undefined,
-      snapshotOverride: makeSnapshot() as any,
+      snapshotOverride: makeSnapshot(),
     });
 
     expect(screen.getByText('Current Version')).toBeInTheDocument();

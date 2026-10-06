@@ -92,6 +92,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Literal, overload
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.db import router
@@ -104,7 +105,7 @@ from sentry.deletions.defaults.group import DIRECT_GROUP_RELATED_MODELS
 from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
 from sentry.models.files.utils import get_storage
 from sentry.models.project import Project
-from sentry.objectstore import default_attachment_retention, get_attachments_session
+from sentry.objectstore import UsecaseId, default_attachment_retention, get_session
 from sentry.options.rollout import in_random_rollout
 from sentry.search.eap.occurrences.common_queries import count_occurrences
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
@@ -171,7 +172,18 @@ def backup_unprocessed_event(data: Mapping[str, Any]) -> None:
     if options.get("store.reprocessing-force-disable"):
         return
 
-    event_processing_store.store(dict(data), unprocessed=True)
+    data = dict(data)
+    try:
+        metrics.distribution(
+            "events.size.unprocessed",
+            len(orjson.dumps(data)),
+            tags={"platform": data.get("platform") or "null"},
+            unit="byte",
+        )
+    except Exception:
+        logger.warning("reprocessing2.unprocessed_size_metric_failed", exc_info=True)
+
+    event_processing_store.store(data, unprocessed=True)
 
 
 @dataclass
@@ -435,8 +447,11 @@ def _maybe_copy_attachment_into_cache(
         )
         # move the attachment into objectstore and update the record
         with attachment.getfile() as fp:
-            stored_id = get_attachments_session(project.organization_id, project.id).put(
-                fp, expiration_policy=TimeToLive(timedelta(days=retention_days))
+            stored_id = get_session(UsecaseId.ATTACHMENTS, project).put(
+                fp,
+                content_type=attachment.content_type,
+                filename=attachment.name,
+                expiration_policy=TimeToLive(timedelta(days=retention_days)),
             )
         attachment.blob_path = V2_PREFIX + stored_id
         attachment.save()

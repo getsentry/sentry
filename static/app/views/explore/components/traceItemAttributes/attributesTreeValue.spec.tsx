@@ -5,6 +5,7 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
+import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {AttributesTreeValue} from 'sentry/views/explore/components/traceItemAttributes/attributesTreeValue';
 
 jest.mock('sentry/actionCreators/modal', () => ({
@@ -16,16 +17,19 @@ describe('AttributesTreeValue', () => {
   const location = LocationFixture();
   const theme = ThemeFixture();
 
-  const defaultProps = {
-    content: {
-      subtree: {},
-      value: 'test-value',
-      originalAttribute: {
-        attribute_key: 'test.key',
-        attribute_value: 'test-value',
-        original_attribute_key: 'test.key',
-      },
+  const defaultContent: AttributesTreeContent = {
+    subtree: new Map(),
+    value: 'test-value',
+    original: {
+      attribute_key: 'test.key',
+      attribute_value: 'test-value',
+      original_attribute_key: 'test.key',
+      type: 'str',
     },
+  };
+
+  const defaultProps = {
+    content: defaultContent,
     rendererExtra: {
       organization,
       navigate: jest.fn(),
@@ -39,14 +43,14 @@ describe('AttributesTreeValue', () => {
     jest.clearAllMocks();
   });
 
-  it('returns null when originalAttribute is missing', () => {
+  it('returns null when the original attribute is missing', () => {
     const {container} = render(
       <AttributesTreeValue
         {...defaultProps}
         content={{
-          subtree: {},
+          subtree: new Map(),
           value: 'test-value',
-          originalAttribute: undefined,
+          original: undefined,
         }}
       />
     );

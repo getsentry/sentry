@@ -163,7 +163,29 @@ class UpdateProjectKeyTest(APITestCase):
         response = self.client.put(url, {})
         assert response.status_code == 200
         key = ProjectKey.objects.get(id=key.id)
-        assert key.data["browserSdkVersion"] == get_default_sdk_version_for_project(project)
+        assert "browserSdkVersion" not in (key.data or {})
+        assert response.data["browserSdkVersion"] == get_default_sdk_version_for_project(project)
+
+    def test_put_without_browser_sdk_version_preserves_existing(self) -> None:
+        project = self.create_project()
+        key = ProjectKey.objects.get_or_create(project=project)[0]
+        key.data = {**(key.data or {}), "browserSdkVersion": "10.x"}
+        key.save()
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-key-details",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+                "key_id": key.public_key,
+            },
+        )
+        response = self.client.put(url, {"name": "hello world"})
+        assert response.status_code == 200
+        key = ProjectKey.objects.get(id=key.id)
+        assert key.label == "hello world"
+        assert key.data["browserSdkVersion"] == "10.x"
+        assert response.data["browserSdkVersion"] == "10.x"
 
     def test_set_browser_sdk_version(self) -> None:
         project = self.create_project()

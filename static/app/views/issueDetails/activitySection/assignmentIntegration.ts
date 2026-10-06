@@ -21,12 +21,3 @@ export function getAssignmentIntegrationName(integration: AssignmentIntegration)
       return null;
   }
 }
-
-export function isAutoAssignmentIntegration(integration: AssignmentIntegration) {
-  return (
-    integration === 'projectOwnership' ||
-    integration === 'codeowners' ||
-    integration === 'suspectCommitter' ||
-    integration === 'seerSuggested'
-  );
-}

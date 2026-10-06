@@ -5,6 +5,7 @@ from urllib.parse import quote, urlencode, urljoin, urlparse
 from uuid import uuid4
 
 import pytest
+import responses
 from django.conf import settings
 from django.http import HttpResponse, HttpResponseBase
 from django.test import RequestFactory, override_settings
@@ -324,11 +325,12 @@ class ErrorEmbedCellProxyTest(ApiGatewayTestCase):
 
         return project_key
 
+    @responses.activate
     def test_proxy_error_embed_dsn(self) -> None:
-        self.httpx_router.add(
-            "GET",
+        responses.add(
+            responses.GET,
             f"{self.CELL.address}/api/embed/error-page/",
-            json_data={"proxy": True, "name": "error-embed"},
+            json={"proxy": True, "name": "error-embed"},
         )
         with override_settings(MIDDLEWARE=tuple(self.middleware), ROOT_URLCONF="sentry.web.urls"):
             # no dsn
@@ -427,6 +429,7 @@ class ErrorEmbedCellResolverTest(ApiGatewayTestCase):
         view_func: Callable[..., HttpResponseBase] = mock.Mock(return_value=HttpResponse())
         return ErrorEmbedResolver().resolve(request, view_func, {})
 
+    @responses.activate
     def test_resolver_selects_correct_cell(self) -> None:
         primary_dsn = self._cell_dsn(self.primary_key, ApiGatewayTestCase.CELL)
         assert self._resolve(primary_dsn) == ApiGatewayTestCase.CELL
@@ -434,6 +437,7 @@ class ErrorEmbedCellResolverTest(ApiGatewayTestCase):
         secondary_dsn = self._cell_dsn(self.secondary_key, SECONDARY_CELL)
         assert self._resolve(secondary_dsn) == SECONDARY_CELL
 
+    @responses.activate
     def test_resolver_returns_none_for_unroutable_requests(self) -> None:
         # No dsn supplied at all.
         assert self._resolve(None) is None
@@ -449,10 +453,12 @@ class ErrorEmbedCellResolverTest(ApiGatewayTestCase):
         unknown_cell_dsn = f"https://{self.primary_key.public_key}@o1.ingest.zz.{self.app_host}/1"
         assert self._resolve(unknown_cell_dsn) is None
 
+    @responses.activate
     def test_resolver_ignores_port_when_extracting_host(self) -> None:
         dsn = self._cell_dsn(self.primary_key, ApiGatewayTestCase.CELL, port=9000)
         assert self._resolve(dsn) == ApiGatewayTestCase.CELL
 
+    @responses.activate
     def test_resolver_falls_back_to_monolith_region(self) -> None:
         monolith_cell = get_cell_by_name(settings.SENTRY_FALLBACK_CELL)
 

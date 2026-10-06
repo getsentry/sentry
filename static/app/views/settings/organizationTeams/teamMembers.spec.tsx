@@ -166,6 +166,7 @@ describe('TeamMembers', () => {
     await userEvent.click(screen.getByTestId('invite-member'));
 
     expect(openInviteMembersModal).toHaveBeenCalled();
+    expect(screen.queryByTestId('invite-member')).not.toBeInTheDocument();
   });
 
   it('can invite member from team dropdown with access and `Open Membership` enabled', async () => {
@@ -376,7 +377,9 @@ describe('TeamMembers', () => {
     expect(
       (await screen.findAllByRole('button', {name: 'Add Member'})).at(0)
     ).toBeDisabled();
-    expect((await screen.findAllByRole('button', {name: 'Remove'})).at(0)).toBeDisabled();
+    expect(
+      (await screen.findAllByRole('button', {name: 'Remove'})).at(0)
+    ).toHaveAttribute('aria-disabled', 'true');
   });
 
   it('can add or remove members if non-idp team', async () => {

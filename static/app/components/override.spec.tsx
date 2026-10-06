@@ -16,7 +16,7 @@ function OverrideWrapper(props: any) {
 
 describe('Override', () => {
   it('renders component from an override', () => {
-    registerOverride('sidebar:help-menu', ({organization}) => (
+    registerOverride('sidebar:billing-status', ({organization}) => (
       <OverrideWrapper key={0} organization={organization}>
         {organization.slug}
       </OverrideWrapper>
@@ -24,63 +24,62 @@ describe('Override', () => {
 
     render(
       <div>
-        <Override name="sidebar:help-menu" organization={OrganizationFixture()} />
+        <Override name="sidebar:billing-status" organization={OrganizationFixture()} />
       </div>
     );
 
-    expect(getOverride('sidebar:help-menu')).toBeDefined();
+    expect(getOverride('sidebar:billing-status')).toBeDefined();
     expect(screen.getByTestId('override-wrapper')).toBeInTheDocument();
     expect(screen.getByTestId('override-wrapper')).toHaveTextContent('org-slug');
   });
 
   it('picks up a new override when the registry is updated before re-render', () => {
-    registerOverride('sidebar:help-menu', ({organization}) => (
+    registerOverride('sidebar:billing-status', ({organization}) => (
       <OverrideWrapper key={0} organization={organization}>
         Old Hook
       </OverrideWrapper>
     ));
 
     const {rerender} = render(
-      <Override name="sidebar:help-menu" organization={OrganizationFixture()} />
+      <Override name="sidebar:billing-status" organization={OrganizationFixture()} />
     );
 
     expect(screen.getByText(/Old Hook/)).toBeInTheDocument();
 
-    registerOverride('sidebar:help-menu', () => (
+    registerOverride('sidebar:billing-status', () => (
       <OverrideWrapper key="new" organization={null}>
         New Hook
       </OverrideWrapper>
     ));
 
-    rerender(<Override name="sidebar:help-menu" organization={OrganizationFixture()} />);
+    rerender(
+      <Override name="sidebar:billing-status" organization={OrganizationFixture()} />
+    );
 
     expect(screen.getByText(/New Hook/)).toBeInTheDocument();
     expect(screen.queryByText(/Old Hook/)).not.toBeInTheDocument();
   });
 
   it('re-fetches overrides when name prop changes', () => {
-    registerOverride('sidebar:help-menu', ({organization}) => (
+    registerOverride('sidebar:billing-status', ({organization}) => (
       <OverrideWrapper key="help" organization={organization}>
         Help Hook
       </OverrideWrapper>
     ));
 
-    registerOverride('sidebar:organization-dropdown-menu', () => (
+    registerOverride('sidebar:try-business', () => (
       <OverrideWrapper key="bottom">Bottom Hook</OverrideWrapper>
     ));
 
     const {rerender} = render(
-      <Override name="sidebar:help-menu" organization={OrganizationFixture()} />
+      <Override name="sidebar:billing-status" organization={OrganizationFixture()} />
     );
 
     expect(screen.getByText(/Help Hook/)).toBeInTheDocument();
     expect(screen.queryByText(/Bottom Hook/)).not.toBeInTheDocument();
 
     rerender(
-      <Override
-        name="sidebar:organization-dropdown-menu"
-        organization={OrganizationFixture()}
-      />
+      <Override name="sidebar:try-business" organization={OrganizationFixture()} />
     );
 
     expect(screen.queryByText(/Help Hook/)).not.toBeInTheDocument();
@@ -88,14 +87,14 @@ describe('Override', () => {
   });
 
   it('can use children as a render prop', () => {
-    registerOverride('sidebar:help-menu', () => (
+    registerOverride('sidebar:billing-status', () => (
       <OverrideWrapper key="inner" organization={null}>
         Hook Content
       </OverrideWrapper>
     ));
 
     render(
-      <Override name="sidebar:help-menu" organization={OrganizationFixture()}>
+      <Override name="sidebar:billing-status" organization={OrganizationFixture()}>
         {({rendered}) => <OverrideWrapper>{rendered} hook: 1</OverrideWrapper>}
       </Override>
     );

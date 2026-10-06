@@ -16,6 +16,7 @@ import {
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {createFilter} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -26,7 +27,6 @@ import {
 } from 'sentry/actionCreators/projects';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Confirm} from 'sentry/components/confirm';
-import {createFilter} from 'sentry/components/forms/controls/reactSelectWrapper';
 import {FieldGroup as SettingsFieldGroup} from 'sentry/components/forms/fieldGroup';
 import {TextField} from 'sentry/components/forms/fields/textField';
 import {Form} from 'sentry/components/forms/form';
@@ -52,6 +52,7 @@ import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useUpdateProjectMutationOptions} from 'sentry/utils/project/useUpdateProject';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {slugify} from 'sentry/utils/slugify';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -62,6 +63,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+import {ConnectedRepositoriesPanel} from 'sentry/views/settings/projectGeneralSettings/connectedRepositoriesPanel';
 
 type Props = {
   onChangeSlug: (slug: string) => void;
@@ -120,6 +122,65 @@ function isPlatformAllowed({
   }
 
   return organization.enabledConsolePlatforms?.includes(platform) && !isSelfHosted;
+}
+
+function RemoveProjectSection({
+  onRemoveProject,
+  organization,
+  project,
+}: {
+  onRemoveProject: () => void;
+  organization: Organization;
+  project: DetailedProject;
+}) {
+  const isProjectAdmin = hasEveryAccess(['project:admin'], {
+    organization,
+    project,
+  });
+  const {isInternal} = project;
+
+  return (
+    <SettingsFieldGroup
+      label={t('Remove Project')}
+      help={tct(
+        'Remove the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
+        {
+          project: <strong>{project.slug}</strong>,
+          linebreak: <br />,
+        }
+      )}
+    >
+      {!isProjectAdmin &&
+        t('You do not have the required permission to remove this project.')}
+
+      {isInternal &&
+        t('This project cannot be removed. It is used internally by the Sentry server.')}
+
+      {isProjectAdmin && !isInternal && (
+        <Confirm
+          onConfirm={onRemoveProject}
+          priority="danger"
+          confirmText={t('Remove Project')}
+          message={
+            <div>
+              <TextBlock>
+                <strong>
+                  {t('Removing this project is permanent and cannot be undone!')}
+                </strong>
+              </TextBlock>
+              <TextBlock>
+                {t('This will also remove all associated event data.')}
+              </TextBlock>
+            </div>
+          }
+        >
+          <div>
+            <Button variant="danger">{t('Remove Project')}</Button>
+          </div>
+        </Confirm>
+      )}
+    </SettingsFieldGroup>
+  );
 }
 
 const slugSchema = z.object({
@@ -182,7 +243,10 @@ function ProjectSlugForm({
         })
         .catch(error => {
           if (error instanceof RequestError) {
-            setFieldErrors(formApi, error);
+            setFieldErrors(
+              formApi,
+              requestErrorToFieldErrors(error, formApi.state.values)
+            );
           }
         }),
   });
@@ -276,7 +340,10 @@ function AutoResolveForm({
         .then(() => formApi.reset(value))
         .catch(error => {
           if (error instanceof RequestError) {
-            setFieldErrors(formApi, error);
+            setFieldErrors(
+              formApi,
+              requestErrorToFieldErrors(error, formApi.state.values)
+            );
           }
         }),
   });
@@ -345,7 +412,7 @@ function AutoResolveForm({
 }
 
 const SECURITY_TOKEN_HELP = t(
-  'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended'
+  'Outbound requests matching Allowed Domains will have the header "{token_header}: {token}" appended. This does not apply to sourcemap scraping when Allowed Domains is *.'
 );
 
 function SecurityTokenForm({
@@ -372,7 +439,10 @@ function SecurityTokenForm({
         .then(() => formApi.reset(value))
         .catch(error => {
           if (error instanceof RequestError) {
-            setFieldErrors(formApi, error);
+            setFieldErrors(
+              formApi,
+              requestErrorToFieldErrors(error, formApi.state.values)
+            );
           }
         }),
   });
@@ -433,7 +503,10 @@ function SecurityTokenHeaderForm({
         .then(() => formApi.reset(value))
         .catch(error => {
           if (error instanceof RequestError) {
-            setFieldErrors(formApi, error);
+            setFieldErrors(
+              formApi,
+              requestErrorToFieldErrors(error, formApi.state.values)
+            );
           }
         }),
   });
@@ -488,6 +561,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
   const api = useApi({persistInFlight: true});
 
   const disabled = !hasEveryAccess(['project:write'], {organization, project});
+  const isOrgOwner = hasEveryAccess(['org:admin'], {organization});
 
   const projectMutationOptions = useUpdateProjectMutationOptions(project);
   const updateProject = useMutation(projectMutationOptions);
@@ -538,148 +612,19 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
     }
   };
 
-  const renderRemoveProject = () => {
-    const isProjectAdmin = hasEveryAccess(['project:admin'], {
-      organization,
-      project,
-    });
-    const {isInternal} = project;
-
-    return (
-      <SettingsFieldGroup
-        label={t('Remove Project')}
-        help={tct(
-          'Remove the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
-          {
-            project: <strong>{project.slug}</strong>,
-            linebreak: <br />,
-          }
-        )}
-      >
-        {!isProjectAdmin &&
-          t('You do not have the required permission to remove this project.')}
-
-        {isInternal &&
-          t(
-            'This project cannot be removed. It is used internally by the Sentry server.'
-          )}
-
-        {isProjectAdmin && !isInternal && (
-          <Confirm
-            onConfirm={handleRemoveProject}
-            priority="danger"
-            confirmText={t('Remove Project')}
-            message={
-              <div>
-                <TextBlock>
-                  <strong>
-                    {t('Removing this project is permanent and cannot be undone!')}
-                  </strong>
-                </TextBlock>
-                <TextBlock>
-                  {t('This will also remove all associated event data.')}
-                </TextBlock>
-              </div>
-            }
-          >
-            <div>
-              <Button variant="danger">{t('Remove Project')}</Button>
-            </div>
-          </Confirm>
-        )}
-      </SettingsFieldGroup>
-    );
-  };
-
-  const renderTransferProject = () => {
-    const {isInternal} = project;
-    const isOrgOwner = hasEveryAccess(['org:admin'], {
-      organization,
-    });
-
-    return (
-      <SettingsFieldGroup
-        label={t('Transfer Project')}
-        help={tct(
-          'Transfer the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
-          {
-            project: <strong>{project.slug}</strong>,
-            linebreak: <br />,
-          }
-        )}
-      >
-        {!isOrgOwner &&
-          t('You do not have the required permission to transfer this project.')}
-
-        {isInternal &&
-          t(
-            'This project cannot be transferred. It is used internally by the Sentry server.'
-          )}
-
-        {isOrgOwner && !isInternal && (
-          <Confirm
-            onConfirm={() => {
-              handleTransferProject();
-            }}
-            priority="danger"
-            confirmText={t('Transfer project')}
-            renderMessage={({confirm}) => (
-              <div>
-                <TextBlock>
-                  <strong>
-                    {t('Transferring this project is permanent and cannot be undone!')}
-                  </strong>
-                </TextBlock>
-                <TextBlock>
-                  {t(
-                    'Please enter the email of an organization owner to whom you would like to transfer this project. Note: It is not possible to transfer projects between organizations in different regions.'
-                  )}
-                </TextBlock>
-                <Panel>
-                  <Form
-                    hideFooter
-                    onFieldChange={handleTransferFieldChange}
-                    onSubmit={(_data, _onSuccess, _onError, e) => {
-                      e.stopPropagation();
-                      confirm();
-                    }}
-                  >
-                    <TextField
-                      name="email"
-                      label={t('Organization Owner')}
-                      placeholder="admin@example.com"
-                      required
-                      help={t(
-                        'A request will be emailed to this address, asking the organization owner to accept the project transfer.'
-                      )}
-                    />
-                  </Form>
-                </Panel>
-              </div>
-            )}
-          >
-            <div>
-              <Button variant="danger">{t('Transfer Project')}</Button>
-            </div>
-          </Confirm>
-        )}
-      </SettingsFieldGroup>
-    );
-  };
-
   const platformOptions = useMemo(
     () =>
       platforms
         .filter(
-          ({id}) =>
+          ({id, hidden}) =>
             project.platform === id ||
-            isPlatformAllowed({isSelfHosted, organization, platform: id})
+            (!hidden && isPlatformAllowed({isSelfHosted, organization, platform: id}))
         )
         .map(({id, name}) => ({
           value: id,
           label: (
             <Flex align="center" gap="md">
-              <PlatformIcon platform={id} />
+              <PlatformIcon platform={id} alt="" />
               {name}
             </Flex>
           ),
@@ -776,6 +721,10 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
           </AutoSaveForm>
         </FieldGroup>
 
+        {organization.features.includes('code-mappings-refactor') && (
+          <ConnectedRepositoriesPanel project={project} />
+        )}
+
         <FieldGroup title={t('Email')}>
           <AutoSaveForm
             name="subjectPrefix"
@@ -806,41 +755,37 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
 
         <FieldGroup title={t('Event Settings')}>
           <AutoResolveForm project={project} disabled={disabled} />
-          {organization.features.includes('auto-release-creation') && (
-            <AutoSaveForm
-              name="enableAutoReleaseCreation"
-              schema={projectSettingsSchema}
-              initialValue={project.enableAutoReleaseCreation}
-              mutationOptions={projectMutationOptions}
-              confirm={value =>
-                value
-                  ? undefined
-                  : tct(
-                      'Turning this off means Sentry will no longer create releases from ingested events. You will need to create releases manually, for example with the [link:Sentry CLI]. Are you sure you want to disable this?',
-                      {
-                        link: (
-                          <ExternalLink href="https://docs.sentry.io/cli/releases/" />
-                        ),
-                      }
-                    )
-              }
-            >
-              {field => (
-                <field.Layout.Row
-                  label={t('Enable release auto-creation from telemetry')}
-                  hintText={t(
-                    'Automatically create releases when Sentry sees a new release in ingested events. When disabled, releases must be created manually (e.g. with the Sentry CLI).'
-                  )}
-                >
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                    disabled={disabled}
-                  />
-                </field.Layout.Row>
-              )}
-            </AutoSaveForm>
-          )}
+          <AutoSaveForm
+            name="enableAutoReleaseCreation"
+            schema={projectSettingsSchema}
+            initialValue={project.enableAutoReleaseCreation}
+            mutationOptions={projectMutationOptions}
+            confirm={value =>
+              value
+                ? undefined
+                : tct(
+                    'Turning this off means Sentry will no longer create releases from ingested events. You will need to create releases manually, for example with the [link:Sentry CLI]. Are you sure you want to disable this?',
+                    {
+                      link: <ExternalLink href="https://docs.sentry.io/cli/releases/" />,
+                    }
+                  )
+            }
+          >
+            {field => (
+              <field.Layout.Row
+                label={t('Enable release auto-creation from telemetry')}
+                hintText={t(
+                  'Automatically create releases when Sentry sees a new release in ingested events. When disabled, releases must be created manually (e.g. with the Sentry CLI).'
+                )}
+              >
+                <field.Switch
+                  checked={field.state.value}
+                  onChange={field.handleChange}
+                  disabled={disabled}
+                />
+              </field.Layout.Row>
+            )}
+          </AutoSaveForm>
         </FieldGroup>
 
         <FieldGroup title={t('Membership')}>
@@ -1010,8 +955,77 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
 
       <Panel>
         <PanelHeader>{t('Project Administration')}</PanelHeader>
-        {renderRemoveProject()}
-        {renderTransferProject()}
+        <RemoveProjectSection
+          onRemoveProject={handleRemoveProject}
+          organization={organization}
+          project={project}
+        />
+        <SettingsFieldGroup
+          label={t('Transfer Project')}
+          help={tct(
+            'Transfer the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
+            {
+              project: <strong>{project.slug}</strong>,
+              linebreak: <br />,
+            }
+          )}
+        >
+          {!isOrgOwner &&
+            t('You do not have the required permission to transfer this project.')}
+
+          {project.isInternal &&
+            t(
+              'This project cannot be transferred. It is used internally by the Sentry server.'
+            )}
+
+          {isOrgOwner && !project.isInternal && (
+            <Confirm
+              onConfirm={() => {
+                handleTransferProject();
+              }}
+              priority="danger"
+              confirmText={t('Transfer project')}
+              renderMessage={({confirm}) => (
+                <div>
+                  <TextBlock>
+                    <strong>
+                      {t('Transferring this project is permanent and cannot be undone!')}
+                    </strong>
+                  </TextBlock>
+                  <TextBlock>
+                    {t(
+                      'Please enter the email of an organization owner to whom you would like to transfer this project. Note: It is not possible to transfer projects between organizations in different regions.'
+                    )}
+                  </TextBlock>
+                  <Panel>
+                    <Form
+                      hideFooter
+                      onFieldChange={handleTransferFieldChange}
+                      onSubmit={(_data, _onSuccess, _onError, e) => {
+                        e.stopPropagation();
+                        confirm();
+                      }}
+                    >
+                      <TextField
+                        name="email"
+                        label={t('Organization Owner')}
+                        placeholder="admin@example.com"
+                        required
+                        help={t(
+                          'A request will be emailed to this address, asking the organization owner to accept the project transfer.'
+                        )}
+                      />
+                    </Form>
+                  </Panel>
+                </div>
+              )}
+            >
+              <div>
+                <Button variant="danger">{t('Transfer Project')}</Button>
+              </div>
+            </Confirm>
+          )}
+        </SettingsFieldGroup>
       </Panel>
     </div>
   );

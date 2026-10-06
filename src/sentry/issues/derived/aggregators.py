@@ -30,11 +30,13 @@ from sentry.issues.action_log.types import (
 )
 from sentry.issues.derived.features import (
     BLOCKER,
+    FIRST_ASSIGNMENT_ACTION_ID,
     HAS_OPEN_FIX_PR,
     HAS_ROOT_CAUSE,
     IS_ASSIGNED,
     LAST_COMPLETED_AUTOFIX_STEP,
     LAST_PROGRESSED_AT,
+    NO_CHANGE_RECONCILE_IDS,
     PROGRESS,
     STATUS,
     VIEW_COUNT,
@@ -43,6 +45,7 @@ from sentry.issues.derived.features import (
 from sentry.issues.derived.framework import (
     Aggregator,
     AggregatorResult,
+    Scope,
     StateView,
     aggregator,
     emit,
@@ -57,8 +60,11 @@ def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResul
     return emit(VIEW_COUNT.value(state[VIEW_COUNT] + 1))
 
 
+_MAX_NO_CHANGE_RECONCILE_IDS = 20
+
+
 @aggregator(
-    (STATUS,),
+    (STATUS, NO_CHANGE_RECONCILE_IDS),
     scope=(
         ResolveAction,
         SetResolvedInReleaseAction,
@@ -72,6 +78,11 @@ def track_views(state: StateView, entry: GroupActionLogEntry) -> AggregatorResul
     ),
 )
 def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    # A merge preserves the destination group's status. Ignore actions migrated
+    # from source groups so their history cannot overwrite that status.
+    if entry.original_group_id is not None:
+        return None
+
     current = state[STATUS]
 
     match entry.action:
@@ -79,6 +90,10 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
             new_status = IssueStatus(raw_status)
             if new_status != current:
                 return emit(STATUS.value(new_status))
+            reconcile_ids = state[NO_CHANGE_RECONCILE_IDS]
+            if len(reconcile_ids) < _MAX_NO_CHANGE_RECONCILE_IDS:
+                return emit(NO_CHANGE_RECONCILE_IDS.value([*reconcile_ids, entry.id]))
+            return None
         case (
             ResolveAction()
             | SetResolvedInReleaseAction()
@@ -97,7 +112,7 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
 
 # Progress for open issues (None when closed).
 #
-# Progress is dervived from a few features, which are tracked independently:
+# Progress is derived from a few features, which are tracked independently:
 #
 #   * IS_ASSIGNED     — issue has an assignee. Survives close/reopen.
 #   * HAS_ROOT_CAUSE  — a root cause has been identified (diagnosed). Cleared on
@@ -111,9 +126,12 @@ def track_status(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
 #   IS_ASSIGNED     → ASSIGNED
 #   (none)          → IDENTIFIED
 #
+# A merged fix PR advances progress to FIX_APPLIED, which remains sticky until
+# the issue closes.
+#
 #   IDENTIFIED → ASSIGNED → DIAGNOSED → FIX_PROPOSED → FIX_APPLIED
-#                                (RESOLVE / ARCHIVE)         → None (closed)
-#                                (UNRESOLVE / SET_REGRESSED) → Reopened
+#   (RESOLVE / ARCHIVE) → None (closed)
+#   (UNRESOLVE / SET_REGRESSED) → Reopen
 
 
 @aggregator(
@@ -128,6 +146,14 @@ def track_assignment(state: StateView, entry: GroupActionLogEntry) -> Aggregator
     is_assigned = isinstance(entry.action, AssignAction)
     if is_assigned != state[IS_ASSIGNED]:
         return emit(IS_ASSIGNED.value(is_assigned))
+    return None
+
+
+@aggregator((FIRST_ASSIGNMENT_ACTION_ID,), scope=(AssignAction,))
+def track_first_assignment(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
+    """Record the first assignment in the issue's complete action-log history."""
+    if state[FIRST_ASSIGNMENT_ACTION_ID] is None:
+        return emit(FIRST_ASSIGNMENT_ACTION_ID.value(entry.id))
     return None
 
 
@@ -154,7 +180,6 @@ def track_root_cause(state: StateView, entry: GroupActionLogEntry) -> Aggregator
 
 @aggregator(
     (HAS_OPEN_FIX_PR,),
-    deps=(STATUS,),
     scope=(
         ResolvedInPullRequestAction,
         PullRequestClosedAction,
@@ -194,6 +219,17 @@ def track_progress(state: StateView, entry: GroupActionLogEntry) -> AggregatorRe
 
     if state[STATUS] != IssueStatus.OPEN:
         new_progress = None
+    elif entry.type == PullRequestMergedAction.get_type() or (
+        current_progress == IssueProgressState.FIX_APPLIED
+        and entry.type
+        # Usually an issue will first close before it regresses, but there are cases where a regression action
+        #  is seen without a resolution action. This handles that case and clears the FIX_APPLIED progress.
+        not in (
+            UnresolveAction.get_type(),
+            SetRegressedAction.get_type(),
+        )
+    ):
+        new_progress = IssueProgressState.FIX_APPLIED
     elif state[HAS_OPEN_FIX_PR]:
         new_progress = IssueProgressState.FIX_PROPOSED
     elif state[HAS_ROOT_CAUSE]:
@@ -253,6 +289,7 @@ def track_last_completed_autofix_step(
 @aggregator(
     (BLOCKER,),
     deps=(STATUS, HAS_OPEN_FIX_PR, LAST_COMPLETED_AUTOFIX_STEP),
+    scope=Scope.DEPS,
 )
 def track_blocker(state: StateView, entry: GroupActionLogEntry) -> AggregatorResult:
     """Track the human action blocking the issue's progress toward resolution.
@@ -288,6 +325,7 @@ AGGREGATORS: list[Aggregator[GroupActionLogEntry]] = [
     track_views,
     track_status,
     track_assignment,
+    track_first_assignment,
     track_root_cause,
     track_open_fix_prs,
     track_progress,

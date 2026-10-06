@@ -81,9 +81,8 @@ export function ReleaseCommit({commit}: ReleaseCommitProps) {
                 }
               )}
               disabled={!commit.author || commit.author.id !== undefined}
-              overlayStyle={{maxWidth: '350px'}}
+              maxWidth={350}
               skipWrapper
-              isHoverable
             >
               <AuthorWrapper>
                 {isUser ? t('You') : (commit.author?.name ?? t('Unknown author'))}

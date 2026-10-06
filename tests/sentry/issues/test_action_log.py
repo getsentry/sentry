@@ -1,12 +1,12 @@
 from typing import Any, cast
-from unittest.mock import MagicMock, patch
+from unittest.mock import DEFAULT, MagicMock, patch
 
 import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 
 from sentry.auth.services.auth import AuthenticatedToken
-from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+from sentry.hybridcloud.models.outbox import CellOutbox, OutboxFlushError, outbox_context
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.issues.action_log import (
     SYSTEM_ACTOR,
@@ -15,9 +15,11 @@ from sentry.issues.action_log import (
     action_context_scope,
     get_action_context,
     publish_action,
+    publish_actions_from_context_bulk,
     resolve_action_actor,
     resolve_action_source,
 )
+from sentry.issues.action_log.tasks import enqueue_group_action_log_outbox_jobs
 from sentry.issues.action_log.types import (
     ActionSource,
     ArchiveAction,
@@ -39,7 +41,9 @@ from sentry.issues.action_log.types import (
     ViewAction,
 )
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
+from sentry.issues.models.groupactionlogoutbox import GroupActionLogOutbox
 from sentry.issues.models.groupderiveddata import GroupDerivedData
+from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
@@ -48,6 +52,7 @@ from sentry.testutils.helpers.action_log import CapturedAction, capture_action_l
 from sentry.testutils.outbox import outbox_runner
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
+from sentry.utils.locking import UnableToAcquireLock
 
 
 def _make_request(
@@ -461,6 +466,15 @@ class TestExternalIssueLinkingActionLog(APITestCase, SnubaTestCase):
         )
         self.base_url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/integrations/{self.integration.id}/"
 
+    def _assert_link_locked(self, *args: Any, **kwargs: Any) -> Any:
+        with pytest.raises(UnableToAcquireLock):
+            with locks.get(
+                f"external-issue-link:{self.organization.id}:{self.integration.id}:APP-123",
+                duration=300,
+            ).acquire():
+                pass
+        return DEFAULT
+
     def test_create_external_issue_emits_action(self) -> None:
         with capture_action_log() as log, self.feature("organizations:integrations-issue-basic"):
             response = self.client.post(
@@ -470,11 +484,26 @@ class TestExternalIssueLinkingActionLog(APITestCase, SnubaTestCase):
         log.assert_logged(CreateExternalIssueAction, group_id=self.group.id, provider="example")
 
     def test_link_external_issue_emits_action(self) -> None:
-        with capture_action_log() as log, self.feature("organizations:integrations-issue-basic"):
+        with (
+            capture_action_log() as log,
+            self.feature("organizations:integrations-issue-basic"),
+            patch.object(
+                Activity.objects,
+                "create",
+                wraps=Activity.objects.create,
+                side_effect=self._assert_link_locked,
+            ) as create_activity,
+            patch(
+                "sentry.issues.endpoints.group_integration_details.publish_action",
+                wraps=publish_action,
+                side_effect=self._assert_link_locked,
+            ),
+        ):
             response = self.client.put(
                 self.base_url, data={"externalIssue": "APP-123"}, format="json"
             )
         assert response.status_code == 201
+        create_activity.assert_called_once()
         log.assert_logged(LinkExternalIssueAction, group_id=self.group.id)
 
     def test_unlink_external_issue_emits_action(self) -> None:
@@ -493,7 +522,15 @@ class TestExternalIssueLinkingActionLog(APITestCase, SnubaTestCase):
             linked_id=external_issue.id,
             relationship=GroupLink.Relationship.references,
         )
-        with capture_action_log() as log, self.feature("organizations:integrations-issue-basic"):
+        with (
+            capture_action_log() as log,
+            self.feature("organizations:integrations-issue-basic"),
+            patch(
+                "sentry.issues.endpoints.group_integration_details.publish_action",
+                wraps=publish_action,
+                side_effect=self._assert_link_locked,
+            ),
+        ):
             response = self.client.delete(
                 f"{self.base_url}?externalIssue={external_issue.id}", format="json"
             )
@@ -518,6 +555,37 @@ class TestExternalIssueLinkingActionLog(APITestCase, SnubaTestCase):
         log.assert_not_logged()
 
 
+class TestGroupActionLogOutboxRecovery(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group()
+
+    def _seed_dedicated_outbox(self, action: GroupAction, group: Group) -> None:
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_context(flush=False):
+            publish_action(
+                action,
+                source=ActionSource.API,
+                group_id=group.id,
+                project=group.project,
+            )
+
+    def test_receiver_failure_retains_dedicated_row(self) -> None:
+        self._seed_dedicated_outbox(ViewAction(), self.group)
+
+        with (
+            patch(
+                "sentry.hybridcloud.models.outbox.process_cell_outbox.send",
+                side_effect=ValueError("receiver failed"),
+            ),
+            self.tasks(),
+            pytest.raises(OutboxFlushError),
+        ):
+            enqueue_group_action_log_outbox_jobs(concurrency=1)
+
+        outbox = GroupActionLogOutbox.objects.get()
+        assert outbox.scheduled_for > outbox.scheduled_from
+
+
 class TestPublishActionWrite(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -540,6 +608,62 @@ class TestPublishActionWrite(TestCase):
         assert entry.source == ActionSource.API
         assert entry.data == {}
         assert entry.date_added is not None
+
+    @patch("sentry.utils.metrics.timer")
+    def test_uses_dedicated_outbox(self, mock_timer: MagicMock) -> None:
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_context(flush=False):
+            publish_action(
+                ViewAction(),
+                source=ActionSource.API,
+                group_id=self.group.id,
+                project=self.group.project,
+                force_async_derived=True,
+            )
+
+        assert GroupActionLogOutbox.objects.count() == 1
+        assert not CellOutbox.objects.filter(
+            category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+        ).exists()
+        mock_timer.assert_any_call(
+            "issues.action_log.enqueue.duration",
+            tags={
+                "action": "view",
+                "source": "api",
+                "derived_strategy": "async",
+            },
+        )
+
+    @patch("sentry.issues.action_log.publish.secrets.randbelow", return_value=12344)
+    def test_outbox_identifier_uses_secure_random_value(self, mock_randbelow: MagicMock) -> None:
+        with (
+            self.feature("projects:issue-action-log-write-to-db"),
+            outbox_context(flush=False),
+        ):
+            publish_action(
+                ViewAction(),
+                source=ActionSource.API,
+                group_id=self.group.id,
+                project=self.group.project,
+            )
+
+        outbox = GroupActionLogOutbox.objects.get()
+        assert outbox.object_identifier == 12345
+        mock_randbelow.assert_called_once_with(2**63 - 1)
+
+    def test_outbox_flushes_on_commit(self) -> None:
+        with (
+            self.feature("projects:issue-action-log-write-to-db"),
+            self.captureOnCommitCallbacks(execute=True),
+        ):
+            publish_action(
+                ViewAction(),
+                source=ActionSource.API,
+                group_id=self.group.id,
+                project=self.group.project,
+            )
+
+        assert not GroupActionLogOutbox.objects.exists()
+        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
 
     def test_system_action(self) -> None:
         with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
@@ -575,7 +699,7 @@ class TestPublishActionWrite(TestCase):
     def test_rolled_back_transaction_does_not_persist(self) -> None:
         with self.feature("projects:issue-action-log-write-to-db"):
             try:
-                with transaction.atomic(using=router.db_for_write(CellOutbox)):
+                with transaction.atomic(using=router.db_for_write(GroupActionLogOutbox)):
                     publish_action(
                         ViewAction(),
                         source=ActionSource.API,
@@ -583,22 +707,18 @@ class TestPublishActionWrite(TestCase):
                         project=self.group.project,
                         actor=GroupActionActor.user(self.user.id),
                     )
-                    assert CellOutbox.objects.filter(
-                        category=OutboxCategory.GROUP_ACTION_LOG_EVENT
-                    ).exists()
+                    assert GroupActionLogOutbox.objects.exists()
                     raise IntentionalRollback()
             except IntentionalRollback:
                 pass
 
-        assert not CellOutbox.objects.filter(
-            category=OutboxCategory.GROUP_ACTION_LOG_EVENT
-        ).exists()
+        assert not GroupActionLogOutbox.objects.exists()
         assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 0
 
     def test_savepoint_rollback_discards_only_inner(self) -> None:
         with self.feature("projects:issue-action-log-write-to-db"):
             with outbox_runner():
-                with transaction.atomic(using=router.db_for_write(CellOutbox)):
+                with transaction.atomic(using=router.db_for_write(GroupActionLogOutbox)):
                     publish_action(
                         ViewAction(),
                         source=ActionSource.API,
@@ -607,7 +727,7 @@ class TestPublishActionWrite(TestCase):
                         actor=GroupActionActor.user(self.user.id),
                     )
                     try:
-                        with transaction.atomic(using=router.db_for_write(CellOutbox)):
+                        with transaction.atomic(using=router.db_for_write(GroupActionLogOutbox)):
                             publish_action(
                                 ResolveAction(),
                                 source=ActionSource.API,
@@ -623,17 +743,6 @@ class TestPublishActionWrite(TestCase):
         assert len(entries) == 1
         assert entries[0].type == GroupActionType.VIEW
 
-    def test_feature_disabled_skips_write(self) -> None:
-        publish_action(
-            ViewAction(),
-            source=ActionSource.API,
-            group_id=self.group.id,
-            project=self.group.project,
-            actor=GroupActionActor.user(self.user.id),
-        )
-
-        assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 0
-
     def test_flush_false_defers_drain(self) -> None:
         with self.feature("projects:issue-action-log-write-to-db"):
             with outbox_context(flush=False):
@@ -645,15 +754,31 @@ class TestPublishActionWrite(TestCase):
                     actor=GroupActionActor.user(self.user.id),
                 )
 
-            assert CellOutbox.objects.filter(
-                category=OutboxCategory.GROUP_ACTION_LOG_EVENT
-            ).exists()
+            assert GroupActionLogOutbox.objects.exists()
             assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 0
 
             with outbox_runner():
                 pass
 
         assert GroupActionLogEntry.objects.filter(group_id=self.group.id).count() == 1
+
+    def test_bulk_publish_creates_one_dedicated_row_per_action(self) -> None:
+        with (
+            self.feature("projects:issue-action-log-write-to-db"),
+            action_context_scope(source=ActionSource.API),
+            outbox_context(flush=False),
+        ):
+            publish_actions_from_context_bulk(
+                [
+                    (ViewAction(), self.group.project, self.group.id, None),
+                    (ResolveAction(), self.group.project, self.group.id, None),
+                ]
+            )
+
+        assert GroupActionLogOutbox.objects.count() == 2
+        assert not CellOutbox.objects.filter(
+            category=OutboxCategory.GROUP_ACTION_LOG_EVENT
+        ).exists()
 
     @patch("sentry.issues.derived.processing.process_group_log_task")
     def test_force_async_derived_dispatches_task(self, mock_task: MagicMock) -> None:
@@ -672,7 +797,7 @@ class TestPublishActionWrite(TestCase):
         # Derived data was NOT processed inline
         assert not GroupDerivedData.objects.filter(group_id=self.group.id).exists()
         # Task was dispatched instead
-        mock_task.delay.assert_called_once_with(self.group.id)
+        mock_task.delay.assert_called_once_with(self.group.id, incremental=True)
 
     @patch("sentry.issues.derived.processing.process_group_log_task")
     def test_inline_derived_processes_without_task(self, mock_task: MagicMock) -> None:
@@ -722,103 +847,6 @@ class TestPublishActionWrite(TestCase):
             )
 
 
-class TestCaptureActionLog(TestCase):
-    def _publish(self, action: GroupAction, **kwargs: Any) -> None:
-        defaults: dict[str, Any] = {
-            "source": ActionSource.WEB,
-            "group_id": 1,
-            "project": self.project,
-            "actor": GroupActionActor.user(self.user.id),
-        }
-        defaults.update(kwargs)
-        publish_action(action, **defaults)
-
-    def test_captures_action(self) -> None:
-        with capture_action_log() as log:
-            self._publish(ResolveAction(), group_id=42)
-        log.assert_logged(ResolveAction, group_id=42)
-
-    def test_no_actions_captured_outside_scope(self) -> None:
-        self._publish(ResolveAction())
-        with capture_action_log() as log:
-            pass
-        log.assert_not_logged()
-
-    def test_assert_logged_fails_on_mismatch(self) -> None:
-        with capture_action_log() as log:
-            self._publish(ResolveAction())
-        with pytest.raises(AssertionError):
-            log.assert_logged(ViewAction)
-
-    def test_assert_not_logged_fails_on_match(self) -> None:
-        with capture_action_log() as log:
-            self._publish(ResolveAction())
-        with pytest.raises(AssertionError):
-            log.assert_not_logged(ResolveAction)
-
-    def test_filters_by_group_id(self) -> None:
-        with capture_action_log() as log:
-            self._publish(ViewAction(), group_id=1)
-            self._publish(ViewAction(), group_id=2)
-        assert len(log.for_group(1)) == 1
-        assert len(log.for_group(2)) == 1
-        log.assert_logged(ViewAction, group_id=1)
-        log.assert_not_logged(ViewAction, group_id=3)
-
-    def test_filters_by_source(self) -> None:
-        with capture_action_log() as log:
-            self._publish(ResolveAction(), source=ActionSource.MCP)
-            self._publish(ResolveAction(), source=ActionSource.SLACK)
-        log.assert_logged(ResolveAction, source=ActionSource.MCP)
-        log.assert_logged(ResolveAction, source=ActionSource.SLACK)
-        log.assert_not_logged(ResolveAction, source=ActionSource.API)
-
-    def test_filters_by_actor(self) -> None:
-        actor_a = GroupActionActor.user(10)
-        actor_b = GroupActionActor.user(20)
-        with capture_action_log() as log:
-            self._publish(ResolveAction(), actor=actor_a)
-            self._publish(ResolveAction(), actor=actor_b)
-        log.assert_logged(ResolveAction, actor=actor_a)
-        log.assert_not_logged(ResolveAction, actor=SYSTEM_ACTOR)
-
-    def test_filters_by_action_fields(self) -> None:
-        with capture_action_log() as log:
-            self._publish(SetPriorityAction(priority="high"))
-            self._publish(SetPriorityAction(priority="low"))
-        log.assert_logged(SetPriorityAction, priority="high")
-        log.assert_logged(SetPriorityAction, priority="low")
-        log.assert_not_logged(SetPriorityAction, priority="medium")
-
-    def test_count(self) -> None:
-        with capture_action_log() as log:
-            self._publish(ViewAction())
-            self._publish(ViewAction())
-            self._publish(ResolveAction())
-        log.assert_logged(ViewAction, count=2)
-        log.assert_logged(ResolveAction, count=1)
-
-    def test_accepts_action_type_enum(self) -> None:
-        with capture_action_log() as log:
-            self._publish(ResolveAction())
-        log.assert_logged(GroupActionType.RESOLVE)
-
-    def test_nested_captures(self) -> None:
-        with capture_action_log() as outer:
-            self._publish(ViewAction())
-            with capture_action_log() as inner:
-                self._publish(ResolveAction())
-            self._publish(ArchiveAction())
-        # Inner only sees what happened inside its scope
-        inner.assert_logged(ResolveAction)
-        inner.assert_not_logged(ViewAction)
-        inner.assert_not_logged(ArchiveAction)
-        # Outer sees everything including actions during the inner scope
-        outer.assert_logged(ViewAction)
-        outer.assert_logged(ResolveAction)
-        outer.assert_logged(ArchiveAction)
-
-
 class TestActivitiesCreateActions(TestCase):
     def test_basic(self) -> None:
         with capture_action_log() as log:
@@ -856,3 +884,22 @@ class TestActivitiesCreateActions(TestCase):
         caption = cast(CapturedAction, log.assert_logged(SetResolvedByAgeAction))
         action: SetResolvedByAgeAction = cast(SetResolvedByAgeAction, caption.action)
         assert action.auto_resolve_age_threshold == 123
+
+    def test_smart_assignment_completed_creates_log_entry(self) -> None:
+        data = {
+            "run_id": 123,
+            "run_uuid": "00000000-0000-0000-0000-000000000001",
+            "predicted_assignee_user_ids": [456, None],
+        }
+
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
+            Activity.objects.create(
+                group=self.group,
+                project=self.project,
+                type=ActivityType.SMART_ASSIGNMENT_COMPLETED.value,
+                data=data,
+            )
+
+        entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
+        assert entry.type == GroupActionType.SMART_ASSIGNMENT_COMPLETED
+        assert entry.data == data

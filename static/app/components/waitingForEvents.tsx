@@ -1,9 +1,11 @@
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {EmptyState} from '@sentry/scraps/emptyState';
+import {Image} from '@sentry/scraps/image';
 import {Link} from '@sentry/scraps/link';
 
 import {CreateSampleEventButton} from 'sentry/components/onboarding/createSampleEventButton';
@@ -47,38 +49,42 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
 
   const sampleLink =
     project && (isPending || error ? null : sampleIssueId) ? (
-      <p>
-        <Link to={`/${org.slug}/${project.slug}/issues/${sampleIssueId}/?sample`}>
-          {t('Or see your sample event')}
-        </Link>
-      </p>
+      <Link to={`/${org.slug}/${project.slug}/issues/${sampleIssueId}/?sample`}>
+        {t('Or see your sample event')}
+      </Link>
     ) : (
-      <p>
-        <CreateSampleEventButton
-          variant="link"
-          project={project}
-          source="issues_list"
-          disabled={!project}
-          tooltipProps={{
-            title: project ? undefined : t('Select a project to create a sample event'),
-          }}
-        >
-          {t('Create a sample event')}
-        </CreateSampleEventButton>
-      </p>
+      <CreateSampleEventButton
+        variant="link"
+        project={project}
+        source="issues_list"
+        disabled={!project}
+        tooltipProps={{
+          title: project ? undefined : t('Select a project to create a sample event'),
+        }}
+      >
+        {t('Create a sample event')}
+      </CreateSampleEventButton>
     );
 
   return (
-    <Wrapper data-test-id="awaiting-events" className="awaiting-events">
-      <img
-        src={waitingForEventImg}
-        alt="No errors found spot illustration"
-        height={200}
-      />
-      <MessageContainer>
-        <h3>{t('Waiting for events…')}</h3>
-        <p>{t('Your code sleuth eagerly awaits its first mission.')}</p>
-        <p>
+    <EmptyState
+      data-test-id="awaiting-events"
+      padding="3xl"
+      align="center"
+      justify="center"
+      title={t('Waiting for events…')}
+      description={t('Your code sleuth eagerly awaits its first mission.')}
+      illustration={
+        <Image
+          width="auto"
+          height={{zero: '150px', lg: '185px'}}
+          loading="eager"
+          src={waitingForEventImg}
+          alt={t('Illustration of a detective waiting for events')}
+        />
+      }
+      action={
+        <Fragment>
           {project && (
             <LinkButton
               data-test-id="install-instructions"
@@ -91,37 +97,11 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
               {t('Installation Instructions')}
             </LinkButton>
           )}
-        </p>
-        {sampleLink}
-      </MessageContainer>
-    </Wrapper>
+          {sampleLink}
+        </Fragment>
+      }
+    />
   );
 }
 
 export default WaitingForEvents;
-
-const Wrapper = styled('div')`
-  display: flex;
-  justify-content: center;
-  font-size: ${p => p.theme.font.size.lg};
-  border-radius: 0 0 3px 3px;
-  padding: 40px ${p => p.theme.space['2xl']};
-  min-height: 260px;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    flex-direction: column;
-    align-items: center;
-    padding: ${p => p.theme.space['2xl']};
-    text-align: center;
-  }
-`;
-
-const MessageContainer = styled('div')`
-  align-self: center;
-  max-width: 480px;
-  margin-left: 40px;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    margin: 0;
-  }
-`;

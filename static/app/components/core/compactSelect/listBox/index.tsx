@@ -4,20 +4,20 @@ import type {AriaListBoxOptions} from '@react-aria/listbox';
 import {useListBox} from '@react-aria/listbox';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
-import type {CollectionChildren, Node} from '@react-types/shared';
-import {useVirtualizer} from '@tanstack/react-virtual';
+import type {CollectionChildren} from '@react-types/shared';
 
 import {
   ListLabel,
   ListSeparator,
   ListWrap,
   SizeLimitMessage,
+  useVirtualizedItems,
 } from '@sentry/scraps/compactSelect';
 import type {SelectKey} from '@sentry/scraps/compactSelect';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {Container} from '@sentry/scraps/layout';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {t} from 'sentry/locale';
 import type {FormSize} from 'sentry/utils/theme';
 
 import {ListBoxOption} from './option';
@@ -37,7 +37,6 @@ interface ListBoxProps<T extends ListItemBase>
       | 'selectedKeys'
       | 'defaultSelectedKeys'
       | 'onSelectionChange'
-      | 'autoFocus'
       | 'isVirtualized'
     > {
   /**
@@ -123,6 +122,7 @@ const DEFAULT_KEY_DOWN_HANDLER = () => true;
 export function ListBox<T extends ListItemBase>({
   ref,
   listState,
+  autoFocus,
   size = 'md',
   shouldFocusWrap = true,
   shouldFocusOnHover = true,
@@ -137,17 +137,24 @@ export function ListBox<T extends ListItemBase>({
   showDetails = true,
   onAction,
   virtualized,
-  virtualizedListPadding = listPaddingVertical,
+  virtualizedListPadding,
   scrollContainerRef,
   className,
   ...props
 }: ListBoxProps<T>) {
+  const {t} = useTranslation();
   const listElementRef = useRef<HTMLUListElement>(null);
+  const scrollElementRef = useRef<HTMLDivElement>(null);
   const [hasEverOverflowed, setHasEverOverflowed] = useState(false);
 
   const {listBoxProps, labelProps} = useListBox(
     {
       ...props,
+      // useListBox forwards this to useSelectableCollection, but omits it from its
+      // public options type. This identifies the element that actually owns overflow.
+      // @ts-expect-error React Aria supports scrollRef at runtime but does not expose it here.
+      scrollRef: scrollElementRef,
+      autoFocus,
       label,
       shouldFocusWrap,
       shouldFocusOnHover,
@@ -217,7 +224,13 @@ export function ListBox<T extends ListItemBase>({
 
       setHasEverOverflowed(scrollContainer.scrollHeight > scrollContainer.clientHeight);
     };
-    return mergeRefs(overflowTracker, virtualizer.scrollElementRef, scrollContainerRef);
+    return mergeRefs(
+      scrollElementRef,
+      overflowTracker,
+      virtualizer.scrollElementRef,
+      scrollContainerRef
+    );
+    // oxlint-disable-next-line react/memo-dependencies
   }, [hasEverOverflowed, virtualizer.scrollElementRef, listItems, scrollContainerRef]);
 
   return (
@@ -285,87 +298,4 @@ export function ListBox<T extends ListItemBase>({
       </Container>
     </Fragment>
   );
-}
-
-const heightEstimations = {
-  sm: {regular: 32, large: 49},
-  md: {regular: 36, large: 53},
-  xs: {regular: 25, large: 42},
-} as const satisfies Record<FormSize, {large: number; regular: number}>;
-
-/**
- * Matches `theme.space.xs` used as vertical padding on ListWrap (ul).
- * Passed to the virtualizer's wrapper to account for the padding,
- * preventing a tiny scrollbar when few items remain after filtering.
- */
-const listPaddingVertical = 4;
-
-function useVirtualizedItems<T extends ListItemBase>({
-  listItems,
-  virtualized = false,
-  size,
-  listPadding,
-}: {
-  listItems: Array<Node<T>>;
-  listPadding: number;
-  size: FormSize;
-  virtualized: boolean | undefined;
-}) {
-  const scrollElementRef = useRef<HTMLDivElement>(null);
-  const heightEstimation = heightEstimations[size];
-
-  const virtualizer = useVirtualizer({
-    count: listItems.length,
-    getScrollElement: () => scrollElementRef?.current,
-    estimateSize: index => {
-      const item = listItems[index];
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      if (item?.props?.details) {
-        return heightEstimation.large;
-      }
-      return heightEstimation.regular;
-    },
-    enabled: virtualized,
-  });
-
-  if (virtualized) {
-    const virtualizedItems = virtualizer.getVirtualItems();
-    return {
-      items: virtualizedItems,
-      scrollToIndex: (index: number) => {
-        virtualizer.scrollToIndex(index, {align: 'auto'});
-      },
-      scrollElementRef,
-      itemProps: (index: number) => ({
-        ref: virtualizer.measureElement,
-        'data-index': index,
-      }),
-      wrapperProps: {
-        'data-is-virtualized': true,
-        style: {
-          height: virtualizer.getTotalSize() + listPadding * 2,
-          width: '100%',
-          position: 'relative',
-        },
-      },
-      listWrapStyle: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        transform: `translateY(${virtualizedItems[0]?.start ?? 0}px)`,
-      },
-    } as const;
-  }
-
-  return {
-    items: listItems.map((_, index) => ({index, start: 0})),
-    scrollToIndex: () => {},
-    scrollElementRef: undefined,
-    itemProps: () => {},
-    wrapperProps: {
-      'data-is-virtualized': false,
-    },
-    listWrapStyle: {},
-  } as const;
 }

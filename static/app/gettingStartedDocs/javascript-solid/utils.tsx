@@ -54,12 +54,6 @@ const getDynamicParts = (params: DocsParams): string[] => {
       replaysOnErrorSampleRate: 1.0 // If you're not already sampling the entire session, change the sample rate to 100% when sampling sessions where errors occur.`);
   }
 
-  if (params.isLogsSelected) {
-    dynamicParts.push(`
-      // Logs
-      enableLogs: true`);
-  }
-
   if (params.isProfilingSelected) {
     dynamicParts.push(`
         // Set profileSessionSampleRate to 1.0 to profile during every session.
@@ -73,15 +67,7 @@ const getDynamicParts = (params: DocsParams): string[] => {
 export function getSdkSetupSnippet(params: DocsParams) {
   const config = buildSdkConfig({
     params,
-    staticParts: [
-      `dsn: "${params.dsn.public}"`,
-      `dataCollection: {
-    // To disable sending user data and HTTP bodies, uncomment the lines below. For more info visit:
-    // https://docs.sentry.io/platforms/javascript/guides/solid/configuration/options/#dataCollection
-    // userInfo: false,
-    // httpBodies: []
-  }`,
-    ],
+    staticParts: [`dsn: "${params.dsn.public}"`],
     getIntegrations,
     getDynamicParts,
   });

@@ -6,12 +6,13 @@ from taskbroker_client.retry import Retry
 
 from sentry.issues.auto_source_code_config.task import process_event
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.namespaces import issues_long_tasks, issues_tasks
 
 
 @instrumented_task(
     name="sentry.tasks.auto_source_code_config",
-    namespace=issues_tasks,
+    namespace=issues_long_tasks,
+    alias_namespace=issues_tasks,
     processing_deadline_duration=15 * 60,
     retry=Retry(times=3, delay=60 * 10),
 )

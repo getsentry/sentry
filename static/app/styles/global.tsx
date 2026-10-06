@@ -185,27 +185,26 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
     container-type: inline-size;
   }
 
-  ${theme.type === 'dark' &&
-  css`
-    /*this updates styles set by base.less to match our theme*/
-    body.theme-dark {
-      background: ${theme.tokens.background.primary};
-      color: ${theme.tokens.content.primary};
-    }
-    body.theme-system {
-      @media (prefers-color-scheme: dark) {
+  ${
+    theme.type === 'dark' &&
+    css`
+      /*this updates styles set by base.less to match our theme*/
+      body.theme-dark {
         background: ${theme.tokens.background.primary};
         color: ${theme.tokens.content.primary};
       }
-    }
-    /*this updates styles set by shared-components.less to match our theme*/
-    .theme-dark .loading .loading-indicator {
-      background: transparent;
-    }
-    .theme-dark .loading.triangle .loading-indicator {
-      background: #fff;
-    }
-  `}
+      body.theme-system {
+        @media (prefers-color-scheme: dark) {
+          background: ${theme.tokens.background.primary};
+          color: ${theme.tokens.content.primary};
+        }
+      }
+      /*this updates styles set by shared-components.less to match our theme*/
+      .theme-dark .loading .loading-indicator {
+        background: transparent;
+      }
+    `
+  }
 
   abbr {
     text-decoration: underline;
@@ -221,11 +220,6 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
     &:hover {
       color: ${theme.tokens.interactive.link.accent.hover};
     }
-  }
-
-  .group-detail:before {
-    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-    background: ${theme.tokens.border.primary};
   }
 
   .form-actions {
@@ -295,150 +289,103 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
     }
   }
 
-  .ReactVirtualized__Grid:focus-visible,
-  .ReactVirtualized__List:focus-visible {
-    outline: ${theme.tokens.focus.default} auto 1px;
-  }
-
   /* Override css in LESS files here as we want to manually control dark mode for now */
-  ${theme.type === 'dark'
-    ? css`
-        .box,
-        .box.box-modal {
-          background: ${theme.tokens.background.primary};
-          border-color: ${theme.tokens.border.primary};
-
-          .box-content,
-          .box-header {
+  ${
+    theme.type === 'dark'
+      ? css`
+          .box,
+          .box.box-modal {
             background: ${theme.tokens.background.primary};
-
-            h1,
-            h2,
-            h3,
-            h4,
-            h5,
-            h6 {
-              color: ${theme.tokens.content.primary};
-            }
-          }
-
-          .box-header {
-            border-bottom-color: ${theme.tokens.border.primary};
-
-            a {
-              color: ${theme.tokens.content.primary};
-
-              &:hover {
-                color: ${theme.tokens.interactive.link.accent.hover};
-              }
-            }
-          }
-        }
-        .loading .loading-indicator {
-          border-color: ${theme.tokens.border.transparent.neutral.muted};
-          border-left-color: ${theme.tokens.border.accent.vibrant};
-        }
-
-        .pattern-bg {
-          opacity: 1;
-          filter: invert(1) brightness(0.6);
-        }
-
-        .nav-tabs {
-          & > li {
-            &.active {
-              a {
-                color: ${theme.tokens.content.primary} !important;
-                border-bottom-color: ${theme.tokens.border.accent.vibrant} !important;
-              }
-            }
-
-            a:hover {
-              color: ${theme.tokens.content.primary} !important;
-            }
-          }
-          &.border-bottom {
             border-color: ${theme.tokens.border.primary};
-          }
-        }
 
-        .exception {
-          border-color: ${theme.tokens.border.secondary};
-        }
-
-        .traceback {
-          border-color: ${theme.tokens.border.primary};
-
-          &.in-app-traceback {
-            .frame {
-              &.leads-to-app {
-                &.collapsed {
-                  .title {
-                    border-color: ${theme.tokens.border.primary};
-                    background: ${theme.tokens.background.primary};
-                  }
-                }
-              }
-            }
-          }
-
-          .frame,
-          .frame.system-frame {
-            border-top-color: ${theme.tokens.border.primary};
-
-            &.is-expandable .title:hover {
-              background-color: ${theme.tokens.background.primary};
-            }
-            .btn-toggle {
-              color: ${theme.tokens.content.primary};
-              background: transparent;
-            }
-            .title {
-              background-color: ${theme.tokens.background.secondary};
-            }
-            &.is-expandable .title {
-              background-color: ${theme.tokens.background.secondary};
-            }
-            .context {
+            .box-content,
+            .box-header {
               background: ${theme.tokens.background.primary};
 
-              table.key-value {
-                border-color: ${theme.tokens.border.primary};
-                td {
-                  border-color: ${theme.tokens.border.primary} !important;
+              h1,
+              h2,
+              h3,
+              h4,
+              h5,
+              h6 {
+                color: ${theme.tokens.content.primary};
+              }
+            }
+
+            .box-header {
+              border-bottom-color: ${theme.tokens.border.primary};
+
+              a {
+                color: ${theme.tokens.content.primary};
+
+                &:hover {
+                  color: ${theme.tokens.interactive.link.accent.hover};
                 }
               }
             }
           }
-        }
-        .group-detail h3 em {
-          color: ${theme.tokens.content.secondary};
-        }
-        .event-details-container {
-          background-color: ${theme.tokens.background.primary};
-          .secondary {
-            border-left-color: ${theme.tokens.border.primary};
+          .loading .loading-indicator {
+            border-color: ${theme.tokens.border.transparent.neutral.muted};
+            border-left-color: ${theme.tokens.border.accent.vibrant};
           }
-        }
-        .nav-header a.help-link,
-        .nav-header span.help-link a {
-          color: ${theme.tokens.content.secondary};
-        }
 
-        /* Global Selection header date picker */
-        .rdrCalendarWrapper {
-          background: ${theme.tokens.background.primary};
-          color: ${theme.tokens.content.primary};
-        }
-        .rdrDayDisabled {
-          background-color: ${theme.tokens.background.secondary};
-          color: ${theme.tokens.content.disabled};
-        }
-        .rdrMonthAndYearPickers select {
-          color: ${theme.tokens.content.primary};
-        }
-      `
-    : ''}
+          .pattern-bg {
+            opacity: 1;
+            filter: invert(1) brightness(0.6);
+          }
+
+          .nav-tabs {
+            & > li {
+              &.active {
+                a {
+                  color: ${theme.tokens.content.primary} !important;
+                  border-bottom-color: ${theme.tokens.border.accent.vibrant} !important;
+                }
+              }
+
+              a:hover {
+                color: ${theme.tokens.content.primary} !important;
+              }
+            }
+            &.border-bottom {
+              border-color: ${theme.tokens.border.primary};
+            }
+          }
+
+          .exception {
+            border-color: ${theme.tokens.border.secondary};
+          }
+
+          .traceback {
+            border-color: ${theme.tokens.border.primary};
+
+            .frame {
+              border-top-color: ${theme.tokens.border.primary};
+
+              .context {
+                background: ${theme.tokens.background.primary};
+              }
+            }
+          }
+          .event-details-container {
+            background-color: ${theme.tokens.background.primary};
+          }
+
+          /* Global Selection header date picker */
+          .rdrCalendarWrapper {
+            background: ${theme.tokens.background.primary};
+            color: ${theme.tokens.content.primary};
+          }
+          .rdrDayDisabled {
+            background-color: ${theme.tokens.background.secondary};
+            color: ${theme.tokens.content.disabled};
+          }
+          .rdrMonthAndYearPickers select {
+            color: ${theme.tokens.content.primary};
+          }
+        `
+      : ''
+  }
 `;
 
 /**

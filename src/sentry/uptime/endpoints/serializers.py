@@ -131,7 +131,7 @@ class UptimeDetectorSerializer(Serializer[UptimeDetectorSerializerResponse]):
 
         return {
             "id": str(obj.id),
-            "projectSlug": obj.project.slug,
+            "projectSlug": obj.linked_project.slug,
             "environment": obj.config.get("environment"),
             "name": obj.name or f"Uptime Monitoring for {uptime_subscription.url}",
             "status": "active" if obj.enabled else "disabled",

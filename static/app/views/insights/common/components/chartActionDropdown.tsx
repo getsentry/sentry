@@ -1,9 +1,11 @@
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import Feature from 'sentry/components/acl/feature';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -172,9 +174,7 @@ export function BaseChartActionDropdown({
     menuOptions.push(menuOption);
   }
 
-  const newAlertLabel = organization.features.includes('workflow-engine-ui')
-    ? t('Create a Monitor for')
-    : t('Create an Alert for');
+  const newAlertLabel = t('Create a Monitor for');
 
   if (alertMenuOptions.length > 0) {
     menuOptions.push({
@@ -197,13 +197,15 @@ export function BaseChartActionDropdown({
   return (
     <DropdownMenu
       items={menuOptions}
-      triggerProps={{
-        'aria-label': t('Widget actions'),
-        size: 'xs',
-        variant: 'transparent',
-        showChevron: false,
-        icon: <IconEllipsis direction="down" size="sm" />,
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          aria-label={t('Widget actions')}
+          size="xs"
+          variant="transparent"
+          icon={<IconEllipsis direction="down" size="sm" />}
+        />
+      )}
       position="bottom-end"
     />
   );

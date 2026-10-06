@@ -1,9 +1,10 @@
 import {Component, Fragment, useContext, useEffect} from 'react';
-import styled from '@emotion/styled';
+import {css} from '@emotion/react';
 import type {Location, LocationDescriptor} from 'history';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -17,16 +18,18 @@ import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {isAggregateField, parseFunction} from 'sentry/utils/discover/fields';
+import {getFieldDefinition} from 'sentry/utils/fields';
 import {TrendsEventsDiscoverQuery} from 'sentry/utils/performance/trends/trendsDiscoverQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import type {Actions} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
-import {decodeColumnOrder, getDiscoverDeprecation} from 'sentry/views/discover/utils';
+import {decodeColumnOrder} from 'sentry/views/discover/utils';
+import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {getExploreUrl} from 'sentry/views/explore/utils';
 import type {DomainView, DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {mapShowTransactionToPercentile} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
@@ -38,6 +41,66 @@ import type {TrendChangeType, TrendView} from 'sentry/views/performance/trends/t
 import {TransactionsTable} from './transactionsTable';
 
 const DEFAULT_TRANSACTION_LIMIT = 5;
+const TRANSACTION_CURSOR_NAME = 'transactionCursor';
+
+/**
+ * Normalize an aggregate yAxis so it carries an explicit column argument where
+ * the spans dataset requires one (e.g. `p50()` -> `p50(span.duration)`).
+ */
+function normalizeExploreYAxis(yAxis: string): string {
+  const parsed = parseFunction(yAxis);
+  if (!parsed || parsed.arguments.length > 0) {
+    return yAxis;
+  }
+
+  const definition = getFieldDefinition(parsed.name, 'span');
+  const columnParameter = definition?.parameters?.find(
+    parameter => parameter.kind === 'column'
+  );
+  if (columnParameter?.defaultValue) {
+    return `${parsed.name}(${columnParameter.defaultValue})`;
+  }
+
+  return yAxis;
+}
+
+/**
+ * Build an Explore > Traces URL that reproduces the aggregate view described by
+ * the given (spans dataset) EventView.
+ */
+function getExploreTarget(eventView: EventView, organization: Organization): string {
+  const fields = eventView.getFields();
+  const groupBy = fields.filter(field => !isAggregateField(field));
+  const yAxes = fields.filter(isAggregateField).map(normalizeExploreYAxis);
+
+  const sort = eventView.sorts[0];
+  let aggregateSort: string | undefined;
+  if (sort) {
+    const sortedYAxis = yAxes.find(yAxis => parseFunction(yAxis)?.name === sort.field);
+    if (sortedYAxis) {
+      aggregateSort = `${sort.kind === 'desc' ? '-' : ''}${sortedYAxis}`;
+    }
+  }
+
+  // Explore's search cannot express aggregate (HAVING) conditions such as
+  // `epm():>0.01`.
+  const search = new MutableSearch(eventView.query);
+  Object.keys(search.filters).forEach(key => {
+    if (isAggregateField(key)) {
+      search.removeFilter(key);
+    }
+  });
+
+  return getExploreUrl({
+    organization,
+    selection: eventView.getPageFilters(),
+    mode: Mode.AGGREGATE,
+    query: search.formatString(),
+    groupBy,
+    visualize: yAxes.length > 0 ? [{yAxes}] : undefined,
+    aggregateSort,
+  });
+}
 
 export type DropdownOption = {
   /**
@@ -63,19 +126,11 @@ export type DropdownOption = {
 };
 
 type Props = {
-  /**
-   * The name of the url parameter that contains the cursor info.
-   */
-  cursorName: string;
   eventView: EventView;
   /**
    * The callback for when the dropdown option changes.
    */
   handleDropdownChange: (k: string) => void;
-  /**
-   * The limit to the number of results to fetch.
-   */
-  limit: number;
   location: Location;
   navigate: ReactRouter3Navigate;
   /**
@@ -192,14 +247,22 @@ function TableRender({
 
   return (
     <Fragment>
-      <Header>
+      <Grid
+        align="center"
+        columns={{zero: '1fr', md: '1fr auto'}}
+        gap="md"
+        marginBottom="md"
+      >
         {header}
-        <StyledPagination
+        <Pagination
           pageLinks={pageLinks}
           onCursor={onCursor}
           size={paginationCursorSize}
+          css={css`
+            margin: 0;
+          `}
         />
-      </Header>
+      </Grid>
       <DemoTourElement
         id={DemoTourStep.PERFORMANCE_TRANSACTION_SUMMARY_TABLE}
         title={t('Breakdown event spans')}
@@ -230,16 +293,11 @@ function TableRender({
 }
 
 class _TransactionsList extends Component<Props> {
-  static defaultProps = {
-    cursorName: 'transactionCursor',
-    limit: DEFAULT_TRANSACTION_LIMIT,
-  };
-
   handleCursor: CursorHandler = (cursor, pathname, query) => {
-    const {cursorName, navigate} = this.props;
+    const {navigate} = this.props;
     navigate({
       pathname,
-      query: {...query, [cursorName]: cursor},
+      query: {...query, [TRANSACTION_CURSOR_NAME]: cursor},
     });
   };
 
@@ -281,17 +339,25 @@ class _TransactionsList extends Component<Props> {
       breakdown,
     } = this.props;
     return (
-      <Fragment>
-        <div>
-          <CompactSelect
-            trigger={triggerProps => (
-              <OverlayTrigger.Button {...triggerProps} prefix={t('Filter')} size="xs" />
-            )}
-            value={selected.value}
-            options={options}
-            onChange={opt => handleDropdownChange(opt.value)}
-          />
-        </div>
+      <Grid columns={{zero: '1fr', md: 'repeat(2, max-content)'}} gap="md">
+        <Container width={{zero: '100%', md: 'max-content'}}>
+          {containerProps => (
+            <CompactSelect
+              {...containerProps}
+              trigger={triggerProps => (
+                <OverlayTrigger.Button
+                  {...triggerProps}
+                  prefix={t('Filter')}
+                  size="xs"
+                  style={{width: '100%'}}
+                />
+              )}
+              value={selected.value}
+              options={options}
+              onChange={opt => handleDropdownChange(opt.value)}
+            />
+          )}
+        </Container>
         {!this.isTrend() &&
           (handleOpenAllEventsClick ? (
             <GuideAnchor target="release_transactions_open_in_transaction_events">
@@ -315,23 +381,15 @@ class _TransactionsList extends Component<Props> {
             <GuideAnchor target="release_transactions_open_in_discover">
               <DiscoverButton
                 onClick={handleOpenInDiscoverClick}
-                to={this.generateDiscoverEventView().getResultsViewUrlTarget(
-                  organization,
-                  false,
-                  hasDatasetSelector(organization)
-                    ? SavedQueryDatasets.TRANSACTIONS
-                    : undefined
-                )}
+                to={getExploreTarget(this.generateDiscoverEventView(), organization)}
                 size="xs"
                 data-test-id="discover-open"
               >
-                {getDiscoverDeprecation(organization)
-                  ? t('Open in Explore')
-                  : t('Open in Discover')}
+                {t('Open in Explore')}
               </DiscoverButton>
             </GuideAnchor>
           ))}
-      </Fragment>
+      </Grid>
     );
   }
 
@@ -340,8 +398,6 @@ class _TransactionsList extends Component<Props> {
       location,
       organization,
       handleCellAction,
-      cursorName,
-      limit,
       titles,
       generateLink,
       forceLoading,
@@ -351,7 +407,7 @@ class _TransactionsList extends Component<Props> {
 
     const eventView = this.getEventView();
     const columnOrder = eventView.getColumns();
-    const cursor = decodeScalar(location.query?.[cursorName]);
+    const cursor = decodeScalar(location.query?.[TRANSACTION_CURSOR_NAME]);
     const tableCommonProps: Omit<
       TableRenderProps,
       'isLoading' | 'pageLinks' | 'tableData' | 'header'
@@ -386,7 +442,7 @@ class _TransactionsList extends Component<Props> {
         location={location}
         eventView={eventView}
         orgSlug={organization.slug}
-        limit={limit}
+        limit={DEFAULT_TRANSACTION_LIMIT}
         cursor={cursor}
         referrer="api.discover.transactions-list"
       >
@@ -404,15 +460,8 @@ class _TransactionsList extends Component<Props> {
   }
 
   renderTrendsTable(): React.ReactNode {
-    const {
-      trendView,
-      location,
-      selected,
-      organization,
-      cursorName,
-      generateLink,
-      domainViewFilters,
-    } = this.props;
+    const {trendView, location, selected, organization, generateLink, domainViewFilters} =
+      this.props;
 
     const sortedEventView: TrendView = trendView!.clone();
     sortedEventView.sorts = [selected.sort];
@@ -422,7 +471,7 @@ class _TransactionsList extends Component<Props> {
       selected.query.forEach(item => query.setFilterValues(item[0], [item[1]]));
       sortedEventView.query = query.formatString();
     }
-    const cursor = decodeScalar(location.query?.[cursorName]);
+    const cursor = decodeScalar(location.query?.[TRANSACTION_CURSOR_NAME]);
 
     return (
       <TrendsEventsDiscoverQuery
@@ -471,23 +520,7 @@ class _TransactionsList extends Component<Props> {
   }
 }
 
-const Header = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr auto auto auto;
-  margin-bottom: ${p => p.theme.space.md};
-  align-items: center;
-`;
-
-const StyledPagination = styled(Pagination)`
-  margin: 0 0 0 ${p => p.theme.space.md};
-`;
-
-export function TransactionsList(
-  props: Omit<Props, 'cursorName' | 'limit' | 'navigate'> & {
-    cursorName?: Props['cursorName'];
-    limit?: Props['limit'];
-  }
-) {
+export function TransactionsList(props: Omit<Props, 'navigate'>) {
   const navigate = useNavigate();
   return <_TransactionsList {...props} navigate={navigate} />;
 }

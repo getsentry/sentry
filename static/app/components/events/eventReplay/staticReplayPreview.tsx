@@ -23,7 +23,6 @@ type StaticReplayPreviewProps = {
   isFetching: boolean;
   replay: ReplayReader | null;
   replayId: string;
-  focusTab?: TabKey;
   fullReplayButtonProps?: Partial<Omit<LinkButtonProps, 'external'>>;
 };
 
@@ -31,7 +30,6 @@ export function StaticReplayPreview({
   analyticsContext,
   initialTimeOffsetMs,
   isFetching,
-  focusTab,
   replayId,
   fullReplayButtonProps,
   replay,
@@ -45,7 +43,7 @@ export function StaticReplayPreview({
     }),
     query: {
       referrer: getRouteStringFromRoutes({matches}),
-      t_main: focusTab ?? TabKey.ERRORS,
+      t_main: TabKey.ERRORS,
       t: initialTimeOffsetMs / 1000,
     },
   };

@@ -7,9 +7,11 @@ from __future__ import annotations
 import abc
 import dataclasses
 from enum import IntEnum, StrEnum
-from typing import Any, ClassVar, Literal, NotRequired, Optional, TypedDict
+from typing import Any, ClassVar, Literal, NotRequired, Optional, TypeAlias, TypedDict
 
 from pydantic import BaseModel
+
+SeerPullRequestItem: TypeAlias = dict[str, str | dict[str, str | int]]
 
 
 class GroupActorType(IntEnum):
@@ -121,6 +123,8 @@ class GroupActionType(IntEnum):
     SEER_PR_CREATED = 1035
     SEER_ITERATION_STARTED = 1036
     SEER_ITERATION_COMPLETED = 1037
+    SEER_PR_READY_FOR_REVIEW = 1038
+    SMART_ASSIGNMENT_COMPLETED = 1043
 
 
 class ActionSource(StrEnum):
@@ -146,6 +150,7 @@ class ActionSource(StrEnum):
     PAGERDUTY = "pagerduty"
     OPSGENIE = "opsgenie"
     PERFORCE = "perforce"
+    EMAIL = "email"
     UNKNOWN = (
         "unknown"  # fallback when ActionContext is missing; indicates a gap in instrumentation
     )
@@ -159,6 +164,11 @@ COMMIT_ACTION_TYPES = {
 ACTION_TYPES_WITH_COMMIT_DATA = {
     *COMMIT_ACTION_TYPES,
     GroupActionType.SET_RESOLVED_IN_RELEASE.value,
+}
+
+COMMENT_MUTATION_ACTION_TYPES = {
+    GroupActionType.COMMENT_EDIT.value,
+    GroupActionType.COMMENT_DELETE.value,
 }
 
 PULL_REQUEST_ACTION_TYPES = {
@@ -588,6 +598,7 @@ class SetResolvedInReleaseAction(GroupAction):
     user_visible = True
     version: Optional[str] = None
     current_release_version: Optional[str] = None
+    commit: Optional[int] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -767,16 +778,28 @@ class SeerCodingCompletedAction(GroupAction):
 class SeerPRCreatedAction(GroupAction):
     user_visible = True
     run_id: Optional[int] = None
-    # TODO Break out as separate model?
-    pull_requests: Optional[list[dict[str, str | dict[str, str | int]]]] = None
+    pull_requests: Optional[list[SeerPullRequestItem]] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.SEER_PR_CREATED
 
 
+class SeerPRReadyForReviewAction(GroupAction):
+    user_visible = True
+    run_id: Optional[int] = None
+    # Same PR as SeerPRCreatedAction, but will not be in draft mode
+    pull_requests: Optional[list[SeerPullRequestItem]] = None
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SEER_PR_READY_FOR_REVIEW
+
+
 class SeerIterationStartedAction(GroupAction):
     user_visible = True
+    run_id: Optional[int] = None
+    referrer: Optional[str] = None
 
     @classmethod
     def get_type(cls) -> GroupActionType:
@@ -789,6 +812,17 @@ class SeerIterationCompletedAction(GroupAction):
     @classmethod
     def get_type(cls) -> GroupActionType:
         return GroupActionType.SEER_ITERATION_COMPLETED
+
+
+class SmartAssignmentCompletedAction(GroupAction):
+    user_visible = False
+    run_id: int
+    run_uuid: str
+    predicted_assignee_user_ids: list[int | None]
+
+    @classmethod
+    def get_type(cls) -> GroupActionType:
+        return GroupActionType.SMART_ASSIGNMENT_COMPLETED
 
 
 class ReconcileStatusAction(GroupAction):

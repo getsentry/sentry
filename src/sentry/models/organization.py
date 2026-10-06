@@ -40,7 +40,7 @@ from sentry.organizations.absolute_url import (
     has_customer_domain,
     organization_absolute_url,
 )
-from sentry.roles.manager import Role
+from sentry.roles.manager import OrganizationRole, Role, RoleLevel
 from sentry.users.services.user import RpcUser, RpcUserProfile
 from sentry.users.services.user.service import user_service
 from sentry.utils.http import is_using_customer_domain
@@ -253,9 +253,6 @@ class Organization(ReplicatedCellModel):
             with TimedRetryPolicy(10)(lock.acquire):
                 slugify_target = slugify_target.lower().replace("_", "-").strip("-")
                 slugify_instance(self, slugify_target, reserved=RESERVED_ORGANIZATION_SLUGS)
-
-        if self.pk is None:  # if org is new
-            self.flags.disable_member_project_creation = True
 
         if settings.SENTRY_USE_SNOWFLAKE:
             save_with_snowflake_id(
@@ -527,14 +524,40 @@ class Organization(ReplicatedCellModel):
             fragment=fragment,
         )
 
+    def _has_granular_scopes(self) -> bool:
+        from sentry import features
+
+        return features.has("organizations:granular-permission-scopes", self)
+
+    def get_roles(self) -> RoleLevel[OrganizationRole]:
+        """
+        Return the organization roles that apply to this organization, which
+        grant granular scopes once the feature flag is enabled.
+        """
+        manager = roles.granular_manager if self._has_granular_scopes() else roles.default_manager
+        return manager.organization_roles
+
+    def get_role_scopes(self, role: Role) -> frozenset[str]:
+        """
+        Return the scopes a role grants in this organization, before any
+        organization options are applied.
+        """
+        if isinstance(role, OrganizationRole) and self._has_granular_scopes():
+            try:
+                return roles.granular_manager.get(role.id).scopes
+            except KeyError:
+                pass
+        return role.scopes
+
     def get_scopes(self, role: Role) -> frozenset[str]:
         """
         Note that scopes for team-roles are filtered through this method too.
         """
-        if bool(NON_MEMBER_SCOPES & role.scopes):
-            return role.scopes
+        role_scopes = self.get_role_scopes(role)
+        if bool(NON_MEMBER_SCOPES & role_scopes):
+            return role_scopes
 
-        scopes = set(role.scopes)
+        scopes = set(role_scopes)
         if not self.get_option("sentry:events_member_admin", EVENTS_MEMBER_ADMIN_DEFAULT):
             scopes.discard("event:admin")
         if not self.get_option("sentry:alerts_member_write", ALERTS_MEMBER_WRITE_DEFAULT):

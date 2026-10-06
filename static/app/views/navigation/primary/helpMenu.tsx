@@ -1,9 +1,12 @@
-import {useEffect} from 'react';
+import {Fragment, useEffect} from 'react';
 
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import {openModal} from 'sentry/actionCreators/modal';
+import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
+  IconBroadcast,
   IconBuilding,
   IconDiscord,
   IconDocs,
@@ -26,8 +29,20 @@ import {showIntercom} from 'sentry/utils/intercom';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {PrimaryNavigation} from 'sentry/views/navigation/primary/components';
+import {
+  useWhatsNewBroadcasts,
+  WhatsNewContent,
+} from 'sentry/views/navigation/primary/whatsNew';
 
-export function PrimaryNavigationHelpMenu() {
+interface PrimaryNavigationHelpMenuProps {
+  additionalItems?: MenuItemProps[];
+  indicator?: 'accent' | 'danger' | 'warning';
+}
+
+export function PrimaryNavigationHelpMenu({
+  additionalItems = [],
+  indicator,
+}: PrimaryNavigationHelpMenuProps = {}) {
   const organization = useOrganization();
   const contactSupportItem = getContactSupportItem(organization);
   const openForm = useFeedbackForm();
@@ -38,6 +53,7 @@ export function PrimaryNavigationHelpMenu() {
   }, [organization]);
 
   const items: MenuItemProps[] = [
+    ...additionalItems,
     {
       key: 'resources',
       label: t('Resources'),
@@ -87,17 +103,6 @@ export function PrimaryNavigationHelpMenu() {
               <IconQuestion />
             </MenuIcon>
           ),
-        },
-        {
-          key: 'support',
-          label: t('Contact Support'),
-          ...contactSupportItem,
-          leadingItems: (
-            <MenuIcon>
-              <IconSupport />
-            </MenuIcon>
-          ),
-          hidden: !contactSupportItem,
         },
       ],
     },
@@ -169,6 +174,23 @@ export function PrimaryNavigationHelpMenu() {
       ],
     },
     {
+      key: 'contact-support',
+      hidden: !contactSupportItem,
+      children: [
+        {
+          key: 'support',
+          label: t('Contact Support'),
+          ...contactSupportItem,
+          leadingItems: (
+            <MenuIcon>
+              <IconSupport />
+            </MenuIcon>
+          ),
+          hidden: !contactSupportItem,
+        },
+      ],
+    },
+    {
       key: 'actions',
       hidden: !openForm,
       children: [
@@ -183,7 +205,7 @@ export function PrimaryNavigationHelpMenu() {
           onAction() {
             openForm?.({
               tags: {
-                ['feedback.source']: 'navigation_sidebar',
+                'feedback.source': 'navigation_sidebar',
               },
             });
           },
@@ -199,8 +221,40 @@ export function PrimaryNavigationHelpMenu() {
       analyticsKey="help"
       label={t('Help')}
       icon={<IconEllipsis />}
+      indicator={indicator}
     />
   );
+}
+
+export function useWhatsNewHelpMenuItem(): PrimaryNavigationHelpMenuProps {
+  const {unseenPostIds} = useWhatsNewBroadcasts();
+
+  return {
+    additionalItems: [
+      {
+        key: 'whats-new',
+        label: t("What's New"),
+        leadingItems: (
+          <MenuIcon>
+            <IconBroadcast />
+          </MenuIcon>
+        ),
+        onAction() {
+          openModal(({Header, Body}) => (
+            <Fragment>
+              <Header closeButton>{t("What's New")}</Header>
+              <Body>
+                <ErrorBoundary customComponent={null}>
+                  <WhatsNewContent />
+                </ErrorBoundary>
+              </Body>
+            </Fragment>
+          ));
+        },
+      },
+    ],
+    indicator: unseenPostIds.length > 0 ? 'accent' : undefined,
+  };
 }
 
 function getContactSupportItem(organization: Organization): MenuItemProps | null {

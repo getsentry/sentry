@@ -10,7 +10,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal, type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
-import {IconAdd, IconFlag} from 'sentry/icons';
+import {IconAdd, IconDelete, IconFlag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import type {Organization} from 'sentry/types/organization';
@@ -169,7 +169,6 @@ export function FeatureFlagCommandPaletteActions() {
         prompt={t('Search for a feature flag...')}
         resource={(_query, {state}) =>
           // `featureStateKey` represents `flagNames` and `enabledFlags`.
-          // eslint-disable-next-line @tanstack/query/exhaustive-deps
           cmdkQueryOptions({
             queryKey: [
               'cmdk-admin-feature-flag-toggle',
@@ -207,6 +206,16 @@ export function FeatureFlagCommandPaletteActions() {
           ))
         }
       />
+      {Object.keys(overrides).length > 0 && (
+        <CMDKAction
+          display={{label: t('Clear Local Feature Flag Overrides'), icon: <IconDelete />}}
+          keywords={[t('reset flags'), t('remove overrides')]}
+          onAction={() => {
+            FeatureFlagOverrides.singleton().clearStoredOverrides();
+            window.location.reload();
+          }}
+        />
+      )}
     </CMDKAction>
   );
 }

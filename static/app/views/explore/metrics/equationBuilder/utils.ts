@@ -44,6 +44,7 @@ export function unresolveExpression(
       }
       return token.text;
     })
+    .filter(text => text.length > 0)
     .join(' ');
 }
 

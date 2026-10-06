@@ -35,10 +35,13 @@ import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {makeDetailedProjectApiOptions} from 'sentry/utils/project/useDetailedProject';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {CustomFilters} from './customFilters';
 
 const filterDescriptions = {
   'browser-extensions': {
@@ -251,7 +254,7 @@ function LegacyBrowserFilterRow({
         {indicator}
       </Flex>
       {hintText}
-      <FilterGrid>
+      <Grid columns={{zero: '1fr', md: '1fr 1fr'}} gap="lg" paddingTop="xl">
         {(Object.keys(LEGACY_BROWSER_SUBFILTERS) as LegacyBrowserSubfilterKeys)
           .filter(key => {
             if (!LEGACY_BROWSER_SUBFILTERS[key].legacy) {
@@ -278,7 +281,7 @@ function LegacyBrowserFilterRow({
               </FilterGridItem>
             );
           })}
-      </FilterGrid>
+      </Grid>
     </Stack>
   );
 }
@@ -297,8 +300,11 @@ const projectBooleanSchema = z.object({
 
 const legacyBrowserSchema = z.object({'legacy-browsers': z.array(z.string())});
 
-const customFiltersSchema = z.object({
+const blacklistedIpsSchema = z.object({
   'filters:blacklisted_ips': z.string(),
+});
+
+const customFiltersSchema = z.object({
   'filters:releases': z.string(),
   'filters:error_messages': z.string(),
   'filters:log_messages': z.string(),
@@ -322,9 +328,6 @@ function CustomFiltersForm({
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
-      'filters:blacklisted_ips': String(
-        project.options?.['filters:blacklisted_ips'] ?? ''
-      ),
       'filters:releases': String(project.options?.['filters:releases'] ?? ''),
       'filters:error_messages': String(project.options?.['filters:error_messages'] ?? ''),
       'filters:log_messages': String(project.options?.['filters:log_messages'] ?? ''),
@@ -349,31 +352,6 @@ function CustomFiltersForm({
     <form.AppForm form={form}>
       <FormSearch route="/settings/:orgId/projects/:projectId/filters/">
         <FieldGroup title={t('Custom Filters')}>
-          <form.AppField name="filters:blacklisted_ips">
-            {field => (
-              <field.Layout.Row
-                label={t('IP Addresses')}
-                hintText={
-                  <Fragment>
-                    {t('Filter events from these IP addresses. ')}
-                    {newLineHelpText}
-                  </Fragment>
-                }
-              >
-                <field.TextArea
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  disabled={disabled}
-                  monospace
-                  autosize
-                  rows={1}
-                  maxRows={10}
-                  placeholder="e.g. 127.0.0.1 or 10.0.0.0/8"
-                />
-              </field.Layout.Row>
-            )}
-          </form.AppField>
-
           <Feature
             features="projects:custom-inbound-filters"
             overrideName="feature-disabled:custom-inbound-filters"
@@ -575,7 +553,6 @@ type ProjectBooleanFilterId = keyof z.infer<typeof projectBooleanSchema>;
 function StandardFilter({
   description,
   filter,
-  filtersEndpoint,
   hasAccess,
   organization,
   project,
@@ -583,7 +560,6 @@ function StandardFilter({
 }: {
   description: (typeof filterDescriptions)[keyof typeof filterDescriptions];
   filter: Filter;
-  filtersEndpoint: string;
   hasAccess: boolean;
   onUpdate: (filterId: string, active: boolean | string[]) => boolean | string[];
   organization: Organization;
@@ -605,7 +581,16 @@ function StandardFilter({
             new_state: data[name] ? 'enabled' : 'disabled',
           });
           return fetchMutation({
-            url: `${filtersEndpoint}${filter.id}/`,
+            url: getApiUrl(
+              '/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/$filterId/',
+              {
+                path: {
+                  organizationIdOrSlug: organization.slug,
+                  projectIdOrSlug: project.slug,
+                  filterId: filter.id,
+                },
+              }
+            ),
             method: 'PUT',
             data: {active: data[name]},
           });
@@ -637,7 +622,6 @@ export function ProjectFiltersSettings({project, params}: Props) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const {projectId: projectSlug} = params;
-  const filtersEndpoint = `/projects/${organization.slug}/${projectSlug}/filters/`;
   const detailedProjectQueryOptions = makeDetailedProjectApiOptions({
     orgSlug: organization.slug,
     projectSlug,
@@ -648,6 +632,12 @@ export function ProjectFiltersSettings({project, params}: Props) {
   });
 
   const updateProject = useUpdateProject(project);
+
+  // The API and Relay config follow `inbound-filters-v2`. The `-ui` flag rolls the
+  // table out on its own, so it only ever narrows where the table shows.
+  const showCustomFilters =
+    organization.features.includes('inbound-filters-v2') &&
+    organization.features.includes('inbound-filters-v2-ui');
 
   const getProjectBooleanMutationOptions = <TName extends ProjectBooleanFilterId>({
     name,
@@ -727,10 +717,19 @@ export function ProjectFiltersSettings({project, params}: Props) {
                             organization,
                             project_id: parseInt(project.id, 10),
                             filter: filter.id,
-                            new_state: [...newSubfilters].sort().join(','),
+                            new_state: newSubfilters.toSorted().join(','),
                           });
                           return fetchMutation({
-                            url: `${filtersEndpoint}${filter.id}/`,
+                            url: getApiUrl(
+                              '/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/$filterId/',
+                              {
+                                path: {
+                                  organizationIdOrSlug: organization.slug,
+                                  projectIdOrSlug: projectSlug,
+                                  filterId: filter.id,
+                                },
+                              }
+                            ),
                             method: 'PUT',
                             data: {subfilters: newSubfilters},
                           });
@@ -790,7 +789,6 @@ export function ProjectFiltersSettings({project, params}: Props) {
                     key={filter.id}
                     description={desc}
                     filter={filter}
-                    filtersEndpoint={filtersEndpoint}
                     hasAccess={hasAccess}
                     organization={organization}
                     project={project}
@@ -855,22 +853,52 @@ export function ProjectFiltersSettings({project, params}: Props) {
                   </field.Layout.Row>
                 )}
               </AutoSaveForm>
+
+              <AutoSaveForm
+                name="filters:blacklisted_ips"
+                schema={blacklistedIpsSchema}
+                initialValue={String(
+                  currentProject.options?.['filters:blacklisted_ips'] ?? ''
+                )}
+                mutationOptions={{
+                  mutationFn: (data: {'filters:blacklisted_ips': string}) =>
+                    updateProject.mutateAsync({options: data}),
+                }}
+              >
+                {field => (
+                  <field.Layout.Row
+                    label={t('IP Addresses')}
+                    hintText={
+                      <Fragment>
+                        {t('Filter events from these IP addresses. ')}
+                        {newLineHelpText}
+                      </Fragment>
+                    }
+                  >
+                    <field.TextArea
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      disabled={!hasAccess}
+                      monospace
+                      autosize
+                      rows={1}
+                      maxRows={10}
+                      placeholder="e.g. 127.0.0.1 or 10.0.0.0/8"
+                    />
+                  </field.Layout.Row>
+                )}
+              </AutoSaveForm>
             </FieldGroup>
 
             <CustomFiltersForm project={currentProject} disabled={!hasAccess} />
+
+            {showCustomFilters && <CustomFilters project={project} />}
           </Fragment>
         )}
       </Access>
     </FormSearch>
   );
 }
-
-const FilterGrid = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: ${p => p.theme.space.lg};
-  margin-top: ${p => p.theme.space.xl};
-`;
 
 const FilterGridItem = styled('div')`
   display: grid;
@@ -890,11 +918,9 @@ const FilterGridIcon = styled('img')`
 const FilterTitle = styled('div')`
   font-size: ${p => p.theme.font.size.md};
   font-weight: ${p => p.theme.font.weight.sans.medium};
-  white-space: nowrap;
 `;
 
 const FilterDescription = styled('div')`
   color: ${p => p.theme.tokens.content.secondary};
   font-size: ${p => p.theme.font.size.sm};
-  white-space: nowrap;
 `;

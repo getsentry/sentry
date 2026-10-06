@@ -7,6 +7,7 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -19,18 +20,30 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.source_code_management.path import normalize_repository_source_root
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectrepository import ProjectRepository, ProjectRepositorySource
 from sentry.models.repository import Repository
 
+INVALID_SOURCE_ROOT_ERROR_MESSAGE = "Source root cannot point outside the repository"
 
-def gen_path_regex_field():
+
+def validate_source_root(path: str) -> None:
+    if "\x00" in path:
+        return
+
+    if normalize_repository_source_root(path) is None:
+        raise serializers.ValidationError(_(INVALID_SOURCE_ROOT_ERROR_MESSAGE))
+
+
+def gen_path_regex_field(*, validate_source: bool = False):
     return serializers.RegexField(
         r"^[^\s'\"]+$",  # may need to add more characters to prevent in the future
         required=True,
         allow_blank=True,
+        validators=[validate_source_root] if validate_source else [],
         error_messages={"invalid": _("Path may not contain spaces or quotations")},
     )
 
@@ -42,7 +55,7 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
     repository_id = serializers.IntegerField(required=True)
     project_id = serializers.IntegerField(required=True)
     stack_root = gen_path_regex_field()
-    source_root = gen_path_regex_field()
+    source_root = gen_path_regex_field(validate_source=True)
     default_branch = serializers.RegexField(
         r"^(^(?![\/]))([\w\.\/-]+)(?<![\/])$",
         required=False,  # Validated in validate_default_branch based on integration type
@@ -107,7 +120,8 @@ class RepositoryProjectPathConfigSerializer(CamelSnakeModelSerializer):
     def validate_default_branch(self, default_branch):
         # Get the integration to check if it's Perforce
         integration = integration_service.get_integration(
-            integration_id=self.org_integration.integration_id
+            integration_id=self.org_integration.integration_id,
+            using_replica=options.get("integration_service.get_integration.using_replica"),
         )
 
         # For Perforce, allow empty branch (streams are part of depot path)

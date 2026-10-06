@@ -1,6 +1,8 @@
 import {useMemo} from 'react';
 
-import type {TagCollection} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
+import {FieldKind} from 'sentry/utils/fields';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {HIDDEN_PREPROD_ATTRIBUTES} from 'sentry/views/explore/constants';
 import {usePreprodItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
@@ -28,10 +30,21 @@ interface PreprodSearchBarProps {
    * When true, parens and logical operators (AND, OR) will be marked as invalid.
    */
   disallowLogicalOperators?: boolean;
+  /**
+   * List of attribute keys whose values should be entered as free text instead
+   * of fetched from the trace item attribute values endpoint.
+   */
+  freeformKeys?: string[];
   onChange?: (query: string, state: {queryIsValid: boolean}) => void;
   onSearch?: (query: string) => void;
   portalTarget?: HTMLElement | null;
   searchSource?: string;
+}
+
+// Array attributes are keyed by their wrapped backend form (`tags[name,array]`),
+// so also match the unwrapped `name` that the allowlist / freeform lists use.
+function matchesKeyOrArrayName(tag: Tag, key: string, names: Set<string>): boolean {
+  return names.has(key) || (tag.kind === FieldKind.ARRAY && names.has(tag.name));
 }
 
 function filterToAllowedKeys(
@@ -41,9 +54,28 @@ function filterToAllowedKeys(
   const allowedSet = new Set(allowedKeys);
   const result: TagCollection = {};
   for (const key in attributes) {
-    if (allowedSet.has(key) && attributes[key]) {
-      result[key] = attributes[key];
+    const tag = attributes[key];
+    if (tag && matchesKeyOrArrayName(tag, key, allowedSet)) {
+      result[key] = tag;
     }
+  }
+  return result;
+}
+
+function markFreeformKeys(
+  attributes: TagCollection,
+  freeformKeys?: string[]
+): TagCollection {
+  const freeformKeySet = new Set(freeformKeys);
+  const result: TagCollection = {};
+  for (const key in attributes) {
+    const tag = attributes[key];
+    if (!tag) {
+      continue;
+    }
+    result[key] = matchesKeyOrArrayName(tag, key, freeformKeySet)
+      ? {...tag, predefined: true}
+      : tag;
   }
   return result;
 }
@@ -59,6 +91,7 @@ export function PreprodSearchBar({
   initialQuery,
   projects,
   allowedKeys,
+  freeformKeys,
   onChange,
   onSearch,
   portalTarget,
@@ -67,6 +100,8 @@ export function PreprodSearchBar({
   disallowLogicalOperators,
   searchSource = 'preprod',
 }: PreprodSearchBarProps) {
+  const organization = useOrganization();
+  const supportsArrays = organization.features.includes('trace-item-array-query-support');
   // When using allowedKeys, we fetch all attributes then filter to the allowlist.
   // Otherwise, we use HIDDEN_PREPROD_ATTRIBUTES to hide internal fields.
   const hiddenKeys = allowedKeys ? undefined : HIDDEN_PREPROD_ATTRIBUTES;
@@ -77,13 +112,18 @@ export function PreprodSearchBar({
     usePreprodItemAttributes({}, 'number', hiddenKeys);
   const {attributes: rawBooleanAttributes, secondaryAliases: rawBooleanSecondaryAliases} =
     usePreprodItemAttributes({}, 'boolean', hiddenKeys);
+  const {attributes: rawArrayAttributes, secondaryAliases: rawArraySecondaryAliases} =
+    usePreprodItemAttributes({enabled: supportsArrays}, 'array', hiddenKeys);
 
   const stringAttributes = useMemo(
     () =>
-      allowedKeys
-        ? filterToAllowedKeys(rawStringAttributes, allowedKeys)
-        : rawStringAttributes,
-    [allowedKeys, rawStringAttributes]
+      markFreeformKeys(
+        allowedKeys
+          ? filterToAllowedKeys(rawStringAttributes, allowedKeys)
+          : rawStringAttributes,
+        freeformKeys
+      ),
+    [allowedKeys, freeformKeys, rawStringAttributes]
   );
 
   const stringSecondaryAliases = useMemo(
@@ -126,6 +166,27 @@ export function PreprodSearchBar({
     [allowedKeys, rawBooleanSecondaryAliases]
   );
 
+  const arrayAttributes = useMemo(() => {
+    if (!supportsArrays) {
+      return {};
+    }
+    return markFreeformKeys(
+      allowedKeys
+        ? filterToAllowedKeys(rawArrayAttributes, allowedKeys)
+        : rawArrayAttributes,
+      freeformKeys
+    );
+  }, [allowedKeys, freeformKeys, rawArrayAttributes, supportsArrays]);
+
+  const arraySecondaryAliases = useMemo(() => {
+    if (!supportsArrays) {
+      return {};
+    }
+    return allowedKeys
+      ? filterToAllowedKeys(rawArraySecondaryAliases, allowedKeys)
+      : rawArraySecondaryAliases;
+  }, [allowedKeys, rawArraySecondaryAliases, supportsArrays]);
+
   return (
     <TraceItemSearchQueryBuilder
       initialQuery={initialQuery}
@@ -134,8 +195,10 @@ export function PreprodSearchBar({
       itemType={TraceItemDataset.PREPROD}
       numberAttributes={numberAttributes}
       stringAttributes={stringAttributes}
+      arrayAttributes={arrayAttributes}
       numberSecondaryAliases={numberSecondaryAliases}
       stringSecondaryAliases={stringSecondaryAliases}
+      arraySecondaryAliases={arraySecondaryAliases}
       booleanAttributes={booleanAttributes}
       booleanSecondaryAliases={booleanSecondaryAliases}
       searchSource={searchSource}

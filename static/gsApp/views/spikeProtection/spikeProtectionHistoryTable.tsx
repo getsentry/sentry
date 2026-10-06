@@ -1,38 +1,35 @@
-import {Component} from 'react';
 import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
+import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DiscoverButton} from 'sentry/components/discoverButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {Panel} from 'sentry/components/panels/panel';
-import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Placeholder} from 'sentry/components/placeholder';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconSettings} from 'sentry/icons';
 import {IconTelescope} from 'sentry/icons/iconTelescope';
 import {t, tct} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
-import type {Organization} from 'sentry/types/organization';
 import type {ProjectSummaryWithOptions} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {getExactDuration} from 'sentry/utils/duration/getExactDuration';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {withOrganization} from 'sentry/utils/withOrganization';
 import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {
   formatUsageWithUnits,
   getFormatUsageOptions,
 } from 'sentry/views/organizationStats/utils';
 
-import {withSubscription} from 'getsentry/components/withSubscription';
-import type {Subscription} from 'getsentry/types';
+import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {
   SpendVisibilityEvents,
   trackSpendVisibilityAnaltyics,
@@ -49,25 +46,30 @@ import {isSpikeProtectionEnabled} from './spikeProtectionProjectToggle';
 type Props = {
   dataCategoryInfo: DataCategoryInfo;
   onEnableSpikeProtection: () => void;
-  organization: Organization;
   project: ProjectSummaryWithOptions;
   spikes: SpikeDetails[];
-  subscription: Subscription;
   isLoading?: boolean;
 };
+
+const SPIKE_COLUMNS: TableColumnConfig[] = [
+  {key: 'time', width: 'auto'},
+  {key: 'threshold', width: 'auto'},
+  {key: 'duration', width: 'auto'},
+  {key: 'dropped', width: 'auto'},
+  {key: 'actions', width: 'auto'},
+];
 
 function EnableSpikeProtectionButton({
   onEnableSpikeProtection,
   project,
-  subscription,
   ...props
 }: {
   onEnableSpikeProtection: () => void;
   project: ProjectSummaryWithOptions;
-  subscription: Subscription;
 }) {
   const api = useApi();
   const organization = useOrganization();
+  const subscription = useSubscription();
   const endpoint = `/organizations/${organization.slug}/spike-protections/`;
 
   async function enableSpikeProtection() {
@@ -84,7 +86,7 @@ function EnableSpikeProtectionButton({
       );
       trackSpendVisibilityAnaltyics(SpendVisibilityEvents.SP_PROJECT_TOGGLED, {
         organization,
-        subscription,
+        subscription: subscription ?? undefined,
         project_id: project.id,
         value: true,
         view: 'project_stats',
@@ -109,30 +111,41 @@ function EnableSpikeProtectionButton({
   );
 }
 
-class SpikeProtectionHistoryTable extends Component<Props> {
-  headers = [
-    t('Past Spikes'),
-    t('Initial Threshold'),
-    t('Duration'),
-    t('Events Dropped'),
-    null, // Discover Query button
-  ];
+const HEADERS = [
+  t('Past Spikes'),
+  t('Initial Threshold'),
+  t('Duration'),
+  t('Events Dropped'),
+  null, // Discover Query button
+];
 
-  renderSpikeRow(spike: SpikeDetails) {
-    const {dataCategoryInfo, project, organization, subscription} = this.props;
-    // ms -> s, rounds up to get duration in minutes
-    // rounding up to match the formatted date and time values
-    const millisecondsPerSecond = 1000;
-    const secondsPerMinute = 60;
-    const duration = spike.end
-      ? Math.ceil(
-          (new Date(spike.end).valueOf() - new Date(spike.start).valueOf()) /
-            (millisecondsPerSecond * secondsPerMinute)
-        ) * secondsPerMinute
-      : null;
-    return [
-      <SpikeProtectionTimeDetails spike={spike} key="time" />,
-      <Flex align="center" key="threshold">
+function SpikeRow({
+  dataCategoryInfo,
+  project,
+  spike,
+}: {
+  dataCategoryInfo: DataCategoryInfo;
+  project: ProjectSummaryWithOptions;
+  spike: SpikeDetails;
+}) {
+  const organization = useOrganization();
+  const subscription = useSubscription();
+  // ms -> s, rounds up to get duration in minutes
+  // rounding up to match the formatted date and time values
+  const millisecondsPerSecond = 1000;
+  const secondsPerMinute = 60;
+  const duration = spike.end
+    ? Math.ceil(
+        (new Date(spike.end).valueOf() - new Date(spike.start).valueOf()) /
+          (millisecondsPerSecond * secondsPerMinute)
+      ) * secondsPerMinute
+    : null;
+  return (
+    <SimpleTable.Row>
+      <SimpleTable.RowCell>
+        <SpikeProtectionTimeDetails spike={spike} />
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
         {defined(spike.threshold)
           ? formatUsageWithUnits(
               spike.threshold,
@@ -140,11 +153,11 @@ class SpikeProtectionHistoryTable extends Component<Props> {
               getFormatUsageOptions(dataCategoryInfo.plural)
             )
           : '-'}
-      </Flex>,
-      <Flex align="center" key="duration">
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
         {duration ? getExactDuration(duration, true) : t('Ongoing')}
-      </Flex>,
-      <Flex align="center" key="dropped">
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell>
         {spike.dropped
           ? formatUsageWithUnits(
               spike.dropped,
@@ -152,22 +165,22 @@ class SpikeProtectionHistoryTable extends Component<Props> {
               getFormatUsageOptions(dataCategoryInfo.plural)
             )
           : '-'}
-      </Flex>,
-      <Flex align="center" justify="end" key="discover-button">
+      </SimpleTable.RowCell>
+      <SimpleTable.RowCell justify="end">
         <DiscoverButton
           icon={<IconTelescope size="sm" />}
           data-test-id="spike-protection-discover-button"
           onClick={() =>
             trackSpendVisibilityAnaltyics(SpendVisibilityEvents.SP_DISCOVER_CLICKED, {
               organization,
-              subscription,
+              subscription: subscription ?? undefined,
               view: 'project_stats',
             })
           }
           to={{
             pathname: makeDiscoverPathname({
               organization,
-              path: '/homepage/',
+              path: '/',
             }),
             query: {
               project: [project.id],
@@ -176,16 +189,46 @@ class SpikeProtectionHistoryTable extends Component<Props> {
             },
           }}
         >
-          {getDiscoverDeprecation(organization)
-            ? t('Open in Explore')
-            : t('Open in Discover')}
+          {t('Open in Explore')}
         </DiscoverButton>
-      </Flex>,
-    ];
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
+  );
+}
+
+function SpikeHistoryContent({
+  dataCategoryInfo,
+  onEnableSpikeProtection,
+  project,
+  spikes,
+  isLoading,
+}: Props) {
+  const organization = useOrganization();
+
+  if (isLoading) {
+    return (
+      <Placeholder height="150px">
+        <LoadingIndicator mini />
+      </Placeholder>
+    );
   }
 
-  renderEmptyMessage() {
-    const {organization} = this.props;
+  if (!isSpikeProtectionEnabled(project)) {
+    return (
+      <EmptySpikeHistory data-test-id="spike-history-disabled">
+        <b>{t('Spike Protection Disabled')}</b>
+        <p>{t('Spike Protection is currently disabled for this project.')}</p>
+        <div>
+          <EnableSpikeProtectionButton
+            project={project}
+            onEnableSpikeProtection={onEnableSpikeProtection}
+          />
+        </div>
+      </EmptySpikeHistory>
+    );
+  }
+
+  if (spikes.length === 0) {
     return (
       <EmptySpikeHistory data-test-id="spike-history-empty">
         <b>{t('No Significant Spikes')}</b>
@@ -195,95 +238,65 @@ class SpikeProtectionHistoryTable extends Component<Props> {
           )}
           <br />
           {tct('Please see the [auditLogLink: audit log] for all detected spikes.', {
-            auditLogLink: <Link to={`/settings/${organization?.slug}/audit-log/`} />,
+            auditLogLink: <Link to={`/settings/${organization.slug}/audit-log/`} />,
           })}
         </p>
       </EmptySpikeHistory>
     );
   }
 
-  renderDisabledMessage() {
-    const {project, subscription, onEnableSpikeProtection} = this.props;
-    return (
-      <EmptySpikeHistory data-test-id="spike-history-disabled">
-        <b>{t('Spike Protection Disabled')}</b>
-        <p>{t('Spike Protection is currently disabled for this project.')}</p>
-        <div>
-          <EnableSpikeProtectionButton
-            project={project}
-            subscription={subscription}
-            onEnableSpikeProtection={onEnableSpikeProtection}
-          />
-        </div>
-      </EmptySpikeHistory>
-    );
-  }
-
-  renderTable() {
-    const {spikes, project, isLoading} = this.props;
-
-    if (isLoading ?? false) {
-      return (
-        <Placeholder height="150px">
-          <LoadingIndicator mini />
-        </Placeholder>
-      );
-    }
-
-    if (!isSpikeProtectionEnabled(project)) {
-      return this.renderDisabledMessage();
-    }
-
-    if (spikes.length === 0) {
-      return this.renderEmptyMessage();
-    }
-
-    return (
-      <PanelTable headers={this.headers}>
-        {spikes.map(spike => this.renderSpikeRow(spike))}
-      </PanelTable>
-    );
-  }
-
-  render() {
-    const {organization} = this.props;
-    return (
-      <div data-test-id="spike-protection-history-table">
-        <Flex align="center" marginBottom="xl" gap="md">
-          <Title>
-            {t('Spike Protection')}
-            <PageHeadingQuestionTooltip
-              docsUrl={SPIKE_PROTECTION_DOCS_LINK}
-              title={t(
-                'Sentry applies a dynamic rate limit to your account designed to protect you from short-term spikes.'
-              )}
-            />
-          </Title>
-          <LinkButton
-            size="sm"
-            icon={<IconSettings />}
-            to={`/settings/${organization.slug}/spike-protection/`}
-          >
-            {t('Spike Protection Settings')}
-          </LinkButton>
-        </Flex>
-        {this.renderTable()}
-      </div>
-    );
-  }
+  return (
+    <SimpleTable
+      columns={SPIKE_COLUMNS}
+      header={
+        <SimpleTable.HeaderRow>
+          {HEADERS.map((header, i) => (
+            <SimpleTable.HeaderCell key={i}>{header}</SimpleTable.HeaderCell>
+          ))}
+        </SimpleTable.HeaderRow>
+      }
+    >
+      {spikes.map(spike => (
+        <SpikeRow
+          key={spike.start}
+          dataCategoryInfo={dataCategoryInfo}
+          project={project}
+          spike={spike}
+        />
+      ))}
+    </SimpleTable>
+  );
 }
 
-export default withSubscription(withOrganization(SpikeProtectionHistoryTable));
+export function SpikeProtectionHistoryTable(props: Props) {
+  const organization = useOrganization();
 
-const Title = styled('div')`
-  font-weight: bold;
-  font-size: ${p => p.theme.font.size.lg};
-  color: ${p => p.theme.colors.gray500};
-  display: flex;
-  flex: 1;
-  align-items: center;
-  gap: ${p => p.theme.space.sm};
-`;
+  return (
+    <div data-test-id="spike-protection-history-table">
+      <Flex align="center" marginBottom="xl" gap="md">
+        <Flex flex="1" align="center" gap="sm">
+          <Text bold size="lg" variant="secondary">
+            {t('Spike Protection')}
+          </Text>
+          <PageHeadingQuestionTooltip
+            docsUrl={SPIKE_PROTECTION_DOCS_LINK}
+            title={t(
+              'Sentry applies a dynamic rate limit to your account designed to protect you from short-term spikes.'
+            )}
+          />
+        </Flex>
+        <LinkButton
+          size="sm"
+          icon={<IconSettings />}
+          to={`/settings/${organization.slug}/spike-protection/`}
+        >
+          {t('Spike Protection Settings')}
+        </LinkButton>
+      </Flex>
+      <SpikeHistoryContent {...props} />
+    </div>
+  );
+}
 
 const EmptySpikeHistory = styled(Panel)`
   width: 100%;

@@ -5,6 +5,7 @@ import type {Location, Query} from 'history';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
+import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {
   SelectedReplayIndexProvider,
@@ -27,20 +28,21 @@ import {
   ReplaySessionColumn,
 } from 'sentry/components/replays/table/replayTableColumns';
 import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
-import {replayMobilePlatforms} from 'sentry/data/platformCategories';
+import {replayVideoPlatforms} from 'sentry/data/platformCategories';
 import {IconPlay, IconUser} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventView} from 'sentry/utils/discover/eventView';
+import {isRetryableRequestError} from 'sentry/utils/queryClient';
 import {useReplayCountForIssues} from 'sentry/utils/replayCount/useReplayCountForIssues';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {useReplayList} from 'sentry/utils/replays/hooks/useReplayList';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useCleanQueryParamsOnRouteLeave} from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 import {GroupReplaysPlayer} from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
 
@@ -90,13 +92,13 @@ function GroupReplaysContent({group}: Props) {
   const organization = useOrganization();
   const location = useLocation();
 
-  const {eventView, fetchError, isFetching} = useReplaysFromIssue({
+  const {eventView, fetchError, isFetching, refetch} = useReplaysFromIssue({
     group,
     location,
     organization,
   });
 
-  const isMobilePlatform = replayMobilePlatforms.includes(
+  const isVideoReplayPlatform = replayVideoPlatforms.includes(
     group.project.platform ?? 'other'
   );
 
@@ -114,6 +116,18 @@ function GroupReplaysContent({group}: Props) {
     statsPeriod: '90d',
   });
 
+  if (fetchError) {
+    return (
+      <StyledLayoutPage flex={1} padding="2xl 3xl">
+        <ReplayFilterMessage />
+        <LoadingError
+          message={getRequestErrorUserMessage(fetchError)}
+          onRetry={isRetryableRequestError(fetchError) ? () => refetch() : undefined}
+        />
+      </StyledLayoutPage>
+    );
+  }
+
   if (!eventView) {
     // Shown on load and no replay data available
     return (
@@ -130,8 +144,7 @@ function GroupReplaysContent({group}: Props) {
           </Flex>
         </Stack>
         <ReplayTable
-          columns={isMobilePlatform ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS}
-          error={fetchError}
+          columns={isVideoReplayPlatform ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS}
           isPending={isFetching}
           replays={[]}
           showDropdownFilters={false}
@@ -237,7 +250,11 @@ function GroupReplaysTable({
   replayCount: number;
 }) {
   const organization = useOrganization();
-  const {allMobileProj} = useAllMobileProj({});
+  // Key column selection off the issue's own project, not the global page
+  // filter, so it stays consistent with the empty-state table above.
+  const isVideoReplayPlatform = replayVideoPlatforms.includes(
+    group.project.platform ?? 'other'
+  );
   const {index: selectedReplayIndex} = useSelectedReplayIndex();
 
   const {groupId} = useParams<{groupId: string}>();
@@ -262,7 +279,7 @@ function GroupReplaysTable({
       query={playlistQuery}
       columns={[
         ...(selectedReplay ? [ReplayPlayPauseColumn] : []),
-        ...(allMobileProj ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS),
+        ...(isVideoReplayPlatform ? VISIBLE_COLUMNS_MOBILE : VISIBLE_COLUMNS),
       ]}
       error={replayListData.fetchError}
       isPending={replayListData.isFetching}

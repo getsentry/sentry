@@ -41,8 +41,7 @@ export function getCategoryInfoFromPlural(
  */
 export function getCreditDataCategory(credit: RecurringCredit): DataCategory | null {
   const category =
-    (DATA_CATEGORY_INFO[credit.type as string as DataCategoryExact]
-      ?.plural as DataCategory) || null;
+    DATA_CATEGORY_INFO[credit.type as string as DataCategoryExact]?.plural || null;
   if (!category) {
     return null;
   }
@@ -121,19 +120,6 @@ export function getReservedBudgetCategoryFromCategories(
         categories.every(category => budgetInfo.dataCategories.includes(category))
     ) ?? null
   );
-}
-
-/**
- * Whether a category is part of a reserved budget.
- * This will also return true for categories that can
- * only be bought as part of a reserved budget (ie. Seer
- * categories without having bought Seer).
- */
-export function isPartOfReservedBudget(
-  category: DataCategory,
-  reservedBudgets: ReservedBudget[]
-): boolean {
-  return reservedBudgets.some(budget => budget.dataCategories.includes(category));
 }
 
 /**
@@ -322,7 +308,6 @@ export function formatCategoryQuantityWithDisplayName({
   quantity,
   formattedQuantity,
   subscription,
-  planOverride,
   options,
 }: {
   dataCategory: DataCategory;
@@ -330,12 +315,11 @@ export function formatCategoryQuantityWithDisplayName({
   options: Omit<CategoryNameProps, 'category'>;
   quantity: number;
   subscription: Subscription;
-  planOverride?: Plan;
 }) {
   if (isContinuousProfiling(dataCategory)) {
     return formatWithHours(quantity, formattedQuantity, options);
   }
-  const plan = planOverride ?? subscription.planDetails;
+  const plan = subscription.planDetails;
   if (quantity === 1) {
     const displayName = getSingularCategoryName({
       plan,

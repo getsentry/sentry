@@ -18,6 +18,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd, IconBroadcast} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -49,6 +50,8 @@ import {BigNumUnits} from './utils';
 type Props = {
   subscription: Subscription;
 };
+
+const DEFAULT_SPEND_ALLOCATION_PERIODS = 1;
 
 export function SpendAllocationsRoot({subscription}: Props) {
   const organization = useOrganization();
@@ -130,69 +133,62 @@ export function SpendAllocationsRoot({subscription}: Props) {
     return root;
   }, [currentRootAllocations, selectedMetric]);
 
-  const fetchSpendAllocations = useCallback(
-    // Target timestamp allows us to specify a period
-    // Periods allows us to specify how many periods we want to fetch
-    async (targetTimestamp?: number, periods = 1) => {
-      try {
-        setIsLoading(true);
-        // NOTE: we cannot just use the subscription period start since newly created allocations could start after the period start
-        // we cannot use the middle of the subscription period since it's possible to have a current allocation that ends before mid period
-        if (!targetTimestamp) {
-          targetTimestamp = Math.max(Date.now() / 1000, period[0]!.getTime() / 1000);
-        }
-        const SPEND_ALLOCATIONS_PATH = `/organizations/${organization.slug}/spend-allocations/`;
+  const fetchSpendAllocations = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      // NOTE: we cannot just use the subscription period start since newly created allocations could start after the period start
+      // we cannot use the middle of the subscription period since it's possible to have a current allocation that ends before mid period
+      const targetTimestamp = Math.max(Date.now() / 1000, period[0]!.getTime() / 1000);
+      const periods = DEFAULT_SPEND_ALLOCATION_PERIODS;
+      const SPEND_ALLOCATIONS_PATH = `/organizations/${organization.slug}/spend-allocations/`;
 
-        // there should only be one root allocation per billing metric, so we don't need to pass the cursor
-        const rootAllocationsResp = await api.requestPromise(SPEND_ALLOCATIONS_PATH, {
+      // there should only be one root allocation per billing metric, so we don't need to pass the cursor
+      const rootAllocationsResp = await api.requestPromise(SPEND_ALLOCATIONS_PATH, {
+        method: 'GET',
+        query: {
+          timestamp: targetTimestamp,
+          periods,
+          target_id: organization.id,
+          target_type: 'Organization',
+        },
+      });
+      setRootAllocations(rootAllocationsResp);
+
+      const [projectAllocations, _, resp] = await api.requestPromise(
+        SPEND_ALLOCATIONS_PATH,
+        {
           method: 'GET',
+          includeAllArgs: true,
           query: {
             timestamp: targetTimestamp,
             periods,
-            target_id: organization.id,
-            target_type: 'Organization',
+            target_type: 'Project',
+            cursor: currentCursor,
+            billing_metric: getCategoryInfoFromPlural(selectedMetric)?.name, // TODO: we should update the endpoint to use camelCase api name
           },
-        });
-        setRootAllocations(rootAllocationsResp);
-
-        const [projectAllocations, _, resp] = await api.requestPromise(
-          SPEND_ALLOCATIONS_PATH,
-          {
-            method: 'GET',
-            includeAllArgs: true,
-            query: {
-              timestamp: targetTimestamp,
-              periods,
-              target_type: 'Project',
-              cursor: currentCursor,
-              billing_metric: getCategoryInfoFromPlural(selectedMetric)?.name, // TODO: we should update the endpoint to use camelCase api name
-            },
-          }
-        );
-        setOrgEnabledFlag(true);
-        setSpendAllocations(projectAllocations);
-        setErrors(null);
-
-        const links =
-          (resp?.getResponseHeader('Link') || resp?.getResponseHeader('link')) ??
-          undefined;
-        setPageLinks(links);
-      } catch (err: any) {
-        if (err.status === 404) {
-          setErrors('Error fetching spend allocations');
-        } else if (err.status === 403) {
-          // NOTE: If spend allocations are not enabled, API will return a 403 not found
-          // So capture this case and set enabled to false
-          setOrgEnabledFlag(false);
-        } else {
-          setErrors(err.statusText);
         }
+      );
+      setOrgEnabledFlag(true);
+      setSpendAllocations(projectAllocations);
+      setErrors(null);
+
+      const links =
+        (resp?.getResponseHeader('Link') || resp?.getResponseHeader('link')) ?? undefined;
+      setPageLinks(links);
+    } catch (err: any) {
+      if (err.status === 404) {
+        setErrors('Error fetching spend allocations');
+      } else if (err.status === 403) {
+        // NOTE: If spend allocations are not enabled, API will return a 403 not found
+        // So capture this case and set enabled to false
+        setOrgEnabledFlag(false);
+      } else {
+        setErrors(err.statusText);
       }
-      setIsLoading(false);
-      setShouldRetry(true);
-    },
-    [api, currentCursor, organization.id, organization.slug, period, selectedMetric]
-  );
+    }
+    setIsLoading(false);
+    setShouldRetry(true);
+  }, [api, currentCursor, organization.id, organization.slug, period, selectedMetric]);
 
   const deleteSpendAllocation =
     (
@@ -260,7 +256,9 @@ export function SpendAllocationsRoot({subscription}: Props) {
     try {
       // Clear all allocations
       await api.requestPromise(
-        `/organizations/${organization.slug}/spend-allocations/index/`,
+        getApiUrl('/organizations/$organizationIdOrSlug/spend-allocations/index/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         {
           method: 'DELETE',
         }
@@ -274,7 +272,9 @@ export function SpendAllocationsRoot({subscription}: Props) {
   };
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     fetchSpendAllocations();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [fetchSpendAllocations, viewNextPeriod]);
 
   const openForm = (formData?: SpendAllocation) => (e: React.MouseEvent) => {
@@ -365,7 +365,11 @@ export function SpendAllocationsRoot({subscription}: Props) {
         action={
           !isLoading &&
           orgEnabledFlag && (
-            <Flex gap="md">
+            <Flex
+              direction={{zero: 'column', md: 'row'}}
+              flex={{zero: '1 0 100%', md: '0 1 auto'}}
+              gap="md"
+            >
               {subscription.canSelfServe && hasBillingPerms && (
                 <LinkButton
                   aria-label={t('Manage Subscription')}
@@ -375,16 +379,18 @@ export function SpendAllocationsRoot({subscription}: Props) {
                   {t('Manage Subscription')}
                 </LinkButton>
               )}
-              <Button
-                aria-label={t('New Allocation')}
-                variant="primary"
-                size="sm"
-                data-test-id="new-allocation"
-                icon={<IconAdd size="xs" />}
-                onClick={openForm()}
-              >
-                {t('New Allocation')}
-              </Button>
+              <Container width={{zero: '100%', md: 'fit-content'}}>
+                <Button
+                  aria-label={t('New Allocation')}
+                  variant="primary"
+                  size="sm"
+                  icon={<IconAdd size="xs" />}
+                  onClick={openForm()}
+                  style={{width: '100%'}}
+                >
+                  {t('New Allocation')}
+                </Button>
+              </Container>
             </Flex>
           )
         }
@@ -411,11 +417,11 @@ export function SpendAllocationsRoot({subscription}: Props) {
       )}
       {canViewSpendAllocation && (
         <Grid
-          columns={{'screen:xs': 'repeat(3, 1fr)', 'screen:lg': 'repeat(5, 1fr)'}}
-          areas={{'screen:xs': '"bb bb dd"', 'screen:lg': '"bb bb dd . ."'}}
+          columns={{zero: '1fr', md: 'repeat(3, 1fr)', '4xl': 'repeat(5, 1fr)'}}
+          areas={{zero: '"bb" "dd"', md: '"bb bb dd"', '4xl': '"bb bb dd . ."'}}
           gap="xl"
           margin="xl 0"
-          data-test-id="subhead-actions"
+          width="100%"
         >
           <StyledButtonBar>
             <Stack align="center" column="2 / 5">
@@ -502,22 +508,24 @@ export function SpendAllocationsRoot({subscription}: Props) {
           </Fragment>
         )}
       {!isLoading && orgEnabledFlag && canViewSpendAllocation && (
-        <Confirm
-          onConfirm={() => {
-            disableSpendAllocations();
-          }}
-          renderMessage={confirmDisableContent}
-        >
-          <Button
-            aria-label={t('Disable Spend Allocations')}
-            size="sm"
-            variant="danger"
-            data-test-id="disable"
-            disabled={!orgEnabledFlag}
+        <Container width={{zero: '100%', md: 'fit-content'}}>
+          <Confirm
+            onConfirm={() => {
+              disableSpendAllocations();
+            }}
+            renderMessage={confirmDisableContent}
           >
-            {t('Disable Spend Allocations')}
-          </Button>
-        </Confirm>
+            <Button
+              aria-label={t('Disable Spend Allocations')}
+              size="sm"
+              variant="danger"
+              disabled={!orgEnabledFlag}
+              style={{width: '100%'}}
+            >
+              {t('Disable Spend Allocations')}
+            </Button>
+          </Confirm>
+        </Container>
       )}
     </SubscriptionPageContainer>
   );
@@ -528,6 +536,7 @@ export default withSubscription(SpendAllocationsRoot);
 const DropdownDataCategory = styled(CompactSelect)`
   grid-column: auto / span 1;
   grid-area: dd;
+  width: 100%;
 
   button[aria-haspopup='listbox'] {
     width: 100%;

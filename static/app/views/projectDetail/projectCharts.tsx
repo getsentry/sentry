@@ -326,11 +326,11 @@ export function ProjectCharts({
                 title={t('Apdex')}
                 help={getTermHelp(organization, PerformanceTerm.APDEX)}
                 query={new MutableSearch([
-                  'event.type:transaction',
+                  'is_transaction:true',
                   query ?? '',
                 ]).formatString()}
-                yAxis="apdex()"
-                field={['apdex()']}
+                yAxis="apdex(span.duration,300)"
+                field={['apdex(span.duration,300)']}
                 api={api}
                 location={location}
                 organization={organization}
@@ -346,7 +346,7 @@ export function ProjectCharts({
                 title={t('Failure Rate')}
                 help={getTermHelp(organization, PerformanceTerm.FAILURE_RATE)}
                 query={new MutableSearch([
-                  'event.type:transaction',
+                  'is_transaction:true',
                   query ?? '',
                 ]).formatString()}
                 yAxis="failure_rate()"
@@ -366,7 +366,7 @@ export function ProjectCharts({
                 title={t('Transactions Per Minute')}
                 help={getTermHelp(organization, PerformanceTerm.TPM)}
                 query={new MutableSearch([
-                  'event.type:transaction',
+                  'is_transaction:true',
                   query ?? '',
                 ]).formatString()}
                 yAxis="tpm()"
@@ -415,7 +415,7 @@ export function ProjectCharts({
               <ProjectBaseEventsChart
                 title={t('Number of Transactions')}
                 query={new MutableSearch([
-                  'event.type:transaction',
+                  'is_transaction:true',
                   query ?? '',
                 ]).formatString()}
                 yAxis="count()"

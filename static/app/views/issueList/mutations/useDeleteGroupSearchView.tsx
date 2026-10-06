@@ -6,6 +6,7 @@ import {
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -29,7 +30,10 @@ export const useDeleteGroupSearchView = (
     ...options,
     mutationFn: ({id}: DeleteGroupSearchViewVariables) =>
       fetchMutation<GroupSearchView>({
-        url: `/organizations/${organization.slug}/group-search-views/${id}/`,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/group-search-views/$viewId/',
+          {path: {organizationIdOrSlug: organization.slug, viewId: id}}
+        ),
         method: 'DELETE',
       }),
     onSuccess: (data, parameters, onMutateResult, context) => {

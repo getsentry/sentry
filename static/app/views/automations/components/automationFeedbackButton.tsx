@@ -5,8 +5,8 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 const automationFeedbackOptions = {
   messagePlaceholder: t('How can we improve the alerts experience?'),
   tags: {
-    ['feedback.source']: 'automations',
-    ['feedback.owner']: 'aci',
+    'feedback.source': 'automations',
+    'feedback.owner': 'aci',
   },
 };
 

@@ -1,3 +1,4 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {WidgetFixture} from 'sentry-fixture/widget';
 import {WidgetQueryFixture} from 'sentry-fixture/widgetQuery';
 
@@ -6,6 +7,9 @@ import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {getWidgetConfigError} from './getWidgetConfigError';
 
 describe('getWidgetConfigError', () => {
+  const organizationWithConditionalAggregates = OrganizationFixture({
+    features: ['explore-conditional-aggregates'],
+  });
   it.each([DisplayType.LINE, DisplayType.AREA, DisplayType.BAR])(
     'returns an error for %s widgets with no aggregates',
     displayType => {
@@ -34,6 +38,18 @@ describe('getWidgetConfigError', () => {
     });
 
     expect(getWidgetConfigError(widget)).toBeUndefined();
+  });
+
+  it('returns an error for trace metrics tables with no aggregates', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.TRACEMETRICS,
+      queries: [WidgetQueryFixture({aggregates: []})],
+    });
+
+    expect(getWidgetConfigError(widget)).toBe(
+      'This widget is missing a metric aggregation to visualize.'
+    );
   });
 
   it('returns undefined for big number widgets with no aggregates', () => {
@@ -79,6 +95,18 @@ describe('getWidgetConfigError', () => {
     expect(getWidgetConfigError(widget)).toBeDefined();
   });
 
+  it('returns an error for heat map widgets with no aggregates', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.HEATMAP,
+      widgetType: WidgetType.TRACEMETRICS,
+      queries: [WidgetQueryFixture({aggregates: []})],
+    });
+
+    expect(getWidgetConfigError(widget)).toBe(
+      'This widget is missing a metric to visualize.'
+    );
+  });
+
   it('returns undefined for heat map widgets with a resolvable metric', () => {
     const widget = WidgetFixture({
       displayType: DisplayType.HEATMAP,
@@ -103,5 +131,94 @@ describe('getWidgetConfigError', () => {
     expect(getWidgetConfigError(widget)).toBe(
       'Heatmaps can only visualize distribution metrics.'
     );
+  });
+
+  it('returns an error for trace metric widgets whose aggregate has no metric', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.TRACEMETRICS,
+      // `sum(value)` is the placeholder aggregate — no metric name/type encoded.
+      queries: [WidgetQueryFixture({aggregates: ['sum(value)']})],
+    });
+
+    expect(getWidgetConfigError(widget)).toBe(
+      'This widget is missing a metric to visualize.'
+    );
+  });
+
+  it('nudges to finish the equation when a blank equation is the only aggregate', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.TRACEMETRICS,
+      // The blank equation was stripped during conversion, leaving no aggregates.
+      queries: [WidgetQueryFixture({aggregates: []})],
+    });
+
+    expect(getWidgetConfigError(widget)).toBe(
+      'The widget configuration is not valid. Please add a "Visualize" field.'
+    );
+  });
+
+  it('returns undefined for a trace metric widget with a resolvable metric', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.TRACEMETRICS,
+      queries: [
+        WidgetQueryFixture({aggregates: ['sum(value,test_metric,distribution,none)']}),
+      ],
+    });
+
+    expect(getWidgetConfigError(widget)).toBeUndefined();
+  });
+
+  it('returns an error for spans widgets with an invalid Explore-style _if filter', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [WidgetQueryFixture({aggregates: ['avg_if(``,span.duration)']})],
+    });
+
+    expect(getWidgetConfigError(widget, organizationWithConditionalAggregates)).toBe(
+      'Invalid series filter'
+    );
+  });
+
+  it('ignores invalid Explore-style _if filters when the feature is disabled', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [WidgetQueryFixture({aggregates: ['avg_if(``,span.duration)']})],
+    });
+
+    expect(getWidgetConfigError(widget, OrganizationFixture())).toBeUndefined();
+    expect(getWidgetConfigError(widget)).toBeUndefined();
+  });
+
+  it('returns undefined when a spans widget still has a valid series alongside an invalid _if', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        WidgetQueryFixture({
+          aggregates: ['avg(span.duration)', 'avg_if(``,span.duration)'],
+        }),
+      ],
+    });
+
+    expect(
+      getWidgetConfigError(widget, organizationWithConditionalAggregates)
+    ).toBeUndefined();
+  });
+
+  it('returns undefined for spans widgets with a valid Explore-style _if filter', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [WidgetQueryFixture({aggregates: ['avg_if(`span.op:db`,span.duration)']})],
+    });
+
+    expect(
+      getWidgetConfigError(widget, organizationWithConditionalAggregates)
+    ).toBeUndefined();
   });
 });

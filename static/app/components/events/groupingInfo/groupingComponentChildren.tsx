@@ -16,14 +16,17 @@ type Props = {
 export function GroupingComponentChildren({component, showNonContributing}: Props) {
   return (
     <Fragment>
-      {component.values
-        .filter((value: any) => groupingComponentFilter(value, showNonContributing))
-        .map((value: any, index: number) => (
+      {component.values.map((value, index) =>
+        groupingComponentFilter(value, showNonContributing) ? (
           <GroupingComponentListItem
             // value.id is not a unique value
-            key={typeof value === 'object' ? `${value.id}-${index}` : `${value}-${index}`}
+            key={
+              typeof value === 'object' && value !== null
+                ? `${value.id}-${index}`
+                : `${value}-${index}`
+            }
           >
-            {typeof value === 'object' ? (
+            {typeof value === 'object' && value !== null ? (
               <GroupingComponent
                 component={value}
                 showNonContributing={showNonContributing}
@@ -39,7 +42,8 @@ export function GroupingComponentChildren({component, showNonContributing}: Prop
               </GroupingValue>
             )}
           </GroupingComponentListItem>
-        ))}
+        ) : null
+      )}
     </Fragment>
   );
 }
@@ -61,8 +65,8 @@ const GroupingValue = styled('code')<{
     (valueType === 'function' || valueType === 'symbol') &&
     css`
       font-weight: ${contributes ? theme.font.weight.sans.medium : 'normal'};
-      color: ${contributes
-        ? theme.tokens.content.primary
-        : theme.tokens.content.secondary};
+      color: ${
+        contributes ? theme.tokens.content.primary : theme.tokens.content.secondary
+      };
     `}
 `;

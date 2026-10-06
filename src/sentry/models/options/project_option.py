@@ -47,6 +47,7 @@ OPTION_KEYS = frozenset(
         "sentry:feedback_ai_spam_detection",
         "sentry:enable_auto_release_creation",
         "sentry:toolbar_allowed_origins",
+        "sentry:relay_automatic_json_expansion",
         "sentry:token",
         "sentry:token_header",
         "sentry:verify_ssl",
@@ -57,6 +58,7 @@ OPTION_KEYS = frozenset(
         "sentry:secondary_grouping_config",
         "sentry:secondary_grouping_expiry",
         "sentry:similarity_backfill_completed",
+        "sentry:group_action_log_backfill_completed",
         "sentry:fingerprinting_rules",
         "sentry:relay_pii_config",
         "sentry:dynamic_sampling",
@@ -234,6 +236,11 @@ class ProjectOption(Model):
         unique_together = (("project", "key"),)
         indexes = [
             models.Index(fields=["key"]),
+            models.Index(
+                fields=["value", "id"],
+                condition=models.Q(key="sentry:group_action_log_backfill_completed"),
+                name="sentry_proj_gal_val_id_idx",
+            ),
         ]
 
     __repr__ = sane_repr("project_id", "key", "value")

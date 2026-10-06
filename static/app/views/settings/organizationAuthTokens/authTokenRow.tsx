@@ -1,13 +1,11 @@
-import {Fragment} from 'react';
-import styled from '@emotion/styled';
-
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Confirm} from 'sentry/components/confirm';
 import {Placeholder} from 'sentry/components/placeholder';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -27,30 +25,34 @@ function LastUsed({
 }) {
   if (dateLastUsed && projectLastUsed) {
     return (
-      <Fragment>
+      <Text wordBreak="break-word">
         {tct('[date] in project [project]', {
-          date: <TimeSince date={dateLastUsed} />,
+          date: (
+            <Text wrap="nowrap">
+              <TimeSince date={dateLastUsed} />
+            </Text>
+          ),
           project: (
             <Link to={`/settings/${organization.slug}/projects/${projectLastUsed.slug}/`}>
               {projectLastUsed.name}
             </Link>
           ),
         })}
-      </Fragment>
+      </Text>
     );
   }
 
   if (dateLastUsed) {
     return (
-      <Fragment>
+      <Text wrap="nowrap">
         <TimeSince date={dateLastUsed} />
-      </Fragment>
+      </Text>
     );
   }
 
   if (projectLastUsed) {
     return (
-      <Fragment>
+      <Text wordBreak="break-word">
         {tct('in project [project]', {
           project: (
             <Link to={`/settings/${organization.slug}/${projectLastUsed.slug}/`}>
@@ -58,11 +60,11 @@ function LastUsed({
             </Link>
           ),
         })}
-      </Fragment>
+      </Text>
     );
   }
 
-  return <NeverUsed>{t('never used')}</NeverUsed>;
+  return <Text variant="muted">{t('never used')}</Text>;
 }
 
 export function OrganizationAuthTokensAuthTokenRow({
@@ -81,32 +83,32 @@ export function OrganizationAuthTokensAuthTokenRow({
   revokeToken?: (token: OrgAuthToken) => void;
 }) {
   return (
-    <Fragment>
-      <div>
-        <Label>
+    <SimpleTable.Row>
+      <SimpleTable.RowCell direction="column" align="start">
+        <Text wordBreak="break-word">
           <Link to={`/settings/${organization.slug}/auth-tokens/${token.id}/`}>
             {token.name}
           </Link>
-        </Label>
+        </Text>
 
         {token.tokenLastCharacters && (
-          <TokenPreview aria-label={t('Token preview')}>
+          <Text variant="muted" aria-label={t('Token preview')} wordBreak="break-word">
             {tokenPreview(token.tokenLastCharacters, 'sntrys_')}
-          </TokenPreview>
+          </Text>
         )}
-      </div>
+      </SimpleTable.RowCell>
 
-      <Flex align="center" gap="xs">
+      <SimpleTable.RowCell gap="xs">
         {isProjectLoading ? (
           <Placeholder height="1.25em" />
         ) : (
-          <Fragment>
+          <Text wrap="nowrap">
             <TimeSince date={token.dateCreated} />
-          </Fragment>
+          </Text>
         )}
-      </Flex>
+      </SimpleTable.RowCell>
 
-      <Flex align="center" gap="xs">
+      <SimpleTable.RowCell gap="xs">
         {isProjectLoading ? (
           <Placeholder height="1.25em" />
         ) : (
@@ -116,9 +118,9 @@ export function OrganizationAuthTokensAuthTokenRow({
             organization={organization}
           />
         )}
-      </Flex>
+      </SimpleTable.RowCell>
 
-      <Flex justify="end">
+      <SimpleTable.RowCell justify="end">
         <Tooltip
           title={t('You must be an organization owner or manager to revoke a token.')}
           disabled={!!revokeToken}
@@ -141,17 +143,7 @@ export function OrganizationAuthTokensAuthTokenRow({
             </Button>
           </Confirm>
         </Tooltip>
-      </Flex>
-    </Fragment>
+      </SimpleTable.RowCell>
+    </SimpleTable.Row>
   );
 }
-
-const Label = styled('div')``;
-
-const NeverUsed = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const TokenPreview = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;

@@ -51,18 +51,19 @@ describe('useMetricAttributesTreeActions', () => {
     mockSetQueryParams.mockClear();
   });
 
-  it('returns filter-only attribute actions', () => {
+  it('returns filter-only attribute actions for string values', () => {
     const {result} = renderHookWithProviders(useMetricAttributesTreeActions, {
       additionalWrapper: Wrapper,
     });
 
     const content: AttributesTreeContent = {
-      originalAttribute: {
+      original: {
         attribute_key: 'release',
         attribute_value: '1.0.0',
         original_attribute_key: 'release',
+        type: 'str',
       },
-      subtree: {},
+      subtree: new Map(),
       value: '1.0.0',
     };
 
@@ -74,13 +75,74 @@ describe('useMetricAttributesTreeActions', () => {
     ]);
   });
 
-  it('returns no actions when originalAttribute is missing', () => {
+  it('returns greater/less than actions for numeric values', () => {
     const {result} = renderHookWithProviders(useMetricAttributesTreeActions, {
       additionalWrapper: Wrapper,
     });
 
     const content: AttributesTreeContent = {
-      subtree: {},
+      original: {
+        attribute_key: 'value',
+        attribute_value: 42,
+        original_attribute_key: 'value',
+        type: 'float',
+      },
+      subtree: new Map(),
+      value: 42,
+    };
+
+    const actions = result.current(content);
+
+    expect(actions.map(action => action.label)).toEqual([
+      'Add to filter',
+      'Exclude this value',
+      'Show values greater than',
+      'Show values less than',
+    ]);
+
+    actions.find(action => action.key === 'search-for-greater-than')?.onAction?.();
+    expect(mockSetQueryParams).toHaveBeenCalledWith(
+      expect.objectContaining({query: 'value:>42'})
+    );
+
+    mockSetQueryParams.mockClear();
+    actions.find(action => action.key === 'search-for-less-than')?.onAction?.();
+    expect(mockSetQueryParams).toHaveBeenCalledWith(
+      expect.objectContaining({query: 'value:<42'})
+    );
+  });
+
+  it('returns greater/less than actions for typed number tag keys', () => {
+    const {result} = renderHookWithProviders(useMetricAttributesTreeActions, {
+      additionalWrapper: Wrapper,
+    });
+
+    const content: AttributesTreeContent = {
+      original: {
+        attribute_key: 'code.line.number',
+        attribute_value: '100',
+        original_attribute_key: 'tags[code.line.number,number]',
+        type: 'str',
+      },
+      subtree: new Map(),
+      value: '100',
+    };
+
+    expect(result.current(content).map(action => action.label)).toEqual([
+      'Add to filter',
+      'Exclude this value',
+      'Show values greater than',
+      'Show values less than',
+    ]);
+  });
+
+  it('returns no actions when the original attribute is missing', () => {
+    const {result} = renderHookWithProviders(useMetricAttributesTreeActions, {
+      additionalWrapper: Wrapper,
+    });
+
+    const content: AttributesTreeContent = {
+      subtree: new Map(),
       value: '',
     };
 

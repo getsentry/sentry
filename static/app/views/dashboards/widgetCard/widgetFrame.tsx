@@ -3,10 +3,11 @@ import styled from '@emotion/styled';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {IconCopy, IconEllipsis, IconExpand, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {StateProps} from 'sentry/views/dashboards/widgets/common/types';
@@ -26,11 +27,9 @@ interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   noVisualizationPadding?: boolean;
   onCopyUrlClick?: () => void;
   onFullScreenViewClick?: () => void | Promise<void>;
-  revealActions?: 'always' | 'hover';
   revealTooltip?: 'always' | 'hover';
   title?: string;
-  titleBadges?: React.ReactNode;
-  warnings?: string[];
+  warnings?: React.ReactNode[];
 }
 
 export function WidgetFrame(props: WidgetFrameProps) {
@@ -67,7 +66,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
       Title={
         <Fragment>
           {props.warnings && props.warnings.length > 0 && (
-            <Tooltip title={<WarningsList warnings={props.warnings} />} isHoverable>
+            <Tooltip title={<WarningsList warnings={props.warnings} />}>
               <TooltipIconTrigger aria-label={t('Widget warnings')}>
                 <IconWarning variant="warning" />
               </TooltipIconTrigger>
@@ -86,10 +85,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
             )}
         </Fragment>
       }
-      revealActions={
-        props.revealTooltip === 'always' ? 'always' : (props.revealActions ?? 'hover')
-      }
-      TitleBadges={props.titleBadges}
+      revealActions={props.revealTooltip === 'always' ? 'always' : 'hover'}
       Actions={
         <Fragment>
           {props.description && (
@@ -137,16 +133,20 @@ export function WidgetFrame(props: WidgetFrameProps) {
                 <DropdownMenu
                   items={actions}
                   isDisabled={props.actionsDisabled}
-                  triggerProps={{
-                    'aria-label': t('Widget actions'),
-                    size: 'xs',
-                    variant: 'transparent',
-                    showChevron: false,
-                    icon: <IconEllipsis direction="down" size="sm" />,
-                    tooltipProps: {
-                      title: hasDisabledActionsMessage ? undefined : t('Widget actions'),
-                    },
-                  }}
+                  trigger={triggerProps => (
+                    <OverlayTrigger.IconButton
+                      {...triggerProps}
+                      aria-label={t('Widget actions')}
+                      size="xs"
+                      variant="transparent"
+                      icon={<IconEllipsis direction="down" size="sm" />}
+                      tooltipProps={{
+                        title: hasDisabledActionsMessage
+                          ? undefined
+                          : t('Widget actions'),
+                      }}
+                    />
+                  )}
                   position="bottom-end"
                 />
               ) : null}
@@ -212,9 +212,5 @@ function TitleActionsWrapper({disabled, disabledMessage, children}: TitleActions
     return children;
   }
 
-  return (
-    <Tooltip title={disabledMessage} isHoverable>
-      {children}
-    </Tooltip>
-  );
+  return <Tooltip title={disabledMessage}>{children}</Tooltip>;
 }

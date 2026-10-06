@@ -37,8 +37,8 @@ function FeedbackButton() {
             'How can we make attribute breakdowns work better for you?'
           ),
           tags: {
-            ['feedback.source']: 'attribute-breakdowns',
-            ['feedback.owner']: 'ml-ai',
+            'feedback.source': 'attribute-breakdowns',
+            'feedback.owner': 'ml-ai',
           },
         })
       }
@@ -260,7 +260,6 @@ function Chart({
     <BaseChart
       ref={chartRef}
       autoHeightResize
-      isGroupedByDate={false}
       tooltip={tooltip}
       grid={{
         left: 2,

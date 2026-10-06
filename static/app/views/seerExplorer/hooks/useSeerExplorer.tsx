@@ -1,16 +1,34 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
+import moment from 'moment-timezone';
+
+import {useTimezone} from '@sentry/scraps/datetime';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {uniqueId} from 'sentry/utils/guid';
+import {
+  fetchMutation,
+  getApiQueryData,
+  setApiQueryData,
+  useApiQuery,
+} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  toChatPromptMetadata,
+  type ChatPrompt,
+} from 'sentry/views/seerExplorer/chatPrompt';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import type {
+  LLMContextLocation,
+  LLMContextSnapshot,
+} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 import {useAsciiSnapshot} from 'sentry/views/seerExplorer/hooks/useAsciiSnapshot';
 import {
   useSeerExplorerChatDispatch,
@@ -19,6 +37,7 @@ import {
 import type {
   Block,
   RepoPRState,
+  RespondToUserInputOptions,
   SeerExplorerResponse,
   SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
@@ -34,6 +53,12 @@ type SeerExplorerChatResponse = {
   sentry_run_id?: string | null;
 };
 
+/** Session data before and after a request's optimistic update, used to roll it back. */
+type SessionSnapshot = {
+  optimisticData: SeerExplorerResponse | undefined;
+  previousData: SeerExplorerResponse | undefined;
+};
+
 type SeerExplorerUpdateResponse = {
   run_id: number;
 };
@@ -44,7 +69,9 @@ type SeerExplorerUpdateResponse = {
  * prevent path traversal in the resulting same-origin POST.
  */
 const makeExplorerUpdateUrl = (orgSlug: string, runId: SeerExplorerRunId | null) =>
-  `/organizations/${orgSlug}/seer/explorer-update/${encodeURIComponent(String(runId))}/`;
+  getApiUrl('/organizations/$organizationIdOrSlug/seer/explorer-update/$runId/', {
+    path: {organizationIdOrSlug: orgSlug, runId: String(runId)},
+  });
 
 /** Routes where the LLMContext tree provides structured page context. */
 const STRUCTURED_CONTEXT_ROUTES = new Set([
@@ -72,26 +99,19 @@ const STRUCTURED_CONTEXT_ROUTES = new Set([
   '/issues/:groupId/attachments/',
   '/issues/:groupId/distributions/',
   '/issues/:groupId/distributions/:tagKey/',
+  '/monitors/',
+  '/monitors/:detectorId/',
+  '/monitors/:detectorId/edit/',
+  '/monitors/alerts/',
+  '/monitors/alerts/:automationId/',
+  '/monitors/alerts/:automationId/edit/',
+  '/monitors/crons/',
+  '/monitors/errors/',
+  '/monitors/metrics/',
+  '/monitors/mobile-builds/',
+  '/monitors/my-monitors/',
+  '/monitors/uptime/',
 ]);
-/** New experimental routes where the LLMContext tree provides structured page context. */
-const NEW_STRUCTURED_CONTEXT_ROUTES = new Set<string>();
-
-function supportsStructuredContext(
-  referrer: string,
-  organization: {features: string[]} | null | undefined
-): boolean {
-  if (STRUCTURED_CONTEXT_ROUTES.has(referrer)) {
-    return (
-      organization?.features.includes('seer-explorer-structured-context-rollout') === true
-    );
-  }
-  if (NEW_STRUCTURED_CONTEXT_ROUTES.has(referrer)) {
-    return (
-      organization?.features.includes('context-engine-structured-page-context') === true
-    );
-  }
-  return false;
-}
 
 const getOptimisticAssistantTexts = () => [
   t('Looking around...'),
@@ -109,23 +129,31 @@ const getOptimisticAssistantTexts = () => [
   t('Scanning the error-waves...'),
 ];
 
-const makeErrorSeerExplorerData = (errorMessage: string): SeerExplorerResponse => ({
-  session: {
-    blocks: [
-      {
-        id: 'error',
-        message: {
-          role: 'assistant',
-          content: `Error: ${errorMessage}`,
-        },
-        timestamp: new Date().toISOString(),
-        loading: false,
-      },
-    ],
-    status: 'error',
-    updated_at: new Date().toISOString(),
-  },
-});
+// The Seer backend sends 'Thinking...' as message.content on in-flight blocks
+// (see add_loading_response_block in the Seer service). Normalize it to null at
+// the API boundary so downstream code never encounters the sentinel.
+const THINKING_SENTINEL = 'Thinking...';
+
+// Keyed on the server's block object, which query structural sharing keeps stable across polls, so
+// an unchanged block normalizes to the same object every time and memoized rows can skip it.
+const normalizedBlockCache = new WeakMap<Block, Block>();
+
+function normalizeBlocks(blocks: Block[] | undefined): Block[] {
+  if (!blocks) {
+    return [];
+  }
+  return blocks.map(block => {
+    if (block.message.content !== THINKING_SENTINEL) {
+      return block;
+    }
+    let normalized = normalizedBlockCache.get(block);
+    if (!normalized) {
+      normalized = {...block, message: {...block.message, content: null}};
+      normalizedBlockCache.set(block, normalized);
+    }
+    return normalized;
+  });
+}
 
 export const useSeerExplorer = () => {
   const queryClient = useQueryClient();
@@ -134,6 +162,7 @@ export const useSeerExplorer = () => {
   const captureAsciiSnapshot = useAsciiSnapshot();
   const {getPageReferrer} = usePageReferrer();
   const {getLLMContext} = useLLMContext();
+  const timezone = useTimezone();
   const [overrideCtxEngEnable, setOverrideCtxEngEnable] = useLocalStorageState(
     'seer-explorer.override.ctx-eng',
     true
@@ -153,7 +182,11 @@ export const useSeerExplorer = () => {
         if (storedValue === false) {
           return 'off';
         }
-        return 'on'; // default
+        // Matches the server's own default for a flagged org. This value is sent on every
+        // request, so it is not really an override until someone picks one — leaving it at
+        // 'on' meant the server's default branch could never be reached from the UI, and
+        // flagged orgs kept getting Code Mode alongside the classic tools.
+        return 'only';
       }
     );
   const [overrideBashModeEnabled, setOverrideBashModeEnabled] = useLocalStorageState(
@@ -161,53 +194,145 @@ export const useSeerExplorer = () => {
     false
   );
 
-  const {runId, chatStates} = useSeerExplorerChatState();
+  const {runId, chatStates, chatPrompt: pendingChatPrompt} = useSeerExplorerChatState();
   const dispatch = useSeerExplorerChatDispatch();
   const [lastSentMessage, setLastSentMessage] = useState<{
+    /** The "Ask Seer" question this message answers, if any. */
+    chatPrompt: ChatPrompt | null;
     insertIndex: number;
     loadingPlaceholderContent: string;
     prevInsertIndexBlockId: string | undefined;
     query: string;
+    /** Identifies the send, so a failed request only clears its own optimistic blocks. */
+    requestId: string;
+    sentAt: string;
   } | null>(null);
   const [hasSentInterrupt, setHasSentInterrupt] = useState(false);
+  // Set when the last chat message or user-input response failed, so the UI can show an
+  // alert until a later request succeeds. `query` is the failed chat message, if any,
+  // so the draft can be restored, and `chatPrompt` the question it answered.
+  const [requestError, setRequestError] = useState<{
+    runId: SeerExplorerRunId | null;
+    chatPrompt?: ChatPrompt;
+    query?: string;
+  } | null>(null);
   const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
+  // The most recent in-flight chat message or user-input response per conversation. Only its
+  // outcome may roll back that conversation's session data, so an older request settling late
+  // can't restore a stale snapshot over a newer one. Entries are removed once that request
+  // settles, so the map only ever holds conversations with a request in flight.
+  const latestRequestIdByRunRef = useRef(new Map<SeerExplorerRunId | null, string>());
+  // The conversation on screen, read by request callbacks: only its requests may change
+  // the error alert, so a request settling in a background chat can't hide or replace it.
+  const currentRunIdRef = useRef(runId);
+  useEffect(() => {
+    currentRunIdRef.current = runId;
+  }, [runId]);
+  const isLatestRequest = (params: {
+    requestId: string;
+    runId: SeerExplorerRunId | null;
+  }) => latestRequestIdByRunRef.current.get(params.runId) === params.requestId;
+  const isCurrentRun = (requestRunId: SeerExplorerRunId | null) =>
+    currentRunIdRef.current === requestRunId;
+  const forgetSettledRequest = (params: {
+    requestId: string;
+    runId: SeerExplorerRunId | null;
+  }) => {
+    if (isLatestRequest(params)) {
+      latestRequestIdByRunRef.current.delete(params.runId);
+    }
+  };
+
+  /**
+   * Optimistically marks the session as processing (prevents isPolling flicker on a new
+   * message) and returns the previous and optimistic data so a failed request can roll it
+   * back.
+   */
+  const markSessionProcessing = useCallback(
+    (orgSlugParam: string, runIdParam: SeerExplorerRunId | null) => {
+      if (runIdParam === null) {
+        // API data is disabled for null runId (new runs).
+        return {previousData: undefined, optimisticData: undefined};
+      }
+      const queryKey = makeSeerExplorerQueryKey(orgSlugParam, runIdParam);
+      const previousData = getApiQueryData<SeerExplorerResponse>(queryClient, queryKey);
+      const optimisticData = setApiQueryData<SeerExplorerResponse>(
+        queryClient,
+        queryKey,
+        prev =>
+          prev?.session
+            ? {
+                ...prev,
+                session: {
+                  ...prev.session,
+                  failure_reason: null,
+                  status: 'processing',
+                  updated_at: new Date().toISOString(),
+                },
+              }
+            : prev
+      );
+      return {previousData, optimisticData};
+    },
+    [queryClient]
+  );
+
+  /**
+   * Restores the session data captured by `markSessionProcessing`, but only while the cache
+   * still holds that optimistic write. If polling or a refetch has since stored fresher server
+   * data, keep it rather than rolling back to the older snapshot.
+   */
+  const restoreSessionData = useCallback(
+    (
+      orgSlugParam: string,
+      runIdParam: SeerExplorerRunId | null,
+      snapshot: SessionSnapshot | undefined
+    ) => {
+      if (runIdParam === null || !snapshot?.previousData) {
+        return;
+      }
+      const queryKey = makeSeerExplorerQueryKey(orgSlugParam, runIdParam);
+      if (
+        getApiQueryData<SeerExplorerResponse>(queryClient, queryKey) !==
+        snapshot.optimisticData
+      ) {
+        return;
+      }
+      setApiQueryData<SeerExplorerResponse>(queryClient, queryKey, snapshot.previousData);
+    },
+    [queryClient]
+  );
 
   // Queries and mutations
   const {mutate: sendMessageMutate, isPending: isSendingMessage} = useMutation<
     SeerExplorerChatResponse,
     RequestError,
     {
+      chatPrompt: ChatPrompt | null;
       insertIndex: number;
       orgSlug: string;
       overrideBashModeEnabled: boolean;
       overrideCodeModeEnable: 'off' | 'on' | 'only';
       overrideCtxEngEnable: boolean;
+      pageLocation: LLMContextLocation | undefined;
       pageName: string;
+      /** The pending prompt this send took from chat state, put back if it fails. */
+      pendingChatPrompt: ChatPrompt | null;
       query: string;
+      requestId: string;
       runId: SeerExplorerRunId | null;
       screenshot: string | undefined;
-    }
+      sentAt: string[];
+    },
+    SessionSnapshot
   >({
-    mutationFn: async params => {
+    onMutate: params => {
       setHasSentInterrupt(false);
-      const queryKey = makeSeerExplorerQueryKey(params.orgSlug, params.runId);
-
-      // Set optimistic status and updated_at to prevent isPolling flicker on new message.
-      if (params.runId !== null) {
-        setApiQueryData<SeerExplorerResponse>(queryClient, queryKey, prev =>
-          prev?.session
-            ? {
-                ...prev,
-                session: {
-                  ...prev.session,
-                  status: 'processing',
-                  updated_at: new Date().toISOString(),
-                },
-              }
-            : prev
-        );
-      }
-      const {url} = parseQueryKey(queryKey);
+      latestRequestIdByRunRef.current.set(params.runId, params.requestId);
+      return markSessionProcessing(params.orgSlug, params.runId);
+    },
+    mutationFn: async params => {
+      const {url} = parseQueryKey(makeSeerExplorerQueryKey(params.orgSlug, params.runId));
       return fetchMutation({
         url,
         method: 'POST',
@@ -216,17 +341,24 @@ export const useSeerExplorer = () => {
           insert_index: params.insertIndex,
           on_page_context: params.screenshot,
           page_name: params.pageName,
+          page_location: params.pageLocation,
+          sent_at: params.sentAt,
           override_ce_enable: params.overrideCtxEngEnable,
           override_bash_mode_enabled: params.overrideBashModeEnabled,
           override_code_mode_enable: params.overrideCodeModeEnable,
+          chat_prompt: params.chatPrompt?.text,
+          chat_prompt_context: params.chatPrompt?.context,
         },
       });
     },
     onSuccess: (response, params) => {
+      if (isLatestRequest(params) && isCurrentRun(params.runId)) {
+        setRequestError(null);
+      }
       if (params.runId === null) {
         // Prefer the UUID; fall back to the numeric run_id for legacy runs.
         dispatch({
-          type: 'set run id',
+          type: 'set created run id',
           payload: response.sentry_run_id ?? response.run_id,
         });
       } else {
@@ -236,22 +368,25 @@ export const useSeerExplorer = () => {
         });
       }
     },
-    onError: (e, params) => {
-      if (params.runId !== null) {
-        // API data is disabled for null runId (new runs).
-        // Will be fixed soon when we get rid of setApiQueryData.
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
-        setApiQueryData<SeerExplorerResponse>(
-          queryClient,
-          makeSeerExplorerQueryKey(params.orgSlug, params.runId),
-          makeErrorSeerExplorerData('An error occurred')
-        );
+    onError: (_e, params, context) => {
+      // A later send (possibly in another conversation) may own the optimistic blocks now.
+      setLastSentMessage(prev => (prev?.requestId === params.requestId ? null : prev));
+      if (!isLatestRequest(params)) {
+        return;
       }
-      addErrorMessage(
-        typeof e.responseJSON?.detail === 'string'
-          ? e.responseJSON.detail
-          : 'Failed to send message'
-      );
+      // Keep the existing conversation: roll back the optimistic status and drop the
+      // optimistic user/loading blocks. The UI surfaces the failure and restores the draft.
+      restoreSessionData(params.orgSlug, params.runId, context);
+      if (isCurrentRun(params.runId)) {
+        setRequestError({
+          runId: params.runId,
+          query: params.query,
+          chatPrompt: params.pendingChatPrompt ?? undefined,
+        });
+      }
+    },
+    onSettled: (_data, _error, params) => {
+      forgetSettledRequest(params);
     },
   });
 
@@ -261,31 +396,18 @@ export const useSeerExplorer = () => {
     {
       inputId: string;
       orgSlug: string;
+      requestId: string;
       runId: SeerExplorerRunId | null;
       responseData?: Record<string, unknown>;
-    }
+    },
+    SessionSnapshot
   >({
-    mutationFn: async params => {
+    onMutate: params => {
       setHasSentInterrupt(false);
-
-      // Set optimistic status and updated_at to prevent isPolling flicker on new message.
-      if (params.runId !== null) {
-        setApiQueryData<SeerExplorerResponse>(
-          queryClient,
-          makeSeerExplorerQueryKey(params.orgSlug, params.runId),
-          prev =>
-            prev?.session
-              ? {
-                  ...prev,
-                  session: {
-                    ...prev.session,
-                    status: 'processing',
-                    updated_at: new Date().toISOString(),
-                  },
-                }
-              : prev
-        );
-      }
+      latestRequestIdByRunRef.current.set(params.runId, params.requestId);
+      return markSessionProcessing(params.orgSlug, params.runId);
+    },
+    mutationFn: async params => {
       return fetchMutation({
         url: makeExplorerUpdateUrl(params.orgSlug, params.runId),
         method: 'POST',
@@ -299,28 +421,26 @@ export const useSeerExplorer = () => {
       });
     },
     onSuccess: (_, params) => {
+      if (isLatestRequest(params) && isCurrentRun(params.runId)) {
+        setRequestError(null);
+      }
       // invalidate the query so fresh data is fetched
       queryClient.invalidateQueries({
         queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
       });
     },
-    onError: (e, params) => {
-      if (params.runId !== null) {
-        // API data is disabled for null runId (new runs).
-
-        // Will be fixed soon when we get rid of setApiQueryData.
-        // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
-        setApiQueryData<SeerExplorerResponse>(
-          queryClient,
-          makeSeerExplorerQueryKey(params.orgSlug, params.runId),
-          makeErrorSeerExplorerData('An error occurred')
-        );
+    onError: (_e, params, context) => {
+      if (!isLatestRequest(params)) {
+        return;
       }
-      addErrorMessage(
-        e instanceof RequestError && typeof e.responseJSON?.detail === 'string'
-          ? e.responseJSON.detail
-          : 'Failed to send user input'
-      );
+      // Keep the existing conversation and pending input so the user can answer again.
+      restoreSessionData(params.orgSlug, params.runId, context);
+      if (isCurrentRun(params.runId)) {
+        setRequestError({runId: params.runId});
+      }
+    },
+    onSettled: (_data, _error, params) => {
+      forgetSettledRequest(params);
     },
   });
 
@@ -343,6 +463,7 @@ export const useSeerExplorer = () => {
                   ...prev,
                   session: {
                     ...prev.session,
+                    failure_reason: null,
                     status: 'processing',
                     updated_at: new Date().toISOString(),
                   },
@@ -405,6 +526,22 @@ export const useSeerExplorer = () => {
     },
   });
 
+  // The error belongs to the conversation it happened in. Clear it whenever the run
+  // changes, however that happens (history, new chat, deep link, drawer open).
+  const [requestErrorRunId, setRequestErrorRunId] = useState(runId);
+  if (requestErrorRunId !== runId) {
+    setRequestErrorRunId(runId);
+    setRequestError(null);
+  }
+
+  const currentRequestError = useMemo<{chatPrompt?: ChatPrompt; query?: string} | null>(
+    () =>
+      requestError?.runId === runId
+        ? {query: requestError.query, chatPrompt: requestError.chatPrompt}
+        : null,
+    [requestError, runId]
+  );
+
   const pollingState = runId === null ? undefined : chatStates[runId]?.polling;
   const isPolling = pollingState === 'polling' || pollingState === 'polling-with-backoff';
   const isTimedOut = pollingState === 'timed-out';
@@ -457,7 +594,8 @@ export const useSeerExplorer = () => {
     (
       query: string,
       explicitInsertIndex?: number,
-      explicitRunId?: SeerExplorerRunId | null
+      explicitRunId?: SeerExplorerRunId | null,
+      explicitChatPrompt?: ChatPrompt | null
     ) => {
       if (!orgSlug) {
         return;
@@ -466,21 +604,45 @@ export const useSeerExplorer = () => {
       // explicitRunId: undefined = use current runId, null = force new run, number = use that run
       const effectiveRunId = explicitRunId === undefined ? runId : explicitRunId;
 
-      // Send structured LLMContext JSON on supported pages when the feature flag
-      // is enabled; fall back to a coarse ASCII screenshot otherwise.
+      // explicitChatPrompt: undefined = the pending question, which moves to the optimistic
+      // block now and back to chat state if the send fails; retry passes the one it answered.
+      const usesPendingChatPrompt = explicitChatPrompt === undefined;
+      const chatPrompt: ChatPrompt | null = usesPendingChatPrompt
+        ? pendingChatPrompt
+        : explicitChatPrompt;
+      // A retry answers a pending question only if it's the same one; any other stays pending.
+      if (
+        pendingChatPrompt &&
+        (usesPendingChatPrompt || pendingChatPrompt.text === explicitChatPrompt?.text)
+      ) {
+        dispatch({type: 'set chat prompt', payload: null});
+      }
+
+      // The snapshot is the source of location for both branches below, so take it
+      // once here rather than only on the structured path.
+      let snapshot: LLMContextSnapshot | undefined;
+      try {
+        snapshot = getLLMContext();
+      } catch (e) {
+        Sentry.captureException(e);
+      }
+
+      // Send structured LLMContext JSON on allowlisted pages; fall back to a
+      // coarse ASCII screenshot everywhere else.
       let screenshot: string | undefined;
       if (
+        snapshot &&
         overrideCtxEngEnable &&
-        supportsStructuredContext(getPageReferrer(), organization)
+        STRUCTURED_CONTEXT_ROUTES.has(getPageReferrer())
       ) {
         try {
-          screenshot = JSON.stringify(getLLMContext());
+          screenshot = JSON.stringify(snapshot);
         } catch (e) {
           Sentry.captureException(e);
-          screenshot = captureAsciiSnapshot?.();
+          screenshot = captureAsciiSnapshot?.(snapshot?.location);
         }
       } else {
-        screenshot = captureAsciiSnapshot?.();
+        screenshot = captureAsciiSnapshot?.(snapshot?.location);
       }
 
       const pageName = getPageReferrer();
@@ -511,20 +673,40 @@ export const useSeerExplorer = () => {
       const placeholderContent = texts[Math.floor(Math.random() * texts.length)]!;
 
       // Update lastSentMessage for optimistic UI
+      const requestId = uniqueId();
       setLastSentMessage({
+        requestId,
         query,
+        chatPrompt,
         insertIndex: newInsertIndex,
         prevInsertIndexBlockId: blocks[newInsertIndex]?.id,
         loadingPlaceholderContent: placeholderContent,
+        sentAt: new Date().toISOString(),
       });
 
       // Send POST request
       sendMessageMutate({
         query,
+        chatPrompt,
+        pendingChatPrompt: usesPendingChatPrompt ? pendingChatPrompt : null,
+        requestId,
         insertIndex: newInsertIndex,
         runId: effectiveRunId,
         orgSlug,
         pageName,
+        pageLocation: snapshot?.location,
+        // Local time first, then the same instant in UTC. Both are display strings
+        // the agent reads directly — nothing downstream parses them, so the zone
+        // name travels in the string (RFC 9557) rather than as a separate field.
+        //
+        // The offset and the bracketed name must come from one source: ConfigStore
+        // calls moment.tz.setDefault with the account timezone preference, so a bare
+        // moment() would render that offset while the browser reported a different
+        // name. useTimezone() is that single source (preference, else browser).
+        sentAt: [
+          `${moment().tz(timezone).format()}[${timezone}]`,
+          moment().utc().format(),
+        ],
         screenshot,
         overrideBashModeEnabled,
         overrideCtxEngEnable,
@@ -536,14 +718,17 @@ export const useSeerExplorer = () => {
       runId,
       apiData,
       captureAsciiSnapshot,
+      dispatch,
       getLLMContext,
       getPageReferrer,
       organization,
       overrideBashModeEnabled,
       overrideCtxEngEnable,
       overrideCodeModeEnable,
+      pendingChatPrompt,
       sendMessageMutate,
       setLastSentMessage,
+      timezone,
     ]
   );
 
@@ -555,11 +740,18 @@ export const useSeerExplorer = () => {
   }, [orgSlug, runId, interruptRunMutate]);
 
   const respondToUserInput = useCallback(
-    (inputId: string, responseData?: Record<string, unknown>) => {
+    (
+      inputId: string,
+      responseData?: Record<string, unknown>,
+      options?: RespondToUserInputOptions
+    ) => {
       if (!orgSlug || !runId) {
         return;
       }
-      userInputMutate({inputId, responseData, orgSlug, runId});
+      userInputMutate(
+        {inputId, responseData, orgSlug, runId, requestId: uniqueId()},
+        {onError: () => options?.onError?.()}
+      );
     },
     [orgSlug, runId, userInputMutate]
   );
@@ -596,7 +788,22 @@ export const useSeerExplorer = () => {
     previousPRStatesRef.current = currentPRStates;
   }, [apiData?.session?.repo_pr_states]);
 
-  const rawSessionData = apiData?.session ?? null;
+  const rawSessionData = useMemo(() => {
+    const session = apiData?.session ?? null;
+    if (!session) {
+      return null;
+    }
+    return {...session, blocks: normalizeBlocks(session.blocks ?? [])};
+  }, [apiData?.session]);
+
+  // A session that comes back with `status: 'error'` and no blocks failed server-side
+  // before anything was rendered. Nothing is left to display, so treat it as a failure
+  // to load the conversation instead of falling through to the default empty state,
+  // which is indistinguishable from an idle new chat.
+  const hasSessionLoadError =
+    runId !== null &&
+    rawSessionData?.status === 'error' &&
+    rawSessionData.blocks.length === 0;
 
   // Append optimistic blocks to session data while polling, enabling a more responsive UI with loading placeholders.
   const processedSessionData = useMemo(() => {
@@ -623,8 +830,10 @@ export const useSeerExplorer = () => {
     const {
       insertIndex,
       query: userQuery,
+      chatPrompt,
       prevInsertIndexBlockId,
       loadingPlaceholderContent,
+      sentAt,
     } = lastSentMessage;
 
     // Hydrated state - don't apply optimistic blocks once the server has persisted
@@ -646,15 +855,19 @@ export const useSeerExplorer = () => {
     // Apply optimistic blocks with insertIndex truncation
     const optimisticUserBlock: Block = {
       id: `user-${insertIndex}-optimistic`,
-      message: {role: 'user', content: userQuery},
-      timestamp: new Date().toISOString(),
+      message: {
+        role: 'user',
+        content: userQuery,
+        metadata: chatPrompt ? toChatPromptMetadata(chatPrompt) : undefined,
+      },
+      timestamp: sentAt,
       loading: false,
     };
 
     const optimisticThinkingBlock: Block = {
       id: `loading-${insertIndex + 1}-optimistic`,
       message: {role: 'assistant', content: loadingPlaceholderContent},
-      timestamp: new Date().toISOString(),
+      timestamp: sentAt,
       loading: true,
     };
 
@@ -682,9 +895,13 @@ export const useSeerExplorer = () => {
     sessionData: processedSessionData,
     isPolling,
     isError,
+    /** The session itself came back errored with nothing to render. */
+    hasSessionLoadError,
     errorStatusCode,
     isTimedOut,
     sendMessage,
+    /** Set when the last chat message or user-input response failed, until a later request succeeds. */
+    requestError: currentRequestError,
     runId,
     /** Switches to a different run and fetches its latest state. */
     switchToRun,

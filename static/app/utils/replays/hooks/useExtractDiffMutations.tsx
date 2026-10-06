@@ -265,6 +265,6 @@ export function useExtractDiffMutations({
     queryFn: () =>
       extractDiffMutations({replay, rangeStartTimestampMs, rangeEndTimestampMs}),
     enabled: true,
-    gcTime: Infinity,
+    staleTime: Infinity,
   });
 }

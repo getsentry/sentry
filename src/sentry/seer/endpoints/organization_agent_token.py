@@ -72,11 +72,9 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
         if not features.has(agent_token.FEATURE_FLAG, organization, actor=request.user):
             raise ResourceDoesNotExist
 
-        # Minting is a user-initiated action (direct session or Seer's X-Viewer-Context on
-        # the user's behalf). A non-user actor -- including an agent token itself -- must not
-        # mint, so identity is always a real user, never anonymous.
-        if not request.user.is_authenticated:
-            raise PermissionDenied("Minting requires a user session.")
+        minting_principal = agent_token.resolve_minting_principal(request.user, request.auth)
+        if not agent_token.is_mintable_agent_principal(minting_principal):
+            raise PermissionDenied("Minting requires a user principal.")
 
         data: Any = request.data
         if not isinstance(data, Mapping):
@@ -89,8 +87,7 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
         session_id = validated_data["sessionId"]
         requested_scopes = validated_data.get("requestedScopes")
 
-        user_id = request.user.id
-        assert user_id is not None  # guaranteed by the user-session requirement above
+        user_id = minting_principal.id
 
         # request.access.scopes is already the caller's role scopes intersected with any
         # OAuth token scopes, so it is the correct upper bound for de-escalation. Identity

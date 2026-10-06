@@ -53,14 +53,11 @@ export function WidgetBuilderNameAndDescription({
           }
           dispatch(
             {type: BuilderStateAction.SET_TITLE, payload: newTitle},
-            {updateUrl: false}
+            {debounceUrl: true}
           );
         }}
         onBlur={value => {
-          dispatch(
-            {type: BuilderStateAction.SET_TITLE, payload: value},
-            {updateUrl: true}
-          );
+          dispatch({type: BuilderStateAction.SET_TITLE, payload: value});
           trackAnalytics('dashboards_views.widget_builder.change', {
             from: source,
             widget_type: state.dataset ?? '',
@@ -87,7 +84,7 @@ export function WidgetBuilderNameAndDescription({
           {t('+ Add Description')}
         </Button>
       )}
-      {!isTextWidget && isDescSelected && <WidgetBuilderDescriptionField rows={4} />}
+      {!isTextWidget && isDescSelected && <WidgetBuilderDescriptionField />}
     </Fragment>
   );
 }

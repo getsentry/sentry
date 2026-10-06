@@ -4,6 +4,7 @@ import {hasEveryAccess} from 'sentry/components/acl/access';
 import {
   IconAsana,
   IconBitbucket,
+  IconCursor,
   IconGeneric,
   IconGithub,
   IconGitlab,
@@ -193,6 +194,8 @@ export const getIntegrationIcon = (
   iconSize: SVGIconProps['size'] = 'md'
 ) => {
   switch (integrationType) {
+    case 'cursor_origin':
+      return <IconCursor size={iconSize} />;
     case 'asana':
       return <IconAsana size={iconSize} />;
     case 'bitbucket':
@@ -270,19 +273,16 @@ export const getIntegrationSourceUrl = (
   }
 };
 
-export function getCodeOwnerIcon(
-  provider: CodeOwner['provider'],
-  iconSize: SVGIconProps['size'] = 'md'
-) {
+export function getCodeOwnerIcon(provider: CodeOwner['provider']) {
   switch (provider ?? '') {
     case 'github':
-      return <IconGithub size={iconSize} />;
+      return <IconGithub size="md" />;
     case 'gitlab':
-      return <IconGitlab size={iconSize} />;
+      return <IconGitlab size="md" />;
     case 'perforce':
-      return <IconPerforce size={iconSize} />;
+      return <IconPerforce size="md" />;
     default:
-      return <IconSentry size={iconSize} />;
+      return <IconSentry size="md" />;
   }
 }
 /**
@@ -292,13 +292,6 @@ export function getCodeOwnerIcon(
  */
 export const integrationRequiresUpgrade = (integration: Integration): boolean =>
   integration.outOfDate === true;
-
-/**
- * URL where a user can review and accept a GitHub App installation's updated
- * permissions. Mirrors `_build_permissions_update_url` on the backend.
- */
-export const getGithubPermissionsUpdateUrl = (installationId: string): string =>
-  `https://github.com/settings/installations/${installationId}/permissions/update`;
 
 export const canManageIntegrations = (organization: Organization): boolean =>
   isActiveSuperuser() || hasEveryAccess(['org:integrations'], {organization});
@@ -333,23 +326,6 @@ export const getAlertText = (integrations?: Integration[]): string | undefined =
     default:
       return undefined;
   }
-};
-
-/**
- * Uses the mapping and baseEndpoint to derive the details for the mappings request.
- * @param baseEndpoint Must have a trailing slash, since the id is appended for PUT requests!
- * @param mapping The mapping or suggestion being sent to the endpoint
- * @returns An object containing the request method (apiMethod), and final endpoint (apiEndpoint)
- */
-export const getExternalActorEndpointDetails = (
-  baseEndpoint: string,
-  mapping?: ExternalActorMappingOrSuggestion
-): {apiEndpoint: string; apiMethod: 'POST' | 'PUT'} => {
-  const isValidMapping = mapping && isExternalActorMapping(mapping);
-  return {
-    apiMethod: isValidMapping ? 'PUT' : 'POST',
-    apiEndpoint: isValidMapping ? `${baseEndpoint}${mapping.id}/` : baseEndpoint,
-  };
 };
 
 export function getIntegrationStatus(integration: Integration) {

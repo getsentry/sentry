@@ -1,16 +1,9 @@
-import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {CompositeSelect} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
 import {IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
-
-const VIEW_OPTION_VALUES = [
-  'most-relevant',
-  'full-stack-trace',
-  'raw-stack-trace',
-] as const;
-const SORT_OPTION_VALUES = ['newest', 'oldest'] as const;
 
 /**
  * A single dropdown that consolidates view, sort, and display toggles.
@@ -42,38 +35,8 @@ export function DisplayOptions() {
         : 'most-relevant';
   const currentSortVal = isNewestFirst ? 'newest' : 'oldest';
 
-  const value = [currentViewVal, currentSortVal, ...(isMinified ? ['minified'] : [])];
-
-  function handleChange(opts: Array<{value: string}>) {
-    const vals = opts.map(o => o.value);
-
-    // Mutually exclusive view selection: pick the newly added view option
-    const newViewVals = vals.filter(v =>
-      VIEW_OPTION_VALUES.includes(v as (typeof VIEW_OPTION_VALUES)[number])
-    );
-    const newViewVal =
-      newViewVals.find(v => v !== currentViewVal) ?? newViewVals[0] ?? currentViewVal;
-    if (newViewVal === 'raw-stack-trace') {
-      setView('raw');
-    } else if (newViewVal === 'full-stack-trace') {
-      setView('full');
-    } else {
-      setView('app');
-    }
-
-    // Mutually exclusive sort selection: pick the newly added sort option
-    const newSortVals = vals.filter(v =>
-      SORT_OPTION_VALUES.includes(v as (typeof SORT_OPTION_VALUES)[number])
-    );
-    const newSortVal =
-      newSortVals.find(v => v !== currentSortVal) ?? newSortVals[0] ?? currentSortVal;
-    setIsNewestFirst(newSortVal === 'newest');
-
-    setIsMinified(vals.includes('minified'));
-  }
-
   return (
-    <CompactSelect
+    <CompositeSelect
       trigger={triggerProps => (
         <OverlayTrigger.Button
           {...triggerProps}
@@ -84,38 +47,51 @@ export function DisplayOptions() {
           {t('Display')}
         </OverlayTrigger.Button>
       )}
-      multiple
       position="bottom-end"
-      value={value}
-      onChange={handleChange}
-      options={[
-        {
-          label: t('View'),
-          options: [
-            {label: t('Most Relevant'), value: 'most-relevant'},
-            {label: t('Full Stack Trace'), value: 'full-stack-trace'},
-            {label: t('Raw Stack Trace'), value: 'raw-stack-trace'},
-          ],
-        },
-        {
-          label: t('Sort'),
-          options: [
-            {label: t('Newest'), value: 'newest'},
-            {label: t('Oldest'), value: 'oldest'},
-          ],
-        },
-        {
-          label: t('Display'),
-          options: [
-            {
-              label: minifiedLabel,
-              value: 'minified',
-              disabled: !hasMinifiedStacktrace,
-              tooltip: hasMinifiedStacktrace ? undefined : minifiedUnavailableTooltip,
-            },
-          ],
-        },
-      ]}
-    />
+    >
+      <CompositeSelect.Region
+        label={t('View')}
+        closeOnSelect={false}
+        value={currentViewVal}
+        onChange={opt => {
+          if (opt.value === 'raw-stack-trace') {
+            setView('raw');
+          } else if (opt.value === 'full-stack-trace') {
+            setView('full');
+          } else {
+            setView('app');
+          }
+        }}
+        options={[
+          {label: t('Most Relevant'), value: 'most-relevant'},
+          {label: t('Full Stack Trace'), value: 'full-stack-trace'},
+          {label: t('Raw Stack Trace'), value: 'raw-stack-trace'},
+        ]}
+      />
+      <CompositeSelect.Region
+        label={t('Sort')}
+        closeOnSelect={false}
+        value={currentSortVal}
+        onChange={opt => setIsNewestFirst(opt.value === 'newest')}
+        options={[
+          {label: t('Newest'), value: 'newest'},
+          {label: t('Oldest'), value: 'oldest'},
+        ]}
+      />
+      <CompositeSelect.Region
+        label={t('Display')}
+        multiple
+        value={isMinified ? ['minified'] : []}
+        onChange={opts => setIsMinified(opts.some(opt => opt.value === 'minified'))}
+        options={[
+          {
+            label: minifiedLabel,
+            value: 'minified',
+            disabled: !hasMinifiedStacktrace,
+            tooltip: hasMinifiedStacktrace ? undefined : minifiedUnavailableTooltip,
+          },
+        ]}
+      />
+    </CompositeSelect>
   );
 }

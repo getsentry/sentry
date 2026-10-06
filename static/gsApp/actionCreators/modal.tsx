@@ -84,7 +84,7 @@ export async function openOnDemandBudgetEditModal(
 
 const onDemandBudgetEditModalCss = (theme: Theme) => css`
   @media (min-width: ${theme.breakpoints.md}) {
-    width: 1000px;
+    width: 800px;
   }
 `;
 
@@ -107,7 +107,6 @@ type UpsellModalProps = {
   reservations: Reservations;
   subscription: Subscription;
   surface: AM2UpdateSurfaces;
-  isActionDisabled?: boolean;
   onComplete?: () => void;
 };
 
@@ -138,7 +137,6 @@ export async function openAM2UpsellModalSamePrice(options: UpsellModalSamePriceP
 type ProfilingUpsellModalProps = {
   organization: Organization;
   subscription: Subscription;
-  isActionDisabled?: boolean;
   onComplete?: () => void;
 };
 

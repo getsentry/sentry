@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
@@ -29,8 +28,6 @@ function renderMockRequests({
   canSelfServe,
 }: {
   organization: Organization;
-  // Legacy plans without performance/tracing take the "request an update" path;
-  // modern plans take the replay-onboarding path.
   canSelfServe?: boolean;
   isAncientPlan?: boolean;
 }) {
@@ -48,21 +45,12 @@ function renderMockRequests({
     body: {},
   });
 
-  if (isAncientPlan) {
-    const requestUpdatePlan = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/plan-upgrade-request/`,
-      method: 'POST',
-    });
-
-    return {requestUpdatePlan};
-  }
-
-  const requestUpdatePlanDueToReplay = MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/replay-onboard-request/`,
+  const requestUpdatePlan = MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/plan-upgrade-request/`,
     method: 'POST',
   });
 
-  return {requestUpdatePlanDueToReplay};
+  return {requestUpdatePlan};
 }
 
 describe('ProductUnavailableCTA', () => {
@@ -100,7 +88,7 @@ describe('ProductUnavailableCTA', () => {
       await userEvent.click(screen.getByRole('button', {name: /request update/i}));
 
       await waitFor(() => {
-        expect(mockRequests?.requestUpdatePlan).toHaveBeenCalledWith(
+        expect(mockRequests.requestUpdatePlan).toHaveBeenCalledWith(
           '/organizations/org-slug/plan-upgrade-request/',
           expect.objectContaining({
             method: 'POST',
@@ -130,13 +118,10 @@ describe('ProductUnavailableCTA', () => {
       await userEvent.click(screen.getByRole('button', {name: /request update/i}));
 
       await waitFor(() => {
-        expect(mockRequests.requestUpdatePlanDueToReplay).toHaveBeenCalledWith(
-          `/organizations/${organization.slug}/replay-onboard-request/`,
+        expect(mockRequests.requestUpdatePlan).toHaveBeenCalledWith(
+          `/organizations/${organization.slug}/plan-upgrade-request/`,
           expect.objectContaining({
             method: 'POST',
-            data: {
-              name: 'am1-non-beta',
-            },
           })
         );
       });

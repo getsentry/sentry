@@ -1,13 +1,23 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {expectTypeOf} from 'expect-type';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {Button} from '@sentry/scraps/button';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {DropdownButton} from 'sentry/components/dropdownButton';
+import {IconEllipsis} from 'sentry/icons';
 
-import {CompactSelect, type SelectOption} from './';
+import {CompactSelect, getEscapedKey, type SelectOption} from './';
+
+describe('getEscapedKey', () => {
+  it('only escapes values that need it', () => {
+    expect(getEscapedKey('environment-123')).toBe('environment-123');
+    expect(getEscapedKey('release.version')).toBe('release\\.version');
+    expect(getEscapedKey(123)).toBe('\\31 23');
+  });
+});
 
 describe('CompactSelect', () => {
   describe('types', () => {
@@ -102,35 +112,96 @@ describe('CompactSelect', () => {
       );
     });
 
-    it('should only allow SelectTrigger as trigger', () => {
-      const value: 'opt_one' | 'opt_two' = 'opt_one';
+    it('rejects trigger refs on native elements and regular buttons', () => {
       void (
         <CompactSelect
-          value={value}
+          value="opt_one"
+          onChange={() => {}}
+          trigger={triggerProps => {
+            return (
+              <Fragment>
+                {/* @ts-expect-error not allowed */}
+                <button {...triggerProps} />
+                {/* @ts-expect-error not allowed */}
+                <Button {...triggerProps} />
+                {/* @ts-expect-error not allowed */}
+                <div {...triggerProps} />
+                {/* @ts-expect-error not allowed */}
+                <span {...triggerProps} />
+              </Fragment>
+            );
+          }}
+          options={[{value: 'opt_one', label: 'Option One'}]}
+        />
+      );
+    });
+
+    it('accepts trigger props on OverlayTrigger.Button and OverlayTrigger.IconButton', () => {
+      void (
+        <CompactSelect
+          value="opt_one"
           onChange={() => {}}
           trigger={props => {
-            // @ts-expect-error should only allow SelectTrigger components
-            return <DropdownButton {...props}>Trigger</DropdownButton>;
+            expectTypeOf(props).toExtend<
+              React.ComponentProps<typeof OverlayTrigger.Button>
+            >();
+            return <OverlayTrigger.Button {...props} />;
           }}
-          options={[
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
-          ]}
+          options={[{value: 'opt_one', label: 'Option One'}]}
         />
       );
 
       void (
         <CompactSelect
-          value={value}
+          value="opt_one"
           onChange={() => {}}
           trigger={props => {
-            // no type error here
-            return <OverlayTrigger.Button {...props}>Trigger</OverlayTrigger.Button>;
+            const iconButtonProps = {
+              ...props,
+              icon: <IconEllipsis />,
+              'aria-label': 'Select option',
+            };
+            expectTypeOf(iconButtonProps).toExtend<
+              React.ComponentProps<typeof OverlayTrigger.IconButton>
+            >();
+            return <OverlayTrigger.IconButton {...iconButtonProps} />;
           }}
-          options={[
-            {value: 'opt_one', label: 'Option One'},
-            {value: 'opt_two', label: 'Option Two'},
-          ]}
+          options={[{value: 'opt_one', label: 'Option One'}]}
+        />
+      );
+    });
+
+    it('accepts merging trigger refs', () => {
+      void (
+        <CompactSelect
+          value="opt_one"
+          onChange={() => {}}
+          trigger={({ref, ...triggerProps}) => {
+            return (
+              <OverlayTrigger.Button
+                {...triggerProps}
+                ref={mergeRefs(ref, useRef<HTMLButtonElement>(null))}
+              />
+            );
+          }}
+          options={[{value: 'opt_one', label: 'Option One'}]}
+        />
+      );
+    });
+
+    it('accepts merging trigger props', () => {
+      void (
+        <CompactSelect
+          value="opt_one"
+          onChange={() => {}}
+          trigger={triggerProps => {
+            return (
+              <OverlayTrigger.Button
+                {...mergeProps(triggerProps, {ref: useRef<HTMLButtonElement>(null)})}
+              />
+            );
+          }}
+          options={[{value: 'opt_one', label: 'Option One'}]}
         />
       );
     });
@@ -1530,6 +1601,35 @@ describe('CompactSelect', () => {
       // Option Three is still available via search
       await userEvent.type(screen.getByPlaceholderText('Search…'), 'three');
       expect(screen.getByRole('row', {name: 'Option Three'})).toBeInTheDocument();
+    });
+
+    it('preserves selected values outside the size limit', async () => {
+      const onChange = jest.fn();
+      render(
+        <CompactSelect
+          mode="grid"
+          multiple
+          search
+          sizeLimit={2}
+          options={[
+            {value: 'opt_one', label: 'Option One'},
+            {value: 'opt_two', label: 'Option Two'},
+            {value: 'opt_three', label: 'Option Three'},
+          ]}
+          value={['opt_one', 'opt_two', 'opt_three']}
+          onChange={onChange}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+      expect(screen.queryByRole('row', {name: 'Option Three'})).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('row', {name: 'Option One'}));
+
+      expect(onChange).toHaveBeenCalledWith([
+        {value: 'opt_two', label: 'Option Two'},
+        {value: 'opt_three', label: 'Option Three'},
+      ]);
     });
 
     it('can toggle sections', async () => {

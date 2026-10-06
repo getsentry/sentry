@@ -17,10 +17,6 @@ export type HelpProps = {
 };
 
 export function CSPHelp({data: {effective_directive: key}}: HelpProps) {
-  const getHelp = () => ({
-    __html: effectiveDirectives[key],
-  });
-
   const getLinkHref = () => {
     const baseLink =
       'https://developer.mozilla.org/en-US/docs/Web/Security/CSP/CSP_policy_directives#';
@@ -33,26 +29,22 @@ export function CSPHelp({data: {effective_directive: key}}: HelpProps) {
     return `${baseLink}${key}`;
   };
 
-  const getLink = () => {
-    const href = getLinkHref();
-
-    return (
-      <StyledExternalLink href={href}>
-        {'developer.mozilla.org'}
-        <IconOpen size="xs" className="external-icon" />
-      </StyledExternalLink>
-    );
-  };
+  const link = (
+    <StyledExternalLink href={getLinkHref()}>
+      {'developer.mozilla.org'}
+      <IconOpen size="xs" className="external-icon" />
+    </StyledExternalLink>
+  );
 
   return (
     <div>
       <h4>
         <code>{key}</code>
       </h4>
-      <blockquote dangerouslySetInnerHTML={getHelp()} />
+      <blockquote>{effectiveDirectives[key]}</blockquote>
       <StyledP>
         <span>{'\u2014 MDN ('}</span>
-        <span>{getLink()}</span>
+        <span>{link}</span>
         <span>{')'}</span>
       </StyledP>
     </div>

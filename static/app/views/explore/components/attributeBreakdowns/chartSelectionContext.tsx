@@ -2,7 +2,6 @@ import {createContext, useContext, useMemo} from 'react';
 import {createParser, useQueryState} from 'nuqs';
 
 import type {Selection} from 'sentry/components/charts/useChartXRangeSelection';
-import {UrlParamBatchProvider} from 'sentry/utils/url/urlParamBatchContext';
 
 export type ChartSelectionQueryParam = {
   chartIndex: number;
@@ -84,15 +83,7 @@ export function ChartSelectionProvider({children}: ChartSelectionProviderProps) 
     [chartSelection, setChartSelection]
   );
 
-  // TODO: Remove UrlParamBatchProvider once all child components using useQueryParamState
-  // have been migrated to nuqs. Current remaining usages:
-  // - attributeDistributionContent.tsx
-  // - cohortComparisonContent.tsx
-  return (
-    <UrlParamBatchProvider>
-      <ChartSelectionContext value={value}>{children}</ChartSelectionContext>
-    </UrlParamBatchProvider>
-  );
+  return <ChartSelectionContext value={value}>{children}</ChartSelectionContext>;
 }
 
 export function useChartSelection(): ChartSelectionContextValue {

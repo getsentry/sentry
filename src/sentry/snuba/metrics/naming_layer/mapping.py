@@ -20,7 +20,6 @@ from sentry.snuba.metrics.naming_layer.mri import (
 from sentry.snuba.metrics.naming_layer.public import (
     SessionMetricKey,
     SpanMetricKey,
-    TransactionMetricKey,
 )
 
 
@@ -39,7 +38,6 @@ def create_name_mapping_layers() -> None:
 
     for MetricKey, MRI in (
         (SessionMetricKey, SessionMRI),
-        (TransactionMetricKey, TransactionMRI),
         (SpanMetricKey, SpanMRI),
     ):
         # Adds new names at the end, so that when the reverse mapping is created

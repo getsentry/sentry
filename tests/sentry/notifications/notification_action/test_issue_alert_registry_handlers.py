@@ -111,24 +111,6 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
                 self.action, self.detector, self.event_data, workflow_id=self.workflow.id
             )
 
-    def test_create_rule_instance_from_action_missing_rule_workflow_id_raises_value_error(
-        self,
-    ) -> None:
-        job = WorkflowEventData(
-            event=self.group_event, workflow_env=self.environment, group=self.group
-        )
-        action = self.create_action(
-            type=Action.Type.DISCORD,
-            integration_id="1234567890",
-            config={"target_identifier": "channel456", "target_type": ActionTarget.SPECIFIC},
-            data={"tags": "environment,user,my_tag"},
-        )
-
-        with pytest.raises(ValueError):
-            self.handler.create_rule_instance_from_action(
-                action, self.detector, job, workflow_id=None
-            )
-
     def test_create_rule_instance_from_action(self) -> None:
         """Test that create_rule_instance_from_action creates a Rule with correct attributes"""
         rule = self.handler.create_rule_instance_from_action(
@@ -141,7 +123,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert rule.environment_id is not None
         assert self.workflow.environment is not None
         assert rule.environment_id == self.workflow.environment.id
-        assert rule.label == rule.label
+        assert rule.label == self.workflow.name
         assert rule.data == {
             "actions": [
                 {
@@ -209,6 +191,17 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
             ]
         }
 
+    def test_rule_instance_from_action_uses_workflow_name_not_stale_rule_label(
+        self,
+    ) -> None:
+        self.workflow.update(name="Renamed Alert Name")
+        rule = self.handler.create_rule_instance_from_action(
+            self.action, self.detector, self.event_data, workflow_id=self.workflow.id
+        )
+        assert isinstance(rule, Rule)
+        assert rule.label == "Renamed Alert Name"
+        assert rule.label != self.rule.label  # legacy rule label is still "Test Alert"
+
     def test_create_rule_instance_from_action_with_test_notification_id(self) -> None:
         """Test that Workflow lookup is skipped for test notifications, falling back to detector name"""
         rule = self.handler.create_rule_instance_from_action(
@@ -241,7 +234,7 @@ class TestBaseIssueAlertHandler(BaseWorkflowTest):
         assert rule.id == self.action.id
         assert rule.project == self.detector.project
         assert rule.environment_id is None
-        assert rule.label == rule.label
+        assert rule.label == self.workflow.name
         assert rule.data == {
             "actions": [
                 {

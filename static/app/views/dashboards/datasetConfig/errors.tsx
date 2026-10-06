@@ -6,7 +6,6 @@ import type {
   Organization,
 } from 'sentry/types/organization';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
-import {useCustomMeasurementsConfig} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
@@ -19,11 +18,18 @@ import {
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {AggregationKey} from 'sentry/utils/fields';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
+import {isEventsTimeSeriesResponse} from 'sentry/views/dashboards/utils/isEventsStats';
 import {transformEventsResponseToSeries} from 'sentry/views/dashboards/utils/transformEventsResponseToSeries';
+import {
+  getTimeSeriesResultTypes,
+  getTimeSeriesResultUnits,
+  transformTimeSeriesResponseToSeries,
+} from 'sentry/views/dashboards/utils/transformTimeSeriesResponseToSeries';
 import {EventsSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 import {
   useErrorsSeriesQuery,
@@ -49,7 +55,7 @@ import {
   renderEventIdAsLinkable,
   renderTraceAsLinkable,
   transformEventsResponseToTable,
-} from './errorsAndTransactions';
+} from './events';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
   name: '',
@@ -71,10 +77,6 @@ function useEventsSearchBarDataProvider(
 ): SearchBarData {
   const {pageFilters, widgetQuery} = props;
   const organization = useOrganization();
-  const {customMeasurements} = useCustomMeasurementsConfig({
-    organization,
-    selection: pageFilters,
-  });
   const eventView = eventViewFromWidget(
     '',
     widgetQuery ?? DEFAULT_WIDGET_QUERY,
@@ -88,12 +90,14 @@ function useEventsSearchBarDataProvider(
     projectIds: eventView.project,
     dataset: DiscoverDatasets.ERRORS,
     fields,
-    customMeasurements,
   });
 }
 
 export const ErrorsConfig: DatasetConfig<
-  EventsStats | MultiSeriesEventsStats | GroupedMultiSeriesEventsStats,
+  | EventsStats
+  | MultiSeriesEventsStats
+  | GroupedMultiSeriesEventsStats
+  | EventsTimeSeriesResponse,
   TableData | EventsTableData
 > = {
   defaultCategoryField: 'title',
@@ -124,7 +128,14 @@ export const ErrorsConfig: DatasetConfig<
   useSeriesQuery: useErrorsSeriesQuery,
   useTableQuery: useErrorsTableQuery,
   transformTable: transformEventsResponseToTable,
-  transformSeries: transformEventsResponseToSeries,
+  transformSeries: (data, widgetQuery) =>
+    isEventsTimeSeriesResponse(data)
+      ? transformTimeSeriesResponseToSeries(data, widgetQuery)
+      : transformEventsResponseToSeries(data, widgetQuery),
+  getSeriesResultType: data =>
+    isEventsTimeSeriesResponse(data) ? getTimeSeriesResultTypes(data) : {},
+  getSeriesResultUnit: data =>
+    isEventsTimeSeriesResponse(data) ? getTimeSeriesResultUnits(data) : {},
   filterAggregateParams,
 };
 

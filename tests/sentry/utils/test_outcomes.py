@@ -288,6 +288,7 @@ def test_track_outcome_late(setup) -> None:
             project_id=2,
             key_id=3,
             outcome=Outcome.ACCEPTED,
+            quantity=10,
             timestamp=mock_date - timedelta(days=1, microseconds=1),
         )
 
@@ -295,6 +296,7 @@ def test_track_outcome_late(setup) -> None:
             [
                 mock.call(
                     "events.outcomes.late",
+                    amount=10,
                     skip_internal=True,
                     tags={
                         "outcome": "accepted",
@@ -305,6 +307,7 @@ def test_track_outcome_late(setup) -> None:
                 ),
                 mock.call(
                     "events.outcomes",
+                    amount=10,
                     skip_internal=True,
                     tags={
                         "outcome": "accepted",
@@ -385,7 +388,7 @@ def test_track_outcome_with_non_positive_quantity(setup, quantity: int) -> None:
     assert data["quantity"] == quantity
 
 
-def test_metrics_incr_called_with_correct_tags(setup) -> None:
+def test_metrics_incr_called_with_correct_tags_and_quantity(setup) -> None:
     """
     Tests that `metrics.incr` is called with the correct arguments.
     """
@@ -397,10 +400,12 @@ def test_metrics_incr_called_with_correct_tags(setup) -> None:
             outcome=Outcome.ACCEPTED,
             reason="test_reason",
             category=DataCategory.ERROR,
+            quantity=10,
         )
 
         mock_metrics_incr.assert_called_once_with(
             "events.outcomes",
+            amount=10,
             skip_internal=True,
             tags={
                 "outcome": "accepted",

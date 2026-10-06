@@ -13,6 +13,7 @@ from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
@@ -34,7 +35,6 @@ from sentry.issues.action_log import resolve_action_source
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.objectstore import get_preprod_session
 from sentry.preprod.analytics import (
     PreprodArtifactApiDeleteEvent,
     PreprodArtifactApiGetSnapshotDetailsEvent,
@@ -43,13 +43,14 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
     BuildDetailsVcsInfo,
 )
 from sentry.preprod.api.models.public.snapshots import (
+    SnapshotApproverResponseDict,
     SnapshotCreateResponseDict,
     SnapshotDetailsResponseDict,
+    SnapshotImageResponseDict,
+    VcsInfoResponseDict,
 )
 from sentry.preprod.api.models.snapshots.project_preprod_snapshot_models import (
     SnapshotApprover,
-    SnapshotDetailsApiResponse,
-    SnapshotImageResponse,
 )
 from sentry.preprod.api.models.snapshots.snapshot_status import (
     SnapshotStatusInput,
@@ -62,17 +63,23 @@ from sentry.preprod.snapshots.comparison_categorizer import (
     CategorizedComparison,
     categorize_comparison_images,
 )
-from sentry.preprod.snapshots.constants import MISSING_BASE_GRACE_PERIOD_SECONDS
-from sentry.preprod.snapshots.manifest import (
-    ComparisonManifest,
-    ImageMetadata,
-    SnapshotManifest,
-    image_metadata_extras,
+from sentry.preprod.snapshots.constants import (
+    MISSING_BASE_GRACE_PERIOD_SECONDS,
+    SNAPSHOT_ARCHIVE_MANIFEST_FILENAME,
 )
+from sentry.preprod.snapshots.image_serialization import build_head_image_list
+from sentry.preprod.snapshots.manifest import SnapshotManifest
 from sentry.preprod.snapshots.models import (
     PreprodSnapshotComparison,
     PreprodSnapshotMetrics,
 )
+from sentry.preprod.snapshots.precompute import (
+    build_head_images_payload,
+    head_images_key,
+    load_precomputed_head_images,
+    refresh_manifest_expiration,
+)
+from sentry.preprod.snapshots.storage import get_snapshot_storage
 from sentry.preprod.snapshots.tasks import compare_snapshots
 from sentry.preprod.snapshots.utils import (
     find_base_snapshot_artifact,
@@ -84,7 +91,6 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
-from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -95,14 +101,14 @@ SNAPSHOT_POST_REQUEST_SCHEMA: dict[str, Any] = {
         "images": {
             "type": "object",
             "additionalProperties": True,
-            "maxProperties": 50000,
+            "maxProperties": 100000,
         },
         "diff_threshold": {"type": "number", "minimum": 0.0, "exclusiveMaximum": 1.0},
         "selective": {"type": "boolean"},
         "all_image_file_names": {
             "type": "array",
             "items": {"type": "string"},
-            "maxItems": 50000,
+            "maxItems": 100000,
         },
         **VCS_SCHEMA_PROPERTIES,
     },
@@ -114,7 +120,7 @@ SNAPSHOT_POST_REQUEST_ERROR_MESSAGES: dict[str, str] = {
     "app_id": "The app_id field is required and must be a string with maximum length of 255 characters.",
     "images": "The images field is required and must be an object mapping image names to image metadata.",
     "selective": "The selective field must be a boolean.",
-    "all_image_file_names": "The all_image_file_names field must be an array of strings with at most 50000 entries.",
+    "all_image_file_names": "The all_image_file_names field must be an array of strings with at most 100000 entries.",
     **VCS_ERROR_MESSAGES,
 }
 
@@ -125,28 +131,6 @@ _COMPACT_PAIR_LIST_KEYS = ("changed", "renamed", "errored")
 
 def _strip_to_compact(img: dict[str, Any]) -> dict[str, Any]:
     return {k: img[k] for k in _COMPACT_FIELDS if k in img}
-
-
-def build_snapshot_image_response(
-    image_file_name: str,
-    metadata: ImageMetadata,
-    global_diff_threshold: float | None,
-) -> SnapshotImageResponse:
-    return SnapshotImageResponse(
-        **image_metadata_extras(metadata, exclude={"key", "image_file_name"}),
-        key=metadata.content_hash,
-        display_name=metadata.display_name,
-        image_file_name=image_file_name,
-        group=metadata.group,
-        width=metadata.width,
-        height=metadata.height,
-        diff_threshold=metadata.diff_threshold
-        if metadata.diff_threshold is not None
-        else global_diff_threshold,
-        description=metadata.description,
-        tags=metadata.tags,
-        canvas_theme=metadata.canvas_theme,
-    )
 
 
 MAX_SNAPSHOT_REQUEST_BODY_SIZE = 256 * 1024 * 1024
@@ -370,31 +354,58 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         except PreprodSnapshotMetrics.DoesNotExist:
             return Response({"detail": "Snapshot metrics not found"}, status=404)
 
-        manifest_key = (snapshot_metrics.extras or {}).get("manifest_key")
-        if not manifest_key:
-            return Response({"detail": "Manifest key not found"}, status=404)
+        extras = snapshot_metrics.extras or {}
+        session = get_snapshot_storage(artifact.project)
 
-        try:
-            session = get_preprod_session(organization.id, artifact.project_id)
-            get_response = session.get(manifest_key)
-            if get_response is None:
-                raise FileNotFoundError("Manifest does not exist in objectstore")
-            with start_span(op="preprod.snapshot.read_manifest", name="read_head_manifest"):
-                raw_manifest = get_response.payload.read()
-            with start_span(
-                op="preprod.snapshot.parse_manifest", name="parse_head_manifest"
-            ) as span:
-                manifest = SnapshotManifest(**orjson.loads(raw_manifest))
-                set_span_data(span, "image_count", len(manifest.images))
-        except Exception:
-            logger.exception(
-                "Failed to retrieve snapshot manifest",
-                extra={
-                    "preprod_artifact_id": artifact.id,
-                    "manifest_key": manifest_key,
+        image_list: list[SnapshotImageResponseDict]
+        precomputed = load_precomputed_head_images(session, extras.get("head_images_key"))
+        if precomputed is not None:
+            image_list, head_diff_threshold = precomputed
+            refresh_manifest_expiration(session, extras.get("manifest_key"))
+        else:
+            manifest_key = extras.get("manifest_key")
+            if not manifest_key:
+                return Response({"detail": "Manifest key not found"}, status=404)
+
+            try:
+                get_response = session.get(manifest_key)
+                if get_response is None:
+                    logger.info(
+                        "preprod.snapshot.manifest_missing",
+                        extra={"preprod_artifact_id": artifact.id, "manifest_key": manifest_key},
+                    )
+                    return Response({"detail": "Snapshot manifest not found"}, status=404)
+                with traces.start_span(
+                    name="read_head_manifest",
+                    attributes={"sentry.op": "preprod.snapshot.read_manifest"},
+                ):
+                    raw_manifest = get_response.payload.read()
+                with traces.start_span(
+                    name="parse_head_manifest",
+                    attributes={"sentry.op": "preprod.snapshot.parse_manifest"},
+                ) as span:
+                    head_manifest = orjson.loads(raw_manifest)
+                    head_images: dict[str, Any] = head_manifest.get("images", {})
+                    head_diff_threshold = head_manifest.get("diff_threshold")
+                    span.set_attribute("image_count", len(head_images))
+            except Exception:
+                logger.exception(
+                    "Failed to retrieve snapshot manifest",
+                    extra={
+                        "preprod_artifact_id": artifact.id,
+                        "manifest_key": manifest_key,
+                    },
+                )
+                return Response({"detail": "Internal server error"}, status=500)
+
+            with traces.start_span(
+                name="serialize_head_images",
+                attributes={
+                    "sentry.op": "preprod.snapshot.serialize_images",
+                    "image_count": len(head_images),
                 },
-            )
-            return Response({"detail": "Internal server error"}, status=500)
+            ):
+                image_list = build_head_image_list(head_images, head_diff_threshold)
 
         # Build VCS info from commit_comparison
         commit_comparison = artifact.commit_comparison
@@ -412,8 +423,8 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         else:
             vcs_info = BuildDetailsVcsInfo()
 
-        comparison_manifest: ComparisonManifest | None = None
-        base_manifest: SnapshotManifest | None = None
+        comparison_manifest: dict[str, Any] | None = None
+        base_manifest: dict[str, Any] | None = None
         all_comparisons = list(
             PreprodSnapshotComparison.objects.select_related("base_snapshot_metrics")
             .filter(head_snapshot_metrics=snapshot_metrics)
@@ -431,17 +442,21 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                     response = session.get(comparison_key)
                     if response is None:
                         raise FileNotFoundError("Comparison manifest does not exist in objectstore")
-                    with start_span(
-                        op="preprod.snapshot.read_manifest", name="read_comparison_manifest"
+                    with traces.start_span(
+                        name="read_comparison_manifest",
+                        attributes={"sentry.op": "preprod.snapshot.read_manifest"},
                     ):
                         raw_comparison_manifest = response.payload.read()
-                    with start_span(
-                        op="preprod.snapshot.parse_manifest", name="parse_comparison_manifest"
+                    with traces.start_span(
+                        name="parse_comparison_manifest",
+                        attributes={"sentry.op": "preprod.snapshot.parse_manifest"},
                     ) as span:
-                        comparison_manifest = ComparisonManifest(
-                            **orjson.loads(raw_comparison_manifest)
+                        comparison_manifest = orjson.loads(raw_comparison_manifest)
+                        if "base_artifact_id" not in comparison_manifest:
+                            raise ValueError("comparison manifest missing base_artifact_id")
+                        span.set_attribute(
+                            "image_count", len(comparison_manifest.get("images", {}))
                         )
-                        set_span_data(span, "image_count", len(comparison_manifest.images))
                 except Exception:
                     comparison_manifest = None
                     logger.exception(
@@ -458,13 +473,17 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                     response = session.get(base_manifest_key)
                     if response is None:
                         raise FileNotFoundError("Base manifest does not exist in objectstore")
-                    with start_span(op="preprod.snapshot.read_manifest", name="read_base_manifest"):
+                    with traces.start_span(
+                        name="read_base_manifest",
+                        attributes={"sentry.op": "preprod.snapshot.read_manifest"},
+                    ):
                         raw_base_manifest = response.payload.read()
-                    with start_span(
-                        op="preprod.snapshot.parse_manifest", name="parse_base_manifest"
+                    with traces.start_span(
+                        name="parse_base_manifest",
+                        attributes={"sentry.op": "preprod.snapshot.parse_manifest"},
                     ) as span:
-                        base_manifest = SnapshotManifest(**orjson.loads(raw_base_manifest))
-                        set_span_data(span, "image_count", len(base_manifest.images))
+                        base_manifest = orjson.loads(raw_base_manifest)
+                        span.set_attribute("image_count", len(base_manifest.get("images", {})))
                 except Exception:
                     logger.exception(
                         "Failed to fetch base manifest",
@@ -503,29 +522,26 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                     is not None
                 )
 
-        with start_span(
-            op="preprod.snapshot.serialize_images", name="serialize_head_images"
-        ) as span:
-            set_span_data(span, "image_count", len(manifest.images))
-            image_list = [
-                build_snapshot_image_response(key, metadata, manifest.diff_threshold)
-                for key, metadata in sorted(manifest.images.items())
-            ]
-
-        images_by_file_name: dict[str, SnapshotImageResponse] = {
-            img.image_file_name: img for img in image_list
+        images_by_file_name: dict[str, SnapshotImageResponseDict] = {
+            img["image_file_name"]: img for img in image_list
         }
 
         base_artifact_id: str | None = None
 
         if comparison_manifest is not None:
-            base_artifact_id = str(comparison_manifest.base_artifact_id)
-            with start_span(
-                op="preprod.snapshot.categorize_comparison", name="categorize_comparison_images"
-            ) as span:
-                set_span_data(span, "image_count", len(comparison_manifest.images))
+            base_artifact_id = str(comparison_manifest["base_artifact_id"])
+            comparison_images = comparison_manifest.get("images", {})
+            with traces.start_span(
+                name="categorize_comparison_images",
+                attributes={
+                    "sentry.op": "preprod.snapshot.categorize_comparison",
+                    "image_count": len(comparison_images),
+                },
+            ):
                 categorized = categorize_comparison_images(
-                    comparison_manifest, images_by_file_name, base_manifest
+                    comparison_images,
+                    images_by_file_name,
+                    base_manifest.get("images", {}) if base_manifest else None,
                 )
         else:
             if comparison is not None:
@@ -621,55 +637,62 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             )
         )
 
-        with start_span(
-            op="preprod.snapshot.serialize_response", name="serialize_response_body"
-        ) as span:
-            set_span_data(span, "image_count", len(image_list))
-            response_data = SnapshotDetailsApiResponse(
-                head_artifact_id=str(artifact.id),
-                base_artifact_id=base_artifact_id,
-                project_id=str(artifact.project_id),
-                comparison_type=comparison_type,
-                state=artifact.state,
-                vcs_info=vcs_info,
-                app_id=artifact.app_id,
-                is_selective=snapshot_metrics.is_selective,
-                images=image_list if comparison_type != "diff" else [],
-                image_count=snapshot_metrics.image_count,
-                changed=categorized.changed,
-                changed_count=len(categorized.changed),
-                added=categorized.added,
-                added_count=len(categorized.added),
-                removed=categorized.removed,
-                removed_count=len(categorized.removed),
-                renamed=categorized.renamed,
-                renamed_count=len(categorized.renamed),
-                unchanged=categorized.unchanged,
-                unchanged_count=len(categorized.unchanged),
-                errored=categorized.errored,
-                errored_count=len(categorized.errored),
-                skipped=categorized.skipped,
-                skipped_count=len(categorized.skipped),
-                diff_threshold=manifest.diff_threshold,
-                comparison_state=derived_status.comparison_state,
-                approval_status=derived_status.approval_status,
-                comparison_error_message=derived_status.comparison_error_message,
-                approvers=approver_list if approved else [],
-            ).dict()
+        with traces.start_span(
+            name="serialize_response_body",
+            attributes={
+                "sentry.op": "preprod.snapshot.serialize_response",
+                "image_count": len(image_list),
+            },
+        ):
+            response_data: SnapshotDetailsResponseDict = {
+                "head_artifact_id": str(artifact.id),
+                "base_artifact_id": base_artifact_id,
+                "project_id": str(artifact.project_id),
+                "comparison_type": comparison_type,
+                "state": PreprodArtifact.ArtifactState(artifact.state).name,
+                "vcs_info": cast(VcsInfoResponseDict, vcs_info.dict()),
+                "app_id": artifact.app_id,
+                "is_selective": snapshot_metrics.is_selective,
+                "images": image_list if comparison_type != "diff" else [],
+                "image_count": snapshot_metrics.image_count,
+                "added": categorized.added,
+                "added_count": len(categorized.added),
+                "removed": categorized.removed,
+                "removed_count": len(categorized.removed),
+                "renamed": categorized.renamed,
+                "renamed_count": len(categorized.renamed),
+                "changed": categorized.changed,
+                "changed_count": len(categorized.changed),
+                "unchanged": categorized.unchanged,
+                "unchanged_count": len(categorized.unchanged),
+                "errored": categorized.errored,
+                "errored_count": len(categorized.errored),
+                "skipped": categorized.skipped,
+                "skipped_count": len(categorized.skipped),
+                "diff_threshold": head_diff_threshold,
+                "comparison_state": derived_status.comparison_state,
+                "approval_status": derived_status.approval_status,
+                "comparison_error_message": derived_status.comparison_error_message,
+                "approvers": (
+                    [cast(SnapshotApproverResponseDict, a.dict()) for a in approver_list]
+                    if approved
+                    else []
+                ),
+            }
 
             if compact:
+                # Compact mode strips images to a subset of keys, producing a shape that
+                # is intentionally looser than the response TypedDict; mutate via a plain
+                # dict view.
+                compact_data = cast(dict[str, Any], response_data)
                 for key in _COMPACT_IMAGE_LIST_KEYS:
-                    response_data[key] = [_strip_to_compact(img) for img in response_data[key]]
+                    compact_data[key] = [_strip_to_compact(img) for img in compact_data[key]]
                 for key in _COMPACT_PAIR_LIST_KEYS:
-                    for pair in response_data[key]:
+                    for pair in compact_data[key]:
                         pair["base_image"] = _strip_to_compact(pair["base_image"])
                         pair["head_image"] = _strip_to_compact(pair["head_image"])
 
-        # cast() sanctioned here: pydantic .dict() returns dict[str, Any] with no
-        # static link back to SnapshotDetailsResponseDict. The TypedDict and the
-        # Pydantic model are kept in sync by hand at the source of truth.
-        body = cast(SnapshotDetailsResponseDict, response_data)
-        return Response(body)
+        return Response(response_data)
 
 
 @extend_schema(tags=["Snapshots"])
@@ -730,6 +753,12 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
         app_id = data.get("app_id")
         images = data.get("images", {})
         diff_threshold = data.get("diff_threshold")
+
+        if SNAPSHOT_ARCHIVE_MANIFEST_FILENAME in images:
+            return Response(
+                {"detail": f"The filename {SNAPSHOT_ARCHIVE_MANIFEST_FILENAME} is reserved."},
+                status=400,
+            )
 
         # VCS info
         head_sha = data.get("head_sha")
@@ -822,19 +851,47 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
             )
 
             manifest_key = f"{project.organization_id}/{project.id}/{artifact.id}/manifest.json"
+            head_images_key_value = head_images_key(
+                project.organization_id, project.id, artifact.id
+            )
 
             snapshot_metrics = PreprodSnapshotMetrics.objects.create(
                 preprod_artifact=artifact,
                 image_count=len(images),
                 is_selective=selective,
-                extras={"manifest_key": manifest_key},
+                extras={
+                    "manifest_key": manifest_key,
+                    "head_images_key": head_images_key_value,
+                },
             )
 
             # Write manifest inside the transaction so that a failed objectstore
             # write rolls back the DB records, ensuring both succeed or neither does.
-            session = get_preprod_session(project.organization_id, project.id)
-            manifest_json = manifest.json(exclude_none=True)
-            session.put(manifest_json.encode(), key=manifest_key)
+            session = get_snapshot_storage(project)
+            manifest_bytes = manifest.json(exclude_none=True).encode()
+            manifest_size_bytes = len(manifest_bytes)
+            session.put(manifest_bytes, key=manifest_key)
+
+        try:
+            parsed_manifest = orjson.loads(manifest_bytes)
+            session.put(
+                orjson.dumps(
+                    build_head_images_payload(
+                        parsed_manifest.get("images", {}),
+                        parsed_manifest.get("diff_threshold"),
+                    )
+                ),
+                key=head_images_key_value,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to write precomputed head images",
+                extra={
+                    "preprod_artifact_id": artifact.id,
+                    "head_images_key": head_images_key_value,
+                },
+            )
+        del manifest_bytes
 
         logger.info(
             "Created preprod artifact and stored snapshot manifest",
@@ -846,6 +903,7 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                 "head_sha": head_sha,
                 "manifest_key": manifest_key,
                 "image_count": len(images),
+                "manifest_size_bytes": manifest_size_bytes,
             },
         )
 

@@ -12,16 +12,16 @@ export const textStyles = () => css`
   h5,
   h6,
   p,
-  /* Exclude ol/ul elements inside interactive selectors/menus */
+  /* Exclude ol/ul elements used by interactive controls */
   /* data-panel-body-text-styles lets layout-only lists opt out of PanelBody spacing. */
   ul:not(
     [role='listbox'],
     [role='grid'],
     [role='menu'],
+    [role='tablist'],
     [data-panel-body-text-styles='ignore']
   ),
   ol:not([role='listbox'], [role='grid'], [role='menu']),
-  table,
   dl,
   blockquote,
   form,

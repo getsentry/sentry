@@ -276,7 +276,7 @@ class SaveIssueOccurrenceTest(OccurrenceTestMixin, TestCase):
         data_packet: DataPacket[ProcessedSubscriptionUpdate | AnomalyDetectionUpdate] = DataPacket(
             str(query_subscription.id), query_subscription_update
         )
-        eval_result = handler.evaluate(data_packet)
+        eval_result = handler._evaluate(data_packet)
 
         occurrence = None
         for result in eval_result.values():
@@ -553,7 +553,10 @@ class SaveIssueFromOccurrenceTest(OccurrenceTestMixin, TestCase):
             ) as check_and_use_quotas,
         ):
             assert save_issue_from_occurrence(new_occurrence, new_event, None) is None
-            metrics.incr.assert_called_once_with("issues.issue.dropped.rate_limiting")
+            metrics.incr.assert_called_once_with(
+                "issues.issue.dropped.rate_limiting",
+                tags={"group_type": new_occurrence.type.slug},
+            )
             assert check_and_use_quotas.call_count == 1
             assert check_and_use_quotas.call_args[0][0] == [
                 RequestedQuota(

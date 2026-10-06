@@ -50,7 +50,7 @@ export class Rect {
     return this.width === 0 && this.height === 0;
   }
 
-  static Empty(): Rect {
+  static empty(): Rect {
     return new Rect(0, 0, 0, 0);
   }
 
@@ -297,14 +297,15 @@ export class Rect {
   }
 }
 
+const BINARY_SEARCH_PRECISION = 1;
+
 export function findRangeBinarySearch(
   {low, high}: {high: number; low: number},
   fn: (val: number) => number,
-  target: number,
-  precision = 1
+  target: number
 ): [number, number] {
   while (true) {
-    if (high - low <= precision) {
+    if (high - low <= BINARY_SEARCH_PRECISION) {
       return [low, high];
     }
 

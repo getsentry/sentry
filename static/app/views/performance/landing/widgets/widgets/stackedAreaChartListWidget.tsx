@@ -187,43 +187,43 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
     chart: chartQuery,
   };
 
-  const assembleAccordionItems = (provided: ComponentData) =>
-    getHeaders(provided).map(header => ({header, content: getAreaChart(provided)}));
-
-  const getAreaChart = (provided: ComponentData) => {
+  const assembleAccordionItems = (provided: ComponentData) => {
     const durationUnit = getDurationUnit(provided.widgetData.chart.data ?? []);
-    return (
-      <StackedAreaChart
-        {...provided.widgetData.chart}
-        {...(provided as any)}
-        colors={colors}
-        series={provided.widgetData.chart.data ?? []}
-        animation
-        isGroupedByDate
-        showTimeInTooltip
-        yAxis={{
-          minInterval: durationUnit,
-          axisLabel: {
-            formatter(value: number) {
-              return axisLabelFormatter(
-                value,
-                aggregateOutputType(provided.widgetData.chart.data?.[0].seriesName),
-                undefined,
-                durationUnit
-              );
+    return getHeaders(provided).map(header => ({
+      header,
+      content: (
+        <StackedAreaChart
+          {...provided.widgetData.chart}
+          {...(provided as any)}
+          colors={colors}
+          series={provided.widgetData.chart.data ?? []}
+          animation
+          isGroupedByDate
+          showTimeInTooltip
+          yAxis={{
+            minInterval: durationUnit,
+            axisLabel: {
+              formatter(value: number) {
+                return axisLabelFormatter(
+                  value,
+                  aggregateOutputType(provided.widgetData.chart.data?.[0].seriesName),
+                  undefined,
+                  durationUnit
+                );
+              },
             },
-          },
-        }}
-        xAxis={{
-          show: false,
-          axisLabel: {show: true, margin: 8},
-          axisLine: {show: false},
-        }}
-        tooltip={{
-          valueFormatter: value => tooltipFormatter(value, 'duration'),
-        }}
-      />
-    );
+          }}
+          xAxis={{
+            show: false,
+            axisLabel: {show: true, margin: 8},
+            axisLine: {show: false},
+          }}
+          tooltip={{
+            valueFormatter: value => tooltipFormatter(value, 'duration'),
+          }}
+        />
+      ),
+    }));
   };
 
   const getHeaders = (provided: ComponentData) =>

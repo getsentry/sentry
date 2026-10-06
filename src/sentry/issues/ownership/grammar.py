@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from collections import namedtuple
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from typing import TYPE_CHECKING, Any, NamedTuple, TypedDict
+from typing import TYPE_CHECKING, Any, NamedTuple, NotRequired, TypedDict
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
@@ -32,15 +32,24 @@ else:
 
 VERSION = 1
 
+_CODEOWNERS_EMAIL_RE = re.compile(r"[^@]+@[^@]+\.[^@]+")
+_CODEOWNERS_SPLIT_RE = re.compile(r"(?<!\\)\s")
+
 
 class OwnershipRuleMatcher(TypedDict):
     type: str
     pattern: str
 
 
+class OwnershipRuleOwner(TypedDict):
+    type: str
+    identifier: str
+    id: NotRequired[int]
+
+
 class OwnershipRule(TypedDict):
     matcher: OwnershipRuleMatcher
-    owners: list[dict[str, Any]]
+    owners: list[OwnershipRuleOwner]
 
 
 # $version is not a valid Python identifier, so we use the functional form.
@@ -261,7 +270,7 @@ class Owner(NamedTuple):
         return {"type": self.type, "identifier": self.identifier}
 
     @classmethod
-    def load(cls, data: Mapping[str, str]) -> Owner:
+    def load(cls, data: OwnershipRuleOwner) -> Owner:
         return cls(data["type"], data["identifier"])
 
 
@@ -370,13 +379,13 @@ def parse_code_owners(data: str) -> tuple[list[str], list[str], list[str]]:
             continue
 
         # Skip lines that are only empty space characters
-        if re.match(r"^\s*$", rule):
+        if rule.isspace():
             continue
 
         _, assignees = get_codeowners_path_and_owners(rule)
         for assignee in assignees:
             if "/" not in assignee:
-                if re.match(r"[^@]+@[^@]+\.[^@]+", assignee):
+                if _CODEOWNERS_EMAIL_RE.match(assignee):
                     emails.append(assignee)
                 else:
                     usernames.append(assignee)
@@ -388,16 +397,18 @@ def parse_code_owners(data: str) -> tuple[list[str], list[str], list[str]]:
 
 
 def get_codeowners_path_and_owners(rule: str) -> tuple[str, Sequence[str]]:
-    # Regex does a negative lookbehind for a backslash. Matches on whitespace without a preceding backslash.
-    pattern = re.compile(r"(?<!\\)\s")
-    path, *code_owners = (i for i in pattern.split(rule.strip()) if i)
+    # CODEOWNERS patterns follow gitignore syntax, so backslashes can escape spaces:
+    # https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners#codeowners-syntax
+    # Use a negative lookbehind for those uncommon rules and native split otherwise.
+    if "\\" in rule:
+        path, *code_owners = (i for i in _CODEOWNERS_SPLIT_RE.split(rule.strip()) if i)
+    else:
+        path, *code_owners = rule.split()
 
     # Find index of # in code_owners, assume everything after is a comment
-    try:
+    if "#" in code_owners:
         comment_index = code_owners.index("#")
         code_owners = code_owners[:comment_index]
-    except ValueError:
-        pass
 
     return path, code_owners
 
@@ -420,7 +431,7 @@ def convert_codeowners_syntax(
             continue
 
         # Skip lines that are only empty space characters
-        if re.match(r"^\s*$", rule):
+        if rule.isspace():
             continue
 
         path, code_owners = get_codeowners_path_and_owners(rule)

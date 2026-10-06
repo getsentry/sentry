@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "tableMarkdown": "| Time | Errors |\n| --- | ---: |\n| 2026-07-31T12:00:00Z | 12 |",
+  "chart": {
+    "title": "Errors over time",
+    "subtitle": "Current breach and baseline",
+    "visualization": "area",
+    "x_axis": "time",
+    "y_axis_unit": "number",
+    "y_axis_label": "Errors",
+    "stacked": false,
+    "show_legend": true,
+    "show_title": true,
+    "frameless": false,
+    "series": [
+      {
+        "name": "count()",
+        "data": [{"x": "2026-07-31T12:00:00Z", "y": 12.0}]
+      }
+    ]
+  },
+  "preferredView": "chart",
+  "isEmpty": false,
+  "chartUnavailableReason": null,
+  "queryLinks": [
+    {
+      "kind": "telemetry",
+      "params": {
+        "dataset": "errors",
+        "query": "is:unresolved",
+        "stats_period": "24h",
+        "project_slugs": ["backend"]
+      }
+    }
+  ]
+}

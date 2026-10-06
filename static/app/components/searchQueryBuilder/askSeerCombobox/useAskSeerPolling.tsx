@@ -11,6 +11,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   AskSeerPollingResponse,
   AskSeerStartResponse,
+  AskSeerStrategy,
   QueryTokensProps,
 } from './types';
 
@@ -58,11 +59,10 @@ const makeInitialAskSeerData = <
   session: null,
 });
 
-interface UseAskSeerPollingOptions<T extends QueryTokensProps> {
+interface UseAskSeerPollingOptions {
   projectIds: number[];
-  strategy: string;
+  strategy: AskSeerStrategy;
   onError?: (error: Error) => void;
-  onSuccess?: (result: T) => void;
   options?: Record<string, unknown>;
 }
 
@@ -75,12 +75,14 @@ interface UseAskSeerPollingOptions<T extends QueryTokensProps> {
  * 3. Stop polling when status is completed or error
  */
 export function useAskSeerPolling<T extends QueryTokensProps>(
-  options: UseAskSeerPollingOptions<T>
+  options: UseAskSeerPollingOptions
 ) {
   const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const orgSlug = organization.slug;
+  // Use devtoolbar to toggle frontend FF value and pass this as an override (toggle for internal testing)
+  const codeModeToggle = organization.features.includes('seer-assisted-query-codemode');
 
   const [runId, setRunId] = useState<number | string | null>(null);
   const [waitingForResponse, setWaitingForResponse] = useState(false);
@@ -119,14 +121,19 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
 
       try {
         const response = (await api.requestPromise(
-          `/organizations/${orgSlug}/search-agent/start/`,
+          getApiUrl('/organizations/$organizationIdOrSlug/search-agent/start/', {
+            path: {organizationIdOrSlug: orgSlug},
+          }),
           {
             method: 'POST',
             data: {
               natural_language_query: query,
               project_ids: options.projectIds,
               strategy: options.strategy,
-              ...(options.options ? {options: options.options} : {}),
+              options: {
+                ...options.options,
+                code_mode: codeModeToggle,
+              },
             },
           }
         )) as AskSeerStartResponse;
@@ -152,7 +159,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
         options.onError?.(error as Error);
       }
     },
-    [api, orgSlug, options, queryClient]
+    [api, orgSlug, options, queryClient, codeModeToggle]
   );
 
   useEffect(() => {
@@ -167,13 +174,11 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
       const isStillProcessing =
         sessionData.status === 'processing' || !!sessionData.current_step;
       if (!isStillProcessing) {
+        // oxlint-disable-next-line react/set-state-in-effect
         setWaitingForResponse(false);
-        if (sessionData.status === 'completed' && sessionData.final_response) {
-          options.onSuccess?.(sessionData.final_response);
-        }
       }
     }
-  }, [waitingForResponse, sessionData, options]);
+  }, [waitingForResponse, sessionData]);
 
   // Reset function
   const reset = useCallback(() => {
@@ -182,8 +187,6 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
     setWaitingForResponse(false);
     setStartFailed(false);
     if (queryKey) {
-      // Will be fixed soon when we get rid of setApiQueryData.
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
       setApiQueryData<AskSeerPollingResponse<T>>(
         queryClient,
         queryKey,

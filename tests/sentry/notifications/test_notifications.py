@@ -6,7 +6,6 @@ from urllib.parse import parse_qs, urlparse
 
 import orjson
 import responses
-from django.conf import settings
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
 from django.db.models import F
@@ -30,7 +29,6 @@ from sentry.tasks.post_process import post_process_group
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -119,9 +117,6 @@ class ActivityNotificationTest(APITestCase):
                 type=type,
                 value="always",
             )
-        responses.add_passthru(
-            settings.SENTRY_SNUBA + "/tests/entities/generic_metrics_counters/insert",
-        )
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
 
@@ -414,6 +409,10 @@ class ActivityNotificationTest(APITestCase):
             == f"Release {version_parsed} was deployed to {self.environment.name} for this project"
         )
         notification_uuid = get_notification_uuid(url)
+        assert (
+            f'href="http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&amp;referrer=release_activity&amp;notification_uuid={notification_uuid}"'
+            in msg.alternatives[0][0]
+        )
         assert url == (
             f"http://testserver/organizations/{self.organization.slug}/releases/{release.version}/?project={self.project.id}&unselectedSeries=Healthy&referrer=release_activity&notification_uuid={notification_uuid}"
         )
@@ -694,14 +693,13 @@ class ActivityNotificationTest(APITestCase):
                 },
                 project_id=self.project.id,
             )
-            cache_key = write_event_to_cache(event)
             with self.tasks():
                 post_process_group(
                     is_new=True,
                     is_regression=False,
                     is_new_group_environment=True,
                     group_id=event.group_id,
-                    cache_key=cache_key,
+                    event_id=event.event_id,
                     project_id=self.project.id,
                     eventstream_type=EventStreamEventType.Error.value,
                 )

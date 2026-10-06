@@ -1,17 +1,14 @@
-import {Fragment} from 'react';
 import {useMatches} from 'react-router-dom';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import type {Location, LocationDescriptor, LocationDescriptorObject} from 'history';
+import type {Location, LocationDescriptor} from 'history';
 
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {COL_WIDTH_MINIMUM, GridEditable} from 'sentry/components/tables/gridEditable';
-import {SortLink} from 'sentry/components/tables/gridEditable/sortLink';
-import {useQueryBasedColumnResize} from 'sentry/components/tables/gridEditable/useQueryBasedColumnResize';
 import {Truncate} from 'sentry/components/truncate';
 import {IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -22,18 +19,13 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {
   DURATION_UNITS,
   getFieldRenderer,
   SIZE_UNITS,
 } from 'sentry/utils/discover/fieldRenderers';
 import type {Column} from 'sentry/utils/discover/fields';
-import {
-  fieldAlignment,
-  getEquationAliasIndex,
-  isEquationAlias,
-} from 'sentry/utils/discover/fields';
+import {getEquationAliasIndex, isEquationAlias} from 'sentry/utils/discover/fields';
 import {
   DisplayModes,
   SavedQueryDatasets,
@@ -55,17 +47,18 @@ import {
   getTargetForTransactionSummaryLink,
 } from 'sentry/views/discover/utils';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
 import {QuickContextHoverWrapper} from './quickContext/quickContextWrapper';
 import {ContextType} from './quickContext/utils';
-import {Actions, CellAction, updateQuery} from './cellAction';
+import {Actions, updateQuery} from './cellAction';
 import {ColumnEditModal, modalCss} from './columnEditModal';
 import {TableActions} from './tableActions';
 import {TopResultsIndicator} from './topResultsIndicator';
 import type {TableColumn} from './types';
+import {useEventViewTable, type RenderCellOptions} from './useEventViewTable';
 
 type TableViewProps = {
   error: string | null;
@@ -134,17 +127,7 @@ export function TableView(props: TableViewProps) {
         ];
       }
       if (!hasIdField) {
-        return [
-          <PrependHeader key="header-event-id">
-            <SortLink
-              align="left"
-              title={t('event id')}
-              direction={undefined}
-              canSort={false}
-              generateSortLink={() => {}}
-            />
-          </PrependHeader>,
-        ];
+        return [<PrependHeader key="header-event-id">{t('event id')}</PrependHeader>];
       }
       return [];
     }
@@ -218,31 +201,7 @@ export function TableView(props: TableViewProps) {
   function _renderGridHeaderCell(
     column: TableColumn<keyof TableDataRow>
   ): React.ReactNode {
-    const {eventView, location, tableData, organization, queryDataset} = props;
-    const tableMeta = tableData?.meta;
-
-    const align = fieldAlignment(column.name, column.type, tableMeta);
-    const field = {field: column.key as string, width: column.width};
-    function generateSortLink(): LocationDescriptorObject | undefined {
-      if (!tableMeta) {
-        return undefined;
-      }
-
-      const nextEventView = eventView.sortOnField(field, tableMeta);
-      const queryStringObject = nextEventView.generateQueryStringObject();
-      // Need to pull yAxis from location since eventView only stores 1 yAxis field at time
-      queryStringObject.yAxis = decodeList(location.query.yAxis);
-
-      return {
-        ...location,
-        query: {
-          ...queryStringObject,
-          ...appendQueryDatasetParam(organization, queryDataset),
-        },
-      };
-    }
-    const currentSort = eventView.sortForField(field, tableMeta);
-    const canSort = isFieldSortable(field, tableMeta);
+    const {eventView} = props;
     let titleText = isEquationAlias(column.name)
       ? eventView.getEquations()[getEquationAliasIndex(column.name)]!
       : column.name;
@@ -251,38 +210,23 @@ export function TableView(props: TableViewProps) {
       titleText = 'Replay';
     }
 
-    const title = (
+    return (
       <StyledTooltip title={titleText}>
         <Truncate value={titleText} maxLength={60} expandable={false} />
       </StyledTooltip>
     );
-
-    return (
-      <SortLink
-        align={align}
-        title={title}
-        direction={currentSort ? currentSort.kind : undefined}
-        canSort={canSort}
-        generateSortLink={generateSortLink}
-      />
-    );
   }
 
-  function _renderGridBodyCell(
-    column: TableColumn<keyof TableDataRow>,
-    dataRow: TableDataRow,
-    rowIndex: number,
-    columnIndex: number
-  ): React.ReactNode {
+  function _renderCell({
+    columnIndex,
+    dataRow,
+    field: columnKey,
+    rendered,
+    rowIndex,
+    wrap,
+  }: RenderCellOptions): React.ReactNode {
     const {isFirstPage, eventView, location, organization, tableData, queryDataset} =
       props;
-
-    if (!tableData?.meta) {
-      return dataRow[column.key];
-    }
-
-    const columnKey = String(column.key);
-    const fieldRenderer = getFieldRenderer(columnKey, tableData.meta, false);
 
     const display = eventView.getDisplayMode();
     const isTopEvents =
@@ -291,8 +235,7 @@ export function TableView(props: TableViewProps) {
     const topEvents = eventView.topEvents ? parseInt(eventView.topEvents, 10) : TOP_N;
     const count = Math.min(tableData?.data?.length ?? topEvents, topEvents);
 
-    const unit = tableData.meta.units?.[columnKey];
-    let cell = fieldRenderer(dataRow, {navigate, organization, location, unit, theme});
+    let cell = rendered;
 
     const isTransactionsDataset =
       hasDatasetSelector(organization) &&
@@ -413,43 +356,7 @@ export function TableView(props: TableViewProps) {
         <TopResultsIndicator count={count} index={rowIndex} />
       ) : null;
 
-    const fieldName = columnKey;
-    const value = dataRow[fieldName];
-    if (
-      tableData.meta[fieldName] === 'integer' &&
-      typeof value === 'number' &&
-      value > 999
-    ) {
-      return (
-        <Tooltip
-          title={value.toLocaleString()}
-          containerDisplayMode="block"
-          position="right"
-        >
-          {topResultsIndicator}
-          <CellAction
-            column={column}
-            dataRow={dataRow}
-            handleCellAction={handleCellAction(dataRow, column)}
-          >
-            {cell}
-          </CellAction>
-        </Tooltip>
-      );
-    }
-
-    return (
-      <Fragment>
-        {topResultsIndicator}
-        <CellAction
-          column={column}
-          dataRow={dataRow}
-          handleCellAction={handleCellAction(dataRow, column)}
-        >
-          {cell}
-        </CellAction>
-      </Fragment>
-    );
+    return wrap(cell, topResultsIndicator);
   }
 
   function handleEditColumns() {
@@ -485,8 +392,8 @@ export function TableView(props: TableViewProps) {
   }
 
   function handleCellAction(
-    dataRow: TableDataRow,
-    column: TableColumn<keyof TableDataRow>
+    column: TableColumn<keyof TableDataRow>,
+    dataRow: TableDataRow
   ) {
     return (action: Actions, value: string | number) => {
       const {eventView, organization, location, tableData, isHomepage, queryDataset} =
@@ -629,10 +536,8 @@ export function TableView(props: TableViewProps) {
     );
   }
 
-  const {error, eventView, isLoading, tableData} = props;
-
-  const columnOrder = eventView.getColumns();
-  const columnSortBy = eventView.getSorts();
+  const {error, eventView, isLoading, location, organization, queryDataset, tableData} =
+    props;
 
   const prependColumnWidths = eventView.hasAggregateField()
     ? ['40px']
@@ -640,8 +545,17 @@ export function TableView(props: TableViewProps) {
       ? []
       : [`minmax(${COL_WIDTH_MINIMUM}px, max-content)`];
 
-  const {columns, handleResizeColumn} = useQueryBasedColumnResize({
-    columns: columnOrder,
+  const {columnOrder, getGrid} = useEventViewTable({
+    eventView,
+    getCellActionHandler: handleCellAction,
+    location,
+    makeQuery: queryStringObject => ({
+      ...queryStringObject,
+      yAxis: decodeList(location.query.yAxis),
+      ...appendQueryDatasetParam(organization, queryDataset),
+    }),
+    renderCell: _renderCell,
+    resize: 'query',
   });
 
   return (
@@ -649,13 +563,11 @@ export function TableView(props: TableViewProps) {
       isLoading={isLoading}
       error={error}
       data={tableData ? tableData.data : []}
-      columnOrder={columns}
-      columnSortBy={columnSortBy}
+      columnOrder={columnOrder}
       title={t('Results')}
       grid={{
+        ...getGrid(tableData?.meta),
         renderHeadCell: _renderGridHeaderCell as any,
-        renderBodyCell: _renderGridBodyCell as any,
-        onResizeColumn: handleResizeColumn,
         renderPrependColumns: _renderPrependColumns as any,
         prependColumnWidths,
       }}

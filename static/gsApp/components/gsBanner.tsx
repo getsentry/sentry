@@ -19,9 +19,10 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {GuideStore} from 'sentry/stores/guideStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {showIntercom} from 'sentry/utils/intercom';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useInvertedTheme} from 'sentry/utils/theme/useInvertedTheme';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -34,12 +35,7 @@ import {getProductForPath} from 'getsentry/components/productTrial/productTrialP
 import {makeLinkToOwnersAndBillingMembers} from 'getsentry/components/profiling/alerts';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import {BILLED_DATA_CATEGORY_INFO} from 'getsentry/constants';
-import {
-  type BilledDataCategoryInfo,
-  type Promotion,
-  type PromotionClaimed,
-  type Subscription,
-} from 'getsentry/types';
+import {type BilledDataCategoryInfo, type Subscription} from 'getsentry/types';
 import {
   getProductTrial,
   isBusinessTrial,
@@ -47,9 +43,7 @@ import {
 } from 'getsentry/utils/billing';
 import {getCategoryInfoFromPlural} from 'getsentry/utils/dataCategory';
 import {getPendoAccountFields} from 'getsentry/utils/pendo';
-import {claimAvailablePromotion} from 'getsentry/utils/promotionUtils';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
-import {withPromotions} from 'getsentry/utils/withPromotions';
 
 enum ModalType {
   PAST_DUE = 'past-due',
@@ -236,13 +230,7 @@ function NoticeModal({
 
 type Props = {
   api: Client;
-  isLoading: boolean;
   organization: Organization;
-  promotionData: {
-    activePromotions: PromotionClaimed[];
-    availablePromotions: Promotion[];
-    completedPromotions: PromotionClaimed[];
-  };
   subscription: Subscription;
 };
 
@@ -258,25 +246,13 @@ class GSBanner extends Component<Props, State> {
     productTrialDismissed: objectFromBilledCategories(() => true),
   };
   async componentDidMount() {
-    if (this.props.promotionData) {
-      this.activateFirstAvailablePromo()
-        .then(() => this.initializePendo())
-        .catch(Sentry.captureException);
-    }
+    this.initializePendo().catch(Sentry.captureException);
     if (this.props.organization.access.length > 0) {
       this.tryTriggerTrialEndingModal();
       this.tryTriggerSuspendedModal();
       this.tryTriggerNoticeModal();
     }
     await this.checkPrompts();
-  }
-
-  componentDidUpdate(prevProps: Props) {
-    if (this.props.promotionData !== prevProps.promotionData) {
-      this.activateFirstAvailablePromo()
-        .then(() => this.initializePendo())
-        .catch(Sentry.captureException);
-    }
   }
 
   get trialEndMoment() {
@@ -287,20 +263,6 @@ class GSBanner extends Component<Props, State> {
     return this.props.organization?.access?.includes('org:billing');
   }
 
-  async activateFirstAvailablePromo() {
-    const {organization, promotionData, isLoading} = this.props;
-
-    if (!isLoading && promotionData) {
-      if (isActiveSuperuser()) {
-        return;
-      }
-      await claimAvailablePromotion({
-        promotionData,
-        organization,
-      });
-    }
-  }
-
   async initializePendo() {
     const {organization, subscription} = this.props;
     if (!window.pendo || typeof window.pendo.initialize !== 'function') {
@@ -308,11 +270,10 @@ class GSBanner extends Component<Props, State> {
     }
     try {
       const data = await this.props.api.requestPromise(
-        `/organizations/${organization.slug}/pendo-details/`
+        getApiUrl('/organizations/$organizationIdOrSlug/pendo-details/', {
+          path: {organizationIdOrSlug: organization.slug},
+        })
       );
-
-      const activePromotions = this.props.promotionData?.activePromotions;
-      const completedPromotions = this.props.promotionData?.completedPromotions;
 
       const user = ConfigStore.get('user');
       // if there is a current guide active, delay Pendo until it's done
@@ -333,10 +294,7 @@ class GSBanner extends Component<Props, State> {
 
         account: {
           id: organization.id,
-          ...getPendoAccountFields(subscription, organization, {
-            activePromotions,
-            completedPromotions,
-          }),
+          ...getPendoAccountFields(subscription, organization),
           ...data.organizationDetails,
         },
       });
@@ -484,6 +442,12 @@ class GSBanner extends Component<Props, State> {
         ),
       });
     } catch (error) {
+      // A RequestError without a status means the fetch itself failed (offline,
+      // blocked request, page unload). That's not actionable, so let the check
+      // fail silently.
+      if (error instanceof RequestError && error.status === undefined) {
+        return;
+      }
       // let check fail but capture exception
       Sentry.captureException(error);
     }
@@ -744,7 +708,7 @@ class GSBanner extends Component<Props, State> {
   }
 }
 
-export default withPromotions(withApi(withSubscription(GSBanner, {noLoader: true})));
+export default withApi(withSubscription(GSBanner, {noLoader: true}));
 
 function InvertedAlert(props: Omit<AlertProps, 'system' | 'variant'>) {
   const invertedTheme = useInvertedTheme();

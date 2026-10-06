@@ -18,10 +18,6 @@ describe('Subscription > PaymentHistory', () => {
       body: BillingConfigFixture(PlanTier.AM1),
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/dogz-rule/promotions/trigger-check/',
-      method: 'POST',
-    });
-    MockApiClient.addMockResponse({
       url: '/customers/dogz-rule/recurring-credits/',
       method: 'GET',
       body: [],

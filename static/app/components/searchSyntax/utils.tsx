@@ -1,8 +1,11 @@
 import type {LocationRange} from 'peggy';
 
 import {
+  regexOperators,
+  TermOperator,
   Token,
   wildcardOperators,
+  type RegexOperator,
   type TokenResult,
   type WildcardOperator,
 } from './parser';
@@ -40,6 +43,31 @@ type VisitorFn<T> = (opts: {
    */
   token: TokenResult<Token>;
 }) => null | TokenResultFoundError | typeof skipTokenMarker;
+
+function isRawFilterKeyWithColon(key: string): boolean {
+  return key.includes(':') && /^[\w.:-]+$/.test(key);
+}
+
+export function quoteFilterKey(key: string): string {
+  const negated = key.startsWith('!');
+  const keyWithoutNegation = negated ? key.slice(1) : key;
+
+  if (isRawFilterKeyWithColon(keyWithoutNegation)) {
+    return `${negated ? '!' : ''}"${keyWithoutNegation}"`;
+  }
+
+  return key;
+}
+
+/**
+ * Strips a trailing array-membership operator (`[`, `[*`, or `[*]`) from a filter
+ * key, returning the base attribute key. The `[*]` operator is query syntax, not
+ * part of the key's identity, so this normalizes the key for lookups/matching.
+ */
+export function stripArrayMembershipOperator(key: string): string {
+  const stripped = key.replace(/\[\*?\]?$/, '');
+  return stripped || key;
+}
 
 type TreeResultLocatorOpts<T> = {
   /**
@@ -120,6 +148,12 @@ export function treeResultLocator<T>({
       case Token.KEY_EXPLICIT_STRING_TAG:
         nodeVisitor(token.key);
         break;
+      case Token.KEY_EXPLICIT_ARRAY_TAG:
+        nodeVisitor(token.key);
+        break;
+      case Token.KEY_ARRAY_INCLUDES:
+        nodeVisitor(token.key);
+        break;
       case Token.KEY_EXPLICIT_BOOLEAN_TAG:
         nodeVisitor(token.key);
         break;
@@ -176,12 +210,14 @@ export const getKeyName = (
     | Token.KEY_EXPLICIT_BOOLEAN_TAG
     | Token.KEY_EXPLICIT_NUMBER_TAG
     | Token.KEY_EXPLICIT_STRING_TAG
+    | Token.KEY_EXPLICIT_ARRAY_TAG
+    | Token.KEY_ARRAY_INCLUDES
     | Token.KEY_EXPLICIT_FLAG
     | Token.KEY_EXPLICIT_NUMBER_FLAG
     | Token.KEY_EXPLICIT_STRING_FLAG
   >,
   options: GetKeyNameOpts = {}
-) => {
+): string => {
   const {aggregateWithArgs} = options;
   switch (key.type) {
     case Token.KEY_SIMPLE:
@@ -198,6 +234,12 @@ export const getKeyName = (
       return key.text;
     case Token.KEY_EXPLICIT_STRING_TAG:
       return key.text;
+    case Token.KEY_EXPLICIT_ARRAY_TAG:
+      return key.text;
+    case Token.KEY_ARRAY_INCLUDES:
+      // Identity is the inner key's name (the backend key form); only the `[*]`
+      // membership suffix is dropped here — stringifyToken re-adds it.
+      return getKeyName(key.key);
     case Token.KEY_EXPLICIT_FLAG:
       return key.text;
     case Token.KEY_EXPLICIT_NUMBER_FLAG:
@@ -223,11 +265,13 @@ export const getKeyLabel = (
     | Token.KEY_EXPLICIT_BOOLEAN_TAG
     | Token.KEY_EXPLICIT_NUMBER_TAG
     | Token.KEY_EXPLICIT_STRING_TAG
+    | Token.KEY_EXPLICIT_ARRAY_TAG
+    | Token.KEY_ARRAY_INCLUDES
     | Token.KEY_EXPLICIT_FLAG
     | Token.KEY_EXPLICIT_NUMBER_FLAG
     | Token.KEY_EXPLICIT_STRING_FLAG
   >
-) => {
+): string => {
   switch (key.type) {
     case Token.KEY_SIMPLE:
       return key.value;
@@ -241,6 +285,10 @@ export const getKeyLabel = (
       return key.key.value;
     case Token.KEY_EXPLICIT_STRING_TAG:
       return key.key.value;
+    case Token.KEY_EXPLICIT_ARRAY_TAG:
+      return key.key.value;
+    case Token.KEY_ARRAY_INCLUDES:
+      return getKeyLabel(key.key);
     case Token.KEY_EXPLICIT_FLAG:
       return key.text;
     case Token.KEY_EXPLICIT_NUMBER_FLAG:
@@ -273,14 +321,38 @@ function stringifyTokenFilter(token: TokenResult<Token.FILTER>) {
   stringifiedToken += stringifyToken(token.key);
   stringifiedToken += ':';
 
+  if (token.operator === TermOperator.MATCHES && token.value.type === Token.VALUE_TEXT) {
+    const unwrapped = token.value.quoted
+      ? token.value.value.replaceAll('\\"', '"')
+      : token.value.value;
+    return `${stringifiedToken}//${escapeRegexDelimiters(unwrapped)}//`;
+  }
+
   stringifiedToken += token.operator;
   stringifiedToken += stringifyToken(token.value);
 
   return stringifiedToken;
 }
 
+/**
+ * A pattern ends at the first `//` followed by a space or `)`, so an inner one
+ * has to be escaped to stay part of the pattern. RE2 reads `\/` as a literal
+ * `/`, so the escaped pattern matches the same values.
+ */
+export function escapeRegexDelimiters(pattern: string): string {
+  return pattern.replaceAll(/\/\/(?=[\t\n )])/g, '\\/\\/');
+}
+
+export function unescapeRegexDelimiters(pattern: string): string {
+  return pattern.replaceAll(/\\\/\\\/(?=[\t\n )])/g, '//');
+}
+
 export function isWildcardOperator(value: unknown): value is WildcardOperator {
   return wildcardOperators.includes(value as never);
+}
+
+export function isRegexOperator(value: unknown): value is RegexOperator {
+  return regexOperators.includes(value as never);
 }
 
 export function stringifyToken(token: TokenResult<Token>): string {
@@ -312,7 +384,7 @@ export function stringifyToken(token: TokenResult<Token>): string {
       return `[${numberListItems.join(',')}]`;
     }
     case Token.KEY_SIMPLE:
-      return token.value;
+      return token.quoted ? `"${token.value}"` : token.value;
     case Token.KEY_AGGREGATE:
       return token.text;
     case Token.KEY_AGGREGATE_ARGS:
@@ -320,19 +392,23 @@ export function stringifyToken(token: TokenResult<Token>): string {
     case Token.KEY_AGGREGATE_PARAMS:
       return token.text;
     case Token.KEY_EXPLICIT_TAG:
-      return `${token.prefix}[${token.key.value}]`;
+      return `${token.prefix}[${stringifyToken(token.key)}]`;
     case Token.KEY_EXPLICIT_BOOLEAN_TAG:
-      return `${token.prefix}[${token.key.value},boolean]`;
+      return `${token.prefix}[${stringifyToken(token.key)},boolean]`;
     case Token.KEY_EXPLICIT_NUMBER_TAG:
-      return `${token.prefix}[${token.key.value},number]`;
+      return `${token.prefix}[${stringifyToken(token.key)},number]`;
     case Token.KEY_EXPLICIT_STRING_TAG:
-      return `${token.prefix}[${token.key.value},string]`;
+      return `${token.prefix}[${stringifyToken(token.key)},string]`;
+    case Token.KEY_EXPLICIT_ARRAY_TAG:
+      return `${token.prefix}[${stringifyToken(token.key)},array]`;
+    case Token.KEY_ARRAY_INCLUDES:
+      return `${stringifyToken(token.key)}[${token.index}]`;
     case Token.KEY_EXPLICIT_FLAG:
-      return `flags[${token.key.value}]`;
+      return `flags[${stringifyToken(token.key)}]`;
     case Token.KEY_EXPLICIT_NUMBER_FLAG:
-      return `flags[${token.key.value},number]`;
+      return `flags[${stringifyToken(token.key)},number]`;
     case Token.KEY_EXPLICIT_STRING_FLAG:
-      return `flags[${token.key.value},string]`;
+      return `flags[${stringifyToken(token.key)},string]`;
     case Token.VALUE_TEXT:
       return token.quoted ? `"${token.value}"` : token.value;
     case Token.VALUE_RELATIVE_DATE:

@@ -3,17 +3,12 @@ import type {Location} from 'history';
 import pick from 'lodash/pick';
 import moment from 'moment-timezone';
 
-import {MarkLine} from 'sentry/components/charts/components/markLine';
+import {markLine} from 'sentry/components/charts/components/markLine';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
-import type {
-  Commit,
-  CommitFile,
-  FilesByRepository,
-  Repository,
-} from 'sentry/types/integrations';
+import type {Commit, CommitFile, FilesByRepository} from 'sentry/types/integrations';
 import type {ReleaseProject, ReleaseWithHealth} from 'sentry/types/release';
 import {ReleaseComparisonChartType} from 'sentry/types/release';
 import {decodeList} from 'sentry/utils/queryString';
@@ -80,26 +75,19 @@ export function getCommitsByRepository(commitList: Commit[]): CommitsByRepositor
 
 type GetQueryProps = {
   location: Location;
-  perPage?: number;
 };
 
-export function getQuery({location, perPage = 40}: GetQueryProps) {
+export function getQuery({location}: GetQueryProps) {
   const query = {
     ...pick(location.query, [...Object.values(URL_PARAM), 'cursor']),
-    per_page: perPage,
+    per_page: 40,
   };
 
   return query;
 }
 
-/**
- * Get repositories to render according to the activeRepository
- */
-export function getReposToRender(repos: string[], activeRepository?: Repository) {
-  if (!activeRepository) {
-    return repos;
-  }
-  return [activeRepository.name];
+export function getReposToRender(repos: string[]) {
+  return repos;
 }
 
 export const releaseComparisonChartLabels = {
@@ -175,7 +163,7 @@ function generateReleaseMarkLine(
     yAxisIndex: axisIndex ?? undefined,
     xAxisIndex: axisIndex ?? undefined,
     color: theme.colors.gray400,
-    markLine: MarkLine({
+    markLine: markLine({
       silent: true,
       lineStyle: {color: theme.colors.gray400, type: 'solid'},
       label: {

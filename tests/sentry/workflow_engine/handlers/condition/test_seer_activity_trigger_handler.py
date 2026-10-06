@@ -1,11 +1,15 @@
 import pytest
 from jsonschema import ValidationError
 
+from sentry.issues.action_log.types import SeerPRReadyForReviewAction, SeerRCACompletedAction
+from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.handlers.condition.seer_activity_trigger_handler import (
+    SeerActivityTriggerHandler,
     SeerActivityTriggerStage,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.preview import AlertPreviewPlan, InvalidPreviewConfiguration
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
 
@@ -29,6 +33,52 @@ class TestSeerActivityTriggerHandler(ConditionTestCase):
         event_data = self._create_event_data(ActivityType.SEER_RCA_COMPLETED)
         self.assert_passes(self.dc, event_data)
 
+    def test_preview_ignores_unknown_stages(self) -> None:
+        matching_entry = self.create_group_action_log_entry(
+            group=self.group,
+            type=SeerRCACompletedAction.get_type(),
+        )
+        other_entry = self.create_group_action_log_entry(
+            group=self.group,
+            type=SeerPRReadyForReviewAction.get_type(),
+        )
+        plan = AlertPreviewPlan()
+
+        SeerActivityTriggerHandler.preview_behavior.add_to_preview(
+            plan, [SeerActivityTriggerStage.RCA_COMPLETED, "rca_started"]
+        )
+
+        matching_entry_ids = set(
+            GroupActionLogEntry.objects.filter(id__in=[matching_entry.id, other_entry.id])
+            .filter(*plan.group_action_log_candidate_filters)
+            .values_list("id", flat=True)
+        )
+        assert matching_entry_ids == {matching_entry.id}
+
+    def test_preview_rejects_invalid_comparison(self) -> None:
+        with pytest.raises(InvalidPreviewConfiguration):
+            SeerActivityTriggerHandler.preview_behavior.add_to_preview(AlertPreviewPlan(), [1])
+
+    def test_preview_supports_legacy_pr_created_stage(self) -> None:
+        matching_entry = self.create_group_action_log_entry(
+            group=self.group,
+            type=SeerPRReadyForReviewAction.get_type(),
+        )
+        other_entry = self.create_group_action_log_entry(
+            group=self.group,
+            type=SeerRCACompletedAction.get_type(),
+        )
+        plan = AlertPreviewPlan()
+
+        SeerActivityTriggerHandler.preview_behavior.add_to_preview(plan, ["pr_created"])
+
+        matching_entry_ids = set(
+            GroupActionLogEntry.objects.filter(id__in=[matching_entry.id, other_entry.id])
+            .filter(*plan.group_action_log_candidate_filters)
+            .values_list("id", flat=True)
+        )
+        assert matching_entry_ids == {matching_entry.id}
+
     def test_evaluate_value__non_matching_stage(self) -> None:
         event_data = self._create_event_data(ActivityType.SEER_PR_CREATED)
         self.assert_does_not_pass(self.dc, event_data)
@@ -51,10 +101,23 @@ class TestSeerActivityTriggerHandler(ConditionTestCase):
             (SeerActivityTriggerStage.RCA_COMPLETED, ActivityType.SEER_RCA_COMPLETED),
             (SeerActivityTriggerStage.SOLUTION_COMPLETED, ActivityType.SEER_SOLUTION_COMPLETED),
             (SeerActivityTriggerStage.CODING_COMPLETED, ActivityType.SEER_CODING_COMPLETED),
-            (SeerActivityTriggerStage.PR_CREATED, ActivityType.SEER_PR_CREATED),
+            (SeerActivityTriggerStage.PR_READY_FOR_REVIEW, ActivityType.SEER_PR_READY_FOR_REVIEW),
         ]:
             event_data = self._create_event_data(activity_type_value)
             self.assert_passes(self.dc, event_data)
+
+    def test_evaluate_value__legacy_pr_created_fires_on_ready_for_review(self) -> None:
+        # TODO(Leander): Remove this test after we update the DB State
+        # `pr_created` can't be set up anymore, but should still fire as a `pr_ready_for_review`
+        self.dc.update(comparison=["pr_created"])
+
+        event_data = self._create_event_data(ActivityType.SEER_PR_READY_FOR_REVIEW)
+        self.assert_passes(self.dc, event_data)
+
+        # The old activity type is not equivalent: the draft/ready split means
+        # `pr_created` can fire while the PR is still a draft.
+        event_data = self._create_event_data(ActivityType.SEER_PR_CREATED)
+        self.assert_does_not_pass(self.dc, event_data)
 
     def test_evaluate_value__unrelated_activity_type(self) -> None:
         event_data = self._create_event_data(ActivityType.SET_RESOLVED)
@@ -74,14 +137,14 @@ class TestSeerActivityTriggerHandler(ConditionTestCase):
         self.assert_does_not_pass(self.dc, event_data)
 
     def test_json_schema__valid_single_stage(self) -> None:
-        self.dc.comparison = [SeerActivityTriggerStage.PR_CREATED]
+        self.dc.comparison = [SeerActivityTriggerStage.PR_READY_FOR_REVIEW]
         self.dc.save()
 
     def test_json_schema__valid_multiple_stages(self) -> None:
         self.dc.comparison = [
             SeerActivityTriggerStage.RCA_COMPLETED,
             SeerActivityTriggerStage.CODING_COMPLETED,
-            SeerActivityTriggerStage.PR_CREATED,
+            SeerActivityTriggerStage.PR_READY_FOR_REVIEW,
         ]
         self.dc.save()
 

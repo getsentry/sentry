@@ -6,7 +6,7 @@ from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, ExtrapolationMode
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ComparisonFilter
 
-from sentry.search.eap.types import SupportedTraceItemType
+from sentry.search.eap.types import ColumnType, SupportedTraceItemType
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS, DurationUnit, SizeUnit
 from sentry.search.events.types import SAMPLING_MODES
 
@@ -54,6 +54,16 @@ LITERAL_OPERATOR_MAP = {
     "lessOrEquals": ComparisonFilter.OP_LESS_THAN_OR_EQUALS,
 }
 IN_OPERATORS = ["IN", "NOT IN"]
+
+# Snuba applies the same type rules to OP_REGEXP as to OP_LIKE: the pattern matches string
+# values, or the string elements of a string array.
+REGEXP_ATTRIBUTE_TYPES = frozenset(
+    {
+        AttributeKey.TYPE_STRING,
+        AttributeKey.TYPE_ARRAY,
+        AttributeKey.TYPE_ARRAY_STRING,
+    }
+)
 
 AGGREGATION_OPERATOR_MAP = {
     "=": AggregationComparisonFilter.OP_EQUALS,
@@ -138,6 +148,19 @@ TYPE_MAP: dict[SearchType, AttributeKey.Type.ValueType] = {
     "currency": DOUBLE,
     "array": ARRAY,
 }
+
+# Widest window that still hits tier 1. Snuba downsamples queries starting >31d ago.
+EAP_FULL_FIDELITY_RETENTION_DAYS = 30
+# Equal to retention; midnight flooring can leave ~1s of headroom before the boundary.
+EAP_FULL_FIDELITY_QUERY_DAYS = EAP_FULL_FIDELITY_RETENTION_DAYS
+
+# Never downsampled. Mirrors snuba ITEM_TYPE_FULL_RETENTION.
+FULL_RETENTION_ITEM_TYPES = frozenset(
+    {
+        SupportedTraceItemType.UPTIME_RESULTS,
+        SupportedTraceItemType.PREPROD,
+    }
+)
 
 # https://github.com/getsentry/snuba/blob/master/snuba/web/rpc/v1/endpoint_time_series.py
 # The RPC limits us to 10100 points per timeseries
@@ -226,8 +249,8 @@ ARITHMETIC_OPERATOR_MAP: dict[str, Column.BinaryFormula.Op.ValueType] = {
 }
 
 META_PREFIX = "sentry._meta"
-META_FIELD_PREFIX = f"{META_PREFIX}.fields"
-META_ATTRIBUTE_PREFIX = f"{META_FIELD_PREFIX}.attributes"
+META_FIELD_PREFIX = "sentry._meta.fields"
+META_ATTRIBUTE_PREFIX = "sentry._meta.fields.attributes"
 
 SENTRY_INTERNAL_PREFIXES = ["__sentry_internal", "sentry._internal."]
 
@@ -245,4 +268,19 @@ ATTRIBUTES_QUERY_PARAM_TO_ATTRIBUTE_TYPE_MAP = {
     "number": AttributeKey.Type.TYPE_DOUBLE,
     "boolean": AttributeKey.Type.TYPE_BOOLEAN,
     "string": AttributeKey.Type.TYPE_STRING,
+    "array": AttributeKey.Type.TYPE_ARRAY,
+}
+
+
+PROTO_TYPE_TO_ATTRIBUTE_TYPE_MAP: dict[AttributeKey.Type.ValueType, ColumnType] = {
+    AttributeKey.Type.TYPE_STRING: "string",
+    AttributeKey.Type.TYPE_BOOLEAN: "boolean",
+    AttributeKey.Type.TYPE_INT: "number",
+    AttributeKey.Type.TYPE_FLOAT: "number",
+    AttributeKey.Type.TYPE_DOUBLE: "number",
+    AttributeKey.Type.TYPE_ARRAY: "array",
+    AttributeKey.Type.TYPE_ARRAY_STRING: "array",
+    AttributeKey.Type.TYPE_ARRAY_INT: "array",
+    AttributeKey.Type.TYPE_ARRAY_DOUBLE: "array",
+    AttributeKey.Type.TYPE_ARRAY_BOOL: "array",
 }

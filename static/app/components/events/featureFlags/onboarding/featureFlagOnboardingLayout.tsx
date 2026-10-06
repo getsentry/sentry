@@ -107,7 +107,10 @@ export function FeatureFlagOnboardingLayout({
                 }
               />
             ))}
-            <StyledLinkButton to="/issues/" variant="primary">
+            <StyledLinkButton
+              to={`/organizations/${organization.slug}/issues/`}
+              variant="primary"
+            >
               {t('Take me to Issues')}
             </StyledLinkButton>
           </Steps>

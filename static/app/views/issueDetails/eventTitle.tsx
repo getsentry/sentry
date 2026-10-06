@@ -10,7 +10,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {useActionableItemsWithProguardErrors} from 'sentry/components/events/interfaces/crashContent/exception/useActionableItems';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCopy, IconWarning} from 'sentry/icons';
+import {IconCopyId, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -93,7 +93,7 @@ export function EventTitle({event, group, ref, ...props}: EventNavigationProps) 
               onClick={handleCopyEventId}
               size="zero"
               variant="transparent"
-              icon={<IconCopy size="xs" variant="muted" />}
+              icon={<IconCopyId size="xs" variant="muted" />}
             />
           </EventIdWrapper>
           <StyledTimeSince
@@ -161,7 +161,6 @@ const EventInfoJumpToWrapper = styled('div')<{hasProcessingError: boolean}>`
   align-items: center;
   padding: 0 ${p => p.theme.space.lg};
   min-height: ${MIN_NAV_HEIGHT}px;
-  border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
 
   @media (max-width: ${p =>
     p.hasProcessingError ? p.theme.breakpoints.lg : p.theme.breakpoints.sm}) {

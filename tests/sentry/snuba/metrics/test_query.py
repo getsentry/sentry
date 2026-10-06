@@ -20,7 +20,7 @@ from sentry.snuba.metrics import (
     MetricOrderByField,
     parse_conditions,
 )
-from sentry.snuba.metrics.naming_layer import SessionMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer import SessionMRI
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.dates import parse_stats_period
@@ -118,25 +118,33 @@ class MetricsQueryBuilder:
 
 
 def test_metric_field_equality_with_equal_fields() -> None:
-    ap_dex_with_alias_1 = MetricField(op=None, metric_mri=TransactionMRI.APDEX.value, alias="apdex")
-    ap_dex_with_alias_2 = MetricField(op=None, metric_mri=TransactionMRI.APDEX.value, alias="apdex")
+    ap_dex_with_alias_1 = MetricField(
+        op=None, metric_mri="e:transactions/apdex@ratio", alias="apdex"
+    )
+    ap_dex_with_alias_2 = MetricField(
+        op=None, metric_mri="e:transactions/apdex@ratio", alias="apdex"
+    )
 
     assert ap_dex_with_alias_1 == ap_dex_with_alias_2
 
 
 def test_metric_field_equality_with_different_aliases() -> None:
-    ap_dex_with_alias_1 = MetricField(op=None, metric_mri=TransactionMRI.APDEX.value, alias="apdex")
+    ap_dex_with_alias_1 = MetricField(
+        op=None, metric_mri="e:transactions/apdex@ratio", alias="apdex"
+    )
     ap_dex_with_alias_2 = MetricField(
-        op=None, metric_mri=TransactionMRI.APDEX.value, alias="transaction.apdex"
+        op=None, metric_mri="e:transactions/apdex@ratio", alias="transaction.apdex"
     )
 
     assert ap_dex_with_alias_1 == ap_dex_with_alias_2
 
 
 def test_metric_field_equality_with_different_mris() -> None:
-    ap_dex_with_alias_1 = MetricField(op=None, metric_mri=TransactionMRI.APDEX.value, alias="apdex")
+    ap_dex_with_alias_1 = MetricField(
+        op=None, metric_mri="e:transactions/apdex@ratio", alias="apdex"
+    )
     ap_dex_with_alias_2 = MetricField(
-        op=None, metric_mri=TransactionMRI.DURATION.value, alias="duration"
+        op=None, metric_mri="d:transactions/duration@millisecond", alias="duration"
     )
 
     assert not ap_dex_with_alias_1 == ap_dex_with_alias_2
@@ -175,7 +183,7 @@ def test_validate_select() -> None:
 def test_validate_select_invalid_use_case_ids() -> None:
     with pytest.raises(InvalidParams, match="All select fields should have the same use_case_id"):
         metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.CRASH_FREE_RATE.value)
-        metric_field_2 = MetricField(op="p50", metric_mri=TransactionMRI.DURATION.value)
+        metric_field_2 = MetricField(op="p50", metric_mri="d:transactions/duration@millisecond")
         DeprecatingMetricsQuery(
             **MetricsQueryBuilder()
             .with_select([metric_field_1, metric_field_2])
@@ -251,16 +259,20 @@ def test_validate_order_by_field_in_select() -> None:
 @django_db_all
 def test_validate_order_by_field_in_select_with_different_alias() -> None:
     create_default_projects()
-    ap_dex_with_alias_1 = MetricField(op=None, metric_mri=TransactionMRI.APDEX.value, alias="apdex")
-    ap_dex_with_alias_2 = MetricField(
-        op=None, metric_mri=TransactionMRI.APDEX.value, alias="transaction.apdex"
+    crash_free_with_alias_1 = MetricField(
+        op=None, metric_mri=SessionMRI.CRASH_FREE_RATE.value, alias="crash_free"
+    )
+    crash_free_with_alias_2 = MetricField(
+        op=None, metric_mri=SessionMRI.CRASH_FREE_RATE.value, alias="session.crash_free_rate"
     )
 
     try:
         metrics_query_dict = (
             MetricsQueryBuilder()
-            .with_select([ap_dex_with_alias_1])
-            .with_orderby([MetricOrderByField(field=ap_dex_with_alias_2, direction=Direction.ASC)])
+            .with_select([crash_free_with_alias_1])
+            .with_orderby(
+                [MetricOrderByField(field=crash_free_with_alias_2, direction=Direction.ASC)]
+            )
             .to_metrics_query_dict()
         )
         DeprecatingMetricsQuery(**metrics_query_dict)
@@ -303,7 +315,7 @@ def test_validate_multiple_order_by_fields_from_multiple_entities() -> None:
     create_default_projects()
     metric_field_1 = MetricField(op=None, metric_mri=SessionMRI.CRASH_FREE_RATE.value)
     metric_field_2 = MetricField(op=None, metric_mri=SessionMRI.CRASH_FREE_USER_RATE.value)
-    metric_field_3 = MetricField(op="p50", metric_mri=TransactionMRI.DURATION.value)
+    metric_field_3 = MetricField(op="p50", metric_mri=SessionMRI.DURATION.value)
     metrics_query_dict = (
         MetricsQueryBuilder()
         .with_select([metric_field_1, metric_field_2])
@@ -413,8 +425,8 @@ def test_validate_functions_from_multiple_entities_in_orderby() -> None:
     # `avg` are in OP_TO_SNUBA_FUNCTION["metrics_distributions"].keys()
     # but
     # `count_unique` are in OP_TO_SNUBA_FUNCTION["metrics_sets"].keys()
-    metric_field_1 = MetricField(op="avg", metric_mri=TransactionMRI.DURATION.value)
-    metric_field_2 = MetricField(op="count_unique", metric_mri=TransactionMRI.USER.value)
+    metric_field_1 = MetricField(op="avg", metric_mri=SessionMRI.DURATION.value)
+    metric_field_2 = MetricField(op="count_unique", metric_mri=SessionMRI.RAW_USER.value)
 
     metrics_query_dict = (
         MetricsQueryBuilder()
@@ -439,8 +451,8 @@ def test_validate_functions_from_multiple_entities_in_orderby() -> None:
 
 def test_validate_distribution_functions_in_orderby() -> None:
     # Validate no exception is raised when all orderBy fields are presented the select
-    metric_field_1 = MetricField(op="avg", metric_mri=TransactionMRI.DURATION.value)
-    metric_field_2 = MetricField(op="p50", metric_mri=TransactionMRI.DURATION.value)
+    metric_field_1 = MetricField(op="avg", metric_mri=SessionMRI.DURATION.value)
+    metric_field_2 = MetricField(op="p50", metric_mri=SessionMRI.DURATION.value)
 
     metrics_query_dict = (
         MetricsQueryBuilder()
@@ -586,7 +598,7 @@ def test_validate_metric_field_mri() -> None:
             id="release health query, series, interval provided",
         ),
         pytest.param(
-            [MetricField(op="p95", metric_mri=TransactionMRI.DURATION.value)],
+            [MetricField(op="p95", metric_mri="d:transactions/duration@millisecond")],
             3600,
             False,
             id="performance query, not series, interval provided",
@@ -623,7 +635,7 @@ def test_validate_is_alerts_query() -> None:
 def test_ensure_interval_set_to_granularity_in_performance_queries() -> None:
     metrics_query = (
         MetricsQueryBuilder()
-        .with_select([MetricField(op="p95", metric_mri=TransactionMRI.DURATION.value)])
+        .with_select([MetricField(op="p95", metric_mri="d:transactions/duration@millisecond")])
         .with_include_series(True)
     )
     metrics_query_dict = metrics_query.to_metrics_query_dict()
@@ -663,7 +675,7 @@ def test_start_end_interval_greater_than_interval_is_successful(
 ):
     metrics_query = (
         MetricsQueryBuilder()
-        .with_select([MetricField(op="p95", metric_mri=TransactionMRI.DURATION.value)])
+        .with_select([MetricField(op="p95", metric_mri="d:transactions/duration@millisecond")])
         .with_include_series(True)
         .with_granularity(Granularity(granularity))
         .with_interval(interval)

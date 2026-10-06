@@ -1,4 +1,4 @@
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -13,11 +13,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getColumnFieldsForValidation} from 'sentry/views/explore/utils/columnValidation';
 import {validateEventParamsOptions} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
-type UseValidateLogsTabArgs = {
-  enabled?: boolean;
-};
-
-export function useValidateLogsTab({enabled = true}: UseValidateLogsTabArgs = {}) {
+export function useValidateLogsTab() {
   const {selection} = usePageFilters();
   const organization = useOrganization();
 
@@ -27,7 +23,7 @@ export function useValidateLogsTab({enabled = true}: UseValidateLogsTabArgs = {}
   const sortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
 
-  const {data, isFetching, isLoading} = useQuery({
+  const {data, isFetching, isLoading, isPlaceholderData} = useQuery({
     ...validateEventParamsOptions({
       organization,
       selection,
@@ -40,13 +36,12 @@ export function useValidateLogsTab({enabled = true}: UseValidateLogsTabArgs = {}
       query: search.formatString(),
       projectIds: selection.projects,
     }),
-    // using skipToken is the new preferred way to skip a query
-    ...(enabled ? {} : {queryFn: skipToken}),
   });
 
   return {
     data,
     isFetching,
+    isPlaceholderData,
     isLoading,
   };
 }

@@ -48,6 +48,8 @@ export enum Token {
   KEY_EXPLICIT_BOOLEAN_TAG = 'keyExplicitBooleanTag',
   KEY_EXPLICIT_NUMBER_TAG = 'keyExplicitNumberTag',
   KEY_EXPLICIT_STRING_TAG = 'keyExplicitStringTag',
+  KEY_EXPLICIT_ARRAY_TAG = 'keyExplicitArrayTag',
+  KEY_ARRAY_INCLUDES = 'keyArrayIncludes',
   KEY_AGGREGATE = 'keyAggregate',
   KEY_AGGREGATE_ARGS = 'keyAggregateArgs',
   KEY_AGGREGATE_PARAMS = 'keyAggregateParam',
@@ -84,6 +86,8 @@ export enum TermOperator {
   DOES_NOT_START_WITH = '\uF00DDoesNotStartWith\uF00D',
   ENDS_WITH = '\uF00DEndsWith\uF00D',
   DOES_NOT_END_WITH = '\uF00DDoesNotEndWith\uF00D',
+  MATCHES = '//',
+  DOES_NOT_MATCH = '!//',
 }
 
 /**
@@ -117,6 +121,7 @@ export enum FilterType {
   AGGREGATE_RELATIVE_DATE = 'aggregateRelativeDate',
   HAS = 'has',
   IS = 'is',
+  ARRAY_INCLUDES = 'arrayIncludes',
 }
 
 /**
@@ -153,11 +158,30 @@ export const wildcardOperators = [
 
 export type WildcardOperator = (typeof wildcardOperators)[number];
 
+export const regexOperators = [
+  TermOperator.MATCHES,
+  TermOperator.DOES_NOT_MATCH,
+] as const;
+
+/**
+ * Kept in sync with MAX_REGEX_PATTERN_LENGTH and regex_pattern_length in
+ * src/sentry/api/event_search.py, which rejects longer patterns outright.
+ * fixtures/search-syntax/regex_operator.json pins the two together.
+ */
+const MAX_REGEX_PATTERN_LENGTH = 64;
+
+function getRegexPatternLength(pattern: string) {
+  return pattern.replaceAll(/\\./g, '_').length;
+}
+
+export type RegexOperator = (typeof regexOperators)[number];
+
 export const negationOperators: readonly TermOperator[] = [
   TermOperator.NOT_EQUAL,
   TermOperator.DOES_NOT_CONTAIN,
   TermOperator.DOES_NOT_START_WITH,
   TermOperator.DOES_NOT_END_WITH,
+  TermOperator.DOES_NOT_MATCH,
 ];
 
 /**
@@ -181,9 +205,12 @@ const textKeys = [
   Token.KEY_SIMPLE,
   Token.KEY_EXPLICIT_TAG,
   Token.KEY_EXPLICIT_STRING_TAG,
+  Token.KEY_EXPLICIT_ARRAY_TAG,
   Token.KEY_EXPLICIT_FLAG,
   Token.KEY_EXPLICIT_STRING_FLAG,
 ] as const;
+
+const arrayIncludesKeys = [Token.KEY_ARRAY_INCLUDES] as const;
 
 /**
  * This constant-type configuration object declares how each filter type
@@ -196,7 +223,7 @@ const textKeys = [
 export const filterTypeConfig = {
   [FilterType.TEXT]: {
     validKeys: textKeys,
-    validOps: [...basicOperators, ...wildcardOperators],
+    validOps: [...basicOperators, ...wildcardOperators, ...regexOperators],
     validValues: [Token.VALUE_TEXT],
     canNegate: true,
   },
@@ -302,6 +329,12 @@ export const filterTypeConfig = {
     validValues: [Token.VALUE_TEXT],
     canNegate: true,
   },
+  [FilterType.ARRAY_INCLUDES]: {
+    validKeys: arrayIncludesKeys,
+    validOps: [...basicOperators, ...regexOperators],
+    validValues: [Token.VALUE_TEXT],
+    canNegate: true,
+  },
 } as const;
 
 type FilterTypeConfig = typeof filterTypeConfig;
@@ -328,6 +361,8 @@ export enum InvalidReason {
   INVALID_DURATION = 'invalid-duration',
   INVALID_DATE_FORMAT = 'invalid-date-format',
   PARENS_NOT_ALLOWED = 'parens-not-allowed',
+  REGEX_PATTERN_TOO_LONG = 'regex-pattern-too-long',
+  INVALID_REGEX = 'invalid-regex',
 }
 
 /**
@@ -492,6 +527,36 @@ export class TokenConverter {
     };
   };
 
+  tokenRegexFilter = (
+    key: FilterMap[FilterType.TEXT | FilterType.ARRAY_INCLUDES]['key'],
+    literal: ReturnType<TokenConverter['tokenValueText']>,
+    pattern: ReturnType<TokenConverter['tokenValueText']>,
+    negated: boolean
+  ) => {
+    const filter =
+      key.type === Token.KEY_ARRAY_INCLUDES ? FilterType.ARRAY_INCLUDES : FilterType.TEXT;
+
+    if (!this.config.allowRegex) {
+      return this.tokenFilter(
+        filter,
+        key,
+        literal,
+        TermOperator.DEFAULT,
+        negated,
+        undefined
+      );
+    }
+
+    return this.tokenFilter(
+      filter,
+      key,
+      pattern,
+      TermOperator.MATCHES,
+      negated,
+      undefined
+    );
+  };
+
   tokenLParen = (value: '(') => ({
     ...this.defaultTokenFields,
     type: Token.L_PAREN as const,
@@ -608,6 +673,30 @@ export class TokenConverter {
     type: Token.KEY_EXPLICIT_BOOLEAN_TAG as const,
     prefix,
     key,
+  });
+
+  tokenKeyExplicitArrayTag = (
+    prefix: string,
+    key: ReturnType<TokenConverter['tokenKeySimple']>
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_EXPLICIT_ARRAY_TAG as const,
+    prefix,
+    key,
+  });
+
+  // An array element-access key, eg. `foo[*]`. `index` is `*` for membership
+  // over any element (a future `[N]` would target a specific index).
+  tokenKeyArrayIncludes = (
+    key:
+      | ReturnType<TokenConverter['tokenKeySimple']>
+      | ReturnType<TokenConverter['tokenKeyExplicitArrayTag']>,
+    index: string
+  ) => ({
+    ...this.defaultTokenFields,
+    type: Token.KEY_ARRAY_INCLUDES as const,
+    key,
+    index,
   });
 
   tokenKeyAggregateParam = (value: string, quoted: boolean) => ({
@@ -902,6 +991,8 @@ export class TokenConverter {
         Token.KEY_EXPLICIT_BOOLEAN_TAG,
         Token.KEY_EXPLICIT_NUMBER_TAG,
         Token.KEY_EXPLICIT_STRING_TAG,
+        Token.KEY_EXPLICIT_ARRAY_TAG,
+        Token.KEY_ARRAY_INCLUDES,
         Token.KEY_EXPLICIT_FLAG,
         Token.KEY_EXPLICIT_NUMBER_FLAG,
         Token.KEY_EXPLICIT_STRING_FLAG,
@@ -947,10 +1038,17 @@ export class TokenConverter {
       };
     }
 
+    // An array membership filter skips the text checks below, so the pattern
+    // rule it shares with them is applied here.
+    if (filter === FilterType.ARRAY_INCLUDES && operator === TermOperator.MATCHES) {
+      return this.checkInvalidRegexPattern(value as TextFilter['value']);
+    }
+
     if (filter === FilterType.TEXT) {
       return this.checkInvalidTextFilter(
         key as TextFilter['key'],
-        value as TextFilter['value']
+        value as TextFilter['value'],
+        operator as TextFilter['operator']
       );
     }
 
@@ -972,15 +1070,20 @@ export class TokenConverter {
   /**
    * Validates text filters which may have failed predication
    */
-  checkInvalidTextFilter = (key: TextFilter['key'], value: TextFilter['value']) => {
+  checkInvalidTextFilter = (
+    key: TextFilter['key'],
+    value: TextFilter['value'],
+    operator?: TextFilter['operator']
+  ) => {
     // Explicit tag keys will always be treated as text filters
     if (
       key.type === Token.KEY_EXPLICIT_TAG ||
       key.type === Token.KEY_EXPLICIT_STRING_TAG ||
+      key.type === Token.KEY_EXPLICIT_ARRAY_TAG ||
       key.type === Token.KEY_EXPLICIT_FLAG ||
       key.type === Token.KEY_EXPLICIT_STRING_FLAG
     ) {
-      return this.checkInvalidTextValue(value);
+      return this.checkInvalidTextValue(value, operator);
     }
 
     const keyName = getKeyName(key);
@@ -1038,13 +1141,51 @@ export class TokenConverter {
       };
     }
 
-    return this.checkInvalidTextValue(value);
+    return this.checkInvalidTextValue(value, operator);
+  };
+
+  /**
+   * Validates the pattern of a regex filter
+   */
+  checkInvalidRegexPattern = (value: TextFilter['value']) => {
+    if (value.value === '') {
+      return {
+        type: InvalidReason.FILTER_MUST_HAVE_VALUE,
+        reason: this.config.invalidMessages[InvalidReason.FILTER_MUST_HAVE_VALUE],
+      };
+    }
+
+    if (getRegexPatternLength(value.value) > MAX_REGEX_PATTERN_LENGTH) {
+      return {
+        type: InvalidReason.REGEX_PATTERN_TOO_LONG,
+        reason: this.config.invalidMessages[InvalidReason.REGEX_PATTERN_TOO_LONG],
+      };
+    }
+
+    const invalidRegexReason = this.config.validateRegexPattern?.(value.value);
+    if (invalidRegexReason) {
+      return {
+        type: InvalidReason.INVALID_REGEX,
+        reason: `${this.config.invalidMessages[InvalidReason.INVALID_REGEX]}:\n${invalidRegexReason}`,
+      };
+    }
+
+    return null;
   };
 
   /**
    * Validates the value of a text filter
    */
-  checkInvalidTextValue = (value: TextFilter['value']) => {
+  checkInvalidTextValue = (
+    value: TextFilter['value'],
+    operator?: TextFilter['operator']
+  ) => {
+    // `*` and `"` are regex syntax rather than mistakes, so the checks below
+    // don't apply.
+    if (operator === TermOperator.MATCHES) {
+      return this.checkInvalidRegexPattern(value);
+    }
+
     if (this.config.disallowWildcard && value.value.includes('*')) {
       return {
         type: InvalidReason.WILDCARD_NOT_ALLOWED,
@@ -1365,6 +1506,10 @@ export type AggregateFilter = AggregateFilterType & {
  */
 export type SearchConfig = {
   /**
+   * Whether key://pattern// values are parsed as regex filters rather than literals
+   */
+  allowRegex: boolean;
+  /**
    * Keys considered valid for boolean filter types
    */
   booleanKeys: Set<string>;
@@ -1437,6 +1582,11 @@ export type SearchConfig = {
    * If set to true, tag keys that don't exist in supportedTags will be consider invalid
    */
   validateKeys?: boolean;
+  /**
+   * Returns the reason a regex filter's pattern is not valid RE2, or null when it is.
+   * Undefined while the engine loads, which lets patterns through until it resolves.
+   */
+  validateRegexPattern?: (pattern: string) => string | null;
 };
 
 export const defaultConfig: SearchConfig = {
@@ -1480,6 +1630,7 @@ export const defaultConfig: SearchConfig = {
   sizeKeys: new Set(),
   disallowedLogicalOperators: new Set(),
   disallowFreeText: false,
+  allowRegex: false,
   disallowWildcard: false,
   disallowNegation: false,
   disallowParens: false,
@@ -1509,6 +1660,11 @@ export const defaultConfig: SearchConfig = {
       'Lists should not have empty values'
     ),
     [InvalidReason.PARENS_NOT_ALLOWED]: t('Parentheses are not supported in this search'),
+    [InvalidReason.REGEX_PATTERN_TOO_LONG]: t(
+      'Regex patterns are limited to %s characters. To search for a literal value that starts with //, quote it: "//..."',
+      MAX_REGEX_PATTERN_LENGTH
+    ),
+    [InvalidReason.INVALID_REGEX]: t('Invalid regex (RE2 syntax)'),
   },
 };
 

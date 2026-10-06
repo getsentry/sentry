@@ -22,25 +22,25 @@ import {useGroupData} from 'sentry/views/issueDetails/groupDataContext';
 import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {useGroupTags} from 'sentry/views/issueDetails/groupTags/useGroupTags';
 
-export function markEventSeen(
+export async function markEventSeen(
   api: Client,
   orgId: string,
   projectId: string,
   groupId: string
 ) {
-  bulkUpdate(
-    api,
-    {
+  IssueListCacheStore.markGroupAsSeen(groupId);
+
+  try {
+    await bulkUpdate(api, {
       orgId,
       projectId,
       itemIds: [groupId],
       failSilently: true,
       data: {hasSeen: true},
-    },
-    {}
-  );
-
-  IssueListCacheStore.markGroupAsSeen(groupId);
+    });
+  } catch {
+    // Marking an issue as seen is best-effort
+  }
 }
 
 export function useDefaultIssueEvent() {
@@ -160,10 +160,7 @@ export enum ReprocessingStatus {
 }
 
 // Reprocessing Checks
-export function getGroupReprocessingStatus(
-  group: Group,
-  mostRecentActivity?: GroupActivity
-) {
+export function getGroupReprocessingStatus(group: Group) {
   const {status, count, activity: activities} = group;
   const groupCount = Number(count);
 
@@ -171,8 +168,7 @@ export function getGroupReprocessingStatus(
     case 'reprocessing':
       return ReprocessingStatus.REPROCESSING;
     case 'unresolved': {
-      const groupMostRecentActivity =
-        mostRecentActivity ?? getGroupMostRecentActivity(activities);
+      const groupMostRecentActivity = getGroupMostRecentActivity(activities);
       if (groupMostRecentActivity?.type === 'reprocess') {
         if (groupCount === 0) {
           return ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT;
@@ -212,6 +208,7 @@ function getGroupEventDetailsQueryData({
 }): Record<string, string | string[]> {
   const params: Record<string, string | string[]> = {
     collapse: ['fullRelease'],
+    llmFormat: 'markdown',
   };
 
   if (query) {

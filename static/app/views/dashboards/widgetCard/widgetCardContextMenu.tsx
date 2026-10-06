@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {Location} from 'history';
 import qs from 'query-string';
 
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
@@ -11,7 +12,6 @@ import {
   openDashboardWidgetQuerySelectorModal,
 } from 'sentry/actionCreators/modal';
 import {openConfirmModal} from 'sentry/components/confirm';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
 import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
@@ -28,7 +28,6 @@ import {
   applyDashboardFilters,
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
-  hasDatasetSelector,
   isUsingPerformanceScore,
   isWidgetEditable,
   performanceScoreTooltip,
@@ -39,9 +38,9 @@ import {
   widgetTypeSupportsExploreMultiQuery,
 } from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
 import {getWidgetMetricsUrl} from 'sentry/views/dashboards/utils/getWidgetMetricsUrl';
+import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
@@ -67,7 +66,10 @@ export const useTransactionsDeprecationWarning = ({
     return createExploreUrl(widget.exploreUrls[0]!, selection, organization);
   }, [organization, widget.widgetType, widget.exploreUrls, selection]);
 
-  if (!exploreUrl) {
+  if (
+    !exploreUrl ||
+    !organization.features.includes('performance-transaction-deprecation-banner')
+  ) {
     return null;
   }
 
@@ -176,7 +178,8 @@ export function getMenuOptions(
   onDelete?: () => void,
   onDuplicate?: () => void,
   onEdit?: () => void,
-  timeseriesResults?: Series[]
+  timeseriesResults?: Series[],
+  onAskSeer?: () => void
 ) {
   const menuOptions: MenuItemProps[] = [];
 
@@ -187,13 +190,9 @@ export function getMenuOptions(
   if (
     organization.features.includes('discover-basic') &&
     widget.widgetType &&
-    [WidgetType.DISCOVER, WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(
-      widget.widgetType
-    )
+    [WidgetType.ERRORS, WidgetType.TRANSACTIONS].includes(widget.widgetType)
   ) {
-    const optionDisabled =
-      (hasDatasetSelector(organization) && widget.widgetType === WidgetType.DISCOVER) ||
-      isUsingPerformanceScore(widget);
+    const optionDisabled = isUsingPerformanceScore(widget);
     // Open Widget in Discover
     if (widget.queries.length) {
       const discoverPath = getWidgetDiscoverUrl(
@@ -204,9 +203,7 @@ export function getMenuOptions(
       );
       menuOptions.push({
         key: 'open-in-discover',
-        label: getDiscoverDeprecation(organization)
-          ? t('Open in Explore')
-          : t('Open in Discover'),
+        label: t('Open in Explore'),
         to: optionDisabled
           ? undefined
           : widget.queries.length === 1
@@ -274,9 +271,7 @@ export function getMenuOptions(
     usesTimeSeriesData(widget.displayType) &&
     timeseriesResults?.length
   ) {
-    const newAlertLabel = organization.features.includes('workflow-engine-ui')
-      ? t('Create a Monitor for')
-      : t('Create an Alert for');
+    const newAlertLabel = t('Create a Monitor for');
 
     const alertMenuOptions = timeseriesResults
       .map((series, index) => {
@@ -293,11 +288,14 @@ export function getMenuOptions(
         const {timeSeries, label, seriesName, widgetQuery} = transformed;
 
         const baseQuery =
-          applyDashboardFilters(
-            widgetQuery?.conditions,
-            dashboardFilters,
-            widget.widgetType
-          ) ?? '';
+          applyDashboardFilters({
+            baseQuery: widgetQuery?.conditions,
+            dashboardFilters: withGlobalFilterFallback(
+              dashboardFilters,
+              widgetQuery?.globalFilterFallback
+            ),
+            widgetType: widget.widgetType,
+          }) ?? '';
 
         // Add group-by values as filters to the alert query
         const search = new MutableSearch(baseQuery);
@@ -309,7 +307,13 @@ export function getMenuOptions(
 
         return {
           key: `create-alert-${seriesName}-${index}`,
-          label,
+          label: (
+            <Text ellipsis style={{maxWidth: 400}}>
+              {label}
+            </Text>
+          ),
+          textValue: label,
+          tooltip: label,
           to: getAlertsUrl({
             query: search.formatString(),
             aggregate: timeSeries.yAxis,
@@ -361,6 +365,14 @@ export function getMenuOptions(
     });
   }
 
+  if (onAskSeer) {
+    menuOptions.push({
+      key: 'ask-seer',
+      label: t('Ask Seer'),
+      onAction: onAskSeer,
+    });
+  }
+
   if (organization.features.includes('dashboards-edit')) {
     menuOptions.push({
       key: 'add-to-dashboard',
@@ -387,39 +399,45 @@ export function getMenuOptions(
         });
       },
     });
-    menuOptions.push({
-      key: 'duplicate-widget',
-      label: t('Duplicate Widget'),
-      onAction: () => onDuplicate?.(),
-      tooltip: disableTransactionEdit
-        ? t('This dataset is no longer supported. Please use the Spans dataset.')
-        : undefined,
-      disabled: widgetLimitReached || !hasEditAccess || disableTransactionEdit,
-    });
+    if (onDuplicate) {
+      menuOptions.push({
+        key: 'duplicate-widget',
+        label: t('Duplicate Widget'),
+        onAction: onDuplicate,
+        tooltip: disableTransactionEdit
+          ? t('This dataset is no longer supported. Please use the Spans dataset.')
+          : undefined,
+        disabled: widgetLimitReached || !hasEditAccess || disableTransactionEdit,
+      });
+    }
 
-    menuOptions.push({
-      key: 'edit-widget',
-      label: t('Edit Widget'),
-      onAction: () => onEdit?.(),
-      disabled: !hasEditAccess || !isWidgetEditable(widget.displayType),
-      tooltip: isWidgetEditable(widget.displayType)
-        ? undefined
-        : t('Static widgets from the widget library cannot be edited.'),
-    });
+    if (onEdit) {
+      menuOptions.push({
+        key: 'edit-widget',
+        label: t('Edit Widget'),
+        onAction: onEdit,
+        disabled: !hasEditAccess || !isWidgetEditable(widget.displayType),
+        tooltip: isWidgetEditable(widget.displayType)
+          ? undefined
+          : t('Static widgets from the widget library cannot be edited.'),
+      });
+    }
 
-    menuOptions.push({
-      key: 'delete-widget',
-      label: t('Delete Widget'),
-      priority: 'danger',
-      onAction: () => {
-        openConfirmModal({
-          message: t('Are you sure you want to delete this widget?'),
-          priority: 'danger',
-          onConfirm: () => onDelete?.(),
-        });
-      },
-      disabled: !hasEditAccess,
-    });
+    if (onDelete) {
+      menuOptions.push({
+        key: 'delete-widget',
+        label: t('Delete Widget'),
+        priority: 'danger',
+        onAction: () => {
+          openConfirmModal({
+            message: t('Are you sure you want to delete this widget?'),
+            priority: 'danger',
+            onConfirm: onDelete,
+          });
+        },
+        disabled: !hasEditAccess,
+      });
+    }
   }
 
   return menuOptions;

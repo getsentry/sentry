@@ -373,7 +373,7 @@ it('does not pass unmatched object values to react-select callbacks like getOpti
   function GetOptionValueForm() {
     const form = useScrapsForm({
       ...defaultFormOptions,
-      defaultValues: {fruit: {id: '99', name: 'Mango'} as {id: string; name: string}},
+      defaultValues: {fruit: {id: '99', name: 'Mango'}},
     });
 
     return (
@@ -451,6 +451,22 @@ describe('SelectField auto-save', () => {
 
     expect(await screen.findByTestId('icon-check-mark')).toBeInTheDocument();
     expect(mutationFn).toHaveBeenCalledWith({fruit: 'banana'}, expect.anything());
+  });
+
+  it('restores focus after selecting an option with the keyboard', async () => {
+    const mutationFn = jest.fn((data: {fruit: string}) => Promise.resolve(data));
+
+    render(<AutoSaveTestForm mutationFn={mutationFn} initialValue="apple" />);
+
+    const input = screen.getByRole('textbox');
+    await userEvent.click(input);
+    await userEvent.keyboard('{ArrowDown}{Enter}');
+
+    await waitFor(() => {
+      expect(mutationFn).toHaveBeenCalledWith({fruit: 'banana'}, expect.anything());
+    });
+    expect(await screen.findByTestId('icon-check-mark')).toBeInTheDocument();
+    expect(input).toHaveFocus();
   });
 
   it('disables select while auto-save is pending', async () => {

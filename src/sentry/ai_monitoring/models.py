@@ -32,5 +32,6 @@ class AIConversationMetadata(DefaultFieldsModel):
                 name="ai_monitoring_aiconvmeta_proj_convid_hash_uniq",
             ),
         ]
+        indexes = [models.Index(fields=["date_updated"])]
 
     __repr__ = sane_repr("project_id", "conversation_id_hash")

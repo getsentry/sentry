@@ -11,8 +11,7 @@ from sentry.incidents.charts import (
     incident_date_range,
 )
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
-from sentry.incidents.models.incident import Incident, IncidentActivityType, IncidentStatus
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
 from sentry.incidents.utils.process_update_helpers import calculate_event_date_from_update_date
 from sentry.models.groupopenperiod import GroupOpenPeriod
@@ -20,7 +19,6 @@ from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenP
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.helpers.features import with_feature
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.models import Detector, DetectorGroup
 from tests.sentry.incidents.utils.test_metric_issue_base import BaseMetricIssueTest
@@ -99,7 +97,7 @@ class BuildMetricAlertChartTest(TestCase):
             alert_rule=alert_rule,
             date_started=timezone.now() - datetime.timedelta(minutes=2),
         )
-        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        trigger = self.create_alert_rule_trigger(alert_rule, "critical", 100)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
         url = build_metric_alert_chart(
@@ -117,7 +115,6 @@ class BuildMetricAlertChartTest(TestCase):
 
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
     @patch("sentry.incidents.charts.client.get")
-    @with_feature("organizations:workflow-engine-ui")
     def test_eap_log_alert(
         self, mock_client_get: MagicMock, mock_generate_chart: MagicMock
     ) -> None:
@@ -140,7 +137,7 @@ class BuildMetricAlertChartTest(TestCase):
             alert_rule=alert_rule,
             date_started=timezone.now() - datetime.timedelta(minutes=2),
         )
-        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        trigger = self.create_alert_rule_trigger(alert_rule, "critical", 100)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
         detector = self.create_detector(project=self.project)
@@ -180,7 +177,7 @@ class BuildMetricAlertChartTest(TestCase):
             alert_rule=alert_rule,
             date_started=timezone.now() - datetime.timedelta(minutes=2),
         )
-        trigger = self.create_alert_rule_trigger(alert_rule, CRITICAL_TRIGGER_LABEL, 100)
+        trigger = self.create_alert_rule_trigger(alert_rule, "critical", 100)
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
 
         url = build_metric_alert_chart(
@@ -198,7 +195,6 @@ class BuildMetricAlertChartTest(TestCase):
 
 class FetchOpenPeriodsTest(BaseMetricIssueTest):
     @freeze_time(frozen_time)
-    @with_feature("organizations:incidents")
     def test_get_open_periods_from_detector(self) -> None:
         group = self.create_group(
             project=self.project, type=MetricIssue.type_id, priority=PriorityLevel.HIGH
@@ -242,7 +238,6 @@ class FetchOpenPeriodsTest(BaseMetricIssueTest):
         assert closed_activity_resp["dateCreated"] == closed_gopa.date_added
 
     @freeze_time(frozen_time)
-    @with_feature("organizations:incidents")
     def test_pending_deletion_detector_not_resolved_to_alert_rule(self) -> None:
         self.create_detector()  # dummy so detector ID != alert rule ID
         detector = self.create_detector(project=self.project)
@@ -253,12 +248,6 @@ class FetchOpenPeriodsTest(BaseMetricIssueTest):
             status=IncidentStatus.CRITICAL.value,
             alert_rule=alert_rule,
         )
-        self.create_incident_activity(
-            incident,
-            IncidentActivityType.DETECTED.value,
-            date_added=incident.date_started,
-        )
-
         time_period = incident_date_range(60, incident.date_started, incident.date_closed)
 
         # Mark the detector as pending deletion (bypass custom manager)
@@ -273,8 +262,6 @@ class FetchOpenPeriodsTest(BaseMetricIssueTest):
         assert len(chart_data) == 0
 
     @freeze_time(frozen_time)
-    @with_feature("organizations:incidents")
-    @with_feature("organizations:workflow-engine-ui")
     def test_use_open_period_serializer(self) -> None:
         detector = self.create_detector(project=self.project)
         group = self.create_group(type=MetricIssue.type_id, priority=PriorityLevel.HIGH)
@@ -306,8 +293,6 @@ class FetchOpenPeriodsTest(BaseMetricIssueTest):
         assert activities[0]["value"] == PriorityLevel(group.priority).to_str()
 
     @freeze_time(frozen_time)
-    @with_feature("organizations:incidents")
-    @with_feature("organizations:workflow-engine-ui")
     def test_use_open_period_serializer_with_offset(self) -> None:
         group = self.create_group(type=MetricIssue.type_id, priority=PriorityLevel.HIGH)
 

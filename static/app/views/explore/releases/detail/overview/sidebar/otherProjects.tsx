@@ -1,7 +1,9 @@
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
 import type {Location} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {Collapsible} from 'sentry/components/collapsible';
 import {IdBadge} from 'sentry/components/idBadge';
@@ -42,42 +44,44 @@ export function OtherProjects({projects, location, version, organization}: Props
           )}
         >
           {projects.map(project => (
-            <Row key={project.id}>
-              <IdBadge project={project} avatarSize={16} />
-              <LinkButton
-                size="xs"
-                to={{
-                  pathname: makeReleasesPathname({
-                    organization,
-                    path: `/${encodeURIComponent(version)}/`,
-                  }),
-                  query: {
-                    ...extractSelectionParameters(location.query),
-                    project: project.id,
-                    yAxis: undefined,
-                  },
-                }}
-              >
-                {t('View')}
-              </LinkButton>
-            </Row>
+            <Fragment key={project.id}>
+              <Text size="md" variant="inherit">
+                {containerProps => (
+                  <Grid
+                    {...containerProps}
+                    align="center"
+                    columns={{
+                      zero: '1fr max-content',
+                      '3xl': '200px max-content',
+                      '5xl': '1fr max-content',
+                    }}
+                    justify="between"
+                    marginBottom="sm"
+                  >
+                    <IdBadge project={project} avatarSize={16} />
+                    <LinkButton
+                      size="xs"
+                      to={{
+                        pathname: makeReleasesPathname({
+                          organization,
+                          path: `/${encodeURIComponent(version)}/`,
+                        }),
+                        query: {
+                          ...extractSelectionParameters(location.query),
+                          project: project.id,
+                          yAxis: undefined,
+                        },
+                      }}
+                    >
+                      {t('View')}
+                    </LinkButton>
+                  </Grid>
+                )}
+              </Text>
+            </Fragment>
           ))}
         </Collapsible>
       </SidebarSection.Content>
     </SidebarSection.Wrap>
   );
 }
-
-const Row = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr max-content;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: ${p => p.theme.space.sm};
-  font-size: ${p => p.theme.font.size.md};
-
-  @media (min-width: ${p => p.theme.breakpoints.md}) and (max-width: ${p =>
-    p.theme.breakpoints.lg}) {
-    grid-template-columns: 200px max-content;
-  }
-`;

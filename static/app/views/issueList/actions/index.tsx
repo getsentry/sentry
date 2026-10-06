@@ -6,11 +6,10 @@ import {AnimatePresence, motion, type MotionNodeAnimationOptions} from 'framer-m
 
 import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 
 import {bulkDelete, mergeGroups} from 'sentry/actionCreators/group';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {IssueStreamHeaderLabel} from 'sentry/components/IssueStreamHeaderLabel';
 import {Sticky} from 'sentry/components/sticky';
 import {t, tct, tn} from 'sentry/locale';
@@ -23,13 +22,11 @@ import {uniq} from 'sentry/utils/array/uniq';
 import {useApi} from 'sentry/utils/useApi';
 import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {
   useIssueSelectionActions,
   useIssueSelectionSummary,
 } from 'sentry/views/issueList/issueSelectionContext';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
-import {SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY} from 'sentry/views/issueList/utils';
 
 import {ActionSet} from './actionSet';
 import {Headers} from './headers';
@@ -52,7 +49,6 @@ type IssueListActionsProps = {
   selection: PageFilters;
   statsPeriod: string;
   onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
-  withColumns?: GroupListColumn[];
 };
 
 const animationProps: MotionNodeAnimationOptions = {
@@ -80,7 +76,6 @@ function ActionsBarPriority({
   onSelectStatsPeriod,
   statsPeriod,
   selection,
-  withColumns,
 }: {
   allInQuerySelected: boolean;
   anySelected: boolean;
@@ -99,7 +94,6 @@ function ActionsBarPriority({
   selection: PageFilters;
   statsPeriod: string;
   toggleSelectAllVisible: () => void;
-  withColumns?: GroupListColumn[];
 }) {
   const shouldDisplayActions = anySelected && !narrowViewport;
 
@@ -116,7 +110,14 @@ function ActionsBarPriority({
       {!displayReprocessingActions && (
         <AnimatePresence initial={false} mode="wait">
           {shouldDisplayActions ? (
-            <HeaderButtonsWrapper key="actions" {...animationProps}>
+            <HeaderButtonsWrapper
+              key="actions"
+              width={{zero: 'auto', '4xl': '50%'}}
+              gap="xs"
+              flow="column"
+              justify="start"
+              {...animationProps}
+            >
               <ActionSet
                 queryCount={queryCount}
                 query={query}
@@ -146,7 +147,6 @@ function ActionsBarPriority({
               selection={selection}
               statsPeriod={statsPeriod}
               isReprocessingQuery={displayReprocessingActions}
-              withColumns={withColumns}
             />
           </AnimatedHeaderItemsContainer>
         )}
@@ -166,7 +166,6 @@ export function IssueListActions({
   query,
   selection,
   statsPeriod,
-  withColumns,
 }: IssueListActionsProps) {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -176,24 +175,15 @@ export function IssueListActions({
   const {pageSelected, multiSelected, anySelected, allInQuerySelected, selectedIdsSet} =
     useIssueSelectionSummary();
   const selectedProjectSlug = useMemo(() => {
-    const projects = [...selectedIdsSet]
-      .map(id => GroupStore.get(id))
+    const projects = Array.from(selectedIdsSet, id => GroupStore.get(id))
       .filter((group): group is Group => !!group?.project)
       .map(group => group.project.slug);
     const uniqProjects = uniq(projects);
     return uniqProjects.length === 1 ? uniqProjects[0] : undefined;
   }, [selectedIdsSet]);
-  const [isSavedSearchesOpen] = useSyncedLocalStorageState(
-    SAVED_SEARCHES_SIDEBAR_OPEN_LOCALSTORAGE_KEY,
-    false
-  );
-  const area = useAnalyticsArea();
   const theme = useTheme();
-
-  const disableActions = useMedia(
-    `(width < ${isSavedSearchesOpen ? theme.breakpoints.xl : theme.breakpoints.md})`
-  );
-
+  const disableActions = useMedia(`(width < ${theme.breakpoints.sm})`);
+  const area = useAnalyticsArea();
   const numIssues = selectedIdsSet.size;
 
   function actionSelectedGroups(callback: (itemIds: string[] | undefined) => void) {
@@ -211,40 +201,26 @@ export function IssueListActions({
   const queryExcludingPerformanceIssues = `${query ?? ''} issue.category:error`;
 
   function handleDelete() {
-    actionSelectedGroups(itemIds => {
-      bulkDelete(
-        api,
-        {
+    actionSelectedGroups(async itemIds => {
+      try {
+        await bulkDelete(api, {
           orgId: organization.slug,
           itemIds,
           query: queryExcludingPerformanceIssues,
           project: selection.projects,
           environment: selection.environments,
           ...selection.datetime,
-        },
-        {
-          complete: () => {
-            onDelete();
-          },
-        }
-      );
+        });
+      } catch {
+        // GroupStore already shows the error
+      } finally {
+        onDelete();
+      }
     });
   }
 
   function handleMerge() {
-    actionSelectedGroups(itemIds => {
-      mergeGroups(
-        api,
-        {
-          orgId: organization.slug,
-          itemIds,
-          query: queryExcludingPerformanceIssues,
-          project: selection.projects,
-          environment: selection.environments,
-          ...selection.datetime,
-        },
-        {}
-      );
+    actionSelectedGroups(async itemIds => {
       if (selection.projects[0]) {
         const trackProject = ProjectsStore.getById(`${selection.projects[0]}`);
         trackAnalytics('issues_stream.merged', {
@@ -254,6 +230,19 @@ export function IssueListActions({
           items_merged: allInQuerySelected ? 'all_in_query' : itemIds?.length,
           area,
         });
+      }
+
+      try {
+        await mergeGroups(api, {
+          orgId: organization.slug,
+          itemIds,
+          query: queryExcludingPerformanceIssues,
+          project: selection.projects,
+          environment: selection.environments,
+          ...selection.datetime,
+        });
+      } catch {
+        // GroupStore already shows the error
       }
     });
   }
@@ -299,7 +288,6 @@ export function IssueListActions({
         selectedProjectSlug={selectedProjectSlug}
         anySelected={anySelected}
         onSelectStatsPeriod={onSelectStatsPeriod}
-        withColumns={withColumns}
       />
       {!allResultsVisible && pageSelected && (
         <Alert system variant="info">
@@ -394,15 +382,10 @@ const ActionsBarContainer = styled('div')`
   border-radius: 6px 6px 0 0;
 `;
 
-const HeaderButtonsWrapper = styled(motion.div)`
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
-    width: 50%;
-  }
+const MotionGrid = motion.create(Grid);
+
+const HeaderButtonsWrapper = styled(MotionGrid)`
   grid-column: 2 / -1;
-  display: grid;
-  gap: ${p => p.theme.space.xs};
-  grid-auto-flow: column;
-  justify-content: flex-start;
   white-space: nowrap;
 `;
 

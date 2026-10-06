@@ -1,12 +1,10 @@
-import {Fragment} from 'react';
-
 import {AlertLink} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {Confirm} from 'sentry/components/confirm';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {IconAdd, IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -33,6 +31,12 @@ type Props = {
   onRemove: (id: DeprecatedApiKey['id']) => void;
   organization: Organization;
 };
+
+const API_KEY_COLUMNS: TableColumnConfig[] = [
+  {key: 'name', width: 'auto'},
+  {key: 'key', width: 'auto'},
+  {key: 'actions', width: 'auto'},
+];
 
 export function OrganizationApiKeysList({
   organization,
@@ -83,37 +87,50 @@ export function OrganizationApiKeysList({
           )}
         </AlertLink>
       </AlertLink.Container>
-      <PanelTable
-        isLoading={loading}
-        isEmpty={!hasKeys}
-        emptyMessage={t('No API keys for this organization')}
-        headers={[t('Name'), t('Key'), t('Actions')]}
+      <SimpleTable
+        columns={API_KEY_COLUMNS}
+        header={
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Key')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Actions')}</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        }
       >
-        {keys?.map(({id, key, label}) => {
-          return (
-            <Fragment key={key}>
-              <Flex align="center">
-                <Link to={`/settings/${organization.slug}/api-keys/${id}/`}>{label}</Link>
-              </Flex>
+        {loading && <SimpleTable.Loading />}
+        {!loading && !hasKeys && (
+          <SimpleTable.Empty>{t('No API keys for this organization')}</SimpleTable.Empty>
+        )}
+        {!loading &&
+          keys?.map(({id, key, label}) => {
+            return (
+              <SimpleTable.Row key={key}>
+                <SimpleTable.RowCell>
+                  <Link to={`/settings/${organization.slug}/api-keys/${id}/`}>
+                    {label}
+                  </Link>
+                </SimpleTable.RowCell>
 
-              <TextCopyInput size="md" monospace>
-                {key}
-              </TextCopyInput>
+                <SimpleTable.RowCell>
+                  <TextCopyInput size="md" monospace>
+                    {key}
+                  </TextCopyInput>
+                </SimpleTable.RowCell>
 
-              <Flex align="center">
-                <Confirm
-                  onConfirm={() => onRemove(id)}
-                  message={t('Are you sure you want to remove this API key?')}
-                >
-                  <Button variant="danger" size="sm" icon={<IconDelete />}>
-                    {t('Remove API Key')}
-                  </Button>
-                </Confirm>
-              </Flex>
-            </Fragment>
-          );
-        })}
-      </PanelTable>
+                <SimpleTable.RowCell>
+                  <Confirm
+                    onConfirm={() => onRemove(id)}
+                    message={t('Are you sure you want to remove this API key?')}
+                  >
+                    <Button variant="danger" size="sm" icon={<IconDelete />}>
+                      {t('Remove API Key')}
+                    </Button>
+                  </Confirm>
+                </SimpleTable.RowCell>
+              </SimpleTable.Row>
+            );
+          })}
+      </SimpleTable>
     </div>
   );
 }

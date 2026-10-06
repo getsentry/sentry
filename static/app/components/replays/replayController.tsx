@@ -24,7 +24,6 @@ interface Props {
   toggleFullscreen: () => void;
   hideFastForward?: boolean;
   isLoading?: boolean;
-  speedOptions?: number[];
 }
 
 function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
@@ -69,7 +68,6 @@ function ReplayPlayPauseBar({isLoading}: {isLoading?: boolean}) {
 export function ReplayController({
   toggleFullscreen,
   hideFastForward = false,
-  speedOptions = [0.1, 0.25, 0.5, 1, 2, 4, 8, 16],
   isLoading,
 }: Props) {
   const barRef = useRef<HTMLDivElement>(null);
@@ -99,7 +97,7 @@ export function ReplayController({
       <Grid flow="column" align="center" gap="md">
         <ReplayPreferenceDropdown
           isLoading={isLoading}
-          speedOptions={speedOptions}
+          speedOptions={[0.1, 0.25, 0.5, 1, 2, 4, 8, 16]}
           hideFastForward={hideFastForward}
         />
         <ReplayFullscreenButton toggleFullscreen={toggleFullscreen} />

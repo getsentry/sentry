@@ -155,9 +155,9 @@ export function getEapTimePeriodsForInterval(
  * Uses hours for 1d (Last 24 hours) and days for multi-day periods.
  */
 export function getTimePeriodLabel(period: MetricDetectorTimePeriod): string {
-  const hours = parsePeriodToHours(period as unknown as string);
+  const hours = parsePeriodToHours(period);
   if (hours <= 0) {
-    return period as unknown as string;
+    return period;
   }
   if (hours <= 24) {
     return t('Last %s hours', hours);

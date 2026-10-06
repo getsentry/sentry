@@ -1,8 +1,8 @@
-import type {CSSProperties} from 'react';
 import {useCallback, useEffect, useLayoutEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {vec2, type mat3} from 'gl-matrix';
 
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {Stack} from '@sentry/scraps/layout';
 
 import {FlamegraphTooltip} from 'sentry/components/profiling/flamegraph/flamegraphTooltip';
@@ -28,15 +28,19 @@ interface FlamegraphPreviewProps {
   flamegraph: FlamegraphModel;
   relativeStartTimestamp: number;
   relativeStopTimestamp: number;
-  renderText?: boolean;
+  /**
+   * Start the preview at the root instead of the innermost frames in the
+   * window. Use it when previewing a whole profile rather than a span.
+   */
+  anchorAtRoot?: boolean;
   updateFlamegraphView?: (canvasView: CanvasView<FlamegraphModel> | null) => void;
 }
 
 export function FlamegraphPreview({
+  anchorAtRoot,
   flamegraph,
   relativeStartTimestamp,
   relativeStopTimestamp,
-  renderText = true,
   updateFlamegraphView,
 }: FlamegraphPreviewProps) {
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
@@ -71,7 +75,8 @@ export function FlamegraphPreview({
       flamegraph,
       canvasView.configView,
       formatTo(relativeStartTimestamp, 'second', flamegraph.unit),
-      formatTo(relativeStopTimestamp, 'second', flamegraph.unit)
+      formatTo(relativeStopTimestamp, 'second', flamegraph.unit),
+      {anchorAtRoot}
     );
 
     canvasView.setConfigView(configView);
@@ -79,6 +84,7 @@ export function FlamegraphPreview({
 
     return canvasView;
   }, [
+    anchorAtRoot,
     flamegraph,
     flamegraphCanvas,
     flamegraphTheme,
@@ -159,38 +165,25 @@ export function FlamegraphPreview({
       );
     };
 
-    const drawText = renderText
-      ? () => {
-          textRenderer.draw(
-            flamegraphView.toOriginConfigView(flamegraphView.configView),
-            flamegraphView.fromTransformedConfigView(flamegraphCanvas.physicalSpace)
-          );
-        }
-      : null;
+    const drawText = () => {
+      textRenderer.draw(
+        flamegraphView.toOriginConfigView(flamegraphView.configView),
+        flamegraphView.fromTransformedConfigView(flamegraphCanvas.physicalSpace)
+      );
+    };
 
     scheduler.registerBeforeFrameCallback(clearOverlayCanvas);
     scheduler.registerBeforeFrameCallback(drawRectangles);
-    if (drawText) {
-      scheduler.registerBeforeFrameCallback(drawText);
-    }
+    scheduler.registerBeforeFrameCallback(drawText);
 
     scheduler.draw();
 
     return () => {
       scheduler.unregisterBeforeFrameCallback(clearOverlayCanvas);
       scheduler.unregisterBeforeFrameCallback(drawRectangles);
-      if (drawText) {
-        scheduler.unregisterBeforeFrameCallback(drawText);
-      }
+      scheduler.unregisterBeforeFrameCallback(drawText);
     };
-  }, [
-    flamegraphRenderer,
-    flamegraphView,
-    flamegraphCanvas,
-    renderText,
-    scheduler,
-    textRenderer,
-  ]);
+  }, [flamegraphRenderer, flamegraphView, flamegraphCanvas, scheduler, textRenderer]);
 
   const hoveredNode = useMemo(() => {
     if (!configSpaceCursor || !flamegraphRenderer) {
@@ -246,8 +239,7 @@ export function FlamegraphPreview({
         onMouseMove={onCanvasMouseMove}
         onMouseLeave={onCanvasMouseLeave}
       />
-      {renderText &&
-      flamegraphCanvas &&
+      {flamegraphCanvas &&
       flamegraphRenderer &&
       flamegraphView &&
       configSpaceCursor &&
@@ -280,17 +272,23 @@ export function FlamegraphPreview({
  *   on using the maximum depth of the whole flamechart and adjusting the config
  *   view because the window selected may be shallower and would result in the
  *   preview to show a lot of whitespace.
+ *
+ * Both of those bias towards the innermost frames, which is what a preview
+ * scoped to a span wants. A preview of a whole profile wants the opposite: pass
+ * `anchorAtRoot` to start at the root, so the wide top frames make the preview
+ * legible as a flamechart instead of opening on a slab of leaf frames.
  */
 export function computePreviewConfigView(
   flamegraph: FlamegraphModel,
   configView: Rect,
   relativeStartNs: number,
-  relativeStopNs: number
+  relativeStopNs: number,
+  {anchorAtRoot = false}: {anchorAtRoot?: boolean} = {}
 ): {
   configView: Rect;
   mode: CanvasView<FlamegraphModel>['mode'];
 } {
-  if (flamegraph.depth < configView.height) {
+  if (anchorAtRoot || flamegraph.depth < configView.height) {
     // if the flamegraph height is less than the config view height,
     // the whole flamechart will fit on the view so we can just use y = 0
     return {
@@ -364,8 +362,8 @@ export function computePreviewConfigView(
 }
 
 const Canvas = styled('canvas')<{
-  cursor?: CSSProperties['cursor'];
-  pointerEvents?: CSSProperties['pointerEvents'];
+  cursor?: CSS['cursor'];
+  pointerEvents?: CSS['pointerEvents'];
 }>`
   left: 0;
   top: 0;

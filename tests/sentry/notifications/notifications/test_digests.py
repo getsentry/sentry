@@ -25,6 +25,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.user_option import UserOption
+from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
@@ -178,8 +179,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
         assert "notification_uuid" in message.alternatives[0][0]
 
     def test_sends_digest_with_workflow_engine_ui(self) -> None:
-        with self.feature("organizations:workflow-engine-ui"):
-            self.run_test(event_count=2)
+        self.run_test(event_count=2)
         assert "new alerts since" in mail.outbox[0].subject
 
     def test_digest_email_uses_user_timezone(self) -> None:
@@ -270,6 +270,7 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         timestamp = timestamp_raw.isoformat()
         key = f"slack:p:{self.project.id}:IssueOwners::AllMembers"
         rule = self.create_project_rule(project=self.project)
+        workflow_id = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow_id
         event1 = self.store_event(
             data={
                 "timestamp": timestamp,
@@ -316,10 +317,10 @@ class DigestSlackNotification(SlackActivityNotificationTest):
         assert blocks[0]["text"]["text"] == fallback_text
 
         assert event1.group
-        event1_alert_title = f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{event1.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*{event1.group.title}*>"
+        event1_alert_title = f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{event1.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&workflow_id={workflow_id}&alert_type=issue|*{event1.group.title}*>"
 
         assert event2.group
-        event2_alert_title = f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{event2.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*{event2.group.title}*>"
+        event2_alert_title = f":red_circle: <http://testserver/organizations/{self.organization.slug}/issues/{event2.group.id}/?referrer=digest-slack&notification_uuid={notification_uuid}&workflow_id={workflow_id}&alert_type=issue|*{event2.group.title}*>"
 
         # digest order not definitive
         try:

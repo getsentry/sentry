@@ -135,7 +135,7 @@ class DashboardGenerateSerializer(serializers.Serializer[dict[str, Any]]):
 
 class OrganizationDashboardGeneratePermission(OrganizationPermission):
     scope_map = {
-        "POST": ["org:read"],
+        "POST": ["org:read", "dashboard:read"],
     }
 
 
@@ -158,7 +158,7 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
     permission_classes = (OrganizationDashboardGeneratePermission,)
 
     def post(self, request: Request, organization: Organization) -> Response:
-        has_access, error = has_seer_access_with_detail(organization, request.user)
+        has_access, error = has_seer_access_with_detail(organization)
         if not has_access:
             raise PermissionDenied(error)
 
@@ -172,12 +172,17 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
 
         # If current_dashboard is provided, we're editing; otherwise generating a new dashboard.
         if current_dashboard is not None:
+            projects = self.get_projects(request, organization)
             dashboard_serializer = DashboardDetailsSerializer(
                 data=current_dashboard,
                 context={
                     "organization": organization,
                     "request": request,
-                    "projects": self.get_projects(request, organization),
+                    "projects": projects,
+                    # allow_joinleave grants project access without team membership.
+                    "validation_projects": projects
+                    or self.get_projects(request, organization, include_all_accessible=True),
+                    "environment": request.GET.getlist("environment"),
                 },
             )
             if not dashboard_serializer.is_valid():

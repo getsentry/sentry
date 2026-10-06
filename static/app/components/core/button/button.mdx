@@ -27,6 +27,7 @@ import {
   IconClock,
   IconClose,
   IconCopy,
+  IconCopyId,
   IconDelete,
   IconDocs,
   IconDownload,
@@ -108,6 +109,19 @@ Buttons are available in different sizes: `md` (default), `sm`, `xs`, and `zero`
 <Button size="zero">Zero</Button>
 ```
 
+The `size` prop accepts responsive values based on the available container width.
+
+<Storybook.Demo resizable>
+  <Button size={{zero: 'zero', '3xs': 'zero', '2xs': 'xs', sm: 'sm', lg: 'md'}}>
+    Responsive button
+  </Button>
+</Storybook.Demo>
+```jsx
+<Button size={{zero: 'zero', '3xs': 'zero', '2xs': 'xs', sm: 'sm', lg: 'md'}}>
+  Responsive button
+</Button>
+```
+
 ## Icons
 
 Buttons support an optional leading icon.
@@ -154,6 +168,7 @@ The following table defines standardized call to action copy and icon pairings f
 | <IconClose />                              | `close`     | Cancel                                 | Exit without saving changes                               |
 | <IconLink />                               | `link`      | Share                                  | Copies link to paste anywhere                             |
 | <IconCopy />                               | `copy`      | Copy                                   | Copy data to clipboard                                    |
+| <IconCopyId />                             | `copyId`    | Copy ID                                | Copy an identifier (ID, short-ID, key, DSN) to clipboard  |
 | <IconDownload />                           | `download`  | Download                               | Download data as a file                                   |
 |                                            |             | Connect                                | Create link between two objects                           |
 |                                            |             | Disconnect                             | Break link between two objects                            |
@@ -251,5 +266,5 @@ Developers should take care to ensure that their implementations additionally fo
 
 ## See Also
 
-- [LinkButton](/stories/core/linkbutton/) - Button-styled component for navigation
-- [Link](/stories/core/link/) - Text link component for navigation
+- [LinkButton](/scraps/core/linkbutton/) - Button-styled component for navigation
+- [Link](/scraps/core/link/) - Text link component for navigation

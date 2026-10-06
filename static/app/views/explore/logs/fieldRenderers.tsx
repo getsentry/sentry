@@ -2,6 +2,8 @@ import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
+import type {Location} from 'history';
+import omit from 'lodash/omit';
 
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -10,11 +12,13 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration/duration';
 import {useStacktraceLink} from 'sentry/components/events/interfaces/frame/useStacktraceLink';
+import {ALL_DATE_TIME_QUERY_KEYS} from 'sentry/components/pageFilters/constants';
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {Version} from 'sentry/components/version';
 import {IconPlay} from 'sentry/icons';
 import {tct} from 'sentry/locale';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
-import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {
   getFieldRenderer,
@@ -36,6 +40,7 @@ import type {
   TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {LOG_ATTRIBUTE_LAZY_LOAD_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
+import {LogsAnsiHighlight} from 'sentry/views/explore/logs/logsAnsiHighlight';
 import {LogsTimestampTooltip} from 'sentry/views/explore/logs/logsTimeTooltip';
 import {
   AlignedCellContent,
@@ -44,7 +49,7 @@ import {
   LogBasicRendererContainer,
   LogDate,
   LogsFilteredHelperText,
-  LogsHighlight,
+  LogTimestamp,
   WrappingText,
   type getLogColors,
 } from 'sentry/views/explore/logs/styles';
@@ -59,8 +64,9 @@ import {
 } from 'sentry/views/explore/logs/utils';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {TraceItemMetaInfo} from 'sentry/views/explore/utils';
-import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceHeader/breadcrumbs';
-import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
+import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
+import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
+import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
 
 const {fmt} = Sentry.logger;
 
@@ -73,10 +79,12 @@ export interface RendererExtra extends RenderFunctionBaggage {
   >;
   attributes: Record<string, string | number | boolean>;
   caseSensitiveHighlighting: boolean;
+  datetime: PageFilterDatetime;
   highlightTerms: string[];
   logColors: ReturnType<typeof getLogColors>;
   align?: 'left' | 'center' | 'right';
   canAppendTemplateToBody?: boolean;
+  isTraceItemDetailsPending?: boolean;
   logEnd?: string;
   logStart?: string;
   meta?: EventsMetaType;
@@ -86,6 +94,7 @@ export interface RendererExtra extends RenderFunctionBaggage {
   shouldRenderHoverElements?: boolean;
   timestampRelativeTo?: number;
   traceItemMeta?: TraceItemDetailsResponse['meta'];
+  traceViewSource?: TraceViewSources;
   useFullSeverityText?: boolean;
   wrapBody?: true;
 }
@@ -156,15 +165,16 @@ function TimestampRenderer(props: LogFieldRendererProps) {
     : props.item.value;
 
   return (
-    <LogDate align={props.extra.align}>
+    <LogTimestamp align={props.extra.align}>
       <LogsTimestampTooltip
         timestamp={props.item.value!}
         attributes={props.extra.attributes}
+        isTraceItemDetailsPending={props.extra.isTraceItemDetailsPending}
         shouldRender={props.extra.shouldRenderHoverElements}
       >
         <DateTime seconds milliseconds date={timestampToUse} />
       </LogsTimestampTooltip>
-    </LogDate>
+    </LogTimestamp>
   );
 }
 
@@ -207,6 +217,7 @@ function RelativeTimestampRenderer(props: LogFieldRendererProps) {
       <LogsTimestampTooltip
         timestamp={props.item.value!}
         attributes={props.extra.attributes}
+        isTraceItemDetailsPending={props.extra.isTraceItemDetailsPending}
         shouldRender={props.extra.shouldRenderHoverElements}
         relativeTimeToReplay={relativeTimestampMs}
       >
@@ -397,7 +408,6 @@ function FilteredTooltip({
           ),
         }
       )}
-      isHoverable
     >
       {children}
     </Tooltip>
@@ -406,20 +416,56 @@ function FilteredTooltip({
 
 function TraceIDRenderer(props: LogFieldRendererProps) {
   const traceId = adjustLogTraceID(props.item.value as string);
+  const timestamp = props.extra.attributes?.[OurLogKnownFieldKey.TIMESTAMP] as
+    | string
+    | number
+    | undefined;
   const location = stripLogParamsFromLocation(props.extra.location);
-  const timestamp = props.extra.attributes?.[OurLogKnownFieldKey.TIMESTAMP];
   const target = getTraceDetailsUrl({
     traceSlug: traceId,
-    timestamp:
-      typeof timestamp === 'string' || typeof timestamp === 'number'
-        ? timestamp
-        : undefined,
+    timestamp,
     organization: props.extra.organization,
-    dateSelection: props.extra.location,
-    location,
-    source: TraceViewSources.LOGS,
+    dateSelection: timestamp ? {} : normalizeDateTimeParams(props.extra.datetime),
+    location: timestamp ? stripDateParamsFromLocation(location) : location,
+    source: props.extra.traceViewSource ?? TraceViewSources.LOGS,
   });
   return <Link to={target}>{props.basicRendered}</Link>;
+}
+
+/**
+ * Links (opens) the span in the trace waterfall
+ */
+export function SpanIDRenderer(props: LogFieldRendererProps) {
+  const spanId = props.item.value;
+  const traceId = adjustLogTraceID(
+    (props.extra.attributes?.[OurLogKnownFieldKey.TRACE_ID] as string) ?? ''
+  );
+
+  if (typeof spanId !== 'string' || !spanId || !traceId) {
+    return props.basicRendered;
+  }
+
+  const timestamp = props.extra.attributes?.[OurLogKnownFieldKey.TIMESTAMP] as
+    | string
+    | number
+    | undefined;
+  const location = stripLogParamsFromLocation(props.extra.location);
+  const target = getTraceDetailsUrl({
+    traceSlug: traceId,
+    spanId: timestamp ? spanId : undefined,
+    timestamp,
+    organization: props.extra.organization,
+    dateSelection: timestamp ? {} : normalizeDateTimeParams(props.extra.datetime),
+    location: timestamp ? stripDateParamsFromLocation(location) : location,
+    source: props.extra.traceViewSource ?? TraceViewSources.LOGS,
+    tab: TraceLayoutTabKeys.WATERFALL,
+  });
+
+  return <Link to={target}>{props.basicRendered}</Link>;
+}
+
+function stripDateParamsFromLocation(location: Location): Location {
+  return {...location, query: omit(location.query, ALL_DATE_TIME_QUERY_KEYS)};
 }
 
 function ReleaseRenderer(props: LogFieldRendererProps) {
@@ -455,12 +501,12 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
       isAppendingTemplate={!!templateText}
     >
       <WrappingText wrapText={props.extra.wrapBody}>
-        <LogsHighlight
+        <LogsAnsiHighlight
           caseSensitive={props.extra.caseSensitiveHighlighting}
           terms={highlightTerms}
         >
-          {stripAnsi(attribute_value)}
-        </LogsHighlight>
+          {attribute_value}
+        </LogsAnsiHighlight>
         {isBodyFiltered && templateText && (
           <FieldReplacementHelper
             replacement={templateText as string}
@@ -476,9 +522,11 @@ export function LogBodyRenderer(props: LogFieldRendererProps) {
 function LogTemplateRenderer(props: LogFieldRendererProps) {
   return (
     <span>
-      {typeof props.item.value === 'string'
-        ? stripAnsi(props.item.value)
-        : props.basicRendered}
+      {typeof props.item.value === 'string' ? (
+        <LogsAnsiHighlight>{props.item.value}</LogsAnsiHighlight>
+      ) : (
+        props.basicRendered
+      )}
     </span>
   );
 }
@@ -593,7 +641,13 @@ function BasicDiscoverRenderer(props: LogFieldRendererProps) {
     castValue = Number(props.item.value);
   }
   if (attributeType === 'bool' || attributeType === 'boolean') {
-    castValue = Boolean(props.item.value);
+    // Keep empty values null so the formatter renders "(no value)", not false.
+    castValue =
+      props.item.value === null ||
+      props.item.value === undefined ||
+      props.item.value === ''
+        ? null
+        : Boolean(props.item.value);
   }
   return (
     <LogBasicRendererContainer align={align}>
@@ -654,6 +708,7 @@ export const LogAttributesRendererMap: Record<
   [OurLogKnownFieldKey.SEVERITY]: SeverityTextRenderer,
   [OurLogKnownFieldKey.MESSAGE]: LogBodyRenderer,
   [OurLogKnownFieldKey.TRACE_ID]: TraceIDRenderer,
+  [OurLogKnownFieldKey.SPAN_ID]: SpanIDRenderer,
   [OurLogKnownFieldKey.CODE_FILE_PATH]: CodePathRenderer,
   [OurLogKnownFieldKey.RELEASE]: ReleaseRenderer,
   [OurLogKnownFieldKey.TEMPLATE]: LogTemplateRenderer,

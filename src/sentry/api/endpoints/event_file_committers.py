@@ -1,3 +1,4 @@
+import sentry_sdk
 from rest_framework.exceptions import NotFound
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -35,6 +36,8 @@ class EventFileCommittersEndpoint(ProjectEndpoint):
             raise NotFound(detail="Event not found")
         elif event.group_id is None:
             raise NotFound(detail="Issue not found")
+
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
 
         committers = get_serialized_event_file_committers(project, event)
 

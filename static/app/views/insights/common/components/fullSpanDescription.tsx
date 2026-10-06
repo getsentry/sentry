@@ -7,6 +7,7 @@ import {ClippedBox} from 'sentry/components/clippedBox';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -20,38 +21,39 @@ const formatter = new SQLishFormatter();
 
 interface Props {
   moduleName: ModuleName;
-  filters?: Record<string, string>;
   group?: string | null;
   shortDescription?: string;
 }
 
-export function FullSpanDescription({
-  group,
-  shortDescription,
-  filters = {},
-  moduleName,
-}: Props) {
+export function FullSpanDescription({group, shortDescription, moduleName}: Props) {
   const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpans(
     {
       search: MutableSearch.fromQueryObject({
         'span.group': group ?? undefined,
-        ...filters,
       }),
       limit: 1,
       fields: [
         SpanFields.PROJECT_ID,
         SpanFields.TRANSACTION_SPAN_ID,
         SpanFields.SPAN_DESCRIPTION,
-        SpanFields.DB_SYSTEM,
+        SpanFields.DB_SYSTEM_NAME,
       ],
     },
     'api.insights.span-description'
   );
 
   const indexedSpan = indexedSpans?.[0];
-
-  const description = indexedSpan?.['span.description'] ?? shortDescription;
-  const system = indexedSpan?.['db.system'];
+  const indexedSpanDescription = getAttributeValue(
+    indexedSpan ?? {},
+    SpanFields.SPAN_DESCRIPTION,
+    'string'
+  );
+  const description = indexedSpanDescription ?? shortDescription;
+  const system = getAttributeValue(
+    indexedSpan ?? {},
+    SpanFields.DB_SYSTEM_NAME,
+    'string'
+  );
 
   if (areIndexedSpansLoading) {
     return (
@@ -70,8 +72,8 @@ export function FullSpanDescription({
       let stringifiedQuery = '';
       let result: ReturnType<typeof prettyPrintJsonString> | undefined;
 
-      if (indexedSpan?.['span.description']) {
-        result = prettyPrintJsonString(indexedSpan?.['span.description']);
+      if (indexedSpanDescription) {
+        result = prettyPrintJsonString(indexedSpanDescription);
       } else if (description) {
         result = prettyPrintJsonString(description);
       } else {

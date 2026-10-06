@@ -1,3 +1,4 @@
-export {Kbd} from './kbd';
+/** @public */
+export {Kbd} from '@sentry/scraps/hotkey/kbd';
 export {Hotkey} from './hotkey';
-export {useHotkeys} from './useHotkeys';
+export {matchesHotkey, useHotkeys} from './useHotkeys';

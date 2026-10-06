@@ -26,6 +26,7 @@ from sentry.issues.auto_source_code_config.code_mapping import (
     get_sorted_code_mapping_configs,
 )
 from sentry.models.group import Group
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -134,6 +135,7 @@ class CodingAgentResult(BaseModel):
     description: str
     repo_provider: str
     repo_full_name: str
+    pr_number: int | None = None
     pr_url: str | None = None
     branch_name: str | None = None
 
@@ -689,6 +691,7 @@ class SeerProjectSettingsUpdate(TypedDict, total=False):
     automation_tuning: str
     scanner_automation: bool
     auto_create_pr: bool
+    pr_iteration: bool
 
 
 def update_seer_project_settings(project_ids: list[int], data: SeerProjectSettingsUpdate) -> None:
@@ -736,6 +739,9 @@ def update_seer_project_settings(project_ids: list[int], data: SeerProjectSettin
         _set_or_clear(
             "sentry:seer_automation_handoff_auto_create_pr", data["auto_create_pr"], default=False
         )
+
+    if "pr_iteration" in data:
+        _set_or_clear("sentry:seer_pr_iteration", data["pr_iteration"], default=True)
 
     if "automation_tuning" in data:
         _set_or_clear(
@@ -985,6 +991,24 @@ def is_seer_seat_based_tier_enabled(organization: Organization) -> bool:
     cache.set(cache_key, has_seat_based_seer, timeout=60 * 60 * 4)  # 4 hours TTL
 
     return has_seat_based_seer
+
+
+def is_free_cohort_org(organization: Organization) -> bool:
+    """Check if org is in the agentic triage free cohort — selected non-paying
+    orgs that receive agentic triage and autofix without a Seer subscription.
+
+    Returns True when the kill switch is NOT engaged (flag disabled = cohort
+    active), the org is NOT on a paid seat-based Seer plan, and the org
+    option is set to True.
+    """
+    try:
+        if features.has("organizations:agentic-triage-free-cohort-killswitch", organization):
+            return False
+    except Exception:
+        return False
+    return not is_seer_seat_based_tier_enabled(organization) and bool(
+        OrganizationOption.objects.get_value(organization, "agentic-triage-free-cohort", False)
+    )
 
 
 def is_issue_category_eligible(group: Group) -> bool:

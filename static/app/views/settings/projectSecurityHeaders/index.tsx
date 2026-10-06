@@ -3,8 +3,8 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -74,16 +74,16 @@ function ProjectSecurityHeaders() {
               }
             )}
           </TextBlock>
-          <KeyValueTable>
-            <KeyValueTableRow
-              keyName="sentry_environment"
-              value={t('The environment name (e.g. production).')}
-            />
-            <KeyValueTableRow
-              keyName="sentry_release"
-              value={t('The version of the application.')}
-            />
-          </KeyValueTable>
+          <DescriptionList striped>
+            <DescriptionList.Term>sentry_environment</DescriptionList.Term>
+            <DescriptionList.Details>
+              {t('The environment name (e.g. production).')}
+            </DescriptionList.Details>
+            <DescriptionList.Term>sentry_release</DescriptionList.Term>
+            <DescriptionList.Details>
+              {t('The version of the application.')}
+            </DescriptionList.Details>
+          </DescriptionList>
         </PanelBody>
       </Panel>
 

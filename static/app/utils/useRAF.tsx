@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {useEffect} from 'react';
 
 export function useRAF(callback: () => unknown, opts?: {enabled: boolean}) {

@@ -36,6 +36,72 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
 from sentry.workflow_engine.registry import data_source_type_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel
+from tests.sentry.workflow_engine.test_base import ProjectAccessTestMixin
+
+
+@cell_silo_test
+class OrganizationProjectDetectorWorkflowAccessTest(APITestCase, ProjectAccessTestMixin):
+    endpoint = "sentry-api-0-organization-project-detector-index"
+    method = "POST"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.setup_project_access_test_data()
+        self.organization.update_option("sentry:alerts_member_write", True)
+        self.login_as(self.limited_user)
+        self.data = {
+            "type": MonitorIncidentType.slug,
+            "name": "Test Monitor Detector",
+            "dataSources": [
+                {
+                    "name": "Test Monitor",
+                    "config": {"schedule": "0 * * * *", "scheduleType": "crontab"},
+                }
+            ],
+        }
+
+    def test_workflow_attachment_permissions(self) -> None:
+        workflow_url = (
+            f"/api/0/organizations/{self.organization.slug}/workflows/{self.other_workflow.id}/"
+        )
+        assert self.client.get(workflow_url).status_code == 403
+        initial_detectors = Detector.objects.filter(project=self.user_project).count()
+        initial_data_sources = DataSource.objects.filter(organization=self.organization).count()
+        initial_monitors = Monitor.objects.filter(project_id=self.user_project.id).count()
+
+        self.get_error_response(
+            self.organization.slug,
+            self.user_project.slug,
+            **self.data,
+            workflowIds=[self.user_workflow.id, self.other_workflow.id],
+            status_code=403,
+        )
+
+        assert Detector.objects.filter(project=self.user_project).count() == initial_detectors
+        assert (
+            DataSource.objects.filter(organization=self.organization).count()
+            == initial_data_sources
+        )
+        assert Monitor.objects.filter(project_id=self.user_project.id).count() == initial_monitors
+        assert not DetectorWorkflow.objects.filter(
+            detector__project=self.user_project, workflow=self.other_workflow
+        ).exists()
+        assert self.client.get(workflow_url).status_code == 403
+
+        # The same member can create a detector with workflows they can edit.
+        response = self.get_success_response(
+            self.organization.slug,
+            self.user_project.slug,
+            **self.data,
+            workflowIds=[self.user_workflow.id, self.unattached_workflow.id],
+            status_code=201,
+        )
+
+        assert set(
+            DetectorWorkflow.objects.filter(detector_id=response.data["id"]).values_list(
+                "workflow_id", flat=True
+            )
+        ) == {self.user_workflow.id, self.unattached_workflow.id}
 
 
 class OrganizationProjectDetectorIndexBaseTest(APITestCase):
@@ -186,20 +252,6 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
                 status_code=400,
             )
             assert response.data == {"type": ["Detector type not compatible with detectors"]}
-
-    def test_without_feature_flag(self) -> None:
-        with self.feature({"organizations:incidents": False}):
-            response = self.get_error_response(
-                self.organization.slug,
-                self.project.slug,
-                **self.valid_data,
-                status_code=400,
-            )
-        assert response.data == {
-            "detail": ErrorDetail(
-                string="Unable to process request, confirm payment options.", code="error"
-            )
-        }
 
     def test_create_blocked_when_dataset_not_allowed(self) -> None:
         """
@@ -446,52 +498,6 @@ class OrganizationProjectDetectorIndexPostTest(OrganizationProjectDetectorIndexB
                 status_code=201,
             )
 
-    def test_use_transactions_instead_of_generic_metrics_dataset(self) -> None:
-        data = {**self.valid_data}
-        data["dataSources"] = [
-            {
-                "queryType": SnubaQuery.Type.PERFORMANCE.value,
-                "dataset": Dataset.PerformanceMetrics.value,
-                "query": "event.type:transaction",
-                "aggregate": "count()",
-                "timeWindow": 60,  # 60 seconds — below the 300-second EAP floor
-                "environment": self.environment.name,
-                "eventTypes": [SnubaQueryEventType.EventType.TRANSACTION.name.lower()],
-            }
-        ]
-
-        with self.tasks():
-            response = self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                **data,
-                status_code=201,
-            )
-
-        assert (
-            response.data["dataSources"][0]["queryObj"]["snubaQuery"]["dataset"]
-            == Dataset.Transactions.value
-        )
-        assert (
-            response.data["dataSources"][0]["queryObj"]["snubaQuery"]["query"]
-            == "event.type:transaction"
-        )
-        assert response.data["dataSources"][0]["queryObj"]["snubaQuery"]["aggregate"] == "count()"
-
-        detector = Detector.objects.get(id=response.data["id"])
-        data_source = DataSource.objects.get(detector=detector)
-        assert data_source.type == data_source_type_registry.get_key(
-            QuerySubscriptionDataSourceHandler
-        )
-        assert data_source.organization_id == self.organization.id
-        query_sub = QuerySubscription.objects.get(id=int(data_source.source_id))
-        assert query_sub.project == self.project
-        assert query_sub.snuba_query.type == SnubaQuery.Type.PERFORMANCE.value
-        assert query_sub.snuba_query.dataset == Dataset.Transactions.value
-        assert query_sub.snuba_query.query == "event.type:transaction"
-        assert query_sub.snuba_query.aggregate == "count()"
-        assert query_sub.snuba_query.event_types == [SnubaQueryEventType.EventType.TRANSACTION]
-
     @with_feature(
         [
             "organizations:tracemetrics-enabled",
@@ -631,6 +637,67 @@ class OrganizationProjectDetectorIndexMonitorPostTest(APITestCase):
         )
         assert "dataSources" in response.data
         assert "Either name or slug must be provided" in str(response.data["dataSources"])
+
+    def test_create_two_unnamed_monitors_generates_unique_slugs(self) -> None:
+        data = self._get_detector_post_data(
+            name="New Monitor",
+            dataSources=[
+                {
+                    "name": "New Monitor",
+                    "config": {
+                        "schedule": "0 * * * *",
+                        "scheduleType": "crontab",
+                    },
+                }
+            ],
+        )
+
+        for _ in range(2):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                **data,
+                status_code=201,
+            )
+
+        slugs = sorted(
+            Monitor.objects.filter(
+                organization_id=self.organization.id, name="New Monitor"
+            ).values_list("slug", flat=True)
+        )
+        assert len(slugs) == 2
+        assert slugs[0] == "new-monitor"
+        assert slugs[1].startswith("new-monitor-")
+
+    def test_create_monitor_with_explicit_duplicate_slug_returns_400(self) -> None:
+        data = self._get_detector_post_data(
+            dataSources=[
+                {
+                    "name": "Taken Monitor",
+                    "slug": "taken-slug",
+                    "config": {
+                        "schedule": "0 * * * *",
+                        "scheduleType": "crontab",
+                    },
+                }
+            ],
+        )
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=201,
+        )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.project.slug,
+            **data,
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+        assert 'The slug "taken-slug" is already in use.' in str(
+            response.data["dataSources"]["slug"]
+        )
 
     def test_create_monitor_with_optional_fields(self) -> None:
         data = self._get_detector_post_data(

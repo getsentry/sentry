@@ -1,14 +1,33 @@
 from __future__ import annotations
 
+from typing import Any, TypedDict
+
 from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.base import serialize
+from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatarSerializerResponse
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.services.app import SentryAppEventDataInterface
+from sentry.sentry_apps.utils.errors import SentryAppPublicErrorBody
+
+
+class SentryAppComponentAppResponse(TypedDict):
+    uuid: str
+    slug: str
+    name: str
+    avatars: list[SentryAppAvatarSerializerResponse]
+
+
+class SentryAppComponentSerializerResponse(TypedDict):
+    uuid: str
+    type: str
+    schema: dict[str, Any]
+    error: str | SentryAppPublicErrorBody
+    sentryApp: SentryAppComponentAppResponse
 
 
 @register(SentryAppComponent)
-class SentryAppComponentSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+class SentryAppComponentSerializer(Serializer[SentryAppComponentSerializerResponse]):
+    def serialize(self, obj, attrs, user, **kwargs) -> SentryAppComponentSerializerResponse:
         errors = kwargs["errors"]
         return {
             "uuid": str(obj.uuid),

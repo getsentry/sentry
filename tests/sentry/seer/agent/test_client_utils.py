@@ -1,4 +1,9 @@
+from typing import Any
+from unittest import mock
+
 import jwt
+import orjson
+import pytest
 from django.test import override_settings
 
 from sentry.hybridcloud.models.outbox import CellOutbox
@@ -9,10 +14,13 @@ from sentry.seer.agent.client_utils import (
     _sanitize_json_strings,
     collect_user_org_context,
     enqueue_seer_run,
+    fetch_run_statuses,
+    get_agent_state_from_pr_id,
     get_proxy_headers,
     has_seer_agent_access_with_detail,
     snapshot_to_markdown,
 )
+from sentry.seer.models import SeerUnavailableError
 from sentry.seer.models.run import SeerRunType
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
@@ -20,6 +28,7 @@ from sentry.testutils.requests import make_request
 from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class TestHasSeerAgentAccessWithDetail(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -27,37 +36,29 @@ class TestHasSeerAgentAccessWithDetail(TestCase):
         self.org.flags.allow_joinleave = True
         self.org.save()
 
-    def test_gen_ai_features_disabled(self) -> None:
+    @override_settings(SENTRY_SELF_HOSTED=True)
+    def test_denied_on_self_hosted(self) -> None:
         result = has_seer_agent_access_with_detail(self.org, self.user)
-        assert result == (False, "Feature flag not enabled")
+        assert result == (False, "Seer is not available on this installation.")
 
     def test_hide_ai_features_option_set(self) -> None:
         self.org.update_option("sentry:hide_ai_features", True)
-        with self.feature("organizations:gen-ai-features"):
-            result = has_seer_agent_access_with_detail(self.org, self.user)
+        result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (False, "AI features are disabled for this organization.")
 
     def test_no_explorer_flag_enabled(self) -> None:
-        with self.feature("organizations:gen-ai-features"):
-            result = has_seer_agent_access_with_detail(self.org, self.user)
+        result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (False, "Feature flag not enabled")
 
     def test_seer_explorer_flag_enabled(self) -> None:
-        with self.feature(
-            {"organizations:gen-ai-features": True, "organizations:seer-explorer": True}
-        ):
+        with self.feature({"organizations:seer-explorer": True}):
             result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (True, None)
 
     def test_allow_joinleave_disabled(self) -> None:
         self.org.flags.allow_joinleave = False
         self.org.save()
-        with self.feature(
-            {
-                "organizations:gen-ai-features": True,
-                "organizations:seer-explorer": True,
-            }
-        ):
+        with self.feature({"organizations:seer-explorer": True}):
             result = has_seer_agent_access_with_detail(self.org, self.user)
         assert result == (
             False,
@@ -257,6 +258,54 @@ class SnapshotToMarkdownTest(TestCase):
 
     def test_empty_nodes(self) -> None:
         assert snapshot_to_markdown({"version": 1, "nodes": []}) == ""
+
+    def test_empty_nodes_still_renders_location(self) -> None:
+        """Most routes register no nodes but still know where the user is."""
+        result = snapshot_to_markdown(
+            {
+                "version": 1,
+                "nodes": [],
+                "location": {
+                    "url": "https://sentry.io/issues/123/",
+                    "name": "/issues/:groupId/",
+                    "params": {"groupId": "123"},
+                    "query": {"statsPeriod": "14d"},
+                },
+            }
+        )
+        assert "## Current Page" in result
+        assert "- **URL**: https://sentry.io/issues/123/" in result
+        assert "- **Route**: /issues/:groupId/" in result
+        assert '- **Route params**: {"groupId":"123"}' in result
+        assert '- **Query params**: {"statsPeriod":"14d"}' in result
+
+    def test_location_renders_alongside_nodes(self) -> None:
+        result = snapshot_to_markdown(
+            {
+                "version": 1,
+                "nodes": [{"nodeType": "dashboard", "data": {"title": "Health"}, "children": []}],
+                "location": {"url": "https://sentry.io/dashboards/1/"},
+            }
+        )
+        assert "## Current Page" in result
+        assert "https://sentry.io/dashboards/1/" in result
+        assert "# Dashboard" in result
+        assert "not an exact screenshot" in result
+
+    def test_location_partial_and_empty(self) -> None:
+        """Absent, empty, and malformed locations all render nothing."""
+        assert snapshot_to_markdown({"version": 1, "nodes": [], "location": {}}) == ""
+        assert (
+            snapshot_to_markdown({"version": 1, "nodes": [], "location": {"url": "", "params": {}}})
+            == ""
+        )
+        assert snapshot_to_markdown({"version": 1, "nodes": [], "location": "nope"}) == ""
+
+        only_route = snapshot_to_markdown(
+            {"version": 1, "nodes": [], "location": {"name": "/insights/"}}
+        )
+        assert "- **Route**: /insights/" in only_route
+        assert "URL" not in only_route
 
     def test_node_with_no_data(self) -> None:
         snapshot = {
@@ -512,3 +561,70 @@ class EnqueueSeerRunSanitizeTest(TestCase):
         assert outbox.payload is not None
         title = outbox.payload["body"]["payload"]["candidates"][0]["title"]
         assert title == "System.FormatException: The input string '' was..."
+
+
+class FetchRunStatusesTest(TestCase):
+    _PATCH = "sentry.seer.agent.client_utils.make_signed_seer_api_request"
+
+    def _response(self, status: int, payload: dict) -> mock.Mock:
+        response = mock.Mock(status=status)
+        response.json.return_value = payload
+        return response
+
+    def test_empty_ids_makes_no_request(self) -> None:
+        with mock.patch(self._PATCH) as m:
+            assert fetch_run_statuses([], self.organization) == {}
+        assert m.call_count == 0
+
+    def test_maps_run_id_to_status_and_omits_null(self) -> None:
+        payload = {
+            "data": {
+                "7": {"status": "processing"},
+                "9": {"status": "completed"},
+                "11": {"status": None},
+            }
+        }
+        with mock.patch(self._PATCH, return_value=self._response(200, payload)) as m:
+            result = fetch_run_statuses([7, 9, 11], self.organization)
+
+        assert result == {7: "processing", 9: "completed"}
+        sent = orjson.loads(m.call_args.kwargs["body"])
+        assert sent == {"run_ids": [7, 9, 11]}
+        assert m.call_args.kwargs["viewer_context"] is not None
+
+    def test_seer_error_status_returns_empty(self) -> None:
+        with mock.patch(self._PATCH, return_value=self._response(500, {})):
+            assert fetch_run_statuses([7], self.organization) == {}
+
+    def test_request_exception_returns_empty(self) -> None:
+        with mock.patch(self._PATCH, side_effect=Exception("boom")):
+            assert fetch_run_statuses([7], self.organization) == {}
+
+    def test_malformed_payload_returns_empty(self) -> None:
+        payloads: list[dict[str, Any]] = [
+            {"data": None},
+            {"data": {"7": "not-a-dict"}},
+            {"data": {"x": {}}},
+        ]
+        for payload in payloads:
+            with mock.patch(self._PATCH, return_value=self._response(200, payload)):
+                assert fetch_run_statuses([7], self.organization) == {}
+
+
+class GetAgentStateFromPrIdTest(TestCase):
+    _REQUEST = "sentry.seer.agent.client_utils.make_agent_state_pr_request"
+
+    def test_raises_unavailable_on_server_error(self) -> None:
+        with mock.patch(self._REQUEST, return_value=mock.Mock(status=503)):
+            with pytest.raises(SeerUnavailableError):
+                get_agent_state_from_pr_id(1, "integrations:github", 2)
+
+    def test_sends_pr_id_as_string(self) -> None:
+        for pr_id in (2, "2", "pr_01abc"):
+            with mock.patch(self._REQUEST, return_value=mock.Mock(status=404)) as m:
+                assert get_agent_state_from_pr_id(1, "integrations:github", pr_id) is None
+            assert m.call_args.args[0] == {
+                "organization_id": 1,
+                "provider": "integrations:github",
+                "pr_id": str(pr_id),
+            }

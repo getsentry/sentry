@@ -10,7 +10,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {ShortId} from 'sentry/components/shortId';
-import {IconCopy, IconGlobe} from 'sentry/icons';
+import {IconCopyId, IconGlobe} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -66,6 +66,7 @@ export function useIssueIdBreadcrumbItem({project, group}: ShortIdBreadcrumbProp
         text: group.shortId,
         label: t('Copy Issue Short-ID'),
         tooltip: t('Copy Issue Short-ID'),
+        icon: <IconCopyId variant="muted" />,
         onCopy: handleCopyShortId,
       },
       group.isPublic && shareUrl
@@ -78,7 +79,6 @@ export function useIssueIdBreadcrumbItem({project, group}: ShortIdBreadcrumbProp
                 aria-label={t('View issue share settings')}
                 icon={<IconGlobe size="xs" variant="muted" />}
                 tooltipProps={{
-                  isHoverable: true,
                   title: tct('This issue has been shared [link:with a public link].', {
                     link: <ExternalLink href={shareUrl} />,
                   }),
@@ -167,7 +167,7 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
               onClick={handleCopyShortId}
               size="zero"
               variant="transparent"
-              icon={<IconCopy size="xs" variant="muted" />}
+              icon={<IconCopyId size="xs" variant="muted" />}
             />
           )}
         </ShortIdCopyable>
@@ -179,7 +179,6 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
           aria-label={t('View issue share settings')}
           icon={<IconGlobe size="xs" variant="muted" />}
           tooltipProps={{
-            isHoverable: true,
             title: tct('This issue has been shared [link:with a public link].', {
               link: <ExternalLink href={shareUrl} />,
             }),

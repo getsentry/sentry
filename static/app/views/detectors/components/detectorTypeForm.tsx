@@ -2,7 +2,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {parseAsStringEnum, useQueryState} from 'nuqs';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
@@ -78,7 +78,7 @@ function MonitorTypeField() {
 
   const useMetricDetectorLimit =
     getOverride('react-hook:use-metric-detector-limit') ?? (() => null);
-  const quota = useMetricDetectorLimit();
+  const quota = useMetricDetectorLimit(); // oxlint-disable-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
   const canCreateMetricDetector = !quota?.hasReachedLimit;
 
   const handleChange = (value: SelectableDetectorType) => {
@@ -155,7 +155,11 @@ function MonitorTypeField() {
                     </Text>
                   )}
                 </Stack>
-                {visualization && <Visualization>{visualization}</Visualization>}
+                {visualization && (
+                  <Visualization display={{zero: 'none', '4xl': 'block'}}>
+                    {visualization}
+                  </Visualization>
+                )}
               </OptionBody>
               {infoBanner && (checked || disabled) && (
                 <OptionInfo>{infoBanner}</OptionInfo>
@@ -212,8 +216,7 @@ const OptionInfo = styled('div')`
   font-size: ${p => p.theme.font.size.md};
 `;
 
-const Visualization = styled('div')`
-  display: none;
+const Visualization = styled(Container)`
   height: 56px;
   flex: 0 0 50%;
   max-width: 50%;
@@ -221,10 +224,6 @@ const Visualization = styled('div')`
   > svg {
     width: 100%;
     height: 100%;
-    display: block;
-  }
-
-  @media (min-width: ${p => p.theme.breakpoints.lg}) {
     display: block;
   }
 `;

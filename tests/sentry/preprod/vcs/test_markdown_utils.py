@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from sentry.preprod.vcs.markdown_utils import escape_markdown, escape_markdown_code
+from sentry.preprod.vcs.markdown_utils import (
+    escape_markdown,
+    escape_markdown_code,
+    format_commit_sha_markdown,
+)
 
 
 class TestEscapeMarkdown:
@@ -74,3 +78,23 @@ class TestEscapeMarkdownCode:
         # Backslashes are literal inside a code span, so we must NOT add them.
         assert escape_markdown_code("a[b]c") == "a[b]c"
         assert escape_markdown_code("com.example.app") == "com.example.app"
+
+
+class TestFormatCommitShaMarkdown:
+    def test_without_repo_url_returns_code_span(self) -> None:
+        sha = "abc123" + "0" * 34
+        assert format_commit_sha_markdown(sha) == f"`{sha}`"
+
+    def test_with_repo_url_returns_linked_code_span(self) -> None:
+        sha = "abc123" + "0" * 34
+        assert (
+            format_commit_sha_markdown(sha, repo_url="https://github.com/getsentry/sentry")
+            == f"[`{sha}`](https://github.com/getsentry/sentry/commit/{sha})"
+        )
+
+    def test_strips_trailing_slash_from_repo_url(self) -> None:
+        sha = "def456" + "0" * 34
+        assert (
+            format_commit_sha_markdown(sha, repo_url="https://github.com/getsentry/sentry/")
+            == f"[`{sha}`](https://github.com/getsentry/sentry/commit/{sha})"
+        )

@@ -8,6 +8,7 @@ import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {IconCopy} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {parseAsUtcDateTime} from 'sentry/utils/url/parseAsUtcDateTime';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -24,13 +25,14 @@ import {
   extractMessagesFromNodes,
   messagesToMarkdown,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
-import {TopBar} from 'sentry/views/navigation/topBar';
 
 function useConversationDetailQueryState() {
   return useQueryStates(
     {
       spanId: parseAsString,
       focusedTool: parseAsString,
+      start: parseAsUtcDateTime,
+      end: parseAsUtcDateTime,
       tab: parseAsStringLiteral(CONVERSATION_VIEW_TABS).withDefault('transcript'),
     },
     {history: 'replace'}
@@ -42,9 +44,18 @@ function ConversationDetailPage() {
   const {conversationId} = useParams<{conversationId: string}>();
   const [queryState, setQueryState] = useConversationDetailQueryState();
 
-  const conversation = useMemo(() => ({conversationId}), [conversationId]);
+  // Read the time window from the URL rather than the page filters: on in-app
+  // navigation from the list, the page filters still hold the list's selection
+  // when the first request is made.
+  const {start, end} = queryState;
+  const startTimestamp = start?.getTime();
+  const endTimestamp = end?.getTime();
+  const conversation = useMemo(
+    () => ({conversationId, startTimestamp, endTimestamp}),
+    [conversationId, startTimestamp, endTimestamp]
+  );
 
-  const {nodes, nodeTraceMap, isLoading} = useConversation(conversation);
+  const {stats, nodes, nodeTraceMap, isLoading, title} = useConversation(conversation);
 
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
 
@@ -61,6 +72,7 @@ function ConversationDetailPage() {
     trackAnalytics('conversations.detail.page-view', {
       organization,
     });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [organization, conversationId]);
 
   const handleSelectSpan = useCallback(
@@ -80,14 +92,15 @@ function ConversationDetailPage() {
 
   return (
     <ViewportConstrainedPage background="secondary">
-      <TopBar.Slot name="title">
-        <ConversationsBreadcrumbs conversationId={conversationId} project={project} />
-      </TopBar.Slot>
+      <ConversationsBreadcrumbs conversationId={conversationId} />
       <Container flexShrink={0} background="primary" borderBottom="primary" padding="xl">
         <ConversationSummary
+          stats={stats}
           nodes={nodes}
           nodeTraceMap={nodeTraceMap}
           conversationId={conversationId}
+          title={title}
+          project={project}
           isLoading={isLoading}
         />
       </Container>

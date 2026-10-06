@@ -1,9 +1,31 @@
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
-import {Token, WildcardOperators} from 'sentry/components/searchSyntax/parser';
-import {FieldKind, type FieldDefinition} from 'sentry/utils/fields';
+import {
+  TermOperator,
+  Token,
+  WildcardOperators,
+} from 'sentry/components/searchSyntax/parser';
+import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
 
-import {multiSelectTokenValue, replaceFreeTextTokens} from './useQueryBuilderState';
+import {
+  modifyFilterOperatorQuery,
+  modifyFilterValue,
+  multiSelectTokenValue,
+  replaceFreeTextTokens,
+} from './useQueryBuilderState';
+
+function getFirstFilterToken(
+  query: string,
+  getFieldDefinition: Parameters<typeof parseQueryBuilderValue>[1] = () => null,
+  options?: Parameters<typeof parseQueryBuilderValue>[2]
+) {
+  const parsed = parseQueryBuilderValue(query, getFieldDefinition, options);
+  const token = parsed?.find(t => t.type === Token.FILTER);
+  if (!token) {
+    throw new Error(`No filter token found in query: ${query}`);
+  }
+  return token;
+}
 
 describe('replaceFreeTextTokens', () => {
   describe('when there are free text tokens', () => {
@@ -263,11 +285,7 @@ describe('multiSelectTokenValue', () => {
   };
 
   function runToggle(query: string, value: string) {
-    const parsed = parseQueryBuilderValue(query, () => null, {filterKeys});
-    const token = parsed?.find(t => t.type === Token.FILTER);
-    if (!token) {
-      throw new Error(`No filter token found in query: ${query}`);
-    }
+    const token = getFirstFilterToken(query, () => null, {filterKeys});
 
     const state = {
       query,
@@ -330,5 +348,229 @@ describe('multiSelectTokenValue', () => {
 
     const thirdToggle = runToggle(secondToggle.query, '"1.0.0+build 1"');
     expect(thirdToggle.query).toBe('release:[2.0.0,"1.0.0+build 1"]');
+  });
+});
+
+describe('typed filter keys containing colons', () => {
+  const filterKey = 'imaginary.attribute:made_up_key';
+  const fieldDefinition: FieldDefinition = {
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  };
+  const filterKeys = {
+    [filterKey]: {
+      key: filterKey,
+      name: filterKey,
+      kind: FieldKind.TAG,
+    },
+  };
+
+  it('preserves quoted key syntax when updating a value', () => {
+    const query = `"${filterKey}":foo`;
+
+    expect(
+      modifyFilterValue(
+        query,
+        getFirstFilterToken(query, () => fieldDefinition, {filterKeys}),
+        'bar'
+      )
+    ).toBe(`"${filterKey}":bar`);
+  });
+
+  it('preserves quoted key syntax when updating an operator', () => {
+    const query = `"${filterKey}":foo`;
+
+    expect(
+      modifyFilterOperatorQuery(
+        query,
+        getFirstFilterToken(query, () => fieldDefinition, {filterKeys}),
+        TermOperator.NOT_EQUAL
+      )
+    ).toBe(`!"${filterKey}":foo`);
+  });
+
+  it('preserves quoted key syntax when toggling a multi-select value', () => {
+    const query = `"${filterKey}":foo`;
+    const state = {
+      query,
+      committedQuery: query,
+      focusOverride: null,
+      clearAskSeerFeedback: false,
+    };
+
+    expect(
+      multiSelectTokenValue(state, {
+        type: 'TOGGLE_FILTER_VALUE',
+        token: getFirstFilterToken(query, () => fieldDefinition, {filterKeys}),
+        value: 'bar',
+      }).query
+    ).toBe(`"${filterKey}":[foo,bar]`);
+  });
+});
+
+describe('array membership filters', () => {
+  it('negates an array membership filter instead of emitting an operator sentinel', () => {
+    const query = 'csv_headers[*]:foo';
+
+    expect(
+      modifyFilterOperatorQuery(query, getFirstFilterToken(query), TermOperator.NOT_EQUAL)
+    ).toBe('!csv_headers[*]:foo');
+  });
+
+  it('un-negates an array membership filter back to includes', () => {
+    const query = '!csv_headers[*]:foo';
+
+    expect(
+      modifyFilterOperatorQuery(query, getFirstFilterToken(query), TermOperator.DEFAULT)
+    ).toBe('csv_headers[*]:foo');
+  });
+});
+
+describe('regex filters', () => {
+  const getRegexFilterToken = (query: string) =>
+    getFirstFilterToken(query, () => null, {filterKeys: {}, allowRegexOperators: true});
+
+  it('wraps the value in slashes when switching to matches regex', () => {
+    const query = 'message:"GET /api"';
+
+    expect(
+      modifyFilterOperatorQuery(query, getRegexFilterToken(query), TermOperator.MATCHES)
+    ).toBe('message://GET /api//');
+  });
+
+  it('unescapes quotes when switching a quoted value to matches regex', () => {
+    const query = 'message:"say \\"hi\\""';
+
+    expect(
+      modifyFilterOperatorQuery(query, getRegexFilterToken(query), TermOperator.MATCHES)
+    ).toBe('message://say "hi"//');
+  });
+
+  it('escapes an inner slash pair when switching to matches regex', () => {
+    const query = 'message:"a// b"';
+
+    expect(
+      modifyFilterOperatorQuery(query, getRegexFilterToken(query), TermOperator.MATCHES)
+    ).toBe('message://a\\/\\/ b//');
+  });
+
+  it('restores an escaped slash pair when switching away from matches regex', () => {
+    const query = 'message://a\\/\\/ b//';
+
+    expect(
+      modifyFilterOperatorQuery(query, getRegexFilterToken(query), TermOperator.DEFAULT)
+    ).toBe('message:"a// b"');
+  });
+
+  it('quotes a character class pattern when switching away from matches regex', () => {
+    const query = 'message://[0-9]//';
+
+    expect(
+      modifyFilterOperatorQuery(query, getRegexFilterToken(query), TermOperator.DEFAULT)
+    ).toBe('message:"[0-9]"');
+  });
+
+  it('leaves a pattern ending in a backslash unquoted when switching away from matches regex', () => {
+    const query = 'message://a\\//';
+
+    expect(
+      modifyFilterOperatorQuery(query, getRegexFilterToken(query), TermOperator.DEFAULT)
+    ).toBe('message:a\\');
+  });
+
+  it('negates the filter when switching to does not match regex', () => {
+    const query = 'message:foo';
+
+    expect(
+      modifyFilterOperatorQuery(
+        query,
+        getRegexFilterToken(query),
+        TermOperator.DOES_NOT_MATCH
+      )
+    ).toBe('!message://foo//');
+  });
+
+  it('quotes a pattern with spaces when switching away from matches regex', () => {
+    const query = 'message://GET /api "v2"//';
+
+    expect(
+      modifyFilterOperatorQuery(query, getRegexFilterToken(query), TermOperator.DEFAULT)
+    ).toBe('message:"GET /api \\"v2\\""');
+  });
+
+  it('replaces only the pattern when updating a regex value', () => {
+    const query = 'message://^foo$// level:error';
+
+    expect(modifyFilterValue(query, getRegexFilterToken(query), '^a[**] b$')).toBe(
+      'message://^a[**] b$// level:error'
+    );
+  });
+
+  it('wraps the value in slashes when the value update switches to matches regex', () => {
+    const query = 'message:foo';
+
+    expect(
+      modifyFilterValue(query, getRegexFilterToken(query), 'a.*b', TermOperator.MATCHES)
+    ).toBe('message://a.*b//');
+  });
+
+  it('escapes an inner slash pair when the value update switches to matches regex', () => {
+    const query = 'message:foo';
+
+    expect(
+      modifyFilterValue(query, getRegexFilterToken(query), 'a// b', TermOperator.MATCHES)
+    ).toBe('message://a\\/\\/ b//');
+  });
+
+  it('wraps the value in slashes when an array membership filter switches to matches regex', () => {
+    const query = 'csv_headers[*]:foo';
+
+    expect(
+      modifyFilterOperatorQuery(query, getRegexFilterToken(query), TermOperator.MATCHES)
+    ).toBe('csv_headers[*]://foo//');
+  });
+});
+
+describe('syntax-bearing filter keys', () => {
+  it('preserves an aggregate key when updating its value', () => {
+    const query = 'count():>100';
+
+    expect(modifyFilterValue(query, getFirstFilterToken(query), '200')).toBe(
+      'count():>200'
+    );
+  });
+
+  it('preserves an aggregate key and arguments when updating its operator', () => {
+    const query = 'count_if(imaginary_field,equals,fictional_value):>100';
+
+    expect(
+      modifyFilterOperatorQuery(query, getFirstFilterToken(query), TermOperator.LESS_THAN)
+    ).toBe('count_if(imaginary_field,equals,fictional_value):<100');
+  });
+
+  it('preserves untyped explicit tag syntax when updating a value', () => {
+    const query = 'tags[imaginary_tag]:fictional_value';
+
+    expect(
+      modifyFilterValue(query, getFirstFilterToken(query), 'alternate_fictional_value')
+    ).toBe('tags[imaginary_tag]:alternate_fictional_value');
+  });
+
+  it('preserves untyped explicit tag syntax when toggling a multi-select value', () => {
+    const query = 'tags[imaginary_tag]:fictional_value';
+    const state = {
+      query,
+      committedQuery: query,
+      focusOverride: null,
+      clearAskSeerFeedback: false,
+    };
+
+    expect(
+      multiSelectTokenValue(state, {
+        type: 'TOGGLE_FILTER_VALUE',
+        token: getFirstFilterToken(query),
+        value: 'alternate_fictional_value',
+      }).query
+    ).toBe('tags[imaginary_tag]:[fictional_value,alternate_fictional_value]');
   });
 });

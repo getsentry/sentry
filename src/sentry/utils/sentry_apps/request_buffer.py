@@ -41,15 +41,27 @@ EXTENDED_VALID_EVENTS = VALID_EVENTS + (
 
 class SentryAppRequest(TypedDict):
     date: str
-    response_code: int
-    webhook_url: str
-    organization_id: int
-    event_type: str
-    error_id: NotRequired[str | None]
-    project_id: NotRequired[int | None]
-    request_body: NotRequired[str | None]
-    request_headers: NotRequired[Mapping[str, str] | None]
-    response_body: NotRequired[str | None]
+    response_code: int  # HTTP response code from the received response
+    webhook_url: str  # URL of the webhook destination
+    organization_id: int  # ID of the organization that triggered the webhook
+    event_type: str  # Type of event that triggered the webhook (e.g. issue.assigned, issue.unassigned, etc.)
+    error_id: NotRequired[str | None]  # ID for the error (if applicable)
+    project_id: NotRequired[int | None]  # ID for the project (if applicable)
+    request_body: NotRequired[str | None]  # Request body from the webhook (potentially truncated)
+    request_headers: NotRequired[Mapping[str, str] | None]  # Headers sent with the webhook
+    response_body: NotRequired[str | None]  # Response body from the webhook (potentially truncated)
+    request_id: NotRequired[str | None]  # Maps to requestId header on webhook
+    subject_id: NotRequired[str | None]  # ID for the resource denoted in subjectType
+    subject_type: NotRequired[str | None]  # Resource type (e.g. Group, Event, Seer Run)
+    duration_ms: NotRequired[int | None]  # Time taken to send the request
+
+
+def _decode_body(body: str | bytes) -> str:
+    # Decode before truncating so the limit applies to characters and a
+    # multi-byte sequence is never split.
+    if isinstance(body, bytes):
+        return body.decode("utf-8", errors="replace")
+    return body
 
 
 class SentryAppWebhookRequestsBuffer:
@@ -151,8 +163,12 @@ class SentryAppWebhookRequestsBuffer:
         project_id: int | None = None,
         response: Response | None = None,
         headers: Mapping[str, str] | None = None,
+        request_id: str | None = None,
+        subject_id: str | None = None,
+        subject_type: str | None = None,
+        duration_ms: int | None = None,
     ) -> None:
-        from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE
+        from sentry.utils.sentry_apps.webhooks import NO_RESPONSE_STATUS_CODES
 
         if event not in EXTENDED_VALID_EVENTS:
             logger.warning("Event %s is not a valid event that can be stored.", event)
@@ -166,25 +182,26 @@ class SentryAppWebhookRequestsBuffer:
             "response_code": response_code,
             "webhook_url": url,
         }
+
+        if request_id is not None:
+            request_data["request_id"] = request_id
+        if subject_id is not None and subject_type is not None:
+            request_data["subject_id"] = subject_id
+            request_data["subject_type"] = subject_type
+        if duration_ms is not None:
+            request_data["duration_ms"] = duration_ms
         MAX_SIZE = 1024
-        if response_code >= 400 or response_code == TIMEOUT_STATUS_CODE:
+        if response_code >= 400 or response_code in NO_RESPONSE_STATUS_CODES:
             if headers:
                 request_data["request_headers"] = headers
 
             if response is not None:
                 if response.content is not None:
-                    try:
-                        json.loads(response.content)
-                        # if the type is jsonifiable, treat it as such
-                        prettified_response_body = json.dumps(response.content)
-                        request_data["response_body"] = prettified_response_body[:MAX_SIZE]
-                    except (json.JSONDecodeError, TypeError):
-                        request_data["response_body"] = response.content[:MAX_SIZE]
+                    request_data["response_body"] = _decode_body(response.content)[:MAX_SIZE]
                 if response.request is not None:
                     request_body = response.request.body
                     if request_body is not None:
-                        prettified_request_body = json.dumps(request_body)
-                        request_data["request_body"] = prettified_request_body[:MAX_SIZE]
+                        request_data["request_body"] = _decode_body(request_body)[:MAX_SIZE]
 
         # Don't store the org id for internal apps because it will always be the org that owns the app anyway
         if not self.sentry_app.is_internal:
@@ -200,7 +217,7 @@ class SentryAppWebhookRequestsBuffer:
         self._add_to_buffer_pipeline(request_key, request_data, pipe)
 
         # If it's an error add it to the error buffer
-        if 400 <= response_code <= 599 or response_code == TIMEOUT_STATUS_CODE:
+        if 400 <= response_code <= 599 or response_code in NO_RESPONSE_STATUS_CODES:
             error_key = self._get_redis_key(event, error=True)
             self._add_to_buffer_pipeline(error_key, request_data, pipe)
 

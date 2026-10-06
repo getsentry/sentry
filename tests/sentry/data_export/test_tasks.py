@@ -17,7 +17,13 @@ from sentry.data_export.writers import OutputMode
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.files.file import File
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
-from sentry.testutils.cases import OurLogTestCase, SnubaTestCase, SpanTestCase, TestCase
+from sentry.testutils.cases import (
+    OurLogTestCase,
+    SnubaTestCase,
+    SpanTestCase,
+    TestCase,
+    TraceMetricsTestCase,
+)
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils import json
 from sentry.utils.samples import load_data
@@ -707,7 +713,9 @@ class AssembleDownloadLargeTest(TestCase, SnubaTestCase):
         assert emailer.called
 
 
-class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogTestCase):
+class AssembleDownloadExploreTest(
+    TestCase, SnubaTestCase, SpanTestCase, OurLogTestCase, TraceMetricsTestCase
+):
     def setUp(self) -> None:
         super().setUp()
         self.user = self.create_user()
@@ -995,6 +1003,110 @@ class AssembleDownloadExploreTest(TestCase, SnubaTestCase, SpanTestCase, OurLogT
         with file.getfile() as f:
             content = f.read().strip()
         assert b"log.body,severity_text" in content
+
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_explore_tracemetrics_dataset_called_correctly(self, emailer: MagicMock) -> None:
+        metrics = [
+            self.create_trace_metric(
+                "llm.token_usage",
+                value,
+                "distribution",
+                timestamp=before_now(minutes=10),
+                organization=self.org,
+                project=self.project,
+                attributes={"model": model},
+            )
+            for model, value in (("gpt-5", 100.0), ("gpt-5", 50.0), ("claude-opus-5", 25.0))
+        ]
+        self.store_eap_items(metrics)
+
+        aggregate = "sum(value,llm.token_usage,distribution,-)"
+        de = ExportedData.objects.create(
+            user_id=self.user.id,
+            organization=self.org,
+            query_type=ExportQueryType.EXPLORE,
+            query_info={
+                "project": [self.project.id],
+                "field": ["model", aggregate],
+                "query": "",
+                "sort": [f"-{aggregate}"],
+                "dataset": "tracemetrics",
+                "start": before_now(minutes=15).isoformat(),
+                "end": before_now(minutes=5).isoformat(),
+            },
+        )
+
+        with self.tasks():
+            assemble_download(de.id, batch_size=1)
+
+        de = ExportedData.objects.get(id=de.id)
+        assert de.date_finished is not None
+        assert de.file_id is not None
+        file = de._get_file()
+        assert isinstance(file, File)
+        assert file.headers == {"Content-Type": "text/csv"}
+
+        with file.getfile() as f:
+            content = f.read().strip().decode()
+        rows = content.splitlines()
+
+        assert rows[0] == f'model,"{aggregate}"'
+        assert rows[1:] == ["gpt-5,150.0", "claude-opus-5,25.0"]
+
+    @patch("sentry.data_export.models.ExportedData.email_success")
+    def test_explore_tracemetrics_jsonl_full_export(self, emailer: MagicMock) -> None:
+        """
+        Wide JSONL export of trace metrics, which goes through Snuba's ExportTraceItems
+        endpoint rather than a table query.
+        """
+        metrics = [
+            self.create_trace_metric(
+                "llm.token_usage",
+                float(value),
+                "distribution",
+                timestamp=before_now(minutes=10, seconds=offset),
+                organization=self.org,
+                project=self.project,
+                attributes={"model": "gpt-5"},
+            )
+            for offset, value in ((0, 100), (30, 50))
+        ]
+        self.store_eap_items(metrics)
+
+        de = ExportedData.objects.create(
+            user_id=self.user.id,
+            organization=self.org,
+            query_type=ExportQueryType.TRACE_ITEM_FULL_EXPORT,
+            query_info={
+                "project": [self.project.id],
+                "field": [],
+                "equations": [],
+                "query": "",
+                "dataset": "tracemetrics",
+                "start": before_now(minutes=15).isoformat(),
+                "end": before_now(minutes=5).isoformat(),
+            },
+            export_format=OutputMode.JSONL.value,
+        )
+
+        with self.tasks():
+            assemble_download(de.id, batch_size=2, export_limit=100)
+
+        de = ExportedData.objects.get(id=de.id)
+        assert de.date_finished is not None
+        file = de._get_file()
+        assert isinstance(file, File)
+        assert file.headers == {"Content-Type": "application/x-ndjson"}
+
+        with file.getfile() as f:
+            rows = [json.loads(line) for line in f.read().strip().splitlines()]
+
+        assert len(rows) == len(metrics)
+        # The wide export carries every attribute, including ones no table query selected.
+        assert {row["value"] for row in rows} == {100.0, 50.0}
+        assert {row["metric.name"] for row in rows} == {"llm.token_usage"}
+        assert {row["model"] for row in rows} == {"gpt-5"}
+        assert emailer.called
 
     @patch("sentry.data_export.models.ExportedData.email_success")
     def test_explore_logs_jsonl_format(self, emailer: MagicMock) -> None:

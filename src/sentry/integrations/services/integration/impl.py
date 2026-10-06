@@ -23,6 +23,7 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionType,
 )
 from sentry.integrations.mixins import NotifyBasicMixin
+from sentry.integrations.models.gcp_service_account import GcpServiceAccount
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -45,6 +46,7 @@ from sentry.integrations.services.integration.serial import (
     serialize_integration_external_project,
     serialize_organization_integration,
 )
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.sentry_apps.api.serializers.app_platform_event import AppPlatformEvent
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.metrics import (
@@ -58,7 +60,7 @@ from sentry.sentry_apps.utils.webhooks import (
     SentryAppResourceType,
     find_alert_rule_action_ui_component,
 )
-from sentry.shared_integrations.exceptions import ApiError
+from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils import json
 from sentry.utils.sentry_apps import send_and_save_webhook_request
 
@@ -145,6 +147,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         organization_id: int | None = None,
         organization_integration_id: int | None = None,
         status: int | None = None,
+        using_replica: bool = False,
     ) -> RpcIntegration | None:
         integration_kwargs: dict[str, Any] = {}
         if integration_id is not None:
@@ -162,8 +165,12 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if not integration_kwargs:
             return None
 
+        queryset = Integration.objects.all()
+        if using_replica:
+            queryset = Integration.objects.using_replica()
+
         try:
-            integration = Integration.objects.get(**integration_kwargs)
+            integration = queryset.get(**integration_kwargs)
         except Integration.DoesNotExist:
             return None
         except Integration.MultipleObjectsReturned:
@@ -183,6 +190,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         grace_period_expired: bool | None = None,
         limit: int | None = None,
         name: str | None = None,
+        using_replica: bool = False,
     ) -> list[RpcOrganizationIntegration]:
         oi_kwargs: dict[str, Any] = {}
         if org_integration_ids is not None:
@@ -208,8 +216,11 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if not oi_kwargs:
             return []
 
-        ois = OrganizationIntegration.objects.filter(**oi_kwargs).select_related("integration")
+        queryset = OrganizationIntegration.objects.all()
+        if using_replica:
+            queryset = OrganizationIntegration.objects.using_replica()
 
+        ois = queryset.filter(**oi_kwargs).select_related("integration")
         if limit is not None:
             ois = ois[:limit]
 
@@ -531,7 +542,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             try:
                 client.send_card(channel, attachment)
                 return True
-            except ApiError as e:
+            except (ApiError, IntegrationError) as e:
                 record_lifecycle_termination_level(lifecycle, e)
             except Exception as e:
                 lifecycle.add_extras({"integration_id": integration_id, "channel": channel})
@@ -609,6 +620,17 @@ class DatabaseBackedIntegrationService(IntegrationService):
             user=user,
         )
 
+    def get_gcp_service_account_email(
+        self,
+        *,
+        organization_id: int,
+    ) -> str | None:
+        try:
+            sa = GcpServiceAccount.objects.get(organization_id=organization_id)
+        except GcpServiceAccount.DoesNotExist:
+            return None
+        return sa.service_account_email
+
     def refresh_github_access_token(
         self, *, integration_id: int, organization_id: int
     ) -> RpcIntegration | None:
@@ -635,4 +657,41 @@ class DatabaseBackedIntegrationService(IntegrationService):
         )
         integration.refresh_from_db()
 
+        return serialize_integration(integration)
+
+    def refresh_github_permissions(
+        self, *, integration_id: int, organization_id: int
+    ) -> RpcIntegration | None:
+        try:
+            integration = Integration.objects.get(
+                id=integration_id,
+                provider__in=[
+                    IntegrationProviderSlug.GITHUB.value,
+                    IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+                ],
+                status=ObjectStatus.ACTIVE,
+                # An integration id on its own is not enough to reach an
+                # installation: the organization has to actually have it
+                # installed. get_installation below does not check that.
+                organizationintegration__organization_id=organization_id,
+            )
+        except Integration.DoesNotExist:
+            return None
+
+        installation = integration.get_installation(organization_id=organization_id)
+
+        # Read with the app JWT rather than minting a token: the installation
+        # itself reports its current permissions, so there is no reason to
+        # rotate credentials just to see them.
+        client = installation.get_client()
+        info = client.get_installation_info(client._get_installation_id())
+
+        integration.refresh_from_db()
+        integration.metadata.update(
+            {
+                "permissions": info.get("permissions"),
+                "last_refresh_at": timezone.now().isoformat(),
+            }
+        )
+        integration.save(update_fields=["metadata"])
         return serialize_integration(integration)

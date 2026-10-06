@@ -6,9 +6,9 @@ from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.seer.sentry_data_models import (
+    AttributeMeta,
     AttributeNamesResponse,
     AttributeValuesResponse,
-    BuiltInField,
 )
 
 logger = logging.getLogger(__name__)
@@ -124,8 +124,9 @@ def get_attribute_names(
         item_type: Type of trace item (default: "spans", can be "spans", "logs", etc.)
         include_context: When True, include the context metadata (brief,
             examples, deprecation, etc.) for each attribute and attach it to the
-            matching built-in fields in the response. Today the metadata comes
-            from the sentry conventions; custom attribute context is planned.
+            matching field in the response. Sentry-owned attributes get their
+            metadata from the sentry conventions or a column definition; custom
+            attributes get user-authored metadata.
 
     Returns:
         Dictionary with attributes:
@@ -138,25 +139,28 @@ def get_attribute_names(
                 {"key": "span.op", "type": "string", "context": {...}},
                 {"key": "span.duration", "type": "number", "context": None},
                 ...
+            ],
+            "custom_fields": [
+                {"key": "custom_field_1", "type": "string", "context": {...}},
+                ...
             ]
         }
 
-        Each built-in field's "context" is only populated when expand="context"
-        is requested (and the attribute maps to a known convention); otherwise it
-        is None. Convention-backed attributes that aren't hardcoded built-ins
-        (e.g. http.route) are also appended to "built_in_fields" so their context
-        isn't lost.
+        A field's "context" is only populated when expand="context" is requested
+        and metadata exists for the attribute; otherwise it is None.
+        Convention-backed attributes that aren't hardcoded built-ins (e.g.
+        http.route) are appended to "built_in_fields" so their context isn't lost.
+        Custom attributes go to "custom_fields" when they have authored context,
+        and appear only in "fields" otherwise.
     """
     organization = Organization.objects.get(id=org_id)
 
     api_key = ApiKey(organization_id=org_id, scope_list=API_KEY_SCOPES)
 
     fields: dict[str, list[str]] = {"string": [], "number": []}
-    # Maps an attribute name to its context, populated only when the caller
-    # passes include_context=True. Used below to attach context to the built-in
-    # fields (which is where Seer reads attribute context from). Today the
-    # context comes from the sentry conventions, but custom attribute context is
-    # planned, at which point user-defined attributes will be populated too.
+    # Maps an attribute name to its context, populated only when the caller passes
+    # include_context=True. Attached below to the built-in and custom fields, which
+    # is where Seer reads attribute context from.
     context_by_name: dict[str, dict[str, Any]] = {}
     # Maps an attribute name to its type ("string"/"number"), so context-bearing
     # attributes that aren't hardcoded built-ins can still be emitted as fields.
@@ -203,24 +207,27 @@ def get_attribute_names(
 
     hardcoded_fields = _get_built_in_fields(item_type)
     built_in_fields = [
-        BuiltInField(**f, context=context_by_name.get(f["key"])) for f in hardcoded_fields
+        AttributeMeta(**f, context=context_by_name.get(f["key"])) for f in hardcoded_fields
     ]
 
     # Context-bearing attributes that aren't hardcoded built-ins (e.g. the
-    # convention http.route, or Sentry-defined fields like span.description) would
-    # otherwise be dropped. Surface them through built_in_fields too, since that's
-    # where Seer reads attribute context from. We promote conventions
-    # (isConvention=True) and Sentry-defined attributes (source=sentry);
-    # user-authored custom context is intentionally left out.
+    # convention http.route) would otherwise be dropped. Conventions and
+    # Sentry-defined fields join built_in_fields; user-authored context goes to
+    # custom_fields, being org-specific rather than part of Sentry's schema.
     hardcoded_keys = {f["key"] for f in hardcoded_fields}
+    custom_fields = []
     for name, context in context_by_name.items():
         if name in hardcoded_keys:
             continue
-        if not (context.get("isConvention") or source_by_name.get(name) == "sentry"):
-            continue
-        built_in_fields.append(BuiltInField(key=name, type=type_by_name[name], context=context))
+        field = AttributeMeta(key=name, type=type_by_name[name], context=context)
+        if context.get("isConvention") or source_by_name.get(name) == "sentry":
+            built_in_fields.append(field)
+        elif context.get("isCustom"):
+            custom_fields.append(field)
 
-    return AttributeNamesResponse(fields=fields, built_in_fields=built_in_fields)
+    return AttributeNamesResponse(
+        fields=fields, built_in_fields=built_in_fields, custom_fields=custom_fields
+    )
 
 
 def get_attribute_values_with_substring(

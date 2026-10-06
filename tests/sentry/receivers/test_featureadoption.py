@@ -20,7 +20,6 @@ from sentry.signals import (
     user_feedback_received,
 )
 from sentry.testutils.cases import SnubaTestCase, TestCase
-from sentry.workflow_engine.receivers.project_workflows import DEFAULT_RULE_DATA
 
 
 class FeatureAdoptionTest(TestCase, SnubaTestCase):
@@ -526,7 +525,24 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
 
     def test_alert_rules(self) -> None:
         rule = Rule.objects.create(
-            project=self.project, label="Trivially modified rule", data=DEFAULT_RULE_DATA
+            project=self.project,
+            label="Trivially modified rule",
+            data={
+                "action_match": "any",
+                "conditions": [
+                    {
+                        "id": "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition"
+                    },
+                ],
+                "actions": [
+                    {
+                        "id": "sentry.mail.actions.NotifyEmailAction",
+                        "targetType": "IssueOwners",
+                        "targetIdentifier": None,
+                        "fallthroughType": "ActiveMembers",
+                    }
+                ],
+            },
         )
 
         alert_rule_created.send(
@@ -567,3 +583,19 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
             organization=self.organization, slug="delete_and_discard"
         )
         assert feature_complete
+
+    def test_bulk_record_keeps_new_features_after_cache_loss(self) -> None:
+        org_id = self.organization.id
+        FeatureAdoption.objects.record(org_id, "python")
+
+        # The redis set expires on its own TTL, so a cold cache is a normal state.
+        key = FeatureAdoption.objects.cache_backend.key_tpl.format(org_id)
+        FeatureAdoption.objects.cache_backend.get_client(key).delete(key)
+
+        # This batch mixes a feature that is already in the database with a new one.
+        FeatureAdoption.objects.bulk_record(org_id, ["python", "source_maps"])
+
+        source_maps = FeatureAdoption.objects.get_by_slug(
+            organization=self.organization, slug="source_maps"
+        )
+        assert source_maps

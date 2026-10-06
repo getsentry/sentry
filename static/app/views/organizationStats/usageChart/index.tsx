@@ -6,9 +6,9 @@ import type {SelectValue} from '@sentry/scraps/select';
 
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
 import {BaseChart} from 'sentry/components/charts/baseChart';
-import {Legend} from 'sentry/components/charts/components/legend';
-import {XAxis} from 'sentry/components/charts/components/xAxis';
-import {BarSeries} from 'sentry/components/charts/series/barSeries';
+import {legend as makeLegend} from 'sentry/components/charts/components/legend';
+import {createXAxisOptions} from 'sentry/components/charts/components/xAxis';
+import {createBarSeries} from 'sentry/components/charts/series/barSeries';
 import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -371,7 +371,7 @@ function UsageChartBody({
   const colors = outputChartColors(theme);
 
   const series: SeriesOption[] = [
-    BarSeries({
+    createBarSeries({
       name: SeriesTypes.ACCEPTED,
       data: chartData.accepted,
       stack: 'usage',
@@ -379,7 +379,7 @@ function UsageChartBody({
     }),
     ...(chartData.accepted_stored
       ? [
-          BarSeries({
+          createBarSeries({
             name: SeriesTypes.ACCEPTED,
             data: chartData.accepted_stored,
             barGap: '-100%',
@@ -398,31 +398,31 @@ function UsageChartBody({
           }),
         ]
       : []),
-    BarSeries({
+    createBarSeries({
       name: SeriesTypes.FILTERED,
       data: chartData.filtered,
       stack: 'usage',
       legendHoverLink: false,
     }),
-    BarSeries({
+    createBarSeries({
       name: SeriesTypes.RATE_LIMITED,
       data: chartData.rateLimited,
       stack: 'usage',
       legendHoverLink: false,
     }),
-    BarSeries({
+    createBarSeries({
       name: SeriesTypes.INVALID,
       data: chartData.invalid,
       stack: 'usage',
       legendHoverLink: false,
     }),
-    BarSeries({
+    createBarSeries({
       name: SeriesTypes.CLIENT_DISCARD,
       data: chartData.clientDiscard,
       stack: 'usage',
       legendHoverLink: false,
     }),
-    BarSeries({
+    createBarSeries({
       name: SeriesTypes.PROJECTED,
       data: chartData.projected,
       stack: 'usage',
@@ -443,7 +443,7 @@ function UsageChartBody({
         },
       }}
       grid={{bottom: '3px', left: '3px', right: '10px', top: '40px'}}
-      xAxis={XAxis({
+      xAxis={createXAxisOptions({
         show: true,
         type: 'category',
         name: 'Date',
@@ -479,7 +479,7 @@ function UsageChartBody({
             }
       }
       onLegendSelectChanged={onLegendSelectChanged}
-      legend={Legend({
+      legend={makeLegend({
         right: 10,
         top: 5,
         data: chartLegendData(),

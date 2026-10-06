@@ -1,7 +1,8 @@
-import styled from '@emotion/styled';
+import {useTheme} from '@emotion/react';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {useUserViewedReplays} from 'sentry/components/replays/useUserViewedReplays';
@@ -12,6 +13,7 @@ import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 const LOCAL_STORAGE_KEY = 'replay-unmask-alert-dismissed';
 
 export function UnmaskAlert() {
+  const theme = useTheme();
   const {dismiss, isDismissed} = useDismissAlert({key: LOCAL_STORAGE_KEY});
   const {data, isError, isPending} = useUserViewedReplays();
 
@@ -20,7 +22,13 @@ export function UnmaskAlert() {
   }
 
   return (
-    <UnmaskAlertContainer data-test-id="unmask-alert">
+    <Container
+      data-test-id="unmask-alert"
+      position="absolute"
+      bottom={theme.space.md}
+      left={theme.space.md}
+      right={theme.space.md}
+    >
       <Alert
         variant="info"
         trailingItems={
@@ -42,11 +50,6 @@ export function UnmaskAlert() {
           }
         )}
       </Alert>
-    </UnmaskAlertContainer>
+    </Container>
   );
 }
-
-const UnmaskAlertContainer = styled('div')`
-  position: absolute;
-  bottom: ${p => p.theme.space.md};
-`;

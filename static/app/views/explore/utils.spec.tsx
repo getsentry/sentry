@@ -1,3 +1,4 @@
+import {DiscoverSavedQueryFixture} from 'sentry-fixture/discover';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
@@ -6,11 +7,15 @@ import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
+import type {DiscoverSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {
   findSuggestedColumns,
   getSamplingWarningReason,
+  getYAxisDiscoverSavedQuery,
   isSamplingSensitiveAggregate,
+  prettifyAggregation,
   removeHiddenKeys,
   shouldWarnSamplingSensitive,
   viewSamplesTarget,
@@ -45,6 +50,36 @@ describe('viewSamplesTarget', () => {
         sort: ['-span.duration'],
       },
     });
+  });
+
+  it('does not add a filter for an empty group by', () => {
+    const location = LocationFixture({
+      query: {
+        aggregateField: [
+          JSON.stringify({groupBy: ''}),
+          JSON.stringify({yAxes: ['count(span.duration)']}),
+        ],
+        aggregateSort: '-count(span.duration)',
+        groupBy: '',
+        visualize: JSON.stringify({yAxes: ['count(span.duration)']}),
+      },
+    });
+    const target = viewSamplesTarget({
+      location,
+      query: '',
+      fields: ['foo'],
+      groupBys: [''],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {},
+      projects,
+    });
+
+    expect(target.query.aggregateField).toEqual(location.query.aggregateField);
+    expect(target.query.aggregateSort).toBe('-count(span.duration)');
+    expect(target.query.groupBy).toBe('');
+    expect(target.query.visualize).toBe(location.query.visualize);
+    expect(target.query.query).toBe('');
   });
 
   it('simple drill down with single group by', () => {
@@ -272,6 +307,53 @@ describe('viewSamplesTarget', () => {
       },
     });
   });
+
+  it('clears table param so it lands on span samples tab', () => {
+    const location = LocationFixture({
+      query: {table: 'attribute_breakdowns'},
+    });
+    const target = viewSamplesTarget({
+      location,
+      query: '',
+      fields: ['foo'],
+      groupBys: ['bar'],
+      visualizes: [visualize],
+      sorts: [sort],
+      row: {bar: 'bar_value', 'count(span.duration)': 10},
+      projects,
+    });
+    expect(target.query.table).toBeUndefined();
+    expect(target).toMatchObject({
+      query: {
+        field: ['foo', 'span.duration'],
+        mode: 'samples',
+        query: 'bar:bar_value',
+        sort: ['-span.duration'],
+      },
+    });
+  });
+
+  it('drill down on a conditional aggregate ignores the filter argument', () => {
+    const location = LocationFixture();
+    const target = viewSamplesTarget({
+      location,
+      query: '',
+      fields: ['foo'],
+      groupBys: [],
+      visualizes: [new VisualizeFunction('count_if(`span.op:db`,span.duration)')],
+      sorts: [{field: 'count_if(`span.op:db`,span.duration)', kind: 'desc' as const}],
+      row: {},
+      projects,
+    });
+    expect(target).toMatchObject({
+      query: {
+        field: ['foo', 'span.duration'],
+        mode: 'samples',
+        query: '',
+        sort: ['-span.duration'],
+      },
+    });
+  });
 });
 
 describe('findSuggestedColumns', () => {
@@ -414,7 +496,7 @@ describe('removeHiddenKeys', () => {
       project_id: {key: 'project_id', name: 'project_id', kind: FieldKind.TAG},
     };
 
-    expect(removeHiddenKeys(tags, ['project_id'])).toEqual({
+    expect(removeHiddenKeys(tags, new Set(['project_id']))).toEqual({
       'log.field': {key: 'log.field', name: 'log.field', kind: FieldKind.TAG},
     });
   });
@@ -435,7 +517,7 @@ describe('removeHiddenKeys', () => {
       },
     };
 
-    expect(removeHiddenKeys(tags, ['project_id'])).toEqual({
+    expect(removeHiddenKeys(tags, new Set(['project_id']))).toEqual({
       'log.duration': {
         key: 'log.duration',
         name: 'log.duration',
@@ -458,7 +540,33 @@ describe('removeHiddenKeys', () => {
       },
     };
 
-    expect(removeHiddenKeys(tags, ['project_id'])).toEqual(tags);
+    expect(removeHiddenKeys(tags, new Set(['project_id']))).toEqual(tags);
+  });
+
+  it('keeps user-sent attributes whose name collides with a hidden key', () => {
+    const tags: TagCollection = {
+      'organization.id': {
+        key: 'organization.id',
+        name: 'organization.id',
+        kind: FieldKind.TAG,
+        attributeSource: 'user',
+      },
+    };
+
+    expect(removeHiddenKeys(tags, new Set(['organization.id']))).toEqual(tags);
+  });
+
+  it('still hides Sentry-sourced attributes that match a hidden key', () => {
+    const tags: TagCollection = {
+      'organization.id': {
+        key: 'organization.id',
+        name: 'organization.id',
+        kind: FieldKind.TAG,
+        attributeSource: 'sentry',
+      },
+    };
+
+    expect(removeHiddenKeys(tags, new Set(['organization.id']))).toEqual({});
   });
 });
 
@@ -475,19 +583,23 @@ function seriesWithSampleRates(sampleRates: Array<number | null>): TimeSeries[] 
 }
 
 describe('isSamplingSensitiveAggregate', () => {
-  it.each(['count_unique(user)', 'failure_count()', 'failure_rate()'])(
-    'returns true for sampling-sensitive aggregate %s',
-    aggregate => {
-      expect(isSamplingSensitiveAggregate(aggregate)).toBe(true);
-    }
-  );
+  it.each([
+    'count_unique(user)',
+    'failure_count()',
+    'failure_rate()',
+    'count_unique_if(`span.op:db`,user)',
+  ])('returns true for sampling-sensitive aggregate %s', aggregate => {
+    expect(isSamplingSensitiveAggregate(aggregate)).toBe(true);
+  });
 
-  it.each(['count()', 'avg(span.duration)', 'p50(span.duration)'])(
-    'returns false for non-sensitive aggregate %s',
-    aggregate => {
-      expect(isSamplingSensitiveAggregate(aggregate)).toBe(false);
-    }
-  );
+  it.each([
+    'count()',
+    'avg(span.duration)',
+    'p50(span.duration)',
+    'count_if(`span.op:db`,span.duration)',
+  ])('returns false for non-sensitive aggregate %s', aggregate => {
+    expect(isSamplingSensitiveAggregate(aggregate)).toBe(false);
+  });
 });
 
 describe('shouldWarnSamplingSensitive', () => {
@@ -577,5 +689,45 @@ describe('getSamplingWarningReason', () => {
     expect(
       getSamplingWarningReason('count_unique(user)', seriesWithSampleRates([]), 'partial')
     ).toBeNull();
+  });
+});
+
+describe('prettifyAggregation', () => {
+  it('prettifies typed tag keys inside conditional filters', () => {
+    expect(prettifyAggregation('avg_if(`tags[Limit,number]:>5`,span.duration)')).toBe(
+      'avg_if(`Limit:>5`,span.duration)'
+    );
+  });
+
+  it('prettifies typed tag keys in equation conditionals used as chart titles', () => {
+    expect(
+      prettifyAggregation(
+        'equation|avg_if(`tags[Limit,number]:>5`,span.duration) / p95(span.duration)'
+      )
+    ).toBe(' avg_if(`Limit:>5`,span.duration)  /  p95(span.duration) ');
+  });
+});
+
+describe('getYAxisDiscoverSavedQuery', () => {
+  it('falls back to the default y-axis when the query has none saved', () => {
+    const savedQuery: DiscoverSavedQuery = {
+      ...DiscoverSavedQueryFixture({fields: ['title', 'project']}),
+      queryType: SavedQueryType.DISCOVER,
+    };
+
+    expect(getYAxisDiscoverSavedQuery(savedQuery)).toEqual([{yAxes: ['count()']}]);
+  });
+
+  it('falls back to the first graphable aggregate in fields over count()', () => {
+    const savedQuery: DiscoverSavedQuery = {
+      ...DiscoverSavedQueryFixture({
+        fields: ['release', 'count_unique(release)'],
+      }),
+      queryType: SavedQueryType.DISCOVER,
+    };
+
+    expect(getYAxisDiscoverSavedQuery(savedQuery)).toEqual([
+      {yAxes: ['count_unique(release)']},
+    ]);
   });
 });

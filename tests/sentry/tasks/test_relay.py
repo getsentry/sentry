@@ -3,7 +3,6 @@ from unittest import mock
 
 import pytest
 from django.db import connections, router, transaction
-from django.db.transaction import TransactionManagementError
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.options.project_option import ProjectOption
@@ -13,11 +12,11 @@ from sentry.relay.projectconfig_debounce_cache.redis import RedisProjectConfigDe
 from sentry.tasks.relay import (
     _schedule_invalidate_project_config,
     build_project_config,
+    compute_projectkey_config,
     invalidate_project_config,
     schedule_build_project_config,
     schedule_invalidate_project_config,
 )
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -84,7 +83,6 @@ def redis_cache():
             "sentry.relay.projectconfig_cache.redis.RedisProjectConfigCache",
         ),
         mock.patch("sentry.relay.projectconfig_cache.set_many", cache.set_many),
-        mock.patch("sentry.relay.projectconfig_cache.delete_many", cache.delete_many),
         mock.patch("sentry.relay.projectconfig_cache.get", cache.get),
     ):
         yield cache
@@ -158,7 +156,6 @@ def test_generate(
     redis_cache,
     django_cache,
 ):
-    # redis_cache.delete_many([default_projectkey.public_key])
     assert not redis_cache.get(default_projectkey.public_key)
 
     build_project_config(default_projectkey.public_key)
@@ -459,6 +456,40 @@ class TestInvalidationTask:
             assert new_cfg is not None
             assert new_cfg != cfg
 
+    def test_invalidate_org_writes_each_config_as_computed(
+        self,
+        default_organization,
+        default_project,
+        default_projectkey,
+        factories,
+        redis_cache,
+        task_runner,
+        django_cache,
+    ):
+        other_project = factories.create_project(organization=default_organization)
+        other_projectkey = ProjectKey.objects.get(project=other_project)
+        seed = {"dummy-key": "val"}
+        public_keys = [default_projectkey.public_key, other_projectkey.public_key]
+        redis_cache.set_many({public_key: seed for public_key in public_keys})
+
+        fresh_before_each_compute = []
+
+        def record_then_compute(key):
+            fresh_before_each_compute.append(
+                sum(redis_cache.get(public_key) != seed for public_key in public_keys)
+            )
+            return compute_projectkey_config(key)
+
+        with (
+            mock.patch("sentry.tasks.relay.compute_projectkey_config", record_then_compute),
+            task_runner(),
+        ):
+            schedule_invalidate_project_config(
+                organization_id=default_organization.id, trigger="test"
+            )
+
+        assert fresh_before_each_compute == [0, 1]
+
     @mock.patch(
         "sentry.tasks.relay._schedule_invalidate_project_config",
         wraps=_schedule_invalidate_project_config,
@@ -540,34 +571,11 @@ def test_invalidate_hierarchy(
 
 
 @django_db_all(transaction=True)
-@override_options({"relay.invalidation-direct-outside-atomic": False})
-def test_schedule_invalidate_project_config_without_autocommit_option_off(default_project):
+def test_schedule_invalidate_project_config_without_autocommit(default_project):
     """
-    Without the option, the old behavior is preserved: on_commit() is called
-    unconditionally, which raises TransactionManagementError when autocommit
-    is off and there is no active atomic block.
-    """
-    conn = connections["default"]
-    conn.ensure_connection()
-    try:
-        conn.set_autocommit(False)
-        with pytest.raises(TransactionManagementError):
-            schedule_invalidate_project_config(
-                project_id=default_project.id,
-                trigger="test",
-            )
-    finally:
-        conn.rollback()
-        conn.set_autocommit(True)
-
-
-@django_db_all(transaction=True)
-@override_options({"relay.invalidation-direct-outside-atomic": True})
-def test_schedule_invalidate_project_config_without_autocommit_option_on(default_project):
-    """
-    Regression test: with the option enabled, schedule_invalidate_project_config
-    must not raise TransactionManagementError when called without autocommit and
-    outside an atomic block, as happens in the taskworker.
+    Regression test: schedule_invalidate_project_config must not raise
+    TransactionManagementError when called without autocommit and outside an
+    atomic block, as happens in the taskworker.
 
     See: https://sentry.sentry.io/issues/7223923952/
     """

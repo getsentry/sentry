@@ -8,16 +8,13 @@ export function canCreateProject(organization: Organization, teams?: Team[]) {
     return true;
   }
 
-  // Has member-project-creation feature and didn't disable in org-wide config
-  if (
-    organization.features.includes('team-roles') &&
-    (organization.allowMemberProjectCreation ||
-      teams?.some(
-        team => team.teamRole === 'admin' && team.access.includes('team:admin')
-      ))
-  ) {
+  // Org allows member project creation (no longer requires team-roles)
+  if (organization.allowMemberProjectCreation) {
     return true;
   }
 
-  return false;
+  // Team admins can still create projects for their teams when member creation is disabled
+  return Boolean(
+    teams?.some(team => team.teamRole === 'admin' && team.access.includes('team:admin'))
+  );
 }

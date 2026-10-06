@@ -59,4 +59,31 @@ describe('Disclosure', () => {
     await userEvent.click(screen.getByRole('button', {name: 'This is a disclosure'}));
     expect(onExpandedChange).toHaveBeenCalledWith(false);
   });
+
+  it('renders leading items and still toggles', async () => {
+    render(
+      <Disclosure defaultExpanded>
+        <Disclosure.Title leadingItems={<span>glyph</span>}>Titled</Disclosure.Title>
+        <Disclosure.Content>Body</Disclosure.Content>
+      </Disclosure>
+    );
+
+    expect(screen.getByText('glyph')).toBeInTheDocument();
+    expect(screen.getByText('Body')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', {name: 'Titled'}));
+    expect(screen.getByText('Body')).not.toBeVisible();
+  });
+
+  it('renders outline content and keeps it toggleable', async () => {
+    render(
+      <Disclosure variant="outline" defaultExpanded>
+        <Disclosure.Title>Titled</Disclosure.Title>
+        <Disclosure.Content>Outlined body</Disclosure.Content>
+      </Disclosure>
+    );
+
+    expect(screen.getByText('Outlined body')).toBeVisible();
+    await userEvent.click(screen.getByRole('button', {name: 'Titled'}));
+    expect(screen.getByText('Outlined body')).not.toBeVisible();
+  });
 });

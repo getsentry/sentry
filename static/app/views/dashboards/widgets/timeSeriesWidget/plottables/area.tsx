@@ -1,6 +1,6 @@
 import type {LineSeriesOption} from 'echarts';
 
-import {LineSeries} from 'sentry/components/charts/series/lineSeries';
+import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 import {segmentTimeSeriesByIncompleteData} from 'sentry/utils/timeSeries/segmentTimeSeriesByIncompleteData';
 import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
@@ -55,12 +55,15 @@ export class Area extends ContinuousTimeSeries implements Plottable {
       yAxisIndex: plottingOptions.yAxisPosition === 'left' ? 0 : 1,
     };
 
+    // ECharts groups stacks by name, even when series use different Y axes.
+    const stackPrefix = plottingOptions.yAxisPosition;
+
     this.#timeSeriesAndIsIncomplete.forEach(([timeSeries, isIncomplete], index) => {
       if (isIncomplete) {
         plottableSeries.push(
-          LineSeries({
+          createLineSeries({
             ...commonOptions,
-            stack: `incomplete-${index}`,
+            stack: `incomplete-${stackPrefix}-${index}`,
             data: scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
               timeSeriesItemToEChartsDataPoint
             ),
@@ -78,9 +81,9 @@ export class Area extends ContinuousTimeSeries implements Plottable {
 
       if (!isIncomplete) {
         plottableSeries.push(
-          LineSeries({
+          createLineSeries({
             ...commonOptions,
-            stack: `complete-${index}`,
+            stack: `complete-${stackPrefix}-${index}`,
             areaStyle: {
               color,
               opacity: 1,

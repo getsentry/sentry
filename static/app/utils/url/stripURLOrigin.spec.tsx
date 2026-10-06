@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {stripURLOrigin} from 'sentry/utils/url/stripURLOrigin';
 
 describe('stripURLOrigin', () => {

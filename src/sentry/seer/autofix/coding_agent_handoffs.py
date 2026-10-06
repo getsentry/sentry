@@ -9,7 +9,7 @@ import logging
 from typing import NamedTuple
 
 from sentry.models.organization import Organization
-from sentry.models.pullrequest import parse_pull_request_number
+from sentry.models.pullrequest import parse_pull_request_url
 from sentry.seer.autofix.constants import CodingAgentStatus
 from sentry.seer.autofix.utils import (
     CodingAgentProviderType,
@@ -18,6 +18,7 @@ from sentry.seer.autofix.utils import (
     update_coding_agent_state,
 )
 from sentry.seer.endpoints.utils import get_seer_run
+from sentry.seer.milestones import record_has_pull_request
 from sentry.seer.models.run import (
     SeerAgentRun,
     SeerRunCodingAgentHandoff,
@@ -49,7 +50,16 @@ def create_seer_run_coding_agent_handoff(
     organization: Organization,
     run_id: int,
     state: CodingAgentState,
+    *,
+    repo_external_id: str,
 ) -> None:
+    """Record the agent Seer just handed ``run_id`` off to.
+
+    ``repo_external_id`` is the repo it was launched against, kept because the agent
+    reports its pull request back under a repo name we can't reliably resolve. It is
+    required rather than optional so a new launch path can't silently drop it; pass ``""``
+    when the repository genuinely has no provider-side id.
+    """
     log_context = {"organization_id": organization.id, "run_id": run_id}
 
     try:
@@ -59,6 +69,8 @@ def create_seer_run_coding_agent_handoff(
             return
 
         extras: SeerRunCodingAgentHandoffExtras = {"agent_url": state.agent_url}
+        if repo_external_id:
+            extras["repo_external_id"] = repo_external_id
         SeerRunCodingAgentHandoff.objects.create(
             seer_run=seer_run,
             provider=state.provider.value,
@@ -122,11 +134,15 @@ def sync_coding_agent_status(
                 return CodingAgentSyncResult(known_to_seer=False, run_id=run_id, group_id=group_id)
 
         if result and result.pr_url:
-            pr_number = parse_pull_request_number(result.pr_url)
+            parsed_pr = parse_pull_request_url(result.pr_url)
+            pr_number = parsed_pr.number if parsed_pr else None
+            # Recorded at launch; absent on handoffs created before it was.
+            repo_external_id = handoff.extras.get("repo_external_id")
             link_log_context = {
                 **log_context,
                 "repo_name": result.repo_full_name,
                 "provider": result.repo_provider,
+                "repo_external_id": repo_external_id,
                 "pr_number": pr_number,
             }
 
@@ -138,7 +154,11 @@ def sync_coding_agent_status(
                 pr_number=pr_number,
                 log_context=link_log_context,
                 coding_agent_handoff=handoff,
+                repo_external_id=repo_external_id,
             )
+
+            if pr_number is not None:
+                record_has_pull_request(handoff.seer_run)
 
     known_to_seer = update_coding_agent_state(
         agent_id=agent_id, status=status, agent_url=agent_url, result=result

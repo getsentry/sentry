@@ -1,4 +1,5 @@
 import copy
+from unittest import mock
 
 from sentry.attachments.base import BaseAttachmentCache, CachedAttachment
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -70,12 +71,12 @@ def test_basic_chunked() -> None:
     data = InMemoryCache()
     cache = BaseAttachmentCache(data)
 
-    cache.set_chunk("c:foo", 123, 0, b"Hello World! ")
-    cache.set_chunk("c:foo", 123, 1, b"")
-    cache.set_chunk("c:foo", 123, 2, b"Bye.")
+    cache.set_chunk("c:foo", 123, 0, b"Hello World! ", timeout=300)
+    cache.set_chunk("c:foo", 123, 1, b"", timeout=300)
+    cache.set_chunk("c:foo", 123, 2, b"Bye.", timeout=300)
 
     att = CachedAttachment(key="c:foo", id=123, name="lol.txt", content_type="text/plain", chunks=3)
-    (meta,) = cache.set("c:foo", [att])
+    (meta,) = cache.set("c:foo", [att], timeout=300)
     att2 = CachedAttachment(cache=cache, **meta)
 
     assert att2.key == att.key == "c:foo"
@@ -90,7 +91,7 @@ def test_basic_unchunked() -> None:
     cache = BaseAttachmentCache(data)
 
     att = CachedAttachment(name="lol.txt", content_type="text/plain", data=b"Hello World! Bye.")
-    (meta,) = cache.set("c:foo", [att])
+    (meta,) = cache.set("c:foo", [att], timeout=300)
     att2 = CachedAttachment(cache=cache, **meta)
 
     assert att2.key == att.key == "c:foo"
@@ -104,18 +105,38 @@ def test_zstd_chunks() -> None:
     data = InMemoryCache()
     cache = BaseAttachmentCache(data)
 
-    cache.set_chunk("mixed_chunks", 123, 0, b"Hello World! ")
-    cache.set_chunk("mixed_chunks", 123, 1, b"Just visiting. ")
-    cache.set_chunk("mixed_chunks", 123, 2, b"Bye.")
+    cache.set_chunk("mixed_chunks", 123, 0, b"Hello World! ", timeout=300)
+    cache.set_chunk("mixed_chunks", 123, 1, b"Just visiting. ", timeout=300)
+    cache.set_chunk("mixed_chunks", 123, 2, b"Bye.", timeout=300)
 
     mixed_chunks = cache.get_from_chunks(key="mixed_chunks", id=123, chunks=3)
     assert mixed_chunks.load_data() == b"Hello World! Just visiting. Bye."
 
     att = CachedAttachment(key="not_chunked", id=456, data=b"Hello World! Bye.")
-    (meta,) = cache.set("not_chunked", [att])
+    (meta,) = cache.set("not_chunked", [att], timeout=300)
     not_chunked = CachedAttachment(cache=cache, **meta)
 
     assert not_chunked.load_data() == b"Hello World! Bye."
+
+
+@django_db_all
+@mock.patch("sentry.attachments.base.get_session")
+def test_overwriting_stored_attachment_keeps_metadata(mock_get_session: mock.Mock) -> None:
+    cache = BaseAttachmentCache(InMemoryCache())
+    project = mock.Mock(id=42, organization_id=1)
+
+    att = CachedAttachment(
+        name="view-hierarchy.json",
+        content_type="application/json",
+        data=b'{"class": "TextView"}',
+        stored_id="some-key",
+    )
+    cache.set("c:foo", [att], timeout=300, project=project)
+
+    kwargs = mock_get_session.return_value.put.call_args.kwargs
+    assert kwargs["key"] == "some-key"
+    assert kwargs["filename"] == "view-hierarchy.json"
+    assert kwargs["content_type"] == "application/json"
 
 
 @django_db_all
@@ -126,7 +147,7 @@ def test_basic_rate_limited() -> None:
     att = CachedAttachment(
         name="lol.txt", content_type="text/plain", data=b"Hello World! Bye.", rate_limited=True
     )
-    (meta,) = cache.set("c:foo", [att])
+    (meta,) = cache.set("c:foo", [att], timeout=300)
     att2 = CachedAttachment(cache=cache, **meta)
 
     assert att2.key == att.key == "c:foo"

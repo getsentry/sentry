@@ -36,10 +36,6 @@ describe('Subscription Usage Log', () => {
       },
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/promotions/trigger-check/`,
-      method: 'POST',
-    });
-    MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/recurring-credits/`,
       method: 'GET',
       body: [],

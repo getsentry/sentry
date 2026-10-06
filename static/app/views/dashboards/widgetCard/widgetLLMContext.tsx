@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {OP_LABELS} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
@@ -45,5 +44,7 @@ export function getQueryHintLegend(widgets: Widget[]): Record<string, string> {
     w.displayType === DisplayType.TOP_N ? DisplayType.AREA : w.displayType
   );
   const uniqueTypes = new Set(resolved);
-  return Object.fromEntries([...uniqueTypes].map(dt => [dt, getWidgetQueryLLMHint(dt)]));
+  return Object.fromEntries(
+    Array.from(uniqueTypes, dt => [dt, getWidgetQueryLLMHint(dt)])
+  );
 }

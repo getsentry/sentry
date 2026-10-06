@@ -33,20 +33,24 @@ class StatusDetailsValidator(serializers.Serializer[StatusDetailsResult]):
         help_text="The commit data that the issue should use for resolution.", required=False
     )
     ignoreDuration = serializers.IntegerField(
-        help_text="Ignore the issue until for this many minutes."
+        help_text="Ignore the issue until for this many minutes.", min_value=0
     )
     ignoreCount = serializers.IntegerField(
-        help_text="Ignore the issue until it has occurred this many times in `ignoreWindow` minutes."
+        help_text="Ignore the issue until it has occurred this many times in `ignoreWindow` minutes.",
+        min_value=0,
     )
     ignoreWindow = serializers.IntegerField(
         help_text="Ignore the issue until it has occurred `ignoreCount` times in this many minutes. (Max: 1 week)",
+        min_value=0,
         max_value=7 * 24 * 60,
     )
     ignoreUserCount = serializers.IntegerField(
-        help_text="Ignore the issue until it has affected this many users in `ignoreUserWindow` minutes."
+        help_text="Ignore the issue until it has affected this many users in `ignoreUserWindow` minutes.",
+        min_value=0,
     )
     ignoreUserWindow = serializers.IntegerField(
         help_text="Ignore the issue until it has affected `ignoreUserCount` users in this many minutes. (Max: 1 week)",
+        min_value=0,
         max_value=7 * 24 * 60,
     )
 

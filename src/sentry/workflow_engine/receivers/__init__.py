@@ -5,6 +5,8 @@ from .data_source import *  # NOQA
 from .data_source_detector import *  # NOQA
 from .detector import *  # NOQA
 from .detector_workflow import *  # NOQA
+from .organization_detectors import *  # noqa: F401,F403
+from .organization_workflows import *  # noqa: F401,F403
 from .project_detectors import *  # noqa: F401,F403
 from .project_workflows import *  # noqa: F401,F403
 from .workflow import *  # NOQA

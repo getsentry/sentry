@@ -6,11 +6,12 @@ import {webcrypto} from 'node:crypto';
 import {TextDecoder, TextEncoder} from 'node:util';
 
 import {type ReactElement} from 'react';
-import {configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
+import {act, configure as configureRtl} from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import {MotionGlobalConfig} from 'framer-motion';
 import {enableFetchMocks} from 'jest-fetch-mock';
 import {ConfigFixture} from 'sentry-fixture/config';
 
+import {MockResizeObserver, resetResizeObservers} from 'sentry-test/resizeObserver';
 import {resetMockDate} from 'sentry-test/utils';
 
 // eslint-disable-next-line jest/no-mocks-import
@@ -43,11 +44,17 @@ SVGElement.prototype.getTotalLength ??= () => 1;
 MotionGlobalConfig.skipAnimations = true;
 
 /**
- * React Testing Library configuration to override the default test id attribute
+ * React Testing Library configuration
  *
- * See: https://testing-library.com/docs/queries/bytestid/#overriding-data-testid
+ * - Override the default test id attribute.
+ *   See: https://testing-library.com/docs/queries/bytestid/#overriding-data-testid
+ * - Raise the `findBy*` / `waitFor` timeout from the 1000ms default. The first
+ *   render in a file routinely takes 600-800ms on an idle machine, which leaves
+ *   too little headroom on contended CI runners and causes intermittent
+ *   "Unable to find an element" failures. Passing tests are not slowed down.
+ *   See: https://testing-library.com/docs/dom-testing-library/api-configuration/#asyncutiltimeout
  */
-configureRtl({testIdAttribute: 'data-test-id'});
+configureRtl({testIdAttribute: 'data-test-id', asyncUtilTimeout: 2000});
 
 /**
  * Mock (current) date to always be National Pasta Day
@@ -62,12 +69,43 @@ resetMockDate();
 /**
  * Mocks
  */
+// jsdom does not lay out elements. Skip Popper's geometry work and the React
+// updates it schedules; overlay interactions still use the real component code.
+// Positioning tests can opt back in with jest.unmock('react-popper').
+jest.mock('react-popper', () => {
+  const update = () => Promise.resolve({});
+  const forceUpdate = () => {};
+  const usePopper: typeof import('react-popper').usePopper = (
+    _reference,
+    _popper,
+    options = {}
+  ) => ({
+    styles: {
+      popper: {position: options.strategy ?? 'absolute', left: 0, top: 0},
+      arrow: {position: 'absolute'},
+    },
+    attributes: {},
+    state: null,
+    update,
+    forceUpdate,
+  });
+  return {...jest.requireActual('react-popper'), usePopper};
+});
+
 jest.mock('lodash/debounce', () =>
   jest.fn(fn => {
     fn.cancel = jest.fn();
     return fn;
   })
 );
+// Keep callback and value debounces synchronous by default in tests. Suites that
+// assert scheduling behavior can load the real Pacer implementations explicitly.
+jest.mock('@tanstack/react-pacer', () => ({
+  ...jest.requireActual('@tanstack/react-pacer'),
+  useAsyncDebouncedCallback: <TFn>(fn: TFn) => fn,
+  useDebouncedCallback: <TFn>(fn: TFn) => fn,
+  useDebouncedValue: <T>(value: T) => [value, {state: {isPending: false}}] as const,
+}));
 jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
 jest
@@ -151,6 +189,22 @@ jest.mock('@stripe/react-stripe-js', () => {
           paymentIntent: {id: 'test-payment'},
         })
       ),
+      // Used to run a 3D Secure challenge on an intent created with
+      // confirmation_method=manual, which the server then confirms.
+      handleCardAction: jest.fn((clientSecret: string) => {
+        if (clientSecret === 'ERROR') {
+          return Promise.resolve({error: {message: 'authentication failed'}});
+        }
+        // Stripe rejects outright on some failures rather than resolving with
+        // an error, and callers have to survive both.
+        if (clientSecret === 'REJECT') {
+          return Promise.reject(new Error('authentication failed'));
+        }
+        return Promise.resolve({
+          error: undefined,
+          paymentIntent: {id: 'test-payment'},
+        });
+      }),
       confirmCardSetup: jest.fn((secretKey: string) => {
         if (secretKey === 'ERROR') {
           return Promise.resolve({error: {message: 'card invalid'}});
@@ -205,6 +259,12 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
 
 // Close any open modals before each test
 beforeEach(closeModal);
+afterEach(() => {
+  const {toast} =
+    jest.requireActual<typeof import('@sentry/scraps/toast')>('@sentry/scraps/toast');
+  act(() => void toast.dismiss());
+  resetResizeObservers();
+});
 
 jest.mock('echarts-for-react/lib/core', function echartsMockFactory() {
   // We need to do this because `jest.mock` gets hoisted before imports and `React` is not
@@ -306,7 +366,7 @@ declare global {
 }
 
 // needed by cbor-web for webauthn
-window.TextEncoder = TextEncoder as typeof window.TextEncoder;
+window.TextEncoder = TextEncoder;
 window.TextDecoder = TextDecoder as typeof window.TextDecoder;
 
 // This is so we can use async/await in tests instead of wrapping with `setTimeout`.
@@ -318,31 +378,11 @@ window.scrollTo = jest.fn();
 
 window.ra = {event: jest.fn()};
 
-// The JSDOM implementation is too slow
-// Especially for dropdowns that try to position themselves
-// perf issue - https://github.com/jsdom/jsdom/issues/3234
+// The full jsdom CSS cascade is too slow, especially for dropdown positioning.
+// Tests only need inline styles here, so reuse the element's declaration directly.
+// See https://github.com/jsdom/jsdom/issues/3234.
 Object.defineProperty(window, 'getComputedStyle', {
-  value: (el: HTMLElement) => {
-    /**
-     * This is based on the jsdom implementation of getComputedStyle
-     * https://github.com/jsdom/jsdom/blob/9dae17bf0ad09042cfccd82e6a9d06d3a615d9f4/lib/jsdom/browser/Window.js#L779-L820
-     *
-     * It is missing global style parsing and will only return styles applied directly to an element.
-     * Will not return styles that are global or from emotion
-     */
-    const declaration = new CSSStyleDeclaration();
-    const {style} = el;
-
-    Array.prototype.forEach.call(style, (property: string) => {
-      declaration.setProperty(
-        property,
-        style.getPropertyValue(property),
-        style.getPropertyPriority(property)
-      );
-    });
-
-    return declaration;
-  },
+  value: (element: HTMLElement) => element.style,
   configurable: true,
   writable: true,
 });
@@ -373,11 +413,9 @@ window.IntersectionObserver = class IntersectionObserver {
   disconnect() {}
 };
 
-window.ResizeObserver = class ResizeObserver {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
-};
+HTMLElement.prototype.setPointerCapture ??= jest.fn();
+
+window.ResizeObserver = MockResizeObserver;
 
 // Mock the crypto.subtle API for Gravatar
 Object.defineProperty(global.self, 'crypto', {
@@ -410,7 +448,6 @@ if (globalThis.setImmediate === undefined) {
  */
 const FLAKY_RERUN_COUNT = 50;
 
-/* eslint-disable jest/valid-title */
 it.isKnownFlake = function isKnownFlake(
   name: string,
   fn: jest.ProvidesCallback,
@@ -427,4 +464,3 @@ it.isKnownFlake = function isKnownFlake(
     }
   });
 };
-/* eslint-enable jest/valid-title */

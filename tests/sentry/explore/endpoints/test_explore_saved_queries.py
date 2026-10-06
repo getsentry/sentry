@@ -1,6 +1,7 @@
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
+from sentry.explore import utils
 from sentry.explore.endpoints.explore_saved_queries import (
     PREBUILT_SAVED_QUERIES,
     sync_prebuilt_queries,
@@ -12,6 +13,7 @@ from sentry.explore.models import (
     ExploreSavedQueryLastVisited,
     ExploreSavedQueryStarred,
 )
+from sentry.explore.types import SavedQueryRef, SavedQueryType
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -237,6 +239,29 @@ class ExploreSavedQueriesTest(APITestCase):
             else:
                 assert values[0] == expected[0]
                 assert values[1] == expected[1]
+
+    def test_get_sortby_recently_viewed_stable_order(self) -> None:
+        query = {"range": "24h", "query": [{"fields": ["span.op"], "mode": "samples"}]}
+        same_date = before_now(minutes=1)
+        created = [
+            ExploreSavedQuery.objects.create(
+                organization=self.org,
+                created_by_id=self.user.id,
+                name=f"Unvisited {i}",
+                query=query,
+                date_added=same_date,
+                date_updated=same_date,
+            )
+            for i in range(3)
+        ]
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, data={"sortBy": "recentlyViewed"})
+
+        assert response.status_code == 200, response.content
+        expected = [q.name for q in sorted(created, key=lambda q: q.id, reverse=True)]
+        returned = [row["name"] for row in response.data if row["name"].startswith("Unvisited ")]
+        assert returned == expected
 
     def test_get_sortby_myqueries(self) -> None:
         uhoh_user = self.create_user(username="uhoh")
@@ -473,7 +498,7 @@ class ExploreSavedQueriesTest(APITestCase):
 
     def test_sync_prebuilt_starred_alphabetical_for_new_user(self) -> None:
         sync_prebuilt_queries(self.org)
-        sync_prebuilt_queries_starred(self.org, self.user.id)
+        sync_prebuilt_queries_starred(self.org, self.user)
 
         starred = list(
             ExploreSavedQueryStarred.objects.filter(
@@ -496,7 +521,7 @@ class ExploreSavedQueriesTest(APITestCase):
     ) -> None:
         # Seed all prebuilts as if the user had synced previously.
         sync_prebuilt_queries(self.org)
-        sync_prebuilt_queries_starred(self.org, self.user.id)
+        sync_prebuilt_queries_starred(self.org, self.user)
 
         # Simulate a "new prebuilt added later" by removing the starred record for
         # one prebuilt that lives alphabetically in the middle of the list, then
@@ -521,7 +546,7 @@ class ExploreSavedQueriesTest(APITestCase):
             row.position = idx
             row.save()
 
-        sync_prebuilt_queries_starred(self.org, self.user.id)
+        sync_prebuilt_queries_starred(self.org, self.user)
 
         starred = list(
             ExploreSavedQueryStarred.objects.filter(
@@ -539,7 +564,7 @@ class ExploreSavedQueriesTest(APITestCase):
 
     def test_sync_prebuilt_starred_preserves_user_custom_order(self) -> None:
         sync_prebuilt_queries(self.org)
-        sync_prebuilt_queries_starred(self.org, self.user.id)
+        sync_prebuilt_queries_starred(self.org, self.user)
 
         original_ids = list(
             ExploreSavedQueryStarred.objects.filter(organization=self.org, user_id=self.user.id)
@@ -547,11 +572,13 @@ class ExploreSavedQueriesTest(APITestCase):
             .values_list("explore_saved_query_id", flat=True)
         )
         reversed_ids = list(reversed(original_ids))
-        ExploreSavedQueryStarred.objects.reorder_starred_queries(
-            self.org, self.user.id, reversed_ids
+        utils.reorder_starred_queries(
+            self.org,
+            self.user.id,
+            [SavedQueryRef(SavedQueryType.EXPLORE, query_id) for query_id in reversed_ids],
         )
 
-        sync_prebuilt_queries_starred(self.org, self.user.id)
+        sync_prebuilt_queries_starred(self.org, self.user)
 
         after_ids = list(
             ExploreSavedQueryStarred.objects.filter(organization=self.org, user_id=self.user.id)

@@ -2,7 +2,6 @@ import type {StripeConstructor} from '@stripe/stripe-js';
 
 import type {DATA_CATEGORY_INFO} from 'sentry/constants';
 import type {DataCategory, DataCategoryInfo} from 'sentry/types/core';
-import type {User} from 'sentry/types/user';
 
 declare global {
   interface Window {
@@ -34,7 +33,8 @@ declare global {
 
   namespace React {
     interface DOMAttributes<T> {
-      'data-test-id'?: string;
+      // Keep T referenced because declaration merging requires this to exactly match React's generic.
+      'data-test-id'?: string | (T & never);
     }
   }
 }
@@ -70,7 +70,6 @@ export enum PlanName {
   BUSINESS_BUNDLE = 'Business Bundle',
   TEAM_SPONSORED = 'Sponsored Team',
   BUSINESS_SPONSORED = 'Sponsored Business',
-  ENTERPRISE_TEAM = 'Enterprise (Team)',
   ENTERPRISE_BUSINESS = 'Enterprise (Business)',
 }
 
@@ -159,8 +158,6 @@ export type Plan = {
    */
   categories: DataCategory[];
   dashboardLimit: number;
-  features: string[];
-
   hasOnDemandModes: boolean;
   id: string;
   /**
@@ -179,7 +176,14 @@ export type Plan = {
   trialPlan: string | null;
   userSelectable: boolean;
   categoryDisplayNames?: Partial<
-    Record<DataCategory, {plural: string; singular: string}>
+    Record<
+      DataCategory | string,
+      {
+        plural: string;
+        singular: string;
+        unitType?: 'microCents';
+      }
+    >
   >;
 };
 
@@ -381,6 +385,8 @@ export type Subscription = {
   // Refetch usage data if Subscription is updated
   isDeleted?: boolean;
 
+  /** Admin-only marker; unavailable until the backend supports it. */
+  isTest?: boolean;
   isTrialStarted?: boolean;
   msaUpdatedForDataConsent?: boolean;
   onDemandBudgets?: SubscriptionOnDemandBudgets;
@@ -402,49 +408,6 @@ export type Subscription = {
     eventsPrev30d: number;
   };
   stripeCustomerID?: string;
-};
-
-type DiscountInfo = {
-  amount: number;
-  billingInterval: 'monthly' | 'annual';
-  billingPeriods: number;
-  // TODO: better typing
-  creditCategory: InvoiceItemType | null;
-  disclaimerText: string;
-  discountType: 'percentPoints' | 'events';
-  durationText: string;
-  maxCentsPerPeriod: number;
-  modalDisclaimerText: string;
-  planRequirement: 'business' | 'paid' | null;
-  reminderText: string;
-};
-
-export type Promotion = {
-  autoOptIn: boolean;
-  discountInfo: DiscountInfo;
-  endDate: string;
-  name: string;
-  promptActivityTrigger: string | null;
-  showDiscountInfo: boolean;
-  slug: string;
-  startDate: string;
-  timeLimit: string;
-};
-
-export type PromotionClaimed = {
-  dateClaimed: string;
-  dateCompleted: string;
-  dateExpired: string;
-  freeEventCreditDaysLeft: number;
-  isLastCycleForFreeEvents: boolean;
-  promotion: Promotion;
-  claimant?: User;
-};
-
-export type PromotionData = {
-  activePromotions: PromotionClaimed[];
-  availablePromotions: Promotion[];
-  completedPromotions: PromotionClaimed[];
 };
 
 export type Feature = {
@@ -476,10 +439,6 @@ export type BillingStat = {
   ts: string;
   // TODO(chart-cleanup): Used by v1 only
   isProjected?: boolean;
-  /**
-   * Not present when user does not have the correct role
-   */
-  onDemandCostRunningTotal?: number;
 };
 export type BillingStats = BillingStat[];
 
@@ -563,7 +522,8 @@ export type Invoice = InvoiceBase & {
     | {
         id: string;
         isDeleted: boolean;
-        slug: string;
+        // Null when the organization row is gone and nothing denormalized its slug.
+        slug: string | null;
         name?: string;
       };
   defaultTaxName: string | null;
@@ -576,7 +536,6 @@ export type Invoice = InvoiceBase & {
     address: string[];
     name: string;
   };
-  stripeInvoiceID: string | null;
 };
 
 type BaseInvoiceItem = {
@@ -628,7 +587,9 @@ type CamelToSnake<
  * Example: DATA_CATEGORY_INFO.MONITOR_SEAT (plural: "monitorSeats") -> "ondemand_monitor_seats"
  */
 type OnDemandInvoiceItemType = {
-  [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
+  [
+    K in keyof typeof DATA_CATEGORY_INFO
+  ]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
     ? `ondemand_${CamelToSnake<(typeof DATA_CATEGORY_INFO)[K]['plural']>}`
     : never;
 }[keyof typeof DATA_CATEGORY_INFO];
@@ -642,7 +603,9 @@ type OnDemandInvoiceItemType = {
  * Example: DATA_CATEGORY_INFO.MONITOR_SEAT (plural: "monitorSeats") -> "reserved_monitor_seats"
  */
 type ReservedInvoiceItemType = {
-  [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
+  [
+    K in keyof typeof DATA_CATEGORY_INFO
+  ]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
     ? `reserved_${CamelToSnake<(typeof DATA_CATEGORY_INFO)[K]['plural']>}`
     : never;
 }[keyof typeof DATA_CATEGORY_INFO];
@@ -703,6 +666,11 @@ type SubscriptionInvoiceItemType = 'subscription';
 type BalanceChangeInvoiceItemType = 'balance_change';
 
 /**
+ * An adjustment that neither the plan nor the usage of a period produces.
+ */
+type OneTimeAdjustmentInvoiceItemType = 'one_time_adjustment';
+
+/**
  * Unknown invoice item type (empty string).
  */
 type UnknownInvoiceItemType = '';
@@ -715,6 +683,7 @@ type StaticInvoiceItemType =
   | UnknownInvoiceItemType
   | SubscriptionInvoiceItemType
   | BalanceChangeInvoiceItemType
+  | OneTimeAdjustmentInvoiceItemType
   | CreditInvoiceItemType
   | FeeInvoiceItemType
   | SeerInvoiceItemType
@@ -760,6 +729,7 @@ export type BillingMetricHistory = {
   softCapType: 'ON_DEMAND' | 'TRUE_FORWARD' | null;
   usage: number;
   usageExceeded: boolean;
+  isDisabled?: boolean;
   retention?: {downsampled: number | null; standard: number | null};
 };
 
@@ -815,7 +785,9 @@ export type PreviewInvoiceItem = BaseInvoiceItem & {
  * Example: DATA_CATEGORY_INFO.LOG_BYTE (singular: "logByte") -> "log_byte"
  */
 type DynamicCreditType = {
-  [K in keyof typeof DATA_CATEGORY_INFO]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
+  [
+    K in keyof typeof DATA_CATEGORY_INFO
+  ]: (typeof DATA_CATEGORY_INFO)[K]['isBilledCategory'] extends true
     ? CamelToSnake<(typeof DATA_CATEGORY_INFO)[K]['singular']>
     : never;
 }[keyof typeof DATA_CATEGORY_INFO];
@@ -882,6 +854,8 @@ export type PaymentCreateResponse = {
   clientSecret: string;
   currency: string;
   returnUrl: string;
+  paymentIntentId?: string;
+  requiresAction?: boolean;
 };
 // Response from /organizations/:orgSlug/payments/setup/
 export type PaymentSetupCreateResponse = {
@@ -950,15 +924,6 @@ export type ReservedBudget = {
 export type ReservedBudgetMetricHistory = {
   reservedCpe: number; // in cents
   reservedSpend: number;
-};
-
-export type ReservedBudgetForCategory = {
-  apiName: string;
-  freeBudget: number;
-  prepaidBudget: number;
-  reservedCpe: number; // in cents
-  reservedSpend: number;
-  totalReservedBudget: number;
 };
 
 type PolicyConsent = {

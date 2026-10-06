@@ -21,19 +21,20 @@ import type {
 } from 'sentry/types/integrations';
 import type {Member, Team} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {
-  getExternalActorEndpointDetails,
-  isExternalActorMapping,
-} from 'sentry/utils/integrationUtil';
+import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type SentrySelection = {id: string; name: string};
 
 type BaseProps = {
-  getBaseFormEndpoint: (mapping?: ExternalActorMappingOrSuggestion) => string;
+  getBaseFormEndpoint: (
+    mapping?: ExternalActorMappingOrSuggestion
+  ) => ReturnType<typeof getApiUrl>;
   integration: Integration;
   type: 'user' | 'team';
   defaultOptions?: Array<{label: React.ReactNode; value: SentrySelection}>;
@@ -181,14 +182,11 @@ function InlineMappingForm({
         initialValue={initialValue}
         mutationOptions={{
           mutationFn: ({sentryId}: {sentryId: SentrySelection}) => {
+            const isValidMapping = Object.hasOwn(mapping || {}, 'id');
             const fullData = buildMutationData(mapping, integration, type, sentryId);
-            const {apiEndpoint, apiMethod} = getExternalActorEndpointDetails(
-              getBaseFormEndpoint(fullData as ExternalActorMappingOrSuggestion),
-              fullData as ExternalActorMappingOrSuggestion
-            );
             return fetchMutation<ExternalActorMapping>({
-              url: apiEndpoint,
-              method: apiMethod,
+              url: getBaseFormEndpoint(fullData as ExternalActorMappingOrSuggestion),
+              method: isValidMapping ? 'PUT' : 'POST',
               data: fullData,
             });
           },
@@ -205,6 +203,8 @@ function InlineMappingForm({
               onChange={field.handleChange}
               isValueEqual={(a, b) => a.id === b.id}
               placeholder={t('Select Sentry Team')}
+              // Portal out of SimpleTable cells so later rows don't cover the menu.
+              menuPortalTarget={document.body}
               queryOptions={makeTeamSelectQueryOptions(orgSlug, defaultOptions, mapping)}
             />
           ) : (
@@ -213,6 +213,7 @@ function InlineMappingForm({
               onChange={field.handleChange}
               isValueEqual={(a, b) => a.id === b.id}
               placeholder={t('Select Sentry User')}
+              menuPortalTarget={document.body}
               queryOptions={makeMemberSelectQueryOptions(
                 orgSlug,
                 defaultOptions,
@@ -260,6 +261,7 @@ function ModalMappingForm({
       externalName: string;
       sentryId: SentrySelection;
     }) => {
+      const isValidMapping = mapping && Object.hasOwn(mapping || {}, 'id');
       const fullData = buildMutationData(
         mapping,
         integration,
@@ -267,13 +269,9 @@ function ModalMappingForm({
         sentryId,
         externalName
       );
-      const {apiEndpoint, apiMethod} = getExternalActorEndpointDetails(
-        getBaseFormEndpoint(fullData as ExternalActorMappingOrSuggestion),
-        fullData as ExternalActorMappingOrSuggestion
-      );
       return fetchMutation<ExternalActorMapping>({
-        url: apiEndpoint,
-        method: apiMethod,
+        url: getBaseFormEndpoint(fullData as ExternalActorMappingOrSuggestion),
+        method: isValidMapping ? 'PUT' : 'POST',
         data: fullData,
       });
     },
@@ -296,7 +294,7 @@ function ModalMappingForm({
     onSubmit: ({value, formApi}) =>
       mutation.mutateAsync(value).catch(error => {
         if (error instanceof RequestError) {
-          setFieldErrors(formApi, error);
+          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
         }
       }),
   });

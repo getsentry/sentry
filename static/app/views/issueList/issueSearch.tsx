@@ -21,7 +21,7 @@ function IssueSearchBar({query, onSearch, className}: IssueSearchProps) {
   const {displayAskSeer} = useSearchQueryBuilderAI();
 
   if (displayAskSeer) {
-    return <IssueListSeerComboBox />;
+    return <IssueListSeerComboBox className={className} />;
   }
 
   return (
@@ -54,7 +54,6 @@ export function IssueSearch({query, onSearch, className}: IssueSearchProps) {
       getTagValues={getTagValues}
       searchSource="main_search"
       enableAISearch={hasTranslateEndpoint}
-      aiSearchBadgeType="beta"
       onSearch={onSearch}
       recentSearches={SavedSearchType.ISSUE}
       disallowLogicalOperators

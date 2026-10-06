@@ -8,9 +8,11 @@ const excludedModuleNames = [ModuleName.OTHER, ModuleName.SESSIONS] as const;
 
 type ExcludedModuleNames = (typeof excludedModuleNames)[number];
 
+type ModuleProjectFlag = keyof Project;
+
 const modulePropertyMap: Record<
   Exclude<ModuleName, ExcludedModuleNames>,
-  keyof Project
+  ModuleProjectFlag | readonly ModuleProjectFlag[]
 > = {
   [ModuleName.HTTP]: 'hasInsightsHttp',
   [ModuleName.DB]: 'hasInsightsDb',
@@ -27,16 +29,26 @@ const modulePropertyMap: Record<
   // Renamed resource to assets
   [ModuleName.RESOURCE]: 'hasInsightsAssets',
   [ModuleName.SCREEN_RENDERING]: 'hasInsightsScreenLoad', // Screen rendering and screen loads share similar spans
-  [ModuleName.MOBILE_VITALS]: 'hasInsightsScreenLoad',
+  [ModuleName.MOBILE_VITALS]: ['hasInsightsScreenLoad', 'hasInsightsAppStart'],
 };
+
+function projectHasModuleData(
+  project: Project,
+  module: Exclude<ModuleName, ExcludedModuleNames>
+): boolean {
+  const property = modulePropertyMap[module];
+  if (typeof property === 'string') {
+    return project[property] === true;
+  }
+  return property.some(flag => project[flag] === true);
+}
 
 /**
  * Returns whether the module and current project selection has received a first insight span
  * @param module The name of the module that will be checked for a first span
- * @param projects The projects to check for the first span. If not provided, the selected projects will be used
  * @returns true if the module has a first span in the selected projects, false otherwise
  */
-export function useHasFirstSpan(module: ModuleName, projects?: Project[]): boolean {
+export function useHasFirstSpan(module: ModuleName): boolean {
   const {projects: allProjects} = useProjects();
   const pageFilters = usePageFilters();
 
@@ -44,10 +56,7 @@ export function useHasFirstSpan(module: ModuleName, projects?: Project[]): boole
     return false;
   }
 
-  if (projects) {
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-    return projects.some(p => p[modulePropertyMap[module]] === true);
-  }
+  const checkedModule = module as Exclude<ModuleName, ExcludedModuleNames>;
 
   let selectedProjects: Project[] = [];
 
@@ -62,6 +71,5 @@ export function useHasFirstSpan(module: ModuleName, projects?: Project[]): boole
     );
   }
 
-  // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  return selectedProjects.some(p => p[modulePropertyMap[module]] === true);
+  return selectedProjects.some(p => projectHasModuleData(p, checkedModule));
 }

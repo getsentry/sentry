@@ -3,11 +3,11 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from datetime import datetime, timezone
-from functools import cache
 
 from arroyo import Partition
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka import KafkaPayload
+from cachetools.func import ttl_cache
 from confluent_kafka.admin import (  # type: ignore[attr-defined]
     AdminClient,
     PartitionMetadata,
@@ -18,12 +18,13 @@ from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import ClockPulse, Ing
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.monitors.clock_dispatch import try_monitor_clock_tick
-from sentry.options.rollout import in_random_rollout
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import crons_tasks
-from sentry.taskworker.producer import get_task_producer
-from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
+from sentry.utils.arroyo_producer import (
+    get_arroyo_producer,
+    get_future_tracking_producer,
+)
 from sentry.utils.kafka_config import get_kafka_admin_cluster_options, get_topic_definition
 
 logger = logging.getLogger("sentry")
@@ -39,14 +40,13 @@ def _get_producer():
     )
 
 
-_checkin_producer = SingletonProducer(_get_producer)
-_checkin_task_producer = get_task_producer(
+_checkin_producer = get_future_tracking_producer(
     producer_name="sentry.monitors.tasks.clock_pulse",
     producer_factory=_get_producer,
 )
 
 
-@cache
+@ttl_cache(ttl=5 * 60)
 def _get_partitions() -> Mapping[int, PartitionMetadata]:
     topic_defn = get_topic_definition(Topic.INGEST_MONITORS)
     topic = topic_defn["real_topic_name"]
@@ -74,14 +74,17 @@ def clock_pulse(current_datetime=None):
     if current_datetime is None:
         current_datetime = datetime.now(tz=timezone.utc)
 
+    partitions = _get_partitions()
+
     if settings.SENTRY_EVENTSTREAM != "sentry.eventstream.kafka.KafkaEventStream":
         # Directly trigger try_monitor_tasks_trigger in dev
-        for partition in _get_partitions().values():
+        for partition in partitions.values():
             try_monitor_clock_tick(current_datetime, partition.id)
         return
 
     message: ClockPulse = {
         "message_type": "clock_pulse",
+        "partition_ids": [partition.id for partition in partitions.values()],
     }
 
     payload = KafkaPayload(None, MONITOR_CODEC.encode(message), [])
@@ -90,9 +93,6 @@ def clock_pulse(current_datetime=None):
     # topic. This is a requirement to ensure that none of the partitions stall,
     # since the global clock is tied to the slowest partition.
     topic = ArroyoTopic(get_topic_definition(Topic.INGEST_MONITORS)["real_topic_name"])
-    for partition in _get_partitions().values():
+    for partition in partitions.values():
         dest = Partition(topic, partition.id)
-        if in_random_rollout("tasks.producer.clock-pulse.rollout"):
-            _checkin_task_producer.produce(dest, payload)
-        else:
-            _checkin_producer.produce(dest, payload)
+        _checkin_producer.produce(dest, payload)

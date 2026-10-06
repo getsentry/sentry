@@ -2,8 +2,6 @@ import {useCallback, useMemo, useRef} from 'react';
 import {useMatches} from 'react-router-dom';
 import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
-import sortBy from 'lodash/sortBy';
-import xor from 'lodash/xor';
 
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
 import type {MultipleSelectProps} from '@sentry/scraps/compactSelect';
@@ -12,17 +10,16 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {updateEnvironments} from 'sentry/components/pageFilters/actions';
-import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {
   EnvironmentPageFilterTrigger,
   type EnvironmentPageFilterTriggerProps,
 } from 'sentry/components/pageFilters/environment/environmentPageFilterTrigger';
+import {getAvailableEnvironments} from 'sentry/components/pageFilters/environment/getAvailableEnvironments';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -80,44 +77,38 @@ export function EnvironmentPageFilter({
     isReady: pageFilterIsReady,
   } = usePageFilters();
 
-  const environments = useMemo<string[]>(() => {
-    const isSuperuser = isActiveSuperuser();
+  const projectSelection = useMemo(
+    () => new Set(projectPageFilterValue),
+    [projectPageFilterValue]
+  );
+  const selectedEnvironments = useMemo(
+    () => new Set(envPageFilterValue),
+    [envPageFilterValue]
+  );
 
-    const unsortedEnvironments = projects.flatMap(project => {
-      const projectId = parseInt(project.id, 10);
-      // Include environments from:
-      // - all projects if the user is a superuser
-      // - the requested projects
-      // - all member projects if 'my projects' (empty list) is selected.
-      // - all projects if -1 is the only selected project.
-      if (
-        (projectPageFilterValue.includes(ALL_ACCESS_PROJECTS) && project.hasAccess) ||
-        (projectPageFilterValue.length === 0 && (project.isMember || isSuperuser)) ||
-        projectPageFilterValue.includes(projectId)
-      ) {
-        return project.environments;
-      }
+  const environmentSet = useMemo(
+    () => getAvailableEnvironments(projects, projectSelection),
+    [projects, projectSelection]
+  );
 
-      return [];
-    });
-
-    const uniqueUnsortedEnvironments = Array.from(new Set(unsortedEnvironments));
-
+  const environments = useMemo(() => {
     // Sort with the last selected environments at the top
-    return sortBy(uniqueUnsortedEnvironments, env => [
-      !envPageFilterValue.includes(env),
-      env,
-    ]);
-  }, [projects, projectPageFilterValue, envPageFilterValue]);
+    return [...environmentSet].toSorted((a, b) => {
+      const selectionOrder =
+        Number(selectedEnvironments.has(b)) - Number(selectedEnvironments.has(a));
+      return selectionOrder || (a < b ? -1 : a > b ? 1 : 0);
+    });
+  }, [environmentSet, selectedEnvironments]);
 
   /**
    * Validated values that only includes the currently available environments
    * (availability may change based on which projects are selected.)
    */
-  const value = useMemo(
-    () => envPageFilterValue.filter(env => environments.includes(env)),
-    [envPageFilterValue, environments]
+  const valueSet = useMemo(
+    () => selectedEnvironments.intersection(environmentSet),
+    [selectedEnvironments, environmentSet]
   );
+  const value = useMemo(() => [...valueSet], [valueSet]);
 
   const handleChange = useCallback(
     async (newValue: string[]) => {
@@ -186,6 +177,7 @@ export function EnvironmentPageFilter({
           />
         ),
       })),
+    // oxlint-disable-next-line react/memo-dependencies
     [environments]
   );
 
@@ -218,11 +210,13 @@ export function EnvironmentPageFilter({
   // Wire up toggleOptionRef after stagedSelect is created to break the circular
   // dependency between options (which need toggleOption) and useStagedCompactSelect
   // (which needs options).
+  // oxlint-disable-next-line react/refs
   toggleOptionRef.current = stagedSelect.toggleOption;
 
   const {dispatch} = stagedSelect;
 
-  const hasStagedChanges = xor(stagedSelect.value, value).length > 0;
+  const hasStagedChanges =
+    new Set(stagedSelect.value).symmetricDifference(valueSet).size > 0;
   const shouldShowReset = stagedSelect.value.length > 0;
 
   const handleReset = () => {

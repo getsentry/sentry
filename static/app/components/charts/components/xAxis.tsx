@@ -19,7 +19,7 @@ type HelperProps =
 export type XAxisProps = BaseChartProps['xAxis'] &
   Pick<BaseChartProps, HelperProps> & {theme: Theme; addSecondsToTimeFormat?: boolean};
 
-export function XAxis({
+export function createXAxisOptions({
   isGroupedByDate,
   useShortDate,
   useMultilineDate,

@@ -1,5 +1,5 @@
-import {Fragment, useCallback, useState} from 'react';
-import styled from '@emotion/styled';
+import {Fragment, useCallback} from 'react';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -11,19 +11,18 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocationQuery} from 'sentry/utils/url/useLocationQuery';
 import {useDeleteDetectorsMutation} from 'sentry/views/detectors/hooks/useDeleteDetectorsMutation';
 import {useUpdateDetectorsMutation} from 'sentry/views/detectors/hooks/useEditDetectorsMutation';
 
 interface DetectorsTableActionsProps {
-  allResultsVisible: boolean;
+  allInQuerySelected: boolean;
   canEdit: boolean;
   detectorLimitReached: boolean;
   hasSystemCreatedDetectors: boolean;
   pageSelected: boolean;
   queryCount: string;
   selected: Set<string>;
+  setAllInQuerySelected: (allInQuerySelected: boolean) => void;
   showDisable: boolean;
   showEnable: boolean;
   togglePageSelected: (pageSelected: boolean) => void;
@@ -34,24 +33,20 @@ export function DetectorsTableActions({
   pageSelected,
   togglePageSelected,
   queryCount,
-  allResultsVisible,
+  allInQuerySelected,
+  setAllInQuerySelected,
   showEnable,
   showDisable,
   canEdit,
   hasSystemCreatedDetectors,
   detectorLimitReached,
 }: DetectorsTableActionsProps) {
-  const [allInQuerySelected, setAllInQuerySelected] = useState(false);
   const anySelected = selected.size > 0;
 
   const canDelete = canEdit && !hasSystemCreatedDetectors;
 
   const {selection} = usePageFilters();
-  const {query} = useLocationQuery({
-    fields: {
-      query: decodeScalar,
-    },
-  });
+  const [query] = useQueryState('query', parseAsString.withDefault(''));
 
   const {mutateAsync: deleteDetectors, isPending: isDeleting} =
     useDeleteDetectorsMutation();
@@ -139,9 +134,9 @@ export function DetectorsTableActions({
   };
 
   return (
-    <Fragment>
-      <SimpleTable.Header>
-        <Flex align="center" padding="0 xl" gap="md" width="100%" column="1 / -1">
+    <SimpleTable.HeaderRow>
+      <SimpleTable.HeaderCell variant="full-width" divider={false}>
+        <Flex align="center" padding="0 xl" gap="md" width="100%">
           <Checkbox
             checked={pageSelected || (anySelected ? 'indeterminate' : false)}
             onChange={s => {
@@ -201,35 +196,56 @@ export function DetectorsTableActions({
             </Button>
           </Tooltip>
         </Flex>
-      </SimpleTable.Header>
-      {pageSelected && !allResultsVisible && (
-        <FullWidthAlert variant="warning" system showIcon={false}>
-          <Flex justify="center" wrap="wrap" gap="md">
-            {allInQuerySelected ? (
-              tct('Selected all [count] monitors that match this search query.', {
-                count: queryCount,
-              })
-            ) : (
-              <Fragment>
-                {tn(
-                  '%s monitor on this page selected.',
-                  '%s monitors on this page selected.',
-                  selected.size
-                )}
-                <Button variant="link" onClick={() => setAllInQuerySelected(true)}>
-                  {tct('Select all [count] monitors that match this search query.', {
-                    count: queryCount,
-                  })}
-                </Button>
-              </Fragment>
-            )}
-          </Flex>
-        </FullWidthAlert>
-      )}
-    </Fragment>
+      </SimpleTable.HeaderCell>
+    </SimpleTable.HeaderRow>
   );
 }
 
-const FullWidthAlert = styled(Alert)`
-  grid-column: 1 / -1;
-`;
+interface DetectorsTableActionsBannerProps {
+  allInQuerySelected: boolean;
+  allResultsVisible: boolean;
+  pageSelected: boolean;
+  queryCount: string;
+  selected: Set<string>;
+  setAllInQuerySelected: (allInQuerySelected: boolean) => void;
+}
+
+export function DetectorsTableActionsBanner({
+  selected,
+  pageSelected,
+  allResultsVisible,
+  queryCount,
+  allInQuerySelected,
+  setAllInQuerySelected,
+}: DetectorsTableActionsBannerProps) {
+  if (!pageSelected || allResultsVisible) {
+    return null;
+  }
+
+  return (
+    <SimpleTable.FullWidthRow>
+      <Alert variant="warning" system showIcon={false}>
+        <Flex justify="center" wrap="wrap" gap="md">
+          {allInQuerySelected ? (
+            tct('Selected all [count] monitors that match this search query.', {
+              count: queryCount,
+            })
+          ) : (
+            <Fragment>
+              {tn(
+                '%s monitor on this page selected.',
+                '%s monitors on this page selected.',
+                selected.size
+              )}
+              <Button variant="link" onClick={() => setAllInQuerySelected(true)}>
+                {tct('Select all [count] monitors that match this search query.', {
+                  count: queryCount,
+                })}
+              </Button>
+            </Fragment>
+          )}
+        </Flex>
+      </Alert>
+    </SimpleTable.FullWidthRow>
+  );
+}

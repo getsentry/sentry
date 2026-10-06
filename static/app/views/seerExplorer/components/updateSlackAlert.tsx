@@ -1,8 +1,8 @@
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
-import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -39,7 +39,7 @@ export function UpdateSlackAlert({num_configurations}: UpdateSlackAlertProps) {
       <Alert
         variant="muted"
         trailingItems={
-          <Flex gap="sm" alignSelf="center">
+          <Flex gap="md">
             <LinkButton
               to={to}
               variant="primary"
@@ -54,19 +54,17 @@ export function UpdateSlackAlert({num_configurations}: UpdateSlackAlertProps) {
             >
               {t('Update Now')}
             </LinkButton>
-            <Button
-              icon={<IconClose />}
-              variant="transparent"
-              size="xs"
-              aria-label={t('Dismiss')}
-              onClick={() => setIsDismissed(true)}
-            />
+            <Button variant="secondary" size="xs" onClick={() => setIsDismissed(true)}>
+              {t('Dismiss')}
+            </Button>
           </Flex>
         }
       >
-        {t(
-          'Chat, ask questions, and debug with Sentry in the new Slack app. Please reinstall the Slack app to get started.'
-        )}
+        <Text>
+          {t(
+            'Chat, ask questions, and debug with Sentry in the new Slack app. Please reinstall the Slack app to get started.'
+          )}
+        </Text>
       </Alert>
     </Container>
   );

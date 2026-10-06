@@ -94,8 +94,7 @@ class HighCardinalityWidgetException(Exception):
 def schedule_on_demand_check() -> None:
     """
     # Summary
-    This task schedules work to be done to check cardinality in group-by columns in dashboard widgets,
-    offloading it from `build_project_config` in the relay task (specifically in :func:`sentry.relay.config.metric_extraction.get_metric_extraction_config`).
+    This task schedules work to check cardinality in group-by columns in dashboard widgets.
 
     Spawns a series of child tasks :func:`process_widget_specs`, and limits them using
     a stateful (cached) count + modulo to spread out the work over `total_batches` number of scheduled task runs.

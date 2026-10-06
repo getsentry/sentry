@@ -21,12 +21,11 @@ import type {Group, PriorityLevel} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
 import {indexMembersByProject} from 'sentry/utils/members/shared';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {isRetryableRequestError} from 'sentry/utils/queryClient';
+import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
-import {RELATED_ISSUES_BOOLEAN_QUERY_ERROR} from 'sentry/views/alerts/rules/metric/details/relatedIssuesNotAvailable';
 
 import {GroupListHeader} from './groupListHeader';
 
@@ -37,18 +36,18 @@ export type GroupListColumn =
   | 'priority'
   | 'progress'
   | 'assignee'
+  | 'assigneeAvatar'
   | 'lastTriggered'
   | 'firstSeen'
   | 'lastSeen';
 
-type Props = {
+export type GroupListProps = {
   /**
    * Number of placeholder rows to show during loading
    */
   numPlaceholderRows: number;
   queryParams: Record<string, number | string | string[] | undefined | null>;
   canSelectGroups?: boolean;
-  customStatsPeriod?: TimePeriodType;
   /**
    * Defaults to path '/organizations/$organizationIdOrSlug/issues/'
    */
@@ -75,13 +74,14 @@ type Props = {
   query?: string;
   queryFilterDescription?: string;
   renderEmptyMessage?: () => React.ReactNode;
-  renderErrorMessage?: (props: {detail: string}, retry: () => void) => React.ReactNode;
   // where the group list is rendered
   source?: string;
+  staleTime?: number;
   useFilteredStats?: boolean;
   useTintRow?: boolean;
   withChart?: boolean;
   withColumns?: GroupListColumn[];
+  withHeader?: boolean;
   withPagination?: boolean;
 };
 
@@ -94,17 +94,23 @@ type State = {
   memberList?: ReturnType<typeof indexMembersByProject>;
 };
 
-const DEFAULT_COLUMNS: GroupListColumn[] = ['graph', 'event', 'users', 'assignee'];
+const DEFAULT_COLUMNS: GroupListColumn[] = [
+  'firstSeen',
+  'lastSeen',
+  'graph',
+  'event',
+  'users',
+  'assignee',
+];
 
 export function GroupList({
   queryParams,
   endpoint = {path: '/organizations/$organizationIdOrSlug/issues/'},
   onFetchSuccess,
   renderEmptyMessage,
-  renderErrorMessage,
-  customStatsPeriod,
   queryFilterDescription,
   source,
+  staleTime = 0,
   query,
   numPlaceholderRows,
   withColumns = DEFAULT_COLUMNS,
@@ -113,7 +119,8 @@ export function GroupList({
   canSelectGroups = true,
   useFilteredStats = true,
   useTintRow = true,
-}: Props) {
+  withHeader = true,
+}: GroupListProps) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
@@ -170,7 +177,8 @@ export function GroupList({
     [computedQueryParams.query]
   );
 
-  // Issues API does not support AND/OR statements
+  // Issues API does not support AND/OR statements. The endpoint rejects them
+  // with a 400, so skipping the request spares a round trip we know will fail.
   const hasLogicBoolean = useMemo(
     () =>
       parsedQuery
@@ -192,20 +200,20 @@ export function GroupList({
       ? apiOptions.as<Group[]>()(endpoint.path, {
           path: {organizationIdOrSlug: organization.slug},
           query: computedQueryParams,
-          staleTime: 0,
+          staleTime,
         })
       : apiOptions.as<Group[]>()(endpoint.path, {
           path: {organizationIdOrSlug: organization.slug, version: endpoint.version},
           query: computedQueryParams,
-          staleTime: 0,
+          staleTime,
         });
   const {
     data,
     dataUpdatedAt,
+    error,
     isPending,
     isError: isQueryError,
     isSuccess: isQuerySuccess,
-    error: queryError,
     refetch,
   } = useQuery({
     ...issuesQueryOptions,
@@ -263,19 +271,6 @@ export function GroupList({
 
   const pageLinks = data?.headers.Link ?? null;
   const groups = groupsData ?? [];
-  const errorDetail = hasLogicBoolean
-    ? RELATED_ISSUES_BOOLEAN_QUERY_ERROR
-    : (() => {
-        const detail = (queryError as RequestError | undefined)?.responseJSON?.detail;
-        if (typeof detail === 'string') {
-          return detail;
-        }
-        if (detail?.message) {
-          return detail.message;
-        }
-        return (queryError as RequestError | undefined)?.message ?? null;
-      })();
-  const errorData = errorDetail ? {detail: errorDetail} : null;
   const hasError = hasLogicBoolean || isQueryError;
   const loading = !hasLogicBoolean && isPending;
 
@@ -301,20 +296,24 @@ export function GroupList({
     isQuerySuccess,
     // Sometimes data is already cached, so we need to include this in order to
     // trigger onFetchSuccess when new data is shown
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     dataUpdatedAt,
   ]);
 
-  const columns = useMemo(
-    () => [...withColumns, 'firstSeen' as const, 'lastSeen' as const],
-    [withColumns]
-  );
+  const columns = withColumns;
 
   if (hasError) {
-    if (typeof renderErrorMessage === 'function' && errorData) {
-      return renderErrorMessage(errorData, refetch);
-    }
-
-    return <LoadingError onRetry={refetch} />;
+    // A retry only helps a failure that could land differently next time. The
+    // query here is fixed, so a boolean one the endpoint never accepts and a
+    // client error it already rejected both fail the same way on every press.
+    return hasLogicBoolean ? (
+      <LoadingError message={t('Search queries with AND or OR are not supported.')} />
+    ) : (
+      <LoadingError
+        message={getRequestErrorUserMessage(error, t('There was an error loading data.'))}
+        onRetry={isRetryableRequestError(error) ? refetch : undefined}
+      />
+    );
   }
 
   if (!loading && groups.length === 0) {
@@ -340,10 +339,10 @@ export function GroupList({
   return (
     <Fragment>
       <PanelContainer>
-        <GroupListHeader withChart={!!withChart} withColumns={columns} />
+        {withHeader && <GroupListHeader withChart={!!withChart} withColumns={columns} />}
         <PanelBody>
           {loading
-            ? [...Array.from({length: numPlaceholderRows})].map((_, i) => (
+            ? Array.from({length: numPlaceholderRows}, (_, i) => (
                 <GroupPlaceholder key={i}>
                   <Placeholder height="50px" />
                 </GroupPlaceholder>
@@ -361,7 +360,6 @@ export function GroupList({
                     memberList={members}
                     useFilteredStats={useFilteredStats}
                     useTintRow={useTintRow}
-                    customStatsPeriod={customStatsPeriod}
                     statsPeriod={statsPeriod}
                     queryFilterDescription={queryFilterDescription}
                     source={source}

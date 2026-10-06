@@ -9,10 +9,11 @@ from django.db import IntegrityError, router
 
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
-from sentry.models.commitauthor import CommitAuthor
+from sentry.models.commitauthor import COMMIT_AUTHOR_EMAIL_LENGTH, CommitAuthor
 from sentry.models.commitfilechange import CommitFileChange
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInbox, GroupInboxRemoveAction, remove_group_from_inbox
@@ -74,7 +75,9 @@ def set_commits(release, commit_list):
             )
 
     fill_in_missing_release_head_commits(release, head_commit_by_repo)
-    update_group_resolutions(release, commit_author_by_commit)
+
+    with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+        update_group_resolutions(release, commit_author_by_commit)
 
 
 @metrics.wraps("set_commits_on_release")
@@ -359,7 +362,7 @@ def create_commit_authors(commit_list, release):
                 re.sub(r"[^a-zA-Z0-9\-_\.]*", "", data["author_name"]).lower() + "@localhost"
             )
 
-        author_email = truncatechars(author_email, 75)
+        author_email = truncatechars(author_email, COMMIT_AUTHOR_EMAIL_LENGTH)
         if author_email:
             # Lowercase to match CommitAuthorManager.get_or_create behavior
             author_email = author_email.lower()

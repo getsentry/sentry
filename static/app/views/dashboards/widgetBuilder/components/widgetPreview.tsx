@@ -1,7 +1,7 @@
 import {useState} from 'react';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {t} from 'sentry/locale';
+import {Placeholder} from 'sentry/components/placeholder';
 import {dedupeArray} from 'sentry/utils/dedupeArray';
 import {type Sort} from 'sentry/utils/discover/fields';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -17,7 +17,6 @@ import {
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import {getTraceMetricAggregateSource} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
@@ -25,14 +24,19 @@ import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLege
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
 import type {TabularColumn} from 'sentry/views/dashboards/widgets/common/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {FieldValueKind} from 'sentry/views/discover/table/types';
+
+export type WidgetPreviewStatus =
+  | {status: 'loading'}
+  | {message: string; status: 'invalid'}
+  | {status: 'ready'};
 
 interface WidgetPreviewProps {
   dashboard: DashboardDetails;
   dashboardFilters: DashboardFilters;
-  isQueryConditionInvalid?: boolean;
   onDataFetched?: (results: OnDataFetchedParams) => void;
+  previewStatus?: WidgetPreviewStatus;
   shouldForceDescriptionTooltip?: boolean;
+  widgetInterval?: string;
 }
 
 const MIN_TABLE_COLUMN_WIDTH_PX = 125;
@@ -40,15 +44,17 @@ const MIN_TABLE_COLUMN_WIDTH_PX = 125;
 export function WidgetPreview({
   dashboard,
   dashboardFilters,
-  isQueryConditionInvalid,
   onDataFetched,
+  previewStatus = {status: 'ready'},
   shouldForceDescriptionTooltip,
+  widgetInterval,
 }: WidgetPreviewProps) {
   const organization = useOrganization();
   const location = useLocation();
   const navigate = useNavigate();
   const pageFilters = usePageFilters();
-  const [chartInterval] = useDashboardChartInterval();
+  const [fallbackChartInterval] = useDashboardChartInterval();
+  const chartInterval = widgetInterval ?? fallbackChartInterval;
 
   const {state, dispatch} = useWidgetBuilderContext();
   const [tableWidths, setTableWidths] = useState<number[]>();
@@ -97,35 +103,21 @@ export function WidgetPreview({
     setTableWidths(widths);
   }
 
-  if (widget.widgetType === WidgetType.TRACEMETRICS) {
-    const hasBlankEquation = getTraceMetricAggregateSource(
-      state.displayType,
-      state.yAxis,
-      state.fields
-    )?.some(
-      aggregate =>
-        aggregate.kind === FieldValueKind.EQUATION && aggregate.field.trim() === ''
-    );
-    if (hasBlankEquation) {
-      return (
-        <Widget
-          Title={<Widget.WidgetTitle title={widget.title} />}
-          Visualization={
-            <Widget.WidgetError error={t('Enter an equation to preview results')} />
-          }
-          noVisualizationPadding
-        />
-      );
-    }
-  }
-
-  if (isQueryConditionInvalid) {
+  if (previewStatus.status === 'loading') {
     return (
       <Widget
         Title={<Widget.WidgetTitle title={widget.title} />}
-        Visualization={
-          <Widget.WidgetError error={t('Widget query condition is invalid.')} />
-        }
+        Visualization={<Placeholder height="100%" />}
+        noVisualizationPadding
+      />
+    );
+  }
+
+  if (previewStatus.status === 'invalid') {
+    return (
+      <Widget
+        Title={<Widget.WidgetTitle title={widget.title} />}
+        Visualization={<Widget.WidgetError error={previewStatus.message} />}
         noVisualizationPadding
       />
     );
@@ -156,10 +148,6 @@ export function WidgetPreview({
       }
       widgetLegendState={widgetLegendState}
       onDataFetched={onDataFetched}
-      // TODO: This requires the current widget ID and a helper to update the
-      // dashboard state to be added
-      onWidgetSplitDecision={() => {}}
-      // onWidgetSplitDecision={onWidgetSplitDecision}
       tableItemLimit={widget.limit ?? undefined}
       showConfidenceWarning={
         widget.widgetType === WidgetType.SPANS ||

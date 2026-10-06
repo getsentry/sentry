@@ -34,7 +34,7 @@ class OrganizationEventsStatsOurlogsMetricsEndpointTest(OrganizationEventsEndpoi
             features = {"organizations:ourlogs": True}
         features.update(self.features)
         with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
+            return self.client_get(data=data, url=self.url if url is None else url)
 
     def test_count(self) -> None:
         event_counts = [6, 0, 6, 3, 0, 3]

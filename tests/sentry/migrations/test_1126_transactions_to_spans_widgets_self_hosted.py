@@ -1,6 +1,12 @@
+import pytest
+
 from sentry.testutils.cases import SnubaTestCase, TestMigrations
 
 
+@pytest.mark.skip(
+    reason="Test fixtures build rows with the current model, which fails once a model "
+    "gains a field newer than migrate_from's schema"
+)
 class MigrateTransactionsToSpansWidgetsSelfHostedTest(TestMigrations, SnubaTestCase):
     migrate_from = "1125_transactions_to_spans_alerts_self_hosted"
     migrate_to = "1126_transactions_to_spans_widgets_self_hosted"

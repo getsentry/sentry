@@ -1,4 +1,5 @@
 import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
+import {quoteFilterKey} from 'sentry/components/searchSyntax/utils';
 import {escapeDoubleQuotes} from 'sentry/utils';
 
 const ALLOWED_WILDCARD_FIELDS = [
@@ -18,6 +19,7 @@ export enum TokenType {
   CONTAINS_FILTER = 3,
   STARTS_WITH_FILTER = 4,
   ENDS_WITH_FILTER = 5,
+  REGEX_FILTER = 6,
 }
 
 const FILTER_TOKENS = [
@@ -25,6 +27,7 @@ const FILTER_TOKENS = [
   TokenType.CONTAINS_FILTER,
   TokenType.STARTS_WITH_FILTER,
   TokenType.ENDS_WITH_FILTER,
+  TokenType.REGEX_FILTER,
 ];
 
 type Token = {
@@ -50,17 +53,58 @@ function isParen(token: Token, character: '(' | ')') {
   );
 }
 
-function hasUnquotedOpenParen(s: string): boolean {
+function isCharacterEscaped(value: ArrayLike<string>, index: number): boolean {
+  let precedingBackslashCount = 0;
+  for (let i = index - 1; i >= 0 && value[i] === '\\'; i--) {
+    precedingBackslashCount++;
+  }
+
+  return precedingBackslashCount % 2 === 1;
+}
+
+function countUnquotedUnmatchedClosingParens(s: string): number {
   let inQuotes = false;
+  let openParenCount = 0;
+  let unmatchedClosingParenCount = 0;
+
   for (let i = 0; i < s.length; i++) {
     const char = s[i];
-    if (char === '"' && (i === 0 || s[i - 1] !== '\\')) {
+    if (char === '"' && !isCharacterEscaped(s, i)) {
       inQuotes = !inQuotes;
     } else if (char === '(' && !inQuotes) {
-      return true;
+      openParenCount++;
+    } else if (char === ')' && !inQuotes) {
+      if (openParenCount > 0) {
+        openParenCount--;
+      } else {
+        unmatchedClosingParenCount++;
+      }
     }
   }
-  return false;
+
+  return unmatchedClosingParenCount;
+}
+
+const REGEX_VALUE_RE = /^\/\/((?:(?!\/\/(?:[\t\n )]|$))[^\n])*)\/\/(?=[\t\n )]|$)/;
+
+function parseRegexFilter(token: string) {
+  const colonIndex = token.indexOf(':');
+  if (colonIndex <= 0) {
+    return null;
+  }
+
+  const value = token.slice(colonIndex + 1);
+  const match = value.match(REGEX_VALUE_RE);
+  if (!match) {
+    return null;
+  }
+
+  const trailingParens = value.slice(match[0].length);
+  if (!/^\)*$/.test(trailingParens)) {
+    return null;
+  }
+
+  return {key: token.slice(0, colonIndex), pattern: match[1]!, trailingParens};
 }
 
 function isProperlyBracketed(value: string): boolean {
@@ -76,23 +120,29 @@ function requiresQuotes(value: string): boolean {
 }
 
 function generateFilterValue(token: Token, operator: string): string {
-  if (token.value === '' || token.value === null) {
-    return `${token.key}${operator}""`;
+  const key = token.key ? quoteFilterKey(token.key) : token.key;
+  const value =
+    token.key === 'has' || token.key === '!has'
+      ? quoteFilterKey(token.value)
+      : token.value;
+
+  if (value === '' || value === null) {
+    return `${key}${operator}""`;
   }
 
   if (
     // Don't quote if it's already a properly formatted bracket expression
-    isProperlyBracketed(token.value) ||
+    isProperlyBracketed(value) ||
     // Don't quote if it's already properly quoted
-    isProperlyQuoted(token.value)
+    isProperlyQuoted(value)
   ) {
-    return `${token.key}${operator}${token.value}`;
+    return `${key}${operator}${value}`;
   }
 
-  if (requiresQuotes(token.value)) {
-    return `${token.key}${operator}"${escapeDoubleQuotes(token.value)}"`;
+  if (requiresQuotes(value) || /^\/\//.test(value)) {
+    return `${key}${operator}"${escapeDoubleQuotes(value)}"`;
   }
-  return `${token.key}${operator}${token.value}`;
+  return `${key}${operator}${value}`;
 }
 
 // TODO(epurkhiser): This is legacy from before the existence of
@@ -152,6 +202,8 @@ export class MutableSearch {
 
     for (let token of strTokens) {
       let tokenState = TokenType.FREE_TEXT;
+      let quoted = false;
+      let bracketDepth = 0;
 
       if (isBooleanOp(token)) {
         this.addOp(token.toUpperCase());
@@ -166,16 +218,34 @@ export class MutableSearch {
         }
       }
 
+      const regexFilter = parseRegexFilter(token);
+      if (regexFilter) {
+        this.addRegexFilterValue(regexFilter.key, regexFilter.pattern);
+        regexFilter.trailingParens.split('').map(paren => this.addOp(paren));
+        continue;
+      }
+
       // Traverse the token and check if it's a filter condition or free text
       for (let i = 0, len = token.length; i < len; i++) {
         const char = token[i];
 
-        if (i === 0 && (char === '"' || char === ':')) {
+        if (char === '"' && !isCharacterEscaped(token, i)) {
+          quoted = !quoted;
+          continue;
+        }
+
+        if (!quoted && char === '[') {
+          bracketDepth++;
+        } else if (!quoted && char === ']') {
+          bracketDepth = Math.max(0, bracketDepth - 1);
+        }
+
+        if (i === 0 && char === ':') {
           break;
         }
 
         // We may have entered a filter condition
-        if (char === ':') {
+        if (char === ':' && !quoted && bracketDepth === 0) {
           const indexOffset = i + 1;
           const nextChar = token[indexOffset] || '';
 
@@ -206,11 +276,15 @@ export class MutableSearch {
       }
 
       let trailingParen = '';
-      if (token.endsWith(')') && !hasUnquotedOpenParen(token)) {
+      if (token.endsWith(')')) {
         const parenMatch = token.match(/\)+$/g);
-        if (parenMatch) {
-          trailingParen = parenMatch[0];
-          token = token.replace(/\)+$/g, '');
+        const trailingParenCount = Math.min(
+          parenMatch?.[0].length ?? 0,
+          countUnquotedUnmatchedClosingParens(token)
+        );
+        if (trailingParenCount > 0) {
+          trailingParen = ')'.repeat(trailingParenCount);
+          token = token.slice(0, -trailingParenCount);
         }
       }
 
@@ -257,6 +331,9 @@ export class MutableSearch {
             generateFilterValue(token, `:${WildcardOperators.ENDS_WITH}`)
           );
           break;
+        case TokenType.REGEX_FILTER:
+          formattedTokens.push(`${quoteFilterKey(token.key!)}://${token.value}//`);
+          break;
         case TokenType.FREE_TEXT:
           if (requiresQuotes(token.value)) {
             formattedTokens.push(`"${escapeDoubleQuotes(token.value)}"`);
@@ -269,17 +346,6 @@ export class MutableSearch {
       }
     }
     return formattedTokens.join(' ').trim();
-  }
-
-  /**
-   * Adds the filters from a string query to the current MutableSearch query.
-   * The string query may consist of multiple key:value pairs separated
-   * by spaces.
-   */
-  addStringMultiFilter(multiFilter: string, shouldEscape = true) {
-    Object.entries(new MutableSearch(multiFilter).filters).forEach(([key, values]) => {
-      this.addFilterValues(key, values, shouldEscape);
-    });
   }
 
   /**
@@ -342,7 +408,7 @@ export class MutableSearch {
    * Adds the filter values separated by OR operators. This is in contrast to
    * addFilterValues, which implicitly separates each filter value with an AND operator.
    */
-  addDisjunctionFilterValues(key: string, values: string[], shouldEscape = true) {
+  addDisjunctionFilterValues(key: string, values: string[]) {
     if (values.length === 0) {
       return this;
     }
@@ -352,7 +418,7 @@ export class MutableSearch {
       if (i > 0) {
         this.addOp('OR');
       }
-      this.addFilterValue(key, values[i]!, shouldEscape);
+      this.addFilterValue(key, values[i]!);
     }
     this.addOp(')');
     return this;
@@ -387,6 +453,11 @@ export class MutableSearch {
   addEndsWithFilterValue(key: string, value: string, shouldEscape = true) {
     const escaped = shouldEscape ? escapeFilterValue(value) : value;
     const token: Token = {type: TokenType.ENDS_WITH_FILTER, key, value: escaped};
+    this.tokens.push(token);
+  }
+
+  addRegexFilterValue(key: string, pattern: string) {
+    const token: Token = {type: TokenType.REGEX_FILTER, key, value: pattern};
     this.tokens.push(token);
   }
 
@@ -573,6 +644,87 @@ export class MutableSearch {
 }
 
 /**
+ * The prefixes of the grammar's explicit typed keys, e.g. `tags[foo, string]`.
+ */
+const TYPED_KEY_PREFIXES = ['tags', 'flags'];
+
+/**
+ * Whether the unquoted `[` at `openIdx` opens a span the grammar lets contain
+ * whitespace. There are exactly two: a filter's value list, which follows the
+ * `:` behind an optional wildcard operator (`text_in_filter` /
+ * `numeric_in_filter`), and an explicit typed key such as `tags[foo, string]`,
+ * which follows a `tags`/`flags` prefix. A `[` anywhere else is ordinary text.
+ */
+function opensBracketedSpan(queryChars: string[], openIdx: number): boolean {
+  let idx = openIdx;
+
+  for (const op of Object.values(WildcardOperators)) {
+    if (idx >= op.length && queryChars.slice(idx - op.length, idx).join('') === op) {
+      idx -= op.length;
+      break;
+    }
+  }
+
+  if (queryChars[idx - 1] === ':') {
+    return true;
+  }
+
+  return TYPED_KEY_PREFIXES.some(prefix => {
+    const start = openIdx - prefix.length;
+    if (start < 0 || queryChars.slice(start, openIdx).join('') !== prefix) {
+      return false;
+    }
+    // The prefix has to start the key, so `mytags[a, b]` is still plain text.
+    const before = queryChars[start - 1];
+    return before === undefined || isSpace(before) || before === '!' || before === '(';
+  });
+}
+
+/**
+ * Whether the unquoted `[` at `openIdx` is closed by a matching unquoted `]`
+ * later in the query. An unclosed bracket is plain text, not the start of a
+ * list, so the splitter must not swallow the rest of the query waiting for its
+ * `]`. Nested pairs are matched, so the `]` of a later `tags[foo]` does not
+ * pass as the closer of an earlier stray `[`.
+ */
+function hasClosingBracket(queryChars: string[], openIdx: number): boolean {
+  let quoteType = '';
+  let quoteEnclosed = false;
+  let depth = 1;
+
+  for (let idx = openIdx + 1; idx < queryChars.length; idx++) {
+    const char = queryChars[idx]!;
+
+    if (
+      ["'", '"'].includes(char) &&
+      !isCharacterEscaped(queryChars, idx) &&
+      (!quoteEnclosed || quoteType === char)
+    ) {
+      quoteEnclosed = !quoteEnclosed;
+      if (quoteEnclosed) {
+        quoteType = char;
+      }
+      continue;
+    }
+
+    if (quoteEnclosed) {
+      continue;
+    }
+
+    if (char === '[') {
+      depth++;
+    } else if (char === ']') {
+      depth--;
+      if (depth === 0) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
  * Splits search strings into tokens for parsing by tokenizeSearch.
  *
  * Should stay in sync with src.sentry.search.utils:split_query_into_tokens
@@ -585,31 +737,69 @@ function splitSearchIntoTokens(query: string) {
   let endOfPrevWord = '';
   let quoteType = '';
   let quoteEnclosed = false;
+  // The search grammar allows whitespace between the items of a bracketed
+  // list, e.g. `key:[a, b]`, so a space inside brackets does not end the
+  // token, and the same goes for a typed key like `tags[foo, string]`. Only a
+  // `[` in one of those positions that is closed later counts; a stray or
+  // unclosed bracket is ordinary text and keeps splitting on whitespace.
+  let bracketDepth = 0;
 
   for (let idx = 0; idx < queryChars.length; idx++) {
     const char = queryChars[idx]!;
     const nextChar = queryChars.length - 1 > idx ? queryChars[idx + 1]! : null;
     token += char;
 
+    if (!quoteEnclosed && bracketDepth === 0 && char === ':' && nextChar === '/') {
+      const regexValue = queryChars
+        .slice(idx + 1)
+        .join('')
+        .match(REGEX_VALUE_RE)?.[0];
+      if (regexValue) {
+        token += regexValue;
+        idx += Array.from(regexValue).length;
+        endOfPrevWord = '/';
+        continue;
+      }
+    }
+
+    if (!quoteEnclosed && char === '[') {
+      if (bracketDepth > 0) {
+        // Already inside a list, so track nesting to find the matching `]`.
+        bracketDepth++;
+      } else if (
+        opensBracketedSpan(queryChars, idx) &&
+        hasClosingBracket(queryChars, idx)
+      ) {
+        bracketDepth = 1;
+      }
+    } else if (!quoteEnclosed && char === ']' && bracketDepth > 0) {
+      bracketDepth--;
+    }
+
     if (nextChar !== null && !isSpace(char) && isSpace(nextChar)) {
       endOfPrevWord = char;
     }
 
-    if (isSpace(char) && !quoteEnclosed && endOfPrevWord !== ':' && !isSpace(token)) {
+    if (
+      isSpace(char) &&
+      !quoteEnclosed &&
+      bracketDepth === 0 &&
+      endOfPrevWord !== ':' &&
+      !isSpace(token)
+    ) {
       tokens.push(token.trim());
       token = '';
     }
 
-    if (["'", '"'].includes(char) && (!quoteEnclosed || quoteType === char)) {
+    if (
+      ["'", '"'].includes(char) &&
+      !isCharacterEscaped(queryChars, idx) &&
+      (!quoteEnclosed || quoteType === char)
+    ) {
       quoteEnclosed = !quoteEnclosed;
       if (quoteEnclosed) {
         quoteType = char;
       }
-    }
-
-    if (quoteEnclosed && char === '\\' && nextChar === quoteType) {
-      token += nextChar;
-      idx++;
     }
   }
 
@@ -635,18 +825,25 @@ function isSpace(s: string) {
 function parseFilter(filter: string) {
   let idx = 0;
   let quoted = false;
+  let bracketDepth = 0;
 
   // look for the first `:` that is not in quotes
   for (; idx < filter.length; idx++) {
     const c = filter[idx];
 
-    if (c === '"') {
+    if (c === '"' && !isCharacterEscaped(filter, idx)) {
       quoted = !quoted;
       continue;
     }
 
-    if (c === ':' && !quoted) {
-      const key = removeSurroundingQuotes(filter.slice(0, idx));
+    if (!quoted && c === '[') {
+      bracketDepth++;
+    } else if (!quoted && c === ']') {
+      bracketDepth = Math.max(0, bracketDepth - 1);
+    }
+
+    if (c === ':' && !quoted && bracketDepth === 0) {
+      const key = removeSurroundingFilterKeyQuotes(filter.slice(0, idx));
       const foundValue = filter.slice(idx + 1);
 
       // This snippet here handles the case where we have a single value that uses quotes
@@ -660,7 +857,7 @@ function parseFilter(filter: string) {
 
   // something went wrong, fallback to the naive approach of spliting the filter
   idx = filter.indexOf(':');
-  const key = removeSurroundingQuotes(filter.slice(0, idx));
+  const key = removeSurroundingFilterKeyQuotes(filter.slice(0, idx));
   const foundValue = filter.slice(idx + 1);
 
   // This snippet here handles the case where we have a single value that uses quotes
@@ -669,6 +866,14 @@ function parseFilter(filter: string) {
   const value = isEscapingBrackets ? foundValue : removeSurroundingQuotes(foundValue);
 
   return [key, value];
+}
+
+function removeSurroundingFilterKeyQuotes(key: string) {
+  if (key.startsWith('!')) {
+    return `!${removeSurroundingQuotes(key.slice(1))}`;
+  }
+
+  return removeSurroundingQuotes(key);
 }
 
 function removeSurroundingQuotes(text: string) {
@@ -686,7 +891,7 @@ function removeSurroundingQuotes(text: string) {
 
   let right = length - 1;
   for (; right >= length / 2; right--) {
-    if (text.charAt(right) !== '"' || text.charAt(right - 1) === '\\') {
+    if (text.charAt(right) !== '"' || isCharacterEscaped(text, right)) {
       break;
     }
   }

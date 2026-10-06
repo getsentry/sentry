@@ -7,11 +7,9 @@ This is similar to existing featureflagging systems we have, but with less
 features and more performant.
 """
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any, Optional, Union
-
-import click
 
 from sentry import options
 from sentry.utils import metrics
@@ -20,44 +18,6 @@ Condition = dict[str, Optional[str]]
 KillswitchConfig = list[Condition]
 LegacyKillswitchConfig = Union[KillswitchConfig, list[int]]
 Context = dict[str, Any]
-
-
-def _update_project_configs(
-    old_option_value: Sequence[Mapping[str, Any]], new_option_value: Sequence[Mapping[str, Any]]
-) -> None:
-    """Callback for the relay.drop-transaction-metrics kill switch.
-    On every change, force a recomputation of the corresponding project configs
-    """
-    from sentry.models.organization import Organization
-    from sentry.tasks.relay import schedule_invalidate_project_config
-
-    old_project_ids = {ctx["project_id"] for ctx in old_option_value}
-    new_project_ids = {ctx["project_id"] for ctx in new_option_value}
-
-    # We want to recompute the project config for any project that was added
-    # or removed
-    changed_project_ids = old_project_ids ^ new_project_ids
-
-    if None in changed_project_ids:
-        with click.progressbar(length=Organization.objects.count()) as bar:
-            # Since all other invalidations, which would happen anyway, will de-duplicate
-            # with these ones the extra load of this is reasonable.  A temporary backlog in
-            # the relay_config_bulk queue is just fine.  We have server-side cursors
-            # disabled so .iterator() fetches 50k u64's at once which is about 390kb and
-            # at time of writing yields about 24 batches.
-            for org_id in (
-                Organization.objects.values_list("id", flat=True).all().iterator(chunk_size=50_000)
-            ):
-                schedule_invalidate_project_config(
-                    trigger="invalidate-all", organization_id=org_id, countdown=0
-                )
-                bar.update(1)
-    else:
-        with click.progressbar(changed_project_ids) as ids:
-            for project_id in ids:
-                schedule_invalidate_project_config(
-                    project_id=project_id, trigger="killswitches.relay.drop-transaction-metrics"
-                )
 
 
 @dataclass
@@ -122,6 +82,15 @@ ALL_KILLSWITCH_OPTIONS = {
             "symbolication_function": "process_minidump, process_applecrashreport, process_native_stacktraces, or process_js_stacktraces",
         },
     ),
+    "store.load-shed-gpu-crash-projects": KillswitchInfo(
+        description="Skip routing GPU crash events to the isolated teapot task "
+        "(event is forwarded to normal process/save, unenriched)",
+        fields={
+            "project_id": "A project ID to filter events by.",
+            "event_id": "An event ID as given in the event payload.",
+            "platform": "The event platform as defined in the event payload's platform field.",
+        },
+    ),
     "store.load-shed-save-event-projects": KillswitchInfo(
         description="Drop events in save_event",
         fields={
@@ -139,6 +108,29 @@ ALL_KILLSWITCH_OPTIONS = {
         """,
         fields={
             "project_id": "A project ID to filter events by.",
+        },
+    ),
+    "post_process.disable-pipeline-steps": KillswitchInfo(
+        description="""
+        Skip individual steps of the post_process_group pipeline.
+
+        `pipeline_step` is the name of the step function as it appears in
+        GROUP_CATEGORY_POST_PROCESS_PIPELINE / GENERIC_POST_PROCESS_PIPELINE,
+        e.g. `kick_off_seer_automation`. Leaving it unset is a wildcard that
+        disables *every* step, i.e. all of post-processing.
+
+        The same step function runs in more than one pipeline (e.g.
+        process_snoozes runs for both error and feedback issues). Set
+        `issue_category` to target only one of them.
+
+        Work skipped this way is dropped for good, nothing catches up when the
+        switch is turned off again.
+        """,
+        fields={
+            "pipeline_step": "Name of the post-process step function, e.g. kick_off_seer_automation.",
+            "project_id": "A project ID to filter events by.",
+            "organization_id": "An organization ID to filter events by.",
+            "issue_category": "Lowercased GroupCategory name, e.g. error or feedback.",
         },
     ),
     "reprocessing2.drop-delete-old-primary-hash": KillswitchInfo(
@@ -159,22 +151,6 @@ ALL_KILLSWITCH_OPTIONS = {
             "project_id": "project ID to randomly assign partitions for event messages",
             "message_type": "message type to randomly partition",
         },
-    ),
-    "relay.drop-transaction-metrics": KillswitchInfo(
-        description="""
-        Tell Relay via project config to stop extracting metrics from transactions.
-        Note that this change will not take effect immediately, it takes time
-        for downstream Relay instances to update their caches.
-
-        If project_id is set to None, extraction will be disabled for all projects.
-        In this case, the invalidation of existing project configs can take up to one hour.
-        """,
-        fields={
-            "project_id": "project ID for which we want to stop extracting transaction metrics",
-        },
-        on_change=KillswitchCallback(
-            _update_project_configs, "Trigger invalidation tasks for projects"
-        ),
     ),
     "api.organization.disable-last-deploys": KillswitchInfo(
         description="""
@@ -251,6 +227,17 @@ ALL_KILLSWITCH_OPTIONS = {
             "org_id": "An organization ID to filter segments by.",
         },
     ),
+    "deletions.nodestore.killswitch-projects": KillswitchInfo(
+        description="""
+        Halt the self-chaining nodestore group-event deletion task for the given projects.
+
+        Note that this leaves partial cleanup: remaining nodestore, eventstore, and EAP
+        data will not be deleted and must be cleaned up manually.
+        """,
+        fields={
+            "project_id": "A project ID to halt nodestore group-event deletion for.",
+        },
+    ),
     "unmerge.killswitch-projects": KillswitchInfo(
         description="""
         Halt the self-chaining unmerge task for the given projects.
@@ -270,6 +257,25 @@ ALL_KILLSWITCH_OPTIONS = {
         """,
         fields={
             "project_id": "A project ID to halt merge for.",
+        },
+    ),
+    "hybridcloud.webhookpayload.shed-inbound": KillswitchInfo(
+        description="""
+        Drop inbound integration webhooks before a WebhookPayload row is written.
+
+        Break glass for an inbound flood: matching senders get a 429 with a
+        Retry-After instead of having their webhook queued, so the flood stops
+        costing the control primary payload INSERTs and push triggers.
+
+        Every condition must name a `provider`; leaving `integration_id` unset sheds
+        that whole provider. A condition without a `provider` would match every one
+        of them, so it is ignored rather than honoured.
+
+        Shed webhooks are gone unless the sender redelivers them.
+        """,
+        fields={
+            "provider": "An integration provider slug, e.g. github or jira.",
+            "integration_id": "An integration ID, to shed a single integration.",
         },
     ),
 }

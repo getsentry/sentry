@@ -6,7 +6,7 @@ import moment from 'moment-timezone';
 
 import {DATE_TIME_KEYS, URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
@@ -339,7 +339,7 @@ export function extractSelectionParameters(query: Location['query']) {
 export function getDatetimeFromState(state: PageFiltersState) {
   return Object.fromEntries(
     Object.entries(state).filter(([key]) => DATE_TIME_KEYS.includes(key))
-  ) as PageFilters['datetime'];
+  ) as PageFilterDatetime;
 }
 
 /**

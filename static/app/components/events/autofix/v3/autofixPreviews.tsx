@@ -5,9 +5,9 @@ import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
+import {getRepoPullRequestLink} from 'sentry/components/events/autofix/pullRequests';
 import {
   CodingAgentStatus,
   getCodingAgentName,
@@ -24,6 +24,7 @@ import {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {IconOpen} from 'sentry/icons';
 import {IconBot} from 'sentry/icons/iconBot';
 import {IconBug} from 'sentry/icons/iconBug';
@@ -50,7 +51,7 @@ export function RootCausePreview({section}: ArtifactPreviewProps) {
           <Text>{t('Finding the root cause\u2026')}</Text>
         </Flex>
       ) : artifact?.data ? (
-        <Markdown raw={artifact.data.one_line_description} />
+        <SeerMarkdown raw={artifact.data.one_line_description} />
       ) : (
         <Text variant="muted">
           {t(
@@ -76,7 +77,7 @@ export function SolutionPreview({section}: ArtifactPreviewProps) {
           <Text>{t('Formulating a plan\u2026')}</Text>
         </Flex>
       ) : artifact?.data ? (
-        <Markdown raw={artifact.data.one_line_summary} />
+        <SeerMarkdown raw={artifact.data.one_line_summary} />
       ) : (
         <Text variant="muted">
           {t('Seer failed to generate a plan. This one is on us. Try running it again.')}
@@ -159,14 +160,11 @@ export function PullRequestsPreview({section}: ArtifactPreviewProps) {
           return <Placeholder key={pullRequest.repo_name} height="1.5rem" />;
         }
 
-        if (
-          pullRequest.pr_creation_status === 'completed' &&
-          pullRequest.pr_url &&
-          pullRequest.pr_number
-        ) {
+        const link = getRepoPullRequestLink(pullRequest);
+        if (link) {
           return (
-            <ExternalLink key={pullRequest.repo_name} href={pullRequest.pr_url}>
-              {pullRequest.repo_name}#{pullRequest.pr_number}
+            <ExternalLink key={link.repoName} href={link.url}>
+              {link.repoName}#{link.prNumber}
             </ExternalLink>
           );
         }

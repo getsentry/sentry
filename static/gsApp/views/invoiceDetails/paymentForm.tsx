@@ -32,7 +32,7 @@ export default function InvoiceDetailsPaymentForm({
   const location = useLocation();
   const endpoint = [
     getApiUrl('/organizations/$organizationIdOrSlug/payments/$paymentId/new/', {
-      path: {organizationIdOrSlug: invoice.customer.slug, paymentId: invoice.id},
+      path: {organizationIdOrSlug: organization.slug, paymentId: invoice.id},
     }),
   ] satisfies ApiQueryKey;
 
@@ -55,6 +55,7 @@ export default function InvoiceDetailsPaymentForm({
             onCancel={() => closeModal()}
             amount={invoice.amountBilled ?? 0}
             cardMode="payment"
+            invoiceGuid={invoice.id}
             onSuccess={() => {
               reloadInvoice();
               closeModal();

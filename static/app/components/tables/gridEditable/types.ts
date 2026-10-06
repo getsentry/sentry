@@ -4,7 +4,16 @@
 // - K is a key of T/
 //   - columnKey should have the same set of values as K
 
+import type {LocationDescriptor} from 'history';
+
+import type {
+  ColumnAlign,
+  SortDirection,
+} from 'sentry/components/tables/sortableHeaderCell';
+
 type ObjectKey = string | number;
+
+export type {ColumnAlign};
 
 export type GridColumn<K = ObjectKey> = {
   key: K;
@@ -23,18 +32,28 @@ export type GridColumnSortBy<K = ObjectKey> = GridColumn<K> & {
 };
 
 /**
- * Store state at the start of "resize" action
+ * How a column offers sorting. `to` navigates, `onSort` calls back; giving
+ * neither renders a plain header that still announces `direction`.
  */
-export type ColResizeMetadata = {
-  columnIndex: number; // Column being resized
-  columnWidth: number; // Column width at start of resizing
-  cursorX: number; // X-coordinate of cursor on window
-};
+export interface GridColumnSort {
+  align?: ColumnAlign;
+  direction?: SortDirection;
+  onSort?: (event: React.MouseEvent) => void;
+  /**
+   * Whether `to` should replace the history entry rather than pushing a new one.
+   */
+  replace?: boolean;
+  /**
+   * Sort destination to navigate to on sort.
+   */
+  to?: LocationDescriptor;
+}
 
 export type GridData<
   DataRow,
   Order extends GridColumnOrder<unknown> = GridColumnOrder<keyof DataRow>,
 > = {
+  getColumnSort?: (column: Order, columnIndex: number) => GridColumnSort | undefined;
   onResizeColumn?: (columnIndex: number, nextColumn: Order) => void;
   prependColumnWidths?: string[];
   renderBodyCell?: (
@@ -49,4 +68,5 @@ export type GridData<
     dataRow?: DataRow,
     rowIndex?: number
   ) => React.ReactNode[];
+  staticColumnWidths?: Record<string, number | string>;
 };

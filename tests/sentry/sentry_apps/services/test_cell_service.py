@@ -1,5 +1,7 @@
 import logging
 from datetime import timedelta
+from typing import Any
+from unittest.mock import patch
 
 import orjson
 import responses
@@ -8,6 +10,7 @@ from responses.matchers import query_string_matcher
 
 from sentry.auth.services.auth.model import AuthenticationContext
 from sentry.issues.action_log import ActionSource
+from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
@@ -15,10 +18,13 @@ from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProjec
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.services.cell import sentry_app_cell_service
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
 from sentry.types.activity import ActivityType
+from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_rpc_user
+from sentry.utils.locking.lock import Lock
 
 
 @all_silo_test
@@ -30,7 +36,10 @@ class TestSentryAppCellService(TestCase):
         self.group = self.create_group(project=self.project)
 
         self.sentry_app = self.create_sentry_app(
-            name="Testin", organization=self.org, webhook_url="https://example.com"
+            name="Testin",
+            organization=self.org,
+            webhook_url="https://example.com",
+            scopes=("event:write",),
         )
 
         self.install = self.create_sentry_app_installation(
@@ -38,6 +47,11 @@ class TestSentryAppCellService(TestCase):
         )
         self.rpc_installation = serialize_sentry_app_installation(self.install)
         self.auth_context = AuthenticationContext(user=serialize_rpc_user(self.user))
+        assert self.sentry_app.proxy_user_id is not None
+        with assume_test_silo_mode_of(User):
+            self.sentry_app_user = serialize_rpc_user(
+                User.objects.get(id=self.sentry_app.proxy_user_id)
+            )
 
     def _action_log_records(
         self, records: list[logging.LogRecord], action: str
@@ -411,6 +425,69 @@ class TestSentryAppCellService(TestCase):
         assert result.error is not None
         assert result.error.status_code == 404
 
+    def test_delete_external_issue_link_in_progress(self) -> None:
+        external_issue = self.create_platform_external_issue(
+            group=self.group,
+            service_type=self.sentry_app.slug,
+            display_name="Test#123",
+            web_url="https://example.com/issue/123",
+        )
+        with (
+            capture_action_log() as log,
+            locks.get(
+                f"platform-external-issue-link:{self.group.id}:{self.sentry_app.slug}",
+                duration=300,
+            ).acquire(),
+        ):
+            result = sentry_app_cell_service.delete_external_issue(
+                organization_id=self.org.id,
+                installation=self.rpc_installation,
+                external_issue_id=external_issue.id,
+                user=serialize_rpc_user(self.user),
+            )
+
+        assert result.success is False
+        assert result.error is not None
+        assert result.error.status_code == 409
+        log.assert_not_logged()
+        with assume_test_silo_mode_of(PlatformExternalIssue):
+            assert PlatformExternalIssue.objects.filter(id=external_issue.id).exists()
+
+    def test_delete_external_issue_removed_before_lock(self) -> None:
+        external_issue = self.create_platform_external_issue(
+            group=self.group,
+            service_type=self.sentry_app.slug,
+            display_name="Test#123",
+            web_url="https://example.com/issue/123",
+        )
+        lock = locks.get(
+            f"platform-external-issue-link:{self.group.id}:{self.sentry_app.slug}", duration=300
+        )
+
+        def unlink_before_lock(*args: Any, **kwargs: Any) -> Lock:
+            with assume_test_silo_mode_of(PlatformExternalIssue):
+                PlatformExternalIssue.objects.filter(id=external_issue.id).delete()
+            return lock
+
+        with (
+            capture_action_log() as log,
+            patch(
+                "sentry.sentry_apps.services.cell.impl.locks.get",
+                side_effect=unlink_before_lock,
+            ) as get_lock,
+        ):
+            result = sentry_app_cell_service.delete_external_issue(
+                organization_id=self.org.id,
+                installation=self.rpc_installation,
+                external_issue_id=external_issue.id,
+                user=serialize_rpc_user(self.user),
+            )
+
+        get_lock.assert_called_once()
+        assert result.success is True
+        assert result.error is None
+        log.assert_not_logged()
+
     @responses.activate
     def test_create_issue_link_records_action_log(self) -> None:
         responses.add(
@@ -472,11 +549,15 @@ class TestSentryAppCellService(TestCase):
                 action="link",
                 fields={"title": "An Issue"},
                 uri="/link-issue",
-                user=serialize_rpc_user(self.user),
+                user=self.sentry_app_user,
             )
 
         assert result.error is None
-        assert len(self._action_log_records(logs.records, "link_platform_external_issue")) == 1
+        records = self._action_log_records(logs.records, "link_platform_external_issue")
+        assert len(records) == 1
+        assert getattr(records[0], "source") == ActionSource.API
+        assert getattr(records[0], "actor_type") == "sentry_app"
+        assert getattr(records[0], "actor_id") == str(self.sentry_app.id)
         assert self._action_log_records(logs.records, "create_platform_external_issue") == []
 
     def test_create_external_issue_records_action_log(self) -> None:
@@ -498,7 +579,7 @@ class TestSentryAppCellService(TestCase):
         assert getattr(records[0], "actor_type") == "user"
         assert getattr(records[0], "actor_id") == str(self.user.id)
 
-    def test_create_external_issue_without_user_records_system_actor(self) -> None:
+    def test_create_external_issue_records_sentry_app_actor(self) -> None:
         with self.assertLogs("sentry.issues.action_log", level="INFO") as logs:
             result = sentry_app_cell_service.create_external_issue(
                 organization_id=self.org.id,
@@ -507,14 +588,22 @@ class TestSentryAppCellService(TestCase):
                 web_url="https://example.com/project/issue-1",
                 project="ProjectName",
                 identifier="issue-1",
-                user=None,
+                user=self.sentry_app_user,
             )
 
         assert result.error is None
-        records = self._action_log_records(logs.records, "create_platform_external_issue")
-        assert len(records) == 1
-        assert getattr(records[0], "actor_type") == "system"
-        assert getattr(records[0], "actor_id") == "0"
+
+        activity_records = self._action_log_records(logs.records, "create_issue")
+        assert len(activity_records) == 1
+        assert getattr(activity_records[0], "source") == ActionSource.API
+        assert getattr(activity_records[0], "actor_type") == "sentry_app"
+        assert getattr(activity_records[0], "actor_id") == str(self.sentry_app.id)
+
+        platform_records = self._action_log_records(logs.records, "create_platform_external_issue")
+        assert len(platform_records) == 1
+        assert getattr(platform_records[0], "source") == ActionSource.API
+        assert getattr(platform_records[0], "actor_type") == "sentry_app"
+        assert getattr(platform_records[0], "actor_id") == str(self.sentry_app.id)
 
     def test_delete_external_issue_records_action_log(self) -> None:
         with assume_test_silo_mode_of(PlatformExternalIssue):
@@ -531,7 +620,7 @@ class TestSentryAppCellService(TestCase):
                 organization_id=self.org.id,
                 installation=self.rpc_installation,
                 external_issue_id=external_issue.id,
-                user=serialize_rpc_user(self.user),
+                user=self.sentry_app_user,
             )
 
         assert result.success is True
@@ -539,8 +628,8 @@ class TestSentryAppCellService(TestCase):
         assert len(records) == 1
         record = records[0]
         assert getattr(record, "source") == ActionSource.API
-        assert getattr(record, "actor_type") == "user"
-        assert getattr(record, "actor_id") == str(self.user.id)
+        assert getattr(record, "actor_type") == "sentry_app"
+        assert getattr(record, "actor_id") == str(self.sentry_app.id)
         assert getattr(record, "metadata") == {
             "service_type": self.sentry_app.slug,
             "display_name": "Test#123",
@@ -583,46 +672,6 @@ class TestSentryAppCellService(TestCase):
         assert result.error.status_code == 403
         assert result.external_issue is None
 
-    def test_create_external_issue_legacy_skips_project_access_without_user(self) -> None:
-        """RPC user is optional during rollout; None skips has_project_access (temporary)."""
-        with assume_test_silo_mode_of(Organization):
-            self.org.flags.allow_joinleave = False
-            self.org.save()
-
-        other_team = self.create_team(organization=self.org, name="cei-legacy-other-team")
-        other_project = self.create_project(
-            organization=self.org, teams=[other_team], name="cei-legacy-other-proj"
-        )
-        other_group = self.create_group(project=other_project)
-
-        result = sentry_app_cell_service.create_external_issue(
-            organization_id=self.org.id,
-            installation=self.rpc_installation,
-            group_id=other_group.id,
-            web_url="https://example.com/p/i",
-            project="P",
-            identifier="1",
-            user=None,
-        )
-
-        assert result.error is None
-        assert result.external_issue is not None
-
-        with assume_test_silo_mode_of(Activity):
-            activity = Activity.objects.get(
-                group_id=other_group.id,
-                type=ActivityType.CREATE_ISSUE.value,
-            )
-        assert activity.project_id == other_project.id
-        assert activity.user_id is None
-        assert activity.data == {
-            "title": "P#1",
-            "provider": self.sentry_app.name,
-            "location": "https://example.com/p/i",
-            "label": "P#1",
-            "new": True,
-        }
-
     def test_get_select_options_denied_without_project_access(self) -> None:
         with assume_test_silo_mode_of(Organization):
             self.org.flags.allow_joinleave = False
@@ -655,47 +704,6 @@ class TestSentryAppCellService(TestCase):
 
         assert result.error is not None
         assert result.error.status_code == 403
-
-    @responses.activate
-    def test_get_select_options_legacy_skips_project_access_without_user(self) -> None:
-        """RPC user is optional during rollout; None skips has_project_access (temporary)."""
-        with assume_test_silo_mode_of(Organization):
-            self.org.flags.allow_joinleave = False
-            self.org.save()
-
-        other_team = self.create_team(organization=self.org, name="gso-legacy-other-team")
-        other_project = self.create_project(
-            organization=self.org, teams=[other_team], name="gso-legacy-other-proj"
-        )
-
-        options = [{"label": "Other", "value": "99"}]
-        qs = urlencode(
-            {
-                "projectSlug": other_project.slug,
-                "installationId": self.install.uuid,
-                "query": "q",
-            }
-        )
-        responses.add(
-            method=responses.GET,
-            url="https://example.com/get-projects",
-            match=[query_string_matcher(qs)],
-            json=options,
-            status=200,
-            content_type="application/json",
-        )
-
-        result = sentry_app_cell_service.get_select_options(
-            organization_id=self.org.id,
-            installation=self.rpc_installation,
-            uri="/get-projects",
-            user=None,
-            project_id=other_project.id,
-            query="q",
-        )
-
-        assert result.error is None
-        assert result.choices == [["99", "Other"]]
 
     def test_get_select_options_unknown_project_id_returns_404(self) -> None:
         result = sentry_app_cell_service.get_select_options(
@@ -753,39 +761,6 @@ class TestSentryAppCellService(TestCase):
         assert result.error.status_code == 403
         with assume_test_silo_mode_of(PlatformExternalIssue):
             assert PlatformExternalIssue.objects.filter(id=external_issue.id).exists()
-
-    def test_delete_external_issue_legacy_skips_project_access_without_user(self) -> None:
-        """RPC user is optional during rollout; None skips has_project_access (temporary)."""
-        with assume_test_silo_mode_of(Organization):
-            self.org.flags.allow_joinleave = False
-            self.org.save()
-
-        other_team = self.create_team(organization=self.org, name="dei-legacy-other-team")
-        other_project = self.create_project(
-            organization=self.org, teams=[other_team], name="dei-legacy-other-proj"
-        )
-        other_group = self.create_group(project=other_project)
-
-        with assume_test_silo_mode_of(PlatformExternalIssue):
-            external_issue = PlatformExternalIssue.objects.create(
-                group_id=other_group.id,
-                project_id=other_project.id,
-                service_type=self.sentry_app.slug,
-                display_name="X#1",
-                web_url="https://example.com/issue/1",
-            )
-
-        result = sentry_app_cell_service.delete_external_issue(
-            organization_id=self.org.id,
-            installation=self.rpc_installation,
-            external_issue_id=external_issue.id,
-            user=None,
-        )
-
-        assert result.success is True
-        assert result.error is None
-        with assume_test_silo_mode_of(PlatformExternalIssue):
-            assert not PlatformExternalIssue.objects.filter(id=external_issue.id).exists()
 
     def test_get_service_hook_projects(self) -> None:
         project2 = self.create_project(organization=self.org)

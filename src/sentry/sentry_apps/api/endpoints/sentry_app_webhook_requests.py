@@ -10,7 +10,10 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers import serialize
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.sentry_apps.api.bases.sentryapps import SentryAppBaseEndpoint, SentryAppStatsPermission
+from sentry.sentry_apps.api.bases.sentryapps import (
+    SentryAppBaseEndpoint,
+    SentryAppWebhookRequestsPermission,
+)
 from sentry.sentry_apps.api.serializers.sentry_app_webhook_request import (
     SentryAppWebhookRequestSerializer,
 )
@@ -60,7 +63,7 @@ class SentryAppWebhookRequestsEndpoint(SentryAppBaseEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
-    permission_classes = (SentryAppStatsPermission,)
+    permission_classes = (SentryAppWebhookRequestsPermission,)
 
     def get(self, request: Request, sentry_app: SentryApp) -> Response:
         """

@@ -1,77 +1,19 @@
-import {
-  createContext,
-  Fragment,
-  useContext,
-  useRef,
-  useLayoutEffect,
-  type HTMLAttributes,
-} from 'react';
+import type {ReactNode} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {UseInfiniteQueryResult} from '@tanstack/react-query';
-import {useVirtualizer} from '@tanstack/react-virtual';
 
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {
+  emptyCellStyle,
+  fullWidthCellStyle,
+  statusCellStyle,
+  Table as TableShell,
+  useTableElement,
+} from '@sentry/scraps/table';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-
-const ColumnContext = createContext('');
-const ScrollableRefContext = createContext<React.RefObject<HTMLDivElement | null>>({
-  current: null,
-});
-
-function Table(props: HTMLAttributes<HTMLDivElement> & {columns: string}) {
-  const {children, columns, ...rest} = props;
-  const scrollBodyRef = useRef<HTMLDivElement>(null);
-  return (
-    <ColumnContext value={columns}>
-      <ScrollableRefContext value={scrollBodyRef}>
-        <Stack flex="1" overflow="hidden" border="muted" radius="md" {...rest}>
-          {children}
-        </Stack>
-      </ScrollableRefContext>
-    </ColumnContext>
-  );
-}
-
-const Header = styled(({children, ...rest}: HTMLAttributes<HTMLDivElement>) => (
-  <SimpleTable.Header
-    {...rest}
-    style={{...rest.style, gridTemplateColumns: useContext(ColumnContext)}}
-  >
-    {children}
-  </SimpleTable.Header>
-))`
-  grid-column: unset;
-  grid-row: unset;
-  z-index: ${p => p.theme.zIndex.initial};
-  height: min-content;
-`;
-
-const TableCellFirst = styled(SimpleTable.HeaderCell)`
-  grid-column: 1;
-`;
-
-const TableCellsRemainingContent = styled(Flex)`
-  grid-column: 2 / -1;
-`;
-
-const Scrollable = styled(({children, ...rest}: HTMLAttributes<HTMLDivElement>) => (
-  <div ref={useContext(ScrollableRefContext)} {...rest}>
-    {children}
-  </div>
-))`
-  contain: size;
-  position: relative;
-  overflow-y: auto;
-  flex: 1;
-  height: 0;
-`;
-
-const BodyInner = styled('div')`
-  position: relative;
-  width: 100%;
-`;
+import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 
 function Body<TData = unknown, TSelect = unknown>({
   children,
@@ -79,81 +21,105 @@ function Body<TData = unknown, TSelect = unknown>({
   queryResult,
   select,
 }: {
-  children: (item: TSelect) => React.ReactNode;
+  children: (item: TSelect) => ReactNode;
   estimateSize: () => number;
   queryResult: UseInfiniteQueryResult<TData>;
   select: (data: TData | undefined) => TSelect[];
 }) {
-  const scrollBodyRef = useContext(ScrollableRefContext);
+  const tableRef = useTableElement();
   const selectedData = select(queryResult.data);
-  const virtualizer = useVirtualizer({
-    count: selectedData.length ?? 0,
-    getScrollElement: () => scrollBodyRef?.current,
+  const {paddingBottom, paddingTop, virtualItems, virtualizer} = useVirtualRows({
+    count: selectedData.length,
     estimateSize,
-    overscan: 5,
+    getScrollElement: () => tableRef.current,
   });
 
-  useLayoutEffect(() => {
-    virtualizer.measure();
-  }, [virtualizer]);
-
-  const columns = useContext(ColumnContext);
-
   return (
-    <BodyInner style={{height: virtualizer.getTotalSize()}}>
-      {virtualizer.getVirtualItems().map((virtualItem, index, arr) => {
+    <VirtualBody style={{paddingBottom, paddingTop}}>
+      {virtualItems.map(virtualItem => {
         const item = selectedData[virtualItem.index];
-        const row = item ? children(item) : null;
-        return (
-          <Grid
+
+        return item === undefined ? null : (
+          <VirtualRow
+            divider
             key={virtualItem.index}
             data-index={virtualItem.index}
             ref={virtualizer.measureElement}
-            columns={columns}
-            align="center"
-            style={{transform: `translateY(${virtualItem.start}px)`}}
-            role="row"
-            position="absolute"
-            top="0"
-            left="0"
-            width="100%"
-            borderBottom={index === arr.length - 1 ? undefined : 'muted'}
           >
-            {row}
-          </Grid>
+            {children(item)}
+          </VirtualRow>
         );
       })}
-    </BodyInner>
+    </VirtualBody>
   );
 }
 
 function LoadingRow({queryResult}: {queryResult: UseInfiniteQueryResult}) {
-  if (queryResult.isFetchingNextPage) {
-    return (
-      <StickyLoadingRow align="center" justify="center" padding="md" borderTop="muted">
-        <LoadingIndicator mini />
-      </StickyLoadingRow>
-    );
-  }
-  return null;
+  return queryResult.isFetchingNextPage ? (
+    <LoadingBody>
+      <LoadingIndicator mini />
+    </LoadingBody>
+  ) : null;
 }
 
-const StickyLoadingRow = styled(Flex)`
-  position: sticky;
-  bottom: 0;
+const Table = styled(TableShell)`
+  align-content: start;
   background: ${p => p.theme.tokens.background.primary};
+  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border-radius: ${p => p.theme.radius.md};
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  width: 100%;
+`;
+
+const HeaderCellRemaining = styled(TableShell.Cell)`
+  align-items: center;
+  display: flex;
+  gap: ${p => p.theme.space.md};
+  grid-column: 2 / -1;
+  padding: 0 ${p => p.theme.space.xl};
+`;
+
+const VirtualBody = styled(TableShell.Body)`
+  align-content: start;
+`;
+
+const VirtualRow = styled(TableShell.Row)`
+  align-items: center;
+`;
+
+const HeaderBanner = styled(TableShell.Status)`
+  ${fullWidthCellStyle}
+`;
+
+const Status = styled(TableShell.StatusBody)`
+  ${statusCellStyle}
+`;
+
+const Empty = styled(TableShell.StatusBody)`
+  ${emptyCellStyle}
+`;
+
+const LoadingBody = styled(TableShell.StatusBody)`
+  background: ${p => p.theme.tokens.background.primary};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  bottom: 0;
+  padding: ${p => p.theme.space.md};
+  position: sticky;
 `;
 
 export const InfiniteTable = {
   Table,
-  Header,
+  Head: TableShell.Head,
+  Header: SimpleTable.HeaderRow,
+  HeaderBanner,
   HeaderCell: SimpleTable.HeaderCell,
-  HeaderCellFirst: TableCellFirst,
-  HeaderCellRemaining: TableCellsRemainingContent,
-  Scrollable,
+  HeaderCellRemaining,
   Body,
-  Empty: SimpleTable.Empty,
+  Empty,
   LoadingRow,
   Row: Fragment,
   RowCell: SimpleTable.RowCell,
+  Status,
 };

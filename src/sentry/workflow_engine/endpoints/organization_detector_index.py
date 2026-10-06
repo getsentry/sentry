@@ -31,7 +31,13 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.workflow_engine_examples import WorkflowEngineExamples
-from sentry.apidocs.parameters import DetectorParams, GlobalParams, OrganizationParams
+from sentry.apidocs.parameters import (
+    CursorQueryParam,
+    DetectorParams,
+    GlobalParams,
+    OrganizationParams,
+    VisibilityParams,
+)
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
@@ -64,9 +70,12 @@ from sentry.workflow_engine.endpoints.validators.utils import (
     can_delete_detectors,
     can_edit_detectors,
     get_unknown_detector_type_error,
+    should_include_all_projects_detector,
 )
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
+from sentry.workflow_engine.processors.detector import get_all_projects_detector
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 
 detector_search_config = SearchConfig.create_from(
     default_config,
@@ -108,8 +117,8 @@ SORT_MAP = {
     "-type": "-type",
     "connectedWorkflows": "connected_workflows",
     "-connectedWorkflows": "-connected_workflows",
-    "latestGroup": F("latest_group_date_added").asc(nulls_first=True),
-    "-latestGroup": F("latest_group_date_added").desc(nulls_last=True),
+    "latestGroup": F("latest_group_last_seen").asc(nulls_first=True),
+    "-latestGroup": F("latest_group_last_seen").desc(nulls_last=True),
     "openIssues": F("open_issues_count").asc(nulls_first=True),
     "-openIssues": F("open_issues_count").desc(nulls_last=True),
 }
@@ -165,27 +174,38 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         if not request.user.is_authenticated:
             return Detector.objects.none()
 
+        all_projects_detector = get_all_projects_detector(organization.id)
         if raw_idlist := request.GET.getlist("id"):
             ids = to_valid_int_id_list("id", raw_idlist)
             # If filtering by IDs, we must search across all accessible projects
-            projects = self.get_projects(
-                request,
-                organization,
-                include_all_accessible=True,
-            )
-            return Detector.objects.with_type_filters().filter(
-                project_id__in=projects,
-                id__in=ids,
-            )
+            projects = self.get_projects(request, organization, include_all_accessible=True)
+            detector_q = Q(project_id__in=projects)
+            if all_projects_detector and should_include_all_projects_detector(
+                request, organization
+            ):
+                detector_q |= Q(id__in=[all_projects_detector.id])
+            return Detector.objects.with_type_filters().filter(detector_q, id__in=ids)
 
-        projects = self.get_projects(
-            request,
-            organization,
-        )
+        projects = self.get_projects(request, organization)
+        detector_q = Q(project_id__in=projects)
 
-        queryset: QuerySet[Detector] = Detector.objects.with_type_filters().filter(
-            project_id__in=projects,
+        # XXX: We have to do this to avoid breaking the Terraform provider.
+        # src: https://github.com/jianyuan/terraform-provider-sentry/blob/b59481f837cbeae74be2fe9883eab473fb63f3a1/internal/provider/data_source_project_issue_stream_monitor_impl.go#L29-L54
+        # We exclude the all projects detector when the request filters to specific projects.
+        # However, if the all projects sentinel is used, we do add it into the response.
+        project_params_unchecked = self.get_requested_project_params_unchecked(request)
+        project_params_include_all_projects = (
+            not project_params_unchecked.has_values
+            or project_params_unchecked.has_all_projects_sentinel
         )
+        if (
+            all_projects_detector
+            and should_include_all_projects_detector(request, organization)
+            and project_params_include_all_projects
+        ):
+            detector_q |= Q(id__in=[all_projects_detector.id])
+
+        queryset: QuerySet[Detector] = Detector.objects.with_type_filters().filter(detector_q)
 
         if raw_query := request.GET.get("query"):
             try:
@@ -209,7 +229,9 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                             queryset = queryset.exclude(type__in=values)
                         else:
                             queryset = queryset.filter(type__in=values)
-                    case SearchFilter(key=SearchKey("assignee"), operator=("=" | "IN" | "!=")):
+                    case SearchFilter(
+                        key=SearchKey("assignee"), operator=("=" | "IN" | "!=" | "NOT IN")
+                    ):
                         # Filter values can be emails, team slugs, "me", "my_teams", "none"
                         values = (
                             filter.value.value
@@ -218,7 +240,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
                         )
                         assignee_q = convert_assignee_values(values, projects, request.user)
 
-                        if filter.operator == "!=":
+                        if filter.operator == "!=" or filter.operator == "NOT IN":
                             queryset = queryset.exclude(assignee_q)
                         else:
                             queryset = queryset.filter(assignee_q)
@@ -260,6 +282,10 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             DetectorParams.QUERY,
             DetectorParams.SORT,
             DetectorParams.ID,
+            DetectorParams.TYPE,
+            DetectorParams.ENABLED,
+            VisibilityParams.PER_PAGE,
+            CursorQueryParam,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -282,6 +308,19 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             return self.respond(status=status.HTTP_401_UNAUTHORIZED)
 
         queryset = self.filter_detectors(request, organization)
+
+        if detector_types := request.GET.getlist("type"):
+            detector_types = [DETECTOR_TYPE_ALIASES.get(value, value) for value in detector_types]
+            queryset = queryset.filter(type__in=detector_types)
+
+        raw_enabled = request.GET.get("enabled")
+        if raw_enabled is not None:
+            try:
+                enabled = serializers.BooleanField().run_validation(raw_enabled)
+            except ValidationError as error:
+                raise ValidationError({"enabled": error.detail}) from error
+            queryset = queryset.filter(enabled=enabled)
+
         queryset = exclude_disallowed_metric_detectors(queryset, organization)
 
         sort_by = request.GET.get("sortBy", "id")
@@ -295,10 +334,10 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
             latest_detector_group_subquery = (
                 DetectorGroup.objects.filter(detector=OuterRef("pk"))
                 .order_by("-date_added")
-                .values("date_added")[:1]
+                .values("group__last_seen")[:1]
             )
             queryset = queryset.annotate(
-                latest_group_date_added=Subquery(latest_detector_group_subquery)
+                latest_group_last_seen=Subquery(latest_detector_group_subquery)
             )
         elif sort_by_field == "openIssues":
             queryset = queryset.annotate(
@@ -375,6 +414,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
 
         queryset = self.filter_detectors(request, organization)
         queryset = exclude_disallowed_metric_detectors(queryset, organization)
+        queryset = queryset.exclude(type=IssueStreamGroupType.slug)
 
         # If explicitly filtering by IDs and some were not found, return 400
         if request.GET.getlist("id") and len(queryset) != len(set(request.GET.getlist("id"))):

@@ -15,9 +15,12 @@ import type {PrivateGamingSdkAccessModalProps} from 'sentry/components/modals/pr
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
 import type {AddToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
 import type {ConsoleModalProps} from 'sentry/components/onboarding/consoleModal';
-import type {Category} from 'sentry/components/platformPicker';
 import {ModalStore} from 'sentry/stores/modalStore';
-import type {CustomRepoType} from 'sentry/types/debugFiles';
+import type {
+  CustomRepo,
+  CustomRepoFormData,
+  CustomRepoType,
+} from 'sentry/types/debugFiles';
 import type {Event} from 'sentry/types/event';
 import type {IssueOwnership} from 'sentry/types/group';
 import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
@@ -50,7 +53,6 @@ export function closeModal() {
 
 type EmailVerificationModalOptions = {
   actionMessage?: string;
-  emailVerified?: boolean;
   onClose?: () => void;
 };
 
@@ -200,11 +202,11 @@ export async function openTeamAccessRequestModal(options: TeamAccessRequestModal
 }
 
 type DebugFileSourceModalOptions = {
-  onSave: (data: Record<string, any>) => Promise<void>;
+  onSave: (data: CustomRepoFormData) => Promise<void>;
   organization: Organization;
   sourceType: CustomRepoType;
   onClose?: () => void;
-  sourceConfig?: Record<string, any>;
+  sourceConfig?: CustomRepo;
 };
 
 export async function openDebugFileSourceModal({
@@ -272,20 +274,17 @@ export async function openImportDashboardFromFileModal(
   });
 }
 
-export async function openReprocessEventModal({
-  onClose,
-  ...options
-}: ReprocessEventModalOptions & {onClose?: () => void}) {
+export async function openReprocessEventModal(options: ReprocessEventModalOptions) {
   const {ReprocessingEventModal} =
     await import('sentry/components/modals/reprocessEventModal');
 
-  openModal(deps => <ReprocessingEventModal {...deps} {...options} />, {onClose});
+  openModal(deps => <ReprocessingEventModal {...deps} {...options} />);
 }
 
-export async function demoSignupModal(options: ModalOptions = {}) {
+export async function demoSignupModal() {
   const {default: Modal, modalCss} = await import('sentry/components/modals/demoSignUp');
 
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
+  openModal(deps => <Modal {...deps} />, {modalCss});
 }
 
 type DemoEndModalOptions = {
@@ -365,33 +364,11 @@ export async function openNavigateToExternalLinkModal(
   openModal(deps => <Modal {...deps} {...options} />);
 }
 
-export async function openProjectCreationModal(options: {defaultCategory: Category}) {
-  const {default: Modal, modalCss} =
-    await import('sentry/components/modals/projectCreationModal');
-
-  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
-}
-
-export async function openConsoleModal(
-  options: ConsoleModalProps & {
-    onClose?: () => void;
-  }
-) {
+export async function openConsoleModal(options: ConsoleModalProps) {
   const {ConsoleModal: Modal, modalCss} =
     await import('sentry/components/onboarding/consoleModal');
   openModal(deps => <Modal {...deps} {...options} />, {
     modalCss,
-    onClose: options.onClose,
-  });
-}
-
-export async function openBulkEditMonitorsModal({onClose, ...options}: ModalOptions) {
-  const {BulkEditMonitorsModal, modalCss} =
-    await import('sentry/components/modals/bulkEditMonitorsModal');
-
-  openModal(deps => <BulkEditMonitorsModal {...deps} {...options} />, {
-    modalCss,
-    onClose,
   });
 }
 

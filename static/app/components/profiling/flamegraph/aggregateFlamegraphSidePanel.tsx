@@ -77,7 +77,7 @@ export function AggregateFlamegraphSidePanel({
       }
     }
 
-    return [...allExamples].sort(
+    return allExamples.toSorted(
       (a, b) => getReferenceStart(b.example) - getReferenceStart(a.example)
     );
   }, [flamegraph, frame]);

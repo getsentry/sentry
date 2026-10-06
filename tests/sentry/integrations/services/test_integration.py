@@ -19,6 +19,7 @@ from sentry.integrations.services.integration.serial import (
 )
 from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.shared_integrations.exceptions import IntegrationConfigurationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_count_of_metric, assert_failure_metric
 from sentry.testutils.cases import TestCase
@@ -156,6 +157,12 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
         result = integration_service.get_integration(provider="example", external_id="example:1")
         self.verify_integration_result(result=result, expected=self.integration1)
 
+        # With replica usage
+        result = integration_service.get_integration(
+            provider="example", external_id="example:1", using_replica=True
+        )
+        self.verify_integration_result(result=result, expected=self.integration1)
+
         # no results
         result = integration_service.get_integration(provider="🚀")
         assert result is None
@@ -164,6 +171,19 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
 
         # non-unique result
         assert integration_service.get_integration(organization_id=self.organization.id) is None
+
+    def test_get_gcp_service_account_email(self) -> None:
+        service_account_email = "sentry-test@sentry-connectors.iam.gserviceaccount.com"
+        self.create_gcp_service_account(
+            organization=self.organization,
+            service_account_email=service_account_email,
+        )
+
+        assert (
+            integration_service.get_gcp_service_account_email(organization_id=self.organization.id)
+            == service_account_email
+        )
+        assert integration_service.get_gcp_service_account_email(organization_id=-1) is None
 
     def test_update_integrations(self) -> None:
         new_metadata = {"new": "data"}
@@ -193,6 +213,29 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
             api_integration_has_feature = api_integration2.has_feature(feature=feature)
             assert integration_has_feature == api_integration_has_feature
 
+    @patch("sentry.integrations.services.integration.impl.record_lifecycle_termination_level")
+    @patch("sentry.integrations.services.integration.impl.MsTeamsClient")
+    @patch("sentry.integrations.services.integration.impl.Integration.objects.get")
+    def test_msteams_incident_configuration_error_records_termination_level(
+        self,
+        mock_get_integration: MagicMock,
+        mock_client: MagicMock,
+        mock_record_termination: MagicMock,
+    ) -> None:
+        error = IntegrationConfigurationError("Invalid Teams configuration")
+        mock_get_integration.return_value = self.integration1
+        mock_client.return_value.send_card.side_effect = error
+
+        result = integration_service.send_msteams_incident_alert_notification(
+            integration_id=self.integration1.id,
+            channel="channel-id",
+            attachment={},
+        )
+
+        assert result is False
+        assert mock_record_termination.call_count == 1
+        assert mock_record_termination.call_args.args[1] is error
+
 
 @all_silo_test
 class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
@@ -212,6 +255,13 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
         # by integration_id
         result = integration_service.get_organization_integrations(
             org_integration_ids=[self.org_integration1.id]
+        )
+        self.verify_result(result=result, expected=[self.org_integration1])
+
+        # by integration_id with replica
+        result = integration_service.get_organization_integrations(
+            integration_id=self.org_integration1.integration_id,
+            using_replica=True,
         )
         self.verify_result(result=result, expected=[self.org_integration1])
 

@@ -39,7 +39,7 @@ const dataConditionHandlers: DataConditionHandler[] = [
 ];
 
 describe('DataConditionNodeList', () => {
-  const organization = OrganizationFixture({features: ['workflow-engine-ui']});
+  const organization = OrganizationFixture();
 
   const mockOnAddRow = jest.fn();
   const mockOnDeleteRow = jest.fn();
@@ -199,6 +199,21 @@ describe('DataConditionNodeList', () => {
     expect(mockOnDeleteRow).toHaveBeenCalledWith('1');
   });
 
+  it('hides delete button for the last remaining workflow trigger condition', () => {
+    render(
+      <AutomationBuilderTestProvider>
+        <DataConditionNodeList
+          {...defaultProps}
+          handlerGroup={DataConditionHandlerGroupType.WORKFLOW_TRIGGER}
+          conditions={[DataConditionFixture()]}
+        />
+      </AutomationBuilderTestProvider>,
+      {organization}
+    );
+
+    expect(screen.queryByRole('button', {name: 'Delete row'})).not.toBeInTheDocument();
+  });
+
   it('shows conflicting condition warning for action filters', () => {
     const conflictReason = 'The conditions highlighted in red are in conflict.';
     render(
@@ -329,10 +344,21 @@ describe('DataConditionNodeList', () => {
       });
 
       await userEvent.click(await screen.findByLabelText('Issue category'));
+      expect(
+        screen.getByRole('menuitemradio', {name: 'configuration'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'preprod'})).toBeInTheDocument();
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'metric'}));
 
       expect(mockUpdateCondition).toHaveBeenLastCalledWith('issue-category', {
         comparison: {value: 11, include: false},
+      });
+
+      await userEvent.click(await screen.findByLabelText('Issue category'));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: 'configuration'}));
+
+      expect(mockUpdateCondition).toHaveBeenLastCalledWith('issue-category', {
+        comparison: {value: 19, include: false},
       });
     });
 

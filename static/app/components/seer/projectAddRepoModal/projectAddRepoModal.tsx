@@ -56,17 +56,9 @@ import {useProjects} from 'sentry/utils/useProjects';
 
 interface Props extends ModalRenderProps {
   title: string;
-  defaultProject?: Project;
 }
 
-export function ProjectAddRepoModal({
-  Header,
-  Body,
-  Footer,
-  defaultProject,
-  title,
-  closeModal,
-}: Props) {
+export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: Props) {
   const organization = useOrganization();
   const projectsById = useProjectsById();
   const repositoriesById = useRepositoriesById();
@@ -103,6 +95,7 @@ export function ProjectAddRepoModal({
       .min(1, {message: t('Please add at least one repository')}),
     agentOption: z.custom<AutofixAgentSelectOption>(),
     stoppingPoint: z.enum(['off', 'root_cause', 'plan', 'create_pr']),
+    prIteration: z.boolean(),
   });
 
   const saveMutation = useMutateAutofixProject();
@@ -112,10 +105,11 @@ export function ProjectAddRepoModal({
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues: {
-      project: defaultProject?.id ?? '',
+      project: '',
       repoEntries: [] as Array<{branch: string; repoId: string}>,
       agentOption,
       stoppingPoint,
+      prIteration: true,
     },
     validators: {
       onMount: formSchema.extend({
@@ -219,7 +213,6 @@ export function ProjectAddRepoModal({
                             </OverlayTrigger.Button>
                           );
                         }}
-                        disabled={Boolean(defaultProject)}
                         emptyMessage={t('No projects found')}
                         onChange={option => field.handleChange(option?.value ?? '')}
                         options={projectOptions}
@@ -396,6 +389,24 @@ export function ProjectAddRepoModal({
                     value={field.state.value}
                     onChange={field.handleChange}
                     options={stoppingPointOptions}
+                  />
+                </field.Layout.Row>
+              )}
+            </form.AppField>
+
+            <Separator orientation="horizontal" />
+
+            <form.AppField name="prIteration">
+              {field => (
+                <field.Layout.Row
+                  label={t('Auto-Iterate on PRs')}
+                  hintText={t(
+                    'After opening a PR, Seer automatically pushes fixes when CI checks fail. You can still ask Seer to iterate on a PR yourself.'
+                  )}
+                >
+                  <field.Switch
+                    checked={field.state.value}
+                    onChange={field.handleChange}
                   />
                 </field.Layout.Row>
               )}

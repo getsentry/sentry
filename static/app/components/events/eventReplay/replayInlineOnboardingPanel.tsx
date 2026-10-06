@@ -4,10 +4,11 @@ import styled from '@emotion/styled';
 import replayInlineOnboarding from 'sentry-images/spot/replay-inline-onboarding-v2.svg';
 
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -61,7 +62,6 @@ export default function ReplayInlineOnboardingPanel({
           </Container>
           <Flex gap="md">
             <Button
-              type="button"
               analyticsEventName="Clicked Replay Onboarding CTA Set Up Button in Issue Details"
               analyticsEventKey="issue_details.replay-onboarding-cta-set-up-button-clicked"
               analyticsParams={{platform}}
@@ -74,11 +74,14 @@ export default function ReplayInlineOnboardingPanel({
         {!isScreenSmall && <Background image={replayInlineOnboarding} />}
         <CloseDropdownMenu
           position="bottom-end"
-          triggerProps={{
-            showChevron: false,
-            variant: 'transparent',
-            icon: <IconClose variant="muted" />,
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              variant="transparent"
+              icon={<IconClose variant="muted" />}
+              aria-label={t('Close')}
+            />
+          )}
           size="xs"
           items={[
             {

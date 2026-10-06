@@ -70,6 +70,25 @@ describe('AddFilter', () => {
     await userEvent.click(screen.getByText('Back'));
   });
 
+  it('shows a loading indicator while filter keys are being fetched', async () => {
+    render(
+      <AddFilter
+        globalFilters={[]}
+        getSearchBarData={widgetType => ({
+          ...getSearchBarData(widgetType),
+          isFetchingFilterKeys: true,
+        })}
+        onAddFilter={() => {}}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Global Filter'}));
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByText('Logs'));
+    expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
+  });
+
   it('does not render unsupported filter keys', async () => {
     render(
       <AddFilter

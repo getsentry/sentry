@@ -109,7 +109,9 @@ class _IntegrationDefaults(TypedDict):
     status: int
 
 
-def ensure_integration(key: str, data: IntegrationData) -> Integration:
+def ensure_integration(
+    key: str, data: IntegrationData, *, overwrite_existing_integration: bool = True
+) -> Integration:
     defaults: _IntegrationDefaults = {
         "metadata": data.get("metadata", {}),
         "name": data.get("name", data["external_id"]),
@@ -118,10 +120,21 @@ def ensure_integration(key: str, data: IntegrationData) -> Integration:
     integration, created = Integration.objects.get_or_create(
         provider=key, external_id=data["external_id"], defaults=defaults
     )
-    if not created:
+    if not created and (overwrite_existing_integration or not _has_live_installations(integration)):
         integration.update(**defaults)
 
     return integration
+
+
+def _has_live_installations(integration: Integration) -> bool:
+    # Uninstalling only removes the OrganizationIntegration, leaving the
+    # Integration row behind. Once no organization is using it, the stored
+    # global fields are stale and safe to replace on the next install.
+    return (
+        OrganizationIntegration.objects.filter(integration_id=integration.id)
+        .exclude(status__in=[ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS])
+        .exists()
+    )
 
 
 class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
@@ -250,7 +263,11 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
                 provider=self.provider.integration_key, external_id=data["external_id"]
             )
         else:
-            self.integration = ensure_integration(self.provider.integration_key, data)
+            self.integration = ensure_integration(
+                self.provider.integration_key,
+                data,
+                overwrite_existing_integration=self.provider.overwrite_existing_integration,
+            )
 
         assert self.request.user.is_authenticated
 

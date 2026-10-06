@@ -25,7 +25,6 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
 from sentry.workflow_engine.migration_helpers.alert_rule import (
-    dual_update_resolve_condition,
     migrate_alert_rule,
     migrate_metric_action,
     migrate_metric_data_conditions,
@@ -94,7 +93,7 @@ class TestWorkflowEngineSerializer(TestCase):
         self.expected = {
             "id": str(self.alert_rule.id),
             "name": self.detector.name,
-            "organizationId": str(self.detector.project.organization_id),
+            "organizationId": str(self.detector.linked_project.organization_id),
             "status": AlertRuleStatus.PENDING.value,
             "queryType": self.alert_rule.snuba_query.type,
             "dataset": self.alert_rule.snuba_query.dataset,
@@ -167,7 +166,9 @@ class TestWorkflowEngineSerializer(TestCase):
         self.expected_triggers.append(self.expected_warning_trigger)
         # Update top-level resolveThreshold to match the warning threshold
         self.expected["resolveThreshold"] = self.warning_detector_trigger.comparison
-        dual_update_resolve_condition(self.alert_rule)
+        self.resolve_trigger_data_condition.update(
+            comparison=self.warning_detector_trigger.comparison
+        )
 
     def add_incident_data(self) -> None:
         self.incident = self.create_incident(alert_rule=self.alert_rule, date_started=self.now)
@@ -180,7 +181,7 @@ class TestWorkflowEngineSerializer(TestCase):
             action=self.critical_action, group=self.group, workflow=workflow
         )
         self.group_open_period = GroupOpenPeriod.objects.get(
-            group=self.group, project=self.detector.project
+            group=self.group, project=self.detector.linked_project
         )
         self.group_open_period.update(date_started=self.incident.date_started)
         self.incident_group_open_period = IncidentGroupOpenPeriod.objects.create(

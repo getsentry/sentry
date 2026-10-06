@@ -29,18 +29,12 @@ export function useAssistant(
 interface MutateAssistantData {
   guide: string;
   status: 'viewed' | 'dismissed' | 'restart';
-  useful?: boolean;
 }
 
 // Matching the logic from src/sentry/api/endpoints/assistant.py
 const seenStatuses = new Set(['viewed', 'dismissed']);
 
-interface UseMutateAssistantProps {
-  onError?: (error: RequestError) => void;
-  onSuccess?: () => void;
-}
-
-export function useMutateAssistant({onSuccess, onError}: UseMutateAssistantProps = {}) {
+export function useMutateAssistant() {
   const api = useApi({persistInFlight: false});
   const queryClient = useQueryClient();
 
@@ -58,7 +52,5 @@ export function useMutateAssistant({onSuccess, onError}: UseMutateAssistantProps
           )
       );
     },
-    onSuccess: () => onSuccess?.(),
-    onError: (error: RequestError) => onError?.(error),
   });
 }

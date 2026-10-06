@@ -25,11 +25,15 @@ from sentry.sentry_metrics.querying.units import (
     UnitFamily,
     get_unit_family_and_unit,
 )
-from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
-pytestmark = pytest.mark.sentry_metrics
+pytestmark = [
+    pytest.mark.sentry_metrics,
+    pytest.mark.skip(
+        reason="Generic metrics sets, gauges, and distributions are no longer queryable"
+    ),
+]
 
 MOCK_DATETIME = (timezone.now() - timedelta(days=1)).replace(
     hour=10, minute=0, second=0, microsecond=0
@@ -66,7 +70,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.store_metric(
                 self.project.organization.id,
                 self.project.id,
-                TransactionMRI.DURATION.value,
+                "d:transactions/duration@millisecond",
                 {
                     "transaction": transaction,
                     "platform": platform,
@@ -153,7 +157,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             ("sum", None, 0.0),
             ("min", None, 0.0),
         ):
-            query_1 = self.mql(aggregate, TransactionMRI.DURATION.value, "transaction:/bar")
+            query_1 = self.mql(aggregate, "d:transactions/duration@millisecond", "transaction:/bar")
 
             results = self.run_query(
                 mql_queries=[MQLQuery(query_1)],
@@ -176,7 +180,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             assert data[0][0]["totals"] == expected_identity_totals
 
     def test_query_with_infinite_value(self) -> None:
-        query_1 = self.mql("count", TransactionMRI.DURATION.value)
+        query_1 = self.mql("count", "d:transactions/duration@millisecond")
 
         results = self.run_query(
             mql_queries=[MQLQuery("$query_1 / 0", query_1=MQLQuery(query_1))],
@@ -199,7 +203,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][0]["totals"] is None
 
     def test_query_with_one_aggregation(self) -> None:
-        query_1 = self.mql("sum", TransactionMRI.DURATION.value)
+        query_1 = self.mql("sum", "d:transactions/duration@millisecond")
 
         results = self.run_query(
             mql_queries=[MQLQuery(query_1)],
@@ -227,7 +231,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert meta[0][1]["scaling_factor"] is not None
 
     def test_query_with_one_aggregation_and_only_totals(self) -> None:
-        query_1 = self.mql("sum", TransactionMRI.DURATION.value)
+        query_1 = self.mql("sum", "d:transactions/duration@millisecond")
 
         results = self.run_query(
             mql_queries=[MQLQuery(query_1)],
@@ -253,7 +257,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert meta[0][1]["scaling_factor"] is not None
 
     def test_query_with_one_aggregation_and_unitless_aggregate(self) -> None:
-        query_1 = self.mql("count", TransactionMRI.DURATION.value)
+        query_1 = self.mql("count", "d:transactions/duration@millisecond")
 
         results = self.run_query(
             mql_queries=[MQLQuery(query_1)],
@@ -281,7 +285,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert meta[0][1]["scaling_factor"] is None
 
     def test_query_with_one_aggregation_and_environment(self) -> None:
-        query_1 = self.mql("sum", TransactionMRI.DURATION.value)
+        query_1 = self.mql("sum", "d:transactions/duration@millisecond")
 
         results = self.run_query(
             mql_queries=[MQLQuery(query_1)],
@@ -304,7 +308,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][0]["totals"] == self.to_reference_unit(10.0)
 
     def test_query_with_one_aggregation_and_latest_release(self) -> None:
-        query_1 = self.mql("sum", TransactionMRI.DURATION.value, "release:latest")
+        query_1 = self.mql("sum", "d:transactions/duration@millisecond", "release:latest")
 
         results = self.run_query(
             mql_queries=[MQLQuery(query_1)],
@@ -327,7 +331,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][0]["totals"] == self.to_reference_unit(13.0)
 
     def test_query_with_percentile(self) -> None:
-        query_1 = self.mql("p90", TransactionMRI.DURATION.value)
+        query_1 = self.mql("p90", "d:transactions/duration@millisecond")
 
         results = self.run_query(
             mql_queries=[MQLQuery(query_1)],
@@ -355,7 +359,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def test_query_with_valid_percentiles(self) -> None:
         # We only want to check if these percentiles return results.
         for percentile in ("p50", "p75", "p90", "p95", "p99"):
-            query_1 = self.mql(percentile, TransactionMRI.DURATION.value)
+            query_1 = self.mql(percentile, "d:transactions/duration@millisecond")
 
             results = self.run_query(
                 mql_queries=[MQLQuery(query_1)],
@@ -373,7 +377,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def test_query_with_invalid_percentiles(self) -> None:
         # We only want to check if these percentiles result in a error.
         for percentile in ("p30", "p45"):
-            query_1 = self.mql(percentile, TransactionMRI.DURATION.value)
+            query_1 = self.mql(percentile, "d:transactions/duration@millisecond")
 
             with pytest.raises(MetricsQueryExecutionError):
                 self.run_query(
@@ -388,7 +392,9 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 )
 
     def test_query_with_group_by(self) -> None:
-        query_1 = self.mql("sum", TransactionMRI.DURATION.value, group_by="transaction, platform")
+        query_1 = self.mql(
+            "sum", "d:transactions/duration@millisecond", group_by="transaction, platform"
+        )
 
         results = self.run_query(
             mql_queries=[MQLQuery(query_1)],
@@ -431,7 +437,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_meta[0]["group_bys"] == ["platform", "transaction"]
 
     def test_query_with_group_by_and_order_by(self) -> None:
-        query_1 = self.mql("sum", TransactionMRI.DURATION.value, group_by="transaction")
+        query_1 = self.mql("sum", "d:transactions/duration@millisecond", group_by="transaction")
 
         results = self.run_query(
             mql_queries=[MQLQuery(query_1, order=QueryOrder.DESC)],
@@ -462,7 +468,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][1]["totals"] == self.to_reference_unit(9.0)
 
     def test_query_with_group_by_and_order_by_and_only_totals(self) -> None:
-        query_1 = self.mql("sum", TransactionMRI.DURATION.value, group_by="transaction")
+        query_1 = self.mql("sum", "d:transactions/duration@millisecond", group_by="transaction")
 
         results = self.run_query(
             mql_queries=[MQLQuery(query_1, order=QueryOrder.ASC)],
@@ -496,13 +502,15 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.store_metric(
                 self.project.organization.id,
                 self.project.id,
-                TransactionMRI.MEASUREMENTS_FCP.value,
+                "d:transactions/measurements.fcp@millisecond",
                 tags,
                 self.ts(time),
                 value,
             )
 
-        query_1 = self.mql("sum", TransactionMRI.MEASUREMENTS_FCP.value, group_by="transaction")
+        query_1 = self.mql(
+            "sum", "d:transactions/measurements.fcp@millisecond", group_by="transaction"
+        )
 
         results = self.run_query(
             mql_queries=[MQLQuery(query_1)],
@@ -526,7 +534,9 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_query[1]["totals"] == self.to_reference_unit(1.0)
 
     def test_query_with_parenthesized_filter(self) -> None:
-        query_1 = self.mql("sum", TransactionMRI.DURATION.value, "(transaction:/hello)", "platform")
+        query_1 = self.mql(
+            "sum", "d:transactions/duration@millisecond", "(transaction:/hello)", "platform"
+        )
 
         results = self.run_query(
             mql_queries=[MQLQuery(query_1)],
@@ -559,7 +569,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
     def test_query_with_and_filter(self) -> None:
         query_1 = self.mql(
-            "sum", TransactionMRI.DURATION.value, "platform:ios AND transaction:/hello", "platform"
+            "sum",
+            "d:transactions/duration@millisecond",
+            "platform:ios AND transaction:/hello",
+            "platform",
         )
 
         results = self.run_query(
@@ -586,7 +599,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
     def test_query_with_or_filter(self) -> None:
         query_1 = self.mql(
-            "sum", TransactionMRI.DURATION.value, "platform:ios OR platform:android", "platform"
+            "sum",
+            "d:transactions/duration@millisecond",
+            "platform:ios OR platform:android",
+            "platform",
         )
 
         results = self.run_query(
@@ -620,7 +636,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
     def test_query_one_negated_filter(self) -> None:
         query_1 = self.mql(
-            "sum", TransactionMRI.DURATION.value, "!platform:ios transaction:/hello", "platform"
+            "sum",
+            "d:transactions/duration@millisecond",
+            "!platform:ios transaction:/hello",
+            "platform",
         )
 
         results = self.run_query(
@@ -647,7 +666,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
     def test_query_one_in_filter(self) -> None:
         query_1 = self.mql(
-            "sum", TransactionMRI.DURATION.value, "platform:[android, ios]", "platform"
+            "sum", "d:transactions/duration@millisecond", "platform:[android, ios]", "platform"
         )
 
         results = self.run_query(
@@ -681,7 +700,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
 
     def test_query_one_not_in_filter(self) -> None:
         query_1 = self.mql(
-            "sum", TransactionMRI.DURATION.value, '!platform:["android", "ios"]', "platform"
+            "sum", "d:transactions/duration@millisecond", '!platform:["android", "ios"]', "platform"
         )
 
         results = self.run_query(
@@ -707,8 +726,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_query[0]["totals"] == self.to_reference_unit(9.0)
 
     def test_query_with_multiple_aggregations(self) -> None:
-        query_1 = self.mql("min", TransactionMRI.DURATION.value)
-        query_2 = self.mql("max", TransactionMRI.DURATION.value)
+        query_1 = self.mql("min", "d:transactions/duration@millisecond")
+        query_2 = self.mql("max", "d:transactions/duration@millisecond")
 
         results = self.run_query(
             mql_queries=[MQLQuery(query_1), MQLQuery(query_2)],
@@ -738,8 +757,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[1][0]["totals"] == self.to_reference_unit(6.0)
 
     def test_query_with_multiple_aggregations_and_single_group_by(self) -> None:
-        query_1 = self.mql("min", TransactionMRI.DURATION.value, group_by="platform")
-        query_2 = self.mql("max", TransactionMRI.DURATION.value, group_by="platform")
+        query_1 = self.mql("min", "d:transactions/duration@millisecond", group_by="platform")
+        query_2 = self.mql("max", "d:transactions/duration@millisecond", group_by="platform")
 
         results = self.run_query(
             mql_queries=[MQLQuery(query_1), MQLQuery(query_2)],
@@ -803,8 +822,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def test_query_with_multiple_aggregations_and_single_group_by_and_order_by_with_limit(
         self,
     ) -> None:
-        query_1 = self.mql("min", TransactionMRI.DURATION.value, group_by="platform")
-        query_2 = self.mql("max", TransactionMRI.DURATION.value, group_by="platform")
+        query_1 = self.mql("min", "d:transactions/duration@millisecond", group_by="platform")
+        query_2 = self.mql("max", "d:transactions/duration@millisecond", group_by="platform")
 
         results = self.run_query(
             mql_queries=[
@@ -865,7 +884,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def test_query_with_limit_above_snuba_limit(
         self,
     ) -> None:
-        query_1 = self.mql("min", TransactionMRI.DURATION.value)
+        query_1 = self.mql("min", "d:transactions/duration@millisecond")
 
         results = self.run_query(
             mql_queries=[MQLQuery(query_1, limit=SNUBA_QUERY_LIMIT + 10)],
@@ -895,8 +914,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def test_query_with_multiple_aggregations_and_single_group_by_and_dynamic_limit(
         self,
     ) -> None:
-        query_1 = self.mql("min", TransactionMRI.DURATION.value, group_by="platform")
-        query_2 = self.mql("max", TransactionMRI.DURATION.value, group_by="platform")
+        query_1 = self.mql("min", "d:transactions/duration@millisecond", group_by="platform")
+        query_2 = self.mql("max", "d:transactions/duration@millisecond", group_by="platform")
 
         # With a snuba limit of 3 and 3 intervals we expect to only have 1 group returned. Currently,
         # the test is failing because totals are correctly queried but series data is returned up to
@@ -1015,7 +1034,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     ) -> None:
         query_1 = self.mql(
             "min",
-            TransactionMRI.DURATION.value,
+            "d:transactions/duration@millisecond",
             "transaction:/api/0/organizations/{organization_id_or_slug}/",
         )
 
@@ -1034,7 +1053,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
     def test_query_with_different_namespaces(self) -> None:
         query_1 = self.mql(
             "min",
-            TransactionMRI.DURATION.value,
+            "d:transactions/duration@millisecond",
         )
         query_2 = self.mql("max", "d:sessions/app_load@millisecond")
 
@@ -1121,8 +1140,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             )
 
     def test_query_with_basic_formula(self) -> None:
-        query_1 = self.mql("count", TransactionMRI.DURATION.value)
-        query_2 = self.mql("sum", TransactionMRI.DURATION.value)
+        query_1 = self.mql("count", "d:transactions/duration@millisecond")
+        query_2 = self.mql("sum", "d:transactions/duration@millisecond")
 
         results = self.run_query(
             mql_queries=[
@@ -1145,8 +1164,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][0]["totals"] == 3.5
 
     def test_query_with_complex_formula(self) -> None:
-        query_1 = self.mql("count", TransactionMRI.DURATION.value)
-        query_2 = self.mql("sum", TransactionMRI.DURATION.value)
+        query_1 = self.mql("count", "d:transactions/duration@millisecond")
+        query_2 = self.mql("sum", "d:transactions/duration@millisecond")
 
         results = self.run_query(
             mql_queries=[
@@ -1174,8 +1193,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert data[0][0]["totals"] == 226.0
 
     def test_query_with_formula_and_group_by(self) -> None:
-        query_1 = self.mql("count", TransactionMRI.DURATION.value)
-        query_2 = self.mql("sum", TransactionMRI.DURATION.value)
+        query_1 = self.mql("count", "d:transactions/duration@millisecond")
+        query_2 = self.mql("sum", "d:transactions/duration@millisecond")
 
         results = self.run_query(
             mql_queries=[
@@ -1208,8 +1227,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         assert first_query[2]["totals"] == 18.0
 
     def test_query_with_formula_and_filter(self) -> None:
-        query_1 = self.mql("count", TransactionMRI.DURATION.value, filters="platform:android")
-        query_2 = self.mql("sum", TransactionMRI.DURATION.value, filters="platform:ios")
+        query_1 = self.mql(
+            "count", "d:transactions/duration@millisecond", filters="platform:android"
+        )
+        query_2 = self.mql("sum", "d:transactions/duration@millisecond", filters="platform:ios")
 
         results = self.run_query(
             mql_queries=[
@@ -1477,7 +1498,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.store_metric(
                 new_project.organization.id,
                 new_project.id,
-                TransactionMRI.DURATION.value,
+                "d:transactions/duration@millisecond",
                 {
                     "transaction": transaction,
                     "platform": platform,
@@ -1591,7 +1612,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         for case in cases:
             mql = self.mql(
                 "avg",
-                TransactionMRI.DURATION.value,
+                "d:transactions/duration@millisecond",
                 group_by=case["group_by"],
                 filters=case["filters"],
             )
@@ -1644,7 +1665,7 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         for case in cases:
             mql = self.mql(
                 "avg",
-                TransactionMRI.DURATION.value,
+                "d:transactions/duration@millisecond",
                 group_by=case["group_by"],
                 filters=case["filters"],
             )
@@ -1669,8 +1690,8 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
         new_project_2 = self.setup_project_with_metrics("Bar Yet Again")
         new_empty_project = self.create_project(name="empty project")
 
-        mql_1 = self.mql("avg", TransactionMRI.DURATION.value, group_by="project_id")
-        mql_2 = self.mql("avg", TransactionMRI.DURATION.value, group_by="project")
+        mql_1 = self.mql("avg", "d:transactions/duration@millisecond", group_by="project_id")
+        mql_2 = self.mql("avg", "d:transactions/duration@millisecond", group_by="project")
         query_1 = MQLQuery(mql_1)
         query_2 = MQLQuery(mql_2)
 

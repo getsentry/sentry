@@ -1,6 +1,5 @@
 import {queryOptions} from '@tanstack/react-query';
 
-import type {RequestCallbacks} from 'sentry/api';
 import {Client} from 'sentry/api';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {Group, Tag as GroupTag, TagValue} from 'sentry/types/group';
@@ -82,11 +81,7 @@ function getUpdateUrl({projectId, orgId}: UpdateParams) {
 
 type BulkDeleteParams = UpdateParams;
 
-export async function bulkDelete(
-  api: Client,
-  params: BulkDeleteParams,
-  options: RequestCallbacks = {}
-) {
+export async function bulkDelete(api: Client, params: BulkDeleteParams) {
   const {itemIds} = params;
   const path = getUpdateUrl(params);
 
@@ -95,24 +90,16 @@ export async function bulkDelete(
 
   GroupStore.onDelete(id, itemIds);
 
-  let responseMeta: any;
-  let statusText: string | undefined;
-
   try {
-    const [data, status, meta] = await api.requestPromise(path, {
+    const [data] = await api.requestPromise(path, {
       query,
       method: 'DELETE',
       includeAllArgs: true,
     });
-    statusText = status;
-    responseMeta = meta;
     GroupStore.onDeleteSuccess(id, itemIds, data);
-    options?.success?.(data, statusText, responseMeta);
   } catch (error) {
     GroupStore.onDeleteError(id, itemIds, error as RequestError);
-    options?.error?.(error);
-  } finally {
-    options?.complete?.(responseMeta, statusText ?? '');
+    throw error;
   }
 }
 
@@ -121,11 +108,7 @@ type BulkUpdateParams = UpdateParams & {
   failSilently?: boolean;
 };
 
-export async function bulkUpdate(
-  api: Client,
-  params: BulkUpdateParams,
-  options: RequestCallbacks = {}
-) {
+export async function bulkUpdate(api: Client, params: BulkUpdateParams) {
   const {itemIds, failSilently, data} = params;
   const path = getUpdateUrl(params);
 
@@ -138,35 +121,23 @@ export async function bulkUpdate(
       : data;
   GroupStore.onUpdate(id, itemIds, optimisticData);
 
-  let responseMeta: any;
-  let statusText: string | undefined;
-
   try {
-    const [response, status, meta] = await api.requestPromise(path, {
+    const [response] = await api.requestPromise(path, {
       query,
       method: 'PUT',
       data,
       includeAllArgs: true,
     });
-    statusText = status;
-    responseMeta = meta;
     GroupStore.onUpdateSuccess(id, itemIds, response);
-    options?.success?.(response, statusText, responseMeta);
   } catch (error) {
     GroupStore.onUpdateError(id, itemIds, !!failSilently);
-    options?.error?.(error);
-  } finally {
-    options?.complete?.(responseMeta, statusText ?? '');
+    throw error;
   }
 }
 
 type MergeGroupsParams = UpdateParams;
 
-export async function mergeGroups(
-  api: Client,
-  params: MergeGroupsParams,
-  options: RequestCallbacks = {}
-) {
+export async function mergeGroups(api: Client, params: MergeGroupsParams) {
   const {itemIds} = params;
   const path = getUpdateUrl(params);
 
@@ -175,25 +146,18 @@ export async function mergeGroups(
 
   GroupStore.onMerge(id, itemIds);
 
-  let responseMeta: any;
-  let statusText: string | undefined;
-
   try {
-    const [response, status, meta] = await api.requestPromise(path, {
+    const [response] = await api.requestPromise(path, {
       query,
       method: 'PUT',
       data: {merge: 1},
       includeAllArgs: true,
     });
-    statusText = status;
-    responseMeta = meta;
     GroupStore.onMergeSuccess(id, itemIds, response);
-    options?.success?.(response, statusText, responseMeta);
+    return response;
   } catch (error) {
     GroupStore.onMergeError(id, itemIds, error);
-    options?.error?.(error);
-  } finally {
-    options?.complete?.(responseMeta, statusText ?? '');
+    throw error;
   }
 }
 
@@ -202,7 +166,6 @@ type FetchIssueTagValuesParameters = {
   organization: Organization;
   tagKey: string;
   cursor?: QueryParamValue;
-  environment?: string[];
   sort?: string | string[];
 };
 
@@ -210,7 +173,6 @@ export function issueTagValuesApiOptions({
   organization,
   groupId,
   tagKey,
-  environment,
   sort,
   cursor,
 }: FetchIssueTagValuesParameters) {
@@ -223,7 +185,7 @@ export function issueTagValuesApiOptions({
           issueId: groupId,
           key: tagKey,
         },
-        query: {environment, sort, cursor},
+        query: {sort, cursor},
         staleTime: 0,
       }
     ),

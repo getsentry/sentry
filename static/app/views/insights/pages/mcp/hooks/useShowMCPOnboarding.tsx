@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {getSelectedProjectList} from 'sentry/utils/project/useSelectedProjectsHaveField';
 import {useProjects} from 'sentry/utils/useProjects';

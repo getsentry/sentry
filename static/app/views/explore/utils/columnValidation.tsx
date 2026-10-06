@@ -1,15 +1,16 @@
 import type {TagCollection} from 'sentry/types/group';
-import {parseFunction} from 'sentry/utils/discover/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import {parseConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
 export interface AttributeCollections {
   boolean: TagCollection;
   number: TagCollection;
   string: TagCollection;
+  array?: TagCollection;
 }
 
 export function getColumnFieldsForValidation({
@@ -30,7 +31,9 @@ export function getColumnFieldsForValidation({
     }
 
     fieldsForValidation.add(aggregateField.yAxis);
-    for (const argument of parseFunction(aggregateField.yAxis)?.arguments ?? []) {
+    // Parse conditionally so an `_if` filter query is not mistaken for an attribute.
+    const conditional = parseConditionalAggregate(aggregateField.yAxis);
+    for (const argument of conditional?.arguments ?? []) {
       if (argument) {
         fieldsForValidation.add(argument);
       }
@@ -55,6 +58,7 @@ export function getValidatedColumnData({
     boolean: {...attributes.boolean},
     number: {...attributes.number},
     string: {...attributes.string},
+    array: {...attributes.array},
   };
   const fieldTypes: Partial<Record<string, FieldValueType>> = {};
   const invalidFields = new Set<string>();
@@ -76,15 +80,21 @@ export function getValidatedColumnData({
       continue;
     }
 
-    if (item.attrType === 'boolean') {
+    // The attributes endpoint types arrays authoritatively (gated behind the
+    // array feature flag). Trust it even when the validate endpoint reports a
+    // scalar type for the same attribute, so a picked array column keeps its
+    // array type regardless of whether the backend validate change has shipped
+    // yet. When the flag is off, attributes.array is empty and this is a no-op.
+    const isArrayAttribute =
+      item.attrType === 'array' || Boolean(attributes.array?.[item.name]);
+
+    if (isArrayAttribute) {
+      fieldTypes[item.name] = FieldValueType.ARRAY;
+    } else if (item.attrType === 'boolean') {
       fieldTypes[item.name] = FieldValueType.BOOLEAN;
-    }
-
-    if (item.attrType === 'number') {
+    } else if (item.attrType === 'number') {
       fieldTypes[item.name] = FieldValueType.NUMBER;
-    }
-
-    if (item.attrType === 'string') {
+    } else if (item.attrType === 'string') {
       fieldTypes[item.name] = FieldValueType.STRING;
     }
 
@@ -92,29 +102,37 @@ export function getValidatedColumnData({
       continue;
     }
 
-    if (item.attrType === 'boolean') {
+    if (isArrayAttribute) {
+      delete validatedAttributes.boolean[item.name];
       delete validatedAttributes.number[item.name];
       delete validatedAttributes.string[item.name];
+      validatedAttributes.array[item.name] ??= {
+        key: item.name,
+        name: prettifyAttributeName(item.name),
+        kind: FieldKind.ARRAY,
+      };
+    } else if (item.attrType === 'boolean') {
+      delete validatedAttributes.number[item.name];
+      delete validatedAttributes.string[item.name];
+      delete validatedAttributes.array[item.name];
       validatedAttributes.boolean[item.name] ??= {
         key: item.name,
         name: prettifyAttributeName(item.name),
         kind: FieldKind.BOOLEAN,
       };
-    }
-
-    if (item.attrType === 'number') {
+    } else if (item.attrType === 'number') {
       delete validatedAttributes.boolean[item.name];
       delete validatedAttributes.string[item.name];
+      delete validatedAttributes.array[item.name];
       validatedAttributes.number[item.name] ??= {
         key: item.name,
         name: prettifyAttributeName(item.name),
         kind: FieldKind.MEASUREMENT,
       };
-    }
-
-    if (item.attrType === 'string') {
+    } else if (item.attrType === 'string') {
       delete validatedAttributes.boolean[item.name];
       delete validatedAttributes.number[item.name];
+      delete validatedAttributes.array[item.name];
       validatedAttributes.string[item.name] ??= {
         key: item.name,
         name: prettifyAttributeName(item.name),
@@ -143,11 +161,18 @@ function getValidatedAggregateFields({
       return !invalidFields.has(aggregateField.groupBy);
     }
 
-    if (invalidFields.has(aggregateField.yAxis)) {
+    const conditional = parseConditionalAggregate(aggregateField.yAxis);
+
+    // A series carrying an `_if` filter is validated as one expression, so an invalid
+    // filter query cannot be told apart from an invalid aggregate. Keep the series so an
+    // errored query is reported by its search bar instead of being thrown away, matching
+    // the main search. The argument check below still catches a bad aggregate.
+    if (!conditional?.filter && invalidFields.has(aggregateField.yAxis)) {
       return false;
     }
 
-    return !parseFunction(aggregateField.yAxis)?.arguments.some(
+    // Only the base aggregate arguments are attributes; `_if` filter queries are not.
+    return !conditional?.arguments.some(
       argument => argument && invalidFields.has(argument)
     );
   });

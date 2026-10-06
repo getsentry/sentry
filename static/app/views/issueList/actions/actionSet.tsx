@@ -1,13 +1,14 @@
 import {Fragment, useCallback} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {ArchiveActions} from 'sentry/components/actions/archive';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {makeGroupPriorityDropdownOptions} from 'sentry/components/badge/groupPriority';
 import {openConfirmModal} from 'sentry/components/confirm';
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
@@ -110,9 +111,9 @@ export function ActionSet({
 
   const label = getLabel(numIssues, allInQuerySelected);
 
-  const selectedIssues = [...issues]
-    .map(issueId => GroupStore.get(issueId))
-    .filter(Boolean) as BaseGroup[];
+  const selectedIssues = Array.from(issues, issueId => GroupStore.get(issueId)).filter(
+    issue => issue !== undefined
+  );
 
   // Merges require multiple issues of a single project type
   const multipleIssueProjectsSelected = multiSelected && !selectedProjectSlug;
@@ -302,12 +303,14 @@ export function ActionSet({
       <DropdownMenu
         size="sm"
         items={menuItems}
-        triggerProps={{
-          'aria-label': t('More issue actions'),
-          icon: <IconEllipsis />,
-          showChevron: false,
-          size: 'xs',
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            aria-label={t('More issue actions')}
+            icon={<IconEllipsis />}
+            size="xs"
+          />
+        )}
         isDisabled={!anySelected}
       />
     </Fragment>

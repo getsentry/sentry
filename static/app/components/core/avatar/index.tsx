@@ -7,6 +7,6 @@ export {LetterAvatar} from './letterAvatar/letterAvatar';
 export {OrganizationAvatar} from './organizationAvatar';
 export {ProjectAvatar} from './projectAvatar';
 export {SentryAppAvatar} from './sentryAppAvatar';
-export {TeamAvatar} from './teamAvatar';
+export {getTeamAvatarProps, TeamAvatar} from './teamAvatar';
 export {useAvatar} from './useAvatar';
-export {UserAvatar} from './userAvatar';
+export {getUserAvatarProps, UserAvatar} from './userAvatar';

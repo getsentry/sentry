@@ -37,9 +37,11 @@ import {
 import {useSetAutomaticAutomationName} from 'sentry/views/automations/components/forms/useSetAutomaticAutomationName';
 import {useCreateAutomation} from 'sentry/views/automations/hooks';
 import {useAutomationBuilderErrors} from 'sentry/views/automations/hooks/useAutomationBuilderErrors';
+import {mapAutomationFormErrors} from 'sentry/views/automations/utils/mapAutomationFormErrors';
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
 
 const DEFAULT_INITIAL_DATA = {
+  allProjects: false,
   name: '',
   environment: null,
   frequency: 0,
@@ -83,9 +85,7 @@ function FormBody({closeDrawer, model}: {closeDrawer: () => void; model: FormMod
           inline={false}
         />
         <Flex justify="end" gap="md">
-          <Button type="button" onClick={closeDrawer}>
-            {t('Cancel')}
-          </Button>
+          <Button onClick={closeDrawer}>{t('Cancel')}</Button>
           <Observer>
             {() => (
               <Button variant="primary" type="submit" busy={model.isSaving}>
@@ -118,7 +118,9 @@ export function AutomationBuilderDrawerForm({
     removeError,
   } = useAutomationBuilderErrors();
 
-  const {mutateAsync: createAutomation, error} = useCreateAutomation();
+  const {mutateAsync: createAutomation, error} = useCreateAutomation({
+    suppressErrorMessage: true,
+  });
 
   const handleSubmit = useCallback<OnSubmitCallback>(
     async (data, onSubmitSuccess, onSubmitError, _event, formModel) => {
@@ -206,6 +208,7 @@ export function AutomationBuilderDrawerForm({
       initialData={{...DEFAULT_INITIAL_DATA, ...initialData}}
       onSubmit={handleSubmit}
       model={model}
+      mapFormErrors={mapAutomationFormErrors}
     >
       <AutomationFormProvider>
         <DrawerHeader hideBar />

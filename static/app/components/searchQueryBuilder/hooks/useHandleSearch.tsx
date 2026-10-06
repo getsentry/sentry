@@ -1,6 +1,6 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback} from 'react';
 import * as Sentry from '@sentry/react';
-import debounce from 'lodash/debounce';
+import {useAsyncDebouncedCallback} from '@tanstack/react-pacer';
 
 import {saveRecentSearch} from 'sentry/actionCreators/savedSearches';
 import type {Client} from 'sentry/api';
@@ -102,10 +102,12 @@ export function useHandleSearch({
 }: UseHandleSearchProps) {
   const api = useApi();
   const organization = useOrganization();
-  const debouncedSaveAsRecentSearch = useMemo(
-    () => debounce(saveAsRecentSearch, 3000),
-    []
-  );
+  const debouncedSaveAsRecentSearch = useAsyncDebouncedCallback(saveAsRecentSearch, {
+    wait: 3000,
+    // Lodash allowed a pending recent search to save after unmounting.
+    // Flush instead of using Pacer's default cancellation to preserve that behavior.
+    onUnmount: debouncer => void debouncer.flush(),
+  });
 
   return useCallback(
     (query: string) => {

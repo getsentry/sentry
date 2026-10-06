@@ -35,7 +35,7 @@ export class RequestError extends Error {
   statusText?: string;
 
   constructor(
-    method: 'POST' | 'GET' | 'DELETE' | 'PUT' | undefined,
+    method: 'POST' | 'GET' | 'DELETE' | 'PATCH' | 'PUT' | undefined,
     path: string,
     cause: Error,
     responseMetadata?: ResponseMeta
@@ -103,4 +103,12 @@ export interface RateLimitError extends RequestError {
 
 export function isRateLimitError(error: unknown): error is RateLimitError {
   return error instanceof RequestError && error.status === 429;
+}
+
+export interface NotFoundError extends RequestError {
+  status: 404;
+}
+
+export function isNotFoundError(error: unknown): error is NotFoundError {
+  return error instanceof RequestError && error.status === 404;
 }

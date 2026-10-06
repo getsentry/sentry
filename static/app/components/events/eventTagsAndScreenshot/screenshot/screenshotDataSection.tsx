@@ -27,13 +27,11 @@ import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 interface ScreenshotDataSectionProps {
   event: Event;
   projectSlug: Project['slug'];
-  isShare?: boolean;
 }
 
 export function ScreenshotDataSection({
   event,
   projectSlug,
-  isShare,
   ...props
 }: ScreenshotDataSectionProps) {
   const {openModal} = useModal();
@@ -46,7 +44,7 @@ export function ScreenshotDataSection({
       projectSlug,
       eventId: event.id,
     },
-    {enabled: !isShare}
+    {enabled: true}
   );
   const [screenshotInFocus, setScreenshotInFocus] = useState(0);
   const {mutate: deleteAttachment} = useDeleteEventAttachmentOptimistic();
@@ -54,7 +52,7 @@ export function ScreenshotDataSection({
     attachment.name.includes('screenshot')
   );
 
-  const showScreenshot = !isShare && !!screenshots?.length;
+  const showScreenshot = !!screenshots?.length;
   if (!showScreenshot) {
     return null;
   }

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 from io import BytesIO
+from unittest.mock import patch
 from uuid import uuid4
 from zlib import compress
 
@@ -281,3 +282,92 @@ class TestDeleteReplays(ReplaysSnubaTestCase):
 
         replay_recordings = ReplayRecordingSegment.objects.all()
         assert len(replay_recordings) == 0
+
+    def test_deletion_replays_multi_page_keyset_pagination(self) -> None:
+        # Store several full pages worth of deletable replays so the keyset cursor has to walk
+        # past multiple pages. This guards the property that seek pagination never skips or
+        # double-processes a replay across page boundaries.
+        num_pages = 3
+        to_delete = [uuid4().hex for _ in range(self.small_batch_size * num_pages + 1)]
+        for replay_id in to_delete:
+            self.store_replay_segments(
+                replay_id=replay_id,
+                project_id=self.project.id,
+                timestamp=datetime.datetime.now() - datetime.timedelta(seconds=10),
+            )
+
+        # Keepers that fall inside the id space but must not be touched: a replay in another
+        # project and a replay outside the deletion time range.
+        replay_id_other_project = uuid4().hex
+        self.store_replay_segments(
+            replay_id_other_project,
+            self.other_project.id,
+            datetime.datetime.now() - datetime.timedelta(seconds=10),
+        )
+        replay_id_outside_timerange = uuid4().hex
+        self.store_replay_segments(
+            replay_id_outside_timerange,
+            self.project.id,
+            datetime.datetime.now() + datetime.timedelta(seconds=10),
+        )
+
+        with TaskRunner():
+            delete_replays(
+                project_id=self.project.id,
+                batch_size=self.small_batch_size,
+                tags=[],
+                start_utc=self.default_start_time,
+                end_utc=self.default_end_time,
+                dry_run=False,
+                environment=[],
+            )
+
+        for replay_id in to_delete:
+            self.assert_recording_deleted(replay_id)
+        self.assert_recording_not_deleted(replay_id_other_project)
+        self.assert_recording_not_deleted(replay_id_outside_timerange)
+
+    @patch("sentry.replays.scripts.delete_replays.delete_seer_replay_data")
+    def test_deletion_replays_seer_delete_gated(self, mock_delete_seer: object) -> None:
+        to_delete = uuid4().hex
+        self.store_replay_segments(
+            to_delete,
+            self.project.id,
+            datetime.datetime.now() - datetime.timedelta(seconds=10),
+        )
+
+        # Without the feature flag Seer deletion is not attempted.
+        with TaskRunner():
+            delete_replays(
+                project_id=self.project.id,
+                batch_size=self.small_batch_size,
+                environment=[],
+                tags=[],
+                start_utc=self.default_start_time,
+                end_utc=self.default_end_time,
+                dry_run=False,
+            )
+        assert mock_delete_seer.call_count == 0  # type: ignore[attr-defined]
+
+        # With the feature flag we call Seer with the canonical dashed replay ids.
+        deletable = uuid4().hex
+        self.store_replay_segments(
+            deletable,
+            self.project.id,
+            datetime.datetime.now() - datetime.timedelta(seconds=10),
+        )
+        with self.feature("organizations:replay-ai-summaries"), TaskRunner():
+            delete_replays(
+                project_id=self.project.id,
+                batch_size=self.small_batch_size,
+                environment=[],
+                tags=[],
+                start_utc=self.default_start_time,
+                end_utc=self.default_end_time,
+                dry_run=False,
+            )
+        assert mock_delete_seer.call_count >= 1  # type: ignore[attr-defined]
+        # The replay ids passed to Seer are canonical dashed UUIDs.
+        _, _, passed_ids = mock_delete_seer.call_args[0]  # type: ignore[attr-defined]
+        for replay_id in passed_ids:
+            assert "-" in replay_id

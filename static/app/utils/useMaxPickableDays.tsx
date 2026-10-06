@@ -16,9 +16,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
  */
 export function useDefaultMaxPickableDays(): number {
   const useDefaultMaxPickableDaysHook =
-    getOverride('react-hook:use-default-max-pickable-days') ??
-    useDefaultMaxPickableDaysImpl;
-  return useDefaultMaxPickableDaysHook();
+    getOverride('react-hook:use-default-max-pickable-days') ?? // oxlint-disable-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
+    useDefaultMaxPickableDaysImpl; // oxlint-disable-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
+  return useDefaultMaxPickableDaysHook(); // oxlint-disable-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
 }
 
 function useDefaultMaxPickableDaysImpl() {
@@ -50,8 +50,8 @@ export function useMaxPickableDays({
   dataCategories,
 }: UseMaxPickableDaysProps): MaxPickableDaysOptions {
   const useMaxPickableDaysHook =
-    getOverride('react-hook:use-max-pickable-days') ?? useMaxPickableDaysImpl;
-  return useMaxPickableDaysHook({dataCategories});
+    getOverride('react-hook:use-max-pickable-days') ?? useMaxPickableDaysImpl; // oxlint-disable-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
+  return useMaxPickableDaysHook({dataCategories}); // oxlint-disable-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
 }
 
 function useMaxPickableDaysImpl({dataCategories}: UseMaxPickableDaysProps) {
@@ -95,7 +95,10 @@ function max(
   return a;
 }
 
-const DESCRIPTION = t('To query over longer time ranges, upgrade to Business');
+const BUSINESS_UPGRADE_DESCRIPTION = t(
+  'To query over longer time ranges, upgrade to Business'
+);
+const TEAM_UPGRADE_DESCRIPTION = t('To query over longer time ranges, upgrade to Team');
 
 export function getMaxPickableDays(
   dataCategory: DataCategory,
@@ -160,9 +163,9 @@ const UpsellFooterHook = OverrideOrDefault({
 });
 
 export const SpansUpsellFooter = (
-  <UpsellFooterHook description={DESCRIPTION} source="spans" />
+  <UpsellFooterHook description={BUSINESS_UPGRADE_DESCRIPTION} source="spans" />
 );
 
 export const ErrorsUpsellFooter = (
-  <UpsellFooterHook description={DESCRIPTION} source="errors" />
+  <UpsellFooterHook description={TEAM_UPGRADE_DESCRIPTION} source="errors" />
 );

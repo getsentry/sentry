@@ -4,6 +4,7 @@ from typing import Any, Literal
 
 from sentry_conventions.attributes import (
     ATTRIBUTE_METADATA,
+    ATTRIBUTE_NAMES,
     AttributeMetadata,
     DeprecationStatus,
 )
@@ -301,11 +302,6 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             search_type="currency",
         ),
         ResolvedAttribute(
-            public_alias="gen_ai.usage.total_cost",
-            internal_name="gen_ai.usage.total_cost",
-            search_type="currency",
-        ),
-        ResolvedAttribute(
             public_alias="gen_ai.request.reasoning.level",
             internal_name="gen_ai.request.reasoning.level",
             search_type="string",
@@ -389,6 +385,21 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="mobile.total_frames",
             internal_name="frames.total",
             search_type="number",
+        ),
+        ResolvedAttribute(
+            public_alias="react_native.module.duration.max",
+            internal_name="react_native.module.duration.max",
+            search_type="millisecond",
+        ),
+        ResolvedAttribute(
+            public_alias="react_native.module.duration.total",
+            internal_name="react_native.module.duration.total",
+            search_type="millisecond",
+        ),
+        ResolvedAttribute(
+            public_alias="react_native.module.top.duration",
+            internal_name="react_native.module.top.duration",
+            search_type="millisecond",
         ),
         # These fields are extracted from span measurements but were accessed
         # 2 ways, with + without the measurements. prefix. So expose both for compatibility.
@@ -797,7 +808,7 @@ SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
         # to return the new aliases, remove these temp mappings.
         "sentry.description": "sentry.normalized_description",
         "sentry.span_id": "id",
-        "sentry.segment_name": "transaction",
+        ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME: "transaction",
     },
     "boolean": {
         definition.internal_name: definition.public_alias

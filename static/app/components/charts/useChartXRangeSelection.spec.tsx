@@ -86,7 +86,7 @@ describe('useChartXRangeSelection', () => {
 
     it('should disconnect chart group when chartsGroupName is provided', () => {
       const disconnectSpy = jest.fn();
-      jest.spyOn(require('echarts'), 'disconnect').mockImplementation(disconnectSpy);
+      jest.spyOn(require('echarts/core'), 'disconnect').mockImplementation(disconnectSpy);
 
       const {result} = renderHook(() =>
         useChartXRangeSelection({
@@ -255,7 +255,7 @@ describe('useChartXRangeSelection', () => {
 
     it('should reconnect chart group after brush ends', async () => {
       const connectSpy = jest.fn();
-      jest.spyOn(require('echarts'), 'connect').mockImplementation(connectSpy);
+      jest.spyOn(require('echarts/core'), 'connect').mockImplementation(connectSpy);
 
       const mockEchartsInstance = {
         ...mockChartInstance,

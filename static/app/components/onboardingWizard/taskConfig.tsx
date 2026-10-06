@@ -15,6 +15,7 @@ import type {Project} from 'sentry/types/project';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getDemoWalkthroughTasks} from 'sentry/utils/demoMode/guides';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {makeMonitorBasePathname} from 'sentry/views/detectors/pathnames';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
@@ -40,10 +41,7 @@ type Options = {
 
 function getIssueAlertUrl({projects, organization}: Options) {
   if (!projects?.length) {
-    return makeAlertsPathname({
-      path: '/rules/',
-      organization,
-    });
+    return makeMonitorBasePathname(organization.slug);
   }
   // pick the first project with events if we have that, otherwise just pick the first project
   const firstProjectWithEvents = projects.find(project => !!project.firstEvent);

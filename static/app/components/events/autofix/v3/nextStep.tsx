@@ -1,21 +1,20 @@
 import {useCallback, useMemo, useState, type ReactNode} from 'react';
-import {useInfiniteQuery, useQuery} from '@tanstack/react-query';
 
-import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {Button, ButtonBar} from '@sentry/scraps/button';
 import {MenuComponents} from '@sentry/scraps/compactSelect';
+import {DropdownMenu, DropdownMenuFooter} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
-import {DropdownMenuFooter} from 'sentry/components/dropdownMenu/footer';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
+import {hasCreatedPullRequests} from 'sentry/components/events/autofix/pullRequests';
+import {AUTOFIX_USER_CONTEXT_MAX_LENGTH} from 'sentry/components/events/autofix/types';
+import type {CodingAgentIntegration} from 'sentry/components/events/autofix/useAutofix';
 import {
-  organizationIntegrationsCodingAgents,
-  type CodingAgentIntegration,
-} from 'sentry/components/events/autofix/useAutofix';
-import {useAutofixRepos} from 'sentry/components/events/autofix/useAutofixRepos';
+  type PermissionsTarget,
+  useAutofixCreatePrGate,
+} from 'sentry/components/events/autofix/useAutofixCreatePrGate';
 import {
   getAutofixArtifactFromSection,
   isCodeChangesSection,
@@ -27,24 +26,20 @@ import {
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {PrIterationFeedbackForm} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
+import {RepositoryWritePermissionButton} from 'sentry/components/events/autofix/v3/repositoryWritePermissionButton';
+import {useAskSeerHandoff} from 'sentry/components/events/autofix/v3/useAskSeerHandoff';
+import {useCodingAgents} from 'sentry/components/events/autofix/v3/useCodingAgents';
+import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
 import {IconAdd} from 'sentry/icons/iconAdd';
 import {IconChevron} from 'sentry/icons/iconChevron';
-import {IconOpen} from 'sentry/icons/iconOpen';
+import {IconSeer} from 'sentry/icons/iconSeer';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {defined} from 'sentry/utils/defined';
-import {useIntegrations} from 'sentry/utils/integrations/useIntegrations';
-import {
-  getSeerProjectReposInfiniteQueryOptions,
-  isGitHubProvider,
-} from 'sentry/utils/seer/seerProjectRepos';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
-import {getProviderPermissionsUrl} from 'sentry/views/settings/organizationRepositories/getProviderConfigUrl';
 
 interface SeerDrawerNextStepProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
@@ -58,6 +53,18 @@ export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextSte
   const referrer = autofix.runState?.blocks?.[0]?.message?.metadata?.referrer;
 
   if (!defined(runId) || !defined(section)) {
+    return null;
+  }
+
+  // Failed create still renders the PR card (Retry PR). That is the next
+  // action — don't offer iteration feedback or "draft a PR" again.
+  const repoPrStates = autofix.runState?.repo_pr_states;
+  if (
+    isPullRequestsSection(section) &&
+    defined(repoPrStates) &&
+    Object.keys(repoPrStates).length > 0 &&
+    !hasCreatedPullRequests(repoPrStates)
+  ) {
     return null;
   }
 
@@ -150,6 +157,7 @@ interface NextStepProps {
 function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepProps) {
   const organization = useOrganization();
   const {isPolling, startStep} = autofix;
+  const {askSeer, isCodeMode} = useAskSeerHandoff();
 
   const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
     useCodingAgents({
@@ -183,6 +191,12 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
     [organization, group, startStep, runId, referrer, section.index]
   );
 
+  const rethinkPrompt = t('How can this root cause be improved?');
+  const rethinkInChat = useRethinkInChat({
+    prompt: rethinkPrompt,
+    step: 'root_cause',
+  });
+
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
 
   if (!defined(artifact)) {
@@ -206,8 +220,10 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
         </Button>
       }
       placeholderPrompt={t('Give seer additional context to improve this root cause.')}
-      rethinkPrompt={t('How can this root cause be improved?')}
+      rethinkPrompt={rethinkPrompt}
+      rethinkInChat={rethinkInChat}
       labelRethink={t('Rethink root cause')}
+      askSeer={isCodeMode ? {onAsk: askSeer, prompt: t('Rethink root cause')} : undefined}
       codingAgentIntegrations={codingAgentIntegrations}
       codingAgentDisabledReason={codingAgentDisabledReason}
       onCodingAgentHandoff={handleCodingAgentHandoff}
@@ -218,6 +234,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
 function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepProps) {
   const organization = useOrganization();
   const {isPolling, startStep} = autofix;
+  const {askSeer, isCodeMode} = useAskSeerHandoff();
 
   const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
     useCodingAgents({
@@ -251,6 +268,12 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
     [organization, group, startStep, runId, referrer, section.index]
   );
 
+  const rethinkPrompt = t('How can this plan be improved?');
+  const rethinkInChat = useRethinkInChat({
+    prompt: rethinkPrompt,
+    step: 'solution',
+  });
+
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
 
   if (!defined(artifact)) {
@@ -274,8 +297,10 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
         </Button>
       }
       placeholderPrompt={t('Give seer additional context to improve this plan.')}
-      rethinkPrompt={t('How can this plan be improved?')}
+      rethinkPrompt={rethinkPrompt}
+      rethinkInChat={rethinkInChat}
       labelRethink={t('Rethink plan')}
+      askSeer={isCodeMode ? {onAsk: askSeer, prompt: t('Rethink plan')} : undefined}
       codingAgentIntegrations={codingAgentIntegrations}
       codingAgentDisabledReason={codingAgentDisabledReason}
       onCodingAgentHandoff={handleCodingAgentHandoff}
@@ -286,150 +311,85 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
 function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextStepProps) {
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
 
-  const repos = useAutofixRepos({group, enabled: defined(artifact)});
-  const integrationIds =
-    repos.data?.repos
-      ?.filter(repo => !repo.has_write_access)
-      .map(repo => repo.integration_id) ?? [];
-  const {integrations, isPending: isIntegrationsPending} = useIntegrations({
-    integrationIds,
+  const {permissionsTarget, isPending, checkTargetWriteAccess} = useAutofixCreatePrGate({
+    group,
+    enabled: defined(artifact),
   });
-  const permissionsUrls = integrations
-    .map(integration => {
-      const url = getProviderPermissionsUrl(integration);
-      if (!defined(url)) {
-        return null;
-      }
-      return {
-        integration,
-        url,
-      };
-    })
-    .filter(Boolean);
 
   if (!defined(artifact)) {
     return null;
   }
 
-  if (repos.isPending || isIntegrationsPending) {
+  if (isPending) {
     return null;
   }
 
-  if (permissionsUrls.length) {
-    return (
-      <CodeChangesNextStepWithoutWritePermissions
-        group={group}
-        autofix={autofix}
-        runId={runId}
-        section={section}
-        referrer={referrer}
-        integration={permissionsUrls[0]!.integration}
-        permissionsUrl={permissionsUrls[0]!.url}
-      />
-    );
-  }
-
   return (
-    <CodeChangesNextStepWithWritePermissions
+    <CodeChangesNextStepContent
       group={group}
       autofix={autofix}
       runId={runId}
       section={section}
       referrer={referrer}
+      permissionsTarget={permissionsTarget}
+      checkTargetWriteAccess={checkTargetWriteAccess}
     />
   );
 }
 
-interface CodeChangesNextStepWithoutWritePermissionsProps extends NextStepProps {
-  integration: OrganizationIntegration;
-  permissionsUrl: string;
+interface CodeChangesNextStepContentProps extends NextStepProps {
+  checkTargetWriteAccess: () => Promise<boolean>;
+  permissionsTarget: PermissionsTarget | null;
 }
 
-function CodeChangesNextStepWithoutWritePermissions({
-  autofix,
-  group,
-  runId,
-  section,
-  referrer,
-  integration,
-  permissionsUrl,
-}: CodeChangesNextStepWithoutWritePermissionsProps) {
-  const organization = useOrganization();
-  const {isPolling, startStep} = autofix;
-
-  const handleNoClick = useCallback(
-    (userContext: string) => {
-      startStep('code_changes', {runId, userContext, insertIndex: section.index});
-      trackAnalytics('autofix.code_changes.re_run', {
-        organization,
-        group_id: group.id,
-        mode: 'explorer',
-        referrer,
-      });
-    },
-    [organization, group, startStep, runId, referrer, section.index]
-  );
+function CodeChangesActionButton({
+  checkTargetWriteAccess,
+  getPermissionsLabel,
+  isPolling,
+  onClick,
+  permissionsTarget,
+  readyLabel,
+}: {
+  checkTargetWriteAccess: () => Promise<boolean>;
+  getPermissionsLabel: (providerName: string) => string;
+  isPolling: boolean;
+  onClick: () => void;
+  permissionsTarget: PermissionsTarget | null;
+  readyLabel: string;
+}) {
+  if (permissionsTarget) {
+    const providerName = permissionsTarget.integration.provider.name;
+    return (
+      <RepositoryWritePermissionButton
+        key={permissionsTarget.integration.id}
+        checkTargetWriteAccess={checkTargetWriteAccess}
+        disabled={isPolling}
+        label={getPermissionsLabel(providerName)}
+        permissionsUrl={permissionsTarget.url}
+        providerName={providerName}
+      />
+    );
+  }
 
   return (
-    <NextStepTemplate
-      isProcessing={isPolling}
-      prompt={t('Are you happy with these code changes?')}
-      labelNo={t('No')}
-      onClickNo={handleNoClick}
-      yesButton={
-        <Tooltip
-          title={t(
-            'You need to grant write permissions for your %s integration',
-            integration.provider.name
-          )}
-        >
-          <LinkButton
-            external
-            openInNewTab
-            variant="primary"
-            disabled={isPolling}
-            to={permissionsUrl}
-            icon={<IconOpen />}
-          >
-            {t('Yes, view %s permissions', integration.provider.name)}
-          </LinkButton>
-        </Tooltip>
-      }
-      nevermindButton={
-        <Tooltip
-          title={t(
-            'You need to grant write permissions for your %s integration',
-            integration.provider.name
-          )}
-        >
-          <LinkButton
-            external
-            openInNewTab
-            variant="primary"
-            disabled={isPolling}
-            to={permissionsUrl}
-            icon={<IconOpen />}
-          >
-            {t('Nevermind, view %s permissions', integration.provider.name)}
-          </LinkButton>
-        </Tooltip>
-      }
-      placeholderPrompt={t('Give seer additional context to improve this code change.')}
-      rethinkPrompt={t('How can this code change be improved?')}
-      labelRethink={t('Rethink code changes')}
-    />
+    <Button variant="primary" disabled={isPolling} onClick={onClick}>
+      {readyLabel}
+    </Button>
   );
 }
 
-function CodeChangesNextStepWithWritePermissions({
+function CodeChangesNextStepContent({
   autofix,
   group,
   runId,
   section,
   referrer,
-}: NextStepProps) {
+  checkTargetWriteAccess,
+  permissionsTarget,
+}: CodeChangesNextStepContentProps) {
   const organization = useOrganization();
   const {isPolling, createPR, startStep} = autofix;
+  const {askSeer, isCodeMode} = useAskSeerHandoff();
 
   const handleYesClick = () => {
     createPR(runId);
@@ -454,6 +414,12 @@ function CodeChangesNextStepWithWritePermissions({
     [organization, group, startStep, runId, referrer, section.index]
   );
 
+  const rethinkPrompt = t('How can this code change be improved?');
+  const rethinkInChat = useRethinkInChat({
+    prompt: rethinkPrompt,
+    step: 'code_changes',
+  });
+
   return (
     <NextStepTemplate
       isProcessing={isPolling}
@@ -461,18 +427,34 @@ function CodeChangesNextStepWithWritePermissions({
       labelNo={t('No')}
       onClickNo={handleNoClick}
       yesButton={
-        <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
-          {t('Yes, draft a PR')}
-        </Button>
+        <CodeChangesActionButton
+          checkTargetWriteAccess={checkTargetWriteAccess}
+          getPermissionsLabel={providerName =>
+            t('Yes, view %s permissions', providerName)
+          }
+          isPolling={isPolling}
+          onClick={handleYesClick}
+          permissionsTarget={permissionsTarget}
+          readyLabel={t('Yes, draft a PR')}
+        />
       }
       nevermindButton={
-        <Button variant="primary" disabled={isPolling} onClick={handleYesClick}>
-          {t('Nevermind, draft a PR')}
-        </Button>
+        <CodeChangesActionButton
+          checkTargetWriteAccess={checkTargetWriteAccess}
+          getPermissionsLabel={providerName => t('View %s permissions', providerName)}
+          isPolling={isPolling}
+          onClick={handleYesClick}
+          permissionsTarget={permissionsTarget}
+          readyLabel={t('Nevermind, draft a PR')}
+        />
       }
       placeholderPrompt={t('Give seer additional context to improve this code change.')}
-      rethinkPrompt={t('How can this code change be improved?')}
+      rethinkPrompt={rethinkPrompt}
+      rethinkInChat={rethinkInChat}
       labelRethink={t('Rethink code changes')}
+      askSeer={
+        isCodeMode ? {onAsk: askSeer, prompt: t('Rethink code changes')} : undefined
+      }
     />
   );
 }
@@ -485,11 +467,24 @@ interface NextStepTemplateProps {
   onClickNo: (prompt: string) => void;
   placeholderPrompt: string;
   prompt: ReactNode;
-  rethinkPrompt: ReactNode;
+  rethinkPrompt: string;
   yesButton: ReactNode;
+  /**
+   * Set only in code mode, where "no" hands the question to Seer Agent with
+   * this prompt instead of collecting context for another Autofix step. The
+   * agent asks its own follow-ups, so the textarea is redundant there. When
+   * `rethinkInChat` is also set, the button asks through that instead.
+   */
+  askSeer?: {onAsk: (prompt: string) => void; prompt: string};
   codingAgentDisabledReason?: string;
   codingAgentIntegrations?: CodingAgentIntegration[];
   onCodingAgentHandoff?: (integration: CodingAgentIntegration) => void;
+  /**
+   * When set, "no" (or "Ask Seer" in code mode) opens Seer Agent on
+   * `rethinkPrompt` instead of the textarea below, and the reader types their
+   * changes into the chat.
+   */
+  rethinkInChat?: () => void;
 }
 
 function NextStepTemplate({
@@ -502,6 +497,8 @@ function NextStepTemplate({
   placeholderPrompt,
   rethinkPrompt,
   labelRethink,
+  askSeer,
+  rethinkInChat,
   codingAgentIntegrations,
   codingAgentDisabledReason,
   onCodingAgentHandoff,
@@ -539,6 +536,7 @@ function NextStepTemplate({
         <TextArea
           autosize
           rows={2}
+          maxLength={AUTOFIX_USER_CONTEXT_MAX_LENGTH}
           placeholder={placeholderPrompt}
           value={userContext}
           onChange={event => setUserContext(event.target.value)}
@@ -561,9 +559,22 @@ function NextStepTemplate({
     <Stack gap="lg">
       <Text>{prompt}</Text>
       <Flex gap="md">
-        <Button disabled={isProcessing} onClick={() => handleClickedNo(true)}>
-          {labelNo}
-        </Button>
+        {askSeer ? (
+          <Button
+            disabled={isProcessing}
+            icon={<IconSeer />}
+            onClick={rethinkInChat ?? (() => askSeer.onAsk(askSeer.prompt))}
+          >
+            {t('Ask Seer')}
+          </Button>
+        ) : (
+          <Button
+            disabled={isProcessing}
+            onClick={rethinkInChat ?? (() => handleClickedNo(true))}
+          >
+            {labelNo}
+          </Button>
+        )}
         <ButtonBar>
           {yesButton}
           {codingAgentIntegrations === undefined ? null : (
@@ -598,79 +609,4 @@ function NextStepTemplate({
       </Flex>
     </Stack>
   );
-}
-
-interface UseCodingAgentsOptions {
-  autofix: ReturnType<typeof useExplorerAutofix>;
-  group: Group;
-  referrer: string | undefined;
-  runId: SeerExplorerRunId;
-  step: 'root_cause' | 'solution';
-}
-
-function useCodingAgents({
-  autofix,
-  group,
-  runId,
-  step,
-  referrer,
-}: UseCodingAgentsOptions) {
-  const organization = useOrganization();
-  const {triggerCodingAgentHandoff} = autofix;
-
-  const {data: codingAgentResponse} = useQuery(
-    organizationIntegrationsCodingAgents(organization)
-  );
-
-  const reposQuery = useInfiniteQuery({
-    ...getSeerProjectReposInfiniteQueryOptions({organization, project: group.project}),
-    select: ({pages}) => pages.flatMap(page => page.json),
-  });
-  useFetchAllPages({result: reposQuery});
-  const repos = reposQuery.data ?? [];
-
-  // `useFetchAllPages` streams pages in across renders, so `isPending` alone only
-  // means "page 1 arrived" — not that every repo is loaded. Wait until pagination is
-  // fully drained so the gate below is computed over the complete repo list.
-  const isReposLoading =
-    reposQuery.isPending || reposQuery.isFetchingNextPage || reposQuery.hasNextPage;
-
-  // Disable handoff when the project has no connected repos, or when a non-GitHub repo
-  // (e.g. GitLab) is connected — coding agents only operate on GitHub repositories.
-  const hasNoRepos = repos.length === 0;
-  const hasNonGithubRepo = repos.some(repo => !isGitHubProvider(repo.provider));
-
-  const codingAgentIntegrations = useMemo(
-    () => (isReposLoading ? undefined : codingAgentResponse?.integrations),
-    [codingAgentResponse?.integrations, isReposLoading]
-  );
-
-  const codingAgentDisabledReason = hasNoRepos
-    ? t('Connect a GitHub repository to hand off to a coding agent.')
-    : hasNonGithubRepo
-      ? t('Handing off to a coding agent requires a connected GitHub repository.')
-      : undefined;
-
-  const handleCodingAgentHandoff = useCallback(
-    (integration: CodingAgentIntegration) => {
-      // OAuth redirect for integrations without identity
-      if (integration.requires_identity && !integration.has_identity) {
-        const currentUrl = window.location.href;
-        window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
-        return;
-      }
-      triggerCodingAgentHandoff(runId, integration);
-      trackAnalytics('autofix.coding_agent.launch', {
-        organization,
-        group_id: group.id,
-        step,
-        provider: integration.provider,
-        mode: 'explorer',
-        referrer,
-      });
-    },
-    [triggerCodingAgentHandoff, organization, runId, group, step, referrer]
-  );
-
-  return {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff};
 }

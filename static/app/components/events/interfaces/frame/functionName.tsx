@@ -6,29 +6,13 @@ import type {Frame} from 'sentry/types/event';
 type Props = {
   frame: Frame;
   className?: string;
-  hasHiddenDetails?: boolean;
   meta?: Record<any, any>;
-  showCompleteFunctionName?: boolean;
 };
 
-export function FunctionName({
-  frame,
-  showCompleteFunctionName,
-  hasHiddenDetails,
-  className,
-  meta,
-  ...props
-}: Props) {
+export function FunctionName({frame, className, meta, ...props}: Props) {
   const getValueOutput = ():
     | {meta: ReturnType<typeof getMeta>; value: Frame['function']}
     | undefined => {
-    if (hasHiddenDetails && showCompleteFunctionName && frame.rawFunction) {
-      return {
-        value: frame.rawFunction,
-        meta: meta?.rawFunction?.[''],
-      };
-    }
-
     if (frame.function) {
       return {
         value: frame.function,

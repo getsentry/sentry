@@ -1,19 +1,11 @@
-import styled from '@emotion/styled';
-
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {renderArchiveReason} from 'sentry/components/archivedBox';
-import {IconCheckmark} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus, ProgressState} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  ActivityResolutionReason,
-  DefaultResolutionReason,
-} from 'sentry/views/issueDetails/actions/resolutionReason';
+import {ActivityResolutionReason} from 'sentry/views/issueDetails/actions/resolutionReason';
 import {getArchiveDetails} from 'sentry/views/issueDetails/activitySection/activityLineItem/archiveDetails';
 import {ActivityProgressMarker} from 'sentry/views/issueDetails/activitySection/activityLineItem/progressMarker/progressMarker';
 
@@ -26,18 +18,12 @@ interface StatusBannerProps {
 }
 
 export function StatusBanner({group, project, resolvedCopy}: StatusBannerProps) {
-  const organization = useOrganization();
-
   if (group.status !== GroupStatus.RESOLVED && group.status !== GroupStatus.IGNORED) {
     return null;
   }
 
-  const useActivityBanner = organization.features.includes('issue-activity-feed-v2');
-
-  return useActivityBanner ? (
+  return (
     <ActivityStatusBanner group={group} project={project} resolvedCopy={resolvedCopy} />
-  ) : (
-    <DefaultStatusBanner group={group} project={project} resolvedCopy={resolvedCopy} />
   );
 }
 
@@ -113,51 +99,3 @@ function ActivityArchiveReason({
     ? tct('[actor] archived [details]', {actor: actor.name, details})
     : tct('Archived [details]', {details});
 }
-
-function DefaultStatusBanner({
-  group,
-  project,
-  resolvedCopy,
-}: StatusBannerProps & {
-  group: StatusGroup;
-}) {
-  const isResolved = group.status === GroupStatus.RESOLVED;
-
-  return (
-    <DefaultStatusWrapper>
-      <IconCheckmark size="md" />
-      <Stack>
-        {isResolved ? resolvedCopy || t('Resolved') : t('Archived')}
-        <DefaultReason>
-          {isResolved ? (
-            <DefaultResolutionReason
-              statusDetails={group.statusDetails}
-              activities={group.activity}
-              project={project}
-            />
-          ) : (
-            renderArchiveReason({
-              substatus: group.substatus,
-              statusDetails: group.statusDetails,
-            })
-          )}
-        </DefaultReason>
-      </Stack>
-    </DefaultStatusWrapper>
-  );
-}
-
-const DefaultStatusWrapper = styled('div')`
-  display: flex;
-  gap: ${p => p.theme.space.lg};
-  align-items: center;
-  color: ${p => p.theme.colors.green500};
-  font-weight: bold;
-  font-size: ${p => p.theme.font.size.lg};
-`;
-
-const DefaultReason = styled('div')`
-  font-weight: normal;
-  color: ${p => p.theme.colors.green500};
-  font-size: ${p => p.theme.font.size.sm};
-`;

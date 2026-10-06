@@ -297,7 +297,7 @@ type AutomationBuilderAction =
   | UpdateIfActionAction
   | UpdateIfLogicTypeAction;
 
-function createCondition(conditionType: DataConditionType): DataCondition {
+export function createCondition(conditionType: DataConditionType): DataCondition {
   return {
     id: uuid4(),
     type: conditionType,

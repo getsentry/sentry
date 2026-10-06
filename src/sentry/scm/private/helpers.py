@@ -1,28 +1,23 @@
-import time
 from typing import cast
 
 import sentry_sdk
 from django.db.models import Q
+from scm.errors import SCMCodedError, UnhandledException
+from scm.providers.cursor_origin.provider import CursorOriginProvider
 from scm.providers.github.provider import GitHubProvider
 from scm.providers.gitlab.provider import GitLabProvider
-from scm.rate_limit import RateLimitProvider
 from scm.types import Provider, Repository, RepositoryId
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.errors import OrganizationIntegrationNotFound
-from sentry.integrations.github.client import GITHUB_RATE_LIMIT_WINDOW, REFERRER_ALLOCATION
 from sentry.integrations.services.integration.service import integration_service
+from sentry.models.organization import Organization
 from sentry.models.repository import Repository as RepositoryModel
-from sentry.scm.private.rate_limit import DynamicRateLimiter, RedisRateLimitProvider
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils import metrics
 
 
-def fetch_service_provider(
-    organization_id: int,
-    repository: Repository,
-    rate_limit_provider: RateLimitProvider | None = None,
-) -> Provider | None:
+def fetch_service_provider(organization_id: int, repository: Repository) -> Provider | None:
     integration = integration_service.get_integration(
         integration_id=repository["integration_id"],
         organization_id=organization_id,
@@ -36,17 +31,13 @@ def fetch_service_provider(
         return None
 
     if integration.provider in ("github", "github_enterprise"):
-        rate_limiter = DynamicRateLimiter(
-            get_time_in_seconds=lambda: int(time.time()),
-            integration_id=integration.id,
-            provider=integration.provider,
-            rate_limit_provider=rate_limit_provider or RedisRateLimitProvider(),
-            rate_limit_window_seconds=GITHUB_RATE_LIMIT_WINDOW,
-            referrer_allocation=REFERRER_ALLOCATION,
-        )
-        return GitHubProvider(client, organization_id, repository, rate_limiter=rate_limiter)
+        return GitHubProvider(client, organization_id, repository)
     elif integration.provider == "gitlab":
         return GitLabProvider(client, organization_id, repository)
+    elif integration.provider == "cursor_origin":
+        return CursorOriginProvider(
+            client, organization_id, repository, installation_id=integration.external_id
+        )
     else:
         return None
 
@@ -64,6 +55,16 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
     except RepositoryModel.DoesNotExist:
         return None
 
+    # Tag the current Sentry scope with the organization so that any exceptions
+    # captured later in this request (e.g. ResourceForbidden from the SCM
+    # provider) include the affected customer for distribution analysis.
+    try:
+        org = Organization.objects.get_from_cache(id=organization_id)
+        sentry_sdk.set_tag("organization.slug", org.slug)
+        sentry_sdk.set_tag("organization.id", organization_id)
+    except Exception:
+        pass
+
     # This state should be impossible, however, the invariant is not encoded into the data type.
     # If we encounter a null integration_id the repository is useless. Return "None" and let the
     # SCM fail gracefully. Failing to return "None" here could fetch _any_ integration belonging
@@ -79,6 +80,7 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
 
     provider_name = repo.provider.removeprefix("integrations:")
     web_base_url: str | None = None
+    installation_id: str | None = None
     if provider_name == "github_enterprise":
         integration = integration_service.get_integration(
             integration_id=repo.integration_id,
@@ -89,6 +91,13 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
             if domain_name:
                 base_host = domain_name.split("/", 1)[0]
                 web_base_url = f"https://{base_host}"
+    elif provider_name == "cursor_origin":
+        integration = integration_service.get_integration(
+            integration_id=repo.integration_id,
+            organization_id=organization_id,
+        )
+        if integration:
+            installation_id = integration.external_id
 
     return cast(
         Repository,
@@ -101,25 +110,23 @@ def fetch_repository(organization_id: int, repository_id: RepositoryId) -> Repos
             "organization_id": repo.organization_id,
             "provider_name": provider_name,
             "web_base_url": web_base_url,
+            "installation_id": installation_id,
         },
     )
 
 
 def report_error_to_sentry(e: Exception) -> None:
-    """Typing wrapper around sentry_sdk.capture_exception."""
-    sentry_sdk.capture_exception(e)
+    if not isinstance(e, SCMCodedError) or isinstance(e, UnhandledException):
+        sentry_sdk.capture_exception(e)
 
 
 def record_count_metric(key: str, amount: int, tags: dict[str, str]) -> None:
-    """Typing wrapper around metrics.incr."""
     metrics.incr(key, amount, tags=tags)
 
 
 def record_distribution_metric(key: str, amount: int, tags: dict[str, str], unit: str) -> None:
-    """Typing wrapper around metrics.distribution."""
     metrics.distribution(key, amount, tags=tags, unit=unit)
 
 
 def record_timer_metric(key: str, amount: float, tags: dict[str, str]) -> None:
-    """Typing wrapper around metrics.distribution."""
     metrics.distribution(key, amount, tags=tags)

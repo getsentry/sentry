@@ -1,15 +1,19 @@
 import {useEffect, useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {parseQueryKey, type ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {PaymentCreateResponse, PaymentSetupCreateResponse} from 'getsentry/types';
 
-interface HookResult {
+interface HookResult<
+  T extends PaymentSetupCreateResponse | PaymentCreateResponse =
+    | PaymentSetupCreateResponse
+    | PaymentCreateResponse,
+> {
   error: string | undefined;
-  intentData: PaymentSetupCreateResponse | PaymentCreateResponse | undefined;
+  intentData: T | undefined;
   isError: boolean;
   isLoading: boolean;
 }
@@ -17,17 +21,22 @@ interface HookResult {
 /**
  * Get payment method setup intent data.
  */
-export function useSetupIntentData({endpoint}: {endpoint: string}): HookResult {
+export function useSetupIntentData({
+  queryKey,
+}: {
+  queryKey: ApiQueryKey;
+}): HookResult<PaymentSetupCreateResponse> {
   const [setupIntentData, setSetupIntentData] = useState<
     PaymentSetupCreateResponse | undefined
   >(undefined);
+  const {url} = parseQueryKey(queryKey);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | undefined>(undefined);
   const {mutate: loadSetupIntentData} = useMutation<
     PaymentSetupCreateResponse,
     RequestError
   >({
-    mutationFn: () => fetchMutation({url: endpoint, method: 'POST'}),
+    mutationFn: () => fetchMutation({url, method: 'POST'}),
     onSuccess: data => {
       setSetupIntentData(data);
       setIsLoading(false);
@@ -43,6 +52,7 @@ export function useSetupIntentData({endpoint}: {endpoint: string}): HookResult {
   });
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setIsLoading(true);
     loadSetupIntentData();
   }, [loadSetupIntentData]);
@@ -58,7 +68,11 @@ export function useSetupIntentData({endpoint}: {endpoint: string}): HookResult {
 /**
  * Get payment intent data.
  */
-export function usePaymentIntentData({queryKey}: {queryKey: ApiQueryKey}): HookResult {
+export function usePaymentIntentData({
+  queryKey,
+}: {
+  queryKey: ApiQueryKey;
+}): HookResult<PaymentCreateResponse> {
   const {
     isLoading,
     isPending,

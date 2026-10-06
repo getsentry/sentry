@@ -57,7 +57,7 @@ class GetFacetsTest(SnubaTestCase, TestCase):
         )
         assert len(result) == 6
         assert {r.key for r in result} == {"color", "paying", "level", "interface_type"}
-        assert {r.value for r in result} == {"red", "blue", "1", "0", "error", "logentry"}
+        assert {r.value for r in result} == {"red", "blue", "1", "0", "error", "contexts"}
         assert {r.count for r in result} == {1, 2}
 
     def test_project_filter(self) -> None:

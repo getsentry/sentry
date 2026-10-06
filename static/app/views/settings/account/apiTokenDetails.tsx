@@ -62,7 +62,7 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
   const mutation = useMutation({
     mutationFn: (data: z.infer<typeof schema>) =>
       fetchMutation({
-        url: `/api-tokens/${token.id}/`,
+        url: getApiUrl('/api-tokens/$tokenId/', {path: {tokenId: token.id}}),
         method: 'PUT',
         data,
       }),
@@ -141,7 +141,7 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
           label={t('Scopes')}
           help={t('You cannot change the scopes of an existing token.')}
         >
-          <div>{token.scopes.slice().sort().join(', ')}</div>
+          <div>{token.scopes.toSorted().join(', ')}</div>
         </FieldGroup>
       </form.FieldGroup>
 

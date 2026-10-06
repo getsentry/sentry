@@ -22,6 +22,7 @@ import sqlite3
 import sys
 from pathlib import Path
 
+from count_test_items import count_tests_in_file
 from find_test_imports import find_test_imports
 
 # -- Path conventions --
@@ -37,7 +38,6 @@ TEST_DIRS = (
     "tests/sentry/",
     "tests/snuba/",
     "tests/relay_integration/",
-    "tests/flagpole/",
     "tests/symbolicator/",
     "tests/social_auth/",
     "tests/sentry_plugins/",
@@ -155,7 +155,17 @@ ALWAYS_RUN_TESTS: set[str] = {
     #     to assign comparators — __relocation_scope__ changes on any model are invisible
     "tests/sentry/silo/test_base.py",
     "tests/sentry/backup/test_validate.py",
+    # Freezes option registrations, which happen at import time anywhere in src/.
+    "tests/sentry/options/test_legacy_options.py",
 }
+
+# Seer public-API matrix discovers published mutations at collection time, so
+# endpoint module edits (including publish_status flips) need an explicit include.
+PUBLIC_API_MATRIX_TEST = "tests/sentry/seer/endpoints/test_organization_agent_token.py"
+PUBLIC_API_MATRIX_PATH_TRIGGERS: list[re.Pattern[str]] = [
+    # Endpoint modules live under */endpoints/ across product areas.
+    re.compile(r"^src/sentry/.*/endpoints/.*\.py$"),
+]
 
 
 def _is_test(path: str) -> bool:
@@ -166,6 +176,14 @@ def _matches_trigger(file_path: str, trigger: str | re.Pattern[str]) -> bool:
     if isinstance(trigger, re.Pattern):
         return trigger.search(file_path) is not None
     return file_path == trigger
+
+
+def _changed_files_match_public_api_matrix_paths(changed_files: list[str]) -> list[str]:
+    return [
+        f
+        for f in changed_files
+        if any(_matches_trigger(f, t) for t in PUBLIC_API_MATRIX_PATH_TRIGGERS)
+    ]
 
 
 def _query_coverage(coverage_db_path: str, db_file_paths: list[str]) -> set[str]:
@@ -220,6 +238,22 @@ def _query_coverage(coverage_db_path: str, db_file_paths: list[str]) -> set[str]
             test_files.add(db_path[len(DB_PREFIX) :])
 
     return test_files
+
+
+def _query_test_counts(coverage_db_path: str, test_files: list[str]) -> dict[str, int]:
+    """Count distinct test ids per test file, including generated and parametrized tests."""
+    wanted = {DB_PREFIX + f: f for f in test_files}
+    tests: dict[str, set[str]] = {f: set() for f in test_files}
+    conn = sqlite3.connect(coverage_db_path)
+    try:
+        for (context,) in conn.execute("SELECT context FROM context WHERE context LIKE '%::%'"):
+            f = wanted.get(context.split("::", 1)[0])
+            if f is not None:
+                # Contexts are '<nodeid>|run', '<nodeid>|setup' and '<nodeid>|teardown'.
+                tests[f].add(context.rsplit("|", 1)[0])
+    finally:
+        conn.close()
+    return {f: len(ids) for f, ids in tests.items() if ids}
 
 
 def main() -> int:
@@ -313,6 +347,14 @@ def main() -> int:
             # Always run these tests
             affected_test_files.update(ALWAYS_RUN_TESTS)
 
+            endpoint_sources = _changed_files_match_public_api_matrix_paths(changed)
+            if endpoint_sources:
+                print(
+                    "Including public API matrix test due to endpoint path(s): "
+                    + ", ".join(endpoint_sources)
+                )
+                affected_test_files.add(PUBLIC_API_MATRIX_TEST)
+
     # Filter to sentry tests only (drop any getsentry tests from coverage)
     affected_test_files = {f for f in affected_test_files if _is_test(f)}
 
@@ -338,12 +380,33 @@ def main() -> int:
                 f.write(f"{test_file}\n")
         print(f"Wrote selected tests to {output_path}")
 
+    test_item_count = None
+    if output_tests or selective_applied:
+        coverage_counts: dict[str, int] = {}
+        if output_tests:
+            try:
+                coverage_counts = _query_test_counts(str(coverage_db), output_tests)
+            except sqlite3.Error as e:
+                print(
+                    f"Warning: could not count tests from coverage database: {e}", file=sys.stderr
+                )
+        test_item_count = 0
+        for test_file in output_tests:
+            ast_count = count_tests_in_file(Path(test_file))
+            coverage_count = coverage_counts.get(test_file, 0)
+            if coverage_count > ast_count:
+                print(f"  {test_file}: {coverage_count} tests in coverage DB, {ast_count} via AST")
+            test_item_count += max(ast_count, coverage_count)
+        print(f"Estimated {test_item_count} test items")
+
     if args.github_output:
         github_output = os.environ.get("GITHUB_OUTPUT")
         if github_output:
             has_selected = bool(output_tests) or selective_applied
             with open(github_output, "a") as f:
                 f.write(f"test-count={len(output_tests)}\n")
+                if test_item_count is not None:
+                    f.write(f"test-item-count={test_item_count}\n")
                 f.write(f"has-selected-tests={'true' if has_selected else 'false'}\n")
             if has_selected:
                 print(f"Wrote to GITHUB_OUTPUT: test-count={len(output_tests)}")

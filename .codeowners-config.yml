@@ -7,13 +7,13 @@ codeowners_path: '.github/CODEOWNERS'
 baseline_path: '.github/codeowners-coverage-baseline.txt'
 
 team_allowlist:
+  - getsentry/agent-interfaces
+  - getsentry/agent-interfaces-sentry-backend
+  - getsentry/agent-interfaces-sentry-frontend
   - getsentry/alerts-create-issues
   - getsentry/alerts-notifications
   - getsentry/app-backend
   - getsentry/app-frontend
-  - getsentry/coding-workflows
-  - getsentry/coding-workflows-sentry-backend
-  - getsentry/coding-workflows-sentry-frontend
   - getsentry/crons
   - getsentry/dashboards
   - getsentry/data

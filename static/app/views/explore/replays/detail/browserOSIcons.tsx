@@ -1,13 +1,12 @@
-/* eslint-disable unicorn/filename-case */
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
-import {CountTooltipContent} from 'sentry/components/replays/countTooltipContent';
 import {t} from 'sentry/locale';
 import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
@@ -37,18 +36,22 @@ export function BrowserOSIcons({
   return (
     <Tooltip
       title={
-        <CountTooltipContent>
-          {showBrowser && (
-            <Fragment>
-              <dt>{t('Browser:')}</dt>
-              <dd>{`${replayRecord?.browser.name ?? ''} ${replayRecord?.browser.version ?? ''}`}</dd>
-            </Fragment>
-          )}
-          <dt>{t('OS:')}</dt>
-          <dd>
-            {replayRecord?.os.name ?? ''} {replayRecord?.os.version ?? ''}
-          </dd>
-        </CountTooltipContent>
+        <Tooltip.Grid>
+          <DescriptionList gap="md 2xl" nowrap terms="strong">
+            {showBrowser && (
+              <Fragment>
+                <DescriptionList.Term>{t('Browser')}</DescriptionList.Term>
+                <DescriptionList.Details>
+                  {replayRecord?.browser.name ?? ''} {replayRecord?.browser.version ?? ''}
+                </DescriptionList.Details>
+              </Fragment>
+            )}
+            <DescriptionList.Term>{t('OS')}</DescriptionList.Term>
+            <DescriptionList.Details>
+              {replayRecord?.os.name ?? ''} {replayRecord?.os.version ?? ''}
+            </DescriptionList.Details>
+          </DescriptionList>
+        </Tooltip.Grid>
       }
     >
       <Flex>

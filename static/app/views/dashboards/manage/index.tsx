@@ -8,13 +8,13 @@ import {Alert} from '@sentry/scraps/alert';
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -28,6 +28,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useHasProjectAccess} from 'sentry/utils/useHasProjectAccess';
@@ -37,25 +38,40 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
 import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
 import {getIsOnlyPrebuilt} from 'sentry/views/dashboards/manage/utils/getIsOnlyPrebuilt';
-import {DashboardFilter, PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
+import {
+  CUSTOM_DASHBOARD_LABEL,
+  DashboardFilter,
+  PREBUILT_DASHBOARD_LABEL,
+} from 'sentry/views/dashboards/types';
 import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
 
 import {DASHBOARD_TABLE_NUM_ROWS, DEFAULT_PREBUILT_SORT} from './settings';
 
-function getSortOptions({isOnlyPrebuilt}: {isOnlyPrebuilt: boolean}) {
+function getSortOptions({
+  isOnlyPrebuilt,
+  hasUserLastVisited,
+}: {
+  hasUserLastVisited: boolean;
+  isOnlyPrebuilt: boolean;
+}) {
   const options = [];
 
   if (!isOnlyPrebuilt) {
     options.push({label: t('My Dashboards'), value: 'mydashboards'});
   }
-
   options.push(
     {label: t('Dashboard Name (A-Z)'), value: 'title'},
-    {label: t('Dashboard Name (Z-A)'), value: '-title'},
-    {label: t('Date Created (Newest)'), value: '-dateCreated'},
-    {label: t('Date Created (Oldest)'), value: 'dateCreated'},
+    {label: t('Dashboard Name (Z-A)'), value: '-title'}
+  );
+  if (!hasUserLastVisited || !isOnlyPrebuilt) {
+    options.push(
+      {label: t('Date Created (Newest)'), value: '-dateCreated'},
+      {label: t('Date Created (Oldest)'), value: 'dateCreated'}
+    );
+  }
+  options.push(
     {label: t('Most Popular'), value: 'mostPopular'},
     {label: t('Recently Viewed'), value: 'recentlyViewed'}
   );
@@ -63,12 +79,18 @@ function getSortOptions({isOnlyPrebuilt}: {isOnlyPrebuilt: boolean}) {
   return options;
 }
 
-function getDefaultSort({isOnlyPrebuilt}: {isOnlyPrebuilt: boolean}) {
-  if (isOnlyPrebuilt) {
+function getDefaultSort({
+  isOnlyPrebuilt,
+  hasUserLastVisited,
+}: {
+  hasUserLastVisited: boolean;
+  isOnlyPrebuilt: boolean;
+}) {
+  if (isOnlyPrebuilt && !hasUserLastVisited) {
     return DEFAULT_PREBUILT_SORT;
   }
 
-  return 'mydashboards';
+  return hasUserLastVisited ? 'recentlyViewed' : 'mydashboards';
 }
 
 function ManageDashboards() {
@@ -82,14 +104,20 @@ function ManageDashboards() {
   );
   const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
   const isOnlyPrebuilt = getIsOnlyPrebuilt(hasPrebuiltDashboards, urlFilter);
-  const pageTitle = isOnlyPrebuilt ? PREBUILT_DASHBOARD_LABEL : t('All Dashboards');
-
-  const areAiFeaturesAllowed =
-    !organization.hideAiFeatures && organization.features.includes('gen-ai-features');
+  const isOnlyCustom =
+    hasPrebuiltDashboards && urlFilter === DashboardFilter.EXCLUDE_PREBUILT;
+  const pageTitle = isOnlyPrebuilt
+    ? PREBUILT_DASHBOARD_LABEL
+    : isOnlyCustom
+      ? CUSTOM_DASHBOARD_LABEL
+      : t('All Dashboards');
 
   const {hasProjectAccess, projectsLoaded} = useHasProjectAccess();
 
-  const sortOptions = getSortOptions({isOnlyPrebuilt});
+  const hasUserLastVisited = organization.features.includes(
+    'dashboards-user-last-visited'
+  );
+  const sortOptions = getSortOptions({isOnlyPrebuilt, hasUserLastVisited});
 
   const {
     data: dashboardsResponse,
@@ -104,6 +132,7 @@ function ManageDashboards() {
         pin: 'favorites',
         per_page: DASHBOARD_TABLE_NUM_ROWS,
         ...(isOnlyPrebuilt ? {filter: DashboardFilter.ONLY_PREBUILT} : {}),
+        ...(isOnlyCustom ? {filter: DashboardFilter.EXCLUDE_PREBUILT} : {}),
       },
     }),
     select: selectJsonWithHeaders,
@@ -130,6 +159,7 @@ function ManageDashboards() {
                 layout: widget.layout ?? null,
               })
             ),
+            description: PREBUILT_DASHBOARDS[dashboard.prebuiltId].description,
             projects: [],
           };
         }
@@ -142,7 +172,7 @@ function ManageDashboards() {
 
   useEffect(() => {
     const urlSort = decodeScalar(location.query.sort);
-    const defaultSort = getDefaultSort({isOnlyPrebuilt});
+    const defaultSort = getDefaultSort({isOnlyPrebuilt, hasUserLastVisited});
     if (urlSort && !sortOptions.some(option => option.value === urlSort)) {
       // The sort option is not valid, so we need to set the default sort
       // in the URL
@@ -156,12 +186,14 @@ function ManageDashboards() {
     location.pathname,
     location.query,
     navigate,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     organization,
     sortOptions,
+    hasUserLastVisited,
   ]);
 
   function getActiveSort() {
-    const defaultSort = getDefaultSort({isOnlyPrebuilt});
+    const defaultSort = getDefaultSort({isOnlyPrebuilt, hasUserLastVisited});
     const urlSort = decodeScalar(location.query.sort, defaultSort);
 
     if (urlSort) {
@@ -208,149 +240,6 @@ function ManageDashboards() {
     return typeof query === 'string' ? query : undefined;
   }
 
-  function renderActions() {
-    const activeSort = getActiveSort();
-    return (
-      <StyledActions>
-        <SearchBar
-          defaultQuery=""
-          query={getQuery()}
-          placeholder={t('Search Dashboards')}
-          onSearch={query => handleSearch(query)}
-        />
-        <CompactSelect
-          trigger={triggerProps => (
-            <OverlayTrigger.Button {...triggerProps} prefix={t('Sort By')} />
-          )}
-          value={activeSort!.value}
-          options={sortOptions}
-          onChange={opt => handleSortChange(opt.value)}
-          position="bottom-end"
-          data-test-id="sort-by-select"
-        />
-        {areAiFeaturesAllowed ? (
-          <DashboardCreateLimitWrapper>
-            {({
-              hasReachedDashboardLimit,
-              isLoading: isLoadingDashboardsLimit,
-              limitMessage,
-            }) => (
-              <DropdownMenu
-                items={[
-                  {
-                    key: 'create-dashboard',
-                    label: t('Create dashboard manually'),
-                    onAction: () => onCreate(),
-                    disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
-                    details: limitMessage,
-                  },
-                  {
-                    key: 'create-dashboard-agent',
-                    textValue: t('Generate dashboard'),
-                    label: (
-                      <Flex gap="sm" align="center" as="span">
-                        {t('Generate dashboard')}
-                        <FeatureBadge type="beta" />
-                      </Flex>
-                    ),
-                    onAction: () => onGenerateDashboard(),
-                    disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
-                    details: limitMessage,
-                  },
-                ]}
-                trigger={triggerProps => (
-                  <Button
-                    {...triggerProps}
-                    data-test-id="dashboard-create"
-                    variant="primary"
-                    icon={<IconAdd />}
-                  >
-                    {t('Create Dashboard')}
-                  </Button>
-                )}
-              />
-            )}
-          </DashboardCreateLimitWrapper>
-        ) : (
-          <DashboardCreateLimitWrapper>
-            {({
-              hasReachedDashboardLimit,
-              isLoading: isLoadingDashboardsLimit,
-              limitMessage,
-            }) => (
-              <Button
-                data-test-id="dashboard-create"
-                onClick={event => {
-                  event.preventDefault();
-                  onCreate();
-                }}
-                variant="primary"
-                icon={<IconAdd />}
-                disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-                tooltipProps={{
-                  isHoverable: true,
-                  title: limitMessage,
-                }}
-              >
-                {t('Create Dashboard')}
-              </Button>
-            )}
-          </DashboardCreateLimitWrapper>
-        )}
-      </StyledActions>
-    );
-  }
-
-  function renderNoAccess() {
-    return (
-      <Stack flex={1}>
-        <Alert.Container>
-          <Alert variant="warning" showIcon={false}>
-            {t("You don't have access to this feature")}
-          </Alert>
-        </Alert.Container>
-      </Stack>
-    );
-  }
-
-  function renderDashboards() {
-    return (
-      <DashboardTable
-        api={api}
-        dashboards={dashboards}
-        organization={organization}
-        location={location}
-        onDashboardsChange={invalidateDashboards}
-        isLoading={isLoading}
-      />
-    );
-  }
-
-  function renderPagination() {
-    return (
-      <PaginationRow
-        pageLinks={dashboardsPageLinks}
-        onCursor={(cursor, path, query, direction) => {
-          const offset = Number(cursor?.split?.(':')?.[1] ?? 0);
-
-          const newQuery: Query & {cursor?: string} = {...query, cursor};
-          const isPrevious = direction === -1;
-
-          if (offset <= 0 && isPrevious) {
-            delete newQuery.cursor;
-          }
-
-          trackAnalytics('dashboards_manage.paginate', {organization});
-
-          navigate({
-            pathname: path,
-            query: newQuery,
-          });
-        }}
-      />
-    );
-  }
-
   function onCreate() {
     trackAnalytics('dashboards_manage.create.start', {
       organization,
@@ -369,6 +258,146 @@ function ManageDashboards() {
       })
     );
   }
+
+  const activeSort = getActiveSort();
+  const actions = (
+    <Grid
+      columns={{zero: 'auto', xl: 'auto max-content max-content'}}
+      gap="md"
+      marginBottom="xl"
+    >
+      <SearchBar
+        query={getQuery()}
+        placeholder={t('Search Dashboards')}
+        onSearch={query => handleSearch(query)}
+      />
+      <CompactSelect
+        trigger={triggerProps => (
+          <OverlayTrigger.Button {...triggerProps} prefix={t('Sort By')} />
+        )}
+        value={activeSort!.value}
+        options={sortOptions}
+        onChange={opt => handleSortChange(opt.value)}
+        position="bottom-end"
+        data-test-id="sort-by-select"
+      />
+      {areAiFeaturesAllowed(organization) ? (
+        <DashboardCreateLimitWrapper>
+          {({
+            hasReachedDashboardLimit,
+            isLoading: isLoadingDashboardsLimit,
+            limitMessage,
+          }) => (
+            <DropdownMenu
+              items={[
+                {
+                  key: 'create-dashboard',
+                  label: t('Create dashboard manually'),
+                  onAction: () => onCreate(),
+                  disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
+                  details: limitMessage,
+                },
+                {
+                  key: 'create-dashboard-agent',
+                  textValue: t('Generate dashboard'),
+                  label: (
+                    <Flex gap="sm" align="center" as="span">
+                      {t('Generate dashboard')}
+                      <FeatureBadge type="beta" />
+                    </Flex>
+                  ),
+                  onAction: () => onGenerateDashboard(),
+                  disabled: hasReachedDashboardLimit || isLoadingDashboardsLimit,
+                  details: limitMessage,
+                },
+              ]}
+              trigger={triggerProps => (
+                <Button
+                  {...triggerProps}
+                  data-test-id="dashboard-create"
+                  variant="primary"
+                  icon={<IconAdd />}
+                >
+                  {t('Create Dashboard')}
+                </Button>
+              )}
+            />
+          )}
+        </DashboardCreateLimitWrapper>
+      ) : (
+        <DashboardCreateLimitWrapper>
+          {({
+            hasReachedDashboardLimit,
+            isLoading: isLoadingDashboardsLimit,
+            limitMessage,
+          }) => (
+            <Button
+              data-test-id="dashboard-create"
+              onClick={event => {
+                event.preventDefault();
+                onCreate();
+              }}
+              variant="primary"
+              icon={<IconAdd />}
+              disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
+              tooltipProps={{
+                title: limitMessage,
+              }}
+            >
+              {t('Create Dashboard')}
+            </Button>
+          )}
+        </DashboardCreateLimitWrapper>
+      )}
+    </Grid>
+  );
+
+  function renderNoAccess() {
+    return (
+      <Stack flex={1}>
+        <Alert.Container>
+          <Alert variant="warning" showIcon={false}>
+            {t("You don't have access to this feature")}
+          </Alert>
+        </Alert.Container>
+      </Stack>
+    );
+  }
+
+  const dashboardsView = (
+    <DashboardTable
+      api={api}
+      dashboards={dashboards}
+      organization={organization}
+      location={location}
+      onDashboardsChange={invalidateDashboards}
+      isLoading={isLoading}
+      isOnlyPrebuilt={isOnlyPrebuilt}
+    />
+  );
+
+  const pagination = (
+    <PaginationRow
+      pageLinks={dashboardsPageLinks}
+      onCursor={(cursor, path, query, direction) => {
+        const offset = Number(cursor?.split?.(':')?.[1] ?? 0);
+
+        const newQuery: Query & {cursor?: string} = {...query, cursor};
+        const isPrevious = direction === -1;
+
+        if (offset <= 0 && isPrevious) {
+          delete newQuery.cursor;
+        }
+
+        trackAnalytics('dashboards_manage.paginate', {organization});
+
+        navigate({
+          pathname: path,
+          query: newQuery,
+        });
+      }}
+    />
+  );
 
   return (
     <Feature
@@ -394,9 +423,11 @@ function ManageDashboards() {
                         ? t(
                             'Dashboards built by Sentry to help monitor your application out of the box.'
                           )
-                        : t(
-                            "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
-                          )
+                        : isOnlyCustom
+                          ? t('Dashboards created by you and your team.')
+                          : t(
+                              "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
+                            )
                     }
                   />
                 </Layout.Title>
@@ -427,9 +458,9 @@ function ManageDashboards() {
                 </TopBar.Slot>
                 <Layout.Body>
                   <Layout.Main width="full">
-                    {renderActions()}
-                    <div id="dashboard-list-container">{renderDashboards()}</div>
-                    {renderPagination()}
+                    {actions}
+                    <div id="dashboard-list-container">{dashboardsView}</div>
+                    {pagination}
                   </Layout.Main>
                 </Layout.Body>
               </NoProjectMessage>
@@ -440,17 +471,6 @@ function ManageDashboards() {
     </Feature>
   );
 }
-
-const StyledActions = styled('div')`
-  display: grid;
-  grid-template-columns: auto max-content max-content;
-  gap: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.xl};
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    grid-template-columns: auto;
-  }
-`;
 
 const PaginationRow = styled(Pagination)`
   margin-bottom: ${p => p.theme.space['2xl']};

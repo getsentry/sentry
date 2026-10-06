@@ -29,7 +29,10 @@ import {
   getLinkedDashboardUrl,
 } from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import {getChartType} from 'sentry/views/dashboards/utils/getWidgetExploreUrl';
+import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
+import {canScaleThresholds} from 'sentry/views/dashboards/widgetCard/canScaleThresholds';
 import {matchTimeSeriesToTableRowValue} from 'sentry/views/dashboards/widgetCard/matchTimeSeriesToTableRowValue';
+import {scaleThresholdsToInterval} from 'sentry/views/dashboards/widgetCard/scaleThresholdsToInterval';
 import {transformWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {WidgetLegendNameEncoderDecoder} from 'sentry/views/dashboards/widgetLegendNameEncoderDecoder';
 import type {
@@ -45,6 +48,7 @@ import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plott
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {getExploreUrl} from 'sentry/views/explore/utils';
+import {navigationTypeSuppressesThresholds} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 import {ModelName} from 'sentry/views/insights/pages/agents/components/modelName';
@@ -76,7 +80,6 @@ interface VisualizationWidgetProps {
   onLegendSelectionChange?: (selection: LegendSelection) => void;
   onZoom?: EChartDataZoomHandler;
   showConfidenceWarning?: boolean;
-  showReleaseAs?: LoadableChartWidgetProps['showReleaseAs'];
   tableItemLimit?: number;
   widgetInterval?: string;
 }
@@ -89,7 +92,6 @@ export function VisualizationWidget({
   onDataFetchStart,
   tableItemLimit,
   widgetInterval,
-  showReleaseAs = 'bubble',
   showConfidenceWarning,
   onZoom,
   legendSelection,
@@ -112,9 +114,7 @@ export function VisualizationWidget({
       }
     : undefined;
 
-  const {releases: releasesWithDate} = useReleaseStats(selection, {
-    enabled: showReleaseAs !== 'none',
-  });
+  const {releases: releasesWithDate} = useReleaseStats(selection);
 
   const releases =
     releasesWithDate?.map(({date, version}) => ({
@@ -134,6 +134,7 @@ export function VisualizationWidget({
     >
       {({
         timeseriesResults,
+        timeseriesInterval,
         timeseriesResultsTypes,
         timeseriesResultsUnits,
         tableResults,
@@ -158,7 +159,7 @@ export function VisualizationWidget({
             errorMessage={errorMessage}
             loading={loading}
             releases={releases}
-            showReleaseAs={showReleaseAs}
+            showReleaseAs="bubble"
             dashboardFilters={dashboardFilters}
             showConfidenceWarning={showConfidenceWarning}
             confidence={confidence}
@@ -169,6 +170,7 @@ export function VisualizationWidget({
             legendSelection={decodedLegendSelection}
             onLegendSelectionChange={handleLegendSelectionChange}
             isFullScreen={isFullScreen}
+            widgetInterval={timeseriesInterval ?? widgetInterval}
           />
         );
       }}
@@ -196,6 +198,7 @@ interface VisualizationWidgetContentProps {
   tableResults?: TableDataWithTitle[];
   timeseriesResultsTypes?: Record<string, AggregationOutputType>;
   timeseriesResultsUnits?: Record<string, DataUnit>;
+  widgetInterval?: string;
 }
 
 function VisualizationWidgetContent({
@@ -218,6 +221,7 @@ function VisualizationWidgetContent({
   legendSelection,
   onLegendSelectionChange,
   isFullScreen,
+  widgetInterval,
 }: VisualizationWidgetContentProps) {
   const theme = useTheme();
   const organization = useOrganization();
@@ -331,11 +335,14 @@ function VisualizationWidgetContent({
             aggregateField: [
               {chartType: getChartType(widget.displayType), yAxes: [yAxis]},
             ],
-            query: applyDashboardFilters(
-              exploreQuery.formatString(),
-              dashboardFilters,
-              widget.widgetType
-            ),
+            query: applyDashboardFilters({
+              baseQuery: exploreQuery.formatString(),
+              dashboardFilters: withGlobalFilterFallback(
+                dashboardFilters,
+                widget.queries[0]?.globalFilterFallback
+              ),
+              widgetType: widget.widgetType,
+            }),
           });
           labelContent = <Link to={exploreUrl}>{labelDisplay}</Link>;
         }
@@ -404,12 +411,15 @@ function VisualizationWidgetContent({
   );
 
   if (
-    defined(widget.thresholds?.max_values.max1) ||
-    defined(widget.thresholds?.max_values.max2)
+    !navigationTypeSuppressesThresholds(dashboardFilters, organization) &&
+    (defined(widget.thresholds?.max_values?.max1) ||
+      defined(widget.thresholds?.max_values?.max2))
   ) {
     plottables.push(
       new Thresholds({
-        thresholds: widget.thresholds,
+        thresholds: canScaleThresholds(widget)
+          ? scaleThresholdsToInterval(widget.thresholds, widgetInterval)
+          : widget.thresholds,
         dataType: timeSeriesWithPlottable[0]?.[0]?.meta?.valueType,
       })
     );

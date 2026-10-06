@@ -3,7 +3,6 @@ from unittest.mock import patch
 import pytest
 
 from sentry.api.event_search import ParenExpression, parse_search_query
-from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import (
     OnDemandMetricSpec,
     SearchQueryConverter,
@@ -28,150 +27,12 @@ def test_equality_of_specs(default_project) -> None:
     )
 
 
-@pytest.mark.parametrize(
-    "agg, query, result",
-    [
-        ("count()", "release:a", False),  # supported by standard metrics
-        ("failure_rate()", "release:a", False),  # supported by standard metrics
-        # geo.city not supported by standard metrics
-        ("count_unique(geo.city)", "release:a", True),
-        # transaction.duration not supported by standard metrics
-        ("count()", "transaction.duration:>1", True),
-        ("epm()", "transaction.duration:>1", True),
-        ("eps()", "transaction.duration:>1", True),
-        ("epm()", "", False),  # supported by standard metrics
-        ("eps()", "", False),  # supported by standard metrics
-        # the endpoints introduce the field based on the interval
-        ("epm(900)", "", False),  # supported by standard metrics
-        ("eps(900)", "", False),  # supported by standard metrics
-        ("failure_count()", "transaction.duration:>1", True),  # supported by on demand
-        ("failure_rate()", "transaction.duration:>1", True),  # supported by on demand
-        ("apdex(10)", "", True),  # every apdex query is on-demand
-        ("apdex(10)", "transaction.duration:>10", True),  # supported by on demand
-        # count_if supported by standard metrics
-        ("count_if(transaction.duration,equals,0)", "release:a", False),
-        ("p75(transaction.duration)", "release:a", False),  # supported by standard metrics
-        # transaction.duration query is on-demand
-        ("p75(transaction.duration)", "transaction.duration:>1", True),
-        ("p90(transaction.duration)", "release:a", False),  # supported by standard metrics
-        # transaction.duration query is on-demand
-        ("p90(transaction.duration)", "transaction.duration:>1", True),
-        # supported by standard metrics
-        ("percentile(transaction.duration, 0.9)", "release:a", False),
-        # transaction.duration query is on-demand
-        ("percentile(transaction.duration, 0.9)", "transaction.duration:>1", True),
-        # supported by standard metrics
-        ("percentile(transaction.duration, 0.90)", "release:a", False),
-        ("percentile(transaction.duration, 0.90)", "transaction.duration:>1", True),
-        ("count()", "", False),  # Malformed aggregate should return false
-        # event.type:error not supported by metrics
-        ("count()", "event.type:error transaction.duration:>0", False),
-        # event.type:error not supported by metrics
-        ("count()", "event.type:default transaction.duration:>0", False),
-        # error.handled is an error search term
-        ("count()", "error.handled:true transaction.duration:>0", False),
-        ("user_misery(300)", "", True),
-        ("user_misery(300)", "transaction.duration:>0", True),
-    ],
-)
-@django_db_all
-def test_should_use_on_demand(agg: str, query: str, result: bool) -> None:
-    assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
-
-
-@pytest.mark.parametrize(
-    "agg, query, result",
-    [
-        ("p75(d:transactions/measurements.fcp@millisecond)", "release:a", False),
-        ("p75(d:transactions/measurements.fcp@millisecond)", "transaction.duration:>0", False),
-        ("p95(d:spans/duration@millisecond)", "release:a", False),
-        ("p95(d:spans/duration@millisecond)", "transaction.duration:>0", False),
-    ],
-)
-@django_db_all
-def test_should_use_on_demand_with_mri(agg, query, result) -> None:
-    assert should_use_on_demand_metrics(Dataset.PerformanceMetrics, agg, query) is result
-
-
 def create_spec_if_needed(dataset, agg, query) -> OnDemandMetricSpec | None:
     return (
         OnDemandMetricSpec(agg, query)
         if should_use_on_demand_metrics(dataset, agg, query)
         else None
     )
-
-
-class TestCreatesOndemandMetricSpec:
-    dataset = Dataset.PerformanceMetrics
-
-    @pytest.mark.parametrize(
-        "aggregate, query",
-        [
-            # transaction duration not supported by standard metrics
-            ("count()", "transaction.duration:>0"),
-            ("count()", "user.ip:192.168.0.1"),
-            ("count()", "user.username:foobar"),
-            ("count()", "transaction.duration:>0 event.type:transaction project:abc"),
-            ("count()", "(transaction.duration:>0) AND (event.type:transaction)"),
-            ("p75(measurements.fp)", "transaction.duration:>0"),
-            ("p75(transaction.duration)", "transaction.duration:>0"),
-            ("p100(transaction.duration)", "transaction.duration:>0"),
-            # we don't support custom percentiles that can be mapped to one of standard percentiles
-            ("percentile(transaction.duration, 0.5)", "transaction.duration>0"),
-            ("percentile(transaction.duration, 0.50)", "transaction.duration>0"),
-            ("percentile(transaction.duration, 0.9)", "transaction.duration>0"),
-            ("percentile(transaction.duration, 0.90)", "transaction.duration>0"),
-            ("percentile(transaction.duration, 0.95)", "transaction.duration>0"),
-            ("percentile(transaction.duration, 0.99)", "transaction.duration>0"),
-            ("percentile(transaction.duration, 1)", "transaction.duration>0"),
-            ("count_if(transaction.duration,equals,0)", "transaction.duration:>0"),
-            ("count_if(transaction.duration,notEquals,0)", "transaction.duration:>0"),
-            # custom tags not supported by standard metrics
-            ("count()", "project:a-1 route.action:CloseBatch"),
-            ("count()", "transaction.duration:[1,2,3]"),
-            ("count()", "project:a_1 or project:b-2 or transaction.duration:>0"),
-            ("count()", "foo:bar"),  # custom tags not supported by standard metrics
-            ("failure_count()", "transaction.duration:>100"),
-            ("failure_rate()", "transaction.duration:>100"),
-            ("apdex(10)", "transaction.duration:>100"),
-            # count_web_vitals supported by on demand
-            ("count_web_vitals(measurements.fcp,any)", "transaction.duration:>0"),
-            # apdex with specified threshold is on-demand metric even without query
-            ("apdex(10)", ""),
-            ("count()", "transaction.duration:>0 my-transaction"),
-            ("count()", "transaction.source:route"),
-        ],
-    )
-    @django_db_all
-    def test_creates_on_demand_spec(self, aggregate, query) -> None:
-        assert create_spec_if_needed(self.dataset, aggregate, query)
-
-    @pytest.mark.parametrize(
-        "aggregate, query",
-        [
-            ("count()", "release:a"),  # supported by standard metrics
-            ("last_seen()", "transaction.duration:>0"),  # last_seen not supported by on demand
-            ("any(user)", "transaction.duration:>0"),  # any not supported by on demand
-            ("p95(transaction.duration)", ""),  # p95 without query is supported by standard metrics
-            # we do not support custom percentiles that can not be mapped to one of standard percentiles
-            ("percentile(transaction.duration, 0.123)", "transaction.duration>0"),
-            # p75 without query is supported by standard metrics
-            ("count()", "p75(transaction.duration):>0"),
-            ("message", "transaction.duration:>0"),  # message not supported by on demand
-            # equation not supported by on demand
-            ("equation| count() / count()", "transaction.duration:>0"),
-            ("p75(measurements.lcp)", "!event.type:transaction"),  # supported by standard metrics
-            # supported by standard metrics
-            ("p95(measurements.lcp)", ""),
-            ("avg(spans.http)", ""),
-            ("failure_count()", ""),
-            ("failure_rate()", "release:bar"),
-            ("failure_rate()", ""),
-        ],
-    )
-    @django_db_all
-    def test_does_not_create_on_demand_spec(self, aggregate, query) -> None:
-        assert not create_spec_if_needed(self.dataset, aggregate, query)
 
 
 @pytest.mark.parametrize(
@@ -196,6 +57,7 @@ def test_spec_simple_query_count() -> None:
     spec = OnDemandMetricSpec("count()", "transaction.duration:>1s")
 
     assert spec._metric_type == "c"
+    assert spec.mri == "c:spans/on_demand@none"
     assert spec.field_to_extract is None
     assert spec.op == "sum"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}
@@ -205,6 +67,7 @@ def test_spec_simple_query_distribution() -> None:
     spec = OnDemandMetricSpec("p75(measurements.fp)", "transaction.duration:>1s")
 
     assert spec._metric_type == "d"
+    assert spec.mri == "d:spans/on_demand@none"
     assert spec.field_to_extract == "event.measurements.fp.value"
     assert spec.op == "p75"
     assert spec.condition == {"name": "event.duration", "op": "gt", "value": 1000.0}

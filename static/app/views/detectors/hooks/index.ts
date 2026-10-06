@@ -1,11 +1,13 @@
 import {queryOptions, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {
   type BaseDetectorUpdatePayload,
   type Detector,
+  type IssueStreamDetector,
   type UptimeDetector,
 } from 'sentry/types/workflowEngine/detectors';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -13,10 +15,12 @@ import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface DetectorTypeMap {
+  issue_stream: IssueStreamDetector;
   uptime: UptimeDetector;
 }
 
@@ -142,8 +146,10 @@ export function useUpdateDetector<T extends Detector = Detector>() {
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
 
-  return useMutation<T, void, {detectorId: string} & Partial<BaseDetectorUpdatePayload>>({
-    mutationFn: data =>
+  return useMutation({
+    mutationFn: (
+      data: {detectorId: string} & Partial<BaseDetectorUpdatePayload>
+    ): Promise<T> =>
       api.requestPromise(
         getApiUrl('/organizations/$organizationIdOrSlug/detectors/$detectorId/', {
           path: {organizationIdOrSlug: org.slug, detectorId: data.detectorId},
@@ -165,8 +171,12 @@ export function useUpdateDetector<T extends Detector = Detector>() {
         ],
       });
     },
-    onError: _ => {
-      addErrorMessage(t('Unable to update monitor'));
+    onError: error => {
+      addErrorMessage(
+        (error instanceof RequestError
+          ? getWorkflowEngineResponseErrorMessage(error.responseJSON)
+          : undefined) ?? t('Unable to update monitor')
+      );
     },
   });
 }

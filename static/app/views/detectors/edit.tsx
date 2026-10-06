@@ -1,6 +1,5 @@
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {useWorkflowEngineFeatureGate} from 'sentry/components/workflowEngine/useWorkflowEngineFeatureGate';
 import {t} from 'sentry/locale';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -11,7 +10,6 @@ import {useDetectorQuery} from 'sentry/views/detectors/hooks';
 export default function DetectorEdit() {
   const params = useParams<{detectorId: string}>();
   const {projects, fetching: isFetchingProjects} = useProjects();
-  useWorkflowEngineFeatureGate({redirect: true});
 
   const {
     data: detector,

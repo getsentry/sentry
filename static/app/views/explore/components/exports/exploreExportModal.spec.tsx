@@ -51,8 +51,14 @@ function makeConfig(
   };
 }
 
-function renderModal(config: TraceItemExportConfig, onCancel = jest.fn()) {
-  render(
+function ExampleExploreExportModal({
+  config,
+  onCancel = jest.fn(),
+}: {
+  config: TraceItemExportConfig;
+  onCancel?: () => void;
+}) {
+  return (
     <ExploreExportModal
       Body={ModalBody}
       Footer={ModalFooter}
@@ -61,8 +67,7 @@ function renderModal(config: TraceItemExportConfig, onCancel = jest.fn()) {
       closeModal={closeModal}
       config={config}
       onCancel={onCancel}
-    />,
-    {organization}
+    />
   );
 }
 
@@ -74,7 +79,9 @@ describe('ExploreExportModal', () => {
 
   it('calls onCancel and closeModal when Cancel is clicked', async () => {
     const onCancel = jest.fn();
-    renderModal(makeConfig(), onCancel);
+    render(<ExampleExploreExportModal config={makeConfig()} onCancel={onCancel} />, {
+      organization,
+    });
 
     await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
@@ -90,7 +97,7 @@ describe('ExploreExportModal', () => {
       body: {id: 721},
     });
 
-    renderModal(config);
+    render(<ExampleExploreExportModal config={config} />, {organization});
 
     await userEvent.click(screen.getByRole('button', {name: 'Export'}));
 
@@ -112,7 +119,7 @@ describe('ExploreExportModal', () => {
   });
 
   it("disables the Format radios and selects JSONL when the 'All Columns' switch is on", async () => {
-    renderModal(makeConfig());
+    render(<ExampleExploreExportModal config={makeConfig()} />, {organization});
 
     await userEvent.click(await screen.findByRole('checkbox', {name: 'All Columns?'}));
 
@@ -130,7 +137,7 @@ describe('ExploreExportModal', () => {
       body: {id: 721},
     });
 
-    renderModal(config);
+    render(<ExampleExploreExportModal config={config} />, {organization});
 
     await userEvent.click(await screen.findByRole('checkbox', {name: 'All Columns?'}));
     await userEvent.click(screen.getByRole('button', {name: 'Export'}));
@@ -165,7 +172,7 @@ describe('ExploreExportModal', () => {
       body: {id: 721},
     });
 
-    renderModal(config);
+    render(<ExampleExploreExportModal config={config} />, {organization});
 
     await userEvent.click(screen.getByRole('button', {name: 'Number of rows'}));
     await userEvent.click(await screen.findByRole('option', {name: /\(All\)$/}));
@@ -209,7 +216,7 @@ describe('ExploreExportModal', () => {
       body: {id: 721},
     });
 
-    renderModal(config);
+    render(<ExampleExploreExportModal config={config} />, {organization});
 
     await userEvent.click(screen.getByRole('button', {name: 'Number of rows'}));
     await userEvent.click(await screen.findByRole('option', {name: /\(All\)$/}));
@@ -226,8 +233,40 @@ describe('ExploreExportModal', () => {
     expect(config.localDownload).not.toHaveBeenCalled();
   });
 
+  it('routes to the server export when the config offers no local download', async () => {
+    const config = makeConfig({localDownload: undefined, localRowCount: undefined});
+    const dataExportMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/data-export/`,
+      method: 'POST',
+      statusCode: 201,
+      body: {id: 721},
+    });
+
+    render(<ExampleExploreExportModal config={config} />, {organization});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Export'}));
+
+    await waitFor(() => {
+      expect(dataExportMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/data-export/`,
+        expect.objectContaining({
+          data: expect.objectContaining({limit: 500, query_type: 'Explore'}),
+        })
+      );
+    });
+    expect(config.trackExportSubmit).toHaveBeenCalledWith({
+      format: 'csv',
+      limit: 500,
+      isAllColumns: false,
+      exportType: 'export_download',
+    });
+  });
+
   it('hides the All Columns switch when not supported', async () => {
-    renderModal(makeConfig({supportsAllColumns: false}));
+    render(
+      <ExampleExploreExportModal config={makeConfig({supportsAllColumns: false})} />,
+      {organization}
+    );
 
     expect(await screen.findByRole('button', {name: 'Export'})).toBeInTheDocument();
     expect(
@@ -236,7 +275,12 @@ describe('ExploreExportModal', () => {
   });
 
   it('hides the Format radios when only one format is available', async () => {
-    renderModal(makeConfig({supportsAllColumns: false, availableFormats: ['csv']}));
+    render(
+      <ExampleExploreExportModal
+        config={makeConfig({supportsAllColumns: false, availableFormats: ['csv']})}
+      />,
+      {organization}
+    );
 
     expect(await screen.findByRole('button', {name: 'Export'})).toBeInTheDocument();
     expect(screen.queryByRole('radio', {name: 'CSV'})).not.toBeInTheDocument();

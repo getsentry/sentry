@@ -7,9 +7,7 @@ from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.rules.age import AgeComparisonType
 from sentry.rules.conditions.event_frequency import (
-    ComparisonType,
     EventUniqueUserFrequencyConditionWithConditions,
 )
 from sentry.rules.conditions.first_seen_event import FirstSeenEventCondition
@@ -19,9 +17,11 @@ from sentry.rules.filters.age_comparison import AgeComparisonFilter
 from sentry.rules.filters.event_attribute import EventAttributeFilter
 from sentry.rules.filters.latest_release import LatestReleaseFilter
 from sentry.rules.filters.tagged_event import TaggedEventFilter
-from sentry.rules.match import MatchType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
+from sentry.workflow_engine.handlers.condition.utils.age import AgeComparisonType
+from sentry.workflow_engine.handlers.condition.utils.event_frequency import ComparisonType
+from sentry.workflow_engine.handlers.condition.utils.match import MatchType
 from sentry.workflow_engine.migration_helpers.issue_alert_dual_write import (
     update_migrated_issue_alert,
 )
@@ -322,6 +322,8 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
                 ],
             }
         )
+        # API rule updates may omit frequency entirely (see ProjectRuleDetailsEndpoint).
+        rule_data.pop("frequency", None)
 
         self.issue_alert.update(
             label="hello world",

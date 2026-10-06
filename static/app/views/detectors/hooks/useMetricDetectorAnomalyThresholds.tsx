@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import type {LineSeriesOption} from 'echarts';
 
-import {LineSeries} from 'sentry/components/charts/series/lineSeries';
+import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
 import type {Series} from 'sentry/types/echarts';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useApiQuery} from 'sentry/utils/queryClient';
@@ -10,8 +10,8 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 // These are used as series names for chart lookup - do not translate
-export const UPPER_THRESHOLD_SERIES_NAME = 'Upper Threshold';
-export const LOWER_THRESHOLD_SERIES_NAME = 'Lower Threshold';
+const UPPER_THRESHOLD_SERIES_NAME = 'Upper Threshold';
+const LOWER_THRESHOLD_SERIES_NAME = 'Lower Threshold';
 
 interface AnomalyThresholdDataPoint {
   external_alert_id: number;
@@ -29,7 +29,6 @@ interface UseMetricDetectorAnomalyThresholdsProps {
   detectorId: string;
   detectionType?: string;
   endTimestamp?: number;
-  isLegacyAlert?: boolean; // for Alerts, remove this once organizations:workflow-engine-ui is GAd
   series?: Series[];
   startTimestamp?: number;
 }
@@ -41,6 +40,32 @@ interface UseMetricDetectorAnomalyThresholdsResult {
 }
 
 /**
+ * Round large anomaly bounds more aggressively while keeping precision for
+ * small unitless metrics (e.g. CLS ~0.004) so tooltips don't collapse to 0.
+ */
+export function smartRound(value: number): number {
+  const magnitude = Math.abs(value);
+
+  if (magnitude >= 100) {
+    return Math.round(value);
+  }
+  if (magnitude >= 10) {
+    return Math.round(value * 10) / 10;
+  }
+  if (magnitude >= 1) {
+    return Math.round(value * 100) / 100;
+  }
+  if (magnitude >= 0.1) {
+    return Math.round(value * 1000) / 1000;
+  }
+  if (magnitude >= 0.01) {
+    return Math.round(value * 10000) / 10000;
+  }
+
+  return value;
+}
+
+/**
  * Fetches anomaly detection threshold data and transforms it into chart series
  */
 export function useMetricDetectorAnomalyThresholds({
@@ -49,7 +74,6 @@ export function useMetricDetectorAnomalyThresholds({
   startTimestamp,
   endTimestamp,
   series = [],
-  isLegacyAlert = false,
 }: UseMetricDetectorAnomalyThresholdsProps): UseMetricDetectorAnomalyThresholdsResult {
   const organization = useOrganization();
   const theme = useTheme();
@@ -72,7 +96,6 @@ export function useMetricDetectorAnomalyThresholds({
         query: {
           start: startTimestamp,
           end: endTimestamp,
-          ...(isLegacyAlert && {legacy_alert: 'true'}),
         },
       },
     ],
@@ -108,15 +131,15 @@ export function useMetricDetectorAnomalyThresholds({
       const anomalyPoint = anomalyMap.get(timestamp);
 
       if (anomalyPoint) {
-        upperBoundData.push([timestamp, Math.round(anomalyPoint.yhat_upper)]);
-        lowerBoundData.push([timestamp, Math.round(anomalyPoint.yhat_lower)]);
+        upperBoundData.push([timestamp, smartRound(anomalyPoint.yhat_upper)]);
+        lowerBoundData.push([timestamp, smartRound(anomalyPoint.yhat_lower)]);
       }
     });
 
     const lineColor = theme.colors.red400;
 
     return [
-      LineSeries({
+      createLineSeries({
         name: UPPER_THRESHOLD_SERIES_NAME,
         data: upperBoundData,
         lineStyle: {
@@ -138,7 +161,7 @@ export function useMetricDetectorAnomalyThresholds({
         connectNulls: true,
         step: false,
       }),
-      LineSeries({
+      createLineSeries({
         name: LOWER_THRESHOLD_SERIES_NAME,
         data: lowerBoundData,
         lineStyle: {

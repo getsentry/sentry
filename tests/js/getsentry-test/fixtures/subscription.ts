@@ -85,6 +85,7 @@ export function SubscriptionFixture(props: Props): TSubscription {
     isSelfServePartner: false,
     lastTrialEnd: null,
     spendAllocationEnabled: false,
+    isTest: false,
     status: 'active',
     totalProjects: 0,
     trialPlan: isTrial ? planDetails.id : null,

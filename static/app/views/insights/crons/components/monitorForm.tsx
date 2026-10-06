@@ -26,6 +26,11 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {
+  DEFAULT_CHECKIN_MARGIN,
+  DEFAULT_MAX_RUNTIME,
+  MAX_RUNTIME_LIMIT,
+} from 'sentry/utils/monitor/cron';
 import {slugify} from 'sentry/utils/slugify';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -46,8 +51,7 @@ const SCHEDULE_OPTIONS: Array<SelectValue<string>> = [
   {value: ScheduleType.INTERVAL, label: t('Interval')},
 ];
 
-export const DEFAULT_MONITOR_TYPE = 'cron_job';
-export const DEFAULT_CRONTAB = '0 0 * * *';
+const DEFAULT_CRONTAB = '0 0 * * *';
 
 // Maps the value from the SentryMemberTeamSelectorField -> the expected alert
 // rule key and vice-versa.
@@ -57,9 +61,6 @@ export const DEFAULT_CRONTAB = '0 0 * * *';
 const RULE_TARGET_MAP = {team: 'Team', user: 'Member'} as const;
 const RULES_SELECTOR_MAP = {Team: 'team', Member: 'user'} as const;
 
-// In minutes
-export const DEFAULT_MAX_RUNTIME = 30;
-export const DEFAULT_CHECKIN_MARGIN = 1;
 const CHECKIN_MARGIN_MINIMUM = 1;
 const TIMEOUT_MINIMUM = 1;
 
@@ -68,7 +69,6 @@ type Props = {
   apiMethod: FormProps['apiMethod'];
   onSubmitSuccess: FormProps['onSubmitSuccess'];
   monitor?: Monitor;
-  submitLabel?: string;
 };
 
 interface TransformedData extends Partial<Omit<Monitor, 'config' | 'alertRule'>> {
@@ -79,7 +79,7 @@ interface TransformedData extends Partial<Omit<Monitor, 'config' | 'alertRule'>>
 /**
  * Transform sub-fields for what the API expects
  */
-export function transformMonitorFormData(_data: Record<string, any>, model: FormModel) {
+function transformMonitorFormData(_data: Record<string, any>, model: FormModel) {
   const schedType = model.getValue('config.scheduleType');
   // Remove interval fields if the monitor schedule is crontab
   const filteredFields = model.fields
@@ -155,7 +155,7 @@ export function transformMonitorFormData(_data: Record<string, any>, model: Form
 /**
  * Transform config field errors from the error response
  */
-export function mapMonitorFormErrors(responseJson?: any) {
+function mapMonitorFormErrors(responseJson?: any) {
   if (responseJson.config === undefined) {
     return responseJson;
   }
@@ -169,13 +169,7 @@ export function mapMonitorFormErrors(responseJson?: any) {
   return {...responseRest, ...configErrors};
 }
 
-export function MonitorForm({
-  monitor,
-  submitLabel,
-  apiEndpoint,
-  apiMethod,
-  onSubmitSuccess,
-}: Props) {
+export function MonitorForm({monitor, apiEndpoint, apiMethod, onSubmitSuccess}: Props) {
   const theme = useTheme();
   const organization = useOrganization();
   const form = useRef(
@@ -183,6 +177,7 @@ export function MonitorForm({
       transformData: transformMonitorFormData,
     })
   );
+  // oxlint-disable-next-line react/refs
   const {onFieldChange} = useFormEagerValidation(form.current);
 
   const {projects} = useProjects();
@@ -238,6 +233,7 @@ export function MonitorForm({
       requireChanges
       apiEndpoint={apiEndpoint}
       apiMethod={apiMethod}
+      // oxlint-disable-next-line react/refs
       model={form.current}
       onFieldChange={onFieldChange}
       initialData={
@@ -256,7 +252,6 @@ export function MonitorForm({
             }
       }
       onSubmitSuccess={onSubmitSuccess}
-      submitLabel={submitLabel}
       mapFormErrors={mapMonitorFormErrors}
     >
       <StyledList symbol="colored-numeric">
@@ -436,13 +431,14 @@ export function MonitorForm({
               <NumberField
                 name="config.maxRuntime"
                 min={TIMEOUT_MINIMUM}
+                max={MAX_RUNTIME_LIMIT}
                 placeholder={tn(
                   'Defaults to %s minute',
                   'Defaults to %s minutes',
                   DEFAULT_MAX_RUNTIME
                 )}
                 help={t(
-                  'Number of minutes before an in-progress check-in is marked timed out.'
+                  'Number of minutes before an in-progress check-in is marked timed out. The maximum is 10080 minutes (7 days).'
                 )}
                 label={t('Max Runtime')}
               />

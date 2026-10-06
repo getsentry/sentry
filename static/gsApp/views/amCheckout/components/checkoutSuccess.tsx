@@ -116,10 +116,10 @@ function ScheduledChanges({
   const shortInterval = plan ? utils.getShortInterval(plan.billingInterval) : undefined;
   return (
     <Stack
-      data-test-id="scheduled-changes"
       gap="xl"
       padding="xl 0"
-      maxWidth="445px"
+      width="100%"
+      maxWidth={{zero: '100%', md: '445px'}}
       border="primary"
       radius="md"
     >
@@ -501,8 +501,8 @@ const checkoutSuccessFeedbackOptions = {
   formTitle: t('Give feedback'),
   messagePlaceholder: t('How can we make the checkout experience better for you?'),
   tags: {
-    ['feedback.source']: 'checkout_success',
-    ['feedback.owner']: 'billing',
+    'feedback.source': 'checkout_success',
+    'feedback.owner': 'billing',
   },
 };
 
@@ -591,17 +591,21 @@ export function CheckoutSuccess({
       align="center"
       justify="between"
       gap="3xl"
-      direction={{'screen:sm': 'column', 'screen:md': 'row'}}
+      direction={{zero: 'column', '3xl': 'row'}}
     >
-      <Stack align={{'screen:sm': 'center', 'screen:md': 'start'}} maxWidth="500px">
-        <Title size="2xl" as="h1" align="left">
+      <Stack align={{zero: 'center', '3xl': 'start'}} maxWidth="500px">
+        <Heading size="2xl" as="h1" align={{zero: 'center', '3xl': 'left'}}>
           {contentTitle}
-        </Title>
-        <Stack gap="2xl" align={{'screen:sm': 'center', 'screen:md': 'start'}}>
-          <Description variant="muted" size="lg" align="left">
+        </Heading>
+        <Stack gap="2xl" align={{zero: 'center', '3xl': 'start'}}>
+          <Text variant="muted" size="lg" align={{zero: 'center', '3xl': 'left'}}>
             {contentDescription}
-          </Description>
-          <Flex gap="sm">
+          </Text>
+          <Flex
+            gap="sm"
+            width={{zero: '100%', md: 'auto'}}
+            direction={{zero: 'column', md: 'row'}}
+          >
             <LinkButton
               variant="primary"
               aria-label={t('View your subscription')}
@@ -615,7 +619,11 @@ export function CheckoutSuccess({
             >
               {t('Edit plan')}
             </LinkButton>
-            <FeedbackButton feedbackOptions={checkoutSuccessFeedbackOptions} size="md" />
+            <FeedbackButton
+              variant="secondary"
+              feedbackOptions={checkoutSuccessFeedbackOptions}
+              size="md"
+            />
           </Flex>
         </Stack>
       </Stack>
@@ -636,18 +644,6 @@ export function CheckoutSuccess({
     </Flex>
   );
 }
-
-const Title = styled(Heading)`
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    text-align: center;
-  }
-`;
-
-const Description = styled(Text)`
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
-    text-align: center;
-  }
-`;
 
 const StyledGrid = styled(Grid)`
   & > :last-child {

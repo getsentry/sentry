@@ -10,7 +10,6 @@ import {t} from 'sentry/locale';
 
 type FeatureFeedbackProps<T extends Data> = FeedbackModalProps<T> & {
   buttonProps?: Partial<ButtonProps>;
-  secondaryAction?: React.ReactNode;
 };
 
 /**

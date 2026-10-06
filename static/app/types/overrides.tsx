@@ -1,7 +1,7 @@
 import type {UIMatch} from 'react-router-dom';
 import type {Location} from 'history';
 
-import type {ButtonProps} from '@sentry/scraps/button';
+import type {TrackingProps} from '@sentry/scraps/trackingContext';
 
 import type {ChildrenRenderFn} from 'sentry/components/acl/feature';
 import type {Guide} from 'sentry/components/assistant/types';
@@ -11,7 +11,6 @@ import type {InstallationInfo} from 'sentry/components/pipeline/integrationGitHu
 import type {DateRange} from 'sentry/components/timeRangeSelector/dateRange';
 import type {SelectorItems} from 'sentry/components/timeRangeSelector/selectorItems';
 import type {SentryRouteObject} from 'sentry/router/types';
-import type {DataCategory} from 'sentry/types/core';
 import type {DetailedProject, Project} from 'sentry/types/project';
 import type {UseReplayForCriticalFlowOptions} from 'sentry/utils/replays/useReplayForCriticalFlow';
 import type {UseExperimentOptions, UseExperimentResult} from 'sentry/utils/useExperiment';
@@ -96,23 +95,10 @@ type DisabledMemberTooltipProps = {children: React.ReactNode};
 type DashboardHeadersProps = {organization: Organization};
 
 type ReplayListPageHeaderProps = {children?: React.ReactNode};
-type ReplayOnboardingCTAProps = {
-  children: React.ReactNode;
-  organization: Organization;
-};
 type ProductUnavailableCTAProps = {organization: Organization};
 
-/**
- * Compatibility props for rendering the legacy access-category override inside a
- * Scraps form. They remain optional for consumers backed by the legacy FormModel.
- */
 export type SuperuserAccessCategoryProps = {
-  accessCategory?: string;
-  accessCategoryError?: string;
-  onAccessCategoryChange?: (value: string) => void;
-  onReasonChange?: (value: string) => void;
-  reason?: string;
-  reasonError?: string;
+  RadioItem: React.ComponentType<{children: React.ReactNode; value: string}>;
 };
 
 type ContinuousProfilingBillingRequirementBannerProps = {
@@ -163,8 +149,6 @@ type GuideUpdateCallback = (nextGuide: Guide | null, opts: {dismissed?: boolean}
 
 type MonitorCreatedCallback = (organization: Organization) => void;
 
-type CronsOnboardingPanelProps = {children: React.ReactNode};
-
 export type ParntershipAgreementType = 'standard' | 'partner_presence';
 export type PartnershipAgreementProps = {
   agreements: ParntershipAgreementType[];
@@ -198,24 +182,22 @@ type ComponentOverrides = {
   'component:confirm-account-close': () => React.ComponentType<AttemptCloseAttemptProps>;
   'component:continuous-profiling-billing-requirement-banner': () => React.ComponentType<ContinuousProfilingBillingRequirementBannerProps>;
   'component:crons-list-page-header': () => React.ComponentType<CronsBillingBannerProps>;
-  'component:crons-onboarding-panel': () => React.ComponentType<CronsOnboardingPanelProps>;
   'component:dashboards-header': () => React.ComponentType<DashboardHeadersProps>;
   'component:dashboards-limit-provider': () => React.ComponentType<DashboardLimitProviderProps>;
   'component:data-consent-banner': () => React.ComponentType<{
     source: string;
   }> | null;
-  'component:data-consent-org-creation-checkbox': () => React.ComponentType | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType | null;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:disabled-member': () => React.ComponentType;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
   'component:enhanced-org-stats': () => React.ComponentType<OrganizationStatsProps>;
+  'component:feedback-init': React.ComponentType;
   'component:first-party-integration-additional-cta': () => React.ComponentType<FirstPartyIntegrationAdditionalCTAProps>;
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
   'component:header-date-page-filter-upsell-footer': () => React.ComponentType<DateRangeQueryLimitFooterProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
-  'component:insights-date-range-query-limit-footer': () => React.ComponentType;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:metric-alert-quota-icon': React.ComponentType;
   'component:metric-alert-quota-message': React.ComponentType;
@@ -228,10 +210,9 @@ type ComponentOverrides = {
   'component:product-unavailable-cta': () => React.ComponentType<ProductUnavailableCTAProps>;
   'component:replay-init': React.ComponentType;
   'component:replay-list-page-header': () => React.ComponentType<ReplayListPageHeaderProps> | null;
-  'component:replay-onboarding-cta': () => React.ComponentType<ReplayOnboardingCTAProps>;
   'component:replay-settings-alert': () => React.ComponentType | null;
   'component:scm-github-multi-org-install': () => React.ComponentType<ScmGithubMultiOrgInstallProps>;
-  'component:seer-beta-closing-alert': () => React.ComponentType;
+  'component:seer-trial-cta': () => React.ComponentType | null;
   'component:superuser-access-category': React.ComponentType<SuperuserAccessCategoryProps>;
   'component:superuser-warning': React.ComponentType<any>;
   'component:superuser-warning-excluded': SuperuserWarningExcluded;
@@ -256,7 +237,6 @@ type CustomizationOverrides = {
 type AnalyticsOverrides = {
   'analytics:init-user': AnalyticsInitUser;
   'analytics:raw-track-event': AnalyticsRawTrackEvent;
-  'metrics:event': MetricsEvent;
 };
 
 /**
@@ -278,7 +258,6 @@ export type FeatureDisabledOverrides = {
   'feature-disabled:grid-editable-actions': FeatureDisabledOverride;
   'feature-disabled:issue-views': FeatureDisabledOverride;
   'feature-disabled:open-discover': FeatureDisabledOverride;
-  'feature-disabled:open-in-discover': FeatureDisabledOverride;
   'feature-disabled:performance-new-project': FeatureDisabledOverride;
   'feature-disabled:performance-page': FeatureDisabledOverride;
   'feature-disabled:profiling-page': FeatureDisabledOverride;
@@ -286,6 +265,7 @@ export type FeatureDisabledOverrides = {
   'feature-disabled:project-performance-score-card': FeatureDisabledOverride;
   'feature-disabled:rate-limits': FeatureDisabledOverride;
   'feature-disabled:replay-sidebar-item': FeatureDisabledOverride;
+  // Dynamically constructed from AuthProvider.requiredFeature in ProviderItem.
   'feature-disabled:sso-basic': FeatureDisabledOverride;
   'feature-disabled:sso-saml2': FeatureDisabledOverride;
 };
@@ -295,13 +275,8 @@ export type FeatureDisabledOverrides = {
  */
 type InterfaceChromeOverrides = {
   'cmdk:global-settings-actions': GenericComponentOverride;
-  footer: GenericComponentOverride;
-  'help-modal:footer': HelpModalFooterOverride;
   'sidebar:billing-status': GenericOrganizationComponentOverride;
-  'sidebar:help-menu': GenericOrganizationComponentOverride;
   'sidebar:item-label': SidebarItemLabelOverride;
-  'sidebar:organization-dropdown-menu': GenericOrganizationComponentOverride;
-  'sidebar:organization-dropdown-menu-bottom': GenericOrganizationComponentOverride;
   'sidebar:seer-config-reminder': GenericOrganizationComponentOverride;
   'sidebar:try-business': SidebarTryBusinessOverride;
 };
@@ -310,7 +285,6 @@ type InterfaceChromeOverrides = {
  * Onboarding experience overrides
  */
 type OnboardingOverrides = {
-  'onboarding:block-hide-sidebar': () => boolean;
   'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
 };
 
@@ -336,7 +310,7 @@ type ReactHookOverrides = {
     matches: UIMatch[];
   }) => React.ContextType<typeof RouteAnalyticsContext>;
   'react-hook:use-billing-navigation-config': () => NavigationSection | null;
-  'react-hook:use-button-tracking': () => (props: ButtonProps) => void;
+  'react-hook:use-button-tracking': () => (props: TrackingProps) => void;
   'react-hook:use-dashboard-dataset-retention-limit': (props: {
     dataset: WidgetType;
   }) => number;
@@ -351,7 +325,6 @@ type ReactHookOverrides = {
     isError: boolean;
     isLoading: boolean;
   };
-  'react-hook:use-product-billing-access': (product: DataCategory) => boolean;
   'react-hook:use-replay-for-critical-flow': (
     options: UseReplayForCriticalFlowOptions
   ) => void;
@@ -443,7 +416,7 @@ type AnalyticsRawTrackEvent = (
     /**
      * The Reload event key.
      */
-    eventKey: string;
+    eventKey: string | undefined;
 
     /**
      * The Amplitude event name. Set to null if event should not go to Amplitude.
@@ -475,24 +448,6 @@ type AnalyticsRawTrackEvent = (
 ) => void;
 
 /**
- * Trigger recording a metric in the override registry.
- */
-type MetricsEvent = (
-  /**
-   * Metric name
-   */
-  name: string,
-  /**
-   * Value to record for this metric
-   */
-  value: number,
-  /**
-   * An additional tags object
-   */
-  tags?: Record<PropertyKey, unknown>
-) => void;
-
-/**
  * Each sidebar label is wrapped with this override, to allow sidebar item
  * augmentation.
  */
@@ -512,14 +467,6 @@ type SidebarItemLabelOverride = () => React.ComponentType<{
  * Returns an additional list of sidebar items.
  */
 type SidebarTryBusinessOverride = (opts: {organization: Organization}) => React.ReactNode;
-
-/**
- * Provides augmentation of the help modal footer
- */
-type HelpModalFooterOverride = (opts: {
-  closeModal: () => void;
-  organization: Organization;
-}) => React.ReactNode;
 
 /**
  * The DecoratedIntegrationFeature differs from the IntegrationFeature as it is

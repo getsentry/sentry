@@ -4,8 +4,7 @@ import pytest
 from django.urls import NoReverseMatch, reverse
 
 from sentry.models.group import Group
-from sentry.search.events import constants
-from sentry.testutils.cases import APITestCase, MetricsEnhancedPerformanceTestCase, SnubaTestCase
+from sentry.testutils.cases import APITestCase, SnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
@@ -307,10 +306,11 @@ class OrganizationEventDetailsEndpointTest(APITestCase, SnubaTestCase, Occurrenc
         assert response.data["occurrence"]["id"] == occurrence.id
 
 
-class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
+class EventComparisonTest(APITestCase, SpanTestCase, SnubaTestCase):
     endpoint = "sentry-api-0-organization-event-details"
 
     def setUp(self) -> None:
+        super().setUp()
         self.init_snuba()
         self.ten_mins_ago = before_now(minutes=10)
         self.transaction_data = load_data("transaction", timestamp=self.ten_mins_ago)
@@ -325,18 +325,22 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
             },
         )
         self.login_as(user=self.user)
-        self.store_span_metric(
-            1,
-            internal_metric=constants.SELF_TIME_LIGHT,
-            timestamp=self.ten_mins_ago,
-            tags={"span.group": "26b881987e4bad99"},
+        self.store_span(
+            self.create_span(
+                {
+                    "exclusive_time_ms": 1.0,
+                    "sentry_tags": {"group": "26b881987e4bad99"},
+                },
+                start_ts=self.ten_mins_ago,
+                duration=2,
+            )
         )
 
     def test_get_without_feature(self) -> None:
         with self.feature({"organizations:insight-modules": False}):
             response = self.client.get(self.url, {"averageColumn": "span.self_time"})
         assert response.status_code == 200, response.content
-        entries = response.data["entries"]  # type: ignore[attr-defined]
+        entries = response.data["entries"]
         for entry in entries:
             if entry["type"] == "spans":
                 for span in entry["data"]:
@@ -346,7 +350,7 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
         with self.feature("organizations:insight-modules"):
             response = self.client.get(self.url, {"averageColumn": "span.self_time"})
         assert response.status_code == 200, response.content
-        entries = response.data["entries"]  # type: ignore[attr-defined]
+        entries = response.data["entries"]
         for entry in entries:
             if entry["type"] == "spans":
                 for span in entry["data"]:
@@ -356,18 +360,12 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
                         assert self.RESULT_COLUMN not in span
 
     def test_get_multiple_columns(self) -> None:
-        self.store_span_metric(
-            2,
-            internal_metric=constants.SPAN_METRICS_MAP["span.duration"],
-            timestamp=self.ten_mins_ago,
-            tags={"span.group": "26b881987e4bad99"},
-        )
         with self.feature("organizations:insight-modules"):
             response = self.client.get(
                 self.url, {"averageColumn": ["span.self_time", "span.duration"]}
             )
         assert response.status_code == 200, response.content
-        entries = response.data["entries"]  # type: ignore[attr-defined]
+        entries = response.data["entries"]
         for entry in entries:
             if entry["type"] == "spans":
                 for span in entry["data"]:
@@ -379,19 +377,31 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
                     if span["op"] == "django.middleware":
                         assert self.RESULT_COLUMN not in span
 
-    def test_nan_column(self) -> None:
-        # If there's nothing stored for a metric, span.duration in this case the query returns nan
+    def test_averages_include_zero_values(self) -> None:
+        self.store_span(
+            self.create_span(
+                {
+                    "exclusive_time_ms": 0.0,
+                    "sentry_tags": {"group": "26b881987e4bad99"},
+                },
+                start_ts=self.ten_mins_ago,
+                duration=0,
+            )
+        )
         with self.feature("organizations:insight-modules"):
             response = self.client.get(
                 self.url, {"averageColumn": ["span.self_time", "span.duration"]}
             )
         assert response.status_code == 200, response.content
-        entries = response.data["entries"]  # type: ignore[attr-defined]
+        entries = response.data["entries"]
         for entry in entries:
             if entry["type"] == "spans":
                 for span in entry["data"]:
                     if span["op"] == "db":
-                        assert span[self.RESULT_COLUMN] == {"avg(span.self_time)": 1.0}
+                        assert span[self.RESULT_COLUMN] == {
+                            "avg(span.self_time)": 0.5,
+                            "avg(span.duration)": 1.0,
+                        }
                     if span["op"] == "django.middleware":
                         assert self.RESULT_COLUMN not in span
 
@@ -401,7 +411,7 @@ class EventComparisonTest(MetricsEnhancedPerformanceTestCase):
             self.url, {"averageColumn": ["span.self_time", "span.everything"]}
         )
         assert response.status_code == 200, response.content
-        entries = response.data["entries"]  # type: ignore[attr-defined]
+        entries = response.data["entries"]
         for entry in entries:
             if entry["type"] == "spans":
                 for span in entry["data"]:

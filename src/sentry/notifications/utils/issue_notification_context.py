@@ -114,7 +114,7 @@ class IssueNotificationContext:
 
     @cached_property
     def organization(self) -> Organization:
-        return self._invocation.detector.project.organization
+        return self._invocation.detector.linked_project.organization
 
     @cached_property
     def open_period(self) -> GroupOpenPeriod:

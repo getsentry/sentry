@@ -52,10 +52,12 @@ export function MissingReplayAlert({orgSlug}: Props) {
         }
       >
         {tct(
-          "The replay associated with this event cannot be found. In most cases, the replay wasn't accepted because your replay quota was exceeded at the time. To learn more, [link:read our docs].",
+          "A replay isn't available for this event. To learn more, [statsLink:check your replay usage].",
           {
-            link: (
-              <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/#error-linking" />
+            statsLink: (
+              <Link
+                to={normalizeUrl(`/settings/${orgSlug}/stats/?dataCategory=replays`)}
+              />
             ),
           }
         )}

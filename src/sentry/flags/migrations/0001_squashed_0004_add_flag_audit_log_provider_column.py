@@ -37,7 +37,7 @@ class Migration(CheckedMigration):
     checked = False  # This is an initial migration and can take locks
 
     dependencies = [
-        ("sentry", "0001_squashed_0904_onboarding_task_project_id_idx"),
+        ("sentry", "0001_squashed_1118_add_group_derived_data"),
     ]
 
     operations = [

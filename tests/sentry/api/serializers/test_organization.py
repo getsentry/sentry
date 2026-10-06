@@ -11,7 +11,6 @@ from sentry.api.serializers import (
     OrganizationWithProjectsAndTeamsSerializer,
     serialize,
 )
-from sentry.api.serializers.models.organization import ORGANIZATION_OPTIONS_AS_FEATURES
 from sentry.auth import access
 from sentry.features.base import OrganizationFeature
 from sentry.models.deploy import Deploy
@@ -25,33 +24,23 @@ from sentry.models.organizationonboardingtask import (
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.replays.models import OrganizationMemberReplayAccess
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
 
-non_default_owner_scopes = ["org:ci", "openid", "email", "profile", "project:distribution"]
+granular_scopes = ["dashboard:read", "dashboard:create", "dashboard:write", "dashboard:delete"]
+non_default_owner_scopes = [
+    "org:ci",
+    "openid",
+    "email",
+    "profile",
+    "project:distribution",
+    *granular_scopes,
+]
 default_owner_scopes = frozenset(
     filter(lambda scope: scope not in non_default_owner_scopes, settings.SENTRY_SCOPES)
 )
-
-mock_options_as_features = {
-    "sentry:set_no_value": [
-        ("frontend-flag-1-1", lambda opt: True),
-        ("frontend-flag-1-2", lambda opt: True),
-    ],
-    "sentry:unset_no_value": [
-        ("frontend-flag-2-1", lambda opt: True),
-        ("frontend-flag-2-2", lambda opt: True),
-    ],
-    "sentry:set_with_func_pass": [
-        ("frontend-flag-3-1", lambda opt: bool(opt.value)),
-        ("frontend-flag-3-2", lambda opt: bool(opt.value)),
-    ],
-    "sentry:set_with_func_fail": [
-        ("frontend-flag-4-1", lambda opt: bool(opt.value)),
-        ("frontend-flag-4-2", lambda opt: bool(opt.value)),
-    ],
-}
 
 
 class OrganizationSummarySerializerTest(TestCase):
@@ -90,7 +79,6 @@ class OrganizationSummarySerializerTest(TestCase):
             "invite-members",
             "open-membership",
             "relay",
-            "sentry-app-schema-form-migration",
             "session-replay-ui",
             "shared-issues",
             "sso-basic",
@@ -118,30 +106,6 @@ class OrganizationSummarySerializerTest(TestCase):
         assert "test-feature" in result["features"]
         assert "disabled-feature" not in result["features"]
 
-    @mock.patch.dict(ORGANIZATION_OPTIONS_AS_FEATURES, mock_options_as_features)
-    def test_organization_options_as_features(self) -> None:
-        user = self.create_user()
-        organization = self.create_organization(owner=user)
-
-        OrganizationOption.objects.set_value(organization, "sentry:set_no_value", {})
-        OrganizationOption.objects.set_value(organization, "sentry:set_with_func_pass", 1)
-        OrganizationOption.objects.set_value(organization, "sentry:set_with_func_fail", 0)
-
-        features = serialize(organization, user)["features"]
-
-        # Setting a flag with no function checks for option, regardless of value
-        for feature, _func in mock_options_as_features["sentry:set_no_value"]:
-            assert feature in features
-        # If the option isn't set, it doesn't appear in features
-        for feature, _func in mock_options_as_features["sentry:unset_no_value"]:
-            assert feature not in features
-        # With a function, run it against the value
-        for feature, _func in mock_options_as_features["sentry:set_with_func_pass"]:
-            assert feature in features
-        # If it returns False, it doesn't appear in features
-        for feature, _func in mock_options_as_features["sentry:set_with_func_fail"]:
-            assert feature not in features
-
 
 class OrganizationSerializerTest(TestCase):
     def test_detailed(self) -> None:
@@ -159,6 +123,19 @@ class OrganizationSerializerTest(TestCase):
         assert isinstance(result["orgRoleList"], list)
         assert isinstance(result["teamRoleList"], list)
         assert result["requiresSso"] == acc.requires_sso
+
+    @with_feature("organizations:granular-permission-scopes")
+    def test_detailed_with_granular_permission_scopes(self) -> None:
+        user = self.create_user()
+        organization = self.create_organization(owner=user)
+        acc = access.from_user(user, organization)
+
+        serializer = OrganizationSerializer()
+        result = serialize(organization, user, serializer, access=acc)
+
+        assert result["access"] == default_owner_scopes | set(granular_scopes)
+        for role in result["orgRoleList"]:
+            assert set(granular_scopes) <= role["scopes"]
 
     def test_granular_replay_permissions_without_option(self) -> None:
         user = self.create_user()

@@ -1,9 +1,3 @@
-import {
-  EventType,
-  IncrementalSource,
-  MouseInteractions,
-  type eventWithTime as TEventWithTime,
-} from '@sentry-internal/rrweb';
 import type {
   ReplayBreadcrumbFrameEvent as TBreadcrumbFrameEvent,
   ReplayOptionFrameEvent as TOptionFrameEvent,
@@ -11,13 +5,19 @@ import type {
   ReplaySpanFrame as TRawSpanFrame,
   ReplaySpanFrameEvent as TSpanFrameEvent,
 } from '@sentry/react';
+import {
+  EventType,
+  IncrementalSource,
+  MouseInteractions,
+  type eventWithTime as TEventWithTime,
+} from '@sentry/rrweb';
 import invariant from 'invariant';
 
-export type {serializedNodeWithId} from '@sentry-internal/rrweb-snapshot';
-export type {fullSnapshotEvent, incrementalSnapshotEvent} from '@sentry-internal/rrweb';
+export type {serializedNodeWithId} from '@sentry/rrweb-snapshot';
+export type {fullSnapshotEvent, incrementalSnapshotEvent} from '@sentry/rrweb';
 
-export {NodeType} from '@sentry-internal/rrweb-snapshot';
-export {EventType, IncrementalSource} from '@sentry-internal/rrweb';
+export {NodeType} from '@sentry/rrweb-snapshot';
+export {EventType, IncrementalSource} from '@sentry/rrweb';
 
 export type Dimensions = {
   height: number;
@@ -263,9 +263,19 @@ export function isPaintFrame(frame: SpanFrame): frame is PaintFrame {
   return frame.op === 'paint';
 }
 
-export function isDeadClick(frame: SlowClickFrame) {
+export function isSlowClickFrame(frame: BreadcrumbFrame): frame is SlowClickFrame {
   return (
-    ['a', 'button', 'input'].includes(frame.data.node?.tagName.toLowerCase() ?? '') &&
+    frame.category === 'ui.slowClickDetected' &&
+    typeof frame.data === 'object' &&
+    frame.data !== null
+  );
+}
+
+export function isDeadClick(frame: SlowClickFrame) {
+  const node: ClickFrameNode | undefined = frame.data.node;
+
+  return (
+    ['a', 'button', 'input'].includes(node?.tagName?.toLowerCase() ?? '') &&
     frame.data.endReason === 'timeout'
   );
 }
@@ -361,6 +371,8 @@ export type FeedbackFrame = {
   timestampMs: number;
   type: string;
 };
+
+export type ClickFrameNode = Partial<NonNullable<SlowClickFrame['data']['node']>>;
 
 export type ClickFrame = HydratedBreadcrumb<'ui.click'>;
 export type TapFrame = HydratedBreadcrumb<'ui.tap'>;

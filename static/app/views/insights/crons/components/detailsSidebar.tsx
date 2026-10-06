@@ -5,16 +5,15 @@ import moment from 'moment-timezone';
 import {Alert} from '@sentry/scraps/alert';
 import {ActorAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
-import {useDrawer} from '@sentry/scraps/drawer';
-import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
-import {Flex} from '@sentry/scraps/layout';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
+import {useDrawer, DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {TimeSince} from 'sentry/components/timeSince';
-import {IconCopy, IconJson} from 'sentry/icons';
+import {IconCopyId, IconJson} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -47,7 +46,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
         onClick={() => copy(monitor.slug, {successMessage: 'Copied to clipboard'})}
       >
         <SlugText>{monitor.slug}</SlugText>
-        <IconCopy size="xs" />
+        <IconCopyId size="xs" />
       </MonitorSlug>
     </Tooltip>
   );
@@ -103,39 +102,32 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
         />
       </Legend>
       <SectionHeading>{t('Cron Details')}</SectionHeading>
-      <KeyValueTable>
-        <KeyValueTableRow keyName={t('Monitor Slug')} value={slug} />
-        <KeyValueTableRow
-          keyName={t('Failure tolerance')}
-          value={tn(
-            '%s check-in',
-            '%s check-ins',
-            monitor.config.failure_issue_threshold ?? 1
-          )}
-        />
-        <KeyValueTableRow
-          keyName={t('Recovery tolerance')}
-          value={tn(
-            '%s check-in',
-            '%s check-ins',
-            monitor.config.recovery_threshold ?? 1
-          )}
-        />
-        <KeyValueTableRow
-          keyName={t('Owner')}
-          value={
-            monitor.owner ? (
-              <ActorAvatar size={24} actor={monitor.owner} />
-            ) : (
-              t('Unassigned')
-            )
-          }
-        />
-        <KeyValueTableRow
-          keyName={t('Date created')}
-          value={getFormattedDate(monitor.dateCreated, 'MMM D, YYYY')}
-        />
-      </KeyValueTable>
+      <Container marginBottom="xl">
+        <DescriptionList striped>
+          <DescriptionList.Term>{t('Monitor Slug')}</DescriptionList.Term>
+          <DescriptionList.Details>{slug}</DescriptionList.Details>
+          <DescriptionList.Term>{t('Failure tolerance')}</DescriptionList.Term>
+          <DescriptionList.Details>
+            {tn(
+              '%s check-in',
+              '%s check-ins',
+              monitor.config.failure_issue_threshold ?? 1
+            )}
+          </DescriptionList.Details>
+          <DescriptionList.Term>{t('Recovery tolerance')}</DescriptionList.Term>
+          <DescriptionList.Details>
+            {tn('%s check-in', '%s check-ins', monitor.config.recovery_threshold ?? 1)}
+          </DescriptionList.Details>
+          <DescriptionList.Term>{t('Owner')}</DescriptionList.Term>
+          <DescriptionList.Details>
+            {monitor.owner ? <ActorAvatar actor={monitor.owner} /> : t('Unassigned')}
+          </DescriptionList.Details>
+          <DescriptionList.Term>{t('Date created')}</DescriptionList.Term>
+          <DescriptionList.Details>
+            {getFormattedDate(monitor.dateCreated, 'MMM D, YYYY')}
+          </DescriptionList.Details>
+        </DescriptionList>
+      </Container>
       {monitor.isUpserting && (
         <Alert.Container>
           <Alert variant="muted" icon={<IconJson />}>

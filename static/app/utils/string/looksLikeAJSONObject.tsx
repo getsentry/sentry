@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/filename-case */
 /**
  * Check if a string value looks like it could be a JSON-encoded object. This is
  useful for situations where we used JSON strings to store object values because

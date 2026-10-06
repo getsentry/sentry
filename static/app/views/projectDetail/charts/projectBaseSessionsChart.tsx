@@ -4,6 +4,8 @@ import {useTheme} from '@emotion/react';
 import type {LegendComponentOption, LineSeriesOption} from 'echarts';
 import isEqual from 'lodash/isEqual';
 
+import {InfoTip} from '@sentry/scraps/info';
+
 import type {Client} from 'sentry/api';
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {ZoomRenderProps} from 'sentry/components/charts/chartZoom';
@@ -11,13 +13,12 @@ import ChartZoom from 'sentry/components/charts/chartZoom';
 import {ErrorPanel} from 'sentry/components/charts/errorPanel';
 import type {LineChartProps} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
-import ReleaseSeries from 'sentry/components/charts/releaseSeries';
+import {useReleaseSeries} from 'sentry/components/charts/releaseSeries';
 import {StackedAreaChart} from 'sentry/components/charts/stackedAreaChart';
 import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import {TransitionChart} from 'sentry/components/charts/transitionChart';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import {RELEASE_LINES_THRESHOLD} from 'sentry/components/charts/utils';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -66,6 +67,16 @@ function ProjectBaseSessionsChart({
   const {projects, environments, datetime} = selection;
   const {start, end, period, utc} = datetime;
 
+  const {releaseSeries} = useReleaseSeries({
+    utc,
+    period,
+    start,
+    end,
+    projects,
+    environments,
+    query,
+  });
+
   const Request = [DisplayModes.ANR_RATE, DisplayModes.FOREGROUND_ANR_RATE].includes(
     displayMode
   )
@@ -94,55 +105,39 @@ function ProjectBaseSessionsChart({
                   timeseriesData,
                   previousTimeseriesData,
                   additionalSeries,
-                }) => (
-                  <ReleaseSeries
-                    utc={utc}
-                    period={period}
-                    start={start}
-                    end={end}
-                    projects={projects}
-                    environments={environments}
-                    query={query}
-                  >
-                    {({releaseSeries}) => {
-                      if (errored) {
-                        return (
-                          <ErrorPanel>
-                            <IconWarning variant="muted" size="lg" />
-                          </ErrorPanel>
-                        );
-                      }
+                }) => {
+                  if (errored) {
+                    return (
+                      <ErrorPanel>
+                        <IconWarning variant="muted" size="lg" />
+                      </ErrorPanel>
+                    );
+                  }
 
-                      return (
-                        <TransitionChart loading={loading} reloading={reloading}>
-                          <TransparentLoadingMask visible={reloading} />
+                  return (
+                    <TransitionChart loading={loading} reloading={reloading}>
+                      <TransparentLoadingMask visible={reloading} />
 
-                          <HeaderTitleLegend>
-                            {title}
-                            {help && (
-                              <QuestionTooltip size="sm" position="top" title={help} />
-                            )}
-                          </HeaderTitleLegend>
+                      <HeaderTitleLegend>
+                        {title}
+                        {help && <InfoTip size="sm" position="top" title={help} />}
+                      </HeaderTitleLegend>
 
-                          <Chart
-                            theme={theme}
-                            zoomRenderProps={zoomRenderProps}
-                            reloading={reloading}
-                            timeSeries={timeseriesData}
-                            previousTimeSeries={
-                              previousTimeseriesData
-                                ? [previousTimeseriesData]
-                                : undefined
-                            }
-                            releaseSeries={releaseSeries}
-                            displayMode={displayMode}
-                            additionalSeries={additionalSeries}
-                          />
-                        </TransitionChart>
-                      );
-                    }}
-                  </ReleaseSeries>
-                )}
+                      <Chart
+                        theme={theme}
+                        zoomRenderProps={zoomRenderProps}
+                        reloading={reloading}
+                        timeSeries={timeseriesData}
+                        previousTimeSeries={
+                          previousTimeseriesData ? [previousTimeseriesData] : undefined
+                        }
+                        releaseSeries={releaseSeries}
+                        displayMode={displayMode}
+                        additionalSeries={additionalSeries}
+                      />
+                    </TransitionChart>
+                  );
+                }}
               </Request>
             )}
           </ChartZoom>
@@ -301,7 +296,7 @@ class Chart extends Component<ChartProps, ChartState> {
           }
 
           if (this.isCrashFree) {
-            return displayCrashFreePercent(value, 0, 3);
+            return displayCrashFreePercent(value, 0);
           }
 
           if (this.isAnr) {

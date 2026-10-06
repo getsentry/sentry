@@ -18,8 +18,7 @@ export default Storybook.story('ContextIcon', story => {
         return (
           <Tooltip
             key={name}
-            isHoverable
-            overlayStyle={{maxWidth: 440}}
+            maxWidth={440}
             title={<Storybook.JSXNode name="ContextIcon" props={props} />}
           >
             <Cell>

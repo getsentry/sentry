@@ -5,16 +5,19 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import Feature from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
   useGetSavedQueries,
+  getSavedQueryDatasetLabel,
+  isExploreSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
-export function ExploreSecondaryNavigation() {
+function ExploreSecondaryNavigationImpl() {
   const organization = useOrganization();
 
   const baseUrl = `/organizations/${organization.slug}/explore`;
@@ -24,7 +27,70 @@ export function ExploreSecondaryNavigation() {
     perPage: MAX_STARRED_SAVED_QUERIES_IN_NAV,
   });
 
-  const discoverTransactionsDeprecation = getDiscoverDeprecation(organization);
+  // Mirrors the <Feature> gates below so the reported nav items match what's
+  // actually rendered — including any beta/new/alpha badge shown on them.
+  // `to` disambiguates items that can share a label (e.g. "Errors" from both
+  // the explore-errors and discover-basic branches) but point elsewhere.
+  const navItems: Array<{label: string; to: string; badge?: 'new' | 'beta' | 'alpha'}> =
+    [];
+  if (
+    organization.features.includes('performance-view') &&
+    organization.features.includes('visibility-explore-view')
+  ) {
+    navItems.push({label: 'Traces', to: `${baseUrl}/traces/`});
+  }
+  if (organization.features.includes('ourlogs-enabled')) {
+    navItems.push({label: 'Logs', to: `${baseUrl}/logs/`});
+  }
+  if (organization.features.includes('tracemetrics-enabled')) {
+    navItems.push({label: 'Metrics', to: `${baseUrl}/metrics/`});
+  }
+  if (organization.features.includes('explore-errors')) {
+    navItems.push({label: 'Errors', badge: 'alpha', to: `${baseUrl}/errors-v2/`});
+  }
+  if (organization.features.includes('discover-basic')) {
+    navItems.push({
+      label: 'Errors',
+      to: `${baseUrl}/errors/`,
+    });
+  }
+  if (organization.features.includes('profiling')) {
+    navItems.push({label: 'Profiles', to: `${baseUrl}/profiles/`});
+  }
+  if (organization.features.includes('session-replay-ui')) {
+    navItems.push({label: 'Replays', to: `${baseUrl}/replays/`});
+  }
+  navItems.push({label: 'Releases', to: `${baseUrl}/releases/`});
+  if (organization.features.includes('gen-ai-conversations')) {
+    navItems.push({
+      label: 'Agents',
+      badge: 'new',
+      to: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
+    });
+  }
+  if (organization.openMembership && organization.features.includes('investigations')) {
+    navItems.push({
+      label: 'Investigations',
+      badge: 'alpha',
+      to: `${baseUrl}/investigations/`,
+    });
+  }
+
+  useLLMContext({
+    contextHint:
+      'The Explore secondary nav panel — data-type shortcuts (Traces, Logs, ' +
+      'Metrics, ...), some behind a beta/new/alpha badge, plus the starred ' +
+      'saved queries list.',
+    navItems,
+    starredQueries: (starredQueries ?? []).map(query => ({
+      id: query.id,
+      name: query.name,
+      dataset: isExploreSavedQuery(query)
+        ? getSavedQueryDatasetLabel(query.dataset)
+        : 'Errors',
+      queryType: query.queryType,
+    })),
+  });
 
   return (
     <Fragment>
@@ -59,7 +125,6 @@ export function ExploreSecondaryNavigation() {
                 <SecondaryNavigation.Link
                   to={`${baseUrl}/metrics/`}
                   analyticsItemName="explore_metrics"
-                  trailingItems={<FeatureBadge type="new" />}
                 >
                   {t('Metrics')}
                 </SecondaryNavigation.Link>
@@ -83,19 +148,11 @@ export function ExploreSecondaryNavigation() {
             >
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
-                  to={
-                    discoverTransactionsDeprecation
-                      ? `${baseUrl}/errors/homepage/`
-                      : `${baseUrl}/discover/homepage/`
-                  }
-                  activeTo={
-                    discoverTransactionsDeprecation
-                      ? `${baseUrl}/errors/`
-                      : `${baseUrl}/discover/`
-                  }
+                  to={`${baseUrl}/errors/`}
+                  activeTo={`${baseUrl}/errors/`}
                   analyticsItemName="explore_discover"
                 >
-                  {discoverTransactionsDeprecation ? t('Errors') : t('Discover')}
+                  {t('Errors')}
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>
@@ -142,16 +199,30 @@ export function ExploreSecondaryNavigation() {
                 <SecondaryNavigation.Link
                   // TODO: Remove once query performance is improved - defaults to 24h to avoid slow loads
                   to={{
-                    pathname: `${baseUrl}/${CONVERSATIONS_LANDING_SUB_PATH}/`,
+                    pathname: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
                     search: '?statsPeriod=24h&referrer=sidebar',
                   }}
                   analyticsItemName="explore_conversations"
-                  trailingItems={<FeatureBadge type="beta" />}
+                  trailingItems={<FeatureBadge type="new" />}
                 >
-                  {t('Conversations')}
+                  {t('Agents')}
                 </SecondaryNavigation.Link>
               </SecondaryNavigation.ListItem>
             </Feature>
+            {organization.openMembership && (
+              <Feature features="organizations:investigations">
+                <SecondaryNavigation.ListItem>
+                  <SecondaryNavigation.Link
+                    to={`${baseUrl}/investigations/`}
+                    activeTo={`${baseUrl}/investigations/`}
+                    analyticsItemName="explore_investigations"
+                    trailingItems={<FeatureBadge type="alpha" />}
+                  >
+                    {t('Investigations')}
+                  </SecondaryNavigation.Link>
+                </SecondaryNavigation.ListItem>
+              </Feature>
+            )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
         <Feature features={['visibility-explore-view', 'performance-view']}>
@@ -183,3 +254,8 @@ export function ExploreSecondaryNavigation() {
     </Fragment>
   );
 }
+
+export const ExploreSecondaryNavigation = registerLLMContext(
+  'navigation',
+  ExploreSecondaryNavigationImpl
+);

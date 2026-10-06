@@ -30,6 +30,10 @@ import {
   getTimelineColorByOpType,
   hasError,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getEvaluationPreview,
+  getNodeEvaluation,
+} from 'sentry/views/insights/pages/agents/utils/evaluation';
 import {getToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
 import {GenAiOperationType} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -148,7 +152,7 @@ function TimelineSkeleton() {
   );
 }
 
-const TimelineRow = memo(function TimelineRow({
+const TimelineRow = memo(function TimelineRowImpl({
   node,
   onSelectNode,
   isSelected,
@@ -178,10 +182,10 @@ const TimelineRow = memo(function TimelineRow({
 
   return (
     <Flex align="center">
-      {({className}) => (
+      {flexProps => (
         <RowContainer
           type="button"
-          className={className}
+          {...flexProps}
           data-selected={isSelected}
           indent={indent}
           onClick={() => onSelectNode(node)}
@@ -203,8 +207,8 @@ const TimelineRow = memo(function TimelineRow({
                     title={title}
                     mode="overflowOnly"
                     size="sm"
-                    variant={isSelected ? 'primary' : 'muted'}
-                    monospace
+                    variant="primary"
+                    bold
                   >
                     {title}
                   </InfoText>
@@ -317,6 +321,19 @@ function getSpanPresentation(
 
   const color = getSpanColor(node, colorByOpType);
 
+  const evaluation = getNodeEvaluation(node);
+  if (evaluation) {
+    return {
+      color,
+      isTool: false,
+      title:
+        getStringAttr(node, SpanFields.GEN_AI_REQUEST_MODEL) ||
+        getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
+        op,
+      secondary: getEvaluationPreview(evaluation),
+    };
+  }
+
   switch (genAiOpType) {
     case GenAiOperationType.AGENT: {
       const name =
@@ -331,7 +348,7 @@ function getSpanPresentation(
         color,
         isTool: false,
         title: name || op,
-        secondary: model ? `${op} (${model})` : op,
+        secondary: model,
       };
     }
     case GenAiOperationType.AI_CLIENT: {

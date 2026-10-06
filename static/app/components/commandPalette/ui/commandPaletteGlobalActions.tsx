@@ -59,9 +59,11 @@ import type {ShortIdResponse} from 'sentry/types/group';
 import type {Member, Team} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
@@ -75,8 +77,9 @@ import {useUser} from 'sentry/utils/useUser';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
 import {DashboardFilter} from 'sentry/views/dashboards/types';
-import {CONVERSATIONS_LANDING_SUB_PATH} from 'sentry/views/explore/conversations/settings';
+import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {
+  getSavedQueryKey,
   MAX_STARRED_SAVED_QUERIES_IN_NAV,
   useGetSavedQueries,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
@@ -89,6 +92,10 @@ import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settin
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {useStarredIssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/useStarredIssueViews';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+import {
+  toggleXRayMode,
+  useXRayModeEnabled,
+} from 'sentry/views/seerExplorer/xray/xrayModeStore';
 import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import {getNavigationConfiguration} from 'sentry/views/settings/project/navigationConfiguration';
 import {PROJECT_SETTINGS_ICONS} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
@@ -108,7 +115,6 @@ export function isNavItemVisible(
   return typeof item.show === 'function' ? item.show(context) : item.show;
 }
 import {useNotificationPermission} from 'sentry/serviceWorker/client/useNotificationPermission';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 
 import {CMDKAction} from './cmdk';
 import {CommandPaletteSlot} from './commandPaletteSlot';
@@ -271,7 +277,7 @@ export function GlobalCommandPaletteActions() {
   const {mutate: exitSuperuser} = useMutation({
     mutationFn: () =>
       fetchMutation({
-        url: '/auth/superuser/',
+        url: getApiUrl('/auth/superuser/'),
         method: 'DELETE',
       }),
     onSuccess: () => window.location.reload(),
@@ -287,6 +293,12 @@ export function GlobalCommandPaletteActions() {
     ? projects.filter(p => p.slug === params.projectId)
     : projects.filter(p => queryProjectIds.has(p.id));
   const currentProjectSlugs = new Set(currentProjects.map(p => p.slug));
+  // Included in project picker query keys so starring/unstarring a project
+  // reorders the cached list.
+  const bookmarkedProjectSlugs = projects
+    .filter(p => p.isBookmarked)
+    .map(p => p.slug)
+    .join(',');
   const visibleProjectSettingsNavItems = useMemo(() => {
     const context: Omit<NavigationGroupProps, 'items' | 'name' | 'id'> = {
       access: new Set(organization.access),
@@ -324,13 +336,13 @@ export function GlobalCommandPaletteActions() {
   const hasInsightsRollout = organization.features.includes(
     'insights-to-dashboards-ui-rollout'
   );
-  const hasWorkflowEngineUI = organization.features.includes('workflow-engine-ui');
   const hasPrebuiltDashboards = organization.features.includes(
     'dashboards-prebuilt-insights-dashboards'
   );
 
   const {supportsNotifications, permission, askNotificationPermission} =
     useNotificationPermission();
+  const xrayModeEnabled = useXRayModeEnabled();
   return (
     <CommandPaletteSlot name="global">
       <CMDKAction display={{label: t('Go to...')}}>
@@ -388,22 +400,12 @@ export function GlobalCommandPaletteActions() {
               to={`${prefix}/explore/metrics/`}
             />
           )}
-          {organization.features.includes('explore-errors') &&
-            !getDiscoverDeprecation(organization) && (
-              <CMDKAction
-                display={{label: t('Errors')}}
-                to={`${prefix}/explore/errors-v2/`}
-              />
-            )}
+          {/* TODO(nikki): I removed the errors on eap UI here so it wouldn't get confused with discover errors, add it back before launch */}
           <CMDKAction
             display={{
-              label: getDiscoverDeprecation(organization) ? t('Errors') : t('Discover'),
+              label: t('Errors'),
             }}
-            to={
-              getDiscoverDeprecation(organization)
-                ? `${prefix}/explore/errors/homepage/`
-                : `${prefix}/explore/discover/homepage/`
-            }
+            to={`${prefix}/explore/errors/`}
           />
           {organization.features.includes('profiling') && (
             <CMDKAction
@@ -426,8 +428,8 @@ export function GlobalCommandPaletteActions() {
           />
           {organization.features.includes('gen-ai-conversations') && (
             <CMDKAction
-              display={{label: t('Conversations')}}
-              to={`${prefix}/explore/${CONVERSATIONS_LANDING_SUB_PATH}/?referrer=cmdk`}
+              display={{label: t('Agents')}}
+              to={`${prefix}/explore/${EXPLORE_AGENTS_SUB_PATH}/?referrer=cmdk`}
             />
           )}
           <CMDKAction
@@ -436,7 +438,7 @@ export function GlobalCommandPaletteActions() {
           />
           {starredSavedQueries.map(query => (
             <CMDKAction
-              key={query.id}
+              key={getSavedQueryKey(query)}
               display={{label: query.name, icon: <IconStar />}}
               to={getSavedQueryTraceItemUrl({savedQuery: query, organization})}
             />
@@ -494,110 +496,88 @@ export function GlobalCommandPaletteActions() {
           </CMDKAction>
         </CMDKAction>
 
-        {/* Hide the entire Insights section only when both migrations are active.
-            During partial rollout, individual items are gated: domain links
-            (Frontend, Backend, etc.) by insights-to-dashboards-ui-rollout,
-            and Crons/Uptime by workflow-engine-ui. */}
-        {organization.features.includes('performance-view') &&
-          !(hasInsightsRollout && hasWorkflowEngineUI) && (
-            <CMDKAction
-              display={{
-                label: t('Insights'),
-                icon: <IconGraph type="area" />,
-              }}
-              limit={4}
-            >
-              {!hasInsightsRollout && (
-                <CMDKAction
-                  display={{label: t('Frontend')}}
-                  keywords={[t('apdex'), t('web vitals'), t('performance score')]}
-                  to={`${prefix}/insights/${FRONTEND_LANDING_SUB_PATH}/`}
-                />
-              )}
-              {!hasInsightsRollout && (
-                <CMDKAction
-                  display={{label: t('Backend')}}
-                  to={`${prefix}/insights/${BACKEND_LANDING_SUB_PATH}/`}
-                />
-              )}
-              {!hasInsightsRollout && (
-                <CMDKAction
-                  display={{label: t('Mobile')}}
-                  to={`${prefix}/insights/${MOBILE_LANDING_SUB_PATH}/`}
-                />
-              )}
-              {!hasInsightsRollout && (
-                <CMDKAction
-                  display={{label: t('Agents')}}
-                  to={`${prefix}/insights/${AGENTS_LANDING_SUB_PATH}/`}
-                />
-              )}
-              {!hasInsightsRollout && (
-                <CMDKAction
-                  display={{label: t('MCP')}}
-                  to={`${prefix}/insights/${MCP_LANDING_SUB_PATH}/`}
-                />
-              )}
-              {!hasWorkflowEngineUI && (
-                <CMDKAction
-                  display={{label: t('Crons')}}
-                  keywords={[t('jobs'), t('cron jobs')]}
-                  to={`${prefix}/insights/crons/`}
-                />
-              )}
-              {organization.features.includes('uptime') && !hasWorkflowEngineUI && (
-                <CMDKAction
-                  display={{label: t('Uptime')}}
-                  keywords={[t('uptime monitors')]}
-                  to={`${prefix}/insights/uptime/`}
-                />
-              )}
-              {!hasInsightsRollout && (
-                <CMDKAction
-                  display={{label: t('Projects')}}
-                  to={`${prefix}/insights/projects/`}
-                />
-              )}
-            </CMDKAction>
-          )}
-
-        {hasWorkflowEngineUI && (
-          <CMDKAction display={{label: t('Monitors'), icon: <IconSiren />}} limit={4}>
-            <CMDKAction display={{label: t('All Monitors')}} to={`${prefix}/monitors/`} />
-            <CMDKAction
-              display={{label: t('My Monitors')}}
-              to={`${prefix}/monitors/my-monitors/`}
-            />
-            <CMDKAction display={{label: t('Error')}} to={`${prefix}/monitors/errors/`} />
-            <CMDKAction
-              display={{label: t('Metric')}}
-              to={`${prefix}/monitors/metrics/`}
-            />
-            <CMDKAction
-              display={{label: t('Cron')}}
-              keywords={[t('jobs'), t('cron jobs')]}
-              to={`${prefix}/monitors/crons/`}
-            />
-            {organization.features.includes('uptime') && (
+        {/* Hide the Insights section once the insights-to-dashboards migration
+            is active; Crons and Uptime now live under the Monitors section. */}
+        {organization.features.includes('performance-view') && !hasInsightsRollout && (
+          <CMDKAction
+            display={{
+              label: t('Insights'),
+              icon: <IconGraph type="area" />,
+            }}
+            limit={4}
+          >
+            {!hasInsightsRollout && (
               <CMDKAction
-                display={{label: t('Uptime')}}
-                keywords={[t('uptime monitors'), t('monitors')]}
-                to={`${prefix}/monitors/uptime/`}
+                display={{label: t('Frontend')}}
+                keywords={[t('apdex'), t('web vitals'), t('performance score')]}
+                to={`${prefix}/insights/${FRONTEND_LANDING_SUB_PATH}/`}
               />
             )}
-            {organization.features.includes('preprod-size-monitors-frontend') && (
+            {!hasInsightsRollout && (
               <CMDKAction
-                display={{label: t('Mobile Build')}}
-                to={`${prefix}/monitors/mobile-builds/`}
+                display={{label: t('Backend')}}
+                to={`${prefix}/insights/${BACKEND_LANDING_SUB_PATH}/`}
               />
             )}
-            <CMDKAction
-              display={{label: t('Alerts')}}
-              keywords={[t('alert rules'), t('issue alert')]}
-              to={`${prefix}/monitors/alerts/`}
-            />
+            {!hasInsightsRollout && (
+              <CMDKAction
+                display={{label: t('Mobile')}}
+                to={`${prefix}/insights/${MOBILE_LANDING_SUB_PATH}/`}
+              />
+            )}
+            {!hasInsightsRollout && (
+              <CMDKAction
+                display={{label: t('Agents')}}
+                to={`${prefix}/insights/${AGENTS_LANDING_SUB_PATH}/`}
+              />
+            )}
+            {!hasInsightsRollout && (
+              <CMDKAction
+                display={{label: t('MCP')}}
+                to={`${prefix}/insights/${MCP_LANDING_SUB_PATH}/`}
+              />
+            )}
+            {!hasInsightsRollout && (
+              <CMDKAction
+                display={{label: t('Projects')}}
+                to={`${prefix}/insights/projects/`}
+              />
+            )}
           </CMDKAction>
         )}
+
+        <CMDKAction display={{label: t('Monitors'), icon: <IconSiren />}} limit={4}>
+          <CMDKAction display={{label: t('All Monitors')}} to={`${prefix}/monitors/`} />
+          <CMDKAction
+            display={{label: t('My Monitors')}}
+            to={`${prefix}/monitors/my-monitors/`}
+          />
+          <CMDKAction display={{label: t('Error')}} to={`${prefix}/monitors/errors/`} />
+          <CMDKAction display={{label: t('Metric')}} to={`${prefix}/monitors/metrics/`} />
+          <CMDKAction
+            display={{label: t('Cron')}}
+            keywords={[t('jobs'), t('cron jobs')]}
+            to={`${prefix}/monitors/crons/`}
+          />
+          {organization.features.includes('uptime') && (
+            <CMDKAction
+              display={{label: t('Uptime')}}
+              keywords={[t('uptime monitors'), t('monitors')]}
+              to={`${prefix}/monitors/uptime/`}
+            />
+          )}
+          {organization.features.includes('preprod-size-monitors-frontend') && (
+            <CMDKAction
+              display={{label: t('Mobile Build')}}
+              to={`${prefix}/monitors/mobile-builds/`}
+            />
+          )}
+          <CMDKAction
+            display={{label: t('Alerts')}}
+            keywords={[t('alert rules'), t('issue alert')]}
+            to={`${prefix}/monitors/alerts/`}
+          />
+        </CMDKAction>
 
         <CMDKAction display={{label: t('Settings'), icon: <IconSettings />}} limit={4}>
           {visibleOrgSettingsNavItems.map(item => (
@@ -724,18 +704,22 @@ export function GlobalCommandPaletteActions() {
                   // some orgs have thousands of projects.
                   // `params.projectId`/`queryProjectIds` bust the cache when
                   // the active project changes (affects "Current" tag display).
-                  // eslint-disable-next-line @tanstack/query/exhaustive-deps
                   cmdkQueryOptions({
                     queryKey: [
                       'project-settings',
                       organization.slug,
                       suffix,
                       params.projectId ?? [...queryProjectIds].join(','),
+                      bookmarkedProjectSlugs,
                     ],
                     queryFn: () => {
                       const sorted = [
-                        ...projects.filter(p => currentProjectSlugs.has(p.slug)),
-                        ...projects.filter(p => !currentProjectSlugs.has(p.slug)),
+                        ...sortProjects(
+                          projects.filter(p => currentProjectSlugs.has(p.slug))
+                        ),
+                        ...sortProjects(
+                          projects.filter(p => !currentProjectSlugs.has(p.slug))
+                        ),
                       ];
                       return sorted.map(project => ({
                         display: {
@@ -789,7 +773,7 @@ export function GlobalCommandPaletteActions() {
           )}
           {isActiveSuperuser() && (
             <CMDKAction
-              display={{label: t('Exit Superuser'), icon: <IconLock locked={false} />}}
+              display={{label: t('Exit Superuser'), icon: <IconLock />}}
               keywords={[t('superuser')]}
               onAction={() => exitSuperuser()}
             />
@@ -949,7 +933,7 @@ export function GlobalCommandPaletteActions() {
             ),
             enabled: query.length >= 1,
             select: data =>
-              data.json.map(project => ({
+              sortProjects(data.json).map(project => ({
                 display: {
                   label: project.slug,
                   icon: <ProjectAvatar project={project} size={16} />,
@@ -981,24 +965,22 @@ export function GlobalCommandPaletteActions() {
           // TanStack serializes the entire key for cache lookups, and
           // including the full projects array would be too costly —
           // some orgs have thousands of projects.
-
           cmdkQueryOptions({
             queryKey: [
               'cmdk-project-nav',
               organization.slug,
               projects.map(p => p.slug).join(','),
+              bookmarkedProjectSlugs,
             ],
             queryFn: () =>
-              [...projects]
-                .sort((a, b) => a.slug.localeCompare(b.slug))
-                .map(project => ({
-                  display: {
-                    label: project.slug,
-                    icon: <ProjectAvatar project={project} size={16} />,
-                  },
-                  keywords: [project.name, project.slug],
-                  to: `/organizations/${organization.slug}/issues/?project=${project.id}`,
-                })),
+              sortProjects(projects).map(project => ({
+                display: {
+                  label: project.slug,
+                  icon: <ProjectAvatar project={project} size={16} />,
+                },
+                keywords: [project.name, project.slug],
+                to: `/organizations/${organization.slug}/issues/?project=${project.id}`,
+              })),
             enabled: state === 'selected',
             staleTime: Infinity,
           })
@@ -1095,6 +1077,27 @@ export function GlobalCommandPaletteActions() {
             }}
           />
         </CMDKAction>
+
+        {organization.features.includes('seer-xray') && (
+          <CMDKAction
+            display={{
+              label: xrayModeEnabled
+                ? t('Disable Seer XRay Mode')
+                : t('Enable Seer XRay Mode'),
+              icon: <IconSeer />,
+            }}
+            keywords={[
+              'xray',
+              'x-ray',
+              'seer',
+              'llm context',
+              'debug',
+              'inspect',
+              'overlay',
+            ]}
+            onAction={() => toggleXRayMode()}
+          />
+        )}
       </CMDKAction>
 
       {(NODE_ENV === 'development' || DEPLOY_PREVIEW_CONFIG) && (

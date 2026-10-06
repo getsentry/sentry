@@ -1,8 +1,10 @@
-import {useQuery} from '@tanstack/react-query';
+import {skipToken, useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
-import type {CommandPaletteAction} from 'sentry/components/commandPalette/types';
-import type {CMDKQueryOptions} from 'sentry/components/commandPalette/types';
+import type {
+  CMDKQueryOptions,
+  CommandPaletteAction,
+} from 'sentry/components/commandPalette/types';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
 
 import {makeCollection} from './collection';
@@ -10,6 +12,7 @@ import {
   CommandPaletteStateProvider,
   useCommandPaletteState,
 } from './commandPaletteStateContext';
+
 export interface CMDKResourceContext {
   /** 'selected' when the user has drilled into this action, otherwise undefined. */
   state: 'selected' | undefined;
@@ -90,20 +93,15 @@ interface CMDKActionProps<TData = unknown> {
 
 interface CMDKActionWithResourceProps<TData = unknown> {
   nodeKey: string;
-  query: string;
-  resource: (query: string, context: CMDKResourceContext) => CMDKQueryOptions<TData>;
-  state: 'selected' | undefined;
+  resourceOptions: CMDKQueryOptions<TData>;
   children?: React.ReactNode | ((data: CommandPaletteAction[]) => React.ReactNode);
 }
 
 function CMDKActionWithResource<TData = unknown>({
   nodeKey,
-  query,
-  state,
-  resource,
+  resourceOptions,
   children,
 }: CMDKActionWithResourceProps<TData>) {
-  const resourceOptions = resource(query, {state});
   const {data} = useQuery({
     ...resourceOptions,
     enabled: resourceOptions.enabled ?? true,
@@ -171,18 +169,29 @@ export function CMDKAction<TData = unknown>({
   const {query, action: navAction} = useCommandPaletteState();
   const state = navAction?.value.key === key ? 'selected' : undefined;
 
-  if (!children && !resource) {
+  // Only skip rendering for nodes that have no actionable content at all.
+  // Nodes with `onAction` or `to` are valid leaf actions and must render the
+  // Context.Provider so they participate correctly in the slot tree and are
+  // visible in the command palette ListBox.
+  if (!children && !resource && !onAction && !to) {
     return null;
   }
 
   if (resource) {
+    const resourceOptions = resource(query, {state});
+
+    // perf: an explicitly disabled resource still registers its action, but does not
+    // need a disabled QueryObserver which can be expensive if registered for e.g. thousands of attributes
+    if (resourceOptions.enabled === false || resourceOptions.queryFn === skipToken) {
+      return (
+        <CMDKCollection.Context.Provider value={key}>
+          {typeof children === 'function' ? null : children}
+        </CMDKCollection.Context.Provider>
+      );
+    }
+
     return (
-      <CMDKActionWithResource
-        nodeKey={key}
-        query={query}
-        state={state}
-        resource={resource}
-      >
+      <CMDKActionWithResource nodeKey={key} resourceOptions={resourceOptions}>
         {children}
       </CMDKActionWithResource>
     );

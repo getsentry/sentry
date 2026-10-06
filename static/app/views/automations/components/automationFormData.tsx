@@ -3,7 +3,13 @@ import {uuid4} from '@sentry/core';
 import type {FieldValue} from 'sentry/components/forms/model';
 import {t} from 'sentry/locale';
 import {ActionType, type Action} from 'sentry/types/workflowEngine/actions';
-import type {Automation, NewAutomation} from 'sentry/types/workflowEngine/automations';
+import type {
+  Automation,
+  NewAutomation,
+  NewAutomationAction,
+  NewAutomationDataCondition,
+  NewAutomationDataConditionGroup,
+} from 'sentry/types/workflowEngine/automations';
 import type {
   DataCondition,
   DataConditionGroup,
@@ -13,8 +19,10 @@ import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
 import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
 import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
 import {CONNECTED_MONITORS_ERROR_ID} from 'sentry/views/automations/components/editConnectedMonitors';
+import type {AlertPreviewRequest} from 'sentry/views/automations/utils/alertPreviewQueryOptions';
 
 export interface AutomationFormData {
+  allProjects: boolean;
   detectorIds: string[];
   enabled: boolean;
   environment: string | null;
@@ -27,7 +35,7 @@ export interface AutomationFormData {
   projectIds: string[];
 }
 
-const stripDataConditionId = (condition: any) => {
+const stripDataConditionId = (condition: DataCondition): NewAutomationDataCondition => {
   const {id: _id, ...conditionWithoutId} = condition;
 
   if (condition.comparison?.filters) {
@@ -35,19 +43,19 @@ const stripDataConditionId = (condition: any) => {
       ...conditionWithoutId,
       comparison: {
         ...condition.comparison,
-        filters: condition.comparison.filters?.map(stripSubfilterId) || [],
+        filters: condition.comparison.filters.map(stripSubfilterId),
       },
     };
   }
   return conditionWithoutId;
 };
 
-const stripSubfilterId = (subfilter: any) => {
+const stripSubfilterId = (subfilter: Subfilter): Omit<Subfilter, 'id'> => {
   const {id: _id, ...subfilterWithoutId} = subfilter;
   return subfilterWithoutId;
 };
 
-export const stripActionFields = (action: Action) => {
+export const stripActionFields = (action: Action): NewAutomationAction => {
   const {id: _id, ...actionWithoutId} = action;
 
   // Strip targetDisplay from email action config
@@ -61,14 +69,26 @@ export const stripActionFields = (action: Action) => {
   return actionWithoutId;
 };
 
-const stripDataConditionGroupId = (group: any) => {
+const stripDataConditionGroupId = (
+  group: DataConditionGroup
+): NewAutomationDataConditionGroup => {
   const {id: _id, ...groupWithoutId} = group;
   return {
     ...groupWithoutId,
-    conditions: group.conditions?.map(stripDataConditionId) || [],
-    actions: group.actions?.map(stripActionFields) || [],
+    conditions: group.conditions.map(stripDataConditionId),
+    actions: group.actions?.map(stripActionFields) ?? [],
   };
 };
+
+const serializePreviewConditionGroup = (
+  group: DataConditionGroup
+): AlertPreviewRequest['triggers'] => ({
+  logicType: group.logicType,
+  conditions: group.conditions.map(condition => {
+    const {type, comparison} = stripDataConditionId(condition);
+    return {type, comparison};
+  }),
+});
 
 export function getNewAutomationData({
   data,
@@ -90,10 +110,41 @@ export function getNewAutomationData({
   };
 }
 
+export function getAlertPreviewRequest({
+  frequency,
+  projectIds,
+  state,
+}: {
+  frequency: number | null;
+  projectIds: readonly string[];
+  state: AutomationBuilderState;
+}): AlertPreviewRequest | null {
+  if (
+    projectIds.length === 0 ||
+    state.triggers.conditions.length === 0 ||
+    state.actionFilters.length === 0 ||
+    [state.triggers, ...state.actionFilters].some(group =>
+      group.conditions.some(condition =>
+        dataConditionNodesMap.get(condition.type)?.validate?.({condition})
+      )
+    )
+  ) {
+    return null;
+  }
+
+  return {
+    projectIds: projectIds.map(Number),
+    config: {frequency: frequency ?? 0},
+    triggers: serializePreviewConditionGroup(state.triggers),
+    actionFilters: state.actionFilters.map(serializePreviewConditionGroup),
+  };
+}
+
 export function getAutomationFormData(
   automation: Automation
 ): Record<string, FieldValue> {
   return {
+    allProjects: false,
     detectorIds: automation.detectorIds,
     environment: automation.environment,
     frequency: automation.config.frequency ?? 0,
@@ -116,6 +167,7 @@ export function validateAutomationBuilderState(
 
   if (
     validateConnectedMonitors &&
+    !data.allProjects &&
     !data.detectorIds?.length &&
     !data.projectIds?.length
   ) {

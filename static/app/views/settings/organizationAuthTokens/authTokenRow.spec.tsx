@@ -10,6 +10,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import type {OrgAuthToken} from 'sentry/types/user';
 import {OrganizationAuthTokensAuthTokenRow} from 'sentry/views/settings/organizationAuthTokens/authTokenRow';
@@ -45,7 +46,11 @@ describe('OrganizationAuthTokensAuthTokenRow', () => {
   });
 
   it('shows token without last used information', () => {
-    render(<OrganizationAuthTokensAuthTokenRow {...defaultProps} />);
+    render(
+      <SimpleTable>
+        <OrganizationAuthTokensAuthTokenRow {...defaultProps} />
+      </SimpleTable>
+    );
 
     expect(screen.getByLabelText('Token preview')).toHaveTextContent(
       'sntrys_************XYZ1'
@@ -65,7 +70,11 @@ describe('OrganizationAuthTokensAuthTokenRow', () => {
         },
       };
 
-      render(<OrganizationAuthTokensAuthTokenRow {...props} />);
+      render(
+        <SimpleTable>
+          <OrganizationAuthTokensAuthTokenRow {...props} />
+        </SimpleTable>
+      );
 
       expect(screen.getByLabelText('Token preview')).toHaveTextContent(
         'sntrys_************XYZ1'
@@ -87,7 +96,11 @@ describe('OrganizationAuthTokensAuthTokenRow', () => {
         },
       };
 
-      render(<OrganizationAuthTokensAuthTokenRow {...props} />);
+      render(
+        <SimpleTable>
+          <OrganizationAuthTokensAuthTokenRow {...props} />
+        </SimpleTable>
+      );
 
       expect(screen.getByLabelText('Token preview')).toHaveTextContent(
         'sntrys_************XYZ1'
@@ -107,7 +120,11 @@ describe('OrganizationAuthTokensAuthTokenRow', () => {
         },
       };
 
-      render(<OrganizationAuthTokensAuthTokenRow {...props} />);
+      render(
+        <SimpleTable>
+          <OrganizationAuthTokensAuthTokenRow {...props} />
+        </SimpleTable>
+      );
 
       expect(screen.getByLabelText('Token preview')).toHaveTextContent(
         'sntrys_************XYZ1'
@@ -126,13 +143,21 @@ describe('OrganizationAuthTokensAuthTokenRow', () => {
         revokeToken: undefined,
       };
 
-      render(<OrganizationAuthTokensAuthTokenRow {...props} />);
+      render(
+        <SimpleTable>
+          <OrganizationAuthTokensAuthTokenRow {...props} />
+        </SimpleTable>
+      );
 
       expect(screen.getByRole('button', {name: 'Revoke My Token'})).toBeDisabled();
     });
 
     it('allows to revoke', async () => {
-      render(<OrganizationAuthTokensAuthTokenRow {...defaultProps} />);
+      render(
+        <SimpleTable>
+          <OrganizationAuthTokensAuthTokenRow {...defaultProps} />
+        </SimpleTable>
+      );
       renderGlobalModal();
 
       expect(screen.getByRole('button', {name: 'Revoke My Token'})).toBeEnabled();
@@ -150,7 +175,11 @@ describe('OrganizationAuthTokensAuthTokenRow', () => {
         isRevoking: true,
       };
 
-      render(<OrganizationAuthTokensAuthTokenRow {...props} />);
+      render(
+        <SimpleTable>
+          <OrganizationAuthTokensAuthTokenRow {...props} />
+        </SimpleTable>
+      );
 
       expect(screen.getByRole('button', {name: 'Revoke My Token'})).toBeDisabled();
     });

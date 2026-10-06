@@ -113,12 +113,12 @@ function ApiApplicationsDetails() {
     return <LoadingError onRetry={refetch} />;
   }
 
-  const apiApplicationEndpoint = `/api-applications/${appId}/`;
+  const apiApplicationEndpoint = getApiUrl('/api-applications/$appId/', {
+    path: {appId},
+  });
 
   const onSaveError = () => addErrorMessage(t('Unable to save change'));
   const onSaveSuccess = (updated: ApiApplication) => {
-    // Will be fixed soon when we get rid of setApiQueryData.
-    // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-arguments
     setApiQueryData<ApiApplication>(queryClient, getAppQueryKey(appId), updated);
     addSuccessMessage(t('Changes applied.'));
   };

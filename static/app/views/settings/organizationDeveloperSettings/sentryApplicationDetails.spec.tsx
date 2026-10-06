@@ -246,9 +246,6 @@ describe('Sentry Application Details', () => {
     it('notes the payload transform when the URL fires a Claude routine', async () => {
       render(<SentryApplicationDetails />, {
         initialRouterConfig,
-        organization: OrganizationFixture({
-          features: ['sentry-apps-claude-routine-webhooks'],
-        }),
       });
 
       const webhookInput = screen.getByRole('textbox', {name: 'Webhook URL'});
@@ -274,11 +271,9 @@ describe('Sentry Application Details', () => {
         },
         route: '/settings/:orgId/developer-settings/new-internal/',
       };
-      const organization = OrganizationFixture({
-        features: ['sentry-apps-creation-templates'],
-      });
+      const organization = OrganizationFixture();
 
-      it('prefills the form from the template', () => {
+      it('prefills the form from the template', async () => {
         render(<SentryApplicationDetails />, {
           initialRouterConfig: templateRouterConfig,
           organization,
@@ -290,6 +285,16 @@ describe('Sentry Application Details', () => {
         expect(
           screen.getByRole('button', {name: 'Copy a starter prompt'})
         ).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Permissions'})).toHaveAttribute(
+          'aria-expanded',
+          'false'
+        );
+        expect(screen.getByRole('button', {name: 'Webhooks'})).toHaveAttribute(
+          'aria-expanded',
+          'false'
+        );
+
+        await userEvent.click(screen.getByRole('button', {name: 'Webhooks'}));
 
         expect(screen.getByRole('checkbox', {name: 'issue'})).toBeEnabled();
         expect(screen.getByRole('checkbox', {name: 'issue'})).toBePartiallyChecked();
@@ -361,7 +366,7 @@ describe('Sentry Application Details', () => {
               ],
               events: ['issue.created'],
               scopes: ['event:read', 'event:write'],
-              isAlertable: false,
+              isAlertable: true,
               overview: '',
             }),
           })
@@ -440,16 +445,6 @@ describe('Sentry Application Details', () => {
 
         expect(await screen.findByText('This field is required')).toBeInTheDocument();
         expect(createAppRequest).not.toHaveBeenCalled();
-      });
-
-      it('ignores templates without the templates feature', () => {
-        render(<SentryApplicationDetails />, {
-          initialRouterConfig: templateRouterConfig,
-          organization: OrganizationFixture(),
-        });
-
-        expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue('');
-        expect(screen.queryByText('Trigger a Claude routine')).not.toBeInTheDocument();
       });
 
       it('returns to a blank form from the template header', async () => {

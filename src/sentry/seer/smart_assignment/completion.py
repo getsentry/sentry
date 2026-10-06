@@ -27,28 +27,45 @@ def process_smart_assignment_completion(group: Group, activity: Activity) -> Non
     run = (
         SeerAgentRun.objects.filter(run_id=seer_run_id).first() if seer_run_id is not None else None
     )
+    # We need someone who actually resolves to a Sentry user, so pick one further
+    # down the list of suggestions if necessary.
+    top_user_id, used_rank = next(
+        (
+            (user_id, rank)
+            for rank, user_id in enumerate(predicted_assignee_user_ids)
+            if user_id is not None
+        ),
+        (None, None),
+    )
+
     if run is not None:
         # Save the prediction to the run so it can be scored, either now (if ground truth
         # already landed) or later (if ground truth hasn't landed yet).
-        record_prediction(run, predicted_assignee_user_ids)
+        record_prediction(run, predicted_assignee_user_ids, top_user_id)
 
-    _apply_prediction(group, predicted_assignee_user_ids, run_uuid=data.get("run_uuid"))
+    _apply_prediction(group, top_user_id, used_rank, run_uuid=data.get("run_uuid"))
 
 
 def _apply_prediction(
     group: Group,
-    predicted_assignee_user_ids: list[int | None],
+    top_user_id: int | None,
+    used_rank: int | None,
     run_uuid: str | None,
 ) -> None:
     """If the feature flag is enabled and we predicted an acutal org user,
     create a (suggested) GroupOwner for them. Then promote the suggestion to an
     assignment iff the project auto-assigns to owners."""
-    if not features.has(AUTO_ASSIGN_FEATURE_FLAG, group.organization):
+    if not (
+        features.has(AUTO_ASSIGN_FEATURE_FLAG, group.organization)
+        and (
+            features.has("organizations:seer-added", group.organization)
+            or features.has("organizations:seat-based-seer-enabled", group.organization)
+        )
+    ):
         return
 
-    top_user_id = predicted_assignee_user_ids[0] if predicted_assignee_user_ids else None
     if top_user_id is None:
-        # Agent abstained or named someone we couldn't map to an org user.
+        # Agent abstained, or none of its candidates mapped to an org user.
         metrics.incr(
             "smart_assignment.apply_prediction",
             tags={"outcome": "no_candidate"},
@@ -60,7 +77,7 @@ def _apply_prediction(
         # The top pick doesn't resolve to an org user.
         metrics.incr(
             "smart_assignment.apply_prediction",
-            tags={"outcome": "user_missing"},
+            tags={"outcome": "user_missing", "used_rank": used_rank},
             sample_rate=1.0,
         )
         return
@@ -84,8 +101,12 @@ def _apply_prediction(
     # ground-truth capture skips our own assignment (see scoring.record_ground_truth).
     ProjectOwnership.handle_auto_assignment(project_id=group.project_id, group=group)
 
-    metrics.incr("smart_assignment.apply_prediction", tags={"outcome": "applied"}, sample_rate=1.0)
+    metrics.incr(
+        "smart_assignment.apply_prediction",
+        tags={"outcome": "applied", "used_rank": used_rank},
+        sample_rate=1.0,
+    )
     logger.info(
         "smart_assignment.apply_prediction.applied",
-        extra={"group_id": group.id, "user_id": top_user_id},
+        extra={"group_id": group.id, "user_id": top_user_id, "used_rank": used_rank},
     )

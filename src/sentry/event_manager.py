@@ -89,6 +89,7 @@ from sentry.insights import modules as insights_modules
 from sentry.integrations.tasks.kick_off_status_syncs import kick_off_status_syncs
 from sentry.issue_detection.performance_detection import detect_performance_problems
 from sentry.issue_detection.performance_problem import PerformanceProblem
+from sentry.issues.action_log import SYSTEM_ACTOR, ActionSource, action_context_scope
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
 from sentry.killswitches import killswitch_matches_context
@@ -96,7 +97,12 @@ from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL, convert_crashrepor
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.event import EventDict
-from sentry.models.eventattachment import CRASH_REPORT_TYPES, EventAttachment, get_crashreport_key
+from sentry.models.eventattachment import (
+    CRASH_REPORT_TYPES,
+    EventAttachment,
+    PendingEventAttachment,
+    get_crashreport_key,
+)
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
@@ -105,6 +111,7 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.groupopenperiod import create_open_period
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
+from sentry.models.metric_tags import DATA_ACCESS_TAG, DataAccessTagValues
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
@@ -175,6 +182,10 @@ CRASH_REPORT_TIMEOUT = 24 * 3600  # one day
 HIGH_SEVERITY_THRESHOLD = 0.1
 
 SEER_ERROR_COUNT_KEY = ERROR_COUNT_CACHE_KEY("sentry.seer.severity-failures")
+
+
+# How long attachments may live if their corresponding event is not ingested.
+PENDING_ATTACHMENT_TTL = timedelta(hours=1)
 
 
 @dataclass
@@ -608,6 +619,21 @@ class EventManager:
         if not is_reprocessed and attachments:
             save_attachments(cache_key, attachments, job)
 
+        # Attachments that were ingested before this event became a pending attachment;
+        # now that the event exists, they can be promoted to real attachments.
+        #
+        # NOTE: this might work with is_reprocessed, but let's be conservative for now.
+        # Reprocessed events keep their existing attachments and have their `group_id`
+        # fixed up in `post_process_group` instead.
+        if not is_reprocessed:
+            safe_execute(
+                save_pending_attachments,
+                project=project,
+                event_id=job["event"].event_id,
+                group_id=group_info.group.id,
+                source="event_manager",
+            )
+
         metric_tags = {"from_relay": str("_relay_processed" in job["data"])}
 
         metrics.timing(
@@ -722,6 +748,18 @@ def _set_project_platform_if_needed(project: Project, event: Event) -> None:
         logger.exception("Failed to infer and set project platform")
 
 
+# How often each cache-fronted model lookup on the save path reached Postgres.
+# `data_access` is set by the model: cache_hit, db_read, db_create, or db_update.
+def _record_resolve_model(model: str, tags: dict[str, str]) -> None:
+    metrics.incr(
+        "save_event.resolve_model",
+        tags={
+            "model": model,
+            DATA_ACCESS_TAG: tags.get(DATA_ACCESS_TAG, DataAccessTagValues.UNKNOWN.value),
+        },
+    )
+
+
 @trace
 def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
@@ -735,12 +773,15 @@ def _get_or_create_release_many(jobs: Sequence[Job], projects: ProjectsMapping) 
         create_release = should_auto_create_releases(project)
 
         try:
+            resolve_tags: dict[str, str] = {}
             release = Release.get_or_create(
                 project=project,
                 version=data["release"],
                 date_added=date,
                 create=create_release,
+                metrics_tags=resolve_tags,
             )
+            _record_resolve_model("release", resolve_tags)
         except ValidationError:
             logger.exception(
                 "Failed creating Release due to ValidationError",
@@ -898,9 +939,16 @@ def _get_group_processing_kwargs(job: Job) -> dict[str, Any]:
 @trace
 def _get_or_create_environment_many(jobs: Sequence[Job], projects: ProjectsMapping) -> None:
     for job in jobs:
+        resolve_tags: dict[str, str] = {}
+        envproj_tags: dict[str, str] = {}
         job["environment"] = Environment.get_or_create(
-            project=projects[job["project_id"]], name=job["environment"]
+            project=projects[job["project_id"]],
+            name=job["environment"],
+            metrics_tags=resolve_tags,
+            project_metrics_tags=envproj_tags,
         )
+        _record_resolve_model("environment", resolve_tags)
+        _record_resolve_model("environmentproject", envproj_tags)
 
 
 @trace
@@ -918,11 +966,14 @@ def _get_or_create_group_environment(
     event_datetime: datetime,
 ) -> None:
     for group_info in groups:
+        resolve_tags: dict[str, str] = {}
         group_info.is_new_group_environment = GroupEnvironment.get_or_create(
             group_id=group_info.group.id,
             environment_id=environment.id,
             defaults={"first_release": release or None, "first_seen": event_datetime},
+            metrics_tags=resolve_tags,
         )[1]
+        _record_resolve_model("groupenvironment", resolve_tags)
 
 
 def _get_or_create_release_associated_models(
@@ -940,13 +991,25 @@ def _get_or_create_release_associated_models(
         environment = job["environment"]
         date = job["event"].datetime
 
+        release_env_tags: dict[str, str] = {}
         ReleaseEnvironment.get_or_create(
-            project=project, release=release, environment=environment, datetime=date
+            project=project,
+            release=release,
+            environment=environment,
+            datetime=date,
+            metrics_tags=release_env_tags,
         )
+        _record_resolve_model("releaseenvironment", release_env_tags)
 
+        release_project_env_tags: dict[str, str] = {}
         ReleaseProjectEnvironment.get_or_create(
-            project=project, release=release, environment=environment, datetime=date
+            project=project,
+            release=release,
+            environment=environment,
+            datetime=date,
+            metrics_tags=release_project_env_tags,
         )
+        _record_resolve_model("releaseprojectenvironment", release_project_env_tags)
 
 
 def _increment_release_associated_counts_many(
@@ -1007,12 +1070,15 @@ def _get_or_create_group_release(
 ) -> None:
     if release:
         for group_info in groups:
+            resolve_tags: dict[str, str] = {}
             group_info.group_release = GroupRelease.get_or_create(
                 group=group_info.group,
                 release=release,
                 environment=environment,
                 datetime=event.datetime,
+                metrics_tags=resolve_tags,
             )
+            _record_resolve_model("grouprelease", resolve_tags)
 
 
 def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
@@ -1025,7 +1091,6 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
 
     for job in jobs:
         incrs = []
-        frequencies = []
         records = []
         incrs.append((TSDBModel.project, job["project_id"]))
         event = job["event"]
@@ -1035,20 +1100,6 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
 
         for group_info in job["groups"]:
             incrs.append((TSDBModel.group, group_info.group.id))
-            frequencies.append(
-                (
-                    TSDBModel.frequent_environments_by_group,
-                    {group_info.group.id: {environment.id: 1}},
-                )
-            )
-
-            if group_info.group_release:
-                frequencies.append(
-                    (
-                        TSDBModel.frequent_releases_by_group,
-                        {group_info.group.id: {group_info.group_release.id: 1}},
-                    )
-                )
             if user:
                 records.append(
                     (TSDBModel.users_affected_by_group, group_info.group.id, (user.tag_value,))
@@ -1068,9 +1119,6 @@ def _tsdb_record_all_metrics(jobs: Sequence[Job]) -> None:
             tsdb.backend.record_multi(
                 records, timestamp=event.datetime, environment_id=environment.id
             )
-
-        if frequencies:
-            tsdb.backend.record_frequency_multi(frequencies, timestamp=event.datetime)
 
 
 def _nodestore_save_many(jobs: Sequence[Job], app_feature: str) -> None:
@@ -1920,7 +1968,8 @@ def _process_existing_aggregate(
     if group.first_seen > event.datetime:
         updated_group_values["first_seen"] = event.datetime
 
-    is_regression = _handle_regression(group, event, release, incoming_group_values)
+    with action_context_scope(source=ActionSource.SYSTEM, actor=SYSTEM_ACTOR):
+        is_regression = _handle_regression(group, event, release, incoming_group_values)
 
     existing_data = group.data
     existing_metadata = group.data.get("metadata", {})
@@ -2005,7 +2054,7 @@ def _get_severity_metadata_for_group(
 
     Returns {} if conditions aren't met or on exception.
     """
-    from sentry.workflow_engine.receivers.project_workflows import PLATFORMS_WITH_PRIORITY_ALERTS
+    PLATFORMS_WITH_PRIORITY_ALERTS = ["python", "javascript"]
 
     if killswitch_matches_context(
         "issues.severity.skip-seer-requests", {"project_id": event.project_id}
@@ -2415,6 +2464,7 @@ def save_attachment(
     key_id: int | None = None,
     group_id: int | None = None,
     start_time: float | None = None,
+    is_pending: bool = False,
 ) -> None:
     """
     Persists a cached event attachments into the file store.
@@ -2497,7 +2547,7 @@ def save_attachment(
 
     file = EventAttachment.putfile(project.id, attachment)
 
-    EventAttachment.objects.create(
+    db_fields = dict(
         # lookup:
         project_id=project.id,
         group_id=group_id,
@@ -2512,6 +2562,25 @@ def save_attachment(
         blob_path=file.blob_path,
         date_expires=datetime.now(timezone.utc) + timedelta(days=attachment.retention_days),
     )
+
+    if is_pending:
+        if group_id is not None:
+            logger.warning("group_id %s with is_pending=True", group_id)
+
+        # The event this attachment belongs to has not been ingested (yet), so we do not
+        # know whether it will be accepted at all. Park the attachment in
+        # `PendingEventAttachment` with a short TTL; `save_pending_attachments` promotes it
+        # to an `EventAttachment` (and emits the ACCEPTED outcome) once the event is saved.
+        # A row that is never promoted records INVALID(missing_event) when it is deleted.
+        metrics.incr("attachments.pending.create")
+        db_fields.pop("group_id")
+        db_fields["date_expires_retention"] = db_fields["date_expires"]
+        db_fields["date_expires"] = datetime.now(timezone.utc) + PENDING_ATTACHMENT_TTL
+        PendingEventAttachment.objects.create(**db_fields)
+
+        return
+
+    EventAttachment.objects.create(**db_fields)
 
     track_outcome(
         org_id=project.organization_id,
@@ -2549,6 +2618,108 @@ def save_attachments(cache_key: str | None, attachments: list[Attachment], job: 
             key_id=job["key_id"],
             group_id=event.group_id,
             start_time=job["start_time"],
+            is_pending=False,  # we have an event
+        )
+
+
+@trace
+def save_pending_attachments(
+    *, project: Project, event_id: str, group_id: int | None, source: str
+) -> None:
+    """
+    Promote any :class:`PendingEventAttachment` rows for ``event_id`` into real
+    :class:`EventAttachment` rows, now that the event they belong to has been saved.
+
+    Pending attachments are written by the standalone attachment consumer when the
+    attachment arrives before its event (see :func:`save_attachment`). They carry a
+    short TTL in ``date_expires`` and the real retention date in
+    ``date_expires_retention``; promoting them restores the retention date and
+    attaches the ``group_id``.
+
+    The ACCEPTED outcome is emitted here, on promotion: an attachment whose event never
+    arrives expires without ever being accepted, and records INVALID(missing_event) when
+    it is deleted instead (see :meth:`PendingEventAttachment.track_dropped_outcome`).
+    That is what keeps the race described in
+    :func:`sentry.tasks.post_process.update_existing_attachments` from costing the
+    customer money -- an attachment we drop is an attachment we never billed for.
+
+    Safe to call more than once for the same event, and called from two places for
+    exactly that reason: once when the event is saved, and again in post-processing.
+    ``source`` tags the metric so the two can be told apart.
+    """
+
+    # This runs for every error event of a flagged project, and almost none of them have
+    # a pending attachment. Probe outside a transaction so the common case stays a single
+    # unlocked SELECT rather than a BEGIN/COMMIT round trip.
+    if not PendingEventAttachment.objects.filter(project_id=project.id, event_id=event_id).exists():
+        return
+
+    with transaction.atomic(router.db_for_write(EventAttachment)):
+        # Claim the rows under lock. The insert and the delete below are in the same
+        # transaction, so a concurrent promoter -- a duplicate `event_id`, or a sweep over
+        # rows the ingest-time promotion missed -- re-checks under the lock and finds them
+        # gone instead of inserting a second copy and billing the customer twice.
+        #
+        # The row locks live until this block commits, not for as long as the queryset
+        # object does, so materializing the queryset here is precisely what takes them.
+        # Leaving it lazy would take no locks at all.
+        #
+        # `order_by("id")` keeps the lock order deterministic between two callers claiming
+        # overlapping sets of rows.
+        pending_attachments = list(
+            PendingEventAttachment.objects.filter(project_id=project.id, event_id=event_id)
+            .order_by("id")
+            .select_for_update()
+        )
+        if not pending_attachments:
+            return
+
+        # Pair this against `attachments.pending.create` to see how many pending
+        # attachments are actually making it back out of the table, and split it by
+        # `source` to see how many only got there on the second attempt.
+        metrics.incr(
+            "attachments.pending.persist",
+            amount=len(pending_attachments),
+            tags={"source": source},
+        )
+
+        EventAttachment.objects.bulk_create(
+            EventAttachment(
+                project_id=pending.project_id,
+                group_id=group_id,
+                event_id=pending.event_id,
+                type=pending.type,
+                name=pending.name,
+                content_type=pending.content_type,
+                size=pending.size,
+                sha1=pending.sha1,
+                blob_path=pending.blob_path,
+                date_added=pending.date_added,
+                date_expires=pending.date_expires_retention,
+            )
+            for pending in pending_attachments
+        )
+        # NOTE: A queryset delete does not run `Model.delete`, so the blobs referenced by
+        # these rows survive. That is intentional: the `EventAttachment` rows created above
+        # have taken ownership of them.
+        PendingEventAttachment.objects.filter(
+            id__in=[pending.id for pending in pending_attachments]
+        ).delete()
+
+    for pending in pending_attachments:
+        track_outcome(
+            org_id=project.organization_id,
+            project_id=project.id,
+            # NOTE: the standalone attachment consumer does not know the DSN that was used,
+            # so pending attachments are never attributed to a key.
+            key_id=None,
+            outcome=Outcome.ACCEPTED,
+            reason=None,
+            # Bill the attachment at the time it was ingested, not at promotion time.
+            timestamp=pending.date_added,
+            event_id=event_id,
+            category=DataCategory.ATTACHMENT,
+            quantity=pending.size or 1,
         )
 
 
@@ -2763,6 +2934,20 @@ def save_transaction_events(
     _nodestore_save_many(jobs=jobs, app_feature="transactions")
     _eventstream_insert_many(jobs)
 
+    if options.get("store.transactions.check-pending-attachments"):
+        for job in jobs:
+            # NOTE: This puts a postgres query in the critical ingestion path for transactions.
+            # `save_pending_attachments` currently early-returns for most projects, but before graduation,
+            # we should make sure that the extra load on postgres is justifiable, given the facts that transactions
+            # are a legacy feature and transaction attachments are a niche use case.
+            safe_execute(
+                save_pending_attachments,
+                project=projects[job["project_id"]],
+                event_id=job["event"].event_id,
+                group_id=None,
+                source="save_transaction_events",
+            )
+
     for job in jobs:
         track_sampled_event(
             job["event"].event_id,
@@ -2797,5 +2982,14 @@ def save_generic_events(jobs: Sequence[Job], projects: ProjectsMapping) -> Seque
     _get_or_create_environment_many(jobs, projects)
     _materialize_event_metrics(jobs)
     _nodestore_save_many(jobs=jobs, app_feature="issue_platform")
+
+    for job in jobs:
+        safe_execute(
+            save_pending_attachments,
+            project=projects[job["project_id"]],
+            event_id=job["event"].event_id,
+            group_id=None,
+            source="save_generic_events",
+        )
 
     return jobs

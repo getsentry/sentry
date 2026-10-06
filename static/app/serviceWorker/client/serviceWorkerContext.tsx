@@ -4,6 +4,7 @@ import * as Sentry from '@sentry/react';
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
 import {isServiceWorkerSupported} from 'sentry/serviceWorker/client/isServiceWorkerSupported';
 import {ServiceWorkerController} from 'sentry/serviceWorker/client/serviceWorkerInterface';
+import {trustedScriptUrl} from 'sentry/utils/trustedTypes';
 
 const DEBUG_LOGGING = false;
 
@@ -15,8 +16,12 @@ function log(message: string, options?: Sentry.metrics.MetricOptions) {
   }
 }
 
-function getWorkerUrl(): string {
-  return window.__SENTRY_DEV_UI ? '/entrypoints/service-worker.js' : '/service-worker.js';
+function getWorkerUrl(): TrustedScriptURL {
+  const url = window.__SENTRY_DEV_UI
+    ? '/entrypoints/service-worker.js'
+    : '/service-worker.js';
+
+  return trustedScriptUrl(url);
 }
 
 const Context = createContext({
@@ -66,6 +71,10 @@ function useRegisterServiceWorker() {
       // service workers are supported since Safari 16.4.
       .register(getWorkerUrl(), {scope: '/', type: 'module'})
       .then(registration => {
+        if (!registration) {
+          log('registered-undefined');
+          return;
+        }
         log('registered', {
           attributes: {
             // An old version could be active while the new instance is incoming
@@ -90,6 +99,12 @@ function useRegisterServiceWorker() {
         // AbortErrors from registration are expected (e.g. user navigates away
         // during the initial register call) and produce no stack trace.
         if (error instanceof Error && error.name === 'AbortError') {
+          return;
+        }
+        // InvalidStateError occurs when the document is in an invalid state
+        // during registration (e.g. the page is being unloaded or navigated
+        // away from) — unactionable.
+        if (error instanceof Error && error.name === 'InvalidStateError') {
           return;
         }
         log('error');

@@ -12,6 +12,7 @@ class GithubEnterpriseSearchTest(test_search.GithubSearchTest):
     # and fill out the slots that customize it to use github:enterprise
     provider = "github_enterprise"
     base_url = "https://github.example.org/api/v3"
+    graphql_url = "https://github.example.org/api/graphql"
 
     def _create_integration(self) -> Integration:
         future = datetime.now() + timedelta(hours=1)

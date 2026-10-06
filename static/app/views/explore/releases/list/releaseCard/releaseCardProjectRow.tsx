@@ -5,6 +5,7 @@ import type {Location} from 'history';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
+import {Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -17,7 +18,6 @@ import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconCheckmark, IconFire, IconWarning} from 'sentry/icons';
-import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import {t, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Release, ReleaseProject} from 'sentry/types/release';
@@ -38,27 +38,24 @@ import {
   AdoptionStageColumn,
   CrashFreeRateColumn,
   DisplaySmallCol,
+  getReleaseProjectColumns,
   NewIssuesColumn,
   ReleaseProjectColumn,
-  ReleaseProjectsLayout,
 } from '.';
 
 const CRASH_FREE_DANGER_THRESHOLD = 98;
 const CRASH_FREE_WARNING_THRESHOLD = 99.5;
 
-function getCrashFreeIcon(
-  crashFreePercent: number,
-  iconSize: SVGIconProps['size'] = 'sm'
-) {
+function getCrashFreeIcon(crashFreePercent: number) {
   if (crashFreePercent < CRASH_FREE_DANGER_THRESHOLD) {
-    return <IconFire variant="danger" size={iconSize} />;
+    return <IconFire variant="danger" size="sm" />;
   }
 
   if (crashFreePercent < CRASH_FREE_WARNING_THRESHOLD) {
-    return <IconWarning variant="warning" size={iconSize} />;
+    return <IconWarning variant="warning" size="sm" />;
   }
 
-  return <IconCheckmark variant="success" size={iconSize} />;
+  return <IconCheckmark variant="success" size="sm" />;
 }
 
 type Props = {
@@ -111,8 +108,13 @@ export function ReleaseCardProjectRow({
       : null;
 
   return (
-    <ProjectRow data-test-id="release-card-project-row">
-      <ReleaseProjectsLayout showReleaseAdoptionStages={showReleaseAdoptionStages}>
+    <PanelItem css={cssTheme => ({padding: `${cssTheme.space.md} ${cssTheme.space.xl}`})}>
+      <Grid
+        columns={getReleaseProjectColumns(showReleaseAdoptionStages)}
+        gap="0 md"
+        align="center"
+        width="100%"
+      >
         <ReleaseProjectColumn>
           <ProjectBadge project={project} avatarSize={16} />
         </ReleaseProjectColumn>
@@ -120,7 +122,7 @@ export function ReleaseCardProjectRow({
         {showReleaseAdoptionStages && (
           <AdoptionStageColumn>
             {adoptionStageLabel ? (
-              <Tooltip title={adoptionStageLabel.tooltipTitle} isHoverable>
+              <Tooltip title={adoptionStageLabel.tooltipTitle}>
                 <Link
                   to={{
                     pathname: makeReleasesPathname({
@@ -255,17 +257,10 @@ export function ReleaseCardProjectRow({
             </LinkButton>
           </GuideAnchor>
         </ViewColumn>
-      </ReleaseProjectsLayout>
-    </ProjectRow>
+      </Grid>
+    </PanelItem>
   );
 }
-
-const ProjectRow = styled(PanelItem)`
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
-  @media (min-width: ${p => p.theme.breakpoints.md}) {
-    font-size: ${p => p.theme.font.size.md};
-  }
-`;
 
 const StyledPlaceholder = styled(Placeholder)`
   height: 15px;

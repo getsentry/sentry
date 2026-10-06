@@ -11,10 +11,12 @@ from sentry.tasks.store import (
     preprocess_event,
     process_event,
     save_event,
+    save_event_attachments,
     save_event_transaction,
     should_process,
 )
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.viewer_context import ActorType, get_viewer_context
 
 EVENT_ID = "cc3e6c2bb6b6498097f336d1e6979f4b"
 
@@ -280,6 +282,125 @@ def test_hash_discarded_raised(default_project, mock_refund) -> None:
     with mock.patch.object(EventManager, "save", mock_save):
         save_event(data=data, start_time=now)
         # should be caught
+
+
+@django_db_all
+def test_save_event_sets_viewer_context(default_project) -> None:
+    data = {
+        "project": default_project.id,
+        "platform": "python",
+        "logentry": {"formatted": "test"},
+        "event_id": EVENT_ID,
+        "extra": {"foo": "bar"},
+    }
+
+    captured_vc = None
+
+    def capture_vc(*args, **kwargs):
+        nonlocal captured_vc
+        captured_vc = get_viewer_context()
+        raise HashDiscarded("stop after capturing")
+
+    with mock.patch.object(EventManager, "save", side_effect=capture_vc):
+        save_event(data=data, start_time=time())
+
+    assert captured_vc is not None
+    assert captured_vc.organization_id == default_project.organization_id
+    assert captured_vc.project_id == default_project.id
+    assert captured_vc.actor_type == ActorType.SYSTEM
+
+
+@django_db_all
+def test_save_event_deletes_processing_store_at_end(
+    default_project, mock_event_processing_store
+) -> None:
+    data = {
+        "project": default_project.id,
+        "platform": "python",
+        "logentry": {"formatted": "test"},
+        "event_id": EVENT_ID,
+    }
+    cache_key = "e:test"
+    mock_event_processing_store.get.return_value = data
+    calls = []
+
+    with (
+        mock.patch.object(EventManager, "save", side_effect=lambda **kwargs: calls.append("save")),
+        mock.patch(
+            "sentry.tasks.store.reprocessing2.mark_event_reprocessed",
+            side_effect=lambda data: calls.append("reprocessing_cleanup"),
+        ),
+        mock.patch(
+            "sentry.tasks.store.track_event_since_received",
+            side_effect=lambda **kwargs: calls.append(kwargs["step"]),
+        ),
+    ):
+        mock_event_processing_store.delete_by_key.side_effect = lambda key: calls.append("delete")
+        save_event(cache_key=cache_key, event_id=EVENT_ID, project_id=default_project.id)
+
+    assert calls == [
+        "start_save_event",
+        "save",
+        "delete",
+        "reprocessing_cleanup",
+        "end_save_event",
+    ]
+    mock_event_processing_store.store.assert_not_called()
+    mock_event_processing_store.delete_by_key.assert_called_once_with(cache_key)
+
+
+@django_db_all
+def test_save_event_deletes_processing_store_on_failure(
+    default_project, mock_event_processing_store
+) -> None:
+    mock_event_processing_store.get.return_value = {
+        "project": default_project.id,
+        "platform": "python",
+        "logentry": {"formatted": "test"},
+        "event_id": EVENT_ID,
+    }
+
+    with (
+        mock.patch.object(EventManager, "save", side_effect=RuntimeError("save failed")),
+        pytest.raises(RuntimeError, match="save failed"),
+    ):
+        save_event(cache_key="e:test", event_id=EVENT_ID, project_id=default_project.id)
+
+    mock_event_processing_store.delete_by_key.assert_called_once_with("e:test")
+
+
+@django_db_all
+@pytest.mark.parametrize("cache_key", (None, "", "e:working-event"))
+def test_discard_event_cleans_up_attachments_with_optional_cache_key(
+    default_project, cache_key
+) -> None:
+    data = {
+        "project": default_project.id,
+        "platform": "python",
+        "event_id": EVENT_ID,
+        "_attachments": [
+            {
+                "key": "e:attachment-event",
+                "id": 0,
+                "name": "attachment.txt",
+                "stored_id": "stored-attachment",
+            }
+        ],
+    }
+
+    with (
+        mock.patch.object(EventManager, "save", side_effect=HashDiscarded("discarded")),
+        mock.patch("sentry.attachments.get_session") as get_session,
+    ):
+        save_event_attachments(
+            cache_key=cache_key,
+            data=data,
+            project_id=default_project.id,
+            start_time=time(),
+        )
+
+    get_session.return_value.delete.assert_called_once_with("stored-attachment")
+    assert "_attachments" not in data
 
 
 @pytest.fixture(params=["org", "project"])

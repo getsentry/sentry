@@ -17,6 +17,7 @@ from sentry.discover.models import (
     DiscoverSavedQueryTypes,
     TeamKeyTransaction,
 )
+from sentry.ingestion_delay.status import IngestionDelayStatus, IngestionStatus
 from sentry.issues.grouptype import ProfileFileIOGroupType
 from sentry.models.group import GroupStatus
 from sentry.models.project import Project
@@ -42,6 +43,7 @@ from sentry.testutils.cases import (
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.discover import user_misery_formula
+from sentry.testutils.helpers.eap import EAP_DEFAULT_STATS_PERIOD
 from sentry.types.group import GroupSubStatus
 from sentry.utils import json
 from sentry.utils.samples import load_data
@@ -64,6 +66,12 @@ class OrganizationEventsEndpointTestBase(
 ):
     viewname = "sentry-api-0-organization-events"
     referrer = "api.organization-events"
+    # Match EAPClient / EAP_FULL_FIDELITY_QUERY_DAYS. Snuba forces tier 8 when the
+    # query start is older than the standard retention window (~30d). API endpoints
+    # still default unset windows to 90d, and some EAP paths (e.g. trace-meta) are
+    # not covered by EAPClient's path/dataset heuristics, so this base injects the
+    # full-fidelity window unless the test sets an explicit one.
+    default_stats_period = EAP_DEFAULT_STATS_PERIOD
 
     def setUp(self) -> None:
         super().setUp()
@@ -75,8 +83,45 @@ class OrganizationEventsEndpointTestBase(
         self.transaction_data = load_data("transaction", timestamp=self.ten_mins_ago)
         self.features: dict[str, bool] = {}
 
-    def client_get(self, *args, **kwargs):
-        return self.client.get(*args, **kwargs)
+    def with_default_stats_period(self, data=None):
+        """Ensure EAP queries stay on tier 1 unless the test sets an explicit window."""
+        query = {} if data is None else dict(data)
+        has_explicit_window = any(
+            key in query
+            for key in (
+                "statsPeriod",
+                "statsPeriodStart",
+                "statsPeriodEnd",
+                "start",
+                "end",
+                "range",
+                "timestamp",
+            )
+        )
+        if not has_explicit_window:
+            query["statsPeriod"] = self.default_stats_period
+        return query
+
+    def client_get(self, *args, data=None, url=None, **kwargs):
+        """GET helper that defaults statsPeriod for EAP tier-1 routing.
+
+        Supports both styles used by these suites:
+        - client_get(path, query_dict, format="json")
+        - client_get(data=query_dict, url=path)
+        """
+        if url is not None or (not args and data is not None):
+            path = url if url is not None else getattr(self, "url", None)
+            if path is None:
+                raise TypeError("client_get requires url= or a path argument")
+            kwargs.setdefault("format", "json")
+            return self.client.get(path, self.with_default_stats_period(data), **kwargs)
+
+        args_list = list(args)
+        if len(args_list) >= 2 and isinstance(args_list[1], dict):
+            args_list[1] = self.with_default_stats_period(args_list[1])
+        elif data is not None and len(args_list) == 1:
+            return self.client.get(args_list[0], self.with_default_stats_period(data), **kwargs)
+        return self.client.get(*args_list, **kwargs)
 
     def reverse_url(self):
         return reverse(
@@ -90,7 +135,12 @@ class OrganizationEventsEndpointTestBase(
         features.update(self.features)
         self.login_as(user=self.user)
         with self.feature(features):
-            return self.client_get(self.reverse_url(), query, format="json", **kwargs)
+            return self.client_get(
+                self.reverse_url(),
+                self.with_default_stats_period(query),
+                format="json",
+                **kwargs,
+            )
 
     def _setup_user_misery(
         self, per_transaction_threshold: bool = False, project: Project | None = None
@@ -5629,14 +5679,16 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
 
     def test_device_class(self) -> None:
         project1 = self.create_project()
-        for i in range(3):
+        # Relay derives ``device.class`` from the device context rather than
+        # trusting a client-supplied tag, so classify via known device models.
+        for model in ("iPhone8,1", "iPhone10,1", "iPhone14,3"):
             self.store_event(
                 data={
                     "event_id": "a" * 32,
                     "transaction": "/example",
                     "message": "how to make fast",
                     "timestamp": self.ten_mins_ago_iso,
-                    "tags": {"device.class": f"{i + 1}"},
+                    "contexts": {"device": {"type": "device", "family": "iPhone", "model": model}},
                 },
                 project_id=project1.id,
             )
@@ -5665,7 +5717,9 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
                 "transaction": "/example",
                 "message": "how to make fast",
                 "timestamp": self.ten_mins_ago_iso,
-                "tags": {"device.class": "1"},
+                "contexts": {
+                    "device": {"type": "device", "family": "iPhone", "model": "iPhone8,1"}
+                },
             },
             project_id=project1.id,
         )
@@ -7470,3 +7524,44 @@ class OrganizationEventsErrorsDatasetEndpointTest(OrganizationEventsEndpointTest
         response = self.do_request(query)
         assert response.status_code == 200, response.content
         assert response.data["data"][0]["count()"] == 2
+
+
+class OrganizationEventsIngestionDelayTest(OrganizationEventsEndpointTestBase):
+    def _do_request(
+        self, flagged: bool = True, ingestion_delay: bool = True, dataset: str = "spans"
+    ):
+        query: dict[str, Any] = {
+            "field": ["count()"],
+            "project": [self.project.id],
+            "dataset": dataset,
+        }
+        if ingestion_delay:
+            query["includeMeasuredIngestionDelayMetadata"] = "1"
+        features = {
+            "organizations:discover-basic": True,
+            "organizations:measured-ingestion-delay-metadata": flagged,
+        }
+        return self.do_request(query, features=features)
+
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
+    def test_ingestion_absent_for_a_non_eap_dataset(self, mock_measure: mock.MagicMock) -> None:
+        response = self._do_request(dataset="errors")
+        assert response.status_code == 200, response.content
+        assert "ingestion" not in response.data["meta"]
+        assert not mock_measure.called
+
+    @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
+    def test_ingestion_present(self, mock_measure: mock.MagicMock) -> None:
+        complete_through = before_now(minutes=5)
+        mock_measure.return_value = IngestionDelayStatus(
+            delay_seconds=42.5,
+            complete_through=complete_through,
+            status=IngestionStatus.HEALTHY,
+        )
+        response = self._do_request()
+        assert response.status_code == 200, response.content
+        assert response.data["meta"]["ingestion"] == {
+            "status": "healthy",
+            "delaySeconds": 42.5,
+            "completeThrough": complete_through.timestamp() * 1000,
+        }

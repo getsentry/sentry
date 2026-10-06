@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import functools
 import logging
 import random
 import uuid
-from collections.abc import MutableMapping, Sequence
+from collections.abc import Sequence
 from datetime import datetime
 from time import time
 from typing import TYPE_CHECKING, Any, Callable, TypedDict
@@ -14,11 +15,16 @@ from django.db.models.signals import post_save
 from django.utils import timezone
 from google.api_core.exceptions import ServiceUnavailable
 
-from sentry import features, options, projectoptions
+from sentry import features, nodestore, options, projectoptions
+from sentry.constants import ObjectStatus
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.killswitches import killswitch_matches_context
+from sentry.killswitches import (
+    get_killswitch_value,
+    killswitch_matches_context,
+    value_matches,
+)
 from sentry.replays.lib.event_linking import transform_event_for_linking_payload
 from sentry.replays.lib.kafka import publish_replay_event
 from sentry.signals import event_processed, issue_unignored
@@ -39,6 +45,8 @@ from sentry.utils.sdk import bind_organization_context, set_current_event_projec
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import build_sdk_crash_detection_configs
 from sentry.utils.services import build_instance_from_options_of_type
 from sentry.utils.tracing import start_span, trace
+from sentry.utils.validators import normalize_event_id
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 if TYPE_CHECKING:
     from sentry.eventstream.base import GroupState
@@ -59,8 +67,19 @@ locks = LockManager(
     )
 )
 
+
 ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 50
 HIGHER_ISSUE_OWNERS_PER_PROJECT_PER_MIN_RATELIMIT = 200
+COMMIT_CONTEXT_INTEGRATION_PROVIDERS = [
+    IntegrationProviderSlug.GITHUB.value,
+    IntegrationProviderSlug.GITLAB.value,
+    IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
+    IntegrationProviderSlug.PERFORCE.value,
+]
+# Keep project mapping changes responsive without querying on every event.
+COMMIT_CONTEXT_PROJECT_CACHE_TIMEOUT = 300
+# Match the previous integration-status cache window for this path.
+COMMIT_CONTEXT_ORG_INTEGRATION_CACHE_TIMEOUT = 14400
 
 
 class PostProcessJob(TypedDict, total=False):
@@ -447,14 +466,46 @@ def update_existing_attachments(job: PostProcessJob) -> None:
 
     1) ingested prior to the event via the standalone attachment endpoint.
     2) part of a different group before reprocessing started.
+
+    Also makes a second attempt at promoting pending attachments.
     """
+    from sentry.event_manager import save_pending_attachments
     from sentry.models.eventattachment import EventAttachment
 
     event = job["event"]
 
-    EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).update(
+    # NOTE: This update can probably be removed (need to verify post_processing behavior). See INGEST-1173.
+    EventAttachment.objects.filter(project_id=event.project_id, event_id=event.event_id).exclude(
         group_id=event.group_id
-    )
+    ).update(group_id=event.group_id)
+
+    # `process_individual_attachment` decides whether an attachment is "pending" by asking
+    # eventstore -- i.e. Snuba -- whether the event exists yet. Snuba lags, so an
+    # attachment arriving in the seconds right after its event still looks orphaned and
+    # gets parked in `PendingEventAttachment`. If that happens *after* the promotion pass
+    # in `EventManager.save_error_events`, nobody promotes the row and it expires.
+    #
+    # Retrying here narrows that window a lot, because post-processing is dispatched
+    # through the same eventstream that feeds Snuba: by the time we run, the attachment
+    # consumer can usually see the event and never takes the pending path at all.
+    #
+    # It does NOT close the window. An attachment can still be parked after this runs, and
+    # it will be dropped when `PENDING_ATTACHMENT_TTL` expires, which records an
+    # INVALID(missing_event) outcome. What that costs is the attachment, not the
+    # customer's money: `save_pending_attachments` only emits the ACCEPTED outcome on
+    # promotion, so an attachment we lose is one we never billed for.
+    # Closing it properly needs a periodic sweep over pending rows that re-checks
+    # eventstore once Snuba has certainly caught up.
+    #
+    # NOTE: guarded on `is_reprocessed` to match the call in `save_error_events`.
+    if not job["is_reprocessed"] and event.group_id is not None:
+        safe_execute(
+            save_pending_attachments,
+            project=event.project,
+            event_id=event.event_id,
+            group_id=event.group_id,
+            source="post_process",
+        )
 
 
 def fetch_buffered_group_stats(group: Group) -> None:
@@ -494,11 +545,12 @@ def post_process_group(
     is_new: bool,
     is_regression: bool | None,
     is_new_group_environment: bool,
-    cache_key: str | None,
+    cache_key: str | None = None,
     group_id: int | None = None,
     occurrence_id: str | None = None,
     *,
     project_id: int,
+    event_id: str | None = None,
     eventstream_type: str | None = None,
     **kwargs: Any,
 ) -> None:
@@ -509,50 +561,35 @@ def post_process_group(
 
     with snuba.options_override({"consistent": True}):
         from sentry.issues.occurrence_consumer import EventLookupError
+        from sentry.models.event import EventDict
         from sentry.models.organization import Organization
         from sentry.models.project import Project
         from sentry.reprocessing2 import is_reprocessed_event
         from sentry.services import eventstore
-        from sentry.services.eventstore.processing import event_processing_store
+        from sentry.services.eventstore.models import Event
 
         if occurrence_id is None:
-            # We use the data being present/missing in the processing store
-            # to ensure that we don't duplicate work should the forwarding consumers
-            # need to rewind history.
-            assert cache_key is not None
-            data = event_processing_store.get(cache_key)
-            if not data:
-                logger.info(
-                    "post_process.skipped",
-                    extra={"cache_key": cache_key, "reason": "missing_cache"},
-                )
-                return
-            with metrics.timer("tasks.post_process.delete_event_cache"):
-                event_processing_store.delete_by_key(cache_key)
-            occurrence = None
-            event = process_event(data, group_id)
+            # Reprocessing keeps the event ID but assigns a new group. Allow that
+            # group's post-processing to run even while the original lock exists.
+            lock_key = f"ppg:{project_id}:{event_id}:{group_id}-once"
+            lock_name = "post_process_event_once"
         else:
-            # Note: We attempt to acquire the lock here, but we don't release it and instead just
-            # rely on the ttl. The goal here is to make sure we only ever run post process group
-            # at most once per occurrence. Even though we don't use retries on the task, this is
-            # still necessary since the consumer that sends these might reprocess a batch.
-            # TODO: It might be better to instead set a value that we delete here, similar to what
-            # we do with `event_processing_store`. If we could do this *before* the occurrence ends
-            # up in Kafka (IE via the api that will sit in front of it), then we could guarantee at
-            # most once running of post process group.
-            lock = locks.get(
-                f"ppg:{occurrence_id}-once",
-                duration=600,
-                name="post_process_w_o",
-            )
+            lock_key = f"ppg:{occurrence_id}-once"
+            lock_name = "post_process_w_o"
 
-            try:
-                lock.acquire()
-            except Exception:
-                # If we fail to acquire the lock, we've already run post process group for this
-                # occurrence
-                return
+        # Note: We attempt to acquire the lock here, but we don't release it and instead just
+        # rely on the ttl. The goal here is to make sure we only ever run post process group
+        # at most once per event. Even though we don't use retries on the task, this is
+        # still necessary since the consumer that sends these might reprocess a batch.
+        lock = locks.get(lock_key, duration=600, name=lock_name)
+        try:
+            lock.acquire()
+        except UnableToAcquireLock:
+            # If we fail to acquire the lock, we've already run post process group
+            return
 
+        occurrence = None
+        if occurrence_id is not None:
             occurrence = (
                 IssueOccurrence.fetch(occurrence_id, project_id=project_id) if project_id else None
             )
@@ -562,25 +599,34 @@ def post_process_group(
                     extra={"occurrence_id": occurrence_id, "project_id": project_id},
                 )
                 return
-            # Issue platform events don't use `event_processing_store`. Fetch from eventstore
-            # instead.
+            event_id = occurrence.event_id
 
-            def get_event_raise_exception() -> Event:
-                assert occurrence is not None
+        assert event_id is not None
+
+        def get_event_raise_exception() -> Event:
+            retrieved = None
+            if occurrence_id is not None:
                 retrieved = eventstore.backend.get_event_by_id(
                     project_id,
-                    occurrence.event_id,
+                    event_id,
                     group_id=group_id,
                     skip_transaction_groupevent=True,
                     occurrence_id=occurrence_id,
                 )
-                if retrieved is None:
-                    raise EventLookupError(
-                        f"failed to retrieve event(project_id={project_id}, event_id={occurrence.event_id}, group_id={group_id}) from eventstore"
-                    )
-                return retrieved
+            elif normalized_id := normalize_event_id(event_id):
+                event = Event(project_id=project_id, event_id=normalized_id, group_id=group_id)
+                if data := nodestore.backend.get(event.data.id):
+                    # Ingestion already normalized the payload, and the task provides
+                    # the group ID, so this load does not need Snuba or renormalization.
+                    event.data.bind_data(EventDict(data, skip_renormalization=True))
+                    retrieved = event
+            if retrieved is None:
+                raise EventLookupError(
+                    f"failed to retrieve event(project_id={project_id}, event_id={event_id}, group_id={group_id})"
+                )
+            return retrieved
 
-            event = fetch_retry_policy(get_event_raise_exception)
+        event = fetch_retry_policy(get_event_raise_exception)
 
         track_event_since_received(
             step="start_post_process",
@@ -605,41 +651,48 @@ def post_process_group(
                 Organization.objects.get_from_cache(id=event.project.organization_id),
             )
 
-        is_reprocessed = is_reprocessed_event(event.data)
-        sentry_sdk.set_tag("is_reprocessed", is_reprocessed)
-        sentry_sdk.set_attribute("is_reprocessed", is_reprocessed)
-
-        metric_tags = {}
-        if group_id:
-            group_state: GroupState = {
-                "id": group_id,
-                "is_new": is_new,
-                "is_regression": bool(is_regression),
-                "is_new_group_environment": is_new_group_environment,
-            }
-
-            group_event = update_event_group(event, group_state)
-            bind_organization_context(event.project.organization)
-            _capture_event_stats(event)
-
-            group_event.occurrence = occurrence
-
-            run_post_process_job(
-                {
-                    "event": group_event,
-                    "group_state": group_state,
-                    "is_reprocessed": is_reprocessed,
-                    "has_reappeared": bool(not group_state["is_new"]),
-                    "has_escalated": kwargs.get("has_escalated", False),
-                }
+        with viewer_context_scope(
+            ViewerContext(
+                organization_id=event.project.organization_id,
+                project_id=event.project_id,
+                actor_type=ActorType.SYSTEM,
             )
-            metric_tags["occurrence_type"] = group_event.group.issue_type.slug
+        ):
+            is_reprocessed = is_reprocessed_event(event.data)
+            sentry_sdk.set_tag("is_reprocessed", is_reprocessed)
+            sentry_sdk.set_attribute("is_reprocessed", is_reprocessed)
 
-        track_event_since_received(
-            step="end_post_process",
-            event_data=event.data,
-            tags=metric_tags,
-        )
+            metric_tags = {}
+            if group_id:
+                group_state: GroupState = {
+                    "id": group_id,
+                    "is_new": is_new,
+                    "is_regression": bool(is_regression),
+                    "is_new_group_environment": is_new_group_environment,
+                }
+
+                group_event = update_event_group(event, group_state)
+                bind_organization_context(event.project.organization)
+                _capture_event_stats(event)
+
+                group_event.occurrence = occurrence
+
+                run_post_process_job(
+                    {
+                        "event": group_event,
+                        "group_state": group_state,
+                        "is_reprocessed": is_reprocessed,
+                        "has_reappeared": bool(not group_state["is_new"]),
+                        "has_escalated": kwargs.get("has_escalated", False),
+                    }
+                )
+                metric_tags["occurrence_type"] = group_event.group.issue_type.slug
+
+            track_event_since_received(
+                step="end_post_process",
+                event_data=event.data,
+                tags=metric_tags,
+            )
 
 
 def run_post_process_job(job: PostProcessJob) -> None:
@@ -664,7 +717,36 @@ def run_post_process_job(job: PostProcessJob) -> None:
     else:
         pipeline = GENERIC_POST_PROCESS_PIPELINE
 
+    # Read the killswitch once per job instead of once per step: the error
+    # pipeline has 25 steps, and killswitch_matches_context would redo the
+    # options.get() and normalize_value() on every one of them.
+    disabled_steps = get_killswitch_value("post_process.disable-pipeline-steps")
+    killswitch_context = (
+        {
+            "project_id": group_event.project_id,
+            "organization_id": group_event.project.organization_id,
+            "issue_category": issue_category_metric,
+        }
+        if disabled_steps
+        else None
+    )
+
     for pipeline_step in pipeline:
+        if killswitch_context is not None and value_matches(
+            "post_process.disable-pipeline-steps",
+            disabled_steps,
+            {"pipeline_step": pipeline_step.__name__, **killswitch_context},
+            emit_metrics=False,
+        ):
+            metrics.incr(
+                "sentry.tasks.post_process.post_process_group.killswitched",
+                tags={
+                    "issue_category": issue_category_metric,
+                    "pipeline": pipeline_step.__name__,
+                },
+            )
+            continue
+
         try:
             with (
                 metrics.timer(
@@ -712,20 +794,6 @@ def run_post_process_job(job: PostProcessJob) -> None:
                     },
                 )
                 break
-
-
-def process_event(data: MutableMapping[str, Any], group_id: int | None) -> Event:
-    from sentry.models.event import EventDict
-    from sentry.services.eventstore.models import Event
-
-    event = Event(
-        project_id=data["project"], event_id=data["event_id"], group_id=group_id, data=data
-    )
-
-    # Re-bind node data to avoid renormalization. We only want to
-    # renormalize when loading old data from the database.
-    event.data = EventDict(event.data, skip_renormalization=True)
-    return event
 
 
 def update_event_group(event: Event, group_state: GroupState) -> GroupEvent:
@@ -1048,6 +1116,52 @@ def process_code_mappings(job: PostProcessJob) -> None:
         logger.exception("Failed to process automatic source code config")
 
 
+def _project_has_usable_code_mapping(project: Project) -> bool:
+    from sentry.integrations.models.repository_project_path_config import (
+        RepositoryProjectPathConfig,
+    )
+    from sentry.integrations.services.integration import integration_service
+
+    cache_key = f"commit-context-code-mapping:{project.id}"
+    cached_result = cache.get(cache_key)
+    if cached_result is not None:
+        return bool(cached_result)
+
+    integration_cache_key = f"commit-context-active-scm-integration-ids:{project.organization_id}"
+    integration_ids = cache.get(integration_cache_key)
+    if integration_ids is None:
+        # Integration eligibility is shared by every project in the organization.
+        integration_ids = [
+            integration.id
+            for integration in integration_service.get_integrations(
+                organization_id=project.organization_id,
+                providers=COMMIT_CONTEXT_INTEGRATION_PROVIDERS,
+                status=ObjectStatus.ACTIVE,
+                org_integration_status=ObjectStatus.ACTIVE,
+            )
+        ]
+        cache.set(
+            integration_cache_key,
+            integration_ids,
+            COMMIT_CONTEXT_ORG_INTEGRATION_CACHE_TIMEOUT,
+        )
+
+    # Code mappings and repositories are project-scoped even though integrations are not.
+    has_usable_code_mapping = (
+        bool(integration_ids)
+        and RepositoryProjectPathConfig.objects.filter(
+            integration_id__in=integration_ids,
+            organization_integration_id__isnull=False,
+            organization_id=project.organization_id,
+            project_repository__project_id=project.id,
+            project_repository__repository__organization_id=project.organization_id,
+            project_repository__repository__status=ObjectStatus.ACTIVE,
+        ).exists()
+    )
+    cache.set(cache_key, has_usable_code_mapping, COMMIT_CONTEXT_PROJECT_CACHE_TIMEOUT)
+    return has_usable_code_mapping
+
+
 def process_commits(job: PostProcessJob) -> None:
     if job["is_reprocessed"]:
         return
@@ -1056,6 +1170,7 @@ def process_commits(job: PostProcessJob) -> None:
     from sentry.tasks.commit_context import process_commit_context
     from sentry.tasks.groupowner import DEBOUNCE_CACHE_KEY as SUSPECT_COMMITS_DEBOUNCE_CACHE_KEY
     from sentry.tasks.groupowner import process_suspect_commits
+    from sentry.utils.committers import get_frame_paths
 
     event = job["event"]
 
@@ -1066,6 +1181,22 @@ def process_commits(job: PostProcessJob) -> None:
             name="post_process_w_o",
         )
         with lock.acquire():
+            # Git blame can create the Commit row it finds, so it does not require imported commits.
+            if _project_has_usable_code_mapping(event.project):
+                if not job["group_state"]["is_new"]:
+                    return
+
+                process_commit_context.delay(
+                    event_id=event.event_id,
+                    event_platform=event.platform or "",
+                    event_frames=get_frame_paths(event),
+                    group_id=event.group_id,
+                    project_id=event.project_id,
+                    sdk_name=get_sdk_name(event.data),
+                )
+                return
+
+            # The release-based fallback still depends on commits already stored in Sentry.
             has_commit_key = f"w-o:{event.project.organization_id}-h-c"
             org_has_commit = cache.get(has_commit_key)
             if org_has_commit is None:
@@ -1074,57 +1205,21 @@ def process_commits(job: PostProcessJob) -> None:
                 ).exists()
                 cache.set(has_commit_key, org_has_commit, 3600)
 
-            if org_has_commit:
-                from sentry.utils.committers import get_frame_paths
+            if not org_has_commit:
+                return
 
-                event_frames = get_frame_paths(event)
-                sdk_name = get_sdk_name(event.data)
-
-                integration_cache_key = (
-                    f"commit-context-scm-integration:{event.project.organization_id}"
-                )
-                has_integrations = cache.get(integration_cache_key)
-                if has_integrations is None:
-                    from sentry.integrations.services.integration import integration_service
-
-                    org_integrations = integration_service.get_organization_integrations(
-                        organization_id=event.project.organization_id,
-                        providers=[
-                            IntegrationProviderSlug.GITHUB.value,
-                            IntegrationProviderSlug.GITLAB.value,
-                            IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
-                            IntegrationProviderSlug.PERFORCE.value,
-                        ],
-                    )
-                    has_integrations = len(org_integrations) > 0
-                    # Cache the integrations check for 4 hours
-                    cache.set(integration_cache_key, has_integrations, 14400)
-
-                if has_integrations:
-                    if not job["group_state"]["is_new"]:
-                        return
-
-                    process_commit_context.delay(
-                        event_id=event.event_id,
-                        event_platform=event.platform or "",
-                        event_frames=event_frames,
-                        group_id=event.group_id,
-                        project_id=event.project_id,
-                        sdk_name=sdk_name,
-                    )
-                else:
-                    cache_key = SUSPECT_COMMITS_DEBOUNCE_CACHE_KEY(event.group_id)
-                    if cache.get(cache_key):
-                        metrics.incr("sentry.tasks.process_suspect_commits.debounce")
-                        return
-                    process_suspect_commits.delay(
-                        event_id=event.event_id,
-                        event_platform=event.platform,
-                        event_frames=event_frames,
-                        group_id=event.group_id,
-                        project_id=event.project_id,
-                        sdk_name=sdk_name,
-                    )
+            cache_key = SUSPECT_COMMITS_DEBOUNCE_CACHE_KEY(event.group_id)
+            if cache.get(cache_key):
+                metrics.incr("sentry.tasks.process_suspect_commits.debounce")
+                return
+            process_suspect_commits.delay(
+                event_id=event.event_id,
+                event_platform=event.platform,
+                event_frames=get_frame_paths(event),
+                group_id=event.group_id,
+                project_id=event.project_id,
+                sdk_name=get_sdk_name(event.data),
+            )
     except UnableToAcquireLock:
         pass
 
@@ -1178,11 +1273,11 @@ def process_resource_change_bounds(job: PostProcessJob) -> None:
 def should_process_resource_change_bounds(job: PostProcessJob) -> bool:
     group_category = job["event"].group.issue_category
 
-    supported_group_categories = [
+    unsupported_group_categories = [
         GroupCategory(category)
-        for category in options.get("sentry-apps.expanded-webhook-categories")
+        for category in options.get("sentry-apps.unsupported-webhook-categories")
     ]
-    if group_category not in supported_group_categories:
+    if group_category in unsupported_group_categories:
         return False
 
     return True
@@ -1315,6 +1410,10 @@ def sdk_crash_monitoring(job: PostProcessJob) -> None:
 def feedback_filter_decorator(
     func: Callable[[PostProcessJob], None],
 ) -> Callable[[PostProcessJob], None]:
+    # wraps() keeps the wrapped step's name, which run_post_process_job uses for
+    # metric tags, span names and the post_process.disable-pipeline-steps
+    # killswitch. Without it every feedback step reports as "wrapper".
+    @functools.wraps(func)
     def wrapper(job: PostProcessJob) -> None:
         if not should_postprocess_feedback(job):
             return
@@ -1509,6 +1608,10 @@ def check_if_flags_sent(job: PostProcessJob) -> None:
 
 
 def kick_off_seer_automation(job: PostProcessJob) -> None:
+    # Only run for new issues.
+    if not job["group_state"]["is_new"]:
+        return
+
     from sentry.seer.autofix.issue_summary import (
         get_issue_summary_cache_key,
         get_issue_summary_lock_key,
@@ -1524,9 +1627,6 @@ def kick_off_seer_automation(job: PostProcessJob) -> None:
     group = event.group
 
     if is_seer_seat_based_tier_enabled(group.organization):
-        # Guards to prevent thundering herd on issue summary generation.
-        if options.get("seer.post-process-issue-summary-killswitch.enabled"):
-            return
         if group.seer_fixability_score is not None:
             return
         # Issues created in last 5 minutes only. This can be removed once this is live past 1 week.
@@ -1617,6 +1717,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE: dict[
         process_siem_security_logging,
     ],
     GroupCategory.FEEDBACK: [
+        update_existing_attachments,
         feedback_filter_decorator(process_snoozes),
         feedback_filter_decorator(process_inbox_adds),
         feedback_filter_decorator(process_workflow_engine),

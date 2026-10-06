@@ -20,6 +20,7 @@ import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {getFormat, getUserTimezone} from 'sentry/utils/dates';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -54,7 +55,7 @@ function formatStacktraceToMarkdown(stacktrace: StacktraceType): string {
   const frames = stacktrace.frames?.slice(-maxFrames) ?? [];
 
   // Display frames in reverse order (most recent call first)
-  [...frames].reverse().forEach(frame => {
+  frames.toReversed().forEach(frame => {
     const function_name = frame.function || 'Unknown function';
     const filename = frame.filename || 'unknown file';
     const lineInfo =
@@ -99,7 +100,7 @@ function formatBreadcrumbsToMarkdown(crumbs: RawCrumb[]): string {
   const entries: string[] = [];
 
   crumbs.slice(-MAX_BREADCRUMBS).forEach(crumb => {
-    const message = crumb.message ?? '';
+    const message = stripAnsi(crumb.message ?? '');
 
     // Drop empty values, matching Seer's `{k: v for k, v in data if v}`.
     const data = crumb.data
@@ -212,7 +213,7 @@ function formatEventToMarkdown(event: Event, activeThreadId: number | undefined)
             markdownText += `**Handled:** ${handled ? 'Yes' : 'No'}\n`;
           }
           if (exception.value) {
-            markdownText += `**Value:** ${exception.value}\n\n`;
+            markdownText += `**Value:** ${stripAnsi(exception.value)}\n\n`;
           }
 
           // Add stacktrace if available
@@ -258,6 +259,7 @@ interface IssueAndEventToMarkdownOptions {
   organization: Organization;
   activeThreadId?: number;
   autofixData?: ExplorerAutofixState | null;
+  autofixFormatted?: string | null;
   event?: Event | null;
 }
 
@@ -266,10 +268,26 @@ export const issueAndEventToMarkdown = ({
   event,
   autofixData,
   activeThreadId,
-  organization,
+  autofixFormatted,
 }: IssueAndEventToMarkdownOptions): string => {
+  const formatted = event?.formatted?.content;
+  if (formatted) {
+    let llmMarkdown = `**Issue ID:** ${group.id}\n`;
+    if (group.project?.slug) {
+      llmMarkdown += `**Project:** ${group.project.slug}\n`;
+    }
+    // no date here: the server-rendered body already opens with a `Date` field in UTC, and a
+    // second one formatted in the viewer's timezone would just disagree with it
+    llmMarkdown += `\n${formatted}`;
+    if (autofixFormatted) {
+      llmMarkdown += `\n\n${autofixFormatted}`;
+    }
+    return llmMarkdown;
+  }
+
   // Format the basic issue information
-  let markdownText = `# ${group.title}\n\n`;
+  const title = stripAnsi(group.title);
+  let markdownText = `# ${title}\n\n`;
   markdownText += `**Issue ID:** ${group.id}\n`;
 
   if (group.shortId) {
@@ -297,8 +315,8 @@ export const issueAndEventToMarkdown = ({
 
   // Mirror Seer: include the event message only when it adds something beyond
   // the title, since for most errors the title already is the message.
-  const message = event?.message?.trim();
-  if (message && !group.title.includes(message)) {
+  const message = stripAnsi(event?.message ?? '').trim();
+  if (message && !title.includes(message)) {
     markdownText += `\n## Message\n\n${message}\n`;
   }
 
@@ -330,7 +348,7 @@ export const issueAndEventToMarkdown = ({
   }
 
   if (event) {
-    markdownText += formatSpanEvidenceToMarkdown(event, organization, group);
+    markdownText += formatSpanEvidenceToMarkdown(event, group);
     markdownText += formatEventToMarkdown(event, activeThreadId);
   }
 
@@ -340,7 +358,9 @@ export const issueAndEventToMarkdown = ({
 export const useCopyIssueDetails = (group: Group, event?: Event) => {
   const organization = useOrganization();
 
-  const {runState: autofixData} = useExplorerAutofix(group, {enabled: false});
+  const {runState: autofixData, autofixFormatted} = useExplorerAutofix(group, {
+    enabled: false,
+  });
   const activeThreadId = useActiveThreadId();
 
   const text = useMemo(() => {
@@ -350,8 +370,9 @@ export const useCopyIssueDetails = (group: Group, event?: Event) => {
       autofixData,
       activeThreadId,
       organization,
+      autofixFormatted,
     });
-  }, [group, event, autofixData, activeThreadId, organization]);
+  }, [group, event, autofixData, activeThreadId, organization, autofixFormatted]);
 
   const {copy} = useCopyToClipboard();
 

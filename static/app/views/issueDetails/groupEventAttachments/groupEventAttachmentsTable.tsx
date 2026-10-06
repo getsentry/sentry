@@ -1,9 +1,18 @@
 import styled from '@emotion/styled';
 
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import type {TableColumnConfig} from '@sentry/scraps/table';
+
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import {GroupEventAttachmentsTableRow} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsTableRow';
+
+const ATTACHMENT_COLUMNS: TableColumnConfig[] = [
+  {key: 'name', width: '1fr'},
+  {key: 'type', width: 'min-content'},
+  {key: 'size', width: 'min-content'},
+  {key: 'actions', width: 'min-content'},
+];
 
 type Props = {
   attachments: IssueAttachment[];
@@ -23,32 +32,37 @@ export function GroupEventAttachmentsTable({
   onDelete,
 }: Props) {
   return (
-    <AttachmentsPanelTable
-      isLoading={isLoading}
-      isEmpty={attachments.length === 0}
-      emptyMessage={emptyMessage}
-      headers={[t('Name'), t('Type'), t('Size'), t('Actions')]}
+    <AttachmentsSimpleTable
+      columns={ATTACHMENT_COLUMNS}
+      header={
+        <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Type')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Size')}</SimpleTable.HeaderCell>
+          <SimpleTable.HeaderCell>{t('Actions')}</SimpleTable.HeaderCell>
+        </SimpleTable.HeaderRow>
+      }
     >
-      {attachments.map(attachment => (
-        <GroupEventAttachmentsTableRow
-          key={attachment.id}
-          attachment={attachment}
-          projectSlug={projectSlug}
-          groupId={groupId}
-          onDelete={onDelete}
-        />
-      ))}
-    </AttachmentsPanelTable>
+      {isLoading && <SimpleTable.Loading />}
+      {!isLoading && attachments.length === 0 && (
+        <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>
+      )}
+      {!isLoading &&
+        attachments.map(attachment => (
+          <GroupEventAttachmentsTableRow
+            key={attachment.id}
+            attachment={attachment}
+            projectSlug={projectSlug}
+            groupId={groupId}
+            onDelete={onDelete}
+          />
+        ))}
+    </AttachmentsSimpleTable>
   );
 }
 
-const AttachmentsPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr repeat(3, min-content);
+const AttachmentsSimpleTable = styled(SimpleTable)`
   margin-bottom: 0;
-
-  & > :last-child {
-    padding: ${p => (p.isEmpty ? p.theme.space['3xl'] : undefined)};
-  }
 
   .preview {
     padding: 0;

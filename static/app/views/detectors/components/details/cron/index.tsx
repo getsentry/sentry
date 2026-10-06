@@ -1,22 +1,21 @@
-import {Fragment, useCallback, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {useDrawer} from '@sentry/scraps/drawer';
-import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
+import {DateTimeProvider, useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
+import {useDrawer, DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {KeyValueTableRow} from 'sentry/components/keyValueTable';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {TimeSince} from 'sentry/components/timeSince';
-import {TimezoneProvider, useTimezone} from 'sentry/components/timezoneProvider';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {IconJson} from 'sentry/icons';
@@ -24,14 +23,12 @@ import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {CronDetector} from 'sentry/types/workflowEngine/detectors';
 import {toArray} from 'sentry/utils/array/toArray';
+import {getMonitorRefetchInterval, getNextCheckInEnv} from 'sentry/utils/monitor/cron';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  getMonitorRefetchInterval,
-  getNextCheckInEnv,
-} from 'sentry/views/alerts/rules/crons/utils';
-import {
   DisableDetectorAction,
+  DuplicateDetectorAction,
   EditDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
@@ -76,7 +73,13 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   const location = useLocation();
   const dataSource = detector.dataSources[0];
   const userTimezone = useTimezone();
+  const clockDisplay = useClockDisplay();
   const [timezoneOverride, setTimezoneOverride] = useState(userTimezone);
+
+  const dateTime = useMemo(
+    () => ({timezone: timezoneOverride, clockDisplay}),
+    [timezoneOverride, clockDisplay]
+  );
   const openDocsPanel = useDocsPanel(dataSource.queryObj.slug, project);
   const queryClient = useQueryClient();
 
@@ -158,7 +161,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   }, []);
 
   return (
-    <TimezoneProvider timezone={timezoneOverride}>
+    <DateTimeProvider value={dateTime}>
       <DetailLayout>
         <DetectorDetailsHeader detector={detector} />
         <DetailLayout.Body>
@@ -177,6 +180,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                     onTimezoneSelected={setTimezoneOverride}
                   />
                   <DisableDetectorAction detector={detector} />
+                  <DuplicateDetectorAction detector={detector} />
                   <EditDetectorAction detector={detector} />
                 </Flex>
               </Flex>
@@ -261,52 +265,46 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
             </DetailSection>
             <DetectorDetailsDescription description={detector.description} />
             <DetectorExtraDetails>
-              <KeyValueTableRow
-                keyName={t('Monitor slug')}
-                value={
-                  <Flex gap="xs" align="center">
-                    <Text ellipsis>{dataSource.queryObj.slug}</Text>
-                    <CopyToClipboardButton
-                      text={dataSource.queryObj.slug}
-                      aria-label={t('Copy monitor slug to clipboard')}
-                      size="zero"
-                      variant="transparent"
-                    />
-                  </Flex>
-                }
-              />
-              <KeyValueTableRow
-                keyName={t('Next check-in')}
-                value={
-                  dataSource.queryObj.status !== 'disabled' && monitorEnv?.nextCheckIn ? (
-                    moment(monitorEnv.nextCheckIn).isAfter(moment()) ? (
-                      <TimeSince
-                        unitStyle="regular"
-                        liveUpdateInterval="second"
-                        date={monitorEnv.nextCheckIn}
-                      />
-                    ) : (
-                      t('Expected Now')
-                    )
-                  ) : (
-                    '-'
-                  )
-                }
-              />
-              <KeyValueTableRow
-                keyName={t('Last check-in')}
-                value={
-                  monitorEnv?.lastCheckIn ? (
+              <DescriptionList.Term>{t('Monitor slug')}</DescriptionList.Term>
+              <DescriptionList.Details>
+                <Flex gap="xs" align="center">
+                  <Text ellipsis>{dataSource.queryObj.slug}</Text>
+                  <CopyToClipboardButton
+                    text={dataSource.queryObj.slug}
+                    aria-label={t('Copy monitor slug to clipboard')}
+                    size="zero"
+                    variant="transparent"
+                  />
+                </Flex>
+              </DescriptionList.Details>
+              <DescriptionList.Term>{t('Next check-in')}</DescriptionList.Term>
+              <DescriptionList.Details>
+                {dataSource.queryObj.status !== 'disabled' && monitorEnv?.nextCheckIn ? (
+                  moment(monitorEnv.nextCheckIn).isAfter(moment()) ? (
                     <TimeSince
                       unitStyle="regular"
                       liveUpdateInterval="second"
-                      date={monitorEnv.lastCheckIn}
+                      date={monitorEnv.nextCheckIn}
                     />
                   ) : (
-                    '-'
+                    t('Expected Now')
                   )
-                }
-              />
+                ) : (
+                  '-'
+                )}
+              </DescriptionList.Details>
+              <DescriptionList.Term>{t('Last check-in')}</DescriptionList.Term>
+              <DescriptionList.Details>
+                {monitorEnv?.lastCheckIn ? (
+                  <TimeSince
+                    unitStyle="regular"
+                    liveUpdateInterval="second"
+                    date={monitorEnv.lastCheckIn}
+                  />
+                ) : (
+                  '-'
+                )}
+              </DescriptionList.Details>
               <DetectorExtraDetails.DateCreated detector={detector} />
               <DetectorExtraDetails.CreatedBy detector={detector} />
               <DetectorExtraDetails.LastModified detector={detector} />
@@ -328,7 +326,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
           </DetailLayout.Sidebar>
         </DetailLayout.Body>
       </DetailLayout>
-    </TimezoneProvider>
+    </DateTimeProvider>
   );
 }
 

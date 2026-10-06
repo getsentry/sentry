@@ -37,7 +37,7 @@ function makeStackTraceData(): {
           ...frame,
           inApp: index >= 2,
         })) ?? [],
-    } as StacktraceWithFrames,
+    },
   };
 }
 
@@ -116,6 +116,36 @@ describe('IssueStackTrace', () => {
     );
 
     expect(container).toBeEmptyDOMElement();
+  });
+
+  it('renders exception details when no structured stacktrace is available', async () => {
+    const event = EventFixture({
+      platform: 'python',
+      projectID: '1',
+      entries: [{type: 'exception' as const, data: {values: []}}],
+    });
+
+    render(
+      <IssueStackTrace
+        event={event}
+        values={[
+          {
+            type: 'ValueError',
+            value: 'bad value',
+            module: null,
+            mechanism: null,
+            stacktrace: null,
+            rawStacktrace: null,
+            threadId: null,
+          },
+        ]}
+      />
+    );
+
+    expect(await screen.findByText('Stack Trace')).toBeInTheDocument();
+    expect(screen.getByText('ValueError')).toBeInTheDocument();
+    expect(screen.getByText('bad value')).toBeInTheDocument();
+    expect(screen.getByText('No stacktrace found.')).toBeInTheDocument();
   });
 
   it('persists raw and minified display selections per project', async () => {
@@ -494,6 +524,33 @@ describe('IssueStackTrace', () => {
         File "app/main.py", line 42, in handle
       ValueError: list index out of range"
     `);
+  });
+
+  it('copies stack trace text without ANSI codes when the exception value contains them', async () => {
+    const {event, stacktrace} = makeCopyTestData();
+
+    render(
+      <IssueStackTrace
+        event={event}
+        values={[
+          {
+            type: 'ValueError',
+            value: '\x1B[31mlist index\x1B[0m out of range',
+            module: null,
+            mechanism: {handled: false, type: 'generic'},
+            stacktrace,
+            rawStacktrace: null,
+            threadId: null,
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy as'}));
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Text'}));
+
+    const copiedText = jest.mocked(navigator.clipboard.writeText).mock.calls[0]![0];
+    expect(copiedText).toContain('ValueError: list index out of range');
   });
 
   it('copies stack trace text including exception type and value for chained exceptions', async () => {

@@ -2,14 +2,17 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
 from django.db import router
 from django.db.models import Q
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.db.models.base import Model
+from sentry.ratelimits.leaky_bucket import LeakyBucketRateLimiter
 from sentry.silo.safety import unguarded_write
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -20,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 _leaf_re = re.compile(r"^(UserReport|Event|Group)(.+)")
 
+_MAX_RATE_LIMIT_SLEEP = 1.0
 
 if TYPE_CHECKING:
     from sentry.deletions.manager import DeletionTaskManager
@@ -68,10 +72,13 @@ class ModelRelation(BaseRelation):
         query: Mapping[str, Any],
         task: type[BaseDeletionTask[Any]] | None = None,
         mark_in_progress: bool | None = None,
+        rate_limit_option: str | None = None,
     ) -> None:
         params: dict[str, Any] = {"model": model, "query": query}
         if mark_in_progress is not None:
             params["mark_in_progress"] = mark_in_progress
+        if rate_limit_option is not None:
+            params["rate_limit_option"] = rate_limit_option
 
         super().__init__(params=params, task=task)
 
@@ -88,6 +95,10 @@ class BaseDeletionTask(Generic[ModelT]):
     # deleting them.
     mark_in_progress_default = True
 
+    # Name of an int option used to rate limit the aggregate deletion throughput
+    # for this task's model across all concurrent deletions. None disables throttling.
+    rate_limit_option_default: str | None = None
+
     def __init__(
         self,
         manager: DeletionTaskManager,
@@ -96,6 +107,7 @@ class BaseDeletionTask(Generic[ModelT]):
         actor_id: int | None = None,
         chunk_size: int | None = None,
         mark_in_progress: bool | None = None,
+        rate_limit_option: str | None = None,
     ):
         self.manager = manager
         self.skip_models = set(skip_models) if skip_models else None
@@ -104,6 +116,9 @@ class BaseDeletionTask(Generic[ModelT]):
         self.chunk_size = chunk_size if chunk_size is not None else self.DEFAULT_CHUNK_SIZE
         self.mark_in_progress = (
             mark_in_progress if mark_in_progress is not None else self.mark_in_progress_default
+        )
+        self.rate_limit_option = (
+            rate_limit_option if rate_limit_option is not None else self.rate_limit_option_default
         )
 
     def __repr__(self) -> str:
@@ -239,11 +254,40 @@ class ModelDeletionTask(BaseDeletionTask[ModelT]):
             if not queryset:
                 return False
 
+            self._throttle_deletes(len(queryset))
             self.delete_bulk(queryset)
             remaining = remaining - len(queryset)
 
         # We have more work to do as we didn't run out of rows to delete.
         return True
+
+    def _throttle_deletes(self, num_rows: int) -> None:
+        """
+        Rate limit deletion throughput for this model across all concurrent deletion tasks.
+        """
+        option_name = self.rate_limit_option
+        if not option_name or num_rows <= 0:
+            return
+
+        rate = options.get(option_name)
+        if not rate or rate <= 0:
+            return
+
+        limiter = LeakyBucketRateLimiter(
+            burst_limit=max(rate, self.query_limit),
+            drip_rate=rate,
+            key=f"deletions.rate_limit:{option_name}",
+        )
+        waited = False
+        while True:
+            info = limiter.use_and_get_info(incr_by=num_rows)
+            if info.wait_time <= 0:
+                break
+            waited = True
+            time.sleep(min(info.wait_time, _MAX_RATE_LIMIT_SLEEP))
+
+        if waited:
+            metrics.incr("deletions.rate_limited", tags={"model": self.model.__name__})
 
     def delete_instance(self, instance: ModelT) -> None:
         instance_id = instance.id

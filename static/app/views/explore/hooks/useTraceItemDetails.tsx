@@ -1,10 +1,12 @@
-import {useCallback, useRef, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 import {useHover} from '@react-aria/interactions';
 import {captureException} from '@sentry/react';
 import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {RawCrumb} from 'sentry/types/breadcrumbs';
+import type {EventTransaction} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {normalizeTimestampToSeconds} from 'sentry/utils/dates';
@@ -44,6 +46,8 @@ interface UseTraceItemDetailsProps {
    * Alias for `enabled` in react-query.
    */
   enabled?: boolean;
+  /** Opaque hint from the events response that returned this item. */
+  routingHint?: string;
   /**
    * Optional Unix timestamp in seconds to disambiguate trace item lookup.
    */
@@ -66,6 +70,11 @@ export interface TraceItemDetailsResponse {
   itemId: string;
   meta: TraceItemDetailsMeta;
   timestamp: string;
+  event?: {
+    breadcrumbs?: {values: RawCrumb[]};
+    contexts?: EventTransaction['contexts'];
+    extra?: EventTransaction['context'];
+  };
   links?: TraceItemResponseLink[];
 }
 
@@ -73,9 +82,10 @@ export interface TraceItemDetailsResponse {
 // decodes the JSON for us. Since links are so structurally similar to spans, the types are similar as well.
 export type TraceItemResponseLink = {
   itemId: string;
-  sampled: boolean;
   traceId: string;
   attributes?: TraceItemResponseAttribute[];
+  /** Absent when the SDK did not record the sampling decision. */
+  sampled?: boolean;
 };
 
 type TraceItemDetailsUrlParams = {
@@ -89,6 +99,7 @@ type TraceItemDetailsQueryParams = {
   traceId: string;
   traceItemType: TraceItemDataset;
   end?: string;
+  routingHint?: string;
   start?: string;
   statsPeriod?: string | null;
   timestamp?: number;
@@ -141,6 +152,7 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
       traceItemType: props.traceItemType,
       referrer: props.referrer,
       traceId: props.traceId,
+      routingHint: props.routingHint,
       ...timeQueryParams,
     }),
     enabled,
@@ -151,13 +163,14 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
   return result;
 }
 
-function traceItemDetailsApiOptions({
+export function traceItemDetailsApiOptions({
   organizationSlug,
   projectSlug,
   traceItemId,
   traceItemType,
   referrer,
   traceId,
+  routingHint,
   timestamp,
   statsPeriod,
   start,
@@ -189,6 +202,7 @@ function traceItemDetailsApiOptions({
         item_type: traceItemType,
         referrer,
         trace_id: traceId,
+        routing_hint: routingHint || undefined,
         ...timeQuery,
       },
       staleTime: Infinity,
@@ -203,54 +217,50 @@ function useTraceItemDetailsPrefetch({
   traceItemType,
   referrer,
   timestamp,
+  routingHint,
 }: UseTraceItemDetailsProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const project = useProjectFromId({project_id: projectId});
-  const projectRef = useRef(project);
-  projectRef.current = project;
   const queryClient = useQueryClient();
-  const [traceItemMeta, setTraceItemMeta] = useState<TraceItemDetailsMeta | undefined>();
-  const [traceItemAttributes, setTraceItemAttributes] = useState<
-    TraceItemResponseAttribute[] | undefined
-  >();
+  const [shouldFetch, setShouldFetch] = useState(false);
 
-  const prefetch = useCallback(() => {
-    const currentProject = projectRef.current;
-    if (!currentProject?.slug) {
-      return;
-    }
-    const timeQueryParams = defined(timestamp)
-      ? {timestamp: normalizeTimestampToSeconds(timestamp)}
-      : normalizeDateTimeParams(selection.datetime);
-    const options = traceItemDetailsApiOptions({
-      organizationSlug: organization.slug,
-      projectSlug: currentProject.slug,
-      traceItemId,
-      traceItemType,
-      referrer,
-      traceId,
-      ...timeQueryParams,
-    });
-    queryClient.fetchQuery(options).then(
-      response => {
-        setTraceItemMeta(response?.json?.meta);
-        setTraceItemAttributes(response?.json?.attributes);
-      },
-      () => {}
-    );
-  }, [
-    organization.slug,
-    queryClient,
-    referrer,
-    selection.datetime,
-    timestamp,
-    traceId,
+  const detailsApiOptions = traceItemDetailsApiOptions({
+    organizationSlug: organization.slug,
+    projectSlug: project?.slug ?? '',
     traceItemId,
     traceItemType,
-  ]);
+    referrer,
+    traceId,
+    routingHint,
+    ...(timestamp
+      ? {timestamp: normalizeTimestampToSeconds(timestamp)}
+      : normalizeDateTimeParams(selection.datetime)),
+  });
 
-  return {prefetch, project, traceItemMeta, traceItemAttributes};
+  const {data, isFetching} = useQuery({
+    ...detailsApiOptions,
+    enabled: shouldFetch && !!project?.slug,
+  });
+
+  const prefetch = useCallback(() => setShouldFetch(true), []);
+
+  const fetchDetails = async () => {
+    if (!project?.slug) {
+      return;
+    }
+    const response = await queryClient.fetchQuery(detailsApiOptions);
+    return response.json;
+  };
+
+  return {
+    fetchDetails,
+    prefetch,
+    project,
+    traceItemMeta: data?.meta,
+    traceItemAttributes: data?.attributes,
+    isPending: isFetching,
+  };
 }
 
 export function usePrefetchTraceItemDetailsOnHover({
@@ -260,7 +270,7 @@ export function usePrefetchTraceItemDetailsOnHover({
   traceItemType,
   referrer,
   timestamp,
-  hoverPrefetchDisabled,
+  routingHint,
   sharedHoverTimeoutRef,
   timeout,
 }: UseTraceItemDetailsProps & {
@@ -273,12 +283,8 @@ export function usePrefetchTraceItemDetailsOnHover({
    * Custom timeout for the prefetched item.
    */
   timeout: number;
-  /**
-   * Whether the hover prefetch should be disabled.
-   */
-  hoverPrefetchDisabled?: boolean;
 }) {
-  const {prefetch, project, traceItemMeta, traceItemAttributes} =
+  const {fetchDetails, prefetch, project, traceItemMeta, traceItemAttributes, isPending} =
     useTraceItemDetailsPrefetch({
       traceItemId,
       projectId,
@@ -286,29 +292,50 @@ export function usePrefetchTraceItemDetailsOnHover({
       traceItemType,
       referrer,
       timestamp,
+      routingHint,
     });
+
+  const ownHoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const clearSharedHoverTimeout = useCallback(() => {
+    if (sharedHoverTimeoutRef.current) {
+      clearTimeout(sharedHoverTimeoutRef.current);
+      sharedHoverTimeoutRef.current = null;
+    }
+    ownHoverTimeoutRef.current = null;
+  }, [sharedHoverTimeoutRef]);
 
   const {hoverProps} = useHover({
     onHoverStart: () => {
-      if (sharedHoverTimeoutRef.current) {
-        clearTimeout(sharedHoverTimeoutRef.current);
-      }
-      sharedHoverTimeoutRef.current = setTimeout(prefetch, timeout);
+      clearSharedHoverTimeout();
+      const timeoutId = setTimeout(prefetch, timeout);
+      sharedHoverTimeoutRef.current = timeoutId;
+      ownHoverTimeoutRef.current = timeoutId;
     },
-    onHoverEnd: () => {
-      if (sharedHoverTimeoutRef.current) {
-        clearTimeout(sharedHoverTimeoutRef.current);
-      }
-    },
-    isDisabled: hoverPrefetchDisabled,
+    onHoverEnd: clearSharedHoverTimeout,
   });
 
+  useEffect(
+    () => () => {
+      if (ownHoverTimeoutRef.current === null) {
+        return;
+      }
+      clearTimeout(ownHoverTimeoutRef.current);
+      if (sharedHoverTimeoutRef.current === ownHoverTimeoutRef.current) {
+        sharedHoverTimeoutRef.current = null;
+      }
+    },
+    [sharedHoverTimeoutRef]
+  );
+
   return {
+    fetchTraceItemDetails: fetchDetails,
     hoverProps,
     prefetch,
     isProjectReady: Boolean(project?.slug),
     traceItemMeta,
     traceItemAttributes,
+    isTraceItemDetailsPending: isPending,
   };
 }
 
@@ -322,6 +349,7 @@ export function usePrefetchTraceItemDetailsOnMount({
   enabled?: boolean;
 }) {
   const hasPrefetched = useRef(false);
+  // oxlint-disable-next-line react/refs
   if (enabled && isProjectReady && !hasPrefetched.current) {
     hasPrefetched.current = true;
     prefetch();

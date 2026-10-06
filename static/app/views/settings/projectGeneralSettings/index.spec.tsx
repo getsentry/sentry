@@ -130,30 +130,15 @@ describe('projectGeneralSettings', () => {
     );
   });
 
-  it('hides the release auto-creation toggle without the feature flag', async () => {
-    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
-      organization,
-      initialRouterConfig,
-    });
-
-    expect(await screen.findByRole('textbox', {name: 'Slug'})).toBeInTheDocument();
-    expect(
-      screen.queryByRole('checkbox', {
-        name: 'Enable release auto-creation from telemetry',
-      })
-    ).not.toBeInTheDocument();
-  });
-
   it('confirms before disabling release auto-creation', async () => {
-    const orgWithFeature = OrganizationFixture({features: ['auto-release-creation']});
     putMock = MockApiClient.addMockResponse({
-      url: `/projects/${orgWithFeature.slug}/${project.slug}/`,
+      url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
       body: {...project, enableAutoReleaseCreation: false},
     });
 
     render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
-      organization: orgWithFeature,
+      organization,
       initialRouterConfig,
     });
 
@@ -171,7 +156,7 @@ describe('projectGeneralSettings', () => {
 
     await waitFor(() =>
       expect(putMock).toHaveBeenCalledWith(
-        `/projects/${orgWithFeature.slug}/${project.slug}/`,
+        `/projects/${organization.slug}/${project.slug}/`,
         expect.objectContaining({
           method: 'PUT',
           data: {enableAutoReleaseCreation: false},
@@ -500,9 +485,6 @@ describe('projectGeneralSettings', () => {
         method: 'GET',
         body: [],
       });
-
-      // required for async updates
-      jest.spyOn(console, 'error').mockImplementation();
     });
 
     it('shows all platform options when all console platforms enabled', async () => {
@@ -589,5 +571,21 @@ describe('projectGeneralSettings', () => {
       // Should still show non-console platforms
       expect(screen.getByText('React')).toBeInTheDocument();
     });
+  });
+
+  it('renders connected repositories panel', async () => {
+    const orgWithFlag = OrganizationFixture({features: ['code-mappings-refactor']});
+    MockApiClient.addMockResponse({
+      url: `/projects/${orgWithFlag.slug}/${project.slug}/repo/`,
+      method: 'GET',
+      body: [],
+    });
+
+    render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
+      organization: orgWithFlag,
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByText('Connected Repositories')).toBeInTheDocument();
   });
 });

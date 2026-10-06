@@ -1,18 +1,18 @@
-import {css, useTheme} from '@emotion/react';
+import type {ReactNode} from 'react';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
+import {CollapsibleChatRow} from 'sentry/components/ai/chat/collapsibleContent';
+import {TurnMeta} from 'sentry/components/ai/chat/turnMeta';
 import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
-import {TurnMeta} from 'sentry/views/explore/conversations/components/turnMeta';
+import {TranscriptSpanRow} from 'sentry/views/explore/conversations/components/transcriptSpanRow';
 import type {ToolCall} from 'sentry/views/explore/conversations/utils/conversationMessages';
-import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import {getToolInputPreview} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -38,10 +38,10 @@ const COLLAPSE_THRESHOLD = 5;
 /**
  * Tool-call list for the redesigned transcript. Runs of at least
  * `COLLAPSE_THRESHOLD` calls collapse behind a `N tool calls` summary (with an
- * error count) that is collapsed by default, to keep tool-heavy turns compact;
- * shorter runs render inline. Each row is an accent wrench + `ToolTag` capped
- * at the message width, with the duration right-aligned. Selection shows an
- * outline.
+ * error count, plus the combined output size and time across the run) that is
+ * collapsed by default, to keep tool-heavy turns compact; shorter runs render
+ * inline. Each row is an accent wrench + `ToolTag` capped at the message width,
+ * with the size and duration right-aligned. Selection shows an outline.
  */
 export function MessageToolCalls({
   toolCalls,
@@ -72,13 +72,26 @@ export function MessageToolCalls({
 
   const errorCount = toolCalls.filter(tool => tool.hasError).length;
 
+  // Aggregate the same per-row values into a run-level total so the summary
+  // hints at how heavy the collapsed group is. Duration is the sum of each
+  // call's own duration (parallel calls are counted separately), matching the
+  // numbers on the rows rather than wall-clock elapsed time.
+  const totalDuration = toolCalls.reduce(
+    (sum, tool) => sum + (tool.duration && tool.duration > 0 ? tool.duration : 0),
+    0
+  );
+  const totalBytes = toolCalls.reduce((sum, tool) => {
+    const node = nodeMap.get(tool.nodeId);
+    return sum + (node ? getToolOutputBytes(node) : 0);
+  }, 0);
+
   return (
-    <CollapsibleContent
+    <CollapsibleChatRow
       // Keep the group open when one of its calls is the current selection so a
       // deep-linked/timeline-selected row stays visible instead of hidden.
       defaultOpen={selectedToolCallId !== null}
       title={
-        <Flex align="center" gap="sm">
+        <Flex align="center" gap="sm" minWidth={0}>
           <Text size="sm" variant="muted">
             {tn('%s tool call', '%s tool calls', toolCalls.length)}
           </Text>
@@ -89,6 +102,19 @@ export function MessageToolCalls({
           )}
         </Flex>
       }
+      // The run-level totals line up over the per-row values in the same column.
+      meta={
+        <TurnMeta
+          metric={
+            totalBytes > 0 ? <MetaValue>{formatBytesBase10(totalBytes)}</MetaValue> : null
+          }
+          duration={
+            totalDuration > 0 ? (
+              <MetaValue>{getDuration(totalDuration, 2, true)}</MetaValue>
+            ) : null
+          }
+        />
+      }
       onToggle={open =>
         trackAnalytics('conversations.detail.expand-tool-calls', {
           organization,
@@ -97,7 +123,7 @@ export function MessageToolCalls({
       }
     >
       <Container paddingTop="xs">{rows}</Container>
-    </CollapsibleContent>
+    </CollapsibleChatRow>
   );
 }
 
@@ -110,18 +136,6 @@ interface ToolCallRowProps {
 
 function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
   const organization = useOrganization();
-  const theme = useTheme();
-
-  // Widen past the content so the outline clears the icon/duration, then pull
-  // back with a negative margin to keep them message-aligned (no scraps prop
-  // for negative margins or hover).
-  const rowCss = css`
-    width: calc(100% + ${theme.space.sm} * 2);
-    margin: 0 -${theme.space.sm};
-    &:hover {
-      opacity: 0.85;
-    }
-  `;
 
   const selectTool = () => {
     trackAnalytics('conversations.message.click-tool-call', {
@@ -133,75 +147,37 @@ function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
   };
 
   return (
-    <Container
-      role="button"
-      tabIndex={0}
-      aria-pressed={isSelected}
-      aria-label={t('Select tool call %s', tool.name)}
-      radius="sm"
-      padding="sm sm"
-      cursor="pointer"
-      css={rowCss}
-      style={
-        isSelected
-          ? {
-              outline: `2px solid ${
-                tool.hasError ? theme.tokens.content.danger : theme.tokens.focus.default
-              }`,
-              outlineOffset: '-2px',
-            }
-          : undefined
-      }
-      onClick={(e: React.MouseEvent) => {
-        e.stopPropagation();
-        selectTool();
-      }}
-      onKeyDown={(e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          e.stopPropagation();
-          selectTool();
-        }
-      }}
-    >
-      <Flex align="center" justify="between" gap="md" width="100%">
-        <Flex align="center" gap="sm" minWidth={0}>
-          {node && <AiSpanStatusIcon node={node} />}
-          <ToolTag name={tool.name} hasError={tool.hasError} />
-          {node && <ToolInputPreview node={node} />}
-        </Flex>
+    <TranscriptSpanRow
+      node={node}
+      isSelected={isSelected}
+      ariaLabel={t('Select tool call %s', tool.name)}
+      onSelect={selectTool}
+      tag={<ToolTag name={tool.name} hasError={tool.hasError} />}
+      preview={node ? getToolInputPreview(node) : null}
+      meta={
         <TurnMeta
           metric={node ? <ToolOutputSize node={node} /> : null}
           duration={
             tool.duration === undefined || tool.duration <= 0 ? null : (
-              <Text size="xs" variant="muted" tabular align="right">
-                {getDuration(tool.duration, 2, true)}
-              </Text>
+              <MetaValue>{getDuration(tool.duration, 2, true)}</MetaValue>
             )
           }
         />
-      </Flex>
-    </Container>
+      }
+    />
+  );
+}
+
+/** Shared right-aligned styling for the size/duration values in the meta column. */
+function MetaValue({children}: {children: ReactNode}) {
+  return (
+    <Text size="xs" variant="muted" tabular align="right">
+      {children}
+    </Text>
   );
 }
 
 function ToolOutputSize({node}: {node: AITraceSpanNode}) {
   const bytes = getToolOutputBytes(node);
-  return (
-    <Text size="xs" variant="muted" tabular align="right">
-      {formatBytesBase10(bytes)}
-    </Text>
-  );
-}
-
-function ToolInputPreview({node}: {node: AITraceSpanNode}) {
-  const inputPreview = getToolInputPreview(node);
-  if (!inputPreview) {
-    return null;
-  }
-  return (
-    <Text size="xs" monospace variant="muted" ellipsis>
-      {inputPreview}
-    </Text>
-  );
+  return <MetaValue>{formatBytesBase10(bytes)}</MetaValue>;
 }

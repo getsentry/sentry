@@ -32,7 +32,7 @@ describe('RevealOnHover', () => {
     expect(button.closest('[data-reveal-on-hover]')).toBeInTheDocument();
   });
 
-  it('does not wrap with data-reveal-on-hover when visible is true', () => {
+  it('marks the action as visible when visible is true', () => {
     render(
       <RevealOnHover>
         <span>Label</span>
@@ -43,7 +43,34 @@ describe('RevealOnHover', () => {
     );
 
     const button = screen.getByRole('button', {name: 'Copy'});
-    expect(button.closest('[data-reveal-on-hover]')).not.toBeInTheDocument();
+    expect(button.closest('[data-reveal-on-hover]')).toHaveAttribute(
+      'data-reveal-on-hover-visible',
+      ''
+    );
+  });
+
+  it('keeps the action mounted when visibility changes', () => {
+    const {rerender} = render(
+      <RevealOnHover>
+        <span>Label</span>
+        <RevealOnHover.Action>
+          <Button>Copy</Button>
+        </RevealOnHover.Action>
+      </RevealOnHover>
+    );
+
+    const button = screen.getByRole('button', {name: 'Copy'});
+
+    rerender(
+      <RevealOnHover>
+        <span>Label</span>
+        <RevealOnHover.Action visible>
+          <Button>Copy</Button>
+        </RevealOnHover.Action>
+      </RevealOnHover>
+    );
+
+    expect(screen.getByRole('button', {name: 'Copy'})).toBe(button);
   });
 
   it('passes through Flex props to the root element', () => {
@@ -111,8 +138,8 @@ describe('RevealOnHover', () => {
   it('supports callback children for custom elements', () => {
     render(
       <RevealOnHover>
-        {({className}) => (
-          <div data-test-id="custom-root" className={className}>
+        {props => (
+          <div data-test-id="custom-root" {...props}>
             <span>Grid content</span>
             <RevealOnHover.Action>
               <Button>Copy</Button>
@@ -133,8 +160,8 @@ describe('RevealOnHover', () => {
 
     render(
       <RevealOnHover>
-        {({className}) => (
-          <div className={className}>
+        {props => (
+          <div {...props}>
             <span>Content</span>
             <RevealOnHover.Action>
               <Button onClick={onClick}>Copy</Button>

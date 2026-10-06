@@ -1,21 +1,20 @@
+import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 
-export const DEFAULT_STATS_PERIOD = '90d';
+const WINDOW_LABELS: Record<keyof typeof DEFAULT_RELATIVE_PERIODS, string> = {
+  '1h': t('in the last hour'),
+  '24h': t('in the last 24 hours'),
+  '7d': t('in the last 7 days'),
+  '14d': t('in the last 14 days'),
+  '30d': t('in the last 30 days'),
+  '90d': t('in the last 90 days'),
+};
 
-export const PERIOD_FILTER_OPTIONS: Array<{
-  label: string;
-  value: string;
-  windowLabel: string;
-}> = [
-  {value: '24h', label: t('Last 24 hours'), windowLabel: t('in the last 24 hours')},
-  {value: '7d', label: t('Last 7 days'), windowLabel: t('in the last 7 days')},
-  {value: '30d', label: t('Last 30 days'), windowLabel: t('in the last 30 days')},
-  {value: '90d', label: t('Last 90 days'), windowLabel: t('in the last 90 days')},
-];
-
-export function periodWindowLabel(statsPeriod: string): string {
-  const option =
-    PERIOD_FILTER_OPTIONS.find(candidate => candidate.value === statsPeriod) ??
-    PERIOD_FILTER_OPTIONS.find(candidate => candidate.value === DEFAULT_STATS_PERIOD);
-  return option?.windowLabel ?? '';
+// Absolute ranges (no relative period) get no phrase, so callers drop the
+// window clause rather than naming a window the numbers don't cover.
+export function periodWindowLabel(statsPeriod: string | null): string {
+  if (!statsPeriod) {
+    return '';
+  }
+  return WINDOW_LABELS[statsPeriod as keyof typeof WINDOW_LABELS] ?? '';
 }

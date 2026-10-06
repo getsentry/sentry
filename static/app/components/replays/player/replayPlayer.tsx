@@ -1,6 +1,6 @@
 import {useEffect, useLayoutEffect, useRef, type HTMLAttributes} from 'react';
 import {useTheme, type Interpolation, type Theme} from '@emotion/react';
-import {Replayer} from '@sentry-internal/rrweb';
+import {Replayer} from '@sentry/rrweb';
 
 import {
   baseReplayerCss,
@@ -84,7 +84,6 @@ function useReplayerInstance() {
 
 interface Props extends HTMLAttributes<HTMLDivElement> {
   css?: Interpolation<Theme>;
-  inspectable?: boolean;
   offsetMs?: undefined | number;
 }
 

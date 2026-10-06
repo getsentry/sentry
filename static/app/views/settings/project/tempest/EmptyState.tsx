@@ -1,20 +1,22 @@
-/* eslint-disable unicorn/filename-case */
 import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {EmptyState as TableEmptyState} from '@sentry/scraps/emptyState';
+import {Container, Stack} from '@sentry/scraps/layout';
+import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
-import {PanelTable} from 'sentry/components/panels/panelTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {decodeInteger} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {AddCredentialsButton} from 'sentry/views/settings/project/tempest/addCredentialsButton';
 import {
   ALLOWLIST_IP_ADDRESSES_DESCRIPTION,
@@ -32,6 +34,14 @@ interface EmptyStateProps {
   tempestCredentials?: TempestCredentials[];
 }
 
+const CREDENTIAL_COLUMNS: TableColumnConfig[] = [
+  {key: 'clientId', width: 'auto'},
+  {key: 'status', width: 'auto'},
+  {key: 'createdAt', width: 'auto'},
+  {key: 'createdBy', width: 'auto'},
+  {key: 'actions', width: 'auto'},
+];
+
 export function EmptyState({
   project,
   tempestCredentials,
@@ -42,6 +52,7 @@ export function EmptyState({
 }: EmptyStateProps) {
   const navigate = useNavigate();
   const location = useLocation();
+  const organization = useOrganization();
 
   return (
     <div>
@@ -50,7 +61,9 @@ export function EmptyState({
         <Description>
           {t('Your code sleuth eagerly awaits its first mission.')}
         </Description>
-        <Image src={waitingForEventImg} />
+        <Container display={{zero: 'none', '2xl': 'contents'}}>
+          <Image src={waitingForEventImg} />
+        </Container>
       </HeaderWrapper>
       <Divider />
       <Body>
@@ -84,29 +97,41 @@ export function EmptyState({
                 )}
               </DescriptionWrapper>
               <Stack align="end" gap="xl">
-                <StyledPanelTable
-                  headers={[
-                    t('Client ID'),
-                    t('Status'),
-                    t('Created At'),
-                    t('Created By'),
-                    '',
-                  ]}
-                  isEmpty={!tempestCredentials?.length}
-                  emptyMessage={t('No credentials found')}
-                  emptyAction={
-                    <AddCredentialsButton project={project} origin="project-settings" />
+                <StyledSimpleTable
+                  columns={CREDENTIAL_COLUMNS}
+                  header={
+                    <SimpleTable.HeaderRow>
+                      <SimpleTable.HeaderCell>{t('Client ID')}</SimpleTable.HeaderCell>
+                      <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
+                      <SimpleTable.HeaderCell>{t('Created At')}</SimpleTable.HeaderCell>
+                      <SimpleTable.HeaderCell>{t('Created By')}</SimpleTable.HeaderCell>
+                      <SimpleTable.HeaderCell />
+                    </SimpleTable.HeaderRow>
                   }
                 >
-                  {tempestCredentials?.map(credential => (
-                    <CredentialRow
-                      key={credential.id}
-                      credential={credential}
-                      isRemoving={isRemoving && removingCredentialId === credential.id}
-                      removeCredential={hasWriteAccess ? onRemoveCredential : undefined}
-                    />
-                  ))}
-                </StyledPanelTable>
+                  {tempestCredentials?.length ? (
+                    tempestCredentials.map(credential => (
+                      <CredentialRow
+                        key={credential.id}
+                        credential={credential}
+                        isRemoving={isRemoving && removingCredentialId === credential.id}
+                        removeCredential={hasWriteAccess ? onRemoveCredential : undefined}
+                      />
+                    ))
+                  ) : (
+                    <SimpleTable.Empty>
+                      <TableEmptyState
+                        title={t('No credentials found')}
+                        action={
+                          <AddCredentialsButton
+                            project={project}
+                            origin="project-settings"
+                          />
+                        }
+                      />
+                    </SimpleTable.Empty>
+                  )}
+                </StyledSimpleTable>
               </Stack>
               <GuidedSteps.StepButtons />
             </GuidedSteps.Step>
@@ -161,7 +186,7 @@ export function EmptyState({
                   variant="primary"
                   onClick={() => {
                     navigate({
-                      pathname: '/issues/',
+                      pathname: `/organizations/${organization.slug}/issues/`,
                       query: {
                         query: 'os.name:PlayStation',
                       },
@@ -197,7 +222,7 @@ const BodyTitle = styled('div')`
   margin-bottom: ${p => p.theme.space.md};
 `;
 
-const StyledPanelTable = styled(PanelTable)`
+const StyledSimpleTable = styled(SimpleTable)`
   width: 100%;
   margin-bottom: 0;
 `;
@@ -216,10 +241,6 @@ const Image = styled('img')`
   pointer-events: none;
   height: 120px;
   overflow: hidden;
-
-  @media (max-width: ${p => p.theme.breakpoints.sm}) {
-    display: none;
-  }
 `;
 
 const Divider = styled('hr')`

@@ -4,14 +4,13 @@ import styled from '@emotion/styled';
 import emptyStateImg from 'sentry-images/spot/replays-empty-state.svg';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Container, Grid, type GridProps} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Accordion} from 'sentry/components/container/accordion';
-import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {ReplayUnsupportedAlert} from 'sentry/components/replays/alerts/replayUnsupportedAlert';
 import {replayPlatforms} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
@@ -25,28 +24,12 @@ import {
 } from 'sentry/views/explore/profiling/landing/styles';
 import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
 import {ReplayPanel} from 'sentry/views/explore/replays/list/replayPanel';
-import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
-
-type Breakpoints = {
-  lg: string;
-  md: string;
-  sm: string;
-  xl: string;
-};
-
-const OnboardingCTAHook = OverrideOrDefault({
-  overrideName: 'component:replay-onboarding-cta',
-  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
-});
 
 export function ReplayOnboardingPanel() {
   const pageFilters = usePageFilters();
   const projects = useProjects();
-  const organization = useOrganization();
   const canUserCreateProject = useCanCreateProject();
-  const {view} = useSecondaryNavigation();
-  const isCollapsed = view !== 'expanded';
 
   const supportedPlatforms = replayPlatforms;
 
@@ -74,32 +57,13 @@ export function ReplayOnboardingPanel() {
       ? !canUserCreateProject
       : allSelectedProjectsUnsupported && hasSelectedProjects;
 
-  const breakpoints = isCollapsed
-    ? {
-        sm: '800px',
-        md: '992px',
-        lg: '1210px',
-        xl: '1450px',
-      }
-    : {
-        sm: '800px',
-        md: '1175px',
-        lg: '1375px',
-        xl: '1450px',
-      };
-
   return (
     <Fragment>
       {hasSelectedProjects && allSelectedProjectsUnsupported && (
         <ReplayUnsupportedAlert projectSlug={selectedProjects[0]!.slug} />
       )}
-      <ReplayPanel image={<HeroImage src={emptyStateImg} breakpoints={breakpoints} />}>
-        <OnboardingCTAHook organization={organization}>
-          <SetupReplaysCTA
-            primaryAction={primaryAction}
-            disabled={primaryActionDisabled}
-          />
-        </OnboardingCTAHook>
+      <ReplayPanel image={<HeroImage src={emptyStateImg} />}>
+        <SetupReplaysCTA primaryAction={primaryAction} disabled={primaryActionDisabled} />
       </ReplayPanel>
     </Fragment>
   );
@@ -113,7 +77,7 @@ interface SetupReplaysCTAProps {
 export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps) {
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
   const [expanded, setExpanded] = useState(-1);
-  const {allMobileProj} = useAllMobileProj({});
+  const {allMobileProj} = useAllMobileProj();
   const organization = useOrganization();
 
   const FAQ = [
@@ -213,31 +177,26 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
     },
   ];
 
-  function renderCTA() {
-    if (primaryAction === 'setup') {
-      return (
-        <Tooltip
-          title={
-            <span data-test-id="setup-replays-tooltip">
-              {t('Select a supported project from the projects dropdown.')}
-            </span>
-          }
-          disabled={!disabled} // we only want to show the tooltip when the button is disabled
+  const cta =
+    primaryAction === 'setup' ? (
+      <Tooltip
+        title={
+          <span data-test-id="setup-replays-tooltip">
+            {t('Select a supported project from the projects dropdown.')}
+          </span>
+        }
+        disabled={!disabled} // we only want to show the tooltip when the button is disabled
+      >
+        <Button
+          data-test-id="setup-replays-btn"
+          onClick={() => activateSidebar()}
+          variant="primary"
+          disabled={disabled}
         >
-          <Button
-            data-test-id="setup-replays-btn"
-            type="button"
-            onClick={() => activateSidebar()}
-            variant="primary"
-            disabled={disabled}
-          >
-            {t('Set Up Replays')}
-          </Button>
-        </Tooltip>
-      );
-    }
-
-    return (
+          {t('Set Up Replays')}
+        </Button>
+      </Tooltip>
+    ) : (
       <Tooltip
         title={
           <span data-test-id="create-project-tooltip">
@@ -259,7 +218,6 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
         </LinkButton>
       </Tooltip>
     );
-  }
 
   return (
     <Container padding="2xl">
@@ -270,7 +228,7 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
         )}
       </p>
       <ButtonList>
-        {renderCTA()}
+        {cta}
         <LinkButton
           href={
             allMobileProj
@@ -285,9 +243,8 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
       <StyledWidgetContainer>
         <StyledHeaderContainer>
           {t('FAQ')}
-          <QuestionTooltip
+          <InfoTip
             size="xs"
-            isHoverable
             title={tct('See a [link:full list of FAQs].', {
               link: (
                 <ExternalLink href="https://www.sentry.help/en/articles/13964404-session-replay-faq" />
@@ -301,35 +258,20 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
   );
 }
 
-const HeroImage = styled('img')<{breakpoints: Breakpoints}>`
-  @media (min-width: ${p => p.breakpoints.sm}) {
-    user-select: none;
-    position: absolute;
-    top: 0;
-    bottom: 0;
+const HeroImage = styled('img')`
+  display: block;
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+  margin: 0 auto;
+  user-select: none;
+
+  @container (min-width: ${p => p.theme.container.xl}) {
     width: 220px;
-    margin-top: auto;
-    margin-bottom: auto;
-    transform: translateX(-50%);
-    left: 50%;
   }
 
-  @media (min-width: ${p => p.breakpoints.md}) {
-    transform: translateX(-55%);
+  @container (min-width: ${p => p.theme.container['3xl']}) {
     width: 300px;
-    min-width: 300px;
-  }
-
-  @media (min-width: ${p => p.breakpoints.lg}) {
-    transform: translateX(-60%);
-    width: 380px;
-    min-width: 380px;
-  }
-
-  @media (min-width: ${p => p.breakpoints.xl}) {
-    transform: translateX(-65%);
-    width: 420px;
-    min-width: 420px;
   }
 `;
 

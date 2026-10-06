@@ -10,6 +10,7 @@ from sentry.auth.provider import MigratingIdentityId
 from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
 from sentry.auth.services.auth.model import RpcAuthProvider
 from sentry.auth.view import AuthView
+from sentry.identity.google.provider import normalize_email_verified
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.base.response import DeferredResponse
 
@@ -118,5 +119,5 @@ class GoogleOAuth2Provider(OAuth2Provider):
             "email": user_data["email"],
             "name": user_data["email"],
             "data": self.get_oauth_data(data),
-            "email_verified": user_data["email_verified"],
+            "email_verified": normalize_email_verified(user_data["email_verified"]),
         }

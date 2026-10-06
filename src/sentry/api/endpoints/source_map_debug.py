@@ -164,6 +164,8 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         if event is None:
             raise NotFound(detail="Event not found")
 
+        sentry_sdk.set_attribute("event.type", event.get_event_type())
+
         event_data = event.data
 
         release = None

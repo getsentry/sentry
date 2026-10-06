@@ -1,12 +1,45 @@
-from typing import Any, NotRequired, TypedDict
+from typing import NotRequired, TypedDict
 
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
+from sentry.api.serializers.models.groupsearchview import GroupSearchViewTimeFilters
 from sentry.api.serializers.rest_framework import ValidationError
+from sentry.apidocs.omissions import sentry_schema_serializer
+from sentry.exceptions import InvalidSearchQuery
+from sentry.issues.issue_search import parse_search_query
 from sentry.models.project import Project
 from sentry.models.savedsearch import SORT_LITERALS, SortOptions
 
 MAX_VIEWS = 50
+
+
+class GroupSearchViewTimeFiltersSerializer(serializers.Serializer):
+    start = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="The start of the time range in ISO-8601 format.",
+    )
+    end = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="The end of the time range in ISO-8601 format.",
+    )
+    period = serializers.CharField(
+        required=False,
+        allow_null=True,
+        help_text="The relative time period, such as `14d`.",
+    )
+    utc = serializers.BooleanField(
+        required=False,
+        allow_null=True,
+        help_text="Whether to interpret the time range as UTC.",
+    )
+
+
+@extend_schema_field(GroupSearchViewTimeFiltersSerializer)
+class GroupSearchViewTimeFiltersField(serializers.DictField):
+    pass
 
 
 class GroupSearchViewValidatorResponse(TypedDict):
@@ -18,22 +51,62 @@ class GroupSearchViewValidatorResponse(TypedDict):
     projects: list[int]
     isAllProjects: NotRequired[bool]
     environments: list[str]
-    timeFilters: dict[str, Any]
+    timeFilters: GroupSearchViewTimeFilters
     dateCreated: str | None
     dateUpdated: str | None
 
 
 class ViewValidator(serializers.Serializer):
-    id = serializers.CharField(required=False)
-    name = serializers.CharField(required=True)
-    query = serializers.CharField(required=True, allow_blank=True)
+    id = serializers.CharField(required=False, help_text="The ID of the issue view.")
+    name = serializers.CharField(required=True, help_text="The name of the issue view.")
+    query = serializers.CharField(
+        required=True,
+        allow_blank=True,
+        help_text=(
+            "The issue search query. Issue search does not support the `AND`/`OR` boolean "
+            "operators or parenthesized boolean groups. To match any of several values, use "
+            "the list form instead: `issue:[PROJ-AB1, PROJ-CD2]`, `issue.priority:[high, medium]`."
+        ),
+    )
     querySort = serializers.ChoiceField(
-        required=False, choices=SortOptions.as_choices(), default=SortOptions.DATE
+        required=False,
+        choices=SortOptions.as_choices(),
+        default=SortOptions.DATE,
+        help_text="How to sort issues in the view.",
     )
 
-    projects = serializers.ListField(required=True, allow_empty=True)
-    environments = serializers.ListField(required=True, allow_empty=True)
-    timeFilters = serializers.DictField(required=True, allow_empty=False)
+    projects = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=True,
+        allow_empty=True,
+        help_text="The project IDs included in the view. Use `-1` to include all projects.",
+    )
+    environments = serializers.ListField(
+        child=serializers.CharField(),
+        required=True,
+        allow_empty=True,
+        help_text=(
+            "The environment names included in the view. An empty list includes all environments."
+        ),
+    )
+    timeFilters = GroupSearchViewTimeFiltersField(
+        required=True,
+        allow_empty=False,
+        help_text="The time range for the view.",
+    )
+
+    def validate_query(self, value: str) -> str:
+        # The view is stored verbatim and only parsed when someone opens it, so an
+        # unparseable query saves fine and then 400s at read time. Parse here so the
+        # write fails during validation instead.
+        try:
+            parse_search_query(value)
+        except InvalidSearchQuery as e:
+            # `InvalidSearchQuery` carries authored, user-facing copy built from the
+            # query itself, never a traceback, so it is safe to return -- same as
+            # `api/helpers/group_index/index.py` does on the issues endpoint.
+            raise ValidationError(detail=f"Invalid issue search query: {e}")
+        return value
 
     def validate_projects(self, value):
         if value != [-1]:
@@ -59,8 +132,15 @@ class ViewValidator(serializers.Serializer):
         return data
 
 
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "id": "Inherited from ViewValidator for updates; the server assigns the id on create.",
+    }
+)
 class GroupSearchViewPostValidator(ViewValidator):
-    starred = serializers.BooleanField(required=False)
+    starred = serializers.BooleanField(
+        required=False, help_text="Whether to star the issue view for the current user."
+    )
 
     def validate(self, data):
         return super().validate(data)

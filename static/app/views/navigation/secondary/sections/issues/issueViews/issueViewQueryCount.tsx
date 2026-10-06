@@ -1,20 +1,16 @@
-import styled from '@emotion/styled';
-
-import {Tag} from '@sentry/scraps/badge';
-import {Text} from '@sentry/scraps/text';
-
-import type {PageFilters} from 'sentry/types/core';
+import type {PageFilterDatetime} from 'sentry/types/core';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {createIssueViewFromUrl} from 'sentry/views/issueList/issueViews/createIssueViewFromUrl';
 import {useFetchIssueCounts} from 'sentry/views/issueList/queries/useFetchIssueCounts';
+import {IssueCount} from 'sentry/views/navigation/secondary/sections/issues/issueCount';
 import type {IssueView} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
-
-const TAB_MAX_COUNT = 99;
+import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
 const constructCountTimeFrame = (
-  timeFilters: PageFilters['datetime']
+  timeFilters: PageFilterDatetime
 ): {
   end?: string;
   start?: string;
@@ -35,7 +31,7 @@ interface IssueViewQueryCountProps {
   view: IssueView;
 }
 
-export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) {
+function IssueViewQueryCountImpl({view, isActive}: IssueViewQueryCountProps) {
   const organization = useOrganization();
   const location = useLocation();
 
@@ -67,37 +63,21 @@ export function IssueViewQueryCount({view, isActive}: IssueViewQueryCountProps) 
     ? 0
     : (queryCount?.[view.query] ?? queryCount?.[defaultQuery ?? ''] ?? 0);
 
+  useLLMContext({
+    contextHint: 'The live issue count for one starred issue view.',
+    viewId: view.id,
+    viewLabel: view.label,
+    issueCount: isFetching ? null : count,
+  });
+
   if (isFetching) {
     return null;
   }
 
-  return (
-    <StyledTag variant="muted" data-issue-view-query-count>
-      <Text variant="muted" size="xs" align="center" tabular>
-        {count > TAB_MAX_COUNT ? `${TAB_MAX_COUNT}+` : count}
-      </Text>
-    </StyledTag>
-  );
+  return <IssueCount count={count} />;
 }
-const StyledTag = styled(Tag)`
-  border: 1px solid ${p => p.theme.tokens.border.neutral.muted};
-  background-color: ${p => p.theme.tokens.background.primary};
-  padding: 0 ${p => p.theme.space.xs};
-  justify-content: end;
 
-  opacity: 0;
-  transform: scale(0.95);
-
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-      transform: scale(0.95);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1);
-    }
-  }
-
-  animation: fadeIn 0.1s ease-in-out forwards;
-`;
+export const IssueViewQueryCount = registerLLMContext(
+  'navigation',
+  IssueViewQueryCountImpl
+);

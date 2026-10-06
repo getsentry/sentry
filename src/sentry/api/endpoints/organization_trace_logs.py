@@ -150,8 +150,13 @@ class OrganizationTraceLogsEndpoint(OrganizationEventsEndpointBase):
                     snuba_params, trace_ids, replay_id, orderby, additional_query, offset, limit
                 )
 
-        return self.paginate(
+        response = self.paginate(
             request=request,
             paginator=GenericOffsetPaginator(data_fn=data_fn),
             max_per_page=9999,
         )
+        meta = response.data["meta"]
+        routing_hint = meta.pop("routing_hint", None)
+        if routing_hint:
+            meta["routingHint"] = routing_hint
+        return response

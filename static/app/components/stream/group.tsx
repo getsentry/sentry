@@ -1,11 +1,11 @@
 import {Fragment, useCallback, useMemo, useRef} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import {Checkbox} from '@sentry/scraps/checkbox';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -14,6 +14,7 @@ import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown'
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {GroupStatusChart} from 'sentry/components/charts/groupStatusChart';
 import {Count} from 'sentry/components/count';
+import {AssigneeAvatar} from 'sentry/components/group/assigneeAvatar';
 import {AssigneeSelector} from 'sentry/components/group/assigneeSelector';
 import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
@@ -34,7 +35,6 @@ import type {
   GroupReprocessing,
   InboxDetails,
   PriorityLevel,
-  ProgressState,
 } from 'sentry/types/group';
 import type {NewQuery} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
@@ -49,7 +49,6 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {useAssignIssueMutation} from 'sentry/views/issueDetails/useAssignIssueMutation';
@@ -58,16 +57,11 @@ import {
   useOptionalIssueSelectionActions,
   useOptionalIssueSelectionSummary,
 } from 'sentry/views/issueList/issueSelectionContext';
-import {ProgressActivityTooltip} from 'sentry/views/issueList/progressActivityTooltip';
 import {
   createIssueLink,
   DISCOVER_EXCLUSION_FIELDS,
   isForReviewQuery,
 } from 'sentry/views/issueList/utils';
-import {
-  formatProgressState,
-  getProgressIcon,
-} from 'sentry/views/issueList/utils/progress';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
 const COLUMNS: GroupListColumn[] = [
@@ -82,16 +76,13 @@ const COLUMNS: GroupListColumn[] = [
 type Props = {
   group: Group;
   canSelect?: boolean;
-  customStatsPeriod?: TimePeriodType;
   displayReprocessingLayout?: boolean;
   hasGuideAnchor?: boolean;
   memberList?: User[];
   onAssigneeChange?: (newAssignee: AssignableEntity | null) => void;
   onPriorityChange?: (newPriority: PriorityLevel) => void;
-  progressState?: ProgressState | null;
   query?: string;
   queryFilterDescription?: string;
-  showLastTriggered?: boolean;
   source?: string;
   statsPeriod?: string;
   useFilteredStats?: boolean;
@@ -199,78 +190,151 @@ function GroupFirstSeen({group}: {group: Group}) {
 
 type LoadingSteamGroupProps = Pick<
   Props,
-  'displayReprocessingLayout' | 'withChart' | 'withColumns' | 'showLastTriggered'
+  'displayReprocessingLayout' | 'withChart' | 'withColumns'
 >;
 
 export function LoadingStreamGroup({
   displayReprocessingLayout,
   withChart = true,
   withColumns = COLUMNS,
-  showLastTriggered = false,
 }: LoadingSteamGroupProps) {
+  const theme = useTheme();
+
   return (
     <Wrapper data-test-id="group" useTintRow={false} reviewed={false}>
       <GroupSummary canSelect={false}>
         <Placeholder height="58px" />
       </GroupSummary>
       {withColumns.includes('lastSeen') && (
-        <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN}>
+        <Flex
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.LAST_SEEN]: 'flex'}}
+          width="86px"
+          paddingRight="xl"
+          marginRight="xl"
+          align="center"
+          justify="end"
+        >
           <Placeholder height="18px" width="70px" />
-        </LastSeenWrapper>
+        </Flex>
       )}
       {withColumns.includes('firstSeen') && (
-        <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN}>
+        <Flex
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.FIRST_SEEN]: 'flex'}}
+          width="50px"
+          paddingRight="xl"
+          marginRight="xl"
+          align="center"
+          justify="end"
+        >
           <Placeholder height="18px" width="30px" />
-        </FirstSeenWrapper>
+        </Flex>
       )}
       {withChart && !displayReprocessingLayout && (
-        <ChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
+        <Container
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.TREND]: 'block'}}
+          width="175px"
+          alignSelf="center"
+          marginRight="xl"
+        >
           <Placeholder height="36px" />
-        </ChartWrapper>
+        </Container>
       )}
       {displayReprocessingLayout ? (
         <Fragment>
-          <StartedColumn>
+          <Container
+            width={{zero: '85px', xl: '140px'}}
+            alignSelf="center"
+            margin="0 xl"
+            whiteSpace="nowrap"
+            overflow="hidden"
+            style={{color: theme.colors.gray800, textOverflow: 'ellipsis'}}
+          >
             <Placeholder height="17px" />
-          </StartedColumn>
-          <EventsReprocessedColumn>
+          </Container>
+          <Container
+            width={{zero: '75px', xl: '140px'}}
+            alignSelf="center"
+            margin="0 xl"
+            whiteSpace="nowrap"
+            overflow="hidden"
+            style={{color: theme.colors.gray800, textOverflow: 'ellipsis'}}
+          >
             <Placeholder height="17px" />
-          </EventsReprocessedColumn>
-          <ProgressColumn>
+          </Container>
+          <Container
+            display={{zero: 'none', xl: 'block'}}
+            width="160px"
+            margin="0 xl"
+            alignSelf="center"
+          >
             <Placeholder height="17px" />
-          </ProgressColumn>
+          </Container>
         </Fragment>
       ) : (
         <Fragment>
-          {showLastTriggered && (
-            <LastTriggeredWrapper>
-              <Placeholder height="18px" />
-            </LastTriggeredWrapper>
-          )}
           {withColumns.includes('event') && (
-            <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
+            <Flex
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.EVENTS]: 'flex'}}
+              alignSelf="center"
+              paddingRight="xl"
+              marginRight="xl"
+              width="60px"
+              align="center"
+              justify="end"
+            >
               <Placeholder height="18px" width="40px" />
-            </NarrowEventsOrUsersCountsWrapper>
+            </Flex>
           )}
           {withColumns.includes('users') && (
-            <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
+            <Flex
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.USERS]: 'flex'}}
+              alignSelf="center"
+              paddingRight="xl"
+              marginRight="xl"
+              width="60px"
+              align="center"
+              justify="end"
+            >
               <Placeholder height="18px" width="40px" />
-            </NarrowEventsOrUsersCountsWrapper>
+            </Flex>
           )}
           {withColumns.includes('progress') && (
-            <ProgressWrapper breakpoint={COLUMN_BREAKPOINTS.PROGRESS}>
+            <Flex
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.PROGRESS]: 'flex'}}
+              width="124px"
+              paddingRight="xl"
+              marginRight="xl"
+              alignSelf="center"
+              justify="start"
+            >
               <Placeholder height="18px" />
-            </ProgressWrapper>
+            </Flex>
           )}
           {withColumns.includes('priority') && (
-            <PriorityWrapper breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
+            <Flex
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.PRIORITY]: 'flex'}}
+              width="64px"
+              paddingRight="xl"
+              marginRight="xl"
+              alignSelf="center"
+              justify="end"
+            >
               <Placeholder height="24px" />
-            </PriorityWrapper>
+            </Flex>
           )}
-          {withColumns.includes('assignee') && (
-            <AssigneeWrapper breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE}>
+          {(withColumns.includes('assignee') ||
+            withColumns.includes('assigneeAvatar')) && (
+            <Flex
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.ASSIGNEE]: 'flex'}}
+              alignSelf="center"
+              width="66px"
+              paddingRight="xl"
+              marginRight="xl"
+              justify="end"
+              style={{textAlign: 'right'}}
+            >
               <Placeholder height="24px" />
-            </AssigneeWrapper>
+            </Flex>
           )}
         </Fragment>
       )}
@@ -278,9 +342,67 @@ export function LoadingStreamGroup({
   );
 }
 
+function ReprocessingColumns({group}: {group: GroupReprocessing}) {
+  const theme = useTheme();
+  const {statusDetails, count} = group;
+  const {info, pendingEvents} = statusDetails;
+
+  if (!info) {
+    return null;
+  }
+
+  const {totalEvents, dateCreated} = info;
+
+  const remainingEventsToReprocess = totalEvents - pendingEvents;
+  const remainingEventsToReprocessPercent = percent(
+    remainingEventsToReprocess,
+    totalEvents
+  );
+
+  return (
+    <Fragment>
+      <Flex
+        width={{zero: '85px', xl: '140px'}}
+        alignSelf="center"
+        margin="0 xl"
+        whiteSpace="nowrap"
+        overflow="hidden"
+        style={{color: theme.colors.gray800, textOverflow: 'ellipsis'}}
+      >
+        <TimeSince date={dateCreated} />
+      </Flex>
+      <Container
+        width={{zero: '75px', xl: '140px'}}
+        alignSelf="center"
+        margin="0 xl"
+        whiteSpace="nowrap"
+        overflow="hidden"
+        style={{color: theme.colors.gray800, textOverflow: 'ellipsis'}}
+      >
+        {defined(count) ? (
+          <Fragment>
+            <Count value={remainingEventsToReprocess} />
+            {'/'}
+            <Count value={totalEvents} />
+          </Fragment>
+        ) : (
+          <Placeholder height="17px" />
+        )}
+      </Container>
+      <Container
+        display={{zero: 'none', xl: 'block'}}
+        width="160px"
+        margin="0 xl"
+        alignSelf="center"
+      >
+        <ProgressBar value={remainingEventsToReprocessPercent} />
+      </Container>
+    </Fragment>
+  );
+}
+
 export function StreamGroup({
   group,
-  customStatsPeriod,
   displayReprocessingLayout,
   hasGuideAnchor,
   memberList,
@@ -293,10 +415,8 @@ export function StreamGroup({
   withColumns = COLUMNS,
   useFilteredStats = false,
   useTintRow = true,
-  showLastTriggered = false,
   onPriorityChange,
   onAssigneeChange,
-  progressState,
 }: Props) {
   const issueSelectionSummary = useOptionalIssueSelectionSummary();
   const issueSelectionActions = useOptionalIssueSelectionActions();
@@ -316,10 +436,9 @@ export function StreamGroup({
   const {period, start, end} = selection.datetime || {};
 
   const summary =
-    customStatsPeriod?.label?.toLowerCase() ??
-    (!!start && !!end
+    !!start && !!end
       ? 'time range'
-      : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase());
+      : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase();
 
   const sharedAnalytics = useMemo(() => {
     const owners = group?.owners ?? [];
@@ -400,23 +519,23 @@ export function StreamGroup({
     return group.filtered ? group.stats?.[statsPeriod]! : [];
   }, [group, statsPeriod]);
 
+  const parsedSearch = useMemo(() => parseSearch(query ?? ''), [query]);
+
   const getDiscoverUrl = (isFiltered?: boolean): LocationDescriptor => {
-    // when there is no discover feature open events page
+    // When there is no Discover feature, open the events page.
     const hasDiscoverQuery = organization.features.includes('discover-basic');
 
-    const parsedResult = parseSearch(
-      isFiltered && typeof query === 'string' ? query : ''
-    );
-    const filteredTerms = parsedResult?.filter(
-      p => !(p.type === Token.FILTER && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
-    );
+    const filteredTerms = isFiltered
+      ? parsedSearch?.filter(
+          p =>
+            !(p.type === Token.FILTER && DISCOVER_EXCLUSION_FIELDS.includes(p.key.text))
+        )
+      : [];
     const filteredQuery = joinQuery(filteredTerms, true);
-
     const commonQuery = {projects: [Number(group.project.id)]};
 
     if (hasDiscoverQuery) {
-      const stats = customStatsPeriod ?? (selection.datetime || {});
-
+      const stats = selection.datetime || {};
       const discoverQuery: NewQuery = {
         ...commonQuery,
         id: undefined,
@@ -455,48 +574,10 @@ export function StreamGroup({
     };
   };
 
-  const renderReprocessingColumns = () => {
-    const {statusDetails, count} = group as GroupReprocessing;
-    const {info, pendingEvents} = statusDetails;
-
-    if (!info) {
-      return null;
-    }
-
-    const {totalEvents, dateCreated} = info;
-
-    const remainingEventsToReprocess = totalEvents - pendingEvents;
-    const remainingEventsToReprocessPercent = percent(
-      remainingEventsToReprocess,
-      totalEvents
-    );
-
-    return (
-      <Fragment>
-        <StartedColumn>
-          <TimeSince date={dateCreated} />
-        </StartedColumn>
-        <EventsReprocessedColumn>
-          {defined(count) ? (
-            <Fragment>
-              <Count value={remainingEventsToReprocess} />
-              {'/'}
-              <Count value={totalEvents} />
-            </Fragment>
-          ) : (
-            <Placeholder height="17px" />
-          )}
-        </EventsReprocessedColumn>
-        <ProgressColumn>
-          <ProgressBar value={remainingEventsToReprocessPercent} />
-        </ProgressColumn>
-      </Fragment>
-    );
-  };
-
   const issueTypeConfig = getConfigForIssueType(group, group.project);
   const reviewed =
     // Original state had an inbox reason
+    // oxlint-disable-next-line react/refs
     originalInboxState.current?.reason !== undefined &&
     // Updated state has been removed from inbox
     !group.inbox &&
@@ -511,57 +592,50 @@ export function StreamGroup({
   const primaryUserCount = group.filtered ? group.filtered.userCount : group.userCount;
   const secondaryUserCount = group.filtered ? group.userCount : undefined;
   // preview stats
-  const lastTriggeredDate = group.lastTriggered;
-
   const showSecondaryPoints = Boolean(
     withChart && group?.filtered && statsPeriod && useFilteredStats
   );
 
   const groupCount = (
-    <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
-      <Tooltip
-        disabled={!useFilteredStats}
-        isHoverable
-        title={
-          <CountTooltipContent>
-            <h4>{issueTypeConfig.customCopy.eventUnits}</h4>
-            {group.filtered && (
-              <Fragment>
-                <div>{queryFilterDescription ?? t('Matching filters')}</div>
-                <Link to={getDiscoverUrl(true)}>
-                  <Count value={group.filtered?.count} />
-                </Link>
-              </Fragment>
-            )}
+    <Tooltip
+      disabled={!useFilteredStats}
+      title={
+        <CountTooltipContent>
+          <h4>{issueTypeConfig.customCopy.eventUnits}</h4>
+          {group.filtered && (
             <Fragment>
-              <div>{t('Total in %s', summary)}</div>
-              <Link to={getDiscoverUrl()}>
-                <Count value={group.count} />
+              <div>{queryFilterDescription ?? t('Matching filters')}</div>
+              <Link to={getDiscoverUrl(true)}>
+                <Count value={group.filtered?.count} />
               </Link>
             </Fragment>
-            {group.lifetime && (
-              <Fragment>
-                <div>{t('Since issue began')}</div>
-                <Count value={group.lifetime.count} />
-              </Fragment>
-            )}
-          </CountTooltipContent>
-        }
-      >
-        <Stack position="relative">
-          <PrimaryCount value={primaryCount} />
-          {secondaryCount !== undefined && useFilteredStats && (
-            <SecondaryCount value={secondaryCount} />
           )}
-        </Stack>
-      </Tooltip>
-    </GuideAnchor>
+          <Fragment>
+            <div>{t('Total in %s', summary)}</div>
+            <Link to={getDiscoverUrl()}>
+              <Count value={group.count} />
+            </Link>
+          </Fragment>
+          {group.lifetime && (
+            <Fragment>
+              <div>{t('Since issue began')}</div>
+              <Count value={group.lifetime.count} />
+            </Fragment>
+          )}
+        </CountTooltipContent>
+      }
+    >
+      <Stack position="relative">
+        <PrimaryCount value={primaryCount} />
+        {secondaryCount !== undefined && useFilteredStats && (
+          <SecondaryCount value={secondaryCount} />
+        )}
+      </Stack>
+    </Tooltip>
   );
 
   const groupUsersCount = (
     <Tooltip
-      isHoverable
-      disabled={!usePageFilters}
       title={
         <CountTooltipContent>
           <h4>{t('Affected Users')}</h4>
@@ -595,17 +669,6 @@ export function StreamGroup({
         )}
       </Stack>
     </Tooltip>
-  );
-
-  const lastTriggered = defined(lastTriggeredDate) ? (
-    <PositionedTimeSince
-      tooltipPrefix={t('Last Triggered')}
-      date={lastTriggeredDate}
-      suffix={t('ago')}
-      unitStyle="short"
-    />
-  ) : (
-    <Placeholder height="18px" />
   );
 
   const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -667,90 +730,136 @@ export function StreamGroup({
       {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
 
       {withColumns.includes('lastSeen') && (
-        <LastSeenWrapper breakpoint={COLUMN_BREAKPOINTS.LAST_SEEN}>
+        <Flex
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.LAST_SEEN]: 'flex'}}
+          width="86px"
+          paddingRight="xl"
+          marginRight="xl"
+          align="center"
+          justify="end"
+        >
           <GroupLastSeen group={group} />
-        </LastSeenWrapper>
+        </Flex>
       )}
 
       {withColumns.includes('firstSeen') && (
-        <FirstSeenWrapper breakpoint={COLUMN_BREAKPOINTS.FIRST_SEEN}>
+        <Flex
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.FIRST_SEEN]: 'flex'}}
+          width="50px"
+          paddingRight="xl"
+          marginRight="xl"
+          align="center"
+          justify="end"
+        >
           <GroupFirstSeen group={group} />
-        </FirstSeenWrapper>
+        </Flex>
       )}
 
       {withChart && !displayReprocessingLayout && (
-        <ChartWrapper breakpoint={COLUMN_BREAKPOINTS.TREND}>
+        <Container
+          display={{zero: 'none', [COLUMN_BREAKPOINTS.TREND]: 'block'}}
+          width="175px"
+          alignSelf="center"
+          marginRight="xl"
+        >
           {issueTypeConfig.stats.enabled && defined(groupStats) ? (
             <GroupStatusChart
-              hideZeros
               stats={groupStats}
               secondaryStats={groupSecondaryStats}
               showSecondaryPoints={showSecondaryPoints}
               groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
-              showMarkLine
             />
           ) : issueTypeConfig.stats.enabled ? (
             <Placeholder height="36px" />
           ) : null}
-        </ChartWrapper>
+        </Container>
       )}
       {displayReprocessingLayout ? (
-        renderReprocessingColumns()
+        <ReprocessingColumns group={group as GroupReprocessing} />
       ) : (
         <Fragment>
-          {showLastTriggered && (
-            <LastTriggeredWrapper>{lastTriggered}</LastTriggeredWrapper>
-          )}
           {withColumns.includes('event') && (
-            <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.EVENTS}>
+            <Flex
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.EVENTS]: 'flex'}}
+              alignSelf="center"
+              paddingRight="xl"
+              marginRight="xl"
+              width="60px"
+              align="center"
+              justify="end"
+            >
               {issueTypeConfig.stats.enabled && defined(primaryCount) ? (
                 groupCount
               ) : issueTypeConfig.stats.enabled ? (
                 <Placeholder height="18px" width="40px" />
               ) : null}
-            </NarrowEventsOrUsersCountsWrapper>
+            </Flex>
           )}
           {withColumns.includes('users') && (
-            <NarrowEventsOrUsersCountsWrapper breakpoint={COLUMN_BREAKPOINTS.USERS}>
+            <Flex
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.USERS]: 'flex'}}
+              alignSelf="center"
+              paddingRight="xl"
+              marginRight="xl"
+              width="60px"
+              align="center"
+              justify="end"
+            >
               {issueTypeConfig.stats.enabled && defined(primaryUserCount) ? (
                 groupUsersCount
               ) : issueTypeConfig.stats.enabled ? (
                 <Placeholder height="18px" width="40px" />
               ) : null}
-            </NarrowEventsOrUsersCountsWrapper>
+            </Flex>
           )}
           {withColumns.includes('priority') && (
-            <PriorityWrapper breakpoint={COLUMN_BREAKPOINTS.PRIORITY}>
+            <Flex
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.PRIORITY]: 'flex'}}
+              width="64px"
+              paddingRight="xl"
+              marginRight="xl"
+              alignSelf="center"
+              justify="end"
+            >
               {group.priority ? (
                 <GroupPriority group={group} onChange={onPriorityChange} />
               ) : null}
-            </PriorityWrapper>
+            </Flex>
           )}
           {withColumns.includes('progress') && (
-            <ProgressWrapper breakpoint={COLUMN_BREAKPOINTS.PROGRESS}>
-              {progressState ? (
-                <Container position="relative">
-                  <ProgressActivityTooltip group={group}>
-                    <Stack direction="row" align="center" gap="sm" wrap="nowrap">
-                      {getProgressIcon(progressState)}
-                      {formatProgressState(progressState)}
-                    </Stack>
-                  </ProgressActivityTooltip>
-                </Container>
-              ) : (
-                <Placeholder height="18px" />
-              )}
-            </ProgressWrapper>
+            <Flex
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.PROGRESS]: 'flex'}}
+              width="124px"
+              paddingRight="xl"
+              marginRight="xl"
+              alignSelf="center"
+              justify="start"
+            >
+              <Placeholder height="18px" />
+            </Flex>
           )}
-          {withColumns.includes('assignee') && (
-            <AssigneeWrapper breakpoint={COLUMN_BREAKPOINTS.ASSIGNEE}>
-              <AssigneeSelector
-                group={group}
-                assigneeLoading={assigneeLoading}
-                handleAssigneeChange={handleAssigneeChange}
-                memberList={memberList}
-              />
-            </AssigneeWrapper>
+          {(withColumns.includes('assignee') ||
+            withColumns.includes('assigneeAvatar')) && (
+            <Flex
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.ASSIGNEE]: 'flex'}}
+              alignSelf="center"
+              width="66px"
+              paddingRight="xl"
+              marginRight="xl"
+              justify="end"
+              style={{textAlign: 'right'}}
+            >
+              {withColumns.includes('assigneeAvatar') ? (
+                <AssigneeAvatar assignedTo={group.assignedTo} />
+              ) : (
+                <AssigneeSelector
+                  group={group}
+                  assigneeLoading={assigneeLoading}
+                  handleAssigneeChange={handleAssigneeChange}
+                  memberList={memberList}
+                />
+              )}
+            </Flex>
           )}
         </Fragment>
       )}
@@ -915,149 +1024,6 @@ const CountTooltipContent = styled('div')`
     text-transform: uppercase;
     grid-column: 1 / -1;
     margin-bottom: ${p => p.theme.space['2xs']};
-  }
-`;
-
-const ChartWrapper = styled('div')<{breakpoint: string}>`
-  width: 175px;
-  align-self: center;
-  margin-right: ${p => p.theme.space.xl};
-
-  @container (width < ${p => p.breakpoint}) {
-    display: none;
-  }
-`;
-
-const LastSeenWrapper = styled('div')<{breakpoint: string}>`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  width: 86px;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-
-  @container (width < ${p => p.breakpoint}) {
-    display: none;
-  }
-`;
-
-const FirstSeenWrapper = styled('div')<{breakpoint: string}>`
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  width: 50px;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-
-  @container (width < ${p => p.breakpoint}) {
-    display: none;
-  }
-`;
-
-const NarrowEventsOrUsersCountsWrapper = styled('div')<{breakpoint: string}>`
-  display: flex;
-  justify-content: flex-end;
-  text-align: right;
-  align-items: center;
-  align-self: center;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-  width: 60px;
-
-  @container (width < ${p => p.breakpoint}) {
-    display: none;
-  }
-`;
-
-const LastTriggeredWrapper = styled('div')`
-  display: flex;
-  justify-content: flex-end;
-  align-self: center;
-  width: 100px;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-`;
-
-const PriorityWrapper = styled('div')<{breakpoint: string}>`
-  width: 64px;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-  align-self: center;
-  display: flex;
-  justify-content: flex-end;
-
-  @container (width < ${p => p.breakpoint}) {
-    display: none;
-  }
-`;
-
-const ProgressWrapper = styled('div')<{breakpoint: string}>`
-  width: 124px;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-  align-self: center;
-  display: flex;
-  justify-content: flex-start;
-
-  @container (width < ${p => p.breakpoint}) {
-    display: none;
-  }
-`;
-
-const AssigneeWrapper = styled('div')<{breakpoint: string}>`
-  display: flex;
-  justify-content: flex-end;
-  text-align: right;
-  width: 66px;
-  padding-right: ${p => p.theme.space.xl};
-  margin-right: ${p => p.theme.space.xl};
-  align-self: center;
-
-  @media (max-width: ${p => p.breakpoint}) {
-    display: none;
-  }
-`;
-
-// Reprocessing
-const StartedColumn = styled('div')`
-  align-self: center;
-  margin: 0 ${p => p.theme.space.xl};
-  color: ${p => p.theme.colors.gray800};
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 85px;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    display: block;
-    width: 140px;
-  }
-`;
-
-const EventsReprocessedColumn = styled('div')`
-  align-self: center;
-  margin: 0 ${p => p.theme.space.xl};
-  color: ${p => p.theme.colors.gray800};
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  width: 75px;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    width: 140px;
-  }
-`;
-
-const ProgressColumn = styled('div')`
-  margin: 0 ${p => p.theme.space.xl};
-  align-self: center;
-  display: none;
-
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
-    display: block;
-    width: 160px;
   }
 `;
 

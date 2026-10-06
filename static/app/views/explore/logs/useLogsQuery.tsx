@@ -5,17 +5,12 @@ import type {QueryClient} from '@tanstack/react-query';
 import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {parseQueryKey, type QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import {encodeSort, type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useLogsAutoRefresh,
   useLogsAutoRefreshEnabled,
@@ -23,7 +18,6 @@ import {
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {
-  AlwaysPresentLogFields,
   LOCAL_LOG_ROWS_FOR_EXPANDED_INFINITE_PAGES,
   LOGS_HIGH_FIDELITY_INITIAL_AUTO_FETCH_WINDOW_MS,
   LOGS_HIGH_FIDELITY_RESUMED_AUTO_FETCH_WINDOW_MS,
@@ -34,30 +28,18 @@ import {
   QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
 } from 'sentry/views/explore/logs/constants';
 import {
-  useLogsFrozenProjectIds,
-  useLogsFrozenReplayInfo,
-  useLogsFrozenSearch,
-  useLogsFrozenTraceIds,
-} from 'sentry/views/explore/logs/logsFrozenContext';
-import {
   OurLogKnownFieldKey,
   type EventsLogsResult,
+  type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
-import {useLogsQueryTruncate} from 'sentry/views/explore/logs/useLogsQueryTruncate';
+import {useLogsApiOptionsWithInfinite} from 'sentry/views/explore/logs/useLogsApiOptions';
 import {
   isRowVisibleInVirtualStream,
   useVirtualStreaming,
 } from 'sentry/views/explore/logs/useVirtualStreaming';
 import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
-import {
-  useQueryParamsCursor,
-  useQueryParamsFields,
-  useQueryParamsGroupBys,
-  useQueryParamsSearch,
-  useQueryParamsSortBys,
-} from 'sentry/views/explore/queryParams/context';
+import {useQueryParamsSortBys} from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
 
 export function useExploreLogsTableRow(props: {
@@ -65,6 +47,7 @@ export function useExploreLogsTableRow(props: {
   projectId: string;
   traceId: string;
   enabled?: boolean;
+  routingHint?: string;
   timestamp?: number | null;
 }) {
   const {isReady: pageFiltersReady} = usePageFilters();
@@ -76,124 +59,8 @@ export function useExploreLogsTableRow(props: {
     referrer: 'api.explore.log-item-details',
     enabled: props.enabled && pageFiltersReady,
     timestamp: props.timestamp,
+    routingHint: props.routingHint,
   });
-}
-
-function useLogsApiOptions({
-  limit,
-  referrer,
-  highFidelity,
-}: {
-  referrer: string;
-  highFidelity?: boolean;
-  limit?: number;
-}) {
-  const organization = useOrganization();
-  const _search = useQueryParamsSearch();
-  const baseSearch = useLogsFrozenSearch();
-  const cursor = useQueryParamsCursor();
-  const _fields = useQueryParamsFields();
-  const sortBys = useQueryParamsSortBys();
-  const frozenTraceIds = useLogsFrozenTraceIds();
-  const frozenReplayInfo = useLogsFrozenReplayInfo();
-  const {selection, isReady: pageFiltersReady} = usePageFilters();
-  const location = useLocation();
-  const projectIds = useLogsFrozenProjectIds();
-  const groupBys = useQueryParamsGroupBys();
-  const [caseInsensitive] = useCaseInsensitivity();
-  const truncate = useLogsQueryTruncate();
-
-  const search = baseSearch ? _search.copy() : _search;
-  if (baseSearch) {
-    search.tokens.push(...baseSearch.tokens);
-  }
-  const fields = Array.from(
-    new Set([...AlwaysPresentLogFields, ..._fields, ...groupBys.filter(Boolean)])
-  );
-  const sorts = sortBys ?? [];
-  const pageFilters = selection;
-  const dataset = DiscoverDatasets.OURLOGS;
-
-  const eventView = getEventView(
-    search,
-    fields,
-    sorts.slice(),
-    pageFilters,
-    dataset,
-    projectIds ?? pageFilters.projects
-  );
-
-  const eventViewPayload = eventView.getEventsAPIPayload(location);
-
-  if (frozenReplayInfo.replayId) {
-    delete eventViewPayload.statsPeriod;
-    eventViewPayload.start = frozenReplayInfo.replayStartedAt?.toISOString();
-    eventViewPayload.end = frozenReplayInfo.replayEndedAt?.toISOString();
-  }
-
-  const orderby = eventViewPayload.sort;
-
-  const baseQuery = {
-    ...eventViewPayload,
-    ...(frozenTraceIds ? {traceId: frozenTraceIds} : {}),
-    ...(frozenReplayInfo.replayId ? {replayId: frozenReplayInfo.replayId} : {}),
-    cursor,
-    orderby,
-    per_page: limit ? limit : undefined,
-    referrer,
-    sampling: highFidelity ? SAMPLING_MODE.FLEX_TIME : SAMPLING_MODE.NORMAL,
-    caseInsensitive: caseInsensitive ? '1' : undefined,
-    truncate,
-  };
-
-  const usesTraceLogsEndpoint = Boolean(frozenTraceIds || frozenReplayInfo.replayId);
-
-  // The trace-logs endpoint treats an empty `query` as a real (non-null) additional
-  // filter and would build a malformed `(...) and ` query. When there's no search to
-  // apply (e.g. a combined replay + trace freeze relies on the endpoint's native OR of
-  // the traceId/replayId params), omit the param entirely.
-  const {query: searchQuery, ...baseQueryWithoutSearch} = baseQuery;
-  const query =
-    usesTraceLogsEndpoint && !searchQuery ? baseQueryWithoutSearch : baseQuery;
-
-  const path = {organizationIdOrSlug: organization.slug};
-  const data = {highFidelity};
-
-  const infiniteApiOptions =
-    frozenTraceIds || frozenReplayInfo.replayId
-      ? apiOptions.asInfinite<EventsLogsResult>()(
-          '/organizations/$organizationIdOrSlug/trace-logs/',
-          {path, query, data, staleTime: 0}
-        )
-      : apiOptions.asInfinite<EventsLogsResult>()(
-          '/organizations/$organizationIdOrSlug/events/',
-          {path, query, data, staleTime: 0}
-        );
-
-  return {infiniteApiOptions, eventView, pageFiltersReady};
-}
-
-export function useLogsApiOptionsWithInfinite({
-  referrer,
-  autoRefresh,
-  highFidelity,
-}: {
-  autoRefresh: boolean;
-  referrer: string;
-  highFidelity?: boolean;
-}) {
-  const {infiniteApiOptions, eventView, pageFiltersReady} = useLogsApiOptions({
-    limit: autoRefresh ? QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH : QUERY_PAGE_LIMIT,
-    referrer,
-    highFidelity,
-  });
-  return {
-    infiniteApiOptions,
-    other: {
-      eventView,
-      pageFiltersReady,
-    },
-  };
 }
 
 /**
@@ -208,6 +75,7 @@ function getPageParam(
   highFidelity?: boolean
 ) {
   const isGetPreviousPage = pageDirection === 'previous';
+  // oxlint-disable-next-line react/function-component-definition -- This callback is not a React component.
   return (
     result: ApiResponse<EventsLogsResult>,
     _: unknown,
@@ -354,7 +222,9 @@ function getParamBasedQuery(
   }
 
   const comparison =
-    (pageParam.querySortDirection ?? pageParam.sortByDirection === 'asc') ? '>=' : '<=';
+    (pageParam.querySortDirection?.kind ?? pageParam.sortByDirection) === 'asc'
+      ? '>='
+      : '<=';
 
   const filter = pageParam.timestampPrecise
     ? `${OurLogKnownFieldKey.TIMESTAMP_PRECISE}:${comparison}${pageParam.timestampPrecise}`
@@ -404,7 +274,9 @@ function isFlexTimePageParam(pageParam: LogPageParam): pageParam is FlexTimePage
   return defined(pageParam) && 'cursor' in pageParam;
 }
 
-type LogsInfiniteApiOptions = ReturnType<typeof useLogsApiOptions>['infiniteApiOptions'];
+type LogsInfiniteApiOptions = ReturnType<
+  typeof useLogsApiOptionsWithInfinite
+>['infiniteApiOptions'];
 type QueryKey = LogsInfiniteApiOptions['queryKey'];
 
 /**
@@ -423,15 +295,13 @@ function maxPagesForLogsInfiniteQuery(client: QueryClient, queryKey: QueryKey): 
 export function useInfiniteLogsQuery({
   disabled,
   highFidelity,
-  referrer,
   staleTime: staleTimeOverride,
 }: {
   disabled?: boolean;
   highFidelity?: boolean;
-  referrer?: string;
   staleTime?: number;
 } = {}) {
-  const _referrer = referrer ?? 'api.explore.logs-table';
+  const _referrer = 'api.explore.logs-table';
   const autoRefresh = useLogsAutoRefreshEnabled();
   const {hasInitialized: autoRefreshHasInitialized} = useLogsAutoRefresh();
 
@@ -630,9 +500,10 @@ export function useInfiniteLogsQuery({
     setTotalBytesScanned(previousBytesScanned => previousBytesScanned + bytesScanned);
   }, [lastPage]);
 
-  const _data = useMemo(() => {
+  const {rows: _data, routingHintsByRow} = useMemo(() => {
     const usedRowIds = new Set();
-    return (
+    const hints = new Map<OurLogsResponseItem, string | undefined>();
+    const rows =
       data?.pages.flatMap(page =>
         page.json.data.filter(row => {
           if (usedRowIds.has(row[OurLogKnownFieldKey.ID])) {
@@ -644,10 +515,11 @@ export function useInfiniteLogsQuery({
           }
 
           usedRowIds.add(row[OurLogKnownFieldKey.ID]);
+          hints.set(row, page.json.meta?.routingHint);
           return true;
         })
-      ) ?? []
-    );
+      ) ?? [];
+    return {rows, routingHintsByRow: hints};
   }, [data, virtualStreamedTimestamp]);
 
   const pageCount = data?.pages?.length;
@@ -721,6 +593,7 @@ export function useInfiniteLogsQuery({
       // started auto fetching the next page
       (_data.length === 0 && (isFetchingNextPage || shouldAutoFetchNextPage)),
     data: _data,
+    routingHintsByRow,
     meta: _meta,
     isRefetching: queryResult.isRefetching,
     isEmpty:
@@ -786,6 +659,7 @@ function useAutoFetchWindow({
 }: AutoFetchWindowOptions) {
   const [windowStartMs, setWindowStartMs] = useState<number | undefined>();
   const [resumeCount, setResumeCount] = useState(0);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const timesFetched = useRef(0);
   const deadlineMs = getAutoFetchWindowDeadlineMs(resumeCount, windowStartMs);
 
@@ -795,9 +669,11 @@ function useAutoFetchWindow({
   }, [queryKey]);
 
   useEffect(() => {
+    // oxlint-disable-next-line react/set-state-in-effect
     setWindowStartMs(undefined);
     setResumeCount(0);
     timesFetched.current = 0;
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [queryKeyHash]);
 
   useEffect(() => {
@@ -805,12 +681,16 @@ function useAutoFetchWindow({
       return;
     }
 
+    const currentNowMs = Date.now();
+    // oxlint-disable-next-line react/set-state-in-effect
+    setNowMs(currentNowMs);
+
     if (!windowStartMs) {
-      setWindowStartMs(Date.now());
+      setWindowStartMs(currentNowMs);
       return;
     }
 
-    if (deadlineMs && Date.now() >= deadlineMs) {
+    if (deadlineMs && currentNowMs >= deadlineMs) {
       Sentry.metrics.distribution(
         'explore.logs.flex_time_pages_before_data',
         timesFetched.current,
@@ -832,6 +712,7 @@ function useAutoFetchWindow({
     deadlineMs,
     fetchNextPage,
     isFetchingNextPage,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     nextPageCursor,
     resumeCount,
     windowStartMs,
@@ -843,19 +724,7 @@ function useAutoFetchWindow({
   }, [resumeCount]);
 
   const shouldAutoFetchNextPage =
-    canAutoFetchNextPage && (!deadlineMs || Date.now() < deadlineMs);
+    canAutoFetchNextPage && (!deadlineMs || nowMs < deadlineMs);
 
   return {shouldAutoFetchNextPage, resumeAutoFetch};
-}
-
-export function useLogsQueryHighFidelity() {
-  const sortBys = useQueryParamsSortBys();
-
-  // we can only turn on high accuracy flex time sampling when
-  // the order by is exactly timestamp descending,
-  return (
-    sortBys.length === 1 &&
-    sortBys[0]?.field === 'timestamp' &&
-    sortBys[0]?.kind === 'desc'
-  );
 }

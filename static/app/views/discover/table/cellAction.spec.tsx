@@ -1,16 +1,13 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {Link} from '@sentry/scraps/link';
 
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {
-  Actions,
-  ActionTriggerType,
-  CellAction,
-  updateQuery,
-} from 'sentry/views/discover/table/cellAction';
+import {Actions, CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
 import type {TableColumn} from 'sentry/views/discover/table/types';
 
 const defaultData: TableDataRow = {
@@ -32,15 +29,16 @@ const defaultData: TableDataRow = {
   id: '42',
 };
 
-function renderComponent({
+function ExampleCellAction({
   eventView,
   handleCellAction = jest.fn(),
   columnIndex = 0,
+  column,
   data = defaultData,
   pin,
-  triggerType,
 }: {
   eventView: EventView;
+  column?: TableColumn<string>;
   columnIndex?: number;
   data?: TableDataRow;
   handleCellAction?: (
@@ -48,15 +46,13 @@ function renderComponent({
     value: string | number | null[] | string[] | null
   ) => void;
   pin?: React.ReactNode;
-  triggerType?: ActionTriggerType;
 }) {
-  return render(
+  return (
     <CellAction
       dataRow={data}
-      column={eventView.getColumns()[columnIndex]!}
+      column={column ?? eventView.getColumns()[columnIndex]!}
       handleCellAction={handleCellAction}
       pin={pin}
-      triggerType={triggerType}
     >
       <strong>some content</strong>
     </CellAction>
@@ -99,14 +95,122 @@ describe('Discover -> CellAction', () => {
 
   describe('hover menu button', () => {
     it('shows no menu by default', () => {
-      renderComponent({eventView: view});
+      render(<ExampleCellAction eventView={view} />);
       expect(screen.getByRole('button', {name: 'Actions'})).toBeInTheDocument();
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    });
+
+    it('keeps the trigger revealed while the menu is open', async () => {
+      render(<ExampleCellAction eventView={view} />);
+      const trigger = screen.getByRole('button', {name: 'Actions'});
+      const action = trigger.closest('[data-reveal-on-hover]');
+
+      expect(action).not.toHaveAttribute('data-reveal-on-hover-visible');
+
+      await userEvent.hover(screen.getByText('some content'));
+      await userEvent.click(trigger);
+      await userEvent.unhover(screen.getByText('some content'));
+
+      expect(screen.getByRole('menu')).toBeInTheDocument();
+      expect(action).toHaveAttribute('data-reveal-on-hover-visible');
+
+      await userEvent.keyboard('{Escape}');
+      expect(action).not.toHaveAttribute('data-reveal-on-hover-visible');
     });
   });
 
   describe('opening the menu', () => {
+    it('does not open the menu when clicking cell content', async () => {
+      render(<ExampleCellAction eventView={view} />);
+
+      await userEvent.click(screen.getByText('some content'));
+
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Actions'})).not.toHaveTextContent(
+        'some content'
+      );
+    });
+
+    it('opens the menu with the keyboard and returns focus on close', async () => {
+      render(<ExampleCellAction eventView={view} />);
+
+      await userEvent.tab();
+      expect(screen.getByRole('button', {name: 'Actions'})).toHaveFocus();
+      await userEvent.keyboard('{Enter}');
+      expect(screen.getByRole('menu')).toBeInTheDocument();
+
+      await userEvent.keyboard('{Escape}');
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Actions'})).toHaveFocus()
+      );
+    });
+
+    it('allows normal link navigation without opening the menu', async () => {
+      const {router} = render(
+        <CellAction
+          dataRow={defaultData}
+          column={view.getColumns()[0]!}
+          handleCellAction={jest.fn()}
+        >
+          <Link to="/cell-destination/">Open transaction</Link>
+        </CellAction>
+      );
+
+      await userEvent.click(screen.getByRole('link', {name: 'Open transaction'}));
+
+      expect(router.location.pathname).toBe('/cell-destination/');
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    });
+
+    it('keeps buttons inside the cell separate from the actions trigger', async () => {
+      const onClick = jest.fn();
+      render(
+        <CellAction
+          dataRow={defaultData}
+          column={view.getColumns()[0]!}
+          handleCellAction={jest.fn()}
+        >
+          <button type="button" onClick={onClick}>
+            Cell button
+          </button>
+        </CellAction>
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Cell button'}));
+
+      expect(onClick).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    });
+
+    it('keeps internal navigation in the cell when opening the menu with the keyboard', async () => {
+      render(
+        <CellAction
+          dataRow={defaultData}
+          column={view.getColumns()[0]!}
+          handleCellAction={jest.fn()}
+        >
+          <Link to="/cell-destination/">Open transaction</Link>
+        </CellAction>
+      );
+
+      await userEvent.tab();
+      expect(screen.getByRole('link', {name: 'Open transaction'})).toHaveFocus();
+      await userEvent.tab();
+      expect(screen.getByRole('button', {name: 'Actions'})).toHaveFocus();
+      await userEvent.keyboard('{Enter}');
+
+      expect(screen.getByRole('link', {name: 'Open transaction'})).toHaveAttribute(
+        'href',
+        '/cell-destination/'
+      );
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Open link'})
+      ).not.toBeInTheDocument();
+    });
+
     it('toggles the menu on click', async () => {
-      renderComponent({eventView: view});
+      render(<ExampleCellAction eventView={view} />);
       await openMenu();
       expect(
         screen.getByRole('menuitemradio', {name: 'Add to filter'})
@@ -122,7 +226,7 @@ describe('Discover -> CellAction', () => {
     });
 
     it('add button appends condition', async () => {
-      renderComponent({eventView: view, handleCellAction});
+      render(<ExampleCellAction eventView={view} handleCellAction={handleCellAction} />);
       await openMenu();
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
@@ -130,7 +234,7 @@ describe('Discover -> CellAction', () => {
     });
 
     it('exclude button adds condition', async () => {
-      renderComponent({eventView: view, handleCellAction});
+      render(<ExampleCellAction eventView={view} handleCellAction={handleCellAction} />);
       await openMenu();
       await userEvent.click(
         screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
@@ -145,7 +249,9 @@ describe('Discover -> CellAction', () => {
           query: {...location.query, query: '!transaction:nope'},
         })
       );
-      renderComponent({eventView: excludeView, handleCellAction});
+      render(
+        <ExampleCellAction eventView={excludeView} handleCellAction={handleCellAction} />
+      );
       await openMenu();
       await userEvent.click(
         screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
@@ -155,7 +261,13 @@ describe('Discover -> CellAction', () => {
     });
 
     it('go to release button goes to release health page', async () => {
-      renderComponent({eventView: view, handleCellAction, columnIndex: 3});
+      render(
+        <ExampleCellAction
+          eventView={view}
+          handleCellAction={handleCellAction}
+          columnIndex={3}
+        />
+      );
       await openMenu();
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'Go to release'}));
 
@@ -166,7 +278,13 @@ describe('Discover -> CellAction', () => {
     });
 
     it('greater than button adds condition', async () => {
-      renderComponent({eventView: view, handleCellAction, columnIndex: 2});
+      render(
+        <ExampleCellAction
+          eventView={view}
+          handleCellAction={handleCellAction}
+          columnIndex={2}
+        />
+      );
       await openMenu();
       await userEvent.click(
         screen.getByRole('menuitemradio', {name: 'Show values greater than'})
@@ -179,7 +297,13 @@ describe('Discover -> CellAction', () => {
     });
 
     it('less than button adds condition', async () => {
-      renderComponent({eventView: view, handleCellAction, columnIndex: 2});
+      render(
+        <ExampleCellAction
+          eventView={view}
+          handleCellAction={handleCellAction}
+          columnIndex={2}
+        />
+      );
       await openMenu();
       await userEvent.click(
         screen.getByRole('menuitemradio', {name: 'Show values less than'})
@@ -252,7 +376,7 @@ describe('Discover -> CellAction', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('uses the full anchor href for external link actions', async () => {
+    it('keeps external links in the cell without duplicate menu actions', async () => {
       const urlView = EventView.fromLocation(
         LocationFixture({
           query: {
@@ -273,20 +397,30 @@ describe('Discover -> CellAction', () => {
         </CellAction>
       );
 
+      expect(screen.getByRole('link', {name: '/v1/api/auth/register'})).toHaveAttribute(
+        'href',
+        fullUrl
+      );
+
       await openMenu();
 
       expect(
-        screen.getByRole('menuitemradio', {name: 'Open external link'})
-      ).toHaveAttribute('href', fullUrl);
+        screen.queryByRole('menuitemradio', {name: 'Open external link'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Open link'})
+      ).not.toBeInTheDocument();
     });
 
     it('error.handled with null adds condition', async () => {
-      renderComponent({
-        eventView: view,
-        handleCellAction,
-        columnIndex: 7,
-        data: defaultData,
-      });
+      render(
+        <ExampleCellAction
+          eventView={view}
+          handleCellAction={handleCellAction}
+          columnIndex={7}
+          data={defaultData}
+        />
+      );
       await openMenu();
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
@@ -294,12 +428,14 @@ describe('Discover -> CellAction', () => {
     });
 
     it('error.type with array values adds condition', async () => {
-      renderComponent({
-        eventView: view,
-        handleCellAction,
-        columnIndex: 8,
-        data: defaultData,
-      });
+      render(
+        <ExampleCellAction
+          eventView={view}
+          handleCellAction={handleCellAction}
+          columnIndex={8}
+          data={defaultData}
+        />
+      );
       await openMenu();
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
@@ -312,16 +448,18 @@ describe('Discover -> CellAction', () => {
     });
 
     it('error.handled with 0 adds condition', async () => {
-      renderComponent({
-        eventView: view,
-        handleCellAction,
-        columnIndex: 7,
-        data: {
-          ...defaultData,
-          // @ts-expect-error TODO: Fix this type
-          'error.handled': ['0'],
-        },
-      });
+      render(
+        <ExampleCellAction
+          eventView={view}
+          handleCellAction={handleCellAction}
+          columnIndex={7}
+          data={{
+            ...defaultData,
+            // @ts-expect-error TODO: Fix this type
+            'error.handled': ['0'],
+          }}
+        />
+      );
       await openMenu();
       await userEvent.click(screen.getByRole('menuitemradio', {name: 'Add to filter'}));
 
@@ -329,7 +467,7 @@ describe('Discover -> CellAction', () => {
     });
 
     it('show appropriate actions for string cells', async () => {
-      renderComponent({eventView: view, handleCellAction, columnIndex: 0});
+      render(<ExampleCellAction eventView={view} handleCellAction={handleCellAction} />);
       await openMenu();
 
       expect(
@@ -346,8 +484,84 @@ describe('Discover -> CellAction', () => {
       ).not.toBeInTheDocument();
     });
 
+    it('does not offer filter actions for array cells', async () => {
+      // Array attributes only support an `includes` filter, which the cell
+      // action can't express, so the add/exclude filter actions are hidden.
+      const arrayColumn: TableColumn<string> = {
+        key: 'tags[my.tags,array]',
+        name: 'tags[my.tags,array]',
+        type: 'array',
+        isSortable: false,
+        column: {kind: 'field', field: 'tags[my.tags,array]'},
+        width: undefined,
+      };
+      render(
+        <ExampleCellAction
+          eventView={view}
+          handleCellAction={handleCellAction}
+          column={arrayColumn}
+          data={{
+            ...defaultData,
+            // @ts-expect-error TODO: Fix this type
+            'tags[my.tags,array]': ['foo', 'bar'],
+          }}
+        />
+      );
+      await openMenu();
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Add to filter'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('menuitemradio', {name: 'Exclude from filter'})
+      ).not.toBeInTheDocument();
+      // Non-filter actions remain available.
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Copy to clipboard'})
+      ).toBeInTheDocument();
+    });
+
+    it('offers filter actions for null array cells', async () => {
+      // A null array field still supports a `has`/`!has` existence filter, so
+      // the add/exclude filter actions remain available for null values.
+      const arrayColumn: TableColumn<string> = {
+        key: 'tags[my.tags,array]',
+        name: 'tags[my.tags,array]',
+        type: 'array',
+        isSortable: false,
+        column: {kind: 'field', field: 'tags[my.tags,array]'},
+        width: undefined,
+      };
+      render(
+        <ExampleCellAction
+          eventView={view}
+          handleCellAction={handleCellAction}
+          column={arrayColumn}
+          data={{
+            ...defaultData,
+            // @ts-expect-error TODO: Fix this type
+            'tags[my.tags,array]': null,
+          }}
+        />
+      );
+      await openMenu();
+
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Add to filter'})
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Exclude from filter'})
+      ).toBeInTheDocument();
+    });
+
     it('show appropriate actions for string cells with null values', async () => {
-      renderComponent({eventView: view, handleCellAction, columnIndex: 4});
+      render(
+        <ExampleCellAction
+          eventView={view}
+          handleCellAction={handleCellAction}
+          columnIndex={4}
+        />
+      );
       await openMenu();
 
       expect(
@@ -359,7 +573,13 @@ describe('Discover -> CellAction', () => {
     });
 
     it('show appropriate actions for number cells', async () => {
-      renderComponent({eventView: view, handleCellAction, columnIndex: 1});
+      render(
+        <ExampleCellAction
+          eventView={view}
+          handleCellAction={handleCellAction}
+          columnIndex={1}
+        />
+      );
       await openMenu();
 
       expect(
@@ -377,7 +597,13 @@ describe('Discover -> CellAction', () => {
     });
 
     it('show appropriate actions for date cells', async () => {
-      renderComponent({eventView: view, handleCellAction, columnIndex: 2});
+      render(
+        <ExampleCellAction
+          eventView={view}
+          handleCellAction={handleCellAction}
+          columnIndex={2}
+        />
+      );
       await openMenu();
 
       expect(
@@ -395,7 +621,13 @@ describe('Discover -> CellAction', () => {
     });
 
     it('show appropriate actions for release cells', async () => {
-      renderComponent({eventView: view, handleCellAction, columnIndex: 3});
+      render(
+        <ExampleCellAction
+          eventView={view}
+          handleCellAction={handleCellAction}
+          columnIndex={3}
+        />
+      );
       await openMenu();
 
       expect(
@@ -404,13 +636,15 @@ describe('Discover -> CellAction', () => {
     });
 
     it('show appropriate actions for empty release cells', async () => {
-      renderComponent({
-        eventView: view,
-        handleCellAction,
-        columnIndex: 3,
-        // @ts-expect-error TODO: Fix this type
-        data: {...defaultData, release: null},
-      });
+      render(
+        <ExampleCellAction
+          eventView={view}
+          handleCellAction={handleCellAction}
+          columnIndex={3}
+          // @ts-expect-error TODO: Fix this type
+          data={{...defaultData, release: null}}
+        />
+      );
       await openMenu();
 
       expect(
@@ -419,7 +653,13 @@ describe('Discover -> CellAction', () => {
     });
 
     it('show appropriate actions for measurement cells', async () => {
-      renderComponent({eventView: view, handleCellAction, columnIndex: 5});
+      render(
+        <ExampleCellAction
+          eventView={view}
+          handleCellAction={handleCellAction}
+          columnIndex={5}
+        />
+      );
       await openMenu();
 
       expect(
@@ -437,16 +677,18 @@ describe('Discover -> CellAction', () => {
     });
 
     it('show appropriate actions for empty measurement cells', async () => {
-      renderComponent({
-        eventView: view,
-        handleCellAction,
-        columnIndex: 5,
-        data: {
-          ...defaultData,
-          // @ts-expect-error TODO: Fix this type
-          'measurements.fcp': null,
-        },
-      });
+      render(
+        <ExampleCellAction
+          eventView={view}
+          handleCellAction={handleCellAction}
+          columnIndex={5}
+          data={{
+            ...defaultData,
+            // @ts-expect-error TODO: Fix this type
+            'measurements.fcp': null,
+          }}
+        />
+      );
       await openMenu();
 
       expect(
@@ -464,7 +706,13 @@ describe('Discover -> CellAction', () => {
     });
 
     it('show appropriate actions for numeric function cells', async () => {
-      renderComponent({eventView: view, handleCellAction, columnIndex: 6});
+      render(
+        <ExampleCellAction
+          eventView={view}
+          handleCellAction={handleCellAction}
+          columnIndex={6}
+        />
+      );
       await openMenu();
 
       expect(
@@ -476,39 +724,47 @@ describe('Discover -> CellAction', () => {
     });
 
     it('show appropriate actions for empty numeric function cells', () => {
-      renderComponent({
-        eventView: view,
-        handleCellAction,
-        columnIndex: 6,
-        data: {
-          ...defaultData,
-          // @ts-expect-error TODO: Fix this type
-          'percentile(measurements.fcp, 0.5)': null,
-        },
-      });
+      render(
+        <ExampleCellAction
+          eventView={view}
+          handleCellAction={handleCellAction}
+          columnIndex={6}
+          data={{
+            ...defaultData,
+            // @ts-expect-error TODO: Fix this type
+            'percentile(measurements.fcp, 0.5)': null,
+          }}
+        />
+      );
       expect(screen.queryByRole('button', {name: 'Actions'})).not.toBeInTheDocument();
     });
   });
 
   describe('pin prop', () => {
-    it('renders the pin element with the bold hover trigger', () => {
-      renderComponent({
-        eventView: view,
-        triggerType: ActionTriggerType.BOLD_HOVER,
-        pin: <button type="button">pin me</button>,
-      });
+    it('renders the pin element', () => {
+      render(
+        <ExampleCellAction eventView={view} pin={<button type="button">pin me</button>} />
+      );
 
       expect(screen.getByRole('button', {name: 'pin me'})).toBeInTheDocument();
     });
 
-    it('renders the pin element with the ellipsis trigger', () => {
-      renderComponent({
-        eventView: view,
-        triggerType: ActionTriggerType.ELLIPSIS,
-        pin: <button type="button">pin me</button>,
-      });
+    it('does not open the menu when clicking the pin', async () => {
+      const onClick = jest.fn();
+      render(
+        <ExampleCellAction
+          eventView={view}
+          pin={
+            <button type="button" onClick={onClick}>
+              pin me
+            </button>
+          }
+        />
+      );
 
-      expect(screen.getByRole('button', {name: 'pin me'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'pin me'}));
+      expect(onClick).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument();
     });
   });
 });

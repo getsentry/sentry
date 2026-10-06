@@ -20,14 +20,13 @@ import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {getShortEventId} from 'sentry/utils/events';
+import {DEFAULT_CHECKIN_MARGIN, DEFAULT_MAX_RUNTIME} from 'sentry/utils/monitor/cron';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {QuickContextHovercard} from 'sentry/views/discover/table/quickContext/quickContextHovercard';
 import {ContextType} from 'sentry/views/discover/table/quickContext/utils';
 import type {CheckIn, CheckInCellKey} from 'sentry/views/insights/crons/types';
 import {CheckInStatus} from 'sentry/views/insights/crons/types';
 import {statusToText} from 'sentry/views/insights/crons/utils';
-
-import {DEFAULT_CHECKIN_MARGIN, DEFAULT_MAX_RUNTIME} from './monitorForm';
 
 /**
  * How many seconds can a check-in have been stuck in Relay before being
@@ -218,7 +217,7 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
         {groups.map(({id: groupId, shortId}) => (
           <QuickContextHovercard
             dataRow={{
-              ['issue.id']: groupId,
+              'issue.id': groupId,
               issue: shortId,
             }}
             contextType={ContextType.ISSUE}

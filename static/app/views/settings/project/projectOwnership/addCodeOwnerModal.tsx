@@ -24,6 +24,7 @@ import type {
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -124,7 +125,9 @@ function ApplyCodeMappings({
     mutationFn: (payload: {codeMappingId: string; raw: string}) =>
       fetchMutation<CodeOwner>({
         method: 'POST',
-        url: `/projects/${organization.slug}/${project.slug}/codeowners/`,
+        url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/codeowners/', {
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+        }),
         options: {},
         data: payload,
       }),

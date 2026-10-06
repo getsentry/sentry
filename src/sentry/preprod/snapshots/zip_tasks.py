@@ -4,17 +4,17 @@ import logging
 import os
 import time
 from tempfile import NamedTemporaryFile
-from typing import IO
+from typing import IO, Any
 
 import orjson
-from objectstore_client import RequestError, Session
+from objectstore_client import RequestError
 from objectstore_client.multipart import CompletePart, MultipartUpload
 from urllib3.exceptions import HTTPError
 
 from sentry.models.organization import Organization
-from sentry.objectstore import get_preprod_session
 from sentry.preprod.snapshots.manifest import SnapshotManifest
 from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
+from sentry.preprod.snapshots.storage import SnapshotStorage, get_snapshot_storage
 from sentry.preprod.snapshots.zip_builder import (
     SnapshotZipBuildError,
     archive_exists,
@@ -23,7 +23,7 @@ from sentry.preprod.snapshots.zip_builder import (
 )
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import preprod_tasks
+from sentry.taskworker.namespaces import preprod_snapshots_tasks
 from sentry.users.services.user.service import user_service
 from sentry.utils.email import MessageBuilder
 
@@ -79,13 +79,13 @@ def _put_part_with_retry(upload: MultipartUpload, chunk: bytes, part_number: int
 
 def _archive_available(org_id: int, project_id: int, artifact_id: int) -> bool:
     try:
-        session = get_preprod_session(org_id, project_id)
+        session = get_snapshot_storage(project_id, org=org_id)
         return archive_exists(session, archive_object_key(artifact_id))
     except Exception:
         return False
 
 
-def _upload_archive_multipart(session: Session, key: str, tmp: IO[bytes]) -> None:
+def _upload_archive_multipart(session: SnapshotStorage, key: str, tmp: IO[bytes]) -> None:
     upload = session.initiate_multipart_upload(
         key=key, compression="none", content_type="application/zip"
     )
@@ -109,12 +109,16 @@ def _upload_archive_multipart(session: Session, key: str, tmp: IO[bytes]) -> Non
 
 @instrumented_task(
     name="sentry.preprod.tasks.build_snapshot_images_zip",
-    namespace=preprod_tasks,
+    namespace=preprod_snapshots_tasks,
     silo_mode=SiloMode.CELL,
     processing_deadline_duration=900,
 )
 def build_snapshot_images_zip(
-    org_id: int, project_id: int, artifact_id: int, user_id: int | None = None
+    org_id: int,
+    project_id: int,
+    artifact_id: int,
+    user_id: int | None = None,
+    **kwargs: Any,
 ) -> None:
     logger.info(
         "preprod_snapshot_zip.build_started",
@@ -151,7 +155,7 @@ def build_snapshot_images_zip(
         if not manifest_key:
             raise SnapshotZipBuildError(f"missing manifest_key for artifact {artifact_id}")
 
-        session = get_preprod_session(org_id, project_id)
+        session = get_snapshot_storage(project_id, org=org_id)
         key = archive_object_key(artifact_id)
 
         # Snapshot images for a given artifact are immutable, so a stored archive
@@ -162,17 +166,24 @@ def build_snapshot_images_zip(
                 extra={"preprod_artifact_id": artifact_id, "key": key},
             )
         else:
-            manifest = _load_manifest(session, manifest_key)
+            manifest, manifest_bytes = _load_manifest(session, manifest_key)
+            manifest_size_bytes = len(manifest_bytes)
             logger.info(
                 "preprod_snapshot_zip.manifest_loaded",
                 extra={
                     "preprod_artifact_id": artifact_id,
                     "image_count": len(manifest.images),
+                    "manifest_size_bytes": manifest_size_bytes,
                 },
             )
             with NamedTemporaryFile() as tmp:
                 build_snapshot_zip(
-                    manifest, session, f"{org_id}/{project_id}", tmp, artifact_id=artifact_id
+                    manifest,
+                    session,
+                    f"{org_id}/{project_id}",
+                    tmp,
+                    artifact_id=artifact_id,
+                    manifest_bytes=manifest_bytes,
                 )
                 tmp.flush()
                 tmp.seek(0)
@@ -221,12 +232,14 @@ def build_snapshot_images_zip(
     _send_archive_email(organization, user_id, artifact_id, ready=True)
 
 
-def _load_manifest(session: Session, manifest_key: str) -> SnapshotManifest:
+def _load_manifest(session: SnapshotStorage, manifest_key: str) -> tuple[SnapshotManifest, bytes]:
+    """Return the validated manifest and its original objectstore payload bytes."""
     response = session.get(manifest_key)
     if response is None:
         raise FileNotFoundError("Manifest does not exist in objectstore")
     try:
-        manifest_data = orjson.loads(response.payload.read())
+        manifest_bytes = response.payload.read()
+        manifest_data = orjson.loads(manifest_bytes)
     finally:
         response.payload.close()
-    return SnapshotManifest(**manifest_data)
+    return SnapshotManifest(**manifest_data), manifest_bytes

@@ -70,11 +70,13 @@ class IssueDetailsPage(BasePage):
         self.browser.click('[aria-label="Resolve"]')
         # Resolve should become unresolve
         self.browser.wait_until('[aria-label="Unresolve"]')
+        self.browser.wait_until(xpath="//*[@role='status'][contains(., 'Issue resolved')]")
 
     def archive_issue(self):
         self.browser.click('[aria-label="Archive"]')
         # Archive should become unarchive
         self.browser.wait_until('[aria-label="Unarchive"]')
+        self.browser.wait_until(xpath="//*[@role='status'][contains(., 'Issue archived')]")
 
     def bookmark_issue(self):
         self.browser.click('button[aria-label="More Actions"]')
@@ -109,11 +111,10 @@ class IssueDetailsPage(BasePage):
 
         self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
-    def find_comment_form(self):
-        self.browser.wait_until_test_id("note-input-form")
-        return self.browser.find_element(
-            by=By.CSS_SELECTOR, value='[data-test-id="note-input-form"]'
-        )
+    def find_comment_editor(self):
+        selector = '[role="combobox"][aria-label="Add a comment"]'
+        self.browser.wait_until(selector)
+        return self.browser.find_element(by=By.CSS_SELECTOR, value=selector)
 
     def has_comment(self, text):
         element = self.browser.element('[data-test-id="activity-note-body"]')

@@ -5,6 +5,7 @@ import * as Sentry from '@sentry/react';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMedia} from 'sentry/utils/useMedia';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
 const PRIMARY_NAVIGATION_GROUP_CONFIG = {
@@ -20,6 +21,16 @@ const PRIMARY_NAVIGATION_GROUP_CONFIG = {
 } as const;
 
 type NavigationGroup = keyof typeof PRIMARY_NAVIGATION_GROUP_CONFIG;
+
+const PRIMARY_NAVIGATION_ROUTE_OVERRIDES: Array<{
+  group: NavigationGroup;
+  pattern: RegExp;
+}> = [
+  {
+    group: 'explore',
+    pattern: /(?:^|\/)seer\/investigation\/[^/]+\/?$/,
+  },
+];
 
 interface PrimaryNavigationFeatures {
   /** Whether the device supports hover interactions (false on touch-only devices) */
@@ -41,7 +52,10 @@ const PrimaryNavigationContext = createContext<PrimaryNavigationContext>({
 });
 
 export function usePrimaryNavigation(): PrimaryNavigationContext {
-  return useContext(PrimaryNavigationContext);
+  const context = useContext(PrimaryNavigationContext);
+  const organization = useOrganization({allowNull: true});
+
+  return organization ? context : {...context, activeGroup: 'settings'};
 }
 
 interface PrimaryNavigationContextProviderProps {
@@ -93,6 +107,13 @@ const getPrimaryRoutePath = (path: string): string | undefined => {
 
 function useActiveNavigationGroup(): NavigationGroup {
   const location = useLocation();
+  const routeOverride = PRIMARY_NAVIGATION_ROUTE_OVERRIDES.find(({pattern}) =>
+    pattern.test(location.pathname)
+  );
+  if (routeOverride) {
+    return routeOverride.group;
+  }
+
   const primaryPath = getPrimaryRoutePath(location.pathname);
 
   if (!primaryPath) {

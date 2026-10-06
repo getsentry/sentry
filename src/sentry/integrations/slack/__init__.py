@@ -13,7 +13,6 @@ from .message_builder.discover import *  # noqa: F401,F403
 from .message_builder.help import *  # noqa: F401,F403
 from .message_builder.incidents import *  # noqa: F401,F403
 from .message_builder.issues import *  # noqa: F401,F403
-from .message_builder.metric_alerts import *  # noqa: F401,F403
 from .message_builder.notifications.base import *  # noqa: F401,F403
 from .message_builder.notifications.digest import *  # noqa: F401,F403
 from .message_builder.notifications.issues import *  # noqa: F401,F403
@@ -30,7 +29,6 @@ from .utils.auth import *  # noqa: F401,F403
 from .utils.channel import *  # noqa: F401,F403
 from .utils.escape import *  # noqa: F401,F403
 from .utils.notifications import *  # noqa: F401,F403
-from .utils.rule_status import *  # noqa: F401,F403
 from .utils.users import *  # noqa: F401,F403
 from .views.link_identity import *  # noqa: F401,F403
 from .views.link_team import *  # noqa: F401,F403

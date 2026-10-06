@@ -38,7 +38,7 @@ function useChangePriority(group: Group, onChange?: (priority: PriorityLevel) =>
   const organization = useOrganization();
   const queryClient = useQueryClient();
 
-  return (nextPriority: PriorityLevel) => {
+  return async (nextPriority: PriorityLevel) => {
     if (nextPriority === group.priority) {
       return;
     }
@@ -53,33 +53,27 @@ function useChangePriority(group: Group, onChange?: (priority: PriorityLevel) =>
     addLoadingMessage(t('Saving changes\u2026'));
     IssueListCacheStore.reset();
 
-    bulkUpdate(
-      api,
-      {
+    try {
+      await bulkUpdate(api, {
         orgId: organization.slug,
         itemIds: [group.id],
         data: {priority: nextPriority},
         failSilently: true,
         project: [group.project.id],
-      },
-      {
-        success: () => {
-          queryClient.invalidateQueries({
-            queryKey: groupQueryKey({
-              organizationSlug: organization.slug,
-              groupId: group.id,
-            }),
-          });
-          clearIndicators();
-          addSuccessMessage(getPriorityUpdateSuccessMessage(nextPriority));
-          onChange?.(nextPriority);
-        },
-        error: () => {
-          clearIndicators();
-          addErrorMessage(t('Unable to update issue priority'));
-        },
-      }
-    );
+      });
+      queryClient.invalidateQueries({
+        queryKey: groupQueryKey({
+          organizationSlug: organization.slug,
+          groupId: group.id,
+        }),
+      });
+      clearIndicators();
+      addSuccessMessage(getPriorityUpdateSuccessMessage(nextPriority));
+      onChange?.(nextPriority);
+    } catch {
+      clearIndicators();
+      addErrorMessage(t('Unable to update issue priority'));
+    }
   };
 }
 
@@ -115,7 +109,7 @@ export function GroupPriorityCommandPaletteAction({
       }}
     >
       <CMDKAction
-        display={{label: t('High'), icon: <IconCellSignal bars={3} />}}
+        display={{label: t('High'), icon: <IconCellSignal />}}
         onAction={() => onChangePriority(PriorityLevel.HIGH)}
       />
       <CMDKAction

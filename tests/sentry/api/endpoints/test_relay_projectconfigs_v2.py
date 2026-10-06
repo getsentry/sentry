@@ -113,9 +113,9 @@ def test_internal_relays_should_receive_full_configs(
 
     retentions = quotas.backend.get_retentions(default_project.organization)
     retentions_config = {
-        RETENTIONS_CONFIG_MAPPING[c]: v.to_object()
-        for c, v in retentions.items()
-        if c in RETENTIONS_CONFIG_MAPPING
+        name: retentions[c].to_object()
+        for c, name in RETENTIONS_CONFIG_MAPPING.items()
+        if c in retentions
     }
     if retentions_config:
         assert safe.get_path(cfg, "config", "retentions") == retentions_config

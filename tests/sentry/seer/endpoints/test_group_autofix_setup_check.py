@@ -1,5 +1,7 @@
 from unittest.mock import MagicMock, patch
 
+from django.test import override_settings
+
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
@@ -8,7 +10,6 @@ from sentry.seer.endpoints.group_autofix_setup_check import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.cache import cache
 
@@ -92,7 +93,7 @@ class GetAutofixIntegrationSetupProblemsTestCase(TestCase):
         assert result == "integration_missing"
 
 
-@with_feature("organizations:gen-ai-features")
+@override_settings(SENTRY_SELF_HOSTED=False)
 class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -272,3 +273,57 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
         }
         # seerReposLinked should be False when integration is missing
         assert response.data["seerReposLinked"] is False
+
+
+@override_settings(SENTRY_SELF_HOSTED=False)
+class GroupAIAutofixSetupFreeCohortTest(APITestCase, SnubaTestCase):
+    """Tests for free cohort org behavior in the /autofix/setup/ endpoint."""
+
+    def setUp(self) -> None:
+        super().setUp()
+
+        integration = self.create_integration(organization=self.organization, external_id="1")
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.org_integration = integration.add_organization(self.organization, self.user)
+
+        self.repo = Repository.objects.create(
+            organization_id=self.organization.id,
+            name="example",
+            integration_id=integration.id,
+        )
+
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.is_free_cohort_org",
+        return_value=True,
+    )
+    def test_free_cohort_org_with_existing_run_has_autofix_quota(
+        self, mock_is_free_cohort: MagicMock
+    ) -> None:
+        """Free cohort orgs with an existing autofix run get hasAutofixQuota: True."""
+        group = self.create_group()
+        run = self.create_seer_run(organization=self.organization)
+        self.create_seer_agent_run(run, source="autofix", group=group)
+
+        self.login_as(user=self.user)
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        assert response.data["billing"]["hasAutofixQuota"] is True
+
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.is_free_cohort_org",
+        return_value=True,
+    )
+    def test_free_cohort_org_without_existing_run_has_no_autofix_quota(
+        self, mock_is_free_cohort: MagicMock
+    ) -> None:
+        """Free cohort orgs without an existing autofix run get hasAutofixQuota: False."""
+        group = self.create_group()
+        self.login_as(user=self.user)
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        assert response.data["billing"]["hasAutofixQuota"] is False
