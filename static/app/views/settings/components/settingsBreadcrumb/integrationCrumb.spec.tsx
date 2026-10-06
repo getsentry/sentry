@@ -30,31 +30,23 @@ describe('IntegrationCrumb', () => {
     });
   });
 
-  it('renders the last crumb as a typed page title with a working selector', async () => {
+  it('renders the last crumb as a plain title even with multiple providers', async () => {
     const parentRoute = {path: 'integrations/', name: 'Integrations'};
     const route = {path: ':integrationSlug', name: 'Integration Details'};
-    const {router} = render(
-      <IntegrationCrumb route={route} routes={[parentRoute, route]} isLast />,
-      {
-        organization,
-        initialRouterConfig: {
-          route: '/settings/:orgId/integrations/:integrationSlug/',
-          location: {
-            pathname: `/settings/${organization.slug}/integrations/github/`,
-            query: {tab: 'overview'},
-          },
+    render(<IntegrationCrumb route={route} routes={[parentRoute, route]} isLast />, {
+      organization,
+      initialRouterConfig: {
+        route: '/settings/:orgId/integrations/:integrationSlug/',
+        location: {
+          pathname: `/settings/${organization.slug}/integrations/github/`,
+          query: {tab: 'overview'},
         },
-      }
-    );
+      },
+    });
     expect(
       await screen.findByRole('heading', {name: 'GitHub', level: 1})
     ).toBeInTheDocument();
-    await userEvent.click(await screen.findByRole('button', {name: 'GitHub'}));
-    await userEvent.click(screen.getByRole('option', {name: 'Slack'}));
-    expect(router.location.pathname).toBe(
-      `/settings/${organization.slug}/integrations/slack/`
-    );
-    expect(router.location.query).toEqual({});
+    expect(screen.queryByRole('button', {name: 'GitHub'})).not.toBeInTheDocument();
   });
 
   it('switches integrations while clearing the selected detail tab', async () => {

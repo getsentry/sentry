@@ -55,30 +55,6 @@ describe('BreadcrumbList container-query collapse', () => {
     );
   });
 
-  it('changes the selected project through a searchable title item', async () => {
-    const onChange = jest.fn();
-    render(
-      <BreadcrumbList.Title
-        item={{
-          type: 'select-projects',
-          label: 'Current project',
-          value: 'current',
-          onChange,
-          options: [
-            {value: 'current', label: 'Current project'},
-            {value: 'next', label: 'Next project'},
-          ],
-          search: true,
-        }}
-      />
-    );
-    expect(screen.getAllByText('Current project')).toHaveLength(1);
-    await userEvent.click(screen.getByRole('button', {name: 'Current project'}));
-    await userEvent.type(screen.getByRole('textbox'), 'Next');
-    await userEvent.click(screen.getByRole('option', {name: 'Next project'}));
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({value: 'next'}));
-  });
-
   it('emits an @container display rule for link crumbs, not an always-on @media shadow', () => {
     render(
       <BreadcrumbList items={[{type: 'link', label: 'Settings', to: '/settings/'}]} />

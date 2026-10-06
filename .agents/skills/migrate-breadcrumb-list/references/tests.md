@@ -29,19 +29,18 @@ If a custom harness supplies its own outlets, it needs both the internal `breadc
 
 ## Queries
 
-| Target                                         | Query                                                                                |
-| ---------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Parent trail                                   | `getByRole('list')`; the component has no `<nav>`                                    |
-| Parent link                                    | `getByRole('link', {name})`                                                          |
-| Title rendered through TopBar                  | `getByRole('heading', {name, level: 1})`                                             |
-| Standalone `BreadcrumbList.Title`              | `getByRole('heading', {name, level: 1})`                                             |
-| Overflow trigger                               | `getByRole('button', {name: 'More breadcrumbs'})`                                    |
-| Copy or menu trigger                           | `getByRole('button', {name: actionLabel})`                                           |
-| Button or LinkButton action                    | `getByRole('button', {name})`; LinkButton uses this role too                         |
-| Feature badge                                  | `getByLabelText('new')`, `'alpha'`, or `'beta'`                                      |
-| Pagination                                     | `getByRole('button', {name: ariaLabel})`; disabled links have `aria-disabled="true"` |
-| Selector title                                 | `findByRole('button', {name: label})`                                                |
-| Parent project selector without explicit label | `findByRole('button', {name: 'Selected Project: <slug>'})`                           |
+| Target                            | Query                                                                                |
+| --------------------------------- | ------------------------------------------------------------------------------------ |
+| Parent trail                      | `getByRole('list')`; the component has no `<nav>`                                    |
+| Parent link                       | `getByRole('link', {name})`                                                          |
+| Title rendered through TopBar     | `getByRole('heading', {name, level: 1})`                                             |
+| Standalone `BreadcrumbList.Title` | `getByRole('heading', {name, level: 1})`                                             |
+| Overflow trigger                  | `getByRole('button', {name: 'More breadcrumbs'})`                                    |
+| Copy or menu trigger              | `getByRole('button', {name: actionLabel})`                                           |
+| Button or LinkButton action       | `getByRole('button', {name})`; LinkButton uses this role too                         |
+| Feature badge                     | `getByLabelText('new')`, `'alpha'`, or `'beta'`                                      |
+| Pagination                        | `getByRole('button', {name: ariaLabel})`; disabled links have `aria-disabled="true"` |
+| Parent project selector           | `findByRole('button', {name: 'Selected Project: <slug>'})`                           |
 
 For `labelTooltip`, hover or focus the title text, then assert the description or documentation link. Do not query the removed separate info icon.
 

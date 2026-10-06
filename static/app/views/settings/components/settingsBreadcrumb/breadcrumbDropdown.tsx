@@ -53,25 +53,11 @@ export function BreadcrumbDropdown({
     return (
       <TopBar.Slot
         name="breadcrumbs"
-        title={
-          hasMenu
-            ? {
-                type: 'select-projects',
-                label: title,
-                leadingGraphic: titleGraphic,
-                options: options.map(item => ({...item, hideCheck: true})),
-                value,
-                onChange: selected => onCrumbSelect(selected.value),
-                onOpenChange: props.onOpenChange,
-                search: props.search,
-                loading: props.loading,
-              }
-            : {
-                type: 'page-title',
-                label: title,
-                leadingGraphic: titleGraphic,
-              }
-        }
+        title={{
+          type: 'page-title',
+          label: title,
+          leadingGraphic: titleGraphic,
+        }}
       >
         {children}
       </TopBar.Slot>

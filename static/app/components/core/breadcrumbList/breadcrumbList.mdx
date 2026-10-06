@@ -213,25 +213,22 @@ TopBar's flex layout.
 />
 ```
 
-### `'select-projects'` — select a project or another settings entity
+### `'select-projects'` — select a parent project
 
-Use this item for a selector in the breadcrumb trail or as the current title.
-Pass `options`, `value`, and `onChange`. It also supports `search`, `loading`,
-`onOpenChange`, and `leadingGraphic`.
-
-When used as a title, `label` is required. It supplies the visible text and
-accessible name, including while options are loading or filtered.
+Use this item only for a parent selector in the breadcrumb trail.
+Pass `options`, `value`, and `onChange`. The current page title must use
+`page-title` or `editable-title`.
 
 ```tsx
-<BreadcrumbList.Title
-  item={{
-    type: 'select-projects',
-    label: currentProject.slug,
-    value: currentProject.slug,
-    options: projects.map(project => ({value: project.slug, label: project.slug})),
-    onChange: selected => navigateToProject(selected.value),
-    search: true,
-  }}
+<BreadcrumbList
+  items={[
+    {
+      type: 'select-projects',
+      value: currentProject.slug,
+      options: projects.map(project => ({value: project.slug, label: project.slug})),
+      onChange: selected => navigateToProject(selected.value),
+    },
+  ]}
 />
 ```
 

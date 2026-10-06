@@ -158,9 +158,17 @@ describe('TopBar', () => {
 
   it('requires a typed title on the breadcrumbs slot', () => {
     type Props = ComponentProps<typeof TopBar.Slot>;
+    type ProjectSelector = Extract<
+      ComponentProps<typeof BreadcrumbList>['items'][number],
+      {type: 'select-projects'}
+    >;
     expectTypeOf<{name: 'breadcrumbs'}>().not.toMatchTypeOf<Props>();
     expectTypeOf<{children: string; name: 'title'}>().not.toMatchTypeOf<Props>();
     expectTypeOf<{name: 'breadcrumbs'; title: string}>().not.toMatchTypeOf<Props>();
+    expectTypeOf<{
+      name: 'breadcrumbs';
+      title: ProjectSelector & {label: string};
+    }>().not.toMatchTypeOf<Props>();
     expectTypeOf<{
       name: 'breadcrumbs';
       title: {label: string; type: 'page-title'};
