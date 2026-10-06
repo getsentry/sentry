@@ -3,6 +3,7 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -269,7 +270,11 @@ export function InvestigationsPage() {
           <Stack flex={1}>
             <TopBar.Slot
               name="breadcrumbs"
-              title={{type: 'page-title', label: t('Investigations')}}
+              title={{
+                type: 'page-title',
+                label: t('Investigations'),
+                trailingActions: {type: 'badge', element: <FeatureBadge type="alpha" />},
+              }}
             />
             <Layout.Body>
               <Layout.Main width="full">

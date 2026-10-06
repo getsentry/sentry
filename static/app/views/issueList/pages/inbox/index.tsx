@@ -13,7 +13,7 @@ import orderBy from 'lodash/orderBy';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {ActorAvatar, ProjectAvatar, UserAvatar} from '@sentry/scraps/avatar';
-import {Badge} from '@sentry/scraps/badge';
+import {FeatureBadge, Badge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
@@ -365,6 +365,7 @@ function InboxContent() {
         title={{
           type: 'page-title',
           label: TITLE,
+          trailingActions: {type: 'badge', element: <FeatureBadge type="new" />},
           labelTooltip: (
             <Stack align="start" gap="md">
               <Text align="left">

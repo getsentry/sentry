@@ -1,6 +1,7 @@
 import {Fragment, type ReactNode} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
+import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 
@@ -29,11 +30,16 @@ type IssueViewsHeaderProps = {
   onRealtimeChange: (active: boolean) => void;
   realtimeActive: boolean;
   title: string;
+  badge?: FeatureBadgeProps['type'];
   description?: ReactNode;
   headerActions?: ReactNode;
 };
 
-function PageTitle({title, description}: {title: string; description?: ReactNode}) {
+function PageTitle({
+  title,
+  description,
+  badge,
+}: Pick<IssueViewsHeaderProps, 'title' | 'description' | 'badge'>) {
   const organization = useOrganization();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const user = useUser();
@@ -63,6 +69,9 @@ function PageTitle({title, description}: {title: string; description?: ReactNode
         type: 'page-title',
         label: title,
         labelTooltip: description,
+        trailingActions: badge
+          ? {type: 'badge', element: <FeatureBadge type={badge} />}
+          : undefined,
       }}
     />
   );
@@ -209,6 +218,7 @@ function IssueViewEditMenu() {
 
 export function IssueViewsHeader({
   title,
+  badge,
   description,
   realtimeActive,
   onRealtimeChange,
@@ -233,7 +243,7 @@ export function IssueViewsHeader({
 
   return (
     <Fragment>
-      <PageTitle title={title} description={description} />
+      <PageTitle title={title} description={description} badge={badge} />
       <TopBar.Slot name="actions">
         {headerActions}
         {realtimeButton}

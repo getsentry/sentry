@@ -10,7 +10,7 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Badge} from '@sentry/scraps/badge';
+import {FeatureBadge, Badge} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Disclosure} from '@sentry/scraps/disclosure';
@@ -151,7 +151,11 @@ export default function AutofixOverview() {
         <SentryDocumentTitle title={t('Autofix Overview')} orgSlug={organization.slug}>
           <TopBar.Slot
             name="breadcrumbs"
-            title={{type: 'page-title', label: t('Autofix Overview')}}
+            title={{
+              type: 'page-title',
+              label: t('Autofix Overview'),
+              trailingActions: {type: 'badge', element: <FeatureBadge type="new" />},
+            }}
           />
           {orgNeedsSeerTrial(organization) ? (
             <Stack gap="lg" padding="lg xl">

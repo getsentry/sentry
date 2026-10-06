@@ -9,6 +9,7 @@ import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
 import * as qs from 'query-string';
 
+import type {FeatureBadgeProps} from '@sentry/scraps/badge';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 
@@ -89,6 +90,7 @@ interface Props {
   initialQuery?: string;
   shouldFetchOnMount?: boolean;
   title?: string;
+  titleBadge?: FeatureBadgeProps['type'];
   titleDescription?: ReactNode;
 }
 
@@ -136,6 +138,7 @@ function IssueListOverviewInner({
   initialQuery = DEFAULT_QUERY,
   shouldFetchOnMount = true,
   title = t('Issues'),
+  titleBadge,
   titleDescription,
   headerActions,
 }: Props) {
@@ -966,6 +969,7 @@ function IssueListOverviewInner({
         <IssueViewsHeader
           title={title}
           description={titleDescription}
+          badge={titleBadge}
           realtimeActive={realtimeActive}
           onRealtimeChange={onRealtimeChange}
           headerActions={headerActions}
