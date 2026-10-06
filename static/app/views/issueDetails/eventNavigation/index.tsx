@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useRef, useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import {useResizeObserver} from '@react-aria/utils';
 import {keepPreviousData} from '@tanstack/react-query';
 
@@ -239,36 +239,38 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
       align={{zero: 'stretch', lg: 'center'}}
     >
       {showContentTabs ? (
-        <Tabs
-          size="sm"
-          value={selectedContentTab}
-          onChange={key => trackContentSelected(key as Tab)}
-          css={css`
-            max-width: 100%;
-          `}
-        >
-          <TabList variant="floating">
-            {contentTabs.map(tab => (
-              <TabList.Item
-                key={tab.key}
-                hidden={tab.hidden}
-                to={contentLocation(tab.key)}
-                textValue={tab.name}
-              >
-                <Flex as="span" align="center" gap="xs">
-                  {tab.name}
-                  {tab.count === null ? null : (
-                    <Badge variant="muted">
-                      <Text tabular variant="inherit">
-                        {tab.count}
-                      </Text>
-                    </Badge>
-                  )}
-                </Flex>
-              </TabList.Item>
-            ))}
-          </TabList>
-        </Tabs>
+        <Container maxWidth="100%">
+          {props => (
+            <Tabs
+              {...props}
+              size="sm"
+              value={selectedContentTab}
+              onChange={key => trackContentSelected(key as Tab)}
+            >
+              <TabList variant="floating">
+                {contentTabs.map(tab => (
+                  <TabList.Item
+                    key={tab.key}
+                    hidden={tab.hidden}
+                    to={contentLocation(tab.key)}
+                    textValue={tab.name}
+                  >
+                    <Flex as="span" align="center" gap="xs">
+                      {tab.name}
+                      {tab.count === null ? null : (
+                        <Badge variant="muted">
+                          <Text tabular variant="inherit">
+                            {tab.count}
+                          </Text>
+                        </Badge>
+                      )}
+                    </Flex>
+                  </TabList.Item>
+                ))}
+              </TabList>
+            </Tabs>
+          )}
+        </Container>
       ) : (
         <Flex align="center" gap="2xs" flexShrink={0}>
           <DropdownMenu
