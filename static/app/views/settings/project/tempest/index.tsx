@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
@@ -104,13 +103,12 @@ export default function TempestSettings() {
             <Alert
               variant="warning"
               trailingItems={
-                <Button
-                  variant="link"
+                <Alert.Button
+                  variant="transparent"
                   icon={<IconClose />}
                   onClick={dismissPS5Warning}
                   aria-label={t('Dismiss Alert')}
                   tooltipProps={{title: t('Dismiss Alert')}}
-                  size="zero"
                 />
               }
             >

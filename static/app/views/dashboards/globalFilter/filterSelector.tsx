@@ -142,6 +142,7 @@ export function FilterSelector({
         },
       })),
     };
+    // oxlint-disable-next-line react/memo-dependencies
   }, [pickerToken, filterToken, noValueToken, fieldDefinition]);
 
   const [stagedOperator, setStagedOperator] = useState(initialOperator);
@@ -163,6 +164,7 @@ export function FilterSelector({
    */
   useEffect(() => {
     setStagedOperator(initialOperator);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [initialOperator]);
 
   // Retrieve full tag definition to check if it has predefined values
@@ -329,6 +331,7 @@ export function FilterSelector({
       }
     });
     return prependNoValueOption([...fixedOptionMap.values(), ...optionMap.values()]);
+    // oxlint-disable-next-line react/memo-dependencies
   }, [
     fetchedFilterValues,
     predefinedValues,

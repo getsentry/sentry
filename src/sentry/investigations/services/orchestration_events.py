@@ -614,6 +614,7 @@ def _upsert_report_block(
         "reportRevision": revision,
         "stableAgentKey": key,
         "projectIds": project_ids,
+        "source": deepcopy(run.source),
     }
     now = timezone.now()
     completed_at = None

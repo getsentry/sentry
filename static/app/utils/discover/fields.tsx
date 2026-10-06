@@ -1411,7 +1411,7 @@ export function aggregateFunctionOutputType(
   return null;
 }
 
-export function errorsAndTransactionsAggregateFunctionOutputType(
+export function eventsAggregateFunctionOutputType(
   funcName: string,
   firstArg: string | undefined
 ): AggregationOutputType | null {

@@ -1,6 +1,9 @@
+import pytest
+
 from sentry.testutils.cases import TestMigrations
 
 
+@pytest.mark.skip(reason="Migration already applied; test is slow and only useful before merge")
 class ReplaceBooleanDeescalationComparisonsTest(TestMigrations):
     app = "workflow_engine"
     migrate_from = "0119_add_index_for_all_project_detectors"

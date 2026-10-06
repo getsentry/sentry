@@ -5,11 +5,12 @@ import Prism from 'prismjs';
 
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
-import {useTranslation} from '@sentry/scraps/translationContext';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {IconCopy} from 'sentry/icons';
-import {getPrismLanguage, loadPrismLanguage} from 'sentry/utils/prism';
 import {darkTheme} from 'sentry/utils/theme/theme';
+
+import {getPrismLanguage, loadPrismLanguage} from './prism';
 
 interface CodeBlockProps {
   children: string;
@@ -138,6 +139,7 @@ export function CodeBlock({
       onLoad: () =>
         Prism.highlightElement(element, false, () => onAfterHighlight?.(element)),
     });
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [children, language, onAfterHighlight, lineHighlightLoaded]);
 
   const [tooltipState, setTooltipState] = useState<'copy' | 'copied' | 'error'>('copy');

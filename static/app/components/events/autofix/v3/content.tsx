@@ -1,4 +1,6 @@
 import {Fragment, useMemo} from 'react';
+import {css} from '@emotion/react';
+import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -33,9 +35,20 @@ interface SeerDrawerContentProps {
   aiConfig: ReturnType<typeof useAiConfig>;
   autofix: ReturnType<typeof useExplorerAutofix>;
   group: Group;
+  /**
+   * Pin the next step to the bottom of the viewport while any autofix content is
+   * on screen. The drawer scrolls its own body and always ends on the next step,
+   * so only the tab, which scrolls with the page, asks for this.
+   */
+  stickyNextStep?: boolean;
 }
 
-export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentProps) {
+export function SeerDrawerContent({
+  aiConfig,
+  autofix,
+  group,
+  stickyNextStep,
+}: SeerDrawerContentProps) {
   const sections = useMemo(
     () => getOrderedAutofixSections(autofix.runState),
     [autofix.runState]
@@ -63,7 +76,9 @@ export function SeerDrawerContent({aiConfig, autofix, group}: SeerDrawerContentP
       <SeerDrawerArtifacts autofix={autofix} sections={sections} groupId={group.id} />
       {(autofix.runState?.status === 'completed' ||
         isLastStepPrIteration(autofix.runState)) && (
-        <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
+        <NextStepWrap isSticky={stickyNextStep}>
+          <SeerDrawerNextStep group={group} autofix={autofix} sections={sections} />
+        </NextStepWrap>
       )}
       {autofix.codingAgentErrors.map(({id, message}) => (
         <Alert
@@ -140,3 +155,22 @@ function SeerDrawerArtifacts({autofix, groupId, sections}: SeerDrawerArtifactsPr
     </Fragment>
   );
 }
+
+/**
+ * Sticky bottom rather than a fixed bar: the next step stays on screen while the
+ * analysis above it is still in view, then scrolls away with the rest of the
+ * autofix content once the reader moves past it into the event details below.
+ */
+const NextStepWrap = styled('div', {
+  shouldForwardProp: prop => prop !== 'isSticky',
+})<{isSticky?: boolean}>`
+  ${p =>
+    p.isSticky &&
+    css`
+      position: sticky;
+      bottom: 0;
+      z-index: ${p.theme.zIndex.initial};
+      background: ${p.theme.tokens.background.secondary};
+      padding-block: ${p.theme.space.md};
+    `}
+`;

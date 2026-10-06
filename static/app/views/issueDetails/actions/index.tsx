@@ -7,6 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {bulkDelete, bulkUpdate} from 'sentry/actionCreators/group';
 import {
@@ -105,6 +106,7 @@ interface GroupActionsProps {
 
 interface GroupResolutionActionsProps extends GroupActionsProps {
   onUpdate: (data: GroupStatusResolution) => void;
+  variant?: 'primary' | 'secondary';
 }
 
 export function GroupResolutionActions({
@@ -113,6 +115,7 @@ export function GroupResolutionActions({
   group,
   onUpdate,
   project,
+  variant = 'primary',
 }: GroupResolutionActionsProps) {
   const hasRelease = !!project.features?.includes('releases');
   const eventReleaseVersion = event?.release?.versionInfo?.version;
@@ -177,12 +180,22 @@ export function GroupResolutionActions({
       onUpdate={onUpdate}
       project={project}
       size="sm"
-      priority="primary"
+      variant={variant}
     />
   );
 }
 
-export function GroupActions({group, project, disabled, event}: GroupActionsProps) {
+export function GroupActions({
+  group,
+  project,
+  disabled,
+  event,
+  onUpdateSuccess,
+  resolveVariant = 'primary',
+}: GroupActionsProps & {
+  onUpdateSuccess?: () => void;
+  resolveVariant?: 'primary' | 'secondary';
+}) {
   const {openModal} = useModal();
 
   const theme = useTheme();
@@ -255,62 +268,31 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
     });
   };
 
-  const onDelete = () => {
+  const onDelete = async () => {
     addLoadingMessage(t('Delete event\u2026'));
-
-    bulkDelete(
-      api,
-      {
-        orgId: organization.slug,
-        projectId: project.slug,
-        itemIds: [group.id],
-      },
-      {
-        success: () => {
-          clearIndicators();
-
-          addSuccessMessage(t('Issue deleted'));
-          navigate({
-            pathname: `/organizations/${organization.slug}/issues/`,
-            query: {project: project.id},
-          });
-        },
-      }
-    );
-
     trackIssueAction('deleted');
     IssueListCacheStore.reset();
-  };
 
-  const onUpdate = (data: UpdateData, onComplete?: () => void) => {
-    const successMessage = getUpdateSuccessMessage(group, data);
-
-    bulkUpdate(
-      api,
-      {
+    try {
+      await bulkDelete(api, {
         orgId: organization.slug,
         projectId: project.slug,
         itemIds: [group.id],
-        data,
-      },
-      {
-        success: () => {
-          clearIndicators();
-          if (successMessage) {
-            addSuccessMessage(successMessage);
-          }
-          onComplete?.();
-        },
-        complete: () => {
-          queryClient.invalidateQueries({
-            queryKey: groupQueryKey({
-              organizationSlug: organization.slug,
-              groupId: group.id,
-            }),
-          });
-        },
-      }
-    );
+      });
+      clearIndicators();
+
+      addSuccessMessage(t('Issue deleted'));
+      navigate({
+        pathname: `/organizations/${organization.slug}/issues/`,
+        query: {project: project.id},
+      });
+    } catch {
+      // GroupStore already shows the error
+    }
+  };
+
+  const onUpdate = async (data: UpdateData, onComplete?: () => void) => {
+    const successMessage = getUpdateSuccessMessage(group, data);
 
     if (isResolutionStatus(data)) {
       trackIssueAction(
@@ -323,6 +305,30 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
       trackIssueAction('mark_reviewed');
     }
     IssueListCacheStore.reset();
+
+    try {
+      await bulkUpdate(api, {
+        orgId: organization.slug,
+        projectId: project.slug,
+        itemIds: [group.id],
+        data,
+      });
+      clearIndicators();
+      if (successMessage) {
+        addSuccessMessage(successMessage);
+      }
+      onComplete?.();
+      onUpdateSuccess?.();
+    } catch {
+      // GroupStore already shows the error
+    } finally {
+      queryClient.invalidateQueries({
+        queryKey: groupQueryKey({
+          organizationSlug: organization.slug,
+          groupId: group.id,
+        }),
+      });
+    }
   };
 
   const onReprocessEvent = () => {
@@ -552,6 +558,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               group={group}
               onUpdate={onUpdate}
               project={project}
+              variant={resolveVariant}
             />
           </Flex>
         ) : (
@@ -562,6 +569,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               group={group}
               onUpdate={onUpdate}
               project={project}
+              variant={resolveVariant}
             />
             <ArchiveActions
               size="sm"
@@ -591,12 +599,14 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
           analyticsEventName="Issue Details: Share Action Clicked"
         />
         <DropdownMenu
-          triggerProps={{
-            'aria-label': t('More Actions'),
-            icon: <IconEllipsis />,
-            showChevron: false,
-            size: 'sm',
-          }}
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              aria-label={t('More Actions')}
+              icon={<IconEllipsis />}
+              size="sm"
+            />
+          )}
           items={[
             {
               key: 'mark-review',

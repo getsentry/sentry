@@ -1,5 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -64,10 +65,88 @@ describe('useErrorsSeriesQuery', () => {
         expect.objectContaining({
           query: expect.objectContaining({
             dataset: DiscoverDatasets.ERRORS,
+            partial: '1',
           }),
         })
       );
     });
+  });
+
+  it('excludes the Other series for grouped widgets with multiple aggregates', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: '',
+          fields: [],
+          aggregates: ['count()', 'count_unique(user)'],
+          columns: ['transaction'],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-stats/',
+      body: {},
+    });
+
+    renderHookWithProviders(() =>
+      useErrorsSeriesQuery({widget, organization, pageFilters, enabled: true})
+    );
+
+    await waitFor(() =>
+      expect(mockRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({query: expect.objectContaining({excludeOther: '1'})})
+      )
+    );
+  });
+
+  it('makes a request to the events-timeseries endpoint when enabled', async () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          name: '',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    const mockRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useErrorsSeriesQuery({
+        widget,
+        organization: OrganizationFixture({
+          features: ['dashboards-widgets-use-events-timeseries'],
+        }),
+        pageFilters,
+        enabled: true,
+      })
+    );
+
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(mockRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          yAxis: ['count()'],
+          dataset: DiscoverDatasets.ERRORS,
+        }),
+      })
+    );
+    expect(result.current.timeseriesResults?.map(({seriesName}) => seriesName)).toEqual([
+      'count()',
+    ]);
   });
 
   it('formats Date objects in query parameters', async () => {
