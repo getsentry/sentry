@@ -117,6 +117,25 @@ def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
 
 
 @instrumented_task(
+    name="sentry.tasks.autofix.summarize_issue",
+    namespace=issues_tasks,
+    processing_deadline_duration=35,
+    retry=Retry(times=3, delay=40, on=(Exception,)),
+)
+def summarize_issue(
+    group_id: int,
+    source: SeerAutomationSource | str = SeerAutomationSource.ISSUE_DETAILS,
+) -> None:
+    group = _get_group_or_log(group_id, "summarize_issue")
+    if group is None:
+        return
+    try:
+        get_or_generate_issue_summary(group=group, source=SeerAutomationSource(source))
+    except IssueSummaryUnavailable:
+        return
+
+
+@instrumented_task(
     name="sentry.tasks.autofix.generate_issue_summary_only",
     namespace=ingest_errors_tasks,
     processing_deadline_duration=35,

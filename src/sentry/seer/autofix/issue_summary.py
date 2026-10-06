@@ -541,8 +541,11 @@ def _generate_summary(
     return summary
 
 
-def _log_seer_scanner_billing_event(group: Group, source: SeerAutomationSource):
-    if source == SeerAutomationSource.ISSUE_DETAILS:
+def _log_seer_scanner_billing_event(group: Group, source: SeerAutomationSource) -> None:
+    if source in {
+        SeerAutomationSource.ISSUE_DETAILS,
+        SeerAutomationSource.FIRST_ASSIGNMENT,
+    }:
         return
 
     quotas.backend.record_seer_run(

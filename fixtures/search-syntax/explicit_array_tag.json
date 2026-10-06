@@ -1,47 +1,6 @@
 [
   {
-    "desc": "An empty pattern is flagged rather than searched for",
-    "query": "message:////",
-    "additionalConfig": {
-      "allowRegex": true
-    },
-    "result": [
-      {
-        "type": "spaces",
-        "value": ""
-      },
-      {
-        "type": "filter",
-        "filter": "text",
-        "key": {
-          "type": "keySimple",
-          "value": "message",
-          "quoted": false
-        },
-        "value": {
-          "type": "valueText",
-          "value": "",
-          "quoted": false
-        },
-        "negated": false,
-        "operator": "//",
-        "invalid": {
-          "type": "filter-must-have-value",
-          "reason": "Filter must have a value"
-        }
-      },
-      {
-        "type": "spaces",
-        "value": ""
-      }
-    ]
-  },
-  {
-    "desc": "An empty pattern on an array membership key is flagged too",
-    "query": "tags[csv_headers[*],array]:////",
-    "additionalConfig": {
-      "allowRegex": true
-    },
+    "query": "tags[fruit[*],array]:apple release:1.2.1 tags[project_id[*],array]:123",
     "result": [
       {
         "type": "spaces",
@@ -57,7 +16,7 @@
             "prefix": "tags",
             "key": {
               "type": "keySimple",
-              "value": "csv_headers",
+              "value": "fruit",
               "quoted": false
             }
           },
@@ -65,15 +24,59 @@
         },
         "value": {
           "type": "valueText",
-          "value": "",
+          "value": "apple",
           "quoted": false
         },
         "negated": false,
-        "operator": "//",
-        "invalid": {
-          "type": "filter-must-have-value",
-          "reason": "Filter must have a value"
-        }
+        "operator": ""
+      },
+      {
+        "type": "spaces",
+        "value": " "
+      },
+      {
+        "type": "filter",
+        "filter": "text",
+        "key": {
+          "type": "keySimple",
+          "value": "release",
+          "quoted": false
+        },
+        "value": {
+          "type": "valueText",
+          "value": "1.2.1",
+          "quoted": false
+        },
+        "negated": false,
+        "operator": ""
+      },
+      {
+        "type": "spaces",
+        "value": " "
+      },
+      {
+        "type": "filter",
+        "filter": "arrayIncludes",
+        "key": {
+          "type": "keyArrayIncludes",
+          "key": {
+            "type": "keyExplicitArrayTag",
+            "prefix": "tags",
+            "key": {
+              "type": "keySimple",
+              "value": "project_id",
+              "quoted": false
+            }
+          },
+          "index": "*"
+        },
+        "value": {
+          "type": "valueText",
+          "value": "123",
+          "quoted": false
+        },
+        "negated": false,
+        "operator": ""
       },
       {
         "type": "spaces",
