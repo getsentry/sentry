@@ -1727,7 +1727,7 @@ def _build_review_feedback(
     source, the review's own representation.
 
     ``author_is_bot`` marks the resulting feedback as automated so it counts
-    toward the automated-iteration streak cap (see ``automated_iteration_cap_reached``).
+    toward the automated-iteration streak cap (see ``automated_streak_cap_reached``).
     """
     feedback: list[Feedback] = []
 
