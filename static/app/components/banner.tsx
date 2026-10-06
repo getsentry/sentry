@@ -99,7 +99,7 @@ export function Banner({
         </Grid>
       </Flex>
       <Button
-        size="xs"
+        size="zero"
         icon={<IconClose />}
         onClick={dismiss}
         aria-label={t('Close')}
