@@ -236,6 +236,36 @@ describe('EntityHeader', () => {
       expect(screen.queryByRole('heading', {level: 2})).not.toBeInTheDocument();
       expect(screen.queryByText('A subtitle')).not.toBeInTheDocument();
     });
+
+    it('shows the viewers skeleton alongside the stats, not after them', () => {
+      // Viewers cannot be fetched until the entity resolves and yields its
+      // project. If the slot only appeared once its own request was in flight,
+      // its skeleton would start just as the stats beside it finished — reading
+      // as two loads in sequence rather than one.
+      const {rerender} = render(
+        <EntityHeader
+          isLoading
+          title={{label: 'Session'}}
+          viewers={{users: []}}
+          stats={[{label: 'Errors', value: 2}]}
+        />
+      );
+
+      // title + stat + viewers
+      expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(3);
+
+      // The entity lands, its viewers request starts, and the avatar slot holds.
+      rerender(
+        <EntityHeader
+          title={{label: 'Session'}}
+          viewers={{users: [], isLoading: true}}
+          stats={[{label: 'Errors', value: 2}]}
+        />
+      );
+
+      expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(1);
+      expect(screen.getByText('Errors')).toBeInTheDocument();
+    });
   });
 
   describe('layout', () => {

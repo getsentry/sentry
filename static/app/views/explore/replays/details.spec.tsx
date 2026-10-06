@@ -97,6 +97,11 @@ describe('ReplayDetails', () => {
         },
       },
     });
+    // The entity header renders the viewer avatars, keyed by project id.
+    MockApiClient.addMockResponse({
+      url: `/projects/org-slug/${ReplayRecordFixture().project_id}/replays/test-replay-id/viewed-by/`,
+      body: {data: {viewed_by: []}},
+    });
   });
 
   afterEach(() => {

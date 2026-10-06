@@ -3,7 +3,6 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 import type {User} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
 
 interface ViewedByResponse {
   data: {viewed_by: User[]};
@@ -12,8 +11,9 @@ interface ViewedByResponse {
 /**
  * The people who have watched a replay.
  *
- * The endpoint is keyed by project slug, which has to be resolved from the id
- * through the projects store, so the request waits until that lands.
+ * Keyed by project id rather than slug: the endpoint takes either, and the id
+ * arrives with the replay record, whereas the slug needs a second hop through
+ * the projects store that would delay the request further.
  */
 export function useReplayViewers({
   projectId,
@@ -23,10 +23,8 @@ export function useReplayViewers({
   replayId: string | undefined;
 }) {
   const organization = useOrganization();
-  const {projects} = useProjects();
-  const projectSlug = projects.find(p => p.id === projectId)?.slug;
 
-  const canFetch = Boolean(projectSlug && replayId);
+  const canFetch = Boolean(projectId && replayId);
 
   const {data, isPending, isError} = useQuery(
     apiOptions.as<ViewedByResponse>()(
@@ -35,7 +33,7 @@ export function useReplayViewers({
         path: canFetch
           ? {
               organizationIdOrSlug: organization.slug,
-              projectIdOrSlug: projectSlug!,
+              projectIdOrSlug: projectId!,
               replayId: replayId!,
             }
           : skipToken,

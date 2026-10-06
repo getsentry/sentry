@@ -142,7 +142,12 @@ export function EntityHeader({
       Boolean(entry.item)
     );
 
-  const hasViewers = Boolean(viewers && (viewers.isLoading || viewers.users.length > 0));
+  // The header's own loading counts as the viewers loading, so the avatar
+  // skeleton comes up alongside the stat skeletons instead of appearing only
+  // once the entity has resolved and its own request can start.
+  const viewersLoading = Boolean(viewers) && (isLoading || Boolean(viewers?.isLoading));
+  const hasViewers =
+    Boolean(viewers) && (viewersLoading || (viewers?.users.length ?? 0) > 0);
   const hasStats = visibleStats.length > 0 || hasViewers;
   const hasSubtitle = Boolean(subtitle);
   const hasMetadata = visibleMetadata.length > 0;
@@ -173,10 +178,7 @@ export function EntityHeader({
             justifySelf={{zero: 'start', lg: 'end'}}
           >
             {hasViewers && viewers && (
-              <EntityHeaderViewers
-                {...viewers}
-                isLoading={isLoading || viewers.isLoading}
-              />
+              <EntityHeaderViewers {...viewers} isLoading={viewersLoading} />
             )}
             {visibleStats.map(({stat, index}, position) => (
               <Fragment key={index}>

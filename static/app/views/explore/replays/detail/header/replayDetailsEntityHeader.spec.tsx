@@ -48,7 +48,7 @@ describe('ReplayDetailsEntityHeader', () => {
 
   function mockViewedBy(replayId: string) {
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/replays/${replayId}/viewed-by/`,
+      url: `/projects/${organization.slug}/${project.id}/replays/${replayId}/viewed-by/`,
       body: {data: {viewed_by: []}},
     });
   }
