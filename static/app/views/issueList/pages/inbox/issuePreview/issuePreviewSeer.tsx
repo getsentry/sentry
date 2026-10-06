@@ -1,6 +1,7 @@
 import {createContext, useContext, type ReactNode} from 'react';
 
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {useAutofixSetupStep} from 'sentry/components/events/autofix/v3/autofixSetupCard';
 import {AutofixStartCardContent} from 'sentry/components/events/autofix/v3/autofixStartCard';
 import {ProgressState, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -20,21 +21,22 @@ function useIssuePreviewSeerState(group: Group, project: Project) {
   const autofix = useExplorerAutofix(group, {
     enabled: aiConfig.hasAutofix,
   });
-  const isAssigned = group.derivedData?.progress === ProgressState.ASSIGNED;
+  const {isPending: isSetupPending, setupType} = useAutofixSetupStep({
+    seerReposLinked: aiConfig.seerReposLinked,
+  });
   let state: IssuePreviewSeerState;
   if (!aiConfig.hasAutofix) {
     state = 'unavailable';
-  } else if (aiConfig.isAutofixSetupLoading) {
-    state = 'loading';
   } else if (
-    isAssigned &&
-    (!aiConfig.hasAutofixQuota ||
-      (aiConfig.hasGithubIntegration && !aiConfig.seerReposLinked))
+    aiConfig.isAutofixSetupLoading ||
+    (aiConfig.hasAutofixQuota && isSetupPending)
   ) {
+    state = 'loading';
+  } else if (!aiConfig.hasAutofixQuota || setupType) {
     state = 'configure';
   } else if (autofix.isLoading && !autofix.isWaitingForRun) {
     state = 'loading';
-  } else if (isAssigned && !autofix.runState && !autofix.isWaitingForRun) {
+  } else if (!autofix.runState && !autofix.isWaitingForRun) {
     state = 'start';
   } else {
     state = 'summary';
@@ -92,13 +94,24 @@ export function IssuePreviewSeerContent({
     return null;
   }
 
-  if (state === 'configure') {
-    return <AutofixQuotaContent aiConfig={aiConfig} group={group} project={project} />;
+  if (
+    group.derivedData?.progress === ProgressState.ASSIGNED &&
+    !autofix.runState &&
+    !autofix.isWaitingForRun
+  ) {
+    if (state === 'configure') {
+      return <AutofixQuotaContent aiConfig={aiConfig} group={group} project={project} />;
+    }
+    if (state === 'start') {
+      return <AutofixStartCardContent />;
+    }
   }
 
-  if (state === 'start') {
-    return <AutofixStartCardContent />;
-  }
-
-  return <IssuePreviewAutofixSummary autofix={autofix} groupId={group.id} />;
+  return (
+    <IssuePreviewAutofixSummary
+      autofix={autofix}
+      groupId={group.id}
+      readOnly={state === 'configure'}
+    />
+  );
 }

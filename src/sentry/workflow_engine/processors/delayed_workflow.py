@@ -18,7 +18,6 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.rules.conditions.event_frequency import COMPARISON_INTERVALS
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.tasks.post_process import should_retry_fetch
 from sentry.utils import metrics
@@ -38,6 +37,7 @@ from sentry.workflow_engine.handlers.condition.event_frequency_query_handlers im
     QueryResult,
     slow_condition_query_handler_registry,
 )
+from sentry.workflow_engine.handlers.condition.utils.event_frequency import COMPARISON_INTERVALS
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, Workflow
 from sentry.workflow_engine.models.data_condition import (
     PERCENT_CONDITIONS,

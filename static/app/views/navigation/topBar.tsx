@@ -32,7 +32,7 @@ const Slot = slot(['breadcrumbs', 'title', 'search', 'actions', 'feedback'] as c
 
 function TopBarContent() {
   const theme = useTheme();
-  const {pageContentTop} = useTopOffset();
+  const {topBarTop, pageContentTop} = useTopOffset();
 
   const organization = useOrganization({allowNull: true});
   const {isSearchInMobileRow} = useTopBarActionDisplay();
@@ -68,7 +68,7 @@ function TopBarContent() {
       padding={{'screen:sm': 'sm lg', 'screen:md': 'md xl'}}
       position="sticky"
       borderBottom="primary"
-      top={0}
+      top={topBarTop}
       style={{
         zIndex: theme.zIndex.sidebarPanel - 1,
       }}

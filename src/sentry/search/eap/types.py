@@ -46,6 +46,7 @@ class SearchResolverConfig:
     api_attribute_visibility_include_internal: bool = False
     # The queryset of formulas
     saved_formulas: dict[str, "ExploreSavedFormula"] | None = None
+    api_attribute_visibility_include_internal_convention_attributes: bool = False
 
     def extra_conditions(
         self,

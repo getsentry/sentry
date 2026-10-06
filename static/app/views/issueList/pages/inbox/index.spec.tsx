@@ -5,6 +5,7 @@ import {
   ExplorerAutofixStateFixture,
 } from 'sentry-fixture/autofix';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
+import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -215,11 +216,7 @@ describe('InboxPage', () => {
   }
 
   function mockIssuePreview({
-    autofixSetup = AutofixSetupFixture({
-      billing: {hasAutofixQuota: false},
-      integration: {ok: false, reason: null},
-      seerReposLinked: false,
-    }),
+    autofixSetup = AutofixSetupFixture({}),
     autofixSetupDelay,
     group = fixProposedGroup,
     markSeenResponse = {...fixProposedGroup, hasSeen: true},
@@ -236,6 +233,10 @@ describe('InboxPage', () => {
       url: `/organizations/org-slug/issues/${group.id}/`,
       body: () => ({...group, hasSeen: previewHasSeen}),
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/events/recommended/`,
+      body: EventFixture({groupID: group.id}),
+    });
     const markSeenRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/`,
       method: 'PUT',
@@ -251,6 +252,10 @@ describe('InboxPage', () => {
       url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
       body: autofixSetup,
       ...(autofixSetupDelay === undefined ? {} : {asyncDelay: autofixSetupDelay}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/onboarding-check/',
+      body: {hasSupportedScmIntegration: true},
     });
     mockAutofixResponse(ExplorerAutofixResponseFixture({autofix: null}));
     MockApiClient.addMockResponse({
@@ -1193,7 +1198,7 @@ describe('InboxPage', () => {
     expect(within(preview).getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
   });
 
-  it('shows standard issue actions for an assigned issue without paid Seer', async () => {
+  it('keeps Resolve available for an assigned issue without Seer quota', async () => {
     mockAssignedPreview(
       AutofixSetupFixture({
         billing: {hasAutofixQuota: false},
