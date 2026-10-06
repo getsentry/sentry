@@ -43,9 +43,13 @@ export function SetupTitle({project}: {project: Project}) {
     <BodyTitle>
       {tct('Set up the Sentry SDK for [projectBadge]', {
         projectBadge: (
-          <ProjectBadgeWrapper>
+          <Container
+            display="inline-block"
+            maxWidth="100%"
+            style={{verticalAlign: 'text-top'}}
+          >
             <ProjectBadge project={project} avatarSize={16} />
-          </ProjectBadgeWrapper>
+          </Container>
         ),
       })}
     </BodyTitle>
@@ -173,13 +177,33 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
       <TabSelectionScope>
         <div>
           <Container radius="md" padding="3xl">
-            <Title>{t('Get Started with Sentry Issues')}</Title>
+            <Text as="div" bold variant="inherit" style={{fontSize: '26px'}}>
+              {t('Get Started with Sentry Issues')}
+            </Text>
             <Container maxWidth="340px">
               {t('Your code sleuth eagerly awaits its first mission.')}
             </Container>
-            <Image src={waitingForEventImg} />
+            <Container
+              position="absolute"
+              top="0px"
+              right="20px"
+              height="120px"
+              overflow="hidden"
+              pointerEvents="none"
+              display={{zero: 'none', xl: 'block'}}
+            >
+              <img src={waitingForEventImg} alt="" height={120} />
+            </Container>
           </Container>
-          <Divider />
+          <Container
+            as="hr"
+            height="0px"
+            width="95%"
+            border="none"
+            borderTop="primary"
+            marginTop="0"
+            marginBottom="0"
+          />
           <Body>
             <Setup>
               <SetupTitle project={project} />
@@ -272,17 +296,6 @@ function EventWaitingIndicator() {
   );
 }
 
-const ProjectBadgeWrapper = styled('div')`
-  display: inline-block;
-  vertical-align: text-top;
-  max-width: 100%;
-`;
-
-const Title = styled('div')`
-  font-size: 26px;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-`;
-
 const Setup = styled('div')`
   padding: ${p => p.theme.space['3xl']};
 
@@ -296,11 +309,15 @@ const Setup = styled('div')`
   }
 `;
 
-export const BodyTitle = styled('div')`
-  font-size: ${p => p.theme.font.size.xl};
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-bottom: ${p => p.theme.space.md};
-`;
+export function BodyTitle({children}: {children: React.ReactNode}) {
+  return (
+    <Container marginBottom="md">
+      <Text as="div" size="xl" bold variant="inherit">
+        {children}
+      </Text>
+    </Container>
+  );
+}
 
 const Body = styled('div')`
   display: grid;
@@ -310,30 +327,6 @@ const Body = styled('div')`
   h4 {
     margin-bottom: 0;
   }
-`;
-
-const Image = styled('img')`
-  position: absolute;
-  display: block;
-  top: 0px;
-  right: 20px;
-  pointer-events: none;
-  height: 120px;
-  overflow: hidden;
-
-  @container (max-width: ${p => p.theme.container.xl}) {
-    display: none;
-  }
-`;
-
-const Divider = styled('hr')`
-  height: 1px;
-  width: 95%;
-  /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-  background: ${p => p.theme.tokens.border.primary};
-  border: none;
-  margin-top: 0;
-  margin-bottom: 0;
 `;
 
 const Arcade = styled('iframe')`

@@ -56,60 +56,53 @@ export function Banner({
   }
 
   return (
-    <Container containerType="inline-size">
-      <Flex
-        className={className}
-        align="center"
-        justify="center"
-        position="relative"
-        overflow="hidden"
-        marginBottom="xl"
-        radius="md"
-        height={{zero: '180px', xl: '220px'}}
-        style={{
-          backgroundColor: backgroundImg ? undefined : theme.colors.gray800,
-          backgroundImage: backgroundImg ? `url(${backgroundImg})` : undefined,
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          backgroundSize: 'cover',
-          boxShadow: theme.shadow.medium,
-          color: theme.colors.white,
-        }}
+    <Flex
+      className={className}
+      align="center"
+      justify="center"
+      position="relative"
+      overflow="hidden"
+      marginBottom="xl"
+      radius="md"
+      height={{zero: '180px', xl: '220px'}}
+      style={{
+        backgroundColor: backgroundImg ? undefined : theme.colors.gray800,
+        backgroundImage: backgroundImg ? `url(${backgroundImg})` : undefined,
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        backgroundSize: 'cover',
+        boxShadow: theme.shadow.medium,
+        color: theme.colors.white,
+      }}
+    >
+      {backgroundComponent}
+      <Grid
+        position="absolute"
+        justifyItems="center"
+        rows="repeat(3, max-content)"
+        padding="3xl"
       >
-        {backgroundComponent}
-        <Grid
-          position="absolute"
-          justifyItems="center"
-          rows="repeat(3, max-content)"
-          padding="3xl"
-        >
-          <Heading
-            as="h1"
-            align="center"
-            size={{zero: '2xl', xl: '4xl'}}
-            variant="inherit"
-          >
-            {title}
-          </Heading>
-          <Text as="div" align="center" size={{zero: 'md', xl: 'xl'}} variant="inherit">
-            {subtitle}
-          </Text>
-          <Grid flow="column" align="center" gap="md" width="fit-content" paddingTop="xl">
-            {children}
-          </Grid>
+        <Heading as="h1" align="center" size={{zero: '2xl', xl: '4xl'}} variant="inherit">
+          {title}
+        </Heading>
+        <Text as="div" align="center" size={{zero: 'md', xl: 'xl'}} variant="inherit">
+          {subtitle}
+        </Text>
+        <Grid flow="column" align="center" gap="md" width="fit-content" paddingTop="xl">
+          {children}
         </Grid>
-        <Container position="absolute" top={theme.space.xl} right={theme.space.xl}>
-          <Button
-            size="xs"
-            variant="link"
-            icon={<IconClose />}
-            onClick={dismiss}
-            aria-label={t('Close')}
-            style={{color: theme.colors.white}}
-          />
-        </Container>
-      </Flex>
-    </Container>
+      </Grid>
+      <Container position="absolute" top={theme.space.xl} right={theme.space.xl}>
+        <Button
+          size="xs"
+          variant="link"
+          icon={<IconClose />}
+          onClick={dismiss}
+          aria-label={t('Close')}
+          style={{color: theme.colors.white}}
+        />
+      </Container>
+    </Flex>
   );
 }
 
