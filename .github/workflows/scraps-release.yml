@@ -34,10 +34,10 @@ jobs:
         with:
           node-version-file: '.node-version'
       - name: Prepare release
-        uses: getsentry/craft@5cabbe7d6ae3730788393284d5071969d9309753 # v2
+        uses: getsentry/craft@7fe142107c12ea31eaaba10e4985674490bf808b # v2.33.1
         env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         with:
-          path: static/packages/scraps
+          workspace: static/packages/scraps
           version: ${{ inputs.version }}
           publish_repo: getsentry/publish

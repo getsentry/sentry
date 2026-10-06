@@ -57,6 +57,6 @@ The package does not include application providers, global CSS, or fonts.
 ## Prepare a release
 
 Run the `Prepare Scraps release` GitHub workflow with the default `auto` version.
-Craft uses conventional commits that touch `static/packages/scraps` to choose
-the next version and update [CHANGELOG.md](./CHANGELOG.md). To override the
-version, enter an exact version or `major`, `minor`, or `patch`.
+Craft uses conventional commits to choose the next version and update
+[CHANGELOG.md](./CHANGELOG.md). To override the version, enter an exact version
+or `major`, `minor`, or `patch`.
