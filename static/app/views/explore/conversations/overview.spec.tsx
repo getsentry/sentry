@@ -13,10 +13,6 @@ import {AI_AGENTS_GETTING_STARTED_DOCS_LINK} from 'sentry/views/insights/pages/a
 import ConversationsOverviewPage from './overview';
 
 const organization = OrganizationFixture({
-  features: ['gen-ai-agents-overview', 'gen-ai-conversations'],
-});
-
-const organizationWithoutAgentsOverview = OrganizationFixture({
   features: ['gen-ai-conversations'],
 });
 
@@ -114,30 +110,6 @@ describe('ConversationsOverviewPage', () => {
     localStorage.clear();
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
-  });
-
-  it('shows the existing conversations overview when the agents overview is disabled', async () => {
-    render(<ConversationsOverviewPage />, {
-      organization: organizationWithoutAgentsOverview,
-    });
-
-    expect(
-      await screen.findByRole('button', {name: 'Conversation Count'})
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('tab', {name: 'Conversations'})).not.toBeInTheDocument();
-    expect(screen.queryByText('Agent runs')).not.toBeInTheDocument();
-    expect(screen.queryByText(MISSING_AGENT_SPANS_MESSAGE)).not.toBeInTheDocument();
-  });
-
-  it('shows conversation onboarding when the agents overview is disabled without conversation data', async () => {
-    localStorage.clear();
-    render(<ConversationsOverviewPage />, {
-      organization: organizationWithoutAgentsOverview,
-    });
-
-    expect(await screen.findByRole('button', {name: 'Copy prompt'})).toBeInTheDocument();
-    expect(screen.queryByRole('tab', {name: 'Conversations'})).not.toBeInTheDocument();
-    expect(screen.queryByText('Agent runs')).not.toBeInTheDocument();
   });
 
   it('defaults to conversations when conversation data is known', async () => {

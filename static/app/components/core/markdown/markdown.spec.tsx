@@ -448,10 +448,19 @@ describe('Markdown', () => {
       );
     });
 
-    it('suppresses partial tag syntax in text', () => {
-      const {container} = render(<Markdown raw='Some text {% ref type="issue"' />);
+    it('suppresses partial tag syntax in text while streaming', () => {
+      const {container} = render(
+        <Markdown raw='Some text {% ref type="issue"' variant="streaming" />
+      );
       expect(container).toHaveTextContent(/Some text/);
       expect(container).not.toHaveTextContent(/\{%/);
+    });
+
+    it('renders unclosed tag syntax literally in static content', () => {
+      render(<Markdown raw="Seer chat emits {% autofix %} embeds." />);
+      expect(
+        screen.getByText('Seer chat emits {% autofix %} embeds.')
+      ).toBeInTheDocument();
     });
   });
 

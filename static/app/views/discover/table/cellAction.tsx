@@ -335,7 +335,7 @@ export function CellAction({pin, allowActions, usePortalOnDropdown, ...props}: P
           <Flex position="absolute" top="0" bottom="0" right="0" align="center">
             <DropdownMenu
               items={cellActions}
-              usePortal={usePortalOnDropdown ?? true}
+              usePortal={usePortalOnDropdown}
               disableTextSelection
               strategy="fixed"
               size="sm"

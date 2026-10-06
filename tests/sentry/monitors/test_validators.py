@@ -230,6 +230,24 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         monitor = validator.save()
         assert monitor.config["checkin_margin"] == 1
 
+    def test_max_runtime_limit(self) -> None:
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "slug": "cron_job",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily", "max_runtime": 10080},
+        }
+        validator = MonitorValidator(data=data, context=self.context)
+        assert validator.is_valid()
+
+        data["config"]["max_runtime"] = 10081
+        validator = MonitorValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors["config"]["maxRuntime"] == [
+            "Max runtime must be 10080 minutes (7 days) or less. Lower it to save this monitor."
+        ]
+
     @patch("sentry.quotas.backend.assign_seat")
     def test_create_monitor_assigns_seat(self, assign_seat):
         assign_seat.return_value = Outcome.ACCEPTED
