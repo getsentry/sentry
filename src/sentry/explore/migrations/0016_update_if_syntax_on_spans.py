@@ -142,6 +142,7 @@ def new_function(field: str) -> str | None:
             else:
                 column, operator, value = arguments
                 return f"{function_name}(`{'!' if operator == 'notEquals' else ''}{column}{OPERATOR_MAP[operator]}{value}`)"
+    return None
 
 
 def update_if_combinators(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
