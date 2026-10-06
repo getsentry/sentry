@@ -15,14 +15,19 @@ import {
   sanitizeBranch,
 } from './normalization';
 import {PathMappingPreview} from './pathMappingPreview';
+import {PathMappingWarningAlert} from './pathMappingWarningAlert';
+import type {PathMappingWarning} from './warnings';
 
 export const PathMappingEdit = withFieldGroup({
   defaultValues: {stackRoot: '', sourceRoot: '', branch: ''},
   props: {} as {
     defaultBranch?: string;
+    hasCodeOwner?: boolean;
+    projectSlug?: string;
     providerKey?: string;
+    warning?: PathMappingWarning;
   },
-  render: ({group, defaultBranch, providerKey}) => {
+  render: ({group, defaultBranch, hasCodeOwner, projectSlug, providerKey, warning}) => {
     const branchFallback = defaultBranch ?? DEFAULT_BRANCH;
 
     return (
@@ -70,6 +75,7 @@ export const PathMappingEdit = withFieldGroup({
                     value={field.state.value}
                     onChange={field.handleChange}
                     placeholder={STACK_ROOT_PLACEHOLDER}
+                    disabled={hasCodeOwner}
                   />
                 </field.Layout.Stack>
               )}
@@ -107,6 +113,7 @@ export const PathMappingEdit = withFieldGroup({
                     value={field.state.value}
                     onChange={field.handleChange}
                     placeholder={SOURCE_ROOT_PLACEHOLDER}
+                    disabled={hasCodeOwner}
                   />
                 </field.Layout.Stack>
               )}
@@ -128,6 +135,7 @@ export const PathMappingEdit = withFieldGroup({
                 />
               )}
             </group.Subscribe>
+            <PathMappingWarningAlert warning={warning} projectSlug={projectSlug} />
           </Stack>
         </Stack>
       </Container>

@@ -7,10 +7,12 @@ import {Text} from '@sentry/scraps/text';
 
 import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 
 import {DEFAULT_BRANCH, normalizePathMapping} from './normalization';
 import {PathMapping} from './pathMapping';
 import type {PathMappingValue} from './type';
+import {getPathMappingWarnings} from './warnings';
 
 interface RowMeta {
   id: number;
@@ -32,6 +34,8 @@ const hasDuplicateMappings = (values: PathMappingValue[], branchFallback: string
   return new Set(keys).size !== keys.length;
 };
 
+// Collapsing a filled new row promotes it to an established mapping so
+// reopening it shows the summary pinned above the editor.
 const clearIsNewOnCollapse = (
   meta: RowMeta[],
   collapsingId: number | null,
@@ -54,9 +58,17 @@ export const PathMappingList = withForm({
   },
   props: {} as {
     defaultBranch?: string;
+    existingMappings?: RepositoryProjectPathConfig[];
+    projectSlug?: string;
     providerKey?: string;
   },
-  render: function PathMappingListRender({form, providerKey, defaultBranch}) {
+  render: function PathMappingListRender({
+    form,
+    providerKey,
+    defaultBranch,
+    existingMappings,
+    projectSlug,
+  }) {
     const branchFallback = defaultBranch ?? DEFAULT_BRANCH;
     const newRowValue: PathMappingValue = {...EMPTY_MAPPING, branch: branchFallback};
 
@@ -116,11 +128,10 @@ export const PathMappingList = withForm({
               setOpenId(id);
             };
 
-            // Subscribe to live per-row values so the duplicate check and
-            // collapsed summaries update while the user types.
             return (
               <form.Subscribe selector={state => state.values.pathMappings}>
                 {pathMappings => {
+                  const warnings = getPathMappingWarnings(pathMappings, existingMappings);
                   const addDisabledReason = hasDuplicateMappings(
                     pathMappings,
                     branchFallback
@@ -142,7 +153,9 @@ export const PathMappingList = withForm({
                               form={form}
                               isNew={meta.isNew}
                               value={value}
+                              warning={warnings[i]}
                               providerKey={providerKey}
+                              projectSlug={projectSlug}
                               defaultBranch={defaultBranch}
                               onDelete={() => handleDelete(i)}
                               onExpandToggle={() => toggle(meta.id)}

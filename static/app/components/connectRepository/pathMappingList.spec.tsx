@@ -4,6 +4,7 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
 import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
 import type {PathMappingValue} from 'sentry/components/connectRepository/type';
+import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 
 const MAPPINGS: PathMappingValue[] = [
   {stackRoot: 'app/', sourceRoot: 'static/app/', branch: 'main'},
@@ -16,17 +17,20 @@ const MAPPINGS: PathMappingValue[] = [
  */
 function renderList({
   initialPathMappings,
+  pathMappings,
   defaultBranch,
   providerKey,
+  existingMappings,
 }: {
   defaultBranch?: string;
+  existingMappings?: RepositoryProjectPathConfig[];
   initialPathMappings?: PathMappingValue[];
+  pathMappings?: PathMappingValue[];
   providerKey?: string;
 } = {}) {
   const branchSeed = defaultBranch ?? 'main';
-  const seeded = initialPathMappings ?? [
-    {stackRoot: '', sourceRoot: '', branch: branchSeed},
-  ];
+  const seeded = pathMappings ??
+    initialPathMappings ?? [{stackRoot: '', sourceRoot: '', branch: branchSeed}];
 
   function Wrapper() {
     const form = useScrapsForm({
@@ -40,6 +44,7 @@ function renderList({
           form={form}
           defaultBranch={defaultBranch}
           providerKey={providerKey}
+          existingMappings={existingMappings}
         />
       </form.AppForm>
     );
@@ -221,6 +226,144 @@ describe('PathMappingList', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
 
       expect(screen.getByRole('textbox', {name: /branch/i})).toHaveValue('master');
+    });
+  });
+
+  describe('catch-all and exact-duplicate warnings', () => {
+    it('shows the catch-all alert when the expanded row has an empty stack root', async () => {
+      renderList();
+
+      // The initial row is empty (catch-all state).
+      expect(
+        await screen.findByText(
+          'This mapping matches every path because the stack trace prefix is empty. Add a specific path if you only want it to apply to some files.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('hides the catch-all alert once a stack root is entered', async () => {
+      renderList();
+
+      await userEvent.type(
+        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        'src/'
+      );
+
+      expect(
+        screen.queryByText(
+          'This mapping matches every path because the stack trace prefix is empty. Add a specific path if you only want it to apply to some files.'
+        )
+      ).not.toBeInTheDocument();
+    });
+
+    it('does not warn when roots are unrelated', () => {
+      renderList({
+        pathMappings: [
+          {stackRoot: 'app/', sourceRoot: 'static/app/', branch: 'main'},
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+        ],
+      });
+
+      // No warning icon on either collapsed row.
+      expect(screen.queryByRole('img', {name: 'Warning'})).not.toBeInTheDocument();
+    });
+
+    it('shows warning icon and expanded alert for two identical stack roots', async () => {
+      renderList({
+        pathMappings: [
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+        ],
+      });
+
+      // Both rows share the same stack root — each gets a warning icon.
+      expect(screen.getAllByRole('img', {name: 'Warning'})).toHaveLength(2);
+
+      const [firstExpand] = screen.getAllByRole('button', {name: 'Expand path mapping'});
+      await userEvent.click(firstExpand!);
+
+      expect(
+        screen.getByText(
+          /Remove one since only one of them is required for path matching/
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('shows warning icon and across-repos alert when an existing mapping on another repo has the same pair', async () => {
+      renderList({
+        pathMappings: [{stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'}],
+        existingMappings: [
+          {
+            repoName: 'getsentry/relay',
+            stackRoot: 'src/',
+            sourceRoot: 'src/app/',
+          } as RepositoryProjectPathConfig,
+        ],
+      });
+
+      expect(screen.getByRole('img', {name: 'Warning'})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
+
+      expect(screen.getByText(/getsentry\/relay/)).toBeInTheDocument();
+      expect(screen.getByText(/Only one can be used for matching/)).toBeInTheDocument();
+    });
+
+    it('still only disables add-another when roots are exact duplicates, not distinct pairs', () => {
+      renderList({
+        pathMappings: [
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+          {stackRoot: 'src/app/', sourceRoot: 'dist/', branch: 'main'},
+        ],
+      });
+
+      // Different (stackRoot, sourceRoot) pairs — add is NOT disabled.
+      expect(screen.getByRole('button', {name: 'Add another path'})).not.toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+
+    it('shows the exact-duplicate warning on a Code Owners row that duplicates another mapping', async () => {
+      renderList({
+        pathMappings: [
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main', hasCodeOwner: true},
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+        ],
+      });
+
+      // Exact duplicate takes priority: warning icon visible on the Code Owners row.
+      expect(screen.getAllByRole('img', {name: 'Warning'})).toHaveLength(2);
+
+      const [expandCodeOwner] = screen.getAllByRole('button', {
+        name: 'Expand path mapping',
+      });
+      await userEvent.click(expandCodeOwner!);
+
+      expect(
+        screen.getByText(
+          /Remove one since only one of them is required for path matching/
+        )
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/Code Owners/)).not.toBeInTheDocument();
+    });
+
+    it('shows the Code Owners alert on a Code Owners row with no duplicate', async () => {
+      renderList({
+        pathMappings: [
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main', hasCodeOwner: true},
+        ],
+      });
+
+      // No duplicate — no warning icon on the collapsed row.
+      expect(screen.queryByRole('img', {name: 'Warning'})).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
+
+      expect(screen.getByRole('link', {name: 'Code Owners'})).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Only one can be used for matching/)
+      ).not.toBeInTheDocument();
     });
   });
 

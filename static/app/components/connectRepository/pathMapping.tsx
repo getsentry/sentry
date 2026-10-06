@@ -4,6 +4,7 @@ import {PathMappingEdit} from './pathMappingEdit';
 import type {ConnectRepoForm} from './pathMappingList';
 import {PathMappingSummary} from './pathMappingSummary';
 import type {PathMappingValue} from './type';
+import type {PathMappingWarning} from './warnings';
 
 interface PathMappingProps {
   editing: boolean;
@@ -15,7 +16,9 @@ interface PathMappingProps {
   /** Current field values — used by the collapsed summary row. */
   value: PathMappingValue;
   defaultBranch?: string;
+  projectSlug?: string;
   providerKey?: string;
+  warning?: PathMappingWarning;
 }
 
 export function PathMapping({
@@ -27,7 +30,9 @@ export function PathMapping({
   onDelete,
   onExpandToggle,
   defaultBranch,
+  projectSlug,
   providerKey,
+  warning,
 }: PathMappingProps) {
   const showSummary = !(editing && isNew);
 
@@ -38,6 +43,7 @@ export function PathMapping({
           {...value}
           defaultBranch={defaultBranch}
           expanded={editing}
+          warning={warning}
           onDelete={onDelete}
           onExpandToggle={onExpandToggle}
         />
@@ -49,6 +55,9 @@ export function PathMapping({
           fields={fields}
           providerKey={providerKey}
           defaultBranch={defaultBranch}
+          projectSlug={projectSlug}
+          hasCodeOwner={value.hasCodeOwner}
+          warning={warning}
         />
       )}
     </Stack>

@@ -1,24 +1,37 @@
+import styled from '@emotion/styled';
+
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {IconArrow, IconBranch, IconChevron, IconDelete} from 'sentry/icons';
+import {IconArrow, IconBranch, IconChevron, IconDelete, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import {AccentPathSegment} from './accentPathSegment';
 import {DEFAULT_BRANCH, normalizePathMapping} from './normalization';
 import type {PathMappingValue} from './type';
+import {isExactWarning} from './warnings';
+import type {PathMappingWarning} from './warnings';
 
 const PATH_RATIO = 35;
 const BRANCH_RATIO = 30;
+
+const WarningContainer = styled(Container)`
+  background: ${p => p.theme.tokens.background.transparent.warning.muted};
+`;
 
 interface PathMappingSummaryProps extends PathMappingValue {
   expanded: boolean;
   onDelete: () => void;
   onExpandToggle: () => void;
   defaultBranch?: string;
+  warning?: PathMappingWarning;
 }
+
+const CODE_OWNER_DELETE_TOOLTIP = t(
+  'Remove the Code Owners connection before deleting this mapping.'
+);
 
 function PathSegment({value}: {value: string}) {
   return (
@@ -42,6 +55,8 @@ export function PathMappingSummary({
   onDelete,
   onExpandToggle,
   defaultBranch,
+  warning,
+  hasCodeOwner,
 }: PathMappingSummaryProps) {
   const {
     stackRoot: normalizedStackRoot,
@@ -52,9 +67,24 @@ export function PathMappingSummary({
     defaultBranch ?? DEFAULT_BRANCH
   );
 
+  const hasWarning = isExactWarning(warning);
+  const Wrapper = hasWarning ? WarningContainer : Container;
+
   return (
-    <Container padding="md xl">
+    <Wrapper padding="md xl" border={hasWarning ? 'warning' : undefined}>
       <Flex align="center" gap="md" minWidth={0}>
+        {hasWarning && (
+          <Container flexShrink={0}>
+            {props => (
+              <IconWarning
+                size="xs"
+                variant="warning"
+                aria-label={t('Warning')}
+                {...props}
+              />
+            )}
+          </Container>
+        )}
         <PathSegment value={normalizedStackRoot} />
         <Container flexShrink={0}>
           {props => <IconArrow direction="right" size="xs" {...props} />}
@@ -89,10 +119,12 @@ export function PathMappingSummary({
             variant="transparent"
             icon={<IconDelete />}
             aria-label={t('Delete path mapping')}
+            disabled={hasCodeOwner}
+            tooltipProps={hasCodeOwner ? {title: CODE_OWNER_DELETE_TOOLTIP} : undefined}
             onClick={onDelete}
           />
         </Flex>
       </Flex>
-    </Container>
+    </Wrapper>
   );
 }
