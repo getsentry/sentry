@@ -1,9 +1,65 @@
+import {UserFixture} from 'sentry-fixture/user';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {AttributeDetailsTooltip} from 'sentry/components/attributes/attributeDetailsTooltip';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {FieldValueType} from 'sentry/utils/fields';
 
 describe('AttributeDetailsTooltip', () => {
+  beforeEach(() => {
+    ConfigStore.set('user', UserFixture());
+  });
+
+  it.each([
+    ['logger.name', 'Public'],
+    ['sentry.dsc.sampled', 'Internal'],
+    ['checkout.cart_size', 'Public'],
+  ])('shows staff the visibility of %s', async (attributeKey, visibility) => {
+    ConfigStore.set('user', UserFixture({isStaff: true, isSuperuser: false}));
+    render(
+      <AttributeDetailsTooltip attributeKey={attributeKey} fieldDefinitionType="log" />
+    );
+
+    await userEvent.hover(screen.getByText(attributeKey));
+
+    expect(await screen.findByText('Visibility')).toBeInTheDocument();
+    expect(screen.getByText(visibility)).toBeInTheDocument();
+  });
+
+  it.each(['logger.name', 'sentry.dsc.sampled'])(
+    'omits visibility for non-staff viewing %s, even in superuser mode',
+    async attributeKey => {
+      ConfigStore.set('user', UserFixture({isStaff: false, isSuperuser: true}));
+      render(
+        <AttributeDetailsTooltip attributeKey={attributeKey} fieldDefinitionType="log" />
+      );
+
+      await userEvent.hover(screen.getByText(attributeKey));
+
+      expect(await screen.findByText('Description')).toBeInTheDocument();
+      expect(screen.queryByText('Visibility')).not.toBeInTheDocument();
+      expect(screen.queryByText('Public')).not.toBeInTheDocument();
+      expect(screen.queryByText('Internal')).not.toBeInTheDocument();
+    }
+  );
+
+  it('keeps internal visibility when the displayed name is public', async () => {
+    ConfigStore.set('user', UserFixture({isStaff: true}));
+    render(
+      <AttributeDetailsTooltip
+        attributeKey="sentry.dsc.environment"
+        name="environment"
+        fieldDefinitionType="log"
+      />
+    );
+
+    await userEvent.hover(screen.getByText('environment'));
+
+    expect(await screen.findByText('Visibility')).toBeInTheDocument();
+    expect(screen.getByText('Internal')).toBeInTheDocument();
+  });
+
   it('describes the attribute when hovering its name', async () => {
     render(
       <AttributeDetailsTooltip attributeKey="logger.name" fieldDefinitionType="log" />

@@ -16,6 +16,7 @@ export interface AttributeDetailsProps {
   isScrubbed?: boolean;
   kind?: FieldKind;
   valueType?: FieldValueType;
+  visibility?: 'public' | 'internal';
 }
 
 export function AttributeDetails({
@@ -25,6 +26,7 @@ export function AttributeDetails({
   kind,
   name,
   valueType,
+  visibility,
 }: AttributeDetailsProps) {
   return (
     <Fragment>
@@ -45,6 +47,12 @@ export function AttributeDetails({
           <Stack gap="2xs">
             <Text variant="muted">{t('Description')}</Text>
             <Text>{description}</Text>
+          </Stack>
+        ) : null}
+        {visibility ? (
+          <Stack gap="2xs">
+            <Text variant="muted">{t('Visibility')}</Text>
+            <Text>{visibility === 'internal' ? t('Internal') : t('Public')}</Text>
           </Stack>
         ) : null}
       </Tooltip.Grid>

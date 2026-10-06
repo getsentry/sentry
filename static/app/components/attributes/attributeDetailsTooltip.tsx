@@ -8,6 +8,8 @@ import {
   getFieldDefinition,
   type GetFieldDefinitionType,
 } from 'sentry/utils/fields';
+import {getAttributeVisibility} from 'sentry/utils/fields/getAttributeVisibility';
+import {useUser} from 'sentry/utils/useUser';
 
 export interface AttributeDetailsTooltipProps {
   /**
@@ -49,6 +51,7 @@ export function AttributeDetailsTooltip({
   isScrubbed,
   name,
 }: AttributeDetailsTooltipProps) {
+  const user = useUser();
   const fieldDefinition =
     getFieldDefinition(attributeKey, fieldDefinitionType) ??
     (name === undefined ? null : getFieldDefinition(name, fieldDefinitionType));
@@ -70,6 +73,9 @@ export function AttributeDetailsTooltip({
           }
           valueType={
             fieldDefinition?.valueType ?? defaultValueType ?? FieldValueType.STRING
+          }
+          visibility={
+            user.isStaff ? getAttributeVisibility(attributeKey, attributeName) : undefined
           }
         />
       }
