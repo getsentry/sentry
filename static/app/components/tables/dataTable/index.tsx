@@ -1,5 +1,4 @@
-import type {ReactNode, RefObject} from 'react';
-import {useMemo} from 'react';
+import type {ComponentProps, ReactNode, RefObject} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -16,7 +15,12 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {HeaderCellContent} from 'sentry/components/tables/sortableHeaderCell';
 import {TableEmpty, TableError, TableLoading} from 'sentry/components/tables/statusRows';
-import {defined} from 'sentry/utils/defined';
+import {
+  type TableHeaderCellProps,
+  type TableRowProps,
+  TableSections,
+  type TableSectionsProps,
+} from 'sentry/components/tables/tableParts';
 
 export const DATA_TABLE_ROW_HEIGHT = 42;
 
@@ -104,9 +108,15 @@ const Head = styled(Table.Head)`
   border-top-right-radius: ${p => p.theme.radius.md};
 `;
 
-const HeadCell = styled(Table.HeadCell, {
-  shouldForwardProp: prop => prop !== 'isFirst',
-})<{isFirst?: boolean}>`
+function HeaderCell({children, handleSortClick, ...props}: TableHeaderCellProps) {
+  return (
+    <StyledHeaderCell {...props} onSort={handleSortClick} scope="col">
+      {children}
+    </StyledHeaderCell>
+  );
+}
+
+const StyledHeaderCell = styled(Table.HeadCell)`
   height: ${TABLE_HEAD_ROW_HEIGHT}px;
   display: flex;
   align-items: center;
@@ -136,9 +146,11 @@ const HeadCell = styled(Table.HeadCell, {
   }
 
   &:hover {
-    border-left-color: ${p =>
-      p.isFirst ? 'transparent' : p.theme.tokens.border.primary};
     border-right-color: ${p => p.theme.tokens.border.primary};
+  }
+
+  &:not(:first-child):hover {
+    border-left-color: ${p => p.theme.tokens.border.primary};
   }
 
   svg {
@@ -150,30 +162,26 @@ const HeadCell = styled(Table.HeadCell, {
   }
 `;
 
-const Row = styled(Table.Row, {
-  shouldForwardProp: prop => prop !== 'isClickable',
-})<{isClickable?: boolean}>`
+function Row({children, ...props}: TableRowProps) {
+  return (
+    <StyledRow divider {...props}>
+      {children}
+    </StyledRow>
+  );
+}
+
+const StyledRow = styled(Table.Row)`
   &:not(thead > &) {
     background-color: ${p => p.theme.tokens.background.primary};
-
-    &:not(:last-child) {
-      border-bottom: 1px solid ${p => p.theme.tokens.border.secondary};
-    }
 
     &:last-child {
       border-bottom-left-radius: ${p => p.theme.radius.md};
       border-bottom-right-radius: ${p => p.theme.radius.md};
     }
   }
-
-  ${p =>
-    p.isClickable &&
-    css`
-      cursor: pointer;
-    `}
 `;
 
-const Cell = styled(Table.Cell)`
+const RowCell = styled(Table.Cell)`
   /* Locking in the height makes calculation for resizer to be easier.
      min-height is used to allow a cell to expand and this is used to display
      feedback during empty/error state */
@@ -187,85 +195,61 @@ const Cell = styled(Table.Cell)`
   font-size: ${p => p.theme.font.size.md};
 `;
 
-export interface DataTableColumnOptions {
-  fields?: readonly string[];
-  minimumColumnWidth?: number;
-  prefixColumnWidth?: 'min-content' | number;
-  staticColumnWidths?: Record<string, number | string>;
-}
-
-function useDataTableProps({
-  fields,
-  minimumColumnWidth = COL_WIDTH_MINIMUM,
-  prefixColumnWidth,
-  staticColumnWidths,
-}: DataTableColumnOptions) {
-  const columns = useMemo<TableColumnConfig[]>(
-    () => (fields ?? []).map(field => ({key: field, width: staticColumnWidths?.[field]})),
-    [fields, staticColumnWidths]
-  );
-
-  const prependColumnWidths = useMemo(
-    () =>
-      defined(prefixColumnWidth)
-        ? [
-            typeof prefixColumnWidth === 'number'
-              ? `${prefixColumnWidth}px`
-              : prefixColumnWidth,
-          ]
-        : [],
-    [prefixColumnWidth]
-  );
-
-  return {
-    columns,
-    flexibleLastColumn: false,
-    minimumColumnWidth,
-    prependColumnWidths,
+type DataTableProps = Omit<ComponentProps<typeof Frame>, 'children' | 'height'> &
+  TableSectionsProps & {
+    children?: ReactNode;
+    columns?: TableColumnConfig[];
+    height?: CSS['height'];
+    minimumColumnWidth?: number;
+    prependColumnWidths?: string[];
+    ref?: RefObject<HTMLTableElement | null>;
+    scrollable?: boolean;
   };
-}
-
-interface DataTableProps
-  extends Omit<React.ComponentProps<typeof Frame>, 'height'>, DataTableColumnOptions {
-  height?: CSS['height'];
-  ref?: RefObject<HTMLTableElement | null>;
-  scrollable?: boolean;
-}
 
 export function DataTable({
   children,
-  fields,
+  columns,
+  customSections,
+  header,
   height,
-  minimumColumnWidth,
-  prefixColumnWidth,
+  minimumColumnWidth = COL_WIDTH_MINIMUM,
+  prependColumnWidths,
   ref,
   scrollable,
-  staticColumnWidths,
   ...props
 }: DataTableProps) {
-  const tableProps = useDataTableProps({
-    fields,
-    minimumColumnWidth,
-    prefixColumnWidth,
-    staticColumnWidths,
-  });
-
   return (
     <Frame {...props}>
-      <Grid {...tableProps} height={height} ref={ref} scrollable={scrollable}>
-        {children}
+      <Grid
+        columns={columns}
+        flexibleLastColumn={false}
+        height={height}
+        minimumColumnWidth={minimumColumnWidth}
+        prependColumnWidths={prependColumnWidths}
+        ref={ref}
+        scrollable={scrollable}
+      >
+        <TableSections
+          body={Table.Body}
+          customSections={customSections}
+          head={Head}
+          header={header}
+        >
+          {children}
+        </TableSections>
       </Grid>
     </Frame>
   );
 }
 
 DataTable.Body = Table.Body;
-DataTable.Cell = Cell;
 DataTable.Empty = TableEmpty;
 DataTable.Error = TableError;
 DataTable.Frame = Frame;
 DataTable.Grid = Grid;
 DataTable.Head = Head;
-DataTable.HeadCell = HeadCell;
+DataTable.HeaderCell = HeaderCell;
+DataTable.HeaderRow = Table.Row;
 DataTable.Loading = TableLoading;
 DataTable.Row = Row;
+DataTable.RowCell = RowCell;

@@ -152,7 +152,9 @@ export const LogAttributeTreeWrapper = styled('div')`
   border-bottom: 0px;
 `;
 
-export const LogTableBodyCell = styled(DataTable.Cell)<{reservePinGutter?: boolean}>`
+export const LogTableBodyCell = styled(DataTable.RowCell)<{
+  reservePinGutter?: boolean;
+}>`
   min-height: ${LOGS_GRID_BODY_ROW_HEIGHT}px;
 
   padding: 2px ${p => p.theme.space.xl};
@@ -225,7 +227,7 @@ export const LogTableBody = styled(DataTable.Body)<{
   min-height: 1px;
 `;
 
-export const LogDetailTableBodyCell = styled(DataTable.Cell)`
+export const LogDetailTableBodyCell = styled(DataTable.RowCell)`
   padding: 0;
   ${LogTableRow} & {
     padding: 0;
@@ -234,7 +236,7 @@ export const LogDetailTableBodyCell = styled(DataTable.Cell)`
     padding: 0;
   }
 `;
-export const LogDetailTableActionsCell = styled(DataTable.Cell)`
+export const LogDetailTableActionsCell = styled(DataTable.RowCell)`
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.xl};
   min-height: 0px;
 
@@ -382,12 +384,14 @@ export const AlignedCellContent = styled('div')<{
   font-size: ${p => p.theme.font.size.sm};
 `;
 
-export const FirstTableHeadCell = styled(DataTable.HeadCell)`
+export const FirstTableHeadCell = styled(DataTable.HeaderCell)`
   padding-right: ${p => p.theme.space.md};
   padding-left: ${p => p.theme.space.xl};
 `;
 
-export const LogTableHeadCell = styled(DataTable.HeadCell)<{reservePinGutter?: boolean}>`
+export const LogTableHeadCell = styled(DataTable.HeaderCell)<{
+  reservePinGutter?: boolean;
+}>`
   ${p =>
     p.reservePinGutter &&
     css`

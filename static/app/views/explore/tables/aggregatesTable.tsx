@@ -130,17 +130,16 @@ export function AggregatesTable({
   return (
     <Fragment>
       <DataTable
-        fields={visibleFields}
+        columns={visibleFields.map(field => ({key: field}))}
         minimumColumnWidth={50}
-        prefixColumnWidth="min-content"
-      >
-        <DataTable.Head>
-          <DataTable.Row>
-            <DataTable.HeadCell isFirst={false} />
+        prependColumnWidths={['min-content']}
+        header={
+          <DataTable.HeaderRow>
+            <DataTable.HeaderCell />
             {visibleAggregateFields.map((aggregateField, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
-                return <DataTable.HeadCell key={i} isFirst={i === 0} />;
+                return <DataTable.HeaderCell key={i} />;
               }
 
               const field = isGroupBy(aggregateField)
@@ -158,113 +157,111 @@ export function AggregatesTable({
               }
 
               return (
-                <DataTable.HeadCell
+                <DataTable.HeaderCell
                   align={align}
                   columnIndex={i}
                   key={i}
-                  isFirst={i === 0}
-                  onSort={updateSort}
+                  handleSortClick={updateSort}
                   sort={direction}
                 >
                   {label}
-                </DataTable.HeadCell>
+                </DataTable.HeaderCell>
               );
             })}
-          </DataTable.Row>
-        </DataTable.Head>
-        <DataTable.Body>
-          {result.isPending ? (
-            <DataTable.Loading />
-          ) : result.isError ? (
-            <DataTable.Error />
-          ) : result.isFetched && result.data?.length ? (
-            result.data?.map((row, i) => {
-              const menuItems: MenuItemProps[] = [
-                {
-                  key: 'view-samples',
-                  label: t('View Samples'),
-                  to: viewSamplesTarget({
-                    location,
-                    query,
-                    fields,
-                    groupBys,
-                    visualizes,
-                    sorts,
-                    row,
-                    projects,
-                  }),
-                },
-              ];
+          </DataTable.HeaderRow>
+        }
+      >
+        {result.isPending ? (
+          <DataTable.Loading />
+        ) : result.isError ? (
+          <DataTable.Error />
+        ) : result.isFetched && result.data?.length ? (
+          result.data?.map((row, i) => {
+            const menuItems: MenuItemProps[] = [
+              {
+                key: 'view-samples',
+                label: t('View Samples'),
+                to: viewSamplesTarget({
+                  location,
+                  query,
+                  fields,
+                  groupBys,
+                  visualizes,
+                  sorts,
+                  row,
+                  projects,
+                }),
+              },
+            ];
 
-              const traceSlug = row[`any(${SpanFields.TRACE})`];
-              const timestamp = row[`any(${SpanFields.TIMESTAMP})`];
-              if (traceSlug && timestamp) {
-                menuItems.push({
-                  key: 'view-random-trace',
-                  label: t('View Random Trace'),
-                  to: getTraceDetailsUrl({
-                    organization,
-                    traceSlug,
-                    timestamp,
-                    targetId: undefined,
-                    eventId: undefined,
-                    location,
-                    source: TraceViewSources.TRACES,
-                    dateSelection: normalizeDateTimeParams(selection.datetime),
-                  }),
-                });
-              }
+            const traceSlug = row[`any(${SpanFields.TRACE})`];
+            const timestamp = row[`any(${SpanFields.TIMESTAMP})`];
+            if (traceSlug && timestamp) {
+              menuItems.push({
+                key: 'view-random-trace',
+                label: t('View Random Trace'),
+                to: getTraceDetailsUrl({
+                  organization,
+                  traceSlug,
+                  timestamp,
+                  targetId: undefined,
+                  eventId: undefined,
+                  location,
+                  source: TraceViewSources.TRACES,
+                  dateSelection: normalizeDateTimeParams(selection.datetime),
+                }),
+              });
+            }
 
-              return (
-                <DataTable.Row key={i}>
-                  <DataTable.Cell>
-                    {topEvents &&
-                      i < topEvents &&
-                      !parseCursor(aggregateCursor)?.offset && (
-                        <TopResultsIndicator color={palette[i]!} />
-                      )}
-                    <DropdownMenu
-                      items={menuItems}
-                      usePortal
-                      strategy="fixed"
-                      size="sm"
-                      offset={4}
-                      minMenuWidth={0}
-                      trigger={triggerProps => (
-                        <OverlayTrigger.IconButton
-                          {...triggerProps}
-                          aria-label={t('View Samples')}
-                          icon={<IconStack />}
-                          variant="transparent"
-                          size="zero"
-                        />
-                      )}
-                    />
-                  </DataTable.Cell>
-                  {visibleAggregateFields.map((aggregateField, j) => {
-                    const field = isGroupBy(aggregateField)
-                      ? aggregateField.groupBy
-                      : aggregateField.yAxis;
+            return (
+              <DataTable.Row key={i}>
+                <DataTable.RowCell>
+                  {topEvents &&
+                    i < topEvents &&
+                    !parseCursor(aggregateCursor)?.offset && (
+                      <TopResultsIndicator color={palette[i]!} />
+                    )}
+                  <DropdownMenu
+                    items={menuItems}
+                    usePortal
+                    strategy="fixed"
+                    size="sm"
+                    offset={4}
+                    minMenuWidth={0}
+                    trigger={triggerProps => (
+                      <OverlayTrigger.IconButton
+                        {...triggerProps}
+                        aria-label={t('View Samples')}
+                        icon={<IconStack />}
+                        variant="transparent"
+                        size="zero"
+                      />
+                    )}
+                  />
+                </DataTable.RowCell>
+                {visibleAggregateFields.map((aggregateField, j) => {
+                  const field = isGroupBy(aggregateField)
+                    ? aggregateField.groupBy
+                    : aggregateField.yAxis;
 
-                    return (
-                      <DataTable.Cell key={j}>
-                        <FieldRenderer
-                          column={columns[field]}
-                          data={row}
-                          disableTraceLinks
-                          unit={meta?.units?.[field]}
-                          meta={meta}
-                        />
-                      </DataTable.Cell>
-                    );
-                  })}
-                </DataTable.Row>
-              );
-            })
-          ) : (
-            <DataTable.Empty>{t('No spans found')}</DataTable.Empty>
-          )}
-        </DataTable.Body>
+                  return (
+                    <DataTable.RowCell key={j}>
+                      <FieldRenderer
+                        column={columns[field]}
+                        data={row}
+                        disableTraceLinks
+                        unit={meta?.units?.[field]}
+                        meta={meta}
+                      />
+                    </DataTable.RowCell>
+                  );
+                })}
+              </DataTable.Row>
+            );
+          })
+        ) : (
+          <DataTable.Empty>{t('No spans found')}</DataTable.Empty>
+        )}
       </DataTable>
       <Pagination
         pageLinks={result.pageLinks}

@@ -91,21 +91,20 @@ function AggregatesTable({
   return (
     <Fragment>
       <Table
-        fields={fields}
+        columns={fields.map(field => ({key: field}))}
         height={TABLE_HEIGHT}
         minimumColumnWidth={50}
-        prefixColumnWidth="min-content"
+        prependColumnWidths={['min-content']}
         scrollable
-      >
-        <DataTable.Head>
-          <DataTable.Row>
-            <TableHeadCell isFirst={false}>
+        header={
+          <DataTable.HeaderRow>
+            <TableHeadCell>
               <Flex align="center" gap="xs" />
             </TableHeadCell>
             {fields.map((field, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
-                return <TableHeadCell key={i} isFirst={i === 0} />;
+                return <TableHeadCell key={i} />;
               }
 
               let label = field;
@@ -126,51 +125,50 @@ function AggregatesTable({
               const direction = sortBys.find(s => s.field === field)?.kind;
 
               return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0} sort={direction}>
+                <TableHeadCell align={align} key={i} sort={direction}>
                   {label}
                 </TableHeadCell>
               );
             })}
-          </DataTable.Row>
-        </DataTable.Head>
-        <DataTable.Body>
-          {result.isPending ? (
-            <DataTable.Loading />
-          ) : result.isError ? (
-            <DataTable.Error />
-          ) : result.isFetched && result.data?.length ? (
-            result.data?.map((row, i) => {
-              const target = getSamplesTargetAtIndex(index, [...queries], row, location);
-              return (
-                <DataTable.Row key={i}>
-                  <TableBodyCell key={`samples-${i}`}>
-                    {i < TOP_EVENTS_LIMIT && <TopResultsIndicator color={palette[i]!} />}
-                    <Tooltip title={t('View Samples')} containerDisplayMode="flex">
-                      <StyledLink to={target} data-test-id="unstack-link">
-                        <IconStack />
-                      </StyledLink>
-                    </Tooltip>
-                  </TableBodyCell>
-                  {fields.map((field, j) => {
-                    return (
-                      <TableBodyCell key={j}>
-                        <MultiQueryFieldRenderer
-                          index={index}
-                          column={columns[j]}
-                          data={row}
-                          unit={meta?.units?.[field]}
-                          meta={meta}
-                        />
-                      </TableBodyCell>
-                    );
-                  })}
-                </DataTable.Row>
-              );
-            })
-          ) : (
-            <DataTable.Empty>{t('No spans found')}</DataTable.Empty>
-          )}
-        </DataTable.Body>
+          </DataTable.HeaderRow>
+        }
+      >
+        {result.isPending ? (
+          <DataTable.Loading />
+        ) : result.isError ? (
+          <DataTable.Error />
+        ) : result.isFetched && result.data?.length ? (
+          result.data?.map((row, i) => {
+            const target = getSamplesTargetAtIndex(index, [...queries], row, location);
+            return (
+              <DataTable.Row key={i}>
+                <TableBodyCell key={`samples-${i}`}>
+                  {i < TOP_EVENTS_LIMIT && <TopResultsIndicator color={palette[i]!} />}
+                  <Tooltip title={t('View Samples')} containerDisplayMode="flex">
+                    <StyledLink to={target} data-test-id="unstack-link">
+                      <IconStack />
+                    </StyledLink>
+                  </Tooltip>
+                </TableBodyCell>
+                {fields.map((field, j) => {
+                  return (
+                    <TableBodyCell key={j}>
+                      <MultiQueryFieldRenderer
+                        index={index}
+                        column={columns[j]}
+                        data={row}
+                        unit={meta?.units?.[field]}
+                        meta={meta}
+                      />
+                    </TableBodyCell>
+                  );
+                })}
+              </DataTable.Row>
+            );
+          })
+        ) : (
+          <DataTable.Empty>{t('No spans found')}</DataTable.Empty>
+        )}
       </Table>
     </Fragment>
   );
@@ -199,17 +197,16 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
   return (
     <Fragment>
       <Table
-        fields={visibleFields}
+        columns={visibleFields.map(field => ({key: field}))}
         height={TABLE_HEIGHT}
         minimumColumnWidth={50}
         scrollable
-      >
-        <DataTable.Head>
-          <DataTable.Row>
+        header={
+          <DataTable.HeaderRow>
             {visibleFields.map((field, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
-                return <TableHeadCell key={i} isFirst={i === 0} />;
+                return <TableHeadCell key={i} />;
               }
 
               const fieldType = meta.fields?.[field];
@@ -221,40 +218,39 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
               const label = tag?.name ?? prettifyTagKey(field);
 
               return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0} sort={direction}>
+                <TableHeadCell align={align} key={i} sort={direction}>
                   {label}
                 </TableHeadCell>
               );
             })}
-          </DataTable.Row>
-        </DataTable.Head>
-        <DataTable.Body>
-          {result.isPending ? (
-            <DataTable.Loading />
-          ) : result.isError ? (
-            <DataTable.Error />
-          ) : result.isFetched && result.data?.length ? (
-            result.data?.map((row, i) => (
-              <DataTable.Row key={i}>
-                {visibleFields.map((field, j) => {
-                  return (
-                    <TableBodyCell key={j}>
-                      <MultiQueryFieldRenderer
-                        index={index}
-                        column={columnsFromEventView[j]}
-                        data={row}
-                        unit={meta?.units?.[field]}
-                        meta={meta}
-                      />
-                    </TableBodyCell>
-                  );
-                })}
-              </DataTable.Row>
-            ))
-          ) : (
-            <DataTable.Empty>{t('No spans found')}</DataTable.Empty>
-          )}
-        </DataTable.Body>
+          </DataTable.HeaderRow>
+        }
+      >
+        {result.isPending ? (
+          <DataTable.Loading />
+        ) : result.isError ? (
+          <DataTable.Error />
+        ) : result.isFetched && result.data?.length ? (
+          result.data?.map((row, i) => (
+            <DataTable.Row key={i}>
+              {visibleFields.map((field, j) => {
+                return (
+                  <TableBodyCell key={j}>
+                    <MultiQueryFieldRenderer
+                      index={index}
+                      column={columnsFromEventView[j]}
+                      data={row}
+                      unit={meta?.units?.[field]}
+                      meta={meta}
+                    />
+                  </TableBodyCell>
+                );
+              })}
+            </DataTable.Row>
+          ))
+        ) : (
+          <DataTable.Empty>{t('No spans found')}</DataTable.Empty>
+        )}
       </Table>
     </Fragment>
   );
@@ -274,12 +270,12 @@ const StyledLink = styled(Link)`
   display: flex;
 `;
 
-const TableBodyCell = styled(DataTable.Cell)`
+const TableBodyCell = styled(DataTable.RowCell)`
   font-size: ${p => p.theme.font.size.sm};
   min-height: 12px;
 `;
 
-const TableHeadCell = styled(DataTable.HeadCell)`
+const TableHeadCell = styled(DataTable.HeaderCell)`
   font-size: ${p => p.theme.font.size.sm};
   height: 33px;
 `;

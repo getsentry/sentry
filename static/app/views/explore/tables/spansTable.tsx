@@ -186,18 +186,17 @@ export function SpansTable({
     <Fragment>
       <DataTable
         aria-busy={result.isFetching}
+        columns={visibleFields.map(field => ({key: field}))}
         data-test-id="spans-table"
-        fields={visibleFields}
         minimumColumnWidth={50}
-        prefixColumnWidth={SPAN_DETAILS_COLUMN_WIDTH}
-      >
-        <DataTable.Head>
-          <DataTable.Row>
-            <SpanDetailsToggleHeadCell aria-label={t('Span details')} isFirst />
+        prependColumnWidths={[`${SPAN_DETAILS_COLUMN_WIDTH}px`]}
+        header={
+          <DataTable.HeaderRow>
+            <SpanDetailsToggleHeadCell aria-label={t('Span details')} />
             {visibleFields.map((field, i) => {
               // Hide column names before alignment is determined
               if (result.isPending || isLoadingDifferentTable) {
-                return <DataTable.HeadCell key={i} />;
+                return <DataTable.HeaderCell key={i} />;
               }
 
               const fieldType = meta.fields?.[field];
@@ -214,11 +213,11 @@ export function SpansTable({
               const label = tag?.name ?? prettifyTagKey(field);
 
               return (
-                <DataTable.HeadCell
+                <DataTable.HeaderCell
                   align={align}
                   columnIndex={i}
                   key={i}
-                  onSort={updateSort}
+                  handleSortClick={updateSort}
                   sort={direction}
                 >
                   <Flex align="center" gap="xs">
@@ -233,32 +232,31 @@ export function SpansTable({
                       />
                     ) : null}
                   </Flex>
-                </DataTable.HeadCell>
+                </DataTable.HeaderCell>
               );
             })}
-          </DataTable.Row>
-        </DataTable.Head>
-        <DataTable.Body>
-          {(result.isPending || isLoadingDifferentTable) && !displayedData ? (
-            <DataTable.Loading />
-          ) : result.isError && !isRetainedError ? (
-            <DataTable.Error />
-          ) : displayedData?.length ? (
-            displayedData.map((row, i) => (
-              <SpanSampleRow
-                key={`${tableIdentityKey}:${getSpanKey(row, i)}`}
-                columns={columnsFromEventView}
-                data={row}
-                fields={visibleFields}
-                pendingFields={pendingFields}
-                meta={meta}
-                routingHint={routingHint}
-              />
-            ))
-          ) : (
-            <DataTable.Empty>{t('No spans found')}</DataTable.Empty>
-          )}
-        </DataTable.Body>
+          </DataTable.HeaderRow>
+        }
+      >
+        {(result.isPending || isLoadingDifferentTable) && !displayedData ? (
+          <DataTable.Loading />
+        ) : result.isError && !isRetainedError ? (
+          <DataTable.Error />
+        ) : displayedData?.length ? (
+          displayedData.map((row, i) => (
+            <SpanSampleRow
+              key={`${tableIdentityKey}:${getSpanKey(row, i)}`}
+              columns={columnsFromEventView}
+              data={row}
+              fields={visibleFields}
+              pendingFields={pendingFields}
+              meta={meta}
+              routingHint={routingHint}
+            />
+          ))
+        ) : (
+          <DataTable.Empty>{t('No spans found')}</DataTable.Empty>
+        )}
       </DataTable>
       {isRetainedError && !isFieldAdditionError ? (
         <LoadingError
@@ -312,7 +310,7 @@ function SpanSampleRow({
           />
         </SpanDetailsToggleCell>
         {fields.map((field, index) => (
-          <DataTable.Cell key={field}>
+          <DataTable.RowCell key={field}>
             {pendingFields.has(field) ? (
               <Placeholder height="14px" width="60%" />
             ) : (
@@ -323,7 +321,7 @@ function SpanSampleRow({
                 meta={meta}
               />
             )}
-          </DataTable.Cell>
+          </DataTable.RowCell>
         ))}
       </DataTable.Row>
       {isExpanded ? (
@@ -343,17 +341,17 @@ function getSpanKey(row: EventData, index: number) {
   );
 }
 
-const SpanDetailsToggleHeadCell = styled(DataTable.HeadCell)`
+const SpanDetailsToggleHeadCell = styled(DataTable.HeaderCell)`
   align-items: center;
   padding: 0;
 `;
 
-const SpanDetailsToggleCell = styled(DataTable.Cell)`
+const SpanDetailsToggleCell = styled(DataTable.RowCell)`
   align-items: center;
   padding: 0;
 `;
 
-const SpanDetailsCell = styled(DataTable.Cell)`
+const SpanDetailsCell = styled(DataTable.RowCell)`
   background-color: ${p => p.theme.colors.gray100};
   grid-column: 1 / -1;
   padding: ${p => p.theme.space.md};

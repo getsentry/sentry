@@ -211,4 +211,34 @@ describe('SimpleTable component', () => {
       screen.queryByRole('columnheader', {name: 'No results'})
     ).not.toBeInTheDocument();
   });
+
+  it('renders children as the table sections when given custom sections', () => {
+    render(
+      <SimpleTable customSections>
+        <SimpleTable.Head>
+          <SimpleTable.HeaderRow>
+            <SimpleTable.HeaderCell>A</SimpleTable.HeaderCell>
+          </SimpleTable.HeaderRow>
+        </SimpleTable.Head>
+        <SimpleTable.Body data-test-id="pinned">
+          <SimpleTable.Row>
+            <SimpleTable.RowCell>Pinned</SimpleTable.RowCell>
+          </SimpleTable.Row>
+        </SimpleTable.Body>
+        <SimpleTable.Body data-test-id="rows">
+          <SimpleTable.Row>
+            <SimpleTable.RowCell>Row</SimpleTable.RowCell>
+          </SimpleTable.Row>
+        </SimpleTable.Body>
+      </SimpleTable>
+    );
+
+    expect(screen.getAllByRole('rowgroup')).toHaveLength(3);
+    expect(
+      within(screen.getByTestId('pinned')).getByRole('cell', {name: 'Pinned'})
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('rows')).getByRole('cell', {name: 'Row'})
+    ).toBeInTheDocument();
+  });
 });

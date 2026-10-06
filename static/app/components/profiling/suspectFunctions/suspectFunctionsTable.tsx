@@ -198,8 +198,6 @@ export function SuspectFunctionsTable({
     return sortedMetrics.slice(pagination.start, pagination.end);
   }, [sortedMetrics, pagination]);
 
-  const fields = COLUMNS.map(column => column.value);
-
   const baggage: RenderFunctionBaggage = {
     location,
     navigate,
@@ -227,14 +225,14 @@ export function SuspectFunctionsTable({
           />
         </ButtonBar>
       </Flex>
-      <DataTable fields={fields}>
-        <DataTable.Head>
-          <DataTable.Row>
+      <DataTable
+        columns={COLUMNS.map(column => ({key: column.value}))}
+        header={
+          <DataTable.HeaderRow>
             {COLUMNS.map((column, i) => {
               return (
-                <DataTable.HeadCell
+                <DataTable.HeaderCell
                   key={i}
-                  isFirst={i === 0}
                   align={
                     column.value === 'package' || column.value === 'name'
                       ? 'left'
@@ -242,31 +240,30 @@ export function SuspectFunctionsTable({
                   }
                 >
                   {column.label}
-                </DataTable.HeadCell>
+                </DataTable.HeaderCell>
               );
             })}
-          </DataTable.Row>
-        </DataTable.Head>
-        <DataTable.Body>
-          {flamegraphQuery.isPending ? (
-            <DataTable.Loading />
-          ) : flamegraphQuery.isError ? (
-            <DataTable.Error />
-          ) : flamegraphQuery.isFetched && metrics.length > 0 ? (
-            metrics.map((metric, i) => (
-              <TableEntry
-                key={i}
-                analyticsPageSource={analyticsPageSource}
-                baggage={baggage}
-                metric={metric}
-                organization={organization}
-                project={project}
-              />
-            ))
-          ) : (
-            <DataTable.Empty>{t('No functions found')}</DataTable.Empty>
-          )}
-        </DataTable.Body>
+          </DataTable.HeaderRow>
+        }
+      >
+        {flamegraphQuery.isPending ? (
+          <DataTable.Loading />
+        ) : flamegraphQuery.isError ? (
+          <DataTable.Error />
+        ) : flamegraphQuery.isFetched && metrics.length > 0 ? (
+          metrics.map((metric, i) => (
+            <TableEntry
+              key={i}
+              analyticsPageSource={analyticsPageSource}
+              baggage={baggage}
+              metric={metric}
+              organization={organization}
+              project={project}
+            />
+          ))
+        ) : (
+          <DataTable.Empty>{t('No functions found')}</DataTable.Empty>
+        )}
       </DataTable>
     </Fragment>
   );
@@ -316,9 +313,9 @@ function TableEntry({
             };
           });
           return (
-            <DataTable.Cell key={column.value}>
+            <DataTable.RowCell key={column.value}>
               <ArrayLinks items={items} />
-            </DataTable.Cell>
+            </DataTable.RowCell>
           );
         }
 
@@ -327,9 +324,9 @@ function TableEntry({
             ? FIELD_FORMATTERS.duration.renderFunc
             : FIELD_FORMATTERS.string.renderFunc;
         return (
-          <DataTable.Cell key={column.value}>
+          <DataTable.RowCell key={column.value}>
             {formatter(column.value, metric, baggage)}
-          </DataTable.Cell>
+          </DataTable.RowCell>
         );
       })}
     </DataTable.Row>

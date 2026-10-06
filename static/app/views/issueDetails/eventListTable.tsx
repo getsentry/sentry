@@ -3,10 +3,8 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
-import {TableResizer} from '@sentry/scraps/table';
 
-import {Panel} from 'sentry/components/panels/panel';
-import {DataTable} from 'sentry/components/tables/dataTable';
+import {GridEditableTableProvider} from 'sentry/components/tables/gridEditable';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {parseCursor} from 'sentry/utils/cursor';
@@ -126,7 +124,7 @@ export function EventListTable({children, pagination, title}: EventListTableProp
           ) : null}
         </Header>
       ) : null}
-      {children}
+      <GridEditableTableProvider table="simple">{children}</GridEditableTableProvider>
     </StyledGridEditable>
   );
 }
@@ -162,67 +160,21 @@ const StyledGridEditable = styled('div')`
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
 
-  ${Panel} {
+  table {
     border: 0;
-    margin-bottom: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
   }
 
-  ${DataTable.Head} {
-    min-height: unset;
-    font-size: ${p => p.theme.font.size.md};
-    ${TableResizer} {
-      height: 36px;
-    }
+  thead > tr {
+    border-radius: 0;
   }
 
-  ${DataTable.HeadCell} {
-    height: 36px;
-    padding: 0 ${p => p.theme.space.lg};
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    text-transform: none;
-    border-width: 0 1px 0 0;
-    border-style: solid;
-    border-image: linear-gradient(
-        to bottom,
-        transparent,
-        transparent 30%,
-        ${p => p.theme.tokens.border.primary} 30%,
-        ${p => p.theme.tokens.border.primary} 70%,
-        transparent 70%,
-        transparent
-      )
-      1;
-    &:last-child {
-      border: 0;
-    }
-    &:first-child {
-      padding-left: ${p => p.theme.space.lg};
-    }
-  }
-
-  ${DataTable.Cell} {
-    min-height: unset;
-    padding: ${p => p.theme.space.md} ${p => p.theme.space.lg};
-    font-size: ${p => p.theme.font.size.md};
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  ${DataTable.Row} {
-    td:nth-child(2) {
-      padding-left: ${p => p.theme.space.lg};
-    }
-
-    td:not(:nth-child(2)) {
-      a {
-        color: ${p => p.theme.tokens.content.primary};
-        text-decoration: underline;
-        /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
-        text-decoration-color: ${p => p.theme.tokens.border.primary};
-      }
-    }
+  td:nth-child(n + 3) a {
+    color: ${p => p.theme.tokens.content.primary};
+    text-decoration: underline;
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token */
+    text-decoration-color: ${p => p.theme.tokens.border.primary};
   }
 `;
 

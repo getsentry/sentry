@@ -603,10 +603,10 @@ export function LogsInfiniteTable({
     <Fragment>
       <LogTable
         ref={tableRef}
-        fields={fields}
+        columns={fields.map(field => ({key: field, width: staticColumnWidths?.[field]}))}
+        customSections
         minimumColumnWidth={50}
-        prefixColumnWidth="min-content"
-        staticColumnWidths={staticColumnWidths}
+        prependColumnWidths={['min-content']}
         css={tableStaticCSS}
         height="100%"
         hideBorder={embedded}
@@ -640,7 +640,7 @@ export function LogsInfiniteTable({
           {paddingTop > 0 && (
             <DataTable.Row>
               {fields.map(field => (
-                <DataTable.Cell key={field} style={{height: paddingTop}} />
+                <DataTable.RowCell key={field} style={{height: paddingTop}} />
               ))}
             </DataTable.Row>
           )}
@@ -717,7 +717,7 @@ export function LogsInfiniteTable({
           {paddingBottom > 0 && (
             <DataTable.Row>
               {fields.map(field => (
-                <DataTable.Cell key={field} style={{height: paddingBottom}} />
+                <DataTable.RowCell key={field} style={{height: paddingBottom}} />
               ))}
             </DataTable.Row>
           )}
@@ -779,7 +779,7 @@ function LogsTableHeader({
   return (
     <DataTable.Head>
       <LogTableRow>
-        <FirstTableHeadCell isFirst align="left" />
+        <FirstTableHeadCell align="left" />
         {fields.map((field, index) => {
           const direction = sortBys.find(s => s.field === field)?.kind;
 
@@ -796,7 +796,6 @@ function LogsTableHeader({
             return (
               <LogTableHeadCell
                 key={index}
-                isFirst={index === 0}
                 reservePinGutter={pinningEnabled && index === fields.length - 1}
               />
             );
@@ -806,9 +805,8 @@ function LogsTableHeader({
               align={index === 0 ? 'left' : align}
               columnIndex={index}
               key={index}
-              isFirst={index === 0}
               reservePinGutter={pinningEnabled && index === fields.length - 1}
-              onSort={
+              handleSortClick={
                 isFrozen
                   ? undefined
                   : () => {

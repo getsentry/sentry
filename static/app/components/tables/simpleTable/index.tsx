@@ -1,62 +1,71 @@
-import type {ComponentProps, HTMLAttributes, ReactNode, RefObject} from 'react';
+import type {HTMLAttributes, ReactNode, RefObject} from 'react';
 import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {LocationDescriptor} from 'history';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import {fullWidthCellStyle, Table, type TableColumnConfig} from '@sentry/scraps/table';
 
 import {
   type ColumnAlign,
   HeaderCellContent,
-  type SortDirection,
 } from 'sentry/components/tables/sortableHeaderCell';
 import {TableEmpty, TableError, TableLoading} from 'sentry/components/tables/statusRows';
+import {
+  type TableHeaderCellProps,
+  type TableRowProps,
+  TableSections,
+  type TableSectionsProps,
+} from 'sentry/components/tables/tableParts';
 import {defined} from 'sentry/utils/defined';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 
-interface TableProps extends Omit<HTMLAttributes<HTMLTableElement>, 'children'> {
-  children?: ReactNode;
-  columns?: TableColumnConfig[];
-  /** The header row, rendered into the table's `<thead>`. */
-  header?: ReactNode;
-  ref?: RefObject<HTMLTableElement | null>;
-}
+type TableProps = Omit<HTMLAttributes<HTMLTableElement>, 'children'> &
+  TableSectionsProps & {
+    children?: ReactNode;
+    columns?: TableColumnConfig[];
+    minimumColumnWidth?: number;
+    onColumnResize?: (index: number, width: number) => void;
+    prependColumnWidths?: string[];
+    ref?: RefObject<HTMLTableElement | null>;
+  };
 
-interface RowProps extends HTMLAttributes<HTMLTableRowElement> {
-  ref?: RefObject<HTMLTableRowElement | null>;
+interface RowProps extends TableRowProps {
   variant?: 'default' | 'faded';
 }
 
 type HeaderCellVariant = 'default' | 'first' | 'remaining' | 'full-width';
 
-export function SimpleTable({children, columns, header, ...props}: TableProps) {
+export function SimpleTable({
+  children,
+  columns,
+  customSections,
+  header,
+  ...props
+}: TableProps) {
   // This shell has no resize affordance, so its columns do not opt into one.
   const unresizableColumns = columns?.map(column => ({resizable: false, ...column}));
 
   return (
     <StyledTable columns={unresizableColumns} {...props}>
       <PanelProvider>
-        {header && <Table.Head>{header}</Table.Head>}
-        <Table.Body>{children}</Table.Body>
+        <TableSections
+          body={Table.Body}
+          customSections={customSections}
+          head={Table.Head}
+          header={header}
+        >
+          {children}
+        </TableSections>
       </PanelProvider>
     </StyledTable>
   );
 }
 
-function HeaderRow({
-  children,
-  sticky,
-  ...props
-}: HTMLAttributes<HTMLTableRowElement> & {sticky?: boolean}) {
-  return (
-    <StyledHeaderRow sticky={sticky} {...props}>
-      {children}
-    </StyledHeaderRow>
-  );
+function HeaderRow({children, ...props}: HTMLAttributes<HTMLTableRowElement>) {
+  return <StyledHeaderRow {...props}>{children}</StyledHeaderRow>;
 }
 
 function HeaderCell({
@@ -68,14 +77,8 @@ function HeaderCell({
   variant = 'default',
   divider = defined(children) ? true : false,
   ...props
-}: HTMLAttributes<HTMLTableCellElement> & {
-  align?: ColumnAlign;
-  children?: React.ReactNode;
-  columnIndex?: number;
+}: TableHeaderCellProps & {
   divider?: boolean;
-  handleSortClick?: (event: React.MouseEvent) => void;
-  sort?: SortDirection;
-  to?: LocationDescriptor;
   variant?: HeaderCellVariant;
 }) {
   return (
@@ -107,12 +110,7 @@ function Row({children, variant = 'default', ref, ...props}: RowProps) {
   );
 }
 
-function RowCell({
-  children,
-  ...props
-}: ComponentProps<typeof Flex> & {
-  children: React.ReactNode;
-}) {
+function RowCell({children, ...props}: FlexProps<'td'>) {
   return (
     <Flex as="td" role="cell" align="center" overflow="hidden" padding="lg xl" {...props}>
       {children}
@@ -130,9 +128,7 @@ const StyledTable = styled(Table)`
   overflow: hidden;
 `;
 
-const StyledHeaderRow = styled(Table.Row, {
-  shouldForwardProp: prop => prop !== 'sticky',
-})<{sticky?: boolean}>`
+const StyledHeaderRow = styled(Table.Row)`
   background: ${p => p.theme.tokens.background.secondary};
   border-bottom: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: calc(${p => p.theme.radius.md} + 1px)
@@ -142,14 +138,6 @@ const StyledHeaderRow = styled(Table.Row, {
   padding: 0;
   min-height: 40px;
   align-items: center;
-
-  ${p =>
-    p.sticky &&
-    css`
-      position: sticky;
-      top: 0;
-      z-index: ${p.theme.zIndex.initial};
-    `}
 `;
 
 const StyledRow = styled(Table.Row, {
@@ -189,6 +177,7 @@ const ColumnHeaderCell = styled(Table.HeadCell, {
   position: relative;
   justify-content: space-between;
   height: 100%;
+  --column-resizer-height: 100%;
 
   ${HeaderCellContent} {
     flex: 1;
@@ -266,6 +255,8 @@ function FullWidthRow({children, ...props}: RowProps) {
   );
 }
 
+SimpleTable.Body = Table.Body;
+SimpleTable.Head = Table.Head;
 SimpleTable.HeaderRow = HeaderRow;
 SimpleTable.HeaderCell = HeaderCell;
 SimpleTable.Row = Row;
