@@ -202,9 +202,7 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
                 "actionType": action_type,
                 "groupId": data.group_id,
                 "eventId": data.event_id,
-                "rules": [
-                    origin.legacy_rule_id for origin in origins if origin.legacy_rule_id is not None
-                ],
+                "rules": [data.rule.id],
                 "workflows": get_workflow_ids(origins),
             }
         }
