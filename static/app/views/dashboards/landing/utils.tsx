@@ -26,7 +26,7 @@ export interface LandingDashboard {
   prebuiltId?: PrebuiltDashboardId;
 }
 
-export interface LandingSectionItem {
+interface LandingSectionItem {
   dashboard: LandingDashboard;
   reason?: string;
 }
@@ -68,7 +68,7 @@ const MOBILE_PLATFORM_PREFIXES = [
 
 // Ordered from most to least specific so that e.g. a Next.js project is not
 // only reported as a generic browser JavaScript project.
-export const FRAMEWORKS: Framework[] = [
+const FRAMEWORKS: Framework[] = [
   {
     key: 'nextjs',
     label: 'Next.js',
@@ -188,7 +188,7 @@ export const DATA_SOURCE_LABELS: Record<DashboardDataSource, string> = {
   releases: t('Releases'),
 };
 
-export function getDataSourcesFromWidgetTypes(
+function getDataSourcesFromWidgetTypes(
   widgetTypes: Array<WidgetType | undefined>
 ): Set<DashboardDataSource> {
   const sources = new Set<DashboardDataSource>();
@@ -212,7 +212,7 @@ export function getDataSourcesFromTitle(title: string): Set<DashboardDataSource>
   return sources;
 }
 
-export function getMockStarCount(id: string, isFavorited: boolean): number {
+function getMockStarCount(id: string, isFavorited: boolean): number {
   let hash = 0;
   for (const char of id) {
     hash = (hash * 31 + char.charCodeAt(0)) % 997;
