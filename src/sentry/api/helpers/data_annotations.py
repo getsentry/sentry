@@ -8,6 +8,7 @@ import sentry_sdk
 from sentry.api.endpoints.timeseries import Annotation
 from sentry.constants import DataCategory
 from sentry.search.events.types import SnubaParams
+from sentry.snuba import errors
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.outcomes import QueryDefinition, run_outcomes_query_timeseries
 from sentry.snuba.spans_rpc import Spans
@@ -63,6 +64,7 @@ DATASET_TO_CATEGORY: dict[object, DataCategory] = {
     Spans: DataCategory.SPAN,
     OurLogs: DataCategory.LOG_ITEM,
     TraceMetrics: DataCategory.TRACE_METRIC,
+    errors: DataCategory.ERROR,
 }
 
 # Only for logs dropped/accepted bytes outcome is emitted.
