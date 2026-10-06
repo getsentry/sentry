@@ -163,12 +163,14 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
               {suspectFlagNames.has(f.flag) && (
                 <SuspectLabel>{t('Suspect')}</SuspectLabel>
               )}
-              <FlagActionDropdown
-                flag={f.flag}
-                result={f.result.toString()}
-                generateAction={generateAction}
-              />
             </ValueWrapper>
+          ),
+          actionButton: (
+            <FlagActionDropdown
+              flag={f.flag}
+              result={f.result.toString()}
+              generateAction={generateAction}
+            />
           ),
         },
         isSuspectFlag: suspectFlagNames.has(f.flag),
@@ -320,11 +322,10 @@ const SuspectLabel = styled('div')`
 
 const ValueWrapper = styled('div')`
   display: grid;
-  grid-template-columns: 1fr 1fr 0.5fr;
+  grid-template-columns: 1fr 1fr;
   justify-items: start;
 
   @media (max-width: ${p => p.theme.breakpoints.xs}) {
-    grid-template-columns: 1fr 0.5fr;
     grid-template-rows: auto auto;
 
     /* Move suspect label to second row, spanning full width */
