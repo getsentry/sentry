@@ -102,6 +102,8 @@ export function useSafetyTriangle() {
     };
   });
 
-  useEffect(() => triangle.cancel, [triangle]);
+  useEffect(() => {
+    return () => triangle.cancel();
+  }, [triangle]);
   return triangle;
 }
