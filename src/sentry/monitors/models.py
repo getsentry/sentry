@@ -639,6 +639,8 @@ class MonitorEnvironmentManager(BaseManager["MonitorEnvironment"]):
             environment_id=environment.id,
             defaults={"status": MonitorStatus.ACTIVE, "is_muted": is_monitor_muted(monitor)},
         )
+        # Avoid re-fetching the monitor when following the relation
+        monitor_env.monitor = monitor
 
         # recompute per-project monitor check-in rate limit quota
         if created:

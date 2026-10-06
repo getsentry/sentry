@@ -575,6 +575,16 @@ def update_existing_check_in(
     existing_check_in.update(**updated_checkin)
 
 
+def _cache_checkin_relations(
+    check_in: MonitorCheckIn, monitor: Monitor, monitor_environment: MonitorEnvironment
+) -> None:
+    # Avoid re-fetching already loaded objects; only when the ids match
+    if check_in.monitor_id == monitor.id:
+        check_in.monitor = monitor
+    if check_in.monitor_environment_id == monitor_environment.id:
+        check_in.monitor_environment = monitor_environment
+
+
 def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan) -> None:
     params = item.payload
 
@@ -1014,6 +1024,7 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
                         }
                         raise ProcessingErrorsException([env_mismatch_error], monitor)
 
+                _cache_checkin_relations(check_in, monitor, monitor_environment)
                 set_span_tag(span, "outcome", "process_existing_checkin")
                 update_existing_check_in(
                     span,
@@ -1076,6 +1087,7 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
                 # XXX(epurkhiser): Is this needed since we're already
                 # locking this entire process?
                 if not created:
+                    _cache_checkin_relations(check_in, monitor, monitor_environment)
                     set_span_tag(span, "outcome", "process_existing_checkin_race_condition")
                     update_existing_check_in(
                         span,
