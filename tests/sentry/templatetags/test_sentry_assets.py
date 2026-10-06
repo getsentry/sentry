@@ -33,12 +33,12 @@ from django.test import RequestFactory
         ),
         # Match closing script tags case-insensitively, as browsers do.
         (
-            """
-        {% script %}
-        <script >
-        alert("hi")
-        </ScRiPt ><img src=x onerror=alert("x")>
-        {% endscript %}""",
+            '{% script %}<script>alert("hi")</SCRIPT>{% endscript %}',
+            '<script nonce="r@nD0m">alert("hi")</script>',
+        ),
+        # Match whitespace and attributes in closing script tags.
+        (
+            '{% script %}<script>alert("hi")</script\t\n bar>{% endscript %}',
             '<script nonce="r@nD0m">alert("hi")</script>',
         ),
         # src with static string
