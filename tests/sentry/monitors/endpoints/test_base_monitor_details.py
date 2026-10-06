@@ -27,7 +27,17 @@ from sentry.testutils.cases import MonitorTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.outcomes import Outcome
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
-from sentry.workflow_engine.models import DataSource, Detector
+from sentry.workflow_engine.models import (
+    Action,
+    AlertRuleWorkflow,
+    DataCondition,
+    DataConditionGroupAction,
+    DataSource,
+    Detector,
+    WorkflowDataConditionGroup,
+)
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.typings.notification_action import ActionTarget
 
 
 class BaseMonitorDetailsTest(MonitorTestCase):
@@ -505,6 +515,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
     def test_existing_issue_alert_rule(self) -> None:
         monitor = self._create_monitor()
         rule = self._create_issue_alert_rule(monitor)
+        workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow
         new_environment = self.create_environment(name="jungle")
         new_user = self.create_user()
         self.create_team_membership(user=new_user, team=self.team)
@@ -553,6 +564,32 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         ]
         rule_environment = Environment.objects.get(id=monitor_rule.environment_id)
         assert rule_environment.name == new_environment.name
+
+        workflow.refresh_from_db()
+        assert AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow_id == workflow.id
+        assert workflow.name == "Monitor Alert: new-name"
+        assert workflow.environment_id == new_environment.id
+
+        action_condition_group = WorkflowDataConditionGroup.objects.get(
+            workflow=workflow
+        ).condition_group
+        slug_condition = DataCondition.objects.get(
+            condition_group=action_condition_group,
+            type=Condition.TAGGED_EVENT,
+        )
+        assert slug_condition.comparison == {
+            "key": "monitor.slug",
+            "match": "eq",
+            "value": "new-slug",
+        }
+
+        action = DataConditionGroupAction.objects.get(condition_group=action_condition_group).action
+        assert action.type == Action.Type.EMAIL
+        assert action.config == {
+            "target_identifier": str(new_user.id),
+            "target_display": None,
+            "target_type": ActionTarget.USER,
+        }
 
     def test_existing_issue_alert_rule_add_slug_condition(self) -> None:
         monitor = self._create_monitor()

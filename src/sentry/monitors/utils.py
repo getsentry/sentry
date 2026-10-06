@@ -11,12 +11,14 @@ from sentry.db.models import BoundedPositiveIntegerField
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.models.rule import Rule, RuleActivity, RuleActivityType, RuleSource
+from sentry.models.rule import Rule
 from sentry.monitors.constants import DEFAULT_CHECKIN_MARGIN, MAX_TIMEOUT, TIMEOUT
+from sentry.monitors.issue_alerts import (
+    create_cron_monitor_issue_alert,
+    update_cron_monitor_issue_alert,
+)
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn
 from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
-from sentry.projects.project_rules.creator import ProjectRuleCreator
-from sentry.projects.project_rules.updater import ProjectRuleUpdater
 from sentry.search.eap.occurrences.common_queries import get_group_to_trace_ids_map
 from sentry.search.eap.occurrences.query_utils import build_snuba_params_from_ids
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
@@ -324,29 +326,12 @@ def create_issue_alert_rule(
     :param validated_issue_alert_rule: Dictionary of configurations for an associated Rule
     :return: dict
     """
-    rule = ProjectRuleCreator(
-        name=f"Monitor Alert: {monitor.name}"[:64],
+    rule = create_cron_monitor_issue_alert(
         project=project,
-        action_match="any",
         actions=_build_issue_alert_rule_actions(validated_issue_alert_rule),
-        conditions=[
-            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
-            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
-            {
-                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-                "key": "monitor.slug",
-                "match": "eq",
-                "value": monitor.slug,
-            },
-        ],
-        frequency=5,
-        environment=validated_issue_alert_rule.get("environment"),
-        filter_match="all",
-        request=request,
-        source=RuleSource.CRON_MONITOR,
-    ).run()
-    RuleActivity.objects.create(
-        rule=rule, user_id=request.user.id, type=RuleActivityType.CREATED.value
+        environment_id=validated_issue_alert_rule.get("environment"),
+        monitor=monitor,
+        user_id=request.user.id,
     )
     return rule.id
 
@@ -365,7 +350,6 @@ def _build_issue_alert_rule_actions(issue_alert_rule: dict) -> list[dict]:
 
 def update_issue_alert_rule(
     request: Request,
-    project: Project,
     monitor: Monitor,
     issue_alert_rule: Rule,
     issue_alert_rule_data: dict,
@@ -389,18 +373,13 @@ def update_issue_alert_rule(
             }
         )
 
-    updated_rule = ProjectRuleUpdater(
+    update_cron_monitor_issue_alert(
         rule=issue_alert_rule,
-        request=request,
-        project=project,
-        name=f"Monitor Alert: {monitor.name}"[:64],
-        environment=issue_alert_rule_data.get("environment"),
         actions=_build_issue_alert_rule_actions(issue_alert_rule_data),
         conditions=conditions,
-    ).run()
-
-    RuleActivity.objects.create(
-        rule=updated_rule, user_id=request.user.id, type=RuleActivityType.UPDATED.value
+        environment_id=issue_alert_rule_data.get("environment"),
+        monitor=monitor,
+        user_id=request.user.id,
     )
 
     return issue_alert_rule.id

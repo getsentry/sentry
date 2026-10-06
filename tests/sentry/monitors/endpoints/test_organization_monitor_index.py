@@ -22,6 +22,17 @@ from sentry.testutils.helpers.analytics import assert_any_analytics_event
 from sentry.testutils.outbox import outbox_runner
 from sentry.utils.outcomes import Outcome
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.workflow_engine.models import (
+    Action,
+    AlertRuleWorkflow,
+    DataCondition,
+    DataConditionGroup,
+    DataConditionGroupAction,
+    DetectorWorkflow,
+    WorkflowDataConditionGroup,
+)
+from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.typings.notification_action import ActionTarget
 
 
 class ListOrganizationMonitorsTest(MonitorTestCase):
@@ -583,8 +594,6 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
         ]
 
     def test_simple_with_alert_rule(self) -> None:
-        from sentry.workflow_engine.models import AlertRuleWorkflow, DetectorWorkflow, Workflow
-
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
@@ -611,7 +620,45 @@ class CreateOrganizationMonitorTest(MonitorTestCase):
 
         # Verify the workflow was created for the rule
         alert_rule_workflow = AlertRuleWorkflow.objects.get(rule_id=rule.id)
-        workflow = Workflow.objects.get(id=alert_rule_workflow.workflow.id)
+        workflow = alert_rule_workflow.workflow
+
+        assert workflow.name == "Monitor Alert: My Monitor"
+        assert workflow.environment_id == self.environment.id
+        assert workflow.created_by_id == self.user.id
+        assert workflow.config == {"frequency": 5}
+
+        when_condition_group = workflow.when_condition_group
+        assert when_condition_group is not None
+        assert when_condition_group.logic_type == DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        assert set(
+            DataCondition.objects.filter(condition_group=when_condition_group).values_list(
+                "type", "comparison", "condition_result"
+            )
+        ) == {
+            (Condition.FIRST_SEEN_EVENT, True, True),
+            (Condition.REGRESSION_EVENT, True, True),
+        }
+
+        workflow_condition_group = WorkflowDataConditionGroup.objects.get(workflow=workflow)
+        action_condition_group = workflow_condition_group.condition_group
+        assert action_condition_group.logic_type == DataConditionGroup.Type.ALL
+        slug_condition = DataCondition.objects.get(condition_group=action_condition_group)
+        assert slug_condition.type == Condition.TAGGED_EVENT
+        assert slug_condition.comparison == {
+            "key": "monitor.slug",
+            "match": "eq",
+            "value": monitor.slug,
+        }
+        assert slug_condition.condition_result is True
+
+        action = DataConditionGroupAction.objects.get(condition_group=action_condition_group).action
+        assert action.type == Action.Type.EMAIL
+        assert action.data == {}
+        assert action.config == {
+            "target_identifier": str(self.user.id),
+            "target_display": None,
+            "target_type": ActionTarget.USER,
+        }
 
         # Verify the detector is linked to the workflow
         assert DetectorWorkflow.objects.filter(detector=detector, workflow=workflow).exists()

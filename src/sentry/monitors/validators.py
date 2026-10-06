@@ -637,7 +637,7 @@ class MonitorValidator(CamelSnakeSerializer):
             # If rule exists, update as necessary
             if issue_alert_rule:
                 issue_alert_rule_id = update_issue_alert_rule(
-                    request, project, instance, issue_alert_rule, alert_rule_data
+                    request, instance, issue_alert_rule, alert_rule_data
                 )
             # If rule does not exist, create
             else:
