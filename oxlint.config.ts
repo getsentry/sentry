@@ -1946,7 +1946,14 @@ const config = defineConfig({
 });
 
 const enrolledRules = new Set(
-  Object.keys(incubator.rules).map(rule => rule.replace(/^eslint\//, ''))
+  [incubator, ...incubator.overrides].flatMap(({rules}) =>
+    Object.entries(rules ?? {})
+      .filter(([, options]) => {
+        const severity = Array.isArray(options) ? options[0] : options;
+        return severity !== 'off' && severity !== 0;
+      })
+      .map(([rule]) => rule.replace(/^eslint\//, ''))
+  )
 );
 function setIncubatorSeverity(rules: OxlintConfig['rules']) {
   const configured = {...rules};

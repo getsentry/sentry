@@ -8,6 +8,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  readdirSync,
   realpathSync,
   renameSync,
   rmSync,
@@ -357,12 +358,42 @@ async function baseScan(base: string, allowed: Set<string>, policy: string) {
     git(root, ['archive', '--format=tar', '-o', archive, base]);
     execFileSync('tar', ['-xf', archive, '-C', directory]);
     rmSync(archive);
-    rmSync(path.join(directory, 'node_modules'), {recursive: true, force: true});
-    symlinkSync(
-      path.join(root, 'node_modules'),
-      path.join(directory, 'node_modules'),
-      'dir'
+    const workspaces: unknown = JSON.parse(
+      execFileSync('pnpm', ['list', '--recursive', '--depth', '-1', '--json'], {
+        cwd: root,
+        encoding: 'utf8',
+      })
     );
+    assert(Array.isArray(workspaces), 'Invalid pnpm workspace list');
+    const workspaceTargets = new Map<string, string>();
+    for (const workspace of workspaces) {
+      assert(record(workspace) && typeof workspace.path === 'string');
+      const relative = path.relative(root, workspace.path);
+      assert(relative === '' || validPath(relative), 'Invalid workspace path');
+      workspaceTargets.set(realpathSync(workspace.path), path.join(directory, relative));
+    }
+    for (const [workspace, baseWorkspace] of workspaceTargets) {
+      const source = path.join(workspace, 'node_modules');
+      const target = path.join(baseWorkspace, 'node_modules');
+      if (!existsSync(source) || !existsSync(baseWorkspace)) {
+        continue;
+      }
+      rmSync(target, {recursive: true, force: true});
+      mkdirSync(target);
+      const dependencies = readdirSync(source).flatMap(name =>
+        name.startsWith('@')
+          ? readdirSync(path.join(source, name)).map(dependency =>
+              path.join(name, dependency)
+            )
+          : [name]
+      );
+      for (const dependency of dependencies) {
+        const installed = realpathSync(path.join(source, dependency));
+        const destination = path.join(target, dependency);
+        mkdirSync(path.dirname(destination), {recursive: true});
+        symlinkSync(workspaceTargets.get(installed) ?? installed, destination);
+      }
+    }
     const tracked = (ref?: string) =>
       git(
         root,
@@ -493,7 +524,7 @@ Native oxlint options:
   const {default: config, incubator}: {default: OxlintConfig; incubator: OxlintConfig} =
     await import(pathToFileURL(path.join(root, 'oxlint.config.ts')).href);
   assert(
-    record(incubator) && record(incubator.rules),
+    incubator && record(incubator.rules),
     'Export the incubator rules registry from oxlint.config.ts'
   );
   const allowed = new Set<string>();
@@ -508,6 +539,19 @@ Native oxlint options:
       `Enable ${rule} in the main lint configuration`
     );
     allowed.add(canonicalRule(rule));
+  }
+  for (const override of incubator.overrides ?? []) {
+    for (const [rule, options] of Object.entries(override.rules ?? {})) {
+      const severity = Array.isArray(options) ? options[0] : options;
+      if (severity === 'off' || severity === 0) {
+        continue;
+      }
+      assert(
+        severity === 'error' || severity === 2,
+        `Incubator rule ${rule} must be an error`
+      );
+      allowed.add(canonicalRule(rule));
+    }
   }
   if (!command) {
     await transaction(async (original, updateLease) => {
