@@ -185,7 +185,17 @@ export function GroupResolutionActions({
   );
 }
 
-export function GroupActions({group, project, disabled, event}: GroupActionsProps) {
+export function GroupActions({
+  group,
+  project,
+  disabled,
+  event,
+  onUpdateSuccess,
+  resolveVariant = 'primary',
+}: GroupActionsProps & {
+  onUpdateSuccess?: () => void;
+  resolveVariant?: 'primary' | 'secondary';
+}) {
   const {openModal} = useModal();
 
   const theme = useTheme();
@@ -308,6 +318,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
         addSuccessMessage(successMessage);
       }
       onComplete?.();
+      onUpdateSuccess?.();
     } catch {
       // GroupStore already shows the error
     } finally {
@@ -547,6 +558,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               group={group}
               onUpdate={onUpdate}
               project={project}
+              variant={resolveVariant}
             />
           </Flex>
         ) : (
@@ -557,6 +569,7 @@ export function GroupActions({group, project, disabled, event}: GroupActionsProp
               group={group}
               onUpdate={onUpdate}
               project={project}
+              variant={resolveVariant}
             />
             <ArchiveActions
               size="sm"

@@ -303,11 +303,17 @@ class TestInternalConventionVisibilityFiltering:
         assert "sentry.dsc.environment" not in names
         assert "dsc.environment" not in names
 
-    def test_convert_rpc_shows_internal_convention_attributes_when_include_internal(self) -> None:
+    @pytest.mark.parametrize(
+        "visibility",
+        [{"include_internal": True}, {"include_internal_convention_attributes": True}],
+    )
+    def test_convert_rpc_shows_internal_convention_attributes_when_included(
+        self, visibility: dict[str, bool]
+    ) -> None:
         result = convert_rpc_attribute_to_json(
             [self.INTERNAL_ATTR, self.PUBLIC_ATTR],
             SupportedTraceItemType.SPANS,
-            include_internal=True,
+            **visibility,
         )
 
         names = [r["name"] for r in result]

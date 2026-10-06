@@ -270,6 +270,7 @@ export function useSpansSeriesQuery(
           ...restParams,
           ...(period ? {statsPeriod: period} : {}),
           excludeOther: restParams.excludeOther ? '1' : undefined,
+          partial: restParams.partial ? '1' : undefined,
         };
 
         if (queryParams.start) {
