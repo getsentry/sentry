@@ -11,6 +11,7 @@ from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Prov
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.testutils.cases import AuthProviderTestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 
@@ -118,15 +119,20 @@ class AuthOAuth2Test(AuthProviderTestCase):
 
         if expect_success:
             if has_2fa:
-                assert resp["Location"] == "/auth/2fa/"
+                assert resp["Location"] == "/auth/login/"
                 with mock.patch(
                     "sentry.auth.authenticators.TotpInterface.validate_otp", return_value=True
                 ):
                     assert resp.status_code == 302
-                    resp = self.client.post(reverse("sentry-2fa-dialog"), {"otp": "something"})
-                    assert resp.status_code == 302
-                    assert resp["Location"] == "http://testserver/auth/sso/"
-                    resp = self.client.get(resp["Location"])
+                    resp = self.client.post(
+                        reverse("sentry-api-0-auth-2fa"),
+                        {"method": "totp", "otp": "123456"},
+                        content_type="application/json",
+                    )
+                    assert resp.status_code == 200
+                    next_uri = resp.json()["nextUri"]
+                    assert next_uri == "http://testserver/auth/sso/"
+                    resp = self.client.get(next_uri)
 
             assert resp.status_code == 302
             expected_location = (
@@ -192,6 +198,7 @@ class AuthOAuth2Test(AuthProviderTestCase):
         assert response.redirect_chain == [("http://albertos-apples.testserver/auth/login/", 302)]
         assert response.context["user"] != self.user
 
+    @override_options({"auth.v2.enabled": True})
     def test_oauth2_flow_with_2fa(self) -> None:
         RecoveryCodeInterface().enroll(self.user)
         TotpInterface().enroll(self.user)

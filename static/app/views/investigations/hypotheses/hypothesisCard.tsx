@@ -159,13 +159,7 @@ export function HypothesisCard({
                       <StepTitle size="sm" variant="muted" bold={false}>
                         {showAllSteps
                           ? t('Show less')
-                          : isTerminal
-                            ? tn('Show %s step', 'Show all %s steps', steps.length)
-                            : tn(
-                                'Show %s more step',
-                                'Show %s more steps',
-                                hiddenStepCount
-                              )}
+                          : tn('Show %s step', 'Show %s steps', hiddenStepCount)}
                       </StepTitle>
                       <IconChevron
                         size="xs"
@@ -204,7 +198,9 @@ export function HypothesisCard({
                     variant={isRunning ? 'primary' : 'muted'}
                     wordBreak="break-word"
                   >
-                    {step.title}
+                    {step.status === 'skipped'
+                      ? t('%s (skipped)', step.title)
+                      : step.title}
                   </StepTitle>
                 }
               />

@@ -9,6 +9,7 @@ from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry.ai_monitoring.conversation_aggregates import (
     CONVERSATION_AGGREGATE_COLUMNS,
@@ -47,7 +48,6 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace import SpanIssueMeta, get_issues_by_span_for_traces
 from sentry.utils import metrics
 from sentry.utils.dates import parse_stats_period
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -119,14 +119,11 @@ AI_CONVERSATION_ATTRIBUTES = [
     "gen_ai.output.messages",
     "gen_ai.system_instructions",
     "gen_ai.tool.definitions",
-    "gen_ai.request.messages",
     "gen_ai.response.object",
-    "gen_ai.response.text",
     "gen_ai.tool.name",
     "gen_ai.tool.call.arguments",
-    "gen_ai.tool.input",
     "gen_ai.tool.call.result",
-    "gen_ai.tool.output",
+    "anthropic.tool_result.content",
     "gen_ai.embeddings.input",
     "gen_ai.usage.cache_creation.input_tokens",
     "gen_ai.usage.cache_read.input_tokens",
@@ -367,7 +364,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         """Probe progressively wider windows to find which contains the conversation."""
         candidates = self._build_widening_params(base_params, stats_period, now)
         for params in candidates:
-            if self._fetch_spans(params, conversation_id, offset=0, limit=1):
+            if self._conversation_exists(params, conversation_id):
                 return params
         return candidates[-1]
 
@@ -388,7 +385,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
 
         return [replace(base_params, start=now - delta, end=now) for delta in steps]
 
-    @trace
+    @traces.trace
     def _resolve_title(
         self,
         conversation_id: str,
@@ -419,7 +416,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
 
         return stored_title.title if stored_title else None
 
-    @trace
+    @traces.trace
     def _annotate_issues(
         self,
         spans: list[SpanRow],
@@ -604,7 +601,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
 
             pending = next_pending
 
-    @trace
+    @traces.trace
     def _fetch_spans_and_aggregates(
         self,
         snuba_params: SnubaParams,
@@ -656,23 +653,17 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
             "stats": _parse_grouped_stats(aggregate_rows),
         }
 
-    @trace
-    def _fetch_spans(
-        self,
-        snuba_params: SnubaParams,
-        conversation_id: str,
-        offset: int,
-        limit: int,
-    ) -> list[SpanRow]:
+    @traces.trace
+    def _conversation_exists(self, snuba_params: SnubaParams, conversation_id: str) -> bool:
         result = Spans.run_table_query(
             params=snuba_params,
             query_string=build_escaped_term_filter("gen_ai.conversation.id", [conversation_id]),
-            selected_columns=AI_CONVERSATION_ATTRIBUTES,
-            orderby=["precise.start_ts"],
-            offset=offset,
-            limit=limit,
+            selected_columns=["span_id"],
+            orderby=[],
+            offset=0,
+            limit=1,
             referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,
-            config=SearchResolverConfig(auto_fields=True),
+            config=SearchResolverConfig(auto_fields=False),
             sampling_mode="HIGHEST_ACCURACY",
         )
-        return result.get("data", [])
+        return bool(result.get("data"))

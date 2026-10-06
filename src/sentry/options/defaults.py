@@ -286,7 +286,7 @@ register(
 register(
     "auth.v2.enabled",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -917,6 +917,11 @@ register("vercel.integration-slug", default="sentry", flags=FLAG_AUTOMATOR_MODIF
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
 register("msteams.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("msteams.app-id")
+register(
+    "msteams.personal-installation-link.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Tenant-specific OAuth authority, required for single-tenant Azure Bots.
 # Empty (default) keeps the historical multi-tenant botframework.com authority.
 register("msteams.tenant-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
@@ -1454,21 +1459,6 @@ register(
     default=0.10,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "seer.smart_assignment.prefetch_rollout_rate",
-    type=Float,
-    default=0.5,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Fuzzy resolution always runs after an exact email miss so its proposal can be
-# inspected. This controls whether that proposal is used in the delivered prediction.
-register(
-    "seer.smart_assignment.fuzzy_user_matching.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Spread child run_auto_transition_issues_* tasks across this many seconds
 # after each schedule tick, to smooth burst load (DB/signals/queues).
 register(
@@ -1694,20 +1684,6 @@ register(
     "post_process.disable-pipeline-steps",
     type=Sequence,
     default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "post_process.read-from-nodestore-sample-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Enable only after the Nodestore read sample rate is 1.0 and queued post-process
-# tasks without event_id have drained.
-register(
-    "post_process.delete-processing-store-in-save-event",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -2845,6 +2821,14 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Sends relay a quota that limits each monitor environment to
+# `crons.per_monitor_rate_limit` check-ins per minute.
+register(
+    "crons.per_monitor_relay_quota.enabled",
+    default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Deterministic % of check-ins that use the seat-acceptance timeout wrapper.
 # Keyed on project id. Default 0.0 so deploy is a no-op until dialed up via
 # sentry-options-automator.
@@ -3540,7 +3524,7 @@ register(
 register(
     "notifications.issue-alerts.disable-rule-snooze",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -3582,6 +3566,25 @@ register(
 # the string values of `sentry.notifications.platform.types.NotificationSource`.
 register(
     "notifications.platform.killswitch.sources",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Number of alerts per variant per day whose legacy payload is compared with the notification
+# platform's render of it. A variant is the source, provider, and the alert attributes the legacy
+# renderers branch on. 0 disables the comparison. Independent of the platform-rollout options above.
+register(
+    "notifications.platform.shadow-render.variant-daily-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Notification sources that record engagement tracking (sent and engagement events).
+# Sources become metric tags, so this list is also what keeps those tags bounded.
+register(
+    "notifications.tracking.sources",
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
@@ -4266,12 +4269,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "warmup.url_resolver.enabled",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # Cap on consecutive automated PR iterations (check suites + bot re-reviews);
 # human feedback resets the streak. See ``automated_iteration_cap_reached``.
@@ -4487,6 +4484,24 @@ register(
 register(
     "debug-files.objectstore-migration.enabled",
     default=True,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Treat artifact bundles uploaded with the release name "undefined", "null" or "" as uploaded
+# without a release, when every file in the bundle can be found by debug ID. Build tooling sends
+# these names when no release was set or detected.
+register(
+    "sourcemaps.artifact-bundles.assemble.ignore-placeholder-releases",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# The same for release names that are an unexpanded environment variable, such as `$GITHUB_SHA`,
+# or the bare name of one, such as `VERCEL_GIT_COMMIT_SHA`.
+register(
+    "sourcemaps.artifact-bundles.assemble.ignore-env-var-releases",
+    default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )

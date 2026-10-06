@@ -1,12 +1,13 @@
 import type {HTMLAttributes} from 'react';
 import styled from '@emotion/styled';
 
+import type {IconSize} from '@sentry/scraps/theme';
+
 import {IconCircle} from 'sentry/icons/iconCircle';
 import {IconCircleCheckmark} from 'sentry/icons/iconCircleCheckmark';
 import {IconPieHalf} from 'sentry/icons/iconPieHalf';
 import {IconPieQuarter} from 'sentry/icons/iconPieQuarter';
 import {IconPieThreeQuarters} from 'sentry/icons/iconPieThreeQuarters';
-import type {IconSize} from 'sentry/utils/theme/types';
 
 export type ProgressMarkerStep =
   | 'complete'

@@ -4,36 +4,26 @@ import styled from '@emotion/styled';
 import {useHover} from '@react-aria/interactions';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {
-  DropdownMenu,
-  type DropdownMenuProps,
-  type MenuItemProps,
-} from '@sentry/scraps/dropdownMenu';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Markdown, markdownRendersVisibleContent} from '@sentry/scraps/markdown';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
-import {generateStats} from 'sentry/components/events/opsBreakdown';
-import {DataSection} from 'sentry/components/events/styles';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {type LazyRenderProps} from 'sentry/components/lazyRender';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
-import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
 import {
   KeyValueTableCard,
-  KeyValueTableCardGrid,
   KeyValueTableCardPanel,
   type KeyValueTableDataRowProps,
   KeyValueTableSubject,
@@ -41,7 +31,6 @@ import {
 } from 'sentry/components/tables/keyValueTable';
 import {
   IconCircleFill,
-  IconEllipsis,
   IconFocus,
   IconJson,
   IconPanel,
@@ -49,7 +38,6 @@ import {
   IconTerminal,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Event, EventTransaction} from 'sentry/types/event';
 import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -62,12 +50,7 @@ import {useUser} from 'sentry/utils/useUser';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
-import {useDrawerContainerRef} from 'sentry/views/performance/traceDetails/traceDrawer/details/drawerContainerRefContext';
-import {
-  tryParseJsonRecursive,
-  getTraceKeyValueActions,
-  TraceDrawerActionValueKind,
-} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
+import {tryParseJsonRecursive} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
 import {
   makeTraceContinuousProfilingLink,
   makeTransactionProfilingLink,
@@ -88,19 +71,14 @@ import {
   makeDurationComparisonStatusColors,
   MIN_PCT_DURATION_DIFFERENCE,
 } from './durationComparison';
-import type {KeyValueActionParams, TraceDrawerActionKind} from './utils';
 
-const BodyContainer = styled('div')`
-  display: flex;
-  flex-direction: column;
-  height: calc(100% - 52px);
-  overflow-y: auto;
-  overflow-x: hidden;
-
-  ${DataSection} {
-    padding: 0;
-  }
-`;
+function BodyContainer({children}: PropsWithChildren) {
+  return (
+    <Stack height="calc(100% - 52px)" overflowY="auto" overflowX="hidden">
+      {children}
+    </Stack>
+  );
+}
 
 const DetailContainer = styled('div')`
   ${traceGridCssVariables}
@@ -112,12 +90,6 @@ const DetailContainer = styled('div')`
 const FlexBox = styled('div')`
   display: flex;
   align-items: center;
-`;
-
-const Actions = styled(FlexBox)`
-  gap: ${p => p.theme.space.xs};
-  justify-content: end;
-  width: 100%;
 `;
 
 const Title = styled(FlexBox)`
@@ -154,8 +126,12 @@ function SubtitleWithCopyButton({
   subTitle: string;
 }) {
   return (
-    <SubTitleWrapper>
-      <StyledSubTitleText>{subTitle}</StyledSubTitleText>
+    <Flex align="center" gap="xs" width="100%">
+      <Container minWidth="0">
+        <Text as="div" size="md" variant="secondary" ellipsis>
+          {subTitle}
+        </Text>
+      </Container>
       {clipboardText ? (
         <CopyToClipboardButton
           aria-label={t('Copy to clipboard')}
@@ -165,109 +141,9 @@ function SubtitleWithCopyButton({
           tooltipProps={{disabled: true}}
         />
       ) : null}
-    </SubTitleWrapper>
+    </Flex>
   );
 }
-
-const SubTitleWrapper = styled(FlexBox)`
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const StyledSubTitleText = styled('span')`
-  font-size: ${p => p.theme.font.size.md};
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-function TitleOp({text}: {text: string}) {
-  return (
-    <Tooltip
-      title={
-        <Fragment>
-          {text}
-          <CopyToClipboardButton
-            aria-label={t('Copy to clipboard')}
-            variant="transparent"
-            size="zero"
-            text={text}
-            tooltipProps={{disabled: true}}
-          />
-        </Fragment>
-      }
-      showOnlyOnOverflow
-    >
-      <TitleOpText>{text}</TitleOpText>
-    </Tooltip>
-  );
-}
-
-const Type = styled('div')`
-  font-size: ${p => p.theme.font.size.sm};
-`;
-
-const TitleOpText = styled('div')`
-  font-size: 15px;
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  display: block;
-  width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-`;
-
-const Table = styled('table')`
-  td {
-    overflow: hidden;
-  }
-`;
-
-const IconTitleWrapper = styled(FlexBox)`
-  gap: ${p => p.theme.space.md};
-  min-width: 30px;
-`;
-
-const IconBorder = styled('div')<{backgroundColor: string; errored?: boolean}>`
-  background-color: ${p => p.backgroundColor};
-  border-radius: ${p => p.theme.radius.md};
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px;
-  height: 30px;
-  min-width: 30px;
-
-  svg {
-    fill: ${p => p.theme.colors.white};
-    width: 14px;
-    height: 14px;
-  }
-`;
-
-const LegacyHeaderContainer = styled(FlexBox)`
-  margin: ${p => p.theme.space.md};
-  justify-content: space-between;
-  gap: ${p => p.theme.space['2xl']};
-  container-type: inline-size;
-
-  @container (max-width: 780px) {
-    .DropdownMenu {
-      display: block;
-    }
-    .Actions {
-      display: none;
-    }
-  }
-
-  @container (min-width: 781px) {
-    .DropdownMenu {
-      display: none;
-    }
-  }
-`;
 
 const HeaderContainer = styled(FlexBox)`
   align-items: baseline;
@@ -275,74 +151,6 @@ const HeaderContainer = styled(FlexBox)`
   gap: ${p => p.theme.space['2xl']};
   margin-bottom: ${p => p.theme.space.md};
 `;
-
-type DurationProps = {
-  baseline: number | undefined;
-  duration: number;
-  baseDescription?: string;
-  precision?: number;
-  ratio?: number;
-};
-
-function Duration(props: DurationProps) {
-  if (typeof props.duration !== 'number' || Number.isNaN(props.duration)) {
-    return <DurationContainer>{t('unknown')}</DurationContainer>;
-  }
-
-  const precision = props.precision ?? 2;
-  if (props.baseline === undefined || props.baseline === 0) {
-    return (
-      <DurationContainer>
-        {getDuration(props.duration, precision, true)}
-      </DurationContainer>
-    );
-  }
-
-  const comparison = getDurationComparison(
-    props.baseline,
-    props.duration,
-    props.baseDescription
-  );
-
-  return (
-    <Fragment>
-      <DurationContainer>
-        {getDuration(props.duration, precision, true)}{' '}
-        {props.ratio ? `(${(props.ratio * 100).toFixed()}%)` : null}
-      </DurationContainer>
-      {comparison && comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
-        <Comparison status={comparison.status}>{comparison.deltaText}</Comparison>
-      ) : null}
-    </Fragment>
-  );
-}
-
-function TableRow({
-  title,
-  children,
-}: {
-  children: React.ReactNode;
-  title: React.JSX.Element | string | null;
-}) {
-  if (!children) {
-    return null;
-  }
-
-  return (
-    <tr>
-      <td className="key">
-        <Flex align="center">{title}</Flex>
-      </td>
-      <ValueTd className="value">
-        <TableValueRow>
-          <StyledPre>
-            <span className="val-string">{children}</span>
-          </StyledPre>
-        </TableValueRow>
-      </ValueTd>
-    </tr>
-  );
-}
 
 type HighlightProps = {
   avgDuration: number | undefined;
@@ -386,8 +194,8 @@ function Highlights({
   );
 
   return (
-    <Fragment>
-      <HighlightsWrapper>
+    <Stack gap="xl" padding="md 0">
+      <Flex align="stretch" gap="md" width="100%">
         <Stack justify="center" align="center" gap="xs">
           <Tooltip title={node.projectSlug}>
             <ProjectBadge
@@ -400,107 +208,88 @@ function Highlights({
             <Separator orientation="vertical" />
           </Flex>
         </Stack>
-        <Stack justify="left" flex="1" height="100%" overflow="hidden">
-          <HighlightOp>{node.op}</HighlightOp>
-          <HighlightsDurationWrapper>
-            <HighlightDuration>
-              {getDuration(durationInSeconds, 2, true)}
-            </HighlightDuration>
-            {comparison && comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
-              <HiglightsDurationComparison status={comparison.status}>
-                {comparison.deltaText}
-              </HiglightsDurationComparison>
+        <Stack justify="left" flex="1" height="100%" overflow="hidden" gap="md">
+          <Stack>
+            <Text as="div" size="md" bold>
+              {node.op}
+            </Text>
+            <Flex align="center" gap="md">
+              <Text as="div" size="xl">
+                {getDuration(durationInSeconds, 2, true)}
+              </Text>
+              {comparison && comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (
+                <HiglightsDurationComparison status={comparison.status}>
+                  {comparison.deltaText}
+                </HiglightsDurationComparison>
+              ) : null}
+            </Flex>
+          </Stack>
+          <Stack gap="lg">
+            {highlightedAttributes && highlightedAttributes.length > 0 ? (
+              <Grid columns="max-content minmax(0, 1fr)" gap="xs lg">
+                {highlightedAttributes.map(({name, value}) => (
+                  <Fragment key={name}>
+                    <Text as="div" variant="secondary">
+                      {name}
+                    </Text>
+                    <Text as="div" size="md">
+                      {value}
+                    </Text>
+                  </Fragment>
+                ))}
+              </Grid>
             ) : null}
-          </HighlightsDurationWrapper>
-          {highlightedAttributes && highlightedAttributes.length > 0 ? (
-            <HighlightedAttributesWrapper>
-              {highlightedAttributes.map(({name, value}) => (
-                <Fragment key={name}>
-                  <HighlightedAttributeName>{name}</HighlightedAttributeName>
-                  <div>{value}</div>
-                </Fragment>
-              ))}
-            </HighlightedAttributesWrapper>
-          ) : null}
-          {isAiNode && !hideNodeActions && (
-            <OpenInAIFocusButton
-              size="xs"
-              onClick={() => {
-                trackAnalytics('agent-monitoring.view-ai-trace-click', {
-                  organization,
-                });
-              }}
-              to={{
-                ...location,
-                query: {
-                  ...location.query,
-                  tab: TraceLayoutTabKeys.AI_SPANS,
-                },
-              }}
-            >
-              {t('Open Agent Activity')}
-            </OpenInAIFocusButton>
-          )}
-          {!hidePanelAndBreakdown && (
-            <Fragment>
-              <StyledPanel>
-                <StyledPanelHeader>{headerContent}</StyledPanelHeader>
-                <PanelBody>{bodyContent}</PanelBody>
-              </StyledPanel>
-              {footerContent}
-            </Fragment>
-          )}
+            {isAiNode && !hideNodeActions && (
+              <Container alignSelf="start">
+                <LinkButton
+                  size="xs"
+                  onClick={() => {
+                    trackAnalytics('agent-monitoring.view-ai-trace-click', {
+                      organization,
+                    });
+                  }}
+                  to={{
+                    ...location,
+                    query: {
+                      ...location.query,
+                      tab: TraceLayoutTabKeys.AI_SPANS,
+                    },
+                  }}
+                >
+                  {t('Open Agent Activity')}
+                </LinkButton>
+              </Container>
+            )}
+            {!hidePanelAndBreakdown && (
+              <Container>
+                <StyledPanel>
+                  <Flex
+                    align="center"
+                    justify="between"
+                    borderBottom="primary"
+                    radius="md md 0 0"
+                    background="secondary"
+                    position="relative"
+                    overflow="hidden"
+                  >
+                    {headerContent}
+                  </Flex>
+                  <PanelBody>{bodyContent}</PanelBody>
+                </StyledPanel>
+                {footerContent}
+              </Container>
+            )}
+          </Stack>
         </Stack>
-      </HighlightsWrapper>
-      {/* margin (deprecated) kept for parity with surrounding margin-based sections in BodyContainer */}
-      <Separator orientation="horizontal" margin="md 0" border="muted" />
-    </Fragment>
+      </Flex>
+      <Separator orientation="horizontal" border="muted" />
+    </Stack>
   );
 }
 
 const StyledPanel = styled(Panel)`
   margin-bottom: 0;
 `;
-
-function HighLightsOpsBreakdown({event}: {event: EventTransaction}) {
-  const theme = useTheme();
-  const breakdown = generateStats(event, {type: 'no_filter'});
-  const dispatch = useTraceStateDispatch();
-
-  return (
-    <HighlightsOpsBreakdownWrapper>
-      <HighlightsSpanCount>
-        {t('Most frequent span ops for this transaction are')}
-      </HighlightsSpanCount>
-      <Flex wrap="wrap" gap="md">
-        {breakdown.slice(0, 3).map(currOp => {
-          const {name, percentage} = currOp;
-
-          const operationName = typeof name === 'string' ? name : t('Other');
-          const color = pickBarColor(operationName, theme);
-          const pctLabel = isFinite(percentage) ? Math.round(percentage * 100) : '∞';
-
-          return (
-            <HighlightsOpRow
-              key={operationName}
-              onClick={() =>
-                dispatch({
-                  type: 'set query',
-                  query: `op:${operationName}`,
-                  source: 'external',
-                })
-              }
-            >
-              <StyledIconCircleFill size="xs" fill={color} />
-              {operationName}
-              <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
-            </HighlightsOpRow>
-          );
-        })}
-      </Flex>
-    </HighlightsOpsBreakdownWrapper>
-  );
-}
 
 function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
   const theme = useTheme();
@@ -529,8 +318,10 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
   }
 
   return (
-    <HighlightsOpsBreakdownWrapper>
-      <HighlightsSpanCount>{t('Most frequent child span ops are:')}</HighlightsSpanCount>
+    <Stack align="start" gap="xs" marginTop="lg">
+      <Text as="div" size="md">
+        {t('Most frequent child span ops are:')}
+      </Text>
       <Flex wrap="wrap" gap="md">
         {displayOps.map(currOp => {
           const operationName = currOp.op;
@@ -538,7 +329,10 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
           const pctLabel = Math.round(currOp.percentage);
 
           return (
-            <HighlightsOpRow
+            <Flex
+              align="center"
+              gap="xs"
+              cursor="pointer"
               key={operationName}
               onClick={() =>
                 dispatch({
@@ -549,40 +343,22 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
               }
             >
               <StyledIconCircleFill size="xs" fill={color} />
-              {operationName}
-              <HighlightsOpPct>{pctLabel}%</HighlightsOpPct>
-            </HighlightsOpRow>
+              <Text as="span" size="md">
+                {operationName}
+              </Text>
+              <Text as="div" size="md" variant="secondary">
+                {pctLabel}%
+              </Text>
+            </Flex>
           );
         })}
       </Flex>
-    </HighlightsOpsBreakdownWrapper>
+    </Stack>
   );
 }
 
 const StyledIconCircleFill = styled(IconCircleFill)<{fill: string}>`
   fill: ${p => p.fill};
-`;
-
-const HighlightsOpPct = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: 14px;
-`;
-
-const HighlightsSpanCount = styled('div')`
-  margin-bottom: ${p => p.theme.space['2xs']};
-`;
-
-const HighlightsOpRow = styled(FlexBox)`
-  font-size: 13px;
-  gap: ${p => p.theme.space.xs};
-  cursor: pointer;
-`;
-
-const HighlightsOpsBreakdownWrapper = styled(FlexBox)`
-  align-items: flex-start;
-  flex-direction: column;
-  gap: ${p => p.theme.space['2xs']};
-  margin-top: ${p => p.theme.space.lg};
 `;
 
 const HiglightsDurationComparison = styled('div')<
@@ -597,57 +373,6 @@ const HiglightsDurationComparison = styled('div')<
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
   display: inline-block;
   height: 21px;
-`;
-
-const HighlightsDurationWrapper = styled(FlexBox)`
-  gap: ${p => p.theme.space.md};
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
-const HighlightDuration = styled('div')`
-  font-size: ${p => p.theme.font.size.xl};
-  font-weight: 400;
-`;
-
-const HighlightOp = styled('div')`
-  font-weight: bold;
-  font-size: ${p => p.theme.font.size.md};
-  line-height: normal;
-`;
-
-const HighlightedAttributesWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  column-gap: ${p => p.theme.space.lg};
-  row-gap: ${p => p.theme.space.xs};
-  font-size: ${p => p.theme.font.size.md};
-  &:not(:last-child) {
-    margin-bottom: ${p => p.theme.space.lg};
-  }
-`;
-
-const HighlightedAttributeName = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const OpenInAIFocusButton = styled(LinkButton)`
-  width: max-content;
-`;
-
-const StyledPanelHeader = styled(PanelHeader)`
-  font-weight: normal;
-  padding: 0;
-  line-height: normal;
-  text-transform: none;
-  overflow: hidden;
-`;
-
-const HighlightsWrapper = styled('div')`
-  display: flex;
-  align-items: stretch;
-  gap: ${p => p.theme.space.md};
-  width: 100%;
-  margin: ${p => p.theme.space.md} 0;
 `;
 
 function IssuesLink({
@@ -691,122 +416,6 @@ function IssuesLink({
     </Link>
   );
 }
-
-const LAZY_RENDER_PROPS: Partial<LazyRenderProps> = {
-  observerOptions: {rootMargin: '50px'},
-};
-
-const DurationContainer = styled('span')`
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  margin-right: ${p => p.theme.space.md};
-`;
-
-const Comparison = styled('span')<{status: 'faster' | 'slower' | 'equal'}>`
-  color: ${p =>
-    p.status === 'faster'
-      ? p.theme.tokens.content.success
-      : p.status === 'slower'
-        ? p.theme.tokens.content.danger
-        : p.theme.tokens.content.secondary};
-`;
-
-const TableValueRow = styled('div')`
-  display: grid;
-  grid-template-columns: auto min-content;
-  gap: ${p => p.theme.space.md};
-
-  border-radius: 4px;
-  background-color: ${p => p.theme.tokens.background.tertiary};
-  margin: 2px;
-`;
-
-const StyledPre = styled('pre')`
-  margin: 0 !important;
-  background-color: transparent !important;
-`;
-
-const ValueTd = styled('td')`
-  position: relative;
-`;
-
-// Renders the dropdown menu list at the root trace drawer content container level, to prevent
-// being stacked under other content.
-function DropdownMenuWithPortal(props: DropdownMenuProps) {
-  const drawerContainerRef = useDrawerContainerRef();
-
-  return (
-    <DropdownMenu
-      {...props}
-      usePortal={!!drawerContainerRef}
-      portalContainerRef={drawerContainerRef}
-    />
-  );
-}
-
-function KeyValueAction({
-  rowKey,
-  rowValue,
-  projectIds,
-  kind = TraceDrawerActionValueKind.SENTRY_TAG,
-}: Pick<KeyValueActionParams, 'rowKey' | 'rowValue' | 'kind' | 'projectIds'>) {
-  const location = useLocation();
-  const organization = useOrganization();
-  const [isVisible, setIsVisible] = useState(false);
-  const dropdownOptions = getTraceKeyValueActions({
-    rowKey,
-    rowValue,
-    kind,
-    projectIds,
-    location,
-    organization,
-  });
-
-  if (dropdownOptions.length === 0 || !rowValue || !rowKey) {
-    return null;
-  }
-
-  return (
-    <KeyValueActionDropdown
-      preventOverflowOptions={{padding: 4}}
-      className={isVisible ? '' : 'invisible'}
-      position="bottom-end"
-      size="xs"
-      onOpenChange={isOpen => setIsVisible(isOpen)}
-      trigger={triggerProps => (
-        <OverlayTrigger.IconButton
-          {...triggerProps}
-          aria-label={t('Key Value Action Menu')}
-          icon={<IconEllipsis />}
-          className="trigger-button"
-        />
-      )}
-      onAction={key => {
-        traceAnalytics.trackExploreSearch(
-          organization,
-          rowKey,
-          // oxlint-disable-next-line typescript/no-base-to-string
-          rowValue.toString(),
-          key as TraceDrawerActionKind,
-          'drawer'
-        );
-      }}
-      items={dropdownOptions}
-    />
-  );
-}
-
-const KeyValueActionDropdown = styled(DropdownMenu)`
-  display: block;
-  margin: 1px;
-  height: 20px;
-  .trigger-button {
-    height: 20px;
-    min-height: 20px;
-    padding: 0 ${p => p.theme.space.sm};
-    border-radius: ${p => p.theme.space.xs};
-    z-index: 1;
-  }
-`;
 
 function PanelPositionDropDown({organization}: {organization: Organization}) {
   const traceState = useTraceState();
@@ -886,10 +495,6 @@ function NodeActions(props: {
   const user = useUser();
   const params = useParams<{traceSlug?: string}>();
 
-  const transactionId = props.node.transactionId ?? '';
-
-  const canShowEAPSpanJSON = isEAPSpanNode(props.node);
-
   const transactionProfileTarget = useMemo(() => {
     if (!props.profileId) {
       return null;
@@ -927,15 +532,11 @@ function NodeActions(props: {
           icon={<IconFocus />}
         />
       </Tooltip>
-      {props.showJSONLink && (canShowEAPSpanJSON || transactionId) ? (
+      {props.showJSONLink && isEAPSpanNode(props.node) ? (
         <Tooltip title={t('JSON')} skipWrapper>
           <ActionLinkButton
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
-            href={
-              canShowEAPSpanJSON
-                ? `/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}`
-                : `/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/events/${transactionId}/json/`
-            }
+            href={`/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}`}
             size="zero"
             aria-label={t('JSON')}
             icon={<IconJson />}
@@ -1005,16 +606,6 @@ const ActionLinkButton = styled(LinkButton)`
   ${actionButtonStyles};
 `;
 
-function EventTags({projectSlug, event}: {event: Event; projectSlug: string}) {
-  return (
-    <EventTagsDataSection
-      event={event}
-      projectSlug={projectSlug}
-      disableCollapsePersistence
-    />
-  );
-}
-
 type SectionCardKeyValueList = KeyValueListData;
 
 const SECTION_CARD_TRUNCATE_LENGTH = 5;
@@ -1063,61 +654,6 @@ const CardWrapper = styled('div')`
   ${KeyValueTableValueSection} {
     align-items: center;
   }
-`;
-
-function SectionCardGroup({children}: {children: React.ReactNode}) {
-  return <KeyValueTableCardGrid>{children}</KeyValueTableCardGrid>;
-}
-
-function CopyableCardValueWithLink({value}: {value: React.ReactNode}) {
-  return (
-    <CardValueContainer>
-      <CardValueText>
-        {value}
-        {typeof value === 'string' ? (
-          <StyledCopyToClipboardButton
-            variant="transparent"
-            size="zero"
-            text={value}
-            aria-label={t('Copy to clipboard')}
-          />
-        ) : null}
-      </CardValueText>
-    </CardValueContainer>
-  );
-}
-
-function TraceDataSection({event}: {event: EventTransaction}) {
-  const traceData = event.contexts.trace?.data;
-
-  if (!traceData) {
-    return null;
-  }
-
-  return (
-    <SectionCard
-      items={Object.entries(traceData).map(([key, value]) => ({
-        key,
-        subject: key,
-        value,
-      }))}
-      title={t('Trace Data')}
-    />
-  );
-}
-
-const StyledCopyToClipboardButton = styled(CopyToClipboardButton)`
-  transform: translateY(2px);
-`;
-
-const CardValueContainer = styled(FlexBox)`
-  justify-content: space-between;
-  gap: ${p => p.theme.space.md};
-  flex-wrap: wrap;
-`;
-
-const CardValueText = styled('span')`
-  overflow-wrap: anywhere;
 `;
 
 function MultilineText({
@@ -1334,36 +870,17 @@ function SectionTitleWithQuestionTooltip({
 export const TraceDrawerComponents = {
   DetailContainer,
   BodyContainer,
-  FlexBox,
   Title: TitleWithTestId,
-  Type,
-  TitleOp,
   HeaderContainer,
-  LegacyHeaderContainer,
   Highlights,
   HighLightEAPOpsBreakdown,
-  HighLightsOpsBreakdown,
-  Actions,
   NodeActions,
-  KeyValueAction,
-  Table,
   SectionTitleWithQuestionTooltip,
-  IconTitleWrapper,
-  IconBorder,
   TitleText,
   LegacyTitleText,
-  Duration,
-  TableRow,
-  LAZY_RENDER_PROPS,
-  TableValueRow,
   IssuesLink,
   SectionCard,
-  CopyableCardValueWithLink,
-  EventTags,
   SubtitleWithCopyButton,
-  TraceDataSection,
-  SectionCardGroup,
-  DropdownMenuWithPortal,
   MultilineText,
   MultilineJSON,
   MultilineTextLabel,

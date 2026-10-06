@@ -1,0 +1,88 @@
+---
+title: Agentic Setup
+description: Share coding-agent setup and progress across onboarding and project creation.
+category: patterns
+source: sentry/components/onboarding/agenticProgress/agenticSetup
+---
+
+import {useState} from 'react';
+
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Stack} from '@sentry/scraps/layout';
+
+import {AgenticSetup} from './agenticSetup';
+import * as Storybook from 'sentry/stories';
+
+The host owns the run session, prompt, manual-setup action, analytics callbacks,
+feedback source, and issue-link referrer. `useAgenticSetupRun` combines initialization
+and polling for that session. Onboarding persists its session in `OnboardingContext`;
+project creation retains its session for the current visit.
+
+export function ProjectSetupExample() {
+  const [state, setState] = useState('connecting');
+  const run =
+    state === 'connecting'
+      ? undefined
+      : {
+          channelId: 'example-channel',
+          clientRunId: 'example-client',
+          continueUpdates: state === 'active',
+          createdAt: '2026-09-30T12:00:00Z',
+          expiresAt: '2026-10-01T12:00:00Z',
+          runId: 'example-run',
+          runStatus:
+            state === 'completed'
+              ? 'completed'
+              : state === 'failed'
+                ? 'failed'
+                : 'active',
+          schemaVersion: 1,
+          sequence: 1,
+          updatedAt: '2026-09-30T12:00:00Z',
+          stages: [
+            {stage: 'connect_mcp', status: 'completed', eventNote: null, extra: null},
+            {
+              stage: 'analyze_project',
+              status:
+                state === 'completed'
+                  ? 'completed'
+                  : state === 'failed'
+                    ? 'failed'
+                    : 'active',
+              eventNote: 'Inspecting the application.',
+              extra: null,
+            },
+          ],
+        };
+  return (
+    <Stack width="100%" maxWidth="700px" gap="2xl">
+      <ButtonBar>
+        <Button onClick={() => setState('connecting')}>Connecting</Button>
+        <Button onClick={() => setState('active')}>In progress</Button>
+        <Button onClick={() => setState('failed')}>Failed</Button>
+        <Button onClick={() => setState('completed')}>Completed</Button>
+      </ButtonBar>
+      <AgenticSetup
+        run={run}
+        onboardingCode="Example123"
+        prompt={
+          'Help me create and set up Sentry projects for this application.\n\norg slug: org-slug\nrun code: Example123'
+        }
+        isAgentConnected={state !== 'connecting'}
+        hasInitFailed={false}
+        hasProgressFailed={false}
+        onRefresh={() => {}}
+        onRetry={() => setState('connecting')}
+        onCopyCommand={() => {}}
+        onSelectSnippet={() => {}}
+        feedbackSource="project-creation-agent-setup"
+        issueLinkReferrer="project-creation-agentic-first-issue"
+        manualSetup={<Button>Set up manually</Button>}
+      />
+    </Stack>
+  );
+}
+
+<Storybook.Demo standalone maxHeight="none">
+  <ProjectSetupExample />
+</Storybook.Demo>

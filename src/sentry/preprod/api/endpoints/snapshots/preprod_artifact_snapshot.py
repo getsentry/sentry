@@ -13,6 +13,7 @@ from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
@@ -90,7 +91,6 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
-from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
@@ -375,15 +375,19 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                         extra={"preprod_artifact_id": artifact.id, "manifest_key": manifest_key},
                     )
                     return Response({"detail": "Snapshot manifest not found"}, status=404)
-                with start_span(op="preprod.snapshot.read_manifest", name="read_head_manifest"):
+                with traces.start_span(
+                    name="read_head_manifest",
+                    attributes={"sentry.op": "preprod.snapshot.read_manifest"},
+                ):
                     raw_manifest = get_response.payload.read()
-                with start_span(
-                    op="preprod.snapshot.parse_manifest", name="parse_head_manifest"
+                with traces.start_span(
+                    name="parse_head_manifest",
+                    attributes={"sentry.op": "preprod.snapshot.parse_manifest"},
                 ) as span:
                     head_manifest = orjson.loads(raw_manifest)
                     head_images: dict[str, Any] = head_manifest.get("images", {})
                     head_diff_threshold = head_manifest.get("diff_threshold")
-                    set_span_data(span, "image_count", len(head_images))
+                    span.set_attribute("image_count", len(head_images))
             except Exception:
                 logger.exception(
                     "Failed to retrieve snapshot manifest",
@@ -394,10 +398,13 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                 )
                 return Response({"detail": "Internal server error"}, status=500)
 
-            with start_span(
-                op="preprod.snapshot.serialize_images", name="serialize_head_images"
-            ) as span:
-                set_span_data(span, "image_count", len(head_images))
+            with traces.start_span(
+                name="serialize_head_images",
+                attributes={
+                    "sentry.op": "preprod.snapshot.serialize_images",
+                    "image_count": len(head_images),
+                },
+            ):
                 image_list = build_head_image_list(head_images, head_diff_threshold)
 
         # Build VCS info from commit_comparison
@@ -435,18 +442,20 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                     response = session.get(comparison_key)
                     if response is None:
                         raise FileNotFoundError("Comparison manifest does not exist in objectstore")
-                    with start_span(
-                        op="preprod.snapshot.read_manifest", name="read_comparison_manifest"
+                    with traces.start_span(
+                        name="read_comparison_manifest",
+                        attributes={"sentry.op": "preprod.snapshot.read_manifest"},
                     ):
                         raw_comparison_manifest = response.payload.read()
-                    with start_span(
-                        op="preprod.snapshot.parse_manifest", name="parse_comparison_manifest"
+                    with traces.start_span(
+                        name="parse_comparison_manifest",
+                        attributes={"sentry.op": "preprod.snapshot.parse_manifest"},
                     ) as span:
                         comparison_manifest = orjson.loads(raw_comparison_manifest)
                         if "base_artifact_id" not in comparison_manifest:
                             raise ValueError("comparison manifest missing base_artifact_id")
-                        set_span_data(
-                            span, "image_count", len(comparison_manifest.get("images", {}))
+                        span.set_attribute(
+                            "image_count", len(comparison_manifest.get("images", {}))
                         )
                 except Exception:
                     comparison_manifest = None
@@ -464,13 +473,17 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
                     response = session.get(base_manifest_key)
                     if response is None:
                         raise FileNotFoundError("Base manifest does not exist in objectstore")
-                    with start_span(op="preprod.snapshot.read_manifest", name="read_base_manifest"):
+                    with traces.start_span(
+                        name="read_base_manifest",
+                        attributes={"sentry.op": "preprod.snapshot.read_manifest"},
+                    ):
                         raw_base_manifest = response.payload.read()
-                    with start_span(
-                        op="preprod.snapshot.parse_manifest", name="parse_base_manifest"
+                    with traces.start_span(
+                        name="parse_base_manifest",
+                        attributes={"sentry.op": "preprod.snapshot.parse_manifest"},
                     ) as span:
                         base_manifest = orjson.loads(raw_base_manifest)
-                        set_span_data(span, "image_count", len(base_manifest.get("images", {})))
+                        span.set_attribute("image_count", len(base_manifest.get("images", {})))
                 except Exception:
                     logger.exception(
                         "Failed to fetch base manifest",
@@ -518,10 +531,13 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
         if comparison_manifest is not None:
             base_artifact_id = str(comparison_manifest["base_artifact_id"])
             comparison_images = comparison_manifest.get("images", {})
-            with start_span(
-                op="preprod.snapshot.categorize_comparison", name="categorize_comparison_images"
-            ) as span:
-                set_span_data(span, "image_count", len(comparison_images))
+            with traces.start_span(
+                name="categorize_comparison_images",
+                attributes={
+                    "sentry.op": "preprod.snapshot.categorize_comparison",
+                    "image_count": len(comparison_images),
+                },
+            ):
                 categorized = categorize_comparison_images(
                     comparison_images,
                     images_by_file_name,
@@ -621,10 +637,13 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             )
         )
 
-        with start_span(
-            op="preprod.snapshot.serialize_response", name="serialize_response_body"
-        ) as span:
-            set_span_data(span, "image_count", len(image_list))
+        with traces.start_span(
+            name="serialize_response_body",
+            attributes={
+                "sentry.op": "preprod.snapshot.serialize_response",
+                "image_count": len(image_list),
+            },
+        ):
             response_data: SnapshotDetailsResponseDict = {
                 "head_artifact_id": str(artifact.id),
                 "base_artifact_id": base_artifact_id,

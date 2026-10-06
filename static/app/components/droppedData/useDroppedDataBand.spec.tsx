@@ -71,35 +71,35 @@ describe('useDroppedDataBand', () => {
     expect(result.current.droppedDataSeries).toBeNull();
   });
 
-  it('keeps buckets at 5% and skips those below', () => {
+  it('keeps buckets with any drops and skips those without', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
         droppedData: {
           droppedAnnotations: [
-            AnnotationFixture({start: 0, eventCount: 1}),
-            AnnotationFixture({start: 60_000, eventCount: 5}),
+            AnnotationFixture({start: 0, eventCount: 0}),
+            AnnotationFixture({start: 60_000, eventCount: 1}),
           ],
           acceptedAnnotations: [
-            AnnotationFixture({start: 0, eventCount: 99}),
-            AnnotationFixture({start: 60_000, eventCount: 95}),
+            AnnotationFixture({start: 0, eventCount: 100}),
+            AnnotationFixture({start: 60_000, eventCount: 99}),
           ],
         },
       })
     );
 
     expect(result.current.droppedDataSeries?.data).toEqual([
-      expect.objectContaining({start: 60_000, ratio: 0.05}),
+      expect.objectContaining({start: 60_000, ratio: 0.01}),
     ]);
   });
 
-  it('hides the band when every drop ratio is below 5%', () => {
+  it('hides the band when no bucket has drops', () => {
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
         droppedData: {
-          droppedAnnotations: [AnnotationFixture({start: 0, eventCount: 1})],
-          acceptedAnnotations: [AnnotationFixture({start: 0, eventCount: 99})],
+          droppedAnnotations: [AnnotationFixture({start: 0, eventCount: 0})],
+          acceptedAnnotations: [AnnotationFixture({start: 0, eventCount: 100})],
         },
       })
     );

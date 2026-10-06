@@ -44,12 +44,14 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
     def allow_registration(self):
         return self.options({"auth.allow-registration": True})
 
+    @override_options({"auth.v2.enabled": False})
     def test_renders_correct_template(self) -> None:
         resp = self.client.get(self.path)
 
         assert resp.status_code == 200
         self.assertTemplateUsed("sentry/login.html")
 
+    @override_options({"auth.v2.enabled": False})
     def test_renders_legacy_login_banner(self) -> None:
         banner = 'Banner message <a href="https://example.com">Learn more</a>.'
         with mock.patch.object(
@@ -61,33 +63,12 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
 
         assert banner.encode() in response.content
 
-    def test_renders_react_template_with_cookie(self) -> None:
-        self.client.cookies["sentry_react_auth"] = "1"
-
-        resp = self.client.get(self.path)
-
-        assert resp.status_code == 200
-        self.assertTemplateUsed(resp, "sentry/base-react.html")
-        self.assertTemplateNotUsed(resp, "sentry/login.html")
-        assert b'<body class="theme-system">' in resp.content
-
-    @override_options({"auth.v2.enabled": True})
-    def test_renders_react_template_with_setting(self) -> None:
+    def test_renders_react_template_by_default(self) -> None:
         response = self.client.get(self.path)
 
         assert response.status_code == 200
         self.assertTemplateUsed(response, "sentry/base-react.html")
         self.assertTemplateNotUsed(response, "sentry/login.html")
-
-    @override_options({"auth.v2.enabled": True})
-    def test_cookie_disables_react_template_with_setting(self) -> None:
-        self.client.cookies["sentry_react_auth"] = "0"
-
-        response = self.client.get(self.path)
-
-        assert response.status_code == 200
-        self.assertTemplateUsed(response, "sentry/login.html")
-        self.assertTemplateNotUsed(response, "sentry/base-react.html")
 
     @override_options({"auth.v2.enabled": True})
     @with_feature("system:multi-region")
@@ -138,12 +119,14 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert response.status_code == 200
         self.assertTemplateUsed(response, "sentry/base-react.html")
 
+    @override_options({"auth.v2.enabled": False})
     def test_cannot_request_access(self) -> None:
         resp = self.client.get(self.path)
 
         assert resp.status_code == 200
         assert resp.context["join_request_link"] is None
 
+    @override_options({"auth.v2.enabled": False})
     def test_renders_session_expire_message(self) -> None:
         self.client.cookies["session_expired"] = "1"
         resp = self.client.get(self.path)
@@ -209,6 +192,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             in resp.content.decode()
         )
 
+    @override_options({"auth.v2.enabled": False})
     def test_login_valid_credentials(self) -> None:
         # load it once for test cookie
         self.client.get(self.path)
@@ -224,6 +208,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             ("/organizations/new/", 302),
         ]
 
+    @override_options({"auth.v2.enabled": False})
     def test_login_valid_credentials_with_org(self) -> None:
         org = self.create_organization(owner=self.user)
         # load it once for test cookie
@@ -264,6 +249,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert b"Your account has been suspended." in resp.content
         assert "_auth_user_id" not in self.client.session
 
+    @override_options({"auth.v2.enabled": False})
     def test_login_valid_credentials_2fa_redirect(self) -> None:
         user = self.create_user("bar@example.com")
         RecoveryCodeInterface().enroll(user)
@@ -289,6 +275,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             ]
 
     @with_feature("system:multi-region")
+    @override_options({"auth.v2.enabled": False})
     def test_login_valid_credentials_with_org_and_customer_domains(self) -> None:
         org = self.create_organization(owner=self.user)
         # load it once for test cookie
@@ -325,6 +312,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert resp.status_code == 302
         assert resp["Location"] == f"http://testserver/auth/login/{org.slug}/"
 
+    @override_options({"auth.v2.enabled": False})
     def test_registration_disabled(self) -> None:
         with self.feature({"auth:register": False}), self.allow_registration():
             resp = self.client.get(self.path)
@@ -439,17 +427,6 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             assert resp.context["op"] == "register"
             self.assertTemplateUsed("sentry/login.html")
 
-    def test_register_renders_django_template_with_react_auth_cookie(self) -> None:
-        self.client.cookies["sentry_react_auth"] = "1"
-
-        with self.allow_registration():
-            resp = self.client.get(reverse("sentry-register"))
-
-        assert resp.status_code == 200
-        assert resp.context["op"] == "register"
-        self.assertTemplateUsed(resp, "sentry/login.html")
-        self.assertTemplateNotUsed(resp, "sentry/base-react.html")
-
     def test_register_prefills_invite_email(self) -> None:
         self.session["invite_email"] = "foo@example.com"
         self.session["can_register"] = True
@@ -515,6 +492,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert invite.token is None
         assert User.objects.get(id=invite.user_id).username == "member@example.com"
 
+    @override_options({"auth.v2.enabled": False})
     def test_redirects_to_relative_next_url(self) -> None:
         next = "/welcome"
         self.client.get(self.path + "?next=" + next)
@@ -525,6 +503,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert resp.status_code == 302
         assert resp.get("Location", "").endswith(next)
 
+    @override_options({"auth.v2.enabled": False})
     def test_doesnt_redirect_to_external_next_url(self) -> None:
         next = "http://example.com"
         self.client.get(self.path + "?next=" + urlquote(next))
@@ -539,6 +518,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             ("/organizations/new/", 302),
         ]
 
+    @override_options({"auth.v2.enabled": False})
     def test_redirects_already_authed_non_superuser(self) -> None:
         self.user.update(is_superuser=False)
         self.login_as(self.user)
@@ -546,6 +526,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
             resp = self.client.get(self.path)
             self.assertRedirects(resp, "/organizations/new/")
 
+    @override_options({"auth.v2.enabled": False})
     def test_redirects_authenticated_user_to_custom_next_url(self) -> None:
         self.user.update(is_superuser=False)
         self.login_as(self.user)
@@ -553,6 +534,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert resp.status_code == 302
         assert resp.get("Location", "").endswith("testserver")
 
+    @override_options({"auth.v2.enabled": False})
     def test_inactive_authenticated_user_redirected_to_reactivate(self) -> None:
         # inactive user + ?next= must go to reactivate, not be forwarded to next_uri.
         # BaseView.is_auth_required rejects inactive users and redirects them back to
@@ -562,6 +544,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         resp = self.client.get(self.path + "?next=/restore/")
         self.assertRedirects(resp, "/auth/reactivate/", fetch_redirect_response=False)
 
+    @override_options({"auth.v2.enabled": False})
     def test_redirect_superuser(self) -> None:
         self.login_as(self.user, superuser=False)
 
@@ -599,6 +582,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert b"The password is too similar to the username." in resp.content
 
     @override_options({"demo-mode.enabled": True, "demo-mode.users": [1]})
+    @override_options({"auth.v2.enabled": False})
     def test_login_demo_mode(self) -> None:
         demo_user = self.create_user(
             is_staff=False,
@@ -661,6 +645,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
         assert resp.redirect_chain == []
         assert "Please enter a correct username and password" in resp.content.decode()
 
+    @override_options({"auth.v2.enabled": False})
     def test_login_demo_mode_with_org(self) -> None:
         demo_user = self.create_user(
             is_staff=False,
@@ -781,6 +766,7 @@ class AuthLoginCustomerDomainTest(TestCase):
     def disable_registration(self):
         return self.options({"auth.allow-registration": False})
 
+    @override_options({"auth.v2.enabled": False})
     def test_renders_correct_template_existent_org(self) -> None:
         with self.disable_registration():
             resp = self.client.get(
@@ -793,6 +779,7 @@ class AuthLoginCustomerDomainTest(TestCase):
             assert resp.redirect_chain == [("http://baz.testserver/auth/login/baz/", 302)]
             self.assertTemplateUsed("sentry/organization-login.html")
 
+    @override_options({"auth.v2.enabled": False})
     def test_renders_correct_template_existent_org_preserve_querystring(self) -> None:
         with self.disable_registration():
             resp = self.client.get(
@@ -815,6 +802,7 @@ class AuthLoginCustomerDomainTest(TestCase):
             assert resp.status_code == 200
             self.assertTemplateUsed("sentry/login.html")
 
+    @override_options({"auth.v2.enabled": False})
     def test_authenticated_user_with_session_active_org_does_not_get_no_org_access(self) -> None:
         visible_org = self.create_organization(owner=self.user)
         self.create_organization(name="albertos-apples")
@@ -834,6 +822,7 @@ class AuthLoginCustomerDomainTest(TestCase):
                 (f"http://testserver/organizations/{visible_org.slug}/issues/", 302)
             ]
 
+    @override_options({"auth.v2.enabled": False})
     def test_authenticated_user_without_visible_org_still_gets_no_org_access(self) -> None:
         user = self.create_user()
         self.create_organization(name="albertos-apples")
@@ -860,6 +849,7 @@ class AuthLoginCustomerDomainTest(TestCase):
 
         assert resp.status_code == 200
 
+    @override_options({"auth.v2.enabled": False})
     def test_login_valid_credentials(self) -> None:
         # load it once for test cookie
         with self.disable_registration():
@@ -879,6 +869,7 @@ class AuthLoginCustomerDomainTest(TestCase):
             ]
             self.assertTemplateUsed("sentry/login.html")
 
+    @override_options({"auth.v2.enabled": False})
     def test_login_valid_credentials_with_org(self) -> None:
         with self.disable_registration():
             self.create_organization(name="albertos-apples", owner=self.user)
@@ -897,6 +888,7 @@ class AuthLoginCustomerDomainTest(TestCase):
                 ("http://albertos-apples.testserver/issues/", 302),
             ]
 
+    @override_options({"auth.v2.enabled": False})
     def test_login_valid_credentials_invalid_customer_domain(self) -> None:
         with self.feature("system:multi-region"), self.disable_registration():
             self.create_organization(name="albertos-apples", owner=self.user)
@@ -916,6 +908,7 @@ class AuthLoginCustomerDomainTest(TestCase):
                 ("http://albertos-apples.testserver/issues/", 302),
             ]
 
+    @override_options({"auth.v2.enabled": False})
     def test_login_valid_credentials_non_staff(self) -> None:
         with self.disable_registration():
             org = self.create_organization(name="albertos-apples")
@@ -937,6 +930,7 @@ class AuthLoginCustomerDomainTest(TestCase):
                 ("http://albertos-apples.testserver/issues/", 302),
             ]
 
+    @override_options({"auth.v2.enabled": False})
     def test_login_valid_credentials_not_a_member(self) -> None:
         user = self.create_user()
         self.create_organization(name="albertos-apples")
@@ -961,6 +955,7 @@ class AuthLoginCustomerDomainTest(TestCase):
                 ),
             ]
 
+    @override_options({"auth.v2.enabled": False})
     def test_login_valid_credentials_orgless(self) -> None:
         user = self.create_user()
         self.create_organization(name="albertos-apples")
@@ -981,6 +976,7 @@ class AuthLoginCustomerDomainTest(TestCase):
                 ("http://albertos-apples.testserver/auth/login/albertos-apples/", 302),
             ]
 
+    @override_options({"auth.v2.enabled": False})
     def test_login_valid_credentials_org_does_not_exist(self) -> None:
         user = self.create_user()
         with self.disable_registration():
@@ -1021,6 +1017,7 @@ class AuthLoginCustomerDomainTest(TestCase):
             assert resp.status_code == 200
             assert resp.redirect_chain == [("/auth/login/", 302)]  # Redirects to default login
 
+    @override_options({"auth.v2.enabled": False})
     def test_login_redirects_to_sso_provider_does_not_exist(self) -> None:
         # load it once for test cookie
         with self.disable_registration():

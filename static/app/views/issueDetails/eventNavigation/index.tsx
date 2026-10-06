@@ -235,7 +235,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
           value={selectedContentTab}
           onChange={key => trackContentSelected(key as Tab)}
         >
-          <TabList>
+          <TabList variant="floating">
             {contentTabs.map(tab => (
               <TabList.Item
                 key={tab.key}
@@ -460,6 +460,7 @@ const LargeInThisIssueText = styled('div')`
 
 const EventNavigationWrapper = styled('div')`
   flex-grow: 1;
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
   flex-direction: column;

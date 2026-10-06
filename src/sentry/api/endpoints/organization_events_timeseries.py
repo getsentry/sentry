@@ -1,7 +1,9 @@
+import logging
 from datetime import datetime, timedelta
 from typing import Any
 
 import sentry_sdk
+from django.db import connections
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -39,6 +41,7 @@ from sentry.apidocs.examples.discover_performance_examples import DiscoverAndPer
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import MAX_TOP_EVENTS
+from sentry.ingestion_delay.status import IngestionDelayStatus
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.eap.preprod_size.config import PreprodSizeSearchResolverConfig
@@ -66,6 +69,7 @@ from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
 from sentry.snuba.utils import DATASET_LABELS, RPC_DATASETS
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.utils.sdk import sdk_logger
 from sentry.utils.snuba import SnubaTSResult
 from sentry.utils.tracing import set_span_data, start_span
@@ -83,6 +87,20 @@ TOP_EVENTS_DATASETS = {
     errors,
     transactions,
 }
+
+logger = logging.getLogger(__name__)
+
+INGESTION_DELAY_TIMEOUT = 1.0  # p99 returns in less than 1 second
+
+
+def _get_ingestion_delay_status_in_thread(
+    dataset: type[RPCBase], snuba_params: SnubaParams
+) -> IngestionDelayStatus | None:
+    with sentry_sdk.new_scope():
+        try:
+            return get_ingestion_delay_status(dataset, snuba_params)
+        finally:
+            connections.close_all()
 
 
 def null_zero(value: float) -> float | None:
@@ -158,7 +176,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             VisibilityParams.SORT,
             VisibilityParams.GROUP_BY,
             VisibilityParams.Y_AXIS,
-            VisibilityParams.QUERY,
+            VisibilityParams.EXPLORE_QUERY,
             VisibilityParams.DISABLE_AGGREGATE_EXTRAPOLATION,
             VisibilityParams.PREVENT_METRIC_AGGREGATES,
             VisibilityParams.EXCLUDE_OTHER,
@@ -218,29 +236,50 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
             snuba_params.granularity_secs = rollup
             axes = request.GET.getlist("yAxis", ["count()"])
-            events_stats = self.get_event_stats(
-                request,
-                organization,
-                top_events,
-                dataset,
-                axes,
-                request.GET.get("query", ""),
-                snuba_params,
-                rollup,
-                comparison_delta,
-                additional_queries,
-            )
-            include_annotations = request.GET.get(
-                "includeAnnotations"
-            ) is not None and features.has(
-                "organizations:explore-data-fidelity-annotations",
-                organization,
-                actor=request.user,
-            )
             include_measured_ingestion_delay_metadata = request.GET.get(
                 "includeMeasuredIngestionDelayMetadata"
             ) is not None and features.has(
                 "organizations:measured-ingestion-delay-metadata",
+                organization,
+                actor=request.user,
+            )
+            # Only the EAP RPC datasets allow measured ingestion delay metadata.
+            pool = ContextPropagatingThreadPoolExecutor(max_workers=1)
+            try:
+                ingestion_delay_future = (
+                    pool.submit(_get_ingestion_delay_status_in_thread, dataset, snuba_params)
+                    if include_measured_ingestion_delay_metadata
+                    and isinstance(dataset, type)
+                    and issubclass(dataset, RPCBase)
+                    else None
+                )
+                events_stats = self.get_event_stats(
+                    request,
+                    organization,
+                    top_events,
+                    dataset,
+                    axes,
+                    request.GET.get("query", ""),
+                    snuba_params,
+                    rollup,
+                    comparison_delta,
+                    additional_queries,
+                )
+                ingestion_delay_status = None
+                if ingestion_delay_future is not None:
+                    # Ingestion delay is non-critical, so don't fail the request if it fails.
+                    try:
+                        ingestion_delay_status = ingestion_delay_future.result(
+                            timeout=INGESTION_DELAY_TIMEOUT
+                        )
+                    except Exception:
+                        logger.warning("Failed to fetch ingestion delay status", exc_info=True)
+            finally:
+                pool.shutdown(wait=False)
+            include_annotations = request.GET.get(
+                "includeAnnotations"
+            ) is not None and features.has(
+                "organizations:explore-data-fidelity-annotations",
                 organization,
                 actor=request.user,
             )
@@ -253,7 +292,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                     dataset,
                     organization,
                     include_annotations,
-                    include_measured_ingestion_delay_metadata,
+                    ingestion_delay_status,
                     request=request,
                 ),
                 status=200,
@@ -438,7 +477,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
         dataset,
         organization: Organization,
         include_annotations: bool = False,
-        include_measured_ingestion_delay_metadata: bool = False,
+        ingestion_delay_status: IngestionDelayStatus | None = None,
         request: Request | None = None,
     ) -> StatsResponse:
         # We need the current timestamp for the Ingestion Delay incomplete reason
@@ -480,15 +519,10 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 accepted_count=len(accepted_annotations),
             )
 
-        # Only the EAP RPC datasets allow measured ingestion delay metadata
-        if include_measured_ingestion_delay_metadata and (
-            isinstance(dataset, type) and issubclass(dataset, RPCBase)
-        ):
-            ingestion_delay_status = get_ingestion_delay_status(dataset, snuba_params)
-            if ingestion_delay_status is not None:
-                stats_meta["ingestion"] = serialize_ingestion_status(ingestion_delay_status)
-                if ingestion_delay_status.complete_through is not None:
-                    complete_through = ingestion_delay_status.complete_through.timestamp()
+        if ingestion_delay_status is not None:
+            stats_meta["ingestion"] = serialize_ingestion_status(ingestion_delay_status)
+            if ingestion_delay_status.complete_through is not None:
+                complete_through = ingestion_delay_status.complete_through.timestamp()
 
         retention_days = quotas.backend.get_event_retention(organization=organization)
         boundaries = BucketBoundaries(

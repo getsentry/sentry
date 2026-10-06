@@ -11,7 +11,7 @@ from sentry.incidents.charts import (
     incident_date_range,
 )
 from sentry.incidents.grouptype import MetricIssue
-from sentry.incidents.models.incident import Incident, IncidentActivityType, IncidentStatus
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
 from sentry.incidents.utils.process_update_helpers import calculate_event_date_from_update_date
 from sentry.models.groupopenperiod import GroupOpenPeriod
@@ -248,12 +248,6 @@ class FetchOpenPeriodsTest(BaseMetricIssueTest):
             status=IncidentStatus.CRITICAL.value,
             alert_rule=alert_rule,
         )
-        self.create_incident_activity(
-            incident,
-            IncidentActivityType.DETECTED.value,
-            date_added=incident.date_started,
-        )
-
         time_period = incident_date_range(60, incident.date_started, incident.date_closed)
 
         # Mark the detector as pending deletion (bypass custom manager)

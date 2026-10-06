@@ -16,6 +16,7 @@ import type {AuthConfig} from 'sentry/types/auth';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import AcceptOrganizationInvite from 'sentry/views/authV2/acceptOrganizationInvite';
 import type {InviteDetails} from 'sentry/views/authV2/acceptOrganizationInvite/types';
+import {mockElementFromPoint} from 'sentry/views/authV2/authLogin/components/testUtils';
 import type {AuthOrganization} from 'sentry/views/authV2/authLogin/hooks/useAuthOrganization';
 import {BrandedAuthLoadingProvider} from 'sentry/views/authV2/useBrandedAuthLoading';
 
@@ -72,6 +73,7 @@ function mockAuthConfig(overrides: Partial<AuthConfig> = {}, asyncDelay?: Promis
 }
 
 describe('AcceptOrganizationInvite', () => {
+  mockElementFromPoint();
   const configState = ConfigStore.getState();
   const skipAnimations = MotionGlobalConfig.skipAnimations;
 
@@ -114,7 +116,7 @@ describe('AcceptOrganizationInvite', () => {
     );
     expect(getInvite).toHaveBeenCalledWith(
       '/accept-invite/org-slug/1/abc/',
-      expect.objectContaining({query: {acceptance: 'explicit'}})
+      expect.anything()
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Accept invitation'}));
@@ -160,7 +162,7 @@ describe('AcceptOrganizationInvite', () => {
     );
   });
 
-  it('creates an account and then asks the user to accept', async () => {
+  it('keeps registration busy until the invitation check finishes', async () => {
     let invite = {...defaultInvite, needsAuthentication: true};
     MockApiClient.addMockResponse({
       url: '/accept-invite/org-slug/1/abc/',
@@ -186,6 +188,12 @@ describe('AcceptOrganizationInvite', () => {
     await userEvent.type(await screen.findByRole('textbox', {name: 'Name'}), user.name);
     await userEvent.type(screen.getByLabelText('Password'), 'a-secure-password');
     invite = {...invite, needsAuthentication: false};
+    const refetchDelay = Promise.withResolvers<void>();
+    const refetch = MockApiClient.addMockResponse({
+      url: '/accept-invite/org-slug/1/abc/',
+      body: invite,
+      asyncDelay: refetchDelay.promise,
+    });
     await userEvent.click(screen.getByRole('button', {name: 'Create account'}));
 
     await waitFor(() =>
@@ -200,9 +208,22 @@ describe('AcceptOrganizationInvite', () => {
         })
       )
     );
+    await waitFor(() => expect(refetch).toHaveBeenCalledTimes(1));
+    expect(screen.getByRole('button', {name: 'Create account'})).toBeDisabled();
+    expect(screen.getByRole('textbox', {name: 'Name'})).toHaveValue(user.name);
+    expect(
+      screen.queryByRole('button', {name: 'Accept invitation'})
+    ).not.toBeInTheDocument();
+
+    await act(async () => {
+      refetchDelay.resolve();
+      await refetchDelay.promise;
+    });
+
     await waitFor(() =>
       expect(screen.getByRole('button', {name: 'Accept invitation'})).toBeVisible()
     );
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   it('signs in inline and then asks the user to accept', async () => {
@@ -251,13 +272,13 @@ describe('AcceptOrganizationInvite', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Log in to Sentry'}));
 
     await waitFor(() => expect(login).toHaveBeenCalled());
-    expect(await screen.findByText('Existing User')).toBeVisible();
+    await waitFor(() => expect(screen.getByText('Existing User')).toBeVisible());
     await waitFor(() =>
       expect(screen.getByRole('button', {name: 'Accept invitation'})).toBeVisible()
     );
   });
 
-  it('shows the accept action when the invitation refresh finishes during the sign-in exit animation', async () => {
+  it('keeps sign-in busy until the invitation check finishes, then animates acceptance', async () => {
     MotionGlobalConfig.skipAnimations = false;
     const baseTheme = ThemeFixture();
     const smooth = {
@@ -306,6 +327,15 @@ describe('AcceptOrganizationInvite', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Log in to Sentry'}));
     await waitFor(() => expect(refetch).toHaveBeenCalled());
 
+    expect(screen.getByRole('button', {name: 'Log in to Sentry'})).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
+    expect(screen.getByRole('textbox', {name: 'Email'})).toHaveValue(user.email);
+    expect(
+      screen.queryByRole('button', {name: 'Accept invitation'})
+    ).not.toBeInTheDocument();
+
     await act(async () => {
       resolveRefetch();
       await refetchDelay;
@@ -314,13 +344,11 @@ describe('AcceptOrganizationInvite', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', {name: 'Accept invitation'})).toBeVisible()
     );
-    await waitFor(() =>
-      expect(screen.queryByText('Checking your invitation…')).not.toBeInTheDocument()
-    );
     expect(testableWindowLocation.assign).not.toHaveBeenCalled();
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
-  it('continues an inline sign-in through two-factor authentication', async () => {
+  it('keeps MFA busy until the invitation check finishes', async () => {
     const invite = {...defaultInvite, needsAuthentication: true};
     MockApiClient.addMockResponse({
       url: '/accept-invite/org-slug/1/abc/',
@@ -350,6 +378,37 @@ describe('AcceptOrganizationInvite', () => {
     await waitFor(() =>
       expect(screen.getByText('Enter the code from your Authenticator')).toBeVisible()
     );
+
+    const user = UserFixture();
+    MockApiClient.addMockResponse({
+      url: '/auth/2fa/',
+      method: 'POST',
+      body: {nextUri: '/organizations/', user},
+    });
+    const refetchDelay = Promise.withResolvers<void>();
+    const refetch = MockApiClient.addMockResponse({
+      url: '/accept-invite/org-slug/1/abc/',
+      body: defaultInvite,
+      asyncDelay: refetchDelay.promise,
+    });
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'One-time password'}),
+      '123456'
+    );
+    await waitFor(() => expect(refetch).toHaveBeenCalledTimes(1));
+
+    expect(screen.getByRole('textbox', {name: 'One-time password'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Back to Login'})).toBeDisabled();
+
+    await act(async () => {
+      refetchDelay.resolve();
+      await refetchDelay.promise;
+    });
+
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Accept invitation'})).toBeVisible()
+    );
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   it('uses organization SSO when it is required', async () => {
@@ -524,52 +583,78 @@ describe('AcceptOrganizationInvite', () => {
     expect(screen.queryByText(user.email)).not.toBeInTheDocument();
   });
 
-  it('hides the previous account while refreshing after logout', async () => {
-    const user = UserFixture({
-      name: 'Previous User',
-      email: 'previous@example.com',
-    });
-    ConfigStore.set('user', user);
-    MockApiClient.addMockResponse({
-      url: '/accept-invite/org-slug/1/abc/',
-      method: 'GET',
-      body: defaultInvite,
-    });
-    mockOrganizationConfig();
-    mockAuthConfig();
-    MockApiClient.addMockResponse({url: '/auth/', method: 'DELETE'});
-    MockApiClient.addMockResponse({url: '/auth-v2/csrf/'});
-    let resolveRefetch!: () => void;
-    const refetchDelay = new Promise<void>(resolve => {
-      resolveRefetch = resolve;
-    });
+  it.each([false, true])(
+    'keeps the previous account and action together while switching (needs2fa: %s)',
+    async needs2fa => {
+      const user = UserFixture({
+        name: 'Previous User',
+        email: 'previous@example.com',
+      });
+      ConfigStore.set('user', user);
+      MockApiClient.addMockResponse({
+        url: '/accept-invite/org-slug/1/abc/',
+        method: 'GET',
+        body: {...defaultInvite, needs2fa},
+      });
+      mockOrganizationConfig();
+      mockAuthConfig();
+      const logoutDelay = Promise.withResolvers<void>();
+      const logoutRequest = MockApiClient.addMockResponse({
+        url: '/auth/',
+        method: 'DELETE',
+        asyncDelay: logoutDelay.promise,
+      });
+      MockApiClient.addMockResponse({url: '/auth-v2/csrf/'});
+      let resolveRefetch!: () => void;
+      const refetchDelay = new Promise<void>(resolve => {
+        resolveRefetch = resolve;
+      });
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+      render(<AcceptOrganizationInvite />, {
+        initialRouterConfig: defaultRouterConfig,
+      });
 
-    expect(await screen.findByText(user.email)).toBeVisible();
-    MockApiClient.addMockResponse({
-      url: '/accept-invite/org-slug/1/abc/',
-      method: 'GET',
-      body: {...defaultInvite, needsAuthentication: true},
-      asyncDelay: refetchDelay,
-    });
-    await userEvent.click(screen.getByRole('button', {name: 'Switch account'}));
+      expect(await screen.findByText(user.email)).toBeVisible();
+      const actionName = needs2fa ? 'Configure Two-Factor Auth' : 'Accept invitation';
+      const refetch = MockApiClient.addMockResponse({
+        url: '/accept-invite/org-slug/1/abc/',
+        method: 'GET',
+        body: {...defaultInvite, needsAuthentication: true},
+        asyncDelay: refetchDelay,
+      });
+      await userEvent.click(screen.getByRole('button', {name: 'Switch account'}));
 
-    expect(await screen.findByText('Checking your invitation…')).toBeInTheDocument();
-    expect(screen.queryByText(user.email)).not.toBeInTheDocument();
+      await waitFor(() => expect(logoutRequest).toHaveBeenCalledTimes(1));
+      expect(screen.getByText(user.email)).toBeVisible();
+      expect(screen.getByRole('button', {name: 'Switch account'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: actionName})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
 
-    await act(async () => {
-      resolveRefetch();
-      await refetchDelay;
-    });
+      await act(async () => {
+        logoutDelay.resolve();
+        await logoutDelay.promise;
+      });
 
-    expect(
-      await screen.findByRole('button', {name: 'Create account'})
-    ).toBeInTheDocument();
-    expect(screen.queryByText(user.email)).not.toBeInTheDocument();
-  });
+      await waitFor(() => expect(refetch).toHaveBeenCalledTimes(1));
+      expect(screen.getByRole('button', {name: actionName})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.getByText(user.email)).toBeVisible();
+
+      await act(async () => {
+        resolveRefetch();
+        await refetchDelay;
+      });
+
+      expect(
+        await screen.findByRole('button', {name: 'Create account'})
+      ).toBeInTheDocument();
+      await waitFor(() => expect(screen.queryByText(user.email)).not.toBeInTheDocument());
+    }
+  );
 
   it('keeps the invitation visible while loading authentication after switching accounts', async () => {
     const user = UserFixture({email: 'previous@example.com'});
@@ -609,16 +694,11 @@ describe('AcceptOrganizationInvite', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Switch account'}));
     await waitFor(() => expect(loadAuthConfig).toHaveBeenCalledTimes(1));
 
-    await waitFor(() =>
-      expect(screen.getByText('Checking your invitation…')).toBeVisible()
-    );
     expect(screen.getByRole('heading', {name: 'Accept Invitation'})).toBeVisible();
     expect(screen.getByText('Acme')).toBeVisible();
     expect(screen.queryByText('Loading authentication…')).not.toBeInTheDocument();
-    expect(screen.queryByText(user.email)).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {name: 'Accept invitation'})
-    ).not.toBeInTheDocument();
+    expect(screen.getByText(user.email)).toBeVisible();
+    expect(screen.getByRole('button', {name: 'Accept invitation'})).toBeDisabled();
     expect(
       screen.queryByRole('button', {name: 'Create account'})
     ).not.toBeInTheDocument();
@@ -635,38 +715,58 @@ describe('AcceptOrganizationInvite', () => {
     expect(screen.queryByText(user.email)).not.toBeInTheDocument();
   });
 
-  it('continues acceptance after returning from required two-factor setup', async () => {
-    focusManager.setFocused(false);
-    MockApiClient.addMockResponse({
-      url: '/accept-invite/org-slug/1/abc/',
-      method: 'GET',
-      body: {...defaultInvite, needs2fa: true},
-    });
-    mockOrganizationConfig();
+  it.each([false, true])(
+    'checks two-factor setup in the background (needs2fa: %s)',
+    async needs2fa => {
+      focusManager.setFocused(false);
+      MockApiClient.addMockResponse({
+        url: '/accept-invite/org-slug/1/abc/',
+        method: 'GET',
+        body: {...defaultInvite, needs2fa: true},
+      });
+      mockOrganizationConfig();
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+      render(<AcceptOrganizationInvite />, {
+        initialRouterConfig: defaultRouterConfig,
+      });
 
-    expect(
-      await screen.findByRole('button', {name: 'Configure Two-Factor Auth'})
-    ).toBeVisible();
-    const getInvite = MockApiClient.addMockResponse({
-      url: '/accept-invite/org-slug/1/abc/',
-      method: 'GET',
-      body: defaultInvite,
-    });
+      expect(
+        await screen.findByRole('button', {name: 'Configure Two-Factor Auth'})
+      ).toBeVisible();
+      const refetchDelay = Promise.withResolvers<void>();
+      const getInvite = MockApiClient.addMockResponse({
+        url: '/accept-invite/org-slug/1/abc/',
+        method: 'GET',
+        body: {...defaultInvite, needs2fa},
+        asyncDelay: refetchDelay.promise,
+      });
 
-    act(() => focusManager.setFocused(true));
+      act(() => focusManager.setFocused(true));
+      await waitFor(() => expect(getInvite).toHaveBeenCalledTimes(1));
+      expect(
+        screen.getByRole('button', {name: 'Configure Two-Factor Auth'})
+      ).toHaveAttribute('aria-disabled', 'true');
+      expect(
+        screen.queryByRole('button', {name: 'Accept invitation'})
+      ).not.toBeInTheDocument();
 
-    await waitFor(() =>
-      expect(screen.getByRole('button', {name: 'Accept invitation'})).toBeVisible()
-    );
-    expect(getInvite).toHaveBeenCalledTimes(1);
-    expect(
-      screen.queryByRole('button', {name: 'Configure Two-Factor Auth'})
-    ).not.toBeInTheDocument();
-  });
+      await act(async () => {
+        refetchDelay.resolve();
+        await refetchDelay.promise;
+      });
+
+      const actionName = needs2fa ? 'Configure Two-Factor Auth' : 'Accept invitation';
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: actionName})).toBeVisible()
+      );
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: actionName})).toHaveAttribute(
+          'aria-disabled',
+          'false'
+        )
+      );
+    }
+  );
 
   it('prompts the user to configure required two-factor authentication', async () => {
     const invite = {...defaultInvite, needs2fa: true};

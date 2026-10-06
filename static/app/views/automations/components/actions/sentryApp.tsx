@@ -6,7 +6,7 @@ import {useModal} from '@sentry/scraps/modal';
 import {IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {ActionHandler} from 'sentry/types/workflowEngine/actions';
-import {useActionNodeContext} from 'sentry/views/automations/components/actionNodes';
+import {useActionNodeContext} from 'sentry/views/automations/components/actionNodeContext';
 import {SentryAppRuleModal} from 'sentry/views/automations/components/actions/sentryAppRuleModal';
 import type {SchemaFormConfig} from 'sentry/views/settings/organizationIntegrations/sentryAppExternalForm';
 

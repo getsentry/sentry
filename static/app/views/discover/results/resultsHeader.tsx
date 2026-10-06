@@ -75,9 +75,7 @@ function ResultsHeaderBase({
   }, [isHomepage, fetchHomepageQueryData]);
 
   const hasDiscoverQueryFeature = organization.features.includes('discover-query');
-  const migrateDiscoverQueries = organization.features.includes(
-    'discover-queries-in-all-queries'
-  );
+  const hasExplore = organization.features.includes('visibility-explore-view');
 
   const savedQueryButton = (
     <SavedQueryButtonGroup
@@ -130,9 +128,7 @@ function ResultsHeaderBase({
           )}
         </TopBar.Slot>
       )}
-      {!migrateDiscoverQueries && (
-        <TopBar.Slot name="actions">{savedQueryButton}</TopBar.Slot>
-      )}
+      {!hasExplore && <TopBar.Slot name="actions">{savedQueryButton}</TopBar.Slot>}
     </Fragment>
   );
 }

@@ -44,11 +44,17 @@ SVGElement.prototype.getTotalLength ??= () => 1;
 MotionGlobalConfig.skipAnimations = true;
 
 /**
- * React Testing Library configuration to override the default test id attribute
+ * React Testing Library configuration
  *
- * See: https://testing-library.com/docs/queries/bytestid/#overriding-data-testid
+ * - Override the default test id attribute.
+ *   See: https://testing-library.com/docs/queries/bytestid/#overriding-data-testid
+ * - Raise the `findBy*` / `waitFor` timeout from the 1000ms default. The first
+ *   render in a file routinely takes 600-800ms on an idle machine, which leaves
+ *   too little headroom on contended CI runners and causes intermittent
+ *   "Unable to find an element" failures. Passing tests are not slowed down.
+ *   See: https://testing-library.com/docs/dom-testing-library/api-configuration/#asyncutiltimeout
  */
-configureRtl({testIdAttribute: 'data-test-id'});
+configureRtl({testIdAttribute: 'data-test-id', asyncUtilTimeout: 2000});
 
 /**
  * Mock (current) date to always be National Pasta Day
@@ -98,7 +104,7 @@ jest.mock('@tanstack/react-pacer', () => ({
   ...jest.requireActual('@tanstack/react-pacer'),
   useAsyncDebouncedCallback: <TFn>(fn: TFn) => fn,
   useDebouncedCallback: <TFn>(fn: TFn) => fn,
-  useDebouncedValue: <T>(value: T) => [value] as const,
+  useDebouncedValue: <T>(value: T) => [value, {state: {isPending: false}}] as const,
 }));
 jest.mock('sentry/utils/recreateRoute');
 jest.mock('sentry/api');
