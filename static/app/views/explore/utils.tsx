@@ -5,10 +5,7 @@ import * as qs from 'query-string';
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {
-  getTooltipText as getAnnotatedTooltipText,
-  isDataScrubbingRule,
-} from 'sentry/components/events/meta/annotatedText/utils';
+import {getTooltipText as getAnnotatedTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
 import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
@@ -787,26 +784,9 @@ interface RemarkObject {
 }
 
 /**
- * Whether a PII rule redacted the attribute's value. Relay also remarks on
- * values it trimmed for size, which are annotated but not scrubbed, so this is
- * narrower than {@link hasRemarkedValue}.
+ * Whether a PII rule redacted the attribute's value.
  */
 export function hasScrubbedValue(
-  meta: TraceItemDetailsMeta | undefined,
-  attribute: string
-): boolean {
-  return meta === undefined
-    ? false
-    : new TraceItemMetaInfo(meta)
-        .getRemarks(attribute)
-        .some(({ruleId}) => isDataScrubbingRule(ruleId));
-}
-
-/**
- * Whether Relay remarked on the attribute's value at all, for any reason, so
- * that the annotation explaining what it did can be offered.
- */
-export function hasRemarkedValue(
   meta: TraceItemDetailsMeta | undefined,
   attribute: string
 ): boolean {

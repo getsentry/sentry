@@ -6,6 +6,7 @@ export const DEBUG_SOURCE_LAYOUTS = {
   unified: 'Unified Symbol Server Layout',
   debuginfod: 'debuginfod',
   slashsymbols: '/symbols',
+  nxsymstore: 'Nintendo NXSymStore',
 } as const;
 
 export const DEBUG_SOURCE_CASINGS = {
