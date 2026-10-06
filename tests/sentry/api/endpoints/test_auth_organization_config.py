@@ -59,6 +59,7 @@ class AuthOrganizationConfigEndpointTest(APITestCase):
             response = self.get_success_response(organization.slug)
 
         assert response.data["loginMethod"] == "demo"
+        assert response.data["joinRequestUrl"] is None
 
     def test_demo_login_configuration_requires_demo_mode(self) -> None:
         demo_user = self.create_user()
