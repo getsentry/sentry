@@ -18,6 +18,7 @@ from sentry.seer.anomaly_detection.types import (
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -139,7 +140,14 @@ def get_historical_anomaly_data_from_seer_preview(
     }
     viewer_context = SeerViewerContext(organization_id=organization_id)
     try:
-        response = make_detect_historical_anomalies_request(body, viewer_context=viewer_context)
+        with viewer_context_scope(
+            ViewerContext(
+                organization_id=organization_id,
+                project_id=project_id,
+                actor_type=ActorType.SYSTEM,
+            )
+        ):
+            response = make_detect_historical_anomalies_request(body, viewer_context=viewer_context)
     except (TimeoutError, MaxRetryError):
         logger.warning("Timeout error when hitting anomaly detection endpoint", extra=extra_data)
         return None

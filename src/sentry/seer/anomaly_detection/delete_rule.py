@@ -14,6 +14,7 @@ from sentry.seer.anomaly_detection.types import AlertInSeer, DataSourceType, Del
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
 from sentry.utils import json
 from sentry.utils.json import JSONDecodeError
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +58,9 @@ def delete_data_in_seer_for_detector(detector: Detector):
 
     if detector.config.get("detection_type") == AlertRuleDetectionType.DYNAMIC:
         success = delete_rule_in_seer(
-            source_id=int(data_source_detector.data_source.source_id), organization=organization
+            source_id=int(data_source_detector.data_source.source_id),
+            organization=organization,
+            project_id=detector.linked_project_id,
         )
         if not success:
             logger.error(
@@ -68,7 +71,7 @@ def delete_data_in_seer_for_detector(detector: Detector):
             )
 
 
-def delete_rule_in_seer(source_id: int, organization: Organization) -> bool:
+def delete_rule_in_seer(source_id: int, organization: Organization, project_id: int) -> bool:
     """
     Send a request to delete an alert rule from Seer. Returns True if the request was successful.
     """
@@ -83,7 +86,14 @@ def delete_rule_in_seer(source_id: int, organization: Organization) -> bool:
     }
     viewer_context = SeerViewerContext(organization_id=organization.id)
     try:
-        response = make_delete_alert_data_request(body, viewer_context=viewer_context)
+        with viewer_context_scope(
+            ViewerContext(
+                organization_id=organization.id,
+                project_id=project_id,
+                actor_type=ActorType.SYSTEM,
+            )
+        ):
+            response = make_delete_alert_data_request(body, viewer_context=viewer_context)
     except (TimeoutError, MaxRetryError):
         logger.warning(
             "Timeout error when hitting Seer delete rule data endpoint",

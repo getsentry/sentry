@@ -1,4 +1,3 @@
-import contextlib
 import logging
 from collections.abc import Callable, Mapping
 from typing import Any, Literal
@@ -36,7 +35,6 @@ from sentry.utils.json import JSONDecodeError
 from sentry.viewer_context import (
     ActorType,
     ViewerContext,
-    get_viewer_context,
     viewer_context_scope,
 )
 
@@ -210,17 +208,13 @@ def get_anomaly_data_from_seer(
     try:
         logger.info("Sending subscription update data to Seer", extra=extra_data)
         viewer_context = SeerViewerContext(organization_id=subscription.project.organization_id)
-        scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
-        if get_viewer_context() is None:
-            scope = viewer_context_scope(
-                ViewerContext(
-                    organization_id=subscription.project.organization_id,
-                    project_id=subscription.project_id,
-                    actor_type=ActorType.SYSTEM,
-                )
+        with viewer_context_scope(
+            ViewerContext(
+                organization_id=subscription.project.organization_id,
+                project_id=subscription.project_id,
+                actor_type=ActorType.SYSTEM,
             )
-
-        with scope:
+        ):
             response = make_detect_anomalies_request(
                 detect_anomalies_request, viewer_context=viewer_context
             )
@@ -363,7 +357,14 @@ def get_anomaly_threshold_data_from_seer(
     )
     viewer_context = SeerViewerContext(organization_id=subscription.project.organization_id)
     try:
-        response = make_get_anomaly_threshold_data_request(body, viewer_context=viewer_context)
+        with viewer_context_scope(
+            ViewerContext(
+                organization_id=subscription.project.organization_id,
+                project_id=subscription.project_id,
+                actor_type=ActorType.SYSTEM,
+            )
+        ):
+            response = make_get_anomaly_threshold_data_request(body, viewer_context=viewer_context)
     except (TimeoutError, MaxRetryError):
         logger.warning("anomaly_threshold.timeout_error_hitting_seer_endpoint")
         return None

@@ -32,6 +32,7 @@ from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.utils import json, metrics
 from sentry.utils.json import JSONDecodeError
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 from sentry.workflow_engine.models import DataCondition, DataSource, DataSourceDetector, Detector
 from sentry.workflow_engine.types import DetectorException, DetectorPriorityLevel
 
@@ -263,7 +264,14 @@ def send_historical_data_to_seer(
     )
     viewer_context = SeerViewerContext(organization_id=project.organization.id)
     try:
-        response = make_store_data_request(body, viewer_context=viewer_context)
+        with viewer_context_scope(
+            ViewerContext(
+                organization_id=project.organization.id,
+                project_id=project.id,
+                actor_type=ActorType.SYSTEM,
+            )
+        ):
+            response = make_store_data_request(body, viewer_context=viewer_context)
     # See SEER_ANOMALY_DETECTION_TIMEOUT in sentry.conf.server.py
     except (TimeoutError, MaxRetryError):
         logger.warning(

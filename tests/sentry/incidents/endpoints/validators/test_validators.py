@@ -40,6 +40,7 @@ from sentry.snuba.models import (
     SnubaQueryEventType,
 )
 from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.models import DataCondition, DataConditionGroup, DataSource, Detector
 from sentry.workflow_engine.models.data_condition import Condition
@@ -329,7 +330,16 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
         self, mock_audit: mock.MagicMock, mock_seer_request: mock.MagicMock
     ) -> None:
         seer_return_value: StoreDataResponse = {"success": True}
-        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        def make_request(*args: Any, **kwargs: Any) -> HTTPResponse:
+            assert get_viewer_context() == ViewerContext(
+                organization_id=self.organization.id,
+                project_id=self.project.id,
+                actor_type=ActorType.SYSTEM,
+            )
+            return HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        mock_seer_request.side_effect = make_request
 
         detector = self.create_dynamic_detector()
 
