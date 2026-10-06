@@ -1,8 +1,7 @@
 import type React from 'react';
-import {createContext, useContext} from 'react';
 
 import {t} from 'sentry/locale';
-import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
+import type {Action} from 'sentry/types/workflowEngine/actions';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 import {
   AzureDevOpsDetails,
@@ -61,23 +60,6 @@ import {
   WebhookDetails,
   WebhookNode,
 } from 'sentry/views/automations/components/actions/webhook';
-
-interface ActionNodeProps {
-  action: Action;
-  actionId: string;
-  handler: ActionHandler;
-  onUpdate: (params: Record<string, any>) => void;
-}
-
-export const ActionNodeContext = createContext<ActionNodeProps | null>(null);
-
-export function useActionNodeContext(): ActionNodeProps {
-  const context = useContext(ActionNodeContext);
-  if (!context) {
-    throw new Error('useActionNodeContext was called outside of ActionNode');
-  }
-  return context;
-}
 
 type ActionNode = {
   action: React.ComponentType<any>;

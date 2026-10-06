@@ -4,8 +4,9 @@ import abc
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any, Literal, Protocol
+from uuid import uuid4
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from sentry.integrations.types import ExternalProviderEnum
 
@@ -226,6 +227,15 @@ class NotificationData(BaseModel):
     """
     The source is uniquely attributable to the way this notification was sent. It will be tracked in
     metrics/analytics to determine the egress from a given code-path or service.
+    """
+    organization_id: int
+    """
+    The organization this notification is sent for.
+    """
+    notification_uuid: str = Field(default_factory=lambda: str(uuid4()))
+    """
+    Identifies this notification in engagement tracking, so clicks can be tied to the send that
+    produced them.
     """
 
 

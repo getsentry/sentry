@@ -170,13 +170,10 @@ function createNodeFromApiSpan(
     occurrences: apiSpan.occurrences ?? [],
     additional_attributes: {
       [SpanFields.GEN_AI_CONVERSATION_ID]: apiSpan['gen_ai.conversation.id'],
-      // Preserve the raw span op so the transcript can recognize embeddings
-      // spans, which don't have a dedicated gen_ai.operation.type. Kept off the
-      // op-type path so the timeline still renders them as before.
-      [SpanFields.SPAN_OP]: apiSpan['span.op'] ?? '',
       [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: apiSpan['gen_ai.embeddings.input'] ?? '',
       [SpanFields.GEN_AI_INPUT_MESSAGES]: apiSpan['gen_ai.input.messages'] ?? '',
-      // Recognizes evaluation spans, which report the ai_client operation type.
+      // Recognizes evaluation and embeddings spans, which report the ai_client
+      // operation type.
       [SpanFields.GEN_AI_OPERATION_NAME]: apiSpan['gen_ai.operation.name'] ?? '',
       [SpanFields.GEN_AI_OPERATION_TYPE]: operationType ?? '',
       [SpanFields.GEN_AI_OUTPUT_MESSAGES]: apiSpan['gen_ai.output.messages'] ?? '',
