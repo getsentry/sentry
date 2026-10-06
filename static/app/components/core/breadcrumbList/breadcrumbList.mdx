@@ -216,7 +216,7 @@ TopBar's flex layout.
 Use `externalHref` instead of `to` for external parent links. These open in a new
 tab, including when shown in the overflow menu.
 
-### `'select-projects'` — select a parent project
+### `'select'` — select a parent item
 
 Use this item only for a parent selector in the breadcrumb trail.
 Pass `options`, `value`, and `onChange`. Settings also uses this item for team
@@ -230,7 +230,7 @@ must use `page-title` or `editable-title`.
 <BreadcrumbList
   items={[
     {
-      type: 'select-projects',
+      type: 'select',
       value: currentProject.slug,
       options: projects.map(project => ({value: project.slug, label: project.slug})),
       onChange: selected => navigateToProject(selected.value),

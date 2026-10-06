@@ -9,8 +9,8 @@ import type {BreadcrumbItemPageTitleProps} from './items/breadcrumbItemPageTitle
 import {BreadcrumbItemPageTitle} from './items/breadcrumbItemPageTitle';
 import type {BreadcrumbItemPageTitleEditableProps} from './items/breadcrumbItemPageTitleEditable';
 import {BreadcrumbItemPageTitleEditable} from './items/breadcrumbItemPageTitleEditable';
-import type {BreadcrumbItemSelectProjectsProps} from './items/breadcrumbItemSelectProjects';
-import {BreadcrumbItemSelectProjects} from './items/breadcrumbItemSelectProjects';
+import type {BreadcrumbItemSelectProps} from './items/breadcrumbItemSelect';
+import {BreadcrumbItemSelect} from './items/breadcrumbItemSelect';
 import {BreadcrumbDividerCombo} from './breadcrumbDividerCombo';
 
 type LinkBreadcrumbItem = {type: 'link'} & BreadcrumbItemLinkProps;
@@ -20,11 +20,11 @@ type PageTitleBreadcrumbItem = {
 type EditableTitleBreadcrumbItem = {
   type: 'editable-title';
 } & BreadcrumbItemPageTitleEditableProps;
-type SelectProjectsBreadcrumbItem = {
-  type: 'select-projects';
-} & BreadcrumbItemSelectProjectsProps;
+type SelectBreadcrumbItem = {
+  type: 'select';
+} & BreadcrumbItemSelectProps;
 
-type BreadcrumbItem = LinkBreadcrumbItem | SelectProjectsBreadcrumbItem;
+type BreadcrumbItem = LinkBreadcrumbItem | SelectBreadcrumbItem;
 export type BreadcrumbTitleItem = PageTitleBreadcrumbItem | EditableTitleBreadcrumbItem;
 
 export interface BreadcrumbListProps {
@@ -42,9 +42,9 @@ function renderItem(item: BreadcrumbItem) {
       const {type: _type, ...props} = item;
       return <BreadcrumbItemLink {...props} />;
     }
-    case 'select-projects': {
+    case 'select': {
       const {type: _type, ...props} = item;
-      return <BreadcrumbItemSelectProjects {...props} />;
+      return <BreadcrumbItemSelect {...props} />;
     }
     default:
       unreachable(item);
@@ -80,7 +80,7 @@ function BreadCrumbTitle({item}: BreadcrumbListTitleProps) {
  * - Wide (≥ 512px): all parent items render individually
  * - Narrow (< 512px): parent items hide and link parents collapse into a single
  *   BreadcrumbItemMenuBreadcrumbs overflow button; non-link parents (e.g.
- *   'select-projects') just hide.
+ *   'select') just hide.
  */
 export function BreadcrumbList({items}: BreadcrumbListProps) {
   const hasParentQueryContainer = useHasContainerQuery();
@@ -126,7 +126,7 @@ export function BreadcrumbList({items}: BreadcrumbListProps) {
         <Flex as="ol" align="center" gap="xs" margin="0" padding="0" wrap="nowrap">
           {items.map((item, index) => (
             // Wide: show every item. Narrow: hide them all — 'link' parents
-            // reappear in the overflow menu below; other types (e.g. 'select-projects')
+            // reappear in the overflow menu below; other types (e.g. 'select')
             // simply collapse out of view.
             <BreadcrumbDividerCombo key={index} display={visibleWhenWide}>
               {renderItem(item)}

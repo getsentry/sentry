@@ -15,7 +15,7 @@ Editable titles render only the displayed label inside `<h1><span>…</span></h1
 
 Editable titles use the standard `EditableText` behavior: a single click starts editing, clicking outside saves the draft, and Escape cancels it. Pass form validation errors through `error` and subscribe to the form error state so changes are rendered. `errorMessage` is only the message for an invalid empty edit; it does not display server validation errors.
 
-Selectors belong only in parent breadcrumbs. The final item must be a plain or editable title. The `select-projects` parent item accepts `options`, `value`, and `onChange`. Settings menus also use `label` for a stable name during search, `leadingGraphic`, `search`, `loading`, and `onOpenChange`. Selector labels do not navigate. A separate icon button opens the menu on click. Pass parent items through `TopBar.Slot.items`; the breadcrumbs slot has no children.
+Selectors belong only in parent breadcrumbs. The final item must be a plain or editable title. The `select` parent item accepts `options`, `value`, and `onChange`. Settings menus also use `label` for a stable name during search, `leadingGraphic`, `search`, `loading`, and `onOpenChange`. Selector labels do not navigate. A separate icon button opens the menu on click. Pass parent items through `TopBar.Slot.items`; the breadcrumbs slot has no children.
 
 ## Map existing content
 
@@ -28,7 +28,7 @@ Selectors belong only in parent breadcrumbs. The final item must be a plain or e
 | Feature badge                     | `trailingActions: {type: 'badge', element: <FeatureBadge type="new" />}` |
 | Copy button                       | `trailingActions: {type: 'copy', ...}`                                   |
 | Rename input                      | `editable-title`                                                         |
-| Parent project selector           | `select-projects` parent item                                            |
+| Parent selector                   | `select` parent item                                                     |
 | Previous/next chevrons            | `pagination`                                                             |
 | Formatted version                 | Format the value into the label string                                   |
 

@@ -43,4 +43,4 @@ The Discover, Explore saved-query, dashboard, and preprod install headers are us
 
 `BreadcrumbList` renders an `<ol>` without a navigation landmark. Preserve any landmark required by these callers; do not migrate them solely to lower the importer count.
 
-Settings uses route-driven `SettingsBreadcrumb` and a title context. It builds typed `link` and `select-projects` items; TopBar renders the sole `BreadcrumbList`. Its page headers accept typed titles and optional parent items, but the legacy-component migration does not require replacing its route assembly.
+Settings uses route-driven `SettingsBreadcrumb` and a title context. It builds typed `link` and `select` items; TopBar renders the sole `BreadcrumbList`. Its page headers accept typed titles and optional parent items, but the legacy-component migration does not require replacing its route assembly.

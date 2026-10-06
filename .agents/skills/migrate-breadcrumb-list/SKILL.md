@@ -65,15 +65,15 @@ Keep a bare pathname when the old crumb did not preserve filters. Do not change 
 
 | Surface                                      | Accepted items                   |
 | -------------------------------------------- | -------------------------------- |
-| `TopBar.Slot.items` / `BreadcrumbList.items` | `link`, `select-projects`        |
+| `TopBar.Slot.items` / `BreadcrumbList.items` | `link`, `select`                 |
 | `TopBar.Slot` breadcrumbs `title`            | `page-title`, `editable-title`   |
 | `BreadcrumbList.Title` `item`                | Same `BreadcrumbTitleItem` union |
 
 - `page-title` requires a string `label`. Use `labelTooltip`, `leadingGraphic`, `pagination`, and `trailingActions` for supporting content.
 - `editable-title` requires `value`, `onChange`, and `'aria-label'`.
 - `link` requires `label` and either `to` for internal navigation or `externalHref` for an external link that opens in a new tab.
-- `select-projects` accepts `options`, `value`, and `onChange` for parent breadcrumbs only. Settings also uses it for team and integration menus. A separate icon button opens the menu on click. Supply `label` to retain the name during server search, and `leadingGraphic` for its icon. `search`, `loading`, and `onOpenChange` pass through to the selector. Selector labels are not links. The current page title cannot be a selector.
-- Trailing actions support `copy`, `menu`, `badge`, and `button`. A selector is a `select-projects` parent item, not a trailing action.
+- `select` accepts `options`, `value`, and `onChange` for parent breadcrumbs only. Settings also uses it for team and integration menus. A separate icon button opens the menu on click. Supply `label` to retain the name during server search, and `leadingGraphic` for its icon. `search`, `loading`, and `onOpenChange` pass through to the selector. Selector labels are not links. The current page title cannot be a selector.
+- Trailing actions support `copy`, `menu`, `badge`, and `button`. A selector is a `select` parent item, not a trailing action.
 - There are no title-level `help`, `badge`, `href`, `status`, or `titleGuide` props. Use `labelTooltip` for help and documentation links, and a trailing `badge` action for feature badges. Keep the title label plain text.
 
 Import public components from `@sentry/scraps/breadcrumbList` and `@sentry/scraps/badge`. The breadcrumb barrel exports `BreadcrumbList`, `BreadcrumbListProps`, and `BreadcrumbTitleItem`. Import `BreadcrumbListProps` directly for parent item types (`BreadcrumbListProps['items']`); do not infer them with `React.ComponentProps<typeof BreadcrumbList>`.
@@ -109,7 +109,7 @@ Use `views/detectors/components/details/common/header.tsx` for slot composition,
 - Legacy crumbs are not spread into typed items; page-filter destinations preserve the old behavior.
 - Decorative leading graphics fit the 16×16 slot. Disable links and interactive tooltips inside that `aria-hidden` slot.
 - Feature badges use `trailingActions`, match the sidebar type, and remain outside `leadingGraphic`.
-- Rich tooltip content uses `labelTooltip`. Selectors use the `select-projects` parent item.
+- Rich tooltip content uses `labelTooltip`. Selectors use the `select` parent item.
 - Conditional entries in trailing-action arrays use `null`. A lone action is a bare object.
 - Check the actual JSX components in `badge` and `button` actions. Their `ReactElement<Props>` annotations do not enforce component identity.
 - No empty padded header wrapper or duplicate slot owner remains.

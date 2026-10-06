@@ -5,10 +5,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 
 import type {SettingsBreadcrumbProps} from './types';
 
-type SelectItem = Extract<
-  BreadcrumbListProps['items'][number],
-  {type: 'select-projects'}
->;
+type SelectItem = Extract<BreadcrumbListProps['items'][number], {type: 'select'}>;
 
 type Props = Pick<SettingsBreadcrumbProps, 'items' | 'itemIndex' | 'title' | 'isLast'> &
   Omit<SelectItem, 'type' | 'onChange' | 'label'> & {
@@ -47,7 +44,7 @@ export function SettingsBreadcrumbSlot({
         ...items.slice(0, itemIndex),
         hasMenu
           ? {
-              type: 'select-projects',
+              type: 'select',
               label,
               leadingGraphic,
               ...selectProps,

@@ -40,7 +40,7 @@ Run 2 also found a regression introduced by run 1's fix — the step 6 "add as s
 
 - Retained the existing migration scope and reference-backed workflow. This is an update of the existing skill, not a new skill or provider-specific workflow.
 - Replaced public two-slot examples with one breadcrumbs slot and a required typed title. Removed the obsolete Layout.Title shim guidance.
-- Documented rich labelTooltip content, trailing feature badges, and standard EditableText behavior. Restricted select-projects to parent breadcrumbs. Removed guidance for unsupported title props.
+- Documented rich labelTooltip content, trailing feature badges, and standard EditableText behavior. Restricted select to parent breadcrumbs. Removed guidance for unsupported title props.
 - Corrected the claim that ReactElement<Props> restricts the JSX component. It does not.
 - Replaced the stale test setup instructions using the current shared renderer, and removed guidance that would preserve tests solely for deleted decorations.
 - Rebuilt the inventory from current imports. Removed already-migrated wrappers from the backlog and replaced fixed importer-count rules with inspection of remaining navigation needs.

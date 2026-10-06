@@ -159,7 +159,7 @@ describe('TopBar', () => {
     type Props = ComponentProps<typeof TopBar.Slot>;
     type ProjectSelector = Extract<
       BreadcrumbListProps['items'][number],
-      {type: 'select-projects'}
+      {type: 'select'}
     >;
     expectTypeOf<{name: 'breadcrumbs'}>().not.toMatchTypeOf<Props>();
     expectTypeOf<{children: string; name: 'title'}>().not.toMatchTypeOf<Props>();

@@ -140,13 +140,13 @@ describe('BreadcrumbList container-query collapse', () => {
     expect(dividers).toHaveLength(0);
   });
 
-  it('gives the select-projects trigger a descriptive accessible name', async () => {
+  it('gives the select trigger a descriptive accessible name', async () => {
     render(
       <BreadcrumbList
         items={[
           {type: 'link', label: 'Settings', to: '/settings/'},
           {
-            type: 'select-projects',
+            type: 'select',
             value: 'javascript',
             options: [
               {value: 'javascript', label: 'javascript'},
@@ -167,13 +167,13 @@ describe('BreadcrumbList container-query collapse', () => {
     ).toBeInTheDocument();
   });
 
-  it('collapses non-link parents (select-projects) below the sm breakpoint', async () => {
+  it('collapses non-link parents (select) below the sm breakpoint', async () => {
     render(
       <BreadcrumbList
         items={[
           {type: 'link', label: 'Settings', to: '/settings/'},
           {
-            type: 'select-projects',
+            type: 'select',
             value: 'javascript',
             options: [
               {value: 'javascript', label: 'javascript'},

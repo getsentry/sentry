@@ -9,7 +9,7 @@ import {IconChevron} from 'sentry/icons';
 
 import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
 
-export type BreadcrumbItemSelectProjectsProps<Value extends SelectKey = string> = Pick<
+export type BreadcrumbItemSelectProps<Value extends SelectKey = string> = Pick<
   Extract<SingleSelectProps<Value>, {clearable?: false}>,
   'options' | 'value' | 'onChange' | 'onOpenChange' | 'search' | 'loading'
 > & {
@@ -18,14 +18,14 @@ export type BreadcrumbItemSelectProjectsProps<Value extends SelectKey = string> 
   leadingGraphic?: React.ReactNode;
 };
 
-export function BreadcrumbItemSelectProjects<Value extends SelectKey = string>({
+export function BreadcrumbItemSelect<Value extends SelectKey = string>({
   options,
   value,
   onChange,
   label,
   leadingGraphic,
   ...props
-}: BreadcrumbItemSelectProjectsProps<Value>) {
+}: BreadcrumbItemSelectProps<Value>) {
   const {t} = useTranslation();
   const selected = options
     .flatMap(option => ('options' in option ? option.options : [option]))
