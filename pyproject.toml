@@ -147,8 +147,16 @@ environments = [
 [[tool.uv.index]]
 # We don't allow using public pypi - submit a PR to
 # https://github.com/getsentry/pypi to add a dependency.
+name = "sentry-pypi"
 url = "https://pypi.devinfra.sentry.io/simple"
 default = true
+
+[[tool.uv.index]]
+# Org-level Dependabot registry. Declaring it here stops Dependabot from
+# passing it as `--default-index`; `explicit` keeps uv from ever using it.
+name = "sfw"
+url = "https://sfw.security.sentry.io/pypi/simple"
+explicit = true
 
 # Note: instead of using a build system, we use tools/fast_editable.py
 # to install sentry editably as well as console scripts.
@@ -657,7 +665,6 @@ module = [
     "sentry.api.serializers.rest_framework.project",
     "sentry.api.serializers.rest_framework.project_key",
     "sentry.api.serializers.rest_framework.release",
-    "sentry.api.serializers.rest_framework.rule",
     "sentry.api.serializers.snuba",
     "sentry.api.serializers.types",
     "sentry.api.urls",

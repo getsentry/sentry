@@ -5,8 +5,6 @@ import logging
 from collections.abc import Callable, MutableMapping, Sequence
 from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
 
-from django import forms
-
 from sentry.models.project import Project
 from sentry.notifications.types import RuleFuture
 from sentry.services.eventstore.models import GroupEvent
@@ -78,18 +76,8 @@ class RuleBase(abc.ABC):
     def get_option(self, key: str, default: str | None = None) -> Any:
         return self.data.get(key, default)
 
-    def get_form_instance(self) -> forms.Form | None:
-        return None
-
     def render_label(self) -> str:
         return self.label.format(**self.data)
-
-    def validate_form(self) -> bool:
-        form = self.get_form_instance()
-        if form is None:
-            return True
-        else:
-            return form.is_valid()
 
     def future(
         self,

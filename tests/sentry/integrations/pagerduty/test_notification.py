@@ -6,6 +6,7 @@ import responses
 from sentry.analytics.events.alert_sent import AlertSentEvent
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.on_call.metrics import OnCallIntegrationsHaltReason
+from sentry.integrations.pagerduty.actions.form import PagerDutyNotifyServiceForm
 from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifyServiceAction
 from sentry.integrations.pagerduty.analytics import PagerdutyIntegrationNotificationSent
 from sentry.integrations.pagerduty.client import PAGERDUTY_SUMMARY_MAX_LENGTH
@@ -306,7 +307,11 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     def test_valid_service_selected(self) -> None:
         rule = self.get_rule(data={"account": self.integration.id, "service": self.service["id"]})
 
-        form = rule.get_form_instance()
+        form = PagerDutyNotifyServiceForm(
+            rule.data,
+            integrations=rule.get_integrations(),
+            services=rule.get_services(),
+        )
         assert form.is_valid()
 
     @responses.activate
@@ -385,7 +390,11 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         rule = self.get_rule(data={"account": self.integration.id, "service": str(service["id"])})
 
-        form = rule.get_form_instance()
+        form = PagerDutyNotifyServiceForm(
+            rule.data,
+            integrations=rule.get_integrations(),
+            services=rule.get_services(),
+        )
         assert not form.is_valid()
         assert len(form.errors) == 1
         assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
