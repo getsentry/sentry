@@ -269,6 +269,7 @@ export function SeerExplorerContent({
     const failedQuery = requestError?.query;
     if (failedQuery) {
       setInputValue(current =>
+        // Backwards compatibility for drafts saved as a string in sessionStorage.
         (typeof current === 'string' ? current : current.text).trim()
           ? current
           : {text: failedQuery, mentions: []}
