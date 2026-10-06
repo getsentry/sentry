@@ -19,8 +19,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.eap.columns import ResolvedAttribute
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.spans.definitions import SPAN_FIELDS_ACL
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import FieldsACL, SearchResolverConfig
 from sentry.search.eap.utils import check_attribute_names_exist, serialize_search_type
 from sentry.search.events import fields
 from sentry.snuba.referrer import Referrer
@@ -227,7 +226,7 @@ class OrganizationEventsValidateEndpoint(OrganizationEventsEndpointBase):
             return self.serialize_response(response)
 
         config = (
-            SearchResolverConfig(fields_acl=SPAN_FIELDS_ACL)
+            SearchResolverConfig(fields_acl=FieldsACL(attributes={"sentry.links"}))
             if dataset == Spans
             else SearchResolverConfig()
         )

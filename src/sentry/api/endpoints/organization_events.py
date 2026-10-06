@@ -36,12 +36,11 @@ from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.search.eap.preprod_size.config import PreprodSizeSearchResolverConfig
-from sentry.search.eap.spans.definitions import SPAN_FIELDS_ACL
 from sentry.search.eap.trace_metrics.config import (
     TraceMetricsSearchResolverConfig,
     get_trace_metric_from_request,
 )
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import FieldsACL, SearchResolverConfig
 from sentry.snuba import (
     discover,
     errors,
@@ -596,7 +595,9 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     return SearchResolverConfig(
                         auto_fields=True,
                         use_aggregate_conditions=use_aggregate_conditions,
-                        fields_acl=SPAN_FIELDS_ACL,
+                        fields_acl=FieldsACL(
+                            functions={"time_spent_percentage"}, attributes={"sentry.links"}
+                        ),
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                         disable_array_attributes=disable_array_attributes,
