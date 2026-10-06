@@ -10,7 +10,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.serializers import serialize
-from sentry.auth.scope_declaration import update_permission_scope_declaration
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -24,6 +23,7 @@ from sentry.apidocs.response_types import (
     ValidationErrorResponse,
     as_validation_errors,
 )
+from sentry.auth.scope_declaration import update_permission_scope_declaration
 from sentry.models.project import Project
 from sentry.workflow_engine.endpoints.organization_detector_index import get_detector_validator
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
