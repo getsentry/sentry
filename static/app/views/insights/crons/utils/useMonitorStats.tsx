@@ -6,10 +6,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {MonitorBucket} from 'sentry/views/insights/crons/types';
 
 interface Options {
+  environment?: string | string[];
   /**
    * The list of monitor IDs to fetch stats for
    */
   monitors: string[];
+  project?: string;
   /**
    * The window configuration object
    */
@@ -21,7 +23,12 @@ type Result = Record<string, MonitorBucket[]>;
 /**
  * Fetches Monitor stats
  */
-export function useMonitorStats({monitors, timeWindowConfig}: Options) {
+export function useMonitorStats({
+  monitors,
+  timeWindowConfig,
+  project,
+  environment,
+}: Options) {
   const {start, end, rollupConfig} = timeWindowConfig;
 
   const selectionQuery = {
@@ -46,8 +53,8 @@ export function useMonitorStats({monitors, timeWindowConfig}: Options) {
       {
         query: {
           monitor: monitors,
-          project: location.query.project,
-          environment: location.query.environment,
+          project: project ?? location.query.project,
+          environment: environment ?? location.query.environment,
           ...selectionQuery,
         },
       },

@@ -36,6 +36,8 @@ import {MonitorEnvironmentLabel} from './monitorEnvironmentLabel';
 interface Props {
   monitor: Monitor;
   timeWindowConfig: TimeWindowConfig;
+  statsEnvironment?: string | string[];
+  statsProject?: string;
   onDeleteEnvironment?: (env: string) => Promise<void>;
   onToggleMuteEnvironment?: (env: string, isMuted: boolean) => Promise<void>;
   /**
@@ -51,6 +53,8 @@ export function OverviewRow({
   monitor,
   singleMonitorView,
   timeWindowConfig,
+  statsEnvironment,
+  statsProject,
   onDeleteEnvironment,
   onToggleMuteEnvironment,
 }: Props) {
@@ -59,6 +63,8 @@ export function OverviewRow({
   const {data: monitorStats, isPending} = useMonitorStats({
     monitors: [monitor.id],
     timeWindowConfig,
+    project: statsProject,
+    environment: statsEnvironment,
   });
 
   const [isExpanded, setExpanded] = useState(
