@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
@@ -72,7 +72,7 @@ export function Banner({
         backgroundRepeat: 'no-repeat',
         backgroundSize: 'cover',
         boxShadow: theme.shadow.medium,
-        color: theme.colors.white,
+        color: theme.tokens.content.onVibrant.light,
       }}
     >
       {backgroundComponent}
@@ -99,7 +99,14 @@ export function Banner({
           icon={<IconClose />}
           onClick={dismiss}
           aria-label={t('Close')}
-          style={{color: theme.colors.white}}
+          css={css`
+            &,
+            &:hover,
+            &:active,
+            &:focus-visible {
+              color: ${theme.tokens.content.onVibrant.light};
+            }
+          `}
         />
       </Container>
     </Flex>
