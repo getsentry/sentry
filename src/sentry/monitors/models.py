@@ -573,7 +573,7 @@ class MonitorCheckIn(Model):
     monitor_config = LegacyTextJSONField(null=True)
     """
     Legacy snapshot of the monitor configuration at the time of the check-in.
-    No longer written; replaced by `config_snapshot_id`.
+    No longer written; replaced by `config_snapshot`.
     """
 
     config_snapshot = FlexibleForeignKey(
