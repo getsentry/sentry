@@ -152,6 +152,15 @@ class TestSortMergedAttributes:
             "alpha",
         ]
 
+    def test_sorts_missing_descriptions_last_when_sort_is_descending_description(self) -> None:
+        sorted_attributes = sort_merged_attributes(self.attributes, "-description")
+
+        assert [attribute["name"] for attribute in sorted_attributes] == [
+            "beta",
+            "gamma",
+            "alpha",
+        ]
+
 
 class OrganizationTraceItemAttributesMergedEndpointTest(
     BaseSpansTestCase, SpanTestCase, OurLogTestCase, APITestCase
@@ -294,6 +303,19 @@ class OrganizationTraceItemAttributesMergedEndpointTest(
             attribute["name"] for attribute in response.data
         )
         assert all("context" not in attribute for attribute in response.data)
+
+    def test_returns_zero_hits_when_there_are_no_projects(self) -> None:
+        organization = self.create_organization(owner=self.user)
+
+        with self.feature(self.feature_flags):
+            response = self.client.get(
+                reverse(self.viewname, kwargs={"organization_id_or_slug": organization.slug}),
+                format="json",
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data == []
+        assert response["X-Hits"] == "0"
 
     def test_returns_400_when_sort_is_invalid(self) -> None:
         response = self.do_request(query={"sort": "unknown"})

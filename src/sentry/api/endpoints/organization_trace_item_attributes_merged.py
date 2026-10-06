@@ -64,13 +64,12 @@ SORT_KEYS: dict[str, Callable[[MergedTraceItemAttribute], Any]] = {
         [MERGEABLE_DATASETS.index(dataset) for dataset in attribute["datasets"]],
         attribute["name"],
     ),
-    "description": lambda attribute: (
-        _brief(attribute) == "",
-        _brief(attribute).lower(),
-        attribute["name"],
-    ),
+    "description": lambda attribute: (_brief(attribute).lower(), attribute["name"]),
 }
 SORT_CHOICES = [*SORT_KEYS, *(f"-{field}" for field in SORT_KEYS)]
+
+# Matches the maxsize of the Snuba connection pool, so concurrent queries don't overflow it.
+MAX_QUERY_WORKERS = 10
 
 
 class OrganizationTraceItemAttributesMergedEndpointSerializer(serializers.Serializer):
@@ -89,7 +88,16 @@ def sort_merged_attributes(
     attributes: list[MergedTraceItemAttribute], sort: str
 ) -> list[MergedTraceItemAttribute]:
     field = sort.removeprefix("-")
-    return sorted(attributes, key=SORT_KEYS[field], reverse=sort.startswith("-"))
+    descending = sort.startswith("-")
+    if field != "description":
+        return sorted(attributes, key=SORT_KEYS[field], reverse=descending)
+
+    described = [attribute for attribute in attributes if _brief(attribute)]
+    undescribed = [attribute for attribute in attributes if not _brief(attribute)]
+    return [
+        *sorted(described, key=SORT_KEYS[field], reverse=descending),
+        *sorted(undescribed, key=SORT_KEYS[field], reverse=descending),
+    ]
 
 
 def merge_attributes_across_datasets(
@@ -144,7 +152,9 @@ class OrganizationTraceItemAttributesMergedEndpoint(OrganizationTraceItemAttribu
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
-            return self.paginate(request=request, paginator=ChainPaginator([]))
+            response = self.paginate(request=request, paginator=ChainPaginator([]))
+            response["X-Hits"] = 0
+            return response
 
         serialized: dict[str, Any] = serializer.validated_data
         substring_match = serialized.get("substring_match", "")
@@ -200,7 +210,7 @@ class OrganizationTraceItemAttributesMergedEndpoint(OrganizationTraceItemAttribu
         }
         with ContextPropagatingThreadPoolExecutor(
             thread_name_prefix=__name__,
-            max_workers=max(len(tasks), 1),
+            max_workers=max(min(len(tasks), MAX_QUERY_WORKERS), 1),
         ) as pool:
             futures = [
                 (
