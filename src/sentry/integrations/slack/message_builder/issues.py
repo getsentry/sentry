@@ -612,31 +612,27 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         link_key: RuleIdType = "legacy_rule_id"
         link_id = None
         if self.rules:
-            notification_origin = self.rules[0]
-            if isinstance(notification_origin, NotificationOrigin):
-                rule_id = notification_origin.legacy_rule_id
-                workflow_id = notification_origin.workflow_id or workflow_id
-                rule_environment_id = notification_origin.environment_id
+            rule_key, value = get_rule_or_workflow_id(self.rules[0])
+            if rule_key == "legacy_rule_id":
+                rule_id = int(value)
+
+            if isinstance(self.rules[0], NotificationOrigin):
+                workflow_id = self.rules[0].workflow_id or workflow_id
+                rule_environment_id = self.rules[0].environment_id
             else:
-                action = notification_origin.data.get("actions", [{}])[0]
+                action = self.rules[0].data.get("actions", [{}])[0]
                 if action.get("workflow_id") is not None:
                     workflow_id = int(action["workflow_id"])
-                if action.get("legacy_rule_id") is not None:
-                    rule_id = int(action["legacy_rule_id"])
-                elif workflow_id is None:
-                    rule_id = notification_origin.id
 
-            link_key, link_value = get_rule_or_workflow_id(
-                notification_origin, prefer="workflow_id"
-            )
+            link_key, link_value = get_rule_or_workflow_id(self.rules[0], prefer="workflow_id")
             link_id = int(link_value)
-            if not isinstance(notification_origin, NotificationOrigin):
+            if not isinstance(self.rules[0], NotificationOrigin):
                 match link_key:
                     case "workflow_id":
                         workflow = Workflow.objects.filter(id=link_id).first()
                         rule_environment_id = workflow.environment_id if workflow else None
                     case "legacy_rule_id":
-                        rule_environment_id = notification_origin.environment_id
+                        rule_environment_id = self.rules[0].environment_id
 
         # build up actions text
         if self.actions and self.identity and not action_text:

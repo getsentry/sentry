@@ -16,6 +16,12 @@ def get_notification_origins(
     workflow_ids: Iterable[int] = (),
     legacy_rule_ids: Iterable[int] = (),
 ) -> list[NotificationOrigin]:
+    """Resolve callback IDs to workflow-backed notification origins.
+
+    Workflow IDs are authoritative. Legacy rule IDs are accepted for compatibility
+    and mapped through AlertRuleWorkflow. IDs without a workflow in the project's
+    organization are omitted.
+    """
     workflow_ids = list(dict.fromkeys(workflow_ids))
     legacy_rule_ids = list(dict.fromkeys(legacy_rule_ids))
 
