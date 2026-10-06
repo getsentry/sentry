@@ -11,6 +11,7 @@ from .group_similar_issues import GroupSimilarIssuesEndpoint
 from .group_similar_issues_embeddings import GroupSimilarIssuesEmbeddingsEndpoint
 from .group_tombstone import GroupTombstoneEndpoint
 from .group_tombstone_details import GroupTombstoneDetailsEndpoint
+from .organization_code_mapping_repo_prefixes import OrganizationCodeMappingRepoPrefixesEndpoint
 from .organization_derive_code_mappings import OrganizationDeriveCodeMappingsEndpoint
 from .organization_eventid import EventIdLookupEndpoint
 from .organization_group_index import OrganizationGroupIndexEndpoint
@@ -52,6 +53,7 @@ __all__ = (
     "GroupSimilarIssuesEndpoint",
     "GroupTombstoneDetailsEndpoint",
     "GroupTombstoneEndpoint",
+    "OrganizationCodeMappingRepoPrefixesEndpoint",
     "OrganizationDeriveCodeMappingsEndpoint",
     "OrganizationGroupIndexEndpoint",
     "OrganizationGroupIndexStatsEndpoint",
