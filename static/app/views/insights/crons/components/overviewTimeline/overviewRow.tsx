@@ -43,8 +43,6 @@ interface Props {
    * turns off things like zebra striping, hover effect, and showing monitor name
    */
   singleMonitorView?: boolean;
-  statsEnvironment?: string | string[];
-  statsProject?: string;
 }
 
 const MAX_SHOWN_ENVIRONMENTS = 4;
@@ -53,8 +51,6 @@ export function OverviewRow({
   monitor,
   singleMonitorView,
   timeWindowConfig,
-  statsEnvironment,
-  statsProject,
   onDeleteEnvironment,
   onToggleMuteEnvironment,
 }: Props) {
@@ -63,8 +59,6 @@ export function OverviewRow({
   const {data: monitorStats, isPending} = useMonitorStats({
     monitors: [monitor.id],
     timeWindowConfig,
-    project: statsProject,
-    environment: statsEnvironment,
   });
 
   const [isExpanded, setExpanded] = useState(

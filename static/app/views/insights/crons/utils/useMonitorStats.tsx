@@ -14,8 +14,6 @@ interface Options {
    * The window configuration object
    */
   timeWindowConfig: TimeWindowConfig;
-  environment?: string | string[];
-  project?: string;
 }
 
 type Result = Record<string, MonitorBucket[]>;
@@ -23,12 +21,7 @@ type Result = Record<string, MonitorBucket[]>;
 /**
  * Fetches Monitor stats
  */
-export function useMonitorStats({
-  monitors,
-  timeWindowConfig,
-  project,
-  environment,
-}: Options) {
+export function useMonitorStats({monitors, timeWindowConfig}: Options) {
   const {start, end, rollupConfig} = timeWindowConfig;
 
   const selectionQuery = {
@@ -53,8 +46,8 @@ export function useMonitorStats({
       {
         query: {
           monitor: monitors,
-          project: project ?? location.query.project,
-          environment: environment ?? location.query.environment,
+          project: location.query.project,
+          environment: location.query.environment,
           ...selectionQuery,
         },
       },

@@ -197,8 +197,7 @@ describe('CronDetectorDetails - check-ins', () => {
           });
         });
         await waitFor(() => {
-          expect(statsRequest).toHaveBeenNthCalledWith(
-            1,
+          expect(statsRequest).toHaveBeenCalledWith(
             '/organizations/org-slug/monitors-stats/',
             expect.objectContaining({
               query: expect.objectContaining({

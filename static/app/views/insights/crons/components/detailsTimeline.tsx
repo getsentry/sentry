@@ -14,7 +14,6 @@ import {
   GridLineOverlay,
 } from 'sentry/components/checkInTimeline/gridLines';
 import {useTimeWindowConfig} from 'sentry/components/checkInTimeline/hooks/useTimeWindowConfig';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {getNextCheckInEnv} from 'sentry/utils/monitor/cron';
@@ -45,7 +44,6 @@ interface Props {
 export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: Props) {
   const organization = useOrganization();
   const location = useLocation();
-  const {selection} = usePageFilters();
   const api = useApi();
   const queryClient = useQueryClient();
 
@@ -74,16 +72,9 @@ export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: 
     }
   );
 
-  const statsEnvironment =
-    selection.environments.length === 1
-      ? selection.environments[0]
-      : selection.environments;
-
   const {data: monitorStats} = useMonitorStats({
     monitors: [monitor.id],
     timeWindowConfig,
-    project: monitor.project.id,
-    environment: statsEnvironment,
   });
 
   useEffect(
@@ -147,8 +138,6 @@ export function DetailsTimeline({monitor, onStatsLoaded, onEnvironmentUpdated}: 
       <OverviewRow
         monitor={monitor}
         timeWindowConfig={timeWindowConfig}
-        statsProject={monitor.project.id}
-        statsEnvironment={statsEnvironment}
         onDeleteEnvironment={handleDeleteEnvironment}
         onToggleMuteEnvironment={handleToggleMuteEnvironment}
         singleMonitorView
