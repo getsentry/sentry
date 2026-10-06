@@ -21,6 +21,7 @@ from sentry.notifications.platform.templates.metric_alert import MetricAlertNoti
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils.registry import NoRegistrationExistsError
+from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
@@ -178,7 +179,10 @@ def metric_alert_notification_data_factory(
     if notification_context.target_identifier is None:
         raise ValueError("Target identifier is None")
 
-    referrer = f"metric_alert_{issue_notif_context.action_type}"
+    action_type = issue_notif_context.action_type
+    if action_type == Action.Type.SLACK_STAGING:
+        action_type = Action.Type.SLACK
+    referrer = f"metric_alert_{action_type}"
     attachment_info = incident_attachment_info(
         organization=organization,
         alert_context=alert_context,
