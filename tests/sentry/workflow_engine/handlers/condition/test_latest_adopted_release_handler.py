@@ -9,7 +9,7 @@ from sentry.models.environment import Environment
 from sentry.models.release import Release
 from sentry.rules.filters.latest_adopted_release_filter import LatestAdoptedReleaseFilter
 from sentry.search.utils import LatestReleaseOrders
-from sentry.workflow_engine.handlers.condition.utils.age import AgeComparisonType
+from sentry.workflow_engine.handlers.condition.utils.age import AgeComparisonType, ModelAgeType
 from sentry.workflow_engine.handlers.condition.utils.releases import (
     FirstLastReleaseCacheKey,
     LatestAdoptedReleaseCacheKey,
@@ -277,7 +277,9 @@ class TestLatestAdoptedReleaseCondition(ConditionTestCase):
         self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event_3, group=group_3))
 
     def test_caching(self) -> None:
-        cache_key = FirstLastReleaseCacheKey(self.group.id, "oldest", LatestReleaseOrders.SEMVER)
+        cache_key = FirstLastReleaseCacheKey(
+            self.group.id, ModelAgeType.OLDEST, LatestReleaseOrders.SEMVER
+        )
         assert first_last_release_cache.get(cache_key) is None
 
         self.create_group_release(group=self.group, release=self.newest_release)

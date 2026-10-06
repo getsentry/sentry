@@ -17,7 +17,7 @@ CACHE_TTL_SECONDS = 600
 
 class FirstLastReleaseCacheKey(NamedTuple):
     group_id: int
-    release_age_type: str
+    release_age_type: ModelAgeType
     order_type: LatestReleaseOrders
 
 
@@ -55,7 +55,7 @@ latest_adopted_release_cache = CacheMapping[LatestAdoptedReleaseCacheKey, Releas
 
 
 def get_first_last_release_for_event(
-    event: GroupEvent, release_age_type: str, order_type: LatestReleaseOrders
+    event: GroupEvent, release_age_type: ModelAgeType, order_type: LatestReleaseOrders
 ) -> Release | None:
     """
     Fetches the first/last release for the group associated with this group event
