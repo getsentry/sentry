@@ -68,6 +68,7 @@ class IssueNotificationData(NotificationData):
     source: NotificationSource = NotificationSource.ISSUE
 
     group_id: int
+    integration_id: int | None = None
     event_id: str | None = None
     occurrence_id: str | None = None
     tags: list[str] | None = None

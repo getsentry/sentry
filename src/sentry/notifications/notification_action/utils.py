@@ -156,6 +156,7 @@ def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotifi
         event_id=event_id,
         occurrence_id=occurrence_id,
         group_id=event_data.group.id,
+        integration_id=action.integration_id,
         notification_uuid=invocation.notification_uuid,
         rule=rule,
     )
