@@ -29,15 +29,11 @@ class OrganizationCodeMappingRepoPrefixesGetTest(APITestCase):
             integration_id=self.integration.id,
         )
 
-    # --- input validation ---
-
     def test_missing_repository_id_returns_400(self) -> None:
         self.get_error_response(self.organization.slug, status_code=400)
 
     def test_non_numeric_repository_id_returns_400(self) -> None:
         self.get_error_response(self.organization.slug, repositoryId="abc", status_code=400)
-
-    # --- resource resolution ---
 
     def test_unknown_repository_id_returns_404(self) -> None:
         self.get_error_response(self.organization.slug, repositoryId=99999, status_code=404)
@@ -57,8 +53,6 @@ class OrganizationCodeMappingRepoPrefixesGetTest(APITestCase):
             integration_id=self.integration.id,
         )
         self.get_error_response(self.organization.slug, repositoryId=other_repo.id, status_code=404)
-
-    # --- successful responses ---
 
     @mock.patch(f"{ENDPOINT_MODULE}._get_repo_prefixes")
     def test_empty_file_list_returns_empty_prefixes(self, mock_get: mock.MagicMock) -> None:
