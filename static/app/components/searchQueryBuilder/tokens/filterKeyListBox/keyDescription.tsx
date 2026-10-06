@@ -6,6 +6,7 @@ import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKey
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import {
+  DEFAULT_ATTRIBUTE_DESCRIPTION,
   DEFAULT_TAG_DESCRIPTION,
   FieldKind,
   FieldValueType,
@@ -58,13 +59,7 @@ export function KeyDetails({tag}: {tag: Tag}) {
 
   const sentryDescription = fieldDefinition?.desc;
 
-  const description =
-    sentryDescription ??
-    (tag.kind === FieldKind.TAG
-      ? DEFAULT_TAG_DESCRIPTION
-      : tag.kind === FieldKind.FEATURE_FLAG
-        ? t('A feature flag evaluated before an error event')
-        : null);
+  const description = sentryDescription ?? getFallbackDescription(tag);
 
   const defaultValueType =
     tag.kind === FieldKind.FEATURE_FLAG ? FieldValueType.BOOLEAN : FieldValueType.STRING;
@@ -78,6 +73,19 @@ export function KeyDetails({tag}: {tag: Tag}) {
       valueType={fieldDefinition?.valueType ?? defaultValueType}
     />
   );
+}
+
+function getFallbackDescription(tag: Tag) {
+  if (tag.kind === FieldKind.FEATURE_FLAG) {
+    return t('A feature flag evaluated before an error event');
+  }
+
+  // Sentry's own string attributes are typed as tags, but no user sent them.
+  if (tag.kind === FieldKind.TAG && tag.attributeSource !== 'sentry') {
+    return DEFAULT_TAG_DESCRIPTION;
+  }
+
+  return DEFAULT_ATTRIBUTE_DESCRIPTION;
 }
 
 const DescriptionWrapper = styled('div')<Pick<KeyDescriptionProps, 'size'>>`
