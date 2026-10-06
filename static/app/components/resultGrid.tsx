@@ -7,7 +7,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import {keyframes, useTheme} from '@emotion/react';
+import {keyframes} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -422,7 +422,6 @@ function RegionHint({
   probeAllRegionsHint,
   results,
 }: RegionHintProps) {
-  const theme = useTheme();
   // The all-regions mode already shows every region's results.
   if (allRegions) {
     return null;
@@ -456,12 +455,14 @@ function RegionHint({
     const lead =
       probeAllRegionsHint ?? 'Also found in other data regions — look there too:';
     return (
-      <Alert variant="info" showIcon style={{marginBottom: theme.space.md}}>
-        <Flex align="center" gap="md" wrap="wrap">
-          <span>{lead}</span>
-          {regionButtons}
-        </Flex>
-      </Alert>
+      <Container marginBottom="md">
+        <Alert variant="info" showIcon>
+          <Flex align="center" gap="md" wrap="wrap">
+            <span>{lead}</span>
+            {regionButtons}
+          </Flex>
+        </Alert>
+      </Container>
     );
   }
 
@@ -472,14 +473,17 @@ function RegionHint({
   const leadText = results.rows.length > 0 ? 'No exact match in' : 'No results in';
 
   return (
-    <Alert variant="info" showIcon style={{marginBottom: theme.space.md}}>
-      <Flex align="center" gap="md" wrap="wrap">
-        <span>
-          {leadText} <strong>{currentName}</strong>. Found results in another data region:
-        </span>
-        {regionButtons}
-      </Flex>
-    </Alert>
+    <Container marginBottom="md">
+      <Alert variant="info" showIcon>
+        <Flex align="center" gap="md" wrap="wrap">
+          <span>
+            {leadText} <strong>{currentName}</strong>. Found results in another data
+            region:
+          </span>
+          {regionButtons}
+        </Flex>
+      </Alert>
+    </Container>
   );
 }
 
@@ -591,19 +595,15 @@ function ResultBody({
   results,
   state,
 }: ResultBodyProps) {
-  const theme = useTheme();
-
   if (results.error) {
     return (
       <tr>
         <td colSpan={effectiveColumns.length}>
-          <Alert
-            variant="danger"
-            showIcon
-            style={{marginTop: theme.space.xs, marginBottom: theme.space.lg}}
-          >
-            Something bad happened :/
-          </Alert>
+          <Container marginTop="xs" marginBottom="lg">
+            <Alert variant="danger" showIcon>
+              Something bad happened :/
+            </Alert>
+          </Container>
         </td>
       </tr>
     );
