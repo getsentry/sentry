@@ -10,6 +10,7 @@ from sentry.seer.autofix.feature.models import (
     LEGACY_FEATURE_ID,
     CodeChangesStepArgs,
     RCAStepArgs,
+    SolutionStepArgs,
 )
 from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 from sentry.seer.autofix.steps import AutofixStep
@@ -27,7 +28,12 @@ class TestTriggerAutofixFeature(TestCase):
 
     def test_continues_feature_run(self) -> None:
         fake_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
-        self.create_seer_agent_run(run=fake_run, source=LEGACY_FEATURE_ID)
+        self.create_seer_agent_run(
+            run=fake_run,
+            source=LEGACY_FEATURE_ID,
+            group=self.group,
+            project=self.group.project,
+        )
 
         with (
             patch(
@@ -118,6 +124,40 @@ class TestTriggerAutofixFeature(TestCase):
         client.start_feature_run.assert_not_called()
         mock_quotas.backend.check_seer_quota.assert_not_called()
         mock_quotas.backend.record_seer_run.assert_not_called()
+
+    def test_refuses_run_from_another_project(self) -> None:
+        other_project = self.create_project(organization=self.organization)
+        other_group = self.create_group(project=other_project)
+        foreign_run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=foreign_run,
+            source=LEGACY_FEATURE_ID,
+            group=other_group,
+            project=other_project,
+        )
+
+        with (
+            patch(
+                "sentry.seer.autofix.feature.dispatch.SeerAgentClient", autospec=True
+            ) as MockClient,
+            patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
+        ):
+            mock_quotas.backend.check_seer_quota.return_value = True
+
+            with pytest.raises(SeerPermissionError, match="Unknown run id for group"):
+                trigger_autofix_feature(
+                    self.group,
+                    AutofixFeatureArgs(
+                        referrer=AutofixReferrer.AGENTIC_TRIAGE,
+                        step=AutofixStep.SOLUTION,
+                        existing_run_id=123,
+                        user_context="Find a solution",
+                        step_args=SolutionStepArgs(),
+                    ),
+                )
+
+        MockClient.return_value.continue_feature_run.assert_not_called()
+        MockClient.return_value.start_feature_run.assert_not_called()
 
     def test_starts_feature_run_and_records_quota(self) -> None:
         fake_run = self.create_seer_run(organization=self.organization, type="feature_run")

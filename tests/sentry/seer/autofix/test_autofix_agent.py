@@ -638,7 +638,9 @@ class TestTriggerAutofixAgent(TestCase):
         existing_run = self.create_seer_run(
             organization=self.group.organization, seer_run_state_id=777
         )
-        self.create_seer_agent_run(run=existing_run, group=self.group, source="autofix")
+        self.create_seer_agent_run(
+            run=existing_run, group=self.group, project=self.group.project, source="autofix"
+        )
         mock_feature.return_value = existing_run
 
         result = trigger_autofix_agent(
@@ -704,7 +706,9 @@ class TestTriggerAutofixAgent(TestCase):
         existing_run = self.create_seer_run(
             organization=self.group.organization, seer_run_state_id=777
         )
-        self.create_seer_agent_run(run=existing_run, group=self.group, source="autofix")
+        self.create_seer_agent_run(
+            run=existing_run, group=self.group, project=self.group.project, source="autofix"
+        )
         mock_feature.return_value = existing_run
 
         with self.feature("organizations:autofix-code-changes-in-seer"):
@@ -1076,6 +1080,62 @@ class TestTriggerAutofixAgent(TestCase):
 
         mock_client.continue_run.assert_not_called()
         mock_broadcast.assert_not_called()
+
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_continued_run_rejects_foreign_project_even_when_metadata_matches(
+        self, mock_client_class
+    ):
+        """Seer echoing this issue's group id must not authorize another project's run."""
+        other_project = self.create_project(organization=self.group.organization)
+        other_group = self.create_group(project=other_project)
+        foreign_run = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=67890
+        )
+        self.create_seer_agent_run(
+            run=foreign_run,
+            group=other_group,
+            project=other_project,
+            source="autofix",
+        )
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        mock_client.get_run.return_value = self._make_run_state()
+
+        with pytest.raises(SeerPermissionError, match="Unknown run id for group"):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.CODE_CHANGES,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=67890,
+            )
+
+        mock_client.get_run.assert_not_called()
+        mock_client.continue_run.assert_not_called()
+
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
+    def test_solution_rejects_run_from_another_project(self, mock_feature):
+        other_project = self.create_project(organization=self.group.organization)
+        other_group = self.create_group(project=other_project)
+        foreign_run = self.create_seer_run(
+            organization=self.group.organization, seer_run_state_id=777
+        )
+        self.create_seer_agent_run(
+            run=foreign_run,
+            group=other_group,
+            project=other_project,
+            source="autofix",
+        )
+
+        with pytest.raises(SeerPermissionError, match="Unknown run id for group"):
+            trigger_autofix_agent(
+                group=self.group,
+                step=AutofixStep.SOLUTION,
+                referrer=AutofixReferrer.UNKNOWN,
+                run_id=777,
+                user_context="Find a solution",
+            )
+
+        mock_feature.assert_not_called()
 
     @patch("sentry.quotas.backend.record_seer_run")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
