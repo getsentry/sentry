@@ -5,11 +5,11 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
   IconCircleCheckmark,
   IconCircleDashed,
   IconFatal,
+  IconSeer,
   IconWarning,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -55,9 +55,9 @@ const TITLE_VARIANT = {
 function StatusIcon({variant}: {variant: SeerStatusBlockVariant}) {
   switch (variant) {
     case 'running':
-      // A ring rather than a pulsing dot: the run is doing something, not
-      // sitting in a state.
-      return <LoadingIndicator size={14} />;
+      // The same spinning Seer the agent's thinking block shows while it works,
+      // so a running investigation reads as Seer at work wherever it appears.
+      return <IconSeer size="sm" animation="loading" />;
     case 'awaitingInput':
       return <IconWarning size="sm" variant="warning" />;
     case 'failed':
