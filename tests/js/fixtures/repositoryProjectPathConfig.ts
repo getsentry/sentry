@@ -27,7 +27,6 @@ export function RepositoryProjectPathConfigFixture(
     stackRoot: '',
     sourceRoot: '',
     defaultBranch: 'master',
-    hasCodeOwner: false,
     ...rest,
   };
 }
