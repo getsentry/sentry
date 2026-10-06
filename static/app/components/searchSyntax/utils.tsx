@@ -66,10 +66,14 @@ export function quoteFilterKey(key: string): string {
  *
  * Handles both the bare first-class form, where the operator trails the name
  * (`name[*]` -> `name`), and the tag form, where it sits on the name inside the
- * bracket (`tags[name[*],array]` -> `tags[name,array]`).
+ * bracket (`tags[name[*],array]` -> `tags[name,array]`). The grammar allows
+ * spaces around the comma, so the tag form is matched with optional whitespace
+ * (`tags[name[*], array]` -> `tags[name, array]`).
  */
 export function stripArrayMembershipOperator(key: string): string {
-  const stripped = key.replace(/\[\*?\]?,array\]$/, ',array]').replace(/\[\*?\]?$/, '');
+  const stripped = key
+    .replace(/\[\*?\]?(\s*,\s*array\])$/, '$1')
+    .replace(/\[\*?\]?$/, '');
   return stripped || key;
 }
 
@@ -77,15 +81,16 @@ export function stripArrayMembershipOperator(key: string): string {
  * Adds the array-membership operator (`[*]`) to a base attribute key, the
  * inverse of `stripArrayMembershipOperator`. For the tag form the operator goes
  * on the name inside the bracket (`tags[name,array]` -> `tags[name[*],array]`);
- * for the bare first-class form it trails the name (`name` -> `name[*]`). A key
- * that already carries the operator is returned unchanged.
+ * for the bare first-class form it trails the name (`name` -> `name[*]`). Spaces
+ * around the comma are preserved. A key that already carries the operator is
+ * returned unchanged.
  */
 export function addArrayMembershipOperator(key: string): string {
   if (stripArrayMembershipOperator(key) !== key) {
     return key;
   }
-  const tagArrayMatch = key.match(/^(tags\[.+),array\]$/);
-  return tagArrayMatch ? `${tagArrayMatch[1]}[*],array]` : `${key}[*]`;
+  const tagArrayMatch = key.match(/^(tags\[.+?)(\s*,\s*array\])$/);
+  return tagArrayMatch ? `${tagArrayMatch[1]}[*]${tagArrayMatch[2]}` : `${key}[*]`;
 }
 
 type TreeResultLocatorOpts<T> = {

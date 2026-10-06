@@ -12,6 +12,10 @@ describe('stripArrayMembershipOperator', () => {
     expect(stripArrayMembershipOperator('tags[csv_headers[*],array]')).toBe(
       'tags[csv_headers,array]'
     );
+    // The grammar allows spaces around the comma; the spaced form strips too.
+    expect(stripArrayMembershipOperator('tags[csv_headers[*], array]')).toBe(
+      'tags[csv_headers, array]'
+    );
   });
 
   it('leaves ordinary keys and the bare tag form untouched', () => {
@@ -29,6 +33,10 @@ describe('addArrayMembershipOperator', () => {
     expect(addArrayMembershipOperator('tags[csv_headers,array]')).toBe(
       'tags[csv_headers[*],array]'
     );
+    // The grammar allows spaces around the comma; spacing is preserved.
+    expect(addArrayMembershipOperator('tags[csv_headers, array]')).toBe(
+      'tags[csv_headers[*], array]'
+    );
   });
 
   it('adds a trailing operator for the bare first-class form', () => {
@@ -38,6 +46,10 @@ describe('addArrayMembershipOperator', () => {
   it('does not double an operator that is already present', () => {
     expect(addArrayMembershipOperator('tags[csv_headers[*],array]')).toBe(
       'tags[csv_headers[*],array]'
+    );
+    // Including the spaced form — must not append a trailing (unparseable) [*].
+    expect(addArrayMembershipOperator('tags[csv_headers[*], array]')).toBe(
+      'tags[csv_headers[*], array]'
     );
     expect(addArrayMembershipOperator('some.array[*]')).toBe('some.array[*]');
   });
