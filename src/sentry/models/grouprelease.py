@@ -11,6 +11,7 @@ from sentry.db.models import (
     cell_silo_model,
     sane_repr,
 )
+from sentry.models.metric_tags import DATA_ACCESS_TAG, DataAccessTagValues
 from sentry.tasks.process_buffer import buffer_incr
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
@@ -43,7 +44,7 @@ class GroupRelease(Model):
         )
 
     @classmethod
-    def get_or_create(cls, group, release, environment, datetime, **kwargs):
+    def get_or_create(cls, group, release, environment, datetime, metrics_tags=None, **kwargs):
         cache_key = cls.get_cache_key(group.id, release.id, environment.name)
 
         instance = cache.get(cache_key)
@@ -58,8 +59,14 @@ class GroupRelease(Model):
                     "project_id": group.project_id,
                 },
             )
+            data_access = (
+                DataAccessTagValues.DB_CREATE.value
+                if created
+                else DataAccessTagValues.DB_READ.value
+            )
         else:
             created = False
+            data_access = DataAccessTagValues.CACHE_HIT.value
 
         if not created and instance.last_seen < datetime - timedelta(seconds=60):
             buffer_incr(
@@ -69,6 +76,9 @@ class GroupRelease(Model):
                 extra={"last_seen": datetime},
             )
             instance.last_seen = datetime
+
+        if metrics_tags is not None:
+            metrics_tags[DATA_ACCESS_TAG] = data_access
 
         cache.set(cache_key, instance, 3600)
         return instance

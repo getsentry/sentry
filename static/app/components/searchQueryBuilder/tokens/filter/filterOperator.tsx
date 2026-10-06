@@ -390,17 +390,21 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
           filter_key: getKeyName(token.key),
         });
 
+        const focusValue =
+          initialOpSettingRef.current ||
+          (isRegexOperator(option.value) && !isRegexOperator(token.operator));
+
         dispatch({
           type: 'UPDATE_FILTER_OP',
           token,
           op: option.value,
-          focusOverride: initialOpSettingRef.current
+          focusOverride: focusValue
             ? {
                 itemKey: `${item.key}`,
                 part: 'value',
               }
             : undefined,
-          shouldCommitQuery: !initialOpSettingRef.current,
+          shouldCommitQuery: !focusValue,
         });
         initialOpSettingRef.current = false;
         setAutoFocus(false);

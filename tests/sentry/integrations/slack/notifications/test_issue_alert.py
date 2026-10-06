@@ -35,6 +35,7 @@ from sentry.testutils.skips import requires_snuba
 from sentry.users.models.identity import Identity, IdentityStatus
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 
 pytestmark = [requires_snuba]
 
@@ -951,6 +952,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         digests.enabled.return_value = True
 
         rule = self.create_project_rule(project=self.project)
+        workflow_id = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow_id
         ProjectOwnership.objects.create(project_id=self.project.id)
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
@@ -968,13 +970,13 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
         assert (
             fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/issues/alerts/rules/{event.project.slug}/{rule.id}/details/|Test Alert>"
+            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{workflow_id}/|Test Alert>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={workflow_id}&alert_type=issue|*Hello world*>"
         )
         assert (
             blocks[4]["elements"][0]["text"]
