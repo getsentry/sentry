@@ -268,8 +268,8 @@ function LegacyBrowserFilterRow({
             return (
               <Fragment key={key}>
                 {index > 0 && <Stack.Separator />}
-                <Flex align="center" gap="md" padding="sm md">
-                  <Image src={subfilter.icon} alt="" width="20px" height="20px" />
+                <Flex align="center" gap="md" padding="md lg">
+                  <Image src={subfilter.icon} alt="" width="24px" height="24px" />
                   <Flex align="baseline" gap="sm" wrap="wrap" flexGrow={1}>
                     <Text bold>{subfilter.title}</Text>
                     <Text size="sm" variant="muted">
