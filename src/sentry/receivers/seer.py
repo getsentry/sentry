@@ -31,5 +31,5 @@ def dispatch_first_assignment_summary(
 
     summarize_issue.delay(
         group.id,
-        source=SeerAutomationSource.FIRST_ASSIGNMENT,
+        source=SeerAutomationSource.FIRST_ASSIGNMENT.value,
     )

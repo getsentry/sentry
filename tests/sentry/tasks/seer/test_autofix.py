@@ -243,7 +243,7 @@ class TestSummarizeIssue(SentryTestCase):
         side_effect=IssueSummaryUnavailable,
     )
     def test_summary_unavailable(self, mock_summary: MagicMock) -> None:
-        summarize_issue(self.group.id)
+        summarize_issue(self.group.id, source=SeerAutomationSource.ISSUE_DETAILS.value)
 
         mock_summary.assert_called_once_with(
             group=self.group, source=SeerAutomationSource.ISSUE_DETAILS
