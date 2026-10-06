@@ -1,11 +1,10 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
-import {Grid} from '@sentry/scraps/layout';
+import {Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
@@ -291,9 +290,13 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
           )}
         </Grid>
       ) : (
-        <StyledEmptyStateWarning withIcon small>
-          {t('No feature flags were found for this event')}
-        </StyledEmptyStateWarning>
+        <Stack border="primary" radius="md" align="center">
+          {props => (
+            <EmptyStateWarning {...props} withIcon small>
+              {t('No feature flags were found for this event')}
+            </EmptyStateWarning>
+          )}
+        </Stack>
       )}
       {extraFlags > 0 && (
         <Button
@@ -310,11 +313,3 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
     </FoldSection>
   );
 }
-
-const StyledEmptyStateWarning = styled(EmptyStateWarning)`
-  border: ${p => p.theme.tokens.border.primary} solid 1px;
-  border-radius: ${p => p.theme.radius.md};
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-`;
