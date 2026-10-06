@@ -6,6 +6,7 @@ from django.conf import settings
 from rest_framework import serializers
 
 from sentry.models.custominboundfilter import (
+    MAX_FILTERS_PER_PROJECT,
     ConditionType,
     CustomInboundFilter,
     DataType,
@@ -698,7 +699,7 @@ def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericF
     # through the legacy path, so serving it here would filter the same data twice.
     custom_filters = CustomInboundFilter.objects.filter(
         project_id=project.id, active=True, legacy_filter__isnull=True
-    ).order_by("id")
+    ).order_by("id")[:MAX_FILTERS_PER_PROJECT]
     for custom_filter in custom_filters:
         condition = _custom_filter_condition(custom_filter.conditions, custom_filter.data_type)
         if condition is not None:
