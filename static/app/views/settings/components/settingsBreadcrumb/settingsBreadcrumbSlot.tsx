@@ -7,7 +7,10 @@ import type {SettingsBreadcrumbProps} from './types';
 
 type SelectItem = Extract<BreadcrumbListProps['items'][number], {type: 'select'}>;
 
-type Props = Pick<SettingsBreadcrumbProps, 'items' | 'itemIndex' | 'title' | 'isLast'> &
+type Props = Pick<
+  SettingsBreadcrumbProps,
+  'items' | 'itemIndex' | 'title' | 'isLast' | 'fallback'
+> &
   Omit<SelectItem, 'type' | 'onChange' | 'label'> & {
     hasMenu: boolean;
     label: string;
@@ -20,6 +23,7 @@ export function SettingsBreadcrumbSlot({
   itemIndex,
   title,
   isLast,
+  fallback,
   label,
   leadingGraphic,
   to,
@@ -31,6 +35,7 @@ export function SettingsBreadcrumbSlot({
     return (
       <TopBar.Slot
         name="breadcrumbs"
+        fallback={fallback}
         items={items}
         title={{type: 'page-title', label, leadingGraphic}}
       />
@@ -39,6 +44,7 @@ export function SettingsBreadcrumbSlot({
   return (
     <TopBar.Slot
       name="breadcrumbs"
+      fallback={fallback}
       title={title}
       items={[
         ...items.slice(0, itemIndex),

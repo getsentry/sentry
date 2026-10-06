@@ -2,20 +2,16 @@ import styled from '@emotion/styled';
 
 import {Stack, Flex} from '@sentry/scraps/layout';
 
-import {useParams} from 'sentry/utils/useParams';
-
-import {SettingsBreadcrumb} from './settingsBreadcrumb';
+import {BreadcrumbTitle} from './settingsBreadcrumb/breadcrumbTitle';
 
 interface Props {
   children: React.ReactNode;
 }
 
 export function SettingsLayout({children}: Props) {
-  const params = useParams();
-
   return (
     <SettingsColumn>
-      <SettingsBreadcrumb params={params} />
+      <BreadcrumbTitle fallback />
       <Flex flex="1">
         <Stack flex="1" padding="xl" minWidth="0">
           {children}

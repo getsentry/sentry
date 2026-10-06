@@ -3,14 +3,11 @@ import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
 
-import {useParams} from 'sentry/utils/useParams';
-import {SettingsBreadcrumb} from 'sentry/views/settings/components/settingsBreadcrumb';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 export default function SubscriptionSettingsLayout() {
-  const params = useParams();
-
   return (
     <SettingsColumn>
-      <SettingsBreadcrumb params={params} />
+      <BreadcrumbTitle fallback />
 
       <Container flex="1" minWidth="0" background="primary">
         <Outlet />

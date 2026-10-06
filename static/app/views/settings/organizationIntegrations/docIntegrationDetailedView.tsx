@@ -100,7 +100,7 @@ export default function DocIntegrationDetailsView() {
 
   return (
     <IntegrationLayout.Body
-      integrationName={integrationName}
+      title={integrationName}
       alert={null}
       topSection={
         <IntegrationLayout.TopSection

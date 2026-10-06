@@ -17,4 +17,5 @@ export type SettingsBreadcrumbProps = Pick<RouteComponentProps, 'route' | 'route
   itemIndex: number;
   items: BreadcrumbListProps['items'];
   title: BreadcrumbTitleItem;
+  fallback?: boolean;
 };

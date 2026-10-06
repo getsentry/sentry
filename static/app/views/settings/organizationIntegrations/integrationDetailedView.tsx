@@ -627,9 +627,8 @@ export default function IntegrationDetailedView() {
 
   return (
     <SentryDocumentTitle title={integrationName}>
-      {navigationTabTitle}
       <IntegrationLayout.Body
-        integrationName={integrationName}
+        title={{type: 'page-title', label: tabTitles[displayedTab]}}
         alert={<FirstPartyIntegrationAlert integrations={configurations} hideCTA />}
         topSection={
           <IntegrationLayout.TopSection

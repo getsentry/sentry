@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -7,8 +8,6 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {BreadcrumbTitle} from './breadcrumbTitle';
-import {BreadcrumbProvider} from './context';
-import {SettingsBreadcrumb} from '.';
 
 jest.unmock('sentry/utils/recreateRoute');
 
@@ -57,31 +56,26 @@ describe('BreadcrumbTitle', () => {
       sentryUrl: 'https://sentry.io',
     });
     try {
-      render(
-        <BreadcrumbProvider>
-          <SettingsBreadcrumb params={{}} />
-        </BreadcrumbProvider>,
-        {
-          organization,
-          initialRouterConfig: {
-            route: '/settings/',
-            location: {pathname: '/settings/integrations/new/'},
-            children: [
-              {
-                path: 'integrations/',
-                handle: {name: 'Integrations', path: '/settings/integrations/'},
-                children: [
-                  {
-                    path: 'new/',
-                    handle: {name: 'New Integration', path: 'new/'},
-                    element: <div />,
-                  },
-                ],
-              },
-            ],
-          },
-        }
-      );
+      render(<BreadcrumbTitle fallback />, {
+        organization,
+        initialRouterConfig: {
+          route: '/settings/',
+          location: {pathname: '/settings/integrations/new/'},
+          children: [
+            {
+              path: 'integrations/',
+              handle: {name: 'Integrations', path: '/settings/integrations/'},
+              children: [
+                {
+                  path: 'new/',
+                  handle: {name: 'New Integration', path: 'new/'},
+                  element: <div />,
+                },
+              ],
+            },
+          ],
+        },
+      });
       expect(screen.getByRole('link', {name: 'Integrations'})).toHaveAttribute(
         'href',
         '/settings/integrations/'
@@ -91,63 +85,76 @@ describe('BreadcrumbTitle', () => {
     }
   });
 
-  it('combines a typed settings title with parent menus and page-specific breadcrumbs', async () => {
-    const organization = OrganizationFixture();
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/config/integrations/`,
-      body: {providers: [GitHubIntegrationProviderFixture()]},
-    });
-    render(
-      <BreadcrumbProvider>
-        <SettingsBreadcrumb
-          params={{orgId: organization.slug, integrationSlug: 'github'}}
-        />
-        <SettingsPageHeader
-          title={{
-            type: 'page-title',
-            label: 'Workspace',
-          }}
-          breadcrumbs={[{type: 'link', label: 'Configurations', to: '/configurations/'}]}
-        />
-      </BreadcrumbProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          route: '/settings/:orgId/',
-          location: {pathname: `/settings/${organization.slug}/integrations/github/`},
-          children: [
-            {
-              path: 'integrations/',
-              handle: {name: 'Integrations', path: 'integrations/'},
-              children: [
-                {
-                  path: ':integrationSlug/',
-                  handle: {name: 'Integration Details', path: ':integrationSlug'},
-                  element: <div />,
-                },
-              ],
+  it.each([false, true])(
+    'combines a typed title with integration parents (nested route: %s)',
+    async nested => {
+      const organization = OrganizationFixture();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/config/integrations/`,
+        body: {providers: [GitHubIntegrationProviderFixture()]},
+      });
+      render(
+        <Fragment>
+          <BreadcrumbTitle fallback />
+          <SettingsPageHeader
+            title={{
+              type: 'page-title',
+              label: 'Workspace',
+            }}
+            breadcrumbs={[
+              {type: 'link', label: 'Configurations', to: '/configurations/'},
+            ]}
+          />
+        </Fragment>,
+        {
+          organization,
+          initialRouterConfig: {
+            route: '/settings/:orgId/',
+            location: {
+              pathname: `/settings/${organization.slug}/integrations/github/${nested ? 'configurations/' : ''}`,
             },
-          ],
-        },
-      }
-    );
-    expect(await screen.findByRole('link', {name: /GitHub/})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Configurations'})).toHaveAttribute(
-      'href',
-      '/configurations/'
-    );
-    const heading = screen.getByRole('heading', {name: 'Workspace', level: 1});
-    expect(within(heading).queryByRole('link')).not.toBeInTheDocument();
-    expect(within(heading).queryByText('GitHub')).not.toBeInTheDocument();
-    expect(within(heading).queryByText('Configurations')).not.toBeInTheDocument();
-  });
+            children: [
+              {
+                path: 'integrations/',
+                handle: {name: 'Integrations', path: 'integrations/'},
+                children: [
+                  {
+                    path: ':integrationSlug/',
+                    handle: {name: 'Integration Details', path: ':integrationSlug'},
+                    element: <div />,
+                    children: [
+                      {
+                        path: 'configurations/',
+                        handle: {name: 'Configurations', path: 'configurations/'},
+                        element: <div />,
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        }
+      );
+      expect(await screen.findByRole('link', {name: /GitHub/})).toBeInTheDocument();
+      expect(screen.getByRole('link', {name: 'Configurations'})).toHaveAttribute(
+        'href',
+        '/configurations/'
+      );
+      const heading = screen.getByRole('heading', {name: 'Workspace', level: 1});
+      expect(screen.getAllByRole('heading', {level: 1})).toHaveLength(1);
+      expect(within(heading).queryByRole('link')).not.toBeInTheDocument();
+      expect(within(heading).queryByText('GitHub')).not.toBeInTheDocument();
+      expect(within(heading).queryByText('Configurations')).not.toBeInTheDocument();
+    }
+  );
 
   it('renders settings breadcrumbs and replaces title', () => {
     render(
-      <BreadcrumbProvider>
-        <SettingsBreadcrumb params={{}} />
+      <Fragment>
+        <BreadcrumbTitle fallback />
         <BreadcrumbTitle title="Last Title" />
-      </BreadcrumbProvider>,
+      </Fragment>,
       {
         initialRouterConfig: {
           route: '/',
@@ -160,15 +167,18 @@ describe('BreadcrumbTitle', () => {
     const crumbs = screen.getAllByRole('link');
 
     expect(crumbs).toHaveLength(2);
-    expect(screen.getByText('Last Title')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', {name: 'Last Title', level: 1})
+    ).toBeInTheDocument();
+    expect(screen.getAllByRole('heading', {level: 1})).toHaveLength(1);
   });
 
-  it('cleans up routes', () => {
+  it('restores the route fallback when the page title unmounts', () => {
     const {rerender, router} = render(
-      <BreadcrumbProvider>
-        <SettingsBreadcrumb params={{}} />
+      <Fragment>
+        <BreadcrumbTitle fallback />
         <BreadcrumbTitle title="Last Title" />
-      </BreadcrumbProvider>,
+      </Fragment>,
       {
         initialRouterConfig: {
           route: '/',
@@ -186,11 +196,7 @@ describe('BreadcrumbTitle', () => {
     // Simulate navigating up a level, trimming the last title
     router.navigate('/one/two/');
 
-    rerender(
-      <BreadcrumbProvider>
-        <SettingsBreadcrumb params={{}} />
-      </BreadcrumbProvider>
-    );
+    rerender(<BreadcrumbTitle fallback />);
 
     const crumbsNext = screen.getAllByRole('link');
 
@@ -200,10 +206,10 @@ describe('BreadcrumbTitle', () => {
 
   it('uses the explicit title for document integrations', () => {
     render(
-      <BreadcrumbProvider>
-        <SettingsBreadcrumb params={{integrationSlug: 'example-doc'}} />
+      <Fragment>
+        <BreadcrumbTitle fallback />
         <BreadcrumbTitle title="Example Documentation" />
-      </BreadcrumbProvider>,
+      </Fragment>,
       {
         initialRouterConfig: {
           route: '/',
