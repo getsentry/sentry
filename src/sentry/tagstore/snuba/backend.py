@@ -658,7 +658,8 @@ class SnubaTagStorage(TagStorage):
                     attributes={"sentry.op": "cache.put"},
                 ) as span:
                     cache.set(cache_key, result, 300)
-                    span.set_attribute("cache.key", repr([cache_key]))
+                    if cache_key is not None:
+                        span.set_attribute("cache.key", [cache_key])
                     span.set_attribute("cache.item_size", len(str(result)))
                     metrics.incr("testing.tagstore.cache_tag_key.len", amount=len(result))
 
