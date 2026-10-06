@@ -33,7 +33,6 @@ workspaces:
       sh -c 'npm --prefix static/packages/scraps --no-git-tag-version --package-lock=false version "$CRAFT_NEW_VERSION"'
     releaseBranchPrefix: scraps/release
     changelog:
-      filePath: static/packages/scraps/CHANGELOG.md
       policy: auto
     statusProvider:
       name: github
