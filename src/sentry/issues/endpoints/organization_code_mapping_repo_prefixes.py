@@ -66,23 +66,38 @@ def _get_repo_prefixes(
             {"detail": "Integration does not support repository trees."}, status=404
         )
 
-    if isinstance(installation, RepositoryIntegration):
-        branch = installation.get_repository_default_branch(repo)
-        if not branch:
-            return None, Response(
-                {"detail": "Could not determine default branch for this repository."}, status=400
-            )
+    cached = installation.get_repo_files_from_cache(repo.name)
+    if cached is not None:
+        # Warm cache hit — skip the provider branch lookup entirely.
+        files = cached
     else:
-        branch = "HEAD"
+        if isinstance(installation, RepositoryIntegration):
+            try:
+                branch = installation.get_repository_default_branch(repo)
+            except ApiError as e:
+                logger.warning(
+                    "code_mapping_repo_prefixes.branch_lookup_error",
+                    extra={"repo": repo.name, "error_code": e.code},
+                )
+                branch = None
+            if not branch:
+                return None, Response(
+                    {"detail": "Could not determine default branch for this repository."},
+                    status=400,
+                )
+        else:
+            branch = "HEAD"
 
-    try:
-        files = installation.get_cached_repo_files(repo.name, branch, shifted_seconds=0)
-    except ApiError as e:
-        logger.warning(
-            "code_mapping_repo_prefixes.api_error",
-            extra={"repo": repo.name, "error_code": e.code},
-        )
-        return None, Response({"detail": "Failed to retrieve repository file list."}, status=502)
+        try:
+            files = installation.get_cached_repo_files(repo.name, branch, shifted_seconds=0)
+        except ApiError as e:
+            logger.warning(
+                "code_mapping_repo_prefixes.api_error",
+                extra={"repo": repo.name, "error_code": e.code},
+            )
+            return None, Response(
+                {"detail": "Failed to retrieve repository file list."}, status=502
+            )
 
     ranked = rank_directory_prefixes(files)
     prefixes: list[PrefixItem] = [{"path": p.path, "fileCount": p.file_count} for p in ranked]

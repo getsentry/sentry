@@ -4,9 +4,14 @@ from unittest import mock
 
 from sentry.constants import ObjectStatus
 from sentry.models.repository import Repository
+from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import APITestCase
 
 ENDPOINT_MODULE = "sentry.issues.endpoints.organization_code_mapping_repo_prefixes"
+REPO_TREES_MODULE = "sentry.integrations.source_code_management.repo_trees.RepoTreesIntegration"
+REPO_INTEGRATION_MODULE = (
+    "sentry.integrations.source_code_management.repository.RepositoryIntegration"
+)
 
 
 class OrganizationCodeMappingRepoPrefixesGetTest(APITestCase):
@@ -132,3 +137,51 @@ class OrganizationCodeMappingRepoPrefixesGetTest(APITestCase):
         )
         # get_cached_repo_files was called exactly once (for this repo only)
         mock_files.assert_called_once()
+
+    @mock.patch(
+        f"{REPO_INTEGRATION_MODULE}.get_repository_default_branch",
+    )
+    @mock.patch(
+        f"{REPO_TREES_MODULE}.get_repo_files_from_cache",
+        return_value=[
+            "src/sentry/web/views.py",
+            "src/sentry/api/endpoints.py",
+            "static/app/index.tsx",
+        ],
+    )
+    def test_cache_hit_skips_branch_lookup(
+        self,
+        mock_cache: mock.MagicMock,
+        mock_branch: mock.MagicMock,
+    ) -> None:
+        response = self.get_success_response(
+            self.organization.slug, repositoryId=self.repo.id, status_code=200
+        )
+        prefixes = {p["path"]: p["fileCount"] for p in response.data["prefixes"]}
+        # Provider branch lookup must not have been called at all.
+        mock_branch.assert_not_called()
+        assert prefixes["src/"] == 2
+        assert prefixes["static/"] == 1
+
+    @mock.patch(
+        f"{REPO_TREES_MODULE}.get_cached_repo_files",
+        return_value=["src/sentry/web/views.py"],
+    )
+    @mock.patch(
+        f"{REPO_TREES_MODULE}.get_repo_files_from_cache",
+        return_value=None,
+    )
+    @mock.patch(
+        f"{REPO_INTEGRATION_MODULE}.get_repository_default_branch",
+        side_effect=ApiError("rate limited", code=429),
+    )
+    def test_branch_lookup_api_error_returns_400(
+        self,
+        mock_branch: mock.MagicMock,
+        mock_cache: mock.MagicMock,
+        mock_files: mock.MagicMock,
+    ) -> None:
+        # When the branch lookup raises ApiError (e.g. rate limit), no branch can
+        # be resolved so the endpoint returns 400 rather than 500.
+        self.get_error_response(self.organization.slug, repositoryId=self.repo.id, status_code=400)
+        mock_files.assert_not_called()
