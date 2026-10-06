@@ -1,8 +1,19 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type UIEvent,
+} from 'react';
 import * as Sentry from '@sentry/react';
 import {parseAsStringLiteral, useQueryStates} from 'nuqs';
 
+import {Flex} from '@sentry/scraps/layout';
+
 import {EmptyMessage} from 'sentry/components/emptyMessage';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {ConversationContentLayout} from 'sentry/views/explore/conversations/components/conversationLayout';
 import {
@@ -50,7 +61,8 @@ export function ConversationViewContent({
 }: ConversationViewContentProps) {
   const isTimeline = activeTab === 'timeline';
 
-  const {nodes, nodeTraceMap, isLoading, error} = useConversation(conversation);
+  const {nodes, nodeTraceMap, isLoading, isFetchingNextPage, error, loadNextPage} =
+    useConversation(conversation);
 
   const [detailState, setDetailState] = useQueryStates(
     {
@@ -99,6 +111,23 @@ export function ConversationViewContent({
     activeTab,
     selectedNodeId: selectedNode?.id ?? null,
   });
+  const prefetchedConversationId = useRef<string | null>(null);
+
+  const handleScroll = useCallback(
+    (event: UIEvent<HTMLDivElement>) => {
+      const shouldPrefetch =
+        prefetchedConversationId.current !== conversation.conversationId;
+      prefetchedConversationId.current = conversation.conversationId;
+
+      const container = event.currentTarget;
+      const isNearEnd =
+        container.scrollHeight - container.scrollTop - container.clientHeight < 200;
+      if (shouldPrefetch || isNearEnd) {
+        loadNextPage();
+      }
+    },
+    [conversation.conversationId, loadNextPage]
+  );
 
   const handleSelectAndOpenDetail = useCallback(
     (node: AITraceSpanNode) => {
@@ -139,24 +168,38 @@ export function ConversationViewContent({
       <ConversationContentLayout
         contentRef={contentRef}
         leftPadding={isTranscript ? '0' : 'md'}
+        onScroll={handleScroll}
         left={
-          isTranscript ? (
-            <MessagesPanel
-              isLoading={isLoading}
-              nodes={nodes}
-              selectedNodeId={displayedNode?.id ?? null}
-              onSelectNode={handleSelectAndOpenDetail}
-              onViewTimeline={onViewTimeline}
-            />
-          ) : (
-            <AiSpanTimeline
-              isLoading={isLoading}
-              nodes={nodes}
-              selectedNodeKey={displayedNode?.id ?? ''}
-              onSelectNode={handleSelectAndOpenDetail}
-              compressGaps
-            />
-          )
+          <Fragment>
+            {isTranscript ? (
+              <MessagesPanel
+                isLoading={isLoading}
+                nodes={nodes}
+                selectedNodeId={displayedNode?.id ?? null}
+                onSelectNode={handleSelectAndOpenDetail}
+                onViewTimeline={onViewTimeline}
+              />
+            ) : (
+              <AiSpanTimeline
+                isLoading={isLoading}
+                nodes={nodes}
+                selectedNodeKey={displayedNode?.id ?? ''}
+                onSelectNode={handleSelectAndOpenDetail}
+                compressGaps
+              />
+            )}
+            {isFetchingNextPage && (
+              <Flex
+                align="center"
+                justify="center"
+                padding="md"
+                role="status"
+                aria-label={t('Loading more spans')}
+              >
+                <LoadingIndicator size={24} />
+              </Flex>
+            )}
+          </Fragment>
         }
         right={
           // Show the detail pane once a span is resolved: a deep link or manual

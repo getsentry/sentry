@@ -100,6 +100,110 @@ describe('ConversationViewContent', () => {
     expect(detailPane()).not.toBeInTheDocument();
   });
 
+  it('prefetches one page on first scroll and later pages near the end', async () => {
+    MockApiClient.clearMockResponses();
+    const url = `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`;
+    MockApiClient.addMockResponse({
+      url,
+      match: [MockApiClient.matchQuery({cursor: undefined})],
+      body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
+      headers: {
+        Link: `<${url}?cursor=next>; rel="next"; results="true"; cursor="next"`,
+      },
+    });
+
+    let resolveNextPage!: () => void;
+    const nextPageDelay = new Promise<void>(resolve => {
+      resolveNextPage = resolve;
+    });
+    const nextRequest = MockApiClient.addMockResponse({
+      url,
+      match: [MockApiClient.matchQuery({cursor: 'next'})],
+      asyncDelay: nextPageDelay,
+      body: {
+        conversationId: CONVERSATION_ID,
+        title: null,
+        spans: [
+          spanFixture({
+            span_id: 'span-c',
+            'span.name': 'third turn',
+            'precise.start_ts': 3000,
+            'precise.finish_ts': 3000.5,
+            'gen_ai.request.messages': JSON.stringify([
+              {role: 'user', content: 'Third?'},
+            ]),
+            'gen_ai.response.text': 'Third answer',
+          }),
+        ],
+      },
+      headers: {
+        Link: `<${url}?cursor=last>; rel="next"; results="true"; cursor="last"`,
+      },
+    });
+    const lastRequest = MockApiClient.addMockResponse({
+      url,
+      match: [MockApiClient.matchQuery({cursor: 'last'})],
+      body: {
+        conversationId: CONVERSATION_ID,
+        title: null,
+        spans: [
+          spanFixture({
+            span_id: 'span-d',
+            'span.name': 'fourth turn',
+            'precise.start_ts': 4000,
+            'precise.finish_ts': 4000.5,
+            'gen_ai.request.messages': JSON.stringify([
+              {role: 'user', content: 'Fourth?'},
+            ]),
+            'gen_ai.response.text': 'Fourth answer',
+          }),
+        ],
+      },
+    });
+
+    renderView({activeTab: 'transcript'});
+
+    const firstAnswer = await screen.findByText('First answer');
+    const scrollContainer = Array.from(
+      document.querySelectorAll<HTMLElement>('[data-scrollable]')
+    ).find(element => element.contains(firstAnswer));
+    expect(scrollContainer).toBeDefined();
+    Object.defineProperties(scrollContainer!, {
+      scrollHeight: {configurable: true, value: 1000},
+      clientHeight: {configurable: true, value: 100},
+      scrollTop: {configurable: true, value: 100},
+    });
+
+    act(() => scrollContainer!.dispatchEvent(new Event('scroll')));
+
+    expect(
+      await screen.findByRole('status', {name: 'Loading more spans'})
+    ).toBeInTheDocument();
+    expect(nextRequest).toHaveBeenCalledTimes(1);
+    expect(lastRequest).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveNextPage();
+      await nextPageDelay;
+    });
+    expect(await screen.findByText('Third answer')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('status', {name: 'Loading more spans'})
+    ).not.toBeInTheDocument();
+
+    act(() => scrollContainer!.dispatchEvent(new Event('scroll')));
+    expect(lastRequest).not.toHaveBeenCalled();
+
+    Object.defineProperty(scrollContainer!, 'scrollTop', {
+      configurable: true,
+      value: 850,
+    });
+    act(() => scrollContainer!.dispatchEvent(new Event('scroll')));
+
+    expect(await screen.findByText('Fourth answer')).toBeInTheDocument();
+    expect(lastRequest).toHaveBeenCalledTimes(1);
+  });
+
   it('opens the first span by default on the timeline', async () => {
     renderView({activeTab: 'timeline'});
 
