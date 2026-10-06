@@ -6,6 +6,7 @@ import {useQuery} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Grid} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
@@ -158,12 +159,14 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
           key: f.flag,
           subject: f.flag,
           value: (
-            <ValueWrapper>
+            <Grid columns={{zero: '1fr', xs: '1fr 1fr'}} justifyItems="start">
               {f.result.toString()}
               {suspectFlagNames.has(f.flag) && (
-                <SuspectLabel>{t('Suspect')}</SuspectLabel>
+                <Text as="div" variant="muted" monospace>
+                  {t('Suspect')}
+                </Text>
               )}
-            </ValueWrapper>
+            </Grid>
           ),
           actionButton: (
             <FlagActionDropdown
@@ -314,34 +317,4 @@ const StyledEmptyStateWarning = styled(EmptyStateWarning)`
   display: flex;
   flex-direction: column;
   align-items: center;
-`;
-
-const SuspectLabel = styled('div')`
-  color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const ValueWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  justify-items: start;
-
-  @media (max-width: ${p => p.theme.breakpoints.xs}) {
-    grid-template-rows: auto auto;
-
-    /* Move suspect label to second row, spanning full width */
-    ${SuspectLabel} {
-      grid-column: 1 / -1;
-      grid-row: 2;
-    }
-  }
-
-  .invisible {
-    visibility: hidden;
-  }
-  &:hover,
-  &:active {
-    .invisible .flag-button {
-      visibility: visible;
-    }
-  }
 `;
