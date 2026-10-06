@@ -465,7 +465,14 @@ class BaseMetricAlertHandler(ABC):
             invocation,
             NotificationSource.METRIC_ALERT,
             lambda legacy_render: metric_alert_notification_data_factory(
-                issue_notification_context, chart_url=legacy_render.chart_url
+                action_type=invocation.action.type,
+                notification_context=issue_notification_context.notification_context,
+                alert_context=issue_notification_context.alert_context,
+                metric_issue_context=issue_notification_context.metric_issue_context,
+                open_period_context=issue_notification_context.open_period_context,
+                organization=issue_notification_context.organization,
+                notification_uuid=invocation.notification_uuid,
+                chart_url=legacy_render.chart_url,
             ),
         ):
             notification_context = issue_notification_context.notification_context
