@@ -536,6 +536,7 @@ describe('OrganizationRepositories', () => {
     it('always shows the + button even when a repo already has code mappings', async () => {
       setupRepoMocks([
         {
+          hasCodeOwner: false,
           id: '1',
           repoId: REPO.id,
           repoName: REPO.name,
@@ -545,6 +546,7 @@ describe('OrganizationRepositories', () => {
           sourceRoot: '',
           defaultBranch: 'main',
           integrationId: GITHUB_INTEGRATION.id,
+          provider: null,
         },
       ]);
       render(<OrganizationRepositories />, {organization});
@@ -574,6 +576,7 @@ describe('OrganizationRepositories', () => {
     it('clicking a mapped project chip opens the repo-locked edit modal', async () => {
       setupRepoMocks([
         {
+          hasCodeOwner: false,
           id: '1',
           repoId: REPO.id,
           repoName: REPO.name,
@@ -583,6 +586,7 @@ describe('OrganizationRepositories', () => {
           sourceRoot: '',
           defaultBranch: 'main',
           integrationId: GITHUB_INTEGRATION.id,
+          provider: null,
         },
       ]);
       MockApiClient.addMockResponse({

@@ -92,7 +92,7 @@ describe('PathMapping', () => {
     );
   });
 
-  it('renders preview using placeholder example and updates on input', async () => {
+  it('renders preview using placeholder example and updates on input', () => {
     renderMapping({editing: true, isNew: true});
 
     expect(screen.getByText('Example preview')).toBeInTheDocument();
@@ -103,7 +103,7 @@ describe('PathMapping', () => {
   });
 
   it('accents only the filled prefix once a value is typed', async () => {
-    render(<PathMapping {...defaultProps} editing isNew />);
+    renderMapping({editing: true, isNew: true});
 
     await userEvent.type(
       screen.getByRole('textbox', {name: /stack trace prefix/i}),
