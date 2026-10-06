@@ -48,14 +48,7 @@ def record_dropped_events_telemetry(
     sentry_sdk.set_attribute("dropped_events.had_drops", had_drops)
 
 
-DROPPED_OUTCOMES: tuple[Outcome, ...] = (
-    Outcome.FILTERED,
-    Outcome.RATE_LIMITED,
-    Outcome.INVALID,
-    Outcome.ABUSE,
-    Outcome.CLIENT_DISCARD,
-    Outcome.CARDINALITY_LIMITED,
-)
+DROPPED_OUTCOMES: tuple[Outcome, ...] = tuple(o for o in Outcome if o is not Outcome.ACCEPTED)
 
 
 DEFAULT_DROP_THRESHOLD = 1
@@ -89,9 +82,12 @@ def _run_category_query(
 ) -> list[dict[str, Any]]:
     """Run one bucketed Outcomes query over a single category.
 
-    Includes both accepted and dropped outcomes, grouped by ``outcome`` and
-    ``reason`` so a caller can split accepted (the share denominator) from each
-    per-reason drop.
+    The query always fetches accepted plus every drop outcome, grouped by
+    ``outcome`` and ``reason``. It is deliberately not narrowed by the endpoint's
+    ``outcome``/``reason`` filters: accepted (the share denominator) must come
+    back in full regardless, so the caller fetches everything here and narrows
+    only the dropped rows afterward. ``group_by`` keeps each (outcome, reason)
+    drop separate while accepted collapses to one total per bucket.
     """
     query = QueryDefinition(
         fields=["sum(quantity)"],
@@ -100,6 +96,7 @@ def _run_category_query(
         organization_id=organization_id,
         project_ids=snuba_params.project_ids,
         interval=f"{rollup}s",
+        # ACCEPTED is the share denominator; the rest are the drop classifications.
         outcome=[Outcome.ACCEPTED.api_name(), *(o.api_name() for o in DROPPED_OUTCOMES)],
         group_by=["outcome", "reason"],
         category=[category.api_name()],

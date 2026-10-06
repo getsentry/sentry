@@ -1,8 +1,8 @@
-from typing import TypedDict
+from typing import Any, TypedDict
 
 import sentry_sdk
-from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
+from drf_spectacular.utils import OpenApiResponse, extend_schema
+from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -31,8 +31,6 @@ _ENDPOINT = "events-dropped"
 
 _ACCEPTED = "accepted"
 
-_DROPPED_OUTCOME_NAMES = tuple(o.api_name() for o in DROPPED_OUTCOMES)
-
 
 class DroppedEventsBucket(TypedDict):
     type: str
@@ -57,6 +55,30 @@ class DroppedEventsResponse(TypedDict):
     acceptedEvents: list[DroppedEventsBucket]
 
 
+class DroppedEventsQueryParamsSerializer(serializers.Serializer[dict[str, Any]]):
+    """The optional drop-scoping filters. Both document the params (via
+    ``extend_schema``) and validate them: ``outcome`` is a closed choice of drop
+    classifications, while ``reason`` is an open string since client-discard
+    reasons are SDK-defined. The filters narrow the dropped side only."""
+
+    outcome = serializers.ChoiceField(
+        [o.api_name() for o in DROPPED_OUTCOMES],
+        required=False,
+        help_text=(
+            "Narrow the dropped events (only) to a single top-level drop "
+            "classification (e.g. `rate_limited`, `filtered`)."
+        ),
+    )
+    reason = serializers.CharField(
+        required=False,
+        help_text=(
+            "Narrow the dropped events to a single reason, the sub-classification "
+            "within an outcome (e.g. `spike_protection` within `rate_limited`). "
+            "Should be combined with `outcome`."
+        ),
+    )
+
+
 @extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
@@ -77,28 +99,7 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.STATS_PERIOD,
             VisibilityParams.DATASET,
             VisibilityParams.INTERVAL,
-            OpenApiParameter(
-                name="outcome",
-                location="query",
-                required=False,
-                type=str,
-                enum=_DROPPED_OUTCOME_NAMES,
-                description=(
-                    "Narrow the dropped events (only) to a single top-level drop "
-                    "classification (e.g. `rate_limited`, `filtered`)."
-                ),
-            ),
-            OpenApiParameter(
-                name="reason",
-                location="query",
-                required=False,
-                type=OpenApiTypes.STR,
-                description=(
-                    "Narrow the dropped events to a single reason, the "
-                    "sub-classification within an outcome (e.g. `spike_protection` "
-                    "within `rate_limited`). Should be combined with `outcome`."
-                ),
-            ),
+            DroppedEventsQueryParamsSerializer,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -128,14 +129,11 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
                 f"dataset does not support dropped events; must be one of: {supported}"
             )
 
-        # `outcome` is a closed enum (the drop classifications); reject anything
-        # else. `reason` is an open string — client-discard reasons are
-        # SDK-defined — so it is passed through unvalidated.
-        outcome = request.GET.get("outcome")
-        if outcome is not None and outcome not in _DROPPED_OUTCOME_NAMES:
-            supported = ", ".join(_DROPPED_OUTCOME_NAMES)
-            raise ParseError(f"invalid outcome; must be one of: {supported}")
-        reason = request.GET.get("reason")
+        filters = DroppedEventsQueryParamsSerializer(data=request.GET)
+        if not filters.is_valid():
+            raise ParseError(filters.errors)
+        outcome = filters.validated_data.get("outcome")
+        reason = filters.validated_data.get("reason")
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
