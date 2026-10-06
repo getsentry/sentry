@@ -20,7 +20,7 @@ from arroyo.processing.strategies.commit import CommitOffsets
 from arroyo.processing.strategies.run_task import RunTask
 from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
 from django.conf import settings
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from rest_framework import serializers
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import IngestMonitorMessage
@@ -1050,24 +1050,36 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
                 # Record the reported in_progress time when the check is in progress
                 date_in_progress = start_time if status == CheckInStatus.IN_PROGRESS else None
 
-                check_in, created = MonitorCheckIn.objects.get_or_create(
-                    defaults={
-                        "duration": duration,
-                        "status": status,
-                        "date_added": start_time,
-                        "date_updated": start_time,
-                        "date_clock": clock_time,
-                        "date_in_progress": date_in_progress,
-                        "expected_time": expected_time,
-                        "timeout_at": timeout_at,
-                        "monitor_config": checkin_monitor_config,
-                        "trace_id": trace_id,
-                    },
-                    project_id=project_id,
-                    monitor=monitor,
-                    monitor_environment=monitor_environment,
-                    guid=guid,
-                )
+                lookup = {
+                    "guid": guid,
+                    "project_id": project_id,
+                    "monitor": monitor,
+                    "monitor_environment": monitor_environment,
+                }
+                # Plain create instead of get_or_create; 03-A already missed
+                # on guid, so its extra lookup is redundant.
+                try:
+                    with transaction.atomic(router.db_for_write(MonitorCheckIn)):
+                        check_in = MonitorCheckIn.objects.create(
+                            **lookup,
+                            duration=duration,
+                            status=status,
+                            date_added=start_time,
+                            date_updated=start_time,
+                            date_clock=clock_time,
+                            date_in_progress=date_in_progress,
+                            expected_time=expected_time,
+                            timeout_at=timeout_at,
+                            monitor_config=checkin_monitor_config,
+                            trace_id=trace_id,
+                        )
+                    created = True
+                except IntegrityError:
+                    existing = MonitorCheckIn.objects.select_for_update().filter(**lookup).first()
+                    if existing is None:
+                        raise
+                    check_in = existing
+                    created = False
 
                 # Race condition. The check-in was created (such as an
                 # in_progress) while this check-in was being processed.

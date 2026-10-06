@@ -550,6 +550,47 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.IN_PROGRESS
 
+    @contextlib.contextmanager
+    def first_guid_lookup_misses(self) -> Generator[None]:
+        """Simulate a check-in inserted after the initial guid lookup."""
+        select_for_update = MonitorCheckIn.objects.select_for_update
+        calls = 0
+
+        def side_effect(*args: Any, **kwargs: Any) -> Any:
+            nonlocal calls
+            calls += 1
+            qs = select_for_update(*args, **kwargs)
+            return qs.none() if calls == 1 else qs
+
+        with mock.patch.object(
+            MonitorCheckIn.objects, "select_for_update", side_effect=side_effect
+        ):
+            yield
+
+    def test_check_in_create_race_updates_existing(self) -> None:
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(monitor.slug, status="in_progress")
+
+        with self.first_guid_lookup_misses():
+            self.send_checkin(monitor.slug, guid=self.guid, status="ok")
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.OK
+        assert checkin.duration is not None
+
+    def test_check_in_create_race_other_monitor(self) -> None:
+        monitor = self._create_monitor(slug="my-monitor")
+        other_monitor = self._create_monitor(slug="other-monitor")
+        self.send_checkin(monitor.slug, status="in_progress")
+
+        with self.first_guid_lookup_misses():
+            self.send_checkin(other_monitor.slug, guid=self.guid, status="ok")
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.monitor_id == monitor.id
+        assert checkin.status == CheckInStatus.IN_PROGRESS
+        assert not MonitorCheckIn.objects.filter(monitor=other_monitor).exists()
+
     def test_check_in_update_terminal_in_progress(self) -> None:
         now = datetime.now()
         now_tz = now.replace(tzinfo=UTC)
