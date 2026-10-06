@@ -185,7 +185,7 @@ stats={[
 ]}
 ```
 
-A value with a `valueTooltip` and no `to` renders as `InfoText`, so it gains the dotted underline and is reachable by keyboard. A value that also links keeps the link's own affordance and focus stop instead, with the tooltip attached to it — otherwise the anchor would contain a second tab stop.
+A value with a `valueTooltip` and no `to` renders as `InfoText`, so it gains the dotted underline and is reachable by keyboard. A value that also links gets the same underline, but from the tooltip directly rather than through `InfoText`, which would put a second tab stop inside the anchor. The link alone is not enough of a signal: the global anchor colour is overridden by the `Text` inside it, which keeps the stat's own `content.primary`.
 
 ## Loading
 

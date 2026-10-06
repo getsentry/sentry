@@ -72,11 +72,13 @@ export function EntityHeaderStat({
         <Text {...valueStyles}>{value}</Text>
       </Link>
     );
-    // A link already reads as interactive and carries its own focus stop, so the
-    // tooltip attaches to it. Using InfoText here would add a dotted underline
-    // the link does not need, and a second tab stop inside the anchor.
+    // The tooltip attaches to the link rather than wrapping it in InfoText,
+    // which would put a second tab stop inside the anchor. It still has to
+    // carry the underline itself: the link gives the value no affordance of its
+    // own, because the global anchor colour is overridden by the Text inside it
+    // keeping the stat's `content.primary`.
     valueContent = valueTooltip ? (
-      <Tooltip title={valueTooltip} skipWrapper>
+      <Tooltip title={valueTooltip} skipWrapper showUnderline>
         {link}
       </Tooltip>
     ) : (

@@ -177,10 +177,13 @@ describe('EntityHeader', () => {
         />
       );
 
-      // A link already reads as interactive, so it keeps its own affordance and
-      // focus stop instead of gaining InfoText's underline and a second one.
       const link = screen.getByRole('link', {name: '3'});
       expect(link).toHaveAttribute('href', '/replays/1/?t_main=errors');
+
+      // The link is the only tab stop — InfoText would add a second one inside
+      // the anchor — but it still needs the dotted underline, because the Text
+      // inside it keeps the stat's own colour over the global anchor colour.
+      expect(link).toHaveStyle({textDecoration: 'underline'});
 
       await userEvent.hover(link);
       expect(await screen.findByText('From 2 projects')).toBeInTheDocument();
