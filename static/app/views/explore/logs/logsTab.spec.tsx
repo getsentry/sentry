@@ -5,6 +5,7 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
@@ -83,8 +84,6 @@ describe('LogsTabContent', () => {
     route: '/organizations/:orgId/explore/logs/',
   };
 
-  setupPageFilters();
-
   const eventTableResponseBody = {
     data: [
       {
@@ -143,6 +142,7 @@ describe('LogsTabContent', () => {
   };
 
   beforeEach(() => {
+    setupPageFilters();
     MockApiClient.clearMockResponses();
 
     // Default API mocks
@@ -683,6 +683,39 @@ describe('LogsTabContent', () => {
       name: 'Refresh',
     });
     expect(refreshButton).toBeDisabled();
+  });
+
+  it('refetches the chart and its dropped data annotations when the refresh button is clicked', async () => {
+    PageFiltersStore.updateDateTime({period: '1h', start: null, end: null, utc: null});
+    const droppedDataMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      method: 'GET',
+      body: {timeSeries: [TimeSeriesFixture()]},
+      match: [
+        MockApiClient.matchQuery({referrer: 'api.explore.dropped-data-annotations'}),
+      ],
+    });
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      initialRouterConfig,
+      organization: {
+        ...organization,
+        features: [...organization.features, 'explore-data-fidelity-annotations'],
+      },
+      additionalWrapper: ProviderWrapper,
+    });
+    await waitFor(() => {
+      expect(eventsTimeSeriesMock).toHaveBeenCalled();
+      expect(droppedDataMock).toHaveBeenCalled();
+    });
+    eventsTimeSeriesMock.mockClear();
+    droppedDataMock.mockClear();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Refresh'}));
+
+    await waitFor(() => {
+      expect(eventsTimeSeriesMock).toHaveBeenCalledTimes(1);
+      expect(droppedDataMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   it('warns that results may be incomplete when no logs are found and the sort is not timestamp descending', async () => {

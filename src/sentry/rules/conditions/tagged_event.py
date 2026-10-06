@@ -5,9 +5,9 @@ from typing import Any
 from django import forms
 from django.core.validators import RegexValidator
 
-from sentry.rules import MATCH_CHOICES, MatchType
 from sentry.rules.conditions.base import EventCondition
 from sentry.tagstore.base import TAG_KEY_RE
+from sentry.workflow_engine.handlers.condition.utils.match import MATCH_CHOICES, MatchType
 
 
 class TaggedEventForm(forms.Form):

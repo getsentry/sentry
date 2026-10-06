@@ -370,7 +370,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             {"url": "https://example.com/browse/api-123", "displayName": "api-123"}
         ]
         mock_integration_service.get_integrations.assert_called_once_with(
-            organization_id=group.organization.id
+            organization_id=group.organization.id, integration_ids=[integration.id]
         )
 
     def test_permalink_superuser(self) -> None:
