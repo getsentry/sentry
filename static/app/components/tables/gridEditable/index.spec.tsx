@@ -1,7 +1,9 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import {GridEditable} from 'sentry/components/tables/gridEditable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
 type Row = {count: number; name: string};
 
@@ -60,5 +62,26 @@ describe('GridEditable', () => {
     expect(screen.getByRole('columnheader', {name: 'Count'})).not.toHaveAttribute(
       'aria-sort'
     );
+  });
+
+  it('renders uppercase results headers when outside a variant provider', () => {
+    render(<GridEditable columnOrder={COLUMN_ORDER} data={DATA} grid={{}} />);
+
+    const head = screen.getAllByRole('rowgroup')[0]!;
+
+    expect(getEmotionRules(head).join('')).toContain('text-transform: uppercase');
+  });
+
+  it('renders default table headers when inside a default variant provider', () => {
+    render(
+      <SimpleTable.VariantProvider variant="default">
+        <GridEditable columnOrder={COLUMN_ORDER} data={DATA} grid={{}} />
+      </SimpleTable.VariantProvider>
+    );
+
+    const head = screen.getAllByRole('rowgroup')[0]!;
+
+    expect(getEmotionRules(head).join('')).not.toContain('text-transform: uppercase');
+    expect(screen.getByRole('columnheader', {name: 'Count'})).toBeInTheDocument();
   });
 });

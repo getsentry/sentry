@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import {Fragment, useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
 import {EmptyState} from '@sentry/scraps/emptyState';
@@ -10,7 +11,7 @@ import {
   type TableColumnConfig,
 } from '@sentry/scraps/table';
 
-import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {SimpleTable, useSimpleTableVariant} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 
@@ -151,6 +152,8 @@ export function GridEditable<
     title,
   } = props;
 
+  const variant = useSimpleTableVariant();
+
   const columns = useMemo<TableColumnConfig[]>(
     () =>
       props.columnOrder.map(column => ({
@@ -229,6 +232,26 @@ export function GridEditable<
     );
   };
 
+  const sections = (
+    <Fragment>
+      <SimpleTable.Head sticky={stickyHeader}>
+        <GridEditableHead columnOrder={props.columnOrder} grid={grid} />
+      </SimpleTable.Head>
+      <SimpleTable.Body>{renderGridBody()}</SimpleTable.Body>
+    </Fragment>
+  );
+
+  const tableProps = {
+    'aria-label': ariaLabel,
+    columns,
+    customSections: true,
+    'data-test-id': 'grid-editable',
+    flexibleLastColumn: true,
+    minimumColumnWidth: COL_WIDTH_MINIMUM,
+    onColumnResize: grid.onResizeColumn ? onColumnResize : undefined,
+    prependColumnWidths: grid.prependColumnWidths,
+  } as const;
+
   const showHeader = title || headerButtons;
   return (
     <Fragment>
@@ -241,28 +264,36 @@ export function GridEditable<
             )}
           </Header>
         )}
-        <SimpleTable
-          variant="results"
-          aria-label={ariaLabel}
-          columns={columns}
-          customSections
-          data-test-id="grid-editable"
-          fit={fit}
-          flexibleLastColumn
-          height={height}
-          minimumColumnWidth={COL_WIDTH_MINIMUM}
-          onColumnResize={grid.onResizeColumn ? onColumnResize : undefined}
-          prependColumnWidths={grid.prependColumnWidths}
-          scrollable={scrollable}
-          showVerticalScrollbar={scrollable}
-          style={bodyStyle}
-        >
-          <SimpleTable.Head sticky={stickyHeader}>
-            <GridEditableHead columnOrder={props.columnOrder} grid={grid} />
-          </SimpleTable.Head>
-          <SimpleTable.Body>{renderGridBody()}</SimpleTable.Body>
-        </SimpleTable>
+        {variant === 'default' ? (
+          <DefaultFrame fit={fit} style={bodyStyle}>
+            <SimpleTable {...tableProps}>{sections}</SimpleTable>
+          </DefaultFrame>
+        ) : (
+          <SimpleTable
+            {...tableProps}
+            variant="results"
+            fit={fit}
+            height={height}
+            scrollable={scrollable}
+            showVerticalScrollbar={scrollable}
+            style={bodyStyle}
+          >
+            {sections}
+          </SimpleTable>
+        )}
       </Profiler>
     </Fragment>
   );
 }
+
+/**
+ * A default table clips its overflow to its rounded border, so this frame scrolls
+ * it instead, and sizes it no narrower than its columns' minimum widths.
+ */
+const DefaultFrame = styled('div')<{fit?: 'max-content'}>`
+  overflow-x: auto;
+
+  > table {
+    min-width: ${p => p.fit ?? 'min-content'};
+  }
+`;

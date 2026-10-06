@@ -38,7 +38,13 @@ export const RESULTS_TABLE_ROW_HEIGHT = 42;
 
 type SimpleTableVariant = 'default' | 'results';
 
-const SimpleTableVariantContext = createContext<SimpleTableVariant>('default');
+const SimpleTableVariantContext = createContext<SimpleTableVariant | undefined>(
+  undefined
+);
+
+export function useSimpleTableVariant() {
+  return useContext(SimpleTableVariantContext);
+}
 
 function VariantProvider({
   children,
@@ -200,7 +206,7 @@ function ResultsTable({
 }
 
 function Head(props: ComponentProps<typeof Table.Head>) {
-  const variant = useContext(SimpleTableVariantContext);
+  const variant = useSimpleTableVariant();
 
   return variant === 'results' ? <ResultsHead {...props} /> : <Table.Head {...props} />;
 }
@@ -216,7 +222,7 @@ function HeaderRow({
    */
   sticky?: boolean;
 }) {
-  const variant = useContext(SimpleTableVariantContext);
+  const variant = useSimpleTableVariant();
 
   if (variant === 'results') {
     return <Table.Row {...props}>{children}</Table.Row>;
@@ -256,7 +262,7 @@ function HeaderCell({
   to?: LocationDescriptor;
   variant?: HeaderCellVariant;
 }) {
-  const tableVariant = useContext(SimpleTableVariantContext);
+  const tableVariant = useSimpleTableVariant();
 
   if (tableVariant === 'results') {
     return (
@@ -297,7 +303,7 @@ function HeaderCell({
 }
 
 function Row({children, isClickable, variant = 'default', ref, ...props}: RowProps) {
-  const tableVariant = useContext(SimpleTableVariantContext);
+  const tableVariant = useSimpleTableVariant();
 
   if (tableVariant === 'results') {
     return (
@@ -322,7 +328,7 @@ function RowCell({
   children,
   ...props
 }: FlexProps<'td'> & Pick<TdHTMLAttributes<HTMLTableCellElement>, 'colSpan'>) {
-  const variant = useContext(SimpleTableVariantContext);
+  const variant = useSimpleTableVariant();
 
   if (variant === 'results') {
     return (
@@ -558,6 +564,7 @@ const ColumnHeaderCell = styled(Table.HeadCell, {
   position: relative;
   justify-content: space-between;
   height: 100%;
+  --column-resizer-height: 100%;
 
   ${HeaderCellContent} {
     flex: 1;
