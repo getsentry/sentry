@@ -214,7 +214,9 @@ stats={[
 ]}
 ```
 
-On a `link` stat it is the **label** that navigates, not the value. A link named by its own digits says nothing in a screen reader's links list, and its name would change as the data settled; the label is meaningful and stable. It carries a dotted underline, the same treatment Issue Details gives its stat links. The value is left to explain itself through `valueTooltip`.
+On a `link` stat it is the **label** that navigates, not the value. A link named by its own digits says nothing in a screen reader's links list. It carries a dotted underline, the same treatment Issue Details gives its stat links, and the value is left to explain itself through `valueTooltip`.
+
+The link is named from the value _and_ the label, so a screen reader moving element by element hears "4 Dead Clicks" in one go rather than "4", then "link, Dead Clicks". The value is hidden from assistive technology on a link stat, since it is already spoken as part of that name.
 
 ## Loading
 
@@ -269,6 +271,6 @@ Do not use it for list or landing pages, which carry no single entity.
 - The header sets `aria-busy` while loading, which is the only signal a screen reader gets that more is coming.
 - A `leadingGraphic` is decorative and hidden until given a `label`, at which point it becomes a named `img`. It is deliberately not focusable — a named image is announced without focus, so a tab stop there would be one a keyboard user could not act on.
 - A `people` stack is a named `group`. Its avatars are not focusable, so the per-avatar tooltips are mouse-only and the group name is what carries the meaning.
-- On a `link` stat the label navigates, so the link is named by its destination rather than by a number that changes as data loads.
+- On a `link` stat the label navigates, and the link is named from the value and the label together, so the stat reads as one fact rather than two elements. A `text` stat is still two: its value and label are adjacent and read in order, but a screen reader moving element by element visits them separately.
 - Stats and metadata read in the order the narrow layout shows them, so reading order and focus order follow the eye at every width.
 - The dividers between stats and metadata are decorative and hidden; a header has around five of them.

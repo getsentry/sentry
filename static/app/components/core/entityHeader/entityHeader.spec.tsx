@@ -170,9 +170,10 @@ describe('EntityHeader', () => {
         />
       );
 
-      // A link named "4" says nothing in a links list, and its name would change
-      // to "7" the moment the data settled. The label navigates instead.
-      expect(screen.getByRole('link', {name: 'Dead Clicks'})).toHaveAttribute(
+      // A link named "4" says nothing in a links list. The label navigates, and
+      // the name carries the value with it, so moving element by element reads
+      // "4 Dead Clicks" in one go rather than "4", then "link, Dead Clicks".
+      expect(screen.getByRole('link', {name: '4 Dead Clicks'})).toHaveAttribute(
         'href',
         '/replays/1/?t_main=breadcrumbs'
       );
@@ -256,7 +257,7 @@ describe('EntityHeader', () => {
         />
       );
 
-      const link = screen.getByRole('link', {name: 'Errors'});
+      const link = screen.getByRole('link', {name: '3 Errors'});
       expect(link).toHaveAttribute('href', '/replays/1/?t_main=errors');
 
       // The link is the only tab stop; InfoText would add a second one inside
@@ -279,7 +280,7 @@ describe('EntityHeader', () => {
           ]}
         />
       );
-      const before = screen.getByRole('link', {name: 'Errors'});
+      const before = screen.getByRole('link', {name: '0 Errors'});
 
       rerender(
         <EntityHeader
@@ -290,8 +291,7 @@ describe('EntityHeader', () => {
         />
       );
 
-      // The name is stable too, now that it is the label rather than the count.
-      expect(screen.getByRole('link', {name: 'Errors'})).toBe(before);
+      expect(screen.getByRole('link', {name: '3 Errors'})).toBe(before);
     });
 
     it('gives a linked label the same metrics as an unlinked one', () => {
@@ -321,7 +321,7 @@ describe('EntityHeader', () => {
 
       // The anchor itself carries the label's type, rather than wrapping an
       // element that does.
-      expect(hasLabelFontSize(screen.getByRole('link', {name: 'Errors'}))).toBe(true);
+      expect(hasLabelFontSize(screen.getByRole('link', {name: '3 Errors'}))).toBe(true);
     });
 
     it('drops null entries so callers can inline conditionals', () => {
@@ -552,7 +552,7 @@ describe('EntityHeader', () => {
 
       const title = screen.getByRole('heading', {level: 2});
       const metadata = screen.getByText('Chrome 144');
-      const stat = screen.getByRole('link', {name: 'Errors'});
+      const stat = screen.getByRole('link', {name: '3 Errors'});
 
       expect(follows(title, metadata)).toBe(true);
       expect(follows(metadata, stat)).toBe(true);

@@ -1,3 +1,5 @@
+import {useId} from 'react';
+
 import {ROW_HEIGHT, STAT_VALUE_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
@@ -59,6 +61,8 @@ export type EntityHeaderStatProps =
     } & EntityHeaderStatBase);
 
 export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boolean}) {
+  const valueId = useId();
+  const labelId = useId();
   const {
     isLoading,
     label,
@@ -80,15 +84,20 @@ export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boo
 
   const valueStyles = {size: 'lg', bold: true, tabular: true, wrap: 'nowrap'} as const;
 
-  // The value explains itself and never navigates. A link here would be named
-  // by its own digits — "5" in a links list, and a name that changes to "7" the
-  // moment the data settles.
+  // A stat is one fact split across two elements, which a screen reader moving
+  // element by element reads as two: "0", then "link, Dead Clicks". On a link
+  // stat the anchor is named from both, so it reads "0 Dead Clicks" in one go —
+  // and the value is hidden, since it is now spoken as part of that name.
+  // (`aria-labelledby` resolves hidden references, so the text still counts.)
+  const isLink = props.type === 'link';
   const valueContent = valueTooltip ? (
-    <InfoText title={valueTooltip} {...valueStyles}>
+    <InfoText id={valueId} aria-hidden={isLink} title={valueTooltip} {...valueStyles}>
       {value}
     </InfoText>
   ) : (
-    <Text {...valueStyles}>{value}</Text>
+    <Text id={valueId} aria-hidden={isLink} {...valueStyles}>
+      {value}
+    </Text>
   );
 
   const labelStyles = {
@@ -114,7 +123,15 @@ export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boo
       <Text {...labelStyles} underline="dotted">
         {styleProps => {
           const link = (
-            <Link to={to} onClick={onClick} {...styleProps}>
+            <Link
+              to={to}
+              onClick={onClick}
+              id={labelId}
+              // Self-reference keeps the label's own text in the name, after
+              // the value: "0 Dead Clicks" rather than "Dead Clicks".
+              aria-labelledby={`${valueId} ${labelId}`}
+              {...styleProps}
+            >
               {label}
             </Link>
           );
