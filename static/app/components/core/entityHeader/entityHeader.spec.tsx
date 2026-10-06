@@ -198,6 +198,36 @@ describe('EntityHeader', () => {
   });
 
   describe('layout', () => {
+    it('pins the stat height so an async value cannot shift the rows below', () => {
+      // A viewer avatar list and an error count are both taller than the text
+      // they replace, and they land at different times. If the stat grew to fit
+      // them, every row beneath would move as each query settled.
+      const {rerender} = render(
+        <EntityHeader
+          isLoading
+          title={{label: 'Session'}}
+          stats={[{label: 'Seen By', value: null}]}
+          metadata={[{label: 'Chrome 144'}]}
+        />
+      );
+
+      const statBox = screen.getByText('Seen By').closest('div')!.parentElement!;
+      expect(getEmotionRules(statBox).some(r => /height:\s*32px/.test(r))).toBe(true);
+
+      rerender(
+        <EntityHeader
+          title={{label: 'Session'}}
+          stats={[{label: 'Seen By', value: <img alt="" height={25} width={50} />}]}
+          metadata={[{label: 'Chrome 144'}]}
+        />
+      );
+
+      const loadedStatBox = screen.getByText('Seen By').closest('div')!.parentElement!;
+      expect(getEmotionRules(loadedStatBox).some(r => /height:\s*32px/.test(r))).toBe(
+        true
+      );
+    });
+
     it('reorders the stats below the metadata in a narrow container', () => {
       render(
         <EntityHeader

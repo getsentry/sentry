@@ -1,4 +1,4 @@
-import {STAT_VALUE_HEIGHT} from '@sentry/scraps/entityHeader/constants';
+import {ROW_HEIGHT, STAT_VALUE_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
 import {Link} from '@sentry/scraps/link';
@@ -48,33 +48,34 @@ export function EntityHeaderStat({
   );
 
   return (
-    // `baseline` is what makes the value and its label sit on a shared line,
-    // which is the visual signature of the stat row.
-    <Flex
-      align="baseline"
-      gap="xs"
-      paddingTop="sm"
-      paddingBottom="sm"
-      flexShrink={0}
-      minWidth={0}
-    >
-      {icon && !isLoading && (
-        <Flex align="center" flexShrink={0} aria-hidden>
-          {icon}
-        </Flex>
-      )}
-      {isLoading ? (
-        <Placeholder width={loadingWidth} height={STAT_VALUE_HEIGHT} />
-      ) : to ? (
-        <Link to={to} onClick={onClick}>
-          {valueText}
-        </Link>
-      ) : (
-        valueText
-      )}
-      <Text size="sm" bold variant="muted" density="comfortable" wrap="nowrap">
-        {label}
-      </Text>
+    // The outer box is a fixed height so the row cannot resize as async values
+    // land — a viewer avatar list and an error count are both taller than the
+    // text they replace, and each one settling would otherwise shift the rows
+    // below. Content is centred inside it rather than growing it.
+    <Flex align="center" height={ROW_HEIGHT} flexShrink={0} minWidth={0}>
+      {/*
+        `baseline` is what makes the value and its label sit on a shared line,
+        which is the visual signature of the stat row.
+      */}
+      <Flex align="baseline" gap="xs" minWidth={0}>
+        {icon && !isLoading && (
+          <Flex align="center" flexShrink={0} aria-hidden>
+            {icon}
+          </Flex>
+        )}
+        {isLoading ? (
+          <Placeholder width={loadingWidth} height={STAT_VALUE_HEIGHT} />
+        ) : to ? (
+          <Link to={to} onClick={onClick}>
+            {valueText}
+          </Link>
+        ) : (
+          valueText
+        )}
+        <Text size="sm" bold variant="muted" density="comfortable" wrap="nowrap">
+          {label}
+        </Text>
+      </Flex>
     </Flex>
   );
 }

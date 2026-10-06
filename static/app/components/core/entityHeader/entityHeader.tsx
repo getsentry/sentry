@@ -19,7 +19,7 @@ import type {EntityHeaderStatProps} from './items/entityHeaderStat';
 import {EntityHeaderStat} from './items/entityHeaderStat';
 import type {EntityHeaderTitleProps} from './items/entityHeaderTitle';
 import {EntityHeaderTitle} from './items/entityHeaderTitle';
-import {METADATA_TEXT_HEIGHT} from './constants';
+import {METADATA_TEXT_HEIGHT, ROW_HEIGHT} from './constants';
 
 export interface EntityHeaderProps {
   /**
@@ -150,9 +150,10 @@ export function EntityHeader({
         {hasStats && (
           <Flex
             area="stats"
-            align="baseline"
+            align="center"
             gap="md"
             wrap="wrap"
+            minHeight={ROW_HEIGHT}
             justifySelf={{zero: 'start', sm: 'end'}}
           >
             {visibleStats.map(({stat, index}, position) => (
@@ -166,19 +167,26 @@ export function EntityHeader({
 
         {hasContext && (
           <Stack area="context" minWidth={0}>
-            {hasSubtitle &&
-              (isLoading ? (
-                <Flex align="center" minHeight={METADATA_TEXT_HEIGHT}>
+            {hasSubtitle && (
+              <Flex align="center" minWidth={0} minHeight={METADATA_TEXT_HEIGHT}>
+                {isLoading ? (
                   <Placeholder width="320px" height={METADATA_TEXT_HEIGHT} />
-                </Flex>
-              ) : (
-                <Text size="md" density="comfortable" ellipsis>
-                  {subtitle}
-                </Text>
-              ))}
+                ) : (
+                  <Text size="md" density="comfortable" ellipsis>
+                    {subtitle}
+                  </Text>
+                )}
+              </Flex>
+            )}
 
             {hasMetadata && (
-              <Flex align="center" gap="md" wrap="wrap" minWidth={0}>
+              <Flex
+                align="center"
+                gap="md"
+                wrap="wrap"
+                minWidth={0}
+                minHeight={METADATA_TEXT_HEIGHT}
+              >
                 {visibleMetadata.map(({item, index}, position) => (
                   <Fragment key={index}>
                     {position > 0 && <Divider height="12px" />}
