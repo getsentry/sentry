@@ -9,6 +9,7 @@ from django.db import models
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
 
+from sentry import features
 from sentry.analytics.events.codeowners_assignment import CodeOwnersAssignment
 from sentry.analytics.events.issueowners_assignment import IssueOwnersAssignment
 from sentry.analytics.events.suspectcommit_assignment import SuspectCommitAssignment
@@ -23,6 +24,7 @@ from sentry.issues.ownership.grammar import (
     OwnershipSchema,
     Rule,
     load_schema,
+    match_rules_frame_first,
     resolve_actors,
 )
 from sentry.models.activity import Activity
@@ -440,7 +442,18 @@ class ProjectOwnership(Model):
             tags={"ownership_type": ownership_type},
         )
 
+        if cls._frame_priority_enabled(ownership.project_id):
+            return match_rules_frame_first(rules, data, munged_data)
         return [rule for rule in rules if rule.test(data, munged_data)]
+
+    @classmethod
+    def _frame_priority_enabled(cls, project_id: int) -> bool:
+        from sentry.models.organization import Organization
+        from sentry.models.project import Project
+
+        project = Project.objects.get_from_cache(id=project_id)
+        organization = Organization.objects.get_from_cache(id=project.organization_id)
+        return features.has("organizations:ownership-frame-priority", organization)
 
 
 def process_resource_change(instance, change, **kwargs):

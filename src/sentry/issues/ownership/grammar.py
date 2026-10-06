@@ -60,6 +60,7 @@ URL = "url"
 PATH = "path"
 MODULE = "module"
 CODEOWNERS = "codeowners"
+FRAME_MATCHER_TYPES = frozenset({PATH, MODULE, CODEOWNERS})
 
 # Grammar is defined in EBNF syntax.
 ownership_grammar = Grammar(
@@ -180,7 +181,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         elif self.type == PATH:
             return self.test_frames(*munged_data)
         elif self.type == MODULE:
-            return self.test_frames(find_stack_frames(data), ["module"])
+            return self.test_frames(munged_data[0], ["module"])
         elif self.type.startswith("tags."):
             return self.test_tag(data)
         elif self.type == CODEOWNERS:
@@ -250,6 +251,61 @@ class Matcher(namedtuple("Matcher", "type pattern")):
             ):
                 return True
         return False
+
+
+def match_rules_frame_first(
+    rules: Sequence[Rule],
+    data: Mapping[str, Any],
+    munged_data: tuple[Sequence[Mapping[str, Any]], Sequence[str]],
+) -> list[Rule]:
+    """
+    Return the rules that match the event, letting the stack trace decide which frame counts.
+
+    Frame rules (path, module, codeowners) are tested one frame at a time, in culprit order:
+    the last exception's frames from innermost to outermost, in-app frames only. The first
+    frame that any rule matches decides, and only rules matching that frame are returned.
+    When no in-app frame matches, every frame rule is tested against all frames as a fallback.
+    Rules that do not look at frames (url, tags) match as usual.
+
+    The result keeps the original rule order so that "last rule wins" still applies.
+    """
+    frames, keys = munged_data
+    frame_rules = [rule for rule in rules if rule.matcher.type in FRAME_MATCHER_TYPES]
+
+    matched: list[Rule] = []
+    for frame in culprit_ordered_frames(data, frames):
+        matched = [rule for rule in frame_rules if rule.test(data, ([frame], keys))]
+        if matched:
+            break
+    if not matched:
+        matched = [rule for rule in frame_rules if rule.test(data, munged_data)]
+
+    def keep(rule: Rule) -> bool:
+        if rule.matcher.type in FRAME_MATCHER_TYPES:
+            return rule in matched
+        return rule.test(data, munged_data)
+
+    return [rule for rule in rules if keep(rule)]
+
+
+def culprit_ordered_frames(
+    data: Mapping[str, Any], frames: Sequence[Mapping[str, Any]]
+) -> list[Mapping[str, Any]]:
+    """
+    The in-app frames of the last exception, innermost first. This is the order the culprit
+    uses to pick the frame shown on the issue, see `sentry.culprit.get_stacktrace_culprit`.
+
+    `frames` must be the flat list from `find_stack_frames`, which appends the frames of each
+    exception in order, so the last exception's frames are the tail of the list.
+    """
+    exceptions = get_path(data, "exception", "values", filter=True) or ()
+    tail = len(frames)
+    for exception in reversed(exceptions):
+        exception_frames = get_path(exception, "stacktrace", "frames", filter=True)
+        if exception_frames:
+            tail = len(exception_frames)
+            break
+    return [frame for frame in reversed(frames[-tail:]) if frame.get("in_app")] if tail else []
 
 
 class Owner(NamedTuple):

@@ -12,6 +12,7 @@ from sentry.issues.ownership.grammar import (
     dump_schema,
     get_invalid_owner_details,
     load_schema,
+    match_rules_frame_first,
     parse_code_owners,
     parse_rules,
 )
@@ -1428,3 +1429,112 @@ def test_parse_code_owners_exclusion_rule() -> None:
     assert teams == ["@getsentry/frontend"]
     assert usernames == []
     assert emails == []
+
+
+def _frame(filename: str, in_app: bool = True) -> dict[str, Any]:
+    return {"filename": filename, "module": filename.rsplit(".", 1)[0], "in_app": in_app}
+
+
+def _event_with_exceptions(*stacks: list[dict[str, Any]]) -> dict[str, Any]:
+    return {
+        "platform": "javascript",
+        "exception": {"values": [{"stacktrace": {"frames": frames}} for frames in stacks]},
+    }
+
+
+DASHBOARDS = Rule(Matcher("path", "app/views/dashboards/*"), [Owner("team", "dashboards")])
+CORE = Rule(Matcher("codeowners", "app/components/core/"), [Owner("team", "design")])
+PAGE_FILTERS = Rule(Matcher("path", "app/components/pageFilters/*"), [Owner("team", "design")])
+UTILS_MODULE = Rule(Matcher("module", "app/utils/*"), [Owner("team", "platform")])
+TRANSACTION = Rule(Matcher("tags.transaction", "/dashboards/*"), [Owner("team", "dashboards")])
+RULES = [DASHBOARDS, CORE, PAGE_FILTERS, UTILS_MODULE, TRANSACTION]
+
+
+def _match(rules: list[Rule], data: dict[str, Any]) -> list[Rule]:
+    return match_rules_frame_first(rules, data, Matcher.munge_if_needed(data))
+
+
+def test_frame_first_innermost_in_app_frame_of_last_exception_wins() -> None:
+    component_stack = [
+        _frame("app/components/pageFilters/container.tsx"),
+        _frame("app/components/core/layout/container.tsx"),
+    ]
+    call_stack = [
+        _frame("node_modules/react-dom/client.js", in_app=False),
+        _frame("app/components/core/layout/stack.tsx"),
+        _frame("app/views/dashboards/widgetCard/index.tsx"),
+    ]
+    data = _event_with_exceptions(component_stack, call_stack)
+
+    assert _match(RULES, data) == [DASHBOARDS]
+    assert [rule for rule in RULES if rule.test(data, Matcher.munge_if_needed(data))] == [
+        DASHBOARDS,
+        CORE,
+        PAGE_FILTERS,
+    ]
+
+
+def test_frame_first_skips_non_in_app_frames() -> None:
+    data = _event_with_exceptions(
+        [
+            _frame("app/views/dashboards/detail.tsx"),
+            _frame("app/components/core/layout/stack.tsx", in_app=False),
+        ]
+    )
+
+    assert _match(RULES, data) == [DASHBOARDS]
+
+
+def test_frame_first_keeps_rule_order_for_rules_on_the_same_frame() -> None:
+    frame = _frame("app/components/core/button.tsx")
+    broad = Rule(Matcher("path", "app/*"), [Owner("team", "frontend")])
+    data = _event_with_exceptions([frame])
+
+    assert _match([CORE, broad], data) == [CORE, broad]
+    assert _match([broad, CORE], data) == [broad, CORE]
+
+
+def test_frame_first_falls_back_to_all_frames_when_no_in_app_frame_matches() -> None:
+    data = _event_with_exceptions(
+        [
+            _frame("app/components/pageFilters/container.tsx", in_app=False),
+            _frame("app/main.tsx"),
+        ]
+    )
+
+    assert _match(RULES, data) == [PAGE_FILTERS]
+
+
+def test_frame_first_ignores_exceptions_without_frames() -> None:
+    data = _event_with_exceptions([_frame("app/views/dashboards/detail.tsx")], [])
+
+    assert _match(RULES, data) == [DASHBOARDS]
+
+
+def test_frame_first_tag_rules_match_regardless_of_frames() -> None:
+    data = _event_with_exceptions([_frame("app/components/core/layout/stack.tsx")])
+    data["tags"] = [["transaction", "/dashboards/new/"]]
+
+    assert _match(RULES, data) == [CORE, TRANSACTION]
+
+
+def test_frame_first_uses_top_level_stacktrace_without_exceptions() -> None:
+    data = {
+        "platform": "python",
+        "stacktrace": {
+            "frames": [
+                _frame("app/utils/helpers.py"),
+                _frame("app/views/dashboards/detail.py"),
+            ]
+        },
+    }
+
+    assert _match(RULES, data) == [DASHBOARDS]
+
+
+def test_frame_first_module_rules_match_per_frame() -> None:
+    data = _event_with_exceptions(
+        [_frame("app/views/dashboards/detail.py"), _frame("app/utils/helpers.py")]
+    )
+
+    assert _match(RULES, data) == [UTILS_MODULE]

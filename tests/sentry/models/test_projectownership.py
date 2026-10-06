@@ -203,6 +203,42 @@ class ProjectOwnershipTestCase(TestCase):
             ),
         )
 
+    def test_get_owners_frame_priority(self) -> None:
+        views_rule = Rule(Matcher("path", "app/views/*"), [Owner("team", self.team.slug)])
+        layout_rule = Rule(Matcher("path", "app/layout/*"), [Owner("team", self.team2.slug)])
+        ProjectOwnership.objects.create(
+            project_id=self.project2.id,
+            schema=dump_schema([views_rule, layout_rule]),
+            fallthrough=True,
+        )
+        data = {
+            "stacktrace": {
+                "frames": [
+                    {"filename": "app/layout/container.tsx", "in_app": True},
+                    {"filename": "app/views/widget.tsx", "in_app": True},
+                ]
+            }
+        }
+
+        self.assert_ownership_equals(
+            ProjectOwnership.get_owners(self.project2.id, data),
+            (
+                [
+                    Actor(id=self.team.id, actor_type=ActorType.TEAM),
+                    Actor(id=self.team2.id, actor_type=ActorType.TEAM),
+                ],
+                [views_rule, layout_rule],
+            ),
+        )
+
+        with self.feature("organizations:ownership-frame-priority"):
+            self.assert_ownership_equals(
+                ProjectOwnership.get_owners(self.project2.id, data),
+                ([Actor(id=self.team.id, actor_type=ActorType.TEAM)], [views_rule]),
+            )
+            issue_owners = ProjectOwnership.get_issue_owners(self.project2.id, data)
+            assert [rule for rule, _, _ in issue_owners] == [views_rule]
+
     def test_get_owners_codeowners_exclusion_rule(self) -> None:
         self.code_mapping = self.create_code_mapping(project=self.project)
 
