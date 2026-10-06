@@ -3,6 +3,7 @@ import {Fragment} from 'react';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {getEmotionRules} from 'sentry-test/utils';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
@@ -32,7 +33,7 @@ describe('BreadcrumbList container-query collapse', () => {
         item={{
           type: 'page-title',
           label: 'Security',
-          badge: 'new',
+          leadingGraphic: <FeatureBadge type="new" />,
           status: {label: 'Authentication active', variant: 'success'},
           labelTooltip: (
             <Stack align="start" gap="md">

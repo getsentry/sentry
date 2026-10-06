@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {Outlet} from 'react-router-dom';
 
+import {FeatureBadge} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
 
 import Feature from 'sentry/components/acl/feature';
@@ -94,7 +95,11 @@ function ConversationsLandingHeader() {
     return (
       <TopBar.Slot
         name="breadcrumbs"
-        title={{type: 'page-title', label: CONVERSATIONS_LANDING_TITLE, badge: 'new'}}
+        title={{
+          type: 'page-title',
+          label: CONVERSATIONS_LANDING_TITLE,
+          leadingGraphic: <FeatureBadge type="new" />,
+        }}
       />
     );
   }

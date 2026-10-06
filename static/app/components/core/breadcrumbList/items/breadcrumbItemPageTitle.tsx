@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 
-import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge/featureBadge';
 import {BreadcrumbCopyAction} from '@sentry/scraps/breadcrumbList/actions/breadcrumbCopyAction';
 import type {BreadcrumbCopyActionProps} from '@sentry/scraps/breadcrumbList/actions/breadcrumbCopyAction';
 import {BreadcrumbMenuAction} from '@sentry/scraps/breadcrumbList/actions/breadcrumbMenuAction';
@@ -125,8 +124,6 @@ interface BreadcrumbItemPaginationProps {
 
 export interface BreadcrumbItemPageTitleProps {
   label: string;
-  /** Feature status shown beside the title. */
-  badge?: FeatureBadgeProps['type'];
   /** Optional external destination for the title. */
   href?: string;
   /**
@@ -151,7 +148,6 @@ export interface BreadcrumbItemPageTitleProps {
 
 export function BreadcrumbItemPageTitle({
   label,
-  badge,
   status,
   href,
   labelTooltip,
@@ -236,7 +232,6 @@ export function BreadcrumbItemPageTitle({
           </InfoText>
         )}
       </Container>
-      {badge && <FeatureBadge type={badge} />}
       {actions}
     </Flex>
   );
