@@ -6,16 +6,16 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {MonitorBucket} from 'sentry/views/insights/crons/types';
 
 interface Options {
-  environment?: string | string[];
   /**
    * The list of monitor IDs to fetch stats for
    */
   monitors: string[];
-  project?: string;
   /**
    * The window configuration object
    */
   timeWindowConfig: TimeWindowConfig;
+  environment?: string | string[];
+  project?: string;
 }
 
 type Result = Record<string, MonitorBucket[]>;

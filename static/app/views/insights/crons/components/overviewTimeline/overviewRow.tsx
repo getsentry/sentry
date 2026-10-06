@@ -36,8 +36,6 @@ import {MonitorEnvironmentLabel} from './monitorEnvironmentLabel';
 interface Props {
   monitor: Monitor;
   timeWindowConfig: TimeWindowConfig;
-  statsEnvironment?: string | string[];
-  statsProject?: string;
   onDeleteEnvironment?: (env: string) => Promise<void>;
   onToggleMuteEnvironment?: (env: string, isMuted: boolean) => Promise<void>;
   /**
@@ -45,6 +43,8 @@ interface Props {
    * turns off things like zebra striping, hover effect, and showing monitor name
    */
   singleMonitorView?: boolean;
+  statsEnvironment?: string | string[];
+  statsProject?: string;
 }
 
 const MAX_SHOWN_ENVIRONMENTS = 4;
