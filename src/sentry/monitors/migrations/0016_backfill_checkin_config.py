@@ -10,9 +10,7 @@ from sentry.utils import json
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
-def backfill_checkin_config_snapshot(
-    apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
-) -> None:
+def backfill_checkin_config(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     MonitorCheckIn = apps.get_model("monitors", "MonitorCheckIn")
     MonitorCheckInConfig = apps.get_model("monitors", "MonitorCheckInConfig")
 
@@ -30,18 +28,18 @@ def backfill_checkin_config_snapshot(
     def update_batch(checkins: list) -> None:
         checkin_ids_by_config_id: dict[int, list[int]] = defaultdict(list)
         for checkin in checkins:
-            if checkin.config_snapshot_id is not None or checkin.monitor_config is None:
+            if checkin.checkin_config_id is not None or checkin.monitor_config is None:
                 continue
             checkin_ids_by_config_id[get_config_id(checkin.monitor_config)].append(checkin.id)
 
         for config_id, checkin_ids in checkin_ids_by_config_id.items():
             MonitorCheckIn.objects.filter(
-                id__in=checkin_ids, config_snapshot_id__isnull=True
-            ).update(config_snapshot_id=config_id)
+                id__in=checkin_ids, checkin_config_id__isnull=True
+            ).update(checkin_config_id=config_id)
 
     queryset = MonitorCheckIn.objects.filter(
-        monitor_config__isnull=False, config_snapshot_id__isnull=True
-    ).only("id", "monitor_config", "config_snapshot_id")
+        monitor_config__isnull=False, checkin_config_id__isnull=True
+    ).only("id", "monitor_config", "checkin_config_id")
 
     for _ in RangeQuerySetWrapperWithProgressBar(queryset, callbacks=[update_batch]):
         pass
@@ -63,12 +61,12 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("monitors", "0014_add_monitorcheckinconfig"),
+        ("monitors", "0015_add_monitorcheckin_checkin_config_index"),
     ]
 
     operations = [
         migrations.RunPython(
-            backfill_checkin_config_snapshot,
+            backfill_checkin_config,
             migrations.RunPython.noop,
             hints={"tables": ["sentry_monitorcheckin", "sentry_monitorcheckinconfig"]},
         ),

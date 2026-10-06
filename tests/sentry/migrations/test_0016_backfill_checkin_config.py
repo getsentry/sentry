@@ -3,10 +3,10 @@ from uuid import uuid4
 from sentry.testutils.cases import TestMigrations
 
 
-class BackfillCheckinConfigSnapshotTest(TestMigrations):
+class BackfillCheckinConfigTest(TestMigrations):
     app = "monitors"
-    migrate_from = "0014_add_monitorcheckinconfig"
-    migrate_to = "0015_backfill_checkin_config_snapshot"
+    migrate_from = "0015_add_monitorcheckin_checkin_config_index"
+    migrate_to = "0016_backfill_checkin_config"
     connection = "secondary"
 
     def setup_before_migration(self, apps):
@@ -45,7 +45,7 @@ class BackfillCheckinConfigSnapshotTest(TestMigrations):
         self.existing_config = MonitorCheckInConfig.objects.create(
             hash="0" * 64, config=self.config_b
         )
-        self.already_set = create_checkin(config_snapshot_id=self.existing_config.id)
+        self.already_set = create_checkin(checkin_config_id=self.existing_config.id)
 
     def test_backfill(self) -> None:
         MonitorCheckIn = self.apps.get_model("monitors", "MonitorCheckIn")
@@ -61,12 +61,12 @@ class BackfillCheckinConfigSnapshotTest(TestMigrations):
         assert a2.monitor_config == self.config_a
         assert b.monitor_config == self.config_b
         for checkin in (a1, a2, b):
-            assert checkin.config_snapshot_id is not None
+            assert checkin.checkin_config_id is not None
 
-        assert a1.config_snapshot_id == a2.config_snapshot_id
-        assert MonitorCheckInConfig.objects.get(id=a1.config_snapshot_id).config == self.config_a
-        assert MonitorCheckInConfig.objects.get(id=b.config_snapshot_id).config == self.config_b
+        assert a1.checkin_config_id == a2.checkin_config_id
+        assert MonitorCheckInConfig.objects.get(id=a1.checkin_config_id).config == self.config_a
+        assert MonitorCheckInConfig.objects.get(id=b.checkin_config_id).config == self.config_b
 
-        assert no_config.config_snapshot_id is None
-        assert already_set.config_snapshot_id == self.existing_config.id
+        assert no_config.checkin_config_id is None
+        assert already_set.checkin_config_id == self.existing_config.id
         assert MonitorCheckInConfig.objects.count() == 3
