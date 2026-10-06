@@ -1,5 +1,6 @@
 from sentry.api.serializers import serialize
-from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnvironment
+from sentry.monitors.logic.checkin_config import get_checkin_config_id
+from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, ScheduleType
 from sentry.monitors.serializers import (
     MonitorCheckInSerializer,
     MonitorEnvironmentSerializer,
@@ -133,3 +134,43 @@ class MonitorCheckInSerializerTest(TestCase):
         assert len(result) == 1
         # When environment is missing, environment should be "[removed]"
         assert result[0]["environment"] == "[removed]"
+
+    def test_serialize_config_snapshot_matches_legacy(self) -> None:
+        monitor = self.create_monitor()
+        monitor_env = self.create_monitor_environment(
+            monitor=monitor, environment_id=self.environment.id
+        )
+        config = {
+            "schedule": "0 0 * * *",
+            "schedule_type": ScheduleType.CRONTAB,
+            "timezone": "US/Arizona",
+            "max_runtime": 30,
+            "checkin_margin": 5,
+        }
+        legacy = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_env,
+            project_id=monitor.project_id,
+            status=CheckInStatus.OK,
+            monitor_config=config,
+        )
+        snapshot = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_env,
+            project_id=monitor.project_id,
+            status=CheckInStatus.OK,
+            config_snapshot_id=get_checkin_config_id(config),
+        )
+        no_config = MonitorCheckIn.objects.create(
+            monitor=monitor,
+            monitor_environment=monitor_env,
+            project_id=monitor.project_id,
+            status=CheckInStatus.OK,
+        )
+
+        result = serialize([legacy, snapshot, no_config], self.user, MonitorCheckInSerializer())
+
+        expected = {**config, "schedule_type": "crontab"}
+        assert result[0]["monitorConfig"] == expected
+        assert result[1]["monitorConfig"] == expected
+        assert result[2]["monitorConfig"] == {}

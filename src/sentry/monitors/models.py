@@ -572,7 +572,8 @@ class MonitorCheckIn(Model):
 
     monitor_config = LegacyTextJSONField(null=True)
     """
-    A snapshot of the monitor configuration at the time of the check-in.
+    Legacy snapshot of the monitor configuration at the time of the check-in.
+    No longer written; replaced by `config_snapshot_id`.
     """
 
     config_snapshot_id = BoundedBigIntegerField(null=True)

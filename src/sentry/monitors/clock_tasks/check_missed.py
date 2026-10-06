@@ -8,6 +8,7 @@ from django.db.models import Q
 from sentry_kafka_schemas.schema_types.monitors_clock_tasks_v1 import MarkMissing
 
 from sentry.constants import ObjectStatus
+from sentry.monitors.logic.checkin_config import get_checkin_config_id
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.monitor_environment import update_monitor_environment
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, MonitorStatus
@@ -120,7 +121,7 @@ def mark_environment_missing(monitor_environment_id: int, ts: datetime) -> None:
         date_updated=expected_time,
         date_clock=ts,
         expected_time=expected_time,
-        monitor_config=monitor.get_validated_config(),
+        config_snapshot_id=get_checkin_config_id(monitor.get_validated_config()),
     )
 
     # Compute when the check-in *should* have happened given the current

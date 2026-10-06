@@ -35,6 +35,7 @@ from sentry.killswitches import killswitch_matches_context
 from sentry.models.project import Project
 from sentry.monitors.clock_dispatch import record_pulse_partitions, try_monitor_clock_tick
 from sentry.monitors.constants import MAX_MARGIN, MAX_TIMEOUT, PermitCheckInStatus
+from sentry.monitors.logic.checkin_config import get_checkin_config_id
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.logic.monitor_environment import (
@@ -1060,7 +1061,7 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
                         "date_in_progress": date_in_progress,
                         "expected_time": expected_time,
                         "timeout_at": timeout_at,
-                        "monitor_config": checkin_monitor_config,
+                        "config_snapshot_id": get_checkin_config_id(checkin_monitor_config),
                         "trace_id": trace_id,
                     },
                     project_id=project_id,

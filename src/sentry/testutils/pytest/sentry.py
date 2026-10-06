@@ -464,6 +464,10 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
     ProjectOption.objects.clear_local_cache()
     UserOption.objects.clear_local_cache()
 
+    from sentry.monitors.logic.checkin_config import clear_checkin_config_cache
+
+    clear_checkin_config_cache()
+
     sentry_sdk.get_global_scope().set_client(None)
 
 
