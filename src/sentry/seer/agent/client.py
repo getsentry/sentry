@@ -381,6 +381,8 @@ class SeerAgentClient:
 
     def _build_viewer_context(self) -> SeerViewerContext:
         context = SeerViewerContext(organization_id=self.organization.id)
+        if self.project is not None:
+            context["project_id"] = self.project.id
         if self.user and hasattr(self.user, "id") and self.user.id is not None:
             context["user_id"] = self.user.id
         return context

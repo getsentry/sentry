@@ -64,6 +64,7 @@ from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.settings import is_self_hosted
 from sentry.utils.tracing import start_span
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -264,7 +265,14 @@ def _call_seer(
         experiment_variant=experiment_variant,
     )
     viewer_context = SeerViewerContext(organization_id=group.organization.id)
-    response = make_summarize_issue_request(body, timeout=30, viewer_context=viewer_context)
+    with viewer_context_scope(
+        ViewerContext(
+            organization_id=group.organization.id,
+            project_id=group.project.id,
+            actor_type=ActorType.SYSTEM,
+        )
+    ):
+        response = make_summarize_issue_request(body, timeout=30, viewer_context=viewer_context)
 
     if response.status >= 400:
         raise Exception(f"Seer request failed with status {response.status}")
@@ -314,12 +322,19 @@ def _generate_fixability_score(
     if summary is not None:
         body["summary"] = summary
     viewer_context = SeerViewerContext(organization_id=group.organization.id)
-    response = make_fixability_score_request(
-        body,
-        connection_pool=fixability_connection_pool,
-        timeout=settings.SEER_FIXABILITY_TIMEOUT,
-        viewer_context=viewer_context,
-    )
+    with viewer_context_scope(
+        ViewerContext(
+            organization_id=group.organization.id,
+            project_id=group.project.id,
+            actor_type=ActorType.SYSTEM,
+        )
+    ):
+        response = make_fixability_score_request(
+            body,
+            connection_pool=fixability_connection_pool,
+            timeout=settings.SEER_FIXABILITY_TIMEOUT,
+            viewer_context=viewer_context,
+        )
     if response.status >= 400:
         raise Exception(f"Seer API error: {response.status}")
     response_data = orjson.loads(response.data)

@@ -22,6 +22,7 @@ from sentry.viewer_context import (
 
 class SeerViewerContext(TypedDict, total=False):
     organization_id: int
+    project_id: int
     # TODO(jeremy.stanley): user_id is int | None as a temporary state while
     # consolidating viewer context across call sites. Some pass request.user.id
     # (which can be None for anonymous users), others omit the key entirely.
@@ -73,6 +74,7 @@ def _resolve_viewer_context(
 
     explicit_vc = ViewerContext(
         organization_id=explicit.get("organization_id"),
+        project_id=explicit.get("project_id"),
         user_id=explicit.get("user_id"),
     )
 
@@ -93,6 +95,7 @@ def _resolve_viewer_context(
 
     has_mismatch = False
     org_id = vc.organization_id
+    project_id = vc.project_id
     user_id = vc.user_id
 
     if explicit_vc.organization_id is not None:
@@ -108,6 +111,20 @@ def _resolve_viewer_context(
             )
             has_mismatch = True
         org_id = explicit_vc.organization_id
+
+    if explicit_vc.project_id is not None:
+        if project_id is not None and project_id != explicit_vc.project_id:
+            logger.warning(
+                "seer.viewer_context_mismatch",
+                extra={
+                    "field": "project_id",
+                    "contextvar": project_id,
+                    "explicit": explicit_vc.project_id,
+                    "endpoint": endpoint,
+                },
+            )
+            has_mismatch = True
+        project_id = explicit_vc.project_id
 
     if explicit_vc.user_id is not None:
         if user_id is not None and user_id != explicit_vc.user_id:
@@ -127,14 +144,14 @@ def _resolve_viewer_context(
         "seer.viewer_context_resolution",
         tags={
             "outcome": "mismatch" if has_mismatch else "match",
-            "has_project": str(vc.project_id is not None).lower(),
+            "has_project": str(project_id is not None).lower(),
             "endpoint": endpoint or "unknown",
         },
     )
 
     if has_mismatch:
         return replace(vc, organization_id=org_id, user_id=user_id, project_id=None, token=None)
-    return replace(vc, organization_id=org_id, user_id=user_id)
+    return replace(vc, organization_id=org_id, project_id=project_id, user_id=user_id)
 
 
 @trace

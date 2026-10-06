@@ -235,10 +235,12 @@ class TestResolveViewerContext:
         self, mock_logger: MagicMock, mock_metrics: MagicMock
     ) -> None:
         result = _resolve_viewer_context(
-            SeerViewerContext(organization_id=99, user_id=5), endpoint="/v1/automation/summarize"
+            SeerViewerContext(organization_id=99, project_id=12, user_id=5),
+            endpoint="/v1/automation/summarize",
         )
         assert result is not None
         assert result.organization_id == 99
+        assert result.project_id == 12
         assert result.user_id == 5
 
         mock_logger.warning.assert_called_once_with(

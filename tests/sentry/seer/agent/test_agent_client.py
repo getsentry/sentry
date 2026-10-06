@@ -90,6 +90,11 @@ class TestSeerAgentClient(TestCase):
         group = self.create_group(project=project)
 
         client = SeerAgentClient(self.organization, self.user, project=project, group=group)
+        assert client.viewer_context == {
+            "organization_id": self.organization.id,
+            "project_id": project.id,
+            "user_id": self.user.id,
+        }
         run = client.start_run("Test query")
 
         assert run.seer_run_state_id == 123

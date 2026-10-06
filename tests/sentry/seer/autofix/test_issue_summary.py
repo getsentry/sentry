@@ -36,6 +36,7 @@ from sentry.types.activity import ActivityType
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.samples import load_data
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 pytestmark = [requires_snuba]
@@ -363,7 +364,16 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
             "headline": "h",
             "scores": {},
         }
-        mock_request.return_value = resp
+
+        def assert_viewer_context(*_args: object, **_kwargs: object) -> Mock:
+            assert get_viewer_context() == ViewerContext(
+                organization_id=self.group.organization.id,
+                project_id=self.group.project_id,
+                actor_type=ActorType.SYSTEM,
+            )
+            return resp
+
+        mock_request.side_effect = assert_viewer_context
 
         result = _call_seer(self.group, {"event_id": "e1"}, {"trace": "tree"})
 
@@ -372,6 +382,7 @@ class IssueSummaryTest(APITestCase, SnubaTestCase, OccurrenceTestMixin):
         # Verify body payload (first argument, a TypedDict)
         payload = mock_request.call_args_list[0][0][0]
         assert payload["trace_tree"] == {"trace": "tree"}
+        assert get_viewer_context() is None
 
     @patch(
         "sentry.seer.autofix.issue_summary.make_summarize_issue_request",
