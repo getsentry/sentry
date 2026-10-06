@@ -1,5 +1,6 @@
 import {noCoreImport} from './noCoreImport.ts';
 import {noDoubleDollarInterpolation} from './noDoubleDollarInterpolation.ts';
+import {noLegacyRouterImports} from './noLegacyRouterImports.ts';
 import {noRestrictedModuleMocks} from './noRestrictedModuleMocks.ts';
 import {noTokenImport} from './noTokenImport.ts';
 import {preferInfoText} from './preferInfoText.ts';
@@ -11,6 +12,7 @@ import {useSemanticToken} from './useSemanticToken.ts';
 export const rules = {
   'no-core-import': noCoreImport,
   'no-double-dollar-interpolation': noDoubleDollarInterpolation,
+  'no-legacy-router-imports': noLegacyRouterImports,
   'no-restricted-module-mocks': noRestrictedModuleMocks,
   'no-token-import': noTokenImport,
   'prefer-info-text': preferInfoText,

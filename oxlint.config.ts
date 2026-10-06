@@ -558,6 +558,7 @@ const config = defineConfig({
     '@sentry/prefer-react-component': 'error',
     '@sentry/scraps/no-core-import': 'error',
     '@sentry/scraps/no-double-dollar-interpolation': 'error',
+    '@sentry/scraps/no-legacy-router-imports': 'error',
     '@sentry/scraps/no-restricted-module-mocks': 'error',
     '@sentry/scraps/no-token-import': 'error',
     '@sentry/scraps/prefer-info-text': 'error',
@@ -1469,6 +1470,14 @@ const config = defineConfig({
       ],
       env: {node: true},
       rules: {'import/no-nodejs-modules': 'off'},
+    },
+    {
+      files: [
+        'static/app/utils/reactRouterV6/index.ts',
+        'static/app/utils/reactRouterV6/dom.ts',
+        'static/app/utils/reactRouterV6/types.d.ts',
+      ],
+      rules: {'@sentry/scraps/no-legacy-router-imports': 'off'},
     },
     {
       files: ['**/*.ts', '**/*.tsx', '**/*.mts', '**/*.cts'],
