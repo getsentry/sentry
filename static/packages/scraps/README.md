@@ -56,12 +56,20 @@ The package does not include application providers, global CSS, or fonts.
 
 ## Prepare a release
 
-Add a nonempty `## <version>` section to [CHANGELOG.md](./CHANGELOG.md), then
-run the `Prepare Scraps release` GitHub workflow with that version. The initial
-entry is `0.1.0`. Craft's `simple` policy rejects a release without a matching
-entry.
+Run the `Prepare Scraps release` GitHub workflow with the default `auto` version.
+Craft uses conventional commits that touch `static/packages/scraps` to choose
+the next version and update [CHANGELOG.md](./CHANGELOG.md). To override the
+version, enter an exact version or `major`, `minor`, or `patch`.
+
+The `scraps@0.1.0` tag points to the same commit as `scraps-v0.1.0`, giving
+Craft a baseline for automatic versioning and changelogs under the new prefix.
+The original tag and release remain available.
 
 Craft creates a `scraps/release/<version>` branch and opens a request in
 `getsentry/publish`. The package workflow verifies that branch and uploads its
 npm tarball. A release manager must approve the request before Craft publishes.
-The Sentry Docker release uses the root `.craft.yml`.
+GitHub tags use `scraps@<version>`.
+
+Scraps retains its separate `.craft.yml` because Craft 2.33.1 cannot combine
+named release workspaces with Sentry's existing root release. The Sentry Docker
+release uses the root `.craft.yml`.

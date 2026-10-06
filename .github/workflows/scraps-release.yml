@@ -4,8 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: Version with an entry in static/packages/scraps/CHANGELOG.md
-        required: true
+        description: Exact version, bump type (major, minor, patch), or auto
+        required: false
+        default: auto
 
 permissions:
   contents: write

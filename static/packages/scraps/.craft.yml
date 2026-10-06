@@ -2,7 +2,7 @@ minVersion: '2.33.1'
 releaseBranchPrefix: scraps/release
 changelog:
   filePath: CHANGELOG.md
-  policy: simple
+  policy: auto
 statusProvider:
   name: github
   config:
@@ -16,8 +16,8 @@ artifactProvider:
         - scraps-tarball
 targets:
   - name: github
-    tagPrefix: scraps-v
+    tagPrefix: scraps@
   - name: npm
     access: public
 versioning:
-  policy: manual
+  policy: auto
