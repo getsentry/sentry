@@ -657,6 +657,9 @@ importers:
       jest-fail-on-console:
         specifier: 3.3.4
         version: 3.3.4(@jest/globals@30.5.1)
+      jest-resolve:
+        specifier: 30.5.1
+        version: 30.5.1
       jsdom:
         specifier: 30.1.1
         version: 30.1.1(@noble/hashes@1.8.0)

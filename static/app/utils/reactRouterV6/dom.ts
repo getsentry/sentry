@@ -1,1 +1,1 @@
-export {RouterProvider, type RouterProviderProps} from 'react-router-dom';
+export {RouterProvider} from 'react-router-dom';
