@@ -125,76 +125,79 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
             <HeaderActions group={group} />
           </Grid>
         </Flex>
-        <Grid columns="minmax(150px, 1fr) auto auto" gap="xl" align="center">
-          <Grid columns="minmax(0, max-content) min-content" align="center" gap="sm">
-            <InfoText
-              title={primaryTitle}
-              mode="overflowOnly"
-              delay={1000}
-              size="xl"
-              bold
-            >
-              {primaryTitle}
-            </InfoText>
-            {isAIDetectedIssue && <FeatureBadge type="new" />}
+        <Grid columns="minmax(0, 1fr) auto" gap="lg xl" align="start">
+          <Grid minWidth={0} gap="0">
+            <Grid columns="minmax(0, max-content) min-content" align="center" gap="sm">
+              <InfoText
+                title={primaryTitle}
+                mode="overflowOnly"
+                delay={1000}
+                size="xl"
+                bold
+              >
+                {primaryTitle}
+              </InfoText>
+              {isAIDetectedIssue && <FeatureBadge type="new" />}
+            </Grid>
+            <EventMessage
+              level={group.level}
+              message={secondaryTitle}
+              type={group.type}
+            />
+            <GroupStatusSubtitle group={group} project={project} />
           </Grid>
-          <Container justifySelf="end">
-            {layoutProps => (
-              <Text
-                {...layoutProps}
-                as="div"
-                size="sm"
-                variant="muted"
-                bold
-                density="compressed"
-              >
-                {issueTypeConfig.eventAndUserCounts.enabled && (
-                  <StatLink
-                    to={`${baseUrl}events/${location.search}`}
-                    aria-label={t('View events')}
-                  >
-                    {t('Events (total)')}
-                  </StatLink>
-                )}
-              </Text>
-            )}
-          </Container>
-          <Container justifySelf="end">
-            {layoutProps => (
-              <Text
-                {...layoutProps}
-                as="div"
-                size="sm"
-                variant="muted"
-                bold
-                density="compressed"
-              >
-                {issueTypeConfig.eventAndUserCounts.enabled &&
-                  (userCount === 0 ? (
-                    t('Users %s', userCountPeriod)
-                  ) : (
-                    <StatLink
-                      to={`${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}user/${location.search}`}
-                      aria-label={t('View affected users')}
-                    >
-                      {t('Users %s', userCountPeriod)}
-                    </StatLink>
-                  ))}
-              </Text>
-            )}
-          </Container>
-          <EventMessage level={group.level} message={secondaryTitle} type={group.type} />
           {issueTypeConfig.eventAndUserCounts.enabled && (
-            <Fragment>
+            <Grid columns="auto auto" gap="0 xl" justifySelf="end">
+              <Container justifySelf="end">
+                {layoutProps => (
+                  <Text
+                    {...layoutProps}
+                    as="div"
+                    size="sm"
+                    variant="muted"
+                    bold
+                    density="compressed"
+                  >
+                    <StatLink
+                      to={`${baseUrl}events/${location.search}`}
+                      aria-label={t('View events')}
+                    >
+                      {t('Events (total)')}
+                    </StatLink>
+                  </Text>
+                )}
+              </Container>
+              <Container justifySelf="end">
+                {layoutProps => (
+                  <Text
+                    {...layoutProps}
+                    as="div"
+                    size="sm"
+                    variant="muted"
+                    bold
+                    density="compressed"
+                  >
+                    {userCount === 0 ? (
+                      t('Users %s', userCountPeriod)
+                    ) : (
+                      <StatLink
+                        to={`${baseUrl}${TabPaths[Tab.DISTRIBUTIONS]}user/${location.search}`}
+                        aria-label={t('View affected users')}
+                      >
+                        {t('Users %s', userCountPeriod)}
+                      </StatLink>
+                    )}
+                  </Text>
+                )}
+              </Container>
               <Text as="div" size="xl" density="compressed" align="right">
                 <Count value={eventCount} aria-label={t('Event count')} />
               </Text>
               <Text as="div" size="xl" density="compressed" align="right">
                 <Count value={userCount} aria-label={t('User count')} />
               </Text>
-            </Fragment>
+            </Grid>
           )}
-          <GroupStatusSubtitle group={group} project={project} />
         </Grid>
       </Container>
       <TourElement<IssueDetailsTour>

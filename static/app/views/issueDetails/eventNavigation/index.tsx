@@ -1,12 +1,12 @@
 import {Fragment, useCallback, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import {useResizeObserver} from '@react-aria/utils';
 import {keepPreviousData} from '@tanstack/react-query';
 
 import {Badge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {DropdownButton, DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
@@ -233,15 +233,19 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
       flexGrow={1}
       minWidth={0}
       wrap="wrap"
-      direction={{zero: 'column', sm: 'row'}}
+      gap="sm xl"
+      direction={{zero: 'column', lg: 'row'}}
       justify="between"
-      align={{sm: 'center'}}
+      align={{zero: 'stretch', lg: 'center'}}
     >
       {showContentTabs ? (
         <Tabs
           size="sm"
           value={selectedContentTab}
           onChange={key => trackContentSelected(key as Tab)}
+          css={css`
+            max-width: 100%;
+          `}
         >
           <TabList variant="floating">
             {contentTabs.map(tab => (
@@ -328,8 +332,8 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
         )}
       >
         {tourProps => (
-          <div {...tourProps}>
-            <Flex gap={{zero: '2xs', sm: 'xs'}} justify="between">
+          <Container {...tourProps} width={{zero: '100%', lg: 'auto'}} maxWidth="100%">
+            <Flex wrap="wrap" gap={{zero: 'sm', sm: 'xs'}}>
               {currentTab === Tab.AUTOFIX && autofixPanel && (
                 <SeerPanelActions
                   autofixState={autofixPanel.runState}
@@ -342,79 +346,85 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
               )}
               {currentTab === Tab.DETAILS && (
                 <Fragment>
-                  <IssueDetailsEventNavigation
-                    event={event}
-                    group={group}
-                    isSmallNav={isSmallNav}
-                  />
-                  {issueTypeConfig.pages.events.enabled && (
-                    <Feature features="discover-basic" organization={organization}>
+                  <Flex align="center" wrap="wrap" gap="xs">
+                    <IssueDetailsEventNavigation
+                      event={event}
+                      group={group}
+                      isSmallNav={isSmallNav}
+                    />
+                  </Flex>
+                  <Flex align="center" wrap="wrap" gap="xs" marginLeft="auto">
+                    {issueTypeConfig.pages.events.enabled && (
+                      <Feature features="discover-basic" organization={organization}>
+                        <LinkButton
+                          to={{
+                            pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
+                            query: location.query,
+                          }}
+                          size="xs"
+                          analyticsEventKey="issue_details.all_events_clicked"
+                          analyticsEventName="Issue Details: All Events Clicked"
+                        >
+                          {isSmallNav
+                            ? t('More %s', issueTypeConfig.customCopy.eventUnits)
+                            : t('View More %s', issueTypeConfig.customCopy.eventUnits)}
+                        </LinkButton>
+                      </Feature>
+                    )}
+                    <CopyAsDropdown
+                      usePortal
+                      size="xs"
+                      zIndex={theme.zIndex.stickyHeader + 1}
+                      items={CopyAsDropdown.makeDefaultCopyAsOptions({
+                        text: undefined,
+                        json: undefined,
+                        markdown: handleCopyMarkdown,
+                      })}
+                    />
+                    {issueTypeConfig.pages.openPeriods.enabled && (
                       <LinkButton
                         to={{
-                          pathname: `${baseUrl}${TabPaths[Tab.EVENTS]}`,
+                          pathname: `${baseUrl}${TabPaths[Tab.OPEN_PERIODS]}`,
                           query: location.query,
                         }}
                         size="xs"
-                        analyticsEventKey="issue_details.all_events_clicked"
-                        analyticsEventName="Issue Details: All Events Clicked"
+                        analyticsEventKey="issue_details.all_open_periods_clicked"
+                        analyticsEventName="Issue Details: All Open Periods Clicked"
                       >
                         {isSmallNav
-                          ? t('More %s', issueTypeConfig.customCopy.eventUnits)
-                          : t('View More %s', issueTypeConfig.customCopy.eventUnits)}
+                          ? t('More Open Periods')
+                          : t('View More Open Periods')}
                       </LinkButton>
-                    </Feature>
-                  )}
-                  <CopyAsDropdown
-                    usePortal
-                    size="xs"
-                    zIndex={theme.zIndex.stickyHeader + 1}
-                    items={CopyAsDropdown.makeDefaultCopyAsOptions({
-                      text: undefined,
-                      json: undefined,
-                      markdown: handleCopyMarkdown,
-                    })}
-                  />
-                  {issueTypeConfig.pages.openPeriods.enabled && (
-                    <LinkButton
-                      to={{
-                        pathname: `${baseUrl}${TabPaths[Tab.OPEN_PERIODS]}`,
-                        query: location.query,
-                      }}
-                      size="xs"
-                      analyticsEventKey="issue_details.all_open_periods_clicked"
-                      analyticsEventName="Issue Details: All Open Periods Clicked"
-                    >
-                      {isSmallNav ? t('More Open Periods') : t('View More Open Periods')}
-                    </LinkButton>
-                  )}
-                  {issueTypeConfig.pages.checkIns.enabled && (
-                    <LinkButton
-                      to={{
-                        pathname: `${baseUrl}${TabPaths[Tab.CHECK_INS]}`,
-                        query: location.query,
-                      }}
-                      size="xs"
-                      analyticsEventKey="issue_details.all_checks_ins_clicked"
-                      analyticsEventName="Issue Details: All Checks-Ins Clicked"
-                    >
-                      {isSmallNav ? t('More Check-Ins') : t('View More Check-Ins')}
-                    </LinkButton>
-                  )}
-                  {issueTypeConfig.pages.uptimeChecks.enabled && (
-                    <LinkButton
-                      to={{
-                        pathname: `${baseUrl}${TabPaths[Tab.UPTIME_CHECKS]}`,
-                        query: location.query,
-                      }}
-                      size="xs"
-                      analyticsEventKey="issue_details.all_uptime_checks_clicked"
-                      analyticsEventName="Issue Details: All Uptime Checks Clicked"
-                    >
-                      {isSmallNav
-                        ? t('More Uptime Checks')
-                        : t('View More Uptime Checks')}
-                    </LinkButton>
-                  )}
+                    )}
+                    {issueTypeConfig.pages.checkIns.enabled && (
+                      <LinkButton
+                        to={{
+                          pathname: `${baseUrl}${TabPaths[Tab.CHECK_INS]}`,
+                          query: location.query,
+                        }}
+                        size="xs"
+                        analyticsEventKey="issue_details.all_checks_ins_clicked"
+                        analyticsEventName="Issue Details: All Checks-Ins Clicked"
+                      >
+                        {isSmallNav ? t('More Check-Ins') : t('View More Check-Ins')}
+                      </LinkButton>
+                    )}
+                    {issueTypeConfig.pages.uptimeChecks.enabled && (
+                      <LinkButton
+                        to={{
+                          pathname: `${baseUrl}${TabPaths[Tab.UPTIME_CHECKS]}`,
+                          query: location.query,
+                        }}
+                        size="xs"
+                        analyticsEventKey="issue_details.all_uptime_checks_clicked"
+                        analyticsEventName="Issue Details: All Uptime Checks Clicked"
+                      >
+                        {isSmallNav
+                          ? t('More Uptime Checks')
+                          : t('View More Uptime Checks')}
+                      </LinkButton>
+                    )}
+                  </Flex>
                 </Fragment>
               )}
               {isListView && (
@@ -450,7 +460,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                 </Grid>
               )}
             </Flex>
-          </div>
+          </Container>
         )}
       </TourElement>
     </Flex>
