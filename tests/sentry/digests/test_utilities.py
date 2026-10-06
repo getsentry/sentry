@@ -343,6 +343,20 @@ class GetPersonalizedDigestsTestCase(TestCase, SnubaTestCase):
             extra={"rule_id": rule.id, "project_id": self.project.id},
         )
 
+    def test_legacy_rule_id_records_with_empty_actions(self) -> None:
+        rule = self.rule_with_legacy_rule_id
+        workflow_id = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow_id
+        records = _get_records(self.project, (rule,), self.team1_events[0])
+        rule.data["actions"] = []
+        rule.save()
+
+        digest = build_digest(self.project, sort_records(records))[0]
+
+        [digest_rule] = digest.keys()
+        assert digest_rule.data["actions"] == [
+            {"legacy_rule_id": rule.id, "workflow_id": workflow_id}
+        ]
+
     def test_direct_email(self) -> None:
         """When the action type is not Issue Owners, then the target actor gets a digest."""
         self.project_ownership.update(fallthrough=False)

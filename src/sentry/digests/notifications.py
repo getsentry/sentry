@@ -5,8 +5,6 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from typing import Any, NamedTuple, TypeAlias
 
-import sentry_sdk
-
 from sentry import tsdb
 from sentry.digests.types import IdentifierKey, Notification, Record, RecordWithRuleObjects
 from sentry.models.group import Group, GroupStatus
@@ -171,6 +169,15 @@ def _build_digest_impl(
     return _sort_digest(grouped, event_counts=event_counts, user_counts=user_counts)
 
 
+def _first_action(rule: Rule) -> dict[str, Any]:
+    # Legacy Rule.data["actions"] can be missing or empty, but digest links are
+    # built from the ids stored on the first action. Attach an in-memory
+    # placeholder so those ids have somewhere to live.
+    if not rule.data.get("actions"):
+        rule.data["actions"] = [{}]
+    return rule.data["actions"][0]
+
+
 def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[int, Rule]:
     rules: dict[int, Rule] = {}
     if not workflow_ids:
@@ -195,15 +202,9 @@ def get_rules_from_workflows(project: Project, workflow_ids: set[int]) -> dict[i
             if rule := bulk_rules.get(alert_workflow.rule_id):
                 assert rule.project_id == project.id, "Rule must belong to Project"
                 rule.environment_id = workflow.environment_id
-                try:
-                    rule.data["actions"][0]["legacy_rule_id"] = rule.id
-                    rule.data["actions"][0]["workflow_id"] = workflow_id
-                except KeyError:
-                    # This shouldn't happen, but isn't a deal breaker if it does
-                    sentry_sdk.capture_exception(
-                        Exception(f"Rule {rule.id} does not have a legacy_rule_id"),
-                        level="warning",
-                    )
+                action = _first_action(rule)
+                action["legacy_rule_id"] = rule.id
+                action["workflow_id"] = workflow_id
                 rules[workflow_id] = rule
                 continue
 
@@ -253,16 +254,7 @@ def build_digest(project: Project, records: Sequence[Record]) -> DigestInfo:
     )
 
     for rule in rules.values():
-        try:
-            action = rule.data["actions"][0]
-        except KeyError:
-            # This shouldn't happen, but isn't a deal breaker if it does
-            sentry_sdk.capture_exception(
-                Exception(f"Rule {rule.id} does not have a legacy_rule_id"),
-                level="warning",
-            )
-            continue
-
+        action = _first_action(rule)
         action["legacy_rule_id"] = rule.id
         workflow_id = workflow_ids_by_rule_id.get(rule.id)
         if workflow_id is None:
