@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -70,10 +71,13 @@ export function Banner({
         justifyItems="center"
         rows="repeat(3, max-content)"
         padding="3xl"
-        style={{textAlign: 'center'}}
       >
-        <BannerTitle>{title}</BannerTitle>
-        <BannerSubtitle>{subtitle}</BannerSubtitle>
+        <Heading as="h1" align="center" size={{zero: '2xl', xl: '4xl'}} variant="inherit">
+          {title}
+        </Heading>
+        <Text as="div" align="center" size={{zero: 'md', xl: 'xl'}} variant="inherit">
+          {subtitle}
+        </Text>
         <Grid flow="column" align="center" gap="md" width="fit-content" paddingTop="xl">
           {children}
         </Grid>
@@ -110,22 +114,6 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
 
   @container (min-width: ${p => p.theme.container.xl}) {
     height: 220px;
-  }
-`;
-
-const BannerTitle = styled('h1')`
-  margin: 0;
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    font-size: 40px;
-  }
-`;
-
-const BannerSubtitle = styled('div')`
-  margin: 0;
-
-  @container (min-width: ${p => p.theme.container.xl}) {
-    font-size: ${p => p.theme.font.size.xl};
   }
 `;
 
