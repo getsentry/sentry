@@ -239,8 +239,6 @@ describe('slot', () => {
     it('throws when rendered outside Outlet', () => {
       const SlotModule = slot(['x'] as const);
 
-      const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
-
       expect(() =>
         render(
           <SlotModule.Provider>
@@ -250,8 +248,6 @@ describe('slot', () => {
           </SlotModule.Provider>
         )
       ).toThrow('Slot.Fallback must be rendered inside Slot.Outlet');
-
-      consoleError.mockRestore();
     });
   });
 

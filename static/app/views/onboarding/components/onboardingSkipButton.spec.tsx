@@ -1,4 +1,10 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {OnboardingDrawerStore} from 'sentry/stores/onboardingDrawerStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -53,19 +59,31 @@ describe('OnboardingSkipButton', () => {
       const openSpy = jest.spyOn(OnboardingDrawerStore, 'open');
 
       try {
-        render(<OnboardingSkipButton stepId={stepId} />);
+        renderGlobalModal();
+        const {router} = render(<OnboardingSkipButton stepId={stepId} />);
 
         const button = screen.getByRole('button', {name: 'Skip setup'});
-        expect(button).toHaveAttribute(
-          'href',
-          `/organizations/org-slug/issues/?referrer=${referrer}`
-        );
-
         await userEvent.click(button, {delay: null});
 
         expect(trackAnalytics).toHaveBeenCalledWith(
           'onboarding.scm_header_skip_clicked',
-          expect.objectContaining({step: stepId})
+          expect.objectContaining({opens_modal: true, step: stepId})
+        );
+
+        const dialog = within(screen.getByRole('dialog'));
+        expect(openSpy).not.toHaveBeenCalled();
+        await userEvent.click(
+          dialog.getByRole('button', {
+            name: "I'll read the docs myself",
+          }),
+          {delay: null}
+        );
+
+        expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
+        expect(router.location.query.referrer).toBe(referrer);
+        expect(trackAnalytics).toHaveBeenCalledWith(
+          'onboarding.skip_reason_submitted',
+          expect.objectContaining({step: stepId, reason: 'docs'})
         );
 
         jest.runAllTimers();
@@ -81,11 +99,4 @@ describe('OnboardingSkipButton', () => {
       }
     }
   );
-
-  it('renders nothing for unmapped steps', () => {
-    const {container} = render(
-      <OnboardingSkipButton stepId={OnboardingStepId.SELECT_PLATFORM} />
-    );
-    expect(container).toBeEmptyDOMElement();
-  });
 });

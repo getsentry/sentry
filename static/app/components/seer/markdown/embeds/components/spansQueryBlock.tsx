@@ -1,5 +1,3 @@
-import {Tag} from '@sentry/scraps/badge';
-
 import {QueryEmbedCard} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedCard';
 import {
   QueryEmbedChart,
@@ -73,30 +71,27 @@ export default function SpansQueryBlock({data}: {data: SpansQueryData}) {
 
   return (
     <QueryEmbedCard
-      badge={
-        <Tag variant="muted">
-          {data.mode === 'aggregate' ? t('Aggregate') : t('Spans')}
-        </Tag>
-      }
       href={getSpansQueryHref(data, organization)}
       icon={IconSpan}
       linkLabel={t('View Spans')}
       query={data.query}
+      table={
+        isChartOnly ? null : (
+          <QueryEmbedTable
+            columns={eventColumns(fields, tableQuery.data?.meta)}
+            emptyMessage={t('No matching spans')}
+            errorMessage={t('Unable to load spans')}
+            isError={tableQuery.isError}
+            isPending={tableQuery.isPending}
+            rowKey={eventRowKey}
+            rows={tableQuery.data?.data ?? []}
+          />
+        )
+      }
       testId={`seer-spans-query-${data.mode}-embed`}
       title={getSpansQueryTitle(data)}
     >
       <SpansQueryChart data={data} eventView={eventView} hasTable={!isChartOnly} />
-      {isChartOnly ? null : (
-        <QueryEmbedTable
-          columns={eventColumns(fields)}
-          emptyMessage={t('No matching spans')}
-          errorMessage={t('Unable to load spans')}
-          isError={tableQuery.isError}
-          isPending={tableQuery.isPending}
-          rowKey={eventRowKey}
-          rows={tableQuery.data?.data ?? []}
-        />
-      )}
     </QueryEmbedCard>
   );
 }

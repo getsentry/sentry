@@ -21,8 +21,8 @@ export default Storybook.story('Investigations — Seer status block', story => 
         Every phase the agent moves through on its own — gathering context, forming
         hypotheses, checking evidence, composing the report — is the same{' '}
         <code>running</code> variant. They differ in what they say, not how they look,
-        which is why the sentence and the chip label are props rather than another
-        variant. Note that "Finalizing…" is a <code>running</code> block too.
+        which is why the sentence is a prop rather than another variant. The status badge
+        appears beside the investigation title in the page header.
       </p>
       <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <Stack gap="xl">
@@ -30,21 +30,18 @@ export default Storybook.story('Investigations — Seer status block', story => 
             variant="running"
             title="Seer is gathering context for the FCP spike"
             description="Comparing server timing, cache activity, SSO, and browser rendering. No input needed."
-            statusLabel="Running…"
             elapsed="56.4s"
           />
           <SeerStatusBlock
             variant="running"
             title="Seer is looking for likely causes"
             description="Possible hypothesis will appear here as Seer connects the evidence. No input needed."
-            statusLabel="Running…"
             elapsed="101.5s"
           />
           <SeerStatusBlock
             variant="running"
             title="Seer found four possible causes and is checking for evidence"
             description="Four possible causes are found, now Seer is checking for evidence to validate the hypothesis."
-            statusLabel="Running…"
             elapsed="101.5s"
           />
           <SeerStatusBlock
@@ -52,7 +49,6 @@ export default Storybook.story('Investigations — Seer status block', story => 
             title="Seer is bringing the findings together"
             meta="4 possible causes • 9 checks completed"
             description="Organizing the explanation, supporting evidence, and next steps. Your investigation will open automatically."
-            statusLabel="Finalizing…"
             elapsed="101.5s"
           />
         </Stack>
@@ -71,15 +67,14 @@ export default Storybook.story('Investigations — Seer status block', story => 
       <p>
         It is also one of only two states that colour their title. A run that is simply
         working, or has finished cleanly, leaves the sentence in the ordinary heading
-        colour and lets the chip carry the state — otherwise every block on the page
-        shouts and none of them reads as urgent.
+        colour and lets the header badge carry the state — otherwise every block on the
+        page shouts and none of them reads as urgent.
       </p>
       <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <SeerStatusBlock
           variant="awaitingInput"
           title="Seer needs infrastructure metrics to continue"
           description="Available traces can't distinguish database/cache degradation from session-validation delays. Connect Datadog to continue; Seer will resume after authorization."
-          statusLabel="Awaiting input"
           elapsed="101.5s"
           action={
             <Flex justify="between" align="center" gap="xl" wrap="wrap">
@@ -120,14 +115,12 @@ export default Storybook.story('Investigations — Seer status block', story => 
             variant="failed"
             title="Seer couldn't finish checking the evidence"
             description="The trace request timed out. Completed checks are saved. Retry to continue from this step."
-            statusLabel="Failed"
             elapsed="101.5s"
           />
           <SeerStatusBlock
             variant="cancelled"
             title="This investigation was stopped"
             description="Checks that had already finished are saved. Start a new investigation to pick the question back up."
-            statusLabel="Cancelled"
             elapsed="42.0s"
           />
         </Stack>
@@ -149,7 +142,6 @@ export default Storybook.story('Investigations — Seer status block', story => 
           title="Your investigation is ready"
           meta="4 possible causes • 9 checks completed"
           description="Findings, supporting evidence, and recommended next steps are ready."
-          statusLabel="Complete"
           elapsed="191.6s"
         />
       </Storybook.Demo>
@@ -166,15 +158,14 @@ export default Storybook.story('Investigations — Seer status block', story => 
         component will start receiving a real value when the projection grows one.
       </p>
       <p>
-        When it is supplied it renders monospace and tabular, so a ticking counter does
-        not shuffle the chip sideways on every update.
+        When it is supplied it renders monospace and tabular, so the counter stays stable
+        as its value changes.
       </p>
       <Storybook.Demo direction="column" align="stretch" maxHeight="none">
         <SeerStatusBlock
           variant="running"
           title="Seer found three possible causes and is checking for evidence"
           description="Three possible causes are found, now Seer is checking for evidence to validate the hypothesis."
-          statusLabel="Running…"
         />
       </Storybook.Demo>
     </Fragment>
@@ -183,16 +174,14 @@ export default Storybook.story('Investigations — Seer status block', story => 
   story('In a narrow container', () => (
     <Fragment>
       <p>
-        The chip and the clock hold the top-right corner and never wrap under the
-        sentence: they are the part a viewer glances at. The title wraps around them
-        instead. Drag the demo's edge to watch it.
+        The clock holds the top-right corner and the title wraps around it. The status
+        badge lives in the page header. Drag the demo's edge to watch it.
       </p>
       <Storybook.Demo resizable direction="column" align="stretch">
         <SeerStatusBlock
           variant="running"
           title="Seer found four possible causes and is checking for evidence"
           description="Four possible causes are found, now Seer is checking for evidence to validate the hypothesis."
-          statusLabel="Running…"
           elapsed="101.5s"
         />
       </Storybook.Demo>

@@ -471,6 +471,7 @@ export function PrimaryNavigationQuotaExceeded({
     }
   }, [
     exceededCategories,
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     organization.id,
     hasSnoozedAllPrompts,
     overlayState,

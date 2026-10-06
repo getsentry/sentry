@@ -125,18 +125,19 @@ export default function ReplaysQueryBlock({data}: {data: ReplaysQueryData}) {
       icon={IconPlay}
       linkLabel={t('View Replays')}
       query={data.query}
+      table={
+        <QueryEmbedTable
+          columns={COLUMNS}
+          emptyMessage={t('No matching replays')}
+          errorMessage={t('Unable to load replays')}
+          isError={replaysQuery.isError}
+          isPending={replaysQuery.isPending}
+          rowKey={replay => replay.id}
+          rows={rows}
+        />
+      }
       testId="seer-replays-query-embed"
       title={getReplaysQueryTitle(data)}
-    >
-      <QueryEmbedTable
-        columns={COLUMNS}
-        emptyMessage={t('No matching replays')}
-        errorMessage={t('Unable to load replays')}
-        isError={replaysQuery.isError}
-        isPending={replaysQuery.isPending}
-        rowKey={replay => replay.id}
-        rows={rows}
-      />
-    </QueryEmbedCard>
+    />
   );
 }

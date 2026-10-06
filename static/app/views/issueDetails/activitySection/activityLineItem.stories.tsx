@@ -431,6 +431,7 @@ function activity(
   actor: GroupActivity['user'] = user
 ): GroupActivity {
   return {
+    ...(type === GroupActivityType.NOTE ? {commentId: type} : {}),
     data,
     dateCreated: '2025-01-01T00:00:00Z',
     id: type,

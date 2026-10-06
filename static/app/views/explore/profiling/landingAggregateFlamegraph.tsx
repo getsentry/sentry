@@ -337,6 +337,7 @@ export function LandingAggregateFlamegraph({
                     withoutBorders
                     frameFilter={frameFilter}
                     canvasPoolManager={canvasPoolManager}
+                    canvasScheduler={scheduler}
                     profileType={PROFILE_TYPE}
                   />
                 )}

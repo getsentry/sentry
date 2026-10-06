@@ -41,11 +41,7 @@ class MsTeamsRequestParser(BaseRequestParser):
 
     @control_silo_function
     def get_integration_from_request(self) -> Integration | None:
-        integration = parsing.get_integration_from_card_action(data=self.request_data)
-        if integration is None:
-            integration = parsing.get_integration_from_channel_data(data=self.request_data)
-        if integration is None:
-            integration = parsing.get_integration_for_tenant(data=self.request_data)
+        integration = parsing.get_integration_from_request_data(data=self.request_data)
         if integration:
             return Integration.objects.filter(id=integration.id).first()
         return None

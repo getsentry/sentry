@@ -11,5 +11,6 @@ export function useRouteAnalyticsEventNames(eventKey: string, eventName: string)
   const {setEventNames, previousUrl} = useContext(RouteAnalyticsContext);
   useEffect(() => {
     setEventNames(eventKey, eventName);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [setEventNames, eventKey, eventName, previousUrl]);
 }

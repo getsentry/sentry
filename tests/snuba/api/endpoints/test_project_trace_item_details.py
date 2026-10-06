@@ -61,6 +61,14 @@ class ProjectTraceItemDetailsEndpointTest(
                 data,
             )
 
+    def test_invalid_routing_hint(self) -> None:
+        response = self.do_request(
+            "spans", "0123456789abcdef", extra_data={"routing_hint": "invalid"}
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {"detail": "Invalid trace item details request."}
+
     def test_simple(self) -> None:
         log = self.create_ourlog(
             {
@@ -580,6 +588,41 @@ class ProjectTraceItemDetailsEndpointTest(
                 "attributes": [
                     {"name": "sentry.link.type", "value": "parent", "type": "str"},
                     {"name": "sentry.dropped_attributes_count", "value": 1, "type": "int"},
+                ],
+            }
+        ]
+
+    def test_sentry_links_with_typed_attribute_values(self) -> None:
+        """
+        The span pipeline stores link attribute values as typed envelopes
+        (`{"type": ..., "value": ...}`), unlike the transaction pipeline, which
+        stores bare scalars. Both must serialize to the same output; values of
+        unsupported types are omitted.
+        """
+        span_1 = self.create_span(
+            {
+                "description": "foo",
+                "sentry_tags": {
+                    "links": '[{"trace_id":"d099bf9ad5a143cf8f83a98081d0ed3b","span_id":"8873a98879faf06d","sampled":true,"attributes":{"sentry.link.type":{"type":"string","value":"cache_origin"},"sentry.dropped_attributes_count":{"type":"integer","value":2},"unsupported":{"type":"map","value":{"nested":"object"}}}}]',
+                },
+            },
+            start_ts=self.one_min_ago,
+        )
+        span_1["trace_id"] = self.trace_uuid
+        item_id = span_1["span_id"]
+
+        self.store_span(span_1)
+
+        trace_details_response = self.do_request("spans", item_id)
+        assert trace_details_response.status_code == 200, trace_details_response.content
+        assert trace_details_response.data["links"] == [
+            {
+                "traceId": "d099bf9ad5a143cf8f83a98081d0ed3b",
+                "itemId": "8873a98879faf06d",
+                "sampled": True,
+                "attributes": [
+                    {"name": "sentry.link.type", "value": "cache_origin", "type": "str"},
+                    {"name": "sentry.dropped_attributes_count", "value": 2, "type": "int"},
                 ],
             }
         ]

@@ -234,14 +234,13 @@ export function invalidateIssueQueries({
   });
 }
 
-export function performBulkUpdate({
+export async function performBulkUpdate({
   api,
   data,
   itemIds,
   organizationSlug,
   query,
   selection,
-  onError,
   onSuccess,
 }: {
   api: Client;
@@ -250,7 +249,6 @@ export function performBulkUpdate({
   organizationSlug: string;
   query: string;
   selection: PageFilters;
-  onError?: () => void;
   onSuccess?: (itemIds: string[] | undefined) => void;
 }) {
   const projectConstraints = {
@@ -259,9 +257,8 @@ export function performBulkUpdate({
 
   addLoadingMessage(t('Saving changes…'));
 
-  bulkUpdate(
-    api,
-    {
+  try {
+    await bulkUpdate(api, {
       orgId: organizationSlug,
       itemIds,
       data,
@@ -270,17 +267,11 @@ export function performBulkUpdate({
       failSilently: true,
       ...projectConstraints,
       ...selection.datetime,
-    },
-    {
-      success: () => {
-        clearIndicators();
-        onSuccess?.(itemIds);
-      },
-      error: () => {
-        clearIndicators();
-        addErrorMessage(t('Unable to update issues'));
-        onError?.();
-      },
-    }
-  );
+    });
+    clearIndicators();
+    onSuccess?.(itemIds);
+  } catch {
+    clearIndicators();
+    addErrorMessage(t('Unable to update issues'));
+  }
 }

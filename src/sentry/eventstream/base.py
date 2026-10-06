@@ -77,6 +77,7 @@ class EventStream(Service):
             cache_key = cache_key_for_event({"project": project_id, "event_id": event_id})
             post_process_group.apply_async(
                 kwargs={
+                    "event_id": event_id,
                     "is_new": is_new,
                     "is_regression": is_regression,
                     "is_new_group_environment": is_new_group_environment,

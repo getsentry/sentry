@@ -164,7 +164,10 @@ describe('LegacyWebhookDetails', () => {
     renderComponent();
 
     await screen.findByPlaceholderText('Enter callback URLs (one per line)');
-    expect(screen.getByRole('button', {name: 'Send Test Event'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Send Test Event'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
   });
 
   it('toggles webhook enabled state', async () => {

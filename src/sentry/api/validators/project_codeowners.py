@@ -1,20 +1,40 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Collection, Mapping, Sequence
-from typing import Any
+from collections.abc import Collection, Sequence
+from typing import TypedDict
 
 from django.db.models.functions import Lower
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import ExternalProviders
+from sentry.integrations.utils.providers import get_provider_enum
 from sentry.issues.ownership.grammar import parse_code_owners
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.users.services.user.service import user_service
+
+CODEOWNERS_PROVIDERS = frozenset(
+    {
+        ExternalProviders.GITHUB,
+        ExternalProviders.GITHUB_ENTERPRISE,
+        ExternalProviders.GITLAB,
+        ExternalProviders.CURSOR_ORIGIN,
+    }
+)
+
+
+class CodeOwnersErrors(TypedDict):
+    missing_user_emails: list[str]
+    missing_external_users: list[str]
+    missing_external_teams: list[str]
+    teams_without_access: list[str]
+    users_without_access: list[str]
 
 
 def find_missing_associations(
@@ -24,12 +44,21 @@ def find_missing_associations(
     return list(set(parsed_items).difference(associated_items))
 
 
+def get_codeowners_provider(code_mapping: RepositoryProjectPathConfig) -> ExternalProviders | None:
+    integration = integration_service.get_integration(integration_id=code_mapping.integration_id)
+    if integration is None:
+        return None
+    provider = get_provider_enum(integration.provider)
+    return provider if provider in CODEOWNERS_PROVIDERS else None
+
+
 def build_codeowners_associations(
-    codeowners: str, project: Project
-) -> tuple[Mapping[str, Any], Mapping[str, Any]]:
+    codeowners: str, project: Project, code_mapping: RepositoryProjectPathConfig
+) -> tuple[dict[str, str], CodeOwnersErrors]:
     """
     Build a dict of {external_name: sentry_name} associations for a raw codeowners file.
     Returns only the actors that exist and have access to the project.
+    Handles only match mappings from the provider of the code mapping's integration.
     """
     # Get list of team/user names from CODEOWNERS file
     team_names, usernames, emails = parse_code_owners(codeowners)
@@ -42,24 +71,21 @@ def build_codeowners_associations(
     # GitHub team and user names are case-insensitive.
     # Deduplicate and lowercase names, then use a single IN query to filter.
     unique_lower_names = {name.lower() for name in usernames + team_names}
-    if unique_lower_names:
+    provider = get_codeowners_provider(code_mapping)
+    if unique_lower_names and provider is not None:
         external_actors = list(
             ExternalActor.objects.annotate(external_name_lower=Lower("external_name")).filter(
                 external_name_lower__in=unique_lower_names,
                 organization_id=project.organization_id,
-                provider__in=[
-                    ExternalProviders.GITHUB.value,
-                    ExternalProviders.GITHUB_ENTERPRISE.value,
-                    ExternalProviders.GITLAB.value,
-                ],
+                provider=provider.value,
             )
         )
     else:
         external_actors = []
 
     # Convert CODEOWNERS into IssueOwner syntax
-    users_dict = {}
-    teams_dict = {}
+    users_dict: dict[str, str] = {}
+    teams_dict: dict[str, str] = {}
 
     teams_without_access = set()
     teams_without_access_external_names = set()
@@ -136,16 +162,16 @@ def build_codeowners_associations(
             teams_without_access.add(f"#{team.slug}")
             teams_without_access_external_names.update(team_ids_to_external_names[team.id])
 
-    emails_dict = {}
+    emails_dict: dict[str, str] = {}
     user_emails = set()
     for user in users:
         for user_email in user.emails:
             emails_dict[user_email] = user_email
             user_emails.add(user_email)
 
-    associations = {**users_dict, **teams_dict, **emails_dict}
+    associations: dict[str, str] = {**users_dict, **teams_dict, **emails_dict}
 
-    errors = {
+    errors: CodeOwnersErrors = {
         "missing_user_emails": find_missing_associations(emails, user_emails),
         "missing_external_users": find_missing_associations(
             usernames, set(associations.keys()) | users_without_access_external_names

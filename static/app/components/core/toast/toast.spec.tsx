@@ -110,7 +110,7 @@ describe('Toast', () => {
 
     expect(toaster).not.toBeNull();
     expect(getEmotionRules(toaster!).join('')).toMatch(
-      /width:\s*min\(400px,\s*calc\(100vw - 60px\)\)/
+      /width:\s*min\(400px,\s*-60px \+ 100vw\)/
     );
     expect(getEmotionRules(messageElement).join('')).toMatch(/white-space:\s*normal/);
     expect(getEmotionRules(messageElement).join('')).toMatch(/word-break:\s*break-word/);

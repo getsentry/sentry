@@ -18,7 +18,6 @@ class MetricAlertNotificationData(NotificationData):
 
     # Identity / threading
     group_id: int
-    organization_id: int
     notification_uuid: str
     action_id: int  # for ThreadKey key_data (used in PR 2 hookup)
     open_period_context: OpenPeriodContext  # id + date_started used in renderer and threading
@@ -28,6 +27,7 @@ class MetricAlertNotificationData(NotificationData):
     title: str
     title_link: str
     text: str
+    notes: str | None = None
 
     # Pre-computed chart URL (None if feature disabled or build failed)
     chart_url: str | None = None
