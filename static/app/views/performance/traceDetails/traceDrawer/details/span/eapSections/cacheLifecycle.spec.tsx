@@ -239,7 +239,7 @@ describe('CacheLifecycleSection', () => {
     );
 
     expect(
-      screen.getByText('Origin trace is older than your 30-day retention')
+      screen.getByText('Origin trace is older than your 30-day span retention')
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Open origin span'})
