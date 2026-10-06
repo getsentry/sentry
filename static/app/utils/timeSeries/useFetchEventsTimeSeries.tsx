@@ -208,7 +208,7 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
 /**
  * One time bucket's volume for a system data-fidelity annotation.
  */
-export interface Annotation {
+interface Annotation {
   category: string;
   end: number;
   eventCount: number;
