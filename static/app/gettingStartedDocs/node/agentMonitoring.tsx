@@ -24,6 +24,7 @@ import {
   AgentIntegration,
   DeploymentTarget,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
+import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 
 // Bumped to 10.67.0 so the install step also satisfies Workers AI, which
 // auto-instruments the `env.AI` binding only from that version.
@@ -67,6 +68,30 @@ export function getMinRequiredVersion(params: DocsParams, fallback: string): str
   return INTEGRATION_MIN_VERSIONS[getAgentIntegration(params)] ?? fallback;
 }
 
+// On Cloudflare the options live in the `defineCloudflareOptions` callback, not in `Sentry.init`
+const CLOUDFLARE_GEN_AI_DATA_COLLECTION_SNIPPET = `export default defineCloudflareOptions((env) => ({
+  // ...
+  dataCollection: {
+    genAI: { inputs: false, outputs: false },
+  },
+}));`;
+
+// Flue on Cloudflare has no `defineCloudflareOptions` file; the blueprint
+// generates a `sentry.ts` that holds the Sentry options.
+const FLUE_CLOUDFLARE_GEN_AI_DATA_COLLECTION_SNIPPET = `// In the Sentry options of the blueprint-generated sentry.ts
+dataCollection: {
+  genAI: { inputs: false, outputs: false },
+},`;
+
+function getGenAiDataCollectionSnippet(params: DocsParams): string {
+  if (getDeploymentTarget(params) !== DeploymentTarget.CLOUDFLARE) {
+    return GEN_AI_DATA_COLLECTION_SNIPPET;
+  }
+  return getAgentIntegration(params) === AgentIntegration.FLUE
+    ? FLUE_CLOUDFLARE_GEN_AI_DATA_COLLECTION_SNIPPET
+    : CLOUDFLARE_GEN_AI_DATA_COLLECTION_SNIPPET;
+}
+
 /**
  * The data collection step for agent monitoring, leading with generative AI
  * content. Returns no step for Eve, which never configures the Sentry SDK.
@@ -85,7 +110,7 @@ export function getAgentDataCollectionStep(params: DocsParams): OnboardingStep[]
       description: t(
         'By default, the SDK sends the inputs and outputs of your LLM and tool calls, such as prompts, responses, and tool arguments. This gives you rich debugging context.'
       ),
-      code: GEN_AI_DATA_COLLECTION_SNIPPET,
+      code: getGenAiDataCollectionSnippet(params),
     }),
   ];
 }
@@ -664,7 +689,7 @@ export function getManualConfigureStep(
     importMode,
     configFileName,
     sentryImport,
-    docUrl = 'https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation',
+    docUrl = `${AI_INSTRUMENTATION_DOCS_LINKS.javascript}manual-instrumentation/`,
   }: {
     configFileName?: string;
     docUrl?: string;
@@ -734,7 +759,11 @@ Sentry.init({
             <ManualInstrumentationNote
               docsLink={
                 <ExternalLink
-                  href={isCloudflare ? CLOUDFLARE_AGENT_TRACING_DOCS : docUrl}
+                  href={
+                    isCloudflare
+                      ? `${CLOUDFLARE_AGENT_TRACING_DOCS}manual-instrumentation/`
+                      : docUrl
+                  }
                 />
               }
             />

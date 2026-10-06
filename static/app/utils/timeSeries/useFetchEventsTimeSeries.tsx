@@ -4,6 +4,7 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
@@ -102,6 +103,14 @@ export function useFetchSpanTimeSeries<
     options,
     referrer
   );
+}
+
+export function makeEventsTimeSeriesQueryKeyPrefix(organizationSlug: string) {
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/events-timeseries/', {
+      path: {organizationIdOrSlug: organizationSlug},
+    }),
+  ] as const;
 }
 
 /**
@@ -213,6 +222,12 @@ export interface Annotation {
   byteSize?: number;
 }
 
+interface IngestionMeta {
+  status: 'healthy' | 'stalled' | 'idle' | 'unknown';
+  completeThrough?: number;
+  delaySeconds?: number;
+}
+
 export type EventsTimeSeriesResponse = {
   timeSeries: TimeSeries[];
   meta?: {
@@ -220,9 +235,7 @@ export type EventsTimeSeriesResponse = {
     end: number;
     start: number;
     acceptedAnnotations?: Annotation[];
-    completeThrough?: number;
     droppedAnnotations?: Annotation[];
-    estimatedIngestionDelaySeconds?: number;
-    ingestionDelayStatus?: 'healthy' | 'stalled' | 'idle' | 'unknown';
+    ingestion?: IngestionMeta;
   };
 };

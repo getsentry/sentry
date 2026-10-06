@@ -225,13 +225,73 @@ def test_relaxed_serializer_passes_unknown_fields_through() -> None:
     assert result["seerAddedThisLater"] == {"nested": [1, 2, 3]}
 
 
-def test_relaxed_serializer_passes_unknown_nested_fields_through() -> None:
-    result = validated(
-        OrchestrationProjectionSerializer,
-        projection(broadScan={"status": "running", "seerAddedThisLater": "kept"}),
+def test_projection_preserves_nested_fields_and_adaptive_checks() -> None:
+    completed_step = {
+        "id": "step-1",
+        "order": 0,
+        "title": "Compare releases",
+        "objective": "Identify the affected release",
+        "method": "Compare errors by release",
+        "status": "completed",
+        "result": "Errors are concentrated in the latest release.",
+        "evidence": [
+            {
+                "id": "evidence-1",
+                "title": "Error in the latest release",
+                "kind": "event",
+                "projectIds": [1],
+            }
+        ],
+    }
+    pending_step = {
+        "id": "step-2",
+        "order": 1,
+        "title": "Compare regions",
+        "objective": "Identify regional differences",
+        "method": "Compare errors by region",
+        "status": "not_started",
+    }
+    payload = projection(
+        phase="investigating",
+        broadScan={"status": "completed", "seerAddedThisLater": "kept"},
+        hypotheses=[
+            hypothesis_with(
+                status="running",
+                effectiveStatus="investigating",
+                decisionSource="none",
+                verificationSteps=[completed_step, pending_step],
+            )
+        ],
     )
+    result = validated(OrchestrationProjectionSerializer, payload)
 
+    assert result["hypotheses"][0]["verificationSteps"] == [completed_step, pending_step]
     assert result["broadScan"]["seerAddedThisLater"] == "kept"
+
+    follow_up = {
+        "id": "step-3",
+        "order": 1,
+        "title": "Inspect the new errors",
+        "objective": "Identify the failure introduced by the release",
+        "method": "Inspect events from the affected release",
+        "status": "queued",
+        "parentStepId": "step-1",
+    }
+    skipped_step = {
+        **pending_step,
+        "order": 2,
+        "status": "skipped",
+        "skipReason": "Follow the release-specific evidence first.",
+    }
+    payload["hypotheses"][0]["verificationSteps"] = [completed_step, follow_up, skipped_step]
+
+    result = validated(OrchestrationProjectionSerializer, payload)
+
+    assert result["hypotheses"][0]["verificationSteps"] == [
+        completed_step,
+        follow_up,
+        skipped_step,
+    ]
 
 
 def test_projection_is_bounded_by_its_serialized_size() -> None:

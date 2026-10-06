@@ -1,7 +1,6 @@
 export {KeyValueTableCard, KeyValueTableCardGrid} from './keyValueTableCard';
-export {KeyValueTableDataList} from './keyValueTableDataList';
 export {
   KeyValueTableDataRow,
   type KeyValueTableDataRowProps,
+  KeyValueTableSubject,
 } from './keyValueTableDataRow';
-export {KeyValueTable, KeyValueTableRow} from './keyValueTable';

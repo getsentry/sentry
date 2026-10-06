@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 import {uuid4} from '@sentry/core';
 import {useQuery} from '@tanstack/react-query';
@@ -8,7 +8,7 @@ import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {t, tn} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   investigationOrchestrationQueryOptions,
@@ -107,6 +107,11 @@ type InvestigationHypothesesProps = {
    * replaces it as soon as it lands.
    */
   phase?: InvestigationOrchestrationPhase;
+  /**
+   * The run's status from the investigation summary, read the same way as
+   * `phase`: only until the projection arrives.
+   */
+  status?: InvestigationOrchestrationStatus;
 };
 
 /**
@@ -127,6 +132,7 @@ export function InvestigationHypotheses({
   enabled = true,
   investigationId,
   phase: summaryPhase,
+  status: summaryStatus,
 }: InvestigationHypothesesProps) {
   const organization = useOrganization();
   // When the last accepted command was sent, or null if none has been. A
@@ -193,12 +199,17 @@ export function InvestigationHypotheses({
 
   // Nothing is known yet, so the panel goes up empty rather than appearing a
   // moment later. A run with no hypotheses left to produce is skipped: its
-  // panel would open on placeholders and then collapse.
+  // panel would open on placeholders and then collapse. So is a run waiting on
+  // a person — nothing will arrive until they answer.
   if (!projection) {
-    const worthHoldingSpaceFor = enabled && isPending && !SETTLED_PHASES.has(phase ?? '');
+    const worthHoldingSpaceFor =
+      enabled &&
+      isPending &&
+      summaryStatus !== 'awaiting_input' &&
+      !SETTLED_PHASES.has(phase ?? '');
 
     return worthHoldingSpaceFor ? (
-      <Stack gap="2xl">
+      <Stack gap="3xl">
         <HypothesesPanel expanded={panelState.expanded} onExpandedChange={setExpanded}>
           <HypothesisListPlaceholder />
         </HypothesesPanel>
@@ -213,13 +224,6 @@ export function InvestigationHypotheses({
   const statusBlock = seerStatus?.variant === 'complete' ? null : seerStatus;
   const {workflowVersion} = projection;
   const commandPending = commandMutation.isPending;
-  const completedChecks = projection.hypotheses.reduce(
-    (count, hypothesis) =>
-      count +
-      (hypothesis.verificationSteps ?? []).filter(step => step.status === 'completed')
-        .length,
-    0
-  );
 
   function setDisposition(
     hypothesis: InvestigationHypothesis,
@@ -279,31 +283,18 @@ export function InvestigationHypotheses({
   }
 
   const hasHypotheses = projection.hypotheses.length > 0;
-  const awaitingFirstHypothesis = !hasHypotheses && !SETTLED_PHASES.has(projection.phase);
+  // A run waiting on a person makes no hypotheses until they answer, so a
+  // placeholder there would promise cards that are not coming.
+  const awaitingFirstHypothesis =
+    !hasHypotheses &&
+    projection.status !== 'awaiting_input' &&
+    !SETTLED_PHASES.has(projection.phase);
 
   return (
-    <Stack gap="2xl">
+    <Stack gap="3xl">
       {statusBlock ? <SeerStatusBlock {...statusBlock} /> : null}
       {hasHypotheses || awaitingFirstHypothesis ? (
-        <HypothesesPanel
-          expanded={panelState.expanded}
-          onExpandedChange={setExpanded}
-          // No count before the first hypothesis: "0 plausible causes" reads
-          // as a result rather than a wait.
-          meta={
-            hasHypotheses ? (
-              <Fragment>
-                {tn(
-                  '%s plausible cause',
-                  '%s plausible causes',
-                  projection.hypotheses.length
-                )}
-                {' • '}
-                {tn('%s check completed', '%s checks completed', completedChecks)}
-              </Fragment>
-            ) : null
-          }
-        >
+        <HypothesesPanel expanded={panelState.expanded} onExpandedChange={setExpanded}>
           {hasHypotheses ? (
             <HypothesisList
               hypotheses={projection.hypotheses}
@@ -326,13 +317,11 @@ export function InvestigationHypotheses({
 function HypothesesPanel({
   children,
   expanded,
-  meta,
   onExpandedChange,
 }: {
   children: React.ReactNode;
   expanded: boolean;
   onExpandedChange: (expanded: boolean) => void;
-  meta?: React.ReactNode;
 }) {
   return (
     <Disclosure
@@ -344,16 +333,9 @@ function HypothesesPanel({
       data-test-id="investigation-run-panel"
     >
       <HypothesesTitle>
-        <Stack gap="xs" minWidth={0}>
-          <Text variant="muted" bold>
-            {t('Hypotheses')}
-          </Text>
-          {meta ? (
-            <Text variant="muted" density="comfortable" bold={false}>
-              {meta}
-            </Text>
-          ) : null}
-        </Stack>
+        <Text variant="muted" bold>
+          {t('Hypotheses')}
+        </Text>
       </HypothesesTitle>
       <HypothesesContent>{children}</HypothesesContent>
     </Disclosure>
@@ -410,7 +392,7 @@ const HypothesesTitle = styled(Disclosure.Title)`
 `;
 
 // The header's bottom padding plus this top padding keeps the old `xl` gap
-// between the tally and the first card.
+// between the header and the first card.
 const HypothesesContent = styled(Disclosure.Content)`
   padding: ${p => p.theme.space.xs} ${p => p.theme.space.lg} ${p => p.theme.space.lg};
 `;

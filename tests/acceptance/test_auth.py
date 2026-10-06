@@ -1,6 +1,7 @@
-from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 
 from sentry.testutils.cases import AcceptanceTestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import no_silo_test
 
 
@@ -11,21 +12,23 @@ class AuthTest(AcceptanceTestCase):
         self.browser.driver.execute_script(
             "document.addEventListener('invalid', function(e) { e.preventDefault(); }, true);"
         )
-        self.browser.find_element(by=By.ID, value="id_username").send_keys(username)
-        self.browser.find_element(by=By.ID, value="id_password").send_keys(password)
-        self.browser.find_element(
-            by=By.XPATH, value="//button[contains(text(), 'Continue')]"
-        ).click()
+        self.browser.wait_until('[aria-label="Email"]')
+        self.browser.element('[aria-label="Email"]').send_keys(username)
+        self.browser.element('[aria-label="Password"]').send_keys(password, Keys.ENTER)
 
+    @override_options({"auth.v2.enabled": True})
     def test_renders(self) -> None:
         self.browser.get("/auth/login/")
 
+    @override_options({"auth.v2.enabled": True})
     def test_no_credentials(self) -> None:
         self.enter_auth("", "")
 
+    @override_options({"auth.v2.enabled": True})
     def test_invalid_credentials(self) -> None:
         self.enter_auth("bad-username", "bad-username")
 
+    @override_options({"auth.v2.enabled": True})
     def test_success(self) -> None:
         email = "dummy@example.com"
         password = "dummy"
@@ -34,4 +37,6 @@ class AuthTest(AcceptanceTestCase):
         user.save()
 
         self.enter_auth(email, password)
-        self.browser.wait_until_not(".loading")
+        self.browser.wait_until_script_execution(
+            "return window.location.pathname === '/organizations/new/'"
+        )

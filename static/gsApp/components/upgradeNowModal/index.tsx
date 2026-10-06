@@ -26,12 +26,10 @@ type Props = ModalRenderProps & {
   reservations: Reservations;
   subscription: Subscription;
   surface: AM2UpdateSurfaces;
-  isActionDisabled?: boolean;
   onComplete?: () => void;
 };
 
 function UpgradeNowModal({
-  isActionDisabled,
   onComplete,
   organization,
   plan,
@@ -72,7 +70,6 @@ function UpgradeNowModal({
             </ListItem>
           </List>
           <ActionButtons
-            isActionDisabled={isActionDisabled}
             onComplete={onComplete}
             organization={organization}
             plan={plan}

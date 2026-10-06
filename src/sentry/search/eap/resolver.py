@@ -296,7 +296,9 @@ class SearchResolver:
         return (
             self.definitions.trace_item_type == TraceItemType.TRACE_ITEM_TYPE_LOG
             and organization is not None
-            and features.has("organizations:ourlogs-regex-searches", organization)
+            and features.has(
+                "organizations:ourlogs-regex-searches", organization, actor=self.params.user
+            )
         )
 
     def collect_terms(self, parsed_terms: Sequence[event_search.QueryToken]) -> list[str]:
@@ -1150,6 +1152,7 @@ class SearchResolver:
             visibility_attribute,
             item_type,
             include_internal=self.config.api_attribute_visibility_include_internal,
+            include_internal_convention_attributes=self.config.api_attribute_visibility_include_internal_convention_attributes,
         )
 
     def _raise_if_hidden_api_attribute(

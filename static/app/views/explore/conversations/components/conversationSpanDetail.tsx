@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef} from 'react';
+import {Fragment, useEffect, useMemo, useRef} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -18,12 +18,22 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SpanDetailCard} from 'sentry/views/explore/conversations/components/conversationLayout';
+import {
+  EvaluationInputTab,
+  EvaluationOutputTab,
+} from 'sentry/views/explore/conversations/components/evaluationSpanTabs';
 import {useTraceItemDetails} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/aiSpanList';
 import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
+import {EvaluationResultSummary} from 'sentry/views/insights/pages/agents/components/evaluationContent';
 import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {
+  getNodeEvaluation,
+  type Evaluation,
+} from 'sentry/views/insights/pages/agents/utils/evaluation';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+import {useInvalidEvaluationDetection} from 'sentry/views/insights/pages/agents/utils/useInvalidEvaluationDetection';
 import {
   getDurationComparison,
   MIN_PCT_DURATION_DIFFERENCE,
@@ -114,15 +124,22 @@ export function ConversationSpanDetail({
     projectId: eapValue ? eapValue.project_id.toString() : '',
     traceId,
     traceItemType: TraceItemDataset.SPANS,
-    referrer: 'api.explore.log-item-details',
+    referrer: 'api.explore.span-item-details',
     timestamp: eapValue?.start_timestamp,
     enabled: Boolean(eapValue),
   });
+  const attributes = data?.attributes;
+
+  // Memoized so the invalid-evaluation report fires once per span.
+  const evaluation = useMemo(
+    () => (node && !isAttributesLoading ? getNodeEvaluation(node, attributes) : null),
+    [node, attributes, isAttributesLoading]
+  );
+  useInvalidEvaluationDetection(evaluation);
+
   if (isLoading || !node) {
     return <SpanDetailSkeleton embedded={embedded} />;
   }
-
-  const attributes = data?.attributes;
 
   const title = node.op || node.description || t('Span');
   const duration = getNodeTimeBounds(node).duration;
@@ -170,7 +187,7 @@ export function ConversationSpanDetail({
         {isAttributesLoading ? (
           <SpanMetadataSkeleton />
         ) : (
-          <SpanMetadata node={node} attributes={attributes} />
+          <SpanMetadata node={node} attributes={attributes} evaluation={evaluation} />
         )}
       </Stack>
 
@@ -215,10 +232,25 @@ export function ConversationSpanDetail({
               `}
             >
               <TabPanels.Item key="input">
-                <InputTab node={node} attributes={attributes} />
+                {evaluation?.rawInput ? (
+                  <EvaluationInputTab
+                    input={evaluation.input}
+                    raw={evaluation.rawInput}
+                  />
+                ) : (
+                  <InputTab node={node} attributes={attributes} />
+                )}
               </TabPanels.Item>
               <TabPanels.Item key="output">
-                <OutputTab node={node} attributes={attributes} />
+                {evaluation?.rawOutput ? (
+                  <EvaluationOutputTab
+                    answers={evaluation.answers}
+                    questions={evaluation.input?.questions}
+                    raw={evaluation.rawOutput}
+                  />
+                ) : (
+                  <OutputTab node={node} attributes={attributes} />
+                )}
               </TabPanels.Item>
               <TabPanels.Item key="attributes">
                 <AttributesTab node={node} attributes={attributes} />
@@ -234,8 +266,10 @@ export function ConversationSpanDetail({
 function SpanMetadata({
   node,
   attributes,
+  evaluation,
 }: {
   attributes: SpanAttributes;
+  evaluation: Evaluation | null;
   node: AITraceSpanNode;
 }) {
   const rows = getHighlightedSpanAttributes({
@@ -243,6 +277,18 @@ function SpanMetadata({
     spanId: node.id,
     attributes: attributes ?? node.attributes,
   });
+  // Skip the row when no answer has a short label to show.
+  if (evaluation?.answers?.some(answer => answer.kind !== 'invalid')) {
+    rows.push({
+      name: t('Result'),
+      value: (
+        <EvaluationResultSummary
+          answers={evaluation.answers}
+          questions={evaluation.input?.questions}
+        />
+      ),
+    });
+  }
 
   if (rows.length === 0) {
     return null;

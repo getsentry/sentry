@@ -9,6 +9,7 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -45,6 +46,7 @@ import {
   shouldPollInvestigationBlocks,
 } from 'sentry/views/investigations/detail/cell';
 import {InvestigationCellPlaceholder} from 'sentry/views/investigations/detail/cellPlaceholder';
+import {InvestigationViewers} from 'sentry/views/investigations/detail/presence';
 import {InvestigationRunTimer} from 'sentry/views/investigations/detail/runTimer';
 import {
   InvestigationHypotheses,
@@ -292,6 +294,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
   const visibleNotebookCells = notebookCells.filter(block =>
     shouldDisplayInvestigationBlock(block)
   );
+  const source = getInvestigationSource(investigation);
 
   return (
     <SentryDocumentTitle title={displayedTitle} orgSlug={organization.slug}>
@@ -344,19 +347,21 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                     }),
                 },
               ]}
-              triggerProps={{
-                size: 'sm',
-                showChevron: false,
-                variant: 'transparent',
-                icon: <IconEllipsis />,
-                'aria-label': t('Investigation actions'),
-              }}
+              trigger={triggerProps => (
+                <OverlayTrigger.IconButton
+                  {...triggerProps}
+                  size="sm"
+                  variant="transparent"
+                  icon={<IconEllipsis />}
+                  aria-label={t('Investigation actions')}
+                />
+              )}
               position="bottom-end"
               usePortal
             />
           </HeaderBreadcrumbs>
         </Layout.Title>
-        <Container as="header" width="100%" padding="xl">
+        <Container as="header" width="100%" padding="xl xl 3xl">
           <Stack gap="xs" width="100%" maxWidth="960px" margin="0 auto">
             <Grid
               columns={runStatus ? 'minmax(0, 1fr) auto' : 'minmax(0, 1fr)'}
@@ -384,13 +389,29 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
             </Grid>
             <Flex align="center" justify="between" gap="md" wrap="wrap">
               <Flex align="center" gap="sm" wrap="wrap">
-                <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
+                {source.groupId ? (
+                  <Link
+                    to={normalizeUrl(
+                      `/organizations/${organization.slug}/issues/${source.groupId}/`
+                    )}
+                  >
+                    {source.monitorName ?? t('View issue')}
+                  </Link>
+                ) : (
+                  <Text variant="muted">
+                    {formatSourceType(investigation.sourceType)}
+                  </Text>
+                )}
                 <MetaDivider />
                 <Text variant="muted">
                   {tct('Last update: [date]', {
                     date: <DateTime date={investigation.dateUpdated} year />,
                   })}
                 </Text>
+                <InvestigationViewers
+                  investigationId={investigation.id}
+                  separator={<MetaDivider />}
+                />
               </Flex>
               <FeedbackButton
                 feedbackOptions={{
@@ -414,7 +435,7 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
         </Container>
         <Layout.Body padding={{'screen:sm': '0 lg lg', 'screen:md': '0 xl lg'}}>
           <Layout.Main width="full">
-            <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto">
+            <Stack width="100%" maxWidth="960px" minWidth={0} margin="0 auto" gap="3xl">
               {/*
                * Only an agentic investigation has hypotheses, and `orchestration`
                * being present is the only thing that says one is: it is null for
@@ -422,43 +443,38 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
                * 404s.
                */}
               {investigation.orchestration ? (
-                <Stack width="100%" minWidth={0} paddingBottom="xl">
-                  <InvestigationHypotheses
-                    investigationId={investigation.id}
-                    phase={investigation.orchestration.phase}
-                  />
-                </Stack>
+                <InvestigationHypotheses
+                  investigationId={investigation.id}
+                  phase={investigation.orchestration.phase}
+                  status={investigation.orchestration.status}
+                />
               ) : null}
 
-              <NotebookSummaryCard
+              <InvestigationSummaryCard
                 summary={investigation.summary}
                 summaryDescription={investigation.summaryDescription}
               />
 
-              <Stack width="100%" minWidth={0}>
-                {visibleSummaryBlock ? (
-                  <InvestigationCell
-                    block={visibleSummaryBlock}
-                    canRun={investigation.status === 'active'}
-                    investigation={investigation}
-                  />
-                ) : null}
+              {visibleSummaryBlock ? (
+                <InvestigationCell
+                  block={visibleSummaryBlock}
+                  canRun={investigation.status === 'active'}
+                  investigation={investigation}
+                />
+              ) : null}
 
-                <Stack gap="xl">
-                  {visibleNotebookCells.map(block => (
-                    <InvestigationCell
-                      key={block.id}
-                      block={block}
-                      canRun={investigation.status === 'active'}
-                      investigation={investigation}
-                    />
-                  ))}
-                  {isAwaitingReportCell(investigation) ? (
-                    <InvestigationCellPlaceholder />
-                  ) : null}
-                </Stack>
-              </Stack>
-              <Container height="160px" flexShrink={0} aria-hidden />
+              {visibleNotebookCells.map(block => (
+                <InvestigationCell
+                  key={block.id}
+                  block={block}
+                  canRun={investigation.status === 'active'}
+                  investigation={investigation}
+                />
+              ))}
+              {isAwaitingReportCell(investigation) ? (
+                <InvestigationCellPlaceholder />
+              ) : null}
+              <Container height="128px" flexShrink={0} aria-hidden />
             </Stack>
           </Layout.Main>
         </Layout.Body>
@@ -491,6 +507,30 @@ function getInvestigationPath(organizationSlug: string, investigationId: string)
   );
 }
 
+function getRecord(value: unknown, key: string): Record<string, unknown> | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+  const field: unknown = (value as Record<string, unknown>)[key];
+  return field && typeof field === 'object' ? (field as Record<string, unknown>) : null;
+}
+
+function getString(value: Record<string, unknown> | null, key: string): string | null {
+  const field = value?.[key];
+  return typeof field === 'string' && field ? field : null;
+}
+
+// A breached metric investigation references the metric issue it was started
+// from, and snapshots that issue's monitor. Older investigations may predate the
+// snapshot, but still carry the issue reference.
+function getInvestigationSource(investigation: InvestigationDetail) {
+  const {source} = investigation;
+  return {
+    groupId: getString(getRecord(source, 'ref'), 'groupId'),
+    monitorName: getString(getRecord(getRecord(source, 'snapshot'), 'monitor'), 'name'),
+  };
+}
+
 function formatSourceType(sourceType: string) {
   if (sourceType === 'metric_open_period') {
     return t('Breached metric');
@@ -500,11 +540,6 @@ function formatSourceType(sourceType: string) {
   }
   return sourceType.replaceAll('_', ' ');
 }
-
-const NotebookSummaryCard = styled(InvestigationSummaryCard)`
-  width: 100%;
-  margin-bottom: ${p => p.theme.space.xl};
-`;
 
 const HeaderBreadcrumbs = styled(Flex)`
   height: 32px;

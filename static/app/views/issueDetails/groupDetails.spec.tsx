@@ -15,6 +15,7 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import {setWindowLocation} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
@@ -148,6 +149,14 @@ describe('groupDetails', () => {
       body: project,
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/autofix/`,
+      body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/seer/onboarding-check/`,
+      body: {isSeerConfigured: false},
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/autofix/setup/`,
       body: AutofixSetupFixture({}),
     });
@@ -236,7 +245,6 @@ describe('groupDetails', () => {
       const organization = {
         ...defaultInit.organization,
         hideAiFeatures: false,
-        features: ['gen-ai-features'],
       };
       const query = {
         project: group.project.id,
@@ -309,6 +317,31 @@ describe('groupDetails', () => {
     expect(hasSeenMock).toHaveBeenCalled();
   });
 
+  it('replaces the history entry when redirecting from a short id', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.shortId}/`,
+      body: {...group},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.shortId}/events/recommended/`,
+      body: {...event},
+    });
+
+    const {router} = createWrapper({
+      ...initialRouterConfig,
+      location: {pathname: `/organizations/org-slug/issues/${group.shortId}/`},
+    });
+
+    await waitFor(() => {
+      expect(router.location.pathname).toBe(
+        `/organizations/org-slug/issues/${group.id}/`
+      );
+    });
+    // Pushing would leave the short id URL in history, and going back to it
+    // would redirect forward again, trapping the back button.
+    expect(router.historyAction).toBe('REPLACE');
+  });
+
   it('renders error when issue is not found', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
@@ -328,6 +361,24 @@ describe('groupDetails', () => {
     expect(
       await screen.findByText('The issue you were looking for was not found.')
     ).toBeInTheDocument();
+  });
+
+  it('retries the issue request after an initial load failure', async () => {
+    const url = `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`;
+    MockApiClient.addMockResponse({url, statusCode: 500});
+    setWindowLocation(`http://localhost/?project=${group.project.id}`);
+
+    render(<GroupDetails />, {
+      organization: defaultInit.organization,
+      initialRouterConfig,
+    });
+
+    const retryButton = await screen.findByRole('button', {name: 'Retry'});
+    const retryRequest = MockApiClient.addMockResponse({url, body: group});
+    await userEvent.click(retryButton);
+
+    expect(await screen.findByText(group.shortId)).toBeInTheDocument();
+    expect(retryRequest).toHaveBeenCalledTimes(1);
   });
 
   it('renders MissingProjectMembership when trying to access issue in project the user does not belong to', async () => {
@@ -502,5 +553,34 @@ describe('groupDetails', () => {
 
     // Verify that the hasSeen request was NOT made
     expect(hasSeenMock).not.toHaveBeenCalled();
+  });
+
+  it('sets the document title without escape codes when given ANSI metadata', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
+      body: {
+        ...group,
+        metadata: {type: '\x1B[31mRequestError\x1B[0m', value: '\x1B[33mfailed\x1B[0m'},
+      },
+    });
+
+    setWindowLocation(`http://localhost/?project=${group.project.id}`);
+    render(
+      <DocumentTitleManager>
+        <GroupDetails>
+          <MockComponent />
+        </GroupDetails>
+      </DocumentTitleManager>,
+      {
+        organization: defaultInit.organization,
+        initialRouterConfig,
+      }
+    );
+
+    await waitFor(() =>
+      expect(document.title).toBe(
+        `RequestError: failed — ${defaultInit.organization.slug} — ${group.project.slug}`
+      )
+    );
   });
 });

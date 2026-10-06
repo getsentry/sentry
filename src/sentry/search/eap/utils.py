@@ -1,7 +1,10 @@
-from collections.abc import Collection, Mapping
+import math
+import re
+from collections.abc import Collection, Iterable, Mapping
 from datetime import datetime
-from typing import Literal
+from typing import Callable, Literal, Protocol
 
+from django.db.models import Q
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_conventions.attributes import ATTRIBUTE_METADATA as ATTRIBUTE_METADATA
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
@@ -10,6 +13,10 @@ from sentry_protos.snuba.v1.request_common_pb2 import PageToken, RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import ExistsFilter, OrFilter, TraceItemFilter
 
+from sentry.discover.arithmetic import ArithmeticError, parse_arithmetic, resolve_arithmetic
+from sentry.exceptions import InvalidSearchQuery
+from sentry.explore.models import ExploreSavedFormula, KindItemTypes, ParamItemTypes
+from sentry.models.organization import Organization
 from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute
 from sentry.search.eap.constants import (
     ARRAY,
@@ -78,6 +85,7 @@ from sentry.search.eap.types import (
     ColumnType,
     SupportedTraceItemType,
 )
+from sentry.search.events.fields import is_function, parse_arguments
 from sentry.utils import snuba_rpc
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
@@ -323,31 +331,40 @@ def is_internal_sentry_convention_attribute(
 
 
 def can_expose_attribute_to_api(
-    attribute: str, item_type: SupportedTraceItemType, include_internal: bool = False
+    attribute: str,
+    item_type: SupportedTraceItemType,
+    include_internal: bool = False,
+    include_internal_convention_attributes: bool = False,
 ) -> bool:
     """Return whether an attribute may be exposed by public API surfaces.
 
     The visibility check expands the requested attribute to its related public
     aliases, internal names, and replacement attributes because any of those may
     carry the metadata that marks the underlying convention as internal.
-    `include_internal` only allows those Sentry-owned internal convention
-    attributes. It does not bypass `can_expose_attribute`, which still filters
-    private attributes first.
+    `include_internal_convention_attributes` allows Sentry-owned attributes
+    marked internal by conventions without exposing unrelated internal
+    attributes. It does not bypass private attribute filtering.
     """
     candidates = _get_sentry_convention_visibility_candidates(attribute, item_type)
-
-    for candidate in candidates:
-        if not can_expose_attribute(candidate, item_type, include_internal=include_internal):
-            return False
-
-    # Private attributes are rejected above before this internal-only override
-    # is applied.
-    if include_internal:
-        return True
-
-    return not any(
+    is_internal_convention_attribute = any(
         is_internal_sentry_convention_attribute(candidate, item_type) for candidate in candidates
     )
+    include_internal_for_visibility = include_internal or (
+        include_internal_convention_attributes and is_internal_convention_attribute
+    )
+
+    for candidate in candidates:
+        if not can_expose_attribute(
+            candidate,
+            item_type,
+            include_internal=include_internal_for_visibility,
+        ):
+            return False
+
+    if include_internal or include_internal_convention_attributes:
+        return True
+
+    return not is_internal_convention_attribute
 
 
 def is_sentry_convention_replacement_attribute(
@@ -500,3 +517,128 @@ def check_attribute_names_exist(
             found.update((attr_type, name) for name in future.result())
 
     return found
+
+
+FORMAT_RE = r"\{((?:\w|\.)+)\}"
+
+
+class FormulaParam(Protocol):
+    name: str
+    param_type: int | None
+
+
+class FormulaTerm(Protocol):
+    name: str
+    value: str
+
+
+def get_and_parse_formula(
+    formula: str, organization: Organization, resolve_column: Callable[[str], object]
+) -> str:
+    """Given a formula, parse its parameters and create its rpc definition"""
+    match = is_function(formula)
+    if not match:
+        raise InvalidSearchQuery(f"{formula} is not a valid function")
+    formula_name = match.group("function")
+    arguments = parse_arguments(formula_name, match.group("columns"))
+
+    saved_formula = ExploreSavedFormula.objects.filter(
+        organization=organization, name=formula_name
+    ).first()
+    if saved_formula is None:
+        raise InvalidSearchQuery(f"Unknown formula {formula_name}")
+
+    saved_variables = saved_formula.variables.order_by("order")
+    parameters = saved_variables.filter(kind=KindItemTypes.PARAM)
+    saved_args = parameters.filter(~Q(param_type=ParamItemTypes.CALCULATION))
+    saved_calculations = parameters.filter(param_type=ParamItemTypes.CALCULATION)
+    saved_references = saved_variables.filter(kind=KindItemTypes.REFERENCE)
+    if len(saved_args) != len(arguments):
+        raise InvalidSearchQuery(
+            f"{formula_name} expected {len(saved_args)} arguments got {len(arguments)} instead"
+        )
+    return parse_formula(
+        saved_formula.formula,
+        arguments,
+        saved_args,
+        saved_calculations,
+        saved_references,
+        resolve_column,
+    )
+
+
+def parse_formula(
+    formula_definition: str,
+    arguments: list[str],
+    saved_args: Iterable[FormulaParam],
+    saved_calculations: Iterable[FormulaTerm],
+    saved_references: Iterable[FormulaTerm],
+    resolve_column: Callable[[str], object],
+) -> str:
+    # Create a dict of param name -> the arg the user passed
+    variables = {}
+    for saved_arg, arg in zip(saved_args, arguments):
+        if saved_arg.param_type == ParamItemTypes.NUMBER:
+            # Ensure that the user arg is a valid number
+            try:
+                float_value = float(arg)
+                if not math.isfinite(float_value):
+                    raise InvalidSearchQuery(
+                        f"{saved_arg.name} resolved to {float_value}, which is outside the supported number range"
+                    )
+                arg = str(float_value)
+            except ValueError:
+                raise InvalidSearchQuery(
+                    f"{saved_arg.name} expected a number but got '{arg}' instead"
+                )
+            if "e" in arg or "E" in arg:
+                raise InvalidSearchQuery(
+                    f"{saved_arg.name} resolved to {arg}, which is outside the supported number range"
+                )
+        elif saved_arg.param_type == ParamItemTypes.COLUMN:
+            try:
+                resolve_column(arg)
+            except InvalidSearchQuery:
+                raise InvalidSearchQuery(
+                    f"{saved_arg.name} expected a valid column but got '{arg}'"
+                )
+        variables[saved_arg.name] = arg
+
+    # Resolve all the calculations
+    calculations = {}
+    for calculation in saved_calculations:
+        value = calculation.value
+        for param_name, user_arg in variables.items():
+            value = value.replace(f"{{{param_name}}}", user_arg)
+        if unmatched := re.findall(FORMAT_RE, value):
+            raise InvalidSearchQuery(
+                f"Missing parameters for {calculation.name}; {', '.join(unmatched)}"
+            )
+        try:
+            parsed, _, _ = parse_arithmetic(value)
+        except ArithmeticError as e:
+            raise InvalidSearchQuery(e)
+        calculations[calculation.name] = resolve_arithmetic(parsed)
+    # Do this at the end so that calculations aren't accidentally used within each other
+    variables.update(calculations)
+
+    # Resolve all the references
+    references = {}
+    for reference in saved_references:
+        value = reference.value
+        for param_name, user_arg in variables.items():
+            value = value.replace(f"{{{param_name}}}", str(user_arg))
+        if unmatched := re.findall(FORMAT_RE, value):
+            raise InvalidSearchQuery(
+                f"Missing parameters for {reference.name}; {', '.join(unmatched)}"
+            )
+        references[reference.name] = value
+    variables.update(references)
+
+    final_equation = formula_definition[:]
+    for param_name, user_arg in variables.items():
+        final_equation = final_equation.replace(f"{{{param_name}}}", str(user_arg))
+    if unmatched := re.findall(FORMAT_RE, final_equation):
+        raise InvalidSearchQuery(f"Missing parameters for formula; {', '.join(unmatched)}")
+
+    return f"{final_equation}"

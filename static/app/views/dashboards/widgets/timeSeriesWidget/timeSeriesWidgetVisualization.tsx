@@ -22,11 +22,11 @@ import {
 } from 'sentry/components/charts/useChartXRangeSelection';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
+import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {
   DROPPED_DATA_SERIES_ID,
   useDroppedDataBand,
 } from 'sentry/components/droppedData/useDroppedDataBand';
-import type {AnnotationBucket, DroppedData} from 'sentry/components/droppedData/utils';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {
@@ -34,6 +34,7 @@ import type {
   EChartDataZoomHandler,
   EChartDownplayHandler,
   EChartHighlightHandler,
+  EChartLegendSelectChangeHandler,
   ECharts,
   ReactEchartsRef,
 } from 'sentry/types/echarts';
@@ -53,7 +54,10 @@ import type {
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import {WidgetNoDataPanel} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
-import {useReleaseBubbles} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
+import {
+  RELEASE_BUBBLE_SERIES_NAME,
+  useReleaseBubbles,
+} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 
@@ -98,7 +102,7 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * the x-axis line. The band is hidden when `visible` is false or no bucket has
    * dropped data. `onClick` is called with the clicked bucket.
    */
-  droppedData?: DroppedData;
+  droppedData?: DroppedDataProps;
 
   /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
@@ -171,6 +175,7 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
 }
 
 export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizationProps) {
+  const {ref: forwardedRef, chartRef: externalChartRef} = props;
   if (!plottablesCanBeVisualized(props.plottables)) {
     throw new Error(NO_PLOTTABLE_VALUES);
   }
@@ -180,6 +185,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // the backend zerofills the data
 
   const chartRef = useRef<ReactEchartsRef | null>(null);
+  const connectChartRef = useCallback((e: ReactEchartsRef | null) => {
+    chartRef.current = e;
+  }, []);
   const unregisterRef = useRef<(() => void) | null>(null);
   const {register: registerWithWidgetSyncContext, groupName} = useWidgetSyncContext();
 
@@ -198,6 +206,20 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const location = useLocation();
   const hasReleaseBubbles =
     props.showReleaseAs !== 'none' && props.showReleaseAs === 'bubble';
+
+  // Local legend selection state used when the parent doesn't manage it
+  const [localLegendSelection, setLocalLegendSelection] = useState<
+    Record<string, boolean>
+  >({});
+  const legendSelection = props.legendSelection ?? localLegendSelection;
+  const {onLegendSelectionChange} = props;
+  const handleLegendSelectionChange = useCallback(
+    (selection: Record<string, boolean>) => {
+      setLocalLegendSelection(selection);
+      onLegendSelectionChange?.(selection);
+    },
+    [onLegendSelectionChange]
+  );
 
   const {
     onDataZoom,
@@ -388,16 +410,22 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const yAxes: YAXisComponentOption[] = [leftYAxis, rightYAxis].filter(axis => !!axis);
 
   // find min/max timestamp of *all* timeSeries. Drop null boundaries from
-  // non-time-bounded plottables (e.g. `Thresholds`) before sorting —
-  // `Array.prototype.sort`'s default lexicographic comparator stringifies
-  // `null` to `"null"`, which sorts after any timestamp and would end up as
+  // non-time-bounded plottables (e.g. `Thresholds`) so they cannot become
   // `latestTimeStamp`, leaving release bubbles with no `maxTime` to bucket.
-  const allBoundaries = props.plottables
-    .flatMap(plottable => [plottable.start, plottable.end])
-    .filter(defined)
-    .toSorted((a, b) => a - b);
-  const earliestTimeStamp = allBoundaries.at(0);
-  const latestTimeStamp = allBoundaries.at(-1);
+  // Find the bounds in one pass rather than sorting all boundaries.
+  const [earliestTimeStamp, latestTimeStamp] = useMemo(() => {
+    let earliest: number | undefined;
+    let latest: number | undefined;
+    for (const plottable of props.plottables) {
+      for (const timestamp of [plottable.start, plottable.end]) {
+        if (defined(timestamp)) {
+          earliest = earliest === undefined ? timestamp : Math.min(earliest, timestamp);
+          latest = latest === undefined ? timestamp : Math.max(latest, timestamp);
+        }
+      }
+    }
+    return [earliest, latest] as const;
+  }, [props.plottables]);
   const bubbleReleases = useMemo(
     () =>
       hasReleaseBubbles
@@ -411,19 +439,17 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const {
     connectReleaseBubbleChartRef,
+    onReleaseBubbleLegendSelectChanged,
     releaseBubbleSeries,
     releaseBubbleXAxis,
     releaseBubbleGrid,
     releaseBubbleYAxis,
   } = useReleaseBubbles({
     chartId: props.id,
-    minTime: earliestTimeStamp ? new Date(earliestTimeStamp).getTime() : undefined,
-    maxTime: latestTimeStamp ? new Date(latestTimeStamp).getTime() : undefined,
+    minTime: earliestTimeStamp,
+    maxTime: latestTimeStamp,
     releases: bubbleReleases,
-    legendSelected:
-      props.legendSelection === undefined
-        ? undefined
-        : props.legendSelection[t('Releases')] !== false,
+    legendSelected: legendSelection[RELEASE_BUBBLE_SERIES_NAME] !== false,
     yAxisIndex: yAxes.length,
   });
 
@@ -474,10 +500,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           )
       : null;
 
-  const hasReleaseBubblesSeries = hasReleaseBubbles && releaseSeries;
-
   const handleChartRef = useCallback(
     (e: ReactEchartsRef | null) => {
+      connectReleaseBubbleChartRef(e);
       if (!e?.getEchartsInstance) {
         return;
       }
@@ -485,12 +510,21 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       for (const plottable of props.plottables) {
         plottable.handleChartRef?.(e);
       }
-
-      if (hasReleaseBubblesSeries) {
-        connectReleaseBubbleChartRef(e);
-      }
     },
-    [hasReleaseBubblesSeries, connectReleaseBubbleChartRef, props.plottables]
+    [connectReleaseBubbleChartRef, props.plottables]
+  );
+
+  const mergedChartRef = useMemo(
+    () => mergeRefs(forwardedRef, externalChartRef, connectChartRef, handleChartRef),
+    [forwardedRef, externalChartRef, connectChartRef, handleChartRef]
+  );
+
+  const handleLegendSelectChanged = useCallback<EChartLegendSelectChangeHandler>(
+    (event, instance) => {
+      onReleaseBubbleLegendSelectChanged(event, instance);
+      handleLegendSelectionChange(event.selected);
+    },
+    [onReleaseBubbleLegendSelectChanged, handleLegendSelectionChange]
   );
 
   const handleChartReady = useCallback(
@@ -583,13 +617,13 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   // Keep track of what color in the chosen palette we're assigning
   let seriesColorIndex = 0;
-  const seriesFromPlottables: SeriesOption[] = props.plottables.flatMap(plottable => {
+  const seriesFromPlottables: SeriesOption[] = [];
+  for (const plottable of props.plottables) {
     let color: string | undefined;
 
     if (plottable.needsColor) {
       // For any timeseries in need of a color, pull from the chart palette
       color = palette[seriesColorIndex % palette.length]!; // Mod the index in case the number of plottables exceeds the palette length
-      // oxlint-disable-next-line react/immutability
       seriesColorIndex += 1;
     }
 
@@ -609,25 +643,11 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     });
     seriesIndex += seriesOfPlottable.length;
 
-    return seriesOfPlottable;
-  });
+    seriesFromPlottables.push(...seriesOfPlottable);
+  }
 
   const seriesIndexToPlottableRangeMap = new RangeMap<Plottable>(
     seriesIndexToPlottableMapRanges
-  );
-
-  // Local legend selection state used when the parent doesn't manage it
-  const [localLegendSelection, setLocalLegendSelection] = useState<
-    Record<string, boolean>
-  >({});
-  const legendSelection = props.legendSelection ?? localLegendSelection;
-  const {onLegendSelectionChange} = props;
-  const handleLegendSelectionChange = useCallback(
-    (selection: Record<string, boolean>) => {
-      setLocalLegendSelection(selection);
-      onLegendSelectionChange?.(selection);
-    },
-    [onLegendSelectionChange]
   );
 
   // Build legend items by extracting colors from the generated ECharts
@@ -655,7 +675,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       typeof releaseSeries.color === 'string' ? releaseSeries.color : '';
     chartLegendItems.push({
       name: releaseName,
-      label: releaseName,
+      label: hasReleaseBubbles ? t('Releases') : releaseName,
       color: releaseColor,
     });
   }
@@ -700,7 +720,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const handleClick: EChartClickHandler = event => {
     if (event.seriesId === DROPPED_DATA_SERIES_ID) {
-      props.droppedData?.onClick?.(event.data as AnnotationBucket);
+      props.droppedData?.onClick?.();
       return;
     }
     runHandler(event, 'onClick');
@@ -740,8 +760,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       )}
       <Container flex="1 1 0%" minHeight="0">
         <BaseChart
-          // oxlint-disable-next-line react/refs
-          ref={mergeRefs(props.ref, props.chartRef, chartRef, handleChartRef)}
+          ref={mergedChartRef}
           autoHeightResize
           renderer="canvas"
           series={allSeries}
@@ -764,9 +783,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
                 }
               : undefined
           }
-          onLegendSelectChanged={event => {
-            handleLegendSelectionChange(event.selected);
-          }}
+          onLegendSelectChanged={handleLegendSelectChanged}
           tooltip={{
             appendToBody: true,
             trigger: 'axis',
@@ -778,7 +795,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           xAxis={xAxis}
           yAxes={chartYAxes}
           {...chartZoomProps}
-          // oxlint-disable-next-line react/refs
           onDataZoom={props.onZoom ?? onDataZoom}
           toolBox={toolBox ?? chartZoomProps.toolBox}
           brush={brush}

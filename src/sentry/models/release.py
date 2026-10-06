@@ -16,6 +16,7 @@ from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
 from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import parse_release
+from sentry_sdk import traces
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import BAD_RELEASE_CHARS, COMMIT_RANGE_DELIMITER
@@ -34,6 +35,7 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
+from sentry.models.metric_tags import DATA_ACCESS_TAG, DataAccessTagValues
 from sentry.models.releases.constants import (
     DB_VERSION_LENGTH,
     ERR_RELEASE_HEALTH_DATA,
@@ -46,6 +48,7 @@ from sentry.models.releases.util import (
     SemverFilter,
     SemverVersion,
     release_order_date,
+    reserve_ids,
 )
 from sentry.utils import metrics
 from sentry.utils.cache import cache
@@ -53,7 +56,6 @@ from sentry.utils.db import atomic_transaction
 from sentry.utils.hashlib import hash_values, md5_text
 from sentry.utils.numbers import validate_bigint
 from sentry.utils.sdk import set_span_attribute
-from sentry.utils.tracing import start_span, trace
 
 logger = logging.getLogger(__name__)
 
@@ -116,6 +118,7 @@ class ReleaseModelManager(BaseManager["Release"]):
         date_field = "release_order" if use_finalized_order else "date_added"
         return (
             self.filter(projects=project, organization_id=project.organization_id)
+            .filter(Q(status=ReleaseStatus.OPEN) | Q(status__isnull=True))
             .alias(release_order=Coalesce("date_released", "date_added"))
             .filter(
                 Q(**{f"{date_field}__gt": current_date})
@@ -245,6 +248,8 @@ class Release(Model):
 
     __relocation_scope__ = RelocationScope.Excluded
 
+    # Shadow column for widening `id` to int8. Every write keeps it equal to `id`.
+    new_id = BoundedBigIntegerField()
     organization = FlexibleForeignKey("sentry.Organization")
     projects = models.ManyToManyField(
         "sentry.Project", related_name="releases", through=ReleaseProject
@@ -374,6 +379,17 @@ class Release(Model):
         # https://code.djangoproject.com/ticket/30333
         return super().__hash__()
 
+    def save(self, **kwds: Any) -> None:
+        if self.id is None:
+            using = kwds.get("using")
+            if using is None:
+                using = router.db_for_write(type(self), instance=self)
+            self.id = reserve_ids(type(self), 1, using)[0]
+            self.new_id = self.id
+            # A freshly claimed pk cannot exist yet, so skip Django's UPDATE probe.
+            kwds["force_insert"] = True
+        super().save(**kwds)
+
     @staticmethod
     def is_valid_version(value):
         if value is None:
@@ -485,9 +501,12 @@ class Release(Model):
         return release
 
     @classmethod
-    def get_or_create(cls, project, version, date_added=None, *, create=True):
-        with metrics.timer("models.release.get_or_create") as metric_tags:
-            return cls._get_or_create_impl(project, version, date_added, metric_tags, create)
+    def get_or_create(cls, project, version, date_added=None, *, create=True, metrics_tags=None):
+        with metrics.timer("models.release.get_or_create") as timer_tags:
+            release = cls._get_or_create_impl(project, version, date_added, timer_tags, create)
+            if metrics_tags is not None:
+                metrics_tags.update(timer_tags)
+            return release
 
     @classmethod
     def _get_or_create_impl(cls, project, version, date_added, metric_tags, create=True):
@@ -503,6 +522,7 @@ class Release(Model):
         if release in (None, -1):
             # TODO(dcramer): if the cache result is -1 we could attempt a
             # default create here instead of default get
+            created = False
             project_version = (f"{project.slug}-{version}")[:DB_VERSION_LENGTH]
             releases = list(
                 cls.objects.filter(
@@ -531,6 +551,7 @@ class Release(Model):
                 ).first()
                 if release is None:
                     metric_tags["cache_hit"] = "false"
+                    metric_tags[DATA_ACCESS_TAG] = DataAccessTagValues.DB_READ.value
                     return None
 
                 # NOTE: `add_project` creates a ReleaseProject instance
@@ -548,6 +569,7 @@ class Release(Model):
                             total_deploys=0,
                         )
 
+                    created = True
                     metric_tags["created"] = "true"
                 except IntegrityError:
                     metric_tags["created"] = "false"
@@ -565,8 +587,14 @@ class Release(Model):
             # the new "latest release" for this project
             cache.set(cache_key, release, 3600)
             metric_tags["cache_hit"] = "false"
+            metric_tags[DATA_ACCESS_TAG] = (
+                DataAccessTagValues.DB_CREATE.value
+                if created
+                else DataAccessTagValues.DB_READ.value
+            )
         else:
             metric_tags["cache_hit"] = "true"
+            metric_tags[DATA_ACCESS_TAG] = DataAccessTagValues.CACHE_HIT.value
 
         return release
 
@@ -675,7 +703,7 @@ class Release(Model):
                 ref["previousCommit"], ref["commit"] = ref["commit"].split(COMMIT_RANGE_DELIMITER)
 
     def set_refs(self, refs, user_id, fetch=False):
-        with start_span(op="set_refs", name="set_refs"):
+        with traces.start_span(name="set_refs", attributes={"sentry.op": "set_refs"}):
             from sentry.api.exceptions import InvalidRepository
             from sentry.models.releaseheadcommit import ReleaseHeadCommit
             from sentry.models.repository import Repository
@@ -716,7 +744,7 @@ class Release(Model):
                     }
                 )
 
-    @trace
+    @traces.trace
     def set_commits(self, commit_list):
         """
         Bind a list of commits to this release.
@@ -797,7 +825,7 @@ class Release(Model):
         """
         Delete all release-specific commit data associated to this release. We will not delete the Commit model values because other releases may use these commits.
         """
-        with start_span(op="clear_commits", name="clear_commits"):
+        with traces.start_span(name="clear_commits", attributes={"sentry.op": "clear_commits"}):
             from sentry.models.releasecommit import ReleaseCommit
             from sentry.models.releaseheadcommit import ReleaseHeadCommit
 

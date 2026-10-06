@@ -31,6 +31,10 @@ class SummarizeIssueResponse(BaseModel):
     scores: SummarizeIssueScores | None = None
 
 
+class IssueSummary(SummarizeIssueResponse):
+    event_id: str
+
+
 class SeerRepoDefinition(BaseModel):
     repository_id: int | None = None
     organization_id: int | None = None
@@ -118,6 +122,10 @@ class SeerApiError(Exception):
 
     def __str__(self):
         return f"Seer API error: {self.message} (status: {self.status})"
+
+
+class SeerUnavailableError(SeerApiError):
+    """Seer kept answering with a server error (5xx) after retrying."""
 
 
 class SeerApiResponseValidationError(Exception):

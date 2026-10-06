@@ -40,79 +40,21 @@ describe('HypothesisCard', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('renders the statement, rationale, and one-based ordinal', () => {
-    render(
-      <HypothesisCard
-        hypothesis={InvestigationHypothesisFixture({
-          order: 1,
-          statement: 'An external SSO provider slowed the response',
-          rationale: 'SSO and non-SSO organizations slowed together.',
-        })}
-      />
-    );
+  it('numbers the hypothesis from one', () => {
+    render(<HypothesisCard hypothesis={InvestigationHypothesisFixture({order: 1})} />);
 
-    expect(
-      screen.getByRole('heading', {name: 'An external SSO provider slowed the response'})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText('SSO and non-SSO organizations slowed together.')
-    ).toBeInTheDocument();
     // `order` is zero-based on the wire, so the second hypothesis reads as 2.
     expect(screen.getByText('Hypothesis 2')).toBeInTheDocument();
   });
 
-  it('shows the verdict as a tag without confidence', () => {
+  it('shows the verdict as a tag', () => {
     render(
       <HypothesisCard
-        hypothesis={InvestigationHypothesisFixture({
-          effectiveStatus: 'supported',
-          confidence: 0.86,
-        })}
+        hypothesis={InvestigationHypothesisFixture({effectiveStatus: 'supported'})}
       />
     );
 
     expect(screen.getByTestId('hypothesis-status')).toHaveTextContent('Supported');
-    expect(screen.queryByText(/confidence/i)).not.toBeInTheDocument();
-  });
-
-  it('omits confidence stored on the agent verdict', () => {
-    render(
-      <HypothesisCard
-        hypothesis={InvestigationHypothesisFixture({
-          effectiveStatus: 'inconclusive',
-          confidence: undefined,
-          agentVerdict: {
-            verdict: 'inconclusive',
-            confidence: 0.34,
-            rationale: 'Span coverage is incomplete.',
-            supportingEvidenceIds: [],
-            refutingEvidenceIds: [],
-            remainingGaps: [],
-          },
-        })}
-      />
-    );
-
-    expect(screen.getByTestId('hypothesis-status')).toHaveTextContent('Inconclusive');
-    expect(screen.queryByText(/confidence/i)).not.toBeInTheDocument();
-  });
-
-  it('omits confidence while the hypothesis is still in flight', () => {
-    render(
-      <HypothesisCard
-        hypothesis={InvestigationHypothesisFixture({
-          effectiveStatus: 'investigating',
-          status: 'running',
-          confidence: 0.4,
-          verificationSteps: [
-            InvestigationVerificationStepFixture({status: 'running', result: null}),
-          ],
-        })}
-      />
-    );
-
-    expect(screen.getByText('Verifying…')).toBeInTheDocument();
-    expect(screen.queryByText(/confidence/i)).not.toBeInTheDocument();
   });
 
   // A hypothesis in flight is one `effectiveStatus`, but it passes through
@@ -138,6 +80,12 @@ describe('HypothesisCard', () => {
       [InvestigationVerificationStepFixture({status: 'completed', result: 'Done.'})],
       'running',
     ],
+    [
+      'every step skipped, no verdict',
+      'Checks finished',
+      [InvestigationVerificationStepFixture({status: 'skipped', result: null})],
+      'running',
+    ],
   ] as const)('reads %s as "%s"', (_name, label, verificationSteps, status) => {
     render(
       <HypothesisCard
@@ -154,7 +102,7 @@ describe('HypothesisCard', () => {
     ).toBeInTheDocument();
   });
 
-  it('lists only verification titles in order without an evidence heading', () => {
+  it('lists only verification titles in order', () => {
     render(
       <HypothesisCard
         hypothesis={InvestigationHypothesisFixture({
@@ -177,11 +125,6 @@ describe('HypothesisCard', () => {
       />
     );
 
-    // The status tag reads "Evidence checked" here; what must not come back is
-    // the section heading of the same name.
-    expect(
-      screen.queryByRole('heading', {name: 'Evidence checked'})
-    ).not.toBeInTheDocument();
     expect(screen.queryByText('Ran first.')).not.toBeInTheDocument();
     expect(screen.queryByText('Ran second.')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: /check/})).not.toBeInTheDocument();
@@ -192,7 +135,7 @@ describe('HypothesisCard', () => {
     expect(steps[1]).toHaveTextContent(/^Second check$/);
   });
 
-  it('moves the current timeline marker as verification progresses', () => {
+  it('updates the checklist as follow-ups are inserted and pending checks are skipped', async () => {
     const first = InvestigationVerificationStepFixture({
       id: 'first',
       title: 'Compare authentication route latency',
@@ -215,25 +158,62 @@ describe('HypothesisCard', () => {
     const steps = within(screen.getByRole('list', {name: 'Verification steps'}));
 
     expect(steps.getByRole('listitem', {current: 'step'})).toHaveTextContent(first.title);
-    expect(screen.queryByText('Awaiting evidence')).not.toBeInTheDocument();
 
+    const followUp = InvestigationVerificationStepFixture({
+      id: 'follow-up',
+      order: 1,
+      title: 'Inspect slow authentication traces',
+      status: 'running',
+      result: null,
+    });
+    const updatedSteps = [
+      {...second, order: 2, status: 'skipped'},
+      followUp,
+      {...first, status: 'completed', result: 'Latency compared.'},
+    ];
     rerender(
       <HypothesisCard
         hypothesis={{
           ...hypothesis,
-          verificationSteps: [
-            {...first, status: 'completed', result: 'Latency compared.'},
-            {...second, status: 'running'},
-          ],
+          verificationSteps: updatedSteps,
         }}
       />
     );
 
     expect(steps.getAllByRole('listitem', {current: 'step'})).toHaveLength(1);
     expect(steps.getByRole('listitem', {current: 'step'})).toHaveTextContent(
-      second.title
+      followUp.title
     );
+    await userEvent.click(screen.getByRole('button', {name: 'Show 2 steps'}));
+
+    expect(steps.getAllByRole('listitem').map(step => step.textContent)).toEqual([
+      'Show less',
+      first.title,
+      followUp.title,
+      `${second.title} (skipped)`,
+    ]);
     expect(screen.queryByText('Latency compared.')).not.toBeInTheDocument();
+
+    rerender(
+      <HypothesisCard
+        hypothesis={{
+          ...hypothesis,
+          verificationSteps: updatedSteps.map(step =>
+            step.id === followUp.id
+              ? {...step, status: 'completed', result: 'Traces inspected.'}
+              : step
+          ),
+        }}
+      />
+    );
+
+    expect(screen.getByText('Checks finished')).toBeInTheDocument();
+    expect(steps.queryByRole('listitem', {current: 'step'})).not.toBeInTheDocument();
+    expect(screen.getByText(`${second.title} (skipped)`)).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Show less'})).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
   });
 
   it.each([
@@ -392,7 +372,7 @@ describe('HypothesisCard', () => {
       expect(screen.queryByText(title)).not.toBeInTheDocument();
     }
 
-    await userEvent.click(screen.getByRole('button', {name: 'Show 3 more steps'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Show 3 steps'}));
 
     for (const title of ['Check 1', 'Check 2', 'Check 3', 'Check 4']) {
       expect(screen.getByText(title)).toBeInTheDocument();
@@ -422,7 +402,7 @@ describe('HypothesisCard', () => {
 
     expect(screen.getByText('Check 3')).toBeInTheDocument();
     expect(screen.queryByText('Check 1')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Show 2 more steps'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Show 2 steps'})).toBeInTheDocument();
   });
 
   it.each(['supported', 'refuted', 'inconclusive'] as const)(
@@ -446,7 +426,7 @@ describe('HypothesisCard', () => {
       expect(screen.queryByText('Check 1')).not.toBeInTheDocument();
       expect(screen.queryByText('Check 2')).not.toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('button', {name: 'Show all 2 steps'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Show 2 steps'}));
 
       expect(screen.getByText('Check 1')).toBeInTheDocument();
       expect(screen.getByText('Check 2')).toBeInTheDocument();
@@ -482,7 +462,7 @@ describe('HypothesisCard', () => {
     });
     const {rerender} = render(<HypothesisCard hypothesis={hypothesis} />);
 
-    await userEvent.click(screen.getByRole('button', {name: 'Show 2 more steps'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Show 2 steps'}));
     expect(screen.getByText('Check 1')).toBeInTheDocument();
 
     rerender(
@@ -491,7 +471,7 @@ describe('HypothesisCard', () => {
 
     expect(screen.queryByText('Check 1')).not.toBeInTheDocument();
     expect(screen.queryByText('Check 3')).not.toBeInTheDocument();
-    expect(screen.getByRole('button', {name: 'Show all 3 steps'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Show 3 steps'})).toBeInTheDocument();
   });
 
   it('hides the timeline when there are no steps', () => {
