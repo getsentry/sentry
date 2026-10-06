@@ -57,8 +57,10 @@ class BackfillCheckinConfigSnapshotTest(TestMigrations):
         no_config = MonitorCheckIn.objects.get(id=self.no_config.id)
         already_set = MonitorCheckIn.objects.get(id=self.already_set.id)
 
+        assert a1.monitor_config == self.config_a
+        assert a2.monitor_config == self.config_a
+        assert b.monitor_config == self.config_b
         for checkin in (a1, a2, b):
-            assert checkin.monitor_config is None
             assert checkin.config_snapshot_id is not None
 
         assert a1.config_snapshot_id == a2.config_snapshot_id

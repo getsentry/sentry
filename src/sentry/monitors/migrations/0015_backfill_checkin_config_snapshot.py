@@ -35,9 +35,9 @@ def backfill_checkin_config_snapshot(
             checkin_ids_by_config_id[get_config_id(checkin.monitor_config)].append(checkin.id)
 
         for config_id, checkin_ids in checkin_ids_by_config_id.items():
-            MonitorCheckIn.objects.filter(id__in=checkin_ids).update(
-                config_snapshot_id=config_id, monitor_config=None
-            )
+            MonitorCheckIn.objects.filter(
+                id__in=checkin_ids, config_snapshot_id__isnull=True
+            ).update(config_snapshot_id=config_id)
 
     queryset = MonitorCheckIn.objects.filter(
         monitor_config__isnull=False, config_snapshot_id__isnull=True
