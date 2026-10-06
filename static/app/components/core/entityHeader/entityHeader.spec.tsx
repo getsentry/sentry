@@ -89,6 +89,29 @@ describe('EntityHeader', () => {
       expect(await screen.findByText('frontend, backend')).toBeInTheDocument();
     });
 
+    it('draws a user avatar at the size the people slot shows, inside the same box', () => {
+      render(
+        <EntityHeader
+          title={{
+            label: 'Session',
+            leadingGraphic: {
+              type: 'user',
+              user: UserFixture({id: '1', name: 'Alice'}),
+            },
+          }}
+        />
+      );
+
+      // The people slot's avatars are 24 with a 2px border, so their visible
+      // disc is 20. Drawing this one at 24 would make it the larger of the two
+      // circles in the same header, so it is 20 centred in a 24 box.
+      const avatar = screen.getByText('A').closest('span')!;
+      expect(avatar).toHaveStyle({width: '20px', height: '20px'});
+
+      const slot = avatar.parentElement!;
+      expect(getEmotionRules(slot).some(rule => /width:\s*24px/.test(rule))).toBe(true);
+    });
+
     it('renders no project graphic when no platform is known', () => {
       render(
         <EntityHeader

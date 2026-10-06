@@ -67,7 +67,9 @@ Every other slot is optional, and the grid template is built from whichever you 
 
 ## Leading graphic
 
-`title.leadingGraphic` is data, not a node, so the header controls the size — 24px, matching the avatars in the people slot — and the slot cannot be used to smuggle in a component.
+`title.leadingGraphic` is data, not a node, so the header controls the size and the slot cannot be used to smuggle in a component.
+
+The box is always 24px. A project or platform badge fills it; a user avatar is drawn at 20 and centred, because the avatars in the people slot are 24 with a 2px border and so show a 20px disc — a borderless 24 here would be the larger of the two circles in the same header.
 
 ```jsx
 leadingGraphic={{type: 'user', user: replay.user}}

@@ -15,10 +15,18 @@ import {defined} from 'sentry/utils/defined';
 import {unreachable} from 'sentry/utils/unreachable';
 
 /**
- * Edge of the leading graphic. Matches the avatars in the people slot, so the
- * two read as the same weight across the header.
+ * Edge of the box the leading graphic occupies, whatever it holds.
  */
 const LEADING_GRAPHIC_SIZE = 24;
+
+/**
+ * A user avatar is drawn smaller than that box and centred in it.
+ *
+ * The avatars in the people slot are 24 with a 2px border, and `box-sizing` is
+ * border-box, so their visible disc is 20. A borderless 24 here would be the
+ * larger of the two circles in the same header.
+ */
+const LEADING_AVATAR_SIZE = 20;
 
 interface EntityHeaderLeadingGraphicBase {
   /**
@@ -80,7 +88,7 @@ export interface EntityHeaderTitleProps {
 function LeadingGraphic({graphic}: {graphic: EntityHeaderLeadingGraphic}) {
   switch (graphic.type) {
     case 'user':
-      return <UserAvatar user={graphic.user} size={LEADING_GRAPHIC_SIZE} />;
+      return <UserAvatar user={graphic.user} size={LEADING_AVATAR_SIZE} />;
     case 'project': {
       const platforms = graphic.projects.map(project => project.platform).filter(defined);
       // `ProjectsBadge` falls back to an all-projects glyph for an empty list,
