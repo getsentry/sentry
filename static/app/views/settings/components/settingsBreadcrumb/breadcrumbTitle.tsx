@@ -40,30 +40,23 @@ function getCrumbComponent(
 }
 
 type Props = {
+  title: string | BreadcrumbTitleItem;
   breadcrumbs?: BreadcrumbListProps['items'];
-  /** Use route names only when no page supplies a title. */
-  fallback?: boolean;
-  title?: string | BreadcrumbTitleItem;
 };
 
-export function BreadcrumbTitle({title: explicitTitle, breadcrumbs, fallback}: Props) {
+export function BreadcrumbTitle({title: explicitTitle, breadcrumbs}: Props) {
   const organization = useOrganization({allowNull: true});
   const routes = useRoutes() as RouteWithName[];
   const params = useParams();
   const lastRouteIndex = routes.map(route => !!route.name).lastIndexOf(true);
-  const lastRoute = routes[lastRouteIndex];
-  if (!lastRoute && explicitTitle === undefined) {
-    return null;
-  }
   const title: BreadcrumbTitleItem =
     typeof explicitTitle === 'string'
       ? {type: 'page-title', label: explicitTitle}
-      : (explicitTitle ?? {type: 'page-title', label: lastRoute?.name ?? ''});
+      : explicitTitle;
   const items: BreadcrumbListProps['items'] = [];
   let dynamicCrumb:
     | {
         Component: ComponentType<SettingsBreadcrumbProps>;
-        isLast: boolean;
         itemIndex: number;
         route: RouteWithName;
       }
@@ -80,7 +73,6 @@ export function BreadcrumbTitle({title: explicitTitle, breadcrumbs, fallback}: P
         Component,
         route,
         itemIndex: items.length,
-        isLast: index === lastRouteIndex && explicitTitle === undefined,
       };
     } else if (index !== lastRouteIndex) {
       let to = recreateRoute(route, {routes, params});
@@ -103,17 +95,7 @@ export function BreadcrumbTitle({title: explicitTitle, breadcrumbs, fallback}: P
 
   if (dynamicCrumb) {
     const {Component, ...props} = dynamicCrumb;
-    return (
-      <Component
-        {...props}
-        routes={routes}
-        items={items}
-        title={title}
-        fallback={fallback}
-      />
-    );
+    return <Component {...props} routes={routes} items={items} title={title} />;
   }
-  return (
-    <TopBar.Slot name="breadcrumbs" title={title} items={items} fallback={fallback} />
-  );
+  return <TopBar.Slot name="breadcrumbs" title={title} items={items} />;
 }

@@ -24,35 +24,6 @@ describe('IntegrationCrumb', () => {
     });
   });
 
-  it('renders the last crumb as a plain title even with multiple providers', async () => {
-    const parentRoute = {path: 'integrations/', name: 'Integrations'};
-    const route = {path: ':integrationSlug', name: 'Integration Details'};
-    render(
-      <IntegrationCrumb
-        items={[]}
-        itemIndex={0}
-        title={{type: 'page-title', label: 'Details'}}
-        route={route}
-        routes={[parentRoute, route]}
-        isLast
-      />,
-      {
-        organization,
-        initialRouterConfig: {
-          route: '/settings/:orgId/integrations/:integrationSlug/',
-          location: {
-            pathname: `/settings/${organization.slug}/integrations/github/`,
-            query: {tab: 'overview'},
-          },
-        },
-      }
-    );
-    expect(
-      await screen.findByRole('heading', {name: 'GitHub', level: 1})
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Switch GitHub'})).not.toBeInTheDocument();
-  });
-
   it('switches integrations while clearing the selected detail tab', async () => {
     const parentRoute = {path: 'integrations/', name: 'Integrations'};
     const route = {path: ':integrationSlug', name: 'Integration Details'};
@@ -63,7 +34,6 @@ describe('IntegrationCrumb', () => {
         title={{type: 'page-title', label: 'Details'}}
         route={route}
         routes={[parentRoute, route]}
-        isLast={false}
       />,
       {
         organization,
@@ -111,7 +81,6 @@ describe('IntegrationCrumb', () => {
         title={{type: 'page-title', label: 'Details'}}
         route={route}
         routes={[parentRoute, route]}
-        isLast={false}
       />,
       {
         organization,
@@ -173,7 +142,6 @@ describe('IntegrationCrumb', () => {
         title={{type: 'page-title', label: 'Details'}}
         route={route}
         routes={[parentRoute, route]}
-        isLast={false}
       />,
       {
         organization,

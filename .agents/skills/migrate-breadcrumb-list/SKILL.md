@@ -90,7 +90,7 @@ Import public components from `@sentry/scraps/breadcrumbList` and `@sentry/scrap
 8. Delete only code made unused by the migration. Do not expand the shared title API to accommodate each legacy decoration. If requested UI is removed, remove tests dedicated only to that UI; retain tests of useful remaining behavior.
 9. Verify changed behavior with the existing relevant tests, `pnpm run typecheck`, and `.venv/bin/prek run -q --files <files>`. Read `references/tests.md` before changing the test harness. Inspect remaining legacy references to verify progress without treating a fixed importer count as a target.
 
-For Settings callers, `SettingsPageHeader.title` accepts a string or `BreadcrumbTitleItem`, and its `breadcrumbs` prop accepts parent items. `BreadcrumbTitle` builds parent items from `useRoutes()` and `useParams()`, adds the supplied parent items, and renders the TopBar slot directly. Settings layouts render `<BreadcrumbTitle fallback />` for pages without an explicit title. There is no breadcrumb context or provider. Keep one explicit title owner per page; the fallback yields to it.
+For Settings callers, `SettingsPageHeader.title` accepts a string or `BreadcrumbTitleItem`, and its `breadcrumbs` prop accepts parent items. `BreadcrumbTitle` builds parent items from `useRoutes()` and `useParams()`, adds the supplied parent items, and renders the TopBar slot directly. Every Settings page must supply its own title, directly with `BreadcrumbTitle` or through `SettingsPageHeader`. `BreadcrumbTitle.title` is required. Settings layouts do not supply a fallback title; there is no breadcrumb context or provider. Keep one explicit title owner per page.
 
 ## References
 

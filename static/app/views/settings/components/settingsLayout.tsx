@@ -2,8 +2,6 @@ import styled from '@emotion/styled';
 
 import {Stack, Flex} from '@sentry/scraps/layout';
 
-import {BreadcrumbTitle} from './settingsBreadcrumb/breadcrumbTitle';
-
 interface Props {
   children: React.ReactNode;
 }
@@ -11,7 +9,6 @@ interface Props {
 export function SettingsLayout({children}: Props) {
   return (
     <SettingsColumn>
-      <BreadcrumbTitle fallback />
       <Flex flex="1">
         <Stack flex="1" padding="xl" minWidth="0">
           {children}

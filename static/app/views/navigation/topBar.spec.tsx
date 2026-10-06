@@ -131,59 +131,6 @@ describe('TopBar', () => {
     expect(screen.queryByText('Second page')).not.toBeInTheDocument();
   });
 
-  it('replaces fallback breadcrumbs together and restores them when the page unmounts', () => {
-    function Page({
-      showTitle = false,
-      showParents = false,
-    }: {
-      showParents?: boolean;
-      showTitle?: boolean;
-    }) {
-      return (
-        <TopBar.Slot.Provider>
-          <TopBar />
-          <TopBar.Slot
-            name="breadcrumbs"
-            fallback
-            title={{type: 'page-title', label: 'Default title'}}
-            items={[{type: 'link', label: 'Default parent', to: '/default/'}]}
-          />
-          {showTitle && (
-            <TopBar.Slot
-              name="breadcrumbs"
-              title={{type: 'page-title', label: 'Page title'}}
-              items={
-                showParents
-                  ? [{type: 'link', label: 'Page parent', to: '/parent/'}]
-                  : undefined
-              }
-            />
-          )}
-        </TopBar.Slot.Provider>
-      );
-    }
-
-    const {rerender} = render(<Page />);
-    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Default title');
-    expect(screen.getByRole('link', {name: 'Default parent'})).toBeInTheDocument();
-
-    rerender(<Page showTitle showParents />);
-    expect(screen.getAllByRole('heading', {level: 1})).toHaveLength(1);
-    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Page title');
-    expect(screen.queryByRole('link', {name: 'Default parent'})).not.toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Page parent'})).toBeInTheDocument();
-
-    rerender(<Page showTitle />);
-    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Page title');
-    expect(screen.queryByRole('link', {name: 'Default parent'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', {name: 'Page parent'})).not.toBeInTheDocument();
-
-    rerender(<Page />);
-    expect(screen.getAllByRole('heading', {level: 1})).toHaveLength(1);
-    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent('Default title');
-    expect(screen.getByRole('link', {name: 'Default parent'})).toBeInTheDocument();
-  });
-
   it('supports an editable title', async () => {
     const onChange = jest.fn();
     render(

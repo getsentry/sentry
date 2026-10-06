@@ -192,14 +192,12 @@ interface SlotOutletProps<T extends Slot> {
   name: T;
 }
 
-interface SlotFallbackProps<T extends Slot> {
+interface SlotFallbackProps {
   children: React.ReactNode;
-  /** Target a slot from outside its outlet. Defaults to the surrounding outlet. */
-  name?: T;
 }
 
 type SlotModule<T extends Slot> = React.FunctionComponent<SlotConsumerProps<T>> & {
-  Fallback: React.ComponentType<SlotFallbackProps<T>>;
+  Fallback: React.ComponentType<SlotFallbackProps>;
   Outlet: React.ComponentType<SlotOutletProps<T>>;
   Provider: React.ComponentType<SlotProviderProps>;
   useSlotOutletRef: () => React.RefObject<HTMLElement | null>;
@@ -340,13 +338,9 @@ function makeSlotFallback<T extends Slot>(
   context: React.Context<SlotContextValue<T> | null>,
   outletNameContext: React.Context<T | null>
 ) {
-  function SlotFallback({
-    children,
-    name: explicitName,
-  }: SlotFallbackProps<T>): React.ReactNode {
+  function SlotFallback({children}: SlotFallbackProps): React.ReactNode {
     const ctx = useContext(context);
-    const outletName = useContext(outletNameContext);
-    const name = explicitName ?? outletName;
+    const name = useContext(outletNameContext);
 
     if (!ctx) {
       reportSlotWarning(

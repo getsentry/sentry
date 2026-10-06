@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -56,7 +55,7 @@ describe('BreadcrumbTitle', () => {
       sentryUrl: 'https://sentry.io',
     });
     try {
-      render(<BreadcrumbTitle fallback />, {
+      render(<BreadcrumbTitle title="New Integration" />, {
         organization,
         initialRouterConfig: {
           route: '/settings/',
@@ -94,18 +93,13 @@ describe('BreadcrumbTitle', () => {
         body: {providers: [GitHubIntegrationProviderFixture()]},
       });
       render(
-        <Fragment>
-          <BreadcrumbTitle fallback />
-          <SettingsPageHeader
-            title={{
-              type: 'page-title',
-              label: 'Workspace',
-            }}
-            breadcrumbs={[
-              {type: 'link', label: 'Configurations', to: '/configurations/'},
-            ]}
-          />
-        </Fragment>,
+        <SettingsPageHeader
+          title={{
+            type: 'page-title',
+            label: 'Workspace',
+          }}
+          breadcrumbs={[{type: 'link', label: 'Configurations', to: '/configurations/'}]}
+        />,
         {
           organization,
           initialRouterConfig: {
@@ -150,19 +144,13 @@ describe('BreadcrumbTitle', () => {
   );
 
   it('renders settings breadcrumbs and replaces title', () => {
-    render(
-      <Fragment>
-        <BreadcrumbTitle fallback />
-        <BreadcrumbTitle title="Last Title" />
-      </Fragment>,
-      {
-        initialRouterConfig: {
-          route: '/',
-          location: {pathname: '/one/two/three/'},
-          children: routeChildren,
-        },
-      }
-    );
+    render(<BreadcrumbTitle title="Last Title" />, {
+      initialRouterConfig: {
+        route: '/',
+        location: {pathname: '/one/two/three/'},
+        children: routeChildren,
+      },
+    });
 
     const crumbs = screen.getAllByRole('link');
 
@@ -173,51 +161,14 @@ describe('BreadcrumbTitle', () => {
     expect(screen.getAllByRole('heading', {level: 1})).toHaveLength(1);
   });
 
-  it('restores the route fallback when the page title unmounts', () => {
-    const {rerender, router} = render(
-      <Fragment>
-        <BreadcrumbTitle fallback />
-        <BreadcrumbTitle title="Last Title" />
-      </Fragment>,
-      {
-        initialRouterConfig: {
-          route: '/',
-          location: {pathname: '/one/two/three/'},
-          children: routeChildren,
-        },
-      }
-    );
-
-    const crumbs = screen.getAllByRole('link');
-
-    expect(crumbs).toHaveLength(2);
-    expect(screen.getByText('Last Title')).toBeInTheDocument();
-
-    // Simulate navigating up a level, trimming the last title
-    router.navigate('/one/two/');
-
-    rerender(<BreadcrumbTitle fallback />);
-
-    const crumbsNext = screen.getAllByRole('link');
-
-    expect(crumbsNext).toHaveLength(1);
-    expect(screen.getByText('Two')).toBeInTheDocument();
-  });
-
   it('uses the explicit title for document integrations', () => {
-    render(
-      <Fragment>
-        <BreadcrumbTitle fallback />
-        <BreadcrumbTitle title="Example Documentation" />
-      </Fragment>,
-      {
-        initialRouterConfig: {
-          route: '/',
-          location: {pathname: '/document-integrations/example-doc'},
-          children: documentIntegrationRouteChildren,
-        },
-      }
-    );
+    render(<BreadcrumbTitle title="Example Documentation" />, {
+      initialRouterConfig: {
+        route: '/',
+        location: {pathname: '/document-integrations/example-doc'},
+        children: documentIntegrationRouteChildren,
+      },
+    });
 
     expect(screen.getByText('Example Documentation')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'example-doc'})).not.toBeInTheDocument();

@@ -176,33 +176,6 @@ describe('slot', () => {
   });
 
   describe('Fallback', () => {
-    it('supports a named fallback outside the outlet and restores it after a consumer unmounts', () => {
-      const SlotModule = slot(['title'] as const);
-
-      function Page({showTitle = false}: {showTitle?: boolean}) {
-        return (
-          <SlotModule.Provider>
-            <SlotModule.Outlet name="title">
-              {props => <div {...props} data-test-id="title-root" />}
-            </SlotModule.Outlet>
-            <SlotModule.Fallback name="title">Default title</SlotModule.Fallback>
-            {showTitle && <SlotModule name="title">Page title</SlotModule>}
-          </SlotModule.Provider>
-        );
-      }
-
-      const {rerender} = render(<Page />);
-      expect(screen.getByTestId('title-root')).toHaveTextContent('Default title');
-
-      rerender(<Page showTitle />);
-      expect(screen.getByTestId('title-root')).toHaveTextContent('Page title');
-      expect(screen.queryByText('Default title')).not.toBeInTheDocument();
-
-      rerender(<Page />);
-      expect(screen.getByTestId('title-root')).toHaveTextContent('Default title');
-      expect(screen.queryByText('Page title')).not.toBeInTheDocument();
-    });
-
     it('renders children into Outlet when no consumer is mounted', () => {
       const SlotModule = slot(['feedback'] as const);
 

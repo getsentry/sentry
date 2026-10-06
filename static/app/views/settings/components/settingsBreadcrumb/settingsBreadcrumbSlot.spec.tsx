@@ -26,7 +26,6 @@ describe('SettingsBreadcrumbSlot', () => {
         items={items}
         itemIndex={1}
         title={title}
-        isLast={false}
         label="javascript"
         to="/settings/org-slug/projects/javascript/"
         hasMenu
@@ -57,7 +56,6 @@ describe('SettingsBreadcrumbSlot', () => {
         items={items}
         itemIndex={1}
         title={title}
-        isLast={false}
         label="javascript"
         to="/settings/org-slug/projects/javascript/"
         hasMenu
@@ -79,7 +77,6 @@ describe('SettingsBreadcrumbSlot', () => {
         items={items}
         itemIndex={1}
         title={title}
-        isLast={false}
         label="javascript"
         to="/settings/org-slug/projects/javascript/"
         hasMenu={false}
@@ -89,30 +86,6 @@ describe('SettingsBreadcrumbSlot', () => {
       />
     );
     expect(screen.getByRole('link', {name: 'javascript'})).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {name: 'Switch javascript'})
-    ).not.toBeInTheDocument();
-  });
-
-  it('renders the last item only as the page title', () => {
-    render(
-      <SettingsBreadcrumbSlot
-        items={items}
-        itemIndex={2}
-        title={title}
-        isLast
-        label="javascript"
-        to="/settings/org-slug/projects/javascript/"
-        hasMenu
-        value="javascript"
-        options={options}
-        onCrumbSelect={jest.fn()}
-      />
-    );
-    expect(
-      screen.getByRole('heading', {name: 'javascript', level: 1})
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('link', {name: 'javascript'})).not.toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Switch javascript'})
     ).not.toBeInTheDocument();

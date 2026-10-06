@@ -38,8 +38,6 @@ type TopBarSlotProps =
       name: 'breadcrumbs';
       title: BreadcrumbTitleItem;
       children?: never;
-      /** Render only when no page supplies a title. */
-      fallback?: boolean;
       items?: BreadcrumbListProps['items'];
     }
   | {
@@ -50,23 +48,13 @@ type TopBarSlotProps =
 
 function TopBarSlot(props: TopBarSlotProps) {
   if (props.name === 'breadcrumbs') {
-    const parents =
-      props.items && props.items.length > 0 ? (
-        <Slot name="breadcrumbs">
-          <BreadcrumbList items={props.items} />
-        </Slot>
-      ) : null;
-    if (props.fallback) {
-      return (
-        <Slot.Fallback name="title">
-          {parents}
-          <BreadcrumbList.Title item={props.title} />
-        </Slot.Fallback>
-      );
-    }
     return (
       <Fragment>
-        {parents}
+        {props.items && props.items.length > 0 && (
+          <Slot name="breadcrumbs">
+            <BreadcrumbList items={props.items} />
+          </Slot>
+        )}
         <Slot name="title">
           <BreadcrumbList.Title item={props.title} />
         </Slot>

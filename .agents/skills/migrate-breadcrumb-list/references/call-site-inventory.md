@@ -43,4 +43,4 @@ The Discover, Explore saved-query, dashboard, and preprod install headers are us
 
 `BreadcrumbList` renders an `<ol>` without a navigation landmark. Preserve any landmark required by these callers; do not migrate them solely to lower the importer count.
 
-Settings uses `BreadcrumbTitle` to build typed `link` and `select` parent items from the active routes and render a TopBar slot directly. `SettingsPageHeader` accepts a string or typed title and optional parent items. Settings layouts use `<BreadcrumbTitle fallback />` for pages without an explicit title; no breadcrumb context or provider is needed. Keep one explicit title owner per page.
+Settings uses `BreadcrumbTitle` to build typed `link` and `select` parent items from the active routes and render a TopBar slot directly. `SettingsPageHeader` accepts a string or typed title and optional parent items. Every Settings page supplies its own title through `BreadcrumbTitle` or `SettingsPageHeader`; layouts do not render a fallback. No breadcrumb context or provider is needed. Keep one explicit title owner per page.

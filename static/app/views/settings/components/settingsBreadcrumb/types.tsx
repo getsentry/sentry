@@ -13,9 +13,7 @@ export interface RouteWithName {
 }
 
 export type SettingsBreadcrumbProps = Pick<RouteComponentProps, 'route' | 'routes'> & {
-  isLast: boolean;
   itemIndex: number;
   items: BreadcrumbListProps['items'];
   title: BreadcrumbTitleItem;
-  fallback?: boolean;
 };
