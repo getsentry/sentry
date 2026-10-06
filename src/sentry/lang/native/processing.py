@@ -1,16 +1,15 @@
 from __future__ import annotations
 
 import logging
-import posixpath
 from collections.abc import Mapping
 from typing import Any
 
 import sentry_sdk
-from symbolic.debuginfo import normalize_debug_id
-from symbolic.exceptions import ParseDebugIdError
 
 from sentry import options
 from sentry.lang.native.error import SymbolicationFailed, write_error
+from sentry.lang.native.flamegraphs import Flamegraphs, get_flamegraph_stacktraces
+from sentry.lang.native.frames import get_frames_for_symbolication, handles_frame, merge_frame
 from sentry.lang.native.symbolicator import FrameOrder, Symbolicator, SymbolicatorFunction
 from sentry.lang.native.utils import (
     get_event_attachment,
@@ -26,11 +25,10 @@ from sentry.lang.native.utils import (
 )
 from sentry.models.eventerror import EventErrorType
 from sentry.options.rollout import in_random_rollout
-from sentry.stacktraces.functions import trim_function_name
 from sentry.stacktraces.processing import StacktraceInfo, find_stacktraces_in_data
 from sentry.utils import metrics
 from sentry.utils.in_app import is_known_third_party, is_optional_package
-from sentry.utils.safe import get_path, set_path, setdefault_path, trim
+from sentry.utils.safe import get_path, set_path, setdefault_path
 
 logger = logging.getLogger(__name__)
 
@@ -75,63 +73,6 @@ ELECTRON_FIRST_MODULE_REWRITE_RULES = [
     {"from": "[^/\\\\]+\\.exe\\.pdb$", "to": "electron.exe.pdb"},
     {"from": "[^/\\\\]+$", "to": "electron"},
 ]
-
-
-def _merge_frame(new_frame, symbolicated, platform="native"):
-    # il2cpp events which have the "csharp" platform have good (C#) names
-    # coming from the SDK, we do not want to override those with bad (mangled) C++ names.
-    if platform != "csharp" and symbolicated.get("function"):
-        raw_func = trim(symbolicated["function"], 256)
-        func = trim(trim_function_name(symbolicated["function"], platform), 256)
-
-        # if function and raw function match, we can get away without
-        # storing a raw function
-        if func == raw_func:
-            new_frame["function"] = raw_func
-        # otherwise we store both
-        else:
-            new_frame["raw_function"] = raw_func
-            new_frame["function"] = func
-    if symbolicated.get("instruction_addr"):
-        new_frame["instruction_addr"] = symbolicated["instruction_addr"]
-    if symbolicated.get("function_id"):
-        new_frame["function_id"] = symbolicated["function_id"]
-    if symbolicated.get("symbol"):
-        new_frame["symbol"] = symbolicated["symbol"]
-    if symbolicated.get("abs_path"):
-        new_frame["abs_path"] = symbolicated["abs_path"]
-        new_frame["filename"] = posixpath.basename(symbolicated["abs_path"])
-    if symbolicated.get("filename"):
-        new_frame["filename"] = symbolicated["filename"]
-    if symbolicated.get("lineno"):
-        new_frame["lineno"] = symbolicated["lineno"]
-    if symbolicated.get("colno"):
-        new_frame["colno"] = symbolicated["colno"]
-    # similarly as with `function` above, we do want to retain the original "package".
-    if platform != "csharp" and symbolicated.get("package"):
-        new_frame["package"] = symbolicated["package"]
-    if symbolicated.get("trust"):
-        new_frame["trust"] = symbolicated["trust"]
-    if symbolicated.get("pre_context"):
-        new_frame["pre_context"] = symbolicated["pre_context"]
-    if symbolicated.get("context_line") is not None:
-        new_frame["context_line"] = symbolicated["context_line"]
-    if symbolicated.get("post_context"):
-        new_frame["post_context"] = symbolicated["post_context"]
-    if symbolicated.get("source_link"):
-        new_frame["source_link"] = symbolicated["source_link"]
-    if symbolicated.get("vars"):
-        new_frame["vars"] = symbolicated["vars"]
-
-    addr_mode = symbolicated.get("addr_mode")
-    if addr_mode is None:
-        new_frame.pop("addr_mode", None)
-    else:
-        new_frame["addr_mode"] = addr_mode
-
-    if symbolicated.get("status"):
-        frame_meta = new_frame.setdefault("data", {})
-        frame_meta["symbolicator_status"] = symbolicated["status"]
 
 
 def _handle_image_status(status, image, os, data):
@@ -316,7 +257,7 @@ def _merge_full_response(data, response):
 
         for complete_frame in reversed(complete_stacktrace["frames"]):
             new_frame: dict[str, Any] = {}
-            _merge_frame(new_frame, complete_frame)
+            merge_frame(new_frame, complete_frame)
             data_stacktrace["frames"].append(new_frame)
 
 
@@ -376,78 +317,26 @@ def process_applecrashreport(symbolicator: Symbolicator, data: Any) -> Any:
     return data
 
 
-def _handles_frame(data, frame):
-    if not frame:
-        return False
-
-    if get_path(frame, "data", "symbolicator_status") is not None:
-        return False
-
-    # TODO: Consider ignoring platform
-    platform = frame.get("platform") or data.get("platform")
-    return is_native_platform(platform) and frame.get("instruction_addr") is not None
-
-
-def get_frames_for_symbolication(
-    frames,
-    data,
-    modules,
-    adjustment=None,
-):
-    modules_by_debug_id = None
-    rv = []
-    adjustment = adjustment or "auto"
-
-    for frame in reversed(frames):
-        if not _handles_frame(data, frame):
-            continue
-        s_frame = dict(frame)
-
-        if adjustment == "none":
-            s_frame["adjust_instruction_addr"] = False
-
-        # validate and expand addressing modes.  If we can't validate and
-        # expand it, we keep None which is absolute.  That's not great but
-        # at least won't do damage.
-        addr_mode = s_frame.pop("addr_mode", None)
-        sanitized_addr_mode = None
-
-        # None and abs mean absolute addressing explicitly.
-        if addr_mode in (None, "abs"):
-            pass
-        # this is relative addressing to module by index or debug id.
-        elif addr_mode.startswith("rel:"):
-            arg = addr_mode[4:]
-            idx = None
-
-            if modules_by_debug_id is None:
-                modules_by_debug_id = {x.get("debug_id"): idx for idx, x in enumerate(modules)}
-            try:
-                idx = modules_by_debug_id.get(normalize_debug_id(arg))
-            except ParseDebugIdError:
-                pass
-
-            if idx is None and arg.isdigit():
-                idx = int(arg)
-
-            if idx is not None:
-                sanitized_addr_mode = "rel:%d" % idx
-
-        if sanitized_addr_mode is not None:
-            s_frame["addr_mode"] = sanitized_addr_mode
-        rv.append(s_frame)
-
-    if len(rv) > 0:
-        first_frame = rv[0]
-        if adjustment == "all":
-            first_frame["adjust_instruction_addr"] = True
-        elif adjustment == "all_but_first":
-            first_frame["adjust_instruction_addr"] = False
-
-    return rv
-
-
 def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
+    flamegraphs = Flamegraphs(symbolicator.project, data)
+    attachments_changed = False
+    for attachment_index, payload in flamegraphs.get_flamegraphs():
+        modules = native_images_from_data(payload)
+        if not modules:
+            continue
+        frame_ids, stacktraces = get_flamegraph_stacktraces(payload, modules)
+        if not stacktraces:
+            continue
+        response = symbolicator.process_payload(
+            platform=payload["platform"],
+            stacktraces=stacktraces,
+            modules=modules,
+            frame_order=FrameOrder.caller_first,
+            apply_source_context=False,
+        )
+        attachments_changed |= flamegraphs.apply_response_and_save(
+            attachment_index, payload, frame_ids, response
+        )
     stacktrace_infos = [
         stacktrace
         for stacktrace in find_stacktraces_in_data(data)
@@ -470,7 +359,7 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     ]
 
     if not any(stacktrace["frames"] for stacktrace in stacktraces):
-        return
+        return data if attachments_changed else None
 
     signal = signal_from_data(data)
 
@@ -516,14 +405,14 @@ def process_native_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         native_frames_idx = 0
 
         for raw_frame in reversed(sinfo.stacktrace["frames"]):
-            if not _handles_frame(data, raw_frame):
+            if not handles_frame(data, raw_frame):
                 new_frames.append(raw_frame)
                 continue
 
             for complete_frame in complete_frames_by_idx.get(native_frames_idx) or ():
                 merged_frame = dict(raw_frame)
                 platform = merged_frame.get("platform") or data.get("platform") or "native"
-                _merge_frame(merged_frame, complete_frame, platform)
+                merge_frame(merged_frame, complete_frame, platform)
                 if merged_frame.get("package"):
                     raw_frame["package"] = merged_frame["package"]
                 new_frames.append(merged_frame)
@@ -639,7 +528,9 @@ def get_native_symbolication_functions(
         functions.append(SymbolicatorFunction.native)
         return functions  # early return to prevent duplicates
 
-    if has_native_stacktraces(stacktraces):
+    if has_native_stacktraces(stacktraces) or any(
+        attachment.get("type") == "event.flamegraph" for attachment in data.get("_attachments", [])
+    ):
         # Run native symbolication first, to prevent sending minidump / ACR events to
         # symbolicator twice (after symbolication a minidump event will have native stacktraces).
         functions.insert(0, SymbolicatorFunction.native)

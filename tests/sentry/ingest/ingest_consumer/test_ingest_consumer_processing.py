@@ -41,7 +41,7 @@ from sentry.ingest.consumer.simple_event import (
 from sentry.ingest.types import ConsumerType
 from sentry.lang.native.utils import STORE_CRASH_REPORTS_ALL
 from sentry.models.debugfile import create_files_from_dif_zip
-from sentry.models.eventattachment import EventAttachment, PendingEventAttachment
+from sentry.models.eventattachment import V2_PREFIX, EventAttachment, PendingEventAttachment
 from sentry.models.userreport import UserReport
 from sentry.objectstore import UsecaseId, get_session
 from sentry.services import eventstore
@@ -609,6 +609,111 @@ class TestDeobfuscateViewHierarchy:
             do_process_view_hierarchy(default_project, task_runner)
             # this passes an already stored attachment to the ingest consumer:
             do_process_view_hierarchy(default_project, task_runner, use_objectstore=True)
+
+
+@debug_files_test_both_backends
+class TestSymbolicateFlamegraph:
+    @django_db_all
+    @requires_symbolicator
+    @thread_leak_allowlist(reason="django dev server", issue=97036)
+    def test_symbolicate_flamegraph_attachment(
+        self, default_project, task_runner, live_server
+    ) -> None:
+        do_process_flamegraph(default_project, task_runner, live_server)
+
+    @django_db_all
+    @requires_objectstore
+    @requires_symbolicator
+    @thread_leak_allowlist(reason="django dev server", issue=97036)
+    def test_symbolicate_stored_flamegraph_attachment(
+        self, default_project, task_runner, live_server
+    ) -> None:
+        do_process_flamegraph(default_project, task_runner, live_server, use_objectstore=True)
+
+
+def do_process_flamegraph(default_project, task_runner, live_server, use_objectstore=False):
+    default_project.update_option("sentry:builtin_symbol_sources", [])
+    event = get_normalized_event(
+        {"platform": "other", "message": "Flamegraph symbolication"}, default_project
+    )
+    with zipfile.ZipFile(BytesIO(), "w") as archive:
+        archive.write(get_fixture_path("native", "hello.dsym"), "dSYM/hello")
+        create_files_from_dif_zip(archive, project=default_project)
+    diagnostic = {
+        "version": "1",
+        "platform": "cocoa",
+        "frames": [{"instruction_addr": "0x100000fa0"}],
+        "debug_meta": {
+            "images": [
+                {
+                    "type": "macho",
+                    "debug_id": "502fc0a5-1ec1-3e47-9998-684fa139dca7",
+                    "image_addr": "0x100000000",
+                    "image_size": 4096,
+                    "arch": "x86_64",
+                }
+            ]
+        },
+        "trees": [{"roots": [{"frame_id": 0, "sample_count": 10}]}],
+    }
+    attachment_id = "ca90fb45-6dd9-40a0-a18f-8693aa621abb"
+    raw = orjson.dumps(diagnostic)
+    attachment_metadata = {
+        "id": attachment_id,
+        "name": "flamegraph.json",
+        "content_type": "application/json",
+        "attachment_type": "event.flamegraph",
+        "size": len(raw),
+    }
+    if use_objectstore:
+        session = get_session(UsecaseId.ATTACHMENTS, default_project)
+        attachment_metadata["stored_id"] = session.put(raw)
+    else:
+        process_attachment_chunk(
+            {
+                "payload": raw,
+                "event_id": event["event_id"],
+                "project_id": default_project.id,
+                "id": attachment_id,
+                "chunk_index": 0,
+            }
+        )
+        attachment_metadata["chunks"] = 1
+    with (
+        Feature({"organizations:flamegraph-attachments": True}),
+        override_options({"system.url-prefix": live_server.url}),
+        patch("sentry.auth.system.is_internal_ip", return_value=True),
+        task_runner(),
+    ):
+        process_event(
+            ConsumerType.Events,
+            {
+                "payload": orjson.dumps(event).decode(),
+                "start_time": time.time(),
+                "event_id": event["event_id"],
+                "project_id": default_project.id,
+                "remote_addr": "127.0.0.1",
+                "attachments": [attachment_metadata],
+            },
+            project=default_project,
+        )
+    attachment = EventAttachment.objects.get(
+        project_id=default_project.id, event_id=event["event_id"]
+    )
+    assert attachment.type == "event.flamegraph"
+    assert attachment.content_type == "application/json"
+    with attachment.getfile() as file:
+        processed = orjson.loads(file.read())
+    assert processed["frames"][0]["function"] == "main"
+    assert processed["frames"][0]["instruction_addr"] == "0x100000fa0"
+    assert processed["trees"] == diagnostic["trees"]
+    assert processed["_symbolication"]["status"] == "completed"
+    assert attachment.size == len(orjson.dumps(processed))
+    if use_objectstore:
+        assert attachment.blob_path == V2_PREFIX + attachment_metadata["stored_id"]
+        stored = session.get(attachment_metadata["stored_id"])
+        assert stored is not None
+        assert orjson.loads(stored.payload.read()) == processed
 
 
 def do_process_view_hierarchy(project, task_runner, use_objectstore=False):
