@@ -81,7 +81,7 @@ jobs:
         run: mkdir -p "$CHARTCUTERIE_CONFIG_PATH"
 
       # The python env and devservices don't depend on the frontend build, so
-      # bring them up in the background while rspack builds.
+      # bring them up in the background while webpack runs.
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
         id: setup
@@ -95,7 +95,7 @@ jobs:
           echo "webpack-path=.webpack_cache" >> "$GITHUB_OUTPUT"
           echo "WEBPACK_CACHE_PATH=.webpack_cache" >> "$GITHUB_ENV"
 
-      - name: rspack cache
+      - name: webpack cache
         uses: actions/cache@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: ${{ steps.config.outputs.webpack-path }}
@@ -103,7 +103,7 @@ jobs:
 
       - uses: ./.github/actions/setup-node-pnpm
 
-      - name: rspack
+      - name: webpack
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
           GH_COMMIT_SHA: ${{ github.event.pull_request.head.sha }}
