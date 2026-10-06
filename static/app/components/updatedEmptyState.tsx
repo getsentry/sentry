@@ -1,5 +1,5 @@
 import {useEffect} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
@@ -203,15 +203,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
             marginTop="0"
             marginBottom="0"
           />
-          <Grid
-            autoColumns="minmax(0, 1fr)"
-            flow="column"
-            css={css`
-              h4 {
-                margin-bottom: 0;
-              }
-            `}
-          >
+          <Grid autoColumns="minmax(0, 1fr)" flow="column">
             <Container padding="3xl">
               <SetupTitle project={project} />
               <GuidedSteps
