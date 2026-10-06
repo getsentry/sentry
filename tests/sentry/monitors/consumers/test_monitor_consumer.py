@@ -196,7 +196,7 @@ class MonitorConsumerTest(TestCase):
         assert checkin.status == CheckInStatus.OK
         assert checkin.monitor_config is None
         assert (
-            MonitorCheckInConfig.objects.get(id=checkin.config_snapshot_id).config == monitor.config
+            MonitorCheckInConfig.objects.get(id=checkin.checkin_config_id).config == monitor.config
         )
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
@@ -268,7 +268,7 @@ class MonitorConsumerTest(TestCase):
         assert checkin.status == CheckInStatus.OK
         assert checkin.monitor_config is None
         assert (
-            MonitorCheckInConfig.objects.get(id=checkin.config_snapshot_id).config == monitor.config
+            MonitorCheckInConfig.objects.get(id=checkin.checkin_config_id).config == monitor.config
         )
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)

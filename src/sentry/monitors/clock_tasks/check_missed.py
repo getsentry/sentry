@@ -121,7 +121,7 @@ def mark_environment_missing(monitor_environment_id: int, ts: datetime) -> None:
         date_updated=expected_time,
         date_clock=ts,
         expected_time=expected_time,
-        config_snapshot_id=get_checkin_config_id(monitor.get_validated_config()),
+        checkin_config_id=get_checkin_config_id(monitor.get_validated_config()),
     )
 
     # Compute when the check-in *should* have happened given the current

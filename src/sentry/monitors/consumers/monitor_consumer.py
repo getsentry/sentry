@@ -1061,7 +1061,7 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
                         "date_in_progress": date_in_progress,
                         "expected_time": expected_time,
                         "timeout_at": timeout_at,
-                        "config_snapshot_id": get_checkin_config_id(checkin_monitor_config),
+                        "checkin_config_id": get_checkin_config_id(checkin_monitor_config),
                         "trace_id": trace_id,
                     },
                     project_id=project_id,

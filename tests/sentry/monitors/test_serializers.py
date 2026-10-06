@@ -135,7 +135,7 @@ class MonitorCheckInSerializerTest(TestCase):
         # When environment is missing, environment should be "[removed]"
         assert result[0]["environment"] == "[removed]"
 
-    def test_serialize_config_snapshot_matches_legacy(self) -> None:
+    def test_serialize_checkin_config_matches_legacy(self) -> None:
         monitor = self.create_monitor()
         monitor_env = self.create_monitor_environment(
             monitor=monitor, environment_id=self.environment.id
@@ -159,7 +159,7 @@ class MonitorCheckInSerializerTest(TestCase):
             monitor_environment=monitor_env,
             project_id=monitor.project_id,
             status=CheckInStatus.OK,
-            config_snapshot_id=get_checkin_config_id(config),
+            checkin_config_id=get_checkin_config_id(config),
         )
         no_config = MonitorCheckIn.objects.create(
             monitor=monitor,
