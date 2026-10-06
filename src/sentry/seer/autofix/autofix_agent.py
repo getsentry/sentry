@@ -544,7 +544,6 @@ def _build_pr_iteration_step_args(
     group: Group,
     *,
     run_id: int | None,
-    insert_index: int | None,
     feedback: Sequence[Feedback] | None,
     commit_author: SeerCommitAuthor | None,
     iteration_id: int | None,
@@ -553,13 +552,8 @@ def _build_pr_iteration_step_args(
     if run_state is None or not run_state.repo_pr_states:
         raise PrIterationNoPullRequestException()
 
-    if insert_index is not None:
-        iteration_index = get_iteration_for_insert_index(run_state, insert_index)
-    else:
-        iteration_index = get_open_iteration_index(run_state)
-
     return PrIterationStepArgs(
-        iteration_index=iteration_index,
+        iteration_index=get_open_iteration_index(run_state),
         iteration_id=iteration_id,
         feedback=serialize_feedback(feedback) if feedback else None,
         commit_author=json.dumps(commit_author) if commit_author is not None else None,
@@ -699,7 +693,6 @@ def trigger_autofix_agent(
                 step_args = _build_pr_iteration_step_args(
                     group,
                     run_id=run_id,
-                    insert_index=insert_index,
                     feedback=feedback,
                     commit_author=commit_author,
                     iteration_id=iteration_id,

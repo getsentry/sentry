@@ -915,40 +915,6 @@ class TestTriggerAutofixAgent(TestCase):
         assert broadcast_kwargs["event_name"] == SeerActionType.ITERATION_STARTED.value
         assert broadcast_kwargs["payload"]["iteration_index"] == 2
 
-    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
-    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
-    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
-    def test_pr_iteration_feature_route_reuses_iteration_index_on_retry(
-        self, mock_client_class, mock_feature, mock_broadcast
-    ):
-        mock_client_class.return_value.get_run.return_value = _state_with_blocks(
-            [_iteration_block(1)],
-            group_id=self.group.id,
-            repo_pr_states={
-                "owner/repo": RepoPRState(
-                    repo_name="owner/repo", pr_url="https://example.com/pull/7"
-                )
-            },
-        )
-        existing_run = self.create_seer_run(
-            organization=self.group.organization, seer_run_state_id=67890
-        )
-        self.create_seer_agent_run(run=existing_run, group=self.group, source="autofix")
-        mock_feature.return_value = existing_run
-
-        with self.feature("organizations:autofix-pr-iteration-in-seer"):
-            trigger_autofix_agent(
-                group=self.group,
-                step=AutofixStep.PR_ITERATION,
-                referrer=AutofixReferrer.GITHUB_PR_COMMENT,
-                run_id=67890,
-                insert_index=0,
-            )
-
-        feature_trigger = mock_feature.call_args.args[1]
-        assert feature_trigger.insert_index == 0
-        assert feature_trigger.step_args.iteration_index == 1
-
     @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_pr_iteration_feature_route_requires_existing_pr(self, mock_client_class, mock_feature):
