@@ -5,6 +5,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/code';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Stack} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
@@ -188,11 +189,14 @@ export function AndroidNativeTombstonesBanner({event, projectId}: Props) {
       </Stack>
       <CloseDropdownMenu
         position="bottom-end"
-        triggerProps={{
-          showChevron: false,
-          variant: 'transparent',
-          icon: <IconClose variant="muted" />,
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            variant="transparent"
+            icon={<IconClose variant="muted" />}
+            aria-label={t('Close')}
+          />
+        )}
         size="xs"
         items={[
           {

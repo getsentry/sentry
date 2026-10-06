@@ -1,3 +1,4 @@
+import contextlib
 import logging
 from typing import Any
 
@@ -8,6 +9,12 @@ from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import deletion_tasks
+from sentry.viewer_context import (
+    ActorType,
+    ViewerContext,
+    get_viewer_context,
+    viewer_context_scope,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,16 +44,23 @@ def notify_seer_repository_deleted(
     from sentry.seer.code_review.utils import SeerEndpoint, make_seer_request
 
     viewer_context = SeerViewerContext(organization_id=organization_id)
-    make_seer_request(
-        path=SeerEndpoint.REPOSITORY_OFFBOARD.value,
-        payload={
-            "organization_id": organization_id,
-            "repository_id": repository_id,
-            "provider": provider,
-            "repository_name": repository_name,
-        },
-        viewer_context=viewer_context,
-    )
+    scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
+    if get_viewer_context() is None:
+        scope = viewer_context_scope(
+            ViewerContext(organization_id=organization_id, actor_type=ActorType.SYSTEM)
+        )
+
+    with scope:
+        make_seer_request(
+            path=SeerEndpoint.REPOSITORY_OFFBOARD.value,
+            payload={
+                "organization_id": organization_id,
+                "repository_id": repository_id,
+                "provider": provider,
+                "repository_name": repository_name,
+            },
+            viewer_context=viewer_context,
+        )
     logger.info(
         "seer.forward_repository_delete.success",
         extra={

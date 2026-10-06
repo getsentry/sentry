@@ -30,6 +30,7 @@ export function useAutoScroll({key}: UseAutoScrollOptions) {
 
   useEffect(() => {
     scrollToBottom();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [scrollToBottom, key]);
 
   // Content keeps growing after `key` has settled: markdown renders, cards swap

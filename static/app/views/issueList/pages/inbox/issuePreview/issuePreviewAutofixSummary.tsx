@@ -16,11 +16,13 @@ import {IssuePreviewAutofixRootCauseSection} from './issuePreviewAutofixRootCaus
 interface IssuePreviewAutofixSummaryProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
   groupId: string;
+  readOnly?: boolean;
 }
 
 export function IssuePreviewAutofixSummary({
   autofix,
   groupId,
+  readOnly = false,
 }: IssuePreviewAutofixSummaryProps) {
   const {runState} = autofix;
   const sections = useMemo(() => getOrderedAutofixSections(runState), [runState]);
@@ -39,6 +41,7 @@ export function IssuePreviewAutofixSummary({
         autofix={autofix}
         defaultExpanded
         groupId={groupId}
+        readOnly={readOnly}
         section={{artifacts: [], blocks: [], status: 'processing', step: 'root_cause'}}
       />
     );
@@ -56,6 +59,7 @@ export function IssuePreviewAutofixSummary({
         <IssuePreviewAutofixProposalSection
           autofix={autofix}
           defaultExpanded={defaultExpandedSection === 'proposal'}
+          readOnly={readOnly}
           section={proposalSection}
         />
       ) : null}
@@ -64,6 +68,7 @@ export function IssuePreviewAutofixSummary({
         <IssuePreviewAutofixPlanSection
           autofix={autofix}
           defaultExpanded={defaultExpandedSection === 'plan'}
+          readOnly={readOnly}
           section={planSection}
         />
       ) : null}
@@ -73,6 +78,7 @@ export function IssuePreviewAutofixSummary({
           autofix={autofix}
           defaultExpanded={defaultExpandedSection === 'rootCause'}
           groupId={groupId}
+          readOnly={readOnly}
           section={rootCauseSection}
         />
       ) : null}

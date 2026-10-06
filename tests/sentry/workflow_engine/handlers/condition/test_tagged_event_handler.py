@@ -6,8 +6,8 @@ from jsonschema import ValidationError
 
 from sentry.rules.conditions.tagged_event import TaggedEventCondition
 from sentry.rules.filters.tagged_event import TaggedEventFilter
-from sentry.rules.match import MatchType
 from sentry.services.eventstore.models import Event
+from sentry.workflow_engine.handlers.condition.utils.match import MatchType
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.handlers.condition.test_base import ConditionTestCase
@@ -109,6 +109,16 @@ class TestTaggedEventCondition(ConditionTestCase):
             {"match": MatchType.EQUAL, "key": "LOGGER", "value": "sentry.example"}
         )
         self.dc.save()
+
+        self.dc.comparison.update(
+            {
+                "match": MatchType.GREATER_OR_EQUAL,
+                "key": "LOGGER",
+                "value": "sentry.example",
+            }
+        )
+        with pytest.raises(ValidationError):
+            self.dc.save()
 
         self.dc.comparison.update({"hello": "world"})
         with pytest.raises(ValidationError):

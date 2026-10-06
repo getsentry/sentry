@@ -7,7 +7,7 @@ const productionEntryPoints = [
   'static/app/index.tsx',
   // scraps has all index.tsx file as separate entry points
   'static/app/components/core/*/index.tsx',
-  // defined in rspack.config.ts pipelines
+  // defined in rsbuild.config.ts pipelines
   'static/app/utils/setupStatics.tsx',
   'static/app/serviceWorker/worker/worker.ts',
   // scripts are entry points
@@ -46,6 +46,8 @@ const storyBookEntryPoints = [
 ];
 
 const config: KnipConfig = {
+  // Scraps has its own TypeScript configuration and test suite.
+  ignoreWorkspaces: ['static/packages/scraps'],
   workspaces: {
     '.': {
       entry: [
@@ -70,7 +72,6 @@ const config: KnipConfig = {
         '!static/oxlint/**/*.ts!',
       ],
       ignoreDependencies: [
-        'core-js',
         'tslib', // subdependency of many packages, declare the latest version
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
         '@swc-contrib/mut-cjs-exports', // used in jest config
@@ -81,6 +82,9 @@ const config: KnipConfig = {
       // Knip's Less compiler expects the extension in `project`; styles are handled by Rspack,
       // so do not report them as unused files.
       ignoreFiles: ['static/**/*.less'],
+      rspack: {
+        config: 'build-utils/knip-rspack.config.ts',
+      },
     },
     'static/oxlint/eslintPluginSentry': {
       // RuleTester resolves these cross-file fixtures by filename.

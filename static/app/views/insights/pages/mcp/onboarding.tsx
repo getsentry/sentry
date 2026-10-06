@@ -293,7 +293,7 @@ export function Onboarding() {
           </p>
           <LinkButton
             size="sm"
-            href="https://docs.sentry.io/product/insights/ai/mcp/"
+            href="https://docs.sentry.io/product/mcp-servers/"
             external
           >
             {t('Go to Documentation')}

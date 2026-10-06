@@ -18,7 +18,7 @@ def build_slack_footer(
     footer = f"{group.qualified_short_id}"
 
     if rules:
-        key, value = get_rule_or_workflow_id(rules[0])
+        key, value = get_rule_or_workflow_id(rules[0], prefer="workflow_id")
         match key:
             case "workflow_id":
                 rule_url = absolute_uri(create_link_to_workflow(group.organization.slug, value))

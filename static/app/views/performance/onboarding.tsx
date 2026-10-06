@@ -72,7 +72,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 import {useTracesApiOptions} from 'sentry/views/explore/hooks/useTraces';
 
-import {traceAnalytics} from './newTraceDetails/traceAnalytics';
+import {traceAnalytics} from './traceDetails/traceAnalytics';
 
 const performanceSetupUrl =
   'https://docs.sentry.io/performance-monitoring/getting-started/';

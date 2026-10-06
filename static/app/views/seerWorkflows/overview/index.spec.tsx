@@ -23,6 +23,7 @@ import {
   setPageFiltersStorage,
 } from 'sentry/components/pageFilters/persistence';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
@@ -39,7 +40,7 @@ import {useOverviewSeerDrawer} from 'sentry/views/seerWorkflows/overview/useOver
 
 describe('AutofixOverview', () => {
   const organization = OrganizationFixture({
-    features: ['seer-night-shift-ui', 'gen-ai-features'],
+    features: ['seer-night-shift-ui'],
   });
   const basePath = `/organizations/${organization.slug}/issues/autofix/`;
 
@@ -237,6 +238,11 @@ describe('AutofixOverview', () => {
       url: `/organizations/${organization.slug}/users/`,
       body: [],
     });
+    // The project page filter fetches user teams to decide whether to show Create Project.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/user-teams/`,
+      body: [],
+    });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
       body: {integrations: []},
@@ -374,6 +380,10 @@ describe('AutofixOverview', () => {
   });
 
   describe('Seer drawer', () => {
+    beforeEach(() => {
+      ConfigStore.set('isSelfHosted', false);
+    });
+
     // Holds setup open so the drawer sits in its loading state and fires no
     // downstream content requests.
     function mockDrawerFor(groupId: string) {
@@ -429,7 +439,8 @@ describe('AutofixOverview', () => {
       expect(groupRequest).toHaveBeenCalled();
     });
 
-    it('stays closed and clears the param when the org lacks gen-ai access', async () => {
+    it('stays closed and clears the param when self-hosted', async () => {
+      ConfigStore.set('isSelfHosted', true);
       mockOverview({base: {autofix_root_cause: [rootCauseRun]}});
       mockDrawerFor('2');
 
@@ -1913,48 +1924,49 @@ describe('AutofixOverview', () => {
     expect(screen.queryByText('No diff available.')).not.toBeInTheDocument();
   });
 
-  it('renders generated code changes for the Create PR step', async () => {
-    const codeChangesRun = {
-      ...rootCauseRun,
-      codeChanges: [
-        {
-          repoName: 'getsentry/sentry',
-          patch: {
-            path: 'src/sentry/foo.py',
-            source_file: 'src/sentry/foo.py',
-            target_file: 'src/sentry/foo.py',
-            type: DiffFileType.MODIFIED,
-            added: 1,
-            removed: 1,
-            hunks: [
-              {
-                source_start: 1,
-                source_length: 1,
-                target_start: 1,
-                target_length: 1,
-                section_header: '',
-                lines: [
-                  {
-                    line_type: DiffLineType.REMOVED,
-                    value: 'old',
-                    source_line_no: 1,
-                    target_line_no: null,
-                    diff_line_no: 1,
-                  },
-                  {
-                    line_type: DiffLineType.ADDED,
-                    value: 'new',
-                    source_line_no: null,
-                    target_line_no: 1,
-                    diff_line_no: 2,
-                  },
-                ],
-              },
-            ],
-          },
+  const codeChangesRun = {
+    ...rootCauseRun,
+    codeChanges: [
+      {
+        repoName: 'getsentry/sentry',
+        patch: {
+          path: 'src/sentry/foo.py',
+          source_file: 'src/sentry/foo.py',
+          target_file: 'src/sentry/foo.py',
+          type: DiffFileType.MODIFIED,
+          added: 1,
+          removed: 1,
+          hunks: [
+            {
+              source_start: 1,
+              source_length: 1,
+              target_start: 1,
+              target_length: 1,
+              section_header: '',
+              lines: [
+                {
+                  line_type: DiffLineType.REMOVED,
+                  value: 'old',
+                  source_line_no: 1,
+                  target_line_no: null,
+                  diff_line_no: 1,
+                },
+                {
+                  line_type: DiffLineType.ADDED,
+                  value: 'new',
+                  source_line_no: null,
+                  target_line_no: 1,
+                  diff_line_no: 2,
+                },
+              ],
+            },
+          ],
         },
-      ],
-    };
+      },
+    ],
+  };
+
+  it('renders generated code changes for the Create PR step', async () => {
     mockOverview({base: {autofix_code_changes: [codeChangesRun]}});
 
     renderPage();
@@ -1965,6 +1977,36 @@ describe('AutofixOverview', () => {
       await screen.findByRole('button', {name: /src\/sentry\/foo\.py/})
     );
     expect(await screen.findByText('new')).toBeInTheDocument();
+  });
+
+  it('shows an error instead of a stale diff when a later code changes turn errored', async () => {
+    mockOverview({
+      base: {autofix_code_changes: [{...codeChangesRun, status: 'error' as const}]},
+    });
+
+    renderPage();
+
+    expect(
+      await screen.findByText(
+        'Seer ran into an error on the latest attempt. Open Seer to retry.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText('getsentry/sentry')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Draft PR'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Open Seer'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('seerDrawer=2')
+    );
+  });
+
+  it('renders code changes for a completed run', async () => {
+    mockOverview({
+      base: {autofix_code_changes: [{...codeChangesRun, status: 'completed' as const}]},
+    });
+
+    renderPage();
+
+    expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
   });
 
   it('renders a Create PR step run whose code changes are absent', async () => {

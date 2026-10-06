@@ -67,7 +67,7 @@ export const CONVERSATION_FIELDS = {
   duration: {
     key: 'conversation.duration',
     valueType: FieldValueType.DURATION,
-    description: t('Combined duration of all AI spans.'),
+    description: t('Elapsed time between the first and last conversation span.'),
   },
   generationDuration: {
     key: 'conversation.generationDuration',
@@ -141,7 +141,7 @@ function normalizeConversationPreview(
     : (content?.find(part => part.type === 'text')?.text ?? null);
 }
 
-export function useConversations() {
+export function useConversations({enabled = true}: {enabled?: boolean} = {}) {
   const organization = useOrganization();
   const {cursor, setCursor, unsetCursor} = useTableCursor();
   const pageFilters = usePageFilters();
@@ -174,6 +174,7 @@ export function useConversations() {
         staleTime: 0,
       }
     ),
+    enabled,
     select: selectJsonWithHeaders,
   });
 

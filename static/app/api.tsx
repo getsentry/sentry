@@ -11,7 +11,6 @@ import {
   SUPERUSER_REQUIRED,
 } from 'sentry/constants/apiErrorCodes';
 import type {ApiResult, ResponseMeta} from 'sentry/types/api';
-import {metric} from 'sentry/utils/analytics';
 import {isSimilarOrigin} from 'sentry/utils/api/isSimilarOrigin';
 import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -19,6 +18,7 @@ import {getCsrfToken} from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
+import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
 /**
@@ -54,9 +54,13 @@ export class Request {
   }
 
   cancel() {
+    // Cancelled requests stay in `activeRequests`, so `Client.clear()` can
+    // cancel the same request more than once. Only count the first abort.
+    if (this.alive) {
+      Sentry.metrics.count('ui.api-request.abort', 1);
+    }
     this.alive = false;
     this.aborter?.abort();
-    metric('app.api.request-abort', 1);
   }
 }
 
@@ -66,6 +70,27 @@ export class Request {
 function csrfSafeMethod(method?: string): boolean {
   // these HTTP methods do not require CSRF protection
   return /^(GET|HEAD|OPTIONS|TRACE)$/.test(method ?? '');
+}
+
+/**
+ * The server derives `next` on the SSO login URL from the Referer header. API
+ * requests usually go to a different (region) origin than the page, so
+ * browsers strip the Referer down to the origin and `next` ends up pointing at
+ * `/`. Replace it with the page the user is actually on. The login view still
+ * validates `next` before redirecting. A missing or unparseable login URL is
+ * returned unchanged.
+ */
+export function withCurrentPageAsNext(loginUrl: string): string {
+  if (!loginUrl) {
+    return loginUrl;
+  }
+  try {
+    const url = new URL(loginUrl, window.location.origin);
+    url.searchParams.set('next', window.location.href);
+    return url.toString();
+  } catch {
+    return loginUrl;
+  }
 }
 
 /**
@@ -114,7 +139,7 @@ export const initApiClientErrorHandling = () =>
 
     // If user must login via SSO, redirect to org login page
     if (code === 'sso-required') {
-      window.location.assign(extra.loginUrl);
+      testableWindowLocation.assign(withCurrentPageAsNext(extra.loginUrl));
       return true;
     }
 
@@ -191,7 +216,7 @@ export function hasProjectBeenRenamed(response: ResponseMeta) {
 
 type FunctionCallback<Args extends any[] = any[]> = (...args: Args) => void;
 
-export type RequestCallbacks = {
+type RequestCallbacks = {
   /**
    * Callback for the request completing (success or error)
    */
@@ -339,13 +364,24 @@ export class Client {
     let didSuccessfullyRetry = false;
 
     if (isSudoRequired) {
+      const extra = response?.responseJSON?.detail?.extra;
       openSudo({
         isSuperuser: code === SUPERUSER_REQUIRED,
+        orgSlug: extra?.orgSlug,
         sudo: code === SUDO_REQUIRED,
         retryRequest: async () => {
           try {
-            const data = await this.requestPromise(path, requestOptions);
-            requestOptions.success?.(data);
+            // Forward the retry's own response rather than just its body, so
+            // callers still see the real status code and headers after a sudo
+            // prompt interrupts the original request.
+            const [retryData, retryTextStatus, retryResponse] = await this.requestPromise(
+              path,
+              {
+                ...requestOptions,
+                includeAllArgs: true,
+              }
+            );
+            requestOptions.success?.(retryData, retryTextStatus, retryResponse);
             didSuccessfullyRetry = true;
           } catch (err) {
             requestOptions.error?.(err);
@@ -395,9 +431,20 @@ export class Client {
     }
 
     const id = uniqueId();
-    const startMarker = `api-request-start-${id}`;
+    const startTime = performance.now();
+    const url = sanitizePath(path);
 
-    metric.mark({name: startMarker});
+    const recordRequestMetric = (outcome: 'success' | 'error', status?: number) => {
+      // Skip requests cancelled while in flight (e.g. with `skipAbort`), which
+      // are already counted as aborts
+      if (!this.activeRequests[id]?.alive) {
+        return;
+      }
+      Sentry.metrics.distribution('ui.api-request', performance.now() - startTime, {
+        unit: 'millisecond',
+        attributes: {status, outcome, url, method},
+      });
+    };
 
     /**
      * Called when the request completes with a 2xx status
@@ -407,11 +454,7 @@ export class Client {
       textStatus: string,
       responseData: any
     ) => {
-      metric.measure({
-        name: 'app.api.request-success',
-        start: startMarker,
-        data: {status: resp?.status},
-      });
+      recordRequestMetric('success', resp?.status);
       if (options.success !== undefined) {
         this.wrapCallback<[any, string, ResponseMeta]>(id, options.success)(
           responseData,
@@ -429,11 +472,7 @@ export class Client {
       textStatus: string,
       errorThrown: string
     ) => {
-      metric.measure({
-        name: 'app.api.request-error',
-        start: startMarker,
-        data: {status: resp?.status},
-      });
+      recordRequestMetric('error', resp?.status);
 
       this.handleRequestError(
         {id, path, requestOptions: options},
@@ -636,8 +675,8 @@ export class Client {
     // or handle with a user friendly error message
     const preservedError = new Error('API Request Error');
 
-    return new Promise((resolve, reject) =>
-      this.request(path, {
+    return new Promise((resolve, reject) => {
+      const request = this.request(path, {
         ...options,
         preservedError,
         success: (data, textStatus, resp) => {
@@ -659,7 +698,17 @@ export class Client {
           // potentially be logged by Sentry's unhandled rejection handler
           reject(errorObjectToUse);
         },
-      })
-    );
+      });
+
+      // `request` runs neither callback when the fetch itself rejects (a blocked
+      // request, a network failure), which would leave this promise pending
+      // forever. A cancelled request rejects the same way, but it was abandoned
+      // on purpose, so it stays unsettled rather than surfacing as an error.
+      request.requestPromise.catch(() => {
+        if (request.alive) {
+          reject(new RequestError(options.method, path, preservedError));
+        }
+      });
+    });
   }
 }

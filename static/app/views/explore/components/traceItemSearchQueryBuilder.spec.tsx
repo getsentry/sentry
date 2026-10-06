@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -224,6 +225,50 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     expect(result.current.filterKeyAliases?.['log.message_alias']).toBeDefined();
   });
 
+  it('uses preferred search aliases in deprecation warnings', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: defaultInitialProps,
+      organization,
+    });
+
+    expect(result.current.filterKeyAliases?.['sentry.segment.name']?.alias).toBe(
+      'transaction'
+    );
+
+    render(
+      <Fragment>{result.current.getFilterTokenWarning?.('sentry.segment.name')}</Fragment>
+    );
+
+    expect(document.body).toHaveTextContent(
+      'sentry.segment.name is deprecated. Use transaction instead.'
+    );
+  });
+
+  it('does not warn for product fields that opt out of convention deprecation', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        itemType: TraceItemDataset.REPLAYS,
+      },
+      organization,
+    });
+
+    expect(result.current.getFilterTokenWarning?.('url')).toBeUndefined();
+  });
+
+  it.each([TraceItemDataset.ERRORS, TraceItemDataset.PROCESSING_ERRORS])(
+    'does not apply convention aliases or deprecation warnings for %s',
+    itemType => {
+      const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+        initialProps: {...defaultInitialProps, itemType},
+        organization,
+      });
+
+      expect(result.current.filterKeyAliases?.['http.method']).toBeUndefined();
+      expect(result.current.getFilterTokenWarning?.('http.method')).toBeUndefined();
+    }
+  );
+
   it('merges all secondary alias types into filterKeyAliases', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
       initialProps: {
@@ -378,5 +423,32 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     });
 
     expect(result.current.placeholder).toBe('Search for logs, users, tags, and more');
+  });
+
+  it('allows regex operators for logs when the feature is enabled', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {...defaultInitialProps, itemType: TraceItemDataset.LOGS},
+      organization: OrganizationFixture({features: ['ourlogs-regex-searches']}),
+    });
+
+    expect(result.current.allowRegexOperators).toBe(true);
+  });
+
+  it('does not allow regex operators for logs when the feature is disabled', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {...defaultInitialProps, itemType: TraceItemDataset.LOGS},
+      organization,
+    });
+
+    expect(result.current.allowRegexOperators).toBe(false);
+  });
+
+  it('does not allow regex operators for spans when the feature is enabled', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {...defaultInitialProps, itemType: TraceItemDataset.SPANS},
+      organization: OrganizationFixture({features: ['ourlogs-regex-searches']}),
+    });
+
+    expect(result.current.allowRegexOperators).toBe(false);
   });
 });

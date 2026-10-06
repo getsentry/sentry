@@ -8,6 +8,8 @@ from sentry.integrations.msteams.webhook import MsTeamsEvents, MsTeamsWebhookEnd
 
 class TestGeTeamInstallationRequestData(TestCase):
     def setUp(self) -> None:
+        self._conversation_id = "19:selected-channel@thread.tacv2"
+        self._team_id = "19:team@thread.tacv2"
         self._example_request_data = {
             "entities": [{"type": "clientInfo", "locale": "en-US"}],
             "timestamp": "2024-03-21T18:41:30.088Z",
@@ -23,19 +25,17 @@ class TestGeTeamInstallationRequestData(TestCase):
             "conversation": {
                 "tenantId": "ce067f64-338d-44a0-89fb-7fc8973e254f",
                 "isGroup": "True",
-                "id": "19:7c8cd8b4b4ad4e73a2957e6daad706ef@thread.tacv2",
+                "id": self._conversation_id,
                 "conversationType": "channel",
             },
             "channelData": {
-                "channel": {"id": "19:7c8cd8b4b4ad4e73a2957e6daad706ef@thread.tacv2"},
+                "channel": {"id": self._conversation_id},
                 "team": {
                     "name": "Sales and Marketing",
                     "aadGroupId": "3d5d4c90-1ae9-41c7-9471-7ccd37ddb7d4",
-                    "id": "19:7c8cd8b4b4ad4e73a2957e6daad706ef@thread.tacv2",
+                    "id": self._team_id,
                 },
-                "settings": {
-                    "selectedChannel": {"id": "19:7c8cd8b4b4ad4e73a2957e6daad706ef@thread.tacv2"}
-                },
+                "settings": {"selectedChannel": {"id": self._conversation_id}},
                 "source": {"name": "message"},
                 "tenant": {"id": "ce067f64-338d-44a0-89fb-7fc8973e254f"},
             },
@@ -48,8 +48,8 @@ class TestGeTeamInstallationRequestData(TestCase):
             self._example_request_data
         )
         assert response == {
-            "conversation_id": "19:7c8cd8b4b4ad4e73a2957e6daad706ef@thread.tacv2",
-            "external_id": "19:7c8cd8b4b4ad4e73a2957e6daad706ef@thread.tacv2",
+            "conversation_id": self._conversation_id,
+            "external_id": self._team_id,
             "external_name": "Sales and Marketing",
             "installation_type": "team",
             "service_url": "https://smba.trafficmanager.net/amer/",

@@ -6,6 +6,7 @@ import {LetterAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {markdownToPlainText} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -28,7 +29,6 @@ import {t} from 'sentry/locale';
 import type {AvatarUser, User} from 'sentry/types/user';
 import {defined} from 'sentry/utils/defined';
 import {userDisplayName} from 'sentry/utils/formatters';
-import {markdownToPlainText} from 'sentry/utils/marked/marked';
 
 const AVATAR_SIZE = 24;
 const SOURCE_BADGE_SIZE = 14;
