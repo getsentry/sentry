@@ -29,7 +29,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {ResultTable} from 'sentry/components/resultTable';
 import {IconList, IconSearch, IconWarning} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import type {Cell} from 'sentry/types/system';
 import {getCells} from 'sentry/utils/cells';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
@@ -75,7 +75,7 @@ function Filter({name, queryKey, options, path, value}: FilterProps) {
   const navigate = useNavigate();
 
   const allOptions = [
-    {value: '', label: 'Any'},
+    {value: '', label: t('Any')},
     ...options.map(item => ({value: item[0], label: item[1]})),
   ];
 
@@ -112,7 +112,7 @@ function SortBy({options, path, value}: SortByProps) {
         <OverlayTrigger.Button
           {...triggerProps}
           icon={<IconList size="xs" />}
-          prefix="Sort By"
+          prefix={t('Sort By')}
           size="sm"
         />
       )}
@@ -448,13 +448,13 @@ function RegionHint({
       size="xs"
       onClick={() => onChangeCell(matchedCell.locality_url)}
     >
-      {`View in ${matchedCell.name}`}
+      {t('View in %s', matchedCell.name)}
     </Button>
   ));
 
   if (probeAllRegions) {
     const lead =
-      probeAllRegionsHint ?? 'Also found in other data regions — look there too:';
+      probeAllRegionsHint ?? t('Also found in other data regions — look there too:');
     return (
       <Container marginBottom="md">
         <Alert variant="info" showIcon>
@@ -467,19 +467,22 @@ function RegionHint({
     );
   }
 
-  const currentName = cell?.name ?? 'this region';
+  const currentName = cell?.name ?? t('this region');
   // The active region returned similar (but not exact) matches — make it
   // clear the exact record was not found here, rather than implying no
   // results at all.
-  const leadText = results.rows.length > 0 ? 'No exact match in' : 'No results in';
-
   return (
     <Container marginBottom="md">
       <Alert variant="info" showIcon>
         <Flex align="center" gap="md" wrap="wrap">
           <span>
-            {leadText} <strong>{currentName}</strong>. Found results in another data
-            region:
+            {results.rows.length > 0
+              ? tct('No exact match in [name]. Found results in another data region:', {
+                  name: <strong>{currentName}</strong>,
+                })
+              : tct('No results in [name]. Found results in another data region:', {
+                  name: <strong>{currentName}</strong>,
+                })}
           </span>
           {regionButtons}
         </Flex>
@@ -602,7 +605,7 @@ function ResultBody({
         <td colSpan={effectiveColumns.length}>
           <Container marginTop="xs" marginBottom="lg">
             <Alert variant="danger" showIcon>
-              Something bad happened :/
+              {t('Something bad happened :/')}
             </Alert>
           </Container>
         </td>
@@ -631,7 +634,7 @@ function ResultBody({
       return (
         <tr>
           <td colSpan={effectiveColumns.length}>
-            <LoadingIndicator>Hold on to your butts!</LoadingIndicator>
+            <LoadingIndicator>{t('Hold on to your butts!')}</LoadingIndicator>
           </td>
         </tr>
       );
@@ -639,7 +642,7 @@ function ResultBody({
     return (
       <tr>
         <td colSpan={effectiveColumns.length}>
-          <EmptyMessage>No results</EmptyMessage>
+          <EmptyMessage>{t('No results')}</EmptyMessage>
         </td>
       </tr>
     );
@@ -648,7 +651,7 @@ function ResultBody({
     return (
       <tr>
         <td colSpan={effectiveColumns.length}>
-          <LoadingIndicator>Hold on to your butts!</LoadingIndicator>
+          <LoadingIndicator>{t('Hold on to your butts!')}</LoadingIndicator>
         </td>
       </tr>
     );
@@ -657,7 +660,7 @@ function ResultBody({
     return (
       <tr>
         <td colSpan={effectiveColumns.length}>
-          <EmptyMessage>No results</EmptyMessage>
+          <EmptyMessage>{t('No results')}</EmptyMessage>
         </td>
       </tr>
     );
@@ -1172,7 +1175,7 @@ export function ResultGrid({
         clampedRegionIndex,
         0,
         <th key="__region" style={{width: 70}}>
-          Region
+          {t('Region')}
         </th>
       )
     : columns;
@@ -1230,13 +1233,13 @@ export function ResultGrid({
     Object.keys(filters).length > 0;
 
   const regionOptions = [
-    ...(allowAllRegions ? [{label: 'All regions', value: ALL_REGIONS}] : []),
+    ...(allowAllRegions ? [{label: t('All regions'), value: ALL_REGIONS}] : []),
     ...cells.map(c => {
       const hasMatch = probe.regionMatches.some(m => m.locality_url === c.locality_url);
       return {
         label: c.name,
         value: c.locality_url,
-        trailingItems: hasMatch ? <Tag variant="success">found</Tag> : undefined,
+        trailingItems: hasMatch ? <Tag variant="success">{t('found')}</Tag> : undefined,
       };
     }),
   ];
@@ -1291,7 +1294,7 @@ export function ResultGrid({
     ) : null;
 
   return (
-    <Container containerType="inline-size">
+    <Container>
       <Flex
         wrap="wrap"
         gap="lg"
@@ -1309,7 +1312,11 @@ export function ResultGrid({
               <SelectorItem>
                 <CompactSelect
                   trigger={triggerProps => (
-                    <OverlayTrigger.Button {...triggerProps} prefix="Region" size="sm" />
+                    <OverlayTrigger.Button
+                      {...triggerProps}
+                      prefix={t('Region')}
+                      size="sm"
+                    />
                   )}
                   value={allRegions ? ALL_REGIONS : cell ? cell.locality_url : undefined}
                   options={regionOptions}
@@ -1337,7 +1344,7 @@ export function ResultGrid({
               <Flex align="center" gap="xs" flex="999 1 auto" minWidth="240px">
                 <SearchInput
                   type="text"
-                  placeholder="Search"
+                  placeholder={t('Search')}
                   name="query"
                   autoComplete="off"
                   value={queryInput}
@@ -1348,7 +1355,7 @@ export function ResultGrid({
                   icon={<IconSearch />}
                   variant="primary"
                   size="sm"
-                  aria-label="Search"
+                  aria-label={t('Search')}
                 />
               </Flex>
             )}
@@ -1378,7 +1385,7 @@ export function ResultGrid({
       {hasPagination && allRegions && moreRegions.length > 0 && (
         <Flex justify="center" marginBottom="2xl">
           <Button size="sm" onClick={loadMoreRegions} busy={pendingRegions.length > 0}>
-            {`Load more (${moreRegions.join(', ')})`}
+            {t('Load more (%s)', moreRegions.join(', '))}
           </Button>
         </Flex>
       )}
