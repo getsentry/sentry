@@ -352,7 +352,7 @@ function orderDepthFirst(
   return ordered;
 }
 
-const MAX_PAGES = 10;
+const MAX_PAGES = 100;
 
 export function useConversation(
   conversation: UseConversationsOptions
@@ -382,7 +382,6 @@ export function useConversation(
 
   const queryParams = {
     project,
-    per_page: 1000,
     ...datetimeParams,
   };
 
