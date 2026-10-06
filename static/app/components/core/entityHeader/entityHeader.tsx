@@ -15,12 +15,12 @@ import {Placeholder} from 'sentry/components/placeholder';
 
 import type {EntityHeaderMetadataItemProps} from './items/entityHeaderMetadataItem';
 import {EntityHeaderMetadataItem} from './items/entityHeaderMetadataItem';
+import type {EntityHeaderPeopleProps} from './items/entityHeaderPeople';
+import {EntityHeaderPeople} from './items/entityHeaderPeople';
 import type {EntityHeaderStatProps} from './items/entityHeaderStat';
 import {EntityHeaderStat} from './items/entityHeaderStat';
 import type {EntityHeaderTitleProps} from './items/entityHeaderTitle';
 import {EntityHeaderTitle} from './items/entityHeaderTitle';
-import type {EntityHeaderViewersProps} from './items/entityHeaderViewers';
-import {EntityHeaderViewers} from './items/entityHeaderViewers';
 import {METADATA_TEXT_HEIGHT, ROW_HEIGHT} from './constants';
 
 export interface EntityHeaderProps {
@@ -40,6 +40,14 @@ export interface EntityHeaderProps {
    */
   metadata?: Array<EntityHeaderMetadataItemProps | null>;
   /**
+   * People related to this entity — who viewed it, who is participating in it.
+   * Rendered as an avatar stack at the head of the stats row, which is where
+   * the spec puts it. It gets its own slot rather than being a labelled stat
+   * because it has no value, and because it loads on its own schedule —
+   * leaving space for it is what stops the row jumping.
+   */
+  people?: EntityHeaderPeopleProps;
+  /**
    * Measurements about the entity. Right-aligned beside the title when there is
    * room; below the metadata row when there is not.
    * `null` entries are dropped so callers can inline conditionals.
@@ -49,13 +57,6 @@ export interface EntityHeaderProps {
    * A single line of secondary text under the title, e.g. an error message.
    */
   subtitle?: React.ReactNode;
-  /**
-   * Who has looked at this entity. Rendered as an avatar stack at the head of
-   * the stats row, which is where the spec puts it. It gets its own slot rather
-   * than being a labelled stat because it has no value, and because it loads on
-   * its own schedule — leaving space for it is what stops the row jumping.
-   */
-  viewers?: EntityHeaderViewersProps;
 }
 
 /**
@@ -122,9 +123,9 @@ export function EntityHeader({
   isLoading,
   metadata,
   stats,
+  people,
   subtitle,
   title,
-  viewers,
 }: EntityHeaderProps) {
   const hasParentQueryContainer = useHasContainerQuery();
 
@@ -142,13 +143,12 @@ export function EntityHeader({
       Boolean(entry.item)
     );
 
-  // The header's own loading counts as the viewers loading, so the avatar
-  // skeleton comes up alongside the stat skeletons instead of appearing only
-  // once the entity has resolved and its own request can start.
-  const viewersLoading = Boolean(viewers) && (isLoading || Boolean(viewers?.isLoading));
-  const hasViewers =
-    Boolean(viewers) && (viewersLoading || (viewers?.users.length ?? 0) > 0);
-  const hasStats = visibleStats.length > 0 || hasViewers;
+  // The header's own loading counts as these loading, so the avatar skeleton
+  // comes up alongside the stat skeletons instead of appearing only once the
+  // entity has resolved and its own request can start.
+  const peopleLoading = Boolean(people) && (isLoading || Boolean(people?.isLoading));
+  const hasPeople = Boolean(people) && (peopleLoading || (people?.users.length ?? 0) > 0);
+  const hasStats = visibleStats.length > 0 || hasPeople;
   const hasSubtitle = Boolean(subtitle);
   const hasMetadata = visibleMetadata.length > 0;
   const hasContext = hasSubtitle || hasMetadata;
@@ -177,12 +177,12 @@ export function EntityHeader({
             minHeight={ROW_HEIGHT}
             justifySelf={{zero: 'start', lg: 'end'}}
           >
-            {hasViewers && viewers && (
-              <EntityHeaderViewers {...viewers} isLoading={viewersLoading} />
+            {hasPeople && people && (
+              <EntityHeaderPeople {...people} isLoading={peopleLoading} />
             )}
             {visibleStats.map(({stat, index}, position) => (
               <Fragment key={index}>
-                {(position > 0 || hasViewers) && <Divider height="8px" />}
+                {(position > 0 || hasPeople) && <Divider height="8px" />}
                 <EntityHeaderStat {...stat} isLoading={isLoading} />
               </Fragment>
             ))}

@@ -133,7 +133,12 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
         ],
         loadingWidth: '200px',
       },
-      viewers: {users: viewers.users, isLoading: viewers.isPending},
+      people: {
+        users: viewers.users,
+        label: t('Viewed by'),
+        collectiveNoun: t('viewers'),
+        isLoading: viewers.isPending,
+      },
       stats: [
         showDeadRageClicks
           ? {

@@ -157,25 +157,25 @@ describe('EntityHeader', () => {
       expect(screen.getByRole('textbox', {name: 'Scratch note'})).toHaveValue('kept');
     });
 
-    it('holds space for viewers while they load, then renders the avatars', () => {
+    it('holds space for people while they load, then renders the avatars', () => {
       const users = [UserFixture({id: '1', name: 'Alice', email: 'alice@example.com'})];
 
       const {rerender} = render(
         <EntityHeader
           title={{label: 'Session'}}
-          viewers={{users: [], isLoading: true}}
+          people={{users: [], isLoading: true, label: 'Viewed by'}}
           stats={[{label: 'Errors', value: 2}]}
         />
       );
 
-      // Viewers load on their own schedule. Reserving the space is what stops the
+      // People load on their own schedule. Reserving the space is what stops the
       // stats shifting sideways when they land.
       expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
 
       rerender(
         <EntityHeader
           title={{label: 'Session'}}
-          viewers={{users}}
+          people={{users, label: 'Viewed by'}}
           stats={[{label: 'Errors', value: 2}]}
         />
       );
@@ -184,12 +184,13 @@ describe('EntityHeader', () => {
       expect(screen.getByText('Errors')).toBeInTheDocument();
     });
 
-    it('names the avatars as viewers rather than leaving them unexplained', async () => {
+    it('names the relationship rather than leaving the avatars unexplained', async () => {
       render(
         <EntityHeader
           title={{label: 'Session'}}
-          viewers={{
+          people={{
             users: [UserFixture({id: '1', name: 'Alice', email: 'alice@example.com'})],
+            label: 'Viewed by',
           }}
         />
       );
@@ -200,17 +201,17 @@ describe('EntityHeader', () => {
       expect(screen.getByText('Alice (alice@example.com)')).toBeInTheDocument();
     });
 
-    it('renders nothing for viewers once they resolve to nobody', () => {
+    it('renders nothing for people once they resolve to nobody', () => {
       render(
         <EntityHeader
           title={{label: 'Session'}}
-          viewers={{users: []}}
+          people={{users: [], label: 'Viewed by'}}
           stats={[{label: 'Errors', value: 2}]}
         />
       );
 
       expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
-      // No viewers means no leading divider before the first stat.
+      // Nobody means no leading divider before the first stat.
       expect(screen.getByRole('banner').querySelectorAll('hr')).toHaveLength(0);
     });
 
@@ -253,8 +254,8 @@ describe('EntityHeader', () => {
       expect(screen.queryByText('A subtitle')).not.toBeInTheDocument();
     });
 
-    it('shows the viewers skeleton alongside the stats, not after them', () => {
-      // Viewers cannot be fetched until the entity resolves and yields its
+    it('shows the people skeleton alongside the stats, not after them', () => {
+      // People cannot be fetched until the entity resolves and yields its
       // project. If the slot only appeared once its own request was in flight,
       // its skeleton would start just as the stats beside it finished — reading
       // as two loads in sequence rather than one.
@@ -262,19 +263,19 @@ describe('EntityHeader', () => {
         <EntityHeader
           isLoading
           title={{label: 'Session'}}
-          viewers={{users: []}}
+          people={{users: [], label: 'Viewed by'}}
           stats={[{label: 'Errors', value: 2}]}
         />
       );
 
-      // title + stat + viewers
+      // title + stat + people
       expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(3);
 
-      // The entity lands, its viewers request starts, and the avatar slot holds.
+      // The entity lands, its people request starts, and the avatar slot holds.
       rerender(
         <EntityHeader
           title={{label: 'Session'}}
-          viewers={{users: [], isLoading: true}}
+          people={{users: [], isLoading: true, label: 'Viewed by'}}
           stats={[{label: 'Errors', value: 2}]}
         />
       );

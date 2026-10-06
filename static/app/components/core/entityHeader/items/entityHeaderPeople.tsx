@@ -13,16 +13,26 @@ import {userDisplayName} from 'sentry/utils/formatters';
 /** Matches the spec's overlapping 24px stack. */
 const AVATAR_SIZE = 24;
 
-export interface EntityHeaderViewersProps {
+export interface EntityHeaderPeopleProps {
   /**
-   * People who have looked at this entity. Rendered as an overlapping avatar
-   * stack at the head of the stats row. Pass an empty array for "nobody yet" —
-   * the slot then renders nothing.
+   * How these people relate to the entity, e.g. "Viewed by" or "Participants".
+   * Required because a stack of faces says nothing on its own — it becomes the
+   * header of each avatar's tooltip.
+   */
+  label: string;
+  /**
+   * The people themselves. Pass an empty array for "nobody yet" — the slot then
+   * renders nothing.
    */
   users: AvatarUser[];
   /**
-   * Viewers usually load on their own schedule, separate from the entity, so
-   * this is independent of the header's `isLoading`.
+   * What to call them in the overflow chip, e.g. "viewers" gives "+3 other
+   * viewers". Defaults to "people".
+   */
+  collectiveNoun?: string;
+  /**
+   * These usually load on their own schedule, separate from the entity, so this
+   * is independent of the header's `isLoading`.
    */
   isLoading?: boolean;
   /**
@@ -32,12 +42,14 @@ export interface EntityHeaderViewersProps {
   maxVisibleAvatars?: number;
 }
 
-export function EntityHeaderViewers({
+export function EntityHeaderPeople({
+  collectiveNoun,
   isLoading,
+  label,
   loadingWidth = '40px',
   maxVisibleAvatars = 5,
   users,
-}: EntityHeaderViewersProps) {
+}: EntityHeaderPeopleProps) {
   const {t} = useTranslation();
 
   if (!isLoading && users.length === 0) {
@@ -54,12 +66,12 @@ export function EntityHeaderViewers({
           avatarSize={AVATAR_SIZE}
           maxVisibleAvatars={maxVisibleAvatars}
           // A bare stack of faces does not say what it represents, so both the
-          // per-avatar tooltip and the overflow chip name it. Without this the
-          // chip reads "+3 other users", which says nothing about viewing.
-          typeAvatars={t('viewers')}
+          // per-avatar tooltip and the overflow chip name the relationship.
+          // Without this the chip reads "+3 other users", AvatarList's default.
+          typeAvatars={collectiveNoun ?? t('people')}
           renderTooltip={user => (
             <Fragment>
-              <Tooltip.Header>{t('Viewed by')}</Tooltip.Header>
+              <Tooltip.Header>{label}</Tooltip.Header>
               <Tooltip.Grid>
                 <Tooltip.Row>{userDisplayName(user)}</Tooltip.Row>
               </Tooltip.Grid>
