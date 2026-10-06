@@ -146,11 +146,20 @@ def get_dropped_data_annotations(
     rollup: int,
     *,
     threshold: int = DEFAULT_DROP_THRESHOLD,
+    outcome: str | None = None,
+    reason: str | None = None,
 ) -> tuple[list[Annotation], list[Annotation]]:
     """Build dropped and accepted data-fidelity annotations for a timeseries query.
     - ``dropped_annotations``: one per (bucket, outcome, reason) drop.
     - ``accepted_annotations``: one per bucket, carrying that bucket's accepted
       volume.
+
+    ``outcome`` and ``reason`` optionally narrow the *dropped* side to a single
+    classification: ``outcome`` is the top-level drop class (e.g. ``rate_limited``)
+    and ``reason`` the sub-classification within it (e.g. ``spike_protection``).
+    The accepted side is never filtered — it is the share denominator and carries
+    no outcome or reason — so a scoped request still returns the complete accepted
+    volume alongside the one dropped series.
 
     Buckets align to the chart because ``rollup`` is the interval the endpoint
     already resolved for the series.
@@ -183,13 +192,18 @@ def get_dropped_data_annotations(
             dropped_bytes_by_key = _dropped_by_bucket_reason(byte_rows)
 
         dropped_annotations: list[Annotation] = []
-        for (bucket_start_ms, outcome, reason_key), dropped in dropped_by_key.items():
+        for (bucket_start_ms, bucket_outcome, reason_key), dropped in dropped_by_key.items():
             if dropped < threshold:
+                continue
+
+            if outcome is not None and bucket_outcome != outcome:
+                continue
+            if reason is not None and reason_key != reason:
                 continue
             annotation = Annotation(
                 type="system",
                 category=category.api_name(),
-                outcome=outcome,
+                outcome=bucket_outcome,
                 reason=reason_key,
                 start=bucket_start_ms,
                 end=bucket_start_ms + rollup * 1000,
@@ -197,7 +211,7 @@ def get_dropped_data_annotations(
             )
             if byte_category is not None:
                 annotation["byteSize"] = dropped_bytes_by_key.get(
-                    (bucket_start_ms, outcome, reason_key), 0
+                    (bucket_start_ms, bucket_outcome, reason_key), 0
                 )
             dropped_annotations.append(annotation)
 

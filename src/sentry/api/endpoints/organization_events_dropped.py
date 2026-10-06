@@ -1,10 +1,12 @@
 from typing import Any, TypedDict
 
 import sentry_sdk
-from drf_spectacular.utils import OpenApiResponse, extend_schema
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
@@ -12,6 +14,7 @@ from sentry.api.client_kind import get_client_kind
 from sentry.api.endpoints.timeseries import Annotation
 from sentry.api.helpers.data_annotations import (
     DATASET_TO_CATEGORY,
+    DROPPED_OUTCOMES,
     get_dropped_data_annotations,
     record_dropped_events_telemetry,
 )
@@ -26,6 +29,11 @@ from sentry.utils.tracing import start_span
 _ENDPOINT = "events-dropped"
 
 _ACCEPTED = "accepted"
+
+# The outcome values that name a drop. ``category`` is selected via ``dataset``;
+# these are the top-level drop classifications a caller may filter the dropped
+# side by. Kept lowercase to match the api_name() values in the response.
+_DROPPED_OUTCOME_NAMES = tuple(o.api_name() for o in DROPPED_OUTCOMES)
 
 
 class DroppedEventsBucket(TypedDict):
@@ -54,8 +62,9 @@ class DroppedEventsResponse(TypedDict):
 @extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
+    owner = ApiOwner.EXPLORE
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
 
     @extend_schema(
@@ -70,6 +79,31 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.STATS_PERIOD,
             VisibilityParams.DATASET,
             VisibilityParams.INTERVAL,
+            OpenApiParameter(
+                name="outcome",
+                location="query",
+                required=False,
+                type=str,
+                enum=_DROPPED_OUTCOME_NAMES,
+                description=(
+                    "Narrow the dropped events to a single top-level drop "
+                    "classification (e.g. `rate_limited`, `filtered`). The accepted "
+                    "volume is always returned in full as the share denominator, so "
+                    "`acceptedEvents + droppedEvents` is no longer a grand total when "
+                    "this is set."
+                ),
+            ),
+            OpenApiParameter(
+                name="reason",
+                location="query",
+                required=False,
+                type=OpenApiTypes.STR,
+                description=(
+                    "Narrow the dropped events to a single reason — the "
+                    "sub-classification within an outcome (e.g. `spike_protection` "
+                    "within `rate_limited`). May be combined with `outcome`."
+                ),
+            ),
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -86,7 +120,9 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
         can compute the dropped share.
 
         Select the dropped-data type with ``dataset`` and the bucket size with
-        ``interval``.
+        ``interval``. Optionally scope the dropped side to one classification with
+        ``outcome`` (top-level) and/or ``reason`` (sub-classification within an
+        outcome); the accepted volume is always returned in full.
         """
         dataset = self.get_dataset(request, organization)
         if DATASET_TO_CATEGORY.get(dataset) is None:
@@ -97,6 +133,18 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
                 {"detail": f"dataset does not support dropped events; must be one of: {supported}"},
                 status=400,
             )
+
+        # `outcome` is a closed enum (the drop classifications); reject anything
+        # else. `reason` is an open string — client-discard reasons are
+        # SDK-defined — so it is passed through unvalidated.
+        outcome = request.GET.get("outcome")
+        if outcome is not None and outcome not in _DROPPED_OUTCOME_NAMES:
+            supported = ", ".join(_DROPPED_OUTCOME_NAMES)
+            return Response(
+                {"detail": f"invalid outcome; must be one of: {supported}"},
+                status=400,
+            )
+        reason = request.GET.get("reason")
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
@@ -126,7 +174,7 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
             with start_span(op="dropped_events.serve", name=_ENDPOINT):
                 try:
                     dropped_raw, accepted_raw = get_dropped_data_annotations(
-                        dataset, snuba_params, rollup
+                        dataset, snuba_params, rollup, outcome=outcome, reason=reason
                     )
                     dropped_events = [_to_bucket(bucket) for bucket in dropped_raw]
                     accepted_events = [
