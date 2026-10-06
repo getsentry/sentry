@@ -44,6 +44,14 @@ export function ValueType({
 }
 
 export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
+  return (
+    <DescriptionWrapper size={size}>
+      <KeyDetails tag={tag} />
+    </DescriptionWrapper>
+  );
+}
+
+export function KeyDetails({tag}: {tag: Tag}) {
   const {getFieldDefinition} = useSearchQueryBuilderConfig();
 
   const fieldDefinition = getFieldDefinition(tag.key);
@@ -62,15 +70,13 @@ export function KeyDescription({size = 'sm', tag}: KeyDescriptionProps) {
     tag.kind === FieldKind.FEATURE_FLAG ? FieldValueType.BOOLEAN : FieldValueType.STRING;
 
   return (
-    <DescriptionWrapper size={size}>
-      <AttributeDetails
-        description={description}
-        isAddedBySentry={Boolean(sentryDescription)}
-        kind={fieldDefinition?.kind ?? tag.kind}
-        name={getKeyLabel(tag, fieldDefinition, {includeAggregateArgs: true})}
-        valueType={fieldDefinition?.valueType ?? defaultValueType}
-      />
-    </DescriptionWrapper>
+    <AttributeDetails
+      description={description}
+      isAddedBySentry={Boolean(sentryDescription)}
+      kind={fieldDefinition?.kind ?? tag.kind}
+      name={getKeyLabel(tag, fieldDefinition, {includeAggregateArgs: true})}
+      valueType={fieldDefinition?.valueType ?? defaultValueType}
+    />
   );
 }
 
