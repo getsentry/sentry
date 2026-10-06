@@ -84,7 +84,7 @@ class CidrCondition(TypedDict):
     value: list[str]
 
 
-class SemverCondition(TypedDict):
+class ReleaseCondition(TypedDict):
     """Release version comparison condition
 
     Compares the version of the release in a field against `value`, a release such
@@ -92,7 +92,7 @@ class SemverCondition(TypedDict):
     package. A field or value without a version, such as a commit hash, never matches.
     """
 
-    op: Literal["semver"]
+    op: Literal["release"]
     name: str
     comparator: Literal["eq", "gt", "gte", "lt", "lte"]
     value: str
@@ -131,5 +131,5 @@ RuleCondition = Union[
     LtCondition,
     GlobCondition,
     CidrCondition,
-    SemverCondition,
+    ReleaseCondition,
 ]

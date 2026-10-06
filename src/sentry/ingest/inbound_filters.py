@@ -590,9 +590,9 @@ def _cidr_matcher(name: str) -> _ConditionMatcher:
 _client_ip_matcher = _cidr_matcher("envelope.client_ip")
 
 
-SemverComparator = Literal["eq", "gt", "gte", "lt", "lte"]
+ReleaseComparator = Literal["eq", "gt", "gte", "lt", "lte"]
 
-_RELEASE_COMPARATORS: Mapping[str, SemverComparator] = {
+_RELEASE_COMPARATORS: Mapping[str, ReleaseComparator] = {
     ">=": "gte",
     "<=": "lte",
     ">": "gt",
@@ -605,7 +605,7 @@ _RELEASE_COMPARISON_RE = re.compile(r"(>=|<=|>|<|=)\s*(.+)")
 
 @dataclass(frozen=True)
 class ReleaseComparison:
-    comparator: SemverComparator
+    comparator: ReleaseComparator
     # The release to compare against, such as `1.2.0` or `myapp@1.2.0`.
     release: str
 
@@ -641,7 +641,7 @@ def is_release_version(release: str) -> bool:
 
 def _release_matcher(name: str) -> _ConditionMatcher:
     # Glob values share one condition; each version comparison is a condition of
-    # its own, as Relay takes one comparator and release per `semver` condition.
+    # its own, as Relay takes one comparator and release per `release` condition.
     def match(values: list[str]) -> RuleCondition:
         globs: list[str] = []
         conditions: list[RuleCondition] = []
@@ -652,7 +652,7 @@ def _release_matcher(name: str) -> _ConditionMatcher:
             else:
                 conditions.append(
                     {
-                        "op": "semver",
+                        "op": "release",
                         "name": name,
                         "comparator": comparison.comparator,
                         "value": comparison.release,

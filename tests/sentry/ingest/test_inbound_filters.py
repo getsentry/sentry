@@ -267,7 +267,7 @@ def release_version_rule_condition(comparator: str, release: str) -> dict:
     return {
         "op": "or",
         "inner": [
-            {"op": "semver", "name": name, "comparator": comparator, "value": release}
+            {"op": "release", "name": name, "comparator": comparator, "value": release}
             for name in RELEASE_FIELDS
         ],
     }
@@ -390,13 +390,13 @@ def release_version_rule_condition(comparator: str, release: str) -> dict:
                         "value": ["a4b7e0f9c2d1"],
                     },
                     {
-                        "op": "semver",
+                        "op": "release",
                         "name": "span.attributes.sentry.release.value",
                         "comparator": "eq",
                         "value": "1.2.3",
                     },
                     {
-                        "op": "semver",
+                        "op": "release",
                         "name": "span.attributes.sentry.release.value",
                         "comparator": "eq",
                         "value": "myapp@2.0",
@@ -438,16 +438,26 @@ def release_version_rule_condition(comparator: str, release: str) -> dict:
             {
                 "op": "or",
                 "inner": [
-                    {"op": "semver", "name": "event.release", "comparator": "gt", "value": "1.2.0"},
-                    {"op": "semver", "name": "event.release", "comparator": "gte", "value": "1.3"},
                     {
-                        "op": "semver",
+                        "op": "release",
+                        "name": "event.release",
+                        "comparator": "gt",
+                        "value": "1.2.0",
+                    },
+                    {"op": "release", "name": "event.release", "comparator": "gte", "value": "1.3"},
+                    {
+                        "op": "release",
                         "name": "event.release",
                         "comparator": "lt",
                         "value": "myapp@2.0",
                     },
-                    {"op": "semver", "name": "event.release", "comparator": "lte", "value": "2"},
-                    {"op": "semver", "name": "event.release", "comparator": "eq", "value": "1.2.3"},
+                    {"op": "release", "name": "event.release", "comparator": "lte", "value": "2"},
+                    {
+                        "op": "release",
+                        "name": "event.release",
+                        "comparator": "eq",
+                        "value": "1.2.3",
+                    },
                 ],
             },
             id="release_version_comparators",
@@ -459,7 +469,7 @@ def release_version_rule_condition(comparator: str, release: str) -> dict:
                 "op": "or",
                 "inner": [
                     {"op": "glob", "name": "event.release", "value": ["1.*", "2.5.*"]},
-                    {"op": "semver", "name": "event.release", "comparator": "gte", "value": "3.0"},
+                    {"op": "release", "name": "event.release", "comparator": "gte", "value": "3.0"},
                 ],
             },
             id="release_globs_and_version_comparison_mixed",
