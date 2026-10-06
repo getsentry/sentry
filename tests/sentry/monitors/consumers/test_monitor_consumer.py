@@ -527,6 +527,25 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.duration is not None
 
+    def test_check_in_reuses_loaded_relations(self) -> None:
+        monitor = self._create_monitor(slug="my-monitor")
+
+        with CaptureQueriesContext(connections[router.db_for_write(Monitor)]) as ctx:
+            self.send_checkin(monitor.slug, status="in_progress")
+            self.send_checkin(monitor.slug, guid=self.guid)
+            ok_guid = self.guid
+            self.send_checkin(monitor.slug, status="error")
+
+        def by_id_selects(table: str) -> list[str]:
+            pattern = f'FROM "{table}" WHERE "{table}"."id" = '
+            return [q["sql"] for q in ctx.captured_queries if pattern in q["sql"]]
+
+        assert by_id_selects("sentry_monitor") == []
+        assert by_id_selects("sentry_monitorenvironment") == []
+
+        assert MonitorCheckIn.objects.get(guid=ok_guid).status == CheckInStatus.OK
+        assert MonitorCheckIn.objects.get(guid=self.guid).status == CheckInStatus.ERROR
+
     def test_check_in_update_with_reversed_dates(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
         now = datetime.now()
