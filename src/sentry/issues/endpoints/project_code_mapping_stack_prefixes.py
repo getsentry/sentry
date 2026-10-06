@@ -42,7 +42,14 @@ def _saved_stack_roots(project: Project) -> list[str]:
         .exclude(stack_root="")
         .values_list("stack_root", flat=True)
     )
-    return [r if r.endswith("/") else f"{r}/" for r in roots]
+    return [_ensure_trailing_sep(r) for r in roots]
+
+
+def _ensure_trailing_sep(root: str) -> str:
+    if root.endswith(("/", "\\")):
+        return root
+    sep = "\\" if ("\\" in root and "/" not in root) else "/"
+    return f"{root}{sep}"
 
 
 @extend_schema(tags=["Integrations"])

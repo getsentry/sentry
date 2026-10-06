@@ -73,3 +73,32 @@ class ProjectCodeMappingStackPrefixesGetTest(APITestCase):
         )
         prefixes = {p["path"] for p in response.data["prefixes"]}
         assert "src/" in prefixes
+
+    @mock.patch(f"{ENDPOINT_MODULE}.sample_in_app_filenames", return_value=[])
+    def test_windows_stack_root_uses_backslash_separator(self, _mock: mock.MagicMock) -> None:
+        integration = self.create_integration(
+            organization=self.organization, provider="github", external_id="2"
+        )
+        repo = self.create_repo(project=self.project, provider="integrations:github")
+        project_repo = ProjectRepository.objects.create(
+            project=self.project,
+            repository=repo,
+        )
+        org_integration = integration.organizationintegration_set.first()
+        assert org_integration is not None
+        RepositoryProjectPathConfig.objects.create(
+            project_repository=project_repo,
+            organization_integration_id=org_integration.id,
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            stack_root="src\\foo",
+            source_root="",
+        )
+
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, status_code=200
+        )
+        prefixes = {p["path"] for p in response.data["prefixes"]}
+        assert "src\\" in prefixes
+        assert "src\\foo\\" in prefixes
+        assert "src\\foo/" not in prefixes
