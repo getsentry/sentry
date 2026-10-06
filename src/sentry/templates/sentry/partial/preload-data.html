@@ -20,35 +20,38 @@
     }
 
     async function promiseRequest(url) {
-      try {
-        const response = await fetch(url, {
-          method: 'GET',
-          headers: {
-            Accept: 'application/json; charset=utf-8',
-            'Content-Type': 'application/json',
-            'sentry-trace': window.__initialData.initialTrace.sentry_trace,
-            'baggage': window.__initialData.initialTrace.baggage,
-          },
-          credentials: 'include',
-          priority: 'high',
-        });
-        if (response.status >= 200 && response.status < 300) {
-          const text = await response.text();
-          const json = JSON.parse(text);
-          // Matching ResponseMeta from api
-          const responseMeta = {
-            status: response.status,
-            statusText: response.statusText,
-            responseJSON: json,
-            responseText: text,
-            getResponseHeader: (header) => response.headers.get(header),
-          };
-          return [json, response.statusText, responseMeta];
-        }
-        throw [response.status, response.statusText];
-      } catch (error) {
-        throw [error.status, error.statusText];
+      // Network and JSON parse failures reject with their original errors
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          Accept: 'application/json; charset=utf-8',
+          'Content-Type': 'application/json',
+          'sentry-trace': window.__initialData.initialTrace.sentry_trace,
+          'baggage': window.__initialData.initialTrace.baggage,
+        },
+        credentials: 'include',
+        priority: 'high',
+      });
+      if (response.status >= 200 && response.status < 300) {
+        const text = await response.text();
+        const json = JSON.parse(text);
+        // Matching ResponseMeta from api
+        const responseMeta = {
+          status: response.status,
+          statusText: response.statusText,
+          responseJSON: json,
+          responseText: text,
+          getResponseHeader: (header) => response.headers.get(header),
+        };
+        return [json, response.statusText, responseMeta];
       }
+      const error = new Error(
+        'Preload request failed with status ' + response.status + ' ' + response.statusText
+      );
+      error.name = 'PreloadRequestError';
+      error.status = response.status;
+      error.statusText = response.statusText;
+      throw error;
     }
 
     function makeUrl(suffix) {
