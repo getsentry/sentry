@@ -300,7 +300,7 @@ export function FiltersBar({
                   prebuiltFilter.dataset === filter.dataset
               )
             }
-            key={filter.tag.key + filter.value}
+            key={`${filter.tag.key}:${filter.dataset}:${filter.value}`}
             globalFilter={filter}
             showDatasetLabel={tagKeysInMultipleDatasets.has(filter.tag.key)}
             searchBarData={getSearchBarData(filter.dataset)}
