@@ -1,0 +1,222 @@
+import {useMatches} from 'react-router-dom';
+import {PlatformIcon} from 'platformicons';
+
+import {UserAvatar} from '@sentry/scraps/avatar';
+import {EntityHeader} from '@sentry/scraps/entityHeader';
+import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
+
+import {DateTime} from 'sentry/components/dateTime';
+import {ErrorCounts} from 'sentry/components/replays/header/errorCounts';
+import {ReplayViewers} from 'sentry/components/replays/header/replayViewers';
+import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
+import {LiveBadge, useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
+import {TimeSince} from 'sentry/components/timeSince';
+import {IconCalendar} from 'sentry/icons/iconCalendar';
+import {IconDelete} from 'sentry/icons/iconDelete';
+import {t} from 'sentry/locale';
+import {EventView} from 'sentry/utils/discover/eventView';
+import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
+import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+import type {ReplayRecord} from 'sentry/views/explore/replays/types';
+
+interface Props {
+  readerResult: ReturnType<typeof useLoadReplayReader>;
+}
+
+/**
+ * Prefer email over id — both are indexed, email is the more useful filter.
+ */
+function getUserSearchQuery({user}: {user: ReplayRecord['user']}) {
+  if (!user) {
+    return null;
+  }
+  if (user.email) {
+    return `user.email:"${user.email}"`;
+  }
+  if (user.id) {
+    return `user.id:"${user.id}"`;
+  }
+  return null;
+}
+
+export function ReplayDetailsEntityHeader({readerResult}: Props) {
+  const organization = useOrganization();
+  const location = useLocation();
+  const matches = useMatches();
+  const [prefs] = useReplayPrefs();
+
+  const replayRecord = readerResult.replayRecord;
+  const isArchived = replayRecord?.is_archived ?? false;
+
+  // Hooks run unconditionally, before any of the loading branches below.
+  const {isLive} = useLiveBadge({
+    startedAt: replayRecord?.is_archived ? null : (replayRecord?.started_at ?? null),
+    finishedAt: replayRecord?.is_archived ? null : (replayRecord?.finished_at ?? null),
+  });
+
+  if (isArchived) {
+    return (
+      <EntityHeader
+        title={{
+          label: t('Deleted Replay'),
+          leadingGraphic: <IconDelete variant="muted" size="sm" />,
+        }}
+      />
+    );
+  }
+
+  const searchQuery = replayRecord ? getUserSearchQuery({user: replayRecord.user}) : null;
+  const replaysIndexUrl =
+    searchQuery && replayRecord
+      ? {
+          pathname: makeReplaysPathname({path: '/', organization}),
+          query: {query: searchQuery, project: replayRecord.project_id},
+        }
+      : undefined;
+
+  // Opens the breadcrumbs tab, filtered to rage and dead clicks.
+  const breadcrumbTab = {
+    ...location,
+    query: {
+      referrer: getRouteStringFromRoutes({matches}),
+      ...EventView.fromLocation(location).generateQueryStringObject(),
+      t_main: TabKey.BREADCRUMBS,
+      f_b_type: 'rageOrDead',
+    },
+  };
+
+  const deadClicks = replayRecord?.count_dead_clicks ?? 0;
+  const rageClicks = replayRecord?.count_rage_clicks ?? 0;
+
+  // Feedback is surfaced separately, so it would double-count here.
+  const nonFeedbackErrors = readerResult.errors.filter(
+    error => !error.title.includes('User Feedback')
+  );
+
+  function buildProps(isLoading: boolean): EntityHeaderProps {
+    const isVideoReplay = readerResult.replay?.isVideoReplay() ?? false;
+    const showDeadRageClicks = !isVideoReplay;
+
+    return {
+      isLoading,
+      title: {
+        label: replayRecord?.user.display_name || t('Anonymous User'),
+        leadingGraphic: replayRecord ? (
+          <UserAvatar
+            user={{
+              username: replayRecord.user?.display_name || '',
+              email: replayRecord.user?.email || '',
+              id: replayRecord.user?.id || '',
+              ip_address: replayRecord.user?.ip || '',
+              name: replayRecord.user?.username || '',
+            }}
+            size={16}
+          />
+        ) : undefined,
+        to: replaysIndexUrl,
+        tags: isLive ? <LiveBadge /> : undefined,
+        loadingWidth: '200px',
+      },
+      stats: [
+        replayRecord && !replayRecord.is_archived
+          ? {
+              label: t('Seen By'),
+              value: (
+                <ReplayViewers
+                  projectId={replayRecord.project_id}
+                  replayId={replayRecord.id}
+                />
+              ),
+            }
+          : null,
+        showDeadRageClicks
+          ? {
+              label: t('Dead Clicks'),
+              value: deadClicks,
+              to: deadClicks ? breadcrumbTab : undefined,
+            }
+          : null,
+        showDeadRageClicks
+          ? {
+              label: t('Rage Clicks'),
+              value: rageClicks,
+              to: rageClicks ? breadcrumbTab : undefined,
+            }
+          : null,
+        {
+          label: t('Errors'),
+          value: <ErrorCounts replayErrors={nonFeedbackErrors} />,
+          loadingWidth: '20px',
+        },
+      ],
+      metadata: [
+        {
+          icon: <IconCalendar size="sm" variant="muted" />,
+          label:
+            replayRecord && !replayRecord.is_archived ? (
+              prefs.timestampType === 'absolute' ? (
+                <DateTime year timeZone date={replayRecord.started_at} />
+              ) : (
+                <TimeSince date={replayRecord.started_at} />
+              )
+            ) : null,
+          loadingWidth: '150px',
+        },
+        replayRecord?.browser.name
+          ? {
+              icon: (
+                <PlatformIcon
+                  platform={generatePlatformIconName(
+                    replayRecord.browser.name,
+                    replayRecord.browser.version ?? undefined
+                  )}
+                  size="16px"
+                />
+              ),
+              label: [replayRecord.browser.name, replayRecord.browser.version]
+                .filter(Boolean)
+                .join(' '),
+            }
+          : null,
+        replayRecord?.os.name
+          ? {
+              icon: (
+                <PlatformIcon
+                  platform={generatePlatformIconName(
+                    replayRecord.os.name,
+                    replayRecord.os.version ?? undefined
+                  )}
+                  size="16px"
+                />
+              ),
+              label: [replayRecord.os.name, replayRecord.os.version]
+                .filter(Boolean)
+                .join(' '),
+            }
+          : null,
+      ],
+    };
+  }
+
+  return (
+    <ReplayLoadingState
+      readerResult={readerResult}
+      renderArchived={() => null}
+      renderError={() => null}
+      renderThrottled={() => null}
+      // The record often arrives before the recording segments do, so render the
+      // real header as soon as there is something to show.
+      renderLoading={() => <EntityHeader {...buildProps(!replayRecord)} />}
+      renderMissing={() => null}
+      renderProcessingError={() => <EntityHeader {...buildProps(false)} />}
+    >
+      {() => <EntityHeader {...buildProps(false)} />}
+    </ReplayLoadingState>
+  );
+}

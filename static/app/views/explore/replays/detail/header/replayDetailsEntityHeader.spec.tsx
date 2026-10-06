@@ -13,8 +13,9 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import {ReplayDetailsUserBadge} from 'sentry/views/explore/replays/detail/header/replayDetailsUserBadge';
+import {ReplayDetailsEntityHeader} from 'sentry/views/explore/replays/detail/header/replayDetailsEntityHeader';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
 const {organization, project} = initializeOrg({
@@ -29,14 +30,28 @@ function replayRecordFixture(replayRecord?: Partial<HydratedReplayRecord>) {
 }
 
 jest.useFakeTimers();
-describe('replayDetailsUserBadge', () => {
+describe('ReplayDetailsEntityHeader', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
       body: [project],
     });
+    // The header renders the viewer avatars that used to live in ReplayMetaData,
+    // and those resolve the project slug through the store.
+    ProjectsStore.loadInitialData([project]);
   });
+
+  afterEach(() => {
+    ProjectsStore.reset();
+  });
+
+  function mockViewedBy(replayId: string) {
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/replays/${replayId}/viewed-by/`,
+      body: {data: {viewed_by: []}},
+    });
+  }
 
   it('should show LIVE badge when last received segment is within 5 minutes', async () => {
     const startedAt = new Date(Date.now() - 1000);
@@ -49,6 +64,7 @@ describe('replayDetailsUserBadge', () => {
       count_segments: 1,
       error_ids: [],
     });
+    mockViewedBy(replayRecord.id);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replays/${replayRecord.id}/`,
       body: {data: replayRecord},
@@ -89,7 +105,7 @@ describe('replayDetailsUserBadge', () => {
       expect(result.current.replayRecord?.count_segments).toBeDefined()
     );
 
-    render(<ReplayDetailsUserBadge readerResult={result.current} />, {organization});
+    render(<ReplayDetailsEntityHeader readerResult={result.current} />, {organization});
 
     expect(screen.getByTestId('live-badge')).toBeVisible();
   });
@@ -107,6 +123,7 @@ describe('replayDetailsUserBadge', () => {
       count_segments: 1,
       error_ids: [],
     });
+    mockViewedBy(replayRecord.id);
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replays/${replayRecord.id}/`,
       body: {data: replayRecord},
@@ -151,7 +168,7 @@ describe('replayDetailsUserBadge', () => {
       expect(result.current.replayRecord?.count_segments).toBeDefined()
     );
 
-    render(<ReplayDetailsUserBadge readerResult={result.current} />, {organization});
+    render(<ReplayDetailsEntityHeader readerResult={result.current} />, {organization});
 
     // Live badge should be visible initially
     expect(screen.getByTestId('live-badge')).toBeVisible();
