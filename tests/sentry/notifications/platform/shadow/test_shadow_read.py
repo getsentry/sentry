@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Callable
 from dataclasses import asdict, replace
+from datetime import timedelta
 from typing import Any
 from unittest import mock
 
@@ -12,6 +13,7 @@ import pytest
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
+from sentry.models.group import Group, GroupStatus
 from sentry.notifications.additional_attachment_manager import manager as attachment_manager
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.utils import (
@@ -176,6 +178,39 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase, OccurrenceTestMixin):
         observation, client = self.send(self.invocation(action))
 
         client.return_value.chat_postMessage.assert_called_once()
+        self.assert_match(observation)
+
+    def test_skips_when_the_group_status_changed(self) -> None:
+        action = self.create_shadow_action("slack", {"tags": "", "notes": ""})
+        invocation = self.invocation(action)
+        Group.objects.get(id=self.issue_group.id).update(status=GroupStatus.RESOLVED)
+
+        observation, client = self.send(invocation)
+
+        client.return_value.chat_postMessage.assert_called_once()
+        assert observation.outcome == ShadowOutcome.GROUP_CHANGED
+        assert observation.mismatch is None
+
+    def test_skips_when_the_rendered_last_seen_changed(self) -> None:
+        action = self.create_shadow_action("discord", {"tags": ""})
+        invocation = self.invocation(action)
+        Group.objects.get(id=self.issue_group.id).update(
+            last_seen=self.event.datetime + timedelta(minutes=1)
+        )
+
+        observation, _ = self.send(invocation)
+
+        assert observation.outcome == ShadowOutcome.GROUP_CHANGED
+
+    def test_compares_when_last_seen_changed_before_the_event(self) -> None:
+        action = self.create_shadow_action("discord", {"tags": ""})
+        invocation = self.invocation(action)
+        Group.objects.get(id=self.issue_group.id).update(
+            last_seen=self.event.datetime - timedelta(minutes=1)
+        )
+
+        observation, _ = self.send(invocation)
+
         self.assert_match(observation)
 
     def test_slack_mentions_read_scope_without_nudge(self) -> None:

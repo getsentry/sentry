@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from sentry import eventstore
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.notifications.platform.discord.provider import DiscordRenderable
@@ -14,7 +13,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedTemplate,
     NotificationSource,
 )
-from sentry.services.eventstore.models import Event
+from sentry.workflow_engine.tasks.utils import fetch_event
 
 
 @renderer_registry.register(NotificationProviderKey.DISCORD, sources=[NotificationSource.ISSUE])
@@ -38,20 +37,13 @@ class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
         group_event = None
         if data.event_id:
             try:
-                event = eventstore.backend.get_event_by_id(
-                    project_id=group.project.id, event_id=data.event_id, group_id=data.group_id
-                )
-                if isinstance(event, Event):
-                    # Discord only supports GroupEvents, and we can't guarantee
-                    # the type passed by eventstore, so we convert base Events
-                    # to GroupEvents.
+                event = fetch_event(data.event_id, group.project_id)
+                if event is not None:
                     group_event = event.for_group(group)
-                else:
-                    group_event = event
-                if group_event is not None and data.occurrence_id:
-                    group_event.occurrence = IssueOccurrence.fetch(
-                        data.occurrence_id, group.project_id
-                    )
+                    if data.occurrence_id:
+                        group_event.occurrence = IssueOccurrence.fetch(
+                            data.occurrence_id, group.project_id
+                        )
             except Exception:
                 raise NotificationRenderError(f"Failed to retrieve event {data.event_id}")
 
