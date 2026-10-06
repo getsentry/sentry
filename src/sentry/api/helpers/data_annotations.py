@@ -3,27 +3,52 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+import sentry_sdk
+
 from sentry.api.endpoints.timeseries import Annotation
 from sentry.constants import DataCategory
 from sentry.search.events.types import SnubaParams
+from sentry.snuba import errors
 from sentry.snuba.ourlogs import OurLogs
 from sentry.snuba.outcomes import QueryDefinition, run_outcomes_query_timeseries
 from sentry.snuba.spans_rpc import Spans
 from sentry.snuba.trace_metrics import TraceMetrics
+from sentry.utils import metrics
 from sentry.utils.outcomes import Outcome
 from sentry.utils.snuba import parse_snuba_datetime
 from sentry.utils.tracing import set_span_data, start_span
 
 logger = logging.getLogger(__name__)
 
-DROPPED_OUTCOMES: tuple[Outcome, ...] = (
-    Outcome.FILTERED,
-    Outcome.RATE_LIMITED,
-    Outcome.INVALID,
-    Outcome.ABUSE,
-    Outcome.CLIENT_DISCARD,
-    Outcome.CARDINALITY_LIMITED,
-)
+
+def record_dropped_events_telemetry(
+    *,
+    endpoint: str,
+    client_kind: str,
+    dataset_label: str,
+    dropped_count: int,
+    accepted_count: int,
+) -> None:
+    """Record who asked for dropped-events data and what they got."""
+    had_drops = dropped_count > 0
+    metrics.incr(
+        "dropped_events.served",
+        tags={
+            "endpoint": endpoint,
+            "client_kind": client_kind,
+            "dataset": dataset_label,
+            "had_drops": had_drops,
+        },
+    )
+    sentry_sdk.set_attribute("dropped_events.endpoint", endpoint)
+    sentry_sdk.set_attribute("dropped_events.client_kind", client_kind)
+    sentry_sdk.set_attribute("dropped_events.dataset", dataset_label)
+    sentry_sdk.set_attribute("dropped_events.dropped_count", dropped_count)
+    sentry_sdk.set_attribute("dropped_events.accepted_count", accepted_count)
+    sentry_sdk.set_attribute("dropped_events.had_drops", had_drops)
+
+
+DROPPED_OUTCOMES: tuple[Outcome, ...] = tuple(o for o in Outcome if o is not Outcome.ACCEPTED)
 
 
 DEFAULT_DROP_THRESHOLD = 1
@@ -32,6 +57,7 @@ DATASET_TO_CATEGORY: dict[object, DataCategory] = {
     Spans: DataCategory.SPAN,
     OurLogs: DataCategory.LOG_ITEM,
     TraceMetrics: DataCategory.TRACE_METRIC,
+    errors: DataCategory.ERROR,
 }
 
 # Only for logs dropped/accepted bytes outcome is emitted.
@@ -56,9 +82,12 @@ def _run_category_query(
 ) -> list[dict[str, Any]]:
     """Run one bucketed Outcomes query over a single category.
 
-    Includes both accepted and dropped outcomes, grouped by ``outcome`` and
-    ``reason`` so a caller can split accepted (the share denominator) from each
-    per-reason drop.
+    The query always fetches accepted plus every drop outcome, grouped by
+    ``outcome`` and ``reason``. It is deliberately not narrowed by the endpoint's
+    ``outcome``/``reason`` filters: accepted (the share denominator) must come
+    back in full regardless, so the caller fetches everything here and narrows
+    only the dropped rows afterward. ``group_by`` keeps each (outcome, reason)
+    drop separate while accepted collapses to one total per bucket.
     """
     query = QueryDefinition(
         fields=["sum(quantity)"],
@@ -67,6 +96,7 @@ def _run_category_query(
         organization_id=organization_id,
         project_ids=snuba_params.project_ids,
         interval=f"{rollup}s",
+        # ACCEPTED is the share denominator; the rest are the drop classifications.
         outcome=[Outcome.ACCEPTED.api_name(), *(o.api_name() for o in DROPPED_OUTCOMES)],
         group_by=["outcome", "reason"],
         category=[category.api_name()],
@@ -113,11 +143,20 @@ def get_dropped_data_annotations(
     rollup: int,
     *,
     threshold: int = DEFAULT_DROP_THRESHOLD,
+    outcome: str | None = None,
+    reason: str | None = None,
 ) -> tuple[list[Annotation], list[Annotation]]:
     """Build dropped and accepted data-fidelity annotations for a timeseries query.
     - ``dropped_annotations``: one per (bucket, outcome, reason) drop.
     - ``accepted_annotations``: one per bucket, carrying that bucket's accepted
       volume.
+
+    ``outcome`` and ``reason`` optionally narrow the *dropped* side to a single
+    classification: ``outcome`` is the top-level drop class (e.g. ``rate_limited``)
+    and ``reason`` the sub-classification within it (e.g. ``spike_protection``).
+    The accepted side is never filtered — it is the share denominator and carries
+    no outcome or reason — so a scoped request still returns the complete accepted
+    volume alongside the one dropped series.
 
     Buckets align to the chart because ``rollup`` is the interval the endpoint
     already resolved for the series.
@@ -150,13 +189,18 @@ def get_dropped_data_annotations(
             dropped_bytes_by_key = _dropped_by_bucket_reason(byte_rows)
 
         dropped_annotations: list[Annotation] = []
-        for (bucket_start_ms, outcome, reason_key), dropped in dropped_by_key.items():
+        for (bucket_start_ms, bucket_outcome, reason_key), dropped in dropped_by_key.items():
             if dropped < threshold:
+                continue
+
+            if outcome is not None and bucket_outcome != outcome:
+                continue
+            if reason is not None and reason_key != reason:
                 continue
             annotation = Annotation(
                 type="system",
                 category=category.api_name(),
-                outcome=outcome,
+                outcome=bucket_outcome,
                 reason=reason_key,
                 start=bucket_start_ms,
                 end=bucket_start_ms + rollup * 1000,
@@ -164,7 +208,7 @@ def get_dropped_data_annotations(
             )
             if byte_category is not None:
                 annotation["byteSize"] = dropped_bytes_by_key.get(
-                    (bucket_start_ms, outcome, reason_key), 0
+                    (bucket_start_ms, bucket_outcome, reason_key), 0
                 )
             dropped_annotations.append(annotation)
 

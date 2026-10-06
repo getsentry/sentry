@@ -2,7 +2,7 @@ import './legacyTwitterBootstrap';
 import './exportGlobals';
 
 import type {Config} from 'sentry/types/system';
-import {metric} from 'sentry/utils/analytics';
+import {CAN_MARK} from 'sentry/utils/analytics';
 
 import {commonInitialization} from './commonInitialization';
 import {initializeSdk} from './initializeSdk';
@@ -17,7 +17,9 @@ export function initializeApp(config: Config) {
 
   // Used for operational metrics to determine that the application js
   // bundle was loaded by browser.
-  metric.mark({name: 'sentry-app-init'});
+  if (CAN_MARK) {
+    window.performance.mark('sentry-app-init');
+  }
   renderOnDomReady(renderMain);
   processInitQueue();
 }

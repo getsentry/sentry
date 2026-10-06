@@ -13,7 +13,7 @@ ADD --chmod=755 \
 ARG TARGETARCH
 FROM odiff-${TARGETARCH} AS odiff
 
-FROM python:3.13.15-slim-bookworm
+FROM python:3.13.15-slim-trixie AS application
 
 LABEL maintainer="oss@sentry.io"
 LABEL org.opencontainers.image.title="Sentry"
@@ -29,7 +29,6 @@ RUN groupadd -r sentry --gid 999 && useradd -r -m -g sentry --uid 999 sentry
 RUN : \
     && apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-        gosu \
         libexpat1 \
         tini \
     && apt-get clean \
@@ -58,18 +57,9 @@ ENV \
 # Install dependencies first to leverage Docker layer caching.
 COPY uv.lock pyproject.toml .
 RUN set -x \
-  # uwsgi-dogstatsd
-  && buildDeps=" \
-  gcc \
-  libpcre2-dev \
-  zlib1g-dev \
-  " \
-  && apt-get update \
-  && apt-get install -y --no-install-recommends $buildDeps \
-  && uv sync --frozen --quiet --no-install-project \
-  && apt-get purge -y --auto-remove $buildDeps \
-  && apt-get clean \
-  && rm -rf /var/lib/apt/lists/* \
+  # --no-build: every locked dependency ships a wheel, so fail rather than
+  # silently compile from source (the image has no compiler).
+  && uv sync --frozen --quiet --no-install-project --no-build \
   # Fully verify that the C extension is correctly installed, it unfortunately
   # requires a full check into maxminddb.extension.Reader
   && python -c 'import maxminddb.extension; maxminddb.extension.Reader' \
@@ -79,22 +69,27 @@ COPY . .
 RUN : \
     && python3 -m tools.fast_editable --path . \
     && python3 -m compileall -q src/ \
-    && sentry help | sed '1,/Commands:/d' | awk '{print $1}' >  /sentry-commands.txt
+    && python3 -m sentry.build.dump_cli_commands > /sentry-commands.txt
 
 COPY ./self-hosted/sentry.conf.py ./self-hosted/config.yml $SENTRY_CONF/
-COPY ./self-hosted/docker-entrypoint.sh /
+COPY ./self-hosted/docker_entrypoint.py /
 
-# note: sentry help is needed here since the earlier invocation doesn't have pipefail
 RUN : double-check some built files are available \
     && test -f /usr/src/sentry/src/sentry/loader/_registry.json \
     && test -f /usr/src/sentry/src/sentry/integration-docs/python.json \
     && test -f /usr/src/sentry/src/sentry/static/sentry/dist/entrypoints/app.js \
     && sentry help
 
+# Pre-create /data owned by sentry so fresh named volumes are initialized
+# with the right ownership. This must happen before the VOLUME instruction.
+RUN mkdir -p /data/files && chown -R sentry:sentry /data
+
+USER sentry
+
 EXPOSE 9000
 VOLUME /data
 
-ENTRYPOINT ["/docker-entrypoint.sh"]
+ENTRYPOINT ["python3", "/docker_entrypoint.py"]
 CMD ["run", "web"]
 
 ARG SOURCE_COMMIT
@@ -102,3 +97,52 @@ ENV SENTRY_BUILD=${SOURCE_COMMIT:-unknown}
 LABEL org.opencontainers.image.revision=$SOURCE_COMMIT
 LABEL org.opencontainers.image.source="https://github.com/getsentry/sentry/tree/${SOURCE_COMMIT:-master}/"
 LABEL org.opencontainers.image.licenses="https://github.com/getsentry/sentry/blob/${SOURCE_COMMIT:-master}/LICENSE"
+
+FROM application AS distroless-prep
+USER 0
+# The distroless base has Python at /usr/bin, not /usr/local/bin.
+RUN ln -sf /usr/bin/python3.13 /.venv/bin/python3
+
+FROM us-docker.pkg.dev/sentryio/dhi-mirror/python:3.13.15-debian13 AS distroless
+
+LABEL maintainer="oss@sentry.io"
+LABEL org.opencontainers.image.title="Sentry"
+LABEL org.opencontainers.image.description="Sentry runtime image (distroless)"
+LABEL org.opencontainers.image.url="https://sentry.io/"
+LABEL org.opencontainers.image.documentation="https://develop.sentry.dev/self-hosted/"
+LABEL org.opencontainers.image.vendor="Functional Software, Inc."
+LABEL org.opencontainers.image.authors="oss@sentry.io"
+
+COPY --from=distroless-prep /etc/passwd /etc/group /etc/
+COPY --from=distroless-prep /.venv /.venv
+COPY --from=distroless-prep /usr/src/sentry /usr/src/sentry
+COPY --from=distroless-prep /etc/sentry /etc/sentry
+COPY --from=distroless-prep /usr/bin/tini-static /usr/bin/tini
+COPY --from=distroless-prep /usr/local/bin/odiff /usr/local/bin/odiff
+COPY --from=distroless-prep /docker_entrypoint.py /sentry-commands.txt /
+COPY --from=distroless-prep --chown=999:999 /data /data
+
+WORKDIR /usr/src/sentry
+
+ENV PATH="/.venv/bin:$PATH" \
+    SENTRY_CONF=/etc/sentry \
+    GRPC_POLL_STRATEGY=epoll1
+
+USER sentry
+
+RUN ["sentry", "help"]
+
+EXPOSE 9000
+VOLUME /data
+
+ENTRYPOINT ["python3", "/docker_entrypoint.py"]
+CMD ["run", "web"]
+
+ARG SOURCE_COMMIT
+ENV SENTRY_BUILD=${SOURCE_COMMIT:-unknown}
+LABEL org.opencontainers.image.revision=$SOURCE_COMMIT
+LABEL org.opencontainers.image.source="https://github.com/getsentry/sentry/tree/${SOURCE_COMMIT:-master}/"
+LABEL org.opencontainers.image.licenses="https://github.com/getsentry/sentry/blob/${SOURCE_COMMIT:-master}/LICENSE"
+
+# Keep the regular image as the default build target.
+FROM application

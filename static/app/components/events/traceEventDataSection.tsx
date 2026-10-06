@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Flex, Grid, Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
@@ -12,11 +12,12 @@ import {displayRawContent} from 'sentry/components/events/interfaces/crashConten
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {IconEllipsis, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
+import type {Entry, Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {defined} from 'sentry/utils/defined';
 import {isMobilePlatform, isNativePlatform} from 'sentry/utils/platform';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -235,7 +236,44 @@ export function TraceEventDataSection({
 
     const useMinified = displayOptions.includes('minified');
 
-    const stacktraceEntries = event.entries.filter(
+    let entries: Entry[] = event.entries;
+    const threadEntry = entries.find(entry => entry.type === EntryType.THREADS);
+    const selectedThread = threadEntry?.data.values?.find(
+      thread => thread.id === activeThreadId
+    );
+    if (selectedThread && threadEntry) {
+      const exceptionEntry = entries.find(entry => entry.type === EntryType.EXCEPTION);
+      const exceptions =
+        exceptionEntry?.data.values?.filter(
+          exception =>
+            !defined(exception.threadId) || exception.threadId === selectedThread.id
+        ) ?? [];
+      const threadException = exceptions.findLast(
+        exception => exception.threadId === selectedThread.id
+      );
+
+      entries = [threadEntry];
+      if (
+        exceptionEntry &&
+        exceptions.length &&
+        (threadException || selectedThread.crashed)
+      ) {
+        // Pair only the copied values; the rendered exceptions retain their metadata indexes.
+        const exceptionWithThreadFrames = threadException ?? exceptions.at(-1);
+        const values = exceptions.map(exception =>
+          exception === exceptionWithThreadFrames && !exception.stacktrace
+            ? {
+                ...exception,
+                stacktrace: selectedThread.stacktrace,
+                rawStacktrace: exception.rawStacktrace ?? selectedThread.rawStacktrace,
+              }
+            : exception
+        );
+        entries = [{...exceptionEntry, data: {...exceptionEntry.data, values}}];
+      }
+    }
+
+    const stacktraceEntries = entries.filter(
       entry =>
         entry.type === EntryType.EXCEPTION ||
         entry.type === EntryType.STACKTRACE ||
@@ -423,7 +461,15 @@ export function TraceEventDataSection({
   );
 
   const actions = !stackTraceNotFound && (
-    <Grid flow="column" align="center" gap="md">
+    <Flex
+      align="center"
+      gap="md"
+      justify="end"
+      width="100%"
+      maxWidth="100%"
+      minWidth={0}
+      wrap="wrap"
+    >
       {!displayOptions.includes('raw-stack-trace') && (
         <SegmentedControl
           size="xs"
@@ -456,53 +502,55 @@ export function TraceEventDataSection({
           {t('Download')}
         </LinkButton>
       )}
-      <CompactSelect
-        trigger={triggerProps => (
-          <OverlayTrigger.Button
-            {...triggerProps}
-            icon={<IconSort />}
-            size="xs"
-            tooltipProps={{title: sortByTooltip}}
-          />
-        )}
-        disabled={!!sortByTooltip}
-        position="bottom-end"
-        onChange={selectedOption => {
-          handleSortByChange(selectedOption.value);
-        }}
-        value={isNewestFramesFirst ? 'recent-first' : 'recent-last'}
-        options={Object.entries(sortByOptions).map(([value, label]) => ({
-          label,
-          value: value as keyof typeof sortByOptions,
-        }))}
-      />
-      <CompactSelect
-        trigger={triggerProps => (
-          <OverlayTrigger.IconButton
-            {...triggerProps}
-            size="xs"
-            icon={<IconEllipsis />}
-            aria-label={t('Display as')}
-          >
-            {t('Display as')}
-          </OverlayTrigger.IconButton>
-        )}
-        multiple
-        position="bottom-end"
-        value={displayValues}
-        onChange={opts => handleDisplayChange(opts.map(opt => opt.value))}
-        options={[{label: t('Display'), options: optionsToShow}]}
-      />
+      <Flex align="center" gap="md" justify="end" maxWidth="100%" wrap="wrap">
+        <CompactSelect
+          trigger={triggerProps => (
+            <OverlayTrigger.Button
+              {...triggerProps}
+              icon={<IconSort />}
+              size="xs"
+              tooltipProps={{title: sortByTooltip}}
+            />
+          )}
+          disabled={!!sortByTooltip}
+          position="bottom-end"
+          onChange={selectedOption => {
+            handleSortByChange(selectedOption.value);
+          }}
+          value={isNewestFramesFirst ? 'recent-first' : 'recent-last'}
+          options={Object.entries(sortByOptions).map(([value, label]) => ({
+            label,
+            value: value as keyof typeof sortByOptions,
+          }))}
+        />
+        <CompactSelect
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              size="xs"
+              icon={<IconEllipsis />}
+              aria-label={t('Display as')}
+            >
+              {t('Display as')}
+            </OverlayTrigger.IconButton>
+          )}
+          multiple
+          position="bottom-end"
+          value={displayValues}
+          onChange={opts => handleDisplayChange(opts.map(opt => opt.value))}
+          options={[{label: t('Display'), options: optionsToShow}]}
+        />
 
-      <CopyAsDropdown
-        size="xs"
-        items={CopyAsDropdown.makeDefaultCopyAsOptions({
-          text: handleCopyRawStacktrace,
-          json: undefined,
-          markdown: undefined,
-        })}
-      />
-    </Grid>
+        <CopyAsDropdown
+          size="xs"
+          items={CopyAsDropdown.makeDefaultCopyAsOptions({
+            text: handleCopyRawStacktrace,
+            json: undefined,
+            markdown: undefined,
+          })}
+        />
+      </Flex>
+    </Flex>
   );
 
   if (isNestedSection) {

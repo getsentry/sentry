@@ -17,6 +17,10 @@ from sentry.api.endpoints.organization_auth_tokens import OrganizationAuthTokens
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
+from sentry.api.endpoints.organization_explore_formulas import (
+    OrganizationExploreFormulas,
+    OrganizationExploreFormulasDetail,
+)
 from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_insights_tree import OrganizationInsightsTreeEndpoint
 from sentry.api.endpoints.organization_intercom_jwt import OrganizationIntercomJwtEndpoint
@@ -126,7 +130,17 @@ from sentry.core.endpoints.scim.members import (
     OrganizationSCIMMemberDetails,
     OrganizationSCIMMemberIndex,
 )
-from sentry.core.endpoints.scim.schemas import OrganizationSCIMSchemaIndex
+from sentry.core.endpoints.scim.resource_types import (
+    OrganizationSCIMResourceTypeDetails,
+    OrganizationSCIMResourceTypeIndex,
+)
+from sentry.core.endpoints.scim.schemas import (
+    OrganizationSCIMSchemaDetails,
+    OrganizationSCIMSchemaIndex,
+)
+from sentry.core.endpoints.scim.service_provider_config import (
+    OrganizationSCIMServiceProviderConfig,
+)
 from sentry.core.endpoints.scim.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
 from sentry.core.endpoints.team_avatar import TeamAvatarEndpoint
 from sentry.core.endpoints.team_details import TeamDetailsEndpoint
@@ -299,6 +313,12 @@ from sentry.investigations.endpoints.organization_investigation_block_order impo
 from sentry.investigations.endpoints.organization_investigation_candidates import (
     OrganizationInvestigationCandidatesEndpoint,
 )
+from sentry.investigations.endpoints.organization_investigation_comment_details import (
+    OrganizationInvestigationCommentDetailsEndpoint,
+)
+from sentry.investigations.endpoints.organization_investigation_comments_index import (
+    OrganizationInvestigationCommentsEndpoint,
+)
 from sentry.investigations.endpoints.organization_investigation_details import (
     OrganizationInvestigationsDetailsEndpoint,
 )
@@ -317,6 +337,9 @@ from sentry.investigations.endpoints.organization_investigation_orchestration im
 )
 from sentry.investigations.endpoints.organization_investigation_parameters import (
     OrganizationInvestigationParametersEndpoint,
+)
+from sentry.investigations.endpoints.organization_investigation_presence import (
+    OrganizationInvestigationPresenceEndpoint,
 )
 from sentry.investigations.endpoints.organization_investigation_title_generation import (
     OrganizationInvestigationTitleGenerationEndpoint,
@@ -534,12 +557,9 @@ from sentry.replays.endpoints.project_replay_recording_segment_index import (
 from sentry.replays.endpoints.project_replay_summary import ProjectReplaySummaryEndpoint
 from sentry.replays.endpoints.project_replay_video_details import ProjectReplayVideoDetailsEndpoint
 from sentry.replays.endpoints.project_replay_viewed_by import ProjectReplayViewedByEndpoint
-from sentry.rules.history.endpoints.project_rule_group_history import (
-    ProjectRuleGroupHistoryIndexEndpoint,
-)
-from sentry.rules.history.endpoints.project_rule_stats import ProjectRuleStatsIndexEndpoint
 from sentry.scm.endpoints.scm_rpc import ScmRpcServiceEndpoint
-from sentry.seer.endpoints.admin_night_shift_trigger import SeerAdminNightShiftTriggerEndpoint
+from sentry.seer.endpoints.admin_agentic_triage_trigger import SeerAdminAgenticTriageTriggerEndpoint
+from sentry.seer.endpoints.admin_autofix_retry import SeerAdminAutofixRetryEndpoint
 from sentry.seer.endpoints.group_ai_autofix import GroupAutofixEndpoint
 from sentry.seer.endpoints.group_ai_summary import GroupAiSummaryEndpoint
 from sentry.seer.endpoints.group_autofix_repos import GroupAutofixReposEndpoint
@@ -566,7 +586,7 @@ from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpo
 from sentry.seer.endpoints.organization_seer_runs import OrganizationSeerRunsEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheckEndpoint
 from sentry.seer.endpoints.organization_seer_workflows import OrganizationSeerWorkflowsEndpoint
-from sentry.seer.endpoints.project_seer_night_shift import ProjectSeerNightShiftEndpoint
+from sentry.seer.endpoints.project_seer_agentic_triage import ProjectSeerAgenticTriageEndpoint
 from sentry.seer.endpoints.project_seer_preferences import ProjectSeerPreferencesEndpoint
 from sentry.seer.endpoints.project_seer_repos import (
     ProjectSeerRepoEndpoint,
@@ -767,6 +787,7 @@ from .endpoints.organization_attribute_mappings import OrganizationAttributeMapp
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
 from .endpoints.organization_events import OrganizationEventsEndpoint
+from .endpoints.organization_events_dropped import OrganizationEventsDroppedEndpoint
 from .endpoints.organization_events_facets import OrganizationEventsFacetsEndpoint
 from .endpoints.organization_events_facets_performance import (
     OrganizationEventsFacetsPerformanceEndpoint,
@@ -854,6 +875,9 @@ from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundl
 from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
 from .endpoints.project_commits import ProjectCommitsEndpoint
 from .endpoints.project_create_sample import ProjectCreateSampleEndpoint
+from .endpoints.project_custom_inbound_filter_validate import (
+    CustomInboundFilterValidateEndpoint,
+)
 from .endpoints.project_custom_inbound_filters import (
     CustomInboundFilterDetailsEndpoint,
     CustomInboundFiltersEndpoint,
@@ -1530,6 +1554,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-explore-saved-query-detail",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/explore/formulas/$",
+        OrganizationExploreFormulas.as_view(),
+        name="sentry-api-0-explore-formulas",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/explore/formulas/(?P<id>\d+)/$",
+        OrganizationExploreFormulasDetail.as_view(),
+        name="sentry-api-0-explore-formulas-detail",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/explore/saved/(?P<id>\d+)/visit/$",
         ExploreSavedQueryVisitEndpoint.as_view(),
         name="sentry-api-0-explore-saved-query-visit",
@@ -1745,6 +1779,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/events-timeseries/$",
         OrganizationEventsTimeseriesEndpoint.as_view(),
         name="sentry-api-0-organization-events-timeseries",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/events-dropped/$",
+        OrganizationEventsDroppedEndpoint.as_view(),
+        name="sentry-api-0-organization-events-dropped",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/events-heatmap/$",
@@ -2459,9 +2498,24 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-investigation-favorite",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/comments/$",
+        OrganizationInvestigationCommentsEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-comments",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/comments/(?P<comment_id>[^/]+)/$",
+        OrganizationInvestigationCommentDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-comment-details",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/duplicate/$",
         OrganizationInvestigationsDuplicateEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-duplicate",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/presence/$",
+        OrganizationInvestigationPresenceEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-presence",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/title-generation/$",
@@ -2745,6 +2799,28 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
                     OrganizationSCIMSchemaIndex.as_view(),
                     name="sentry-api-0-organization-scim-schema-index",
                 ),
+                # .+ rather than [^/]+ so unknown URIs containing slashes
+                # still reach the endpoint and get a SCIM-format 404.
+                re_path(
+                    r"^Schemas/(?P<schema_uri>.+)$",
+                    OrganizationSCIMSchemaDetails.as_view(),
+                    name="sentry-api-0-organization-scim-schema-details",
+                ),
+                re_path(
+                    r"^ServiceProviderConfig$",
+                    OrganizationSCIMServiceProviderConfig.as_view(),
+                    name="sentry-api-0-organization-scim-service-provider-config",
+                ),
+                re_path(
+                    r"^ResourceTypes$",
+                    OrganizationSCIMResourceTypeIndex.as_view(),
+                    name="sentry-api-0-organization-scim-resource-type-index",
+                ),
+                re_path(
+                    r"^ResourceTypes/(?P<resource_type_name>.+)$",
+                    OrganizationSCIMResourceTypeDetails.as_view(),
+                    name="sentry-api-0-organization-scim-resource-type-details",
+                ),
             ]
         ),
     ),
@@ -3005,6 +3081,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-custom-inbound-filters",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/custom-inbound-filters/validate/$",
+        CustomInboundFilterValidateEndpoint.as_view(),
+        name="sentry-api-0-project-custom-inbound-filter-validate",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/custom-inbound-filters/(?P<filter_id>[^/]+)/$",
         CustomInboundFilterDetailsEndpoint.as_view(),
         name="sentry-api-0-project-custom-inbound-filter-details",
@@ -3183,16 +3264,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/replays/jobs/delete/(?P<job_id>\d+)/$",
         ProjectReplayDeletionJobDetailEndpoint.as_view(),
         name="sentry-api-0-project-replay-deletion-job-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/rules/(?P<rule_id>[^/]+)/group-history/$",
-        ProjectRuleGroupHistoryIndexEndpoint.as_view(),
-        name="sentry-api-0-project-rule-group-history-index",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/rules/(?P<rule_id>[^/]+)/stats/$",
-        ProjectRuleStatsIndexEndpoint.as_view(),
-        name="sentry-api-0-project-rule-stats-index",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/stats/$",
@@ -3445,7 +3516,7 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/seer/night-shift/$",
-        ProjectSeerNightShiftEndpoint.as_view(),
+        ProjectSeerAgenticTriageEndpoint.as_view(),
         name="sentry-api-0-project-seer-night-shift",
     ),
     # User Issue
@@ -3718,8 +3789,13 @@ INTERNAL_URLS = [
     *notification_platform_urls.internal_urlpatterns,
     re_path(
         r"^seer/night-shift/trigger/$",
-        SeerAdminNightShiftTriggerEndpoint.as_view(),
+        SeerAdminAgenticTriageTriggerEndpoint.as_view(),
         name="sentry-admin-seer-night-shift-trigger",
+    ),
+    re_path(
+        r"^seer/autofix/retry/$",
+        SeerAdminAutofixRetryEndpoint.as_view(),
+        name="sentry-admin-seer-autofix-retry",
     ),
 ]
 

@@ -76,6 +76,21 @@ describe('ExceptionGroupContext', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders colored text without escape codes when given ANSI exception values', () => {
+    const allExceptions = defaultProps.allExceptions.map(exception =>
+      exception.type === 'TypeError'
+        ? {...exception, value: '\x1B[31mnested\x1B[0m failure'}
+        : exception
+    );
+
+    render(<RelatedExceptions {...defaultProps} allExceptions={allExceptions} />);
+
+    expect(
+      screen.getByRole('button', {name: 'TypeError: nested failure'})
+    ).toBeInTheDocument();
+    expect(screen.getByText('nested').style.color).toContain('color-mix(in srgb,');
+  });
+
   it('does not render for sub-exception', () => {
     const {container} = render(
       <RelatedExceptions {...defaultProps} mechanism={typeErrorMechanism} />

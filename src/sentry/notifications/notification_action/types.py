@@ -24,7 +24,9 @@ from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
-from sentry.notifications.types import TEST_NOTIFICATION_ID
+from sentry.notifications.platform.shadow.capture import shadow_read
+from sentry.notifications.platform.types import NotificationSource
+from sentry.notifications.types import TEST_NOTIFICATION_ID, RuleFuture
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
 from sentry.rules.processing.processor import activate_downstream_actions
 from sentry.services.eventstore.models import GroupEvent
@@ -34,7 +36,6 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
 )
 from sentry.types.activity import ActivityType
-from sentry.types.rules import RuleFuture
 from sentry.workflow_engine.models import Action, AlertRuleWorkflow, Detector, Workflow
 from sentry.workflow_engine.types import (
     ActionInvocation,
@@ -206,7 +207,7 @@ class BaseIssueAlertHandler(ABC):
         action: Action,
         detector: Detector,
         event_data: WorkflowEventData,
-        workflow_id: WorkflowId | None,
+        workflow_id: WorkflowId,
     ) -> Rule:
         """
         Creates a Rule instance from the Action model.
@@ -227,7 +228,7 @@ class BaseIssueAlertHandler(ABC):
 
         label = None
         # Attempt to query the workflow name for non-test notifications.
-        if workflow_id is not None and workflow_id != TEST_NOTIFICATION_ID:
+        if workflow_id != TEST_NOTIFICATION_ID:
             try:
                 workflow = Workflow.objects.get(id=workflow_id)
                 label = workflow.name
@@ -244,7 +245,7 @@ class BaseIssueAlertHandler(ABC):
         # If test event, just set the legacy rule id to -1
         if workflow_id == TEST_NOTIFICATION_ID:
             data["actions"][0]["legacy_rule_id"] = TEST_NOTIFICATION_ID
-        elif workflow_id is not None:
+        else:
             data["actions"][0]["workflow_id"] = workflow_id
 
             # attempt to find legacy_rule_id from the alert rule workflow
@@ -267,9 +268,6 @@ class BaseIssueAlertHandler(ABC):
 
             if rule_id:
                 data["actions"][0]["legacy_rule_id"] = rule_id
-
-        if workflow_id is None and rule_id is None:
-            raise ValueError("Workflow ID or rule ID is required to fire notification")
 
         if workflow_id == TEST_NOTIFICATION_ID and action.type == Action.Type.EMAIL:
             # mail action needs to have skipDigests set to True
@@ -350,41 +348,48 @@ class BaseIssueAlertHandler(ABC):
         2. activate_downstream_actions
         3. execute_futures (also in post_process process_rules)
         """
-        # Create a rule
-        rule = cls.create_rule_instance_from_action(
-            invocation.action,
-            invocation.detector,
-            invocation.event_data,
-            workflow_id=invocation.workflow_id,
-        )
+        from sentry.notifications.notification_action.utils import issue_notification_data_factory
 
-        logger.info(
-            "notification_action.execute_via_issue_alert_handler",
-            extra={
-                "action_id": invocation.action.id,
-                "detector_id": invocation.detector.id,
-                "event_data": asdict(invocation.event_data),
-                "rule_id": rule.id,
-                "rule_project_id": rule.project.id,
-                "rule_environment_id": rule.environment_id,
-                "rule_label": rule.label,
-                "rule_data": rule.data,
-            },
-        )
-        # Get the futures
-        futures = cls.get_rule_futures(invocation.event_data, rule, invocation.notification_uuid)
+        with shadow_read(
+            invocation,
+            NotificationSource.ISSUE,
+            lambda _: issue_notification_data_factory(invocation),
+        ):
+            # Create a rule
+            rule = cls.create_rule_instance_from_action(
+                invocation.action,
+                invocation.detector,
+                invocation.event_data,
+                workflow_id=invocation.workflow_id,
+            )
 
-        # Execute the futures
-        # If the rule id is -1, we are sending a test notification
-        if rule.id == TEST_NOTIFICATION_ID:
-            cls.send_test_notification(invocation.event_data, futures)
-        else:
-            cls.execute_futures(invocation.event_data, futures)
+            logger.info(
+                "notification_action.execute_via_issue_alert_handler",
+                extra={
+                    "action_id": invocation.action.id,
+                    "detector_id": invocation.detector.id,
+                    "event_data": asdict(invocation.event_data),
+                    "rule_id": rule.id,
+                    "rule_project_id": rule.project.id,
+                    "rule_environment_id": rule.environment_id,
+                    "rule_label": rule.label,
+                    "rule_data": rule.data,
+                },
+            )
+            # Get the futures
+            futures = cls.get_rule_futures(
+                invocation.event_data, rule, invocation.notification_uuid
+            )
+
+            # Execute the futures
+            # If the rule id is -1, we are sending a test notification
+            if rule.id == TEST_NOTIFICATION_ID:
+                cls.send_test_notification(invocation.event_data, futures)
+            else:
+                cls.execute_futures(invocation.event_data, futures)
 
 
 class TicketingIssueAlertHandler(BaseIssueAlertHandler):
-    # XXX: this label template is used by the WorkflowEngineRuleSerializer to return the same label as the old APIs
-    # once we remove those, we can remove this and all the render_label methods on the IssueAlertHanders
     label_template = "Create a ticket in {integration}"
 
     @classmethod
@@ -451,39 +456,49 @@ class BaseMetricAlertHandler(ABC):
 
     @classmethod
     def invoke_legacy_registry(cls, invocation: ActionInvocation) -> None:
+        from sentry.notifications.notification_action.utils import (
+            metric_alert_notification_data_factory,
+        )
+
         issue_notification_context = IssueNotificationContext(invocation)
+        with shadow_read(
+            invocation,
+            NotificationSource.METRIC_ALERT,
+            lambda legacy_render: metric_alert_notification_data_factory(
+                issue_notification_context, chart_url=legacy_render.chart_url
+            ),
+        ):
+            notification_context = issue_notification_context.notification_context
+            alert_context = issue_notification_context.alert_context
+            metric_issue_context = issue_notification_context.metric_issue_context
+            open_period_context = issue_notification_context.open_period_context
+            trigger_status = issue_notification_context.trigger_status
 
-        notification_context = issue_notification_context.notification_context
-        alert_context = issue_notification_context.alert_context
-        metric_issue_context = issue_notification_context.metric_issue_context
-        open_period_context = issue_notification_context.open_period_context
-        trigger_status = issue_notification_context.trigger_status
-
-        logged_notification_context = asdict(notification_context)
-        logged_notification_context.pop("notes")
-        logger.info(
-            "notification_action.execute_via_metric_alert_handler",
-            extra={
-                "action_id": invocation.action.id,
-                "detector_id": invocation.detector.id,
-                "event_data": asdict(invocation.event_data),
-                "notification_context": logged_notification_context,
-                "alert_context": asdict(alert_context),
-                "metric_issue_context": asdict(metric_issue_context),
-                "open_period_context": open_period_context.dict(),
-                "trigger_status": trigger_status,
-            },
-        )
-        cls.send_alert(
-            notification_context=notification_context,
-            alert_context=alert_context,
-            metric_issue_context=metric_issue_context,
-            open_period_context=open_period_context,
-            trigger_status=trigger_status,
-            notification_uuid=invocation.notification_uuid,
-            organization=invocation.detector.linked_project.organization,
-            project=invocation.detector.linked_project,
-        )
+            logged_notification_context = asdict(notification_context)
+            logged_notification_context.pop("notes")
+            logger.info(
+                "notification_action.execute_via_metric_alert_handler",
+                extra={
+                    "action_id": invocation.action.id,
+                    "detector_id": invocation.detector.id,
+                    "event_data": asdict(invocation.event_data),
+                    "notification_context": logged_notification_context,
+                    "alert_context": asdict(alert_context),
+                    "metric_issue_context": asdict(metric_issue_context),
+                    "open_period_context": open_period_context.dict(),
+                    "trigger_status": trigger_status,
+                },
+            )
+            cls.send_alert(
+                notification_context=notification_context,
+                alert_context=alert_context,
+                metric_issue_context=metric_issue_context,
+                open_period_context=open_period_context,
+                trigger_status=trigger_status,
+                notification_uuid=invocation.notification_uuid,
+                organization=invocation.detector.linked_project.organization,
+                project=invocation.detector.linked_project,
+            )
 
 
 class NotificationActionForm(Protocol):

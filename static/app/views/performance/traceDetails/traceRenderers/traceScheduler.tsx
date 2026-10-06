@@ -23,10 +23,12 @@ export interface TraceEvents {
     space: [x: number, y: number, width: number, height: number]
   ) => void;
   ['set trace view']: (view: {width?: number; x?: number}) => void;
+  ['time compression change']: () => void;
 }
 
 export class TraceScheduler {
   events: EventStore = {
+    'time compression change': [],
     'initialize virtualized list': new Array<
       [TraceEventPriority, TraceEvents['initialize virtualized list']]
     >(),

@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Collection
 from datetime import datetime, timedelta
 
 from django.conf import settings
@@ -26,13 +27,12 @@ class TsTzRange(models.Func):
     output_field = DateTimeRangeField()
 
 
+def get_group_types_without_open_periods() -> Collection[int]:
+    return options.get("workflow_engine.group.type_id.open_periods_type_denylist")
+
+
 def should_create_open_periods(type_id: int) -> bool:
-    grouptypes_without_open_periods = options.get(
-        "workflow_engine.group.type_id.open_periods_type_denylist"
-    )
-    if type_id in grouptypes_without_open_periods:
-        return False
-    return True
+    return type_id not in get_group_types_without_open_periods()
 
 
 @cell_silo_model
@@ -111,25 +111,6 @@ class GroupOpenPeriod(DefaultFieldsModel):
             return
 
         self.update(date_ended=None)
-
-
-def get_last_checked_for_open_period(group: Group) -> datetime:
-    from sentry.incidents.grouptype import MetricIssue
-    from sentry.incidents.models.alert_rule import AlertRule
-
-    event = group.get_latest_event()
-    last_checked = group.last_seen
-    if event and group.type == MetricIssue.type_id:
-        alert_rule_id = event.data.get("contexts", {}).get("metric_alert", {}).get("alert_rule_id")
-        if alert_rule_id:
-            try:
-                alert_rule = AlertRule.objects.get(id=alert_rule_id)
-                now = timezone.now()
-                last_checked = now - timedelta(seconds=alert_rule.snuba_query.time_window)
-            except AlertRule.DoesNotExist:
-                pass
-
-    return last_checked
 
 
 def get_open_periods_for_group(

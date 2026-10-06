@@ -241,10 +241,31 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         )
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
-        response = self.client.get(url, format="json")
+        with mock.patch.object(Activity.objects, "get_activities_for_group") as get_activity:
+            response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
+        get_activity.assert_not_called()
 
         assert [item["type"] for item in response.data["activity"]] == ["note", "first_seen"]
+
+    @action_log_activity_enabled()
+    def test_group_action_log_empty_falls_back_to_activity(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        with self.feature({"projects:issue-action-log-write-to-db": False}):
+            note = self.create_group_activity(
+                group=group,
+                type=ActivityType.NOTE.value,
+                user_id=self.user.id,
+                data={"text": "legacy comment"},
+            )
+
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 200, response.content
+        assert [item["type"] for item in response.data["activity"]] == ["note", "first_seen"]
+        assert response.data["activity"][0]["commentId"] == str(note.id)
+        assert response.data["activity"][0]["data"]["text"] == "legacy comment"
 
     def test_group_action_log_ignored_when_disabled(self) -> None:
         self.login_as(user=self.user)
@@ -349,7 +370,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             {"url": "https://example.com/browse/api-123", "displayName": "api-123"}
         ]
         mock_integration_service.get_integrations.assert_called_once_with(
-            organization_id=group.organization.id
+            organization_id=group.organization.id, integration_ids=[integration.id]
         )
 
     def test_permalink_superuser(self) -> None:

@@ -37,6 +37,12 @@ class LegacyFilter(StrEnum):
     TRACE_METRIC_NAME = "trace-metric-name"
 
 
+# Bounds how many generic filters one project sends Relay. The API refuses to create a
+# filter past the cap, and the Relay config builder stops at it too so that rows made
+# some other way, e.g. before the cap or by a backfill, cannot blow up a project config.
+MAX_FILTERS_PER_PROJECT = 50
+
+
 @cell_silo_model
 class CustomInboundFilter(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization
@@ -46,12 +52,9 @@ class CustomInboundFilter(DefaultFieldsModel):
     )
     name = models.CharField(max_length=256, null=True, blank=True)
     active = models.BooleanField(default=True, db_default=True)
-    # Nullable only because the column was added to an existing table. A reader
-    # refuses a filter without one rather than guessing.
     data_type = models.CharField(
         max_length=32,
         choices=[(data_type, data_type) for data_type in DataType],
-        null=True,
     )
     conditions = models.JSONField(default=list)
     # Set on the one row per project that holds a legacy newline list. Null on every

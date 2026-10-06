@@ -24,6 +24,7 @@ import {
   AgentIntegration,
   DeploymentTarget,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
+import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
 
 // Bumped to 10.67.0 so the install step also satisfies Workers AI, which
 // auto-instruments the `env.AI` binding only from that version.
@@ -688,7 +689,7 @@ export function getManualConfigureStep(
     importMode,
     configFileName,
     sentryImport,
-    docUrl = 'https://docs.sentry.io/platforms/node/tracing/instrumentation/ai-agents-module/#manual-instrumentation',
+    docUrl = `${AI_INSTRUMENTATION_DOCS_LINKS.javascript}manual-instrumentation/`,
   }: {
     configFileName?: string;
     docUrl?: string;
@@ -758,7 +759,11 @@ Sentry.init({
             <ManualInstrumentationNote
               docsLink={
                 <ExternalLink
-                  href={isCloudflare ? CLOUDFLARE_AGENT_TRACING_DOCS : docUrl}
+                  href={
+                    isCloudflare
+                      ? `${CLOUDFLARE_AGENT_TRACING_DOCS}manual-instrumentation/`
+                      : docUrl
+                  }
                 />
               }
             />

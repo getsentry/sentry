@@ -4,6 +4,7 @@ import ipaddress
 from collections.abc import Mapping
 from typing import Any, TypedDict
 
+from django.db.models import QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -26,6 +27,7 @@ from sentry.apidocs.response_types import (
 )
 from sentry.ingest.inbound_filters import get_supported_condition_types
 from sentry.models.custominboundfilter import (
+    MAX_FILTERS_PER_PROJECT,
     ConditionType,
     CustomInboundFilter,
     DataType,
@@ -34,7 +36,6 @@ from sentry.models.project import Project
 from sentry.tasks.relay import schedule_invalidate_project_config
 
 MAX_CONDITIONS_PER_FILTER = 10
-MAX_FILTERS_PER_PROJECT = 50
 # Relay matches every condition value as a glob against each item, so the size of a
 # filter bounds how much matching work a single filter can cause. A filter stored
 # before this cap keeps its size but cannot grow.
@@ -160,7 +161,7 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         help_text=(
             "Conditions are combined with AND: an event must match every condition to be "
             "filtered out. There is no OR between conditions, so e.g. two release conditions "
-            "can express a range (>2 AND <4). To broaden matching, widen a condition's values "
+            "can express a range (`>2 AND <4`). To broaden matching, widen a condition's values "
             "or add separate filters."
         ),
     )
@@ -196,22 +197,16 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         # A partial update may change the data type or the conditions alone, so the
         # other side comes from the stored filter.
         stored = self.instance
-        conditions = attrs.get("conditions")
-        if conditions is None:
-            conditions = stored.conditions if stored else None
-
-        raw_data_type = attrs.get("data_type") or (stored.data_type if stored else None)
-        if raw_data_type is None:
-            raise serializers.ValidationError(
-                {"dataType": "This filter has no data type. Send dataType to update it."}
-            )
-        if conditions is None:
-            return attrs
+        if stored is None:
+            conditions = attrs["conditions"]
+            data_type = DataType(attrs["data_type"])
+        else:
+            conditions = attrs.get("conditions", stored.conditions)
+            data_type = DataType(attrs.get("data_type", stored.data_type))
 
         if "conditions" in attrs:
             _validate_size(conditions, stored)
 
-        data_type = DataType(raw_data_type)
         supported = get_supported_condition_types(data_type)
         unsupported = sorted({condition["type"] for condition in conditions} - set(supported))
         if unsupported:
@@ -243,6 +238,16 @@ def serialize_custom_inbound_filter(
     }
 
 
+def _user_filters(project: Project) -> QuerySet[CustomInboundFilter]:
+    """
+    The filters a user made here. A row with legacy_filter set is the double write of a
+    legacy list that the project settings still own, so this API neither lists, edits nor
+    deletes it for now. The serializer has no legacy_filter field, so a request cannot
+    set it.
+    """
+    return CustomInboundFilter.objects.filter(project_id=project.id, legacy_filter__isnull=True)
+
+
 class ProjectCustomInboundFilterEndpoint(ProjectEndpoint):
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (ProjectSettingPermission,)
@@ -254,6 +259,12 @@ class ProjectCustomInboundFilterEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         return features.has("projects:custom-inbound-filters", project, actor=request.user)
+
+    def get_custom_inbound_filter(self, project: Project, filter_id: str) -> CustomInboundFilter:
+        try:
+            return _user_filters(project).get(id=filter_id)
+        except (CustomInboundFilter.DoesNotExist, ValueError):
+            raise ResourceDoesNotExist
 
     @staticmethod
     def get_audit_log_data(
@@ -309,7 +320,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         if not self.has_feature(request, project):
             return Response({"detail": "You do not have that feature enabled"}, status=400)
 
-        filters = CustomInboundFilter.objects.filter(project_id=project.id)
+        filters = _user_filters(project)
         return self.paginate(
             request=request,
             queryset=filters,
@@ -346,9 +357,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         if not self.has_feature(request, project):
             return Response({"detail": "You do not have that feature enabled"}, status=400)
 
-        if CustomInboundFilter.objects.filter(project_id=project.id).count() >= (
-            MAX_FILTERS_PER_PROJECT
-        ):
+        if _user_filters(project).count() >= MAX_FILTERS_PER_PROJECT:
             return Response(
                 {
                     "detail": (
@@ -388,12 +397,6 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
         "PUT": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
         "DELETE": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
-
-    def get_custom_inbound_filter(self, project: Project, filter_id: str) -> CustomInboundFilter:
-        try:
-            return CustomInboundFilter.objects.get(id=filter_id, project_id=project.id)
-        except (CustomInboundFilter.DoesNotExist, ValueError):
-            raise ResourceDoesNotExist
 
     @extend_schema(
         operation_id="Retrieve a Custom Inbound Filter",

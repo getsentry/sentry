@@ -7,7 +7,6 @@ from sentry import features, options
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.options.rollout import in_rollout_group
 from sentry.ratelimits import backend as ratelimiter
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.autofix.utils import bulk_read_preferences_from_sentry_db
@@ -89,13 +88,32 @@ def trigger_smart_assignment(
     # a cooldown or a new-signal check against the latest run instead. The run mirror
     # is our durable record that a run was dispatched.
     if (
-        not _already_predicted(group)
+        not _is_bulk_resolution(activity_type, activity)
+        and not _already_predicted(group)
         and _should_sample_for_eval(activity_type)
         and not _dispatch_rate_limited(organization)
     ):
         _dispatch(group, activity_type, activity)
 
     record_ground_truth(group, activity_type, activity)
+
+
+def _is_bulk_resolution(activity_type: ActivityType, activity: Activity) -> bool:
+    """Whether this resolution was one of many issues resolved in a single action.
+
+    Bulk resolves are usually backlog cleanup, so the resolver says little about who
+    owned any one issue.
+    """
+    if activity_type not in RESOLUTION_ACTIVITIES:
+        return False
+    if not (activity.data and activity.data.get("bulk")):
+        return False
+    metrics.incr(
+        "smart_assignment.trigger.skipped",
+        tags={"reason": "bulk_resolution"},
+        sample_rate=1.0,
+    )
+    return True
 
 
 def _already_predicted(group: Group) -> bool:
@@ -177,15 +195,9 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity) -> 
         )
         return
 
-    is_prefetch_enabled = in_rollout_group(
-        "seer.smart_assignment.prefetch_rollout_rate",
-        f"smart-assignment-prefetch:{group.id}",
-    )
-
     extras: dict[str, object] = {
         "trigger": activity_type.name,
         "triggering_activity_id": activity.id,
-        "prefetch_cohort": "prefetch" if is_prefetch_enabled else "control",
     }
 
     preferences = bulk_read_preferences_from_sentry_db(organization.id, [group.project_id])
@@ -197,7 +209,6 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity) -> 
         group_id=group.id,
         project_slug=group.project.slug,
         connected_repos=connected_repos,
-        is_prefetch_enabled=is_prefetch_enabled,
     )
     title = f"Smart assignment for {group.qualified_short_id or group.id}"
     try:

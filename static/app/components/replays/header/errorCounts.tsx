@@ -4,10 +4,10 @@ import countBy from 'lodash/countBy';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Badge} from '@sentry/scraps/badge';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {CountTooltipContent} from 'sentry/components/replays/countTooltipContent';
 import {t} from 'sentry/locale';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {RawReplayError} from 'sentry/utils/replays/types';
@@ -61,21 +61,25 @@ export function ErrorCounts({replayErrors}: Props) {
           <Tooltip
             key={projectSlug}
             title={
-              <ColumnTooltipContent>
-                <dt>{projectSlug}</dt>
-                <dd>
-                  {Object.entries(counts)
-                    .map(([level, count]) => `${level}: ${count}`)
-                    .join(', ')}
-                </dd>
-              </ColumnTooltipContent>
+              <Tooltip.Grid>
+                <DescriptionList gap="md 2xl" nowrap terms="strong">
+                  <DescriptionList.Term>{projectSlug}</DescriptionList.Term>
+                  <DescriptionList.Details>
+                    {Object.entries(counts)
+                      .map(([level, count]) => `${level}: ${count}`)
+                      .join(', ')}
+                  </DescriptionList.Details>
+                </DescriptionList>
+              </Tooltip.Grid>
             }
           >
             <StyledLink to={getLink({projectSlug})}>
               <ProjectAvatar
                 size={16}
                 project={
-                  projects.find(p => p.slug === projectSlug) ?? {slug: projectSlug}
+                  projects.find(p => p.slug === projectSlug) ?? {
+                    slug: projectSlug,
+                  }
                 }
               />
               <ErrorCount aria-label={t('number of errors')}>
@@ -93,18 +97,20 @@ export function ErrorCounts({replayErrors}: Props) {
   return (
     <Tooltip
       title={
-        <ColumnTooltipContent>
-          {Object.entries(countsPerProject).map(([projectSlug, counts]) => (
-            <Fragment key={projectSlug}>
-              <dt>{projectSlug}</dt>
-              <dd>
-                {Object.entries(counts)
-                  .map(([level, count]) => `${level}: ${count}`)
-                  .join(', ')}
-              </dd>
-            </Fragment>
-          ))}
-        </ColumnTooltipContent>
+        <Tooltip.Grid>
+          <DescriptionList gap="md 2xl" nowrap terms="strong">
+            {Object.entries(countsPerProject).map(([projectSlug, counts]) => (
+              <Fragment key={projectSlug}>
+                <DescriptionList.Term>{projectSlug}</DescriptionList.Term>
+                <DescriptionList.Details>
+                  {Object.entries(counts)
+                    .map(([level, count]) => `${level}: ${count}`)
+                    .join(', ')}
+                </DescriptionList.Details>
+              </Fragment>
+            ))}
+          </DescriptionList>
+        </Tooltip.Grid>
       }
     >
       <StyledLink to={getLink({})}>
@@ -117,7 +123,9 @@ export function ErrorCounts({replayErrors}: Props) {
                   key={projectSlug}
                   size={16}
                   project={
-                    projects.find(p => p.slug === projectSlug) ?? {slug: projectSlug}
+                    projects.find(p => p.slug === projectSlug) ?? {
+                      slug: projectSlug,
+                    }
                   }
                 />
               );
@@ -138,10 +146,6 @@ const Count = styled('span')`
 
 const ErrorCount = styled(Count)`
   color: ${p => p.theme.tokens.content.secondary};
-`;
-
-const ColumnTooltipContent = styled(CountTooltipContent)`
-  grid-template-columns: max-content max-content;
 `;
 
 const StyledLink = styled(Link)`

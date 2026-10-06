@@ -26,6 +26,7 @@ import type {Group} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {
@@ -227,7 +228,7 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
   }, [groupId, incomingEnvs, organization, queryClient]);
 }
 
-function useFetchGroupDetails(): FetchGroupDetailsState {
+export function useFetchGroupDetails(): FetchGroupDetailsState {
   const api = useApi();
   const organization = useOrganization();
   const location = useLocation();
@@ -264,14 +265,14 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
    * This is not closer to the GroupEventHeader because it is unmounted
    * between route changes like latest event => eventId
    */
-  const previousEvent = useMemoWithPrevious<typeof event | null>(
+  const previousEvent = useMemoWithPrevious<{event: Event; groupId: string} | null>(
     previousInstance => {
       if (event) {
-        return event;
+        return {event, groupId};
       }
       return previousInstance;
     },
-    [event]
+    [event, groupId]
   );
 
   // If the environment changes, we need to refetch the group, but we can
@@ -438,8 +439,10 @@ function useFetchGroupDetails(): FetchGroupDetailsState {
   return {
     loadingGroup,
     group,
-    // Allow previous event to be displayed while new event is loading
-    event: (loadingEvent ? (event ?? previousEvent) : event) ?? null,
+    // Only retain an event while loading another event from the same issue.
+    event:
+      event ??
+      (loadingEvent && previousEvent?.groupId === groupId ? previousEvent.event : null),
     errorType,
     error: isGroupError,
     refetchData,
@@ -836,8 +839,8 @@ function GroupDetails() {
       return defaultTitle;
     }
 
-    const {title} = getTitle(group);
-    const message = getMessage(group);
+    const title = stripAnsi(getTitle(group).title ?? '');
+    const message = stripAnsi(getMessage(group) ?? '');
 
     const eventDetails = `${organization.slug} — ${group.project.slug}`;
 

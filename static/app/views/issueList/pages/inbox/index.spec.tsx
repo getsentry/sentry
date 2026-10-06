@@ -5,6 +5,7 @@ import {
   ExplorerAutofixStateFixture,
 } from 'sentry-fixture/autofix';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
+import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -34,7 +35,7 @@ jest.mock('sentry/utils/useMedia');
 
 describe('InboxPage', () => {
   const organization = OrganizationFixture({
-    features: ['issue-inbox', 'gen-ai-features', 'seat-based-seer-enabled'],
+    features: ['issue-inbox', 'seat-based-seer-enabled'],
   });
   const seerOrganization = organization;
   const project = ProjectFixture({
@@ -215,11 +216,7 @@ describe('InboxPage', () => {
   }
 
   function mockIssuePreview({
-    autofixSetup = AutofixSetupFixture({
-      billing: {hasAutofixQuota: false},
-      integration: {ok: false, reason: null},
-      seerReposLinked: false,
-    }),
+    autofixSetup = AutofixSetupFixture({}),
     autofixSetupDelay,
     group = fixProposedGroup,
     markSeenResponse = {...fixProposedGroup, hasSeen: true},
@@ -236,6 +233,10 @@ describe('InboxPage', () => {
       url: `/organizations/org-slug/issues/${group.id}/`,
       body: () => ({...group, hasSeen: previewHasSeen}),
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/issues/${group.id}/events/recommended/`,
+      body: EventFixture({groupID: group.id}),
+    });
     const markSeenRequest = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/`,
       method: 'PUT',
@@ -251,6 +252,10 @@ describe('InboxPage', () => {
       url: `/organizations/org-slug/issues/${group.id}/autofix/setup/`,
       body: autofixSetup,
       ...(autofixSetupDelay === undefined ? {} : {asyncDelay: autofixSetupDelay}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/onboarding-check/',
+      body: {hasSupportedScmIntegration: true},
     });
     mockAutofixResponse(ExplorerAutofixResponseFixture({autofix: null}));
     MockApiClient.addMockResponse({
@@ -396,7 +401,9 @@ describe('InboxPage', () => {
     expect(within(diagnosedSection).getByText('2')).toBeInTheDocument();
     expect(within(assignedSection).getByText('12')).toBeInTheDocument();
     expect(within(fixSection).getByText('Fix proposed message')).toBeInTheDocument();
-    expect(within(fixSection).queryByText('PROJECT-101')).not.toBeInTheDocument();
+    expect(within(fixSection).getByText('PROJECT-101')).toBeInTheDocument();
+    expect(within(diagnosedSection).getByText('PROJECT-102')).toBeInTheDocument();
+    expect(within(assignedSection).getByText('PROJECT-103')).toBeInTheDocument();
     expect(within(fixSection).getByTitle('Jane Doe')).toBeInTheDocument();
     expect(within(fixSection).getByRole('img', {name: 'Jane Doe'})).toHaveAttribute(
       'src',
@@ -495,9 +502,13 @@ describe('InboxPage', () => {
     render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
 
     const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
-    expect(
-      await within(fixSection).findByRole('link', {name: 'Pull request #10, Open'})
-    ).toHaveAttribute('href', 'https://github.com/org/repository/pull/10');
+    const openPullRequest = await within(fixSection).findByRole('link', {
+      name: 'Pull request #10, Open',
+    });
+    expect(openPullRequest).toHaveAttribute(
+      'href',
+      'https://github.com/org/repository/pull/10'
+    );
     expect(
       within(fixSection).getByRole('link', {name: 'Pull request #13, Draft'})
     ).toHaveAttribute('href', 'https://github.com/org/repository/pull/13');
@@ -510,6 +521,10 @@ describe('InboxPage', () => {
     expect(
       within(fixSection).queryByRole('link', {name: 'Pull request #14, Merged'})
     ).not.toBeInTheDocument();
+    const shortId = within(fixSection).getByText('PROJECT-101');
+    expect(
+      openPullRequest.compareDocumentPosition(shortId) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
     expect(diagnosedPullRequests).not.toHaveBeenCalled();
     expect(assignedPullRequests).not.toHaveBeenCalled();
   });
@@ -1183,7 +1198,7 @@ describe('InboxPage', () => {
     expect(within(preview).getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
   });
 
-  it('shows standard issue actions for an assigned issue without paid Seer', async () => {
+  it('keeps Resolve available for an assigned issue without Seer quota', async () => {
     mockAssignedPreview(
       AutofixSetupFixture({
         billing: {hasAutofixQuota: false},

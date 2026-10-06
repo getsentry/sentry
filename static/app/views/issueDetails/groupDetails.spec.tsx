@@ -15,6 +15,7 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import {setWindowLocation} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
@@ -148,6 +149,14 @@ describe('groupDetails', () => {
       body: project,
     });
     MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/autofix/`,
+      body: {autofix: null},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/seer/onboarding-check/`,
+      body: {isSeerConfigured: false},
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/autofix/setup/`,
       body: AutofixSetupFixture({}),
     });
@@ -236,7 +245,6 @@ describe('groupDetails', () => {
       const organization = {
         ...defaultInit.organization,
         hideAiFeatures: false,
-        features: ['gen-ai-features'],
       };
       const query = {
         project: group.project.id,
@@ -545,5 +553,34 @@ describe('groupDetails', () => {
 
     // Verify that the hasSeen request was NOT made
     expect(hasSeenMock).not.toHaveBeenCalled();
+  });
+
+  it('sets the document title without escape codes when given ANSI metadata', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`,
+      body: {
+        ...group,
+        metadata: {type: '\x1B[31mRequestError\x1B[0m', value: '\x1B[33mfailed\x1B[0m'},
+      },
+    });
+
+    setWindowLocation(`http://localhost/?project=${group.project.id}`);
+    render(
+      <DocumentTitleManager>
+        <GroupDetails>
+          <MockComponent />
+        </GroupDetails>
+      </DocumentTitleManager>,
+      {
+        organization: defaultInit.organization,
+        initialRouterConfig,
+      }
+    );
+
+    await waitFor(() =>
+      expect(document.title).toBe(
+        `RequestError: failed — ${defaultInit.organization.slug} — ${group.project.slug}`
+      )
+    );
   });
 });

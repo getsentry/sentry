@@ -61,7 +61,6 @@ describe('SeerEnableNotifications', () => {
             'autofix-browser-notifications',
             'seer-explorer-code-mode-tools',
             'seer-explorer',
-            'gen-ai-features',
           ],
           openMembership: true,
           hideAiFeatures: false,

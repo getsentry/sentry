@@ -7,6 +7,8 @@ import {Button} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {type MarkdownTableColumn} from '@sentry/scraps/markdown';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Heading, Text} from '@sentry/scraps/text';
 import {TextArea} from '@sentry/scraps/textarea';
 
@@ -15,7 +17,10 @@ import {openConfirmModal} from 'sentry/components/confirm';
 import {Duration} from 'sentry/components/duration';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {ChartContent} from 'sentry/components/seer/markdown/embeds/components/chart';
+import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {ALL_SEER_EMBED_SCHEMAS} from 'sentry/components/seer/markdown/embeds/schemas';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
+import {COLUMN_ALIGN_JUSTIFY} from 'sentry/components/tables/sortableHeaderCell';
 import {IconArrow, IconClose, IconEllipsis, IconReturn, IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -188,13 +193,17 @@ export function InvestigationCell({
       <DropdownMenu
         position="bottom-end"
         usePortal
-        triggerProps={{
-          size: 'xs',
-          variant: 'transparent',
-          showChevron: false,
-          icon: <IconEllipsis size="xs" />,
-          'aria-label': t('Cell actions for %s', displayTitle),
-        }}
+        trigger={triggerProps => (
+          <OverlayTrigger.IconButton
+            {...triggerProps}
+            // A query cell's header is SeerEmbedBlock's band, which is sized to its
+            // `zero` toggle; an `xs` trigger would make it taller than an embed's.
+            size={block.kind === 'query' ? 'zero' : 'xs'}
+            variant="transparent"
+            icon={<IconEllipsis size="xs" />}
+            aria-label={t('Cell actions for %s', displayTitle)}
+          />
+        )}
         items={actionItems}
       />
     </CellActions>
@@ -300,7 +309,6 @@ function QueryResult({
   block: InvestigationBlock;
   progressState: CellProgressState;
 }) {
-  const [expanded, setExpanded] = useState(true);
   const output = getQueryOutput(block.output);
   const chart =
     output?.preferredView === 'chart' ? getRenderableChart(output.chart) : null;
@@ -311,81 +319,64 @@ function QueryResult({
     chart?.subtitle ||
     getChartMetadata(chart);
 
+  // The agent is told to write this as a bare Markdown table so it can run
+  // edge to edge beneath the card's inset content, but it sometimes adds prose
+  // around the table anyway, which `QueryResultMarkdown` insets.
+  const tableMarkdown = chart ? null : output?.tableMarkdown || null;
+
+  const header =
+    (chartHeaderTitle && chartHeaderTitle !== title) || chartHeaderMetadata ? (
+      <Stack gap="2xs" data-test-id="query-cell-header">
+        {chartHeaderTitle && chartHeaderTitle !== title ? (
+          <Heading as="h3" size="md">
+            {chartHeaderTitle}
+          </Heading>
+        ) : null}
+        {chartHeaderMetadata ? (
+          <Text size="sm" variant="muted">
+            {chartHeaderMetadata}
+          </Text>
+        ) : null}
+      </Stack>
+    ) : null;
+  const body = chart ? (
+    <Container width="100%" overflow="hidden">
+      <ChartContent data={chart} showHeader={false} />
+    </Container>
+  ) : tableMarkdown ? null : isBlockWorking(block) ? (
+    // The result's own header lands here, not the cell title the
+    // card's header above already shows.
+    <InvestigationCellPlaceholder />
+  ) : (
+    <CellProgress state={progressState} />
+  );
+
+  const hasInsetContent = Boolean(header || hasExecutionAlert(block) || body);
+
   return (
     <CellHoverSurface width="100%">
-      <Disclosure
-        width="100%"
-        border="primary"
-        radius="md"
-        background="secondary"
-        overflow="hidden"
-        expanded={expanded}
-        onExpandedChange={setExpanded}
-        data-test-id="query-cell"
+      <SeerEmbedBlock
+        actions={actions}
+        gap="0"
+        padding="0"
+        testId="query-cell"
+        title={title}
       >
-        <QueryToolbar width="100%" padding="md lg" data-test-id="query-cell-toolbar">
-          <QueryDisclosureTitle
-            aria-label={t('Toggle %s', title)}
-            trailingItems={actions}
-          >
-            <Text
-              data-test-id="query-cell-title"
-              size="md"
-              density="compressed"
-              align="center"
-              wrap="normal"
-              bold
-              tabular
-            >
-              {title}
-            </Text>
-          </QueryDisclosureTitle>
-        </QueryToolbar>
-        <QueryDisclosureContent>
-          {expanded ? (
-            <Stack
-              width="100%"
-              background="primary"
-              borderTop="primary"
-              padding="lg"
-              gap="lg"
-              data-test-id="query-cell-result"
-            >
-              {(chartHeaderTitle && chartHeaderTitle !== title) || chartHeaderMetadata ? (
-                <Stack gap="2xs" data-test-id="query-cell-header">
-                  {chartHeaderTitle && chartHeaderTitle !== title ? (
-                    <Heading as="h3" size="md">
-                      {chartHeaderTitle}
-                    </Heading>
-                  ) : null}
-                  {chartHeaderMetadata ? (
-                    <Text size="sm" variant="muted">
-                      {chartHeaderMetadata}
-                    </Text>
-                  ) : null}
-                </Stack>
-              ) : null}
-              <Container width="100%" overflow="hidden">
-                <CellExecutionAlert block={block} />
-                {chart ? (
-                  <ChartContent data={chart} showHeader={false} />
-                ) : output?.tableMarkdown ? (
-                  <SeerMarkdown
-                    raw={output.tableMarkdown}
-                    components={{Table: FlushTable}}
-                  />
-                ) : isBlockWorking(block) ? (
-                  // The result's own header lands here, not the cell title the
-                  // toolbar above already shows.
-                  <InvestigationCellPlaceholder />
-                ) : (
-                  <CellProgress state={progressState} />
-                )}
-              </Container>
-            </Stack>
-          ) : null}
-        </QueryDisclosureContent>
-      </Disclosure>
+        {/* A table alone has nothing to inset above it; rendering the section
+            anyway would leave its padding as an empty strip. */}
+        {hasInsetContent ? (
+          <Stack gap="md" padding="lg">
+            {header}
+            <CellExecutionAlert block={block} />
+            {body}
+          </Stack>
+        ) : null}
+        {tableMarkdown ? (
+          <QueryResultMarkdown insetTop={!hasInsetContent}>
+            <SeerMarkdown raw={tableMarkdown} components={{Table: QueryResultTable}} />
+          </QueryResultMarkdown>
+        ) : null}
+      </SeerEmbedBlock>
     </CellHoverSurface>
   );
 }
@@ -399,9 +390,14 @@ type CellProgressState =
   | 'blockedByCancellation'
   | null;
 
+function hasExecutionAlert(block: InvestigationBlock): boolean {
+  const status = block.currentExecution?.status;
+  return status === 'failed' || status === 'cancelled';
+}
+
 function CellExecutionAlert({block}: {block: InvestigationBlock}) {
   const execution = block.currentExecution;
-  if (execution?.status !== 'failed' && execution?.status !== 'cancelled') {
+  if (!execution || !hasExecutionAlert(block)) {
     return null;
   }
   const failed = execution.status === 'failed';
@@ -556,11 +552,54 @@ function hasCancelledDependency(
   }
   return false;
 }
-function FlushTable({children}: {children: React.ReactNode}) {
+/**
+ * A query's results arrive as a Markdown table but render through
+ * `SimpleTable`, the same table the query embeds use, so the two can't drift
+ * apart. The Markdown renderer hands over the table's parsed columns, header,
+ * and rows rather than only its `<thead>`/`<tbody>`, which is what lets a grid
+ * table size its columns before any row renders.
+ */
+function QueryResultTable({
+  columns,
+  header,
+  rows,
+}: {
+  columns: MarkdownTableColumn[];
+  header: React.ReactNode[];
+  rows: React.ReactNode[][];
+}) {
   return (
-    <Container overflowX="auto">
-      <QueryTable>{children}</QueryTable>
-    </Container>
+    <FlushSimpleTable
+      data-query-result-table
+      // The same split the query embeds' tables use: the leading column tends
+      // to name the row, and the rest hold its values.
+      columns={columns.map((_, index) => ({
+        key: String(index),
+        width: index === 0 ? 'minmax(0, 2fr)' : 'minmax(0, 1fr)',
+      }))}
+      header={
+        <QueryResultHeaderRow>
+          {header.map((cell, index) => (
+            <SimpleTable.HeaderCell key={index} align={columns[index]?.align}>
+              {cell}
+            </SimpleTable.HeaderCell>
+          ))}
+        </QueryResultHeaderRow>
+      }
+    >
+      {rows.map((row, rowIndex) => (
+        <SimpleTable.Row key={rowIndex}>
+          {row.map((cell, cellIndex) => (
+            <SimpleTable.RowCell
+              key={cellIndex}
+              justify={COLUMN_ALIGN_JUSTIFY[columns[cellIndex]?.align ?? 'left']}
+            >
+              {cell}
+            </SimpleTable.RowCell>
+          ))}
+        </SimpleTable.Row>
+      ))}
+    </FlushSimpleTable>
   );
 }
 
@@ -1209,37 +1248,6 @@ function getSeriesName(series: {label: string} | {name: string}) {
   return 'label' in series ? series.label : series.name;
 }
 
-const QueryToolbar = styled(Container)`
-  &:hover {
-    background: ${p => p.theme.tokens.background.tertiary};
-  }
-
-  && > div {
-    padding: 0;
-    background: transparent;
-  }
-`;
-
-const QueryDisclosureTitle = styled(Disclosure.Title)`
-  && {
-    height: auto;
-    min-height: 0;
-    padding: 0;
-    gap: ${p => p.theme.space.xs};
-  }
-
-  > span > [aria-hidden] {
-    order: 1;
-    margin: 0;
-  }
-`;
-
-const QueryDisclosureContent = styled(Disclosure.Content)`
-  && {
-    padding: 0;
-  }
-`;
-
 const CellActions = styled(Flex)`
   opacity: 0;
   pointer-events: none;
@@ -1260,9 +1268,43 @@ const CellHoverSurface = styled(Stack)`
   }
 `;
 
-const QueryTable = styled('table')`
-  min-width: 100%;
-  border-collapse: collapse;
+/**
+ * The table runs edge to edge in the query card, whose own border already
+ * frames it, so `SimpleTable`'s border and rounding would draw a second box
+ * inside the first. Only the top rule stays, dividing the header from the
+ * card's header band or the content inset above it.
+ */
+const FlushSimpleTable = styled(SimpleTable)`
+  border-width: 1px 0 0;
+  border-radius: 0;
+`;
+
+/**
+ * Insets any prose the agent wrote around the table to line up with the
+ * card's header, while the table itself keeps running edge to edge. The
+ * Markdown renders each block as a direct child of its own root.
+ */
+const QueryResultMarkdown = styled('div')<{insetTop: boolean}>`
+  > * > :not([data-query-result-table]) {
+    padding-inline: ${p => p.theme.space.lg};
+  }
+
+  > * > :first-child:not([data-query-result-table]) {
+    padding-top: ${p => (p.insetTop ? p.theme.space.lg : 0)};
+  }
+
+  > * > :last-child:not([data-query-result-table]) {
+    padding-bottom: ${p => p.theme.space.lg};
+  }
+`;
+
+/**
+ * Square corners to sit flush with the table, and a slimmer row than
+ * SimpleTable's own header, per the query card design.
+ */
+const QueryResultHeaderRow = styled(SimpleTable.HeaderRow)`
+  border-radius: 0;
+  min-height: ${p => p.theme.space['3xl']};
 `;
 
 const RefinementDisclosure = styled(Disclosure)`
