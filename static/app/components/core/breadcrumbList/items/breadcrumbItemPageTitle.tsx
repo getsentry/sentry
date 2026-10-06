@@ -35,7 +35,7 @@ type BreadcrumbTitleAction =
   | ({type: 'copy'} & BreadcrumbCopyActionProps)
   | ({type: 'menu'} & BreadcrumbMenuActionProps)
   | ({triggerLabel: string; type: 'select'} & Pick<
-      SingleSelectProps<string>,
+      Extract<SingleSelectProps<string>, {clearable?: false}>,
       'options' | 'value' | 'onChange' | 'onOpenChange' | 'search' | 'loading'
     >)
   | {element: React.ReactElement<ButtonProps | LinkButtonProps>; type: 'button'};

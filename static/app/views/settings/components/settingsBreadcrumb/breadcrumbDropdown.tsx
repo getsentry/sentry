@@ -7,7 +7,6 @@ import {
   CompactSelect,
   ControlContext,
   type SingleSelectProps,
-  type SelectOption,
 } from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
@@ -64,8 +63,7 @@ export function BreadcrumbDropdown({
                 triggerLabel: title,
                 options: options.map(item => ({...item, hideCheck: true})),
                 value,
-                onChange: (selected: SelectOption<string>) =>
-                  onCrumbSelect(selected.value),
+                onChange: selected => onCrumbSelect(selected.value),
                 onOpenChange: props.onOpenChange,
                 search: props.search,
                 loading: props.loading,
