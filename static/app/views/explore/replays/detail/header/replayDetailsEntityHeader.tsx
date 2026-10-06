@@ -10,7 +10,6 @@ import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoading
 import {useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
-import {IconDelete} from 'sentry/icons/iconDelete';
 import {t} from 'sentry/locale';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
@@ -65,14 +64,7 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
   });
 
   if (isArchived) {
-    return (
-      <EntityHeader
-        title={{
-          label: t('Deleted Replay'),
-          leadingGraphic: {type: 'icon', icon: IconDelete},
-        }}
-      />
-    );
+    return <EntityHeader title={{label: t('Deleted Replay')}} />;
   }
 
   const searchQuery = replayRecord ? getUserSearchQuery({user: replayRecord.user}) : null;

@@ -67,16 +67,26 @@ Every other slot is optional, and the grid template is built from whichever you 
 
 ## Leading graphic
 
-`title.leadingGraphic` is data, not a node, so the header controls the size and the slot cannot be used to smuggle in a component. Pass one of four shapes:
+`title.leadingGraphic` is data, not a node, so the header controls the size — 24px, matching the avatars in the people slot — and the slot cannot be used to smuggle in a component.
 
 ```jsx
 leadingGraphic={{type: 'user', user: replay.user}}
-leadingGraphic={{type: 'project', project}}
+leadingGraphic={{type: 'project', projects}}
 leadingGraphic={{type: 'platform', platform: 'javascript'}}
-leadingGraphic={{type: 'icon', icon: IconBranch}}
 ```
 
-The `icon` variant takes the component itself, not an element, so the header can size and colour it.
+`project` and `platform` draw the same badge but take what the caller actually holds. A trace knows its projects and the header maps them to platforms; a build has only inferred a platform from a file type. A `project` graphic with no known platform renders nothing rather than falling back to an all-projects glyph, which belongs to a saved view.
+
+The graphic is decorative by default: a platform icon next to "ValueError" tells a screen reader nothing the title has not. Give it a `label` when it carries something the title does not — which projects a trace touched, say — and it becomes an image in its own right, reachable by keyboard, with `tooltip` for richer hover content than the label.
+
+```jsx
+leadingGraphic={{
+  type: 'project',
+  projects,
+  label: t('%s projects', projects.length),
+  tooltip: <ProjectListTooltip projects={projects} />,
+}}
+```
 
 <Storybook.Demo>
   <EntityHeader

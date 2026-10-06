@@ -58,7 +58,50 @@ describe('EntityHeader', () => {
       const heading = screen.getByRole('heading', {level: 2});
       expect(within(heading).getByText('Session')).toBeInTheDocument();
       expect(screen.getByText('Live')).toBeInTheDocument();
-      // The label carries the meaning; the graphic is decorative.
+      // The title already names the entity, so an unlabelled graphic repeats
+      // nothing and stays out of the accessibility tree.
+      expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    });
+
+    it('exposes a labelled leading graphic, with its tooltip', async () => {
+      render(
+        <EntityHeader
+          title={{
+            label: 'Trace 8f2c1a',
+            leadingGraphic: {
+              type: 'project',
+              projects: [
+                {slug: 'frontend', platform: 'javascript'},
+                {slug: 'backend', platform: 'python'},
+              ],
+              label: '2 projects',
+              tooltip: 'frontend, backend',
+            },
+          }}
+        />
+      );
+
+      // Which projects a trace touched is not in the title, so here the graphic
+      // carries meaning and has to be reachable.
+      const graphic = screen.getByRole('img', {name: '2 projects'});
+
+      await userEvent.hover(graphic);
+      expect(await screen.findByText('frontend, backend')).toBeInTheDocument();
+    });
+
+    it('renders no project graphic when no platform is known', () => {
+      render(
+        <EntityHeader
+          title={{
+            label: 'Trace 8f2c1a',
+            leadingGraphic: {type: 'project', projects: [{slug: 'frontend'}]},
+          }}
+        />
+      );
+
+      // ProjectsBadge falls back to an all-projects glyph for an empty list,
+      // which means something on a saved view and nothing on a detail page.
+      expect(screen.getByRole('heading', {level: 2})).toBeInTheDocument();
       expect(screen.queryByRole('img')).not.toBeInTheDocument();
     });
 

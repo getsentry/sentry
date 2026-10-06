@@ -15,23 +15,41 @@ export interface ProjectsBadgeProps {
   projectPlatforms: string[];
   /** When projectPlatforms is empty, use all-projects icon instead of my-projects */
   allProjects?: boolean;
+  /**
+   * Edge of the square the badge occupies. `16` suits a crumb or a nav row; `24`
+   * a page header, where it sits against 16px type and the avatars beside it.
+   * @default 16
+   */
+  size?: 16 | 24;
 }
 
 /**
- * A 16×16 badge representing the project(s) tied to a saved view — a starred
- * project, saved query, dashboard, or issue view. Absorbs the 0/1/2+ platform
- * logic so every call site (secondary navigation, breadcrumbs) shares one
- * component.
+ * A square badge representing the project(s) tied to something — a starred
+ * project, saved query, dashboard, issue view, or the entity a page is about.
+ * Absorbs the 0/1/2+ platform logic so every call site shares one component.
+ *
+ * The badge is decorative: it names a platform, not a project, so it cannot say
+ * *which* projects on its own. A caller that needs that gives the surrounding
+ * element an accessible name.
  */
-export function ProjectsBadge({projectPlatforms, allProjects}: ProjectsBadgeProps) {
+export function ProjectsBadge({
+  projectPlatforms,
+  allProjects,
+  size = 16,
+}: ProjectsBadgeProps) {
+  // The stacked geometry is proportional to the box, so both sizes read the
+  // same: each icon is three quarters of the edge, offset by the remainder.
+  const stackedIconSize = Math.round(size * 0.75);
+  const stackedOffset = size - stackedIconSize;
+
   let icons: React.ReactNode;
 
   switch (projectPlatforms.length) {
     case 0:
       icons = allProjects ? (
-        <IconAllProjects size="md" aria-hidden="true" />
+        <IconAllProjects size={size === 24 ? 'lg' : 'md'} aria-hidden="true" />
       ) : (
-        <IconMyProjects size="md" aria-hidden="true" />
+        <IconMyProjects size={size === 24 ? 'lg' : 'md'} aria-hidden="true" />
       );
       break;
 
@@ -41,17 +59,18 @@ export function ProjectsBadge({projectPlatforms, allProjects}: ProjectsBadgeProp
           position="absolute"
           top="0px"
           left="0px"
-          width="16px"
-          height="16px"
+          width={`${size}px`}
+          height={`${size}px`}
           overflow="hidden"
-          radius="2xs"
+          radius={size === 24 ? 'xs' : '2xs'}
           border="muted"
         >
           {p => (
             <PlatformIcon
               {...p}
               platform={projectPlatforms[0] ?? ''}
-              size={14}
+              // Inset by the 1px border on each edge.
+              size={size - 2}
               aria-hidden
             />
           )}
@@ -61,27 +80,37 @@ export function ProjectsBadge({projectPlatforms, allProjects}: ProjectsBadgeProp
 
     default:
       // Two overlapping icons: first at top-right, second at bottom-right.
-      // Positioned within a 16×16 container:
-      //   first:  right=4px → left edge at 0px (x: 0–12)
-      //   second: right=0   → left edge at 4px (x: 4–16)
+      // At 16px that is two 12px icons offset by 4; at 24px, 18px offset by 6.
       icons = (
         <Fragment>
-          <Container position="absolute" top="0" right="4px" width="12px" height="12px">
+          <Container
+            position="absolute"
+            top="0"
+            right={`${stackedOffset}px`}
+            width={`${stackedIconSize}px`}
+            height={`${stackedIconSize}px`}
+          >
             {p => (
               <PlatformIcon
                 {...p}
                 platform={projectPlatforms[0] ?? ''}
-                size={12}
+                size={stackedIconSize}
                 aria-hidden
               />
             )}
           </Container>
-          <Container position="absolute" bottom="0" right="0" width="12px" height="12px">
+          <Container
+            position="absolute"
+            bottom="0"
+            right="0"
+            width={`${stackedIconSize}px`}
+            height={`${stackedIconSize}px`}
+          >
             {p => (
               <PlatformIcon
                 {...p}
                 platform={projectPlatforms[1] ?? ''}
-                size={12}
+                size={stackedIconSize}
                 aria-hidden
               />
             )}
@@ -95,8 +124,8 @@ export function ProjectsBadge({projectPlatforms, allProjects}: ProjectsBadgeProp
       flexShrink={0}
       justify="center"
       align="center"
-      width="16px"
-      height="16px"
+      width={`${size}px`}
+      height={`${size}px`}
       position="relative"
       aria-hidden="true"
     >
