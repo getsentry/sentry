@@ -24,6 +24,7 @@ class UpdateNumericToBooleanTest(TestMigrations, SnubaTestCase):
                         "fields": [],
                         "query": "",
                         "mode": "samples",
+                        "orderby": "-count_if(span.duration,greater,100)",
                         "aggregateField": [
                             {
                                 "groupBy": "span.op",
@@ -37,11 +38,21 @@ class UpdateNumericToBooleanTest(TestMigrations, SnubaTestCase):
                             },
                             {
                                 "groupBy": "span.op",
+                                "yAxes": ["count_if(span.duration,between,100,199)"],
                                 "chartType": 0,
                             },
                             {
                                 "groupBy": "span.op",
-                                "yAxes": ["count_if(span.duration,lessOrEquals,100)"],
+                                "chartType": 0,
+                            },
+                            {
+                                "groupBy": "span.op",
+                                "yAxes": ["avg_if(span.duration,span.duration,lessOrEquals,100)"],
+                                "chartType": 0,
+                            },
+                            {
+                                "groupBy": "span.op",
+                                "yAxes": ["failure_count_if(span.duration,lessOrEquals,100)"],
                                 "chartType": 0,
                             },
                         ],
@@ -69,6 +80,7 @@ class UpdateNumericToBooleanTest(TestMigrations, SnubaTestCase):
                     "fields": [],
                     "query": "",
                     "mode": "samples",
+                    "orderby": "-count_if(`span.duration:>100`)",
                     "aggregateField": [
                         {
                             "groupBy": "span.op",
@@ -82,11 +94,22 @@ class UpdateNumericToBooleanTest(TestMigrations, SnubaTestCase):
                         },
                         {
                             "groupBy": "span.op",
+                            "yAxes": ["count_if(`span.duration:>=100 and span.duration:<=199`)"],
                             "chartType": 0,
                         },
                         {
                             "groupBy": "span.op",
-                            "yAxes": ["count_if(`span.duration:<=100`)"],
+                            "chartType": 0,
+                        },
+                        {
+                            "groupBy": "span.op",
+                            "yAxes": ["avg_if(`span.duration:<=100`,span.duration)"],
+                            "chartType": 0,
+                        },
+                        # Untouched
+                        {
+                            "groupBy": "span.op",
+                            "yAxes": ["failure_count_if(span.duration,lessOrEquals,100)"],
                             "chartType": 0,
                         },
                     ],

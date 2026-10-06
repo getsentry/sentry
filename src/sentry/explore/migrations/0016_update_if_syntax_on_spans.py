@@ -108,6 +108,42 @@ def is_function(field: str) -> Match[str] | None:
     return FUNCTION_PATTERN.search(field)
 
 
+def new_function(field: str) -> str | None:
+    match = is_function(field)
+    if match:
+        function_name = match.group("function")
+        if function_name in ["failure_rate_if", "division_if", "failure_count_if"]:
+            return None
+        columns = match.group("columns")
+        arguments = parse_arguments(function_name, columns)
+        if arguments[0].startswith("`"):
+            return None
+        column, operator, value, *args = arguments
+        if function_name == "count_if":
+            if len(arguments) == 5:
+                aggregate_key, column, operator, lower_value, upper_value = arguments
+                return f"{function_name}(`{column}:>={lower_value} and {column}:<={upper_value}`,{aggregate_key})"
+            elif len(arguments) == 4:
+                if arguments[1] == "between":
+                    column, operator, lower_value, upper_value = arguments
+                    return (
+                        f"{function_name}(`{column}:>={lower_value} and {column}:<={upper_value}`)"
+                    )
+                else:
+                    aggregate_key, column, operator, value = arguments
+                    return f"{function_name}(`{'!' if operator == 'notEquals' else ''}{column}{OPERATOR_MAP[operator]}{value}`,{aggregate_key})"
+            else:
+                column, operator, value = arguments
+                return f"{function_name}(`{'!' if operator == 'notEquals' else ''}{column}{OPERATOR_MAP[operator]}{value}`)"
+        else:
+            if len(arguments) == 4:
+                function_arg, column, operator, value = arguments
+                return f"{function_name}(`{'!' if operator == 'notEquals' else ''}{column}{OPERATOR_MAP[operator]}{value}`,{function_arg})"
+            else:
+                column, operator, value = arguments
+                return f"{function_name}(`{'!' if operator == 'notEquals' else ''}{column}{OPERATOR_MAP[operator]}{value}`)"
+
+
 def update_if_combinators(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     ExploreSavedQuery = apps.get_model("explore", "ExploreSavedQuery")
 
@@ -119,23 +155,25 @@ def update_if_combinators(apps: StateApps, schema_editor: BaseDatabaseSchemaEdit
             changed = False
             for query in queries:
                 # We only cache per query cause the results can change query to query
-                if "aggregateField" not in query:
-                    continue
-                for field in query["aggregateField"]:
-                    if "yAxes" not in field:
-                        continue
-                    for index, axis in enumerate(field["yAxes"]):
-                        if "_if" in axis:
-                            match = is_function(axis)
-                            if match:
-                                function_name = match.group("function")
-                                columns = match.group("columns")
-                                arguments = parse_arguments(function_name, columns)
-                                column, operator, value = arguments
-                                field["yAxes"][index] = (
-                                    f"{function_name}(`{'!' if operator == 'notEquals' else ''}{column}{OPERATOR_MAP[operator]}{value}`)"
-                                )
-                                changed = True
+                if "aggregateField" in query:
+                    for field in query["aggregateField"]:
+                        if "yAxes" not in field:
+                            continue
+                        for index, axis in enumerate(field["yAxes"]):
+                            if "_if" in axis:
+                                if (new_axis := new_function(axis)) is not None:
+                                    field["yAxes"][index] = new_axis
+                                    changed = True
+                if "orderby" in query:
+                    field = query["orderby"]
+                    order = "asc"
+                    if field.startswith("-"):
+                        field = field[1:]
+                        order = "dsc"
+                    if "_if" in field:
+                        if (new_orderby := new_function(field)) is not None:
+                            query["orderby"] = f"{'-' if order == 'dsc' else ''}{new_orderby}"
+                            changed = True
             if changed:
                 saved_query.save()
         except Exception as error:
@@ -170,6 +208,6 @@ class Migration(CheckedMigration):
         migrations.RunPython(
             reverse_code=migrations.RunPython.noop,
             code=update_if_combinators,
-            hints={"tables": ["explore_saved_query"]},
+            hints={"tables": ["explore_exploresavedquery"]},
         ),
     ]
