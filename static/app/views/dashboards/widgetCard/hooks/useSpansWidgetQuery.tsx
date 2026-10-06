@@ -1,5 +1,10 @@
-import {useMemo} from 'react';
-import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
+import {useCallback, useMemo} from 'react';
+import {
+  keepPreviousData,
+  queryOptions,
+  useQueries,
+  type UseQueryResult,
+} from '@tanstack/react-query';
 import trimStart from 'lodash/trimStart';
 
 import type {Series} from 'sentry/types/echarts';
@@ -255,7 +260,23 @@ export function useSpansSeriesQuery(
     };
   });
 
-  const {results: queryResults, data: queryData} = useQueries({
+  // Leave out skipped invalid-_if queries so raw data stays dense. React Query
+  // structurally shares `combine` output, so `data` keeps its reference while the
+  // responses are unchanged, even when this callback is recreated.
+  const combine = useCallback(
+    (results: Array<UseQueryResult<SpansSeriesResponse>>) => {
+      const combined = combineWidgetQueryResults(results);
+      return {
+        ...combined,
+        data: combined.data.filter(
+          (_, index) => !skippedConditionalFilterQueryIndexes.includes(index)
+        ),
+      };
+    },
+    [skippedConditionalFilterQueryIndexes]
+  );
+
+  const {results: queryResults, data: rawData} = useQueries({
     queries: seriesRequests.map(({requestData, skippedForInvalidConditionalFilter}) => {
       if (!isEventsTimeseriesEnabled) {
         // Transform requestData into proper query params
@@ -321,17 +342,8 @@ export function useSpansSeriesQuery(
         }),
       });
     }),
-    combine: combineWidgetQueryResults,
+    combine,
   });
-
-  // Leave out skipped invalid-_if queries so raw data stays dense
-  const rawData = useMemo(
-    () =>
-      queryData.filter(
-        (_, index) => !skippedConditionalFilterQueryIndexes.includes(index)
-      ),
-    [queryData, skippedConditionalFilterQueryIndexes]
-  );
 
   useEventsTimeseriesSpotCheck({
     config: SpansConfig,
@@ -492,9 +504,25 @@ export function useSpansTableQuery(
     filteredWidget.queries.length > 0 &&
     skippedConditionalFilterQueryIndexes.length === filteredWidget.queries.length;
 
+  // Leave out skipped invalid-_if queries so raw data stays dense. React Query
+  // structurally shares `combine` output, so `data` keeps its reference while the
+  // responses are unchanged, even when this callback is recreated.
+  const combine = useCallback(
+    (results: Array<UseQueryResult<ApiResponse<SpansTableResponse>>>) => {
+      const combined = combineWidgetJsonQueryResults(results);
+      return {
+        ...combined,
+        data: combined.data.filter(
+          (_, index) => !skippedConditionalFilterQueryIndexes.includes(index)
+        ),
+      };
+    },
+    [skippedConditionalFilterQueryIndexes]
+  );
+
   // Use native useQueries with queue-integrated queryFn
   // React Query auto-refetches when keys change, but API calls go through the queue
-  const {results: queryResults, data: queryData} = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: filteredWidget.queries.map((_, queryIndex) => {
       const aggregates = filteredWidget.queries[queryIndex]!.aggregates ?? [];
       const skippedForInvalidConditionalFilter =
@@ -589,17 +617,8 @@ export function useSpansTableQuery(
         select: selectJsonWithHeaders,
       });
     }),
-    combine: combineWidgetJsonQueryResults,
+    combine,
   });
-
-  // Leave out skipped invalid-_if queries so raw data stays dense
-  const rawData = useMemo(
-    () =>
-      queryData.filter(
-        (_, index) => !skippedConditionalFilterQueryIndexes.includes(index)
-      ),
-    [queryData, skippedConditionalFilterQueryIndexes]
-  );
 
   const transformedData = (() => {
     if (allQueriesSkippedForConditionalFilter) {
