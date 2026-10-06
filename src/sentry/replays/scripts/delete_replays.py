@@ -35,6 +35,7 @@ from sentry.replays.usecases.query import execute_query, handle_search_filters
 from sentry.replays.usecases.query.configs.scalar import scalar_search_config
 from sentry.snuba.referrer import Referrer
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger()
 
@@ -168,7 +169,14 @@ def delete_replay_ids(
         logger.info("Deleting Seer data for %d Replays.", len(rows), extra=logging_context)
         replay_ids = [row["replay_id"] for row in rows]
         # Raises once the request's retries are spent, which aborts the run!
-        delete_seer_replay_data(organization_id, project_id, replay_ids)
+        with viewer_context_scope(
+            ViewerContext(
+                organization_id=organization_id,
+                project_id=project_id,
+                actor_type=ActorType.SYSTEM,
+            )
+        ):
+            delete_seer_replay_data(organization_id, project_id, replay_ids)
 
     if delete_blobs:
         logger.info("Scheduling %d Replays for blob deletion.", len(rows), extra=logging_context)
