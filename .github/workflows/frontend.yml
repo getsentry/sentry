@@ -72,6 +72,9 @@ jobs:
     name: oxlint
     runs-on: ubuntu-24.04
     timeout-minutes: 15
+    permissions:
+      contents: read
+      actions: read
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
@@ -79,9 +82,19 @@ jobs:
 
       - uses: ./.github/actions/setup-node-pnpm
 
+      - name: Find verified lint baseline
+        if: github.event_name == 'pull_request'
+        id: lint-baseline
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        with:
+          script: |
+            const {findVerifiedLintBase} = await import(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/find-verified-lint-base.js`);
+            core.setOutput('base', await findVerifiedLintBase({github, context, core}));
+
       - name: Verify lint ratchet
         env:
           EVENT_NAME: ${{ github.event_name }}
+          SENTRY_OXLINT_VERIFIED_BASE: ${{ steps.lint-baseline.outputs.base }}
         run: |
           if [ "$EVENT_NAME" = pull_request ]; then
             pnpm run lint:js --ci --base HEAD^1

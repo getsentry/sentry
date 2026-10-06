@@ -4,6 +4,7 @@ import {
   mkdirSync,
   mkdtempSync,
   readFileSync,
+  renameSync,
   rmSync,
   symlinkSync,
   writeFileSync,
@@ -36,12 +37,75 @@ function fixture(t: {after: (cleanup: () => void) => void}) {
   );
   const git = (...args: string[]) =>
     execFileSync('git', ['-C', directory, ...args], {encoding: 'utf8'}).trim();
+  const env = {...process.env, SENTRY_OXLINT_VERIFIED_BASE: ''};
   const lint = (...args: string[]) =>
     spawnSync(process.execPath, [runner, ...args], {
       cwd: directory,
       encoding: 'utf8',
+      env,
     });
-  return {directory, write, git, lint};
+  const commit = () => {
+    git('init', '--quiet');
+    git('add', '.');
+    git(
+      '-c',
+      'user.name=Test',
+      '-c',
+      'user.email=test@example.com',
+      '-c',
+      'core.hooksPath=/dev/null',
+      '-c',
+      'commit.gpgSign=false',
+      'commit',
+      '--quiet',
+      '-m',
+      'fixture'
+    );
+  };
+  return {directory, write, git, lint, commit, env};
+}
+
+function ciFixture(t: {after: (cleanup: () => void) => void}) {
+  const setup = fixture(t);
+  const {directory, write, lint, commit, git, env} = setup;
+  const log = path.join(directory, '.artifacts/scans');
+  rmSync(path.join(directory, 'node_modules/oxlint'));
+  write('node_modules/oxlint/package.json', '{"type":"module","exports":"./index.js"}');
+  write('node_modules/oxlint/index.js', 'export {};');
+  write(
+    'node_modules/oxlint/cli.js',
+    `
+    import {appendFileSync} from 'node:fs';
+    appendFileSync(${JSON.stringify(log)}, process.cwd() + '\\n');
+    await import(${JSON.stringify(new URL('cli.js', import.meta.resolve('oxlint')).href)});
+  `
+  );
+  write(
+    'oxlint.config.ts',
+    `
+    export const incubator = {rules: {'no-debugger': 'error'}};
+    export default {categories: {correctness: 'off'}, ...incubator};
+  `
+  );
+  write('source.js', 'debugger;\n');
+  write('pnpm-workspace.yaml', 'packages: []');
+  write(
+    'oxlint-suppressions.json',
+    JSON.stringify({'source.js': {'no-debugger': {count: 1}}})
+  );
+  commit();
+  const ci = (scans: number, verifiedBase = git('rev-parse', 'HEAD')) => {
+    write('.artifacts/scans', '');
+    env.SENTRY_OXLINT_VERIFIED_BASE = verifiedBase;
+    const result = lint('--ci', '--base', 'HEAD');
+    assert.equal(
+      readFileSync(log, 'utf8').trim().split('\n').length,
+      scans,
+      result.stdout + result.stderr
+    );
+    return result;
+  };
+  return {...setup, ci};
 }
 
 test('lint-only paths do not count as frontend changes', t => {
@@ -135,7 +199,7 @@ test('override-only rules are enrolled with editor warnings and scoped CLI error
 });
 
 test('base scans resolve installed dependencies and use base workspace source', t => {
-  const {directory, write, git, lint} = fixture(t);
+  const {directory, write, lint, commit} = fixture(t);
   write('pnpm-workspace.yaml', "packages:\n  - 'packages/*'\n");
   write('packages/example/package.json', '{"name":"example","type":"module"}');
   write('packages/empty/package.json', '{"name":"empty","type":"module"}');
@@ -183,22 +247,7 @@ test('base scans resolve installed dependencies and use base workspace source', 
     };
   `
   );
-  git('init', '--quiet');
-  git('add', '.');
-  git(
-    '-c',
-    'user.name=Test',
-    '-c',
-    'user.email=test@example.com',
-    '-c',
-    'core.hooksPath=/dev/null',
-    '-c',
-    'commit.gpgSign=false',
-    'commit',
-    '--quiet',
-    '-m',
-    'fixture'
-  );
+  commit();
   const result = lint('--enroll', '--base', 'HEAD');
   assert.equal(result.status, 0, result.stderr);
   assert.deepEqual(
@@ -221,4 +270,142 @@ test('base scans resolve installed dependencies and use base workspace source', 
     changed.stderr,
     /index.ts typescript\/no-floating-promises: 1 violations, budget 0/
   );
+});
+
+test('CI scans head once and rejects increased or stale budgets', t => {
+  const {write, ci} = ciFixture(t);
+  assert.equal(ci(1).status, 0);
+  write('source.js', 'debugger; debugger;\n');
+  write(
+    'oxlint-suppressions.json',
+    JSON.stringify({'source.js': {'no-debugger': {count: 2}}})
+  );
+  const increase = ci(1);
+  assert.equal(increase.status, 1, increase.stderr);
+  assert.match(increase.stderr, /2 violations, budget 1/);
+  write('source.js', '');
+  const stale = ci(1);
+  assert.equal(stale.status, 1, stale.stderr);
+  assert.match(stale.stderr, /Suppression budgets do not match live debt/);
+  write('oxlint-suppressions.json', '{}');
+  assert.equal(ci(1).status, 0);
+});
+
+test('CI transfers exact rename budgets but rejects copies and edited renames', t => {
+  const {directory, write, git, ci} = ciFixture(t);
+  renameSync(path.join(directory, 'source.js'), path.join(directory, 'moved.js'));
+  git('add', 'source.js', 'moved.js');
+  write(
+    'oxlint-suppressions.json',
+    JSON.stringify({'moved.js': {'no-debugger': {count: 1}}})
+  );
+  assert.equal(ci(1).status, 0);
+  write('moved.js', 'debugger;\nvoid 0;\n');
+  const edited = ci(1);
+  assert.equal(edited.status, 1, edited.stderr);
+  assert.match(edited.stderr, /moved.js no-debugger: 1 violations, budget 0/);
+  write('source.js', 'debugger;\n');
+  write('moved.js', 'debugger;\n');
+  write(
+    'oxlint-suppressions.json',
+    JSON.stringify({
+      'source.js': {'no-debugger': {count: 1}},
+      'moved.js': {'no-debugger': {count: 1}},
+    })
+  );
+  assert.equal(ci(1).status, 1);
+});
+
+test('CI rescans the base for changed policy or a missing baseline', t => {
+  const {directory, write, ci, commit} = ciFixture(t);
+  write('source.js', 'debugger; alert("existing");\n');
+  commit();
+  write(
+    'oxlint.config.ts',
+    `
+    export const incubator = {rules: {'no-debugger': 'error', 'no-alert': 'error'}};
+    export default {categories: {correctness: 'off'}, ...incubator};
+  `
+  );
+  write(
+    'oxlint-suppressions.json',
+    JSON.stringify({
+      'source.js': {'no-debugger': {count: 1}, 'no-alert': {count: 1}},
+    })
+  );
+  assert.equal(ci(2).status, 0);
+  write('source.js', 'debugger; alert("existing"); alert("new");\n');
+  write(
+    'oxlint-suppressions.json',
+    JSON.stringify({
+      'source.js': {'no-debugger': {count: 1}, 'no-alert': {count: 2}},
+    })
+  );
+  const increase = ci(2);
+  assert.equal(increase.status, 1, increase.stderr);
+  assert.match(increase.stderr, /no-alert: 2 violations, budget 1/);
+  rmSync(path.join(directory, 'oxlint-suppressions.json'));
+  commit();
+  write(
+    'oxlint-suppressions.json',
+    JSON.stringify({
+      'source.js': {'no-debugger': {count: 1}, 'no-alert': {count: 2}},
+    })
+  );
+  assert.equal(ci(2).status, 0);
+});
+
+test('CI detects changed policy inputs and deleted rules', t => {
+  const {directory, write, ci} = ciFixture(t);
+  for (const [file, contents] of [
+    ['.node-version', '24.14.0'],
+    ['pnpm-workspace.yaml', 'packages: [packages/*]'],
+    ['pnpm-lock.yaml', "lockfileVersion: '9.0'\nimporters:\n  .: {}\n"],
+    ['nested/.gitignore', 'ignored.js'],
+    ['nested/.eslintignore', 'ignored.js'],
+    ['nested/.oxlintignore', 'ignored.js'],
+    ['nested/package.json', '{"private":true}'],
+    ['tsconfig.extra.json', '{}'],
+    ['static/oxlint/example.ts', 'export {};'],
+    ['scripts/custom-oxlint.ts', 'export {};'],
+  ] as const) {
+    write(file, contents);
+    const result = ci(2);
+    assert.equal(result.status, 0, `${file}: ${result.stderr}`);
+    rmSync(path.join(directory, file));
+    if (file === 'pnpm-workspace.yaml') {
+      write(file, 'packages: []');
+    }
+  }
+  write(
+    'oxlint.config.ts',
+    `
+    export const incubator = {rules: {}};
+    export default {categories: {correctness: 'off'}, ...incubator};
+  `
+  );
+  write('oxlint-suppressions.json', '{}');
+  assert.equal(ci(2).status, 0);
+});
+
+test('CI rejects malformed base budgets rather than rescanning', t => {
+  const {write, commit, ci} = ciFixture(t);
+  write('oxlint-suppressions.json', '{"source.js":{"no-debugger":{"count":-1}}}');
+  commit();
+  write('oxlint-suppressions.json', '{"source.js":{"no-debugger":{"count":1}}}');
+  const result = ci(1);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Invalid suppression count/);
+});
+
+test('CI rescans unverified base commits instead of trusting stale budgets', t => {
+  const {write, commit, ci} = ciFixture(t);
+  write('oxlint-suppressions.json', '{"source.js":{"no-debugger":{"count":2}}}');
+  commit();
+  write('source.js', 'debugger; debugger;\n');
+  for (const verifiedBase of ['', '0'.repeat(40)]) {
+    const result = ci(2, verifiedBase);
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(result.stderr, /2 violations, budget 1/);
+  }
 });

@@ -349,6 +349,66 @@ function fits(current: Suppressions, baseline: Suppressions) {
   }
 }
 
+function transferRenames(base: string, counts: Suppressions) {
+  const changes = git(root, [
+    'diff',
+    '--name-status',
+    '-z',
+    '--find-renames=100%',
+    base,
+    '--',
+  ]).split('\0');
+  for (let index = 0; index < changes.length;) {
+    const status = changes[index++]!;
+    const oldFile = changes[index++]!;
+    if (status.startsWith('R') || status.startsWith('C')) {
+      const newFile = changes[index++]!;
+      if (
+        status === 'R100' &&
+        !existsSync(path.join(root, oldFile)) &&
+        counts[oldFile] &&
+        !counts[newFile]
+      ) {
+        counts[newFile] = counts[oldFile];
+        delete counts[oldFile];
+      }
+    }
+  }
+  return counts;
+}
+
+async function ciBaseline(base: string, allowed: Set<string>, policy: string) {
+  const changes = [
+    ...git(root, ['diff', '--name-only', '--no-renames', '-z', base, '--']).split('\0'),
+    ...git(root, ['ls-files', '--others', '--exclude-standard', '-z']).split('\0'),
+  ];
+  const policyChanged = changes.some(
+    file =>
+      [
+        'oxlint.config.ts',
+        'scripts/custom-oxlint.ts',
+        'pnpm-lock.yaml',
+        'pnpm-workspace.yaml',
+        '.node-version',
+      ].includes(file) ||
+      file.startsWith('static/oxlint/') ||
+      /(^|\/)(?:package\.json|tsconfig[^/]*\.json|\.(?:git|eslint|oxlint)ignore)$/.test(
+        file
+      )
+  );
+  if (
+    process.env.SENTRY_OXLINT_VERIFIED_BASE !== base ||
+    policyChanged ||
+    !git(root, ['ls-tree', '--name-only', base, '--', 'oxlint-suppressions.json'])
+  ) {
+    return baseScan(base, allowed, policy);
+  }
+  return transferRenames(
+    base,
+    parseSuppressions(git(root, ['show', `${base}:oxlint-suppressions.json`]), allowed)
+  );
+}
+
 async function baseScan(base: string, allowed: Set<string>, policy: string) {
   const directory = realpathSync(
     mkdtempSync(path.join(tmpdir(), 'lint-incubator-base-'))
@@ -420,31 +480,7 @@ async function baseScan(base: string, allowed: Set<string>, policy: string) {
     const basePolicy = path.join(directory, '.oxlint-incubator-policy.json');
     cpSync(policy, basePolicy);
     const {counts} = await rawScan(directory, allowed, basePolicy);
-    const changes = git(root, [
-      'diff',
-      '--name-status',
-      '-z',
-      '--find-renames=100%',
-      base,
-      '--',
-    ]).split('\0');
-    for (let index = 0; index < changes.length;) {
-      const status = changes[index++]!;
-      const oldFile = changes[index++]!;
-      if (status.startsWith('R') || status.startsWith('C')) {
-        const newFile = changes[index++]!;
-        if (
-          status === 'R100' &&
-          !existsSync(path.join(root, oldFile)) &&
-          counts[oldFile] &&
-          !counts[newFile]
-        ) {
-          counts[newFile] = counts[oldFile];
-          delete counts[oldFile];
-        }
-      }
-    }
-    return counts;
+    return transferRenames(base, counts);
   } finally {
     rmSync(directory, {recursive: true, force: true});
   }
@@ -477,6 +513,7 @@ Put a maintenance flag first. Maintenance always scans all files.
   --check [--base REF]     Compare debt with trusted source at REF.
                           Defaults to the merge base of HEAD and origin/master.
   --ci [--base REF]        Verify committed budgets match live debt and fit REF.
+                          Reuse verified REF budgets unless lint policy changed.
   --enroll --base REF      Enroll rules using trusted source at REF.
   --prune                 Reduce remaining budgets with a full type-aware scan.
   --backlog [--rule RULE] [--file PATH] [--json]
@@ -680,7 +717,13 @@ Native oxlint options:
           if (!ref) {
             ref = git(root, ['merge-base', 'HEAD', revision('origin/master')]);
           }
-          fits(current.counts, await baseScan(revision(ref), allowed, policy));
+          const base = revision(ref);
+          fits(
+            current.counts,
+            await (command === 'ci'
+              ? ciBaseline(base, allowed, policy)
+              : baseScan(base, allowed, policy))
+          );
         }
         if (command === 'enroll') {
           replacement = current.counts;
