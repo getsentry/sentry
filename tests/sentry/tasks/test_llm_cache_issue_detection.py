@@ -148,7 +148,7 @@ GEMINI_ZERO_STATS = make_stats(
 @patch("sentry.tasks.llm_cache_issue_detection.detect_llm_cache_issues_for_project.delay")
 class RunLLMCacheIssueDetectionTest(TestCase):
     def create_agent_project(self, organization: Organization | None = None) -> Project:
-        """A project that has sent gen-AI spans, i.e. one the fan-out prefilter keeps."""
+        """A project that has sent gen-AI spans, which the fan-out prefilter keeps."""
         project = self.create_project(organization=organization or self.organization)
         project.update(flags=F("flags").bitor(Project.flags.has_insights_agent_monitoring))
         return project

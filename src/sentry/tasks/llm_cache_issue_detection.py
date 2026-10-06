@@ -60,7 +60,7 @@ logger = logging.getLogger("sentry.tasks.llm_cache_issue_detection")
 
 LLM_CACHE_DETECTION_FEATURE = "organizations:llm-cache-issue-detection"
 
-# Mirrors the per-project creation quota the issue type will have.
+# Mirrors the issue platform's per-project creation quota.
 FINDINGS_PER_PROJECT_LIMIT = 5
 
 # Bounds how many sequential probe queries a project's run sends. Presence is
@@ -69,7 +69,7 @@ MAX_WARMTH_PROBES_PER_PROJECT = 20
 
 PROJECT_PROCESSING_DEADLINE_SECS = 300
 
-# The count above does not bound how long the probes take, and a run cut off by
+# `MAX_WARMTH_PROBES_PER_PROJECT` does not bound how long the probes take, and a run cut off by
 # the processing deadline reports nothing. No probe starts past this, leaving
 # room for one in flight (up to the Snuba timeout) and the report.
 PROBE_TIME_LIMIT_SECS = PROJECT_PROCESSING_DEADLINE_SECS - 60
@@ -95,8 +95,8 @@ def _probe[T](
 ) -> T | ProbeGap:
     """Run one probe query, turning each way it can go unanswered into a gap.
 
-    Only a query that reached EAP is charged: charging for the rest would let a
-    handful of unexpressible call sites spend the whole budget.
+    Unexpressible call sites and probes skipped by a pre-check are not charged,
+    or a handful of unexpressible call sites could spend the whole budget.
     """
     if monotonic() >= deadline:
         return ProbeGap.OUT_OF_TIME

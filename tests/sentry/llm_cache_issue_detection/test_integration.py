@@ -1,8 +1,8 @@
 """End-to-end coverage against a real Snuba EAP instance.
 
 The unit tests mock the query layer out, so nothing else exercises the search
-grammar filter, the EAP attribute names, or the aggregation itself -- the parts
-that fail silently as "no findings" rather than as an error.
+grammar filter, the EAP attribute names, or the aggregation itself. Those fail
+silently as "no findings" rather than as an error.
 """
 
 from __future__ import annotations

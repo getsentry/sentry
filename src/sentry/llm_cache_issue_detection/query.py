@@ -37,7 +37,7 @@ INPUT_TOKENS = "gen_ai.usage.input_tokens"
 MODEL = "gen_ai.request.model"
 SPAN_NAME = "span.name"
 
-# The span name is usually just the SDK wrapper; the agent name is what a reader
+# The span name is usually the SDK wrapper; the agent name is what a reader
 # can find in their code. The operation name stands in where it is missing.
 AGENT_NAME = AgentLabelSource.AGENT_NAME.value
 OPERATION_NAME = AgentLabelSource.OPERATION_NAME.value

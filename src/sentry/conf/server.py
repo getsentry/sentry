@@ -1241,8 +1241,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     },
     "llm-cache-issue-detection": {
         "task": "issues:sentry.tasks.llm_cache_issue_detection.run_llm_cache_issue_detection",
-        # Ticks hourly; `issue-detection.llm-cache.interval-hours`
-        # decides which ticks actually run.
+        # Ticks hourly; `issue-detection.llm-cache.interval-hours` decides which run.
         "schedule": crontab("0", "*", "*", "*", "*"),
     },
     "heal-stale-derived-data": {

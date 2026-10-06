@@ -1,4 +1,4 @@
-"""Turns a prompt-cache finding into money, whenever the model's prices are known."""
+"""Estimates what a prompt-cache finding costs, when the model's prices are known."""
 
 from __future__ import annotations
 

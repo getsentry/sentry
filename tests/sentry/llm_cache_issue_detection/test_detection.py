@@ -144,7 +144,7 @@ from tests.sentry.llm_cache_issue_detection.test_utils import make_stats
             id="healthy-when-writes-are-amortised",
         ),
         pytest.param(
-            # Ratio over threshold but hit rate at 30%: healthy usage, not thrash
+            # A hit rate at the thrash ceiling is healthy, whatever the ratio.
             make_stats(
                 call_count=10_000, avg_input_tokens=2_000, hit_rate=0.30, write_read_ratio=10.0
             ),
@@ -152,8 +152,8 @@ from tests.sentry.llm_cache_issue_detection.test_utils import make_stats
             id="thrash-hit-rate-cutoff-exclusive-at-30pct",
         ),
         pytest.param(
-            # Ratio 3:1 but writes are only ~29% of input: below the creation
-            # fraction floor, so not thrash; hit 9.7% is above the 5% cutoff.
+            # Writes below the creation fraction floor are not thrash, and the hit
+            # rate clears the not-caching cutoff.
             make_stats(
                 call_count=10_000, avg_input_tokens=2_000, hit_rate=0.097, write_read_ratio=3.0
             ),
@@ -220,7 +220,7 @@ def test_warmth_of_a_call_site_that_never_called() -> None:
         pytest.param(0, 0.0, id="no-sample-count-claims-nothing"),
     ],
 )
-def test_warmth_charges_each_stored_span_as_a_cold_start(
+def test_warmth_weights_each_cold_start_by_the_sampling_rate(
     sample_count: int, cacheable_share: float
 ) -> None:
     warmth = CallSiteWarmth.from_buckets(
@@ -271,8 +271,8 @@ NOT_CACHING = Classification(CacheOutcome.NOT_CACHING, OutcomeReason.CACHE_ACTIV
             Classification(CacheOutcome.INELIGIBLE, OutcomeReason.WARM_ONLY_AT_LONG_TTL),
             id="warm-only-at-the-long-ttl",
         ),
-        # Nothing is known about the gaps between these call sites' calls, which
-        # is as good as knowing they are too wide to cache -- but each says why.
+        # Unknown gaps between calls are treated as too wide to cache. Each gap
+        # still says why it is unknown.
         pytest.param(
             ProbeGap.BUDGET_EXHAUSTED,
             Classification(CacheOutcome.INELIGIBLE, OutcomeReason.BUDGET_EXHAUSTED),

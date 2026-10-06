@@ -27,8 +27,8 @@ CACHE_TTL_MINUTES = 5
 LONG_CACHE_TTL_MINUTES = 60
 
 # The shortest prompt prefix a model caches, where it differs from the default.
-# Neither feed model prices come from carries it, so it is copied from the
-# providers' docs. Keys are canonical names (see `canonical_model_name`); a key
+# The model-price feeds do not carry it, so it is copied from the providers'
+# docs. Keys are canonical names (see `canonical_model_name`); a key
 # covers its variants and snapshots, and the longest matching key wins.
 MIN_CACHEABLE_PREFIX_TOKENS_BY_MODEL: dict[str, int] = {
     "claude-fable-5": 512,
@@ -52,14 +52,12 @@ DEFAULT_MIN_CACHEABLE_PREFIX_TOKENS = 1_024
 # Where token ratios settle enough to act on; a question of evidence, not caching.
 MIN_CALLS_FOR_CONFIDENCE = 200
 
-# The floor above counts extrapolated calls, but ratios are computed over the
-# stored spans, so those need a floor of their own. Lower, because the rates are
-# bimodal: telling near-zero from healthy takes few observations.
+# `MIN_CALLS_FOR_CONFIDENCE` counts extrapolated calls, but ratios come from the
+# stored spans. Lower, because bimodal rates take few observations to tell apart.
 MIN_SAMPLED_CALLS = 50
 
-# Hit rates count every call, including ones no warm cache could have served.
-# Requiring most calls to be cache-eligible keeps isolated traffic from diluting
-# a rate below the not-caching cutoff on its own.
+# Hit rates count calls no warm cache could have served. Requiring most calls to
+# be cache-eligible keeps isolated traffic from diluting a rate below the cutoff.
 MIN_CACHEABLE_SHARE = 0.5
 
 # Hit rates are bimodal: broken call sites sit near zero, healthy ones far above.
@@ -68,8 +66,7 @@ NOT_CACHING_MAX_HIT_RATE = 0.05
 THRASH_MAX_HIT_RATE = 0.30
 
 # With the hit-rate ceiling, this puts the write:read ratio above 1:1, so the
-# ratio needs no threshold of its own. Whether that costs money depends on the
-# write premium, which pricing knows and the span does not.
+# ratio needs no threshold of its own. Whether that costs money is pricing's call.
 THRASH_MIN_CREATION_INPUT_FRACTION = 0.3
 
 CONTRAST_ANCHOR_MIN_HIT_RATE = 0.50
@@ -87,7 +84,7 @@ POSITIVE_ONLY_CACHE_REPORTING_MODEL_PATTERN = re.compile(r"(?:^|[/:])o\d")
 
 @dataclass(frozen=True)
 class DetectionWindow:
-    """The span of time one run reads, fixed so every query describes the same one."""
+    """The time range one run reads, fixed so every query describes the same one."""
 
     start: datetime
     end: datetime
@@ -117,8 +114,8 @@ FLAGGED_OUTCOMES = frozenset({CacheOutcome.NOT_CACHING, CacheOutcome.THRASH})
 
 
 class OutcomeReason(StrEnum):
-    """Which rule settled a call site's outcome, which an outcome alone cannot
-    say for the ambiguous states."""
+    """The rule that settled a call site's outcome. INELIGIBLE and UNKNOWN each
+    have several, so the outcome alone does not say."""
 
     # Ineligible on the token sums.
     SMALL_PROMPTS = "small_prompts"
@@ -130,6 +127,7 @@ class OutcomeReason(StrEnum):
     # Spaced too far apart for the default TTL but not for the long one: a broken
     # cache if the call site sets the long TTL, too short a TTL if it does not.
     WARM_ONLY_AT_LONG_TTL = "warm_only_at_long_ttl"
+    # Cache tokens were recorded, so the sums settle the outcome.
     CACHE_ACTIVITY = "cache_activity"
     # No cache tokens at all, before the presence probe has said whether the
     # spans carry the attributes.
@@ -175,7 +173,7 @@ class Classification:
 @dataclass(frozen=True)
 class WarmthBucket:
     """One cache-TTL bucket of a call site's traffic: when it starts (epoch
-    seconds), extrapolated calls, and the stored spans that estimate rests on."""
+    seconds), extrapolated calls, and the stored spans the estimate rests on."""
 
     start: int
     call_count: float
@@ -198,7 +196,7 @@ def _warm_call_count(buckets: Iterable[WarmthBucket]) -> float:
 
 
 def _widen_buckets(buckets: Iterable[WarmthBucket], minutes: int) -> list[WarmthBucket]:
-    """Merge buckets into wider ones aligned to ``minutes``; both counts add up."""
+    """Merge buckets into wider ones aligned to ``minutes``, summing both counts."""
     width = minutes * 60
     call_counts: defaultdict[int, float] = defaultdict(float)
     sample_counts: defaultdict[int, float] = defaultdict(float)
@@ -221,7 +219,7 @@ class CallSiteWarmth:
     the TTL: within a bucket every call after the first had a warm cache. A
     boundary between two close calls reads as two cold starts, which errs
     towards missing a finding rather than inventing one. Sampling erases spacing,
-    so each stored span is charged as a cold start for every call it stands for.
+    so each bucket's cold start counts as many calls as one stored span stands for.
     """
 
     total_call_count: float
@@ -337,7 +335,7 @@ class CallSiteStats:
 @dataclass(frozen=True)
 class ContrastAnchor:
     """A healthy call site on the same model in the same project: evidence that
-    the flagged one's configuration is at fault. Never a gate."""
+    the flagged one's configuration is at fault. Its absence never blocks a finding."""
 
     agent_label: str
     agent_label_source: AgentLabelSource
@@ -501,7 +499,7 @@ MIN_PROMPT_SAMPLES = 2
 # this much identical content stranded behind the divergence.
 MIN_STABLE_BLOCK_CHARS = 256
 
-# Room for a whole token (the longest, a UUID, is 36 chars) either side of the
+# Room for a whole value (the longest, a UUID, is 36 chars) either side of the
 # point where the prompts stop agreeing.
 DIVERGENCE_WINDOW_CHARS = 128
 
@@ -565,7 +563,7 @@ class PromptDivergence:
 
     A provider caches a prefix, so caching stops where the prompts diverge. Only
     lengths (in characters, the attribute's unit) and the kind of the diverging
-    token are kept, never prompt text. EAP truncates long values, so
+    value are kept, never prompt text. Prompts are truncated as they are read, so
     ``stable_block_chars`` is a floor.
     """
 
@@ -649,7 +647,7 @@ def _stable_block_chars(prompts: Sequence[str], *, start: int) -> int:
 
 
 def _classify_divergence(prompt: str, divergence_index: int) -> DivergenceKind:
-    """Name the token straddling the point where the prompts stop agreeing, read
+    """Name the value straddling the point where the prompts stop agreeing, read
     from a window around it so matches elsewhere cannot claim it."""
     window_start = max(divergence_index - DIVERGENCE_WINDOW_CHARS, 0)
     window = prompt[window_start : divergence_index + DIVERGENCE_WINDOW_CHARS]
