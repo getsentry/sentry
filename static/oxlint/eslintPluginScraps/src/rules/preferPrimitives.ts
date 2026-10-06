@@ -18,80 +18,71 @@ type CssDocument = {nodes: CssNode[]};
 type CssParser = {parse: (source: string, options: {from: string}) => CssDocument};
 type CssDeclaration = {
   important: boolean;
-  interpolations: Array<{expression: ESTree.Expression}>;
+  interpolations: ESTree.Expression[];
   name: string;
-  root: boolean;
   value: string;
 };
 
 const styledSyntax: CssParser = createRequire(import.meta.url)('postcss-styled-syntax');
 const CSS_PREFIX = 'styled.div';
 
-function parseCssTemplate(
-  template: ESTree.TemplateLiteral,
-  source: string
-): CssDeclaration[] | null {
-  let document: CssDocument;
+function valueStart(node: CssNode, source: string): number | undefined {
+  const start = node.source?.start?.offset;
+  if (start === undefined || node.prop === undefined) {
+    return undefined;
+  }
+  const propertyEnd = start + node.prop.length;
+  if (node.raws?.between) {
+    return propertyEnd + node.raws.between.length;
+  }
+  const colon = source.indexOf(':', propertyEnd);
+  return colon === -1 ? undefined : colon + 1;
+}
+
+function parseCss(source: string): CssDocument | null {
   try {
-    document = styledSyntax.parse(`${CSS_PREFIX}${source}`, {from: 'style.tsx'});
+    return styledSyntax.parse(source, {from: 'style.tsx'});
   } catch (error) {
     if (error instanceof Error && error.name === 'CssSyntaxError') {
       return null;
     }
     throw error;
   }
+}
 
-  const root = document.nodes[0];
+function parseCssTemplate(
+  template: ESTree.TemplateLiteral,
+  source: string
+): CssDeclaration[] | null {
+  const parsedSource = `${CSS_PREFIX}${source}`;
+  const root = parseCss(parsedSource)?.nodes[0];
   if (!root) {
     return null;
   }
 
-  const parsedSource = `${CSS_PREFIX}${source}`;
-  const declarations: CssDeclaration[] = [];
-  const walk = (nodes: CssNode[], isRoot: boolean) => {
-    for (const node of nodes) {
-      if (node.type === 'decl' && node.prop !== undefined && node.value !== undefined) {
-        const sourceStart = node.source?.start?.offset;
-        const sourceEnd = node.source?.end?.offset;
-        const propertyEnd =
-          sourceStart === undefined ? undefined : sourceStart + node.prop.length;
-        const colon =
-          propertyEnd === undefined ? -1 : parsedSource.indexOf(':', propertyEnd);
-        const valueStart =
-          propertyEnd === undefined
-            ? undefined
-            : node.raws?.between
-              ? propertyEnd + node.raws.between.length
-              : colon === -1
-                ? undefined
-                : colon + 1;
-        const interpolations = template.expressions.flatMap(expression => {
-          if (
-            sourceStart === undefined ||
-            sourceEnd === undefined ||
-            valueStart === undefined
-          ) {
-            return [];
-          }
-          const start = expression.range[0] - template.range[0] + CSS_PREFIX.length;
-          const end = expression.range[1] - template.range[0] + CSS_PREFIX.length;
-          return valueStart <= start && sourceEnd >= end ? [{expression}] : [];
-        });
-
-        declarations.push({
-          important: node.important ?? false,
-          interpolations,
-          name: normalizePropertyName(node.prop),
-          root: isRoot,
-          value: node.value,
-        });
-      } else if (node.nodes) {
-        walk(node.nodes, false);
-      }
+  const offset = (position: number) => position - template.range[0] + CSS_PREFIX.length;
+  return (root.nodes ?? []).flatMap(node => {
+    if (node.type !== 'decl' || node.prop === undefined || node.value === undefined) {
+      return [];
     }
-  };
-  walk(root.nodes ?? [], true);
-  return declarations;
+    const start = valueStart(node, parsedSource);
+    const end = node.source?.end?.offset;
+    return [
+      {
+        important: node.important ?? false,
+        interpolations:
+          start === undefined || end === undefined
+            ? []
+            : template.expressions.filter(
+                expression =>
+                  start <= offset(expression.range[0]) &&
+                  end >= offset(expression.range[1])
+              ),
+        name: normalizePropertyName(node.prop),
+        value: node.value,
+      },
+    ];
+  });
 }
 
 const CONTAINER_PROPERTIES = new Set([
@@ -126,22 +117,23 @@ const LAYOUT_ELEMENTS = new Set([
   'hr',
 ]);
 const TEXT_ELEMENTS = new Set(['span', 'p', 'label', 'div', 'time', 'legend']);
-const TEXT_PROPERTIES: Record<string, readonly string[] | null> = {
-  'font-size': null,
-  'font-weight': ['400', '500'],
-  'font-family': ['monospace'],
-  'font-variant-numeric': ['tabular-nums', 'diagonal-fractions'],
-  'text-overflow': ['ellipsis'],
-  'line-height': null,
-  color: null,
-  'text-align': ['left', 'center', 'right', 'justify'],
-  'font-style': ['italic'],
-  'text-transform': ['uppercase'],
-  'text-decoration': ['underline', 'line-through'],
-  'white-space': ['nowrap', 'normal', 'pre', 'pre-line', 'pre-wrap'],
-  'text-wrap': ['wrap', 'nowrap', 'balance', 'pretty', 'stable'],
-  'word-break': ['normal', 'break-all', 'keep-all', 'break-word'],
-};
+const TEXT_PROPERTIES = new Map<string, readonly string[] | null>([
+  ['font-size', null],
+  ['font-weight', ['400', '500']],
+  ['font-family', ['monospace']],
+  ['font-variant-numeric', ['tabular-nums', 'diagonal-fractions']],
+  ['text-overflow', ['ellipsis']],
+  ['line-height', null],
+  ['color', null],
+  ['text-align', ['left', 'center', 'right', 'justify']],
+  ['font-style', ['italic']],
+  ['text-transform', ['uppercase']],
+  ['text-decoration', ['underline', 'line-through']],
+  ['white-space', ['nowrap', 'normal', 'pre', 'pre-line', 'pre-wrap']],
+  ['text-wrap', ['wrap', 'nowrap', 'balance', 'pretty', 'stable']],
+  ['word-break', ['normal', 'break-all', 'keep-all', 'break-word']],
+]);
+const STYLE_ATTRIBUTES = new Set(['css', 'style']);
 const IMPORTS = {
   Button: '@sentry/scraps/button',
   Container: '@sentry/scraps/layout',
@@ -153,6 +145,66 @@ const IMPORTS = {
 };
 type Primitive = keyof typeof IMPORTS;
 type Declarations = Map<string, string | null>;
+
+function isIntrinsic(name: string): boolean {
+  return /^[a-z]/.test(name);
+}
+
+function elementName(name: string): string | null {
+  return !name.includes('.') && isIntrinsic(name) ? name : null;
+}
+
+function isTypeWrapper(
+  node: ESTree.Node
+): node is
+  | ESTree.TSAsExpression
+  | ESTree.TSSatisfiesExpression
+  | ESTree.TSNonNullExpression
+  | ESTree.TSTypeAssertion {
+  return (
+    node.type === 'TSAsExpression' ||
+    node.type === 'TSSatisfiesExpression' ||
+    node.type === 'TSNonNullExpression' ||
+    node.type === 'TSTypeAssertion'
+  );
+}
+
+function outermostTypeWrapper(node: ESTree.Node): ESTree.Node {
+  return node.parent && isTypeWrapper(node.parent)
+    ? outermostTypeWrapper(node.parent)
+    : node;
+}
+
+function findVariable(scope: Scope | null, name: string): Variable | undefined {
+  return scope ? (scope.set.get(name) ?? findVariable(scope.upper, name)) : undefined;
+}
+
+function isStyleAttribute(
+  attribute: ESTree.JSXAttributeItem
+): attribute is ESTree.JSXAttribute {
+  return (
+    attribute.type === 'JSXAttribute' &&
+    attribute.name.type === 'JSXIdentifier' &&
+    STYLE_ATTRIBUTES.has(attribute.name.name)
+  );
+}
+
+function jsxStyle(attributes: ESTree.JSXAttributeItem[]): ESTree.Node | undefined {
+  for (const [index, attribute] of attributes.entries()) {
+    if (attribute.type === 'JSXSpreadAttribute') {
+      return undefined;
+    }
+    if (isStyleAttribute(attribute)) {
+      const overridden = attributes
+        .slice(index + 1)
+        .some(other => other.type === 'JSXSpreadAttribute' || isStyleAttribute(other));
+      return !overridden && attribute.value?.type === 'JSXExpressionContainer'
+        ? attribute.value.expression
+        : undefined;
+    }
+  }
+  return undefined;
+}
 
 function elementPrimitive(element: string): Primitive | undefined {
   if (element === 'button') {
@@ -171,7 +223,8 @@ function stylePrimitive(
   if (declarations.has('all')) {
     return undefined;
   }
-  const supportsLayout = [...elements].every(element => LAYOUT_ELEMENTS.has(element));
+  const tags = [...elements];
+  const supportsLayout = tags.every(element => LAYOUT_ELEMENTS.has(element));
   const display = declarations.get('display');
   if (display === 'flex' || display === 'inline-flex') {
     if (!supportsLayout) {
@@ -183,11 +236,9 @@ function stylePrimitive(
     return supportsLayout ? 'Grid' : undefined;
   }
   if (
-    [...elements].every(element => TEXT_ELEMENTS.has(element)) &&
+    tags.every(element => TEXT_ELEMENTS.has(element)) &&
     [...declarations].filter(([property, value]) => {
-      const supported = Object.hasOwn(TEXT_PROPERTIES, property)
-        ? TEXT_PROPERTIES[property]
-        : undefined;
+      const supported = TEXT_PROPERTIES.get(property);
       return supported === null || (value !== null && supported?.includes(value));
     }).length >= 2
   ) {
@@ -216,6 +267,30 @@ function staticValue(node: ESTree.Node): string | null {
   return null;
 }
 
+function objectDeclarations(node: ESTree.ObjectExpression): Declarations | null {
+  const declarations: Declarations = new Map();
+  for (const property of node.properties) {
+    if (
+      property.type !== 'Property' ||
+      property.computed ||
+      property.kind !== 'init' ||
+      property.method
+    ) {
+      return null;
+    }
+    const name =
+      property.key.type === 'Identifier'
+        ? property.key.name
+        : property.key.type === 'Literal' && typeof property.key.value === 'string'
+          ? property.key.value
+          : null;
+    if (name !== null) {
+      declarations.set(normalizePropertyName(name), staticValue(property.value));
+    }
+  }
+  return declarations;
+}
+
 export const preferPrimitives = defineRule({
   meta: {
     type: 'suggestion',
@@ -240,18 +315,9 @@ export const preferPrimitives = defineRule({
     >();
 
     function resolveVariable(node: ESTree.Node): Variable | undefined {
-      if (node.type !== 'Identifier' && node.type !== 'JSXIdentifier') {
-        return undefined;
-      }
-      let scope: Scope | null = context.sourceCode.getScope(node);
-      while (scope) {
-        const variable = scope.set.get(node.name);
-        if (variable) {
-          return variable;
-        }
-        scope = scope.upper;
-      }
-      return undefined;
+      return node.type === 'Identifier'
+        ? findVariable(context.sourceCode.getScope(node), node.name)
+        : undefined;
     }
 
     function imported(node: ESTree.Node, source: string, name: string): boolean {
@@ -290,75 +356,29 @@ export const preferPrimitives = defineRule({
     }
 
     function isCss(node: ESTree.Node): boolean {
-      return (
-        imported(node, '@emotion/react', 'css') ||
-        (node.type === 'MemberExpression' &&
-          !node.computed &&
-          node.property.type === 'Identifier' &&
-          node.property.name === 'css' &&
-          imported(node.object, '@emotion/react', '*'))
-      );
+      return imported(node, '@emotion/react', 'css');
     }
 
-    function memberName(node: ESTree.Node): string | null {
-      if (node.type === 'Identifier') {
-        return node.name;
-      }
-      if (
-        node.type === 'MemberExpression' &&
-        !node.computed &&
-        node.property.type === 'Identifier'
-      ) {
-        const objectName = memberName(node.object);
-        return objectName ? `${objectName}.${node.property.name}` : null;
-      }
-      return null;
-    }
-
-    function elementName(name: string): string | null {
-      return !name.includes('.') && /^[a-z]/.test(name) ? name : null;
-    }
-
-    function styledArgs(args: ESTree.Argument[]): string | null {
-      const arg = args[0];
-      if (!arg) {
-        return null;
-      }
-      if (arg.type === 'Literal' && typeof arg.value === 'string') {
+    function styledArgument(arg: ESTree.Argument | undefined): string | null {
+      if (arg?.type === 'Literal' && typeof arg.value === 'string') {
         return elementName(arg.value);
       }
-      const name = memberName(arg);
-      return name ? elementName(name) : null;
+      return arg?.type === 'Identifier' ? elementName(arg.name) : null;
     }
 
-    function styledElement(tag: ESTree.Node): string | null {
-      if (tag.type === 'MemberExpression') {
-        if (
-          imported(tag.object, '@emotion/styled', 'default') &&
-          tag.property.type === 'Identifier'
-        ) {
-          return elementName(tag.property.name);
-        }
-        if (
-          tag.property.type === 'Identifier' &&
-          tag.property.name === 'attrs' &&
-          tag.object.type === 'CallExpression'
-        ) {
-          return styledElement(tag.object);
-        }
+    function styledElement(node: ESTree.Node): string | null {
+      if (
+        node.type === 'MemberExpression' &&
+        imported(node.object, '@emotion/styled', 'default') &&
+        node.property.type === 'Identifier'
+      ) {
+        return elementName(node.property.name);
       }
-      if (tag.type === 'CallExpression') {
-        if (imported(tag.callee, '@emotion/styled', 'default')) {
-          return styledArgs(tag.arguments);
-        }
-        if (
-          tag.callee.type === 'MemberExpression' &&
-          tag.callee.property.type === 'Identifier' &&
-          tag.callee.property.name === 'attrs' &&
-          tag.callee.object.type === 'CallExpression'
-        ) {
-          return styledElement(tag.callee.object);
-        }
+      if (
+        node.type === 'CallExpression' &&
+        imported(node.callee, '@emotion/styled', 'default')
+      ) {
+        return styledArgument(node.arguments[0]);
       }
       return null;
     }
@@ -377,24 +397,11 @@ export const preferPrimitives = defineRule({
         }
       }
       const tag = node.type === 'TaggedTemplateExpression' ? node.tag : node.callee;
-      if (
-        imported(tag, '@emotion/react', 'css') ||
-        (tag.type === 'MemberExpression' &&
-          tag.property.type === 'Identifier' &&
-          tag.property.name === 'css' &&
-          imported(tag.object, '@emotion/react', '*'))
-      ) {
+      if (isCss(tag)) {
         return {kind: 'css'};
       }
-      const name = styledElement(tag);
-      if (name) {
-        return {kind: 'element', name};
-      }
-      if (node.type === 'CallExpression' && imported(tag, '@emotion/styled', 'default')) {
-        const directName = styledArgs(node.arguments);
-        return directName ? {kind: 'element', name: directName} : null;
-      }
-      return null;
+      const name = styledElement(tag) ?? styledElement(node);
+      return name ? {kind: 'element', name} : null;
     }
 
     function report(node: ESTree.Node, primitive: Primitive, element?: string) {
@@ -414,18 +421,14 @@ export const preferPrimitives = defineRule({
       const declarations = parseCssTemplate(
         template,
         context.sourceCode.getText(template)
-      )?.filter(declaration => declaration.root);
-      if (!declarations) {
-        return null;
-      }
-      if (declarations.some(declaration => declaration.important)) {
-        return null;
-      }
+      );
       if (
+        !declarations ||
+        declarations.some(declaration => declaration.important) ||
         template.expressions.some(
           expression =>
             !declarations.some(declaration =>
-              declaration.interpolations.some(item => item.expression === expression)
+              declaration.interpolations.includes(expression)
             )
         )
       ) {
@@ -437,6 +440,19 @@ export const preferPrimitives = defineRule({
           declaration.value.trim().toLowerCase(),
         ])
       );
+    }
+
+    function styleDeclarations(node: ESTree.Node): Declarations | null {
+      if (node.type === 'ObjectExpression') {
+        return objectDeclarations(node);
+      }
+      if (node.type === 'TaggedTemplateExpression' && isCss(node.tag)) {
+        return templateDeclarations(node.quasi);
+      }
+      if (node.type === 'TemplateLiteral') {
+        return templateDeclarations(node);
+      }
+      return null;
     }
 
     function safeBinding(binding: Variable, seen = new Set<Variable>()): boolean {
@@ -455,14 +471,7 @@ export const preferPrimitives = defineRule({
         if (reference.init) {
           return true;
         }
-        let node: ESTree.Node = reference.identifier;
-        while (
-          node.parent?.type === 'TSAsExpression' ||
-          node.parent?.type === 'TSSatisfiesExpression' ||
-          node.parent?.type === 'TSNonNullExpression'
-        ) {
-          node = node.parent;
-        }
+        const node = outermostTypeWrapper(reference.identifier);
         const parent = node.parent;
         if (
           parent?.type === 'VariableDeclarator' &&
@@ -477,8 +486,7 @@ export const preferPrimitives = defineRule({
           parent.arguments.length === 1 &&
           parent.arguments[0] === node
         ) {
-          const kind = styleKind(parent)?.kind;
-          return kind === 'css' || kind === 'element';
+          return styleKind(parent) !== null;
         }
         if (
           parent?.type === 'JSXExpressionContainer' &&
@@ -487,11 +495,10 @@ export const preferPrimitives = defineRule({
           const attribute = parent.parent;
           const element = attribute.parent;
           return (
-            attribute.name.type === 'JSXIdentifier' &&
-            ['css', 'style'].includes(attribute.name.name) &&
+            isStyleAttribute(attribute) &&
             element?.type === 'JSXOpeningElement' &&
             element.name.type === 'JSXIdentifier' &&
-            /^[a-z]/.test(element.name.name)
+            isIntrinsic(element.name.name)
           );
         }
         return false;
@@ -503,12 +510,7 @@ export const preferPrimitives = defineRule({
         return;
       }
       seen.add(node);
-      if (
-        node.type === 'TSAsExpression' ||
-        node.type === 'TSSatisfiesExpression' ||
-        node.type === 'TSNonNullExpression' ||
-        node.type === 'TSTypeAssertion'
-      ) {
+      if (isTypeWrapper(node)) {
         addStyle(node.expression, element, seen);
         return;
       }
@@ -516,11 +518,9 @@ export const preferPrimitives = defineRule({
         const binding = resolveVariable(node);
         const definition = binding?.defs[0];
         if (
+          binding &&
           definition?.node.type === 'VariableDeclarator' &&
-          definition.parent?.type === 'VariableDeclaration' &&
-          definition.parent.kind === 'const' &&
           definition.node.init &&
-          binding !== undefined &&
           safeBinding(binding)
         ) {
           addStyle(definition.node.init, element, seen);
@@ -543,72 +543,43 @@ export const preferPrimitives = defineRule({
         addStyle(node.arguments[0], element, seen);
         return;
       }
-      let declarations: Declarations | null = null;
-      if (node.type === 'ObjectExpression') {
-        declarations = new Map();
-        for (const property of node.properties) {
-          if (
-            property.type !== 'Property' ||
-            property.computed ||
-            property.kind !== 'init' ||
-            property.method
-          ) {
-            return;
-          }
-          const name =
-            property.key.type === 'Identifier'
-              ? property.key.name
-              : property.key.type === 'Literal' && typeof property.key.value === 'string'
-                ? property.key.value
-                : null;
-          if (name !== null) {
-            declarations.set(normalizePropertyName(name), staticValue(property.value));
-          }
-        }
-      } else if (node.type === 'TaggedTemplateExpression' && isCss(node.tag)) {
-        declarations = templateDeclarations(node.quasi);
-      } else if (node.type === 'TemplateLiteral') {
-        declarations = templateDeclarations(node);
+      const declarations = styleDeclarations(node);
+      if (!declarations) {
+        return;
       }
-      if (declarations) {
-        const prior = styles.get(node);
-        if (prior) {
-          prior.elements.add(element);
-        } else {
-          styles.set(node, {declarations, elements: new Set([element])});
-        }
+      const prior = styles.get(node);
+      if (prior) {
+        prior.elements.add(element);
+      } else {
+        styles.set(node, {declarations, elements: new Set([element])});
+      }
+    }
+
+    function checkStyled(
+      node: ESTree.TaggedTemplateExpression | ESTree.CallExpression,
+      style: ESTree.Node | undefined
+    ) {
+      const styled = styleKind(node);
+      if (styled?.kind !== 'element') {
+        return;
+      }
+      const primitive = elementPrimitive(styled.name);
+      if (primitive) {
+        report(node, primitive, styled.name);
+      } else if (style) {
+        addStyle(style, styled.name);
       }
     }
 
     return {
       TaggedTemplateExpression(node) {
-        const styled = styleKind(node);
-        if (styled?.kind !== 'element') {
-          return;
-        }
-        const element = styled.name;
-        const primitive = elementPrimitive(element);
-        if (primitive) {
-          report(node, primitive, element);
-        } else {
-          addStyle(node.quasi, element);
-        }
+        checkStyled(node, node.quasi);
       },
       CallExpression(node) {
-        const styled = styleKind(node);
-        if (styled?.kind !== 'element') {
-          return;
-        }
-        const element = styled.name;
-        const primitive = elementPrimitive(element);
-        if (primitive) {
-          report(node, primitive, element);
-        } else if (node.arguments.length === 1 && node.arguments[0]) {
-          addStyle(node.arguments[0], element);
-        }
+        checkStyled(node, node.arguments.length === 1 ? node.arguments[0] : undefined);
       },
       JSXOpeningElement(node) {
-        if (node.name.type !== 'JSXIdentifier' || !/^[a-z]/.test(node.name.name)) {
+        if (node.name.type !== 'JSXIdentifier' || !isIntrinsic(node.name.name)) {
           return;
         }
         const element = node.name.name;
@@ -617,27 +588,9 @@ export const preferPrimitives = defineRule({
           report(node.name, primitive, element);
           return;
         }
-        const styleAttributes = node.attributes.filter(
-          attribute =>
-            attribute.type === 'JSXAttribute' &&
-            attribute.name.type === 'JSXIdentifier' &&
-            ['css', 'style'].includes(attribute.name.name)
-        );
-        if (
-          styleAttributes.length !== 1 ||
-          node.attributes.some(attribute => attribute.type === 'JSXSpreadAttribute')
-        ) {
-          return;
-        }
-        for (const attribute of styleAttributes) {
-          if (
-            attribute.type === 'JSXAttribute' &&
-            attribute.name.type === 'JSXIdentifier' &&
-            ['css', 'style'].includes(attribute.name.name) &&
-            attribute.value?.type === 'JSXExpressionContainer'
-          ) {
-            addStyle(attribute.value.expression, element);
-          }
+        const style = jsxStyle(node.attributes);
+        if (style) {
+          addStyle(style, element);
         }
       },
       'Program:exit'() {
