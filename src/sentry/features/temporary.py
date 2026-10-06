@@ -46,6 +46,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:trace-item-details-array-fields", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable array query support for trace items (array attributes in querying/autocomplete)
     manager.add("organizations:trace-item-array-query-support", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable the Settings > Attributes browser & editor page
+    manager.add("organizations:attribute-management", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the Auth V2 toggle
     manager.add("organizations:authv2-enable-toggle", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Roll out Auth V2 to members of enabled organizations
