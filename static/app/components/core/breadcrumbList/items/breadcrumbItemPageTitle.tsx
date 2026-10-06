@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import type {FeatureBadgeProps} from '@sentry/scraps/badge';
 import {BreadcrumbCopyAction} from '@sentry/scraps/breadcrumbList/actions/breadcrumbCopyAction';
 import type {BreadcrumbCopyActionProps} from '@sentry/scraps/breadcrumbList/actions/breadcrumbCopyAction';
 import {BreadcrumbMenuAction} from '@sentry/scraps/breadcrumbList/actions/breadcrumbMenuAction';
@@ -29,6 +30,7 @@ import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
 type BreadcrumbTitleAction =
   | ({type: 'copy'} & BreadcrumbCopyActionProps)
   | ({type: 'menu'} & BreadcrumbMenuActionProps)
+  | {element: React.ReactElement<FeatureBadgeProps>; type: 'badge'}
   | {element: React.ReactElement<ButtonProps | LinkButtonProps>; type: 'button'};
 
 /**
@@ -50,6 +52,7 @@ function renderTrailingAction(action: BreadcrumbTitleAction) {
       const {type: _type, ...props} = action;
       return <BreadcrumbMenuAction {...props} />;
     }
+    case 'badge':
     case 'button':
       return action.element;
     default:

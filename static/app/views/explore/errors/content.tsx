@@ -44,7 +44,7 @@ function ErrorsHeader() {
         title={{
           type: 'page-title',
           label: t('Errors'),
-          leadingGraphic: <FeatureBadge type="alpha" />,
+          trailingActions: {type: 'badge', element: <FeatureBadge type="alpha" />},
         }}
       />
       <TopBar.Slot name="feedback">

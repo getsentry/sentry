@@ -33,7 +33,7 @@ describe('BreadcrumbList container-query collapse', () => {
         item={{
           type: 'page-title',
           label: 'Security',
-          leadingGraphic: <FeatureBadge type="new" />,
+          trailingActions: {type: 'badge', element: <FeatureBadge type="new" />},
           status: {label: 'Authentication active', variant: 'success'},
           labelTooltip: (
             <Stack align="start" gap="md">

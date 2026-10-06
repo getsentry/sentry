@@ -292,7 +292,8 @@ Beyond `label`, the optional props are not shared evenly across the item types.
 
 Use `labelTooltip` for a tooltip on the title text. It accepts React content,
 including descriptions and documentation links.
-Use `leadingGraphic` to display a feature badge, such as `<FeatureBadge type="new" />`.
+Use `trailingActions: {type: 'badge', element: <FeatureBadge type="new" />}`
+to display a feature badge after the title.
 `status: {label, variant}` adds an accessible status indicator.
 
 Editable titles accept `editOnDoubleClick` to use a double click or the edit
@@ -517,7 +518,7 @@ a chevron below and move onto the tooltip to reach the link.
 **Available on** `'page-title'` only.
 The `page-title` item accepts a `trailingActions` slot rendered after the label,
 for example a copy action or page-level menu. The slot is bounded to
-typed `copy`, `menu`, or `button` objects. Falsy entries are dropped so
+typed `copy`, `menu`, `button`, or `badge` objects. Falsy entries are dropped so
 consumers can inline conditionals. Actions are always visible and keyboard
 accessible.
 

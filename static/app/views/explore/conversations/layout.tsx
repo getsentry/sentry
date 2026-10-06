@@ -98,7 +98,7 @@ function ConversationsLandingHeader() {
         title={{
           type: 'page-title',
           label: CONVERSATIONS_LANDING_TITLE,
-          leadingGraphic: <FeatureBadge type="new" />,
+          trailingActions: {type: 'badge', element: <FeatureBadge type="new" />},
         }}
       />
     );
