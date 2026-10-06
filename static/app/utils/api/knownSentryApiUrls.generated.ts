@@ -408,8 +408,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/tags/$key/values/'
   | '/organizations/$organizationIdOrSlug/teams/'
   | '/organizations/$organizationIdOrSlug/test-fire-actions/'
-  | '/organizations/$organizationIdOrSlug/trace-explorer-ai/query/'
-  | '/organizations/$organizationIdOrSlug/trace-explorer-ai/setup/'
   | '/organizations/$organizationIdOrSlug/trace-items/attributes/'
   | '/organizations/$organizationIdOrSlug/trace-items/attributes/$key/context/'
   | '/organizations/$organizationIdOrSlug/trace-items/attributes/$key/values/'
