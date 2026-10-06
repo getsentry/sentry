@@ -368,7 +368,7 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         """Probe progressively wider windows to find which contains the conversation."""
         candidates = self._build_widening_params(base_params, stats_period, now)
         for params in candidates:
-            if self._fetch_spans(params, conversation_id, offset=0, limit=1):
+            if self._conversation_exists(params, conversation_id):
                 return params
         return candidates[-1]
 
@@ -658,22 +658,16 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         }
 
     @traces.trace
-    def _fetch_spans(
-        self,
-        snuba_params: SnubaParams,
-        conversation_id: str,
-        offset: int,
-        limit: int,
-    ) -> list[SpanRow]:
+    def _conversation_exists(self, snuba_params: SnubaParams, conversation_id: str) -> bool:
         result = Spans.run_table_query(
             params=snuba_params,
             query_string=build_escaped_term_filter("gen_ai.conversation.id", [conversation_id]),
-            selected_columns=AI_CONVERSATION_ATTRIBUTES,
-            orderby=["precise.start_ts"],
-            offset=offset,
-            limit=limit,
+            selected_columns=["span_id"],
+            orderby=[],
+            offset=0,
+            limit=1,
             referrer=Referrer.API_AI_CONVERSATION_DETAILS.value,
-            config=SearchResolverConfig(auto_fields=True),
+            config=SearchResolverConfig(auto_fields=False),
             sampling_mode="HIGHEST_ACCURACY",
         )
-        return result.get("data", [])
+        return bool(result.get("data"))

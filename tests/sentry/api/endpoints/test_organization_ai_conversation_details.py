@@ -43,6 +43,22 @@ def test_parent_fetch_groups_span_ids_by_trace() -> None:
     assert run_query.call_args.kwargs["config"].auto_fields is False
 
 
+def test_conversation_probe_fetches_only_span_id() -> None:
+    endpoint = OrganizationAIConversationDetailsEndpoint()
+
+    with patch.object(
+        Spans, "run_table_query", return_value={"data": [{"span_id": "span-id"}]}
+    ) as run_query:
+        exists = endpoint._conversation_exists(MagicMock(), "conversation-id")
+
+    assert exists is True
+    assert run_query.call_args.kwargs["selected_columns"] == ["span_id"]
+    assert run_query.call_args.kwargs["orderby"] == []
+    assert run_query.call_args.kwargs["offset"] == 0
+    assert run_query.call_args.kwargs["limit"] == 1
+    assert run_query.call_args.kwargs["config"].auto_fields is False
+
+
 def test_parent_repair_uses_spans_from_page() -> None:
     endpoint = OrganizationAIConversationDetailsEndpoint()
     conversation_id = uuid4().hex
