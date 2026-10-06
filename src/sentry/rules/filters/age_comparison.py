@@ -1,28 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
-from datetime import timedelta
-
 from django import forms
 
-from sentry.rules.age import age_comparison_choices
 from sentry.rules.filters.base import EventFilter
-
-timeranges = {
-    "minute": ("minute(s)", timedelta(minutes=1)),
-    "hour": ("hour(s)", timedelta(hours=1)),
-    "day": ("day(s)", timedelta(days=1)),
-    "week": ("week(s)", timedelta(days=7)),
-}
-
-
-def get_timerange_choices() -> Sequence[tuple[str, str]]:
-    return [
-        (key, label)
-        for key, (label, duration) in sorted(
-            timeranges.items(), key=lambda key___label__duration: key___label__duration[1][1]
-        )
-    ]
+from sentry.workflow_engine.handlers.condition.utils.age import (
+    age_comparison_choices,
+    get_timerange_choices,
+)
 
 
 class AgeComparisonForm(forms.Form):
