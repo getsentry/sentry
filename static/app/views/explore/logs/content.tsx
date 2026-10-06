@@ -58,7 +58,7 @@ export default function LogsContent() {
         }
       >
         <AnalyticsArea name="explore.logs">
-          <AiQueryProvider>
+          <AiQueryProvider strategy="Logs">
             <LogsPageStack flex={1} data-footer-constrained data-hide-footer>
               <LogsQueryParamsProvider
                 analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}

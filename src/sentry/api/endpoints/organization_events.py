@@ -184,7 +184,7 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.STATS_PERIOD,
             VisibilityParams.FIELD,
             VisibilityParams.PER_PAGE,
-            VisibilityParams.QUERY,
+            VisibilityParams.EXPLORE_QUERY,
             VisibilityParams.SORT,
             VisibilityParams.DATASET,
             VisibilityParams.ALLOW_AGGREGATE_CONDITIONS,
@@ -603,7 +603,9 @@ class OrganizationEventsEndpoint(OrganizationEventsEndpointBase):
                     return SearchResolverConfig(
                         auto_fields=True,
                         use_aggregate_conditions=use_aggregate_conditions,
-                        fields_acl=FieldsACL(functions={"time_spent_percentage"}),
+                        fields_acl=FieldsACL(
+                            functions={"time_spent_percentage"}, attributes={"sentry.links"}
+                        ),
                         disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                         extrapolation_mode=extrapolation_mode,
                         disable_array_attributes=disable_array_attributes,

@@ -37,6 +37,12 @@ class LegacyFilter(StrEnum):
     TRACE_METRIC_NAME = "trace-metric-name"
 
 
+# Bounds how many generic filters one project sends Relay. The API refuses to create a
+# filter past the cap, and the Relay config builder stops at it too so that rows made
+# some other way, e.g. before the cap or by a backfill, cannot blow up a project config.
+MAX_FILTERS_PER_PROJECT = 50
+
+
 @cell_silo_model
 class CustomInboundFilter(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Organization

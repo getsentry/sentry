@@ -96,7 +96,7 @@ dependencies = [
   "sentry-ophio>=1.2.0",
   # sentry-options is only used in getsentry for now
   "sentry-options>=1.2.13",
-  "sentry-protos>=0.79.0",
+  "sentry-protos>=0.81.0",
   "sentry-redis-tools>=0.5.0",
   "sentry-relay>=0.9.31",
   "sentry-scm>=1.7.2",
@@ -147,8 +147,16 @@ environments = [
 [[tool.uv.index]]
 # We don't allow using public pypi - submit a PR to
 # https://github.com/getsentry/pypi to add a dependency.
+name = "sentry-pypi"
 url = "https://pypi.devinfra.sentry.io/simple"
 default = true
+
+[[tool.uv.index]]
+# Org-level Dependabot registry. Declaring it here stops Dependabot from
+# passing it as `--default-index`; `explicit` keeps uv from ever using it.
+name = "sfw"
+url = "https://sfw.security.sentry.io/pypi/simple"
+explicit = true
 
 # Note: instead of using a build system, we use tools/fast_editable.py
 # to install sentry editably as well as console scripts.
@@ -206,6 +214,9 @@ dev = [
   "types-requests-oauthlib>=2.0.0.20250119",
   "types-simplejson>=3.17.7.2",
   "types-unidiff>=0.7.0.20240505",
+]
+image-debug = [
+  "memray==1.20.0",
 ]
 
 [tool.ruff]
@@ -654,7 +665,6 @@ module = [
     "sentry.api.serializers.rest_framework.project",
     "sentry.api.serializers.rest_framework.project_key",
     "sentry.api.serializers.rest_framework.release",
-    "sentry.api.serializers.rest_framework.rule",
     "sentry.api.serializers.snuba",
     "sentry.api.serializers.types",
     "sentry.api.urls",
@@ -1220,9 +1230,7 @@ module = [
     "sentry.rules.actions.base",
     "sentry.rules.actions.notify_event_service",
     "sentry.rules.actions.services",
-    "sentry.rules.age",
     "sentry.rules.filters.*",
-    "sentry.rules.match",
     "sentry.rules.processing.*",
     "sentry.rules.registry",
     "sentry.scm.*",
@@ -1965,9 +1973,7 @@ module = [
     "tests.sentry.rules.actions.test_notify_event_sentry_app",
     "tests.sentry.rules.actions.test_notify_event_service",
     "tests.sentry.rules.conditions.*",
-    "tests.sentry.rules.history",
     "tests.sentry.rules.processing",
-    "tests.sentry.rules.test_match",
     "tests.sentry.runner",
     "tests.sentry.runner.commands",
     "tests.sentry.runner.commands.test_backup",

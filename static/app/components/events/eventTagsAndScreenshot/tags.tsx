@@ -19,16 +19,10 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 type Props = {
   event: Event;
   projectSlug: Project['slug'];
-  disableCollapsePersistence?: boolean;
   ref?: React.Ref<HTMLDivElement>;
 };
 
-export function EventTagsDataSection({
-  ref,
-  event,
-  projectSlug,
-  disableCollapsePersistence,
-}: Props) {
+export function EventTagsDataSection({ref, event, projectSlug}: Props) {
   const sentryTags = getSentryDefaultTags();
 
   const [tagFilter, setTagFilter] = useState(TagFilter.ALL);
@@ -75,7 +69,6 @@ export function EventTagsDataSection({
 
   return (
     <FoldSection
-      disableCollapsePersistence={disableCollapsePersistence}
       title={t('Tags')}
       actions={actions}
       sectionKey={SectionKey.TAGS}

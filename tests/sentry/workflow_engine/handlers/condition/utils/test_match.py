@@ -1,4 +1,4 @@
-from sentry.rules.match import MatchType, match_values
+from sentry.workflow_engine.handlers.condition.utils.match import MatchType, match_values
 
 
 class TestMatchValues:
