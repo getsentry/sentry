@@ -1,18 +1,3 @@
-dl.flat {
-  margin-bottom: 1em;
-}
-
-dl.flat dt {
-  float: left;
-  clear: left;
-  width: 70px;
-  padding-bottom: 5px;
-}
-
-dl.flat dd {
-  padding-bottom: 5px;
-}
-
 /**
  * Flex
  * ============================================================================
@@ -202,53 +187,6 @@ fieldset[disabled] .btn-danger.active,
   }
 }
 
-/**
-* Tables
-* ============================================================================
-*/
-
-table.table {
-  margin-bottom: 20px;
-
-  // No overrideable variables available
-  td,
-  th {
-    vertical-align: middle !important;
-    line-height: 1 !important;
-  }
-
-  th {
-    font-weight: 600 !important;
-    border-width: 1px !important;
-  }
-
-  h5 {
-    font-weight: 600;
-    font-size: 15px;
-    margin: 0;
-  }
-
-  .table-user-info {
-    position: relative;
-    padding-left: 65px !important;
-    line-height: 1.2 !important;
-    font-size: 13px;
-
-    h5 {
-      margin-bottom: 4px;
-    }
-
-    .avatar {
-      position: absolute;
-      left: 20px;
-    }
-  }
-
-  &.closed {
-    display: none;
-  }
-}
-
 pre.plain {
   background-color: inherit;
   padding: 0;
@@ -273,62 +211,6 @@ pre.plain {
 
 .box-header a:hover .external-icon {
   color: @gray;
-}
-
-.event-list {
-  border: 1px solid @trim;
-  overflow-x: scroll;
-  border-radius: 3px;
-
-  .table {
-    border: 0;
-    margin-bottom: 0;
-
-    & > thead > tr > th,
-    & > tbody > tr > td {
-      padding: 10px 15px;
-    }
-
-    h5 {
-      margin-bottom: 0;
-      font-size: 16px;
-
-      small {
-        margin-top: 5px;
-        display: block;
-        color: @gray;
-      }
-    }
-
-    th {
-      text-transform: uppercase;
-      font-size: 14px;
-      color: #95899f;
-    }
-
-    th,
-    td {
-      white-space: nowrap;
-    }
-
-    .table-user-info {
-      padding-left: 54px !important;
-      position: relative;
-
-      .avatar {
-        top: 50%;
-        margin-top: -12px;
-      }
-
-      p {
-        margin-bottom: 0;
-      }
-    }
-
-    time {
-      white-space: nowrap;
-    }
-  }
 }
 
 /**

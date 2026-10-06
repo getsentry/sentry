@@ -372,36 +372,9 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
           .traceback {
             border-color: ${theme.tokens.border.primary};
 
-            &.in-app-traceback {
-              .frame {
-                &.leads-to-app {
-                  &.collapsed {
-                    .title {
-                      border-color: ${theme.tokens.border.primary};
-                      background: ${theme.tokens.background.primary};
-                    }
-                  }
-                }
-              }
-            }
-
-            .frame,
-            .frame.system-frame {
+            .frame {
               border-top-color: ${theme.tokens.border.primary};
 
-              &.is-expandable .title:hover {
-                background-color: ${theme.tokens.background.primary};
-              }
-              .btn-toggle {
-                color: ${theme.tokens.content.primary};
-                background: transparent;
-              }
-              .title {
-                background-color: ${theme.tokens.background.secondary};
-              }
-              &.is-expandable .title {
-                background-color: ${theme.tokens.background.secondary};
-              }
               .context {
                 background: ${theme.tokens.background.primary};
               }
