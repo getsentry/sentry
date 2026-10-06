@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any
 
 from sentry import eventstore
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.models.rule import Rule
@@ -62,6 +63,8 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
                 )
                 if isinstance(event, Event):
                     event = event.for_group(group)
+                if event is not None and data.occurrence_id:
+                    event.occurrence = IssueOccurrence.fetch(data.occurrence_id, group.project_id)
             except Exception:
                 raise NotificationRenderError(f"Failed to retrieve event {data.event_id}")
 

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
@@ -31,18 +30,6 @@ from tests.sentry.notifications.platform.shadow.test_capture import (
 )
 
 COMPARE_PATH = "sentry.notifications.platform.shadow.compare"
-
-_PATH_STEP = re.compile(r"(?:^|\.)(\w+)|\[(\d+)\]")
-
-
-def resolve(payload: Any, path: str) -> Any:
-    """
-    Returns the value at a diff path like `blocks[0].text.text`.
-    """
-    value = payload
-    for key, index in _PATH_STEP.findall(path):
-        value = value[key] if key else value[int(index)]
-    return value
 
 
 @dataclass

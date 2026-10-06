@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from sentry import eventstore
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.notifications.platform.discord.provider import DiscordRenderable
 from sentry.notifications.platform.registry import renderer_registry
@@ -47,6 +48,10 @@ class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
                     group_event = event.for_group(group)
                 else:
                     group_event = event
+                if group_event is not None and data.occurrence_id:
+                    group_event.occurrence = IssueOccurrence.fetch(
+                        data.occurrence_id, group.project_id
+                    )
             except Exception:
                 raise NotificationRenderError(f"Failed to retrieve event {data.event_id}")
 
@@ -57,5 +62,4 @@ class IssueDiscordRenderer(NotificationRenderer[DiscordRenderable]):
             event=group_event,
             tags=set(data.tags) if data.tags else None,
             rules=rules,
-            link_to_event=True,
         ).build(notification_uuid=data.notification_uuid)
