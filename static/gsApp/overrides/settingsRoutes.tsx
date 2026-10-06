@@ -33,45 +33,49 @@ export const settingsRoutes = (): SentryRouteObject => ({
           children: [
             {
               index: true,
-              component: make(() => import('../views/cancelSubscription')),
+              component: make(() => import('getsentry/views/cancelSubscription')),
             },
           ],
         },
         {
           path: 'overview/',
           name: 'Overview',
-          component: make(() => import('../views/subscriptionPage/overview')),
+          component: make(() => import('getsentry/views/subscriptionPage/overview')),
         },
         {
           path: 'usage/',
           name: 'Usage History',
-          component: make(() => import('../views/subscriptionPage/usageHistory')),
+          component: make(() => import('getsentry/views/subscriptionPage/usageHistory')),
         },
         {
           path: 'receipts/',
           name: 'Receipts',
-          component: make(() => import('../views/subscriptionPage/paymentHistory')),
+          component: make(
+            () => import('getsentry/views/subscriptionPage/paymentHistory')
+          ),
         },
         {
           path: 'notifications/',
           name: 'Spend Notifications',
-          component: make(() => import('../views/subscriptionPage/notifications')),
+          component: make(() => import('getsentry/views/subscriptionPage/notifications')),
         },
         {
           path: 'details/',
           name: 'Billing Information',
-          component: make(() => import('../views/subscriptionPage/billingInformation')),
+          component: make(
+            () => import('getsentry/views/subscriptionPage/billingInformation')
+          ),
         },
         // TODO(sub-v3): We're keeping both routes for now, but we should remove the usage-log route once we're confident in keeping the new name
         {
           path: 'usage-log/',
           name: 'Usage Log',
-          component: make(() => import('../views/subscriptionPage/usageLog')),
+          component: make(() => import('getsentry/views/subscriptionPage/usageLog')),
         },
         {
           path: 'activity-logs/',
           name: 'Activity Logs',
-          component: make(() => import('../views/subscriptionPage/usageLog')),
+          component: make(() => import('getsentry/views/subscriptionPage/usageLog')),
         },
         {
           path: 'receipts/:invoiceGuid/',
@@ -80,7 +84,7 @@ export const settingsRoutes = (): SentryRouteObject => ({
           children: [
             {
               index: true,
-              component: make(() => import('../views/invoiceDetails')),
+              component: make(() => import('getsentry/views/invoiceDetails')),
             },
           ],
         },
@@ -89,22 +93,24 @@ export const settingsRoutes = (): SentryRouteObject => ({
     {
       path: 'spike-protection/',
       name: 'Spike Protection',
-      component: make(() => import('../views/spikeProtection')),
+      component: make(() => import('getsentry/views/spikeProtection')),
     },
     {
       path: 'subscription/spend-allocations/',
       name: 'Spend Allocations',
-      component: make(() => import('../views/spendAllocations')),
+      component: make(() => import('getsentry/views/spendAllocations')),
     },
     {
       path: 'subscription/redeem-code/',
       name: 'Redeem Promotional Code',
-      component: make(() => import('../views/redeemPromoCode')),
+      component: make(() => import('getsentry/views/redeemPromoCode')),
     },
     {
       path: 'legal/',
       name: 'Legal & Compliance',
-      component: make(() => import('../views/legalAndCompliance/legalAndCompliance')),
+      component: make(
+        () => import('getsentry/views/legalAndCompliance/legalAndCompliance')
+      ),
     },
     {
       name: 'Support',

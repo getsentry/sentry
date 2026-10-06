@@ -27,6 +27,7 @@ import {useNewIssuePriorityAndAssigneeUI} from 'sentry/utils/useNewIssuePriority
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
+import {makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
 import {IssueDetailsContextProvider, SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {
@@ -45,9 +46,9 @@ import {
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
 import {
-  IssuePreviewActions,
+  IssuePreviewHeaderActions,
   OpenIssueButton,
-} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewActions';
+} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewHeaderActions';
 import {IssuePreviewSection} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSection';
 import {
   IssuePreviewSeerContent,
@@ -168,15 +169,15 @@ function IssuePreviewContent() {
     pathname: issueDetailsUrl,
     query: {referrer: 'inbox'},
   };
-  function openSeerDrawer(seerDrawerAction?: string) {
-    navigate({
-      pathname: issueDetailsUrl,
-      query: {
-        ...issueDetailsLocation.query,
-        seerDrawer: 'true',
-        seerDrawerAction,
-      },
-    });
+  function openSeer(action?: string) {
+    navigate(
+      makeSeerLocation({
+        organization,
+        groupId: group.id,
+        action,
+        query: issueDetailsLocation.query,
+      })
+    );
   }
 
   return (
@@ -235,12 +236,12 @@ function IssuePreviewContent() {
         wrap="wrap"
         gap="md"
       >
-        <IssuePreviewActions
+        <IssuePreviewHeaderActions
           group={group}
           project={project}
           disabled={disableActions}
-          onContinueInSeer={() => openSeerDrawer()}
-          onRetryCodeChanges={() => openSeerDrawer('retry_code_changes')}
+          onContinueInSeer={() => openSeer()}
+          onRetryCodeChanges={() => openSeer('retry_code_changes')}
         />
         <Flex align="center" wrap="wrap" gap={shouldUseNewUI ? 'md' : 'lg'}>
           <GroupPriority group={group} />
@@ -253,7 +254,7 @@ function IssuePreviewContent() {
         </Flex>
       </Flex>
       {/* Top sections load asynchronously, so block everything to avoid pop-in. */}
-      {previewSeer.isLoading || linkedPullRequests.isPending ? (
+      {previewSeer.state === 'loading' || linkedPullRequests.isPending ? (
         <LoadingIndicator />
       ) : (
         <Dividers>
@@ -269,14 +270,12 @@ function IssuePreviewContent() {
               </IssuePreviewSection.Content>
             </IssuePreviewSection>
           ) : null}
-          {previewSeer.hasAutofix && (
-            <IssuePreviewSeerContent
-              key={group.id}
-              group={group}
-              project={project}
-              previewSeer={previewSeer}
-            />
-          )}
+          <IssuePreviewSeerContent
+            key={group.id}
+            group={group}
+            project={project}
+            previewSeer={previewSeer}
+          />
           <Container>
             <ErrorBoundary mini>
               <FoldSection

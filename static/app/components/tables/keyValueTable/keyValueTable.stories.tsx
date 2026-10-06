@@ -88,6 +88,12 @@ export default Storybook.story('KeyValueTable', story => {
             <code>sortAlphabetically</code> - Enable to sort items based on{' '}
             <code>subject</code>
           </li>
+          <li>
+            <code>variant</code> - <code>code</code> (the default) renders mono,
+            secondary-color keys, for identifiers such as tag and context keys.{' '}
+            <code>label</code> renders sans, medium-weight, primary-color keys in roomier
+            rows, for prose labels such as "Duration Impact".
+          </li>
         </ul>
         <KeyValueTableCardGrid>
           <KeyValueTableCard
@@ -119,6 +125,11 @@ export default Storybook.story('KeyValueTable', story => {
             contentItems={contentItems}
             truncateLength={4}
           />
+          <KeyValueTableCard
+            title="Label Variant"
+            contentItems={contentItems.slice(0, 3)}
+            variant="label"
+          />
         </KeyValueTableCardGrid>
       </Fragment>
     );
@@ -134,8 +145,8 @@ export default Storybook.story('KeyValueTable', story => {
           <code>{'<KeyValueTableCardGrid/>'}</code> can be used in combination with{' '}
           <code>{'<KeyValueTableCard/>'}</code> components to create a 'masonry' style
           layout for space efficiency. They leverage the{' '}
-          <code>useIssueDetailsColumnCount</code> hook to distribute cards into the
-          available space evenly. They don't accept any props, and just require{' '}
+          <code>useContainerColumnCount</code> hook to distribute cards into the available
+          space evenly. They don't accept any props, and just require{' '}
           <code>children</code>.
         </p>
         <p>

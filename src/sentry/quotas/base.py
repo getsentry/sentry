@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
-from enum import IntEnum, unique
+from enum import IntEnum, StrEnum, unique
 from functools import total_ordering
 from typing import TYPE_CHECKING, Any, Literal, TypedDict
 
@@ -124,6 +124,28 @@ def build_metric_abuse_quotas() -> list[AbuseQuota]:
     return quotas
 
 
+class QuotaDimension(StrEnum):
+    CHECK_IN_SLUG = "checkInSlug"
+    CHECK_IN_ENVIRONMENT = "checkInEnvironment"
+
+
+@dataclass(frozen=True)
+class QuotaGroupBy:
+    """
+    Counts a quota separately for each combination of dimension values.
+    ``max_cardinality`` caps the number of combinations per quota window.
+    """
+
+    max_cardinality: int
+    dimensions: tuple[QuotaDimension, ...]
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "maxCardinality": self.max_cardinality,
+            "dimensions": [d.value for d in self.dimensions],
+        }
+
+
 @total_ordering
 class QuotaConfig:
     """
@@ -161,6 +183,8 @@ class QuotaConfig:
     :param reason_code: A machine readable reason returned when this quota is
                         exceeded. Required in all cases except ``limit=None``,
                         since unlimited quotas can never be exceeded.
+    :param group_by:    Counts the quota separately for each combination of
+                        these dimensions. See ``QuotaGroupBy``.
     """
 
     __slots__ = [
@@ -172,6 +196,7 @@ class QuotaConfig:
         "window",
         "reason_code",
         "namespace",
+        "group_by",
     ]
 
     def __init__(
@@ -184,6 +209,7 @@ class QuotaConfig:
         window=None,
         reason_code=None,
         namespace=None,
+        group_by: QuotaGroupBy | None = None,
     ):
         if limit is not None:
             assert reason_code, "reason code required for fallible quotas"
@@ -210,6 +236,7 @@ class QuotaConfig:
         self.window = window
         self.reason_code = reason_code
         self.namespace = namespace
+        self.group_by = group_by
 
     @property
     def should_track(self):
@@ -233,6 +260,7 @@ class QuotaConfig:
             "window": self.window,
             "namespace": self.namespace,
             "reasonCode": self.reason_code,
+            "groupBy": self.group_by.to_json() if self.group_by else None,
         }
 
         return prune_empty_keys(data)
@@ -268,6 +296,12 @@ class QuotaConfig:
             self.reason_code or "",
             self.namespace is not None,
             self.namespace or "",
+            self.group_by is not None,
+            (
+                (self.group_by.max_cardinality, self.group_by.dimensions)
+                if self.group_by
+                else (0, ())
+            ),
         )
 
     def __eq__(self, other: object) -> bool:
@@ -375,8 +409,7 @@ class Quota(Service):
     to, for example error events or attachments. For more information on quota
     parameters, see ``QuotaConfig``.
 
-    To retrieve a list of active quotas, use ``quotas.get_quotas``. Also, to
-    check the current status of quota usage, call ``quotas.get_usage``.
+    To retrieve a list of active quotas, use ``quotas.get_quotas``.
     """
 
     __all__ = (

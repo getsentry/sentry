@@ -48,6 +48,7 @@ from sentry.monitors.utils import (
     signal_monitor_created,
     update_issue_alert_rule,
 )
+from sentry.utils import metrics
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.dates import AVAILABLE_TIMEZONES
 from sentry.utils.outcomes import Outcome
@@ -193,9 +194,13 @@ class ConfigValidator(serializers.Serializer):
         required=False,
         allow_null=True,
         default=None,
-        help_text="How long (in minutes) is the checkin allowed to run for in CheckInStatus.IN_PROGRESS before it is considered failed.",
+        help_text="How long (in minutes) is the checkin allowed to run for in CheckInStatus.IN_PROGRESS before it is considered failed. "
+        f"Maximum {MAX_TIMEOUT} ({MAX_TIMEOUT // 1440} days).",
         min_value=1,
         max_value=MAX_TIMEOUT,
+        error_messages={
+            "max_value": f"Max runtime must be {MAX_TIMEOUT} minutes ({MAX_TIMEOUT // 1440} days) or less. Lower it to save this monitor."
+        },
     )
 
     timezone = serializers.ChoiceField(
@@ -428,6 +433,11 @@ class MonitorValidator(CamelSnakeSerializer):
         signal_monitor_created(project, request.user, False, monitor, request)
         validated_issue_alert_rule = validated_data.get("alert_rule")
         if validated_issue_alert_rule:
+            metrics.incr(
+                "monitors.validator.alert_rule",
+                tags={"operation": "create"},
+                sample_rate=1.0,
+            )
             issue_alert_rule_id = create_issue_alert_rule(
                 request, project, monitor, validated_issue_alert_rule
             )
@@ -548,6 +558,11 @@ class MonitorValidator(CamelSnakeSerializer):
 
         # Update alert rule after in case slug or name changed
         if "alert_rule" in validated_data:
+            metrics.incr(
+                "monitors.validator.alert_rule",
+                tags={"operation": "update"},
+                sample_rate=1.0,
+            )
             alert_rule_data = validated_data["alert_rule"]
             request = self.context.get("request")
             if not request:

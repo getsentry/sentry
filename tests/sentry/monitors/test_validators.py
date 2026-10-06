@@ -184,7 +184,8 @@ class MonitorValidatorCreateTest(MonitorTestCase):
             )
         ]
 
-    def test_simple_with_alert_rule(self) -> None:
+    @patch("sentry.monitors.validators.metrics.incr")
+    def test_simple_with_alert_rule(self, mock_incr: MagicMock) -> None:
         data = {
             "project": self.project.slug,
             "name": "My Monitor",
@@ -206,6 +207,9 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         )
         assert rule is not None
         assert rule.environment_id == self.environment.id
+        mock_incr.assert_any_call(
+            "monitors.validator.alert_rule", tags={"operation": "create"}, sample_rate=1.0
+        )
 
     def test_checkin_margin_zero(self) -> None:
         # Invalid checkin margin
@@ -225,6 +229,24 @@ class MonitorValidatorCreateTest(MonitorTestCase):
 
         monitor = validator.save()
         assert monitor.config["checkin_margin"] == 1
+
+    def test_max_runtime_limit(self) -> None:
+        data = {
+            "project": self.project.slug,
+            "name": "My Monitor",
+            "slug": "cron_job",
+            "type": "cron_job",
+            "config": {"schedule_type": "crontab", "schedule": "@daily", "max_runtime": 10080},
+        }
+        validator = MonitorValidator(data=data, context=self.context)
+        assert validator.is_valid()
+
+        data["config"]["max_runtime"] = 10081
+        validator = MonitorValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert validator.errors["config"]["maxRuntime"] == [
+            "Max runtime must be 10080 minutes (7 days) or less. Lower it to save this monitor."
+        ]
 
     @patch("sentry.quotas.backend.assign_seat")
     def test_create_monitor_assigns_seat(self, assign_seat):

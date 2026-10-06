@@ -152,7 +152,7 @@ class ProjectReplaySummaryEndpoint(ProjectReplayEndpoint):
                 project.organization,
                 actor=request.user,
             )
-            and has_seer_access(project.organization, actor=request.user)
+            and has_seer_access(project.organization)
         )
 
     def get(self, request: Request, project: Project, replay_id: str) -> Response:
