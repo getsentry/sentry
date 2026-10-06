@@ -29,6 +29,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {ResultTable} from 'sentry/components/resultTable';
 import {IconList, IconSearch, IconWarning} from 'sentry/icons';
+import {t, tn} from 'sentry/locale';
 import type {Cell} from 'sentry/types/system';
 import {getCells} from 'sentry/utils/cells';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
@@ -1256,18 +1257,18 @@ export function ResultGrid({
         marginLeft="auto"
       >
         {regionErrors.length > 0 && (
-          <Tooltip title={`Could not load results from: ${regionErrors.join(', ')}`}>
+          <Tooltip title={t('Could not load results from: %s', regionErrors.join(', '))}>
             <IconWarning
               variant="warning"
               size="sm"
-              aria-label="Some regions failed to load"
+              aria-label={t('Some regions failed to load')}
             />
           </Tooltip>
         )}
         {pendingRegions.length > 0 ? (
           <Fragment>
             <Text as="span" size="sm" variant="secondary">
-              Still loading
+              {t('Still loading')}
             </Text>
             {pendingRegions.map(name => (
               <Tag key={name} variant="muted">
@@ -1277,15 +1278,14 @@ export function ResultGrid({
           </Fragment>
         ) : (
           <Text as="span" size="sm" variant="secondary">
-            {regionErrors.length} {regionErrors.length === 1 ? 'region' : 'regions'}{' '}
-            failed
+            {tn('%s region failed', '%s regions failed', regionErrors.length)}
           </Text>
         )}
       </Flex>
     ) : probe.probingRegions ? (
       <Flex alignSelf="center" flexShrink={0} marginLeft="auto" whiteSpace="nowrap">
         <Text size="sm" variant="secondary">
-          Checking other regions…
+          {t('Checking other regions…')}
         </Text>
       </Flex>
     ) : null;
