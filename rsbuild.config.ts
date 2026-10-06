@@ -319,6 +319,21 @@ const appConfig: Configuration = {
      */
     rules: [
       {
+        // Only first-party imports use V8 paths. Leave dependencies and the
+        // compatibility implementation on the original V6 package resolution.
+        include: [staticPrefix, path.join(import.meta.dirname, 'tests/js')],
+        exclude: [path.join(staticPrefix, 'app/utils/reactRouterV6'), /node_modules/],
+        resolve: {
+          alias: {
+            'react-router$': path.join(staticPrefix, 'app/utils/reactRouterV6/index.ts'),
+            'react-router/dom$': path.join(
+              staticPrefix,
+              'app/utils/reactRouterV6/dom.ts'
+            ),
+          },
+        },
+      },
+      {
         test: /\.(?:tsx?|jsx?)$/,
         oneOf: [
           {

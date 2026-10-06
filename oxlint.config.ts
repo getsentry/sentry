@@ -1463,6 +1463,14 @@ const config = defineConfig({
   },
   overrides: [
     {
+      files: [
+        'tests/js/jestReactRouterResolver.cjs',
+        'tests/js/jestReactRouterResolver.spec.ts',
+      ],
+      env: {node: true},
+      rules: {'import/no-nodejs-modules': 'off'},
+    },
+    {
       files: ['**/*.ts', '**/*.tsx', '**/*.mts', '**/*.cts'],
       rules: {
         'constructor-super': 'off',
