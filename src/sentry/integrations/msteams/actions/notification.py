@@ -6,7 +6,6 @@ from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
 )
-from sentry.integrations.msteams.actions.form import MsTeamsNotifyServiceForm
 from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
 from sentry.integrations.msteams.client import MsTeamsClient
 from sentry.integrations.msteams.metrics import record_lifecycle_termination_level
@@ -89,6 +88,3 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
         return self.label.format(
             team=self.get_integration_name(), channel=self.get_option("channel")
         )
-
-    def get_form_instance(self) -> MsTeamsNotifyServiceForm:
-        return MsTeamsNotifyServiceForm(self.data, integrations=self.get_integrations())
