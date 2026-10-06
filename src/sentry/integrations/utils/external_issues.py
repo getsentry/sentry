@@ -16,6 +16,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import json
 from sentry.utils.safe import safe_execute
+from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -131,9 +132,17 @@ def maybe_generate_external_issue_details(
 
     try:
         viewer_context = SeerViewerContext(organization_id=organization.id, user_id=user.id)
-        result = _make_generate_external_issue_details_request(
-            group, event=event, viewer_context=viewer_context
-        )
+        with viewer_context_scope(
+            ViewerContext(
+                organization_id=organization.id,
+                project_id=group.project_id,
+                user_id=user.id,
+                actor_type=ActorType.USER,
+            )
+        ):
+            result = _make_generate_external_issue_details_request(
+                group, event=event, viewer_context=viewer_context
+            )
     except Exception:
         logger.error("external_issues.generate_issue_details_failed", exc_info=True)
         return empty_result

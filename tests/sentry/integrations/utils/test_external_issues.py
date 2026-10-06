@@ -11,6 +11,7 @@ from sentry.integrations.utils.external_issues import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
+from sentry.viewer_context import ActorType, ViewerContext, get_viewer_context
 
 
 class MakeGenerateExternalIssueDetailsRequestTest(TestCase):
@@ -147,7 +148,17 @@ class GenerateExternalIssueDetailsTest(TestCase):
         mock_response.json.return_value = {
             "content": json.dumps({"title": "AI Title", "description": "AI Description"})
         }
-        mock_request.return_value = mock_response
+
+        def assert_viewer_context(*_args: object, **_kwargs: object) -> MagicMock:
+            assert get_viewer_context() == ViewerContext(
+                organization_id=self.group.organization.id,
+                project_id=self.group.project_id,
+                user_id=self.user.id,
+                actor_type=ActorType.USER,
+            )
+            return mock_response
+
+        mock_request.side_effect = assert_viewer_context
 
         with self.feature(["organizations:external-issues-ai-generate"]):
             result = maybe_generate_external_issue_details(group=self.group, user=self.user)
@@ -155,3 +166,4 @@ class GenerateExternalIssueDetailsTest(TestCase):
         assert result == GeneratedExternalIssueDetails(
             title="AI Title", description="AI Description"
         )
+        assert get_viewer_context() is None
