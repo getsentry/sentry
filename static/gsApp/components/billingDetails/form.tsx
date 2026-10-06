@@ -1,22 +1,25 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import styled from '@emotion/styled';
 import {AddressElement, useElements, useStripe} from '@stripe/react-stripe-js';
 import type {StripeAddressElementChangeEvent} from '@stripe/stripe-js';
+import {useMutation} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
+import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
 import {InfoTip} from '@sentry/scraps/info';
+import {Input} from '@sentry/scraps/input';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {TextField} from 'sentry/components/forms/fields/textField';
-import {Form} from 'sentry/components/forms/form';
-import {FormModel} from 'sentry/components/forms/model';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 
 import {StripeWrapper} from 'getsentry/components/stripeWrapper';
@@ -61,17 +64,23 @@ type State = {
 const GOOGLE_MAPS_API_KEY = ConfigStore.get('getsentry.googleMapsApiKey');
 
 function BillingDetailsFormFields({
-  form,
+  billingEmail,
+  taxNumber,
+  onBillingEmailChange,
+  onTaxNumberChange,
   initialData,
   handleStripeFormChange,
   state,
   taxFieldInfo,
   onSubmitDisabled,
 }: {
-  form: FormModel;
+  billingEmail: string;
   handleStripeFormChange: (data: StripeAddressElementChangeEvent) => void;
+  onBillingEmailChange: (value: string) => void;
   onSubmitDisabled: (disabled: boolean) => void;
+  onTaxNumberChange: (value: string) => void;
   state: State;
+  taxNumber: string;
   initialData?: BillingDetails;
   taxFieldInfo?: TaxFieldInfo;
 }) {
@@ -122,7 +131,8 @@ function BillingDetailsFormFields({
                 'If provided, all billing-related notifications will be sent to this address'
               )}
               placeholder={t('name@example.com (optional)')}
-              value={form.getValue('billingEmail') ?? ''}
+              value={billingEmail}
+              onChange={onBillingEmailChange}
             />
           )}
           {stripeIsLoading && <LoadingIndicator />}
@@ -171,7 +181,8 @@ function BillingDetailsFormFields({
                 "Your company's [taxNumberName] will appear on all receipts. You may be subject to taxes depending on country specific tax policies.",
                 {taxNumberName: <strong>{taxFieldInfo.taxNumberName}</strong>}
               )}
-              value={form.getValue('taxNumber') ?? ''}
+              value={taxNumber}
+              onChange={onTaxNumberChange}
               placeholder={taxFieldInfo.placeholder}
             />
           )}
@@ -187,9 +198,11 @@ function CustomBillingDetailsFormField({
   help,
   placeholder,
   value,
+  onChange,
 }: {
   inputName: string;
   label: string;
+  onChange: (value: string) => void;
   value: string;
   help?: React.ReactNode;
   placeholder?: string;
@@ -202,11 +215,12 @@ function CustomBillingDetailsFormField({
         </Text>
         <InfoTip title={help} size="sm" />
       </Flex>
-      <StyledTextField
+      <Input
         name={inputName}
         placeholder={placeholder}
         value={value}
         aria-label={label}
+        onChange={event => onChange(event.target.value)}
       />
     </Stack>
   );
@@ -225,117 +239,121 @@ export function BillingDetailsForm({
   analyticsEvent,
 }: Props) {
   const [submitDisabled, setSubmitDisabled] = useState(true);
-  const transformData = (data: Record<string, any>) => {
-    // Clear tax number if not applicable to country code.
-    // This is done on save instead of on change to retain the field value
-    // if the user makes a mistake.
-    if (!countryHasSalesTax(data.countryCode)) {
-      data.taxNumber = null;
-    }
-
-    if (!getRegionChoiceCode(data.countryCode, data.region)) {
-      data.region = null;
-    }
-
-    return data;
-  };
-
-  const [form] = useState(() => new FormModel({transformData}));
   const [state, setState] = useState<State>({
     countryCode: initialData?.countryCode,
     showTaxNumber:
       !!initialData?.taxNumber || countryHasSalesTax(initialData?.countryCode),
   });
   const location = useLocation();
-
   const taxFieldInfo = useMemo(
     () => getTaxFieldInfo(state.countryCode),
     [state.countryCode]
   );
 
-  const updateCountryCodeState = (countryCode: string) =>
-    setState({
-      ...state,
-      countryCode,
-      showTaxNumber: countryHasSalesTax(countryCode),
-    });
+  const mutation = useMutation({
+    mutationFn: (values: Partial<BillingDetails>) => {
+      const data = {...values};
+      if (!countryHasSalesTax(data.countryCode)) {
+        data.taxNumber = null;
+      }
+      if (!getRegionChoiceCode(data.countryCode, data.region)) {
+        data.region = null;
+      }
+      return fetchMutation<BillingDetails>({
+        url: getApiUrl('/customers/$organizationIdOrSlug/billing-details/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        method: 'PUT',
+        data,
+      });
+    },
+    onSuccess: data => {
+      if (analyticsEvent) {
+        trackGetsentryAnalytics(analyticsEvent, {
+          organization,
+          isStripeComponent: true,
+          referrer: decodeScalar(location.query?.referrer),
+        });
+      }
+      onSubmitSuccess(data);
+    },
+    onError: error => {
+      onSubmitError?.(error);
+      if (!onSubmitError) {
+        const detail =
+          error instanceof RequestError ? error.responseJSON?.detail : undefined;
+        addErrorMessage(
+          typeof detail === 'string' ? detail : t('Unable to save billing details.')
+        );
+      }
+    },
+  });
+  const form = useScrapsForm({
+    ...defaultFormOptions,
+    defaultValues: {
+      billingEmail: initialData?.billingEmail ?? '',
+      taxNumber: initialData?.taxNumber ?? '',
+      companyName: initialData?.companyName ?? null,
+      addressLine1: initialData?.addressLine1 ?? null,
+      addressLine2: initialData?.addressLine2 ?? null,
+      city: initialData?.city ?? null,
+      countryCode: initialData?.countryCode ?? null,
+      region: countryHasRegionChoices(initialData?.countryCode)
+        ? getRegionChoiceCode(initialData?.countryCode, initialData?.region)
+        : (initialData?.region ?? null),
+      postalCode: initialData?.postalCode ?? null,
+    },
+    onSubmit: ({value}) => {
+      if (!value.addressLine1 || !value.countryCode) {
+        setFieldErrors(form, {
+          ...(value.addressLine1 ? {} : {addressLine1: {message: 'Address is required'}}),
+          ...(value.countryCode ? {} : {countryCode: {message: 'Country is required'}}),
+        });
+        return;
+      }
+      return mutation.mutateAsync(value).catch(() => {});
+    },
+  });
 
-  const handleStripeFormChange = (data: any) => {
-    form.setValue('companyName', data.value.name);
-    form.setValue('addressLine1', data.value.address.line1);
-    form.setValue('addressLine2', data.value.address.line2);
-    form.setValue('city', data.value.address.city);
-    form.setValue('region', data.value.address.state);
-    form.setValue('countryCode', data.value.address.country);
-    form.setValue('postalCode', data.value.address.postal_code);
-    updateCountryCodeState(data.value.address.country ?? '');
+  const handleStripeFormChange = (data: StripeAddressElementChangeEvent) => {
+    form.setFieldValue('companyName', data.value.name);
+    form.setFieldValue('addressLine1', data.value.address.line1);
+    form.setFieldValue('addressLine2', data.value.address.line2);
+    form.setFieldValue('city', data.value.address.city);
+    form.setFieldValue('region', data.value.address.state);
+    form.setFieldValue('countryCode', data.value.address.country);
+    form.setFieldValue('postalCode', data.value.address.postal_code);
+    const countryCode = data.value.address.country ?? '';
+    setState({countryCode, showTaxNumber: countryHasSalesTax(countryCode)});
   };
-
-  useEffect(() => {
-    const requiredFields = ['addressLine1', 'countryCode'];
-    requiredFields.forEach(field => {
-      form.setFieldDescriptor(field, {
-        required: true,
-      });
-    });
-
-    return () => {
-      requiredFields.forEach(field => {
-        form.removeField(field);
-      });
-    };
-  }, [form]);
 
   if (!organization.access.includes('org:billing')) {
     return null;
   }
 
-  const handleSubmit = (data: Record<PropertyKey, unknown>) => {
-    if (analyticsEvent) {
-      trackGetsentryAnalytics(analyticsEvent, {
-        organization,
-        isStripeComponent: true,
-        referrer: decodeScalar(location.query?.referrer),
-      });
-    }
-    onSubmitSuccess(data);
-  };
-
-  const transformedInitialData = {
-    ...initialData,
-    region: countryHasRegionChoices(initialData?.countryCode)
-      ? getRegionChoiceCode(initialData?.countryCode, initialData?.region)
-      : initialData?.region,
-  };
-
   return (
     <StripeWrapper>
-      <Form
-        apiMethod="PUT"
-        model={form}
-        submitDisabled={submitDisabled}
-        apiEndpoint={`/customers/${organization.slug}/billing-details/`}
-        onSubmitSuccess={handleSubmit}
-        onSubmitError={err => onSubmitError?.(err)}
-        initialData={transformedInitialData}
-        extraButton={extraButton}
-      >
-        <BillingDetailsFormFields
-          form={form}
-          initialData={initialData}
-          handleStripeFormChange={handleStripeFormChange}
-          state={state}
-          taxFieldInfo={taxFieldInfo}
-          onSubmitDisabled={setSubmitDisabled}
-        />
-      </Form>
+      <form.AppForm form={form}>
+        <form.Subscribe selector={formState => formState.values}>
+          {values => (
+            <BillingDetailsFormFields
+              billingEmail={values.billingEmail}
+              taxNumber={values.taxNumber}
+              onBillingEmailChange={value => form.setFieldValue('billingEmail', value)}
+              onTaxNumberChange={value => form.setFieldValue('taxNumber', value)}
+              initialData={initialData}
+              handleStripeFormChange={handleStripeFormChange}
+              state={state}
+              taxFieldInfo={taxFieldInfo}
+              onSubmitDisabled={setSubmitDisabled}
+            />
+          )}
+        </form.Subscribe>
+        <Flex align="center" justify="between" marginTop="lg">
+          {extraButton}
+          <form.SubmitButton disabled={submitDisabled}>Save Changes</form.SubmitButton>
+        </Flex>
+      </form.AppForm>
     </StripeWrapper>
   );
 }
-
-const StyledTextField = styled(TextField)`
-  padding: 0;
-  & > div {
-    padding: 0;
-  }
-`;
