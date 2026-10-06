@@ -2,6 +2,7 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {EditableText} from 'sentry/components/editableText';
+import {ControlState} from 'sentry/components/forms/fieldGroup/controlState';
 
 import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
 
@@ -13,6 +14,8 @@ export interface BreadcrumbItemPageTitleEditableProps {
   /** When true, clearing + blurring cancels the edit instead of erroring. */
   allowEmpty?: boolean;
   autoSelect?: boolean;
+  /** Form validation error shown beside the editable title. */
+  error?: string | boolean;
   errorMessage?: React.ReactNode;
   isDisabled?: boolean;
   /**
@@ -25,6 +28,7 @@ export interface BreadcrumbItemPageTitleEditableProps {
 }
 
 export function BreadcrumbItemPageTitleEditable({
+  error,
   leadingGraphic,
   ...editableTextProps
 }: BreadcrumbItemPageTitleEditableProps) {
@@ -41,6 +45,7 @@ export function BreadcrumbItemPageTitleEditable({
           <EditableText variant="compact" {...editableTextProps} />
         </Text>
       </Container>
+      <ControlState error={error} />
     </Flex>
   );
 }

@@ -1,4 +1,5 @@
 import {useContext} from 'react';
+import {observer} from 'mobx-react-lite';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 
@@ -14,7 +15,7 @@ import {
 import {getDetectorTypeLabel} from 'sentry/views/detectors/utils/detectorTypeConfig';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
-export function DetectorFormBreadcrumbs() {
+export const DetectorFormBreadcrumbs = observer(function DetectorFormBreadcrumbs() {
   const organization = useOrganization();
   const {form} = useContext(FormContext);
   const value = useFormField<string>('name');
@@ -25,6 +26,7 @@ export function DetectorFormBreadcrumbs() {
       title={{
         type: 'editable-title',
         allowEmpty: true,
+        error: form?.getError('name'),
         value: value || '',
         onChange: newValue => {
           form?.setValue('name', newValue);
@@ -34,7 +36,6 @@ export function DetectorFormBreadcrumbs() {
         'aria-label': t('Monitor Name'),
       }}
     >
-      {' '}
       <BreadcrumbList
         items={[
           {
@@ -51,4 +52,4 @@ export function DetectorFormBreadcrumbs() {
       />
     </TopBar.Slot>
   );
-}
+});

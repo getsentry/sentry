@@ -4,15 +4,15 @@ Read the current item unions before choosing a shape. Pass the item as `title` o
 
 ## Choose the title type
 
-| Type              | Required fields                                                     | Supporting props                                                                                       |
-| ----------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
-| `page-title`      | String `label`                                                      | `labelTooltip`, `leadingGraphic`, `pagination`, `trailingActions`                                      |
-| `editable-title`  | `value`, `onChange`, `'aria-label'`                                 | `allowEmpty`, `autoSelect`, `errorMessage`, `isDisabled`, `leadingGraphic`, `maxLength`, `placeholder` |
-| `select-projects` | `options`, `value`, `onChange`; string `label` when used as a title | `onOpenChange`, `search`, `loading`, `leadingGraphic`                                                  |
+| Type              | Required fields                                                     | Supporting props                                                                                                |
+| ----------------- | ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `page-title`      | String `label`                                                      | `labelTooltip`, `leadingGraphic`, `pagination`, `trailingActions`                                               |
+| `editable-title`  | `value`, `onChange`, `'aria-label'`                                 | `allowEmpty`, `autoSelect`, `error`, `errorMessage`, `isDisabled`, `leadingGraphic`, `maxLength`, `placeholder` |
+| `select-projects` | `options`, `value`, `onChange`; string `label` when used as a title | `onOpenChange`, `search`, `loading`, `leadingGraphic`                                                           |
 
 `editable-title` and `select-projects` have no trailing-action or pagination props. Return a different item for a static state if needed.
 
-Editable titles use the standard `EditableText` behavior: a single click starts editing, clicking outside saves the draft, and Escape cancels it.
+Editable titles use the standard `EditableText` behavior: a single click starts editing, clicking outside saves the draft, and Escape cancels it. Pass form validation errors through `error` and subscribe to the form error state so changes are rendered. `errorMessage` is only the message for an invalid empty edit; it does not display server validation errors.
 
 The selectable item also serves Settings team and integration titles. `label` keeps the title visible when search results omit the current selection. `leadingGraphic` carries the avatar or icon. Forward `search`, `loading`, and `onOpenChange` when the old selector uses them. Use the non-clearable `SingleSelectProps` variant before picking callback props, so `onChange` retains one inferable signature.
 
