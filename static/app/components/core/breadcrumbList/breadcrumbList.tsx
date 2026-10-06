@@ -116,7 +116,7 @@ export function BreadcrumbList({items}: BreadcrumbListProps) {
     // Renders parent links as inline content (no <nav> landmark). The TopBar
     // title item owns the page heading, so this list only contains supporting
     // parent links.
-    <Container width="100%">
+    <Container width={hasParentQueryContainer ? 'auto' : '100%'}>
       {/*
        * When there is already a query container (for example, the flexible
        * content region in TopBar), use it instead of introducing inline-size

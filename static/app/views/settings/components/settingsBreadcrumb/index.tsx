@@ -73,7 +73,7 @@ export function SettingsBreadcrumb({params}: Props) {
   const explicitTitle =
     pathMap[getRouteStringFromRoutes({routes: routes.slice(0, lastRouteIndex + 1)})];
   const parentCrumbs = (
-    <Flex as="span" flex="0 1 auto" align="center" gap="sm" minWidth="0">
+    <Flex as="span" flexShrink={0} align="center" gap="sm">
       {routes.map((route, i) => {
         if (!route.name || i === lastRouteIndex) {
           return null;
