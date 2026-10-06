@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 from uuid import UUID
 
 import pytest
@@ -145,6 +145,28 @@ class BaseMonitorDetailsTest(MonitorTestCase):
         issue_alert_rule = resp.data["alertRule"]
         assert issue_alert_rule is not None
         assert issue_alert_rule["environment"] is not None
+
+    @patch("sentry.utils.metrics.incr")
+    def test_expand_issue_alert_rule_metric(self, mock_incr: MagicMock) -> None:
+        monitor = self._create_monitor()
+
+        def expand_alert_rule_calls() -> list:
+            return [
+                c
+                for c in mock_incr.call_args_list
+                if c.args and c.args[0] == "monitors.serializer.expand_alert_rule"
+            ]
+
+        self.get_success_response(self.organization.slug, monitor.slug)
+        assert expand_alert_rule_calls() == []
+
+        self.get_success_response(self.organization.slug, monitor.slug, expand=["alertRule"])
+        assert expand_alert_rule_calls() == [
+            call(
+                "monitors.serializer.expand_alert_rule",
+                tags={"endpoint": self.endpoint, "ui_request": True},
+            )
+        ]
 
     def test_with_active_incident_and_detection(self) -> None:
         monitor = self._create_monitor()

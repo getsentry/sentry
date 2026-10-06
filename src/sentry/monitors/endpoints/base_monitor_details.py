@@ -15,6 +15,7 @@ from sentry.apidocs.response_types import ValidationErrorResponse, as_validation
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
+from sentry.middleware import is_frontend_request
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
@@ -22,6 +23,7 @@ from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
 from sentry.monitors.utils import ensure_cron_detector_deletion
 from sentry.monitors.validators import MonitorValidator
+from sentry.utils import metrics
 from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.utils.db import atomic_transaction
 from sentry.workflow_engine.models import Detector
@@ -37,6 +39,17 @@ class MonitorDetailsMixin(BaseEndpointMixin):
 
         environments = get_environments(request, project.organization)
         expand = request.GET.getlist("expand", [])
+
+        # expand=alertRule is slated for removal; track who still relies on it.
+        if "alertRule" in expand:
+            resolver_match = getattr(request, "resolver_match", None)
+            metrics.incr(
+                "monitors.serializer.expand_alert_rule",
+                tags={
+                    "endpoint": getattr(resolver_match, "url_name", None) or "unknown",
+                    "ui_request": is_frontend_request(request),
+                },
+            )
 
         return self.respond(
             serialize(
