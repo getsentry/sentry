@@ -25,6 +25,7 @@ from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
     MonitorCheckIn,
+    MonitorCheckInConfig,
     MonitorEnvironment,
     MonitorStatus,
     ScheduleType,
@@ -193,7 +194,10 @@ class MonitorConsumerTest(TestCase):
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
-        assert checkin.monitor_config == monitor.config
+        assert checkin.monitor_config is None
+        assert (
+            MonitorCheckInConfig.objects.get(id=checkin.checkin_config_id).config == monitor.config
+        )
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
@@ -262,7 +266,10 @@ class MonitorConsumerTest(TestCase):
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
-        assert checkin.monitor_config == monitor.config
+        assert checkin.monitor_config is None
+        assert (
+            MonitorCheckInConfig.objects.get(id=checkin.checkin_config_id).config == monitor.config
+        )
 
         monitor_environment = MonitorEnvironment.objects.get(id=checkin.monitor_environment.id)
         assert monitor_environment.status == MonitorStatus.OK
