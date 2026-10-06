@@ -330,7 +330,7 @@ export function Onboarding() {
               {
                 code: <code />,
                 link: (
-                  <ExternalLink href="https://docs.sentry.io/ai/monitoring/conversations/" />
+                  <ExternalLink href="https://docs.sentry.io/product/agents/conversations/" />
                 ),
               }
             )}

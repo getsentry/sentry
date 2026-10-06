@@ -38,11 +38,6 @@ class SlackNotifyServiceForm(forms.Form):
 
         set_field_choices(self.fields["workspace"], self._workspace_list)
 
-        # XXX(meredith): When this gets set to True, it lets the RuleSerializer
-        # know to only save if and when we have the channel_id. The rule will get saved
-        # in the task (integrations/slack/tasks.py) if the channel_id is found.
-        self._pending_save = False
-
     def _format_slack_error_message(self, message: str) -> Any:
         return _(f"Slack: {message}")
 
@@ -133,7 +128,6 @@ class SlackNotifyServiceForm(forms.Form):
         channel = strip_channel_name(channel)
         if channel_id is None and timed_out:
             cleaned_data["channel"] = channel_prefix + channel
-            self._pending_save = True
             return cleaned_data
 
         if channel_id is None and workspace is not None:

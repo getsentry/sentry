@@ -163,7 +163,12 @@ class OrganizationTraceItemStatsEndpointTest(
         ]:
             self._store_span(sentry_tags=tag)
 
-        def can_expose_attribute_to_api(attribute, item_type, include_internal=False):
+        def can_expose_attribute_to_api(
+            attribute,
+            item_type,
+            include_internal=False,
+            include_internal_convention_attributes=False,
+        ):
             return attribute not in {"device", "sentry.device"}
 
         with mock.patch(
@@ -184,6 +189,40 @@ class OrganizationTraceItemStatsEndpointTest(
         assert "browser" in attribute_distribution
         assert "device" not in attribute_distribution
         assert "sentry.device" not in attribute_distribution
+
+    def test_internal_convention_attributes_without_elevated_mode(self) -> None:
+        self._store_span(
+            sentry_tags={"dsc.environment": "production"},
+            tags={"normal_attr": "visible", "__sentry_internal_test": "internal"},
+        )
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization, teams=[self.team])
+        self.login_as(user=user)
+
+        response = self.do_request(
+            query={"statsType": ["attributeDistributions"], "itemType": "spans"}
+        )
+        assert response.status_code == 200, response.data
+        attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
+        assert "normal_attr" in attribute_distribution
+        assert "sentry.dsc.environment" not in attribute_distribution
+
+        for flags in ({"is_staff": True}, {"is_superuser": True}):
+            privileged_user = self.create_user(**flags)
+            self.create_member(
+                user=privileged_user, organization=self.organization, teams=[self.team]
+            )
+            self.login_as(user=privileged_user)
+
+            response = self.do_request(
+                query={"statsType": ["attributeDistributions"], "itemType": "spans"}
+            )
+            assert response.status_code == 200, response.data
+            attribute_distribution = response.data["data"][0]["attributeDistributions"]["data"]
+            assert attribute_distribution["sentry.dsc.environment"] == [
+                {"label": "production", "value": 1.0}
+            ]
+            assert "__sentry_internal_test" not in attribute_distribution
 
     def test_substring_match_returns_known_public_aliases(self) -> None:
         # Store spans with known sentry attributes (op, description)

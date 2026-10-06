@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 import {queryOptions, useQueries} from '@tanstack/react-query';
 
 import type {Series} from 'sentry/types/echarts';
@@ -17,7 +17,6 @@ import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDisc
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
-import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {
   HeatmapWidgetQueryParams,
   WidgetQueryParams,
@@ -37,13 +36,16 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {
+  combineWidgetJsonQueryResults,
+  combineWidgetQueryResults,
+} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import {useMetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
-type TraceMetricsSeriesResponse = EventsTimeSeriesResponse;
 type TraceMetricsTableResponse = EventsTableData;
 
 const EMPTY_ARRAY: any[] = [];
@@ -63,7 +65,6 @@ export function useTraceMetricsSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<TraceMetricsSeriesResponse[] | undefined>(undefined);
   const hasMeasuredIngestionDelayUi = organization.features.includes(
     'measured-ingestion-delay-ui'
   );
@@ -74,7 +75,7 @@ export function useTraceMetricsSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const queryResults = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: filteredWidget.queries.map((_, queryIndex) => {
       const requestData = getSeriesRequestData(
         filteredWidget,
@@ -101,6 +102,7 @@ export function useTraceMetricsSeriesQuery(
         }),
       });
     }),
+    combine: combineWidgetQueryResults,
   });
 
   const transformedData = (() => {
@@ -120,7 +122,6 @@ export function useTraceMetricsSeriesQuery(
     const timeseriesResults: Series[] = [];
     const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
     const timeseriesResultsUnits: Record<string, DataUnit> = {};
-    const rawData: TraceMetricsSeriesResponse[] = [];
 
     queryResults.forEach((q, requestIndex) => {
       if (!q?.data) {
@@ -128,7 +129,6 @@ export function useTraceMetricsSeriesQuery(
       }
 
       const responseData = q.data;
-      rawData[requestIndex] = responseData;
 
       const transformedResult = TraceMetricsConfig.transformSeries!(
         responseData,
@@ -164,30 +164,13 @@ export function useTraceMetricsSeriesQuery(
       }
     });
 
-    let finalRawData = rawData;
-    // oxlint-disable-next-line react/refs
-    if (prevRawDataRef.current?.length === rawData.length) {
-      // oxlint-disable-next-line react/refs
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        // oxlint-disable-next-line react/refs
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    // oxlint-disable-next-line react/refs
-    if (finalRawData !== prevRawDataRef.current) {
-      // oxlint-disable-next-line react/refs
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
       timeseriesResultsTypes,
       timeseriesResultsUnits,
-      rawData: finalRawData,
+      rawData,
     };
   })();
 
@@ -210,7 +193,6 @@ export function useTraceMetricsTableQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<TraceMetricsTableResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(
     () =>
@@ -218,7 +200,7 @@ export function useTraceMetricsTableQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const queryResults = useQueries({
+  const {results: queryResults, data: rawData} = useQueries({
     queries: filteredWidget.queries.map(query => {
       const eventView = eventViewFromWidget('', query, pageFilters);
 
@@ -283,6 +265,7 @@ export function useTraceMetricsTableQuery(
         select: selectJsonWithHeaders,
       });
     }),
+    combine: combineWidgetJsonQueryResults,
   });
 
   const transformedData = (() => {
@@ -300,7 +283,6 @@ export function useTraceMetricsTableQuery(
     }
 
     const tableResults: any[] = [];
-    const rawData: TraceMetricsTableResponse[] = [];
     let responsePageLinks: string | undefined;
 
     queryResults.forEach((q, i) => {
@@ -309,7 +291,6 @@ export function useTraceMetricsTableQuery(
       }
 
       const responseData = q.data.json;
-      rawData[i] = responseData;
 
       const transformedDataItem = {
         ...TraceMetricsConfig.transformTable(
@@ -326,31 +307,12 @@ export function useTraceMetricsTableQuery(
       responsePageLinks = q.data.headers.Link;
     });
 
-    // Check if rawData is the same as before to prevent unnecessary rerenders
-    let finalRawData = rawData;
-    // oxlint-disable-next-line react/refs
-    if (prevRawDataRef.current?.length === rawData.length) {
-      // oxlint-disable-next-line react/refs
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        // oxlint-disable-next-line react/refs
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    // Store current rawData for next comparison
-    // oxlint-disable-next-line react/refs
-    if (finalRawData !== prevRawDataRef.current) {
-      // oxlint-disable-next-line react/refs
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       tableResults,
       pageLinks: responsePageLinks,
-      rawData: finalRawData,
+      rawData,
     };
   })();
 
@@ -411,7 +373,11 @@ export function useTraceMetricsHeatmapQuery(
   const rawData = useMemo(() => (series ? [series] : EMPTY_ARRAY), [series]);
 
   if (error) {
-    return {loading: false, errorMessage: error.message, rawData: EMPTY_ARRAY};
+    return {
+      loading: false,
+      errorMessage: error.message,
+      rawData: EMPTY_ARRAY,
+    };
   }
 
   if (isFetching || isPending) {

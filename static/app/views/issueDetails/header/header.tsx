@@ -9,6 +9,7 @@ import {Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {AnsiText} from 'sentry/components/ansiText';
 import {Count} from 'sentry/components/count';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -21,6 +22,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {AI_DETECTED_ISSUE_TYPES, IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -59,7 +61,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
     getOverride('react-hook:use-get-max-retention-days') ?? (() => MAX_PICKABLE_DAYS);
   const maxRetentionDays = useGetMaxRetentionDays(); // oxlint-disable-line react/hooks -- Hook comes from the override registry, which is populated before React renders.
   const userCountPeriod = maxRetentionDays ? `(${maxRetentionDays}d)` : '(30d)';
-  const {title: primaryTitle} = getTitle(group);
+  const {title: primaryTitle = ''} = getTitle(group);
   const secondaryTitle = getMessage(group);
   const isComplete = group.status === 'resolved' || group.status === 'ignored';
   const groupReprocessingStatus = getGroupReprocessingStatus(group);
@@ -114,8 +116,15 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
         </Flex>
         <HeaderGrid>
           <Title>
-            <Tooltip title={primaryTitle} skipWrapper showOnlyOnOverflow delay={1000}>
-              <PrimaryTitle>{primaryTitle}</PrimaryTitle>
+            <Tooltip
+              title={stripAnsi(primaryTitle)}
+              skipWrapper
+              showOnlyOnOverflow
+              delay={1000}
+            >
+              <PrimaryTitle>
+                <AnsiText>{primaryTitle}</AnsiText>
+              </PrimaryTitle>
             </Tooltip>
             {isAIDetectedIssue && <FeatureBadge type="new" />}
           </Title>

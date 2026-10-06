@@ -526,6 +526,7 @@ export function EventGraph({
           legend={legendConfig}
           onLegendSelectChanged={onLegendSelectChanged}
           showTimeInTooltip
+          utc={location.query.utc === 'true'}
           grid={{
             left: 8,
             right: 8,
