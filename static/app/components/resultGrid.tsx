@@ -455,12 +455,14 @@ function RegionHint({
     const lead =
       probeAllRegionsHint ?? 'Also found in other data regions — look there too:';
     return (
-      <RegionHintAlert variant="info" showIcon>
-        <Flex align="center" gap="md" wrap="wrap">
-          <span>{lead}</span>
-          {regionButtons}
-        </Flex>
-      </RegionHintAlert>
+      <Container marginBottom="md">
+        <Alert variant="info" showIcon>
+          <Flex align="center" gap="md" wrap="wrap">
+            <span>{lead}</span>
+            {regionButtons}
+          </Flex>
+        </Alert>
+      </Container>
     );
   }
 
@@ -471,14 +473,17 @@ function RegionHint({
   const leadText = results.rows.length > 0 ? 'No exact match in' : 'No results in';
 
   return (
-    <RegionHintAlert variant="info" showIcon>
-      <Flex align="center" gap="md" wrap="wrap">
-        <span>
-          {leadText} <strong>{currentName}</strong>. Found results in another data region:
-        </span>
-        {regionButtons}
-      </Flex>
-    </RegionHintAlert>
+    <Container marginBottom="md">
+      <Alert variant="info" showIcon>
+        <Flex align="center" gap="md" wrap="wrap">
+          <span>
+            {leadText} <strong>{currentName}</strong>. Found results in another data
+            region:
+          </span>
+          {regionButtons}
+        </Flex>
+      </Alert>
+    </Container>
   );
 }
 
@@ -594,9 +599,11 @@ function ResultBody({
     return (
       <tr>
         <td colSpan={effectiveColumns.length}>
-          <ErrorAlert variant="danger" showIcon>
-            Something bad happened :/
-          </ErrorAlert>
+          <Container marginTop="xs" marginBottom="lg">
+            <Alert variant="danger" showIcon>
+              Something bad happened :/
+            </Alert>
+          </Container>
         </td>
       </tr>
     );
@@ -1275,7 +1282,11 @@ export function ResultGrid({
         )}
       </Flex>
     ) : probe.probingRegions ? (
-      <RegionHintNote>Checking other regions…</RegionHintNote>
+      <Flex alignSelf="center" flexShrink={0} marginLeft="auto" whiteSpace="nowrap">
+        <Text size="sm" variant="secondary">
+          Checking other regions…
+        </Text>
+      </Flex>
     ) : null;
 
   return (
@@ -1342,10 +1353,12 @@ export function ResultGrid({
       />
       {table}
       {hasPagination && results.pageLinks && (
-        <StyledPagination
-          pageLinks={results.pageLinks}
-          onCursor={useQueryString ? undefined : onCursor}
-        />
+        <Container marginBottom="2xl">
+          <Pagination
+            pageLinks={results.pageLinks}
+            onCursor={useQueryString ? undefined : onCursor}
+          />
+        </Container>
       )}
       {hasPagination && allRegions && moreRegions.length > 0 && (
         <Flex justify="center" marginBottom="2xl">
@@ -1427,26 +1440,4 @@ export const SearchInput = styled(Input)`
   &:focus-visible {
     box-shadow: inset 0 0 0 1px ${p => p.theme.tokens.focus.default};
   }
-`;
-
-const StyledPagination = styled(Pagination)`
-  margin-bottom: ${p => p.theme.space['2xl']};
-`;
-
-const ErrorAlert = styled(Alert)`
-  margin-top: ${p => p.theme.space.xs};
-  margin-bottom: ${p => p.theme.space.lg};
-`;
-
-const RegionHintAlert = styled(Alert)`
-  margin-bottom: ${p => p.theme.space.md};
-`;
-
-const RegionHintNote = styled('div')`
-  align-self: center;
-  flex-shrink: 0;
-  margin-left: auto;
-  color: ${p => p.theme.tokens.content.secondary};
-  font-size: ${p => p.theme.font.size.sm};
-  white-space: nowrap;
 `;

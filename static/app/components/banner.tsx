@@ -1,9 +1,9 @@
 import {useState} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
-import {Grid} from '@sentry/scraps/layout';
+import {Container, Grid} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {IconClose} from 'sentry/icons';
@@ -50,6 +50,7 @@ export function Banner({
   children,
 }: Props) {
   const [dismissed, dismiss] = useDismissable(dismissKey);
+  const theme = useTheme();
 
   if (dismissed) {
     return null;
@@ -58,14 +59,21 @@ export function Banner({
   return (
     <BannerWrapper backgroundImg={backgroundImg} className={className}>
       {backgroundComponent}
-      <CloseButton
-        type="button"
-        size="xs"
-        variant="link"
-        icon={<IconClose />}
-        onClick={dismiss}
-        aria-label={t('Close')}
-      />
+      <Container
+        position="absolute"
+        top={theme.space.xl}
+        right={theme.space.xl}
+        style={{zIndex: 1}}
+      >
+        <Button
+          size="xs"
+          variant="link"
+          icon={<IconClose />}
+          onClick={dismiss}
+          aria-label={t('Close')}
+          style={{color: theme.colors.white}}
+        />
+      </Container>
       <Grid
         position="absolute"
         justifyItems="center"
@@ -115,14 +123,4 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
   @container (min-width: ${p => p.theme.container.xl}) {
     height: 220px;
   }
-`;
-
-const CloseButton = styled(Button)`
-  position: absolute;
-  display: block;
-  top: ${p => p.theme.space.xl};
-  right: ${p => p.theme.space.xl};
-  color: ${p => p.theme.colors.white};
-  cursor: pointer;
-  z-index: 1;
 `;

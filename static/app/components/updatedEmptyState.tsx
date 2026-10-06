@@ -225,7 +225,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                         {isLastStep && <WaitingIndicator project={project} />}
                       </GuidedSteps.ButtonWrapper>
                       {/* This spacer ensures the whole pulse effect is visible, as the parent has overflow: hidden */}
-                      {isLastStep && <PulseSpacer />}
+                      {isLastStep && <Container height="32px" />}
                     </GuidedSteps.Step>
                   );
                 })}
@@ -342,8 +342,4 @@ const Arcade = styled('iframe')`
   height: 420px;
   border: 0;
   color-scheme: auto;
-`;
-
-const PulseSpacer = styled('div')`
-  height: ${p => p.theme.space['3xl']};
 `;
