@@ -11,9 +11,7 @@ from sentry.models.rule import Rule, RuleSource
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.monitors.utils import ensure_cron_detector, get_detector_for_monitor
-from sentry.rules.age import AgeComparisonType
 from sentry.rules.conditions.event_frequency import (
-    ComparisonType,
     EventUniqueUserFrequencyConditionWithConditions,
 )
 from sentry.rules.conditions.every_event import EveryEventCondition
@@ -22,9 +20,11 @@ from sentry.rules.conditions.regression_event import RegressionEventCondition
 from sentry.rules.filters.age_comparison import AgeComparisonFilter
 from sentry.rules.filters.event_attribute import EventAttributeFilter
 from sentry.rules.filters.tagged_event import TaggedEventFilter
-from sentry.rules.match import MatchType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
+from sentry.workflow_engine.handlers.condition.utils.age import AgeComparisonType
+from sentry.workflow_engine.handlers.condition.utils.event_frequency import ComparisonType
+from sentry.workflow_engine.handlers.condition.utils.match import MatchType
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
 from sentry.workflow_engine.models import (
     Action,

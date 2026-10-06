@@ -1,6 +1,5 @@
 from typing import Any
 
-from sentry.rules.conditions.event_frequency import ComparisonType
 from sentry.rules.filters.age_comparison import AgeComparisonFilter
 from sentry.rules.filters.assigned_to import AssignedToFilter
 from sentry.rules.filters.event_attribute import EventAttributeFilter
@@ -11,6 +10,7 @@ from sentry.rules.filters.latest_adopted_release_filter import LatestAdoptedRele
 from sentry.rules.filters.latest_release import LatestReleaseFilter
 from sentry.rules.filters.level import LevelFilter
 from sentry.rules.filters.tagged_event import TaggedEventFilter
+from sentry.workflow_engine.handlers.condition.utils.event_frequency import ComparisonType
 from sentry.workflow_engine.models.data_condition import Condition, DataCondition
 
 ConditionAndFilters = tuple[dict[str, Any], list[dict[str, Any]]]
