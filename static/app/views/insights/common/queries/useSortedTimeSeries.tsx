@@ -38,7 +38,6 @@ interface Options<Fields> {
   enabled?: boolean;
   fields?: string[];
   includeAnnotations?: boolean;
-  includeMeasuredIngestionDelayMetadata?: boolean;
   interval?: string;
   logQuery?: string[];
   metricQuery?: string[];
@@ -72,7 +71,6 @@ export const useSortedTimeSeries = <
     metricQuery,
     spanQuery,
     includeAnnotations,
-    includeMeasuredIngestionDelayMetadata,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -118,7 +116,6 @@ export const useSortedTimeSeries = <
       metricQuery,
       spanQuery,
       interval,
-      includeMeasuredIngestionDelayMetadata,
       sampling: samplingMode,
       includeAnnotations,
       extrapolate: !disableAggregateExtrapolation,
