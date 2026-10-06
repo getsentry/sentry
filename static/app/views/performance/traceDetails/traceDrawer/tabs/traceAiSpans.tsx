@@ -145,11 +145,8 @@ export function TraceAiSpans({
       <RightPanel>
         {selectedNode?.renderDetails({
           node: selectedNode,
-          manager: null,
-          onParentClick: () => {},
           onTabScrollToNode: () => {},
           organization,
-          replay: null,
           traceId: traceSlug,
           hideNodeActions: true,
           initiallyCollapseAiIO: false,

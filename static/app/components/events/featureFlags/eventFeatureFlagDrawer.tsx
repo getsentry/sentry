@@ -128,7 +128,11 @@ export const CardContainer = styled('div')`
   /* Only the card panels, so dropdown overlays inside rows keep their border. */
   > div {
     border: none;
-    border-radius: ${p => p.theme.space.xs};
+    border-radius: 0;
+
+    &:only-child {
+      border-radius: ${p => p.theme.space.xs};
+    }
   }
 
   > * {
@@ -138,11 +142,11 @@ export const CardContainer = styled('div')`
       margin-left: -${p => p.theme.space.md};
     }
     :not(:last-child) {
-      border-right: 1.5px solid ${p => p.theme.tokens.border.secondary};
+      border-right: 1px solid ${p => p.theme.tokens.border.secondary};
       padding-right: ${p => p.theme.space.xl};
     }
     :not(:first-child) {
-      border-left: 1.5px solid ${p => p.theme.tokens.border.secondary};
+      border-left: 1px solid ${p => p.theme.tokens.border.secondary};
       padding-left: ${p => p.theme.space.xl};
       padding-right: 0;
       margin-left: -1px;

@@ -8,6 +8,7 @@ import {IconGithub} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {LinkedPullRequest} from 'sentry/types/integrations';
+import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 
 export function useIssuePreviewPullRequests(group: Group) {
   const {data, isPending} = useLinkedPullRequests({group});
@@ -37,12 +38,19 @@ export function PullRequestButtons({
     <LinkButton
       key={pullRequest.externalUrl}
       size="sm"
-      analyticsEventKey="issue_inbox.seer_cta_clicked"
-      analyticsEventName="Issue Inbox: Seer CTA Clicked"
+      analyticsEventKey="issue_details.external_issue_pull_request_clicked"
+      analyticsEventName="Issue Details: External Issue Pull Request Clicked"
       analyticsParams={{
-        group_id: group.id,
+        ...getAnalyticsDataForGroup(group),
         progress: group.derivedData?.progress,
-        destination: 'pull_request',
+        attribution_agent: pullRequest.attribution?.agent,
+        attribution_type: pullRequest.attribution?.type,
+        checks_status: pullRequest.checksStatus,
+        review_status: pullRequest.reviewStatus,
+        pull_request_id: pullRequest.id,
+        pull_request_status: pullRequest.status,
+        repository_id: pullRequest.repository.id,
+        repository_provider: pullRequest.repository.provider.id,
       }}
       external
       disabled={disabled}
