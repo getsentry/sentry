@@ -1,11 +1,17 @@
 import {useRef} from 'react';
 import {Outlet, ScrollRestoration} from 'react-router-dom';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import DashLeft from 'sentry-images/dashboards-banner-left.svg';
+import DashRight from 'sentry-images/dashboards-banner-right.svg';
+
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
+import {Banner} from 'sentry/components/banner';
 import {DemoHeader} from 'sentry/components/demo/demoHeader';
 import {useFeatureFlagOnboardingDrawer} from 'sentry/components/events/featureFlags/onboarding/featureFlagOnboardingSidebar';
 import {useFeedbackOnboardingDrawer} from 'sentry/components/feedback/feedbackOnboarding/sidebar';
@@ -16,6 +22,8 @@ import {usePerformanceOnboardingDrawer} from 'sentry/components/performanceOnboa
 import {useProfilingOnboardingDrawer} from 'sentry/components/profiling/profilingOnboardingSidebar';
 import {useReplaysOnboardingDrawer} from 'sentry/components/replaysOnboarding/sidebar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
+import {IconBusiness} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
@@ -85,6 +93,7 @@ function AppDrawers() {
 }
 
 function AppLayout({organization}: LayoutProps) {
+  const theme = useTheme();
   useSeerExplorerDocumentTitle();
   const pageBannerRef = useRef<HTMLDivElement>(null);
   const {height: pageBannerHeight} = useDimensions({
@@ -128,6 +137,46 @@ function AppLayout({organization}: LayoutProps) {
                 <TopBar.Slot.Provider>
                   <TopBar />
                   <Layout.Page>
+                    <Container padding="lg xl">
+                      <Banner
+                        title={t('Customize Dashboards')}
+                        subtitle={t(
+                          'Build your own widgets and manage multiple dashboards'
+                        )}
+                        dismissKey="local-dashboard-banner-mock-preview-restored"
+                        backgroundComponent={
+                          <Container
+                            width="95%"
+                            height="95%"
+                            display={{zero: 'none', xl: 'block'}}
+                            css={css`
+                              background-image: url(${DashLeft}), url(${DashRight});
+                              background-position:
+                                left center,
+                                right center;
+                              background-repeat: no-repeat;
+                              background-size:
+                                20% 100%,
+                                20% 100%;
+                            `}
+                          />
+                        }
+                        css={css`
+                          background-color: ${theme.tokens.background.transparent.accent.muted};
+                          color: ${theme.tokens.content.primary};
+                        `}
+                      >
+                        <Button variant="primary" icon={<IconBusiness />}>
+                          {t('Upgrade Plan')}
+                        </Button>
+                        <LinkButton
+                          href="https://docs.sentry.io/product/dashboards/"
+                          external
+                        >
+                          {t('Read the docs')}
+                        </LinkButton>
+                      </Banner>
+                    </Container>
                     <Outlet />
                   </Layout.Page>
                 </TopBar.Slot.Provider>
