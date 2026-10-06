@@ -71,7 +71,6 @@ interface ConversationApiSpan {
   'gen_ai.usage.reasoning.output_tokens'?: number;
   'gen_ai.usage.total_tokens'?: number;
   occurrences?: TraceTree.EAPOccurrence[];
-  origin?: string;
   'span.description'?: string;
   'span.op'?: string;
   'user.email'?: string;
@@ -80,9 +79,39 @@ interface ConversationApiSpan {
   'user.username'?: string;
 }
 
+export interface ConversationModelUsage {
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  inputCost: number;
+  inputTokens: number;
+  llmCalls: number;
+  model: string | null;
+  outputCost: number;
+  outputTokens: number;
+  reasoningTokens: number;
+  totalCost: number;
+  totalTokens: number;
+}
+
+export interface ConversationStats {
+  endTimestamp: number;
+  generationDuration: number;
+  inputTokens: number;
+  llmCalls: number;
+  outputTokens: number;
+  startTimestamp: number;
+  toolCalls: number;
+  toolErrors: number;
+  toolNames: string[];
+  totalCost: number;
+  totalTokens: number;
+  usageByModel: ConversationModelUsage[];
+}
+
 interface ConversationApiResponse {
   conversationId: string;
   spans: ConversationApiSpan[];
+  stats: ConversationStats;
   title: string | null;
 }
 
@@ -101,6 +130,7 @@ interface UseConversationResult {
   isLoading: boolean;
   nodeTraceMap: Map<string, string>;
   nodes: AITraceSpanNode[];
+  stats: ConversationStats | null;
   title: string | null;
 }
 
@@ -144,8 +174,6 @@ function createNodeFromApiSpan(
       // spans, which don't have a dedicated gen_ai.operation.type. Kept off the
       // op-type path so the timeline still renders them as before.
       [SpanFields.SPAN_OP]: apiSpan['span.op'] ?? '',
-      // Identifies Anthropic OTel conversations (see enrichAnthropicAgentMessages).
-      [SpanFields.SENTRY_ORIGIN]: apiSpan.origin ?? '',
       [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: apiSpan['gen_ai.embeddings.input'] ?? '',
       [SpanFields.GEN_AI_INPUT_MESSAGES]: apiSpan['gen_ai.input.messages'] ?? '',
       // Recognizes evaluation spans, which report the ai_client operation type.
@@ -400,9 +428,10 @@ export function useConversation(
     [data]
   );
 
-  // The title is conversation-level, so it is identical across pages; read it
-  // off the first page.
-  const title = data?.pages[0]?.json.title ?? null;
+  // Conversation-level fields are identical across pages; read the first page.
+  const firstPage = data?.pages[0]?.json;
+  const title = firstPage?.title ?? null;
+  const stats = firstPage?.stats ?? null;
 
   const {nodes, nodeTraceMap} = useMemo(() => {
     if (allSpans.length === 0) {
@@ -425,6 +454,7 @@ export function useConversation(
 
   if (!conversation.conversationId) {
     return {
+      stats: null,
       nodes: [],
       nodeTraceMap: new Map(),
       isLoading: false,
@@ -434,6 +464,7 @@ export function useConversation(
   }
 
   return {
+    stats,
     nodes,
     nodeTraceMap,
     isLoading: isLoading || isFetchingNextPage || canFetchNextPage,

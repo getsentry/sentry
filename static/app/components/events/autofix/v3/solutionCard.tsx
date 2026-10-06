@@ -2,7 +2,6 @@ import {Fragment, useMemo} from 'react';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
-import {Markdown} from '@sentry/scraps/markdown';
 import {Text} from '@sentry/scraps/text';
 
 import {
@@ -18,6 +17,7 @@ import {AutofixResetPrompt} from 'sentry/components/events/autofix/v3/autofixRes
 import {useResetAutofixStep} from 'sentry/components/events/autofix/v3/useResetAutofixStep';
 import {useRethinkInChat} from 'sentry/components/events/autofix/v3/useRethinkInChat';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
+import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {IconList} from 'sentry/icons/iconList';
 import {IconRefresh} from 'sentry/icons/iconRefresh';
 import {t} from 'sentry/locale';
@@ -83,7 +83,7 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
             />
           )}
           <ArtifactDetails>
-            <Markdown raw={artifact.data.one_line_summary} />
+            <SeerMarkdown raw={artifact.data.one_line_summary} />
           </ArtifactDetails>
           {artifact.data.steps ? (
             <ArtifactDetails>
@@ -92,7 +92,7 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
                 {artifact.data.steps.map((step, index) => (
                   <li key={index}>
                     <Stack>
-                      <Markdown raw={step.title} />
+                      <SeerMarkdown raw={step.title} />
                       <Text size="sm" variant="muted">
                         {step.description}
                       </Text>

@@ -1,16 +1,13 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
 from typing import Any
 
 from django import forms
 from django.core.validators import RegexValidator
 
-from sentry import tagstore
-from sentry.rules import MATCH_CHOICES, EventState, MatchType, match_values
 from sentry.rules.conditions.base import EventCondition
-from sentry.services.eventstore.models import GroupEvent
 from sentry.tagstore.base import TAG_KEY_RE
+from sentry.workflow_engine.handlers.condition.utils.match import MATCH_CHOICES, MatchType
 
 
 class TaggedEventForm(forms.Form):
@@ -44,52 +41,6 @@ class TaggedEventCondition(EventCondition):
         "match": {"type": "choice", "choices": list(MATCH_CHOICES.items())},
         "value": {"type": "string", "placeholder": "value"},
     }
-
-    def _passes(self, raw_tags: Sequence[tuple[str, Any]]) -> bool:
-        option_key = self.get_option("key")
-        option_match = self.get_option("match")
-        option_value = self.get_option("value")
-
-        if not (option_key and option_match):
-            return False
-
-        option_key = option_key.lower()
-
-        tag_keys = (
-            k
-            for gen in (
-                (k.lower() for k, v in raw_tags),
-                (tagstore.backend.get_standardized_key(k) for k, v in raw_tags),
-            )
-            for k in gen
-        )
-
-        # NOTE: IS_SET condition differs btw tagged_event and event_attribute so not handled by match_values
-        if option_match == MatchType.IS_SET:
-            return option_key in tag_keys
-
-        elif option_match == MatchType.NOT_SET:
-            return option_key not in tag_keys
-
-        if not option_value:
-            return False
-
-        option_value = option_value.lower()
-
-        # This represents the fetched tag values given the provided key
-        # so eg. if the key is 'environment' and the tag_value is 'production'
-        tag_values = (
-            v.lower()
-            for k, v in raw_tags
-            if k.lower() == option_key or tagstore.backend.get_standardized_key(k) == option_key
-        )
-
-        return match_values(
-            group_values=tag_values, match_value=option_value, match_type=option_match
-        )
-
-    def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
-        return self._passes(event.tags)
 
     def render_label(self) -> str:
         data = {

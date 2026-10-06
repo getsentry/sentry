@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Generator, Sequence
+
 from sentry.integrations.messaging.metrics import (
     MessagingInteractionEvent,
     MessagingInteractionType,
@@ -11,7 +13,9 @@ from sentry.integrations.msteams.metrics import record_lifecycle_termination_lev
 from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.notifications.types import RuleFuture
 from sentry.rules.actions import IntegrationEventAction
+from sentry.rules.base import CallbackFuture
 from sentry.services.eventstore.models import GroupEvent
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils import metrics
@@ -41,14 +45,16 @@ class MsTeamsNotifyServiceAction(IntegrationEventAction):
             a for a in super().get_integrations() if a.metadata.get("installation_type") != "tenant"
         ]
 
-    def after(self, event: GroupEvent, notification_uuid: str | None = None):
+    def after(
+        self, event: GroupEvent, notification_uuid: str | None = None
+    ) -> Generator[CallbackFuture]:
         channel = self.get_option("channel_id")
 
         integration = self.get_integration()
         if not integration:
             return
 
-        def send_notification(event, futures):
+        def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:
             rules = [f.rule for f in futures]
             card = MSTeamsIssueMessageBuilder(
                 event.group, event, rules, integration

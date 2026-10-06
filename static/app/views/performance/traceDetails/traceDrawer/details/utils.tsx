@@ -265,7 +265,7 @@ export function getTraceAttributesTreeActions(
   params: Pick<KeyValueActionParams, 'location' | 'organization' | 'projectIds'>
 ): (content: AttributesTreeContent) => MenuItemProps[] {
   return (content: AttributesTreeContent) => {
-    const rowKey = content.originalAttribute?.original_attribute_key;
+    const rowKey = content.original?.original_attribute_key;
     const rowValue = content.value;
     if (!rowKey || !defined(rowValue)) {
       return [];
