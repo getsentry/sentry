@@ -34,13 +34,11 @@ import {useFetchOrganizationFeatureFlags} from 'sentry/views/issueList/utils/use
 type UseFetchIssueTagsParams = {
   org: Organization;
   projectIds: string[];
-  enabled?: boolean;
   end?: string;
   includeFeatureFlags?: boolean;
   keepPreviousData?: boolean;
   start?: string;
   statsPeriod?: string | null;
-  useCache?: boolean;
 };
 
 const PREDEFINED_FIELDS = {
@@ -111,8 +109,6 @@ export const useFetchIssueTags = ({
   org,
   projectIds,
   keepPreviousData = false,
-  useCache = true,
-  enabled = true,
   includeFeatureFlags = false,
   ...statsPeriodParams
 }: UseFetchIssueTagsParams) => {
@@ -121,8 +117,6 @@ export const useFetchIssueTags = ({
       orgSlug: org.slug,
       projectIds,
       dataset: Dataset.ERRORS,
-      useCache,
-      enabled,
       keepPreviousData,
       ...statsPeriodParams,
     },
@@ -134,8 +128,6 @@ export const useFetchIssueTags = ({
       orgSlug: org.slug,
       projectIds,
       dataset: Dataset.ISSUE_PLATFORM,
-      useCache,
-      enabled,
       keepPreviousData,
       ...statsPeriodParams,
     },
@@ -148,8 +140,8 @@ export const useFetchIssueTags = ({
     {
       orgSlug: org.slug,
       projectIds,
-      useCache,
-      enabled: enabled && includeFeatureFlags, // Only make this query if includeFeatureFlags is true.
+      useCache: true,
+      enabled: includeFeatureFlags, // Only make this query if includeFeatureFlags is true.
       keepPreviousData,
       ...statsPeriodParams,
     },

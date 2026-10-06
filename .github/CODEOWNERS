@@ -47,6 +47,24 @@
 /.agents/skills/sentry-javascript-bugs/                 @getsentry/app-frontend
 /.agents/skills/generate-snapshot-tests/                @getsentry/app-frontend
 
+## Frontend Platform shared code
+# These paths are in the stack trace of most frontend events: layout primitives, page
+# filters, icons, the settings shell. Sentry assigns an issue to the LAST matching line,
+# so they must come before the feature views declared below. A frame in a feature view
+# then beats a frame in a shared component. GitHub review routing only depends on order
+# when patterns overlap, and the one overlap here is intended: more specific settings
+# sub-paths declared by other teams further down now take precedence.
+/static/app/utils/theme/                              @getsentry/design-engineering
+/static/app/components/commandPalette/                @getsentry/design-engineering
+/static/app/components/core/                          @getsentry/design-engineering
+/static/app/components/pageFilters/                   @getsentry/design-engineering
+/static/app/components/backendJsonFormAdapter/        @getsentry/design-engineering
+/static/app/icons/                                    @getsentry/design-engineering
+/static/app/views/settings/                           @getsentry/design-engineering
+/static/app/bootstrap/                                @getsentry/design-engineering
+/static/app/bootstrap/initializeSdk.tsx               @getsentry/team-javascript-sdks-browser @getsentry/team-javascript-sdks-framework
+## End of Frontend Platform shared code
+
 ## Legal
 /LICENSE.md                                              @getsentry/owners-legal
 
@@ -123,7 +141,6 @@
 /config/hooks/                                           @getsentry/owners-sentry-dev
 /scripts/                                                @getsentry/owners-sentry-dev
 /tools/                                                  @getsentry/owners-sentry-dev
-/src/flagpole/                                           @getsentry/owners-sentry-dev @getsentry/dev-infra
 Makefile                                                 @getsentry/owners-sentry-dev @getsentry/dev-infra
 .envrc                                                   @getsentry/owners-sentry-dev @getsentry/dev-infra
 .pre-commit-config.yaml                                  @getsentry/owners-sentry-dev @getsentry/dev-infra
@@ -332,6 +349,10 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 /src/sentry/data_export/                                             @getsentry/data-browsing
 /tests/sentry/data_export/                                           @getsentry/data-browsing
+
+/src/sentry/ingestion_delay/                                         @getsentry/data-browsing
+/tests/sentry/ingestion_delay/                                       @getsentry/data-browsing
+/src/sentry/api/helpers/ingestion_delay.py                           @getsentry/data-browsing
 
 
 /src/sentry/api/endpoints/organization_spans_fields.py                              @getsentry/data-browsing
@@ -603,14 +624,23 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/ai_monitoring/                                                       @getsentry/telemetry-experience
 /tests/sentry/ai_monitoring/                                                     @getsentry/telemetry-experience
 /static/app/actionCreators/metrics.tsx                                           @getsentry/telemetry-experience
-/static/app/views/settings/dynamicSampling/                                      @getsentry/telemetry-experience
 /static/app/views/insights/pages/agents/                                         @getsentry/telemetry-experience
 /static/app/views/insights/pages/mcp/                                            @getsentry/telemetry-experience
 /static/app/views/insights/pages/platform/                                       @getsentry/telemetry-experience
 /static/app/views/explore/conversations/                                  @getsentry/telemetry-experience
-/static/app/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/ai*    @getsentry/data-browsing @getsentry/telemetry-experience
-/static/app/views/performance/newTraceDetails/traceDrawer/details/span/eapSections/mcp*   @getsentry/data-browsing @getsentry/telemetry-experience
-/static/app/views/performance/newTraceDetails/traceDrawer/tabs/traceAi*                   @getsentry/data-browsing @getsentry/telemetry-experience
+/static/app/views/performance/traceDetails/traceDrawer/details/span/eapSections/ai*    @getsentry/data-browsing @getsentry/telemetry-experience
+/static/app/views/performance/traceDetails/traceDrawer/details/span/eapSections/mcp*   @getsentry/data-browsing @getsentry/telemetry-experience
+/static/app/views/performance/traceDetails/traceDrawer/tabs/traceAi*                   @getsentry/data-browsing @getsentry/telemetry-experience
+/src/sentry/ingest/inbound_filters.py                                            @getsentry/ingest @getsentry/telemetry-experience
+/tests/sentry/ingest/test_inbound_filters.py                                     @getsentry/ingest @getsentry/telemetry-experience
+/src/sentry/api/endpoints/project_filters.py                                     @getsentry/ingest @getsentry/telemetry-experience
+/src/sentry/api/endpoints/project_filter_details.py                              @getsentry/ingest @getsentry/telemetry-experience
+/src/sentry/api/endpoints/project_custom_inbound_filters.py                      @getsentry/ingest @getsentry/telemetry-experience
+/src/sentry/api/helpers/default_inbound_filters.py                               @getsentry/ingest @getsentry/telemetry-experience
+/src/sentry/models/custominboundfilter.py                                        @getsentry/ingest @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_project_filters.py                              @getsentry/ingest @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_project_filter_details.py                       @getsentry/ingest @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_project_custom_inbound_filters.py               @getsentry/ingest @getsentry/telemetry-experience
 ## End of Telemetry Experience
 
 ## Value Discovery
@@ -620,7 +650,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/gettingStartedDocs/                                                  @getsentry/value-discovery
 /static/app/types/project.tsx                                                    @getsentry/value-discovery
 /static/app/views/onboarding/                                                    @getsentry/value-discovery
-/tests/acceptance/test_scm_onboarding.py                                         @getsentry/value-discovery
+/tests/acceptance/test_onboarding.py                                             @getsentry/value-discovery
 /tests/js/fixtures/detectedPlatform.ts                                           @getsentry/value-discovery
 /static/app/views/projectInstall/                                                @getsentry/value-discovery
 /src/sentry/onboarding_tasks/                                                    @getsentry/value-discovery
@@ -828,23 +858,13 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /bin/preprod/                                          @getsentry/emerge-tools
 # End of preprod
 
-## Frontend Platform (keep last as we want highest specificity)
-/static/app/utils/theme/                              @getsentry/design-engineering
-/static/app/components/commandPalette/                @getsentry/design-engineering
-/static/app/components/core/                          @getsentry/design-engineering
+## Frontend Platform (keep last as we want highest specificity; shared code that appears in stack traces lives in the block near the top)
+/static/packages/scraps/                              @getsentry/design-engineering
 /static/app/components/dnd/                           @getsentry/design-engineering
-/static/app/components/pageFilters/                   @getsentry/design-engineering
-/static/app/components/backendJsonFormAdapter/        @getsentry/design-engineering
-/static/app/icons/                                    @getsentry/design-engineering
 /static/app/stories/                                  @getsentry/design-engineering
-/static/app/components/commandPalette/                @getsentry/design-engineering
 /static/app/views/navigation/                         @getsentry/design-engineering
 /static/less/                                         @getsentry/design-engineering
-/static/app/views/settings/                           @getsentry/design-engineering
 /static/app/views/nav/                                @getsentry/design-engineering
-/static/app/bootstrap/                                @getsentry/design-engineering
-/static/app/bootstrap/initializeSdk.tsx               @getsentry/team-javascript-sdks-browser @getsentry/team-javascript-sdks-framework
-/static/app/components/commandPalette/                @getsentry/design-engineering
 # Config files
 /figma.config.json                                     @getsentry/design-engineering
 /knip.config.ts                                        @getsentry/design-engineering
@@ -864,7 +884,15 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/gsAdmin/views/sentryAppDetails.spec.tsx        @getsentry/design-engineering
 ## End of Frontend Platform
 
+# Telemetry Experience frontend (after Frontend Platform and gsApp, which would otherwise shadow these)
+/static/app/views/settings/dynamicSampling/                         @getsentry/telemetry-experience
+/static/app/views/settings/project/projectFilters/                  @getsentry/ingest @getsentry/telemetry-experience
+/static/gsApp/components/features/disabledCustomInboundFilters.tsx  @getsentry/ingest @getsentry/telemetry-experience
+# End of Telemetry Experience frontend
+
 # Agent Interfaces
+/static/app/views/investigations/                         @getsentry/agent-interfaces-sentry-frontend
+/static/app/components/seer/                              @getsentry/agent-interfaces-sentry-frontend
 /static/app/components/prevent/                           @getsentry/agent-interfaces-sentry-frontend
 /static/app/views/prevent/                                @getsentry/agent-interfaces-sentry-frontend
 /static/app/views/nav/secondary/sections/prevent/         @getsentry/agent-interfaces-sentry-frontend
@@ -873,6 +901,9 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/integrations/api/endpoints/organization_repository_settings.py   @getsentry/agent-interfaces-sentry-backend
 /src/sentry/seer/code_review/                                                @getsentry/agent-interfaces-sentry-backend
 /tests/sentry/seer/code_review/                                              @getsentry/agent-interfaces-sentry-backend
+/src/sentry/**/pr_iteration*                                                 @getsentry/agent-interfaces-sentry-backend
+/tests/sentry/**/*pr_iteration*                                              @getsentry/agent-interfaces-sentry-backend
+/static/app/**/prIteration*                                                  @getsentry/agent-interfaces-sentry-frontend
 /src/sentry/releases/                                     @getsentry/agent-interfaces-sentry-backend
 /tests/sentry/releases/                                   @getsentry/agent-interfaces-sentry-backend
 
@@ -880,6 +911,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/scm/                                                        @getsentry/scm
 /src/sentry/integrations/source_code_management/                        @getsentry/agent-interfaces-sentry-backend @getsentry/scm
 /src/sentry/integrations/repository/                                    @getsentry/scm
+/src/sentry/integrations/cursor_origin/                                 @getsentry/scm
+/src/sentry/middleware/integrations/parsers/cursor_origin.py            @getsentry/scm
 /src/sentry/integrations/github_enterprise/                             @getsentry/scm
 /src/sentry/integrations/gitlab/                                        @getsentry/scm
 /src/sentry/integrations/bitbucket/                                     @getsentry/scm
@@ -889,6 +922,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/integrations/perforce/                                      @getsentry/scm @getsentry/gdx
 /tests/sentry/integrations/source_code_management/                      @getsentry/agent-interfaces-sentry-backend @getsentry/scm
 /tests/sentry/integrations/repository/                                  @getsentry/scm
+/tests/sentry/integrations/cursor_origin/                               @getsentry/scm
+/tests/sentry/middleware/integrations/parsers/test_cursor_origin.py     @getsentry/scm
 /tests/sentry/integrations/github_enterprise/                           @getsentry/scm
 /tests/sentry/integrations/gitlab/                                      @getsentry/scm
 /tests/sentry/integrations/bitbucket/                                   @getsentry/scm
@@ -900,6 +935,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 ## End of SCM
 
 ## SCM Frontend
+/static/app/components/pipeline/integrationCursorOrigin/               @getsentry/scm
 /static/app/components/repositories                                   @getsentry/agent-interfaces-sentry-frontend @getsentry/scm
 ## End of SCM Frontend
 

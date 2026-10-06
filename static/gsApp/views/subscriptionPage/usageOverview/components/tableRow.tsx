@@ -19,6 +19,7 @@ import {AddOnCategory, type ProductTrial} from 'getsentry/types';
 import {
   formatReservedWithUnits,
   formatUsageWithUnits,
+  getLineItemUnitType,
   getPercentage,
   getReservedBudgetCategoryForAddOn,
   getSoftCapType,
@@ -180,29 +181,36 @@ export function UsageOverviewTableRow({
           : prepaid;
     percentUsed = rawPrepaid ? getPercentage(usage, rawPrepaid) : 0;
 
+    const unitType = getLineItemUnitType(subscription.planDetails, billedCategory);
     formattedUsage = formatUsageWithUnits(usage, billedCategory, {
       isAbbreviated: true,
       useUnitScaling: true,
+      unitType,
     });
     formattedPrepaid = formatReservedWithUnits(prepaid, billedCategory, {
       useUnitScaling: true,
       isAbbreviated: true,
+      unitType,
     });
     formattedFree = free
       ? formatReservedWithUnits(free, billedCategory, {
           useUnitScaling: true,
           isAbbreviated: true,
+          unitType,
         })
       : null;
 
     paygSpend = normalizedMetricHistory.onDemandSpendUsed ?? 0;
   }
-  const bucket = getBucket({
-    events: reserved ?? 0, // buckets use the converted unit reserved amount (ie. in GB for byte categories)
-    buckets: subscription.planDetails.planCategories[billedCategory],
-  });
+  const buckets = subscription.planDetails.planCategories[billedCategory];
+  const bucket = buckets
+    ? getBucket({
+        events: reserved ?? 0, // buckets use the converted unit reserved amount (ie. in GB for byte categories)
+        buckets,
+      })
+    : null;
   otherSpend = calculateSeerUserSpend(normalizedMetricHistory);
-  const recurringReservedSpend = isChildProduct ? 0 : (bucket.price ?? 0);
+  const recurringReservedSpend = isChildProduct ? 0 : (bucket?.price ?? 0);
   const additionalSpend = recurringReservedSpend + paygSpend + otherSpend;
 
   const formattedSoftCapType =

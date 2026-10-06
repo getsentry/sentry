@@ -12,6 +12,7 @@ import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
+import {useClockDisplay} from '@sentry/scraps/datetime';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {FileSize} from 'sentry/components/fileSize';
@@ -20,7 +21,7 @@ import {JumpButtons} from 'sentry/components/replays/jumpButtons';
 import {useJumpButtons} from 'sentry/components/replays/useJumpButtons';
 import {DataTable} from 'sentry/components/tables/dataTable';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
-import {IconArrow, IconWarning} from 'sentry/icons';
+import {IconArrow} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {TagCollection} from 'sentry/types/group';
@@ -113,7 +114,7 @@ type LogsTableProps = {
   };
   numberAttributes?: TagCollection;
   showCellActions?: boolean;
-  showExploreSimilarSpansLink?: boolean;
+  showExploreConnectedSpansLink?: boolean;
   stringAttributes?: TagCollection;
   validatedFieldTypes?: Partial<Record<string, FieldValueType>>;
 };
@@ -135,7 +136,7 @@ export function LogsInfiniteTable({
   additionalData,
   injectedErrorRows,
   showCellActions,
-  showExploreSimilarSpansLink,
+  showExploreConnectedSpansLink,
   validatedFieldTypes = {},
 }: LogsTableProps) {
   const location = useLocation();
@@ -149,6 +150,7 @@ export function LogsInfiniteTable({
     isEmpty,
     meta: rawMeta,
     data: originalData,
+    routingHintsByRow,
     isError,
     error,
     refetch,
@@ -240,6 +242,10 @@ export function LogsInfiniteTable({
   ]);
 
   const isEmptyWithoutInjectedErrors = isEmpty && !hasInjectedErrorRows;
+
+  // Widest timestamps: "Dec 28, 10:58:58.888 PM" (12h), "Dec 28, 22:58:58.888" (24h).
+  const clockDisplay = useClockDisplay();
+  const timestampWidth = clockDisplay === '24' ? 20 : 23;
 
   // Calculate quantized start and end times for replay links
   const {logStart, logEnd} = useMemo(() => {
@@ -403,6 +409,7 @@ export function LogsInfiniteTable({
     isPending,
     isScrolling,
     dataLength: data?.length ?? 0,
+    tableWidth,
   });
 
   useEffect(() => {
@@ -520,6 +527,11 @@ export function LogsInfiniteTable({
       return (
         <LogRowContent
           dataRow={dataRow}
+          routingHint={
+            routingHintsByRow.has(dataRow)
+              ? routingHintsByRow.get(dataRow)
+              : pinnedLogsQuery.routingHintsById.get(rowId)
+          }
           meta={meta}
           highlightTerms={highlightTerms}
           embedded={false}
@@ -550,6 +562,8 @@ export function LogsInfiniteTable({
       logStart,
       logsPinning,
       meta,
+      routingHintsByRow,
+      pinnedLogsQuery.routingHintsById,
     ]
   );
 
@@ -598,6 +612,7 @@ export function LogsInfiniteTable({
         hideBorder={embedded}
         data-test-id="logs-table"
         minWidth={calculateLogsTableMinWidth(fields.length)}
+        timestampWidth={timestampWidth}
         showVerticalScrollbar={embeddedStyling?.showVerticalScrollbar}
       >
         {embedded ? null : (
@@ -669,6 +684,11 @@ export function LogsInfiniteTable({
               <Fragment key={virtualRow.key}>
                 <LogRowContent
                   dataRow={dataRow as OurLogsResponseItem}
+                  routingHint={
+                    isRegularLogResponseItem(dataRow)
+                      ? routingHintsByRow.get(dataRow)
+                      : undefined
+                  }
                   errorRow={isErrorLogRow(dataRow) ? dataRow.__error : undefined}
                   meta={meta}
                   highlightTerms={highlightTerms}
@@ -684,7 +704,7 @@ export function LogsInfiniteTable({
                   isExpanded={expandedLogRows.has(rowId)}
                   onExpandHeight={handleExpandHeight}
                   showCellActions={showCellActions}
-                  showExploreSimilarSpansLink={showExploreSimilarSpansLink}
+                  showExploreConnectedSpansLink={showExploreConnectedSpansLink}
                   isPinned={logsPinning?.hasPinnedRow?.(rowId)}
                   isHighlighted={!!linkedRowId && rowId === linkedRowId}
                   isHoverLinked={hoveredRowId === rowId}
@@ -816,14 +836,14 @@ function LogsTableHeader({
 }
 
 function ErrorRenderer({error, onRetry}: {error?: unknown; onRetry?: () => void}) {
+  if (!isRateLimitError(error)) {
+    return <DataTable.Error onRetry={onRetry} />;
+  }
+
   return (
-    <DataTable.Status>
-      {isRateLimitError(error) ? (
-        <LogsRateLimitError onRetry={onRetry} />
-      ) : (
-        <IconWarning variant="muted" size="lg" />
-      )}
-    </DataTable.Status>
+    <DataTable.Empty>
+      <LogsRateLimitError onRetry={onRetry} />
+    </DataTable.Empty>
   );
 }
 
@@ -840,7 +860,7 @@ export function LoadingRenderer({
   );
 
   return (
-    <DataTable.Status>
+    <DataTable.Empty>
       <Stack align="center">
         <EmptyStateText size="md" textAlign="center">
           <StyledLoadingIndicator margin="1em auto" />
@@ -862,7 +882,7 @@ export function LoadingRenderer({
           )}
         </EmptyStateText>
       </Stack>
-    </DataTable.Status>
+    </DataTable.Empty>
   );
 }
 

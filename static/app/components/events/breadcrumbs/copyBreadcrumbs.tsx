@@ -1,6 +1,7 @@
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 function escapeMarkdownCell(value: string): string {
@@ -20,7 +21,7 @@ export function formatBreadcrumbsAsMarkdown(crumbs: EnhancedCrumb[]): string {
     const timestamp = bc.timestamp ? new Date(bc.timestamp).toISOString() : '';
     const type = bc.type;
     const category = bc.category ?? '';
-    const message = escapeMarkdownCell(bc.message ?? '');
+    const message = escapeMarkdownCell(stripAnsi(bc.message ?? ''));
     const data = bc.data ? escapeMarkdownCell(JSON.stringify(bc.data)) : '';
 
     return `| ${timestamp} | ${type} | ${category} | ${bc.level} | ${message} | ${data} |`;
@@ -45,7 +46,7 @@ export function formatBreadcrumbsAsText(crumbs: EnhancedCrumb[]): string {
       lines.push(`Level: ${crumb.breadcrumb.level}`);
 
       if (crumb.breadcrumb.message) {
-        lines.push(`Message: ${crumb.breadcrumb.message}`);
+        lines.push(`Message: ${stripAnsi(crumb.breadcrumb.message)}`);
       }
       if (crumb.breadcrumb.data) {
         lines.push(`Data: ${JSON.stringify(crumb.breadcrumb.data)}`);

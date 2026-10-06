@@ -102,7 +102,7 @@ export function GroupListHeader({
           {t('Progress')}
         </IssueStreamHeaderLabel>
       )}
-      {withColumns.includes('assignee') && (
+      {(withColumns.includes('assignee') || withColumns.includes('assigneeAvatar')) && (
         <IssueStreamHeaderLabel
           display={{zero: 'none', [COLUMN_BREAKPOINTS.ASSIGNEE]: 'inline-block'}}
           align="right"

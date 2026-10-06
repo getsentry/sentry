@@ -17,9 +17,9 @@ import {
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ActionNodeContext,
-  actionNodesMap,
   useActionNodeContext,
-} from 'sentry/views/automations/components/actionNodes';
+} from 'sentry/views/automations/components/actionNodeContext';
+import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
 import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {AutomationBuilderRow} from 'sentry/views/automations/components/automationBuilderRow';
@@ -81,7 +81,7 @@ export function ActionNodeList({
     const otherActions: Option[] = [];
 
     availableActions.forEach(action => {
-      if (action.type === ActionType.PLUGIN) {
+      if (action.type === ActionType.PLUGIN || action.disabledReason) {
         return;
       }
       const label =
@@ -126,7 +126,7 @@ export function ActionNodeList({
           return null;
         }
         const handler = getActionHandler(action, availableActions);
-        if (!handler) {
+        if (!handler || handler.disabledReason) {
           const actionLabel = actionNodesMap.get(action.type)?.label;
           return (
             <AutomationBuilderRow
@@ -135,16 +135,9 @@ export function ActionNodeList({
                 onDeleteRow(action.id);
               }}
               hasError
-              errorMessage={
-                actionLabel
-                  ? t(
-                      'The %s action is no longer available. Please remove and reconfigure this action.',
-                      actionLabel
-                    )
-                  : t(
-                      'The integration is no longer available. Please remove and reconfigure this action.'
-                    )
-              }
+              errorMessage={t(
+                'This action is no longer available. Remove it to save changes.'
+              )}
             >
               {actionLabel ?? t('Unknown integration')}
             </AutomationBuilderRow>

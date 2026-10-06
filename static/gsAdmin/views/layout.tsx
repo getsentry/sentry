@@ -61,7 +61,7 @@ export function Layout() {
 
   // Close mobile drawer on route change.
   useEffect(() => {
-    // oxlint-disable-next-line react/set-state-in-effect
+    // oxlint-disable-next-line react/set-state-in-effect, react/exhaustive-effect-dependencies
     closeSidebar();
   }, [location.pathname]);
 
@@ -76,6 +76,7 @@ export function Layout() {
     };
     mq.addEventListener('change', handleChange);
     return () => mq.removeEventListener('change', handleChange);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, []);
 
   // Lock body scroll while the mobile sidebar drawer is open.

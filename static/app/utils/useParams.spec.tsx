@@ -72,16 +72,14 @@ describe('useParams', () => {
       mockCustomerDomain.mockReturnValue('albertos-apples');
 
       let originalParams: any;
-      let useParamsValue: any;
+      let paramsValue: any;
 
       function Component() {
         // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         originalParams = useReactRouter6Params();
         // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
-        useParamsValue = useParams();
-        return (
-          <div>rendered component for org: {useParamsValue.orgId ?? 'no org id'}</div>
-        );
+        paramsValue = useParams();
+        return <div>rendered component for org: {paramsValue.orgId ?? 'no org id'}</div>;
       }
 
       render(<Component />, {
@@ -95,7 +93,7 @@ describe('useParams', () => {
         screen.getByText('rendered component for org: albertos-apples')
       ).toBeInTheDocument();
       expect(originalParams).toEqual({});
-      expect(useParamsValue).toEqual({
+      expect(paramsValue).toEqual({
         orgId: 'albertos-apples',
       });
     });
@@ -105,16 +103,14 @@ describe('useParams', () => {
       mockCustomerDomain.mockReturnValue(undefined);
 
       let originalParams: any;
-      let useParamsValue: any;
+      let paramsValue: any;
 
       function Component() {
         // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         originalParams = useReactRouter6Params();
         // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
-        useParamsValue = useParams();
-        return (
-          <div>rendered component for org: {useParamsValue.orgId ?? 'no org id'}</div>
-        );
+        paramsValue = useParams();
+        return <div>rendered component for org: {paramsValue.orgId ?? 'no org id'}</div>;
       }
 
       render(<Component />, {
@@ -128,7 +124,7 @@ describe('useParams', () => {
         screen.getByText('rendered component for org: no org id')
       ).toBeInTheDocument();
       expect(originalParams).toEqual({});
-      expect(useParamsValue).toEqual({});
+      expect(paramsValue).toEqual({});
     });
   });
 });
