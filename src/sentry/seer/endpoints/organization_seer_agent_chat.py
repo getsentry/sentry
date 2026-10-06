@@ -29,6 +29,7 @@ from sentry.seer.agent.client_utils import (
 )
 from sentry.seer.endpoints.utils import ResolvedSeerRun, resolve_seer_run
 from sentry.seer.models import SeerApiError, SeerPermissionError
+from sentry.seer.models.run import SeerAgentRun
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
@@ -37,6 +38,8 @@ logger = logging.getLogger(__name__)
 
 
 _CODE_MODE_VALUES = frozenset({"off", "on", "only"})
+
+_DASHBOARD_GENERATE_RUN_SOURCE = "dashboard_generate"
 
 
 class SeerAgentChatStateResponse(BaseModel):
@@ -196,6 +199,19 @@ class OrganizationSeerAgentChatPermission(OrganizationPermission):
         return super().has_object_permission(request, view, obj)
 
 
+def _is_dashboard_generate_run(organization: Organization, resolved: ResolvedSeerRun) -> bool:
+    """A run that may be read or continued without explorer access.
+
+    Explorer chats are not included, so a saved run_id stops working once open
+    membership is turned off.
+    """
+    return SeerAgentRun.objects.filter(
+        run__organization_id=organization.id,
+        run__seer_run_state_id=resolved.seer_run_state_id,
+        source=_DASHBOARD_GENERATE_RUN_SOURCE,
+    ).exists()
+
+
 @cell_silo_endpoint
 class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -230,15 +246,20 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
 
         has_seer_access, _ = has_seer_access_with_detail(organization)
 
+        if not run_id:
+            if not has_access:
+                raise PermissionDenied(error)
+            return Response({"session": None}, status=404)
+
         if not has_access and not has_seer_access:
             raise PermissionDenied(error)
-
-        if not run_id:
-            return Response({"session": None}, status=404)
 
         resolved = resolve_seer_run(run_id, organization)
         if isinstance(resolved, Response):
             return resolved
+
+        if not has_access and not _is_dashboard_generate_run(organization, resolved):
+            raise PermissionDenied(error)
 
         try:
             client = SeerAgentClient(organization, request.user)
@@ -279,10 +300,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
 
         has_seer_access, _ = has_seer_access_with_detail(organization)
-        # Orgs with Seer access can continue existing dashboard generate runs, but cannot start new runs from this endpoint.
-        can_continue_dashboards_generate_run = has_seer_access and run_id is not None
-
-        if not has_access and not can_continue_dashboards_generate_run:
+        if not has_access and (run_id is None or not has_seer_access):
             raise PermissionDenied(error)
 
         serializer = SeerAgentChatSerializer(data=request.data)
@@ -338,6 +356,11 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
             if isinstance(result, Response):
                 return result
             resolved = result
+
+        if not has_access and not (
+            resolved is not None and _is_dashboard_generate_run(organization, resolved)
+        ):
+            raise PermissionDenied(error)
 
         try:
             enable_coding = organization.get_option(
