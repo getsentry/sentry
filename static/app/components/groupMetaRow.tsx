@@ -173,7 +173,7 @@ const GroupExtra = styled('div')`
     background-repeat: no-repeat;
   }
 
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
+  @container (min-width: ${p => p.theme.container['5xl']}) {
     line-height: 1;
   }
 `;

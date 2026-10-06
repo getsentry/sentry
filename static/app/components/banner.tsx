@@ -98,8 +98,9 @@ const BannerWrapper = styled('div')<BannerWrapperProps>`
   border-radius: ${p => p.theme.radius.md};
   height: 180px;
   color: ${p => p.theme.colors.white};
+  container-type: inline-size;
 
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     height: 220px;
   }
 `;
@@ -116,7 +117,7 @@ const BannerContent = styled('div')`
 const BannerTitle = styled('h1')`
   margin: 0;
 
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     font-size: 40px;
   }
 `;
@@ -124,7 +125,7 @@ const BannerTitle = styled('h1')`
 const BannerSubtitle = styled('div')`
   margin: 0;
 
-  @media (min-width: ${p => p.theme.breakpoints.sm}) {
+  @container (min-width: ${p => p.theme.container.xl}) {
     font-size: ${p => p.theme.font.size.xl};
   }
 `;

@@ -1168,7 +1168,7 @@ export function ResultGrid({
     : columns;
 
   const resultTable = (
-    <TableScrollWrapper>
+    <Container position="relative" overflowX={{zero: 'visible', xl: 'auto'}}>
       {results.pendingRegions.length > 0 && (
         <TableProgressBar data-test-id="table-progress" aria-hidden>
           <TableProgressValue />
@@ -1190,7 +1190,7 @@ export function ResultGrid({
           />
         </tbody>
       </ResultTable>
-    </TableScrollWrapper>
+    </Container>
   );
 
   const CustomPanel = inPanel;
@@ -1269,7 +1269,7 @@ export function ResultGrid({
     ) : null;
 
   return (
-    <Container data-test-id="result-grid">
+    <Container data-test-id="result-grid" containerType="inline-size">
       <SortSearchForm onSubmit={onSearch}>
         {needsRegion && (
           <SelectorItem>
@@ -1347,15 +1347,6 @@ export function ResultGrid({
     </Container>
   );
 }
-
-const TableScrollWrapper = styled(Container)`
-  position: relative;
-  overflow-x: auto;
-
-  @media (max-width: 768px) {
-    overflow-x: visible;
-  }
-`;
 
 const SortSearchForm = styled('form')`
   display: flex;
