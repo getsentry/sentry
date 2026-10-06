@@ -1075,7 +1075,7 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
                         )
                     created = True
                 except IntegrityError:
-                    existing = MonitorCheckIn.objects.get_or_none(**lookup)
+                    existing = MonitorCheckIn.objects.select_for_update().get_or_none(**lookup)
                     if existing is None:
                         raise
                     check_in = existing
