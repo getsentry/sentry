@@ -59,21 +59,6 @@ export function Banner({
   return (
     <BannerWrapper backgroundImg={backgroundImg} className={className}>
       {backgroundComponent}
-      <Container
-        position="absolute"
-        top={theme.space.xl}
-        right={theme.space.xl}
-        style={{zIndex: 1}}
-      >
-        <Button
-          size="xs"
-          variant="link"
-          icon={<IconClose />}
-          onClick={dismiss}
-          aria-label={t('Close')}
-          style={{color: theme.colors.white}}
-        />
-      </Container>
       <Grid
         position="absolute"
         justifyItems="center"
@@ -90,6 +75,16 @@ export function Banner({
           {children}
         </Grid>
       </Grid>
+      <Container position="absolute" top={theme.space.xl} right={theme.space.xl}>
+        <Button
+          size="xs"
+          variant="link"
+          icon={<IconClose />}
+          onClick={dismiss}
+          aria-label={t('Close')}
+          style={{color: theme.colors.white}}
+        />
+      </Container>
     </BannerWrapper>
   );
 }
