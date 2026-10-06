@@ -53,7 +53,7 @@ import {
   FloatingBottomContainer,
   HoveringRowLoadingRendererContainer,
   LOGS_GRID_BODY_ROW_HEIGHT,
-  LogTable,
+  LogTableFrame,
   LogTableBody,
   LogTableHeadCell,
   LogTableRow,
@@ -601,133 +601,139 @@ export function LogsInfiniteTable({
 
   return (
     <Fragment>
-      <LogTable
-        variant="results"
-        ref={tableRef}
-        columns={fields.map(field => ({key: field, width: staticColumnWidths?.[field]}))}
+      <LogTableFrame
         contentsBody
-        customSections
-        minimumColumnWidth={50}
-        prependColumnWidths={['min-content']}
         css={tableStaticCSS}
-        height="100%"
-        hideBorder={embedded}
         data-test-id="logs-table"
+        hideBorder={embedded}
         minWidth={calculateLogsTableMinWidth(fields.length)}
-        timestampWidth={timestampWidth}
         showVerticalScrollbar={embeddedStyling?.showVerticalScrollbar}
+        timestampWidth={timestampWidth}
       >
-        {embedded ? null : (
-          <LogsTableHeader
-            isFrozen={embedded}
-            numberAttributes={numberAttributes}
-            stringAttributes={stringAttributes}
-            booleanAttributes={booleanAttributes}
-            validatedFieldTypes={validatedFieldTypes}
-          />
-        )}
-        {!isPending && logsPinning && (
-          <PinnedLogs
-            allRows={data as OurLogsResponseItem[]}
-            logsPinning={logsPinning}
-            pinnedLogsQuery={pinnedLogsQuery}
-            renderRow={renderRow}
-          />
-        )}
-        <LogTableBody
-          showHeader={!embedded}
-          ref={tableBodyRef}
-          disableBodyPadding={embeddedStyling?.disableBodyPadding}
+        <SimpleTable
+          variant="results"
+          ref={tableRef}
+          columns={fields.map(field => ({
+            key: field,
+            width: staticColumnWidths?.[field],
+          }))}
+          customSections
+          height="100%"
+          minimumColumnWidth={50}
+          prependColumnWidths={['min-content']}
         >
-          {paddingTop > 0 && (
-            <SimpleTable.Row>
-              {fields.map(field => (
-                <SimpleTable.RowCell key={field} style={{height: paddingTop}} />
-              ))}
-            </SimpleTable.Row>
-          )}
-          {/* Only render these in table for non-replay contexts */}
-          {!hasReplay && isPending && (
-            <LoadingRenderer
-              bytesScanned={bytesScanned}
-              totalPayloadBytes={totalPayloadBytes}
+          {embedded ? null : (
+            <LogsTableHeader
+              isFrozen={embedded}
+              numberAttributes={numberAttributes}
+              stringAttributes={stringAttributes}
+              booleanAttributes={booleanAttributes}
+              validatedFieldTypes={validatedFieldTypes}
             />
           )}
-          {!hasReplay && isError && <ErrorRenderer error={error} onRetry={refetch} />}
-          {!hasReplay &&
-            isEmptyWithoutInjectedErrors &&
-            (emptyRenderer ? (
-              emptyRenderer()
-            ) : (
-              <LogsEmptyResults
-                analyticsPageSource={analyticsPageSource}
+          {!isPending && logsPinning && (
+            <PinnedLogs
+              allRows={data as OurLogsResponseItem[]}
+              logsPinning={logsPinning}
+              pinnedLogsQuery={pinnedLogsQuery}
+              renderRow={renderRow}
+            />
+          )}
+          <LogTableBody
+            showHeader={!embedded}
+            ref={tableBodyRef}
+            disableBodyPadding={embeddedStyling?.disableBodyPadding}
+          >
+            {paddingTop > 0 && (
+              <SimpleTable.Row>
+                {fields.map(field => (
+                  <SimpleTable.RowCell key={field} style={{height: paddingTop}} />
+                ))}
+              </SimpleTable.Row>
+            )}
+            {/* Only render these in table for non-replay contexts */}
+            {!hasReplay && isPending && (
+              <LoadingRenderer
                 bytesScanned={bytesScanned}
                 totalPayloadBytes={totalPayloadBytes}
-                canResumeAutoFetch={canResumeAutoFetch}
-                resumeAutoFetch={resumeAutoFetch}
               />
-            ))}
-          {!autoRefresh && !isPending && isFetchingPreviousPage && (
-            <HoveringRowLoadingRenderer position="top" isEmbedded={embedded} />
-          )}
-          {isRefetching && !hasReplay && (
-            <HoveringRowLoadingRenderer position="top" isEmbedded={embedded} />
-          )}
-          {virtualItems.map(virtualRow => {
-            const dataRow = data?.[virtualRow.index];
-
-            if (!dataRow) {
-              return null;
-            }
-
-            const rowId = dataRow[OurLogKnownFieldKey.ID];
-
-            return (
-              <Fragment key={virtualRow.key}>
-                <LogRowContent
-                  dataRow={dataRow as OurLogsResponseItem}
-                  routingHint={
-                    isRegularLogResponseItem(dataRow)
-                      ? routingHintsByRow.get(dataRow)
-                      : undefined
-                  }
-                  errorRow={isErrorLogRow(dataRow) ? dataRow.__error : undefined}
-                  meta={meta}
-                  highlightTerms={highlightTerms}
-                  embedded={embedded}
-                  embeddedOptions={embeddedOptions}
-                  sharedHoverTimeoutRef={sharedHoverTimeoutRef}
-                  expansionKey={rowId}
-                  key={virtualRow.key}
-                  onExpand={handleExpand}
-                  onCollapse={handleCollapse}
-                  logStart={logStart}
-                  logEnd={logEnd}
-                  isExpanded={expandedLogRows.has(rowId)}
-                  onExpandHeight={handleExpandHeight}
-                  showCellActions={showCellActions}
-                  showExploreConnectedSpansLink={showExploreConnectedSpansLink}
-                  isPinned={logsPinning?.hasPinnedRow?.(rowId)}
-                  isHighlighted={!!linkedRowId && rowId === linkedRowId}
-                  isHoverLinked={hoveredRowId === rowId}
-                  setHoveredRowId={setHoveredRowId}
-                  togglePinnedRow={logsPinning ? handleTogglePinnedRow : undefined}
+            )}
+            {!hasReplay && isError && <ErrorRenderer error={error} onRetry={refetch} />}
+            {!hasReplay &&
+              isEmptyWithoutInjectedErrors &&
+              (emptyRenderer ? (
+                emptyRenderer()
+              ) : (
+                <LogsEmptyResults
+                  analyticsPageSource={analyticsPageSource}
+                  bytesScanned={bytesScanned}
+                  totalPayloadBytes={totalPayloadBytes}
+                  canResumeAutoFetch={canResumeAutoFetch}
+                  resumeAutoFetch={resumeAutoFetch}
                 />
-              </Fragment>
-            );
-          })}
-          {paddingBottom > 0 && (
-            <SimpleTable.Row>
-              {fields.map(field => (
-                <SimpleTable.RowCell key={field} style={{height: paddingBottom}} />
               ))}
-            </SimpleTable.Row>
-          )}
-          {!autoRefresh && !isPending && isFetchingNextPage && (
-            <HoveringRowLoadingRenderer position="bottom" isEmbedded={embedded} />
-          )}
-        </LogTableBody>
-      </LogTable>
+            {!autoRefresh && !isPending && isFetchingPreviousPage && (
+              <HoveringRowLoadingRenderer position="top" isEmbedded={embedded} />
+            )}
+            {isRefetching && !hasReplay && (
+              <HoveringRowLoadingRenderer position="top" isEmbedded={embedded} />
+            )}
+            {virtualItems.map(virtualRow => {
+              const dataRow = data?.[virtualRow.index];
+
+              if (!dataRow) {
+                return null;
+              }
+
+              const rowId = dataRow[OurLogKnownFieldKey.ID];
+
+              return (
+                <Fragment key={virtualRow.key}>
+                  <LogRowContent
+                    dataRow={dataRow as OurLogsResponseItem}
+                    routingHint={
+                      isRegularLogResponseItem(dataRow)
+                        ? routingHintsByRow.get(dataRow)
+                        : undefined
+                    }
+                    errorRow={isErrorLogRow(dataRow) ? dataRow.__error : undefined}
+                    meta={meta}
+                    highlightTerms={highlightTerms}
+                    embedded={embedded}
+                    embeddedOptions={embeddedOptions}
+                    sharedHoverTimeoutRef={sharedHoverTimeoutRef}
+                    expansionKey={rowId}
+                    key={virtualRow.key}
+                    onExpand={handleExpand}
+                    onCollapse={handleCollapse}
+                    logStart={logStart}
+                    logEnd={logEnd}
+                    isExpanded={expandedLogRows.has(rowId)}
+                    onExpandHeight={handleExpandHeight}
+                    showCellActions={showCellActions}
+                    showExploreConnectedSpansLink={showExploreConnectedSpansLink}
+                    isPinned={logsPinning?.hasPinnedRow?.(rowId)}
+                    isHighlighted={!!linkedRowId && rowId === linkedRowId}
+                    isHoverLinked={hoveredRowId === rowId}
+                    setHoveredRowId={setHoveredRowId}
+                    togglePinnedRow={logsPinning ? handleTogglePinnedRow : undefined}
+                  />
+                </Fragment>
+              );
+            })}
+            {paddingBottom > 0 && (
+              <SimpleTable.Row>
+                {fields.map(field => (
+                  <SimpleTable.RowCell key={field} style={{height: paddingBottom}} />
+                ))}
+              </SimpleTable.Row>
+            )}
+            {!autoRefresh && !isPending && isFetchingNextPage && (
+              <HoveringRowLoadingRenderer position="bottom" isEmbedded={embedded} />
+            )}
+          </LogTableBody>
+        </SimpleTable>
+      </LogTableFrame>
       <FloatingBackToTopContainer
         position="absolute"
         inReplay={!!embeddedOptions?.replay}
@@ -781,7 +787,7 @@ function LogsTableHeader({
   return (
     <SimpleTable.Head>
       <LogTableRow>
-        <FirstTableHeadCell isFirst align="left" />
+        <FirstTableHeadCell align="left" />
         {fields.map((field, index) => {
           const direction = sortBys.find(s => s.field === field)?.kind;
 
@@ -798,7 +804,6 @@ function LogsTableHeader({
             return (
               <LogTableHeadCell
                 key={index}
-                isFirst={index === 0}
                 reservePinGutter={pinningEnabled && index === fields.length - 1}
               />
             );
@@ -808,7 +813,6 @@ function LogsTableHeader({
               align={index === 0 ? 'left' : align}
               columnIndex={index}
               key={index}
-              isFirst={index === 0}
               reservePinGutter={pinningEnabled && index === fields.length - 1}
               handleSortClick={
                 isFrozen

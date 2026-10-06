@@ -1,11 +1,4 @@
-import type {
-  ComponentProps,
-  CSSProperties,
-  HTMLAttributes,
-  ReactNode,
-  RefObject,
-  TdHTMLAttributes,
-} from 'react';
+import type {ComponentProps, HTMLAttributes, ReactNode, RefObject} from 'react';
 import {createContext, Fragment, useContext} from 'react';
 import {css} from '@emotion/react';
 import type {Theme} from '@emotion/react';
@@ -34,8 +27,6 @@ import {TableEmpty, TableError, TableLoading} from 'sentry/components/tables/sta
 import {defined} from 'sentry/utils/defined';
 import {PanelProvider} from 'sentry/utils/panelProvider';
 
-export const RESULTS_TABLE_ROW_HEIGHT = 42;
-
 type SimpleTableVariant = 'default' | 'results';
 
 const SimpleTableVariantContext = createContext<SimpleTableVariant | undefined>(
@@ -61,12 +52,16 @@ function VariantProvider({
 interface BaseTableProps extends Omit<HTMLAttributes<HTMLTableElement>, 'children'> {
   children?: ReactNode;
   columns?: TableColumnConfig[];
+  fit?: 'max-content';
   /** Defaults to `true`, or to `false` in the `results` variant. */
   flexibleLastColumn?: boolean;
+  height?: CSS['height'];
   minimumColumnWidth?: number;
   onColumnResize?: (index: number, width: number) => void;
   prependColumnWidths?: string[];
   ref?: RefObject<HTMLTableElement | null>;
+  scrollable?: boolean;
+  variant?: SimpleTableVariant;
 }
 
 type TableSectionsProps =
@@ -84,36 +79,9 @@ type TableSectionsProps =
       header?: ReactNode;
     };
 
-type DefaultTableProps = BaseTableProps &
-  TableSectionsProps & {
-    contentsBody?: never;
-    fit?: never;
-    height?: never;
-    hideBorder?: never;
-    scrollable?: never;
-    showVerticalScrollbar?: never;
-    variant?: 'default';
-  };
-
-type ResultsTableProps = BaseTableProps &
-  TableSectionsProps & {
-    variant: 'results';
-    /** Applies to the panel around the table, so that it can size the whole frame. */
-    className?: string;
-    contentsBody?: boolean;
-    fit?: 'max-content';
-    height?: CSS['height'];
-    hideBorder?: boolean;
-    scrollable?: boolean;
-    showVerticalScrollbar?: boolean;
-    /** Applies to the panel around the table, so that it can size the whole frame. */
-    style?: CSSProperties;
-  };
-
-type TableProps = DefaultTableProps | ResultsTableProps;
+type TableProps = BaseTableProps & TableSectionsProps;
 
 interface RowProps extends HTMLAttributes<HTMLTableRowElement> {
-  isClickable?: boolean;
   ref?: RefObject<HTMLTableRowElement | null>;
   variant?: 'default' | 'faded';
 }
@@ -125,6 +93,22 @@ export function SimpleTable(props: TableProps) {
     <ResultsTable {...props} />
   ) : (
     <DefaultTable {...props} />
+  );
+}
+
+function Frame({
+  children,
+  contentsBody,
+  showVerticalScrollbar,
+  ...props
+}: ComponentProps<typeof Panel> & {
+  contentsBody?: boolean;
+  showVerticalScrollbar?: boolean;
+}) {
+  return (
+    <StyledFrame showVerticalScrollbar={showVerticalScrollbar} {...props}>
+      <PanelBody display={contentsBody ? 'contents' : undefined}>{children}</PanelBody>
+    </StyledFrame>
   );
 }
 
@@ -156,7 +140,7 @@ function DefaultTable({
   header,
   variant: _variant,
   ...props
-}: DefaultTableProps) {
+}: TableProps) {
   // This shell has no resize affordance, so its columns do not opt into one.
   const unresizableColumns = columns?.map(column => ({resizable: false, ...column}));
 
@@ -175,32 +159,19 @@ function DefaultTable({
 
 function ResultsTable({
   children,
-  className,
-  contentsBody,
   customSections,
   flexibleLastColumn = false,
   header,
-  hideBorder,
-  showVerticalScrollbar,
-  style,
   variant: _variant,
   ...props
-}: ResultsTableProps) {
+}: TableProps) {
   return (
     <SimpleTableVariantContext value="results">
-      <ResultsFrame
-        className={className}
-        contentsBody={contentsBody}
-        hideBorder={hideBorder}
-        showVerticalScrollbar={showVerticalScrollbar}
-        style={style}
-      >
-        <ResultsGrid {...props} flexibleLastColumn={flexibleLastColumn}>
-          <TableSections customSections={customSections} header={header}>
-            {children}
-          </TableSections>
-        </ResultsGrid>
-      </ResultsFrame>
+      <ResultsGrid {...props} flexibleLastColumn={flexibleLastColumn}>
+        <TableSections customSections={customSections} header={header}>
+          {children}
+        </TableSections>
+      </ResultsGrid>
     </SimpleTableVariantContext>
   );
 }
@@ -240,7 +211,6 @@ function HeaderCell({
   children,
   sort,
   handleSortClick,
-  isFirst,
   to,
   variant = 'default',
   divider = defined(children) ? true : false,
@@ -252,11 +222,6 @@ function HeaderCell({
   /** Only applies in the `default` variant. */
   divider?: boolean;
   handleSortClick?: (event: React.MouseEvent) => void;
-  /**
-   * Whether the cell starts the row, which hides its leading hover border in the
-   * `results` variant. Prepended cells can precede it, so `:first-child` can't.
-   */
-  isFirst?: boolean;
   replace?: boolean;
   sort?: SortDirection;
   to?: LocationDescriptor;
@@ -269,7 +234,6 @@ function HeaderCell({
       <ResultsHeaderCell
         {...props}
         align={align}
-        isFirst={isFirst}
         onSort={handleSortClick}
         placement={variant}
         scope="col"
@@ -302,32 +266,25 @@ function HeaderCell({
   );
 }
 
-function Row({children, isClickable, variant = 'default', ref, ...props}: RowProps) {
+function Row({children, variant = 'default', ref, ...props}: RowProps) {
   const tableVariant = useSimpleTableVariant();
 
   if (tableVariant === 'results') {
     return (
-      <ResultsRow isClickable={isClickable} variant={variant} ref={ref} {...props}>
+      <ResultsRow variant={variant} ref={ref} {...props}>
         {children}
       </ResultsRow>
     );
   }
 
   return (
-    <StyledRow divider isClickable={isClickable} variant={variant} ref={ref} {...props}>
+    <StyledRow divider variant={variant} ref={ref} {...props}>
       {children}
     </StyledRow>
   );
 }
 
-/**
- * A `results` cell lays its content out as a column, so its `justify` aligns
- * vertically and its `align` aligns horizontally.
- */
-function RowCell({
-  children,
-  ...props
-}: FlexProps<'td'> & Pick<TdHTMLAttributes<HTMLTableCellElement>, 'colSpan'>) {
+function RowCell({children, ...props}: FlexProps<'td'>) {
   const variant = useSimpleTableVariant();
 
   if (variant === 'results') {
@@ -335,9 +292,8 @@ function RowCell({
       <ResultsRowCell
         as="td"
         role="cell"
-        direction="column"
-        justify="center"
-        minHeight={`${RESULTS_TABLE_ROW_HEIGHT}px`}
+        align="center"
+        minHeight="42px"
         minWidth="0"
         padding="md xl"
         {...props}
@@ -354,7 +310,40 @@ function RowCell({
   );
 }
 
-const StyledTable = styled(Table)`
+interface TableSizingProps {
+  fit?: 'max-content';
+  height?: CSS['height'];
+  scrollable?: boolean;
+}
+
+const isTableSizingProp = (prop: string) =>
+  prop === 'fit' || prop === 'height' || prop === 'scrollable';
+
+const tableSizingStyle = (p: TableSizingProps) => css`
+  ${
+    p.scrollable &&
+    css`
+      overflow-x: auto;
+      overflow-y: auto;
+    `
+  }
+
+  ${
+    p.height &&
+    css`
+      height: 100%;
+      max-height: ${p.height};
+      flex: 1;
+      min-height: 0;
+    `
+  }
+
+  min-width: ${p.fit};
+`;
+
+const StyledTable = styled(Table, {
+  shouldForwardProp: prop => !isTableSizingProp(prop),
+})<TableSizingProps>`
   background: ${p => p.theme.tokens.background.primary};
   border: 1px solid ${p => p.theme.tokens.border.primary};
   border-radius: ${p => p.theme.radius.md};
@@ -362,76 +351,34 @@ const StyledTable = styled(Table)`
   margin: 0;
   width: 100%;
   overflow: hidden;
+
+  ${tableSizingStyle}
 `;
 
-const ResultsFrame = styled(
-  ({
-    children,
-    contentsBody,
-    showVerticalScrollbar: _,
-    ...props
-  }: ComponentProps<typeof Panel> & {
-    children?: ReactNode;
-    contentsBody?: boolean;
-    showVerticalScrollbar?: boolean;
-  }) => (
-    <Panel {...props}>
-      <PanelBody display={contentsBody ? 'contents' : undefined}>{children}</PanelBody>
-    </Panel>
-  )
-)`
+const StyledFrame = styled(Panel, {
+  shouldForwardProp: prop => prop !== 'showVerticalScrollbar',
+})<{showVerticalScrollbar?: boolean}>`
   overflow-x: auto;
-  overflow-y: ${({showVerticalScrollbar}) => (showVerticalScrollbar ? 'auto' : 'hidden')};
+  overflow-y: ${p => (p.showVerticalScrollbar ? 'auto' : 'hidden')};
 `;
 
-/**
- * The shared shell owns column tracks only, so the row tracks, scroll containment
- * and sizing that these tables want are declared here.
- */
 const ResultsGrid = styled(Table, {
-  shouldForwardProp: prop => prop !== 'fit' && prop !== 'height' && prop !== 'scrollable',
-})<{
-  fit?: 'max-content';
-  height?: CSS['height'];
-  scrollable?: boolean;
-}>`
-  ${p =>
-    p.scrollable &&
-    css`
-      overflow-x: auto;
-      overflow-y: auto;
-    `}
+  shouldForwardProp: prop => !isTableSizingProp(prop),
+})<TableSizingProps>`
+  ${tableSizingStyle}
 
   /* Pin the header to a definite track height in both layouts; a content-based
      header track lets Safari mis-size the <thead> on back/forward navigation.
      Body track: 1fr absorbs slack when a height is given, else auto. */
-  ${p =>
-    p.height
-      ? css`
-          height: 100%;
-          max-height: ${p.height};
-          flex: 1;
-          min-height: 0;
+  &:has(> thead + tbody) {
+    grid-template-rows: ${TABLE_HEAD_ROW_HEIGHT}px ${p => (p.height ? '1fr' : 'auto')};
+  }
 
-          &:has(> thead + tbody) {
-            grid-template-rows: ${TABLE_HEAD_ROW_HEIGHT}px 1fr;
-          }
-
-          &:has(> thead + tbody + tbody) {
-            grid-template-rows: ${TABLE_HEAD_ROW_HEIGHT}px fit-content(100%) 1fr;
-          }
-        `
-      : css`
-          &:has(> thead + tbody) {
-            grid-template-rows: ${TABLE_HEAD_ROW_HEIGHT}px auto;
-          }
-
-          &:has(> thead + tbody + tbody) {
-            grid-template-rows: ${TABLE_HEAD_ROW_HEIGHT}px fit-content(100%) auto;
-          }
-        `}
-
-  min-width: ${p => p.fit};
+  &:has(> thead + tbody + tbody) {
+    grid-template-rows:
+      ${TABLE_HEAD_ROW_HEIGHT}px fit-content(100%)
+      ${p => (p.height ? '1fr' : 'auto')};
+  }
 `;
 
 const ResultsHead = styled(Table.Head)`
@@ -478,24 +425,17 @@ const fadedRowStyle = (p: {variant?: 'default' | 'faded'}) =>
     }
   `;
 
-const clickableRowStyle = (p: {isClickable?: boolean}) =>
-  p.isClickable &&
-  css`
-    cursor: pointer;
-  `;
-
 const StyledRow = styled(Table.Row, {
-  shouldForwardProp: prop => prop !== 'isClickable' && prop !== 'variant',
-})<{isClickable?: boolean; variant?: 'default' | 'faded'}>`
+  shouldForwardProp: prop => prop !== 'variant',
+})<{variant?: 'default' | 'faded'}>`
   align-items: center;
 
   ${fadedRowStyle}
-  ${clickableRowStyle}
 `;
 
 const ResultsRow = styled(Table.Row, {
-  shouldForwardProp: prop => prop !== 'isClickable' && prop !== 'variant',
-})<{isClickable?: boolean; variant?: 'default' | 'faded'}>`
+  shouldForwardProp: prop => prop !== 'variant',
+})<{variant?: 'default' | 'faded'}>`
   &:not(thead > &) {
     background-color: ${p => p.theme.tokens.background.primary};
 
@@ -510,7 +450,6 @@ const ResultsRow = styled(Table.Row, {
   }
 
   ${fadedRowStyle}
-  ${clickableRowStyle}
 `;
 
 const ResultsRowCell = styled(Flex)`
@@ -598,8 +537,8 @@ const ColumnHeaderCell = styled(Table.HeadCell, {
 `;
 
 const ResultsHeaderCell = styled(Table.HeadCell, {
-  shouldForwardProp: prop => prop !== 'isFirst' && prop !== 'placement',
-})<{placement: HeaderCellVariant; isFirst?: boolean}>`
+  shouldForwardProp: prop => prop !== 'placement',
+})<{placement: HeaderCellVariant}>`
   height: ${TABLE_HEAD_ROW_HEIGHT}px;
   display: flex;
   align-items: center;
@@ -629,9 +568,11 @@ const ResultsHeaderCell = styled(Table.HeadCell, {
   }
 
   &:hover {
-    border-left-color: ${p =>
-      p.isFirst ? 'transparent' : p.theme.tokens.border.primary};
     border-right-color: ${p => p.theme.tokens.border.primary};
+  }
+
+  &:not(:first-child):hover {
+    border-left-color: ${p => p.theme.tokens.border.primary};
   }
 
   svg {
@@ -677,6 +618,7 @@ SimpleTable.Body = Table.Body;
 SimpleTable.Empty = TableEmpty;
 SimpleTable.Error = TableError;
 SimpleTable.FullWidthCell = FullWidthCell;
+SimpleTable.Frame = Frame;
 SimpleTable.FullWidthRow = FullWidthRow;
 SimpleTable.Head = Head;
 SimpleTable.HeaderCell = HeaderCell;

@@ -330,27 +330,18 @@ describe('SimpleTable component', () => {
     expect(handleSortClick).toHaveBeenCalledTimes(1);
   });
 
-  it('applies className and style to the panel when the variant is results', () => {
+  it('renders a table inside a panel when given a frame', () => {
     render(
-      <SimpleTable
-        variant="results"
-        className="frame"
-        data-test-id="results-table"
-        style={{maxWidth: '300px'}}
-      >
-        <SimpleTable.Row>
-          <SimpleTable.RowCell>Row</SimpleTable.RowCell>
-        </SimpleTable.Row>
-      </SimpleTable>
+      <SimpleTable.Frame data-test-id="frame">
+        <SimpleTable variant="results">
+          <SimpleTable.Row>
+            <SimpleTable.RowCell>Row</SimpleTable.RowCell>
+          </SimpleTable.Row>
+        </SimpleTable>
+      </SimpleTable.Frame>
     );
 
-    const table = screen.getByTestId('results-table');
-    const frame = table.closest<HTMLElement>('.frame');
-
-    expect(table.tagName).toBe('TABLE');
-    expect(table).not.toHaveClass('frame');
-    expect(table).not.toHaveStyle({maxWidth: '300px'});
-    expect(frame).toHaveStyle({maxWidth: '300px'});
+    expect(within(screen.getByTestId('frame')).getByRole('table')).toBeInTheDocument();
   });
 
   it('styles cells by the variant provider when rendered outside a table root', () => {

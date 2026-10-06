@@ -21,7 +21,7 @@ import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/topEventsConstants';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
-import {Table} from 'sentry/views/explore/multiQueryMode/components/miniTable';
+import {TableFrame} from 'sentry/views/explore/multiQueryMode/components/miniTable';
 import type {
   useMultiQueryTableAggregateMode,
   useMultiQueryTableSampleMode,
@@ -90,87 +90,89 @@ function AggregatesTable({
 
   return (
     <Fragment>
-      <Table
-        variant="results"
-        columns={fields.map(field => ({key: field}))}
-        height={TABLE_HEIGHT}
-        minimumColumnWidth={50}
-        prependColumnWidths={['min-content']}
-        scrollable
-        header={
-          <SimpleTable.HeaderRow>
-            <TableHeadCell isFirst={false}>
-              <Flex align="center" gap="xs" />
-            </TableHeadCell>
-            {fields.map((field, i) => {
-              // Hide column names before alignment is determined
-              if (result.isPending) {
-                return <TableHeadCell key={i} isFirst={i === 0} />;
-              }
+      <TableFrame>
+        <SimpleTable
+          variant="results"
+          columns={fields.map(field => ({key: field}))}
+          height={TABLE_HEIGHT}
+          minimumColumnWidth={50}
+          prependColumnWidths={['min-content']}
+          scrollable
+          header={
+            <SimpleTable.HeaderRow>
+              <TableHeadCell>
+                <Flex align="center" gap="xs" />
+              </TableHeadCell>
+              {fields.map((field, i) => {
+                // Hide column names before alignment is determined
+                if (result.isPending) {
+                  return <TableHeadCell key={i} />;
+                }
 
-              let label = field;
+                let label = field;
 
-              const fieldType = meta.fields?.[field];
-              const align = fieldAlignment(field, fieldType);
-              const tag =
-                stringTags[field] ?? numberTags[field] ?? booleanTags[field] ?? null;
-              if (tag) {
-                label = tag.name;
-              }
+                const fieldType = meta.fields?.[field];
+                const align = fieldAlignment(field, fieldType);
+                const tag =
+                  stringTags[field] ?? numberTags[field] ?? booleanTags[field] ?? null;
+                if (tag) {
+                  label = tag.name;
+                }
 
-              const func = parseFunction(field);
-              if (func) {
-                label = prettifyParsedFunction(func);
-              }
+                const func = parseFunction(field);
+                if (func) {
+                  label = prettifyParsedFunction(func);
+                }
 
-              const direction = sortBys.find(s => s.field === field)?.kind;
+                const direction = sortBys.find(s => s.field === field)?.kind;
 
+                return (
+                  <TableHeadCell align={align} key={i} sort={direction}>
+                    {label}
+                  </TableHeadCell>
+                );
+              })}
+            </SimpleTable.HeaderRow>
+          }
+        >
+          {result.isPending ? (
+            <SimpleTable.Loading />
+          ) : result.isError ? (
+            <SimpleTable.Error />
+          ) : result.isFetched && result.data?.length ? (
+            result.data?.map((row, i) => {
+              const target = getSamplesTargetAtIndex(index, [...queries], row, location);
               return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0} sort={direction}>
-                  {label}
-                </TableHeadCell>
+                <SimpleTable.Row key={i}>
+                  <TableBodyCell key={`samples-${i}`}>
+                    {i < TOP_EVENTS_LIMIT && <TopResultsIndicator color={palette[i]!} />}
+                    <Tooltip title={t('View Samples')} containerDisplayMode="flex">
+                      <StyledLink to={target} data-test-id="unstack-link">
+                        <IconStack />
+                      </StyledLink>
+                    </Tooltip>
+                  </TableBodyCell>
+                  {fields.map((field, j) => {
+                    return (
+                      <TableBodyCell key={j}>
+                        <MultiQueryFieldRenderer
+                          index={index}
+                          column={columns[j]}
+                          data={row}
+                          unit={meta?.units?.[field]}
+                          meta={meta}
+                        />
+                      </TableBodyCell>
+                    );
+                  })}
+                </SimpleTable.Row>
               );
-            })}
-          </SimpleTable.HeaderRow>
-        }
-      >
-        {result.isPending ? (
-          <SimpleTable.Loading />
-        ) : result.isError ? (
-          <SimpleTable.Error />
-        ) : result.isFetched && result.data?.length ? (
-          result.data?.map((row, i) => {
-            const target = getSamplesTargetAtIndex(index, [...queries], row, location);
-            return (
-              <SimpleTable.Row key={i}>
-                <TableBodyCell key={`samples-${i}`}>
-                  {i < TOP_EVENTS_LIMIT && <TopResultsIndicator color={palette[i]!} />}
-                  <Tooltip title={t('View Samples')} containerDisplayMode="flex">
-                    <StyledLink to={target} data-test-id="unstack-link">
-                      <IconStack />
-                    </StyledLink>
-                  </Tooltip>
-                </TableBodyCell>
-                {fields.map((field, j) => {
-                  return (
-                    <TableBodyCell key={j}>
-                      <MultiQueryFieldRenderer
-                        index={index}
-                        column={columns[j]}
-                        data={row}
-                        unit={meta?.units?.[field]}
-                        meta={meta}
-                      />
-                    </TableBodyCell>
-                  );
-                })}
-              </SimpleTable.Row>
-            );
-          })
-        ) : (
-          <SimpleTable.Empty>{t('No spans found')}</SimpleTable.Empty>
-        )}
-      </Table>
+            })
+          ) : (
+            <SimpleTable.Empty>{t('No spans found')}</SimpleTable.Empty>
+          )}
+        </SimpleTable>
+      </TableFrame>
     </Fragment>
   );
 }
@@ -197,63 +199,65 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
 
   return (
     <Fragment>
-      <Table
-        variant="results"
-        columns={visibleFields.map(field => ({key: field}))}
-        height={TABLE_HEIGHT}
-        minimumColumnWidth={50}
-        scrollable
-        header={
-          <SimpleTable.HeaderRow>
-            {visibleFields.map((field, i) => {
-              // Hide column names before alignment is determined
-              if (result.isPending) {
-                return <TableHeadCell key={i} isFirst={i === 0} />;
-              }
+      <TableFrame>
+        <SimpleTable
+          variant="results"
+          columns={visibleFields.map(field => ({key: field}))}
+          height={TABLE_HEIGHT}
+          minimumColumnWidth={50}
+          scrollable
+          header={
+            <SimpleTable.HeaderRow>
+              {visibleFields.map((field, i) => {
+                // Hide column names before alignment is determined
+                if (result.isPending) {
+                  return <TableHeadCell key={i} />;
+                }
 
-              const fieldType = meta.fields?.[field];
-              const align = fieldAlignment(field, fieldType);
-              const tag =
-                stringTags[field] ?? numberTags[field] ?? booleanTags[field] ?? null;
+                const fieldType = meta.fields?.[field];
+                const align = fieldAlignment(field, fieldType);
+                const tag =
+                  stringTags[field] ?? numberTags[field] ?? booleanTags[field] ?? null;
 
-              const direction = sortBys.find(s => s.field === field)?.kind;
-              const label = tag?.name ?? prettifyTagKey(field);
+                const direction = sortBys.find(s => s.field === field)?.kind;
+                const label = tag?.name ?? prettifyTagKey(field);
 
-              return (
-                <TableHeadCell align={align} key={i} isFirst={i === 0} sort={direction}>
-                  {label}
-                </TableHeadCell>
-              );
-            })}
-          </SimpleTable.HeaderRow>
-        }
-      >
-        {result.isPending ? (
-          <SimpleTable.Loading />
-        ) : result.isError ? (
-          <SimpleTable.Error />
-        ) : result.isFetched && result.data?.length ? (
-          result.data?.map((row, i) => (
-            <SimpleTable.Row key={i}>
-              {visibleFields.map((field, j) => {
                 return (
-                  <TableBodyCell key={j}>
-                    <MultiQueryFieldRenderer
-                      index={index}
-                      column={columnsFromEventView[j]}
-                      data={row}
-                      unit={meta?.units?.[field]}
-                      meta={meta}
-                    />
-                  </TableBodyCell>
+                  <TableHeadCell align={align} key={i} sort={direction}>
+                    {label}
+                  </TableHeadCell>
                 );
               })}
-            </SimpleTable.Row>
-          ))
-        ) : (
-          <SimpleTable.Empty>{t('No spans found')}</SimpleTable.Empty>
-        )}
-      </Table>
+            </SimpleTable.HeaderRow>
+          }
+        >
+          {result.isPending ? (
+            <SimpleTable.Loading />
+          ) : result.isError ? (
+            <SimpleTable.Error />
+          ) : result.isFetched && result.data?.length ? (
+            result.data?.map((row, i) => (
+              <SimpleTable.Row key={i}>
+                {visibleFields.map((field, j) => {
+                  return (
+                    <TableBodyCell key={j}>
+                      <MultiQueryFieldRenderer
+                        index={index}
+                        column={columnsFromEventView[j]}
+                        data={row}
+                        unit={meta?.units?.[field]}
+                        meta={meta}
+                      />
+                    </TableBodyCell>
+                  );
+                })}
+              </SimpleTable.Row>
+            ))
+          ) : (
+            <SimpleTable.Empty>{t('No spans found')}</SimpleTable.Empty>
+          )}
+        </SimpleTable>
+      </TableFrame>
     </Fragment>
   );
 }

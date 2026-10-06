@@ -5,7 +5,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 /**
  * @deprecated Use `Table` from `@sentry/scraps/table`.
  */
-export const Table = styled(SimpleTable)`
+export const TableFrame = styled(SimpleTable.Frame)`
   overflow-x: hidden;
   margin: 0;
 

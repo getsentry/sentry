@@ -129,142 +129,143 @@ export function AggregatesTable({
 
   return (
     <Fragment>
-      <SimpleTable
-        variant="results"
-        columns={visibleFields.map(field => ({key: field}))}
-        minimumColumnWidth={50}
-        prependColumnWidths={['min-content']}
-        header={
-          <SimpleTable.HeaderRow>
-            <SimpleTable.HeaderCell isFirst={false} />
-            {visibleAggregateFields.map((aggregateField, i) => {
-              // Hide column names before alignment is determined
-              if (result.isPending) {
-                return <SimpleTable.HeaderCell key={i} isFirst={i === 0} />;
-              }
+      <SimpleTable.Frame>
+        <SimpleTable
+          variant="results"
+          columns={visibleFields.map(field => ({key: field}))}
+          minimumColumnWidth={50}
+          prependColumnWidths={['min-content']}
+          header={
+            <SimpleTable.HeaderRow>
+              <SimpleTable.HeaderCell />
+              {visibleAggregateFields.map((aggregateField, i) => {
+                // Hide column names before alignment is determined
+                if (result.isPending) {
+                  return <SimpleTable.HeaderCell key={i} />;
+                }
 
-              const field = isGroupBy(aggregateField)
-                ? aggregateField.groupBy
-                : aggregateField.yAxis;
+                const field = isGroupBy(aggregateField)
+                  ? aggregateField.groupBy
+                  : aggregateField.yAxis;
 
-              const fieldType = meta.fields?.[field];
-              const align = fieldAlignment(field, fieldType);
-              const label = prettifyField(field, stringTags, numberTags, booleanTags);
+                const fieldType = meta.fields?.[field];
+                const align = fieldAlignment(field, fieldType);
+                const label = prettifyField(field, stringTags, numberTags, booleanTags);
 
-              const direction = sorts.find(s => s.field === field)?.kind;
+                const direction = sorts.find(s => s.field === field)?.kind;
 
-              function updateSort() {
-                setSorts([{field, kind: getNextDirection(direction)}]);
+                function updateSort() {
+                  setSorts([{field, kind: getNextDirection(direction)}]);
+                }
+
+                return (
+                  <SimpleTable.HeaderCell
+                    align={align}
+                    columnIndex={i}
+                    key={i}
+                    handleSortClick={updateSort}
+                    sort={direction}
+                  >
+                    {label}
+                  </SimpleTable.HeaderCell>
+                );
+              })}
+            </SimpleTable.HeaderRow>
+          }
+        >
+          {result.isPending ? (
+            <SimpleTable.Loading />
+          ) : result.isError ? (
+            <SimpleTable.Error />
+          ) : result.isFetched && result.data?.length ? (
+            result.data?.map((row, i) => {
+              const menuItems: MenuItemProps[] = [
+                {
+                  key: 'view-samples',
+                  label: t('View Samples'),
+                  to: viewSamplesTarget({
+                    location,
+                    query,
+                    fields,
+                    groupBys,
+                    visualizes,
+                    sorts,
+                    row,
+                    projects,
+                  }),
+                },
+              ];
+
+              const traceSlug = row[`any(${SpanFields.TRACE})`];
+              const timestamp = row[`any(${SpanFields.TIMESTAMP})`];
+              if (traceSlug && timestamp) {
+                menuItems.push({
+                  key: 'view-random-trace',
+                  label: t('View Random Trace'),
+                  to: getTraceDetailsUrl({
+                    organization,
+                    traceSlug,
+                    timestamp,
+                    targetId: undefined,
+                    eventId: undefined,
+                    location,
+                    source: TraceViewSources.TRACES,
+                    dateSelection: normalizeDateTimeParams(selection.datetime),
+                  }),
+                });
               }
 
               return (
-                <SimpleTable.HeaderCell
-                  align={align}
-                  columnIndex={i}
-                  key={i}
-                  isFirst={i === 0}
-                  handleSortClick={updateSort}
-                  sort={direction}
-                >
-                  {label}
-                </SimpleTable.HeaderCell>
+                <SimpleTable.Row key={i}>
+                  <SimpleTable.RowCell>
+                    {topEvents &&
+                      i < topEvents &&
+                      !parseCursor(aggregateCursor)?.offset && (
+                        <TopResultsIndicator color={palette[i]!} />
+                      )}
+                    <DropdownMenu
+                      items={menuItems}
+                      usePortal
+                      strategy="fixed"
+                      size="sm"
+                      offset={4}
+                      minMenuWidth={0}
+                      trigger={triggerProps => (
+                        <OverlayTrigger.IconButton
+                          {...triggerProps}
+                          aria-label={t('View Samples')}
+                          icon={<IconStack />}
+                          variant="transparent"
+                          size="zero"
+                        />
+                      )}
+                    />
+                  </SimpleTable.RowCell>
+                  {visibleAggregateFields.map((aggregateField, j) => {
+                    const field = isGroupBy(aggregateField)
+                      ? aggregateField.groupBy
+                      : aggregateField.yAxis;
+
+                    return (
+                      <SimpleTable.RowCell key={j}>
+                        <FieldRenderer
+                          column={columns[field]}
+                          data={row}
+                          disableTraceLinks
+                          unit={meta?.units?.[field]}
+                          meta={meta}
+                        />
+                      </SimpleTable.RowCell>
+                    );
+                  })}
+                </SimpleTable.Row>
               );
-            })}
-          </SimpleTable.HeaderRow>
-        }
-      >
-        {result.isPending ? (
-          <SimpleTable.Loading />
-        ) : result.isError ? (
-          <SimpleTable.Error />
-        ) : result.isFetched && result.data?.length ? (
-          result.data?.map((row, i) => {
-            const menuItems: MenuItemProps[] = [
-              {
-                key: 'view-samples',
-                label: t('View Samples'),
-                to: viewSamplesTarget({
-                  location,
-                  query,
-                  fields,
-                  groupBys,
-                  visualizes,
-                  sorts,
-                  row,
-                  projects,
-                }),
-              },
-            ];
-
-            const traceSlug = row[`any(${SpanFields.TRACE})`];
-            const timestamp = row[`any(${SpanFields.TIMESTAMP})`];
-            if (traceSlug && timestamp) {
-              menuItems.push({
-                key: 'view-random-trace',
-                label: t('View Random Trace'),
-                to: getTraceDetailsUrl({
-                  organization,
-                  traceSlug,
-                  timestamp,
-                  targetId: undefined,
-                  eventId: undefined,
-                  location,
-                  source: TraceViewSources.TRACES,
-                  dateSelection: normalizeDateTimeParams(selection.datetime),
-                }),
-              });
-            }
-
-            return (
-              <SimpleTable.Row key={i}>
-                <SimpleTable.RowCell>
-                  {topEvents &&
-                    i < topEvents &&
-                    !parseCursor(aggregateCursor)?.offset && (
-                      <TopResultsIndicator color={palette[i]!} />
-                    )}
-                  <DropdownMenu
-                    items={menuItems}
-                    usePortal
-                    strategy="fixed"
-                    size="sm"
-                    offset={4}
-                    minMenuWidth={0}
-                    trigger={triggerProps => (
-                      <OverlayTrigger.IconButton
-                        {...triggerProps}
-                        aria-label={t('View Samples')}
-                        icon={<IconStack />}
-                        variant="transparent"
-                        size="zero"
-                      />
-                    )}
-                  />
-                </SimpleTable.RowCell>
-                {visibleAggregateFields.map((aggregateField, j) => {
-                  const field = isGroupBy(aggregateField)
-                    ? aggregateField.groupBy
-                    : aggregateField.yAxis;
-
-                  return (
-                    <SimpleTable.RowCell key={j}>
-                      <FieldRenderer
-                        column={columns[field]}
-                        data={row}
-                        disableTraceLinks
-                        unit={meta?.units?.[field]}
-                        meta={meta}
-                      />
-                    </SimpleTable.RowCell>
-                  );
-                })}
-              </SimpleTable.Row>
-            );
-          })
-        ) : (
-          <SimpleTable.Empty>{t('No spans found')}</SimpleTable.Empty>
-        )}
-      </SimpleTable>
+            })
+          ) : (
+            <SimpleTable.Empty>{t('No spans found')}</SimpleTable.Empty>
+          )}
+        </SimpleTable>
+      </SimpleTable.Frame>
       <Pagination
         pageLinks={result.pageLinks}
         paginationAnalyticsEvent={paginationAnalyticsEvent}

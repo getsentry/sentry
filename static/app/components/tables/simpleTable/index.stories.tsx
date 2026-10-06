@@ -367,10 +367,10 @@ export default Storybook.story('SimpleTable', story => {
       <Fragment>
         <p>
           Set <Storybook.JSXProperty name="variant" value="'results'" /> for tables that
-          show query results. They sit in a panel, label columns in small uppercase text,
-          and let columns resize by default: give each{' '}
-          <Storybook.JSXNode name="SimpleTable.HeaderCell" /> a{' '}
-          <Storybook.JSXProperty name="columnIndex" value="number" /> to show its handle.
+          show query results. They label columns in small uppercase text, and let columns
+          resize by default: give each <Storybook.JSXNode name="SimpleTable.HeaderCell" />{' '}
+          a <Storybook.JSXProperty name="columnIndex" value="number" /> to show its
+          handle.
         </p>
         <p>
           Pass <Storybook.JSXProperty name="customSections" value /> to render{' '}
@@ -378,7 +378,8 @@ export default Storybook.story('SimpleTable', story => {
           <Storybook.JSXNode name="SimpleTable.Body" /> yourself, such as for a sticky
           header or more than one body. Rows and cells rendered outside a{' '}
           <Storybook.JSXNode name="SimpleTable" /> can opt into a variant with{' '}
-          <Storybook.JSXNode name="SimpleTable.VariantProvider" />.
+          <Storybook.JSXNode name="SimpleTable.VariantProvider" />. Wrap a table in{' '}
+          <Storybook.JSXNode name="SimpleTable.Frame" /> to give it a scrolling panel.
         </p>
         <SimpleTable
           variant="results"
@@ -386,11 +387,7 @@ export default Storybook.story('SimpleTable', story => {
           header={
             <SimpleTable.HeaderRow>
               {headers.map((header, index) => (
-                <SimpleTable.HeaderCell
-                  columnIndex={index}
-                  isFirst={index === 0}
-                  key={header.key}
-                >
+                <SimpleTable.HeaderCell columnIndex={index} key={header.key}>
                   {header.label}
                 </SimpleTable.HeaderCell>
               ))}

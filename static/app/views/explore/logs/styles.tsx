@@ -8,16 +8,13 @@ import {Flex, type FlexProps, Stack} from '@sentry/scraps/layout';
 import {MultiHighlight} from 'sentry/components/highlight';
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {Panel} from 'sentry/components/panels/panel';
-import {
-  RESULTS_TABLE_ROW_HEIGHT,
-  SimpleTable,
-} from 'sentry/components/tables/simpleTable';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {ColumnAlign} from 'sentry/components/tables/sortableHeaderCell';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {unreachable} from 'sentry/utils/unreachable';
 import {SeverityLevel} from 'sentry/views/explore/logs/utils';
 
-export const LOGS_GRID_BODY_ROW_HEIGHT = RESULTS_TABLE_ROW_HEIGHT - 16;
+export const LOGS_GRID_BODY_ROW_HEIGHT = 26;
 
 interface LogTableRowProps {
   error?: boolean;
@@ -179,7 +176,6 @@ export const LogTableBodyCell = styled(SimpleTable.RowCell)<{
 
 export const LogErrorLabelCell = styled(LogTableBodyCell)`
   grid-column: 2 / -1;
-  align-items: flex-start;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -189,7 +185,10 @@ export const LogErrorLabelCell = styled(LogTableBodyCell)`
   }
 `;
 
-export const LogTable = styled(SimpleTable)<{minWidth: string; timestampWidth: number}>`
+export const LogTableFrame = styled(SimpleTable.Frame)<{
+  minWidth: string;
+  timestampWidth: number;
+}>`
   --logsPinEdgeGap: ${p => p.theme.space.sm};
   --logsTimestampWidth: ${p => p.timestampWidth}ch;
   --logsPinButtonArea: calc(2rem + var(--logsPinEdgeGap));
@@ -227,6 +226,8 @@ export const LogTableBody = styled(SimpleTable.Body)<{
 `;
 
 export const LogDetailTableBodyCell = styled(SimpleTable.RowCell)`
+  flex-direction: column;
+  align-items: stretch;
   padding: 0;
   ${LogTableRow} & {
     padding: 0;

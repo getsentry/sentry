@@ -17,6 +17,7 @@ import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 
 import {
   GridBodyCellStatic,
+  GridBodyRow,
   GridHeadCellStatic,
   Header,
   HeaderButtonContainer,
@@ -113,7 +114,6 @@ function GridEditableHead<DataRow, Order extends GridColumnOrder<unknown>>({
             columnIndex={i}
             data-test-id="grid-head-cell"
             key={`${i}.${String(column.key)}`}
-            isFirst={i === 0}
             handleSortClick={columnSort?.onSort}
             replace={columnSort?.replace}
             sort={columnSort?.direction}
@@ -199,7 +199,7 @@ export function GridEditable<
       : [];
 
     return (
-      <SimpleTable.Row
+      <GridBodyRow
         key={row}
         onMouseOver={event => onRowMouseOver?.(dataRow, row, event)}
         onMouseOut={event => onRowMouseOut?.(dataRow, row, event)}
@@ -228,7 +228,7 @@ export function GridEditable<
               : dataRow[col.key as string]}
           </SimpleTable.RowCell>
         ))}
-      </SimpleTable.Row>
+      </GridBodyRow>
     );
   };
 
@@ -269,17 +269,17 @@ export function GridEditable<
             <SimpleTable {...tableProps}>{sections}</SimpleTable>
           </DefaultFrame>
         ) : (
-          <SimpleTable
-            {...tableProps}
-            variant="results"
-            fit={fit}
-            height={height}
-            scrollable={scrollable}
-            showVerticalScrollbar={scrollable}
-            style={bodyStyle}
-          >
-            {sections}
-          </SimpleTable>
+          <SimpleTable.Frame showVerticalScrollbar={scrollable} style={bodyStyle}>
+            <SimpleTable
+              {...tableProps}
+              variant="results"
+              fit={fit}
+              height={height}
+              scrollable={scrollable}
+            >
+              {sections}
+            </SimpleTable>
+          </SimpleTable.Frame>
         )}
       </Profiler>
     </Fragment>

@@ -225,48 +225,49 @@ export function SuspectFunctionsTable({
           />
         </ButtonBar>
       </Flex>
-      <SimpleTable
-        variant="results"
-        columns={COLUMNS.map(column => ({key: column.value}))}
-        header={
-          <SimpleTable.HeaderRow>
-            {COLUMNS.map((column, i) => {
-              return (
-                <SimpleTable.HeaderCell
-                  key={i}
-                  isFirst={i === 0}
-                  align={
-                    column.value === 'package' || column.value === 'name'
-                      ? 'left'
-                      : 'right'
-                  }
-                >
-                  {column.label}
-                </SimpleTable.HeaderCell>
-              );
-            })}
-          </SimpleTable.HeaderRow>
-        }
-      >
-        {flamegraphQuery.isPending ? (
-          <SimpleTable.Loading />
-        ) : flamegraphQuery.isError ? (
-          <SimpleTable.Error />
-        ) : flamegraphQuery.isFetched && metrics.length > 0 ? (
-          metrics.map((metric, i) => (
-            <TableEntry
-              key={i}
-              analyticsPageSource={analyticsPageSource}
-              baggage={baggage}
-              metric={metric}
-              organization={organization}
-              project={project}
-            />
-          ))
-        ) : (
-          <SimpleTable.Empty>{t('No functions found')}</SimpleTable.Empty>
-        )}
-      </SimpleTable>
+      <SimpleTable.Frame>
+        <SimpleTable
+          variant="results"
+          columns={COLUMNS.map(column => ({key: column.value}))}
+          header={
+            <SimpleTable.HeaderRow>
+              {COLUMNS.map((column, i) => {
+                return (
+                  <SimpleTable.HeaderCell
+                    key={i}
+                    align={
+                      column.value === 'package' || column.value === 'name'
+                        ? 'left'
+                        : 'right'
+                    }
+                  >
+                    {column.label}
+                  </SimpleTable.HeaderCell>
+                );
+              })}
+            </SimpleTable.HeaderRow>
+          }
+        >
+          {flamegraphQuery.isPending ? (
+            <SimpleTable.Loading />
+          ) : flamegraphQuery.isError ? (
+            <SimpleTable.Error />
+          ) : flamegraphQuery.isFetched && metrics.length > 0 ? (
+            metrics.map((metric, i) => (
+              <TableEntry
+                key={i}
+                analyticsPageSource={analyticsPageSource}
+                baggage={baggage}
+                metric={metric}
+                organization={organization}
+                project={project}
+              />
+            ))
+          ) : (
+            <SimpleTable.Empty>{t('No functions found')}</SimpleTable.Empty>
+          )}
+        </SimpleTable>
+      </SimpleTable.Frame>
     </Fragment>
   );
 }

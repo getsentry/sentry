@@ -184,81 +184,81 @@ export function SpansTable({
 
   return (
     <Fragment>
-      <SimpleTable
-        variant="results"
-        aria-busy={result.isFetching}
-        columns={visibleFields.map(field => ({key: field}))}
-        data-test-id="spans-table"
-        minimumColumnWidth={50}
-        prependColumnWidths={[`${SPAN_DETAILS_COLUMN_WIDTH}px`]}
-        header={
-          <SimpleTable.HeaderRow>
-            <SpanDetailsToggleHeadCell aria-label={t('Span details')} isFirst />
-            {visibleFields.map((field, i) => {
-              // Hide column names before alignment is determined
-              if (result.isPending || isLoadingDifferentTable) {
-                return <SimpleTable.HeaderCell key={i} />;
-              }
+      <SimpleTable.Frame aria-busy={result.isFetching} data-test-id="spans-table">
+        <SimpleTable
+          variant="results"
+          columns={visibleFields.map(field => ({key: field}))}
+          minimumColumnWidth={50}
+          prependColumnWidths={[`${SPAN_DETAILS_COLUMN_WIDTH}px`]}
+          header={
+            <SimpleTable.HeaderRow>
+              <SpanDetailsToggleHeadCell aria-label={t('Span details')} />
+              {visibleFields.map((field, i) => {
+                // Hide column names before alignment is determined
+                if (result.isPending || isLoadingDifferentTable) {
+                  return <SimpleTable.HeaderCell key={i} />;
+                }
 
-              const fieldType = meta.fields?.[field];
-              const align = fieldAlignment(field, fieldType);
-              const tag =
-                stringTags[field] ?? numberTags[field] ?? booleanTags[field] ?? null;
+                const fieldType = meta.fields?.[field];
+                const align = fieldAlignment(field, fieldType);
+                const tag =
+                  stringTags[field] ?? numberTags[field] ?? booleanTags[field] ?? null;
 
-              const direction = sortBys.find(s => s.field === field)?.kind;
+                const direction = sortBys.find(s => s.field === field)?.kind;
 
-              function updateSort() {
-                setSortBys([{field, kind: getNextDirection(direction)}]);
-              }
+                function updateSort() {
+                  setSortBys([{field, kind: getNextDirection(direction)}]);
+                }
 
-              const label = tag?.name ?? prettifyTagKey(field);
+                const label = tag?.name ?? prettifyTagKey(field);
 
-              return (
-                <SimpleTable.HeaderCell
-                  align={align}
-                  columnIndex={i}
-                  key={i}
-                  handleSortClick={updateSort}
-                  sort={direction}
-                >
-                  <Flex align="center" gap="xs">
-                    <Text as="span" size="sm" variant="inherit">
-                      {label}
-                    </Text>
-                    {pendingFields.has(field) ? (
-                      <LoadingIndicator
-                        data-test-id="column-loading-indicator"
-                        size={12}
-                        style={{margin: 0}}
-                      />
-                    ) : null}
-                  </Flex>
-                </SimpleTable.HeaderCell>
-              );
-            })}
-          </SimpleTable.HeaderRow>
-        }
-      >
-        {(result.isPending || isLoadingDifferentTable) && !displayedData ? (
-          <SimpleTable.Loading />
-        ) : result.isError && !isRetainedError ? (
-          <SimpleTable.Error />
-        ) : displayedData?.length ? (
-          displayedData.map((row, i) => (
-            <SpanSampleRow
-              key={`${tableIdentityKey}:${getSpanKey(row, i)}`}
-              columns={columnsFromEventView}
-              data={row}
-              fields={visibleFields}
-              pendingFields={pendingFields}
-              meta={meta}
-              routingHint={routingHint}
-            />
-          ))
-        ) : (
-          <SimpleTable.Empty>{t('No spans found')}</SimpleTable.Empty>
-        )}
-      </SimpleTable>
+                return (
+                  <SimpleTable.HeaderCell
+                    align={align}
+                    columnIndex={i}
+                    key={i}
+                    handleSortClick={updateSort}
+                    sort={direction}
+                  >
+                    <Flex align="center" gap="xs">
+                      <Text as="span" size="sm" variant="inherit">
+                        {label}
+                      </Text>
+                      {pendingFields.has(field) ? (
+                        <LoadingIndicator
+                          data-test-id="column-loading-indicator"
+                          size={12}
+                          style={{margin: 0}}
+                        />
+                      ) : null}
+                    </Flex>
+                  </SimpleTable.HeaderCell>
+                );
+              })}
+            </SimpleTable.HeaderRow>
+          }
+        >
+          {(result.isPending || isLoadingDifferentTable) && !displayedData ? (
+            <SimpleTable.Loading />
+          ) : result.isError && !isRetainedError ? (
+            <SimpleTable.Error />
+          ) : displayedData?.length ? (
+            displayedData.map((row, i) => (
+              <SpanSampleRow
+                key={`${tableIdentityKey}:${getSpanKey(row, i)}`}
+                columns={columnsFromEventView}
+                data={row}
+                fields={visibleFields}
+                pendingFields={pendingFields}
+                meta={meta}
+                routingHint={routingHint}
+              />
+            ))
+          ) : (
+            <SimpleTable.Empty>{t('No spans found')}</SimpleTable.Empty>
+          )}
+        </SimpleTable>
+      </SimpleTable.Frame>
       {isRetainedError && !isFieldAdditionError ? (
         <LoadingError
           message={t('Failed to update span samples')}
@@ -348,11 +348,13 @@ const SpanDetailsToggleHeadCell = styled(SimpleTable.HeaderCell)`
 `;
 
 const SpanDetailsToggleCell = styled(SimpleTable.RowCell)`
-  align-items: center;
+  justify-content: center;
   padding: 0;
 `;
 
 const SpanDetailsCell = styled(SimpleTable.RowCell)`
+  flex-direction: column;
+  align-items: stretch;
   background-color: ${p => p.theme.colors.gray100};
   grid-column: 1 / -1;
   padding: ${p => p.theme.space.md};

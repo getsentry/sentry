@@ -55,3 +55,9 @@ export const GridBodyCellStatic = styled(SimpleTable.RowCell)`
     padding: ${p => `${p.theme.space.md} 0 ${p.theme.space.md} ${p.theme.space['2xl']}`};
   }
 `;
+
+export const GridBodyRow = styled(SimpleTable.Row, {
+  shouldForwardProp: prop => prop !== 'isClickable',
+})<{isClickable?: boolean}>`
+  cursor: ${p => (p.isClickable ? 'pointer' : undefined)};
+`;
