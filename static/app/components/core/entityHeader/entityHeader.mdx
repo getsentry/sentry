@@ -140,11 +140,11 @@ The slot keeps its space while `isLoading`, which is what stops the stats slidin
 
 ## Linking and tooltips
 
-A stat value becomes a link with `to`, and so does the title. A metadata item gains a dotted underline and a tooltip with `tooltip`. Use `variant` to call out a problem.
+A metadata item gains a dotted underline and a tooltip with `tooltip`. Use `variant` to call out a problem.
 
 <Storybook.Demo>
   <EntityHeader
-    title={{label: 'ValueError', to: '/issues/1/'}}
+    title={{label: 'ValueError'}}
     subtitle="Cannot parse the provided timestamp"
     stats={[{type: 'link', label: 'Events', value: 168, to: '/issues/1/events/'}]}
     metadata={[
@@ -156,7 +156,7 @@ A stat value becomes a link with `to`, and so does the title. A metadata item ga
 
 ```jsx
 <EntityHeader
-  title={{label: 'ValueError', to: '/issues/1/'}}
+  title={{label: 'ValueError'}}
   subtitle="Cannot parse the provided timestamp"
   stats={[{type: 'link', label: 'Events', value: 168, to: '/issues/1/events/'}]}
   metadata={[
@@ -267,7 +267,7 @@ Do not use it for list or landing pages, which carry no single entity.
 
 ## Accessibility
 
-- The title renders as an `h2`. The page's `h1` is the TopBar title slot, so the two do not compete. It stays in the tree while loading, so the page's structure does not change as data lands.
+- The title renders as an `h2`, and is never a link: a heading that is wholly a link announces as both, and the breadcrumb above it already handles going up. The page's `h1` is the TopBar title slot, so the two do not compete. The heading stays in the tree while loading, so the page's structure does not change as data lands.
 - The header sets `aria-busy` while loading, which is the only signal a screen reader gets that more is coming.
 - A `leadingGraphic` is decorative and hidden until given a `label`, at which point it becomes a named `img`. It is deliberately not focusable — a named image is announced without focus, so a tab stop there would be one a keyboard user could not act on.
 - A `people` stack is a named `group`. Its avatars are not focusable, so the per-avatar tooltips are mouse-only and the group name is what carries the meaning.

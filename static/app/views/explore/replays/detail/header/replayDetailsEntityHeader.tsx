@@ -19,33 +19,13 @@ import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplay
 import {useReplayViewers} from 'sentry/utils/replays/hooks/useReplayViewers';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {ReplayErrorsTooltip} from 'sentry/views/explore/replays/detail/header/replayErrorsTooltip';
-import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
-import type {ReplayRecord} from 'sentry/views/explore/replays/types';
 
 interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;
 }
 
-/**
- * Prefer email over id — both are indexed, email is the more useful filter.
- */
-function getUserSearchQuery({user}: {user: ReplayRecord['user']}) {
-  if (!user) {
-    return null;
-  }
-  if (user.email) {
-    return `user.email:"${user.email}"`;
-  }
-  if (user.id) {
-    return `user.id:"${user.id}"`;
-  }
-  return null;
-}
-
 export function ReplayDetailsEntityHeader({readerResult}: Props) {
-  const organization = useOrganization();
   const location = useLocation();
   const matches = useMatches();
   const [prefs] = useReplayPrefs();
@@ -66,15 +46,6 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
   if (isArchived) {
     return <EntityHeader title={{label: t('Deleted Replay')}} />;
   }
-
-  const searchQuery = replayRecord ? getUserSearchQuery({user: replayRecord.user}) : null;
-  const replaysIndexUrl =
-    searchQuery && replayRecord
-      ? {
-          pathname: makeReplaysPathname({path: '/', organization}),
-          query: {query: searchQuery, project: replayRecord.project_id},
-        }
-      : undefined;
 
   // Opens the breadcrumbs tab, filtered to rage and dead clicks.
   const breadcrumbTab = {
@@ -120,7 +91,6 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
               },
             }
           : undefined,
-        to: replaysIndexUrl,
         tags: [
           isLive ? (
             <Tag key="live" variant="success">

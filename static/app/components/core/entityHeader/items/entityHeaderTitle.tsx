@@ -5,8 +5,6 @@ import type {TagProps} from '@sentry/scraps/badge';
 import {ProjectsBadge} from '@sentry/scraps/badge';
 import {ROW_HEIGHT, TITLE_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {Flex} from '@sentry/scraps/layout';
-import type {LinkProps} from '@sentry/scraps/link';
-import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -81,10 +79,6 @@ export interface EntityHeaderTitleProps {
    * `null` entries are dropped so callers can inline conditionals.
    */
   tags?: Array<React.ReactElement<TagProps> | null>;
-  /**
-   * Turns the label into a link.
-   */
-  to?: LinkProps['to'];
 }
 
 function LeadingGraphic({graphic}: {graphic: EntityHeaderLeadingGraphic}) {
@@ -149,7 +143,6 @@ export function EntityHeaderTitle({
   leadingGraphic,
   loadingWidth = '240px',
   tags,
-  to,
 }: EntityHeaderTitleProps & {isLoading?: boolean}) {
   if (isLoading) {
     // The heading stays in the tree, carrying the label the caller already has.
@@ -180,8 +173,15 @@ export function EntityHeaderTitle({
   return (
     <Flex align="center" gap="sm" minWidth={0} minHeight={ROW_HEIGHT}>
       {leadingGraphic && <LeadingGraphicSlot graphic={leadingGraphic} />}
+      {/*
+        Plain text, not a link. A heading that is wholly a link announces as
+        both, and the title is not where navigation belongs — the breadcrumb
+        above it already goes up, and a link nobody can see is not an
+        affordance. It also kept the global `a` colour over the heading's own,
+        so the title rendered blue against the spec.
+      */}
       <Heading as="h2" size="lg" density="comfortable" ellipsis>
-        {to ? <Link to={to}>{label}</Link> : label}
+        {label}
       </Heading>
       {visibleTags.length > 0 && (
         <Flex align="center" gap="xs" flexShrink={0}>

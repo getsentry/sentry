@@ -29,15 +29,14 @@ describe('EntityHeader', () => {
       expect(within(header).queryByRole('heading', {level: 1})).not.toBeInTheDocument();
     });
 
-    it('links the title only when a destination is given', () => {
-      const {rerender} = render(<EntityHeader title={{label: 'Session'}} />);
-      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    it('renders the title as plain text, never a link', () => {
+      render(<EntityHeader title={{label: 'Session'}} />);
 
-      rerender(<EntityHeader title={{label: 'Session', to: '/replays/'}} />);
-      expect(screen.getByRole('link', {name: 'Session'})).toHaveAttribute(
-        'href',
-        '/replays/'
-      );
+      // A heading that is wholly a link announces as both, and the breadcrumb
+      // above already handles going up. Keeping it plain also keeps the
+      // heading's own colour, which the global `a` rule would otherwise win.
+      expect(screen.getByRole('heading', {level: 2, name: 'Session'})).toBeVisible();
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
     });
 
     it('renders tags beside the title and hides the leading graphic from AT', () => {
@@ -536,7 +535,7 @@ describe('EntityHeader', () => {
     it('reads in the order the narrow layout shows, so focus follows the eye', () => {
       render(
         <EntityHeader
-          title={{label: 'Session', to: '/replays/'}}
+          title={{label: 'Session'}}
           stats={[
             {type: 'link', label: 'Errors', value: 3, to: '/replays/1/?t_main=errors'},
           ]}
