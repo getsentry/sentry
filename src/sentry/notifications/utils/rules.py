@@ -2,24 +2,20 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Literal
 
-from sentry.models.rule import Rule
+from sentry.notifications.types import NotificationRule
 
 RuleIdType = Literal["workflow_id", "legacy_rule_id"]
 
 
-def get_key_from_rule_data(rule: Rule, key: str) -> str:
-    value = rule.data.get("actions", [{}])[0].get(key)
-    assert value is not None
-    return value
-
-
 @dataclass
 class RulesAndWorkflows:
-    rules: list[Rule]
-    workflow_rules: list[Rule]  # workflows as fake Rules
+    rules: list[NotificationRule]
+    workflow_rules: list[NotificationRule]
 
 
-def split_rules_by_rule_workflow_id(rules: Sequence[Rule]) -> RulesAndWorkflows:
+def split_rules_by_rule_workflow_id(
+    rules: Sequence[NotificationRule],
+) -> RulesAndWorkflows:
     parsed_rules = []
     workflow_rules = []
     for rule in rules:
@@ -33,7 +29,7 @@ def split_rules_by_rule_workflow_id(rules: Sequence[Rule]) -> RulesAndWorkflows:
 
 
 def get_rule_or_workflow_id(
-    rule: Rule, *, prefer: RuleIdType = "legacy_rule_id"
+    rule: NotificationRule, *, prefer: RuleIdType = "legacy_rule_id"
 ) -> tuple[RuleIdType, str]:
     """
     Returns which id the rule data carries, and its value. When both a legacy
@@ -45,8 +41,7 @@ def get_rule_or_workflow_id(
         else ("legacy_rule_id", "workflow_id")
     )
     for key in keys:
-        try:
-            return (key, get_key_from_rule_data(rule, key))
-        except AssertionError:
-            pass
-    return ("legacy_rule_id", str(rule.id))
+        value = rule.workflow_id if key == "workflow_id" else rule.legacy_rule_id
+        if value is not None:
+            return (key, str(value))
+    raise AssertionError("NotificationRule must have a workflow or legacy rule ID")

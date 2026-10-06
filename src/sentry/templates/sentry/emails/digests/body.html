@@ -51,7 +51,7 @@
 
     <div class="rule">
       <div class="container">
-        {% with rule_details=rules_details|get_item:rule.id snooze_alert_url=snooze_alert_urls|get_item:rule.id %}
+        {% with rule_details=rules_details|get_item:rule.broken_rule_id snooze_alert_url=snooze_alert_urls|get_item:rule.broken_rule_id %}
         {% if snooze_alert %}
             <a class="mute" href="{% absolute_uri snooze_alert_url %}">Mute this alert</a>
         {% endif %}

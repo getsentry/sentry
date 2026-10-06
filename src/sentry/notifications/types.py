@@ -2,17 +2,156 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum, StrEnum
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any, NamedTuple, TypedDict
 
 from sentry.hybridcloud.rpc import ValueEqualityEnum
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
+    from sentry.models.project import Project
     from sentry.models.rule import Rule
 
 
+class NotificationRuleData(TypedDict):
+    """Configuration for legacy action instantiation, not notification identity."""
+
+    actions: list[dict[str, Any]]
+
+
+@dataclass(eq=False, frozen=True)
+class NotificationRule:
+    """Rule-like notification context for the legacy action registry.
+
+    ``workflow_id`` and ``legacy_rule_id`` are the canonical notification identities.
+    Notification code must not recover identity from ``data["actions"]``. Action data
+    exists only to configure the legacy action registry. Parsing identity from action
+    data is restricted to explicit compatibility boundaries for deprecated Rule rows
+    and payloads serialized before these top-level fields existed.
+    """
+
+    action_id: int | None
+    label: str
+    data: NotificationRuleData
+    project: Project
+    environment_id: int | None
+    workflow_id: int | None
+    legacy_rule_id: int | None
+
+    @classmethod
+    def from_deprecated_legacy_rule(
+        cls,
+        rule: Rule,
+        *,
+        project: Project | None = None,
+        workflow_id: int | None = None,
+    ) -> NotificationRule:
+        actions = rule.data.get("actions")
+        if (
+            not isinstance(actions, list)
+            or not actions
+            or not all(isinstance(action, dict) for action in actions)
+        ):
+            # Deprecated rules can reach render-only paths without action data.
+            actions = [{}]
+
+        first_action = actions[0]
+        embedded_workflow_id = first_action.get("workflow_id")
+        embedded_legacy_rule_id = first_action.get("legacy_rule_id")
+        if embedded_workflow_id is not None:
+            embedded_workflow_id = int(embedded_workflow_id)
+        if embedded_legacy_rule_id is not None:
+            embedded_legacy_rule_id = int(embedded_legacy_rule_id)
+        if embedded_legacy_rule_id == TEST_NOTIFICATION_ID:
+            effective_workflow_id = None
+            legacy_rule_id = TEST_NOTIFICATION_ID
+        elif workflow_id is not None:
+            effective_workflow_id = workflow_id
+            legacy_rule_id = rule.id
+        elif embedded_legacy_rule_id is not None:
+            effective_workflow_id = embedded_workflow_id
+            legacy_rule_id = embedded_legacy_rule_id
+        elif embedded_workflow_id is not None:
+            effective_workflow_id = embedded_workflow_id
+            legacy_rule_id = None
+        else:
+            effective_workflow_id = None
+            legacy_rule_id = rule.id
+
+        return cls(
+            action_id=None,
+            label=rule.label,
+            data={"actions": [dict(action) for action in actions]},
+            project=project or rule.project,
+            environment_id=rule.environment_id,
+            workflow_id=effective_workflow_id,
+            legacy_rule_id=legacy_rule_id,
+        )
+
+    def __post_init__(self) -> None:
+        if not self.data["actions"]:
+            raise ValueError("NotificationRule requires at least one action")
+
+        if self.legacy_rule_id == TEST_NOTIFICATION_ID:
+            if self.workflow_id is not None:
+                raise ValueError("Test notification cannot have a workflow ID")
+        elif self.workflow_id == TEST_NOTIFICATION_ID:
+            raise ValueError("Workflow ID cannot be the test notification ID")
+        elif self.workflow_id is None and self.legacy_rule_id is None:
+            raise ValueError("NotificationRule requires a workflow or legacy rule ID")
+
+    @property
+    def identifier(self) -> str:
+        if self.is_test_notification and self.action_id is not None:
+            return f"test:{self.action_id}"
+        if self.workflow_id is not None:
+            return f"workflow:{self.workflow_id}"
+        assert self.legacy_rule_id is not None
+        return f"legacy:{self.legacy_rule_id}"
+
+    @property
+    def broken_rule_id(self) -> int:
+        """Preserve callers that historically treated several ID domains as Rule.id."""
+        if self.action_id is not None:
+            return self.action_id
+        if self.legacy_rule_id is not None:
+            return self.legacy_rule_id
+        assert self.workflow_id is not None
+        return self.workflow_id
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, NotificationRule):
+            return NotImplemented
+        return self.identifier == other.identifier
+
+    def __hash__(self) -> int:
+        return hash(self.identifier)
+
+    @property
+    def is_test_notification(self) -> bool:
+        return self.legacy_rule_id == TEST_NOTIFICATION_ID
+
+    @property
+    def is_workflow_only(self) -> bool:
+        return self.workflow_id is not None and self.legacy_rule_id is None
+
+    @property
+    def is_workflow_with_legacy_rule(self) -> bool:
+        return self.workflow_id is not None and self.legacy_rule_id is not None
+
+    @property
+    def is_legacy_rule_only(self) -> bool:
+        return self.workflow_id is None and self.legacy_rule_id not in (
+            None,
+            TEST_NOTIFICATION_ID,
+        )
+
+    @property
+    def project_id(self) -> int:
+        return self.project.id
+
+
 class RuleFuture(NamedTuple):
-    rule: Rule
+    rule: NotificationRule
     kwargs: dict[str, Any]
 
 

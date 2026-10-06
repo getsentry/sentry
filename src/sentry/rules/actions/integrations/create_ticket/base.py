@@ -5,7 +5,7 @@ from collections.abc import Generator, Mapping
 from typing import Any
 
 from sentry.integrations.services.integration import RpcIntegration
-from sentry.models.rule import Rule
+from sentry.notifications.types import NotificationRule
 from sentry.rules.actions.integrations.base import IntegrationEventAction
 from sentry.rules.actions.integrations.create_ticket.form import IntegrationNotifyServiceForm
 from sentry.rules.actions.integrations.create_ticket.utils import create_issue
@@ -18,7 +18,6 @@ class TicketEventAction(IntegrationEventAction, abc.ABC):
 
     integration_key = "integration"
     link: str | None
-    rule: Rule
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super(IntegrationEventAction, self).__init__(*args, **kwargs)
@@ -46,6 +45,12 @@ class TicketEventAction(IntegrationEventAction, abc.ABC):
     def render_label(self) -> str:
         label: str = self.label.format(integration=self.get_integration_name())
         return label
+
+    @property
+    def rule_context(self) -> NotificationRule:
+        if self.rule is None:
+            raise TypeError("Ticket delivery requires a rule context")
+        return self.rule
 
     @property
     @abc.abstractmethod

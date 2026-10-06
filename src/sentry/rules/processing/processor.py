@@ -4,8 +4,7 @@ import logging
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from typing import Any
 
-from sentry.models.rule import Rule
-from sentry.notifications.types import RuleFuture
+from sentry.notifications.types import NotificationRule, RuleFuture
 from sentry.rules import rules
 from sentry.rules.actions.base import instantiate_action
 from sentry.services.eventstore.models import GroupEvent
@@ -39,14 +38,16 @@ def split_conditions_and_filters(
 
 
 def activate_downstream_actions(
-    rule: Rule,
+    rule: NotificationRule,
     event: GroupEvent,
     notification_uuid: str | None = None,
 ) -> MutableMapping[
-    str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
+    str | Callable[[GroupEvent, Sequence[RuleFuture]], None],
+    tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]],
 ]:
     grouped_futures: MutableMapping[
-        str, tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]]
+        str | Callable[[GroupEvent, Sequence[RuleFuture]], None],
+        tuple[Callable[[GroupEvent, Sequence[RuleFuture]], None], list[RuleFuture]],
     ] = {}
 
     for action in rule.data.get("actions", ()):

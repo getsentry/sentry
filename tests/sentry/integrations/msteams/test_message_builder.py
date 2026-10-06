@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from dataclasses import replace
 from typing import TypeGuard
 
 import orjson
@@ -49,6 +50,7 @@ from sentry.integrations.msteams.utils import ACTION_TYPE
 from sentry.models.group import GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
+from sentry.notifications.types import NotificationRule
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import (
     DummyNotification,
@@ -117,9 +119,12 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert self.event1.group is not None
         self.group1 = self.event1.group
 
-        self.rules = [
+        persisted_rules = [
             self.create_project_rule(name="rule1"),
             self.create_project_rule(name="rule2"),
+        ]
+        self.rules = [
+            NotificationRule.from_deprecated_legacy_rule(rule) for rule in persisted_rules
         ]
 
     def test_simple(self) -> None:
@@ -422,18 +427,18 @@ class MSTeamsMessageBuilderTest(TestCase):
         assert card_json[0] == "{" and card_json[-1] == "}"
 
     def test_issue_action_payload_includes_rule_and_workflow_ids(self) -> None:
-        self.rules[0].data["actions"][0].update(
-            {"legacy_rule_id": self.rules[0].id, "workflow_id": 123}
-        )
+        legacy_rule_id = self.rules[0].legacy_rule_id
+        assert legacy_rule_id is not None
+        rule = replace(self.rules[0], legacy_rule_id=legacy_rule_id, workflow_id=123)
 
         payload = MSTeamsIssueMessageBuilder(
             group=self.group1,
             event=self.event1,
-            rules=[self.rules[0]],
+            rules=[rule],
             integration=self.integration,
         ).generate_action_payload(ACTION_TYPE.RESOLVE)["payload"]
 
-        assert payload["rules"] == [self.rules[0].id]
+        assert payload["rules"] == [legacy_rule_id]
         assert payload["workflows"] == [123]
 
     def test_issue_without_description(self) -> None:
@@ -442,6 +447,42 @@ class MSTeamsMessageBuilderTest(TestCase):
         ).build_group_card()
 
         assert 3 == len(issue_card["body"])
+
+    def test_action_payload_preserves_rule_id_contract(self) -> None:
+        legacy_rule = self.rules[0]
+        legacy_rule_id = legacy_rule.legacy_rule_id
+        assert legacy_rule_id is not None
+        rules = [
+            NotificationRule(
+                action_id=legacy_rule.action_id,
+                label="Workflow with legacy rule",
+                data={"actions": [{"legacy_rule_id": legacy_rule_id}]},
+                project=self.project1,
+                environment_id=None,
+                workflow_id=123,
+                legacy_rule_id=legacy_rule_id,
+            ),
+            NotificationRule(
+                action_id=None,
+                label="Workflow only",
+                data={"actions": [{"workflow_id": 123}]},
+                project=self.project1,
+                environment_id=None,
+                workflow_id=123,
+                legacy_rule_id=None,
+            ),
+        ]
+        builder = MSTeamsIssueMessageBuilder(
+            group=self.group1,
+            event=self.event1,
+            rules=rules,
+            integration=self.integration,
+        )
+
+        payload = builder.generate_action_payload(ACTION_TYPE.RESOLVE)
+
+        assert payload["payload"]["rules"] == [legacy_rule_id, 123]
+        assert payload["payload"]["workflows"] == [123]
 
     def test_issue_with_only_one_rule(self) -> None:
         one_rule = self.rules[:1]

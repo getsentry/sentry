@@ -4,7 +4,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict
 
-from sentry.models.rule import Rule
+from sentry.models.project import Project
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.types import (
     NotificationCategory,
@@ -13,6 +13,7 @@ from sentry.notifications.platform.types import (
     NotificationSource,
     NotificationTemplate,
 )
+from sentry.notifications.types import TEST_NOTIFICATION_ID, NotificationRule, NotificationRuleData
 
 
 class SerializableRuleProxy(BaseModel):
@@ -23,36 +24,59 @@ class SerializableRuleProxy(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     id: int
+    action_id: int | None = None
     label: str
     data: dict[str, Any]
     environment_id: int | None = None
     project_id: int
+    workflow_id: int | None = None
+    legacy_rule_id: int | None = None
 
     @classmethod
-    def from_rule(cls, rule: Rule) -> SerializableRuleProxy:
-        """
-        Temporary method to convert a Rule to a NotificationRuleInfo. This will
-        be removed once we no longer rely on the Rule ORM model.
-        """
+    def from_rule(cls, rule: NotificationRule) -> SerializableRuleProxy:
+        """Create a serializable representation of a notification rule."""
         return cls(
-            id=rule.id,
+            id=rule.broken_rule_id,
+            action_id=rule.action_id,
             label=rule.label,
             data=rule.data,
             environment_id=rule.environment_id,
             project_id=rule.project.id,
+            workflow_id=rule.workflow_id,
+            legacy_rule_id=rule.legacy_rule_id,
         )
 
-    def to_rule(self) -> Rule:
-        """
-        Temporary method to convert a NotificationRuleInfo to a Rule. This will
-        be removed once we no longer rely on the Rule ORM model.
-        """
-        return Rule(
-            id=self.id,
+    def to_notification_rule(self, project: Project) -> NotificationRule:
+        workflow_id = self.workflow_id
+        legacy_rule_id = self.legacy_rule_id
+        actions = self.data.get("actions")
+        if (
+            not isinstance(actions, list)
+            or not actions
+            or not all(isinstance(action, dict) for action in actions)
+        ):
+            actions = [{}]
+        data: NotificationRuleData = {"actions": [dict(action) for action in actions]}
+        if workflow_id is None and legacy_rule_id is None:
+            # Compatibility for payloads serialized before identities became top-level fields.
+            action = actions[0]
+            workflow_id = action.get("workflow_id")
+            legacy_rule_id = action.get("legacy_rule_id")
+            workflow_id = int(workflow_id) if workflow_id is not None else None
+            legacy_rule_id = int(legacy_rule_id) if legacy_rule_id is not None else None
+            if workflow_id == TEST_NOTIFICATION_ID or legacy_rule_id == TEST_NOTIFICATION_ID:
+                workflow_id = None
+                legacy_rule_id = TEST_NOTIFICATION_ID
+            elif workflow_id is None and legacy_rule_id is None:
+                legacy_rule_id = self.id
+        return NotificationRule(
+            action_id=self.action_id if "action_id" in self.__fields_set__ else self.id,
             label=self.label,
-            data=self.data,
+            data=data,
             environment_id=self.environment_id,
-            project_id=self.project_id,
+            project=project,
+            workflow_id=workflow_id,
+            legacy_rule_id=legacy_rule_id,
         )
 
 
@@ -84,6 +108,8 @@ class IssueNotificationTemplate(NotificationTemplate[IssueNotificationData]):
             data={
                 "actions": [{"workflow_id": 3}],
             },
+            workflow_id=3,
+            legacy_rule_id=None,
         ),
     )
     hide_from_debugger = True

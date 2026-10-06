@@ -34,7 +34,7 @@ class IssueSlackRenderer(NotificationRenderer[SlackRenderable]):
             group=group,
             event=event,
             tags=set(data.tags) if data.tags else None,
-            rules=[data.rule.to_rule()] if data.rule else None,
+            rules=[data.rule.to_notification_rule(group.project)] if data.rule else None,
             notes=data.notes,
             link_to_event=True,
         ).build(notification_uuid=data.notification_uuid)

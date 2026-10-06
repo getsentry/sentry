@@ -24,7 +24,12 @@ from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notifications.rules import AlertRuleNotification
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, FineTuningAPIKey
+from sentry.notifications.types import (
+    ActionTargetType,
+    FallthroughChoiceType,
+    FineTuningAPIKey,
+    NotificationRule,
+)
 from sentry.plugins.base import Notification
 from sentry.silo.base import SiloMode
 from sentry.tasks.digests import deliver_digest
@@ -330,7 +335,15 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             == f"{event.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={event.organization.id}|Notification Settings>"
         )
 
-    def _assert_issue_owners_env_block(self, rule: Rule, environment: Environment) -> None:
+    def _assert_issue_owners_env_block(
+        self, rule: Rule | NotificationRule, environment: Environment
+    ) -> None:
+        workflow_id = (
+            rule.workflow_id
+            if isinstance(rule, NotificationRule)
+            else rule.data["actions"][0]["workflow_id"]
+        )
+        assert workflow_id is not None
         event = self.store_event(
             data={"message": "Hello world", "level": "error", "environment": environment.name},
             project_id=self.project.id,
@@ -351,13 +364,13 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         notification_uuid = notification.notification_uuid
         assert (
             fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{rule.data['actions'][0]['workflow_id']}/|ja rule>"
+            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{workflow_id}/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&environment={environment.name}&workflow_id={rule.data['actions'][0]['workflow_id']}&alert_type=issue|*Hello world*>"
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&environment={environment.name}&workflow_id={workflow_id}&alert_type=issue|*Hello world*>"
         )
         assert (
             blocks[4]["elements"][0]["text"]
@@ -650,9 +663,12 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             name="ja rule",
             action_data=[action_data],
         )
+        notification_rule = NotificationRule.from_deprecated_legacy_rule(rule)
 
         key = f"mail:p:{self.project.id}"
-        backend.add(key, event_to_record(event, [rule]), increment_delay=0, maximum_delay=0)
+        backend.add(
+            key, event_to_record(event, [notification_rule]), increment_delay=0, maximum_delay=0
+        )
 
         with self.tasks():
             deliver_digest(key)
@@ -953,13 +969,18 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
 
         rule = self.create_project_rule(project=self.project)
         workflow_id = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow_id
+        notification_rule = NotificationRule.from_deprecated_legacy_rule(
+            rule, project=self.project
+        )
         ProjectOwnership.objects.create(project_id=self.project.id)
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
         )
 
         key = f"mail:p:{self.project.id}:IssueOwners::AllMembers"
-        backend.add(key, event_to_record(event, [rule]), increment_delay=0, maximum_delay=0)
+        backend.add(
+            key, event_to_record(event, [notification_rule]), increment_delay=0, maximum_delay=0
+        )
 
         with self.tasks():
             deliver_digest(key)

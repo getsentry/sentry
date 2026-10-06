@@ -6,6 +6,7 @@ import responses
 
 from sentry.integrations.opsgenie.client import OpsgenieClient
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.notifications.types import NotificationRule
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
 from sentry.testutils.asserts import (
     assert_count_of_metric,
@@ -82,7 +83,7 @@ class OpsgenieClientTest(APITestCase):
         with self.options({"system.url-prefix": "http://example.com"}):
             payload = client.build_issue_alert_payload(
                 data=event,
-                rules=[rule],
+                rules=[NotificationRule.from_deprecated_legacy_rule(rule)],
                 event=event,
                 group=group,
                 priority="P2",
@@ -149,7 +150,7 @@ class OpsgenieClientTest(APITestCase):
         with self.options({"system.url-prefix": "http://example.com"}):
             payload = client.build_issue_alert_payload(
                 data=event,
-                rules=[rule],
+                rules=[NotificationRule.from_deprecated_legacy_rule(rule)],
                 event=event,
                 group=group,
                 priority="P2",
@@ -215,7 +216,7 @@ class OpsgenieClientTest(APITestCase):
         with self.options({"system.url-prefix": "http://example.com"}):
             payload = client.build_issue_alert_payload(
                 data=event,
-                rules=[rule],
+                rules=[NotificationRule.from_deprecated_legacy_rule(rule)],
                 event=event,
                 group=group,
                 priority="P2",
@@ -282,7 +283,7 @@ class OpsgenieClientTest(APITestCase):
         with self.options({"system.url-prefix": "http://example.com"}):
             payload = client.build_issue_alert_payload(
                 data=event,
-                rules=[rule],
+                rules=[NotificationRule.from_deprecated_legacy_rule(rule)],
                 event=event,
                 group=group,
                 priority="P2",
