@@ -3579,6 +3579,7 @@ register(
     type=Int,
     default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Notification sources that record engagement tracking (sent and engagement events).
 # Sources become metric tags, so this list is also what keeps those tags bounded.
