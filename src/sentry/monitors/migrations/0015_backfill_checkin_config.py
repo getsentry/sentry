@@ -61,7 +61,7 @@ class Migration(CheckedMigration):
     is_post_deployment = True
 
     dependencies = [
-        ("monitors", "0015_add_monitorcheckin_checkin_config_index"),
+        ("monitors", "0014_add_monitorcheckinconfig"),
     ]
 
     operations = [
