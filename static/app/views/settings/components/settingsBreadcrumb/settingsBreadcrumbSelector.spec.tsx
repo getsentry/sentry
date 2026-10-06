@@ -1,6 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {SettingsBreadcrumbSlot} from './settingsBreadcrumbSlot';
+import {BreadcrumbTitle} from './breadcrumbTitle';
+import {SettingsBreadcrumbSelector} from './settingsBreadcrumbSelector';
 
 const items = [
   {type: 'link' as const, label: 'Settings', to: '/settings/'},
@@ -17,15 +18,12 @@ const options = [
   {value: 'python', label: 'python'},
 ];
 
-describe('SettingsBreadcrumbSlot', () => {
+describe('SettingsBreadcrumbSelector', () => {
   it('opens the parent menu from its icon button without a navigation link', async () => {
     const onCrumbSelect = jest.fn();
     const onSearch = jest.fn();
     const {rerender} = render(
-      <SettingsBreadcrumbSlot
-        items={items}
-        itemIndex={1}
-        title={title}
+      <SettingsBreadcrumbSelector
         label="javascript"
         to="/settings/org-slug/projects/javascript/"
         hasMenu
@@ -33,7 +31,9 @@ describe('SettingsBreadcrumbSlot', () => {
         options={options}
         onCrumbSelect={onCrumbSelect}
         search={{placeholder: 'Search Projects', onChange: onSearch}}
-      />
+      >
+        <BreadcrumbTitle title={title} breadcrumbs={items} />
+      </SettingsBreadcrumbSelector>
     );
 
     expect(screen.getAllByRole('link').map(link => link.textContent)).toEqual([
@@ -52,10 +52,7 @@ describe('SettingsBreadcrumbSlot', () => {
     expect(onSearch).toHaveBeenLastCalledWith('python');
 
     rerender(
-      <SettingsBreadcrumbSlot
-        items={items}
-        itemIndex={1}
-        title={title}
+      <SettingsBreadcrumbSelector
         label="javascript"
         to="/settings/org-slug/projects/javascript/"
         hasMenu
@@ -63,7 +60,9 @@ describe('SettingsBreadcrumbSlot', () => {
         options={[options[1]!]}
         onCrumbSelect={onCrumbSelect}
         search={{placeholder: 'Search Projects', onChange: onSearch}}
-      />
+      >
+        <BreadcrumbTitle title={title} breadcrumbs={items} />
+      </SettingsBreadcrumbSelector>
     );
     expect(screen.getByRole('button', {name: 'Switch javascript'})).toBeInTheDocument();
     await userEvent.click(screen.getByRole('option', {name: 'python'}));
@@ -73,17 +72,16 @@ describe('SettingsBreadcrumbSlot', () => {
 
   it('renders a plain link when there are no alternatives', () => {
     render(
-      <SettingsBreadcrumbSlot
-        items={items}
-        itemIndex={1}
-        title={title}
+      <SettingsBreadcrumbSelector
         label="javascript"
         to="/settings/org-slug/projects/javascript/"
         hasMenu={false}
         value="javascript"
         options={options}
         onCrumbSelect={jest.fn()}
-      />
+      >
+        <BreadcrumbTitle title={title} breadcrumbs={items} />
+      </SettingsBreadcrumbSelector>
     );
     expect(screen.getByRole('link', {name: 'javascript'})).toBeInTheDocument();
     expect(

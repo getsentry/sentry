@@ -5,6 +5,7 @@ import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {BreadcrumbTitle} from './breadcrumbTitle';
 import {IntegrationCrumb} from './integrationCrumb';
 
 describe('IntegrationCrumb', () => {
@@ -25,16 +26,13 @@ describe('IntegrationCrumb', () => {
   });
 
   it('switches integrations while clearing the selected detail tab', async () => {
-    const parentRoute = {path: 'integrations/', name: 'Integrations'};
-    const route = {path: ':integrationSlug', name: 'Integration Details'};
     const {router} = render(
       <IntegrationCrumb
-        items={[]}
-        itemIndex={0}
-        title={{type: 'page-title', label: 'Details'}}
-        route={route}
-        routes={[parentRoute, route]}
-      />,
+        to="/settings/:orgId/integrations/:integrationSlug/"
+        switchTo="/settings/:orgId/integrations/:providerKey/"
+      >
+        <BreadcrumbTitle title="Details" />
+      </IntegrationCrumb>,
       {
         organization,
         initialRouterConfig: {
@@ -63,11 +61,6 @@ describe('IntegrationCrumb', () => {
   });
 
   it('returns to overview when switching from a configured item', async () => {
-    const parentRoute = {path: 'integrations/', name: 'Integrations'};
-    const route = {
-      path: ':providerKey/:integrationId/',
-      name: 'Configure Integration',
-    };
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/1/`,
       body: OrganizationIntegrationsFixture({
@@ -76,12 +69,11 @@ describe('IntegrationCrumb', () => {
     });
     const {router} = render(
       <IntegrationCrumb
-        items={[]}
-        itemIndex={0}
-        title={{type: 'page-title', label: 'Details'}}
-        route={route}
-        routes={[parentRoute, route]}
-      />,
+        to="/settings/:orgId/integrations/:providerKey/"
+        switchTo="/settings/:orgId/integrations/:providerKey/"
+      >
+        <BreadcrumbTitle title="Details" />
+      </IntegrationCrumb>,
       {
         organization,
         initialRouterConfig: {
@@ -116,8 +108,6 @@ describe('IntegrationCrumb', () => {
   });
 
   it('shows the Sentry App icon on its overview page', async () => {
-    const parentRoute = {path: 'sentry-apps/', name: 'Integrations'};
-    const route = {path: ':integrationSlug', name: 'Details'};
     MockApiClient.addMockResponse({
       url: '/sentry-apps/shortcut/',
       body: SentryAppFixture({
@@ -137,12 +127,12 @@ describe('IntegrationCrumb', () => {
 
     render(
       <IntegrationCrumb
-        items={[]}
-        itemIndex={0}
-        title={{type: 'page-title', label: 'Details'}}
-        route={route}
-        routes={[parentRoute, route]}
-      />,
+        to="/settings/:orgId/sentry-apps/:integrationSlug/"
+        switchTo="/settings/:orgId/integrations/:providerKey/"
+        isSentryAppRoute
+      >
+        <BreadcrumbTitle title="Details" />
+      </IntegrationCrumb>,
       {
         organization,
         initialRouterConfig: {

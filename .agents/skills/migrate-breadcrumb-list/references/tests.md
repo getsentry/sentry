@@ -46,6 +46,8 @@ For `labelTooltip`, hover or focus the title text, then assert the description o
 
 For editable titles, click the heading to start editing. A labelled textbox replaces the heading and must not be inside an `h1`. Saving or cancelling restores the heading. Clicking outside saves the draft; Escape cancels it.
 
+For Settings parent navigation, render the shared route layout or `SettingsBreadcrumbsProvider` with singular `handle.settingsBreadcrumb` entries in the test routes. Check that matched ancestor and child entries compose in order. Route `name` and `path` alone do not create parent items. A title-only test needs no parent provider. Check customer-domain links from full destination templates and selector navigation from explicit `switchTo` destinations.
+
 ## Keep the leaf out of the parent trail
 
 When the migration changes the trail, assert that the heading appears once and that the current page is not also a parent:

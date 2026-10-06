@@ -90,7 +90,7 @@ Import public components from `@sentry/scraps/breadcrumbList` and `@sentry/scrap
 8. Delete only code made unused by the migration. Do not expand the shared title API to accommodate each legacy decoration. If requested UI is removed, remove tests dedicated only to that UI; retain tests of useful remaining behavior.
 9. Verify changed behavior with the existing relevant tests, `pnpm run typecheck`, and `.venv/bin/prek run -q --files <files>`. Read `references/tests.md` before changing the test harness. Inspect remaining legacy references to verify progress without treating a fixed importer count as a target.
 
-For Settings callers, `SettingsPageHeader.title` accepts a string or `BreadcrumbTitleItem`, and its `breadcrumbs` prop accepts parent items. `BreadcrumbTitle` builds parent items from `useRoutes()` and `useParams()`, adds the supplied parent items, and renders the TopBar slot directly. Every Settings page must supply its own title, directly with `BreadcrumbTitle` or through `SettingsPageHeader`. `BreadcrumbTitle.title` is required. Settings layouts do not supply a fallback title; there is no breadcrumb context or provider. Keep one explicit title owner per page.
+For Settings callers, `SettingsPageHeader.title` accepts a string or `BreadcrumbTitleItem`, and its `breadcrumbs` prop accepts additional parent items. Each route can contribute one parent item through `handle.settingsBreadcrumb`. The shared route layout collects entries from all matched routes in order; children add to their ancestors' entries. Use pathless routes to share a parent among related pages. Use full destination templates, including `:orgId`, and explicit `switchTo` destinations for selectors. `SettingsBreadcrumbsProvider` resolves these declarations and passes items downward through `SettingsBreadcrumbsContext`. `BreadcrumbTitle` combines those items with the page's additional items and required title, then renders one TopBar slot. Do not infer destinations from matched paths, register titles upward, or add a fallback title. Keep one explicit title owner per page.
 
 ## References
 
@@ -100,7 +100,7 @@ For Settings callers, `SettingsPageHeader.title` accepts a string or `Breadcrumb
 | Build titles, selectors, badges, tooltips, editing, or actions | `references/title-item.md`          |
 | Check the test harness, queries, or responsive behavior        | `references/tests.md`               |
 
-Use `views/detectors/components/details/common/header.tsx` for slot composition, `views/dashboards/dashboardBreadcrumbTitle.tsx` for state-dependent titles, `views/issueDetails/header/issueIdBreadcrumb.tsx` for a typed builder, and `views/settings/components/settingsBreadcrumb/settingsBreadcrumbSlot.tsx` for parent selectors and a plain final title. Paths are under `static/app/`.
+Use `views/detectors/components/details/common/header.tsx` for slot composition, `views/dashboards/dashboardBreadcrumbTitle.tsx` for state-dependent titles, `views/issueDetails/header/issueIdBreadcrumb.tsx` for a typed builder, and `views/settings/components/settingsBreadcrumb/settingsBreadcrumbSelector.tsx` for parent selectors. Paths are under `static/app/`.
 
 ## Migration checks
 

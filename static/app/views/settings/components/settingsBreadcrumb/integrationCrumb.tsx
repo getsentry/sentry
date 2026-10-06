@@ -9,32 +9,32 @@ import {t} from 'sentry/locale';
 import type {Integration, IntegrationProvider} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
-import {SettingsBreadcrumbSlot} from './settingsBreadcrumbSlot';
-import type {RouteWithName, SettingsBreadcrumbProps} from './types';
+import {SettingsBreadcrumbSelector} from './settingsBreadcrumbSelector';
+import type {SettingsBreadcrumbSelectorProps} from './types';
 
 type IntegrationProviderResponse = {
   providers: IntegrationProvider[];
 };
 
 export function IntegrationCrumb({
-  route: _route,
-  routes,
-  ...slotProps
-}: SettingsBreadcrumbProps) {
+  to,
+  switchTo,
+  children,
+  isSentryAppRoute = false,
+}: SettingsBreadcrumbSelectorProps & {isSentryAppRoute?: boolean}) {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
   const params = useParams();
   const activeProviderKey = params.integrationSlug ?? params.providerKey;
-  const isSentryAppRoute = routes.some(
-    (item: RouteWithName) => item.path === 'sentry-apps/'
-  );
   const {data: sentryApp, isPending: isSentryAppPending} = useQuery(
     sentryAppApiOptions({
       appSlug: isSentryAppRoute ? (activeProviderKey ?? null) : null,
@@ -65,7 +65,7 @@ export function IntegrationCrumb({
   );
 
   if (!activeProviderKey) {
-    return null;
+    return children;
   }
 
   const providers = data?.providers ?? [];
@@ -77,14 +77,13 @@ export function IntegrationCrumb({
   const isIconPending =
     (isSentryAppRoute && isSentryAppPending) ||
     (configuredItemSelected && isIntegrationPending);
-  const activeProviderUrl = `/settings/${organization.slug}/${isSentryAppRoute ? 'sentry-apps' : 'integrations'}/${activeProviderKey}/`;
+  const activeProviderUrl = replaceRouterParams(to, params);
   const activeProviderHref = configuredItemSelected
     ? activeProviderUrl
     : `${activeProviderUrl}${location.search}`;
 
   return (
-    <SettingsBreadcrumbSlot
-      {...slotProps}
+    <SettingsBreadcrumbSelector
       label={activeProviderName}
       leadingGraphic={
         isIconPending ? (
@@ -101,7 +100,13 @@ export function IntegrationCrumb({
       onCrumbSelect={providerKey => {
         const {tab: _tab, ...queryWithoutTab} = location.query;
         navigate({
-          pathname: `/settings/${organization.slug}/integrations/${providerKey}/`,
+          pathname: normalizeUrl(
+            replaceRouterParams(switchTo, {
+              ...params,
+              providerKey,
+              integrationSlug: providerKey,
+            })
+          ),
           query: queryWithoutTab,
         });
       }}
@@ -119,6 +124,8 @@ export function IntegrationCrumb({
         label: provider.name,
       }))}
       loading={isPending}
-    />
+    >
+      {children}
+    </SettingsBreadcrumbSelector>
   );
 }

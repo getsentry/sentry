@@ -2,19 +2,16 @@ import {TeamAvatar} from '@sentry/scraps/avatar';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {useTeams} from 'sentry/utils/useTeams';
-import type {SettingsBreadcrumbProps} from 'sentry/views/settings/components/settingsBreadcrumb/types';
+import type {SettingsBreadcrumbSelectorProps} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
-import {SettingsBreadcrumbSlot} from './settingsBreadcrumbSlot';
+import {SettingsBreadcrumbSelector} from './settingsBreadcrumbSelector';
 
-export function TeamCrumb({
-  routes,
-  route: _route,
-  ...slotProps
-}: SettingsBreadcrumbProps) {
+export function TeamCrumb({to, switchTo, children}: SettingsBreadcrumbSelectorProps) {
   const navigate = useNavigate();
   const {teams, onSearch, fetching} = useTeams();
   const params = useParams();
@@ -23,20 +20,17 @@ export function TeamCrumb({
   const hasMenu = teams.length > 1;
 
   const teamSlug = team?.slug ?? params.teamId;
-  const teamUrl = `/settings/${params.orgId}/teams/${teamSlug}/`;
 
   return (
-    <SettingsBreadcrumbSlot
-      {...slotProps}
+    <SettingsBreadcrumbSelector
       label={`#${teamSlug}`}
       leadingGraphic={team && <TeamAvatar team={team} size={16} />}
-      to={teamUrl}
+      to={replaceRouterParams(to, params)}
       onCrumbSelect={selectedTeamSlug => {
         navigate(
-          recreateRoute('', {
-            routes,
-            params: {...params, teamId: selectedTeamSlug},
-          })
+          normalizeUrl(
+            replaceRouterParams(switchTo, {...params, teamId: selectedTeamSlug})
+          )
         );
       }}
       onOpenChange={open => {
@@ -53,6 +47,8 @@ export function TeamCrumb({
         label: `#${teamItem.slug}`,
       }))}
       loading={fetching}
-    />
+    >
+      {children}
+    </SettingsBreadcrumbSelector>
   );
 }

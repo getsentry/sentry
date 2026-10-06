@@ -55,4 +55,5 @@ Run 2 also found a regression introduced by run 1's fix — the step 6 "add as s
 - Rebuild the importer inventory after migrations; do not use a hard-coded count as a completion or deletion condition.
 - Retire this migration skill only when the remaining references no longer include page-navigation work and required separate navigation landmarks are preserved.
 
-- Restricted the breadcrumbs slot to typed `items` and `title`; removed arbitrary children. Migrated Settings route links and menus to the shared list, and documented external links and linked parent selectors.
+- Restricted the breadcrumbs slot to typed `items` and `title`; removed arbitrary children. Migrated Settings route links and menus to the shared list, and documented external links and parent selectors.
+- Settings parent ownership now follows the shared route layout: singular `handle.settingsBreadcrumb` entries from all matched routes compose in order and feed a downward-only context. Shared pathless routes avoid repeated parent entries. Pages retain their titles. Sources: `SettingsBreadcrumbsProvider`, `BreadcrumbTitle`, and the Settings route declarations and navigation tests. This replaces route-path reconstruction and the organization-prefix workaround.

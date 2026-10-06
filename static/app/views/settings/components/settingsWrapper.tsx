@@ -9,6 +9,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useScrollToTop} from 'sentry/utils/useScrollToTop';
 import {SettingsCommandPaletteActions} from 'sentry/views/settings/settingsCommandPaletteActions';
 
+import {SettingsBreadcrumbsProvider} from './settingsBreadcrumb/settingsBreadcrumbsProvider';
+
 function scrollDisable(newLocation: Location, prevLocation: Location) {
   return newLocation.pathname === prevLocation.pathname;
 }
@@ -19,10 +21,12 @@ export function SettingsWrapper() {
 
   return (
     <AnalyticsArea name="settings">
-      <StyledFlex flex="1" background="primary">
-        <SettingsCommandPaletteActions />
-        <Outlet />
-      </StyledFlex>
+      <SettingsBreadcrumbsProvider>
+        <StyledFlex flex="1" background="primary">
+          <SettingsCommandPaletteActions />
+          <Outlet />
+        </StyledFlex>
+      </SettingsBreadcrumbsProvider>
     </AnalyticsArea>
   );
 }
