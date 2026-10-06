@@ -30,8 +30,6 @@ import U2fEnrolledDetails from 'sentry/views/settings/account/accountSecurity/co
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
-import {AuthenticatorHeader} from './components/authenticatorHeader';
-
 const ENDPOINT = '/users/me/authenticators/';
 const getAuthenticatorQueryKey = (authId: string) =>
   [
@@ -150,12 +148,16 @@ export default function AccountSecurityDetails() {
   return (
     <SentryDocumentTitle title={t('Security')}>
       <SettingsPageHeader
-        title={
-          <AuthenticatorHeader
-            name={authenticator.name}
-            isActive={authenticator.isEnrolled}
-          />
-        }
+        title={{
+          type: 'page-title',
+          label: authenticator.name,
+          status: {
+            variant: authenticator.isEnrolled ? 'success' : 'danger',
+            label: authenticator.isEnrolled
+              ? t('Authentication Method Active')
+              : t('Authentication Method Inactive'),
+          },
+        }}
         action={
           <Flex gap="md">
             {authenticator.isEnrolled && authenticator.allowRotationInPlace && (

@@ -15,8 +15,6 @@ import {ConfirmDelete} from 'sentry/components/confirmDelete';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {Placeholder} from 'sentry/components/placeholder';
-import {Version} from 'sentry/components/version';
 import {
   IconDelete,
   IconDownload,
@@ -167,13 +165,16 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
           <Breadcrumbs crumbs={breadcrumbs} />
           <FeatureBadge type="new" />
         </Flex>
-        <Layout.Title>
-          <Flex align="center" gap="sm" minHeight="1lh">
-            {project && <IdBadge project={project} avatarSize={28} hideName />}
-            {versionTitle && <Version version={versionTitle} anchor={false} truncate />}
-            {!versionTitle && <Placeholder width="30ch" height="1em" />}
-          </Flex>
-        </Layout.Title>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{
+            type: 'page-title',
+            label: versionTitle || t('Build'),
+            leadingGraphic: project && (
+              <IdBadge project={project} avatarSize={16} hideName />
+            ),
+          }}
+        />
       </Layout.HeaderContent>
 
       <Fragment>

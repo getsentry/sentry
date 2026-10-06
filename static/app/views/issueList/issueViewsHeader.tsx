@@ -3,10 +3,8 @@ import {useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {InfoTip} from '@sentry/scraps/info';
 
 import {DisableInDemoMode} from 'sentry/components/acl/demoModeDisabled';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {IconEllipsis, IconPause, IconPlay, IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -30,12 +28,12 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 type IssueViewsHeaderProps = {
   onRealtimeChange: (active: boolean) => void;
   realtimeActive: boolean;
-  title: ReactNode;
+  title: string;
   description?: ReactNode;
   headerActions?: ReactNode;
 };
 
-function PageTitle({title, description}: {title: ReactNode; description?: ReactNode}) {
+function PageTitle({title, description}: {title: string; description?: ReactNode}) {
   const organization = useOrganization();
   const {data: groupSearchView} = useSelectedGroupSearchView();
   const user = useUser();
@@ -50,14 +48,23 @@ function PageTitle({title, description}: {title: ReactNode; description?: ReactN
   }
 
   if (groupSearchView) {
-    return <Layout.Title>{groupSearchView?.name ?? title}</Layout.Title>;
+    return (
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{type: 'page-title', label: groupSearchView?.name ?? title}}
+      />
+    );
   }
 
   return (
-    <Layout.Title>
-      {title}
-      {description && <InfoTip position="right" size="sm" title={description} />}
-    </Layout.Title>
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
+        type: 'page-title',
+        label: title,
+        help: description ? {description} : undefined,
+      }}
+    />
   );
 }
 

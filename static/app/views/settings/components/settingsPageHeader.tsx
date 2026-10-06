@@ -1,25 +1,22 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {BreadcrumbList, type BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
 import {Flex} from '@sentry/scraps/layout';
 
-import * as Layout from 'sentry/components/layouts/thirds';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 type Props = {
-  title: React.ReactNode;
+  title: string | BreadcrumbTitleItem;
   action?: React.ReactNode;
+  breadcrumbs?: React.ComponentProps<typeof BreadcrumbList>['items'];
   subtitle?: React.ReactNode;
 };
 
-export function SettingsPageHeader({title, subtitle, action}: Props) {
+export function SettingsPageHeader({title, subtitle, action, breadcrumbs}: Props) {
   return (
     <Fragment>
-      {typeof title === 'string' ? (
-        <BreadcrumbTitle title={title} />
-      ) : (
-        title && <Layout.Title>{title}</Layout.Title>
-      )}
+      <BreadcrumbTitle title={title} breadcrumbs={breadcrumbs} />
       {(subtitle || action) && (
         <Flex marginBottom="xl" width="100%" justify="between" align="start" gap="md">
           <Subtitle>{subtitle}</Subtitle>

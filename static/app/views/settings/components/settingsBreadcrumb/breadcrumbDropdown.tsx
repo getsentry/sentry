@@ -7,10 +7,13 @@ import {
   CompactSelect,
   ControlContext,
   type SingleSelectProps,
+  type SelectOption,
 } from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
+
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {Divider} from './divider';
 import type {RouteWithName} from './types';
@@ -22,12 +25,18 @@ interface BreadcrumbDropdownProps extends Omit<
   name: React.ReactNode;
   onCrumbSelect: (value: string) => void;
   route: RouteWithName;
+  children?: React.ReactNode;
   hasMenu?: boolean;
   showDivider?: boolean;
+  title?: string;
+  titleGraphic?: React.ReactNode;
 }
 
 export function BreadcrumbDropdown({
   hasMenu,
+  title,
+  titleGraphic,
+  children,
   route,
   showDivider,
   name,
@@ -41,6 +50,33 @@ export function BreadcrumbDropdown({
     isHovered,
   } = useHover({});
 
+  if (title !== undefined) {
+    return (
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: title,
+          leadingGraphic: titleGraphic,
+          trailingActions: hasMenu
+            ? {
+                type: 'select',
+                triggerLabel: title,
+                options: options.map(item => ({...item, hideCheck: true})),
+                value,
+                onChange: (selected: SelectOption<string>) =>
+                  onCrumbSelect(selected.value),
+                onOpenChange: props.onOpenChange,
+                search: props.search,
+                loading: props.loading,
+              }
+            : undefined,
+        }}
+      >
+        {children}
+      </TopBar.Slot>
+    );
+  }
   if (!hasMenu) {
     return (
       <Flex gap="sm" align="center">

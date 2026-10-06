@@ -45,12 +45,19 @@ function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
   );
 }
 
-function DetectorDetailsTitle({detector}: {detector: Detector}) {
+function DetectorDetailsTitle({
+  detector,
+  children,
+}: {
+  detector: Detector;
+  children?: React.ReactNode;
+}) {
   const project = useProjectFromId({project_id: detector.projectId ?? undefined});
 
   return (
-    <BreadcrumbList.Title
-      item={{
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
         type: 'page-title',
         label: detector.name,
         leadingGraphic: project ? (
@@ -59,20 +66,17 @@ function DetectorDetailsTitle({detector}: {detector: Detector}) {
           <Placeholder width="16px" height="16px" />
         ),
       }}
-    />
+    >
+      {children}
+    </TopBar.Slot>
   );
 }
 
 function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
   return (
-    <Fragment>
-      <TopBar.Slot name="breadcrumbs">
-        <DetectorDetailsBreadcrumbs detector={detector} />
-      </TopBar.Slot>
-      <TopBar.Slot name="title">
-        <DetectorDetailsTitle detector={detector} />
-      </TopBar.Slot>
-    </Fragment>
+    <DetectorDetailsTitle detector={detector}>
+      <DetectorDetailsBreadcrumbs detector={detector} />
+    </DetectorDetailsTitle>
   );
 }
 

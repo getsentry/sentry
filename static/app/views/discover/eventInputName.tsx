@@ -1,17 +1,17 @@
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {handleUpdateQueryName} from './savedQuery/utils';
 
 type Props = {
   eventView: EventView;
   organization: Organization;
+  children?: React.ReactNode;
   savedQuery?: SavedQuery;
 };
 
@@ -22,7 +22,7 @@ const NAME_DEFAULT = t('Untitled query');
  * has been saved. By pressing Enter or clicking outside the component, the
  * changes will be saved, if valid.
  */
-export function EventInputName({organization, eventView, savedQuery}: Props) {
+export function EventInputName({children, organization, eventView, savedQuery}: Props) {
   const api = useApi();
   const navigate = useNavigate();
 
@@ -56,12 +56,17 @@ export function EventInputName({organization, eventView, savedQuery}: Props) {
   const value = eventView.name || NAME_DEFAULT;
 
   if (!eventView.id) {
-    return <BreadcrumbList.Title item={{type: 'page-title', label: value}} />;
+    return (
+      <TopBar.Slot name="breadcrumbs" title={{type: 'page-title', label: value}}>
+        {children}
+      </TopBar.Slot>
+    );
   }
 
   return (
-    <BreadcrumbList.Title
-      item={{
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
         type: 'editable-title',
         value,
         onChange: handleChange,
@@ -69,6 +74,8 @@ export function EventInputName({organization, eventView, savedQuery}: Props) {
         maxLength: 255,
         'aria-label': t('Edit query name'),
       }}
-    />
+    >
+      {children}
+    </TopBar.Slot>
   );
 }

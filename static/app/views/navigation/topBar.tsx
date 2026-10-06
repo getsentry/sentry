@@ -34,19 +34,12 @@ const Slot = slot(['breadcrumbs', 'title', 'search', 'actions', 'feedback'] as c
 type TopBarSlotProps =
   | {
       name: 'breadcrumbs';
+      title: BreadcrumbTitleItem;
       children?: React.ReactNode;
-      /** The page title. Omit only while using a legacy title slot. */
-      title?: BreadcrumbTitleItem;
     }
   | {
       children: React.ReactNode;
       name: 'search' | 'actions' | 'feedback';
-      title?: never;
-    }
-  | {
-      children: React.ReactNode;
-      /** @deprecated Pass a title item to the breadcrumbs slot instead. */
-      name: 'title';
       title?: never;
     };
 
@@ -55,11 +48,9 @@ function TopBarSlot(props: TopBarSlotProps) {
     return (
       <Fragment>
         {props.children !== undefined && <Slot name="breadcrumbs">{props.children}</Slot>}
-        {props.title && (
-          <Slot name="title">
-            <BreadcrumbList.Title item={props.title} />
-          </Slot>
-        )}
+        <Slot name="title">
+          <BreadcrumbList.Title item={props.title} />
+        </Slot>
       </Fragment>
     );
   }

@@ -19,7 +19,6 @@ import {RemoveConfirm} from 'sentry/views/settings/account/accountSecurity/compo
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
-import {AuthenticatorHeader} from './components/authenticatorHeader';
 import {SmsEnrollForm} from './components/smsEnrollForm';
 import {TotpEnrollForm} from './components/totpEnrollForm';
 import {U2fEnrollForm} from './components/u2fEnrollForm';
@@ -91,7 +90,16 @@ export default function AccountSecurityEnroll() {
   return (
     <SentryDocumentTitle title={t('Security')}>
       <SettingsPageHeader
-        title={<AuthenticatorHeader name={authenticator.name} isActive={isActive} />}
+        title={{
+          type: 'page-title',
+          label: authenticator.name,
+          status: {
+            variant: isActive ? 'success' : 'danger',
+            label: isActive
+              ? t('Authentication Method Active')
+              : t('Authentication Method Inactive'),
+          },
+        }}
         action={
           authenticator.isEnrolled &&
           authenticatorId &&

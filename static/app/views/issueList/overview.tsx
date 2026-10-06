@@ -88,7 +88,7 @@ interface Props {
   headerActions?: ReactNode;
   initialQuery?: string;
   shouldFetchOnMount?: boolean;
-  title?: ReactNode;
+  title?: string;
   titleDescription?: ReactNode;
 }
 

@@ -7,12 +7,10 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
@@ -52,6 +50,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 import type {
   AlertType,
@@ -290,9 +289,7 @@ export default function IntegrationDetailedView() {
   }, [configurations]);
   const integrationName = provider?.name ?? '';
   const navigationTabTitle = (
-    <Layout.Title>
-      <Text as="span">{tabTitles[displayedTab]}</Text>
-    </Layout.Title>
+    <BreadcrumbTitle title={{type: 'page-title', label: tabTitles[displayedTab]}} />
   );
   const featureData = useMemo(() => {
     return provider?.metadata.features ?? [];

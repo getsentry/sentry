@@ -5,7 +5,6 @@ import {Stack} from '@sentry/scraps/layout';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -108,16 +107,20 @@ function MetricsHeader() {
           title={title}
         />
       ) : (
-        <TopBar.Slot name="title">
-          {title || METRICS_TITLE}
-          <PageHeadingQuestionTooltip
-            docsUrl="https://docs.sentry.io/product/explore/metrics/"
-            title={t(
-              'Track critical application signals using counters, gauges, and distributions.'
-            )}
-            linkLabel={t('Read the Docs')}
-          />
-        </TopBar.Slot>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{
+            type: 'page-title',
+            label: title || METRICS_TITLE,
+            help: {
+              docsUrl: 'https://docs.sentry.io/product/explore/metrics/',
+              description: t(
+                'Track critical application signals using counters, gauges, and distributions.'
+              ),
+              linkLabel: t('Read the Docs'),
+            },
+          }}
+        />
       )}
       <TopBar.Slot name="feedback">
         <FeedbackButton

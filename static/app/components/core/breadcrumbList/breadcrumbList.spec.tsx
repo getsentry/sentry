@@ -23,6 +23,63 @@ function hidesBelowSm(element: HTMLElement): boolean {
 }
 
 describe('BreadcrumbList container-query collapse', () => {
+  it('shows page help, feature status, and an accessible status indicator', async () => {
+    render(
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'Security',
+          badge: 'new',
+          status: {label: 'Authentication active', variant: 'success'},
+          help: {
+            description: 'Manage authentication.',
+            docsUrl: 'https://example.com/docs/',
+          },
+        }}
+      />
+    );
+
+    expect(screen.getByText('Security')).toBeInTheDocument();
+    expect(screen.getByLabelText('new')).toBeInTheDocument();
+    expect(
+      screen.getByRole('status', {name: 'Authentication active'})
+    ).toBeInTheDocument();
+    await userEvent.hover(screen.getByRole('img', {name: 'More information'}));
+    expect(await screen.findByText('Manage authentication.')).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Read the Docs'})).toHaveAttribute(
+      'href',
+      'https://example.com/docs/'
+    );
+  });
+
+  it('changes the selected item through a title action', async () => {
+    const onChange = jest.fn();
+    render(
+      <BreadcrumbList.Title
+        item={{
+          type: 'page-title',
+          label: 'Current project',
+          trailingActions: {
+            type: 'select',
+            triggerLabel: 'Switch project',
+            value: 'current',
+            onChange,
+            options: [
+              {value: 'current', label: 'Current project'},
+              {value: 'next', label: 'Next project'},
+            ],
+            search: true,
+          },
+        }}
+      />
+    );
+    expect(screen.getAllByText('Current project')).toHaveLength(1);
+    await userEvent.click(screen.getByRole('button', {name: 'Switch project'}));
+    await userEvent.type(screen.getByRole('textbox'), 'Next');
+    await userEvent.click(screen.getByRole('option', {name: 'Next project'}));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({value: 'next'}));
+  });
+
   it('emits an @container display rule for link crumbs, not an always-on @media shadow', () => {
     render(
       <BreadcrumbList items={[{type: 'link', label: 'Settings', to: '/settings/'}]} />

@@ -22,7 +22,6 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Feature from 'sentry/components/acl/feature';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -55,6 +54,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {AssigneeFilter, matchesAssignee} from './assigneeFilter';
 import {OverviewCard} from './issueCard';
@@ -149,7 +149,10 @@ export default function AutofixOverview() {
         }}
       >
         <SentryDocumentTitle title={t('Autofix Overview')} orgSlug={organization.slug}>
-          <Layout.Title>{t('Autofix Overview')}</Layout.Title>
+          <TopBar.Slot
+            name="breadcrumbs"
+            title={{type: 'page-title', label: t('Autofix Overview')}}
+          />
           {orgNeedsSeerTrial(organization) ? (
             <Stack gap="lg" padding="lg xl">
               <SeerTrialCTA />

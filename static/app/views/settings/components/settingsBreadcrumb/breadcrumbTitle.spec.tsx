@@ -1,4 +1,9 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {GitHubIntegrationProviderFixture} from 'sentry-fixture/githubIntegrationProvider';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
+import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+
+import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {BreadcrumbTitle} from './breadcrumbTitle';
 import {BreadcrumbProvider} from './context';
@@ -42,6 +47,61 @@ const documentIntegrationRouteChildren = [
 ];
 
 describe('BreadcrumbTitle', () => {
+  it('combines a typed settings title with parent menus and page-specific breadcrumbs', async () => {
+    const organization = OrganizationFixture();
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/config/integrations/`,
+      body: {providers: [GitHubIntegrationProviderFixture()]},
+    });
+    render(
+      <BreadcrumbProvider>
+        <SettingsBreadcrumb
+          params={{orgId: organization.slug, integrationSlug: 'github'}}
+        />
+        <SettingsPageHeader
+          title={{
+            type: 'page-title',
+            label: 'Workspace',
+            href: 'https://example.com/workspace',
+          }}
+          breadcrumbs={[{type: 'link', label: 'Configurations', to: '/configurations/'}]}
+        />
+      </BreadcrumbProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          route: '/settings/:orgId/',
+          location: {pathname: `/settings/${organization.slug}/integrations/github/`},
+          children: [
+            {
+              path: 'integrations/',
+              handle: {name: 'Integrations', path: 'integrations/'},
+              children: [
+                {
+                  path: ':integrationSlug/',
+                  handle: {name: 'Integration Details', path: ':integrationSlug'},
+                  element: <div />,
+                },
+              ],
+            },
+          ],
+        },
+      }
+    );
+    expect(await screen.findByRole('link', {name: /GitHub/})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Configurations'})).toHaveAttribute(
+      'href',
+      '/configurations/'
+    );
+    const heading = screen.getByRole('heading', {name: 'Workspace', level: 1});
+    expect(within(heading).getByRole('link', {name: 'Workspace'})).toHaveAttribute(
+      'href',
+      'https://example.com/workspace'
+    );
+    expect(within(heading).queryByText('GitHub')).not.toBeInTheDocument();
+    expect(within(heading).queryByText('Configurations')).not.toBeInTheDocument();
+  });
+
   it('renders settings breadcrumbs and replaces title', () => {
     render(
       <BreadcrumbProvider>

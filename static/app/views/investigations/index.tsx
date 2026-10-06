@@ -44,6 +44,7 @@ import {
 } from 'sentry/views/investigations/api';
 import {updateInvestigationCache} from 'sentry/views/investigations/investigationCache';
 import type {InvestigationListItem} from 'sentry/views/investigations/types';
+import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
 
 enum ColumnKey {
@@ -266,7 +267,10 @@ export function InvestigationsPage() {
           </Stack>
         ) : (
           <Stack flex={1}>
-            <Layout.Title>{t('Investigations')}</Layout.Title>
+            <TopBar.Slot
+              name="breadcrumbs"
+              title={{type: 'page-title', label: t('Investigations')}}
+            />
             <Layout.Body>
               <Layout.Main width="full">
                 <Grid

@@ -1,7 +1,6 @@
 import {useState, type ReactNode} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
@@ -35,6 +34,7 @@ import {useDuplicateDashboard} from 'sentry/views/dashboards/hooks/useDuplicateD
 import {useOpenRenameDashboardModal} from 'sentry/views/dashboards/renameDashboardModal';
 import type {DashboardDetails, DashboardPermissions} from 'sentry/views/dashboards/types';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 /**
  * Star/unstar the dashboard. Sits beside the actions menu rather than inside it —
@@ -80,12 +80,14 @@ interface DashboardBreadcrumbTitleProps {
    * — and any edit session in progress — in step.
    */
   onRename: (title: string) => void;
+  children?: ReactNode;
   onChangeEditAccess?: (newDashboardPermissions: DashboardPermissions) => void;
   /** Deletes the dashboard and navigates away. Omitted where there is nothing to delete. */
   onDelete?: () => void;
 }
 
 function DashboardTitle({
+  children,
   canDelete,
   canRename,
   dashboard,
@@ -116,6 +118,7 @@ function DashboardTitle({
   openEditAccess: () => void;
   openRename: () => void;
   organization: Organization;
+  children?: ReactNode;
   duplicateDisabledReason?: ReactNode;
   isDuplicateDisabled?: boolean;
   onDelete?: () => void;
@@ -189,8 +192,9 @@ function DashboardTitle({
   ];
 
   return (
-    <BreadcrumbList.Title
-      item={{
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
         type: 'page-title',
         label: dashboard.title,
         trailingActions: [
@@ -218,11 +222,14 @@ function DashboardTitle({
             : null,
         ],
       }}
-    />
+    >
+      {children}
+    </TopBar.Slot>
   );
 }
 
 export function DashboardBreadcrumbTitle({
+  children,
   dashboard,
   isPreview,
   onDelete,
@@ -252,12 +259,15 @@ export function DashboardBreadcrumbTitle({
 
   if (isPreview) {
     return (
-      <BreadcrumbList.Title
-        item={{
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
           type: 'page-title',
           label: dashboard.title,
         }}
-      />
+      >
+        {children}
+      </TopBar.Slot>
     );
   }
 
@@ -323,7 +333,9 @@ export function DashboardBreadcrumbTitle({
           openEditAccess={openEditAccess}
           openRename={openRename}
           organization={organization}
-        />
+        >
+          {children}
+        </DashboardTitle>
       )}
     </DashboardCreateLimitWrapper>
   );

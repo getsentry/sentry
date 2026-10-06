@@ -1,20 +1,20 @@
 import {useContext} from 'react';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-
 import {FormContext} from 'sentry/components/forms/formContext';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
 import {useAutomationFormContext} from 'sentry/views/automations/components/forms/context';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
-export function EditableAutomationName() {
+export function EditableAutomationName({children}: {children?: React.ReactNode}) {
   const {form} = useContext(FormContext);
   const value = useFormField<string>('name');
   const {setHasSetAutomationName} = useAutomationFormContext();
 
   return (
-    <BreadcrumbList.Title
-      item={{
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
         type: 'editable-title',
         allowEmpty: true,
         value: value || '',
@@ -26,6 +26,8 @@ export function EditableAutomationName() {
         placeholder: t('New Alert'),
         'aria-label': t('Alert Name'),
       }}
-    />
+    >
+      {children}
+    </TopBar.Slot>
   );
 }

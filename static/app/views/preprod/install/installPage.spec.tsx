@@ -45,6 +45,9 @@ describe('InstallPage', () => {
   function ExampleInstallPage() {
     return (
       <TopBar.Slot.Provider>
+        <TopBar.Slot.Outlet name="breadcrumbs">
+          {props => <div {...props} data-test-id="topbar-breadcrumbs-slot" />}
+        </TopBar.Slot.Outlet>
         <TopBar.Slot.Outlet name="title">
           {props => <div {...props} data-test-id="topbar-title-slot" />}
         </TopBar.Slot.Outlet>
@@ -56,10 +59,12 @@ describe('InstallPage', () => {
   it('renders the Releases breadcrumb linking to the mobile-builds distribution view', async () => {
     render(<ExampleInstallPage />, {organization, initialRouterConfig});
 
-    expect(await screen.findByText('Test App')).toBeInTheDocument();
+    expect(await screen.findByText('Test App - v1.0.0 (123)')).toBeInTheDocument();
 
-    const topbarSlot = screen.getByTestId('topbar-title-slot');
-    const releasesLink = within(topbarSlot).getByRole('link', {name: 'Releases'});
+    const releasesLink = within(screen.getByTestId('topbar-breadcrumbs-slot')).getByRole(
+      'link',
+      {name: 'Releases'}
+    );
 
     expect(releasesLink).toHaveAttribute(
       'href',
@@ -70,13 +75,16 @@ describe('InstallPage', () => {
   it('renders the app info as the current crumb after Releases', async () => {
     render(<ExampleInstallPage />, {organization, initialRouterConfig});
 
-    expect(await screen.findByText('Test App')).toBeInTheDocument();
+    expect(await screen.findByText('Test App - v1.0.0 (123)')).toBeInTheDocument();
 
     const topbarSlot = screen.getByTestId('topbar-title-slot');
 
-    expect(within(topbarSlot).getByRole('link', {name: 'Releases'})).toBeInTheDocument();
-    expect(within(topbarSlot).getByText('Test App')).toBeInTheDocument();
-    expect(within(topbarSlot).getByText('v1.0.0 (123)')).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('topbar-breadcrumbs-slot')).getByRole('link', {
+        name: 'Releases',
+      })
+    ).toBeInTheDocument();
+    expect(within(topbarSlot).getByText('Test App - v1.0.0 (123)')).toBeInTheDocument();
     expect(within(topbarSlot).queryByText('Install')).not.toBeInTheDocument();
   });
 
@@ -127,7 +135,10 @@ describe('InstallPage', () => {
 
     const topbarSlot = screen.getByTestId('topbar-title-slot');
 
-    const releasesLink = within(topbarSlot).getByRole('link', {name: 'Releases'});
+    const releasesLink = within(screen.getByTestId('topbar-breadcrumbs-slot')).getByRole(
+      'link',
+      {name: 'Releases'}
+    );
     expect(releasesLink).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/explore/releases/?tab=mobile-builds&display=distribution&query=installable%3Atrue`

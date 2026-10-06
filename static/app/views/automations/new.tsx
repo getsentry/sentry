@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
@@ -48,7 +48,6 @@ import {
 import {mapAutomationFormErrors} from 'sentry/views/automations/utils/mapAutomationFormErrors';
 import {hasAutomationWriteAccess} from 'sentry/views/automations/utils/permissions';
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
-import {TopBar} from 'sentry/views/navigation/topBar';
 
 function AutomationDocumentTitle() {
   const title = useFormField('name');
@@ -60,23 +59,17 @@ function AutomationDocumentTitle() {
 function AutomationBreadcrumbs() {
   const organization = useOrganization();
   return (
-    <Fragment>
-      <TopBar.Slot name="breadcrumbs">
-        <BreadcrumbList
-          items={[
-            {
-              type: 'link',
-              label: t('Alerts'),
-              to: makeAutomationBasePathname(organization.slug),
-            },
-          ]}
-        />
-      </TopBar.Slot>
-
-      <TopBar.Slot name="title">
-        <EditableAutomationName />
-      </TopBar.Slot>
-    </Fragment>
+    <EditableAutomationName>
+      <BreadcrumbList
+        items={[
+          {
+            type: 'link',
+            label: t('Alerts'),
+            to: makeAutomationBasePathname(organization.slug),
+          },
+        ]}
+      />
+    </EditableAutomationName>
   );
 }
 

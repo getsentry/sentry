@@ -13,6 +13,8 @@ export interface BreadcrumbItemPageTitleEditableProps {
   /** When true, clearing + blurring cancels the edit instead of erroring. */
   allowEmpty?: boolean;
   autoSelect?: boolean;
+  cancelOnBlur?: boolean;
+  editOnDoubleClick?: boolean;
   errorMessage?: React.ReactNode;
   isDisabled?: boolean;
   /**

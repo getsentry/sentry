@@ -17,7 +17,6 @@ import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/e
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
@@ -393,21 +392,21 @@ function shouldShowProfilingOnboardingPanel(selection: PageFilters, projects: Pr
 }
 
 function ProfilingContentPageHeader() {
-  const titleTooltip = (
-    <PageHeadingQuestionTooltip
-      docsUrl="https://docs.sentry.io/product/profiling/"
-      title={t(
-        'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
-      )}
-    />
-  );
-
   return (
     <Fragment>
-      <TopBar.Slot name="title">
-        {t('Profiles')}
-        {titleTooltip}
-      </TopBar.Slot>
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: t('Profiles'),
+          help: {
+            docsUrl: 'https://docs.sentry.io/product/profiling/',
+            description: t(
+              'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
+            ),
+          },
+        }}
+      />
       <TopBar.Slot name="feedback">
         <FeedbackButton
           aria-label={t('Give Feedback')}

@@ -23,7 +23,7 @@ export const documentation = import('!!type-loader!@sentry/scraps/breadcrumbList
 
 `BreadcrumbList` renders the parent portion of a horizontal breadcrumb trail. It
 does not render a navigation landmark or a page heading. Render the current page
-with `BreadcrumbList.Title` in the `TopBar` title slot; `TopBar` supplies the
+with the `title` prop of `TopBar.Slot name="breadcrumbs"`; `TopBar` supplies the
 page's single `<h1>`.
 
 ## Usage
@@ -38,8 +38,7 @@ TopBar renders `BreadcrumbList.Title` internally and supplies the page's single
 `<h1>`. The title item supports a leading graphic, a tooltip, pagination,
 trailing actions, or an editable field.
 
-The separate `name="title"` slot is deprecated. It remains available for legacy
-pages while their custom titles migrate to typed title items.
+The `title` prop is required. There is no separate `name="title"` slot.
 
 ### Index pages
 
@@ -267,6 +266,24 @@ Beyond `label`, the optional props are not shared evenly across the item types.
 | `labelTooltip`    |          |       ✓        |                    |
 | `pagination`      |          |       ✓        |                    |
 | `trailingActions` |          |       ✓        |                    |
+| `help`            |          |       ✓        |                    |
+| `badge`           |          |       ✓        |                    |
+| `status`          |          |       ✓        |                    |
+| `href`            |          |       ✓        |                    |
+
+Use `help: {description, docsUrl?, linkLabel?}` for a help tooltip beside the
+title. `badge` accepts a feature badge type, such as `'new'` or `'beta'`.
+`status: {label, variant}` adds an accessible status indicator. `href` makes
+the title an external link while keeping its label a string.
+
+A trailing action with `type: 'select'` supports a searchable selector. Pass
+`triggerLabel`, `options`, `value`, and `onChange`; `search`, `loading`, and
+`onOpenChange` are also supported.
+
+Editable titles accept `editOnDoubleClick` to use a double click or the edit
+button to start editing. Use `cancelOnBlur` when leaving the input must discard
+the draft. By default, clicking the label starts editing and clicking outside
+saves the draft.
 
 ### Leading graphics
 

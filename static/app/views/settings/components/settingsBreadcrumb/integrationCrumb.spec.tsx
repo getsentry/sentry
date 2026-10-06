@@ -30,11 +30,38 @@ describe('IntegrationCrumb', () => {
     });
   });
 
-  it('switches integrations while clearing the selected detail tab', async () => {
+  it('renders the last crumb as a typed page title with a working selector', async () => {
     const parentRoute = {path: 'integrations/', name: 'Integrations'};
     const route = {path: ':integrationSlug', name: 'Integration Details'};
     const {router} = render(
       <IntegrationCrumb route={route} routes={[parentRoute, route]} isLast />,
+      {
+        organization,
+        initialRouterConfig: {
+          route: '/settings/:orgId/integrations/:integrationSlug/',
+          location: {
+            pathname: `/settings/${organization.slug}/integrations/github/`,
+            query: {tab: 'overview'},
+          },
+        },
+      }
+    );
+    expect(
+      await screen.findByRole('heading', {name: 'GitHub', level: 1})
+    ).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', {name: 'GitHub'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Slack'}));
+    expect(router.location.pathname).toBe(
+      `/settings/${organization.slug}/integrations/slack/`
+    );
+    expect(router.location.query).toEqual({});
+  });
+
+  it('switches integrations while clearing the selected detail tab', async () => {
+    const parentRoute = {path: 'integrations/', name: 'Integrations'};
+    const route = {path: ':integrationSlug', name: 'Integration Details'};
+    const {router} = render(
+      <IntegrationCrumb route={route} routes={[parentRoute, route]} isLast={false} />,
       {
         organization,
         initialRouterConfig: {
@@ -78,7 +105,7 @@ describe('IntegrationCrumb', () => {
       }),
     });
     const {router} = render(
-      <IntegrationCrumb route={route} routes={[parentRoute, route]} isLast />,
+      <IntegrationCrumb route={route} routes={[parentRoute, route]} isLast={false} />,
       {
         organization,
         initialRouterConfig: {
@@ -138,15 +165,18 @@ describe('IntegrationCrumb', () => {
       }),
     });
 
-    render(<IntegrationCrumb route={route} routes={[parentRoute, route]} isLast />, {
-      organization,
-      initialRouterConfig: {
-        route: '/settings/:orgId/sentry-apps/:integrationSlug/',
-        location: {
-          pathname: `/settings/${organization.slug}/sentry-apps/shortcut/`,
+    render(
+      <IntegrationCrumb route={route} routes={[parentRoute, route]} isLast={false} />,
+      {
+        organization,
+        initialRouterConfig: {
+          route: '/settings/:orgId/sentry-apps/:integrationSlug/',
+          location: {
+            pathname: `/settings/${organization.slug}/sentry-apps/shortcut/`,
+          },
         },
-      },
-    });
+      }
+    );
 
     const integrationLink = await screen.findByRole('link', {name: /Shortcut/});
     expect(integrationLink).toHaveAttribute(
@@ -158,7 +188,9 @@ describe('IntegrationCrumb', () => {
       'https://example.com/shortcut.png?s=120'
     );
     expect(
-      within(screen.getByRole('button', {name: /Shortcut/})).getAllByRole('img')
-    ).toHaveLength(1);
+      within(screen.getByRole('button', {name: /Shortcut/})).getByRole('img', {
+        name: 'Shortcut',
+      })
+    ).toBeInTheDocument();
   });
 });

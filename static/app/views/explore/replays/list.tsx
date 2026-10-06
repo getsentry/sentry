@@ -7,7 +7,6 @@ import * as Layout from 'sentry/components/layouts/thirds';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {
   ReplayAccess,
@@ -82,21 +81,21 @@ function ReplaysHeader() {
           title={title}
         />
       ) : (
-        <TopBar.Slot name="title">
-          {title ? (
-            title
-          ) : (
-            <Fragment>
-              {t('Session Replay')}
-              <PageHeadingQuestionTooltip
-                title={t(
-                  'Video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.'
-                )}
-                docsUrl="https://docs.sentry.io/product/session-replay/"
-              />
-            </Fragment>
-          )}
-        </TopBar.Slot>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{
+            type: 'page-title',
+            label: title || t('Session Replay'),
+            help: title
+              ? undefined
+              : {
+                  description: t(
+                    'Video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.'
+                  ),
+                  docsUrl: 'https://docs.sentry.io/product/session-replay/',
+                },
+          }}
+        />
       )}
     </Fragment>
   );

@@ -10,7 +10,6 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TourContextProvider} from 'sentry/components/tours/components';
@@ -231,16 +230,20 @@ function SpansTabHeader() {
       {defined(id) && title ? (
         <ExploreSavedQueryBreadcrumbs surface="traces" savedQueryId={id} title={title} />
       ) : (
-        <TopBar.Slot name="title">
-          {title || t('Traces')}
-          <PageHeadingQuestionTooltip
-            docsUrl="https://docs.sentry.io/product/explore/trace-explorer/"
-            title={t(
-              'Find problematic spans/traces or compute real-time metrics via aggregation.'
-            )}
-            linkLabel={t('Read the Docs')}
-          />
-        </TopBar.Slot>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{
+            type: 'page-title',
+            label: title || t('Traces'),
+            help: {
+              docsUrl: 'https://docs.sentry.io/product/explore/trace-explorer/',
+              description: t(
+                'Find problematic spans/traces or compute real-time metrics via aggregation.'
+              ),
+              linkLabel: t('Read the Docs'),
+            },
+          }}
+        />
       )}
       <TopBar.Slot name="feedback">
         <FeedbackButton

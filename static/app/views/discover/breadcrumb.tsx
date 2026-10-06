@@ -1,4 +1,3 @@
-import {Fragment} from 'react';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
@@ -51,33 +50,27 @@ export function DiscoverBreadcrumb({
     : null;
 
   return (
-    <Fragment>
-      <TopBar.Slot name="breadcrumbs">
-        <BreadcrumbList
-          items={[
-            ...(discoverTarget
-              ? [{type: 'link' as const, label: discoverLabel, to: discoverTarget}]
-              : []),
-            ...(defined(eventView.id)
-              ? [
-                  {
-                    type: 'link' as const,
-                    label: t('Saved Queries'),
-                    to: makeDiscoverPathname({path: '/queries/', organization}),
-                  },
-                ]
-              : []),
-          ]}
-        />
-      </TopBar.Slot>
-
-      <TopBar.Slot name="title">
-        <EventInputName
-          savedQuery={savedQuery}
-          organization={organization}
-          eventView={eventView}
-        />
-      </TopBar.Slot>
-    </Fragment>
+    <EventInputName
+      savedQuery={savedQuery}
+      organization={organization}
+      eventView={eventView}
+    >
+      <BreadcrumbList
+        items={[
+          ...(discoverTarget
+            ? [{type: 'link' as const, label: discoverLabel, to: discoverTarget}]
+            : []),
+          ...(defined(eventView.id)
+            ? [
+                {
+                  type: 'link' as const,
+                  label: t('Saved Queries'),
+                  to: makeDiscoverPathname({path: '/queries/', organization}),
+                },
+              ]
+            : []),
+        ]}
+      />
+    </EventInputName>
   );
 }

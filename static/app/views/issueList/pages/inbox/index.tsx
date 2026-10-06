@@ -30,9 +30,7 @@ import {
   useLinkedPullRequests,
 } from 'sentry/components/group/externalIssuesList/linkedPullRequests';
 import {getPullRequestStatusLabel} from 'sentry/components/group/externalIssuesList/pullRequestStatusBadge';
-import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {Placeholder} from 'sentry/components/placeholder';
 import {QueryCount} from 'sentry/components/queryCount';
 import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
@@ -69,6 +67,7 @@ import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPrev
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 const TITLE = t('Inbox');
 const ISSUE_LIMIT = 10;
@@ -361,15 +360,19 @@ function InboxContent() {
 
   return (
     <Stack flex={1} minHeight={0} contain="size" overflow="hidden">
-      <Layout.Title>
-        {TITLE}
-        <PageHeadingQuestionTooltip
-          docsUrl="https://docs.sentry.io/product/issues/inbox/"
-          title={t(
-            'A personalized view of issues relevant to you, organized by how close you are to fixing them.'
-          )}
-        />
-      </Layout.Title>
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: TITLE,
+          help: {
+            docsUrl: 'https://docs.sentry.io/product/issues/inbox/',
+            description: t(
+              'A personalized view of issues relevant to you, organized by how close you are to fixing them.'
+            ),
+          },
+        }}
+      />
       <Grid
         flex={1}
         minHeight={0}

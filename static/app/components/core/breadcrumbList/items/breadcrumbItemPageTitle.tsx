@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 
+import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge/featureBadge';
 import {BreadcrumbCopyAction} from '@sentry/scraps/breadcrumbList/actions/breadcrumbCopyAction';
 import type {BreadcrumbCopyActionProps} from '@sentry/scraps/breadcrumbList/actions/breadcrumbCopyAction';
 import {BreadcrumbMenuAction} from '@sentry/scraps/breadcrumbList/actions/breadcrumbMenuAction';
@@ -10,10 +11,15 @@ import {
   type LinkButtonProps,
   LinkButton,
 } from '@sentry/scraps/button';
-import {InfoText} from '@sentry/scraps/info';
-import {Container, Flex} from '@sentry/scraps/layout';
-import type {LinkProps} from '@sentry/scraps/link';
+import {CompactSelect, type SingleSelectProps} from '@sentry/scraps/compactSelect';
+import {InfoText, InfoTip} from '@sentry/scraps/info';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink, type LinkProps} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {StatusIndicator} from '@sentry/scraps/statusIndicator';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {IconChevron} from 'sentry/icons';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -28,6 +34,10 @@ import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
 type BreadcrumbTitleAction =
   | ({type: 'copy'} & BreadcrumbCopyActionProps)
   | ({type: 'menu'} & BreadcrumbMenuActionProps)
+  | ({triggerLabel: string; type: 'select'} & Pick<
+      SingleSelectProps<string>,
+      'options' | 'value' | 'onChange' | 'onOpenChange' | 'search' | 'loading'
+    >)
   | {element: React.ReactElement<ButtonProps | LinkButtonProps>; type: 'button'};
 
 /**
@@ -51,6 +61,23 @@ function renderTrailingAction(action: BreadcrumbTitleAction) {
     }
     case 'button':
       return action.element;
+    case 'select': {
+      const {type: _type, triggerLabel, ...props} = action;
+      return (
+        <CompactSelect
+          {...props}
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              size="zero"
+              variant="transparent"
+              aria-label={triggerLabel}
+              icon={<IconChevron direction="down" size="xs" />}
+            />
+          )}
+        />
+      );
+    }
     default:
       unreachable(action);
       return null;
@@ -100,6 +127,12 @@ interface BreadcrumbItemPaginationProps {
 
 export interface BreadcrumbItemPageTitleProps {
   label: string;
+  /** Feature status shown beside the title. */
+  badge?: FeatureBadgeProps['type'];
+  /** Explanatory tooltip with an optional documentation link. */
+  help?: {description: React.ReactNode; docsUrl?: string; linkLabel?: React.ReactNode};
+  /** Optional external destination for the title. */
+  href?: string;
   /**
    * Tooltip shown on the label. renders an always-on custom tooltip (e.g. an issue short-id).
    */
@@ -111,17 +144,27 @@ export interface BreadcrumbItemPageTitleProps {
   leadingGraphic?: React.ReactNode;
   /** Structured prev/next navigation rendered before the label. */
   pagination?: BreadcrumbItemPaginationProps;
+  /** Accessible status shown before the title. */
+  status?: {
+    label: string;
+    variant: React.ComponentProps<typeof StatusIndicator>['variant'];
+  };
   /** Typed trailing actions rendered after the page title. */
   trailingActions?: BreadcrumbTitleActions;
 }
 
 export function BreadcrumbItemPageTitle({
   label,
+  badge,
+  status,
+  help,
+  href,
   labelTooltip,
   leadingGraphic,
   pagination,
   trailingActions,
 }: BreadcrumbItemPageTitleProps) {
+  const {t} = useTranslation();
   const actions = renderTrailingActions(trailingActions);
 
   return (
@@ -176,6 +219,14 @@ export function BreadcrumbItemPageTitle({
         </Flex>
       )}
       {leadingGraphic && <BreadcrumbLeadingSlot>{leadingGraphic}</BreadcrumbLeadingSlot>}
+      {status && (
+        <StatusIndicator
+          role="status"
+          aria-label={status.label}
+          variant={status.variant}
+          animationIterationCount={0}
+        />
+      )}
       {/* minWidth={0} lets the title content shrink. The visible-width floor lives
           on the outer Flex above. */}
       <Container minWidth={0}>
@@ -187,10 +238,27 @@ export function BreadcrumbItemPageTitle({
             variant="inherit"
             {...containerProps}
           >
-            {label}
+            {href ? <ExternalLink href={href}>{label}</ExternalLink> : label}
           </InfoText>
         )}
       </Container>
+      {badge && <FeatureBadge type={badge} />}
+      {help && (
+        <InfoTip
+          size="sm"
+          position="right"
+          title={
+            <Stack align="start" gap="md">
+              <Text align="left">{help.description}</Text>
+              {help.docsUrl && (
+                <ExternalLink href={help.docsUrl}>
+                  {help.linkLabel ?? t('Read the Docs')}
+                </ExternalLink>
+              )}
+            </Stack>
+          }
+        />
+      )}
       {actions}
     </Flex>
   );

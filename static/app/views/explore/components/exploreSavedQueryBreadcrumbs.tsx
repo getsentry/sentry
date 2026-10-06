@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {useMemo} from 'react';
 
 import {ProjectsBadge} from '@sentry/scraps/badge';
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
@@ -310,8 +310,9 @@ function SavedQueryTitle({
   const starLabel = isStarred ? t('Unstar') : t('Star');
 
   return (
-    <BreadcrumbList.Title
-      item={{
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
         type: 'page-title',
         label: savedQuery.name,
         leadingGraphic: (
@@ -349,7 +350,9 @@ function SavedQueryTitle({
           },
         ],
       }}
-    />
+    >
+      <BreadcrumbList items={config.items} />
+    </TopBar.Slot>
   );
 }
 
@@ -376,28 +379,22 @@ export function ExploreSavedQueryBreadcrumbs({
   const config = useSurfaceConfig(surface);
   const {data: savedQuery} = useGetSavedQuery(savedQueryId);
 
-  return (
-    <Fragment>
-      <TopBar.Slot name="breadcrumbs">
-        <BreadcrumbList items={config.items} />
-      </TopBar.Slot>
-      <TopBar.Slot name="title">
-        {savedQuery ? (
-          <SavedQueryTitle
-            savedQuery={savedQuery}
-            savedQueryId={savedQueryId}
-            config={config}
-          />
-        ) : (
-          <BreadcrumbList.Title
-            item={{
-              type: 'page-title',
-              label: title ?? t('Saved Query'),
-              leadingGraphic: <Placeholder width="16px" height="16px" />,
-            }}
-          />
-        )}
-      </TopBar.Slot>
-    </Fragment>
+  return savedQuery ? (
+    <SavedQueryTitle
+      savedQuery={savedQuery}
+      savedQueryId={savedQueryId}
+      config={config}
+    />
+  ) : (
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
+        type: 'page-title',
+        label: title ?? t('Saved Query'),
+        leadingGraphic: <Placeholder width="16px" height="16px" />,
+      }}
+    >
+      <BreadcrumbList items={config.items} />
+    </TopBar.Slot>
   );
 }

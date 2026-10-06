@@ -8,14 +8,23 @@ import {
 } from 'react';
 import {useMatches, type UIMatch} from 'react-router-dom';
 
+import type {BreadcrumbList, BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
+
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 
 type ExplicitTitleProps = {
   matches: UIMatch[];
-  title: string;
+  title: string | BreadcrumbTitleItem;
+  breadcrumbs?: React.ComponentProps<typeof BreadcrumbList>['items'];
 };
 
-type PathMap = Record<string, string>;
+type PathMap = Record<
+  string,
+  {
+    title: BreadcrumbTitleItem;
+    breadcrumbs?: React.ComponentProps<typeof BreadcrumbList>['items'];
+  }
+>;
 
 type Context = {
   /**
@@ -68,10 +77,16 @@ function BreadcrumbProvider({children}: ProviderProps) {
   );
 
   const setExplicitTitle = useCallback(
-    ({matches: updateRoutes, title}: ExplicitTitleProps) => {
+    ({matches: updateRoutes, title, breadcrumbs}: ExplicitTitleProps) => {
       const key = getRouteStringFromRoutes({matches: updateRoutes});
 
-      setExplicitPathMap(lastState => ({...lastState, [key]: title}));
+      setExplicitPathMap(lastState => ({
+        ...lastState,
+        [key]: {
+          title: typeof title === 'string' ? {type: 'page-title', label: title} : title,
+          breadcrumbs,
+        },
+      }));
 
       return () =>
         setExplicitPathMap(lastState => {
@@ -104,12 +119,14 @@ function useBreadcrumbsPathmap() {
  * component is rendererd.
  *
  * Is a no-op if used outside of the BreadcrumbContext.
+ * Returns whether a provider owns the title.
  */
 function useBreadcrumbTitleEffect(props: ExplicitTitleProps) {
   const context = useContext(BreadcrumbContext);
   const setExplicitTitle = context?.setExplicitTitle;
 
   useLayoutEffect(() => setExplicitTitle?.(props), [setExplicitTitle, props]);
+  return context !== undefined;
 }
 
 export {BreadcrumbProvider, useBreadcrumbsPathmap, useBreadcrumbTitleEffect};

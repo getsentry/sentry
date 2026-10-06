@@ -1,3 +1,5 @@
+import type {ComponentProps} from 'react';
+import {expectTypeOf} from 'expect-type';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
@@ -130,22 +132,15 @@ describe('TopBar', () => {
     expect(onChange).toHaveBeenCalledWith('New dashboard');
   });
 
-  it('supports separate slots while legacy titles migrate', () => {
-    render(
-      <TopBar.Slot.Provider>
-        <TopBar />
-        <TopBar.Slot name="breadcrumbs">
-          <BreadcrumbList items={[{type: 'link', label: 'Issues', to: '/issues/'}]} />
-        </TopBar.Slot>
-        <TopBar.Slot name="title">Legacy title</TopBar.Slot>
-      </TopBar.Slot.Provider>
-    );
-
-    expect(screen.getByRole('heading', {name: 'Legacy title'})).toBeInTheDocument();
-    expect(screen.getByRole('link', {name: 'Issues'})).toHaveAttribute(
-      'href',
-      '/issues/'
-    );
+  it('requires a typed title on the breadcrumbs slot', () => {
+    type Props = ComponentProps<typeof TopBar.Slot>;
+    expectTypeOf<{name: 'breadcrumbs'}>().not.toMatchTypeOf<Props>();
+    expectTypeOf<{children: string; name: 'title'}>().not.toMatchTypeOf<Props>();
+    expectTypeOf<{name: 'breadcrumbs'; title: string}>().not.toMatchTypeOf<Props>();
+    expectTypeOf<{
+      name: 'breadcrumbs';
+      title: {label: string; type: 'page-title'};
+    }>().toMatchTypeOf<Props>();
   });
 
   it('uses icon-only actions below sm', () => {

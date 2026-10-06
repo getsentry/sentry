@@ -24,7 +24,12 @@ type IntegrationProviderResponse = {
   providers: IntegrationProvider[];
 };
 
-export function IntegrationCrumb({route, routes}: SettingsBreadcrumbProps) {
+export function IntegrationCrumb({
+  route,
+  routes,
+  isLast,
+  children,
+}: SettingsBreadcrumbProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const organization = useOrganization();
@@ -85,6 +90,16 @@ export function IntegrationCrumb({route, routes}: SettingsBreadcrumbProps) {
 
   return (
     <BreadcrumbDropdown
+      title={isLast ? activeProviderName : undefined}
+      titleGraphic={
+        sentryApp ? (
+          <SentryAppAvatar sentryApp={sentryApp} size={16} />
+        ) : integration ? (
+          <IntegrationIcon integration={integration} size={16} />
+        ) : (
+          <PluginIcon pluginId={activeProviderKey} size={16} />
+        )
+      }
       name={
         <CrumbLink to={activeProviderHref}>
           <Flex align="center" gap="xs">
@@ -127,7 +142,9 @@ export function IntegrationCrumb({route, routes}: SettingsBreadcrumbProps) {
         label: provider.name,
       }))}
       loading={isPending}
-      showDivider={hasFollowingTopBarTitle}
-    />
+      showDivider={hasFollowingTopBarTitle || !isLast}
+    >
+      {children}
+    </BreadcrumbDropdown>
   );
 }

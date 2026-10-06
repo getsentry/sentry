@@ -9,4 +9,5 @@ export interface RouteWithName {
 
 export type SettingsBreadcrumbProps = Pick<RouteComponentProps, 'route' | 'routes'> & {
   isLast: boolean;
+  children?: React.ReactNode;
 };

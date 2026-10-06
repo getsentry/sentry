@@ -11,11 +11,8 @@ import {
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {FieldGroup} from '@sentry/scraps/form';
-import {Flex} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
 import {singleLineRenderer} from '@sentry/scraps/markdown';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
-import {Text} from '@sentry/scraps/text';
 
 import {BackendJsonAutoSaveForm} from 'sentry/components/backendJsonFormAdapter/backendJsonAutoSaveForm';
 import type {FieldValue} from 'sentry/components/backendJsonFormAdapter/types';
@@ -48,9 +45,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {CrumbLink} from 'sentry/views/settings/components/settingsBreadcrumb';
-import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
-import {Divider} from 'sentry/views/settings/components/settingsBreadcrumb/divider';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {GcpConnectionStatus} from './gcpConnectionStatus';
@@ -629,27 +623,15 @@ function IntegrationNavigationHeader({
     <Fragment>
       <SentryDocumentTitle title={integration.provider.name} />
       <SettingsPageHeader
-        title={
-          <Flex align="center" gap="sm">
-            <CrumbLink to={configurationsHref}>{t('Configurations')}</CrumbLink>
-            <Divider />
-            <IntegrationIcon size={18} integration={integration} />
-            {externalUrl ? (
-              <Text>
-                {textProps => (
-                  <ExternalLink {...textProps} href={externalUrl}>
-                    {integration.name}
-                  </ExternalLink>
-                )}
-              </Text>
-            ) : (
-              <Text>{integration.name}</Text>
-            )}
-          </Flex>
-        }
+        breadcrumbs={[{type: 'link', label: t('Configurations'), to: configurationsHref}]}
+        title={{
+          type: 'page-title',
+          label: integration.name,
+          leadingGraphic: <IntegrationIcon size={16} integration={integration} />,
+          href: externalUrl ?? undefined,
+        }}
         action={action}
       />
-      <BreadcrumbTitle title={integration.provider.name} />
     </Fragment>
   );
 }
