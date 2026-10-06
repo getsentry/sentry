@@ -92,6 +92,12 @@ export function PathMappingSummary({
 
         <Container flex="1 0 0%" />
 
+        {automaticallyGenerated && (
+          <Container flexShrink={0}>
+            <AutomaticTag />
+          </Container>
+        )}
+
         <Flex
           align="center"
           gap="xs"
@@ -113,7 +119,6 @@ export function PathMappingSummary({
             aria-label={expanded ? t('Collapse path mapping') : t('Expand path mapping')}
             onClick={onExpandToggle}
           />
-          {onDelete && automaticallyGenerated && <AutomaticTag />}
           {onDelete && (
             <PathMappingDeleteButton hasCodeOwner={hasCodeOwner} onDelete={onDelete} />
           )}

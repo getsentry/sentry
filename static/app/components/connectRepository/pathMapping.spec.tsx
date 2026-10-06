@@ -49,25 +49,6 @@ describe('PathMapping', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows an Automatic tag for a generated mapping', () => {
-    renderMapping({
-      value: {
-        stackRoot: 'src/',
-        sourceRoot: 'app/',
-        branch: 'main',
-        automaticallyGenerated: true,
-      },
-    });
-
-    expect(screen.getByText('Automatic')).toBeInTheDocument();
-  });
-
-  it('does not show an Automatic tag for a manual mapping', () => {
-    renderMapping({value: {stackRoot: 'src/', sourceRoot: 'app/', branch: 'main'}});
-
-    expect(screen.queryByText('Automatic')).not.toBeInTheDocument();
-  });
-
   it('shows empty placeholder when paths are blank', () => {
     renderMapping({value: {stackRoot: '', sourceRoot: '', branch: 'main'}});
 

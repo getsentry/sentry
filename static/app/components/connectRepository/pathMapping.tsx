@@ -16,9 +16,7 @@ interface PathMappingProps {
   /** Current field values — used by the collapsed summary row. */
   value: PathMappingValue;
   defaultBranch?: string;
-  /**
-   * When set on an open row, the editor owns delete and the summary hides its button.
-   */
+  /** A new row with no summary can delete itself only when another row exists. */
   enableDelete?: boolean;
   projectSlug?: string;
   providerKey?: string;
@@ -40,7 +38,7 @@ export function PathMapping({
   warning,
 }: PathMappingProps) {
   const showSummary = !(editing && isNew);
-  const editorOnDelete = editing && enableDelete ? onDelete : undefined;
+  const editorOnDelete = !showSummary && enableDelete ? onDelete : undefined;
   const hasWarning = isExactWarning(warning);
 
   return (
@@ -51,7 +49,7 @@ export function PathMapping({
           defaultBranch={defaultBranch}
           expanded={editing}
           warning={warning}
-          onDelete={editorOnDelete ? undefined : onDelete}
+          onDelete={onDelete}
           onExpandToggle={onExpandToggle}
         />
       )}
@@ -63,7 +61,6 @@ export function PathMapping({
           providerKey={providerKey}
           defaultBranch={defaultBranch}
           projectSlug={projectSlug}
-          automaticallyGenerated={value.automaticallyGenerated}
           hasCodeOwner={value.hasCodeOwner}
           warning={warning}
           onDelete={editorOnDelete}

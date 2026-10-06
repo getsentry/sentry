@@ -7,7 +7,6 @@ import {IconArrow, IconBranch, IconSentry} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
 
-import {AutomaticTag} from './automaticTag';
 import {SOURCE_ROOT_PLACEHOLDER, STACK_ROOT_PLACEHOLDER} from './constants';
 import {
   DEFAULT_BRANCH,
@@ -23,7 +22,6 @@ import type {PathMappingWarning} from './warnings';
 export const PathMappingEdit = withFieldGroup({
   defaultValues: {stackRoot: '', sourceRoot: '', branch: ''},
   props: {} as {
-    automaticallyGenerated?: boolean;
     defaultBranch?: string;
     hasCodeOwner?: boolean;
     onDelete?: () => void;
@@ -33,7 +31,6 @@ export const PathMappingEdit = withFieldGroup({
   },
   render: ({
     group,
-    automaticallyGenerated,
     defaultBranch,
     hasCodeOwner,
     onDelete,
@@ -58,13 +55,10 @@ export const PathMappingEdit = withFieldGroup({
                 <Flex align="center" justify="between">
                   <Text>{t('Branch')}</Text>
                   {onDelete && (
-                    <Flex align="center" gap="xs">
-                      {automaticallyGenerated && <AutomaticTag />}
-                      <PathMappingDeleteButton
-                        hasCodeOwner={hasCodeOwner}
-                        onDelete={onDelete}
-                      />
-                    </Flex>
+                    <PathMappingDeleteButton
+                      hasCodeOwner={hasCodeOwner}
+                      onDelete={onDelete}
+                    />
                   )}
                 </Flex>
                 <field.Input

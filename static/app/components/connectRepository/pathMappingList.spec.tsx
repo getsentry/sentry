@@ -148,7 +148,7 @@ describe('PathMappingList', () => {
       );
     });
 
-    it('shows Automatic tag on a generated row and nowhere else', () => {
+    it('shows an Automatic tag only on generated rows', () => {
       renderList({
         initialPathMappings: [
           {
@@ -164,37 +164,15 @@ describe('PathMappingList', () => {
       expect(screen.getAllByText('Automatic')).toHaveLength(1);
     });
 
-    it('tag follows delete into the editor when the row is expanded with multiple mappings', async () => {
-      renderList({
-        initialPathMappings: [
-          {
-            stackRoot: 'app/',
-            sourceRoot: 'static/app/',
-            branch: 'main',
-            automaticallyGenerated: true,
-          },
-          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'frontend'},
-        ],
-      });
-
-      const [firstExpand] = screen.getAllByRole('button', {name: 'Expand path mapping'});
-      await userEvent.click(firstExpand!);
-
-      // Delete moved into the editor; the tag should still appear exactly once.
-      expect(screen.getAllByText('Automatic')).toHaveLength(1);
-    });
-
-    it('deletes an open mapping from the editor when another mapping exists', async () => {
+    it('keeps delete on the summary when an existing row is expanded', async () => {
       renderList({initialPathMappings: MAPPINGS});
 
       const [firstExpand] = screen.getAllByRole('button', {name: 'Expand path mapping'});
       await userEvent.click(firstExpand!);
 
-      // The editor branch row now owns delete; the summary hides its own button
-      const [editorDelete] = screen.getAllByRole('button', {name: 'Delete path mapping'});
-      await userEvent.click(editorDelete!);
-
-      expect(screen.getByText(/Paths \(1\)/)).toBeInTheDocument();
+      expect(screen.getAllByRole('button', {name: 'Delete path mapping'})).toHaveLength(
+        2
+      );
     });
 
     it('removes a mapping', async () => {
