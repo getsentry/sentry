@@ -4,6 +4,7 @@ import {useTheme} from '@emotion/react';
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
 import {LinkButton} from '@sentry/scraps/button';
+import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -187,7 +188,13 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
               pointerEvents="none"
               display={{zero: 'none', xl: 'block'}}
             >
-              <img src={waitingForEventImg} alt="" height={120} />
+              <Image
+                src={waitingForEventImg}
+                alt={t('A detective waits for the first issue to arrive')}
+                height="120px"
+                width="auto"
+                loading="eager"
+              />
             </Container>
           </Container>
           <Container
@@ -264,7 +271,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                   src="https://demo.arcade.software/bQko6ZTRFMyTm6fJaDzs?embed"
                   loading="lazy"
                   allowFullScreen
-                  title="Sentry issue preview"
+                  title={t('Sentry issue preview')}
                   width="100%"
                   height={420}
                   style={{border: 0, colorScheme: 'auto'}}
