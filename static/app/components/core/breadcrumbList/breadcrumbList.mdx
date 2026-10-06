@@ -238,7 +238,9 @@ The `editable-title` item renders the current page as a click-to-edit field for
 pages that let users rename in place. Pass the editable field props directly on
 the `editable-title` item passed to `BreadcrumbList.Title`. Unlike
 `page-title`, it has no `trailingActions` slot; `EditableText` provides its own
-edit affordance.
+edit affordance. Only the displayed label is inside the `h1`; the edit icon,
+leading graphic, and error indicator are outside it. While editing, a labelled
+input replaces the heading.
 
 <Storybook.Demo>
   <BreadcrumbListDemo

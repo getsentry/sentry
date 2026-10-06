@@ -1,5 +1,4 @@
 import {Container, Flex, useHasContainerQuery} from '@sentry/scraps/layout';
-import {Heading} from '@sentry/scraps/text';
 
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -61,11 +60,7 @@ function BreadCrumbTitle({item}: BreadcrumbListTitleProps) {
     }
     case 'editable-title': {
       const {type: _type, ...props} = item;
-      return (
-        <Heading as="h1" variant="inherit">
-          <BreadcrumbItemPageTitleEditable {...props} />
-        </Heading>
-      );
+      return <BreadcrumbItemPageTitleEditable {...props} />;
     }
     default:
       unreachable(item);

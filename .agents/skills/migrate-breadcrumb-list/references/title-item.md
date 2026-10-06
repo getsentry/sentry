@@ -11,6 +11,8 @@ Read the current item unions before choosing a shape. Pass the item as `title` o
 
 `editable-title` has no trailing-action or pagination props. Return a different item for a static state if needed.
 
+Editable titles render only the displayed label inside `<h1><span>…</span></h1>` through `EditableText.renderLabel`. The edit icon, leading graphic, and error indicator stay outside the heading. During editing, the labelled input replaces the heading.
+
 Editable titles use the standard `EditableText` behavior: a single click starts editing, clicking outside saves the draft, and Escape cancels it. Pass form validation errors through `error` and subscribe to the form error state so changes are rendered. `errorMessage` is only the message for an invalid empty edit; it does not display server validation errors.
 
 Selectors belong only in parent breadcrumbs. The final item must be a plain or editable title. The `select-projects` parent item accepts `options`, `value`, and `onChange`.

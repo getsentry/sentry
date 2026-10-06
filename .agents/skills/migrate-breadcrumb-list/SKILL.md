@@ -26,7 +26,7 @@ Separate parent links from the current page title. Pass both through one public 
 
 For a page without parents, omit the slot children. The `title` prop is still required.
 
-`TopBar` internally routes the parents and title to separate outlets. `BreadcrumbList.Title` supplies the single `<h1>`. For `page-title`, only the label is inside the heading; graphics, pagination, and actions render beside it. Do not wrap the title component in another heading. Use it directly only when composing outside TopBar. Do not add a public `TopBar.Slot name="title"`, `Layout.Title`, or a second page heading; those public title APIs were removed.
+`TopBar` internally routes the parents and title to separate outlets. `BreadcrumbList.Title` supplies the single `<h1>`. For both title types, only the displayed label is inside the heading; graphics and controls render outside it. An editable title replaces the heading with a labelled input during editing. Do not wrap the title component in another heading. Use it directly only when composing outside TopBar. Do not add a public `TopBar.Slot name="title"`, `Layout.Title`, or a second page heading; those public title APIs were removed.
 
 Read `static/app/views/navigation/topBar.tsx` and `static/app/components/core/breadcrumbList/` before editing. Prefer the current implementation over old migration examples.
 
@@ -105,7 +105,7 @@ Use `views/detectors/components/details/common/header.tsx` for slot composition,
 ## Migration checks
 
 - Every public breadcrumbs slot has a typed `title`; no public `title` slot or `Layout.Title` remains in the changed code.
-- The page has one heading, and the current page is not repeated in the parent trail.
+- The page has one heading (replaced by a labelled input while editing), and the current page is not repeated in the parent trail.
 - Legacy crumbs are not spread into typed items; page-filter destinations preserve the old behavior.
 - Decorative leading graphics fit the 16×16 slot. Disable links and interactive tooltips inside that `aria-hidden` slot.
 - Feature badges use `trailingActions`, match the sidebar type, and remain outside `leadingGraphic`.

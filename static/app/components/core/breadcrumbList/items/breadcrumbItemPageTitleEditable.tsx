@@ -1,5 +1,5 @@
 import {Container, Flex} from '@sentry/scraps/layout';
-import {Text} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {EditableText} from 'sentry/components/editableText';
 import {ControlState} from 'sentry/components/forms/fieldGroup/controlState';
@@ -36,13 +36,23 @@ export function BreadcrumbItemPageTitleEditable({
     // Mirrors BreadcrumbItemPageTitle's layout so the editable variant lines up
     // with the static one. No trailing-action slot: EditableText owns its own
     // edit affordance.
-    <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px">
+    <Flex align="center" gap="sm" height="32px" minWidth="32px">
       {leadingGraphic && <BreadcrumbLeadingSlot>{leadingGraphic}</BreadcrumbLeadingSlot>}
       {/* Bold wrapper matches BreadcrumbItemPageTitle's weight; EditableText's
           compact label/input inherit font-weight from this context. */}
       <Container minWidth={0}>
-        <Text as="span" bold>
-          <EditableText variant="compact" {...editableTextProps} />
+        <Text as="div" bold>
+          <EditableText
+            variant="compact"
+            {...editableTextProps}
+            renderLabel={label => (
+              <Heading as="h1" variant="inherit">
+                <Text as="span" bold variant="inherit">
+                  {label}
+                </Text>
+              </Heading>
+            )}
+          />
         </Text>
       </Container>
       <ControlState error={error} />

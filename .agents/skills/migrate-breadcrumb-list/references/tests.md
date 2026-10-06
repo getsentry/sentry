@@ -44,7 +44,7 @@ If a custom harness supplies its own outlets, it needs both the internal `breadc
 
 For `labelTooltip`, hover or focus the title text, then assert the description or documentation link. Do not query the removed separate info icon.
 
-For editable titles, click the text to start editing. Clicking outside saves the draft; Escape cancels it.
+For editable titles, click the heading to start editing. A labelled textbox replaces the heading and must not be inside an `h1`. Saving or cancelling restores the heading. Clicking outside saves the draft; Escape cancels it.
 
 ## Keep the leaf out of the parent trail
 
@@ -59,7 +59,7 @@ expect(
 expect(within(breadcrumbs).queryByText('Custom Errors')).not.toBeInTheDocument();
 ```
 
-Scope queries to the heading, trail, or banner when body content repeats the same text. For `page-title`, the heading contains only the label. Query graphics, pagination, and trailing actions outside the heading.
+Scope queries to the heading, trail, or banner when body content repeats the same text. For both title types, the heading contains only the displayed label. Query graphics, pagination, and trailing actions outside the heading.
 
 ## Actions and data
 

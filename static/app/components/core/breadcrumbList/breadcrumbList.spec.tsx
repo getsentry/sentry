@@ -323,22 +323,35 @@ describe('BreadcrumbList rich page-title items', () => {
   });
 
   it('renders an editable-title as a click-to-edit field', async () => {
+    const onChange = jest.fn();
     render(
       <BreadcrumbList.Title
         item={{
           type: 'editable-title',
           value: 'My Dashboard',
-          onChange: () => {},
+          onChange,
           'aria-label': 'Edit dashboard name',
+          leadingGraphic: <span data-test-id="title-graphic">D</span>,
+          error: 'Invalid name',
         }}
       />
     );
 
-    // Shows the current title, and clicking it swaps in a labelled textbox.
-    const label = screen.getByText('My Dashboard');
-    await userEvent.click(label);
+    const heading = screen.getByRole('heading', {name: 'My Dashboard', level: 1});
+    expect([...heading.querySelectorAll('*')].every(el => el.tagName === 'SPAN')).toBe(
+      true
+    );
+    expect(heading).not.toContainElement(screen.getByTestId('title-graphic'));
+    expect(heading).not.toContainElement(screen.getByText('Invalid name'));
+
+    await userEvent.click(heading);
+    const input = screen.getByRole('textbox', {name: 'Edit dashboard name'});
+    expect(input.closest('h1')).toBeNull();
+    await userEvent.clear(input);
+    await userEvent.type(input, 'New Dashboard{Enter}');
+    expect(onChange).toHaveBeenCalledWith('New Dashboard');
     expect(
-      screen.getByRole('textbox', {name: 'Edit dashboard name'})
+      screen.getByRole('heading', {name: 'New Dashboard', level: 1})
     ).toBeInTheDocument();
   });
 });
