@@ -98,6 +98,7 @@ type DetectorResult = IssueOccurrence | StatusChangeMessage | None
 
 class _WorkflowEventLocalCache(TypedDict, total=False):
     group_assignees: Sequence[GroupAssignee]
+    activity_environment: Environment | None
 
 
 @dataclass(frozen=True)

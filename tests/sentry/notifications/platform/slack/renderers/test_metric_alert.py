@@ -44,7 +44,7 @@ def _make_notification_data(**overrides: Any) -> MetricAlertNotificationData:
 
 class SlackMetricAlertRendererInvalidDataTest(TestCase):
     def test_render_raises_on_invalid_data_type(self) -> None:
-        invalid_data = SeerAutofixError(error_message="not a metric alert")
+        invalid_data = SeerAutofixError(organization_id=1, error_message="not a metric alert")
         rendered_template = NotificationRenderedTemplate(subject="Metric Alert", body=[])
 
         with pytest.raises(ValueError, match="does not support"):

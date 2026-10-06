@@ -2,15 +2,14 @@ from __future__ import annotations
 
 import abc
 import logging
-from collections import namedtuple
 from collections.abc import Callable, MutableMapping, Sequence
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, NamedTuple
 
 from django import forms
 
 from sentry.models.project import Project
+from sentry.notifications.types import RuleFuture
 from sentry.services.eventstore.models import GroupEvent
-from sentry.types.rules import RuleFuture
 
 if TYPE_CHECKING:
     from sentry.models.rule import Rule
@@ -45,10 +44,14 @@ by the rule's logic. Each rule condition may be associated with a form.
 - [ACTION:I want to group events when] [RULE:an event matches [FORM]]
 """
 
+
 # Encapsulates a reference to the callback, including arguments. The `key`
 # attribute may be specifically used to key the callbacks when they are
 # collated during rule processing.
-CallbackFuture = namedtuple("CallbackFuture", ["callback", "kwargs", "key"])
+class CallbackFuture(NamedTuple):
+    callback: Callable[[GroupEvent, Sequence[RuleFuture]], None]
+    kwargs: dict[str, Any]
+    key: str | None
 
 
 class RuleBase(abc.ABC):

@@ -6,7 +6,10 @@ import {Text} from '@sentry/scraps/text';
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {StructuredEventData} from 'sentry/components/structuredEventData';
 import type {PlatformKey} from 'sentry/types/platform';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {FrameVariablesTree} from './frameVariablesTree';
+import {getJsonFrameVariables} from './getJsonFrameVariables';
 import {getStructuredDataConfig} from './getStructuredDataConfig';
 
 const QUOTED_KEY_REGEX = /^['"](.*)['"]$/;
@@ -32,8 +35,14 @@ export function FrameVariablesGrid({
   meta,
   platform,
 }: FrameVariablesGridProps) {
+  const organization = useOrganization({allowNull: true});
+  const useVariableTree = organization?.features.includes('native-variable-extraction');
   const config = useMemo(() => getStructuredDataConfig({platform}), [platform]);
   const rows = useMemo(() => (data ? Object.keys(data).sort() : []), [data]);
+  const variables = useMemo(
+    () => (useVariableTree && data ? getJsonFrameVariables(data, meta, platform) : null),
+    [useVariableTree, data, meta, platform]
+  );
 
   if (!data) {
     return null;
@@ -41,28 +50,32 @@ export function FrameVariablesGrid({
 
   return (
     <StyledClippedBox clipHeight={clipHeight} data-test-id="core-stacktrace-frame-vars">
-      <VariablesGrid>
-        {rows.map(rawKey => (
-          <VariableRow key={rawKey}>
-            <VariableKey>
-              <Text as="div" size="sm" monospace bold>
-                {formatVariableKey(rawKey)}
-              </Text>
-            </VariableKey>
-            <VariablesValue>
-              {/*
+      {variables ? (
+        <FrameVariablesTree variables={variables} platform={platform ?? 'other'} />
+      ) : (
+        <VariablesGrid>
+          {rows.map(rawKey => (
+            <VariableRow key={rawKey}>
+              <VariableKey>
+                <Text as="div" size="sm" monospace bold>
+                  {formatVariableKey(rawKey)}
+                </Text>
+              </VariableKey>
+              <VariablesValue>
+                {/*
                 StructuredEventData expects record-like meta for each value; skip invalid meta entries.
               */}
-              <StructuredEventData
-                config={config}
-                data={data[rawKey]}
-                meta={isRecord(meta?.[rawKey]) ? meta[rawKey] : undefined}
-                withAnnotatedText
-              />
-            </VariablesValue>
-          </VariableRow>
-        ))}
-      </VariablesGrid>
+                <StructuredEventData
+                  config={config}
+                  data={data[rawKey]}
+                  meta={isRecord(meta?.[rawKey]) ? meta[rawKey] : undefined}
+                  withAnnotatedText
+                />
+              </VariablesValue>
+            </VariableRow>
+          ))}
+        </VariablesGrid>
+      )}
     </StyledClippedBox>
   );
 }

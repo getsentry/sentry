@@ -46,9 +46,9 @@ import {
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
 import {
-  IssuePreviewActions,
+  IssuePreviewHeaderActions,
   OpenIssueButton,
-} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewActions';
+} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewHeaderActions';
 import {IssuePreviewSection} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSection';
 import {
   IssuePreviewSeerContent,
@@ -236,7 +236,7 @@ function IssuePreviewContent() {
         wrap="wrap"
         gap="md"
       >
-        <IssuePreviewActions
+        <IssuePreviewHeaderActions
           group={group}
           project={project}
           disabled={disableActions}
@@ -254,7 +254,7 @@ function IssuePreviewContent() {
         </Flex>
       </Flex>
       {/* Top sections load asynchronously, so block everything to avoid pop-in. */}
-      {previewSeer.isLoading || linkedPullRequests.isPending ? (
+      {previewSeer.state === 'loading' || linkedPullRequests.isPending ? (
         <LoadingIndicator />
       ) : (
         <Dividers>
@@ -270,14 +270,12 @@ function IssuePreviewContent() {
               </IssuePreviewSection.Content>
             </IssuePreviewSection>
           ) : null}
-          {previewSeer.hasAutofix && (
-            <IssuePreviewSeerContent
-              key={group.id}
-              group={group}
-              project={project}
-              previewSeer={previewSeer}
-            />
-          )}
+          <IssuePreviewSeerContent
+            key={group.id}
+            group={group}
+            project={project}
+            previewSeer={previewSeer}
+          />
           <Container>
             <ErrorBoundary mini>
               <FoldSection
