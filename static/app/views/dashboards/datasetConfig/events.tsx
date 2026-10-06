@@ -55,7 +55,8 @@ import {
 export function getTableSortOptions(
   organization: Organization,
   widgetQuery: WidgetQuery,
-  tags?: TagCollection
+  tags?: TagCollection,
+  getFieldOptions: typeof getEventsTableFieldOptions = getEventsTableFieldOptions
 ) {
   const {columns, aggregates} = widgetQuery;
   const options: Array<SelectValue<string>> = [];
@@ -84,7 +85,7 @@ export function getTableSortOptions(
       });
     });
 
-  const fieldOptions = getEventsTableFieldOptions(organization, tags);
+  const fieldOptions = getFieldOptions(organization, tags);
 
   return [
     ...options,
