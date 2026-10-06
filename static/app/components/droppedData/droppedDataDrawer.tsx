@@ -16,7 +16,7 @@ interface DroppedDataDrawerProps {
 }
 
 export function DroppedDataDrawer({dataset}: DroppedDataDrawerProps) {
-  const {droppedAnnotations, acceptedAnnotations, isPending} = useDroppedData({
+  const {droppedEvents, acceptedEvents, isPending} = useDroppedData({
     dataset,
   });
 
@@ -32,10 +32,10 @@ export function DroppedDataDrawer({dataset}: DroppedDataDrawerProps) {
           <LoadingIndicator />
         ) : (
           <Stack gap="xl">
-            <DroppedDataChart droppedAnnotations={droppedAnnotations ?? []} />
+            <DroppedDataChart droppedEvents={droppedEvents ?? []} />
             <DroppedDataCategoryList
-              droppedAnnotations={droppedAnnotations ?? []}
-              acceptedAnnotations={acceptedAnnotations ?? []}
+              droppedEvents={droppedEvents ?? []}
+              acceptedEvents={acceptedEvents ?? []}
             />
           </Stack>
         )}
