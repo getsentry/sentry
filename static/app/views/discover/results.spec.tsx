@@ -1456,9 +1456,7 @@ describe('Results', () => {
       await userEvent.click(await screen.findByRole('button', {name: 'Save as'}));
 
       expect(screen.getByRole('menuitemradio', {name: 'New Query'})).toBeInTheDocument();
-      expect(
-        screen.getByRole('menuitemradio', {name: 'Create a Monitor'})
-      ).toBeInTheDocument();
+      expect(screen.getByRole('menuitemradio', {name: 'Monitor'})).toBeInTheDocument();
       expect(
         screen.getByRole('menuitemradio', {name: 'Dashboard widget'})
       ).toBeInTheDocument();

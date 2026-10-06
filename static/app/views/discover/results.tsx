@@ -1363,6 +1363,7 @@ function SaveQueryButton({
         },
       }),
       label: t('Monitor'),
+      textValue: t('Monitor'),
       tooltip: canCreateAlert
         ? undefined
         : t('Ask your organization owner or manager to enable alerts access for you.'),
