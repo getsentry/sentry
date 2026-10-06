@@ -31,6 +31,11 @@
 
 - Routes defined in `static/app/routes.tsx`
 - Use React Router v6 patterns
+- Import router APIs and types from `react-router`, and `RouterProvider` from
+  `react-router/dom`. These V8 package paths currently resolve to V6 through
+  `static/app/utils/reactRouterV6`; only those compatibility modules may import
+  `react-router-dom` or `@remix-run/router` directly. Keep using Sentry's routing
+  helpers where required. Nuqs adapters and Sentry tracing integrations remain V6.
 - Lazy load route components when possible
 
 ### Frontend API Calls
