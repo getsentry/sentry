@@ -119,7 +119,11 @@ def update_if_combinators(apps: StateApps, schema_editor: BaseDatabaseSchemaEdit
             changed = False
             for query in queries:
                 # We only cache per query cause the results can change query to query
+                if "aggregateField" not in query:
+                    continue
                 for field in query["aggregateField"]:
+                    if "yAxes" not in field:
+                        continue
                     for index, axis in enumerate(field["yAxes"]):
                         if "_if" in axis:
                             match = is_function(axis)

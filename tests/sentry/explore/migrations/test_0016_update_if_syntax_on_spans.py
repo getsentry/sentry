@@ -37,6 +37,10 @@ class UpdateNumericToBooleanTest(TestMigrations, SnubaTestCase):
                             },
                             {
                                 "groupBy": "span.op",
+                                "chartType": 0,
+                            },
+                            {
+                                "groupBy": "span.op",
                                 "yAxes": ["count_if(span.duration,lessOrEquals,100)"],
                                 "chartType": 0,
                             },
@@ -48,7 +52,7 @@ class UpdateNumericToBooleanTest(TestMigrations, SnubaTestCase):
         )
 
         ExploreSavedQueryProject.objects.create(
-            project_id=self.project.id, explore_saved_query=self.query_1
+            project_id=self.project.id, explore_saved_query_id=self.query_1.id
         )
 
         return super().setup_before_migration(apps)
@@ -74,6 +78,10 @@ class UpdateNumericToBooleanTest(TestMigrations, SnubaTestCase):
                         {
                             "groupBy": "span.op",
                             "yAxes": ["count_if(`!span.duration:100`)"],
+                            "chartType": 0,
+                        },
+                        {
+                            "groupBy": "span.op",
                             "chartType": 0,
                         },
                         {
