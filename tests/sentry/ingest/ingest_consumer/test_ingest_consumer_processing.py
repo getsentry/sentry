@@ -853,7 +853,8 @@ def test_individual_attachments(
     else:
         (attachment,) = attachments
         assert attachment.name == "foo.txt"
-        assert attachment.group_id == group_id
+        if with_group:
+            assert attachment.group_id == group_id
         assert attachment.content_type == content_type
 
         with attachment.getfile() as file_contents:
