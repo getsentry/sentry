@@ -163,6 +163,14 @@ def _compare_with_platform(
     return ShadowResult(outcome=ShadowOutcome.MISMATCH, diff=entries)
 
 
+def _invocation_log_extra(invocation: ActionInvocation) -> dict[str, Any]:
+    return {
+        "organization_id": invocation.detector.linked_project.organization_id,
+        "group_id": invocation.event_data.group.id,
+        "detector_id": invocation.detector.id,
+    }
+
+
 def report(
     invocation: ActionInvocation,
     source: NotificationSource,
@@ -173,7 +181,7 @@ def report(
 ) -> None:
     """
     Compares the legacy render with the platform's and records the outcome as metrics, logging
-    the diff on a mismatch. Never raises.
+    the diff on a mismatch and the invocation when no legacy render was captured. Never raises.
     """
     log_extra: dict[str, Any] = {
         "source": source.value,
@@ -202,11 +210,18 @@ def report(
                 "notifications.platform.shadow.mismatch",
                 extra={
                     **log_extra,
-                    "organization_id": invocation.detector.linked_project.organization_id,
-                    "group_id": invocation.event_data.group.id,
-                    "detector_id": invocation.detector.id,
+                    **_invocation_log_extra(invocation),
                     "diff_count": len(result.diff),
                     "diff": result.diff,
+                },
+            )
+        elif result.outcome == ShadowOutcome.LEGACY_NOT_CAPTURED:
+            logger.info(
+                "notifications.platform.shadow.legacy_not_captured",
+                extra={
+                    **log_extra,
+                    **_invocation_log_extra(invocation),
+                    "integration_id": invocation.action.integration_id,
                 },
             )
     except Exception:
