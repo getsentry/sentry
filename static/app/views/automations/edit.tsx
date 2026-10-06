@@ -3,7 +3,6 @@ import {useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -50,10 +49,7 @@ import {getAutomationAnalyticsPayload} from 'sentry/views/automations/components
 import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
 import {useAutomationQuery, useUpdateAutomation} from 'sentry/views/automations/hooks';
 import {useAutomationBuilderErrors} from 'sentry/views/automations/hooks/useAutomationBuilderErrors';
-import {
-  makeAutomationBasePathname,
-  makeAutomationDetailsPathname,
-} from 'sentry/views/automations/pathnames';
+import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 import {dataConditionGroupToLLMContext} from 'sentry/views/automations/utils/automationLLMContext';
 import {mapAutomationFormErrors} from 'sentry/views/automations/utils/mapAutomationFormErrors';
 import {resolveDetectorIdsForProjects} from 'sentry/views/automations/utils/resolveDetectorIdsForProjects';
@@ -117,23 +113,6 @@ function AlertBuilderNodeInner({
  * against — a hook in the component that *renders* the form sees none of it.
  */
 const AlertBuilderNode = registerLLMContext('alert-builder', AlertBuilderNodeInner);
-
-function AutomationBreadcrumbs() {
-  const organization = useOrganization();
-  return (
-    <EditableAutomationName>
-      <BreadcrumbList
-        items={[
-          {
-            type: 'link',
-            label: t('Alerts'),
-            to: makeAutomationBasePathname(organization.slug),
-          },
-        ]}
-      />
-    </EditableAutomationName>
-  );
-}
 
 export default function AutomationEdit() {
   const params = useParams<{automationId: string}>();
@@ -280,7 +259,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
         />
         <AutomationDocumentTitle />
         <Stack flex={1}>
-          <AutomationBreadcrumbs />
+          <EditableAutomationName />
           <AutomationFeedbackButton />
           <Layout.Body maxWidth={maxWidth}>
             <Layout.Main width="full">

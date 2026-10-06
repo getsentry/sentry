@@ -1,15 +1,9 @@
 import type {Location} from 'history';
-import omit from 'lodash/omit';
-
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
-import {defined} from 'sentry/utils/defined';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {EventInputName} from 'sentry/views/discover/eventInputName';
-import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 type Props = {
@@ -38,39 +32,12 @@ export function DiscoverBreadcrumb({
     );
   }
 
-  const discoverTarget = organization.features.includes('discover-query')
-    ? {
-        pathname: getDiscoverLandingUrl(organization),
-        query: {
-          ...omit(location.query, 'homepage'),
-          ...eventView.generateBlankQueryStringObject(),
-          ...eventView.getPageFiltersQuery(),
-        },
-      }
-    : null;
-
   return (
     <EventInputName
       savedQuery={savedQuery}
       organization={organization}
       eventView={eventView}
-    >
-      <BreadcrumbList
-        items={[
-          ...(discoverTarget
-            ? [{type: 'link' as const, label: discoverLabel, to: discoverTarget}]
-            : []),
-          ...(defined(eventView.id)
-            ? [
-                {
-                  type: 'link' as const,
-                  label: t('Saved Queries'),
-                  to: makeDiscoverPathname({path: '/queries/', organization}),
-                },
-              ]
-            : []),
-        ]}
-      />
-    </EventInputName>
+      location={location}
+    />
   );
 }

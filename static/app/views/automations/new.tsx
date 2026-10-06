@@ -6,7 +6,6 @@ import orderBy from 'lodash/orderBy';
 import {Observer} from 'mobx-react-lite';
 import {parseAsNativeArrayOf, parseAsString, useQueryState} from 'nuqs';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
@@ -53,23 +52,6 @@ function AutomationDocumentTitle() {
   const title = useFormField('name');
   return (
     <SentryDocumentTitle title={title ? t('%s - New Alert', title) : t('New Alert')} />
-  );
-}
-
-function AutomationBreadcrumbs() {
-  const organization = useOrganization();
-  return (
-    <EditableAutomationName>
-      <BreadcrumbList
-        items={[
-          {
-            type: 'link',
-            label: t('Alerts'),
-            to: makeAutomationBasePathname(organization.slug),
-          },
-        ]}
-      />
-    </EditableAutomationName>
   );
 }
 
@@ -244,7 +226,7 @@ export default function AutomationNewSettings() {
       <AutomationFormProvider>
         <AutomationDocumentTitle />
         <Stack flex={1}>
-          <AutomationBreadcrumbs />
+          <EditableAutomationName />
           <AutomationFeedbackButton />
           <Layout.Body maxWidth={maxWidth}>
             <Layout.Main width="full">

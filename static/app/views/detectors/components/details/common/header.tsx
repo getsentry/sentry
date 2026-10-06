@@ -25,33 +25,8 @@ type DetectorDetailsHeaderProps = {
   useLocalDetailActions?: boolean;
 };
 
-function DetectorDetailsBreadcrumbs({detector}: {detector: Detector}) {
+function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
   const organization = useOrganization();
-  return (
-    <BreadcrumbList
-      items={[
-        {
-          type: 'link',
-          label: t('Monitors'),
-          to: makeMonitorBasePathname(organization.slug),
-        },
-        {
-          type: 'link',
-          label: getDetectorTypeLabel(detector.type),
-          to: makeMonitorTypePathname(organization.slug, detector.type),
-        },
-      ]}
-    />
-  );
-}
-
-function DetectorDetailsTitle({
-  detector,
-  children,
-}: {
-  detector: Detector;
-  children?: React.ReactNode;
-}) {
   const project = useProjectFromId({project_id: detector.projectId ?? undefined});
 
   return (
@@ -67,16 +42,21 @@ function DetectorDetailsTitle({
         ),
       }}
     >
-      {children}
+      <BreadcrumbList
+        items={[
+          {
+            type: 'link',
+            label: t('Monitors'),
+            to: makeMonitorBasePathname(organization.slug),
+          },
+          {
+            type: 'link',
+            label: getDetectorTypeLabel(detector.type),
+            to: makeMonitorTypePathname(organization.slug, detector.type),
+          },
+        ]}
+      />
     </TopBar.Slot>
-  );
-}
-
-function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
-  return (
-    <DetectorDetailsTitle detector={detector}>
-      <DetectorDetailsBreadcrumbs detector={detector} />
-    </DetectorDetailsTitle>
   );
 }
 

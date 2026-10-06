@@ -1,17 +1,25 @@
+import type {Location} from 'history';
+import omit from 'lodash/omit';
+
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
+import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
+import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {handleUpdateQueryName} from './savedQuery/utils';
 
 type Props = {
   eventView: EventView;
+  location: Location;
   organization: Organization;
-  children?: React.ReactNode;
   savedQuery?: SavedQuery;
 };
 
@@ -22,7 +30,7 @@ const NAME_DEFAULT = t('Untitled query');
  * has been saved. By pressing Enter or clicking outside the component, the
  * changes will be saved, if valid.
  */
-export function EventInputName({children, organization, eventView, savedQuery}: Props) {
+export function EventInputName({location, organization, eventView, savedQuery}: Props) {
   const api = useApi();
   const navigate = useNavigate();
 
@@ -54,28 +62,49 @@ export function EventInputName({children, organization, eventView, savedQuery}: 
   }
 
   const value = eventView.name || NAME_DEFAULT;
-
-  if (!eventView.id) {
-    return (
-      <TopBar.Slot name="breadcrumbs" title={{type: 'page-title', label: value}}>
-        {children}
-      </TopBar.Slot>
-    );
-  }
+  const discoverTarget = organization.features.includes('discover-query')
+    ? {
+        pathname: getDiscoverLandingUrl(organization),
+        query: {
+          ...omit(location.query, 'homepage'),
+          ...eventView.generateBlankQueryStringObject(),
+          ...eventView.getPageFiltersQuery(),
+        },
+      }
+    : null;
 
   return (
     <TopBar.Slot
       name="breadcrumbs"
-      title={{
-        type: 'editable-title',
-        value,
-        onChange: handleChange,
-        errorMessage: t('Please set a name for this query'),
-        maxLength: 255,
-        'aria-label': t('Edit query name'),
-      }}
+      title={
+        eventView.id
+          ? {
+              type: 'editable-title',
+              value,
+              onChange: handleChange,
+              errorMessage: t('Please set a name for this query'),
+              maxLength: 255,
+              'aria-label': t('Edit query name'),
+            }
+          : {type: 'page-title', label: value}
+      }
     >
-      {children}
+      <BreadcrumbList
+        items={[
+          ...(discoverTarget
+            ? [{type: 'link' as const, label: t('Errors'), to: discoverTarget}]
+            : []),
+          ...(defined(eventView.id)
+            ? [
+                {
+                  type: 'link' as const,
+                  label: t('Saved Queries'),
+                  to: makeDiscoverPathname({path: '/queries/', organization}),
+                },
+              ]
+            : []),
+        ]}
+      />
     </TopBar.Slot>
   );
 }

@@ -9,7 +9,6 @@ import isEqualWith from 'lodash/isEqualWith';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {
@@ -1181,17 +1180,7 @@ class DashboardDetail extends Component<Props, State> {
               onDelete={this.onDelete(dashboard)}
               onRename={this.onRename}
               onChangeEditAccess={this.onChangeEditAccess}
-            >
-              <BreadcrumbList
-                items={[
-                  {
-                    type: 'link',
-                    label: t('Dashboards'),
-                    to: `/organizations/${organization.slug}/dashboards/`,
-                  },
-                ]}
-              />
-            </DashboardBreadcrumbTitle>
+            />
           )}
           <Fragment>
             {/* Mirrors ExploreBodySearch, the sticky controls pattern shared by Logs,
