@@ -348,7 +348,8 @@ const config: Config.InitialOptions = {
         dsn: Boolean(CI) && Boolean(GITHUB_PR_REF) && SENTRY_DSN ? SENTRY_DSN : false,
         // Use production env to reduce sampling of commits on master
         environment: CI ? (IS_MASTER_BRANCH ? 'ci:master' : 'ci:pull_request') : 'local',
-        tracesSampleRate: CI ? 0.75 : 0,
+        // Trace every master run so failures there are always traceable; sample PRs
+        tracesSampleRate: CI ? (IS_MASTER_BRANCH ? 1 : 0.75) : 0,
         profilesSampleRate: 0,
         transportOptions: {keepAlive: true},
       },

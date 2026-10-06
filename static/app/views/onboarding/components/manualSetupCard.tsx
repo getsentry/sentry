@@ -3,10 +3,13 @@ import styled from '@emotion/styled';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {
+  SETUP_CARD_ICON_SIZE,
+  SETUP_CARD_MARKER_PX,
+} from 'sentry/components/onboarding/consts';
 import {ScmCardButton} from 'sentry/components/onboarding/scm/scmCardButton';
 import {IconChevron, IconSliders} from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {SETUP_CARD_ICON_SIZE, SETUP_CARD_MARKER_PX} from 'sentry/views/onboarding/consts';
 
 interface ManualSetupCardProps {
   onSetupInBrowser: () => void;

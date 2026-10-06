@@ -6,7 +6,7 @@
 
 - **Language**: TypeScript
 - **Framework**: React 19
-- **Build Tool**: Rspack (Webpack alternative)
+- **Build Tool**: Rsbuild (powered by Rspack)
 - **Package management**: pnpm
 - **State Management**: Reflux, React Query (TanStack Query)
 - **Styling**: Emotion (CSS-in-JS), Less
@@ -15,7 +15,7 @@
 ## Important Files and Directories
 
 - `package.json`: Node.js dependencies and scripts
-- `rspack.config.ts`: Frontend build configuration
+- `rsbuild.config.ts`: Frontend build configuration
 - `tsconfig.json`: TypeScript configuration
 - `oxlint.config.ts`: Oxlint configuration
 - `stylelint.config.js`: CSS/styling linting

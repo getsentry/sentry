@@ -271,7 +271,6 @@ export function usePrefetchTraceItemDetailsOnHover({
   referrer,
   timestamp,
   routingHint,
-  hoverPrefetchDisabled,
   sharedHoverTimeoutRef,
   timeout,
 }: UseTraceItemDetailsProps & {
@@ -284,10 +283,6 @@ export function usePrefetchTraceItemDetailsOnHover({
    * Custom timeout for the prefetched item.
    */
   timeout: number;
-  /**
-   * Whether the hover prefetch should be disabled.
-   */
-  hoverPrefetchDisabled?: boolean;
 }) {
   const {fetchDetails, prefetch, project, traceItemMeta, traceItemAttributes, isPending} =
     useTraceItemDetailsPrefetch({
@@ -318,7 +313,6 @@ export function usePrefetchTraceItemDetailsOnHover({
       ownHoverTimeoutRef.current = timeoutId;
     },
     onHoverEnd: clearSharedHoverTimeout,
-    isDisabled: hoverPrefetchDisabled,
   });
 
   useEffect(

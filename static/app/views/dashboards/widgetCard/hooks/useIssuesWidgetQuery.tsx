@@ -9,11 +9,12 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {SERIES_QUERY_DELIMITER} from 'sentry/utils/timeSeries/transformLegacySeriesToTimeSeries';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
-import {
-  IssuesConfig,
-  type IssuesSeriesResponse,
-} from 'sentry/views/dashboards/datasetConfig/issues';
 import {getSeriesRequestData} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {
+  type IssuesSeriesResponse,
+  transformIssuesResponseToSeries,
+} from 'sentry/views/dashboards/datasetConfig/utils/transformIssuesResponseToSeries';
+import {transformIssuesResponseToTable} from 'sentry/views/dashboards/datasetConfig/utils/transformIssuesResponseToTable';
 import {DEFAULT_TABLE_LIMIT} from 'sentry/views/dashboards/types';
 import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQueryPrefix';
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
@@ -151,11 +152,7 @@ export function useIssuesSeriesQuery(
       const responseData = q.data.json;
       rawData[requestIndex] = responseData;
 
-      const transformedResult = IssuesConfig.transformSeries!(
-        responseData,
-        filteredWidget.queries[requestIndex]!,
-        organization
-      );
+      const transformedResult = transformIssuesResponseToSeries(responseData);
       const seriesQueryPrefix = getSeriesQueryPrefix(
         filteredWidget.queries[requestIndex]!,
         filteredWidget
@@ -296,17 +293,22 @@ export function useIssuesTableQuery(
       return;
     }
 
+    const widgetQuery = filteredWidget.queries[i];
+    if (!widgetQuery) {
+      return;
+    }
+
     const responseData = q.data.json;
     rawData[i] = responseData;
 
     const transformedDataItem = {
-      ...IssuesConfig.transformTable(
+      ...transformIssuesResponseToTable(
         responseData,
-        filteredWidget.queries[i]!,
+        widgetQuery,
         organization,
         pageFilters
       ),
-      title: filteredWidget.queries[i]?.name ?? '',
+      title: widgetQuery.name ?? '',
     };
 
     tableResults.push(transformedDataItem);
