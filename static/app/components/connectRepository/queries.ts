@@ -85,11 +85,16 @@ function scmIntegrationsOptions(orgSlug: string) {
   );
 }
 
-function integrationReposOptions(orgSlug: string, integrationId: string) {
+function integrationReposOptions(
+  orgSlug: string,
+  integrationId: string,
+  search?: string
+) {
   return apiOptions.as<{repos: IntegrationRepository[]}>()(
     '/organizations/$organizationIdOrSlug/integrations/$integrationId/repos/',
     {
       path: {organizationIdOrSlug: orgSlug, integrationId},
+      query: search ? {search} : undefined,
       staleTime: REPOS_STALE_TIME_MS,
     }
   );
@@ -102,13 +107,16 @@ function integrationReposOptions(orgSlug: string, integrationId: string) {
  * immediately with no network calls.
  *
  * Slow path: when the repo has no mappings yet (or all have null branches),
- * fetch that one integration's repos and match by externalId. retry: false so
- * a 500 fails fast and the form still renders (falls back to "main").
+ * fetch the integration's repos filtered by repoName (a single Search API
+ * request on GitHub instead of paginating through the full installation list),
+ * then match by externalId to be collision-safe. retry: false so a 500 fails
+ * fast and the form still renders (falls back to "main").
  */
 export function useEditRepoInfo({
   orgSlug,
   integrationId,
   externalId,
+  repoName,
   defaultBranchFromMappings,
 }: {
   integrationId: string | null;
@@ -116,6 +124,7 @@ export function useEditRepoInfo({
   // undefined = mappings not yet loaded; null = loaded but no branch found.
   defaultBranchFromMappings?: string | null;
   externalId?: string | null;
+  repoName?: string;
 }): {
   defaultBranch: string | null;
   isPending: boolean;
@@ -128,7 +137,7 @@ export function useEditRepoInfo({
     Boolean(externalId);
 
   const integrationReposQuery = useQuery({
-    ...integrationReposOptions(orgSlug, integrationId ?? ''),
+    ...integrationReposOptions(orgSlug, integrationId ?? '', repoName),
     enabled: needsBranchLookup,
     retry: false,
   });
@@ -259,16 +268,51 @@ export function projectCodeMappingsOptions({
   );
 }
 
-export function useInvalidateRepoQueries(
-  orgSlug: string,
-  projectSlug: string,
-  projectId: string
-) {
+// All code mappings for an org — the paginated query used by the Repositories
+// page to build project chips. Extracted here so save/edit can invalidate the
+// same key and keep chips up to date without a full page reload.
+export function orgCodeMappingsInfiniteOptions(orgSlug: string) {
+  return apiOptions.asInfinite<RepositoryProjectPathConfig[]>()(
+    '/organizations/$organizationIdOrSlug/code-mappings/',
+    {
+      path: {organizationIdOrSlug: orgSlug},
+      query: {per_page: 100},
+      staleTime: 10_000,
+    }
+  );
+}
+
+export function orgProjectsOptions(orgSlug: string) {
+  return apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
+    path: {organizationIdOrSlug: orgSlug},
+    query: {all_projects: '1', collapse: ['latestDeploys', 'unusedFeatures']},
+    staleTime: 60_000,
+  });
+}
+
+/**
+ * Returns a function that invalidates all repo-related query caches.
+ * Pass `project` when the project is known (project-locked flows and after
+ * the user picks a project in repo-locked flows) to also refresh the
+ * per-project repo list and code-mappings caches. Always invalidates the
+ * org-level code-mappings cache so project chips on the Repositories page
+ * refresh after a save.
+ */
+export function useInvalidateRepoQueries(orgSlug: string) {
   const queryClient = useQueryClient();
-  return () =>
+  return (project?: {id: string; slug: string}) =>
     Promise.all([
-      queryClient.invalidateQueries(projectRepoInfiniteOptions({orgSlug, projectSlug})),
-      queryClient.invalidateQueries(projectCodeMappingsOptions({orgSlug, projectId})),
+      ...(project
+        ? [
+            queryClient.invalidateQueries(
+              projectRepoInfiniteOptions({orgSlug, projectSlug: project.slug})
+            ),
+            queryClient.invalidateQueries(
+              projectCodeMappingsOptions({orgSlug, projectId: project.id})
+            ),
+          ]
+        : []),
+      queryClient.invalidateQueries(orgCodeMappingsInfiniteOptions(orgSlug)),
     ]);
 }
 
@@ -314,7 +358,7 @@ export async function saveProjectRepoConnection({
   integrationId: string;
   orgSlug: string;
   pathMappings: PathMappingValue[];
-  project: Project;
+  project: Pick<Project, 'id' | 'slug'>;
   repositoryId: string;
 }) {
   await fetchMutation({
@@ -390,7 +434,7 @@ export async function editProjectRepoMappings({
 }: {
   integrationId: string;
   orgSlug: string;
-  project: Project;
+  project: Pick<Project, 'id' | 'slug'>;
   repositoryId: string;
   seededMappings: RepositoryProjectPathConfig[];
   submittedMappings: PathMappingValue[];

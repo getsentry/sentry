@@ -1,25 +1,27 @@
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {ConnectRepositoryForm} from 'sentry/components/connectRepository/connectRepositoryForm';
-import {EditRepositoryForm} from 'sentry/components/connectRepository/editRepositoryForm';
-import type {Project} from 'sentry/types/project';
+import {
+  ConnectRepositoryForm,
+  type ConnectFormProps,
+} from 'sentry/components/connectRepository/connectRepositoryForm';
+import {
+  EditRepositoryForm,
+  type EditFormProps,
+} from 'sentry/components/connectRepository/editRepositoryForm';
+import {
+  RepoLockedConnectForm,
+  type RepoLockedConnectFormProps,
+} from 'sentry/components/connectRepository/repoLockedConnectForm';
 
-type ConnectRepositoryModalProps = ModalRenderProps & {
-  project: Project;
-} & (
-    | {mode: 'connect'}
-    | {
-        externalId: string | null;
-        integrationId: string | null;
-        mode: 'edit';
-        providerKey: string | null;
-        repoName: string;
-        repositoryId: string;
-      }
-  );
+export type ConnectRepositoryModalProps =
+  | (EditFormProps & {mode: 'edit'})
+  | (RepoLockedConnectFormProps & {lockedSide: 'repo'; mode: 'connect'})
+  | (ConnectFormProps & {mode: 'connect'; lockedSide?: 'project'});
 
 export function ConnectRepositoryModal(props: ConnectRepositoryModalProps) {
   if (props.mode === 'edit') {
     return <EditRepositoryForm {...props} />;
+  }
+  if (props.lockedSide === 'repo') {
+    return <RepoLockedConnectForm {...props} />;
   }
   return <ConnectRepositoryForm {...props} />;
 }
