@@ -22,11 +22,13 @@ import {WorkingIndicator} from './workingIndicator';
 export function IssuePreviewAutofixProposalSection({
   autofix,
   defaultExpanded,
+  readOnly = false,
   section,
 }: {
   autofix: ReturnType<typeof useExplorerAutofix>;
   defaultExpanded: boolean;
   section: AutofixSection;
+  readOnly?: boolean;
 }) {
   const patchesByRepo = useMemo(() => {
     const artifact = getAutofixArtifactFromSection(section);
@@ -44,7 +46,12 @@ export function IssuePreviewAutofixProposalSection({
       : t('%s files changed in %s repos', filesChanged, patchesByRepo.size);
 
   return (
-    <RetryableAutofixSection autofix={autofix} section={section} step="code_changes">
+    <RetryableAutofixSection
+      autofix={autofix}
+      readOnly={readOnly}
+      section={section}
+      step="code_changes"
+    >
       <IssuePreviewSection
         aria-label={t('Code Changes')}
         defaultExpanded={defaultExpanded}
