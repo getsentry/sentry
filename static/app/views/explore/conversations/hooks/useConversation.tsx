@@ -405,10 +405,10 @@ export function useConversation(
   );
 
   const loadNextPage = useCallback(() => {
-    if (hasNextPage && !isFetching && !isFetchingNextPage) {
+    if (hasNextPage && !isFetching) {
       void fetchNextPage();
     }
-  }, [fetchNextPage, hasNextPage, isFetching, isFetchingNextPage]);
+  }, [fetchNextPage, hasNextPage, isFetching]);
 
   const allSpans = useMemo(
     () => data?.pages.flatMap(page => page.json.spans ?? []) ?? [],

@@ -153,13 +153,15 @@ export function ConversationViewContent({
     onDeselectSpan?.();
   }, [onDeselectSpan, setDetailState]);
 
+  const isEmptyConversation = !isLoading && !hasNextPage && nodes.length === 0;
+
   useEffect(() => {
-    if (!isLoading && !error && !hasNextPage && nodes.length === 0) {
+    if (!error && isEmptyConversation) {
       Sentry.captureMessage('User landed on empty conversation detail page', {
         level: 'warning',
       });
     }
-  }, [isLoading, error, hasNextPage, nodes.length]);
+  }, [error, isEmptyConversation]);
 
   const isTranscript = !isTimeline;
 
@@ -167,7 +169,7 @@ export function ConversationViewContent({
     return <EmptyMessage>{t('Failed to load conversation')}</EmptyMessage>;
   }
 
-  if (!isLoading && !hasNextPage && nodes.length === 0) {
+  if (isEmptyConversation) {
     return <EmptyMessage>{t('No AI spans found in this conversation')}</EmptyMessage>;
   }
 
@@ -197,11 +199,15 @@ export function ConversationViewContent({
               />
             )}
             {(hasNextPage || isFetchingNextPage) && (
-              <Flex align="center" justify="center" padding="md">
+              <Flex
+                align="center"
+                justify="center"
+                padding="md"
+                role={isFetchingNextPage ? 'status' : undefined}
+                aria-label={isFetchingNextPage ? t('Loading more spans') : undefined}
+              >
                 {isFetchingNextPage ? (
-                  <Flex role="status" aria-label={t('Loading more spans')}>
-                    <LoadingIndicator size={24} />
-                  </Flex>
+                  <LoadingIndicator size={24} />
                 ) : (
                   <Button size="xs" onClick={loadNextPage}>
                     {t('Load more')}
