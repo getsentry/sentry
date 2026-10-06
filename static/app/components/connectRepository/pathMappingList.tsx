@@ -21,9 +21,6 @@ interface RowMeta {
 
 const EMPTY_MAPPING: PathMappingValue = {stackRoot: '', sourceRoot: '', branch: ''};
 
-const hasContent = (value: PathMappingValue) =>
-  value.stackRoot.trim() !== '' || value.sourceRoot.trim() !== '';
-
 const mappingKey = (value: PathMappingValue, branchFallback: string) => {
   const {stackRoot, sourceRoot, branch} = normalizePathMapping(value, branchFallback);
   return `${stackRoot}\0${sourceRoot}\0${branch}`;
@@ -73,7 +70,7 @@ export const PathMappingList = withForm({
     const [rowMeta, setRowMeta] = useState<RowMeta[]>(() => {
       const initial = form.state.values.pathMappings;
       idRef.current = initial.length;
-      return initial.map((v, i) => ({id: i, isNew: !hasContent(v)}));
+      return initial.map((v, i) => ({id: i, isNew: !v.id}));
     });
 
     const [openId, setOpenId] = useState<number | null>(() =>

@@ -7,8 +7,8 @@ import type {PathMappingValue} from 'sentry/components/connectRepository/type';
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 
 const MAPPINGS: PathMappingValue[] = [
-  {stackRoot: 'app/', sourceRoot: 'static/app/', branch: 'main'},
-  {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'frontend'},
+  {id: '1', stackRoot: 'app/', sourceRoot: 'static/app/', branch: 'main'},
+  {id: '2', stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'frontend'},
 ];
 
 /**
@@ -361,7 +361,9 @@ describe('PathMappingList', () => {
 
     it('shows warning icon and across-repos alert when an existing mapping on another repo has the same pair', async () => {
       renderList({
-        pathMappings: [{stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'}],
+        pathMappings: [
+          {id: '1', stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+        ],
         existingMappings: [
           {
             repoName: 'getsentry/relay',
@@ -421,7 +423,13 @@ describe('PathMappingList', () => {
     it('shows the Code Owners alert on a Code Owners row with no duplicate', async () => {
       renderList({
         pathMappings: [
-          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main', hasCodeOwner: true},
+          {
+            id: '1',
+            stackRoot: 'src/',
+            sourceRoot: 'src/app/',
+            branch: 'main',
+            hasCodeOwner: true,
+          },
         ],
       });
 
