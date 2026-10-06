@@ -112,42 +112,40 @@ export function ProfileHeader({
 
   return (
     <Fragment>
-      <TopBar.Slot name="breadcrumbs">
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: getShortEventId(profileId),
+          labelTooltip: profileId,
+          leadingGraphic: projectGraphic,
+          trailingActions: {
+            type: 'menu',
+            triggerLabel: t('Profile Actions'),
+            triggerIcon: <IconEllipsis />,
+            items: [
+              {
+                key: 'copy-profile-id',
+                label: copyIdLabel,
+                leadingItems: <IconCopyId variant="muted" />,
+                onAction: () => copy(profileId),
+              },
+              ...(transactionTarget
+                ? [
+                    {
+                      key: 'open-trace',
+                      label: t('Open Trace'),
+                      leadingItems: <IconOpen variant="muted" />,
+                      to: transactionTarget,
+                      onAction: handleGoToTransaction,
+                    },
+                  ]
+                : []),
+            ],
+          },
+        }}
+      >
         <BreadcrumbList items={items} />
-      </TopBar.Slot>
-      <TopBar.Slot name="title">
-        <BreadcrumbList.Title
-          item={{
-            type: 'page-title',
-            label: getShortEventId(profileId),
-            labelTooltip: profileId,
-            leadingGraphic: projectGraphic,
-            trailingActions: {
-              type: 'menu',
-              triggerLabel: t('Profile Actions'),
-              triggerIcon: <IconEllipsis />,
-              items: [
-                {
-                  key: 'copy-profile-id',
-                  label: copyIdLabel,
-                  leadingItems: <IconCopyId variant="muted" />,
-                  onAction: () => copy(profileId),
-                },
-                ...(transactionTarget
-                  ? [
-                      {
-                        key: 'open-trace',
-                        label: t('Open Trace'),
-                        leadingItems: <IconOpen variant="muted" />,
-                        to: transactionTarget,
-                        onAction: handleGoToTransaction,
-                      },
-                    ]
-                  : []),
-              ],
-            },
-          }}
-        />
       </TopBar.Slot>
       <TopBar.Slot name="feedback">
         <FeedbackButton

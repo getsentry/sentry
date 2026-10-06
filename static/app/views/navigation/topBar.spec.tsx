@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Flex} from '@sentry/scraps/layout';
@@ -27,7 +27,7 @@ function renderTopBar(width?: number) {
   const topBar = (
     <TopBar.Slot.Provider>
       <TopBar />
-      <TopBar.Slot name="title">Page title</TopBar.Slot>
+      <TopBar.Slot name="breadcrumbs" title={{type: 'page-title', label: 'Page title'}} />
     </TopBar.Slot.Provider>
   );
 
@@ -55,11 +55,11 @@ describe('TopBar', () => {
     render(
       <TopBar.Slot.Provider>
         <TopBar />
-        <TopBar.Slot name="breadcrumbs">
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{type: 'page-title', label: 'Current Issue'}}
+        >
           <BreadcrumbList items={[{type: 'link', label: 'Issues', to: '/issues/'}]} />
-        </TopBar.Slot>
-        <TopBar.Slot name="title">
-          <BreadcrumbList.Title item={{type: 'page-title', label: 'Current Issue'}} />
         </TopBar.Slot>
       </TopBar.Slot.Provider>,
       {organization: OrganizationFixture()}
@@ -69,6 +69,83 @@ describe('TopBar', () => {
     expect(
       screen.getByRole('heading', {name: 'Current Issue', level: 1})
     ).toBeInTheDocument();
+    expect(
+      within(screen.getByRole('banner')).getAllByRole('heading', {level: 1})
+    ).toHaveLength(1);
+    expect(
+      within(screen.getByRole('heading', {name: 'Current Issue', level: 1})).queryByRole(
+        'link'
+      )
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Issues'})).toHaveAttribute(
+      'href',
+      '/issues/'
+    );
+  });
+
+  it('updates the title and removes it when the page unmounts', () => {
+    function Page({title}: {title?: string}) {
+      return (
+        <TopBar.Slot.Provider>
+          <TopBar />
+          {title && (
+            <TopBar.Slot name="breadcrumbs" title={{type: 'page-title', label: title}} />
+          )}
+        </TopBar.Slot.Provider>
+      );
+    }
+
+    const {rerender} = render(<Page title="First page" />);
+    expect(screen.getByRole('heading', {name: 'First page'})).toBeInTheDocument();
+
+    rerender(<Page title="Second page" />);
+    expect(screen.getByRole('heading', {name: 'Second page'})).toBeInTheDocument();
+    expect(screen.queryByText('First page')).not.toBeInTheDocument();
+
+    rerender(<Page />);
+    expect(screen.queryByText('Second page')).not.toBeInTheDocument();
+  });
+
+  it('supports an editable title', async () => {
+    const onChange = jest.fn();
+    render(
+      <TopBar.Slot.Provider>
+        <TopBar />
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{
+            type: 'editable-title',
+            value: 'My dashboard',
+            'aria-label': 'Dashboard name',
+            onChange,
+          }}
+        />
+      </TopBar.Slot.Provider>
+    );
+
+    await userEvent.click(screen.getByText('My dashboard'));
+    const input = screen.getByRole('textbox', {name: 'Dashboard name'});
+    await userEvent.clear(input);
+    await userEvent.type(input, 'New dashboard{Enter}');
+    expect(onChange).toHaveBeenCalledWith('New dashboard');
+  });
+
+  it('supports separate slots while legacy titles migrate', () => {
+    render(
+      <TopBar.Slot.Provider>
+        <TopBar />
+        <TopBar.Slot name="breadcrumbs">
+          <BreadcrumbList items={[{type: 'link', label: 'Issues', to: '/issues/'}]} />
+        </TopBar.Slot>
+        <TopBar.Slot name="title">Legacy title</TopBar.Slot>
+      </TopBar.Slot.Provider>
+    );
+
+    expect(screen.getByRole('heading', {name: 'Legacy title'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'Issues'})).toHaveAttribute(
+      'href',
+      '/issues/'
+    );
   });
 
   it('uses icon-only actions below sm', () => {

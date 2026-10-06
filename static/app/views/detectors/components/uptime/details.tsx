@@ -130,7 +130,16 @@ export default function UptimeAlertDetails() {
   return (
     <Stack flex={1}>
       <SentryDocumentTitle title={`${detector.name} — Alerts`} />
-      <TopBar.Slot name="breadcrumbs">
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: detector.name,
+          leadingGraphic: (
+            <ProjectBadge disableLink hideName project={project} avatarSize={16} />
+          ),
+        }}
+      >
         <BreadcrumbList
           items={[
             {
@@ -144,17 +153,6 @@ export default function UptimeAlertDetails() {
               to: makeMonitorTypePathname(organization.slug, detector.type),
             },
           ]}
-        />
-      </TopBar.Slot>
-      <TopBar.Slot name="title">
-        <BreadcrumbList.Title
-          item={{
-            type: 'page-title',
-            label: detector.name,
-            leadingGraphic: (
-              <ProjectBadge disableLink hideName project={project} avatarSize={16} />
-            ),
-          }}
         />
       </TopBar.Slot>
       <TopBar.Slot name="actions">

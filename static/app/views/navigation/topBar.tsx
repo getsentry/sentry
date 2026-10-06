@@ -1,10 +1,11 @@
-import {useEffect, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import {mergeProps} from '@react-aria/utils';
 
+import {BreadcrumbList, type BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
-import {slot, withSlots} from '@sentry/scraps/slot';
+import {slot} from '@sentry/scraps/slot';
 import {Heading} from '@sentry/scraps/text';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
@@ -29,6 +30,42 @@ import {
 } from './constants';
 
 const Slot = slot(['breadcrumbs', 'title', 'search', 'actions', 'feedback'] as const);
+
+type TopBarSlotProps =
+  | {
+      name: 'breadcrumbs';
+      children?: React.ReactNode;
+      /** The page title. Omit only while using a legacy title slot. */
+      title?: BreadcrumbTitleItem;
+    }
+  | {
+      children: React.ReactNode;
+      name: 'search' | 'actions' | 'feedback';
+      title?: never;
+    }
+  | {
+      children: React.ReactNode;
+      /** @deprecated Pass a title item to the breadcrumbs slot instead. */
+      name: 'title';
+      title?: never;
+    };
+
+function TopBarSlot(props: TopBarSlotProps) {
+  if (props.name === 'breadcrumbs') {
+    return (
+      <Fragment>
+        {props.children !== undefined && <Slot name="breadcrumbs">{props.children}</Slot>}
+        {props.title && (
+          <Slot name="title">
+            <BreadcrumbList.Title item={props.title} />
+          </Slot>
+        )}
+      </Fragment>
+    );
+  }
+
+  return <Slot name={props.name}>{props.children}</Slot>;
+}
 
 function TopBarContent() {
   const theme = useTheme();
@@ -76,7 +113,7 @@ function TopBarContent() {
     >
       <SizeProvider size="sm">
         {/*
-         * Breadcrumbs and the title are separate slots so the title slot always
+         * Breadcrumbs and the title use separate internal outlets so the title
          * owns the page heading. BreadcrumbList.Title renders title content
          * without a heading, while this outlet supplies the single <h1>.
          *
@@ -149,4 +186,11 @@ function TopBarContent() {
   );
 }
 
-export const TopBar = withSlots(TopBarContent, Slot);
+export const TopBar = Object.assign(TopBarContent, {
+  Slot: Object.assign(TopBarSlot, {
+    Provider: Slot.Provider,
+    Outlet: Slot.Outlet,
+    Fallback: Slot.Fallback,
+    useSlotOutletRef: Slot.useSlotOutletRef,
+  }),
+});

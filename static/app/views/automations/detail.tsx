@@ -90,7 +90,10 @@ function AutomationDetailContentInner({automation}: {automation: Automation}) {
   return (
     <SentryDocumentTitle title={automation.name}>
       <DetailLayout>
-        <TopBar.Slot name="breadcrumbs">
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{type: 'page-title', label: automation.name}}
+        >
           <BreadcrumbList
             items={[
               {
@@ -100,9 +103,6 @@ function AutomationDetailContentInner({automation}: {automation: Automation}) {
               },
             ]}
           />
-        </TopBar.Slot>
-        <TopBar.Slot name="title">
-          <BreadcrumbList.Title item={{type: 'page-title', label: automation.name}} />
         </TopBar.Slot>
         <AutomationFeedbackButton />
         <DetailLayout.Body>

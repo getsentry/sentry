@@ -1,5 +1,3 @@
-import {Fragment} from 'react';
-
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
@@ -47,37 +45,33 @@ export function ConversationsBreadcrumbs({
   };
 
   return (
-    <Fragment>
-      <TopBar.Slot name="breadcrumbs">
-        <BreadcrumbList
-          items={[
-            {
-              type: 'link',
-              label: CONVERSATIONS_SIDEBAR_LABEL,
-              to: {pathname: conversationsBaseUrl, query},
-            },
-          ]}
-        />
-      </TopBar.Slot>
-      <TopBar.Slot name="title">
-        <BreadcrumbList.Title
-          item={{
-            type: 'page-title',
-            label: t('Conversation %s', getDisplayId(conversationId)),
-            labelTooltip: isUUID(conversationId) ? conversationId : undefined,
-            trailingActions: {
-              type: 'copy',
-              text: conversationId,
-              label: COPY_ID_LABEL,
-              tooltip: COPY_ID_LABEL,
-              onCopy: () =>
-                trackAnalytics('conversations.detail.copy-conversation-id', {
-                  organization,
-                }),
-            },
-          }}
-        />
-      </TopBar.Slot>
-    </Fragment>
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
+        type: 'page-title',
+        label: t('Conversation %s', getDisplayId(conversationId)),
+        labelTooltip: isUUID(conversationId) ? conversationId : undefined,
+        trailingActions: {
+          type: 'copy',
+          text: conversationId,
+          label: COPY_ID_LABEL,
+          tooltip: COPY_ID_LABEL,
+          onCopy: () =>
+            trackAnalytics('conversations.detail.copy-conversation-id', {
+              organization,
+            }),
+        },
+      }}
+    >
+      <BreadcrumbList
+        items={[
+          {
+            type: 'link',
+            label: CONVERSATIONS_SIDEBAR_LABEL,
+            to: {pathname: conversationsBaseUrl, query},
+          },
+        ]}
+      />
+    </TopBar.Slot>
   );
 }

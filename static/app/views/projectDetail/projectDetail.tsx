@@ -194,7 +194,26 @@ export function ProjectDetail() {
       >
         <Stack flex={1}>
           <NoProjectMessage organization={organization}>
-            <TopBar.Slot name="breadcrumbs">
+            <TopBar.Slot
+              name="breadcrumbs"
+              title={{
+                type: 'page-title',
+                label: project?.slug ?? params.projectId,
+                leadingGraphic: project ? (
+                  <ProjectsBadge
+                    projectPlatforms={project.platform ? [project.platform] : []}
+                  />
+                ) : (
+                  <Placeholder width="16px" height="16px" />
+                ),
+                trailingActions: {
+                  type: 'menu',
+                  items: projectActions,
+                  triggerLabel: t('Project Actions'),
+                  triggerIcon: <IconEllipsis />,
+                },
+              }}
+            >
               <BreadcrumbList
                 items={[
                   {
@@ -203,27 +222,6 @@ export function ProjectDetail() {
                     to: makeProjectsPathname({path: '/', organization}),
                   },
                 ]}
-              />
-            </TopBar.Slot>
-            <TopBar.Slot name="title">
-              <BreadcrumbList.Title
-                item={{
-                  type: 'page-title',
-                  label: project?.slug ?? params.projectId,
-                  leadingGraphic: project ? (
-                    <ProjectsBadge
-                      projectPlatforms={project.platform ? [project.platform] : []}
-                    />
-                  ) : (
-                    <Placeholder width="16px" height="16px" />
-                  ),
-                  trailingActions: {
-                    type: 'menu',
-                    items: projectActions,
-                    triggerLabel: t('Project Actions'),
-                    triggerIcon: <IconEllipsis />,
-                  },
-                }}
               />
             </TopBar.Slot>
 

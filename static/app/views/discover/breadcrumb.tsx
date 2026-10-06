@@ -32,9 +32,10 @@ export function DiscoverBreadcrumb({
   // no trail above it.
   if (!eventView?.isValid()) {
     return (
-      <TopBar.Slot name="title">
-        <BreadcrumbList.Title item={{type: 'page-title', label: discoverLabel}} />
-      </TopBar.Slot>
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{type: 'page-title', label: discoverLabel}}
+      />
     );
   }
 

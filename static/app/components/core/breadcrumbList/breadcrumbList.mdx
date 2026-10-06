@@ -33,21 +33,17 @@ import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {TopBar} from 'sentry/views/navigation/topBar';
 ```
 
-The `title` slot is always the page's single `<h1>`. `BreadcrumbList.Title`
-renders title content _without_ a heading of its own, so the slot supplies the
-heading and the item supplies everything else — a leading graphic, a tooltip,
-pagination, trailing actions, or an editable field. Never change the title
-slot's element.
+Pass the page title as a typed `title` prop to `TopBar.Slot name="breadcrumbs"`.
+TopBar renders `BreadcrumbList.Title` internally and supplies the page's single
+`<h1>`. The title item supports a leading graphic, a tooltip, pagination,
+trailing actions, or an editable field.
 
-Use `BreadcrumbList.Title` on every page, whether or not it has parents. A plain
-string in the title slot renders, but it forfeits every one of those props.
+The separate `name="title"` slot is deprecated. It remains available for legacy
+pages while their custom titles migrate to typed title items.
 
 ### Index pages
 
-An index page has no parents, so it renders the title slot alone — no `items`
-array and no `breadcrumbs` slot. Reaching for `BreadcrumbList.Title` here rather
-than a bare string is what keeps a leading graphic or a trailing action
-available if the page needs one later.
+An index page has no parents. Pass only `title` and omit the slot's children.
 
 <Storybook.Demo>
   <BreadcrumbListDemo
@@ -56,16 +52,14 @@ available if the page needs one later.
   />
 </Storybook.Demo>
 ```tsx
-<TopBar.Slot name="title">
-  <BreadcrumbList.Title item={{type: 'page-title', label: 'Dashboards'}} />
-</TopBar.Slot>
+<TopBar.Slot name="breadcrumbs" title={{type: 'page-title', label: 'Dashboards'}} />
 ```
 
 ### Pages with parents
 
-Add the `breadcrumbs` slot, which renders to the left of the title. Pass parent
-crumbs in a typed `items` array: each entry is a discriminated union, a `type`
-key plus that type's own props flattened onto the same object.
+Render `BreadcrumbList` as the slot's child to show parents to the left of the
+title. Pass parent crumbs in a typed `items` array: each entry is a discriminated
+union, a `type` key plus that type's own props flattened onto the same object.
 
 Keep the current page out of `items`. It is the title, not a crumb — leaving it
 in renders the page name twice.
@@ -87,7 +81,7 @@ in renders the page name twice.
   />
 </Storybook.Demo>
 ```tsx
-<TopBar.Slot name="breadcrumbs">
+<TopBar.Slot name="breadcrumbs" title={{type: 'page-title', label: 'General Settings'}}>
   <BreadcrumbList
     items={[
       {type: 'link', label: 'Organization', to: '/organizations/org-slug/'},
@@ -99,9 +93,6 @@ in renders the page name twice.
       },
     ]}
   />
-</TopBar.Slot>
-<TopBar.Slot name="title">
-  <BreadcrumbList.Title item={{type: 'page-title', label: 'General Settings'}} />
 </TopBar.Slot>
 ```
 
@@ -195,7 +186,7 @@ Page filters are not carried automatically — see [Page filters](#page-filters)
 
 The `page-title` item is rendered with `BreadcrumbList.Title`, not in the
 `BreadcrumbList.items` array. It is bold, non-interactive, and renders as inline
-content. The surrounding `TopBar.Slot name="title"` provides the `<h1>`; the
+content. TopBar provides the `<h1>` when the item is passed through `title`; the
 demo below mirrors that heading and flex layout.
 
 <Storybook.Demo>

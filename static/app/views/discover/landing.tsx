@@ -188,7 +188,10 @@ function DiscoverLanding() {
     >
       <SentryDocumentTitle title={t('Errors')} orgSlug={organization.slug}>
         <Stack flex={1}>
-          <TopBar.Slot name="breadcrumbs">
+          <TopBar.Slot
+            name="breadcrumbs"
+            title={{type: 'page-title', label: t('Saved Queries')}}
+          >
             <BreadcrumbList
               items={[
                 {
@@ -197,11 +200,6 @@ function DiscoverLanding() {
                   to: getDiscoverLandingUrl(organization),
                 },
               ]}
-            />
-          </TopBar.Slot>
-          <TopBar.Slot name="title">
-            <BreadcrumbList.Title
-              item={{type: 'page-title', label: t('Saved Queries')}}
             />
           </TopBar.Slot>
           <Layout.Body>

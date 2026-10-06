@@ -169,7 +169,62 @@ export function ReleaseHeader({
 
   return (
     <Layout.Header>
-      <TopBar.Slot name="breadcrumbs">
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: formatVersion(version),
+          leadingGraphic: (
+            <IdBadge project={project} disableLink avatarSize={16} hideName />
+          ),
+          pagination: {
+            previous: {
+              ariaLabel: t('Older'),
+              tooltip: prevReleaseVersion
+                ? t('Older release')
+                : t('This is the oldest release'),
+              to: prevReleaseVersion
+                ? makeSiblingReleaseTarget(prevReleaseVersion)
+                : undefined,
+              onClick: () => trackPaginationClick('older'),
+            },
+            next: {
+              ariaLabel: t('Newer'),
+              tooltip: nextReleaseVersion
+                ? t('Newer release')
+                : t('This is the newest release'),
+              to: nextReleaseVersion
+                ? makeSiblingReleaseTarget(nextReleaseVersion)
+                : undefined,
+              onClick: () => trackPaginationClick('newer'),
+            },
+          },
+          trailingActions: [
+            url
+              ? {
+                  type: 'button',
+                  element: (
+                    <LinkButton
+                      href={url}
+                      external
+                      size="zero"
+                      variant="transparent"
+                      tooltipProps={{title: url}}
+                      icon={<IconOpen />}
+                      aria-label={t('Open release URL')}
+                    />
+                  ),
+                }
+              : null,
+            {
+              type: 'menu',
+              triggerLabel: t('Release Actions'),
+              triggerIcon: <IconEllipsis />,
+              items: menuItems,
+            },
+          ],
+        }}
+      >
         <BreadcrumbList
           items={[
             {
@@ -181,63 +236,6 @@ export function ReleaseHeader({
               },
             },
           ]}
-        />
-      </TopBar.Slot>
-      <TopBar.Slot name="title">
-        <BreadcrumbList.Title
-          item={{
-            type: 'page-title',
-            label: formatVersion(version),
-            leadingGraphic: (
-              <IdBadge project={project} disableLink avatarSize={16} hideName />
-            ),
-            pagination: {
-              previous: {
-                ariaLabel: t('Older'),
-                tooltip: prevReleaseVersion
-                  ? t('Older release')
-                  : t('This is the oldest release'),
-                to: prevReleaseVersion
-                  ? makeSiblingReleaseTarget(prevReleaseVersion)
-                  : undefined,
-                onClick: () => trackPaginationClick('older'),
-              },
-              next: {
-                ariaLabel: t('Newer'),
-                tooltip: nextReleaseVersion
-                  ? t('Newer release')
-                  : t('This is the newest release'),
-                to: nextReleaseVersion
-                  ? makeSiblingReleaseTarget(nextReleaseVersion)
-                  : undefined,
-                onClick: () => trackPaginationClick('newer'),
-              },
-            },
-            trailingActions: [
-              url
-                ? {
-                    type: 'button',
-                    element: (
-                      <LinkButton
-                        href={url}
-                        external
-                        size="zero"
-                        variant="transparent"
-                        tooltipProps={{title: url}}
-                        icon={<IconOpen />}
-                        aria-label={t('Open release URL')}
-                      />
-                    ),
-                  }
-                : null,
-              {
-                type: 'menu',
-                triggerLabel: t('Release Actions'),
-                triggerIcon: <IconEllipsis />,
-                items: menuItems,
-              },
-            ],
-          }}
         />
       </TopBar.Slot>
       <TopBar.Slot name="feedback">

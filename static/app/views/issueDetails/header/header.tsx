@@ -81,7 +81,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
       <Header>
         <Flex justify="between">
           <Flex align="center" gap="md">
-            <TopBar.Slot name="breadcrumbs">
+            <TopBar.Slot name="breadcrumbs" title={issueItem}>
               <BreadcrumbList
                 items={[
                   {
@@ -94,9 +94,6 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
                   },
                 ]}
               />
-            </TopBar.Slot>
-            <TopBar.Slot name="title">
-              <BreadcrumbList.Title item={issueItem} />
             </TopBar.Slot>
             {hasErrorUpsampling && (
               <Tooltip

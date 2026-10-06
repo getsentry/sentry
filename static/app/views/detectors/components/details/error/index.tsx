@@ -83,7 +83,16 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
 
   return (
     <DetailLayout>
-      <TopBar.Slot name="breadcrumbs">
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: project.slug,
+          leadingGraphic: (
+            <ProjectBadge disableLink hideName project={project} avatarSize={16} />
+          ),
+        }}
+      >
         <BreadcrumbList
           items={[
             {
@@ -97,17 +106,6 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
               to: makeMonitorTypePathname(organization.slug, detector.type),
             },
           ]}
-        />
-      </TopBar.Slot>
-      <TopBar.Slot name="title">
-        <BreadcrumbList.Title
-          item={{
-            type: 'page-title',
-            label: project.slug,
-            leadingGraphic: (
-              <ProjectBadge disableLink hideName project={project} avatarSize={16} />
-            ),
-          }}
         />
       </TopBar.Slot>
       <MonitorFeedbackButton />

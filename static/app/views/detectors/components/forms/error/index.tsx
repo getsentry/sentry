@@ -153,7 +153,10 @@ export function EditExistingErrorDetectorForm({
   return (
     <EditLayout>
       <form.AppForm form={form}>
-        <TopBar.Slot name="breadcrumbs">
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{type: 'page-title', label: detector.name}}
+        >
           <BreadcrumbList
             items={[
               {
@@ -168,9 +171,6 @@ export function EditExistingErrorDetectorForm({
               },
             ]}
           />
-        </TopBar.Slot>
-        <TopBar.Slot name="title">
-          <BreadcrumbList.Title item={{type: 'page-title', label: detector.name}} />
         </TopBar.Slot>
         <AutomationFeedbackButton />
 

@@ -1,4 +1,4 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {useMemo, useState} from 'react';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
@@ -47,9 +47,9 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
 
   const hasActionsMenu = !!replayRecord && !replayRecord.is_archived;
 
-  // We use a ref to store the initial location so that we can navigate to the
+  // Keep the initial location so that we can navigate to the
   // previous and next replays without dirtying the URL with the tab-navigation params.
-  const initialLocation = useRef(location);
+  const [initialLocation] = useState(location);
 
   const nextReplay = useMemo(
     () =>
@@ -64,115 +64,101 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
   );
 
   return (
-    <Fragment>
-      <TopBar.Slot name="breadcrumbs">
-        <BreadcrumbList
-          items={[
-            {
-              type: 'link',
-              label: t('Session Replay'),
-              to: {
-                pathname: makeReplaysPathname({path: '/', organization}),
-                query: {
-                  ...eventView.generateQueryStringObject(),
-                  project: replayRecord?.project_id,
-                },
-              },
-            },
-          ]}
-        />
-      </TopBar.Slot>
-      <TopBar.Slot name="title">
-        <BreadcrumbList.Title
-          // oxlint-disable-next-line react/refs
-          item={{
-            type: 'page-title',
-            label: replayRecord?.id
-              ? getShortEventId(replayRecord.id)
-              : t('Unknown Replay'),
-            leadingGraphic: project ? (
-              <ProjectBadge disableLink project={project} avatarSize={16} hideName />
-            ) : (
-              <Placeholder width="16px" height="16px" />
-            ),
-            // oxlint-disable-next-line react/refs
-            pagination: {
-              // oxlint-disable-next-line react/refs
-              previous: {
-                ariaLabel: t('Previous replay based on search query'),
-                tooltip: previousReplay
-                  ? t('Previous replay based on search query')
-                  : undefined,
-                // oxlint-disable-next-line react/refs
-                to: previousReplay
-                  ? {
-                      pathname: makeReplaysPathname({
-                        path: `/${previousReplay.id}/`,
-                        organization,
-                      }),
-                      // oxlint-disable-next-line react/refs
-                      query: initialLocation.current.query,
-                    }
-                  : undefined,
-                onClick: () =>
-                  trackAnalytics('replay.details-playlist-clicked', {
-                    direction: 'previous',
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
+        type: 'page-title',
+        label: replayRecord?.id ? getShortEventId(replayRecord.id) : t('Unknown Replay'),
+        leadingGraphic: project ? (
+          <ProjectBadge disableLink project={project} avatarSize={16} hideName />
+        ) : (
+          <Placeholder width="16px" height="16px" />
+        ),
+        pagination: {
+          previous: {
+            ariaLabel: t('Previous replay based on search query'),
+            tooltip: previousReplay
+              ? t('Previous replay based on search query')
+              : undefined,
+            to: previousReplay
+              ? {
+                  pathname: makeReplaysPathname({
+                    path: `/${previousReplay.id}/`,
                     organization,
                   }),
-              },
-              // oxlint-disable-next-line react/refs
-              next: {
-                ariaLabel: t('Next replay based on search query'),
-                tooltip: nextReplay ? t('Next replay based on search query') : undefined,
-                // oxlint-disable-next-line react/refs
-                to: nextReplay
-                  ? {
-                      pathname: makeReplaysPathname({
-                        path: `/${nextReplay.id}/`,
-                        organization,
-                      }),
-                      // oxlint-disable-next-line react/refs
-                      query: initialLocation.current.query,
-                    }
-                  : undefined,
-                onClick: () =>
-                  trackAnalytics('replay.details-playlist-clicked', {
-                    direction: 'next',
+                  query: initialLocation.query,
+                }
+              : undefined,
+            onClick: () =>
+              trackAnalytics('replay.details-playlist-clicked', {
+                direction: 'previous',
+                organization,
+              }),
+          },
+          next: {
+            ariaLabel: t('Next replay based on search query'),
+            tooltip: nextReplay ? t('Next replay based on search query') : undefined,
+            to: nextReplay
+              ? {
+                  pathname: makeReplaysPathname({
+                    path: `/${nextReplay.id}/`,
                     organization,
                   }),
+                  query: initialLocation.query,
+                }
+              : undefined,
+            onClick: () =>
+              trackAnalytics('replay.details-playlist-clicked', {
+                direction: 'next',
+                organization,
+              }),
+          },
+        },
+        trailingActions: [
+          hasActionsMenu
+            ? {
+                type: 'menu',
+                triggerLabel: t('Replay Actions'),
+                triggerIcon: <IconEllipsis />,
+                items: menuItems,
+              }
+            : null,
+          shouldShowRefreshButton
+            ? {
+                type: 'button',
+                element: (
+                  <Button
+                    tooltipProps={{
+                      title: t('Replay is outdated. Refresh for latest activity.'),
+                    }}
+                    size="zero"
+                    variant="primary"
+                    onClick={doRefresh}
+                    icon={<IconRefresh />}
+                  >
+                    {t('Update')}
+                  </Button>
+                ),
+              }
+            : null,
+        ],
+      }}
+    >
+      <BreadcrumbList
+        items={[
+          {
+            type: 'link',
+            label: t('Session Replay'),
+            to: {
+              pathname: makeReplaysPathname({path: '/', organization}),
+              query: {
+                ...eventView.generateQueryStringObject(),
+                project: replayRecord?.project_id,
               },
             },
-            trailingActions: [
-              hasActionsMenu
-                ? {
-                    type: 'menu',
-                    triggerLabel: t('Replay Actions'),
-                    triggerIcon: <IconEllipsis />,
-                    items: menuItems,
-                  }
-                : null,
-              shouldShowRefreshButton
-                ? {
-                    type: 'button',
-                    element: (
-                      <Button
-                        tooltipProps={{
-                          title: t('Replay is outdated. Refresh for latest activity.'),
-                        }}
-                        size="zero"
-                        variant="primary"
-                        onClick={doRefresh}
-                        icon={<IconRefresh />}
-                      >
-                        {t('Update')}
-                      </Button>
-                    ),
-                  }
-                : null,
-            ],
-          }}
-        />
-      </TopBar.Slot>
-    </Fragment>
+          },
+        ]}
+      />
+    </TopBar.Slot>
   );
 }
