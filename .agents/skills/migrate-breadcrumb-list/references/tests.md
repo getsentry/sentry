@@ -45,7 +45,7 @@ If a custom harness supplies its own outlets, it needs both the internal `breadc
 
 For `labelTooltip`, hover or focus the title text, then assert the description or documentation link. Do not query the removed separate info icon.
 
-For editable titles, click the text unless `editOnDoubleClick` is enabled; then double-click or use the edit button. Verify blur cancellation only for callers that request `cancelOnBlur`.
+For editable titles, click the text to start editing. Clicking outside saves the draft; Escape cancels it.
 
 ## Keep the leaf out of the parent trail
 

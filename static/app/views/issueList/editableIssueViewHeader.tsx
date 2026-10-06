@@ -49,8 +49,6 @@ export function EditableIssueViewHeader({view}: {view: GroupSearchView}) {
         onChange: handleOnSave,
         maxLength: 128,
         autoSelect: true,
-        cancelOnBlur: true,
-        editOnDoubleClick: true,
         'aria-label': t('Edit view name'),
       }}
     />

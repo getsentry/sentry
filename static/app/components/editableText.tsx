@@ -2,13 +2,11 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {IconEdit} from 'sentry/icons/iconEdit';
-import {t} from 'sentry/locale';
 import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 
 type Props = {
@@ -21,11 +19,7 @@ type Props = {
   allowEmpty?: boolean;
   'aria-label'?: string;
   autoSelect?: boolean;
-  /** Cancel instead of saving when the input loses focus. */
-  cancelOnBlur?: boolean;
   className?: string;
-  /** Use a double click on the label or the edit button to start editing. */
-  editOnDoubleClick?: boolean;
   errorMessage?: React.ReactNode;
   isDisabled?: boolean;
   maxLength?: number;
@@ -51,8 +45,6 @@ export function EditableText({
   'aria-label': ariaLabel,
   placeholder,
   allowEmpty = false,
-  cancelOnBlur = false,
-  editOnDoubleClick = false,
   variant,
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
@@ -158,10 +150,6 @@ export function EditableText({
     if (!isEditing) {
       return;
     }
-    if (cancelOnBlur) {
-      handleCancel();
-      return;
-    }
 
     if (isDraftEmpty) {
       handleEmptyBlur();
@@ -169,14 +157,7 @@ export function EditableText({
     }
 
     handleCommit();
-  }, [
-    cancelOnBlur,
-    handleCancel,
-    handleCommit,
-    handleEmptyBlur,
-    isDraftEmpty,
-    isEditing,
-  ]);
+  }, [handleCommit, handleEmptyBlur, isDraftEmpty, isEditing]);
 
   useOnClickOutside(innerWrapperRef, handleClickOutside);
 
@@ -223,7 +204,6 @@ export function EditableText({
             value={currentDraft}
             onChange={handleInputChange}
             onKeyDown={handleKeyDown}
-            onBlur={cancelOnBlur ? handleCancel : undefined}
             onFocus={event => autoSelect && event.target.select()}
             maxLength={maxLength}
             placeholder={placeholder}
@@ -233,25 +213,13 @@ export function EditableText({
         </InputWrapper>
       ) : (
         <Label
-          onClick={isDisabled || editOnDoubleClick ? undefined : handleEditClick}
-          onDoubleClick={isDisabled || !editOnDoubleClick ? undefined : handleEditClick}
+          onClick={isDisabled ? undefined : handleEditClick}
           ref={labelRef}
           isDisabled={isDisabled}
           data-test-id="editable-text-label"
         >
           <InnerLabel isCompact={isCompact}>{currentValue || placeholder}</InnerLabel>
-          {!isDisabled &&
-            (editOnDoubleClick ? (
-              <Button
-                icon={<IconEdit />}
-                onClick={handleEditClick}
-                aria-label={ariaLabel ?? t('Edit')}
-                size="zero"
-                variant="transparent"
-              />
-            ) : (
-              <IconEdit />
-            ))}
+          {!isDisabled && <IconEdit />}
         </Label>
       )}
     </Wrapper>

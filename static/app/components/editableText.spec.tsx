@@ -3,34 +3,6 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {EditableText} from 'sentry/components/editableText';
 
 describe('EditableText', () => {
-  it('supports double-click editing and cancels when focus leaves the input', async () => {
-    const onChange = jest.fn();
-    render(
-      <EditableText
-        value="My view"
-        onChange={onChange}
-        editOnDoubleClick
-        cancelOnBlur
-        autoSelect
-        aria-label="Edit view name"
-      />
-    );
-
-    await userEvent.click(screen.getByText('My view'));
-    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
-    await userEvent.dblClick(screen.getByText('My view'));
-    await userEvent.clear(screen.getByRole('textbox', {name: 'Edit view name'}));
-    await userEvent.type(screen.getByRole('textbox'), 'Discarded name');
-    await userEvent.tab();
-    expect(onChange).not.toHaveBeenCalled();
-    expect(screen.getByText('My view')).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'Edit view name'}));
-    await userEvent.clear(screen.getByRole('textbox'));
-    await userEvent.type(screen.getByRole('textbox'), 'New name{Enter}');
-    expect(onChange).toHaveBeenCalledWith('New name');
-  });
-
   it('edit value and click outside of the component', async () => {
     const handleChange = jest.fn();
 
