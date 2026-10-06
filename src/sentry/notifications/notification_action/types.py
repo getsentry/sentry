@@ -205,7 +205,7 @@ class BaseIssueAlertHandler(ABC):
         action: Action,
         detector: Detector,
         event_data: WorkflowEventData,
-        workflow_id: WorkflowId | None,
+        workflow_id: WorkflowId,
     ) -> Rule:
         """
         Creates a Rule instance from the Action model.
@@ -226,7 +226,7 @@ class BaseIssueAlertHandler(ABC):
 
         label = None
         # Attempt to query the workflow name for non-test notifications.
-        if workflow_id is not None and workflow_id != TEST_NOTIFICATION_ID:
+        if workflow_id != TEST_NOTIFICATION_ID:
             try:
                 workflow = Workflow.objects.get(id=workflow_id)
                 label = workflow.name
@@ -243,7 +243,7 @@ class BaseIssueAlertHandler(ABC):
         # If test event, just set the legacy rule id to -1
         if workflow_id == TEST_NOTIFICATION_ID:
             data["actions"][0]["legacy_rule_id"] = TEST_NOTIFICATION_ID
-        elif workflow_id is not None:
+        else:
             data["actions"][0]["workflow_id"] = workflow_id
 
             # attempt to find legacy_rule_id from the alert rule workflow
@@ -266,9 +266,6 @@ class BaseIssueAlertHandler(ABC):
 
             if rule_id:
                 data["actions"][0]["legacy_rule_id"] = rule_id
-
-        if workflow_id is None and rule_id is None:
-            raise ValueError("Workflow ID or rule ID is required to fire notification")
 
         if workflow_id == TEST_NOTIFICATION_ID and action.type == Action.Type.EMAIL:
             # mail action needs to have skipDigests set to True

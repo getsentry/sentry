@@ -62,7 +62,7 @@ class DiscordIssuesMessageBuilder(DiscordMessageBuilder):
         key: RuleIdType = "legacy_rule_id"
         if self.rules:
             rule_environment_id = self.rules[0].environment_id
-            key, rule_id = get_rule_or_workflow_id(self.rules[0])
+            key, rule_id = get_rule_or_workflow_id(self.rules[0], prefer="workflow_id")
 
         url = None
         match key:

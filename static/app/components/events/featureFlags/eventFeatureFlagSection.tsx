@@ -9,7 +9,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
-import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {
   CardContainer,
   EventFeatureFlagDrawer,
@@ -36,7 +35,9 @@ import type {Event, FeatureFlag} from 'sentry/types/event';
 import {IssueCategory, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {useContainerColumnCount} from 'sentry/utils/useContainerColumnCount';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
@@ -64,8 +65,8 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   const [orderBy, setOrderBy] = useState(OrderBy.NEWEST);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
-  const cardContainerRef = useRef<HTMLDivElement>(null);
-  const cardColumnCount = useIssueDetailsColumnCount(cardContainerRef);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const columnCount = useContainerColumnCount(containerRef);
 
   const eventView = useIssueDetailsEventView({group});
   const {data: rawFlagData} = useQuery(
@@ -281,20 +282,10 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
 
   const NUM_PREVIEW_FLAGS = 20;
 
-  // Split the flags list into columns for display
   const truncatedItems = sortedFlags({flags: hydratedFlags, sort: orderBy}).slice(
     0,
     NUM_PREVIEW_FLAGS
   );
-
-  const shouldUseTwoColumns =
-    cardColumnCount > 1 && truncatedItems.length > NUM_PREVIEW_FLAGS / 2;
-  const columnOne = shouldUseTwoColumns
-    ? truncatedItems.slice(0, NUM_PREVIEW_FLAGS / 2)
-    : truncatedItems;
-  const columnTwo = shouldUseTwoColumns
-    ? truncatedItems.slice(NUM_PREVIEW_FLAGS / 2, NUM_PREVIEW_FLAGS)
-    : [];
 
   const extraFlags = hydratedFlags.length - NUM_PREVIEW_FLAGS;
   const label = tn('View 1 More Flag', 'View %s More Flags', extraFlags);
@@ -304,24 +295,25 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
       sectionKey={SectionKey.FEATURE_FLAGS}
       title={t('Feature Flags')}
       actions={actions}
+      ref={containerRef}
     >
-      <Container
-        ref={cardContainerRef}
-        width="100%"
-        border={hasFlags ? undefined : 'primary'}
-        radius={hasFlags ? undefined : 'md'}
-      >
-        {hasFlags ? (
-          <CardContainer numCols={shouldUseTwoColumns ? 2 : 1}>
-            <KeyValueTableCard expandLeft contentItems={columnOne} />
-            <KeyValueTableCard expandLeft contentItems={columnTwo} />
-          </CardContainer>
-        ) : (
+      {hasFlags ? (
+        <Grid align="start" columns={`repeat(${columnCount}, 1fr)`}>
+          {props => (
+            <CardContainer {...props}>
+              {splitIntoColumns(truncatedItems, columnCount).map((column, index) => (
+                <KeyValueTableCard key={index} expandLeft contentItems={column} />
+              ))}
+            </CardContainer>
+          )}
+        </Grid>
+      ) : (
+        <Container width="100%" border="primary" radius="md">
           <EmptyStateWarning small>
             {t('No feature flags were found for this event')}
           </EmptyStateWarning>
-        )}
-      </Container>
+        </Container>
+      )}
       {extraFlags > 0 && (
         <Button
           size="sm"

@@ -17,9 +17,9 @@ import {
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   ActionNodeContext,
-  actionNodesMap,
   useActionNodeContext,
-} from 'sentry/views/automations/components/actionNodes';
+} from 'sentry/views/automations/components/actionNodeContext';
+import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
 import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {AutomationBuilderRow} from 'sentry/views/automations/components/automationBuilderRow';

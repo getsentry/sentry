@@ -237,7 +237,6 @@ type CustomizationOverrides = {
 type AnalyticsOverrides = {
   'analytics:init-user': AnalyticsInitUser;
   'analytics:raw-track-event': AnalyticsRawTrackEvent;
-  'metrics:event': MetricsEvent;
 };
 
 /**
@@ -446,24 +445,6 @@ type AnalyticsRawTrackEvent = (
      */
     time?: number;
   }
-) => void;
-
-/**
- * Trigger recording a metric in the override registry.
- */
-type MetricsEvent = (
-  /**
-   * Metric name
-   */
-  name: string,
-  /**
-   * Value to record for this metric
-   */
-  value: number,
-  /**
-   * An additional tags object
-   */
-  tags?: Record<PropertyKey, unknown>
 ) => void;
 
 /**

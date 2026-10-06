@@ -14,6 +14,14 @@ type ScmMessagingProviderParams = {
   provider: ScmMessagingProviderKey;
 };
 
+export type OnboardingSkipReason =
+  | 'stuck'
+  | 'delegated'
+  | 'no_time'
+  | 'docs'
+  | 'marketing'
+  | 'just_skip';
+
 export type OnboardingEventParameters = {
   'onboarding.ai_prompt_copied': {
     platform: string;
@@ -61,6 +69,7 @@ export type OnboardingEventParameters = {
     platform: string;
   };
   'onboarding.scm_header_skip_clicked': {
+    opens_modal: boolean;
     step: string;
   };
   'onboarding.scm_js_loader_npm_docs_shown': {
@@ -160,6 +169,13 @@ export type OnboardingEventParameters = {
   'onboarding.select_framework_modal_skip_button_clicked': {
     platform: string;
   };
+  'onboarding.skip_feedback_clicked': {
+    step: string;
+  };
+  'onboarding.skip_reason_submitted': {
+    reason: OnboardingSkipReason;
+    step: string;
+  };
   'onboarding.slack_setup_clicked': {
     project_id: string;
   };
@@ -179,6 +195,8 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.select_framework_modal_rendered': 'Onboarding: Framework Modal Rendered',
   'onboarding.select_framework_modal_skip_button_clicked':
     'Onboarding: Framework Modal Skip Button Clicked',
+  'onboarding.skip_reason_submitted': 'Onboarding: Skip Reason Submitted',
+  'onboarding.skip_feedback_clicked': 'Onboarding: Skip Feedback Clicked',
   'onboarding.data_removal_modal_dismissed': 'Onboarding: Data Removal Modal Dismissed',
   'onboarding.data_removal_modal_rendered': 'Onboarding: Data Removal Modal Rendered',
   'onboarding.take_me_to_issues_clicked': 'Onboarding: Take Me to Issues Clicked',

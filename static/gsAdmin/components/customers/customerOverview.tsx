@@ -5,6 +5,7 @@ import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -1146,12 +1147,12 @@ type ThresholdLabelProps = {
 function ThresholdLabel({label, positive, children}: ThresholdLabelProps) {
   return (
     <Fragment>
-      <dt>{label}:</dt>
+      <DescriptionList.Term>{label}:</DescriptionList.Term>
       <ThresholdValue positive={positive}>{children}</ThresholdValue>
     </Fragment>
   );
 }
 
-const ThresholdValue = styled('dd')<{positive: boolean}>`
+const ThresholdValue = styled(DescriptionList.Details)<{positive: boolean}>`
   color: ${p => (p.positive ? p.theme.colors.green500 : p.theme.colors.red500)};
 `;
