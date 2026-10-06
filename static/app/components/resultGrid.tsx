@@ -1291,7 +1291,7 @@ export function ResultGrid({
     ) : null;
 
   return (
-    <Container data-test-id="result-grid" containerType="inline-size">
+    <Container containerType="inline-size">
       <Flex
         wrap="wrap"
         gap="lg"
