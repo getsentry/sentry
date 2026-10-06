@@ -260,6 +260,7 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             assert response.data["autofixEnabled"] is True
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
     def _set_seat_based_tier_cache(self, value: bool) -> None:
         """Set the cache for is_seer_seat_based_tier_enabled to return the given value."""

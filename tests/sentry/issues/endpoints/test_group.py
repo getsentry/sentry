@@ -149,6 +149,7 @@ class GroupAiPermissionTest(TestCase):
             assert self.has_object_perm(method, self.group, user=superuser, is_superuser=True)
 
 
+@override_settings(SENTRY_SELF_HOSTED=False)
 class GroupAiEndpointTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
