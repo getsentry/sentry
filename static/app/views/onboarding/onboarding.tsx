@@ -394,7 +394,7 @@ export function OnboardingWithoutContext() {
         top={0}
         style={{zIndex: 100}}
       >
-        <LogoSvg showWordmark={false} />
+        <LogoSentry showWordmark={false} height="24px" />
         <Flex align="center" justify="end" gap="md">
           <Override
             name="onboarding:targeted-onboarding-header"
@@ -467,11 +467,6 @@ function Onboarding() {
     </OnboardingContextProvider>
   );
 }
-
-const LogoSvg = styled(LogoSentry)`
-  height: 24px;
-  color: ${p => p.theme.tokens.content.primary};
-`;
 
 const OnboardingStep = styled(motion.div)`
   flex-grow: 1;
