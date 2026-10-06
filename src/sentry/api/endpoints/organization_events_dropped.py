@@ -30,9 +30,6 @@ _ENDPOINT = "events-dropped"
 
 _ACCEPTED = "accepted"
 
-# The outcome values that name a drop. ``category`` is selected via ``dataset``;
-# these are the top-level drop classifications a caller may filter the dropped
-# side by. Kept lowercase to match the api_name() values in the response.
 _DROPPED_OUTCOME_NAMES = tuple(o.api_name() for o in DROPPED_OUTCOMES)
 
 
@@ -86,11 +83,8 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
                 type=str,
                 enum=_DROPPED_OUTCOME_NAMES,
                 description=(
-                    "Narrow the dropped events to a single top-level drop "
-                    "classification (e.g. `rate_limited`, `filtered`). The accepted "
-                    "volume is always returned in full as the share denominator, so "
-                    "`acceptedEvents + droppedEvents` is no longer a grand total when "
-                    "this is set."
+                    "Narrow the dropped events (only) to a single top-level drop "
+                    "classification (e.g. `rate_limited`, `filtered`)."
                 ),
             ),
             OpenApiParameter(
@@ -99,9 +93,9 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
                 required=False,
                 type=OpenApiTypes.STR,
                 description=(
-                    "Narrow the dropped events to a single reason — the "
+                    "Narrow the dropped events to a single reason, the "
                     "sub-classification within an outcome (e.g. `spike_protection` "
-                    "within `rate_limited`). May be combined with `outcome`."
+                    "within `rate_limited`). Should be combined with `outcome`."
                 ),
             ),
         ],
