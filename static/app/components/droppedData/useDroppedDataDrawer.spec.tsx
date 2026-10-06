@@ -1,4 +1,4 @@
-import {AnnotationFixture} from 'sentry-fixture/annotation';
+import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
@@ -18,16 +18,17 @@ const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations'],
 });
 
-function mockDroppedData(eventCount: number, statsPeriod: string) {
+function mockDroppedData(count: number, statsPeriod: string) {
+  const dropped = [DroppedEventFixture({count})];
+  const accepted = [DroppedEventFixture({outcome: 'accepted', count: 90})];
+
   return MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/events-timeseries/`,
+    url: `/organizations/${organization.slug}/events-dropped/`,
     match: [MockApiClient.matchQuery({statsPeriod})],
     body: {
-      timeSeries: [],
-      meta: {
-        droppedAnnotations: [AnnotationFixture({eventCount})],
-        acceptedAnnotations: [AnnotationFixture({outcome: 'accepted', eventCount: 90})],
-      },
+      meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+      droppedEvents: dropped,
+      acceptedEvents: accepted,
     },
   });
 }
