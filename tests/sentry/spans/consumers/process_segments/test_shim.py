@@ -1,4 +1,4 @@
-from typing import cast
+from typing import Any, cast
 
 import pytest
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
@@ -19,6 +19,52 @@ from tests.sentry.spans.consumers.process_segments.test_convert import SPAN_KAFK
 def build_segment_span(**kwargs) -> CompatibleSpan:
     segment_span = build_mock_span(project_id=415, is_segment=True, hash="dogs_are_great", **kwargs)
     return make_compatible(segment_span)
+
+
+def test_attribute_value_default() -> None:
+    assert attribute_value({}, "custom", default="fallback") == "fallback"
+    assert (
+        attribute_value({"attributes": {"custom": {"value": None}}}, "custom", default="fallback")
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        {"pathname": "/api/items", "search": "?page=1"},
+        [1, "mixed", False],
+        [1, ["nested", "array"]],
+        [{"role": "user", "content": "Help me"}],
+    ],
+)
+def test_attribute_value_preserves_structured_values(value: Any) -> None:
+    span = {"attributes": {"custom": {"value": value}}}
+
+    assert attribute_value(span, "custom") == value
+    assert attribute_value(span, "custom", default="fallback") == value
+
+
+def test_attribute_value_default_for_missing_envelope_or_value() -> None:
+    assert attribute_value({"attributes": {"custom": None}}, "custom", default="fallback") == (
+        "fallback"
+    )
+    assert attribute_value({"attributes": {"custom": {}}}, "custom", default="fallback") == (
+        "fallback"
+    )
+
+
+def test_attribute_value_preserves_structured_deprecated_attribute() -> None:
+    url = {"pathname": "/api/items", "search": "?page=1"}
+    span = {"attributes": {"url": {"value": url}}}
+
+    assert attribute_value(span, "url.full") == url
+
+
+def test_make_compatible_deprecated_op() -> None:
+    span = build_mock_span(project_id=1)
+    span["attributes"] = {"span.op": {"type": "string", "value": "http.client"}}
+    assert make_compatible(span)["op"] == "http.client"
 
 
 def test_make_compatible() -> None:
@@ -43,6 +89,26 @@ def test_make_compatible() -> None:
 
 
 class TestBuildShimEventData:
+    def test_preserves_structured_detector_data(self) -> None:
+        url = {"pathname": "/api/items", "search": "?page=1"}
+        bindings = ["item", 42, ["nested"]]
+        segment_span = build_segment_span()
+        child_span = make_compatible(
+            build_mock_span(
+                project_id=415,
+                parent_span_id=segment_span["span_id"],
+                attributes={
+                    "url": {"type": "object", "value": url},
+                    "db.sql.bindings": {"type": "array", "value": bindings},
+                },
+            )
+        )
+
+        event = build_shim_event_data(segment_span, [segment_span, child_span])
+
+        assert event["spans"][1]["data"]["url"] == url
+        assert event["spans"][1]["data"]["db.sql.bindings"] == bindings
+
     def test_sets_top_level_event_fields(self) -> None:
         segment_span = build_segment_span(
             attributes={
