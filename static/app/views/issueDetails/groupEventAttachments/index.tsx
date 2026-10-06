@@ -37,7 +37,7 @@ function GroupEventAttachmentsContainer() {
         <FeatureDisabled {...props} featureName={t('Event Attachments')} />
       )}
     >
-      <Layout.Body border="primary" radius="md" padding={{zero: 'xl 0', '3xl': 'xl'}}>
+      <Layout.Body border="primary" radius="md" padding={{zero: 'xl 0', '3xs': 'xl'}}>
         <Layout.Main width="full">
           <GroupEventAttachments project={group.project} group={group} />
         </Layout.Main>
