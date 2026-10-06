@@ -184,6 +184,22 @@ describe('EntityHeader', () => {
       expect(screen.getByText('Errors')).toBeInTheDocument();
     });
 
+    it('names the avatars as viewers rather than leaving them unexplained', async () => {
+      render(
+        <EntityHeader
+          title={{label: 'Session'}}
+          viewers={{
+            users: [UserFixture({id: '1', name: 'Alice', email: 'alice@example.com'})],
+          }}
+        />
+      );
+
+      // A bare stack of faces does not say what it represents.
+      await userEvent.hover(screen.getByTestId('letter_avatar-avatar'));
+      expect(await screen.findByText('Viewed by')).toBeInTheDocument();
+      expect(screen.getByText('Alice (alice@example.com)')).toBeInTheDocument();
+    });
+
     it('renders nothing for viewers once they resolve to nobody', () => {
       render(
         <EntityHeader

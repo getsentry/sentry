@@ -101,6 +101,8 @@ Who has looked at this entity gets its own slot rather than being a labelled sta
 
 The slot keeps its space while `isLoading`, which is what stops the stats sliding sideways when the avatars land. Once it resolves to nobody it renders nothing, and the divider before the first stat goes with it.
 
+A stack of faces does not say what it represents, so the slot names itself: each avatar's tooltip is headed "Viewed by", and the overflow chip reads "+3 other viewers" rather than the default "+3 other users".
+
 ## Conditional items
 
 `stats`, `metadata` and `tags` drop `null` entries, so you can inline a conditional instead of building the array ahead of time. Items are keyed by their position in the array you wrote, not in the filtered result, so an item appearing or disappearing never remounts its neighbours.

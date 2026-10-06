@@ -1,9 +1,14 @@
+import {Fragment} from 'react';
+
 import {AvatarList} from '@sentry/scraps/avatar';
 import {ROW_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import type {AvatarUser} from 'sentry/types/user';
+import {userDisplayName} from 'sentry/utils/formatters';
 
 /** Matches the spec's overlapping 24px stack. */
 const AVATAR_SIZE = 24;
@@ -33,6 +38,8 @@ export function EntityHeaderViewers({
   maxVisibleAvatars = 5,
   users,
 }: EntityHeaderViewersProps) {
+  const {t} = useTranslation();
+
   if (!isLoading && users.length === 0) {
     return null;
   }
@@ -46,6 +53,18 @@ export function EntityHeaderViewers({
           users={users}
           avatarSize={AVATAR_SIZE}
           maxVisibleAvatars={maxVisibleAvatars}
+          // A bare stack of faces does not say what it represents, so both the
+          // per-avatar tooltip and the overflow chip name it. Without this the
+          // chip reads "+3 other users", which says nothing about viewing.
+          typeAvatars={t('viewers')}
+          renderTooltip={user => (
+            <Fragment>
+              <Tooltip.Header>{t('Viewed by')}</Tooltip.Header>
+              <Tooltip.Grid>
+                <Tooltip.Row>{userDisplayName(user)}</Tooltip.Row>
+              </Tooltip.Grid>
+            </Fragment>
+          )}
         />
       )}
     </Flex>
