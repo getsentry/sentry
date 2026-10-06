@@ -7,7 +7,9 @@ import {
   PrebuiltDashboardId,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 
-export type DashboardDataSource = 'errors' | 'spans' | 'logs' | 'metrics' | 'releases';
+const DATA_SOURCES = ['errors', 'spans', 'logs', 'metrics', 'releases'] as const;
+
+export type DashboardDataSource = (typeof DATA_SOURCES)[number];
 
 export interface LandingDashboard {
   dataSources: Set<DashboardDataSource>;
@@ -204,9 +206,9 @@ function getDataSourcesFromWidgetTypes(
 export function getDataSourcesFromTitle(title: string): Set<DashboardDataSource> {
   const lowerTitle = title.toLowerCase();
   const sources = new Set<DashboardDataSource>();
-  for (const [source, keywords] of Object.entries(TITLE_KEYWORDS)) {
-    if (keywords.some(keyword => lowerTitle.includes(keyword))) {
-      sources.add(source as DashboardDataSource);
+  for (const source of DATA_SOURCES) {
+    if (TITLE_KEYWORDS[source].some(keyword => lowerTitle.includes(keyword))) {
+      sources.add(source);
     }
   }
   return sources;
@@ -317,10 +319,13 @@ export function buildLandingSections({
   );
 
   const recommended = dashboards
-    .filter(dashboard => dashboard.prebuiltId)
-    .map(dashboard => {
+    .flatMap(dashboard => {
+      const {prebuiltId} = dashboard;
+      if (!prebuiltId) {
+        return [];
+      }
       const framework = projectFrameworks.find(({framework: f}) =>
-        f.prebuiltIds.includes(dashboard.prebuiltId!)
+        f.prebuiltIds.includes(prebuiltId)
       );
       const hasData = hasTelemetryFor(dashboard, projects);
       const score = (framework ? 2 : 0) + (hasData ? 1 : 0) + dashboard.starCount / 100;
@@ -329,7 +334,7 @@ export function buildLandingSections({
         : hasData
           ? t('You already send this data')
           : undefined;
-      return {dashboard, reason, score};
+      return [{dashboard, reason, score}];
     })
     .filter(({score}) => score >= 1)
     .sort((a, b) => b.score - a.score);
