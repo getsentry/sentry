@@ -243,7 +243,7 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase):
         observation, client = self.send(self.invocation(action))
 
         client.return_value.send_card.assert_called_once()
-        assert observation.outcome == ShadowOutcome.MATCH
+        assert observation.outcome == ShadowOutcome.MATCH, observation.mismatch
         assert observation.mismatch is None
 
     def test_execute_via_issue_alert_handler(self) -> None:
@@ -252,7 +252,7 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase):
         with observe_shadow() as observation, mock.patch(MSTEAMS_ISSUE_CLIENT):
             execute_via_issue_alert_handler(self.invocation(action))
 
-        assert observation.outcome == ShadowOutcome.MATCH
+        assert observation.outcome == ShadowOutcome.MATCH, observation.mismatch
 
     def test_integration_removed_is_not_captured(self) -> None:
         action = self.create_shadow_action("discord", {"tags": ""})
@@ -475,4 +475,4 @@ class ShadowReadMetricAlertTest(ShadowReadTestBase, MetricAlertHandlerBase):
             execute_via_group_type_registry(self.invocation(action))
 
         assert excinfo.value is error
-        assert observation.outcome == ShadowOutcome.MATCH
+        assert observation.outcome == ShadowOutcome.MATCH, observation.mismatch
