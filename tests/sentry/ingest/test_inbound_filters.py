@@ -476,6 +476,12 @@ def release_version_rule_condition(comparator: str, release: str) -> dict:
         ),
         pytest.param(
             "error",
+            [{"type": "release", "value": ["builds/*", "x" * 300]}],
+            {"op": "glob", "name": "event.release", "value": ["builds/*", "x" * 300]},
+            id="release_values_the_parser_rejects_stay_globs",
+        ),
+        pytest.param(
+            "error",
             [{"type": "ip_address", "value": ["10.0.0.0/8", "203.0.113.7"]}],
             {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8", "203.0.113.7"]},
             id="ip_address_reads_the_envelope_client_ip",

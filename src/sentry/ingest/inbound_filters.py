@@ -6,6 +6,7 @@ from typing import Any, Literal, cast
 import orjson
 from django.conf import settings
 from rest_framework import serializers
+from sentry_relay.exceptions import InvalidReleaseError
 from sentry_relay.processing import parse_release
 
 from sentry.constants import SEMVER_FAKE_PACKAGE
@@ -636,7 +637,11 @@ def is_release_version(release: str) -> bool:
     """
     if "@" not in release:
         release = f"{SEMVER_FAKE_PACKAGE}@{release}"
-    return parse_release(release, json_loads=orjson.loads).get("version_parsed") is not None
+    try:
+        parsed = parse_release(release, json_loads=orjson.loads)
+    except InvalidReleaseError:
+        return False
+    return parsed.get("version_parsed") is not None
 
 
 def _release_matcher(name: str) -> _ConditionMatcher:

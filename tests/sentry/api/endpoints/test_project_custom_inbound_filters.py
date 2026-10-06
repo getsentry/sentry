@@ -333,12 +333,16 @@ class CustomInboundFiltersTest(APITestCase):
                 name="Typo",
                 dataType="error",
                 conditions=[
-                    {"type": "release", "value": [">=1.2.0", ">2*", "<a4b7e0f9c2d1", "1.*"]}
+                    {
+                        "type": "release",
+                        "value": [">=1.2.0", ">2*", "<a4b7e0f9c2d1", "<=1.0/beta", "1.*"],
+                    }
                 ],
             )
 
         assert str(response.data["conditions"][0]["value"][0]) == (
-            ">2*, <a4b7e0f9c2d1 does not compare against a version such as 1.2.0 or myapp@1.2.0."
+            ">2*, <a4b7e0f9c2d1, <=1.0/beta does not compare against a version "
+            "such as 1.2.0 or myapp@1.2.0."
         )
 
     def test_catch_all_needs_no_ingestion_feature(self) -> None:
