@@ -33,7 +33,7 @@ from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeVal
 
 class OrganizationProjectDetectorPermission(ProjectPermission):
     scope_map = {
-        "POST": ["project:write", "project:admin", "alerts:write"],
+        "POST": ["project:write", "project:admin", "alerts:write", "org:write"],
     }
 
 
