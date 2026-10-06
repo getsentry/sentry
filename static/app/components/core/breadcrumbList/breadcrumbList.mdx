@@ -213,6 +213,28 @@ demo below mirrors that heading and flex layout.
 />
 ```
 
+### `'select-projects'` — select a project or another settings entity
+
+Use this item for a selector in the breadcrumb trail or as the current title.
+Pass `options`, `value`, and `onChange`. It also supports `search`, `loading`,
+`onOpenChange`, and `leadingGraphic`.
+
+When used as a title, `label` is required. It supplies the visible text and
+accessible name, including while options are loading or filtered.
+
+```tsx
+<BreadcrumbList.Title
+  item={{
+    type: 'select-projects',
+    label: currentProject.slug,
+    value: currentProject.slug,
+    options: projects.map(project => ({value: project.slug, label: project.slug})),
+    onChange: selected => navigateToProject(selected.value),
+    search: true,
+  }}
+/>
+```
+
 ### `'editable-title'` — rename in place
 
 The `editable-title` item renders the current page as a click-to-edit field for
@@ -272,10 +294,6 @@ Use `labelTooltip` for a tooltip on the title text. It accepts React content,
 including descriptions and documentation links.
 Use `leadingGraphic` to display a feature badge, such as `<FeatureBadge type="new" />`.
 `status: {label, variant}` adds an accessible status indicator.
-
-A trailing action with `type: 'select'` supports a searchable selector. Pass
-`triggerLabel`, `options`, `value`, and `onChange`; `search`, `loading`, and
-`onOpenChange` are also supported.
 
 Editable titles accept `editOnDoubleClick` to use a double click or the edit
 button to start editing. Use `cancelOnBlur` when leaving the input must discard

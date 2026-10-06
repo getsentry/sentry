@@ -25,7 +25,10 @@ type SelectProjectsBreadcrumbItem = {
 } & BreadcrumbItemSelectProjectsProps;
 
 type BreadcrumbItem = LinkBreadcrumbItem | SelectProjectsBreadcrumbItem;
-export type BreadcrumbTitleItem = PageTitleBreadcrumbItem | EditableTitleBreadcrumbItem;
+export type BreadcrumbTitleItem =
+  | PageTitleBreadcrumbItem
+  | EditableTitleBreadcrumbItem
+  | (SelectProjectsBreadcrumbItem & {label: string});
 
 export interface BreadcrumbListProps {
   items: BreadcrumbItem[];
@@ -54,6 +57,10 @@ function renderItem(item: BreadcrumbItem) {
 
 function BreadCrumbTitle({item}: BreadcrumbListTitleProps) {
   switch (item.type) {
+    case 'select-projects': {
+      const {type: _type, ...props} = item;
+      return <BreadcrumbItemSelectProjects {...props} />;
+    }
     case 'page-title': {
       const {type: _type, ...props} = item;
       return <BreadcrumbItemPageTitle {...props} />;

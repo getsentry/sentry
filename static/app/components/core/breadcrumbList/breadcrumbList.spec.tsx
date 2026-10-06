@@ -59,29 +59,25 @@ describe('BreadcrumbList container-query collapse', () => {
     );
   });
 
-  it('changes the selected item through a title action', async () => {
+  it('changes the selected project through a searchable title item', async () => {
     const onChange = jest.fn();
     render(
       <BreadcrumbList.Title
         item={{
-          type: 'page-title',
+          type: 'select-projects',
           label: 'Current project',
-          trailingActions: {
-            type: 'select',
-            triggerLabel: 'Switch project',
-            value: 'current',
-            onChange,
-            options: [
-              {value: 'current', label: 'Current project'},
-              {value: 'next', label: 'Next project'},
-            ],
-            search: true,
-          },
+          value: 'current',
+          onChange,
+          options: [
+            {value: 'current', label: 'Current project'},
+            {value: 'next', label: 'Next project'},
+          ],
+          search: true,
         }}
       />
     );
     expect(screen.getAllByText('Current project')).toHaveLength(1);
-    await userEvent.click(screen.getByRole('button', {name: 'Switch project'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Current project'}));
     await userEvent.type(screen.getByRole('textbox'), 'Next');
     await userEvent.click(screen.getByRole('option', {name: 'Next project'}));
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({value: 'next'}));

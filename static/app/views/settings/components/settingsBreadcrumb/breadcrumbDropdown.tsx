@@ -53,14 +53,12 @@ export function BreadcrumbDropdown({
     return (
       <TopBar.Slot
         name="breadcrumbs"
-        title={{
-          type: 'page-title',
-          label: title,
-          leadingGraphic: titleGraphic,
-          trailingActions: hasMenu
+        title={
+          hasMenu
             ? {
-                type: 'select',
-                triggerLabel: title,
+                type: 'select-projects',
+                label: title,
+                leadingGraphic: titleGraphic,
                 options: options.map(item => ({...item, hideCheck: true})),
                 value,
                 onChange: selected => onCrumbSelect(selected.value),
@@ -68,8 +66,12 @@ export function BreadcrumbDropdown({
                 search: props.search,
                 loading: props.loading,
               }
-            : undefined,
-        }}
+            : {
+                type: 'page-title',
+                label: title,
+                leadingGraphic: titleGraphic,
+              }
+        }
       >
         {children}
       </TopBar.Slot>

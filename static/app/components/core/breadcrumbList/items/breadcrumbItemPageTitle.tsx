@@ -10,11 +10,9 @@ import {
   type LinkButtonProps,
   LinkButton,
 } from '@sentry/scraps/button';
-import {CompactSelect, type SingleSelectProps} from '@sentry/scraps/compactSelect';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -31,10 +29,6 @@ import {BreadcrumbLeadingSlot} from './breadcrumbLeadingSlot';
 type BreadcrumbTitleAction =
   | ({type: 'copy'} & BreadcrumbCopyActionProps)
   | ({type: 'menu'} & BreadcrumbMenuActionProps)
-  | ({triggerLabel: string; type: 'select'} & Pick<
-      Extract<SingleSelectProps<string>, {clearable?: false}>,
-      'options' | 'value' | 'onChange' | 'onOpenChange' | 'search' | 'loading'
-    >)
   | {element: React.ReactElement<ButtonProps | LinkButtonProps>; type: 'button'};
 
 /**
@@ -58,23 +52,6 @@ function renderTrailingAction(action: BreadcrumbTitleAction) {
     }
     case 'button':
       return action.element;
-    case 'select': {
-      const {type: _type, triggerLabel, ...props} = action;
-      return (
-        <CompactSelect
-          {...props}
-          trigger={triggerProps => (
-            <OverlayTrigger.IconButton
-              {...triggerProps}
-              size="zero"
-              variant="transparent"
-              aria-label={triggerLabel}
-              icon={<IconChevron direction="down" size="xs" />}
-            />
-          )}
-        />
-      );
-    }
     default:
       unreachable(action);
       return null;
