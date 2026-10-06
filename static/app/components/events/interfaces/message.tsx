@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {AnsiText} from 'sentry/components/ansiText';
 import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {StructuredData} from 'sentry/components/structuredEventData';
@@ -59,9 +60,11 @@ function renderParams(params: Props['data']['params'], meta: any) {
 export function Message({data, event}: Props) {
   const entryIndex = event.entries.findIndex(entry => entry.type === EntryType.MESSAGE);
   const meta = event?._meta?.entries?.[entryIndex] ?? {};
-  const messageData = data.formatted
-    ? renderLinksInText({exceptionText: data.formatted})
-    : null;
+  const messageData = data.formatted ? (
+    <AnsiText renderText={text => renderLinksInText({exceptionText: text})}>
+      {data.formatted}
+    </AnsiText>
+  ) : null;
 
   return (
     <FoldSection title={t('Message')} sectionKey={SectionKey.MESSAGE}>

@@ -1,17 +1,21 @@
+import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
+import {Placeholder} from 'sentry/components/placeholder';
 import {Timeline, type TimelineItemProps} from 'sentry/components/timeline';
 import {t} from 'sentry/locale';
+import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
+import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {
   useTraceItemDetails,
   type TraceItemResponseAttribute,
@@ -117,32 +121,28 @@ function findCacheOriginLink(
  */
 function useOriginSpanLink({
   tree,
-  node,
   link,
-  itemAgeSeconds,
+  timestamp,
   organization,
   location,
   onTabScrollToNode,
 }: Pick<
   CacheLifecycleSectionProps,
-  'tree' | 'node' | 'organization' | 'location' | 'onTabScrollToNode'
+  'tree' | 'organization' | 'location' | 'onTabScrollToNode'
 > & {
-  itemAgeSeconds: number | undefined;
-  link: TraceItemResponseLink | undefined;
+  link: TraceItemResponseLink;
+  timestamp: number;
 }) {
   const traceDispatch = useTraceStateDispatch();
 
-  const to = link
-    ? generateLinkToEventInTraceView({
-        organization,
-        location,
-        traceSlug: link.traceId,
-        spanId: link.itemId,
-        // The origin trace started `cache.item_age` seconds before this read.
-        timestamp: node.value.start_timestamp - (itemAgeSeconds ?? 0),
-        tab: TraceLayoutTabKeys.WATERFALL,
-      })
-    : '';
+  const to = generateLinkToEventInTraceView({
+    organization,
+    location,
+    traceSlug: link.traceId,
+    spanId: link.itemId,
+    timestamp,
+    tab: TraceLayoutTabKeys.WATERFALL,
+  });
 
   function onClick(event: React.MouseEvent<HTMLAnchorElement>) {
     // Modified clicks (new tab, new window) go through the href.
@@ -150,9 +150,7 @@ function useOriginSpanLink({
       return;
     }
 
-    const spanNode = link
-      ? tree?.root.findChild(c => c.matchById(link.itemId))
-      : undefined;
+    const spanNode = tree?.root.findChild(c => c.matchById(link.itemId));
     if (spanNode) {
       event.preventDefault();
       onTabScrollToNode(spanNode);
@@ -185,6 +183,12 @@ function useTimelineColors() {
     },
     neutral: {
       title: theme.tokens.content.primary,
+      icon: theme.tokens.graphics.neutral.vibrant,
+      iconBorder: theme.tokens.border.transparent.neutral.moderate,
+    },
+    // A future event, so it is quieter than the events that happened.
+    projected: {
+      title: theme.tokens.content.secondary,
       icon: theme.tokens.graphics.neutral.vibrant,
       iconBorder: theme.tokens.border.transparent.neutral.moderate,
     },
@@ -271,15 +275,64 @@ function TimestampText({children}: {children: React.ReactNode}) {
   );
 }
 
-/** The file that wrote the cache entry, truncated to one line. */
-function SourceFileLine({path}: {path: string}) {
+/**
+ * Label-value pairs of a timeline row: muted labels, primary values. The
+ * minimum label width keeps the values of all rows in one column.
+ */
+function LabelValueFacts({children}: {children: React.ReactNode}) {
   return (
-    <Text as="p" size="xs" variant="muted" ellipsis>
-      {t('source')}{' '}
-      <Text as="span" size="xs" variant="muted" monospace>
-        {path}
+    <Grid columns="minmax(56px, max-content) minmax(0, 1fr)" gap="sm md" align="baseline">
+      {children}
+    </Grid>
+  );
+}
+
+function Fact({
+  label,
+  monospace,
+  wrap,
+  children,
+}: {
+  children: React.ReactNode;
+  label: string;
+  monospace?: boolean;
+  /** Wrap long values instead of truncating them. */
+  wrap?: boolean;
+}) {
+  return (
+    <Fragment>
+      <Text size="sm" variant="muted">
+        {label}
       </Text>
-    </Text>
+      <Text
+        size="sm"
+        monospace={monospace}
+        {...(wrap ? {wordBreak: 'break-word'} : {ellipsis: true})}
+      >
+        {children}
+      </Text>
+    </Fragment>
+  );
+}
+
+/**
+ * The file of the cached function. The end of the path is its most specific
+ * part, so wrap the path instead of truncating it, and break lines after `/`.
+ */
+function SourceFact({path}: {path: string}) {
+  return (
+    <Fact label={t('Source')} monospace wrap>
+      {path.split('/').map((segment, index) => (
+        <Fragment key={index}>
+          {index > 0 ? (
+            <Fragment>
+              /<wbr />
+            </Fragment>
+          ) : null}
+          {segment}
+        </Fragment>
+      ))}
+    </Fact>
   );
 }
 
@@ -299,8 +352,108 @@ function ExpiresItem({
       colorConfig={colorConfig}
       timestamp={<TimestampText>{t('%s later', formatAge(inSeconds))}</TimestampText>}
     >
-      {t('ttl %s', formatAge(ttlSeconds))}
+      <LabelValueFacts>
+        <Fact label={t('TTL')}>{formatAge(ttlSeconds)}</Fact>
+      </LabelValueFacts>
     </Timeline.Item>
+  );
+}
+
+/**
+ * Body of the "Cache filled" row for a read that links to its fill span. The
+ * link carries only a trace and a span id, so fetch the span for its details.
+ *
+ * TODO(cache): the backend needs a project id on span links. Until then,
+ * assume the fill span is in the read span's project. This is wrong for
+ * caches shared across services.
+ */
+function CacheOriginContent({
+  link,
+  itemAgeSeconds,
+  ...props
+}: CacheLifecycleSectionProps & {
+  itemAgeSeconds: number | undefined;
+  link: TraceItemResponseLink;
+}) {
+  // The fill happened `cache.item_age` seconds before this read.
+  const fillTimestamp = props.node.value.start_timestamp - (itemAgeSeconds ?? 0);
+  const isSampled = link.sampled ?? true;
+  // The queryable span window of the plan. Older spans are deleted, so a request for them can only return a 404.
+  const {maxPickableDays: retentionDays} = useMaxPickableDays({
+    dataCategories: [DataCategory.SPANS],
+  });
+  const [nowMs] = useState(Date.now);
+  const isPastRetention = fillTimestamp < nowMs / 1000 - retentionDays * 24 * 60 * 60;
+  const {data, error, isLoading} = useTraceItemDetails({
+    traceItemId: link.itemId,
+    projectId: props.node.value.project_id.toString(),
+    traceId: link.traceId,
+    traceItemType: TraceItemDataset.SPANS,
+    referrer: 'api.trace-view.cache-origin',
+    timestamp: fillTimestamp,
+    enabled: isSampled && !isPastRetention,
+  });
+  const originSpanLink = useOriginSpanLink({
+    ...props,
+    link,
+    timestamp: fillTimestamp,
+  });
+
+  if (!isSampled) {
+    // The origin trace does not exist, so the existing link is a dead end
+    return (
+      <Text size="sm" variant="muted">
+        {t(
+          'The trace that filled this cache entry was not sampled, so it is not available'
+        )}
+      </Text>
+    );
+  }
+  if (isPastRetention) {
+    return (
+      <Text size="sm" variant="muted">
+        {t('Origin trace is older than your %s-day span retention', retentionDays)}
+      </Text>
+    );
+  }
+
+  const attributes = data?.attributes ?? [];
+  const transactionName = getAttributeValue(attributes, 'transaction', 'string');
+  const sourceFilePath = getAttributeValue(attributes, 'code.file.path', 'string');
+  const fillDurationMs = toFiniteNumber(
+    getAttributeValue(attributes, 'span.duration', 'number')
+  );
+
+  return (
+    <Stack gap="md" align="start">
+      {isLoading ? (
+        // Placeholder skeleton so LinkButton does not jump too much when the data arrives.
+        <Stack gap="2xs" align="start">
+          <Placeholder width="160px" height="14px" />
+          <Placeholder width="100px" height="12px" />
+        </Stack>
+      ) : (
+        <Stack gap="2xs" align="start" width="100%">
+          {error ? (
+            <Text size="sm" variant="muted">
+              {t('Span preview unavailable')}
+            </Text>
+          ) : null}
+          <LabelValueFacts>
+            {transactionName ? (
+              <Fact label={t('Filled by')}>{transactionName}</Fact>
+            ) : null}
+            {sourceFilePath ? <SourceFact path={sourceFilePath} /> : null}
+            {fillDurationMs === undefined ? null : (
+              <Fact label={t('Write')}>{formatMs(fillDurationMs)}</Fact>
+            )}
+          </LabelValueFacts>
+        </Stack>
+      )}
+      <LinkButton size="xs" to={originSpanLink.to} onClick={originSpanLink.onClick}>
+        {t('Open origin span')}
+      </LinkButton>
+    </Stack>
   );
 }
 
@@ -318,37 +471,6 @@ function CacheReadLifecycleSection(props: CacheLifecycleSectionProps) {
     key: cacheKey,
   } = getCacheSpanSummary(props.attributes);
   const link = findCacheOriginLink(props.links);
-
-  // Fetch the linked fill span to show where the entry came from. The link
-  // carries only a trace and a span id.
-  // TODO(cache): backend needs:
-  // - A project id on span links. Until then, assume the fill span is in the
-  //   read span's project. This is wrong for caches shared across services.
-  // - A registered referrer for this query (sentry/snuba/referrer.py). Until
-  //   then, borrow the log-details referrer.
-  const {data: originData, isLoading: isOriginLoading} = useTraceItemDetails({
-    traceItemId: link?.itemId ?? '',
-    projectId: props.node.value.project_id.toString(),
-    traceId: link?.traceId ?? '',
-    traceItemType: TraceItemDataset.SPANS,
-    referrer: 'api.explore.log-item-details',
-    // The fill happened `cache.item_age` seconds before this read.
-    timestamp: props.node.value.start_timestamp - (itemAgeSeconds ?? 0),
-    enabled: !!link,
-  });
-
-  const originAttributes = originData?.attributes ?? [];
-  const origin = {
-    isLoading: !!link && isOriginLoading,
-    transactionName: getAttributeValue(originAttributes, 'transaction', 'string'),
-    fillOperation: getAttributeValue(originAttributes, 'span.op', 'string'),
-    fillDurationMs: toFiniteNumber(
-      getAttributeValue(originAttributes, 'span.duration', 'number')
-    ),
-    sourceFilePath: getAttributeValue(originAttributes, 'code.file.path', 'string'),
-  };
-
-  const originSpanLink = useOriginSpanLink({...props, link, itemAgeSeconds});
   const outcome = getReadOutcome(hit, colors);
 
   const expiresInSeconds =
@@ -375,36 +497,9 @@ function CacheReadLifecycleSection(props: CacheLifecycleSectionProps) {
             )
           }
         >
-          <Stack gap="sm" align="start">
-            <Stack gap="2xs" align="start">
-              {origin.transactionName ? (
-                <Text size="sm" bold>
-                  {origin.transactionName}
-                </Text>
-              ) : null}
-              {origin.sourceFilePath ? (
-                <SourceFileLine path={origin.sourceFilePath} />
-              ) : null}
-              {origin.fillDurationMs === undefined ? null : (
-                <Text size="xs" variant="muted">
-                  {t(
-                    '%s took %s',
-                    origin.fillOperation ?? 'cache.put',
-                    formatMs(origin.fillDurationMs)
-                  )}
-                </Text>
-              )}
-            </Stack>
-            {link ? (
-              <LinkButton
-                size="xs"
-                to={originSpanLink.to}
-                onClick={originSpanLink.onClick}
-              >
-                {t('Open origin span')}
-              </LinkButton>
-            ) : null}
-          </Stack>
+          {link ? (
+            <CacheOriginContent {...props} link={link} itemAgeSeconds={itemAgeSeconds} />
+          ) : null}
         </Timeline.Item>
       ) : null}
 
@@ -413,40 +508,26 @@ function CacheReadLifecycleSection(props: CacheLifecycleSectionProps) {
         icon={<Timeline.Dot />}
         colorConfig={outcome.colorConfig}
         timestamp={<TimestampText>{t('this span')}</TimestampText>}
+        isActive
+        aria-current="step"
       >
-        <Stack gap="2xs" align="start">
-          <Flex gap="xs" align="center" wrap="wrap">
-            {durationMs === undefined ? null : (
-              <Text size="sm">{t('cache.get took %s', formatMs(durationMs))}</Text>
-            )}
-            {hit === false || itemAgeSeconds === undefined ? null : (
-              <Text size="sm" variant="muted">
-                {'·'} {t('age %s', formatAge(itemAgeSeconds))}
-              </Text>
-            )}
-          </Flex>
-          {hit === false ? (
-            cacheKey ? (
-              <Text size="sm" variant="muted">
-                {t('no entry for key')}{' '}
-                <Text as="span" size="sm" monospace>
-                  {cacheKey}
-                </Text>
-              </Text>
-            ) : (
-              <Text size="sm" variant="muted">
-                {t('the entry was not in the cache')}
-              </Text>
-            )
+        <LabelValueFacts>
+          {durationMs === undefined ? null : (
+            <Fact label={t('Read')}>{formatMs(durationMs)}</Fact>
+          )}
+          {hit === false && cacheKey ? (
+            <Fact label={t('Key')} monospace>
+              {cacheKey}
+            </Fact>
           ) : null}
-        </Stack>
+        </LabelValueFacts>
       </Timeline.Item>
 
       {expiresInSeconds !== undefined && ttlSeconds !== undefined && hit !== false ? (
         <ExpiresItem
           inSeconds={expiresInSeconds}
           ttlSeconds={ttlSeconds}
-          colorConfig={colors.neutral}
+          colorConfig={colors.projected}
         />
       ) : null}
     </LifecycleFoldSection>
@@ -473,23 +554,20 @@ function CacheWriteLifecycleSection({
         icon={<Timeline.Dot />}
         colorConfig={colors.filled}
         timestamp={<TimestampText>{t('this span')}</TimestampText>}
+        isActive
+        aria-current="step"
       >
-        <Stack gap="2xs" align="start">
-          <Flex gap="xs" align="center" wrap="wrap">
-            {durationMs === undefined ? null : (
-              <Text size="sm">{t('cache.put took %s', formatMs(durationMs))}</Text>
-            )}
-            {cacheKey ? (
-              <Text size="sm" variant="muted">
-                {'·'} {t('key')}{' '}
-                <Text as="span" size="sm" monospace>
-                  {cacheKey}
-                </Text>
-              </Text>
-            ) : null}
-          </Flex>
-          {sourceFilePath ? <SourceFileLine path={sourceFilePath} /> : null}
-        </Stack>
+        <LabelValueFacts>
+          {durationMs === undefined ? null : (
+            <Fact label={t('Write')}>{formatMs(durationMs)}</Fact>
+          )}
+          {cacheKey ? (
+            <Fact label={t('Key')} monospace>
+              {cacheKey}
+            </Fact>
+          ) : null}
+          {sourceFilePath ? <SourceFact path={sourceFilePath} /> : null}
+        </LabelValueFacts>
       </Timeline.Item>
 
       {/*
@@ -514,7 +592,7 @@ function CacheWriteLifecycleSection({
         <ExpiresItem
           inSeconds={ttlSeconds}
           ttlSeconds={ttlSeconds}
-          colorConfig={colors.neutral}
+          colorConfig={colors.projected}
         />
       )}
     </LifecycleFoldSection>

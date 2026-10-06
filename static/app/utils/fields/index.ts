@@ -5,6 +5,7 @@ import {
   WEB_VITALS_QUALITY,
 } from 'sentry/utils/discover/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import {METRICS_ARTIFACT_TYPES} from 'sentry/views/settings/project/preprod/types';
 
@@ -257,6 +258,10 @@ type OTAFieldKey =
  * What to say about an attribute the field definition registry does not define.
  */
 export const DEFAULT_TAG_DESCRIPTION = t('A tag sent with one or more events');
+
+export const DEFAULT_ATTRIBUTE_DESCRIPTION = t(
+  'An attribute sent with one or more events'
+);
 
 export enum WebVital {
   FP = 'measurements.fp',
@@ -2537,6 +2542,55 @@ const TRACEMETRIC_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.DATE,
   },
+  [TraceMetricKnownFieldKey.ID]: {
+    desc: t('The unique identifier.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [TraceMetricKnownFieldKey.METRIC_NAME]: {
+    desc: t('The name of the metric.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [TraceMetricKnownFieldKey.METRIC_TYPE]: {
+    desc: t('The type of the metric: counter, gauge, or distribution.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [TraceMetricKnownFieldKey.METRIC_UNIT]: {
+    desc: t('The unit of the metric value, such as millisecond or byte.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [TraceMetricKnownFieldKey.METRIC_VALUE]: {
+    desc: t('The value recorded for this metric sample.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NUMBER,
+  },
+  [TraceMetricKnownFieldKey.OBSERVED_TIMESTAMP_PRECISE]: {
+    desc: t('The timestamp at which an envelope was received by Relay, in nanoseconds.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.NUMBER,
+  },
+  [TraceMetricKnownFieldKey.PROJECT]: {
+    desc: t('The project slug.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [TraceMetricKnownFieldKey.SPAN_ID]: {
+    desc: t('The connected span ID.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
+  [TraceMetricKnownFieldKey.TRACE]: {
+    desc: t('The connected trace ID.'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    allowWildcard: false,
+  },
 };
 
 export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
@@ -3437,7 +3491,11 @@ export const getFieldDefinition = (
   const definition = _getFieldFromMappings(type, key, kind);
   if (definition) {
     return mergeAttributeSearchMetadata(key, definition, {
-      keepLocalDescription: type === 'event' || type === 'replay' || type === 'feedback',
+      keepLocalDescription:
+        type === 'event' ||
+        type === 'replay' ||
+        type === 'feedback' ||
+        (type === 'tracemetric' && key === TraceMetricKnownFieldKey.ID),
     });
   }
 

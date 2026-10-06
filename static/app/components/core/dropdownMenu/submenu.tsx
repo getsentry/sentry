@@ -39,6 +39,7 @@ export function DropdownSubmenu({
     triggerRef,
     triggerProps: {ref: setTriggerElement},
     overlayProps,
+    overlayRef,
   } = useOverlay({
     isOpen: state.selectionManager.isSelected(node.key),
     onClose: rootOverlayState?.close,
@@ -73,6 +74,7 @@ export function DropdownSubmenu({
         aria-haspopup={menuTriggerProps['aria-haspopup']}
         aria-expanded={isOpen}
         aria-controls={menuTriggerProps['aria-controls']}
+        submenuRef={isOpen ? overlayRef : undefined}
         renderAs="div"
         node={node}
         state={state}
