@@ -1,4 +1,3 @@
-import contextlib
 import logging
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
@@ -30,12 +29,6 @@ from sentry.types.group import UNRESOLVED_SUBSTATUS_CHOICES
 from sentry.utils import metrics
 from sentry.utils.retries import ConditionalRetryPolicy, exponential_delay
 from sentry.utils.snuba import SnubaError, bulk_snuba_queries
-from sentry.viewer_context import (
-    ActorType,
-    ViewerContext,
-    get_viewer_context,
-    viewer_context_scope,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -187,19 +180,9 @@ def _backfill_org(
                 organization_id=organization_id,
                 project_id=group.project_id,
             )
-            scope: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
-            if get_viewer_context() is None:
-                scope = viewer_context_scope(
-                    ViewerContext(
-                        organization_id=organization_id,
-                        project_id=group.project_id,
-                        actor_type=ActorType.SYSTEM,
-                    )
-                )
-            with scope:
-                response = make_lightweight_rca_cluster_request(
-                    body, timeout=30, viewer_context=viewer_context
-                )
+            response = make_lightweight_rca_cluster_request(
+                body, timeout=30, viewer_context=viewer_context
+            )
             if response.status >= 400:
                 logger.warning(
                     "supergroups_backfill_lightweight.seer_error",

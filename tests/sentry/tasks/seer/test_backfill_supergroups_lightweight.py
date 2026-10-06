@@ -1,10 +1,7 @@
 from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
-import orjson
 import pytest
-from django.test import override_settings
-from urllib3.response import HTTPResponse
 
 from sentry.eventstore import backend as eventstore
 from sentry.models.group import DEFAULT_TYPE_ID
@@ -15,7 +12,6 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.types.group import GroupSubStatus
 from sentry.utils.snuba import SnubaError
-from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
 
 TEST_BATCH_SIZE = 5
 
@@ -60,30 +56,21 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
         self.group.save(update_fields=["substatus"])
 
     @with_feature("organizations:supergroups-lightweight-rca-clustering-write")
-    @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
-    @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
-    def test_processes_groups_and_sends_to_seer(self, mock_urlopen):
-        mock_urlopen.return_value = HTTPResponse(b"", status=200)
+    @patch(
+        "sentry.tasks.seer.backfill_supergroups_lightweight.make_lightweight_rca_cluster_request"
+    )
+    def test_processes_groups_and_sends_to_seer(self, mock_request):
+        mock_request.return_value = MagicMock(status=200)
 
         backfill_supergroups_lightweight_for_org(self.organization.id)
 
-        mock_urlopen.assert_called_once()
-        request = mock_urlopen.call_args
-        body = orjson.loads(request.kwargs["body"])
+        mock_request.assert_called_once()
+        body = mock_request.call_args.args[0]
         assert body["group_id"] == self.group.id
         assert body["project_id"] == self.project.id
         assert body["organization_id"] == self.organization.id
         assert body["issue"]["id"] == self.group.id
         assert len(body["issue"]["events"]) == 1
-        viewer_context = decode_viewer_context(
-            request.kwargs["headers"]["X-Viewer-Context"],
-            key="viewer-context-test-secret",
-        )
-        assert viewer_context == ViewerContext(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            actor_type=ActorType.SYSTEM,
-        )
 
     @with_feature("organizations:supergroups-lightweight-rca-clustering-write")
     @patch(
