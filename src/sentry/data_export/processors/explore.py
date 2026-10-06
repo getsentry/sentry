@@ -21,12 +21,11 @@ from sentry.search.eap.columns import ColumnDefinitions
 from sentry.search.eap.constants import SUPPORTED_TRACE_ITEM_TYPE_MAP
 from sentry.search.eap.ourlogs.definitions import OURLOG_DEFINITIONS
 from sentry.search.eap.resolver import SearchResolver
-from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS
+from sentry.search.eap.spans.definitions import SPAN_DEFINITIONS, SPAN_FIELDS_ACL
 from sentry.search.eap.trace_metrics.config import TraceMetricsSearchResolverConfig
 from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
 from sentry.search.eap.types import (
     EAPResponse,
-    FieldsACL,
     SearchResolverConfig,
     SupportedTraceItemType,
 )
@@ -48,7 +47,7 @@ def _spans_config(
     return SearchResolverConfig(
         auto_fields=True,
         use_aggregate_conditions=use_aggregate_conditions,
-        fields_acl=FieldsACL(functions={"time_spent_percentage"}, attributes={"sentry.links"}),
+        fields_acl=SPAN_FIELDS_ACL,
         disable_aggregate_extrapolation=disable_extrapolation,
     )
 
