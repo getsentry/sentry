@@ -96,6 +96,32 @@ describe('InnerIntentForm', () => {
     await waitFor(() => expect(onError).toHaveBeenCalledWith('Payment failed'));
   });
 
+  it('prevents another submission while the first is in progress', async () => {
+    let finishSubmit!: () => void;
+    const handleSubmit = jest.fn(
+      () =>
+        new Promise<void>(resolve => {
+          finishSubmit = resolve;
+        })
+    );
+    render(<InnerIntentForm {...defaultProps} handleSubmit={handleSubmit} />);
+
+    const submitButton = screen.getByRole('button', {
+      name: 'Save Payment Method',
+    });
+    await userEvent.click(submitButton);
+    expect(submitButton).toBeDisabled();
+
+    await userEvent.click(submitButton);
+    expect(handleSubmit).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      finishSubmit();
+      await Promise.resolve();
+    });
+    expect(submitButton).toBeEnabled();
+  });
+
   it('cancels without submitting', async () => {
     const onCancel = jest.fn();
     const handleSubmit = jest.fn();

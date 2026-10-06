@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState, type FormEvent} from 'react';
+import {useCallback, useEffect, useRef, useState, type FormEvent} from 'react';
 import {PaymentElement, useElements, useStripe} from '@stripe/react-stripe-js';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -27,15 +27,22 @@ export function InnerIntentForm({
   const stripe = useStripe();
   const [stripeIsLoading, setStripeIsLoading] = useState(true);
   const [stripeIsBlocked, setStripeIsBlocked] = useState(false);
+  const submittingRef = useRef(false);
+  const [isHandlingSubmit, setIsHandlingSubmit] = useState(false);
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (isSubmitting) {
+    if (isSubmitting || submittingRef.current) {
       return;
     }
+    submittingRef.current = true;
+    setIsHandlingSubmit(true);
     try {
       await handleSubmit({stripe, elements});
     } catch (error) {
       onError?.(error instanceof Error ? error.message : t('An unknown error occurred.'));
+    } finally {
+      submittingRef.current = false;
+      setIsHandlingSubmit(false);
     }
   };
 
@@ -111,7 +118,12 @@ export function InnerIntentForm({
             paddingTop="lg"
           >
             {onCancel && <Button onClick={onCancel}>{t('Cancel')}</Button>}
-            <Button type="submit" variant="primary" busy={isSubmitting}>
+            <Button
+              type="submit"
+              variant="primary"
+              busy={isSubmitting || isHandlingSubmit}
+              disabled={isSubmitting || isHandlingSubmit}
+            >
               {buttonText ?? t('Save Changes')}
             </Button>
           </Flex>
