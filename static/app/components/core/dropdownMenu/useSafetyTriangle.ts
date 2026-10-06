@@ -1,22 +1,21 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect, useState} from 'react';
 
 type Point = {x: number; y: number};
 type PendingHover = {enter: () => void; target: HTMLElement};
 
 export function useSafetyTriangle() {
-  const triangle = useMemo(() => {
+  const [triangle] = useState(() => {
     let corridor: {edge: [Point, Point]; origin: Point; submenu: HTMLElement} | null =
       null;
     let pending: PendingHover | null = null;
     let timeout: ReturnType<typeof setTimeout> | undefined;
+    let abortController: AbortController | undefined;
 
     function cancel() {
+      abortController?.abort();
       corridor = null;
       pending = null;
       clearTimeout(timeout);
-      document.removeEventListener('pointermove', move);
-      document.removeEventListener('pointerdown', release, true);
-      document.removeEventListener('keydown', cancel, true);
     }
 
     function release() {
@@ -76,9 +75,11 @@ export function useSafetyTriangle() {
         }
         corridor = {origin, edge, submenu};
         timeout = setTimeout(release, 300);
-        document.addEventListener('pointermove', move);
-        document.addEventListener('pointerdown', release, true);
-        document.addEventListener('keydown', cancel, true);
+        abortController = new AbortController();
+        const {signal} = abortController;
+        document.addEventListener('pointermove', move, {signal});
+        document.addEventListener('pointerdown', release, {capture: true, signal});
+        document.addEventListener('keydown', cancel, {capture: true, signal});
       },
       defer(event: React.PointerEvent<HTMLElement>, enter: () => void) {
         if (event.pointerType !== 'mouse') {
@@ -99,7 +100,7 @@ export function useSafetyTriangle() {
         }
       },
     };
-  }, []);
+  });
 
   useEffect(() => triangle.cancel, [triangle]);
   return triangle;
