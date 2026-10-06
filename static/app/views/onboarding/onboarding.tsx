@@ -394,7 +394,22 @@ export function OnboardingWithoutContext() {
           <OnboardingSkipButton stepId={stepObj.id} />
         </Flex>
       </Header>
-      <OnboardingContainer containerType="inline-size" hasFooter={containerHasFooter}>
+      <Stack
+        containerType="inline-size"
+        flexGrow={1}
+        position="relative"
+        overflowX="hidden"
+        background="primary"
+        width="100%"
+        margin="0 auto"
+        paddingLeft="2xl"
+        paddingRight="2xl"
+        style={{
+          paddingTop: 60,
+          paddingBottom: containerHasFooter ? FOOTER_HEIGHT : 60,
+          marginBottom: containerHasFooter ? FOOTER_HEIGHT : undefined,
+        }}
+      >
         <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
           <OnboardingStep
             key={stepObj.id}
@@ -431,7 +446,7 @@ export function OnboardingWithoutContext() {
             />
           </Flex>
         )}
-      </OnboardingContainer>
+      </Stack>
     </Stack>
   );
 }
@@ -443,22 +458,6 @@ function Onboarding() {
     </OnboardingContextProvider>
   );
 }
-
-const OnboardingContainer = styled(Stack)<{
-  hasFooter: boolean;
-}>`
-  flex-grow: 1;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-  overflow-x: hidden;
-  background: ${p => p.theme.tokens.background.primary};
-  padding: 60px ${p => p.theme.space['2xl']};
-  width: 100%;
-  margin: 0 auto;
-  padding-bottom: ${p => p.hasFooter && FOOTER_HEIGHT};
-  margin-bottom: ${p => p.hasFooter && FOOTER_HEIGHT};
-`;
 
 const Header = styled(Grid)`
   padding: ${p => p.theme.space.md} ${p => p.theme.space['3xl']};
