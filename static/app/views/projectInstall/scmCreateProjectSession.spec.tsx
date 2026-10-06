@@ -41,14 +41,11 @@ describe('useScmCreateProjectProductSync', () => {
     jest.clearAllMocks();
   });
 
-  it('returns a callback when the flag is on and the session matches the project', () => {
+  it('returns a callback when the session matches the project', () => {
     seedSession();
 
-    const {result} = renderHookWithProviders(
-      () => useScmCreateProjectProductSync(project),
-      {
-        organization: {features: ['onboarding-scm-project-creation']},
-      }
+    const {result} = renderHookWithProviders(() =>
+      useScmCreateProjectProductSync(project)
     );
 
     expect(result.current).toBeInstanceOf(Function);
@@ -60,11 +57,8 @@ describe('useScmCreateProjectProductSync', () => {
       projectDetailsForm: {projectName: 'my-project'},
     });
 
-    const {result} = renderHookWithProviders(
-      () => useScmCreateProjectProductSync(project),
-      {
-        organization: {features: ['onboarding-scm-project-creation']},
-      }
+    const {result} = renderHookWithProviders(() =>
+      useScmCreateProjectProductSync(project)
     );
 
     act(() => {
@@ -87,25 +81,8 @@ describe('useScmCreateProjectProductSync', () => {
   it('returns undefined when the session project does not match', () => {
     seedSession({createdProjectId: 'different-id'});
 
-    const {result} = renderHookWithProviders(
-      () => useScmCreateProjectProductSync(project),
-      {
-        organization: {features: ['onboarding-scm-project-creation']},
-      }
-    );
-
-    expect(result.current).toBeUndefined();
-  });
-
-  it('returns undefined when the SCM project creation flag is off', () => {
-    seedSession();
-
-    const {result} = renderHookWithProviders(
-      () => useScmCreateProjectProductSync(project),
-      {
-        // No SCM project creation feature in org features list.
-        organization: {features: []},
-      }
+    const {result} = renderHookWithProviders(() =>
+      useScmCreateProjectProductSync(project)
     );
 
     expect(result.current).toBeUndefined();
@@ -113,11 +90,8 @@ describe('useScmCreateProjectProductSync', () => {
 
   it('returns undefined when no session is present', () => {
     // No session seeded.
-    const {result} = renderHookWithProviders(
-      () => useScmCreateProjectProductSync(project),
-      {
-        organization: {features: ['onboarding-scm-project-creation']},
-      }
+    const {result} = renderHookWithProviders(() =>
+      useScmCreateProjectProductSync(project)
     );
 
     expect(result.current).toBeUndefined();
