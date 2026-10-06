@@ -6,6 +6,7 @@ import {
 } from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
+import {mockAnimationFrame} from 'sentry-test/mockAnimationFrame';
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {
@@ -153,63 +154,37 @@ describe('replayContext', () => {
   it.each([false, true])(
     'keeps polling the player after an unchanged timestamp (video: %s)',
     video => {
-      const frames = new Map<number, FrameRequestCallback>();
-      let frameId = 0;
-      const requestFrame = jest
-        .spyOn(window, 'requestAnimationFrame')
-        .mockImplementation(callback => {
-          frames.set(++frameId, callback);
-          return frameId;
-        });
-      const cancelFrame = jest
-        .spyOn(window, 'cancelAnimationFrame')
-        .mockImplementation(id => {
-          frames.delete(id);
-        });
-      const advanceFrame = () => {
-        act(() => {
-          const callbacks = [...frames.values()];
-          frames.clear();
-          callbacks.forEach(callback => callback(0));
-        });
-      };
+      const {advanceFrame, frames} = mockAnimationFrame();
+      const replay = makeReader({
+        attachments: video
+          ? [VideoFrameEventFixture()]
+          : RRWebInitFrameEventsFixture({timestamp: startedAt}),
+      });
+      const {unmount} = render(
+        <ReplayContextProvider analyticsContext="" isFetching={false} replay={replay}>
+          <TestPlayer />
+        </ReplayContextProvider>
+      );
 
-      try {
-        const replay = makeReader({
-          attachments: video
-            ? [VideoFrameEventFixture()]
-            : RRWebInitFrameEventsFixture({timestamp: startedAt}),
-        });
-        const {unmount} = render(
-          <ReplayContextProvider analyticsContext="" isFetching={false} replay={replay}>
-            <TestPlayer />
-          </ReplayContextProvider>
-        );
+      advanceFrame();
+      mockGetCurrentTime.mockReturnValue(1_000);
+      advanceFrame();
+      expect(screen.getByText('Current time: 1000')).toBeInTheDocument();
 
-        // An unchanged clock must not stop polling before playback starts advancing.
-        advanceFrame();
-        advanceFrame();
-        mockGetCurrentTime.mockReturnValue(1_000);
-        advanceFrame();
-        expect(screen.getByText('Current time: 1000')).toBeInTheDocument();
+      // Polling must also survive an unchanged clock after a React render.
+      advanceFrame();
+      mockGetCurrentTime.mockReturnValue(2_000);
+      advanceFrame();
+      expect(screen.getByText('Current time: 2000')).toBeInTheDocument();
 
-        // Buffering can also keep the clock unchanged between advancing frames.
-        advanceFrame();
-        mockGetCurrentTime.mockReturnValue(2_000);
-        advanceFrame();
-        expect(screen.getByText('Current time: 2000')).toBeInTheDocument();
-
-        unmount();
-        expect(frames.size).toBe(0);
-      } finally {
-        mockGetCurrentTime.mockReturnValue(0);
-        requestFrame.mockRestore();
-        cancelFrame.mockRestore();
-      }
+      unmount();
+      expect(frames.size).toBe(0);
     }
   );
 
   afterEach(() => {
+    mockGetCurrentTime.mockReturnValue(0);
+    jest.restoreAllMocks();
     Object.defineProperty(document, 'visibilityState', {
       configurable: true,
       value: 'visible',
