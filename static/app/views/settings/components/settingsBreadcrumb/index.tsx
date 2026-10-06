@@ -1,134 +1,108 @@
-import {Fragment} from 'react';
-import {Link as RouterLink} from 'react-router-dom';
-import styled from '@emotion/styled';
+import type {ComponentType} from 'react';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-import {Flex} from '@sentry/scraps/layout';
+import type {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 
-import {trackAnalytics} from 'sentry/utils/analytics';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {useBreadcrumbsPathmap} from './context';
-import {Divider} from './divider';
 import {IntegrationCrumb} from './integrationCrumb';
 import {ProjectCrumb} from './projectCrumb';
 import {TeamCrumb} from './teamCrumb';
 import type {RouteWithName, SettingsBreadcrumbProps} from './types';
 
-const MENU_ROUTE_PATHS = {
-  configureIntegration: ':providerKey/:integrationId/',
-  integrations: 'integrations/',
-  integrationDetails: ':integrationSlug',
-  project: 'projects/:projectId/',
-  sentryApps: 'sentry-apps/',
-  team: ':teamId/',
-} as const;
-
-function renderMenuForRoute(props: SettingsBreadcrumbProps) {
-  const {
-    route: {path},
-    routes,
-  } = props;
-  switch (path) {
-    case MENU_ROUTE_PATHS.configureIntegration:
-      return <IntegrationCrumb {...props} />;
-    case MENU_ROUTE_PATHS.integrationDetails:
+function getCrumbComponent(
+  route: RouteWithName,
+  routes: RouteWithName[]
+): ComponentType<SettingsBreadcrumbProps> | undefined {
+  switch (route.path) {
+    case ':providerKey/:integrationId/':
+      return IntegrationCrumb;
+    case ':integrationSlug':
       return routes.some(
-        route =>
-          route.path === MENU_ROUTE_PATHS.integrations ||
-          route.path === MENU_ROUTE_PATHS.sentryApps
-      ) ? (
-        <IntegrationCrumb {...props} />
-      ) : undefined;
-    case MENU_ROUTE_PATHS.project:
-      return <ProjectCrumb {...props} />;
-    case MENU_ROUTE_PATHS.team:
-      return <TeamCrumb {...props} />;
+        item => item.path === 'integrations/' || item.path === 'sentry-apps/'
+      )
+        ? IntegrationCrumb
+        : undefined;
+    case 'projects/:projectId/':
+      return ProjectCrumb;
+    case ':teamId/':
+      return TeamCrumb;
     default:
-      return;
+      return undefined;
   }
 }
 
-type Props = {
-  params: Record<string, string | undefined>;
-};
+type Props = {params: Record<string, string | undefined>};
 
 export function SettingsBreadcrumb({params}: Props) {
+  const organization = useOrganization({allowNull: true});
   const routes = useRoutes() as RouteWithName[];
   const pathMap = useBreadcrumbsPathmap();
-
-  const lastRouteIndex = routes.map(r => !!r.name).lastIndexOf(true);
-
-  function onSettingsBreadcrumbLinkClick() {
-    trackAnalytics('breadcrumbs.link.clicked', {organization: null});
-  }
-
+  const lastRouteIndex = routes.map(route => !!route.name).lastIndexOf(true);
   const lastRoute = routes[lastRouteIndex];
   if (!lastRoute) {
     return null;
   }
   const explicitTitle =
     pathMap[getRouteStringFromRoutes({routes: routes.slice(0, lastRouteIndex + 1)})];
-  const parentCrumbs = (
-    <Flex as="span" flexShrink={0} align="center" gap="sm">
-      {routes.map((route, i) => {
-        if (!route.name || i === lastRouteIndex) {
-          return null;
-        }
-        const pathTitle =
-          pathMap[getRouteStringFromRoutes({routes: routes.slice(0, i + 1)})]?.title;
-        const label =
-          pathTitle?.type === 'editable-title' ? pathTitle.value : pathTitle?.label;
-        const menu = renderMenuForRoute({route, routes, isLast: false});
-        return menu ? (
-          <Fragment key={`${route.name}:${route.path}`}>{menu}</Fragment>
-        ) : (
-          <Flex as="span" gap="sm" align="center" key={`${route.name}:${route.path}`}>
-            <CrumbLink
-              to={recreateRoute(route, {routes, params})}
-              onClick={onSettingsBreadcrumbLinkClick}
-            >
-              {label || route.name}
-            </CrumbLink>
-            <Divider />
-          </Flex>
-        );
-      })}
-    </Flex>
-  );
-  const menu = renderMenuForRoute({
-    route: lastRoute,
-    routes,
-    isLast: !explicitTitle,
-    children: parentCrumbs,
-  });
-  if (menu && !explicitTitle) {
-    return menu;
-  }
-  return (
-    <TopBar.Slot
-      name="breadcrumbs"
-      title={explicitTitle?.title ?? {type: 'page-title', label: lastRoute.name || ''}}
-    >
-      {parentCrumbs}
-      {menu}
-      {explicitTitle?.breadcrumbs && <BreadcrumbList items={explicitTitle.breadcrumbs} />}
-    </TopBar.Slot>
-  );
-}
-// Uses Link directly from react-router-dom to avoid the URL normalization
-// that happens in the internal Link component. It is unnecessary because we
-// get routes from the router, and will actually cause issues because the
-// routes do not have organization information.
-export const CrumbLink = styled(RouterLink)`
-  display: block;
-  line-height: ${p => p.theme.font.lineHeight.default};
+  const title = explicitTitle?.title ?? {
+    type: 'page-title' as const,
+    label: lastRoute.name || '',
+  };
+  const items: React.ComponentProps<typeof BreadcrumbList>['items'] = [];
+  let dynamicCrumb:
+    | {
+        Component: ComponentType<SettingsBreadcrumbProps>;
+        isLast: boolean;
+        itemIndex: number;
+        route: RouteWithName;
+      }
+    | undefined;
 
-  color: ${p => p.theme.tokens.content.secondary};
-  &:hover {
-    color: ${p => p.theme.tokens.content.primary};
+  for (const [index, route] of routes.entries()) {
+    if (!route.name) {
+      continue;
+    }
+    const Component = getCrumbComponent(route, routes);
+    if (Component) {
+      // Settings routes contain at most one project, team, or integration crumb.
+      dynamicCrumb = {
+        Component,
+        route,
+        itemIndex: items.length,
+        isLast: index === lastRouteIndex && !explicitTitle,
+      };
+    } else if (index !== lastRouteIndex) {
+      const pathTitle =
+        pathMap[getRouteStringFromRoutes({routes: routes.slice(0, index + 1)})]?.title;
+      const label =
+        pathTitle?.type === 'editable-title' ? pathTitle.value : pathTitle?.label;
+      let to = recreateRoute(route, {routes, params});
+      // Route paths on customer domains already omit the organization. Restore
+      // it before the shared Link normalizes the destination once more.
+      if (
+        ConfigStore.get('customerDomain') &&
+        organization &&
+        to.startsWith('/settings/') &&
+        to !== '/settings/' &&
+        !to.startsWith('/settings/account/') &&
+        !to.startsWith(`/settings/${organization.slug}/`)
+      ) {
+        to = `/settings/${organization.slug}/${to.slice('/settings/'.length)}`;
+      }
+      items.push({type: 'link', label: label || route.name, to});
+    }
   }
-`;
+  items.push(...(explicitTitle?.breadcrumbs ?? []));
+
+  if (dynamicCrumb) {
+    const {Component, ...props} = dynamicCrumb;
+    return <Component {...props} routes={routes} items={items} title={title} />;
+  }
+  return <TopBar.Slot name="breadcrumbs" title={title} items={items} />;
+}

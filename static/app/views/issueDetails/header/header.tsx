@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import color from 'color';
 
 import {FeatureBadge, Tag} from '@sentry/scraps/badge';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -81,20 +80,20 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
       <Header>
         <Flex justify="between">
           <Flex align="center" gap="md">
-            <TopBar.Slot name="breadcrumbs" title={issueItem}>
-              <BreadcrumbList
-                items={[
-                  {
-                    type: 'link',
-                    label: t('Issues'),
-                    to: {
-                      pathname: `/organizations/${organization.slug}/issues/`,
-                      query,
-                    },
+            <TopBar.Slot
+              name="breadcrumbs"
+              title={issueItem}
+              items={[
+                {
+                  type: 'link',
+                  label: t('Issues'),
+                  to: {
+                    pathname: `/organizations/${organization.slug}/issues/`,
+                    query,
                   },
-                ]}
-              />
-            </TopBar.Slot>
+                },
+              ]}
+            />
             {hasErrorUpsampling && (
               <Tooltip
                 title={t(

@@ -1,5 +1,3 @@
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -16,19 +14,19 @@ export function BuilderBreadCrumbs({title, organization}: Props) {
   const location = useLocation();
 
   return (
-    <TopBar.Slot name="breadcrumbs" title={{type: 'page-title', label: title}}>
-      <BreadcrumbList
-        items={[
-          {
-            type: 'link',
-            label: t('Monitors'),
-            to: {
-              pathname: makeMonitorBasePathname(organization.slug),
-              query: extractSelectionParameters(location.query),
-            },
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{type: 'page-title', label: title}}
+      items={[
+        {
+          type: 'link',
+          label: t('Monitors'),
+          to: {
+            pathname: makeMonitorBasePathname(organization.slug),
+            query: extractSelectionParameters(location.query),
           },
-        ]}
-      />
-    </TopBar.Slot>
+        },
+      ]}
+    />
   );
 }

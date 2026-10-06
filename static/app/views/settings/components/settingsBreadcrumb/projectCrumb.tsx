@@ -1,9 +1,5 @@
-import styled from '@emotion/styled';
-
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 
-import {IdBadge} from 'sentry/components/idBadge';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
@@ -13,11 +9,10 @@ import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import type {SettingsBreadcrumbProps} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
-import {BreadcrumbDropdown} from './breadcrumbDropdown';
 import {findFirstRouteWithoutRouteParam} from './findFirstRouteWithoutRouteParam';
-import {CrumbLink} from '.';
+import {SettingsBreadcrumbSlot} from './settingsBreadcrumbSlot';
 
-export function ProjectCrumb({routes, route, isLast, children}: SettingsBreadcrumbProps) {
+export function ProjectCrumb({routes, route, ...slotProps}: SettingsBreadcrumbProps) {
   const navigate = useNavigate();
   const {projects, onSearch} = useProjects();
   const organization = useOrganization();
@@ -45,27 +40,17 @@ export function ProjectCrumb({routes, route, isLast, children}: SettingsBreadcru
   const activeProject = projects.find(project => project.slug === params.projectId);
 
   return (
-    <BreadcrumbDropdown
-      title={isLast ? (activeProject?.slug ?? params.projectId ?? '') : undefined}
-      titleGraphic={activeProject && <ProjectAvatar project={activeProject} size={16} />}
-      hasMenu={projects && projects.length > 1}
-      route={route}
-      name={
-        <ProjectName>
-          {activeProject ? (
-            <CrumbLink
-              to={replaceRouterParams('/settings/:orgId/projects/:projectId/', {
-                orgId: organization.slug,
-                projectId: activeProject.slug,
-              })}
-            >
-              <IdBadge project={activeProject} avatarSize={18} disableLink />
-            </CrumbLink>
-          ) : (
-            <LoadingIndicator mini />
-          )}
-        </ProjectName>
+    <SettingsBreadcrumbSlot
+      {...slotProps}
+      label={activeProject?.slug ?? params.projectId ?? ''}
+      leadingGraphic={
+        activeProject && <ProjectAvatar project={activeProject} size={16} />
       }
+      hasMenu={projects && projects.length > 1}
+      to={replaceRouterParams('/settings/:orgId/projects/:projectId/', {
+        orgId: organization.slug,
+        projectId: activeProject?.slug ?? params.projectId,
+      })}
       value={activeProject?.slug ?? ''}
       onCrumbSelect={handleSelect}
       onOpenChange={open => {
@@ -79,22 +64,6 @@ export function ProjectCrumb({routes, route, isLast, children}: SettingsBreadcru
         leadingItems: <ProjectAvatar project={project} size={20} />,
         label: project.slug,
       }))}
-      showDivider={!isLast}
-    >
-      {children}
-    </BreadcrumbDropdown>
+    />
   );
 }
-
-// Set height of crumb because of spinner
-const SPINNER_SIZE = '24px';
-
-const ProjectName = styled('div')`
-  display: flex;
-
-  .loading {
-    width: ${SPINNER_SIZE};
-    height: ${SPINNER_SIZE};
-    margin: 0 ${p => p.theme.space['2xs']} 0 0;
-  }
-`;

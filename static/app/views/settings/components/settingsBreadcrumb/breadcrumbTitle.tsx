@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 import {useMatches} from 'react-router-dom';
 
-import {BreadcrumbList, type BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
+import type {BreadcrumbList, BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
 
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -25,11 +25,7 @@ export function BreadcrumbTitle({title, breadcrumbs}: Props) {
 
   // Register typed titles directly when no settings layout owns the breadcrumbs.
   if (!hasProvider && typeof title !== 'string') {
-    return (
-      <TopBar.Slot name="breadcrumbs" title={title}>
-        {breadcrumbs && <BreadcrumbList items={breadcrumbs} />}
-      </TopBar.Slot>
-    );
+    return <TopBar.Slot name="breadcrumbs" title={title} items={breadcrumbs} />;
   }
 
   return null;

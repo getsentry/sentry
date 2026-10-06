@@ -70,3 +70,5 @@ Preserve meaningful existing tests for enrollment, saving, navigation, and analy
 ## Responsive behavior
 
 jsdom does not evaluate container queries. The component's own tests cover emitted collapse rules. Do not duplicate generated-CSS assertions in page tests; verify their item content and use a browser resize check when the responsive layout changes.
+
+Settings parent menus use a separate link and a `Switch <label>` button. Test them with a click, not hover. The final Settings crumb remains a plain title even when alternatives exist.

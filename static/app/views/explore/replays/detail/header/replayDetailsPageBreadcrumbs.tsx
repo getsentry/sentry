@@ -1,6 +1,5 @@
 import {useMemo, useState} from 'react';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -143,22 +142,19 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
             : null,
         ],
       }}
-    >
-      <BreadcrumbList
-        items={[
-          {
-            type: 'link',
-            label: t('Session Replay'),
-            to: {
-              pathname: makeReplaysPathname({path: '/', organization}),
-              query: {
-                ...eventView.generateQueryStringObject(),
-                project: replayRecord?.project_id,
-              },
+      items={[
+        {
+          type: 'link',
+          label: t('Session Replay'),
+          to: {
+            pathname: makeReplaysPathname({path: '/', organization}),
+            query: {
+              ...eventView.generateQueryStringObject(),
+              project: replayRecord?.project_id,
             },
           },
-        ]}
-      />
-    </TopBar.Slot>
+        },
+      ]}
+    />
   );
 }

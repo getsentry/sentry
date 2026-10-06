@@ -33,7 +33,8 @@ type TopBarSlotProps =
   | {
       name: 'breadcrumbs';
       title: BreadcrumbTitleItem;
-      children?: React.ReactNode;
+      children?: never;
+      items?: React.ComponentProps<typeof BreadcrumbList>['items'];
     }
   | {
       children: React.ReactNode;
@@ -45,7 +46,11 @@ function TopBarSlot(props: TopBarSlotProps) {
   if (props.name === 'breadcrumbs') {
     return (
       <Fragment>
-        {props.children !== undefined && <Slot name="breadcrumbs">{props.children}</Slot>}
+        {props.items && props.items.length > 0 && (
+          <Slot name="breadcrumbs">
+            <BreadcrumbList items={props.items} />
+          </Slot>
+        )}
         <Slot name="title">
           <BreadcrumbList.Title item={props.title} />
         </Slot>

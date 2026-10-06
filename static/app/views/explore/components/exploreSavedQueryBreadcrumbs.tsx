@@ -350,9 +350,8 @@ function SavedQueryTitle({
           },
         ],
       }}
-    >
-      <BreadcrumbList items={config.items} />
-    </TopBar.Slot>
+      items={config.items}
+    />
   );
 }
 
@@ -393,8 +392,7 @@ export function ExploreSavedQueryBreadcrumbs({
         label: title ?? t('Saved Query'),
         leadingGraphic: <Placeholder width="16px" height="16px" />,
       }}
-    >
-      <BreadcrumbList items={config.items} />
-    </TopBar.Slot>
+      items={config.items}
+    />
   );
 }

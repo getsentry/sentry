@@ -75,9 +75,8 @@ describe('TopBar', () => {
               element: <Button>Resolve</Button>,
             },
           }}
-        >
-          <BreadcrumbList items={[{type: 'link', label: 'Issues', to: '/issues/'}]} />
-        </TopBar.Slot>
+          items={[{type: 'link', label: 'Issues', to: '/issues/'}]}
+        />
       </TopBar.Slot.Provider>,
       {organization: OrganizationFixture()}
     );
@@ -165,6 +164,11 @@ describe('TopBar', () => {
     expectTypeOf<{name: 'breadcrumbs'}>().not.toMatchTypeOf<Props>();
     expectTypeOf<{children: string; name: 'title'}>().not.toMatchTypeOf<Props>();
     expectTypeOf<{name: 'breadcrumbs'; title: string}>().not.toMatchTypeOf<Props>();
+    expectTypeOf<{
+      children: React.ReactNode;
+      name: 'breadcrumbs';
+      title: {label: string; type: 'page-title'};
+    }>().not.toMatchTypeOf<Props>();
     expectTypeOf<{
       name: 'breadcrumbs';
       title: ProjectSelector & {label: string};

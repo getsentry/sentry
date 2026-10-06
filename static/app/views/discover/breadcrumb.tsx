@@ -1,8 +1,6 @@
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
@@ -101,23 +99,20 @@ export function DiscoverBreadcrumb({
             }
           : {type: 'page-title', label: value}
       }
-    >
-      <BreadcrumbList
-        items={[
-          ...(discoverTarget
-            ? [{type: 'link' as const, label: t('Errors'), to: discoverTarget}]
-            : []),
-          ...(defined(eventView.id)
-            ? [
-                {
-                  type: 'link' as const,
-                  label: t('Saved Queries'),
-                  to: makeDiscoverPathname({path: '/queries/', organization}),
-                },
-              ]
-            : []),
-        ]}
-      />
-    </TopBar.Slot>
+      items={[
+        ...(discoverTarget
+          ? [{type: 'link' as const, label: t('Errors'), to: discoverTarget}]
+          : []),
+        ...(defined(eventView.id)
+          ? [
+              {
+                type: 'link' as const,
+                label: t('Saved Queries'),
+                to: makeDiscoverPathname({path: '/queries/', organization}),
+              },
+            ]
+          : []),
+      ]}
+    />
   );
 }

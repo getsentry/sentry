@@ -3,13 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {SentryAppFixture} from 'sentry-fixture/sentryApp';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {IntegrationCrumb} from './integrationCrumb';
 
@@ -33,27 +27,44 @@ describe('IntegrationCrumb', () => {
   it('renders the last crumb as a plain title even with multiple providers', async () => {
     const parentRoute = {path: 'integrations/', name: 'Integrations'};
     const route = {path: ':integrationSlug', name: 'Integration Details'};
-    render(<IntegrationCrumb route={route} routes={[parentRoute, route]} isLast />, {
-      organization,
-      initialRouterConfig: {
-        route: '/settings/:orgId/integrations/:integrationSlug/',
-        location: {
-          pathname: `/settings/${organization.slug}/integrations/github/`,
-          query: {tab: 'overview'},
+    render(
+      <IntegrationCrumb
+        items={[]}
+        itemIndex={0}
+        title={{type: 'page-title', label: 'Details'}}
+        route={route}
+        routes={[parentRoute, route]}
+        isLast
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          route: '/settings/:orgId/integrations/:integrationSlug/',
+          location: {
+            pathname: `/settings/${organization.slug}/integrations/github/`,
+            query: {tab: 'overview'},
+          },
         },
-      },
-    });
+      }
+    );
     expect(
       await screen.findByRole('heading', {name: 'GitHub', level: 1})
     ).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'GitHub'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Switch GitHub'})).not.toBeInTheDocument();
   });
 
   it('switches integrations while clearing the selected detail tab', async () => {
     const parentRoute = {path: 'integrations/', name: 'Integrations'};
     const route = {path: ':integrationSlug', name: 'Integration Details'};
     const {router} = render(
-      <IntegrationCrumb route={route} routes={[parentRoute, route]} isLast={false} />,
+      <IntegrationCrumb
+        items={[]}
+        itemIndex={0}
+        title={{type: 'page-title', label: 'Details'}}
+        route={route}
+        routes={[parentRoute, route]}
+        isLast={false}
+      />,
       {
         organization,
         initialRouterConfig: {
@@ -67,15 +78,12 @@ describe('IntegrationCrumb', () => {
     );
 
     await waitFor(() =>
-      expect(screen.getByRole('button', {name: 'GitHub'})).toHaveAttribute(
+      expect(screen.getByRole('button', {name: 'Switch GitHub'})).toHaveAttribute(
         'aria-haspopup',
         'listbox'
       )
     );
-    expect(
-      within(screen.getByRole('button', {name: 'GitHub'})).getByRole('img')
-    ).toBeInTheDocument();
-    await userEvent.hover(screen.getByRole('button', {name: 'GitHub'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Switch GitHub'}));
     await userEvent.click(screen.getByRole('option', {name: 'Slack'}));
 
     expect(router.location.pathname).toBe(
@@ -97,7 +105,14 @@ describe('IntegrationCrumb', () => {
       }),
     });
     const {router} = render(
-      <IntegrationCrumb route={route} routes={[parentRoute, route]} isLast={false} />,
+      <IntegrationCrumb
+        items={[]}
+        itemIndex={0}
+        title={{type: 'page-title', label: 'Details'}}
+        route={route}
+        routes={[parentRoute, route]}
+        isLast={false}
+      />,
       {
         organization,
         initialRouterConfig: {
@@ -114,21 +129,18 @@ describe('IntegrationCrumb', () => {
       'href',
       `/settings/${organization.slug}/integrations/github/`
     );
-    expect(within(integrationLink).getByRole('img')).toHaveAttribute(
+    expect(integrationLink.closest('li')?.querySelector('img')).toHaveAttribute(
       'src',
       'https://example.com/custom-integration.png'
     );
 
     await waitFor(() =>
-      expect(screen.getByRole('button', {name: 'GitHub'})).toHaveAttribute(
+      expect(screen.getByRole('button', {name: 'Switch GitHub'})).toHaveAttribute(
         'aria-haspopup',
         'listbox'
       )
     );
-    expect(
-      within(screen.getByRole('button', {name: 'GitHub'})).getAllByRole('img')
-    ).toHaveLength(2);
-    await userEvent.hover(screen.getByRole('button', {name: 'GitHub'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Switch GitHub'}));
     await userEvent.click(screen.getByRole('option', {name: 'Slack'}));
 
     expect(router.location.pathname).toBe(
@@ -158,7 +170,14 @@ describe('IntegrationCrumb', () => {
     });
 
     render(
-      <IntegrationCrumb route={route} routes={[parentRoute, route]} isLast={false} />,
+      <IntegrationCrumb
+        items={[]}
+        itemIndex={0}
+        title={{type: 'page-title', label: 'Details'}}
+        route={route}
+        routes={[parentRoute, route]}
+        isLast={false}
+      />,
       {
         organization,
         initialRouterConfig: {
@@ -175,14 +194,10 @@ describe('IntegrationCrumb', () => {
       'href',
       `/settings/${organization.slug}/sentry-apps/shortcut/`
     );
-    expect(within(integrationLink).getByRole('img')).toHaveAttribute(
+    expect(integrationLink.closest('li')?.querySelector('img')).toHaveAttribute(
       'src',
       'https://example.com/shortcut.png?s=120'
     );
-    expect(
-      within(screen.getByRole('button', {name: /Shortcut/})).getByRole('img', {
-        name: 'Shortcut',
-      })
-    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Switch Shortcut'})).toBeInTheDocument();
   });
 });

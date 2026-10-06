@@ -1,4 +1,3 @@
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -92,22 +91,19 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
             <ProjectBadge disableLink hideName project={project} avatarSize={16} />
           ),
         }}
-      >
-        <BreadcrumbList
-          items={[
-            {
-              type: 'link',
-              label: t('Monitors'),
-              to: makeMonitorBasePathname(organization.slug),
-            },
-            {
-              type: 'link',
-              label: getDetectorTypeLabel(detector.type),
-              to: makeMonitorTypePathname(organization.slug, detector.type),
-            },
-          ]}
-        />
-      </TopBar.Slot>
+        items={[
+          {
+            type: 'link',
+            label: t('Monitors'),
+            to: makeMonitorBasePathname(organization.slug),
+          },
+          {
+            type: 'link',
+            label: getDetectorTypeLabel(detector.type),
+            to: makeMonitorTypePathname(organization.slug, detector.type),
+          },
+        ]}
+      />
       <MonitorFeedbackButton />
       <DetailLayout.Body>
         <DetailLayout.Main>

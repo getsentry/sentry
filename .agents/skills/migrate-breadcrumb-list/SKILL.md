@@ -19,14 +19,13 @@ Separate parent links from the current page title. Pass both through one public 
 <TopBar.Slot
   name="breadcrumbs"
   title={{type: 'page-title', label: monitor.name}}
->
-  <BreadcrumbList items={[{type: 'link', label: t('Monitors'), to: basePath}]} />
-</TopBar.Slot>
+  items={[{type: 'link', label: t('Monitors'), to: basePath}]}
+/>
 ```
 
-For a page without parents, omit the slot children. The `title` prop is still required.
+For a page without parents, omit `items`. The `title` prop is still required.
 
-`TopBar` internally routes the parents and title to separate outlets. `BreadcrumbList.Title` supplies the single `<h1>`. For both title types, only the displayed label is inside the heading; graphics and controls render outside it. An editable title replaces the heading with a labelled input during editing. Do not wrap the title component in another heading. Use it directly only when composing outside TopBar. Do not add a public `TopBar.Slot name="title"`, `Layout.Title`, or a second page heading; those public title APIs were removed.
+`TopBar.Slot name="breadcrumbs"` rejects children. It renders `items` through `BreadcrumbList` and internally routes the parents and title to separate outlets. `BreadcrumbList.Title` supplies the single `<h1>`. For both title types, only the displayed label is inside the heading; graphics and controls render outside it. An editable title replaces the heading with a labelled input during editing. Do not wrap the title component in another heading. Use it directly only when composing outside TopBar. Do not add a public `TopBar.Slot name="title"`, `Layout.Title`, or a second page heading; those public title APIs were removed.
 
 Read `static/app/views/navigation/topBar.tsx` and `static/app/components/core/breadcrumbList/` before editing. Prefer the current implementation over old migration examples.
 
@@ -64,15 +63,16 @@ Keep a bare pathname when the old crumb did not preserve filters. Do not change 
 
 ## API map
 
-| Surface                           | Accepted items                   |
-| --------------------------------- | -------------------------------- |
-| `BreadcrumbList.items`            | `link`, `select-projects`        |
-| `TopBar.Slot` breadcrumbs `title` | `page-title`, `editable-title`   |
-| `BreadcrumbList.Title` `item`     | Same `BreadcrumbTitleItem` union |
+| Surface                                      | Accepted items                   |
+| -------------------------------------------- | -------------------------------- |
+| `TopBar.Slot.items` / `BreadcrumbList.items` | `link`, `select-projects`        |
+| `TopBar.Slot` breadcrumbs `title`            | `page-title`, `editable-title`   |
+| `BreadcrumbList.Title` `item`                | Same `BreadcrumbTitleItem` union |
 
 - `page-title` requires a string `label`. Use `labelTooltip`, `leadingGraphic`, `pagination`, and `trailingActions` for supporting content.
 - `editable-title` requires `value`, `onChange`, and `'aria-label'`.
-- `select-projects` accepts `options`, `value`, and `onChange` for parent breadcrumbs only. The current page title cannot be a selector.
+- `link` requires `label` and either `to` for internal navigation or `externalHref` for an external link that opens in a new tab.
+- `select-projects` accepts `options`, `value`, and `onChange` for parent breadcrumbs only. Settings also uses it for team and integration menus. Supply `to` for a parent link beside the switch button, `label` to retain the name during server search, and `leadingGraphic` for its icon. `search`, `loading`, and `onOpenChange` pass through to the selector. The current page title cannot be a selector.
 - Trailing actions support `copy`, `menu`, `badge`, and `button`. A selector is a `select-projects` parent item, not a trailing action.
 - There are no title-level `help`, `badge`, `href`, `status`, or `titleGuide` props. Use `labelTooltip` for help and documentation links, and a trailing `badge` action for feature badges. Keep the title label plain text.
 
@@ -84,7 +84,7 @@ Import public components from `@sentry/scraps/breadcrumbList` and `@sentry/scrap
 2. Identify the current page name before building parent items. An existing typed title takes precedence. On older branches, inspect the removed `Layout.Title` or raw heading before assuming the last crumb is the title.
 3. Build the typed title using `references/title-item.md`. Preserve editing, parent selection, navigation, and analytics behavior. Keep the secondary sidebar's feature badge type in the title too.
 4. Build parent items with real destinations. Remove the current page from the trail. A category descriptor may need a real parent URL instead of removal. An empty parent list is valid; do not invent links.
-5. Put the title and parents in one `TopBar.Slot name="breadcrumbs"`. Preserve conditions on parent rendering. For branch-dependent titles, let each branch produce a complete slot or title object.
+5. Pass `title` and `items` to one `TopBar.Slot name="breadcrumbs"`. Preserve conditions on parent rendering. For branch-dependent titles, let each branch produce a complete slot or title object.
 6. If a shared header owns the slot, remove its callers' wrapping slots in the same change. Do not nest slot-producing components inside another breadcrumbs slot.
 7. Remove empty `Layout.Header` or `Layout.HeaderContent` wrappers left holding only slots. Retain wrappers that still hold tabs or other visible content.
 8. Delete only code made unused by the migration. Do not expand the shared title API to accommodate each legacy decoration. If requested UI is removed, remove tests dedicated only to that UI; retain tests of useful remaining behavior.
@@ -100,11 +100,11 @@ For Settings callers, `SettingsPageHeader.title` accepts a string or `Breadcrumb
 | Build titles, selectors, badges, tooltips, editing, or actions | `references/title-item.md`          |
 | Check the test harness, queries, or responsive behavior        | `references/tests.md`               |
 
-Use `views/detectors/components/details/common/header.tsx` for slot composition, `views/dashboards/dashboardBreadcrumbTitle.tsx` for state-dependent titles, `views/issueDetails/header/issueIdBreadcrumb.tsx` for a typed builder, and `views/settings/components/settingsBreadcrumb/breadcrumbDropdown.tsx` for parent selectors and a plain final title. Paths are under `static/app/`.
+Use `views/detectors/components/details/common/header.tsx` for slot composition, `views/dashboards/dashboardBreadcrumbTitle.tsx` for state-dependent titles, `views/issueDetails/header/issueIdBreadcrumb.tsx` for a typed builder, and `views/settings/components/settingsBreadcrumb/settingsBreadcrumbSlot.tsx` for parent selectors and a plain final title. Paths are under `static/app/`.
 
 ## Migration checks
 
-- Every public breadcrumbs slot has a typed `title`; no public `title` slot or `Layout.Title` remains in the changed code.
+- Every public breadcrumbs slot has a typed `title` and optional `items`, with no JSX children; no public `title` slot or `Layout.Title` remains in the changed code.
 - The page has one heading (replaced by a labelled input while editing), and the current page is not repeated in the parent trail.
 - Legacy crumbs are not spread into typed items; page-filter destinations preserve the old behavior.
 - Decorative leading graphics fit the 16×16 slot. Disable links and interactive tooltips inside that `aria-hidden` slot.

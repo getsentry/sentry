@@ -1,7 +1,6 @@
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {SentryAppAvatar} from '@sentry/scraps/avatar';
-import {Flex} from '@sentry/scraps/layout';
 
 import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -16,19 +15,17 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
-import {BreadcrumbDropdown} from './breadcrumbDropdown';
+import {SettingsBreadcrumbSlot} from './settingsBreadcrumbSlot';
 import type {RouteWithName, SettingsBreadcrumbProps} from './types';
-import {CrumbLink} from '.';
 
 type IntegrationProviderResponse = {
   providers: IntegrationProvider[];
 };
 
 export function IntegrationCrumb({
-  route,
+  route: _route,
   routes,
-  isLast,
-  children,
+  ...slotProps
 }: SettingsBreadcrumbProps) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -37,9 +34,6 @@ export function IntegrationCrumb({
   const activeProviderKey = params.integrationSlug ?? params.providerKey;
   const isSentryAppRoute = routes.some(
     (item: RouteWithName) => item.path === 'sentry-apps/'
-  );
-  const hasFollowingTopBarTitle = routes.some(
-    (item: RouteWithName) => item.path === 'integrations/'
   );
   const {data: sentryApp, isPending: isSentryAppPending} = useQuery(
     sentryAppApiOptions({
@@ -89,10 +83,13 @@ export function IntegrationCrumb({
     : `${activeProviderUrl}${location.search}`;
 
   return (
-    <BreadcrumbDropdown
-      title={isLast ? activeProviderName : undefined}
-      titleGraphic={
-        sentryApp ? (
+    <SettingsBreadcrumbSlot
+      {...slotProps}
+      label={activeProviderName}
+      leadingGraphic={
+        isIconPending ? (
+          <Placeholder width="16px" height="16px" />
+        ) : sentryApp ? (
           <SentryAppAvatar sentryApp={sentryApp} size={16} />
         ) : integration ? (
           <IntegrationIcon integration={integration} size={16} />
@@ -100,26 +97,7 @@ export function IntegrationCrumb({
           <PluginIcon pluginId={activeProviderKey} size={16} />
         )
       }
-      name={
-        <CrumbLink to={activeProviderHref}>
-          <Flex align="center" gap="xs">
-            {isIconPending ? (
-              <Placeholder width="18px" height="18px" />
-            ) : sentryApp ? (
-              <SentryAppAvatar sentryApp={sentryApp} size={18} />
-            ) : integration ? (
-              <IntegrationIcon integration={integration} size={18} />
-            ) : (
-              <PluginIcon pluginId={activeProviderKey} size={18} />
-            )}
-            {isSentryAppRoute && isSentryAppPending ? (
-              <Placeholder width="64px" height="16px" />
-            ) : (
-              activeProviderName
-            )}
-          </Flex>
-        </CrumbLink>
-      }
+      to={activeProviderHref}
       onCrumbSelect={providerKey => {
         const {tab: _tab, ...queryWithoutTab} = location.query;
         navigate({
@@ -133,7 +111,6 @@ export function IntegrationCrumb({
         }
       }}
       hasMenu={providers.length > 1}
-      route={route}
       value={activeProvider?.key ?? activeProviderKey}
       search={{placeholder: t('Search Integrations')}}
       options={providers.map(provider => ({
@@ -142,9 +119,6 @@ export function IntegrationCrumb({
         label: provider.name,
       }))}
       loading={isPending}
-      showDivider={hasFollowingTopBarTitle || !isLast}
-    >
-      {children}
-    </BreadcrumbDropdown>
+    />
   );
 }

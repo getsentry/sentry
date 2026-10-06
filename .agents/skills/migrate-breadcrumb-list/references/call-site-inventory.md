@@ -12,14 +12,14 @@ rg -l "from 'sentry/components/breadcrumbs'" static/app static/gsApp
 
 Read each match and its consumers. Classify its current structure:
 
-| Structure                                      | Migration                                                                                |
-| ---------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Legacy parents beside a typed breadcrumbs slot | Move only the parent trail into the existing slot's children; preserve its title         |
-| Legacy crumb array containing the current page | Split the leaf into the required typed `title` and pass only parents to `BreadcrumbList` |
-| Shared wrapper that renders the slot           | Change its consumers in the same patch; remove wrapping slots                            |
-| Conditional saved-query and landing headers    | Preserve a complete title and parent trail in each branch                                |
-| Legacy `Crumb[]` builder                       | Trace all consumers before changing its return type                                      |
-| Navigation outside TopBar                      | Check landmark and layout needs before replacing it                                      |
+| Structure                                      | Migration                                                                                  |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| Legacy parents beside a typed breadcrumbs slot | Move only the parent trail into the existing slot's `items`; preserve its title            |
+| Legacy crumb array containing the current page | Split the leaf into the required typed `title` and pass only parents to the slot’s `items` |
+| Shared wrapper that renders the slot           | Change its consumers in the same patch; remove wrapping slots                              |
+| Conditional saved-query and landing headers    | Preserve a complete title and parent trail in each branch                                  |
+| Legacy `Crumb[]` builder                       | Trace all consumers before changing its return type                                        |
+| Navigation outside TopBar                      | Check landmark and layout needs before replacing it                                        |
 
 Public `TopBar.Slot name="title"` and `Layout.Title` are removed. Treat them as legacy input only if encountered on an older branch, never as the output of migration.
 
@@ -43,4 +43,4 @@ The Discover, Explore saved-query, dashboard, and preprod install headers are us
 
 `BreadcrumbList` renders an `<ol>` without a navigation landmark. Preserve any landmark required by these callers; do not migrate them solely to lower the importer count.
 
-Settings uses route-driven `SettingsBreadcrumb` and a title context. Its page headers accept typed titles and optional parent items, but the legacy-component migration does not require replacing its route assembly.
+Settings uses route-driven `SettingsBreadcrumb` and a title context. It builds typed `link` and `select-projects` items; TopBar renders the sole `BreadcrumbList`. Its page headers accept typed titles and optional parent items, but the legacy-component migration does not require replacing its route assembly.

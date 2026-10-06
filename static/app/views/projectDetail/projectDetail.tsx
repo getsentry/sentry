@@ -2,7 +2,6 @@ import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import pick from 'lodash/pick';
 
 import {ProjectsBadge} from '@sentry/scraps/badge';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Stack, Container} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -213,17 +212,14 @@ export function ProjectDetail() {
                   triggerIcon: <IconEllipsis />,
                 },
               }}
-            >
-              <BreadcrumbList
-                items={[
-                  {
-                    type: 'link',
-                    label: t('Projects'),
-                    to: makeProjectsPathname({path: '/', organization}),
-                  },
-                ]}
-              />
-            </TopBar.Slot>
+              items={[
+                {
+                  type: 'link',
+                  label: t('Projects'),
+                  to: makeProjectsPathname({path: '/', organization}),
+                },
+              ]}
+            />
 
             <Layout.Body noRowGap>
               <Layout.Main>

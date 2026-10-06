@@ -4,7 +4,6 @@ import type {Location} from 'history';
 import pick from 'lodash/pick';
 
 import {Badge, FeatureBadge} from '@sentry/scraps/badge';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import {TabList} from '@sentry/scraps/tabs';
@@ -224,20 +223,17 @@ export function ReleaseHeader({
             },
           ],
         }}
-      >
-        <BreadcrumbList
-          items={[
-            {
-              type: 'link',
-              label: t('Releases'),
-              to: {
-                pathname: makeReleasesPathname({organization, path: '/'}),
-                query: extractSelectionParameters(location.query),
-              },
+        items={[
+          {
+            type: 'link',
+            label: t('Releases'),
+            to: {
+              pathname: makeReleasesPathname({organization, path: '/'}),
+              query: extractSelectionParameters(location.query),
             },
-          ]}
-        />
-      </TopBar.Slot>
+          },
+        ]}
+      />
       <TopBar.Slot name="feedback">
         <FeedbackButton
           feedbackOptions={releaseFeedbackOptions}

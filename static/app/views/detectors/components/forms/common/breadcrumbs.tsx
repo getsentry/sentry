@@ -1,8 +1,6 @@
 import {useContext} from 'react';
 import {observer} from 'mobx-react-lite';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-
 import {FormContext} from 'sentry/components/forms/formContext';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
@@ -35,21 +33,18 @@ export const DetectorFormBreadcrumbs = observer(function DetectorFormBreadcrumbs
         placeholder: t('New Monitor'),
         'aria-label': t('Monitor Name'),
       }}
-    >
-      <BreadcrumbList
-        items={[
-          {
-            type: 'link',
-            label: t('Monitors'),
-            to: makeMonitorBasePathname(organization.slug),
-          },
-          {
-            type: 'link',
-            label: getDetectorTypeLabel(detectorType),
-            to: makeMonitorTypePathname(organization.slug, detectorType),
-          },
-        ]}
-      />
-    </TopBar.Slot>
+      items={[
+        {
+          type: 'link',
+          label: t('Monitors'),
+          to: makeMonitorBasePathname(organization.slug),
+        },
+        {
+          type: 'link',
+          label: getDetectorTypeLabel(detectorType),
+          to: makeMonitorTypePathname(organization.slug, detectorType),
+        },
+      ]}
+    />
   );
 });

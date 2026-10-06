@@ -1,7 +1,6 @@
 import {useState, type ReactNode} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
@@ -220,17 +219,14 @@ function DashboardTitle({
             : null,
         ],
       }}
-    >
-      <BreadcrumbList
-        items={[
-          {
-            type: 'link',
-            label: t('Dashboards'),
-            to: `/organizations/${organization.slug}/dashboards/`,
-          },
-        ]}
-      />
-    </TopBar.Slot>
+      items={[
+        {
+          type: 'link',
+          label: t('Dashboards'),
+          to: `/organizations/${organization.slug}/dashboards/`,
+        },
+      ]}
+    />
   );
 }
 
@@ -270,17 +266,14 @@ export function DashboardBreadcrumbTitle({
           type: 'page-title',
           label: dashboard.title,
         }}
-      >
-        <BreadcrumbList
-          items={[
-            {
-              type: 'link',
-              label: t('Dashboards'),
-              to: `/organizations/${organization.slug}/dashboards/`,
-            },
-          ]}
-        />
-      </TopBar.Slot>
+        items={[
+          {
+            type: 'link',
+            label: t('Dashboards'),
+            to: `/organizations/${organization.slug}/dashboards/`,
+          },
+        ]}
+      />
     );
   }
 

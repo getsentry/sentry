@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
+import {ConfigStore} from 'sentry/stores/configStore';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {BreadcrumbTitle} from './breadcrumbTitle';
@@ -47,6 +48,49 @@ const documentIntegrationRouteChildren = [
 ];
 
 describe('BreadcrumbTitle', () => {
+  it('preserves settings parent destinations on a customer domain', () => {
+    const organization = OrganizationFixture();
+    const customerDomain = ConfigStore.get('customerDomain');
+    ConfigStore.set('customerDomain', {
+      subdomain: organization.slug,
+      organizationUrl: `https://${organization.slug}.sentry.io`,
+      sentryUrl: 'https://sentry.io',
+    });
+    try {
+      render(
+        <BreadcrumbProvider>
+          <SettingsBreadcrumb params={{}} />
+        </BreadcrumbProvider>,
+        {
+          organization,
+          initialRouterConfig: {
+            route: '/settings/',
+            location: {pathname: '/settings/integrations/new/'},
+            children: [
+              {
+                path: 'integrations/',
+                handle: {name: 'Integrations', path: '/settings/integrations/'},
+                children: [
+                  {
+                    path: 'new/',
+                    handle: {name: 'New Integration', path: 'new/'},
+                    element: <div />,
+                  },
+                ],
+              },
+            ],
+          },
+        }
+      );
+      expect(screen.getByRole('link', {name: 'Integrations'})).toHaveAttribute(
+        'href',
+        '/settings/integrations/'
+      );
+    } finally {
+      ConfigStore.set('customerDomain', customerDomain);
+    }
+  });
+
   it('combines a typed settings title with parent menus and page-specific breadcrumbs', async () => {
     const organization = OrganizationFixture();
     MockApiClient.addMockResponse({

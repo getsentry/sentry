@@ -1,8 +1,6 @@
 import {Fragment} from 'react';
 import omit from 'lodash/omit';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
@@ -144,9 +142,8 @@ export function ProfileHeader({
             ],
           },
         }}
-      >
-        <BreadcrumbList items={items} />
-      </TopBar.Slot>
+        items={items}
+      />
       <TopBar.Slot name="feedback">
         <FeedbackButton
           aria-label={t('Give Feedback')}

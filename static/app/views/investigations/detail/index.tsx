@@ -5,7 +5,6 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Input} from '@sentry/scraps/input';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -341,18 +340,15 @@ function InvestigationPageContent({investigation}: {investigation: Investigation
               triggerIcon: <IconEllipsis />,
             },
           }}
-        >
-          <BreadcrumbList
-            items={[
-              {
-                type: 'link',
-                label: t('Investigations'),
-                to: `/organizations/${organization.slug}/explore/investigations/`,
-                leadingGraphic: <IconStack size="md" />,
-              },
-            ]}
-          />
-        </TopBar.Slot>
+          items={[
+            {
+              type: 'link',
+              label: t('Investigations'),
+              to: `/organizations/${organization.slug}/explore/investigations/`,
+              leadingGraphic: <IconStack size="md" />,
+            },
+          ]}
+        />
         <Container as="header" width="100%" padding="xl xl 3xl">
           <Stack gap="xs" width="100%" maxWidth="960px" margin="0 auto">
             <Grid

@@ -1,7 +1,5 @@
 import {useContext} from 'react';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-
 import {FormContext} from 'sentry/components/forms/formContext';
 import {useFormField} from 'sentry/components/workflowEngine/form/useFormField';
 import {t} from 'sentry/locale';
@@ -31,16 +29,13 @@ export function EditableAutomationName() {
         placeholder: t('New Alert'),
         'aria-label': t('Alert Name'),
       }}
-    >
-      <BreadcrumbList
-        items={[
-          {
-            type: 'link',
-            label: t('Alerts'),
-            to: makeAutomationBasePathname(organization.slug),
-          },
-        ]}
-      />
-    </TopBar.Slot>
+      items={[
+        {
+          type: 'link',
+          label: t('Alerts'),
+          to: makeAutomationBasePathname(organization.slug),
+        },
+      ]}
+    />
   );
 }

@@ -1,5 +1,3 @@
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Placeholder} from 'sentry/components/placeholder';
 import {IconCopyId, IconEllipsis, IconOpen} from 'sentry/icons';
@@ -145,8 +143,7 @@ export function TraceBreadcrumbs({
               icon: <IconCopyId variant="muted" />,
             },
       }}
-    >
-      <BreadcrumbList items={parentItems} />
-    </TopBar.Slot>
+      items={parentItems}
+    />
   );
 }

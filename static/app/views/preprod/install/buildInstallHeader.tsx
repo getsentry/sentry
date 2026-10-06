@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {CodeBlock} from '@sentry/scraps/code';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -61,9 +60,11 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
   if (isBuildDetailsPending) {
     return (
       <Layout.HeaderContent>
-        <TopBar.Slot name="breadcrumbs" title={{type: 'page-title', label: t('Install')}}>
-          <BreadcrumbList items={[releasesCrumb]} />
-        </TopBar.Slot>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{type: 'page-title', label: t('Install')}}
+          items={[releasesCrumb]}
+        />
         <Flex gap="lg" wrap="wrap" align="center">
           <Placeholder width="120px" height="16px" />
           <Placeholder width="160px" height="16px" />
@@ -76,9 +77,11 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
   if (isBuildDetailsError || !buildDetailsData) {
     return (
       <Layout.HeaderContent>
-        <TopBar.Slot name="breadcrumbs" title={{type: 'page-title', label: t('Install')}}>
-          <BreadcrumbList items={[releasesCrumb]} />
-        </TopBar.Slot>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{type: 'page-title', label: t('Install')}}
+          items={[releasesCrumb]}
+        />
       </Layout.HeaderContent>
     );
   }
@@ -107,9 +110,8 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
             />
           ),
         }}
-      >
-        <BreadcrumbList items={[releasesCrumb]} />
-      </TopBar.Slot>
+        items={[releasesCrumb]}
+      />
       <Flex gap="lg" wrap="wrap" align="center">
         {appInfo.platform ? (
           <Tooltip title={t('Platform')}>

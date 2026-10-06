@@ -1,5 +1,3 @@
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -62,16 +60,13 @@ export function ConversationsBreadcrumbs({
             }),
         },
       }}
-    >
-      <BreadcrumbList
-        items={[
-          {
-            type: 'link',
-            label: CONVERSATIONS_SIDEBAR_LABEL,
-            to: {pathname: conversationsBaseUrl, query},
-          },
-        ]}
-      />
-    </TopBar.Slot>
+      items={[
+        {
+          type: 'link',
+          label: CONVERSATIONS_SIDEBAR_LABEL,
+          to: {pathname: conversationsBaseUrl, query},
+        },
+      ]}
+    />
   );
 }

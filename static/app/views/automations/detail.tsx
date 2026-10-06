@@ -1,7 +1,6 @@
 import {Fragment, useState} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -93,17 +92,14 @@ function AutomationDetailContentInner({automation}: {automation: Automation}) {
         <TopBar.Slot
           name="breadcrumbs"
           title={{type: 'page-title', label: automation.name}}
-        >
-          <BreadcrumbList
-            items={[
-              {
-                type: 'link',
-                label: t('Alerts'),
-                to: makeAutomationBasePathname(organization.slug),
-              },
-            ]}
-          />
-        </TopBar.Slot>
+          items={[
+            {
+              type: 'link',
+              label: t('Alerts'),
+              to: makeAutomationBasePathname(organization.slug),
+            },
+          ]}
+        />
         <AutomationFeedbackButton />
         <DetailLayout.Body>
           <DetailLayout.Main>

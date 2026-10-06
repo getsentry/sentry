@@ -42,7 +42,7 @@ The `title` prop is required. There is no separate `name="title"` slot.
 
 ### Index pages
 
-An index page has no parents. Pass only `title` and omit the slot's children.
+An index page has no parents. Pass only `title` and omit `items`.
 
 <Storybook.Demo>
   <BreadcrumbListDemo
@@ -56,9 +56,9 @@ An index page has no parents. Pass only `title` and omit the slot's children.
 
 ### Pages with parents
 
-Render `BreadcrumbList` as the slot's child to show parents to the left of the
-title. Pass parent crumbs in a typed `items` array: each entry is a discriminated
-union, a `type` key plus that type's own props flattened onto the same object.
+Pass parent crumbs through the slot's `items` prop. TopBar renders them with
+`BreadcrumbList` to the left of the title. The slot does not accept children.
+Each item in the typed array is a discriminated union: a `type` key plus that type's own props flattened onto the same object.
 
 Keep the current page out of `items`. It is the title, not a crumb — leaving it
 in renders the page name twice.
@@ -80,19 +80,19 @@ in renders the page name twice.
   />
 </Storybook.Demo>
 ```tsx
-<TopBar.Slot name="breadcrumbs" title={{type: 'page-title', label: 'General Settings'}}>
-  <BreadcrumbList
-    items={[
-      {type: 'link', label: 'Organization', to: '/organizations/org-slug/'},
-      {type: 'link', label: 'Projects', to: '/organizations/org-slug/projects/'},
-      {
-        type: 'link',
-        label: 'javascript',
-        to: '/settings/org-slug/projects/javascript/',
-      },
-    ]}
-  />
-</TopBar.Slot>
+<TopBar.Slot
+  name="breadcrumbs"
+  title={{type: 'page-title', label: 'General Settings'}}
+  items={[
+    {type: 'link', label: 'Organization', to: '/organizations/org-slug/'},
+    {type: 'link', label: 'Projects', to: '/organizations/org-slug/projects/'},
+    {
+      type: 'link',
+      label: 'javascript',
+      to: '/settings/org-slug/projects/javascript/',
+    },
+  ]}
+/>
 ```
 
 `BreadcrumbList.Title` owns the heading; do not wrap it in another heading.
@@ -213,11 +213,18 @@ TopBar's flex layout.
 />
 ```
 
+Use `externalHref` instead of `to` for external parent links. These open in a new
+tab, including when shown in the overflow menu.
+
 ### `'select-projects'` — select a parent project
 
 Use this item only for a parent selector in the breadcrumb trail.
-Pass `options`, `value`, and `onChange`. The current page title must use
-`page-title` or `editable-title`.
+Pass `options`, `value`, and `onChange`. Settings also uses this item for team
+and integration selection. Set `to` to show a parent link beside a separate
+switch button. `label` keeps the current name visible when search results omit
+the selected option; `leadingGraphic` decorates that link. The item also forwards
+`search`, `loading`, and `onOpenChange` to `CompactSelect`. The current page title
+must use `page-title` or `editable-title`.
 
 ```tsx
 <BreadcrumbList
@@ -616,21 +623,21 @@ Drag the resize handle to see the transition:
   />
 </Storybook.Demo>
 ```tsx
-<TopBar.Slot name="breadcrumbs">
-  <BreadcrumbList
-    items={[
-      {type: 'link', label: 'Settings', to: '/settings/'},
-      {
-        type: 'link',
-        label: 'javascript',
-        to: '/settings/org-slug/projects/javascript/',
-      },
-      {
-        type: 'link',
-        label: 'Client Keys (DSN)',
-        to: '/settings/org-slug/projects/javascript/keys/',
-      },
-    ]}
-  />
-</TopBar.Slot>
+<TopBar.Slot
+  name="breadcrumbs"
+  title={{type: 'page-title', label: 'Key Details'}}
+  items={[
+    {type: 'link', label: 'Settings', to: '/settings/'},
+    {
+      type: 'link',
+      label: 'javascript',
+      to: '/settings/org-slug/projects/javascript/',
+    },
+    {
+      type: 'link',
+      label: 'Client Keys (DSN)',
+      to: '/settings/org-slug/projects/javascript/keys/',
+    },
+  ]}
+/>
 ```

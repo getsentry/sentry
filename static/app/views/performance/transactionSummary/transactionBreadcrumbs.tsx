@@ -1,7 +1,6 @@
 import type {Location} from 'history';
 
 import {TeamAvatar} from '@sentry/scraps/avatar';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
 import {IdBadge} from 'sentry/components/idBadge';
@@ -211,9 +210,8 @@ function TransactionBreadcrumbsContent({
           ],
         },
       }}
-    >
-      <BreadcrumbList items={parentItems} />
-    </TopBar.Slot>
+      items={parentItems}
+    />
   );
 }
 

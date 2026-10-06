@@ -1,8 +1,6 @@
-import {Container, Flex} from '@sentry/scraps/layout';
-import {ExternalLink, Link} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
+import {ProjectAvatar} from '@sentry/scraps/avatar';
+import type {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 
-import {IdBadge} from 'sentry/components/idBadge';
 import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {IconCode, IconCommit, IconPullRequest, IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -11,6 +9,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
 import {getBranchUrl, getPrUrl, getShaUrl} from 'sentry/views/preprod/utils/vcsLinkUtils';
+import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 interface SnapshotHeaderContentProps {
   data: SnapshotDetailsApiResponse;
@@ -24,38 +23,52 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
   const shaUrl = getShaUrl(vcs_info, vcs_info.head_sha);
   const prUrl = getPrUrl(vcs_info);
   const branchUrl = getBranchUrl(vcs_info, vcs_info.head_ref);
+  const items: React.ComponentProps<typeof BreadcrumbList>['items'] = [];
 
-  const vcsRef =
-    vcs_info.pr_number && prUrl ? (
-      <Flex align="center" gap="xs" flexShrink={0}>
-        <IconPullRequest size="xs" />
-        <ExternalLink href={prUrl}>
-          <Text size="sm" variant="accent" wrap="nowrap">
-            #{vcs_info.pr_number}
-            {vcs_info.head_ref ? ` (${vcs_info.head_ref})` : ''}
-          </Text>
-        </ExternalLink>
-      </Flex>
-    ) : vcs_info.head_ref ? (
-      <Flex align="center" gap="xs" flexShrink={0}>
-        <IconStack size="xs" />
-        {branchUrl ? (
-          <ExternalLink href={branchUrl}>
-            <Text size="sm" variant="accent" wrap="nowrap">
-              {vcs_info.head_ref}
-            </Text>
-          </ExternalLink>
-        ) : (
-          <Text size="sm" wrap="nowrap">
-            {vcs_info.head_ref}
-          </Text>
-        )}
-      </Flex>
-    ) : null;
+  if (project) {
+    items.push({
+      type: 'link',
+      label: project.slug,
+      to: `${makeProjectsPathname({path: `/${project.slug}/`, organization})}?project=${project.id}`,
+      leadingGraphic: <ProjectAvatar project={project} size={16} />,
+    });
+  }
+  if (shortSha && shaUrl) {
+    items.push({
+      type: 'link',
+      label: shortSha,
+      externalHref: shaUrl,
+      leadingGraphic: <IconCommit size="xs" />,
+    });
+  }
+  if (vcs_info.pr_number && prUrl) {
+    items.push({
+      type: 'link',
+      label: `#${vcs_info.pr_number}${vcs_info.head_ref ? ` (${vcs_info.head_ref})` : ''}`,
+      externalHref: prUrl,
+      leadingGraphic: <IconPullRequest size="xs" />,
+    });
+  } else if (vcs_info.head_ref && branchUrl) {
+    items.push({
+      type: 'link',
+      label: vcs_info.head_ref,
+      externalHref: branchUrl,
+      leadingGraphic: <IconStack size="xs" />,
+    });
+  }
+  if (appId) {
+    items.push({
+      type: 'link',
+      label: appId,
+      to: `/organizations/${organization.slug}/explore/releases/?query=${encodeURIComponent(`app_id:${appId}`)}&tab=snapshots`,
+      leadingGraphic: <IconCode size="xs" />,
+    });
+  }
 
   return (
     <TopBar.Slot
       name="breadcrumbs"
+      items={items}
       title={{
         type: 'page-title',
         label: t('Snapshots'),
@@ -65,51 +78,6 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
           </ReadTheDocs>
         ),
       }}
-    >
-      <Flex align="center" gap="md" minWidth={0} overflow="hidden">
-        {project && (
-          <Container display={{zero: 'none', md: 'block'}}>
-            <Text as="div" size="sm">
-              <IdBadge project={project} avatarSize={16} />
-            </Text>
-          </Container>
-        )}
-
-        <Flex
-          align="center"
-          gap="md"
-          flexShrink={1}
-          minWidth={0}
-          overflow="hidden"
-          display={{zero: 'none', xs: 'flex'}}
-        >
-          {shortSha && shaUrl && (
-            <Flex align="center" gap="xs" flexShrink={0}>
-              <IconCommit size="xs" />
-              <ExternalLink href={shaUrl}>
-                <Text size="sm" variant="accent" monospace wrap="nowrap">
-                  {shortSha}
-                </Text>
-              </ExternalLink>
-            </Flex>
-          )}
-
-          {vcsRef}
-
-          {appId && (
-            <Flex align="center" gap="xs" minWidth={0}>
-              <IconCode size="xs" style={{flexShrink: 0}} />
-              <Link
-                to={`/organizations/${organization.slug}/explore/releases/?query=${encodeURIComponent(`app_id:${appId}`)}&tab=snapshots`}
-              >
-                <Text size="sm" variant="accent" monospace ellipsis>
-                  {appId}
-                </Text>
-              </Link>
-            </Flex>
-          )}
-        </Flex>
-      </Flex>
-    </TopBar.Slot>
+    />
   );
 }

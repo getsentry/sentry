@@ -15,7 +15,7 @@ Editable titles render only the displayed label inside `<h1><span>…</span></h1
 
 Editable titles use the standard `EditableText` behavior: a single click starts editing, clicking outside saves the draft, and Escape cancels it. Pass form validation errors through `error` and subscribe to the form error state so changes are rendered. `errorMessage` is only the message for an invalid empty edit; it does not display server validation errors.
 
-Selectors belong only in parent breadcrumbs. The final item must be a plain or editable title. The `select-projects` parent item accepts `options`, `value`, and `onChange`.
+Selectors belong only in parent breadcrumbs. The final item must be a plain or editable title. The `select-projects` parent item accepts `options`, `value`, and `onChange`. Settings menus also use `to` for a separate parent link, `label` for a stable name during search, `leadingGraphic`, `search`, `loading`, and `onOpenChange`. Pass parent items through `TopBar.Slot.items`; the breadcrumbs slot has no children.
 
 ## Map existing content
 

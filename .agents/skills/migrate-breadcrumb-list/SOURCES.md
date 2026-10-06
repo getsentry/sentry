@@ -54,3 +54,5 @@ Run 2 also found a regression introduced by run 1's fix — the step 6 "add as s
 - Recheck the test renderer before prescribing providers or outlets.
 - Rebuild the importer inventory after migrations; do not use a hard-coded count as a completion or deletion condition.
 - Retire this migration skill only when the remaining references no longer include page-navigation work and required separate navigation landmarks are preserved.
+
+- Restricted the breadcrumbs slot to typed `items` and `title`; removed arbitrary children. Migrated Settings route links and menus to the shared list, and documented external links and linked parent selectors.

@@ -95,6 +95,7 @@ export function BreadcrumbList({items}: BreadcrumbListProps) {
     .map((item, index) => ({
       label: item.label,
       to: item.to,
+      externalHref: item.externalHref,
       leadingItems: item.leadingGraphic,
       // Include the index so two crumbs pointing at the same destination don't
       // collide on key. The list is static and never reordered, so the index is a stable identifier.

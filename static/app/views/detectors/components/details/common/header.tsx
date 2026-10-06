@@ -1,7 +1,5 @@
 import {Fragment} from 'react';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
-
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -41,22 +39,19 @@ function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
           <Placeholder width="16px" height="16px" />
         ),
       }}
-    >
-      <BreadcrumbList
-        items={[
-          {
-            type: 'link',
-            label: t('Monitors'),
-            to: makeMonitorBasePathname(organization.slug),
-          },
-          {
-            type: 'link',
-            label: getDetectorTypeLabel(detector.type),
-            to: makeMonitorTypePathname(organization.slug, detector.type),
-          },
-        ]}
-      />
-    </TopBar.Slot>
+      items={[
+        {
+          type: 'link',
+          label: t('Monitors'),
+          to: makeMonitorBasePathname(organization.slug),
+        },
+        {
+          type: 'link',
+          label: getDetectorTypeLabel(detector.type),
+          to: makeMonitorTypePathname(organization.slug, detector.type),
+        },
+      ]}
+    />
   );
 }
 
