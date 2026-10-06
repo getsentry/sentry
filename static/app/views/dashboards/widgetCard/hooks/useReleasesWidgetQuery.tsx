@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 
 import {releaseHealthApiOptions} from 'sentry/actionCreators/metrics';
@@ -18,6 +18,7 @@ import {getSeriesQueryPrefix} from 'sentry/views/dashboards/utils/getSeriesQuery
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {applyDashboardFiltersToWidget} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {combineWidgetQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {requiresCustomReleaseSorting} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
@@ -38,7 +39,6 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<SessionApiResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(() => {
     return applyDashboardFiltersToWidget(
@@ -83,7 +83,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     }
   }, [filteredWidget, organization, pageFilters, widgetInterval]);
 
-  const queryResults = useQueries({
+  const {results: queryResults, data: queryData} = useQueries({
     queries: queryRequests.map(requestData => {
       const baseOptions = requestData.useSessionAPI
         ? sessionsApiOptions(requestData)
@@ -111,7 +111,10 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
         select: selectJsonWithHeaders,
       });
     }),
+    combine: combineWidgetQueryResults,
   });
+
+  const rawData = useMemo(() => queryData.map(data => data?.json), [queryData]);
 
   const transformedData = (() => {
     if (validationError) {
@@ -143,7 +146,6 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     }
 
     const timeseriesResults: Series[] = [];
-    const rawData: SessionApiResponse[] = [];
 
     queryResults.forEach((q, requestIndex) => {
       if (!q?.data?.json) {
@@ -151,7 +153,6 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
       }
 
       const responseData = q.data.json;
-      rawData[requestIndex] = responseData;
 
       const transformedResult = ReleasesConfig.transformSeries?.(
         responseData,
@@ -177,29 +178,13 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     });
 
     // Memoize raw data to prevent unnecessary rerenders
-    let finalRawData = rawData;
-    // oxlint-disable-next-line react/refs
-    if (prevRawDataRef.current?.length === rawData.length) {
-      // oxlint-disable-next-line react/refs
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        // oxlint-disable-next-line react/refs
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    // oxlint-disable-next-line react/refs
-    if (finalRawData !== prevRawDataRef.current) {
-      // oxlint-disable-next-line react/refs
-      prevRawDataRef.current = finalRawData;
-    }
 
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
       tableResults: undefined,
-      rawData: finalRawData,
+      rawData,
     };
   })();
 
@@ -222,7 +207,6 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const prevRawDataRef = useRef<SessionApiResponse[] | undefined>(undefined);
 
   const filteredWidget = useMemo(() => {
     return applyDashboardFiltersToWidget(
@@ -254,7 +238,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
     }
   }, [filteredWidget, organization, pageFilters, limit, cursor]);
 
-  const queryResults = useQueries({
+  const {results: queryResults, data: queryData} = useQueries({
     queries: queryRequests.map(requestData => {
       const baseOptions = requestData.useSessionAPI
         ? sessionsApiOptions(requestData)
@@ -282,7 +266,10 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
         select: selectJsonWithHeaders,
       });
     }),
+    combine: combineWidgetQueryResults,
   });
+
+  const rawData = useMemo(() => queryData.map(data => data?.json), [queryData]);
 
   const transformedData = (() => {
     if (validationError) {
@@ -314,7 +301,6 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
     }
 
     const tableResults: TableDataWithTitle[] = [];
-    const rawData: SessionApiResponse[] = [];
     let responsePageLinks: string | undefined;
 
     queryResults.forEach((q, i) => {
@@ -323,7 +309,6 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
       }
 
       const responseData = q.data.json;
-      rawData[i] = responseData;
 
       const tableData = ReleasesConfig.transformTable?.(
         responseData,
@@ -348,22 +333,6 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
     });
 
     // Memoize raw data to prevent unnecessary rerenders
-    let finalRawData = rawData;
-    // oxlint-disable-next-line react/refs
-    if (prevRawDataRef.current?.length === rawData.length) {
-      // oxlint-disable-next-line react/refs
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        // oxlint-disable-next-line react/refs
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    // oxlint-disable-next-line react/refs
-    if (finalRawData !== prevRawDataRef.current) {
-      // oxlint-disable-next-line react/refs
-      prevRawDataRef.current = finalRawData;
-    }
 
     return {
       loading: false,
@@ -371,7 +340,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
       tableResults,
       timeseriesResults: undefined,
       pageLinks: responsePageLinks,
-      rawData: finalRawData,
+      rawData,
     };
   })();
 

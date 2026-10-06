@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useMemo} from 'react';
 import {keepPreviousData, queryOptions, useQueries} from '@tanstack/react-query';
 import trimStart from 'lodash/trimStart';
 
@@ -44,6 +44,7 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {combineWidgetQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
 import {useEventsTimeseriesSpotCheck} from 'sentry/views/dashboards/widgetCard/hooks/utils/useEventsTimeseriesSpotCheck';
@@ -193,8 +194,6 @@ export function useSpansSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  // Cache the previous rawData array to prevent unnecessary rerenders
-  const prevRawDataRef = useRef<SpansSeriesResponse[] | undefined>(undefined);
   const hasConditionalAggregates = organization.features.includes(
     'explore-conditional-aggregates'
   );
@@ -253,7 +252,7 @@ export function useSpansSeriesQuery(
     };
   });
 
-  const queryResults = useQueries({
+  const {results: queryResults, data: queryData} = useQueries({
     queries: seriesRequests.map(({requestData, skippedForInvalidConditionalFilter}) => {
       if (!isEventsTimeseriesEnabled) {
         // Transform requestData into proper query params
@@ -319,7 +318,17 @@ export function useSpansSeriesQuery(
         }),
       });
     }),
+    combine: combineWidgetQueryResults,
   });
+
+  // Leave out skipped invalid-_if queries so raw data stays dense
+  const rawData = useMemo(
+    () =>
+      queryData.filter(
+        (_, index) => !skippedConditionalFilterQueryIndexes.includes(index)
+      ),
+    [queryData, skippedConditionalFilterQueryIndexes]
+  );
 
   useEventsTimeseriesSpotCheck({
     config: SpansConfig,
@@ -373,7 +382,6 @@ export function useSpansSeriesQuery(
     const timeseriesResults: Series[] = [];
     const timeseriesResultsTypes: Record<string, AggregationOutputType> = {};
     const timeseriesResultsUnits: Record<string, DataUnit> = {};
-    const rawData: SpansSeriesResponse[] = [];
 
     // Iterate active queries only and append densely so skipped invalid-_if
     // queries do not leave undefined holes in series/raw arrays (charts map
@@ -385,8 +393,6 @@ export function useSpansSeriesQuery(
       }
 
       const responseData = q.data;
-
-      rawData.push(responseData);
 
       const queryForTransform = (
         hasConditionalAggregates
@@ -426,32 +432,13 @@ export function useSpansSeriesQuery(
       }
     });
 
-    // Check if rawData is the same as before to prevent unnecessary rerenders
-    let finalRawData = rawData;
-    // oxlint-disable-next-line react/refs
-    if (prevRawDataRef.current?.length === rawData.length) {
-      // oxlint-disable-next-line react/refs
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        // oxlint-disable-next-line react/refs
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    // Store current rawData for next comparison
-    // oxlint-disable-next-line react/refs
-    if (finalRawData !== prevRawDataRef.current) {
-      // oxlint-disable-next-line react/refs
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       timeseriesResults,
       timeseriesResultsTypes,
       timeseriesResultsUnits,
-      rawData: finalRawData,
+      rawData,
     };
   })();
 
@@ -480,7 +467,6 @@ export function useSpansTableQuery(
 
   const {queue} = useWidgetQueryQueue();
 
-  const prevRawDataRef = useRef<SpansTableResponse[] | undefined>(undefined);
   const hasConditionalAggregates = organization.features.includes(
     'explore-conditional-aggregates'
   );
@@ -505,7 +491,7 @@ export function useSpansTableQuery(
 
   // Use native useQueries with queue-integrated queryFn
   // React Query auto-refetches when keys change, but API calls go through the queue
-  const queryResults = useQueries({
+  const {results: queryResults, data: queryData} = useQueries({
     queries: filteredWidget.queries.map((_, queryIndex) => {
       const aggregates = filteredWidget.queries[queryIndex]!.aggregates ?? [];
       const skippedForInvalidConditionalFilter =
@@ -548,7 +534,10 @@ export function useSpansTableQuery(
 
       if (hasStarredField && !alreadySortedByStarred) {
         requestParams.sort = [
-          encodeSort({field: SpanFields.IS_STARRED_TRANSACTION, kind: 'desc'}),
+          encodeSort({
+            field: SpanFields.IS_STARRED_TRANSACTION,
+            kind: 'desc',
+          }),
           ...existingSort,
         ];
       }
@@ -597,7 +586,17 @@ export function useSpansTableQuery(
         select: selectJsonWithHeaders,
       });
     }),
+    combine: combineWidgetQueryResults,
   });
+
+  // Leave out skipped invalid-_if queries so raw data stays dense
+  const rawData = useMemo(
+    () =>
+      queryData
+        .filter((_, index) => !skippedConditionalFilterQueryIndexes.includes(index))
+        .map(data => data?.json),
+    [queryData, skippedConditionalFilterQueryIndexes]
+  );
 
   const transformedData = (() => {
     if (allQueriesSkippedForConditionalFilter) {
@@ -633,7 +632,6 @@ export function useSpansTableQuery(
     }
 
     const tableResults: TableDataWithTitle[] = [];
-    const rawData: SpansTableResponse[] = [];
     let responsePageLinks: string | undefined;
 
     activeQueryIndexes.forEach(i => {
@@ -643,8 +641,6 @@ export function useSpansTableQuery(
       }
 
       const responseData = q.data.json;
-      rawData.push(responseData);
-
       const queryForTransform = (
         hasConditionalAggregates
           ? withValidConditionalAggregates(filteredWidget, i)
@@ -681,32 +677,12 @@ export function useSpansTableQuery(
       responsePageLinks = q.data.headers.Link;
     });
 
-    // Check if rawData is the same as before to prevent unnecessary rerenders
-    // Compare each data object reference - if they're all the same, reuse previous array
-    let finalRawData = rawData;
-    // oxlint-disable-next-line react/refs
-    if (prevRawDataRef.current?.length === rawData.length) {
-      // oxlint-disable-next-line react/refs
-      const allSame = rawData.every((data, i) => data === prevRawDataRef.current?.[i]);
-      if (allSame) {
-        // oxlint-disable-next-line react/refs
-        finalRawData = prevRawDataRef.current;
-      }
-    }
-
-    // Store current rawData for next comparison
-    // oxlint-disable-next-line react/refs
-    if (finalRawData !== prevRawDataRef.current) {
-      // oxlint-disable-next-line react/refs
-      prevRawDataRef.current = finalRawData;
-    }
-
     return {
       loading: false,
       errorMessage: undefined,
       tableResults,
       pageLinks: responsePageLinks,
-      rawData: finalRawData,
+      rawData,
     };
   })();
 
