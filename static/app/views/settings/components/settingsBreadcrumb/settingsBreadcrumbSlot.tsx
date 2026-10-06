@@ -1,4 +1,4 @@
-import type {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import type {LinkProps} from '@sentry/scraps/link';
 
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -6,7 +6,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import type {SettingsBreadcrumbProps} from './types';
 
 type SelectItem = Extract<
-  React.ComponentProps<typeof BreadcrumbList>['items'][number],
+  BreadcrumbListProps['items'][number],
   {type: 'select-projects'}
 >;
 

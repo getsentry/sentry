@@ -76,7 +76,7 @@ Keep a bare pathname when the old crumb did not preserve filters. Do not change 
 - Trailing actions support `copy`, `menu`, `badge`, and `button`. A selector is a `select-projects` parent item, not a trailing action.
 - There are no title-level `help`, `badge`, `href`, `status`, or `titleGuide` props. Use `labelTooltip` for help and documentation links, and a trailing `badge` action for feature badges. Keep the title label plain text.
 
-Import public components from `@sentry/scraps/breadcrumbList` and `@sentry/scraps/badge`. The breadcrumb barrel exports `BreadcrumbList` and `BreadcrumbTitleItem`.
+Import public components from `@sentry/scraps/breadcrumbList` and `@sentry/scraps/badge`. The breadcrumb barrel exports `BreadcrumbList`, `BreadcrumbListProps`, and `BreadcrumbTitleItem`. Import `BreadcrumbListProps` directly for parent item types (`BreadcrumbListProps['items']`); do not infer them with `React.ComponentProps<typeof BreadcrumbList>`.
 
 ## Per-page workflow
 

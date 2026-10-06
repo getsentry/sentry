@@ -1,7 +1,10 @@
 import {useMemo} from 'react';
 import {useMatches} from 'react-router-dom';
 
-import type {BreadcrumbList, BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
+import type {
+  BreadcrumbListProps,
+  BreadcrumbTitleItem,
+} from '@sentry/scraps/breadcrumbList';
 
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -9,7 +12,7 @@ import {useBreadcrumbTitleEffect} from './context';
 
 type Props = {
   title: string | BreadcrumbTitleItem;
-  breadcrumbs?: React.ComponentProps<typeof BreadcrumbList>['items'];
+  breadcrumbs?: BreadcrumbListProps['items'];
 };
 
 /**

@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
 
 import {ProjectsBadge} from '@sentry/scraps/badge';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import type {LinkProps} from '@sentry/scraps/link';
@@ -58,7 +58,7 @@ export type ExploreSurface =
   | 'replays'
   | 'agents';
 
-type BreadcrumbItems = React.ComponentProps<typeof BreadcrumbList>['items'];
+type BreadcrumbItems = BreadcrumbListProps['items'];
 
 interface SurfaceConfig {
   /**

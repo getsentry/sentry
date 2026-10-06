@@ -1,7 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {BreadcrumbList, type BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
+import type {
+  BreadcrumbListProps,
+  BreadcrumbTitleItem,
+} from '@sentry/scraps/breadcrumbList';
 import {Flex} from '@sentry/scraps/layout';
 
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
@@ -9,7 +12,7 @@ import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcru
 type Props = {
   title: string | BreadcrumbTitleItem;
   action?: React.ReactNode;
-  breadcrumbs?: React.ComponentProps<typeof BreadcrumbList>['items'];
+  breadcrumbs?: BreadcrumbListProps['items'];
   subtitle?: React.ReactNode;
 };
 

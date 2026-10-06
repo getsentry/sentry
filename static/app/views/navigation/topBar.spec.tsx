@@ -5,7 +5,7 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
@@ -158,7 +158,7 @@ describe('TopBar', () => {
   it('requires a typed title on the breadcrumbs slot', () => {
     type Props = ComponentProps<typeof TopBar.Slot>;
     type ProjectSelector = Extract<
-      ComponentProps<typeof BreadcrumbList>['items'][number],
+      BreadcrumbListProps['items'][number],
       {type: 'select-projects'}
     >;
     expectTypeOf<{name: 'breadcrumbs'}>().not.toMatchTypeOf<Props>();

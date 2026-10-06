@@ -1,4 +1,7 @@
-import type {BreadcrumbList, BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
+import type {
+  BreadcrumbListProps,
+  BreadcrumbTitleItem,
+} from '@sentry/scraps/breadcrumbList';
 
 import type {RouteComponentProps} from 'sentry/types/legacyReactRouter';
 
@@ -12,6 +15,6 @@ export interface RouteWithName {
 export type SettingsBreadcrumbProps = Pick<RouteComponentProps, 'route' | 'routes'> & {
   isLast: boolean;
   itemIndex: number;
-  items: React.ComponentProps<typeof BreadcrumbList>['items'];
+  items: BreadcrumbListProps['items'];
   title: BreadcrumbTitleItem;
 };

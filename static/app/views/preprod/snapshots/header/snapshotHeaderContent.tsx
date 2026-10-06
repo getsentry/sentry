@@ -1,5 +1,5 @@
 import {ProjectAvatar} from '@sentry/scraps/avatar';
-import type {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 
 import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {IconCode, IconCommit, IconPullRequest, IconStack} from 'sentry/icons';
@@ -23,7 +23,7 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
   const shaUrl = getShaUrl(vcs_info, vcs_info.head_sha);
   const prUrl = getPrUrl(vcs_info);
   const branchUrl = getBranchUrl(vcs_info, vcs_info.head_ref);
-  const items: React.ComponentProps<typeof BreadcrumbList>['items'] = [];
+  const items: BreadcrumbListProps['items'] = [];
 
   if (project) {
     items.push({

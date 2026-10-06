@@ -1,10 +1,10 @@
-import type {ComponentProps, ReactNode} from 'react';
+import type {ReactNode} from 'react';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import {type BreadcrumbListProps, BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Flex} from '@sentry/scraps/layout';
 
 interface BreadcrumbListDemoProps {
-  items: ComponentProps<typeof BreadcrumbList>['items'];
+  items: BreadcrumbListProps['items'];
   title?: ReactNode;
 }
 

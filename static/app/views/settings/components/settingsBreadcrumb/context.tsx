@@ -8,21 +8,24 @@ import {
 } from 'react';
 import {useMatches, type UIMatch} from 'react-router-dom';
 
-import type {BreadcrumbList, BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
+import type {
+  BreadcrumbListProps,
+  BreadcrumbTitleItem,
+} from '@sentry/scraps/breadcrumbList';
 
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 
 type ExplicitTitleProps = {
   matches: UIMatch[];
   title: string | BreadcrumbTitleItem;
-  breadcrumbs?: React.ComponentProps<typeof BreadcrumbList>['items'];
+  breadcrumbs?: BreadcrumbListProps['items'];
 };
 
 type PathMap = Record<
   string,
   {
     title: BreadcrumbTitleItem;
-    breadcrumbs?: React.ComponentProps<typeof BreadcrumbList>['items'];
+    breadcrumbs?: BreadcrumbListProps['items'];
   }
 >;
 

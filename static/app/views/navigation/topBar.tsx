@@ -1,7 +1,11 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
-import {BreadcrumbList, type BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
+import {
+  type BreadcrumbListProps,
+  BreadcrumbList,
+  type BreadcrumbTitleItem,
+} from '@sentry/scraps/breadcrumbList';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 import {slot} from '@sentry/scraps/slot';
@@ -34,7 +38,7 @@ type TopBarSlotProps =
       name: 'breadcrumbs';
       title: BreadcrumbTitleItem;
       children?: never;
-      items?: React.ComponentProps<typeof BreadcrumbList>['items'];
+      items?: BreadcrumbListProps['items'];
     }
   | {
       children: React.ReactNode;

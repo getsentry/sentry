@@ -1,6 +1,6 @@
 import type {ComponentType} from 'react';
 
-import type {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
@@ -54,7 +54,7 @@ export function SettingsBreadcrumb({params}: Props) {
     type: 'page-title' as const,
     label: lastRoute.name || '',
   };
-  const items: React.ComponentProps<typeof BreadcrumbList>['items'] = [];
+  const items: BreadcrumbListProps['items'] = [];
   let dynamicCrumb:
     | {
         Component: ComponentType<SettingsBreadcrumbProps>;
