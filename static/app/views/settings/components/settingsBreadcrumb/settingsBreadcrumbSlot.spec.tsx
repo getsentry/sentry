@@ -18,7 +18,7 @@ const options = [
 ];
 
 describe('SettingsBreadcrumbSlot', () => {
-  it('keeps navigation separate from selection and inserts the parent in route order', async () => {
+  it('opens the parent menu from its icon button without a navigation link', async () => {
     const onCrumbSelect = jest.fn();
     const onSearch = jest.fn();
     const {rerender} = render(
@@ -39,15 +39,16 @@ describe('SettingsBreadcrumbSlot', () => {
 
     expect(screen.getAllByRole('link').map(link => link.textContent)).toEqual([
       'Settings',
-      'javascript',
       'Keys',
     ]);
-    expect(screen.getByRole('link', {name: 'javascript'})).toHaveAttribute(
-      'href',
-      '/settings/org-slug/projects/javascript/'
-    );
+    expect(screen.queryByRole('link', {name: 'javascript'})).not.toBeInTheDocument();
     expect(screen.getByRole('heading', {name: 'Details', level: 1})).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', {name: 'Switch javascript'}));
+    const label = screen.getByText('javascript');
+    const trigger = screen.getByRole('button', {name: 'Switch javascript'});
+    expect(trigger).not.toContainElement(label);
+    await userEvent.hover(label);
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+    await userEvent.click(trigger);
     await userEvent.type(await screen.findByPlaceholderText('Search Projects'), 'python');
     expect(onSearch).toHaveBeenLastCalledWith('python');
 
@@ -66,9 +67,10 @@ describe('SettingsBreadcrumbSlot', () => {
         search={{placeholder: 'Search Projects', onChange: onSearch}}
       />
     );
-    expect(screen.getByRole('link', {name: 'javascript'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Switch javascript'})).toBeInTheDocument();
     await userEvent.click(screen.getByRole('option', {name: 'python'}));
     expect(onCrumbSelect).toHaveBeenCalledWith('python');
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   });
 
   it('renders a plain link when there are no alternatives', () => {

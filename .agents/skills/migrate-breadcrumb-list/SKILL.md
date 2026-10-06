@@ -72,7 +72,7 @@ Keep a bare pathname when the old crumb did not preserve filters. Do not change 
 - `page-title` requires a string `label`. Use `labelTooltip`, `leadingGraphic`, `pagination`, and `trailingActions` for supporting content.
 - `editable-title` requires `value`, `onChange`, and `'aria-label'`.
 - `link` requires `label` and either `to` for internal navigation or `externalHref` for an external link that opens in a new tab.
-- `select-projects` accepts `options`, `value`, and `onChange` for parent breadcrumbs only. Settings also uses it for team and integration menus. Supply `to` for a parent link beside the switch button, `label` to retain the name during server search, and `leadingGraphic` for its icon. `search`, `loading`, and `onOpenChange` pass through to the selector. The current page title cannot be a selector.
+- `select-projects` accepts `options`, `value`, and `onChange` for parent breadcrumbs only. Settings also uses it for team and integration menus. A separate icon button opens the menu on click. Supply `label` to retain the name during server search, and `leadingGraphic` for its icon. `search`, `loading`, and `onOpenChange` pass through to the selector. Selector labels are not links. The current page title cannot be a selector.
 - Trailing actions support `copy`, `menu`, `badge`, and `button`. A selector is a `select-projects` parent item, not a trailing action.
 - There are no title-level `help`, `badge`, `href`, `status`, or `titleGuide` props. Use `labelTooltip` for help and documentation links, and a trailing `badge` action for feature badges. Keep the title label plain text.
 

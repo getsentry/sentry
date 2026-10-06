@@ -11,7 +11,7 @@ type SelectItem = Extract<
 >;
 
 type Props = Pick<SettingsBreadcrumbProps, 'items' | 'itemIndex' | 'title' | 'isLast'> &
-  Omit<SelectItem, 'type' | 'onChange' | 'label' | 'to'> & {
+  Omit<SelectItem, 'type' | 'onChange' | 'label'> & {
     hasMenu: boolean;
     label: string;
     onCrumbSelect: (value: string) => void;
@@ -50,7 +50,6 @@ export function SettingsBreadcrumbSlot({
               type: 'select-projects',
               label,
               leadingGraphic,
-              to,
               ...selectProps,
               onChange: selected => onCrumbSelect(selected.value),
             }

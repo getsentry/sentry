@@ -40,7 +40,7 @@ If a custom harness supplies its own outlets, it needs both the internal `breadc
 | Button or LinkButton action       | `getByRole('button', {name})`; LinkButton uses this role too                         |
 | Feature badge                     | `getByLabelText('new')`, `'alpha'`, or `'beta'`                                      |
 | Pagination                        | `getByRole('button', {name: ariaLabel})`; disabled links have `aria-disabled="true"` |
-| Parent project selector           | `findByRole('button', {name: 'Selected Project: <slug>'})`                           |
+| Parent project selector           | `findByRole('button', {name: 'Switch <slug>'})`                                      |
 
 For `labelTooltip`, hover or focus the title text, then assert the description or documentation link. Do not query the removed separate info icon.
 
@@ -71,4 +71,4 @@ Preserve meaningful existing tests for enrollment, saving, navigation, and analy
 
 jsdom does not evaluate container queries. The component's own tests cover emitted collapse rules. Do not duplicate generated-CSS assertions in page tests; verify their item content and use a browser resize check when the responsive layout changes.
 
-Settings parent menus use a separate link and a `Switch <label>` button. Test them with a click, not hover. The final Settings crumb remains a plain title even when alternatives exist.
+Parent selectors use a separate `Switch <label>` icon button. Test opening it with a click and selecting an option. The label is plain text and does not navigate or open the menu on hover. The final Settings crumb remains a plain title even when alternatives exist.

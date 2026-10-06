@@ -162,7 +162,7 @@ describe('BreadcrumbList container-query collapse', () => {
     // findBy lets CompactSelect's deferred mount-time state update flush in act.
     expect(
       await screen.findByRole('button', {
-        name: 'Selected Project: javascript',
+        name: 'Switch javascript',
       })
     ).toBeInTheDocument();
   });
@@ -187,7 +187,7 @@ describe('BreadcrumbList container-query collapse', () => {
 
     // The <li> wrapping the project picker hides below 512px, same as link crumbs.
     const trigger = await screen.findByRole('button', {
-      name: 'Selected Project: javascript',
+      name: 'Switch javascript',
     });
     const selectItem = trigger.closest('li');
     expect(selectItem).not.toBeNull();
