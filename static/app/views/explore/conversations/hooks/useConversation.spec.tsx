@@ -147,7 +147,7 @@ describe('useConversation', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () => useConversation({conversationId: 'conv-123'}),
+      () => useConversation({conversationId: 'conv-123', autoFetchAll: false}),
       {organization}
     );
 
@@ -159,6 +159,33 @@ describe('useConversation', () => {
     act(() => result.current.loadNextPage());
 
     await waitFor(() => expect(result.current.nodes).toHaveLength(2));
+    expect(nextRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('fetches every page by default for callers without pagination controls', async () => {
+    const url = `/organizations/${organization.slug}/agents/conversations/conv-123/`;
+    MockApiClient.addMockResponse({
+      url,
+      match: [MockApiClient.matchQuery({cursor: undefined})],
+      body: envelope([{...BASE_SPAN, span_id: 'span-1'}]),
+      headers: {
+        Link: `<${url}?cursor=next>; rel="next"; results="true"; cursor="next"`,
+      },
+    });
+    const nextRequest = MockApiClient.addMockResponse({
+      url,
+      match: [MockApiClient.matchQuery({cursor: 'next'})],
+      body: envelope([{...BASE_SPAN, span_id: 'span-2'}]),
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useConversation({conversationId: 'conv-123'}),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.nodes).toHaveLength(2);
     expect(nextRequest).toHaveBeenCalledTimes(1);
   });
 
@@ -179,7 +206,7 @@ describe('useConversation', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () => useConversation({conversationId: 'conv-123'}),
+      () => useConversation({conversationId: 'conv-123', autoFetchAll: false}),
       {organization}
     );
 

@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useEffect, useMemo} from 'react';
 import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
 import {
@@ -18,6 +18,8 @@ import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/
 
 export interface UseConversationsOptions {
   conversationId: string;
+  /** Fetch every page for callers that do not provide pagination controls. */
+  autoFetchAll?: boolean;
   endTimestamp?: number;
   /**
    * Projects to scope the span query to, overriding the page filters. A caller
@@ -126,6 +128,7 @@ function isGenAiSpan(span: ConversationApiSpan): boolean {
 interface UseConversationResult {
   error: boolean;
   hasNextPage: boolean;
+  isFetchNextPageError: boolean;
   isFetchingNextPage: boolean;
   isLoading: boolean;
   loadNextPage: () => void;
@@ -349,6 +352,8 @@ function orderDepthFirst(
   return ordered;
 }
 
+const MAX_AUTO_FETCH_PAGES = 100;
+
 export function useConversation(
   conversation: UseConversationsOptions
 ): UseConversationResult {
@@ -386,6 +391,7 @@ export function useConversation(
     isFetchingNextPage,
     hasNextPage,
     fetchNextPage,
+    isFetchNextPageError,
     isLoading,
     isLoadingError,
   } = useInfiniteQuery(
@@ -409,6 +415,20 @@ export function useConversation(
       void fetchNextPage();
     }
   }, [fetchNextPage, hasNextPage, isFetching]);
+
+  const autoFetchAll = conversation.autoFetchAll ?? true;
+  const canAutoFetchNextPage = Boolean(
+    autoFetchAll &&
+    hasNextPage &&
+    !isFetchNextPageError &&
+    (data?.pages.length ?? 0) < MAX_AUTO_FETCH_PAGES
+  );
+
+  useEffect(() => {
+    if (!isFetching && canAutoFetchNextPage) {
+      void fetchNextPage();
+    }
+  }, [canAutoFetchNextPage, fetchNextPage, isFetching]);
 
   const allSpans = useMemo(
     () => data?.pages.flatMap(page => page.json.spans ?? []) ?? [],
@@ -446,6 +466,7 @@ export function useConversation(
       nodeTraceMap: new Map(),
       hasNextPage: false,
       isFetchingNextPage: false,
+      isFetchNextPageError: false,
       isLoading: false,
       loadNextPage,
       error: false,
@@ -459,9 +480,14 @@ export function useConversation(
     nodeTraceMap,
     hasNextPage: Boolean(hasNextPage),
     isFetchingNextPage,
-    isLoading,
+    isFetchNextPageError,
+    isLoading:
+      isLoading ||
+      (autoFetchAll &&
+        !isFetchNextPageError &&
+        (isFetchingNextPage || canAutoFetchNextPage)),
     loadNextPage,
-    error: isLoadingError,
+    error: isLoadingError || (autoFetchAll && isFetchNextPageError),
     title,
   };
 }

@@ -68,9 +68,10 @@ export function ConversationViewContent({
     hasNextPage,
     isLoading,
     isFetchingNextPage,
+    isFetchNextPageError,
     error,
     loadNextPage,
-  } = useConversation(conversation);
+  } = useConversation({...conversation, autoFetchAll: false});
 
   const [detailState, setDetailState] = useQueryStates(
     {
@@ -137,6 +138,22 @@ export function ConversationViewContent({
     [conversation.conversationId, loadNextPage]
   );
 
+  const needsMoreSelectionData = Boolean(
+    (selectedSpanId && !selectedNode) || focusedTool
+  );
+
+  useEffect(() => {
+    if (!isLoading && hasNextPage && !isFetchNextPageError && needsMoreSelectionData) {
+      loadNextPage();
+    }
+  }, [
+    hasNextPage,
+    isFetchNextPageError,
+    isLoading,
+    loadNextPage,
+    needsMoreSelectionData,
+  ]);
+
   const handleSelectAndOpenDetail = useCallback(
     (node: AITraceSpanNode) => {
       setTimelineDefaultDismissed(false);
@@ -164,6 +181,13 @@ export function ConversationViewContent({
   }, [error, isEmptyConversation]);
 
   const isTranscript = !isTimeline;
+  const isResolvingSelectedSpan = Boolean(
+    selectedSpanId &&
+    !displayedNode &&
+    !isFetchNextPageError &&
+    (isLoading || hasNextPage || isFetchingNextPage)
+  );
+  const isDetailLoading = isLoading || isResolvingSelectedSpan;
 
   if (error) {
     return <EmptyMessage>{t('Failed to load conversation')}</EmptyMessage>;
@@ -221,9 +245,9 @@ export function ConversationViewContent({
           // Show the detail pane once a span is resolved: a deep link or manual
           // selection (either tab), or the timeline's default span. While
           // loading, only the deep-linked skeleton is known.
-          (isLoading ? Boolean(selectedSpanId) : Boolean(displayedNode)) ? (
+          (isDetailLoading ? Boolean(selectedSpanId) : Boolean(displayedNode)) ? (
             <ConversationSpanDetail
-              isLoading={isLoading}
+              isLoading={isDetailLoading}
               scrollResetKey={activeTab}
               node={displayedNode ?? undefined}
               traceId={displayedNode ? (nodeTraceMap?.get(displayedNode.id) ?? '') : ''}

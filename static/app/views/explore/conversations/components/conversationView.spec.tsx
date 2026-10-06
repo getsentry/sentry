@@ -229,6 +229,45 @@ describe('ConversationViewContent', () => {
     expect(await screen.findByRole('button', {name: 'Close'})).toBeInTheDocument();
   });
 
+  it('loads later pages to resolve a deep-linked span', async () => {
+    MockApiClient.clearMockResponses();
+    const url = `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`;
+    MockApiClient.addMockResponse({
+      url,
+      match: [MockApiClient.matchQuery({cursor: undefined})],
+      body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
+      headers: {
+        Link: `<${url}?cursor=next>; rel="next"; results="true"; cursor="next"`,
+      },
+    });
+    const nextRequest = MockApiClient.addMockResponse({
+      url,
+      match: [MockApiClient.matchQuery({cursor: 'next'})],
+      body: {
+        conversationId: CONVERSATION_ID,
+        title: null,
+        spans: [
+          spanFixture({
+            span_id: 'span-c',
+            'span.name': 'third turn',
+            'precise.start_ts': 3000,
+            'precise.finish_ts': 3000.5,
+            'gen_ai.response.text': 'Third answer',
+          }),
+        ],
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    renderView({activeTab: 'transcript', selectedSpanId: 'span-c'});
+
+    expect(await screen.findByText('ID: span-c')).toBeInTheDocument();
+    expect(nextRequest).toHaveBeenCalledTimes(1);
+  });
+
   it('shows the span ID of the open span', async () => {
     renderView({activeTab: 'transcript', selectedSpanId: 'span-a'});
 

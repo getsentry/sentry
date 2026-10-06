@@ -51,7 +51,7 @@ function ConversationDetailPage() {
   const startTimestamp = start?.getTime();
   const endTimestamp = end?.getTime();
   const conversation = useMemo(
-    () => ({conversationId, startTimestamp, endTimestamp}),
+    () => ({conversationId, startTimestamp, endTimestamp, autoFetchAll: false}),
     [conversationId, startTimestamp, endTimestamp]
   );
 
