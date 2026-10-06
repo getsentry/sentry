@@ -42,7 +42,7 @@ export function IssueSearch({query, onSearch, className}: IssueSearchProps) {
     useIssueListSearchBarDataProvider({pageFilters});
 
   const organization = useOrganization();
-  const hasIssuesSearch = organization.features.includes('gen-ai-issues-search');
+  const enableAISearch = organization.features.includes('gen-ai-issues-search');
 
   return (
     <SearchQueryBuilderProvider
@@ -51,7 +51,7 @@ export function IssueSearch({query, onSearch, className}: IssueSearchProps) {
       filterKeySections={getFilterKeySections()}
       getTagValues={getTagValues}
       searchSource="main_search"
-      enableAISearch={hasIssuesSearch}
+      enableAISearch={enableAISearch}
       onSearch={onSearch}
       recentSearches={SavedSearchType.ISSUE}
       disallowLogicalOperators
