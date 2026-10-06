@@ -87,6 +87,20 @@ The `icon` variant takes the component itself, not an element, so the header can
   />
 </Storybook.Demo>
 
+## Viewers
+
+Who has looked at this entity gets its own slot rather than being a labelled stat: it has no value to show, and it usually loads on a different schedule from the entity itself. Pass the users and let the header render the stack.
+
+```jsx
+<EntityHeader
+  title={{label: replay.user.display_name}}
+  viewers={{users, isLoading}}
+  stats={[{label: 'Errors', value: 2}]}
+/>
+```
+
+The slot keeps its space while `isLoading`, which is what stops the stats sliding sideways when the avatars land. Once it resolves to nobody it renders nothing, and the divider before the first stat goes with it.
+
 ## Conditional items
 
 `stats`, `metadata` and `tags` drop `null` entries, so you can inline a conditional instead of building the array ahead of time. Items are keyed by their position in the array you wrote, not in the filtered result, so an item appearing or disappearing never remounts its neighbours.

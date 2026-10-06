@@ -7,7 +7,6 @@ import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {ErrorCounts} from 'sentry/components/replays/header/errorCounts';
-import {ReplayViewers} from 'sentry/components/replays/header/replayViewers';
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
 import {useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -19,6 +18,7 @@ import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
 import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
+import {useReplayViewers} from 'sentry/utils/replays/hooks/useReplayViewers';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -55,6 +55,10 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
   const isArchived = replayRecord?.is_archived ?? false;
 
   // Hooks run unconditionally, before any of the loading branches below.
+  const viewers = useReplayViewers({
+    projectId: replayRecord?.is_archived ? undefined : replayRecord?.project_id,
+    replayId: replayRecord?.id,
+  });
   const {isLive} = useLiveBadge({
     startedAt: replayRecord?.is_archived ? null : (replayRecord?.started_at ?? null),
     finishedAt: replayRecord?.is_archived ? null : (replayRecord?.finished_at ?? null),
@@ -129,18 +133,8 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
         ],
         loadingWidth: '200px',
       },
+      viewers: {users: viewers.users, isLoading: viewers.isPending},
       stats: [
-        replayRecord && !replayRecord.is_archived
-          ? {
-              label: t('Seen By'),
-              value: (
-                <ReplayViewers
-                  projectId={replayRecord.project_id}
-                  replayId={replayRecord.id}
-                />
-              ),
-            }
-          : null,
         showDeadRageClicks
           ? {
               label: t('Dead Clicks'),

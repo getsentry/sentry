@@ -19,6 +19,8 @@ import type {EntityHeaderStatProps} from './items/entityHeaderStat';
 import {EntityHeaderStat} from './items/entityHeaderStat';
 import type {EntityHeaderTitleProps} from './items/entityHeaderTitle';
 import {EntityHeaderTitle} from './items/entityHeaderTitle';
+import type {EntityHeaderViewersProps} from './items/entityHeaderViewers';
+import {EntityHeaderViewers} from './items/entityHeaderViewers';
 import {METADATA_TEXT_HEIGHT, ROW_HEIGHT} from './constants';
 
 export interface EntityHeaderProps {
@@ -47,6 +49,13 @@ export interface EntityHeaderProps {
    * A single line of secondary text under the title, e.g. an error message.
    */
   subtitle?: React.ReactNode;
+  /**
+   * Who has looked at this entity. Rendered as an avatar stack at the head of
+   * the stats row, which is where the spec puts it. It gets its own slot rather
+   * than being a labelled stat because it has no value, and because it loads on
+   * its own schedule — leaving space for it is what stops the row jumping.
+   */
+  viewers?: EntityHeaderViewersProps;
 }
 
 /**
@@ -115,6 +124,7 @@ export function EntityHeader({
   stats,
   subtitle,
   title,
+  viewers,
 }: EntityHeaderProps) {
   const hasParentQueryContainer = useHasContainerQuery();
 
@@ -132,7 +142,8 @@ export function EntityHeader({
       Boolean(entry.item)
     );
 
-  const hasStats = visibleStats.length > 0;
+  const hasViewers = Boolean(viewers && (viewers.isLoading || viewers.users.length > 0));
+  const hasStats = visibleStats.length > 0 || hasViewers;
   const hasSubtitle = Boolean(subtitle);
   const hasMetadata = visibleMetadata.length > 0;
   const hasContext = hasSubtitle || hasMetadata;
@@ -161,9 +172,15 @@ export function EntityHeader({
             minHeight={ROW_HEIGHT}
             justifySelf={{zero: 'start', lg: 'end'}}
           >
+            {hasViewers && viewers && (
+              <EntityHeaderViewers
+                {...viewers}
+                isLoading={isLoading || viewers.isLoading}
+              />
+            )}
             {visibleStats.map(({stat, index}, position) => (
               <Fragment key={index}>
-                {position > 0 && <Divider height="8px" />}
+                {(position > 0 || hasViewers) && <Divider height="8px" />}
                 <EntityHeaderStat {...stat} isLoading={isLoading} />
               </Fragment>
             ))}

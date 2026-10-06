@@ -5,3 +5,4 @@ export type {
 } from './items/entityHeaderTitle';
 export type {EntityHeaderStatProps} from './items/entityHeaderStat';
 export type {EntityHeaderMetadataItemProps} from './items/entityHeaderMetadataItem';
+export type {EntityHeaderViewersProps} from './items/entityHeaderViewers';

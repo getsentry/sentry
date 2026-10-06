@@ -1,3 +1,5 @@
+import {UserFixture} from 'sentry-fixture/user';
+
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {getEmotionRules} from 'sentry-test/utils';
 
@@ -153,6 +155,47 @@ describe('EntityHeader', () => {
 
       expect(screen.getByText('2 viewers')).toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: 'Scratch note'})).toHaveValue('kept');
+    });
+
+    it('holds space for viewers while they load, then renders the avatars', () => {
+      const users = [UserFixture({id: '1', name: 'Alice', email: 'alice@example.com'})];
+
+      const {rerender} = render(
+        <EntityHeader
+          title={{label: 'Session'}}
+          viewers={{users: [], isLoading: true}}
+          stats={[{label: 'Errors', value: 2}]}
+        />
+      );
+
+      // Viewers load on their own schedule. Reserving the space is what stops the
+      // stats shifting sideways when they land.
+      expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
+
+      rerender(
+        <EntityHeader
+          title={{label: 'Session'}}
+          viewers={{users}}
+          stats={[{label: 'Errors', value: 2}]}
+        />
+      );
+
+      expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+      expect(screen.getByText('Errors')).toBeInTheDocument();
+    });
+
+    it('renders nothing for viewers once they resolve to nobody', () => {
+      render(
+        <EntityHeader
+          title={{label: 'Session'}}
+          viewers={{users: []}}
+          stats={[{label: 'Errors', value: 2}]}
+        />
+      );
+
+      expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+      // No viewers means no leading divider before the first stat.
+      expect(screen.getByRole('banner').querySelectorAll('hr')).toHaveLength(0);
     });
 
     it('renders a tooltip on a metadata item', async () => {
