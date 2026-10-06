@@ -1,10 +1,10 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
@@ -25,7 +25,10 @@ import {
 import {organizationFlagLogOptions} from 'sentry/components/featureFlags/hooks/useOrganizationFlagLog';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {useLegacyEventSuspectFlags} from 'sentry/components/issues/suspect/useLegacyEventSuspectFlags';
-import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
+import {
+  KeyValueTableCard,
+  KeyValueTableSubject,
+} from 'sentry/components/tables/keyValueTable';
 import {IconSearch} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import type {Event, FeatureFlag} from 'sentry/types/event';
@@ -36,7 +39,6 @@ import {splitIntoColumns} from 'sentry/utils/array/splitIntoColumns';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useContainerColumnCount} from 'sentry/utils/useContainerColumnCount';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -59,23 +61,6 @@ type EventFeatureFlagSectionProps = {
 
 function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSectionProps) {
   const organization = useOrganization();
-  const theme = useTheme();
-  const isXsScreen = useMedia(`(max-width: ${theme.breakpoints.xs})`);
-
-  const feedbackButton = isXsScreen ? null : (
-    <FeedbackButton
-      variant="secondary"
-      aria-label={t('Give feedback on the feature flag section')}
-      size="xs"
-      feedbackOptions={{
-        messagePlaceholder: t('How can we make feature flags work better for you?'),
-        tags: {
-          'feedback.source': 'issue_details_feature_flags',
-          'feedback.owner': 'replay',
-        },
-      }}
-    />
-  );
 
   const [orderBy, setOrderBy] = useState(OrderBy.NEWEST);
   const {closeDrawer, isDrawerOpen, openDrawer} = useDrawer();
@@ -157,22 +142,42 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
         item: {
           key: f.flag,
           subject: f.flag,
-          value: (
-            <Grid columns={{zero: '1fr', xs: '1fr 1fr'}} justifyItems="start">
-              {f.result.toString()}
-              {suspectFlagNames.has(f.flag) && (
-                <Text as="div" variant="muted" monospace>
-                  {t('Suspect')}
-                </Text>
-              )}
-            </Grid>
+          subjectNode: (
+            <Container alignSelf="center">
+              <KeyValueTableSubject>{f.flag}</KeyValueTableSubject>
+            </Container>
           ),
-          actionButton: (
-            <FlagActionDropdown
-              flag={f.flag}
-              result={f.result.toString()}
-              generateAction={generateAction}
-            />
+          value: (
+            <RevealOnHover>
+              {revealProps => (
+                <Grid
+                  {...revealProps}
+                  columns="minmax(0, 1fr) auto"
+                  align="center"
+                  gap="md"
+                  justifyItems="start"
+                  width="100%"
+                >
+                  <Flex align="center" gap="sm" wrap="wrap">
+                    <Text as="span" monospace wrap="nowrap">
+                      {f.result.toString()}
+                    </Text>
+                    {suspectFlagNames.has(f.flag) && (
+                      <Text as="div" size="sm" variant="secondary" wrap="nowrap">
+                        {t('Suspect')}
+                      </Text>
+                    )}
+                  </Flex>
+                  <Container column="2" justifySelf="end">
+                    <FlagActionDropdown
+                      flag={f.flag}
+                      result={f.result.toString()}
+                      generateAction={generateAction}
+                    />
+                  </Container>
+                </Grid>
+              )}
+            </RevealOnHover>
           ),
         },
         isSuspectFlag: suspectFlagNames.has(f.flag),
@@ -235,7 +240,20 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
 
   const actions = (
     <Grid flow="column" align="center" gap="md">
-      {feedbackButton}
+      <Container display={{zero: 'none', sm: 'block'}}>
+        <FeedbackButton
+          variant="secondary"
+          aria-label={t('Give feedback on the feature flag section')}
+          size="xs"
+          feedbackOptions={{
+            messagePlaceholder: t('How can we make feature flags work better for you?'),
+            tags: {
+              'feedback.source': 'issue_details_feature_flags',
+              'feedback.owner': 'replay',
+            },
+          }}
+        />
+      </Container>
       <FeatureFlagSettingsButton orgSlug={organization.slug} />
       {hasFlags && (
         <Fragment>
@@ -290,13 +308,11 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
           )}
         </Grid>
       ) : (
-        <Stack border="primary" radius="md" align="center">
-          {props => (
-            <EmptyStateWarning {...props} withIcon small>
-              {t('No feature flags were found for this event')}
-            </EmptyStateWarning>
-          )}
-        </Stack>
+        <Container width="100%" border="primary" radius="md">
+          <EmptyStateWarning small>
+            {t('No feature flags were found for this event')}
+          </EmptyStateWarning>
+        </Container>
       )}
       {extraFlags > 0 && (
         <Button
