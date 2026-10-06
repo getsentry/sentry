@@ -12,6 +12,7 @@ import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {PreloadRequestName} from 'sentry/types/system';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {defined} from 'sentry/utils/defined';
 import {FeatureFlagOverrides} from 'sentry/utils/featureFlagOverrides';
 import {
   addOrganizationFeaturesHandler,
@@ -227,7 +228,7 @@ async function consumePreloadedData(
 
   try {
     const response = await promise;
-    if (response[0] !== null) {
+    if (defined(response[0])) {
       recordPreloadUsage(name, 'used');
       return response;
     }
