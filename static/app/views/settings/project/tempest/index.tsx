@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
@@ -75,25 +74,6 @@ export default function TempestSettings() {
     );
   }
 
-  const renderPlayStationSettings = () => {
-    return <PlayStationSettings organization={organization} project={project} />;
-  };
-
-  const renderDevKitCrashesSettings = () => {
-    return <DevKitSettings organization={organization} project={project} />;
-  };
-
-  const renderTabContent = () => {
-    switch (tab) {
-      case 'retail':
-        return renderPlayStationSettings();
-      case 'devkit-crashes':
-        return renderDevKitCrashesSettings();
-      default:
-        return renderPlayStationSettings();
-    }
-  };
-
   const getPageTitle = () => {
     switch (tab) {
       case 'devkit-crashes':
@@ -123,13 +103,12 @@ export default function TempestSettings() {
             <Alert
               variant="warning"
               trailingItems={
-                <Button
-                  variant="link"
+                <Alert.Button
+                  variant="transparent"
                   icon={<IconClose />}
                   onClick={dismissPS5Warning}
                   aria-label={t('Dismiss Alert')}
                   tooltipProps={{title: t('Dismiss Alert')}}
-                  size="zero"
                 />
               }
             >
@@ -157,7 +136,11 @@ export default function TempestSettings() {
         />
       </Flex>
 
-      {renderTabContent()}
+      {tab === 'devkit-crashes' ? (
+        <DevKitSettings organization={organization} project={project} />
+      ) : (
+        <PlayStationSettings organization={organization} project={project} />
+      )}
     </Fragment>
   );
 }

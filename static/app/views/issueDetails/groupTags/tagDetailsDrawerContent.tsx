@@ -5,8 +5,10 @@ import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
 
 import {Button} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
@@ -16,7 +18,6 @@ import {
 } from 'sentry/actionCreators/group';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {DeviceName} from 'sentry/components/deviceName';
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {getContextIcon} from 'sentry/components/events/contexts/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -36,7 +37,6 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
-import {getDiscoverDeprecation} from 'sentry/views/discover/utils';
 import {TagBar} from 'sentry/views/issueDetails/groupTags/tagDistribution';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
 import {getUserTagValue} from 'sentry/views/issueDetails/utils';
@@ -299,20 +299,19 @@ function TagValueActionsMenu({
   return (
     <DropdownMenu
       size="xs"
-      className={isVisible ? '' : 'invisible'}
       onOpenChange={isOpen => setIsVisible(isOpen)}
-      triggerProps={{
-        'aria-label': t('Tag Value Actions Menu'),
-        icon: <IconEllipsis />,
-        showChevron: false,
-        size: 'xs',
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          aria-label={t('Tag Value Actions Menu')}
+          className={isVisible ? '' : 'invisible'}
+          icon={<IconEllipsis />}
+        />
+      )}
       items={[
         {
           key: 'open-in-discover',
-          label: getDiscoverDeprecation(organization)
-            ? t('Open in Explore')
-            : t('Open in Discover'),
+          label: t('Open in Explore'),
           to: eventView.getResultsViewUrlTarget(
             organization,
             false,
@@ -405,12 +404,22 @@ const Row = styled(Body)`
   padding: ${p => p.theme.space['2xs']} ${p => p.theme.space.md};
 
   .invisible {
-    visibility: hidden;
+    /* Keep the trigger focusable when closing the menu restores focus. */
+    opacity: 0;
+    pointer-events: none;
   }
   &:hover,
-  &:active {
+  &:active,
+  &:focus-within {
     .invisible {
-      visibility: visible;
+      opacity: 1;
+      pointer-events: auto;
+    }
+  }
+  @media (hover: none) {
+    .invisible {
+      opacity: 1;
+      pointer-events: auto;
     }
   }
 `;

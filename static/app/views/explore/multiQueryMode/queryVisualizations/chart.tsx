@@ -2,11 +2,11 @@ import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import Feature from 'sentry/components/acl/feature';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {IconClock} from 'sentry/icons/iconClock';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
@@ -205,12 +205,15 @@ export function MultiQueryModeChart({
         items && (
           <DropdownMenu
             key="contextMenu"
-            triggerProps={{
-              size: 'xs',
-              variant: 'transparent',
-              showChevron: false,
-              icon: <IconEllipsis />,
-            }}
+            trigger={triggerProps => (
+              <OverlayTrigger.IconButton
+                {...triggerProps}
+                size="xs"
+                variant="transparent"
+                icon={<IconEllipsis />}
+                aria-label={t('Chart actions')}
+              />
+            )}
             position="bottom-end"
             items={items}
           />

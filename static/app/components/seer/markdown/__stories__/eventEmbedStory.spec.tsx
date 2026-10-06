@@ -3,6 +3,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {findExampleTags} from './embedStoryTestUtils';
 import {EventEmbedStory} from './eventEmbedStory';
 
 jest.mock('sentry/components/seer/markdown', () => ({
@@ -43,7 +44,7 @@ describe('EventEmbedStory', () => {
 
     render(<EventEmbedStory />);
 
-    const variants = await screen.findAllByLabelText('Rendered markdown');
+    const variants = await findExampleTags();
     expect(variants).toHaveLength(4);
 
     for (const variant of variants) {
@@ -80,7 +81,7 @@ describe('EventEmbedStory', () => {
 
     render(<EventEmbedStory />);
 
-    const variants = await screen.findAllByLabelText('Rendered markdown');
+    const variants = await findExampleTags();
     expect(variants).toHaveLength(3);
     expect(variants[2]).toHaveTextContent('"view":"tag","tagKeys":["browser"]');
   });

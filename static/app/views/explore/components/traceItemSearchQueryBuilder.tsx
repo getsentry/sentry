@@ -1,5 +1,7 @@
 import {useEffect, useMemo} from 'react';
 
+import {Text} from '@sentry/scraps/text';
+
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {SpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
 import {
@@ -10,11 +12,16 @@ import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {useFilterKeyRegistry} from 'sentry/components/searchQueryBuilder/hooks/useFilterKeyRegistry';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {stripArrayMembershipOperator} from 'sentry/components/searchSyntax/utils';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {SavedSearchType, type TagCollection} from 'sentry/types/group';
 import type {AggregationKey} from 'sentry/utils/fields';
-import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+import {
+  ATTRIBUTE_SEARCH_SECONDARY_ALIASES,
+  FieldKind,
+  getFieldDefinition,
+} from 'sentry/utils/fields';
 import {getHasTag} from 'sentry/utils/tag';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
 import {useGetTraceItemAttributeTagKeys} from 'sentry/views/explore/hooks/useGetTraceItemAttributeTagKeys';
 import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
@@ -48,6 +55,7 @@ export type TraceItemSearchQueryBuilderProps = {
   invalidFilterKeys?: string[];
   invalidMessages?: SearchQueryBuilderProps['invalidMessages'];
   matchKeySuggestions?: Array<{key: string; valuePattern: RegExp}>;
+  menuPresentation?: SearchQueryBuilderProps['menuPresentation'];
   namespace?: string;
   onCaseInsensitiveClick?: SearchQueryBuilderProps['onCaseInsensitiveClick'];
   replaceRawSearchKeys?: string[];
@@ -99,6 +107,35 @@ function getTraceItemFieldDefinitionFunction(
   };
 }
 
+const CONVENTION_ALIAS_DATASETS = new Set([
+  TraceItemDataset.SPANS,
+  TraceItemDataset.LOGS,
+  TraceItemDataset.TRACEMETRICS,
+]);
+
+function getDeprecatedAttributeSearchWarning(key: string, itemType: TraceItemDataset) {
+  if (!CONVENTION_ALIAS_DATASETS.has(itemType)) {
+    return;
+  }
+
+  const replacement = ATTRIBUTE_SEARCH_SECONDARY_ALIASES[key]?.alias;
+  if (!replacement) {
+    return;
+  }
+  return tct('[usedAttribute] is deprecated. Use [replacement] instead.', {
+    usedAttribute: (
+      <Text monospace variant="inherit">
+        {key}
+      </Text>
+    ),
+    replacement: (
+      <Text monospace variant="inherit">
+        {replacement}
+      </Text>
+    ),
+  });
+}
+
 export function useTraceItemSearchQueryBuilderProps({
   itemType,
   booleanAttributes,
@@ -139,7 +176,11 @@ export function useTraceItemSearchQueryBuilderProps({
   invalidMessages,
 }: TraceItemSearchQueryBuilderProps) {
   const placeholderText = placeholder ?? itemTypeToDefaultPlaceholder(itemType);
+  const organization = useOrganization();
   const {selection} = usePageFilters();
+  const allowRegexOperators =
+    itemType === TraceItemDataset.LOGS &&
+    organization.features.includes('ourlogs-regex-searches');
   const effectiveProjects = projects ?? selection.projects;
   const effectiveDatetime = datetime ?? selection.datetime;
 
@@ -214,6 +255,7 @@ export function useTraceItemSearchQueryBuilderProps({
   return useMemo(
     () => ({
       placeholder: placeholderText,
+      allowRegexOperators,
       asyncFilterKeyRegistryQueryKey,
       filterKeys: filterTags,
       initialQuery,
@@ -221,7 +263,9 @@ export function useTraceItemSearchQueryBuilderProps({
       onSearch,
       onChange,
       onBlur,
-      getFilterTokenWarning,
+      getFilterTokenWarning: (key: string) =>
+        getFilterTokenWarning?.(key) ??
+        getDeprecatedAttributeSearchWarning(key, itemType),
       searchSource,
       filterKeySections,
       getSuggestedFilterKey: getSuggestedAttribute,
@@ -241,6 +285,9 @@ export function useTraceItemSearchQueryBuilderProps({
       replaceRawSearchKeys,
       matchKeySuggestions,
       filterKeyAliases: {
+        ...(CONVENTION_ALIAS_DATASETS.has(itemType)
+          ? ATTRIBUTE_SEARCH_SECONDARY_ALIASES
+          : {}),
         ...numberSecondaryAliases,
         ...stringSecondaryAliases,
         ...booleanSecondaryAliases,
@@ -253,6 +300,7 @@ export function useTraceItemSearchQueryBuilderProps({
       invalidMessages,
     }),
     [
+      allowRegexOperators,
       asyncFilterKeyRegistryQueryKey,
       booleanSecondaryAliases,
       caseInsensitive,
@@ -330,6 +378,7 @@ export function TraceItemSearchQueryBuilder({
   invalidMessages,
   showSearchIcon,
   disableFullWidthFilterKeyMenu,
+  menuPresentation,
 }: TraceItemSearchQueryBuilderProps) {
   const searchQueryBuilderProps = useTraceItemSearchQueryBuilderProps({
     itemType,
@@ -376,6 +425,7 @@ export function TraceItemSearchQueryBuilder({
       autoFocus={autoFocus}
       showSearchIcon={showSearchIcon}
       disableFullWidthFilterKeyMenu={disableFullWidthFilterKeyMenu}
+      menuPresentation={menuPresentation}
       {...searchQueryBuilderProps}
     />
   );

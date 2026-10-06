@@ -73,8 +73,7 @@ const EMPTY_PRODUCT_BILLING_METADATA: ProductBillingMetadata = {
 export function useProductBillingMetadata(
   subscription: Subscription | null,
   product: DataCategory | AddOnCategory,
-  parentProduct?: DataCategory | AddOnCategory,
-  excludeProductTrials?: boolean
+  parentProduct?: DataCategory | AddOnCategory
 ): ProductBillingMetadata {
   const organization = useOrganization();
   const isAddOn = checkIsAddOn(parentProduct ?? product);
@@ -121,12 +120,14 @@ export function useProductBillingMetadata(
     isEnabled: productIsEnabled(subscription, parentProduct ?? product),
     addOnInfo,
     usageExceeded: subscription.categories[billedCategory]?.usageExceeded ?? false,
-    activeProductTrial: excludeProductTrials
-      ? null
-      : getActiveProductTrial(subscription.productTrials ?? null, billedCategory),
-    potentialProductTrial: excludeProductTrials
-      ? null
-      : getPotentialProductTrial(subscription.productTrials ?? null, billedCategory),
+    activeProductTrial: getActiveProductTrial(
+      subscription.productTrials ?? null,
+      billedCategory
+    ),
+    potentialProductTrial: getPotentialProductTrial(
+      subscription.productTrials ?? null,
+      billedCategory
+    ),
     productLink:
       organization && billedCategoryInfo
         ? billedCategoryInfo.getProductLink?.(organization)

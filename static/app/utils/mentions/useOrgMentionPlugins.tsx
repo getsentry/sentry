@@ -23,8 +23,6 @@ type TeamSuggestion = {kind: 'team'; team: Team};
 interface OrgMentionPluginOptions {
   /** Team suggestions. Pass an object to override the default trigger. */
   team?: boolean | {trigger?: string};
-  /** Member suggestions. Pass an object to override the default trigger. */
-  user?: boolean | {trigger?: string};
 }
 
 /**
@@ -32,21 +30,16 @@ interface OrgMentionPluginOptions {
  * trigger; pass `{team: {trigger: '#'}}` to restore the split `@`/`#` scheme.
  */
 export function useOrgMentionPlugins({
-  user = true,
   team = true,
 }: OrgMentionPluginOptions = {}): readonly ComposerPlugin[] {
   const organization = useOrganization();
   const {teams} = useTeams();
 
-  const userTrigger = resolveTrigger(user, DEFAULT_USER_TRIGGER);
   const teamTrigger = resolveTrigger(team, DEFAULT_TEAM_TRIGGER);
 
   const memberSource = useMemo(
-    () =>
-      userTrigger
-        ? userMentionSource({trigger: userTrigger, orgSlug: organization.slug})
-        : null,
-    [organization.slug, userTrigger]
+    () => userMentionSource({trigger: DEFAULT_USER_TRIGGER, orgSlug: organization.slug}),
+    [organization.slug]
   );
   const teamSource = useMemo(
     () => (teamTrigger ? teamMentionSource({trigger: teamTrigger, teams}) : null),

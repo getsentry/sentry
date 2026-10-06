@@ -27,7 +27,12 @@ from sentry.utils.cache import cache
 CACHE_SECONDS = 3600 * 24
 DETECTION_VERSION = 1
 
-SUPPORTED_PROVIDERS = frozenset({f"integrations:{IntegrationProviderSlug.GITHUB}"})
+SUPPORTED_PROVIDERS = frozenset(
+    {
+        f"integrations:{IntegrationProviderSlug.GITHUB}",
+        f"integrations:{IntegrationProviderSlug.CURSOR_ORIGIN}",
+    }
+)
 
 
 def _capture_detection_exception(type: str, repo_id: int, repo_name: str) -> None:

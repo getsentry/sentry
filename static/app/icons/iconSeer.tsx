@@ -95,18 +95,14 @@ export function IconSeer({animation, ...props}: IconSeerProps) {
       <SvgIcon {...props}>
         <Fragment>
           <style>{`
-            @keyframes seerRoll {
-              0% { transform: translateX(-1.8px) scaleX(1); }
-              46% { transform: translateX(1.8px) scaleX(1); }
-              50% { transform: translateX(2px) scaleX(0.001); }
-              54% { transform: translateX(-2px) scaleX(0.001); }
-              58% { transform: translateX(-1.8px) scaleX(1); }
-              100% { transform: translateX(-1.8px) scaleX(1); }
+            @keyframes seerIdle {
+              0% { transform: translateX(0); }
+              5%, 40% { transform: translateX(-1.6px); }
+              50%, 95% { transform: translateX(1.6px); }
+              100% { transform: translateX(0); }
             }
             .eye-idle {
-              transform-box: fill-box;
-              transform-origin: center;
-              animation: seerRoll 4s linear infinite;
+              animation: seerIdle 4s ease-out infinite;
             }
           `}</style>
           <path d={commonPath} />

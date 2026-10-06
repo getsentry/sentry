@@ -6,12 +6,14 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
   type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import * as pageFilters from 'sentry/components/pageFilters/actions';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {ProjectDetail} from './projectDetail';
 
@@ -27,6 +29,18 @@ describe('ProjectDetail', () => {
     },
     route: '/organizations/:orgId/projects/:projectId/',
   };
+
+  // The header renders into TopBar slots, so the bar has to be mounted
+  // alongside the page for the breadcrumbs and title to appear.
+  function renderProjectDetail(routerConfig = initialRouterConfig) {
+    return render(
+      <TopBar.Slot.Provider>
+        <TopBar />
+        <ProjectDetail />
+      </TopBar.Slot.Provider>,
+      {organization, initialRouterConfig: routerConfig}
+    );
+  }
 
   function setupMockResponses() {
     MockApiClient.addMockResponse({
@@ -72,10 +86,7 @@ describe('ProjectDetail', () => {
     ProjectsStore.loadInitialData([{...project, slug: 'different-slug'}]);
     setupMockResponses();
 
-    render(<ProjectDetail />, {
-      organization,
-      initialRouterConfig,
-    });
+    renderProjectDetail();
 
     expect(await screen.findByText(/project could not be found/)).toBeInTheDocument();
 
@@ -90,10 +101,7 @@ describe('ProjectDetail', () => {
   it('Render warning if user is not a member of the project', async () => {
     ProjectsStore.loadInitialData([{...project, hasAccess: false}]);
 
-    render(<ProjectDetail />, {
-      organization,
-      initialRouterConfig,
-    });
+    renderProjectDetail();
 
     expect(
       await screen.findByText(/ask an admin to add your team to this project/i)
@@ -104,12 +112,54 @@ describe('ProjectDetail', () => {
     ProjectsStore.loadInitialData([project]);
     setupMockResponses();
 
-    render(<ProjectDetail />, {
-      organization,
-      initialRouterConfig,
-    });
+    renderProjectDetail();
 
     expect(await screen.findByText(project.slug)).toBeInTheDocument();
+  });
+
+  it('Renders the breadcrumb trail and page title', async () => {
+    ProjectsStore.loadInitialData([project]);
+    setupMockResponses();
+
+    renderProjectDetail();
+
+    const topBar = screen.getByRole('banner');
+    expect(
+      await within(topBar).findByRole('link', {name: 'Projects'})
+    ).toBeInTheDocument();
+    expect(
+      within(topBar).getByRole('heading', {name: project.slug, level: 1})
+    ).toBeInTheDocument();
+
+    // The page name is the title, not the last crumb in the trail.
+    const trail = within(topBar).getByRole('list');
+    expect(within(trail).queryByText(project.slug)).not.toBeInTheDocument();
+  });
+
+  it('Renders the page actions in the title menu', async () => {
+    ProjectsStore.loadInitialData([project]);
+    setupMockResponses();
+
+    renderProjectDetail();
+
+    const topBar = screen.getByRole('banner');
+
+    // The actions used to be standalone buttons beside the header.
+    expect(
+      within(topBar).queryByRole('button', {name: 'View All Issues'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(
+      await within(topBar).findByRole('button', {name: 'Project Actions'})
+    );
+
+    expect(
+      screen.getAllByRole('menuitemradio').map(el => el.textContent?.trim())
+    ).toEqual(['View All Issues', 'Create Monitor', 'Project Settings']);
+    expect(screen.getByRole('menuitemradio', {name: 'Project Settings'})).toHaveAttribute(
+      'href',
+      `/settings/${organization.slug}/projects/${project.slug}/`
+    );
   });
 
   it('Sync project with slug', async () => {
@@ -117,15 +167,12 @@ describe('ProjectDetail', () => {
     setupMockResponses();
     jest.spyOn(pageFilters, 'updateProjects');
 
-    const {router} = render(<ProjectDetail />, {
-      organization,
-      initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${organization.slug}/projects/${project.slug}/`,
-          query: {project: 'different-slug'},
-        },
-        route: '/organizations/:orgId/projects/:projectId/',
+    const {router} = renderProjectDetail({
+      location: {
+        pathname: `/organizations/${organization.slug}/projects/${project.slug}/`,
+        query: {project: 'different-slug'},
       },
+      route: '/organizations/:orgId/projects/:projectId/',
     });
 
     await waitFor(() => {

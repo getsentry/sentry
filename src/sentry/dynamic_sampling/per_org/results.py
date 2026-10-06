@@ -3,8 +3,11 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from sentry.dynamic_sampling.models.common import RebalancedItem
-from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
-from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
+from sentry.dynamic_sampling.per_org.queries import (
+    OrganizationDataVolume,
+    ProjectTransactionCounts,
+    ProjectVolume,
+)
 from sentry.models.project import Project
 
 TransactionSampleRates = dict[int, tuple[list[RebalancedItem], float]]

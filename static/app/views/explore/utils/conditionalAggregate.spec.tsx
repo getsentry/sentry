@@ -12,11 +12,15 @@ import {
   areConditionalAggregateFiltersInExpressionValid,
   buildConditionalAggregate,
   getConditionalFilterInvalidSeriesMessage,
+  getConditionalFilterInvalidSeriesMessageForAggregates,
   getConditionalFilterInvalidSeriesMessageForYAxis,
+  getValidAggregatesForRequest,
+  hasNoValidAggregatesForRequest,
   isConditionalAggregateFilterValid,
   isConditionalAggregateYAxisValid,
   parseConditionalAggregate,
   supportsConditionalAggregateFilter,
+  withBaseConditionalAggregateField,
   withReadableConditionalFilter,
 } from 'sentry/views/explore/utils/conditionalAggregate';
 
@@ -323,5 +327,86 @@ describe('areAllVisualizesInvalidConditionalFilters', () => {
         new VisualizeFunction('count_if(`p95(span.duration):>100`,span.duration)'),
       ])
     ).toBe(false);
+  });
+});
+
+describe('withBaseConditionalAggregateField', () => {
+  it('rewrites Explore-style _if function names to the base aggregate', () => {
+    expect(
+      withBaseConditionalAggregateField({
+        kind: 'function',
+        function: ['count_unique_if' as any, '`span.op:db`', 'span.op', undefined],
+      })
+    ).toEqual({
+      kind: 'function',
+      function: ['count_unique', 'span.op', undefined, undefined],
+    });
+  });
+
+  it('leaves Discover-style count_if unchanged', () => {
+    const field = {
+      kind: 'function' as const,
+      function: ['count_if' as any, 'transaction.duration', 'equals', '300'] as const,
+    };
+    expect(withBaseConditionalAggregateField(field as any)).toEqual(field);
+  });
+});
+
+describe('getConditionalFilterInvalidSeriesMessageForAggregates', () => {
+  it('returns the series filter message for an empty _if filter', () => {
+    expect(
+      getConditionalFilterInvalidSeriesMessageForAggregates(['avg_if(``,span.duration)'])
+    ).toBe('Invalid series filter');
+  });
+
+  it('returns the series filter message for an empty _if filter nested in an equation', () => {
+    expect(
+      getConditionalFilterInvalidSeriesMessageForAggregates([
+        'equation|avg_if(``,span.duration) / 2',
+      ])
+    ).toBe('Invalid series filter');
+  });
+
+  it('returns the aggregate-key message when a visualize aggregate is used as a key', () => {
+    expect(
+      getConditionalFilterInvalidSeriesMessageForAggregates([
+        'count_if(`p95(span.duration):>100`,span.duration)',
+      ])
+    ).toBe('Aggregates cannot be used in conditional filters');
+  });
+});
+
+describe('hasNoValidAggregatesForRequest', () => {
+  it('is true when every aggregate is stripped by _if validation', () => {
+    expect(
+      hasNoValidAggregatesForRequest([
+        'avg_if(``,span.duration)',
+        'count_if(`p95(span.duration):>100`,span.duration)',
+      ])
+    ).toBe(true);
+  });
+
+  it('is true for equation-only aggregates whose nested _if filters are invalid', () => {
+    expect(
+      hasNoValidAggregatesForRequest(['equation|avg_if(``,span.duration) / 2'])
+    ).toBe(true);
+  });
+
+  it('is false when any aggregate is still valid', () => {
+    expect(
+      hasNoValidAggregatesForRequest(['avg(span.duration)', 'avg_if(``,span.duration)'])
+    ).toBe(false);
+  });
+});
+
+describe('getValidAggregatesForRequest', () => {
+  it('drops invalid _if aggregates and keeps valid ones', () => {
+    expect(
+      getValidAggregatesForRequest([
+        'avg(span.duration)',
+        'avg_if(``,span.duration)',
+        'avg_if(`span.op:db`,span.duration)',
+      ])
+    ).toEqual(['avg(span.duration)', 'avg_if(`span.op:db`,span.duration)']);
   });
 });

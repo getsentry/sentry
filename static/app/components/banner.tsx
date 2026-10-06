@@ -35,7 +35,6 @@ type Props = BannerWrapperProps & {
   children?: React.ReactNode;
   className?: string;
   dismissKey?: string;
-  isDismissable?: boolean;
   subtitle?: string;
   title?: string;
 };
@@ -43,7 +42,6 @@ type Props = BannerWrapperProps & {
 export function Banner({
   title,
   subtitle,
-  isDismissable = true,
   dismissKey = 'generic-banner',
   className,
   backgroundImg,
@@ -59,16 +57,14 @@ export function Banner({
   return (
     <BannerWrapper backgroundImg={backgroundImg} className={className}>
       {backgroundComponent}
-      {isDismissable ? (
-        <CloseButton
-          type="button"
-          size="xs"
-          variant="link"
-          icon={<IconClose />}
-          onClick={dismiss}
-          aria-label={t('Close')}
-        />
-      ) : null}
+      <CloseButton
+        type="button"
+        size="xs"
+        variant="link"
+        icon={<IconClose />}
+        onClick={dismiss}
+        aria-label={t('Close')}
+      />
       <BannerContent>
         <BannerTitle>{title}</BannerTitle>
         <BannerSubtitle>{subtitle}</BannerSubtitle>

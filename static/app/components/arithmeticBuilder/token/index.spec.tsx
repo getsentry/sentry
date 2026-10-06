@@ -2,6 +2,7 @@ import type {Dispatch} from 'react';
 import {useCallback} from 'react';
 
 import {
+  createEvent,
   fireEvent,
   render,
   screen,
@@ -19,7 +20,11 @@ import {
   Parenthesis,
   TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
-import {TokenGrid} from 'sentry/components/arithmeticBuilder/token/grid';
+import {
+  findNearestRow,
+  resolvePaddingClickRow,
+  TokenGrid,
+} from 'sentry/components/arithmeticBuilder/token/grid';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {FieldKind, getExploreEquationFieldDefinition} from 'sentry/utils/fields';
 
@@ -1803,6 +1808,142 @@ describe('token', () => {
       expect(
         await screen.findByRole('gridcell', {name: 'Delete +', hidden: true})
       ).toBeInTheDocument();
+    });
+
+    it('focuses trailing free text when clicking grid padding near the end', async () => {
+      render(
+        <Tokens expression="(count_if(`span.duration:>1s`,span.duration)/count(span.duration))*100" />
+      );
+
+      const grid = screen.getByRole('grid', {name: 'Enter an equation'});
+      const freeTextInputs = screen.getAllByRole('combobox', {
+        name: 'Add a term',
+        hidden: true,
+      });
+      const leading = freeTextInputs[0]!;
+      const trailing = freeTextInputs.at(-1)!;
+
+      const freeTextRows = freeTextInputs.map(input => {
+        const row = input.closest('[role="row"]');
+        if (!(row instanceof HTMLElement)) {
+          throw new Error('Expected free text row');
+        }
+        return row;
+      });
+      const trailingRow = freeTextRows.at(-1)!;
+
+      // jsdom returns zero rects; mock a wrapped equation where the trailing field
+      // sits on the lower-right and other free-text spacers stay on the left.
+      freeTextRows.forEach((row, index) => {
+        const isTrailing = row === trailingRow;
+        jest.spyOn(row, 'getBoundingClientRect').mockReturnValue({
+          x: isTrailing ? 200 : 0,
+          y: isTrailing ? 40 : 0,
+          top: isTrailing ? 40 : 0,
+          left: isTrailing ? 200 : 0,
+          bottom: isTrailing ? 64 : 24,
+          right: isTrailing ? 400 : index === 0 ? 0 : 8,
+          width: isTrailing ? 200 : index === 0 ? 0 : 8,
+          height: 24,
+          toJSON: () => ({}),
+        });
+      });
+
+      const gridRect = {left: 0, width: 400};
+      expect(resolvePaddingClickRow(freeTextRows, gridRect, 380, 20)).toBe(trailingRow);
+      // Mid-grid clicks still use nearest (not a vertical first/last split).
+      expect(findNearestRow(freeTextRows, 220, 50)).toBe(trailingRow);
+
+      jest.spyOn(grid, 'getBoundingClientRect').mockReturnValue({
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        bottom: 80,
+        right: 400,
+        width: 400,
+        height: 80,
+        toJSON: () => ({}),
+      });
+
+      // Click empty padding near the visual end. The old clientY half-split focused
+      // the leading spacer whenever the pointer was in the top half of the grid.
+      const pointerDown = createEvent.pointerDown(grid);
+      Object.defineProperty(pointerDown, 'clientX', {get: () => 380});
+      Object.defineProperty(pointerDown, 'clientY', {get: () => 20});
+      fireEvent(grid, pointerDown);
+
+      await waitFor(() => {
+        expect(trailing).toHaveFocus();
+      });
+      expect(leading).not.toHaveFocus();
+    });
+
+    it('focuses leading free text when clicking grid padding near the start', async () => {
+      render(
+        <Tokens expression="(count_if(`span.duration:>1s`,span.duration)/count(span.duration))*100" />
+      );
+
+      const grid = screen.getByRole('grid', {name: 'Enter an equation'});
+      const freeTextInputs = screen.getAllByRole('combobox', {
+        name: 'Add a term',
+        hidden: true,
+      });
+      const leading = freeTextInputs[0]!;
+      const trailing = freeTextInputs.at(-1)!;
+      const leadingRow = leading.closest('[role="row"]');
+      if (!(leadingRow instanceof HTMLElement)) {
+        throw new Error('Expected leading free text row');
+      }
+
+      const freeTextRows = freeTextInputs.map(input => {
+        const row = input.closest('[role="row"]');
+        if (!(row instanceof HTMLElement)) {
+          throw new Error('Expected free text row');
+        }
+        return row;
+      });
+
+      freeTextRows.forEach((row, index) => {
+        const isLeading = row === leadingRow;
+        jest.spyOn(row, 'getBoundingClientRect').mockReturnValue({
+          x: isLeading ? 0 : 40 + index * 20,
+          y: 0,
+          top: 0,
+          left: isLeading ? 0 : 40 + index * 20,
+          bottom: 24,
+          right: isLeading ? 0 : 48 + index * 20,
+          width: isLeading ? 0 : 8,
+          height: 24,
+          toJSON: () => ({}),
+        });
+      });
+
+      jest.spyOn(grid, 'getBoundingClientRect').mockReturnValue({
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        bottom: 40,
+        right: 400,
+        width: 400,
+        height: 40,
+        toJSON: () => ({}),
+      });
+
+      expect(resolvePaddingClickRow(freeTextRows, {left: 0, width: 400}, 20, 10)).toBe(
+        leadingRow
+      );
+
+      const pointerDown = createEvent.pointerDown(grid);
+      Object.defineProperty(pointerDown, 'clientX', {get: () => 20});
+      Object.defineProperty(pointerDown, 'clientY', {get: () => 10});
+      fireEvent(grid, pointerDown);
+
+      await waitFor(() => {
+        expect(leading).toHaveFocus();
+      });
+      expect(trailing).not.toHaveFocus();
     });
 
     it('renders addition operator', async () => {

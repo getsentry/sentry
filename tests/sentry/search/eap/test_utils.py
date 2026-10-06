@@ -8,13 +8,16 @@ from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
 from sentry_protos.snuba.v1.request_common_pb2 import RequestMeta
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey
 
+from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import utils
 from sentry.search.eap.constants import SearchType
 from sentry.search.eap.utils import (
     attribute_name_exists,
     check_attribute_names_exist,
+    get_and_parse_formula,
     serialize_search_type,
 )
+from sentry.testutils.cases import TestCase
 
 
 @pytest.mark.parametrize(
@@ -89,3 +92,52 @@ def test_check_attribute_names_exist_gives_up_past_the_page_bound() -> None:
 
     assert found == set()
     assert offsets == [0, page_limit, page_limit * 2]
+
+
+class TestParseFormula(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.org = self.create_organization(owner=self.user)
+        self.project = self.create_project(organization=self.org)
+        self.formula = self.create_explore_saved_formula(organization=self.org)
+
+    def test_parse_formula_wrong_args(self) -> None:
+        with pytest.raises(InvalidSearchQuery, match="formula.apdex expected 2 arguments got 5"):
+            get_and_parse_formula(
+                "formula.apdex(span.duration, 300, 300, 300, 300)", self.org, lambda x: x
+            )
+
+    def test_parse_formula_wrong_arg_type(self) -> None:
+        with pytest.raises(
+            InvalidSearchQuery, match="threshold expected a number but got 'hello_world' instead"
+        ):
+            get_and_parse_formula(
+                "formula.apdex(span.duration, hello_world)", self.org, lambda x: x
+            )
+
+    def test_parse_formula_values_too_big(self) -> None:
+        with pytest.raises(InvalidSearchQuery, match="which is outside the supported number range"):
+            get_and_parse_formula("formula.apdex(span.duration, inf)", self.org, lambda x: x)
+        with pytest.raises(InvalidSearchQuery, match="which is outside the supported number range"):
+            get_and_parse_formula(
+                "formula.apdex(span.duration, 100000000000000000000)", self.org, lambda x: x
+            )
+        with pytest.raises(InvalidSearchQuery, match="which is outside the supported number range"):
+            get_and_parse_formula(
+                "formula.apdex(span.duration, 0.000000000000000000001)", self.org, lambda x: x
+            )
+
+    def test_parse_formula_simple(self) -> None:
+        equation = get_and_parse_formula("formula.apdex(span.duration, 300)", self.org, lambda x: x)
+        assert (
+            equation
+            == "(count_if(`span.duration:<300.0`) + count_if(`span.duration:>=300.0 and span.duration:<=1200.0`) / 2) / count()"
+        )
+
+        equation = get_and_parse_formula(
+            "formula.apdex(measurements.lcp, 400)", self.org, lambda x: x
+        )
+        assert (
+            equation
+            == "(count_if(`measurements.lcp:<400.0`) + count_if(`measurements.lcp:>=400.0 and measurements.lcp:<=1600.0`) / 2) / count()"
+        )

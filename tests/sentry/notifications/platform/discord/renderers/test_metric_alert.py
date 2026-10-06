@@ -17,10 +17,10 @@ from sentry.notifications.platform.discord.renderers.metric_alert import (
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
 from sentry.notifications.platform.templates.seer import SeerAutofixError
 from sentry.notifications.platform.types import (
-    NotificationCategory,
     NotificationRenderedTemplate,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.notifications.platform import MockNotification
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
 )
@@ -49,7 +49,7 @@ def _make_notification_data(**overrides: Any) -> MetricAlertNotificationData:
 
 class DiscordMetricAlertRendererInvalidDataTest(TestCase):
     def test_render_raises_on_invalid_data_type(self) -> None:
-        invalid_data = SeerAutofixError(error_message="not a metric alert")
+        invalid_data = SeerAutofixError(organization_id=1, error_message="not a metric alert")
         rendered_template = NotificationRenderedTemplate(subject="Metric Alert", body=[])
 
         with pytest.raises(ValueError, match="does not support"):
@@ -62,18 +62,12 @@ class DiscordMetricAlertRendererInvalidDataTest(TestCase):
 class DiscordMetricAlertProviderDispatchTest(TestCase):
     def test_provider_returns_metric_alert_renderer(self) -> None:
         data = _make_notification_data()
-        renderer = DiscordNotificationProvider.get_renderer(
-            data=data,
-            category=NotificationCategory.METRIC_ALERT,
-        )
+        renderer = DiscordNotificationProvider.get_renderer(data=data)
         assert renderer is DiscordMetricAlertRenderer
 
-    def test_provider_returns_default_for_unknown_category(self) -> None:
-        data = _make_notification_data()
-        renderer = DiscordNotificationProvider.get_renderer(
-            data=data,
-            category=NotificationCategory.DEBUG,
-        )
+    def test_provider_returns_default_for_unregistered_source(self) -> None:
+        data = MockNotification(message="test")
+        renderer = DiscordNotificationProvider.get_renderer(data=data)
         assert renderer is DiscordNotificationProvider.default_renderer
 
 

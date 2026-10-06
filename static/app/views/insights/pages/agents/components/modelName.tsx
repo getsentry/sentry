@@ -40,11 +40,7 @@ const NameWrapper = styled('div')`
   min-width: 0;
 `;
 
-export function getModelPlatform(modelId: string | null, provider?: string) {
-  if (provider) {
-    return provider;
-  }
-
+export function getModelPlatform(modelId: string | null) {
   if (!modelId) {
     return null;
   }
@@ -76,6 +72,7 @@ export function getModelPlatform(modelId: string | null, provider?: string) {
     {keywords: ['nemotron', 'nvidia'], platform: 'nvidia'},
     {keywords: ['perplexity'], platform: 'perplexity'},
     {keywords: ['amazon.titan', 'amazon/titan'], platform: 'amazon'},
+    {keywords: ['typesafe', 'jev-'], platform: 'typesafe-ai'},
   ];
 
   const matchedProvider = providerMap.find(({keywords}) =>

@@ -5,22 +5,22 @@ import {TRACE_WATERFALL_PREFERENCES_KEY} from 'sentry/components/events/interfac
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
-import {useIssuesTraceTree} from 'sentry/views/performance/newTraceDetails/traceApi/useIssuesTraceTree';
-import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
-import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import {useIssuesTraceTree} from 'sentry/views/performance/traceDetails/traceApi/useIssuesTraceTree';
+import {useTrace} from 'sentry/views/performance/traceDetails/traceApi/useTrace';
+import {useTraceRootEvent} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
 import {
   getInitialTracePreferences,
   type TracePreferencesState,
-} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
-import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-import {useTraceEventView} from 'sentry/views/performance/newTraceDetails/useTraceEventView';
-import {useTraceQueryParams} from 'sentry/views/performance/newTraceDetails/useTraceQueryParams';
-import {useTraceStateAnalytics} from 'sentry/views/performance/newTraceDetails/useTraceStateAnalytics';
+} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
+import {TraceStateProvider} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
+import {useTraceEventView} from 'sentry/views/performance/traceDetails/useTraceEventView';
+import {useTraceQueryParams} from 'sentry/views/performance/traceDetails/useTraceQueryParams';
+import {useTraceStateAnalytics} from 'sentry/views/performance/traceDetails/useTraceStateAnalytics';
 
 const LazyIssuesTraceWaterfall = lazy(() =>
-  import('sentry/views/performance/newTraceDetails/issuesTraceWaterfall').then(
-    module => ({default: module.IssuesTraceWaterfall})
-  )
+  import('sentry/views/performance/traceDetails/issuesTraceWaterfall').then(module => ({
+    default: module.IssuesTraceWaterfall,
+  }))
 );
 
 const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {

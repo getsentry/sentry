@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {SearchBar} from 'sentry/components/searchBar';
 import {IconSort} from 'sentry/icons';
 import {IconAdd} from 'sentry/icons/iconAdd';

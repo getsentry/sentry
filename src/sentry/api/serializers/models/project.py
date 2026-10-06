@@ -1246,6 +1246,9 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             "sentry:toolbar_allowed_origins": "\n".join(
                 self.get_value_with_default(attrs, "sentry:toolbar_allowed_origins") or []
             ),
+            "sentry:relay_automatic_json_expansion": bool(
+                self.get_value_with_default(attrs, "sentry:relay_automatic_json_expansion")
+            ),
             "sentry:preprod_size_status_checks_enabled": options.get(
                 "sentry:preprod_size_status_checks_enabled", True
             ),

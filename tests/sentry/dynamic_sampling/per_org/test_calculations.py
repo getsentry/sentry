@@ -9,15 +9,24 @@ import pytest
 from sentry.dynamic_sampling.models.common import RebalancedItem
 from sentry.dynamic_sampling.models.projects_rebalancing import ProjectsRebalancingInput
 from sentry.dynamic_sampling.per_org.calculations import (
+    MAX_REBALANCE_FACTOR,
+    MIN_REBALANCE_FACTOR,
     apply_project_sample_rate_overrides,
+    bounded_rebalance_factor,
     calculate_recalibration_factor,
+    extrapolate_monthly_volume,
     run_project_balancing,
     run_transaction_balancing,
 )
-from sentry.dynamic_sampling.per_org.queries import ProjectTransactionCounts, ProjectVolume
-from sentry.dynamic_sampling.tasks.common import OrganizationDataVolume
+from sentry.dynamic_sampling.per_org.queries import (
+    OrganizationDataVolume,
+    ProjectTransactionCounts,
+    ProjectVolume,
+)
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 from tests.sentry.dynamic_sampling.per_org.test_helpers import (
     make_project_volume,
     mock_configuration,
@@ -340,3 +349,64 @@ class TransactionBalancingModelOutputTest(TestCase):
         named_rates, implicit_rate = result[project.id]
         assert implicit_rate == pytest.approx(0.09547738693467336)
         assert [item.new_sample_rate for item in named_rates] == [1.0]
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "factor,expected",
+    [
+        (1.5, 1.5),
+        (MIN_REBALANCE_FACTOR, MIN_REBALANCE_FACTOR),
+        (MAX_REBALANCE_FACTOR, MAX_REBALANCE_FACTOR),
+        (MIN_REBALANCE_FACTOR / 2, None),
+        (MAX_REBALANCE_FACTOR * 2, None),
+    ],
+)
+def test_an_out_of_bounds_factor_is_discarded_by_default(
+    factor: float, expected: float | None
+) -> None:
+    assert bounded_rebalance_factor(factor) == expected
+
+
+@django_db_all
+@override_options({"dynamic-sampling.recalibration.clamp-factor": True})
+@pytest.mark.parametrize(
+    "factor,expected",
+    [
+        (1.5, 1.5),
+        (MIN_REBALANCE_FACTOR / 2, MIN_REBALANCE_FACTOR),
+        (MAX_REBALANCE_FACTOR * 2, MAX_REBALANCE_FACTOR),
+    ],
+)
+def test_an_out_of_bounds_factor_is_clamped_when_the_option_is_on(
+    factor: float, expected: float
+) -> None:
+    assert bounded_rebalance_factor(factor) == expected
+
+
+@freeze_time("2023-02-03 12:00:00")
+def test_extrapolate_monthly_volume_with_28_days() -> None:
+    assert extrapolate_monthly_volume(volume=10, hours=24) == 280
+
+
+@pytest.mark.parametrize(
+    "volume, hours, expected_result",
+    [
+        (10, 48, 150),
+        (10, 24, 300),
+        (10, 12, 600),
+        (10, 1, 7200),
+    ],
+)
+@freeze_time("2023-04-03 12:00:00")
+def test_extrapolate_monthly_volume_with_30_days(volume, hours, expected_result) -> None:
+    assert extrapolate_monthly_volume(volume=volume, hours=hours) == expected_result
+
+
+@freeze_time("2023-05-03 12:00:00")
+def test_extrapolate_monthly_volume_with_31_days() -> None:
+    assert extrapolate_monthly_volume(volume=10, hours=24) == 310
+
+
+def test_extrapolate_monthly_volume_rejects_windows_below_an_hour() -> None:
+    assert extrapolate_monthly_volume(volume=10, hours=0) is None

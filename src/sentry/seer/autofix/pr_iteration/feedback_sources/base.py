@@ -38,9 +38,7 @@ ConsumeTask.Later = _ConsumeLater
 
 @dataclass(frozen=True)
 class Decision:
-    """`should_queue` and `should_consume` decisions
-
-    `ok` decides whether the gate (`should_decision` and `should_queue`) resolves
+    """`ok` decides whether the gate resolves
     `reason` is purely for o11y, included as a tag in logs and metrics
     """
 
@@ -60,16 +58,22 @@ class TriggerDecision:
 
 
 class ConsumeTriggerSource:
-    """Why ``consume_queued_autofix_feedback`` was scheduled.
+    """Who asked for this consume, and why.
 
-    Passed through Celery kwargs so consume can log early-vs-later impact:
-    feedback (webhook / UI / comment), a green check-suite pulling a parked
-    defer forward, or the original 1h time-limit defer firing.
+    The only field naming the producer, so every ``feedback.trigger`` line
+    carries it whether or not a consume was actually scheduled, and it rides
+    the Celery kwargs down into consume and on into the iteration's analytics
+    row. A value is one producer: feedback arriving (webhook / UI / comment),
+    the completion hook draining what turned up while the last iteration ran,
+    a green check suite pulling a parked defer forward, or that defer's own 1h
+    timer firing.
     """
 
     FEEDBACK = "feedback"
+    COMPLETION = "completion"
     GREEN_CHECK_SUITE_DEFER = "green_check_suite_defer"
     TIME_LIMIT_DEFER = "time_limit_defer"
+    UI_CONSUME = "ui_consume"
 
 
 class FeedbackSourceBase(BaseModel):
@@ -106,12 +110,11 @@ class FeedbackSourceBase(BaseModel):
         """
         return {}
 
-    # A source that overrides none of these has nothing to check: its feedback is
-    # queued, consumed, and triggered on arrival. ``no_gate`` says so explicitly,
-    # which is worth distinguishing in a log from a gate that ran and passed.
-    def should_queue(self, run_state: SeerRunState) -> Decision:
-        return Decision(ok=True, reason="no_gate")
-
+    # Feedback is always queued: the gates are at trigger time (whether to
+    # schedule a consume for it) and at consume time (whether the drain hands it
+    # to the agent). A source that overrides neither has nothing to check, and
+    # ``no_gate`` says so explicitly, which is worth distinguishing in a log
+    # from a gate that ran and passed.
     def should_consume(self, run_state: SeerRunState) -> Decision:
         return Decision(ok=True, reason="no_gate")
 

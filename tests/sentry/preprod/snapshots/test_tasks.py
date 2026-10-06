@@ -3,6 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from PIL import Image, PngImagePlugin
 
+from sentry.preprod.snapshots.categorize import categorize_image_diff
 from sentry.preprod.snapshots.image_diff.compare import get_comparison_size
 from sentry.preprod.snapshots.image_diff.types import DiffResult, ImageSize
 from sentry.preprod.snapshots.manifest import (
@@ -23,7 +24,6 @@ from sentry.preprod.snapshots.tasks import (
     _effective_diff_threshold,
     _plan_key,
     _process_chunk,
-    categorize_image_diff,
 )
 
 
@@ -674,7 +674,7 @@ def test_build_comparison_plan_adds_sibling_candidates_for_hash_differing_intere
 
 
 def test_build_comparison_plan_sibling_pixel_count_uses_larger_dimensions() -> None:
-    head = _manifest({"changed.png": ("c-head", 10, 10)})
+    head = _manifest({"changed.png": ("c-head", 10, 10)}, diff_threshold=0.125)
     base = _manifest({"changed.png": ("c-base", 10, 10)})
     sibling = _sibling(
         7,
@@ -689,9 +689,29 @@ def test_build_comparison_plan_sibling_pixel_count_uses_larger_dimensions() -> N
         },
     )
     plan = _build_comparison_plan(head, base, 1, 2, sibling=sibling)
-    candidates = {(c.kind, c.name): c for chunk in plan.chunks for c in chunk.candidates}
-    assert candidates[("sibling", "changed.png")].pixel_count == 600
-    assert candidates[("base", "changed.png")].pixel_count == 100
+    assert plan.dict()["chunks"] == [
+        {
+            "chunk_index": 0,
+            "candidates": [
+                {
+                    "name": "changed.png",
+                    "head_hash": "c-head",
+                    "base_hash": "c-base",
+                    "pixel_count": 100,
+                    "diff_threshold": 0.125,
+                    "kind": "base",
+                },
+                {
+                    "name": "changed.png",
+                    "head_hash": "c-head",
+                    "base_hash": "c-sib",
+                    "pixel_count": 600,
+                    "diff_threshold": 0.125,
+                    "kind": "sibling",
+                },
+            ],
+        }
+    ]
 
 
 def test_build_comparison_plan_sibling_added_uses_snapshot_manifest_dimensions() -> None:
@@ -708,45 +728,6 @@ def test_build_comparison_plan_sibling_added_uses_snapshot_manifest_dimensions()
     }
     expected = get_comparison_size(ImageSize(10, 10), ImageSize(40, 30)).pixel_count
     assert sibling_candidates["added.png"].pixel_count == expected
-
-
-def test_build_comparison_plan_records_sibling_without_candidates_when_disabled() -> None:
-    head = _manifest(
-        {
-            "changed.png": ("c-head", 10, 10),
-            "added.png": ("add-head", 20, 20),
-            "renamed.png": ("ren-head", 10, 10),
-            "same.png": ("same", 10, 10),
-        },
-        diff_threshold=0.05,
-    )
-    base = _manifest(
-        {
-            "changed.png": ("c-base", 10, 10),
-            "old.png": ("ren-head", 10, 10),
-            "same.png": ("same", 10, 10),
-        }
-    )
-    sibling = _sibling(
-        7,
-        {
-            "changed.png": ComparisonImageResult(
-                status="changed", head_hash="c-sib", base_hash="c-base"
-            ),
-            "added.png": ComparisonImageResult(status="added", head_hash="add-head"),
-            "renamed.png": ComparisonImageResult(
-                status="renamed", head_hash="ren-sib", previous_image_file_name="old.png"
-            ),
-            "same.png": ComparisonImageResult(
-                status="unchanged", head_hash="same", base_hash="same"
-            ),
-        },
-    )
-    plan = _build_comparison_plan(head, base, 1, 2, sibling=sibling, diff_sibling_images=False)
-    assert plan.sibling_artifact_id == 7
-    assert plan.sibling_comparison_key == "key/7/comparison.json"
-    kinds = [c.kind for chunk in plan.chunks for c in chunk.candidates]
-    assert "sibling" not in kinds
 
 
 def test_build_comparison_plan_skips_sibling_candidate_for_unchanged_head_image() -> None:

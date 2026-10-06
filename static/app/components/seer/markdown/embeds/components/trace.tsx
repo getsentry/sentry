@@ -4,7 +4,13 @@ import {TraceLink} from './traceLink';
 
 export const Trace = defineSeerEmbed({
   name: 'trace',
-  render(props) {
-    return <TraceLink {...props} />;
+  render(props, level) {
+    switch (level) {
+      case 'markdown':
+        return <TraceLink {...props} format="markdown" />;
+      case 'block':
+      case 'inline':
+        return <TraceLink {...props} />;
+    }
   },
 });

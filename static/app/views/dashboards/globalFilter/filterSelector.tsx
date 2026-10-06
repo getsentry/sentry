@@ -13,10 +13,10 @@ import {
   MenuComponents,
   type SelectOption,
 } from '@sentry/scraps/compactSelect';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
@@ -142,6 +142,7 @@ export function FilterSelector({
         },
       })),
     };
+    // oxlint-disable-next-line react/memo-dependencies
   }, [pickerToken, filterToken, noValueToken, fieldDefinition]);
 
   const [stagedOperator, setStagedOperator] = useState(initialOperator);
@@ -163,6 +164,7 @@ export function FilterSelector({
    */
   useEffect(() => {
     setStagedOperator(initialOperator);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [initialOperator]);
 
   // Retrieve full tag definition to check if it has predefined values
@@ -329,6 +331,7 @@ export function FilterSelector({
       }
     });
     return prependNoValueOption([...fixedOptionMap.values(), ...optionMap.values()]);
+    // oxlint-disable-next-line react/memo-dependencies
   }, [
     fetchedFilterValues,
     predefinedValues,
@@ -420,19 +423,6 @@ export function FilterSelector({
   const hasStagedChanges =
     xor(stagedSelect.value, activeFilterValues).length > 0 || hasOperatorChanges;
 
-  const renderFilterSelectorTrigger = (filterValues: string[]) => {
-    const displayValues = stripUnsupportedNoValue(filterValues, stagedOperator);
-
-    return (
-      <FilterSelectorTrigger
-        globalFilter={globalFilter}
-        activeFilterValues={displayValues}
-        operator={stagedOperator}
-        options={translatedOptions}
-      />
-    );
-  };
-
   const loadingFooter = isFetching ? (
     <Flex justify="center" padding="xs">
       <FooterLoadingIndicator size={14} />
@@ -484,7 +474,15 @@ export function FilterSelector({
         )}
         trigger={triggerProps => (
           <OverlayTrigger.Button {...triggerProps}>
-            {renderFilterSelectorTrigger(activeFilterValues)}
+            <FilterSelectorTrigger
+              activeFilterValues={stripUnsupportedNoValue(
+                activeFilterValues,
+                stagedOperator
+              )}
+              globalFilter={globalFilter}
+              operator={stagedOperator}
+              options={translatedOptions}
+            />
           </OverlayTrigger.Button>
         )}
       />
@@ -581,7 +579,15 @@ export function FilterSelector({
       )}
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps}>
-          {renderFilterSelectorTrigger(activeFilterValues)}
+          <FilterSelectorTrigger
+            activeFilterValues={stripUnsupportedNoValue(
+              activeFilterValues,
+              stagedOperator
+            )}
+            globalFilter={globalFilter}
+            operator={stagedOperator}
+            options={translatedOptions}
+          />
         </OverlayTrigger.Button>
       )}
     />
