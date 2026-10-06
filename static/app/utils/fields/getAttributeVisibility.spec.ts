@@ -27,12 +27,10 @@ describe('getAttributeVisibility', () => {
     expect(getAttributeVisibility(key)).toBe('internal');
   });
 
-  it('gives internal visibility precedence across storage and display names', () => {
-    expect(getAttributeVisibility('sentry.dsc.environment', 'environment')).toBe(
-      'internal'
-    );
-    expect(getAttributeVisibility('environment', 'sentry.dsc.environment')).toBe(
-      'internal'
-    );
+  it.each([
+    ['sentry.dsc.environment', 'environment'],
+    ['environment', 'sentry.dsc.environment'],
+  ])('gives internal visibility precedence for %s and %s', (key, name) => {
+    expect(getAttributeVisibility(key, name)).toBe('internal');
   });
 });
