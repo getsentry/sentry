@@ -259,11 +259,6 @@
       "count": 7
     }
   },
-  "static/app/components/events/eventTags/eventTagCustomBanner.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/components/events/eventTagsAndScreenshot/screenshot/modal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 2
@@ -2809,11 +2804,6 @@
       "count": 3
     }
   },
-  "static/app/views/issueList/progressActivityTooltip.spec.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 4
-    }
-  },
   "static/app/views/onboarding/components/firstEventFooter.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -2941,7 +2931,7 @@
   },
   "static/app/views/performance/traceDetails/traceDrawer/details/styles.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 5
+      "count": 3
     }
   },
   "static/app/views/performance/traceDetails/traceDrawer/details/transaction/sections/breadCrumbs.tsx": {
