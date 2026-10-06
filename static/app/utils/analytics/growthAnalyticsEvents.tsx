@@ -6,13 +6,6 @@ type MobilePromptBannerParams = {
   matchedUserAgentString: string;
 };
 
-type PlatformCategory = {
-  category: string;
-  source?: string;
-  // For project creation, `source` identifies the flow and `variant` the experience.
-  variant?: 'scm' | 'legacy';
-};
-
 type PlatformPickerParam = {
   platform_id: string;
   selection_source?: PlatformSelectionSource;
@@ -103,7 +96,6 @@ export type GrowthEventParameters = {
   };
   'growth.onboarding_view_full_docs': Record<string, unknown>;
   'growth.onboarding_view_sample_event': SampleEventParam;
-  'growth.platformpicker_category': PlatformCategory;
   'growth.platformpicker_search': PlatformSearchParam;
   'growth.sample_error_onboarding_link_clicked': {
     platform?: string;
@@ -170,7 +162,6 @@ export const growthEventMap: Record<GrowthAnalyticsKey, string | null> = {
   'growth.onboarding_load_choose_platform':
     'Growth: Onboarding Load Choose Platform Page',
   'growth.select_platform': 'Growth: Onboarding Choose Platform',
-  'growth.platformpicker_category': 'Growth: Onboarding Platform Category',
   'growth.platformpicker_search': 'Growth: Onboarding Platform Search',
   'growth.metric_alert_preset_use_template': 'Growth: Metric Alert Preset Use Template',
   'growth.metric_alert_preset_sidebar_clicked':
