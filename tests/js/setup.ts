@@ -389,8 +389,9 @@ Object.defineProperty(window, 'getComputedStyle', {
 
 // React's development build captures an `Error` for every element it creates so
 // warnings can show owner stacks. In CI that is roughly 7% of test CPU for stacks
-// nobody reads, so pin React's per-render budget at its cap there and elements
-// skip the capture. Warnings still fire; locally the full stacks stay on.
+// nobody reads, so pin React's per-render budget above any cap there and
+// elements skip the capture. Warnings still fire; locally the full stacks stay
+// on. If React's internals change shape, warn so the slowdown doesn't go unnoticed.
 if (process.env.CI) {
   const internals = (
     React as unknown as {
@@ -402,9 +403,14 @@ if (process.env.CI) {
   if (internals && 'recentlyCreatedOwnerStacks' in internals) {
     Object.defineProperty(internals, 'recentlyCreatedOwnerStacks', {
       configurable: true,
-      get: () => 10_000,
+      get: () => Infinity,
       set: () => {},
     });
+  } else {
+    // eslint-disable-next-line no-console
+    console.warn(
+      'tests/js/setup.ts: React internals changed shape, so owner stacks are no longer skipped in CI. Update or remove the override.'
+    );
   }
 }
 
