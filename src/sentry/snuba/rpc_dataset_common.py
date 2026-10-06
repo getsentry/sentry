@@ -577,6 +577,8 @@ class RPCBase:
         final_data: SnubaData = []
         final_confidence: ConfidenceData = []
         final_meta: EventsMeta = events_meta_from_rpc_request_meta(rpc_response.meta)
+        if rpc_response.routing_hint:
+            final_meta["routing_hint"] = rpc_response.routing_hint
         by_public_alias = {col.public_alias: col for col in table_request.columns}
         for column_value in rpc_response.column_values:
             attribute = column_value.attribute_name

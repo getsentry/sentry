@@ -87,6 +87,7 @@ export function WeeklyReportProjectExclusions({
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setCurrentPage(0);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [organization?.id]);
 
   const {

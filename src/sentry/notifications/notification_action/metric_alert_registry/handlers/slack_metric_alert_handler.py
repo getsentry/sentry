@@ -86,6 +86,7 @@ def _send_via_notification_platform(
         title_link=attachment_info["title_link"],
         text=attachment_info["text"],
         chart_url=chart_url,
+        notes=notification_context.notes,
     )
 
     target = IntegrationNotificationTarget(

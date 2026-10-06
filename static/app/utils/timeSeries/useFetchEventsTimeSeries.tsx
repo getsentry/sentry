@@ -47,7 +47,7 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   groupBy?: Attribute[];
   /**
-   * Whether to request annotations (dropped-data outcomes) on the response's `meta.annotations`. Off by default, and gated behind the `explore-data-fidelity-annotations` feature flag.
+   * Whether to request annotations (dropped-data outcomes) on the response's `meta.droppedAnnotations` and `meta.acceptedAnnotations`. Off by default, and gated behind the `explore-data-fidelity-annotations` feature flag.
    */
   includeAnnotations?: boolean;
   /**
@@ -196,14 +196,27 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
   });
 }
 
+/**
+ * One time bucket's volume for a system data-fidelity annotation.
+ */
 export interface Annotation {
   category: string;
-  droppedCount: number;
   end: number;
-  label: string;
+  eventCount: number;
+  outcome: string;
   reason: string;
   start: number;
   type: string;
+  /**
+   * Only sent for datasets with a paired byte category (logs today).
+   */
+  byteSize?: number;
+}
+
+interface IngestionMeta {
+  status: 'healthy' | 'stalled' | 'idle' | 'unknown';
+  completeThrough?: number;
+  delaySeconds?: number;
 }
 
 export type EventsTimeSeriesResponse = {
@@ -212,9 +225,8 @@ export type EventsTimeSeriesResponse = {
     dataset: DiscoverDatasets;
     end: number;
     start: number;
-    annotations?: Annotation[];
-    completeThrough?: number;
-    estimatedIngestionDelaySeconds?: number;
-    ingestionDelayStatus?: 'healthy' | 'stalled' | 'idle' | 'unknown';
+    acceptedAnnotations?: Annotation[];
+    droppedAnnotations?: Annotation[];
+    ingestion?: IngestionMeta;
   };
 };

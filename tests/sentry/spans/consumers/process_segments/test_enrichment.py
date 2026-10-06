@@ -586,6 +586,38 @@ def test_conventional_user_attributes_not_overwritten_on_child() -> None:
     assert attribute_value(enriched_child, ATTRIBUTE_NAMES.USER_ID) == "111"
 
 
+def test_device_attributes_propagated_to_child_spans() -> None:
+    device_attrs = {
+        "sentry.device.class": {"type": "string", "value": "3"},
+        "sentry.device.model": {"type": "string", "value": "iPhone15,2"},
+        "sentry.device.brand": {"type": "string", "value": "Apple"},
+        "sentry.device.name": {"type": "string", "value": "iPhone"},
+    }
+
+    segment = build_mock_span(
+        project_id=1,
+        is_segment=True,
+        span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455600.0,
+        end_timestamp=1609455605.0,
+        attributes=device_attrs,
+    )
+    child = build_mock_span(
+        project_id=1,
+        span_id="bbbbbbbbbbbbbbbb",
+        parent_span_id="aaaaaaaaaaaaaaaa",
+        start_timestamp=1609455601.0,
+        end_timestamp=1609455602.0,
+    )
+
+    _, enriched = TreeEnricher.enrich_spans([segment, child])
+
+    enriched_child = enriched[1]
+    assert {name: attribute_value(enriched_child, name) for name in device_attrs} == {
+        name: attr["value"] for name, attr in device_attrs.items()
+    }
+
+
 def test_enrich_gen_ai_agent_name_from_immediate_parent() -> None:
     """Test that gen_ai.agent.name is inherited from the immediate parent with gen_ai.invoke_agent operation."""
     parent_span = build_mock_span(

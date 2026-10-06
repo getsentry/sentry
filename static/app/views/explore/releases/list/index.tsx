@@ -295,6 +295,7 @@ function ReleasesListInnerPage() {
      * This is how we re-check them without scrolling once releases change.
      */
     forceCheck();
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [releases]);
 
   const selectedProjects = useSelectedProjectsForLLMContext();

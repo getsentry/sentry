@@ -1,6 +1,7 @@
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {useRole} from 'sentry/components/acl/useRole';
 import {IconDownload} from 'sentry/icons';
@@ -80,19 +81,23 @@ export function ProfileChunkAttachmentsButton() {
   return (
     <DropdownMenu
       size="xs"
-      triggerLabel={t('Download')}
-      triggerProps={{
-        icon: <IconDownload />,
-        ...(hasAttachmentRole
-          ? {}
-          : {
-              tooltipProps: {
-                title: t(
-                  'Insufficient permissions. Ask your org admin to download attachments on your behalf or grant you the required permission.'
-                ),
-              },
-            }),
-      }}
+      trigger={triggerProps => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          icon={<IconDownload />}
+          tooltipProps={
+            hasAttachmentRole
+              ? undefined
+              : {
+                  title: t(
+                    'Insufficient permissions. Ask your org admin to download attachments on your behalf or grant you the required permission.'
+                  ),
+                }
+          }
+        >
+          {t('Download')}
+        </OverlayTrigger.Button>
+      )}
       isDisabled={!hasAttachmentRole}
       position="bottom-end"
       items={attachments.map(attachment => ({

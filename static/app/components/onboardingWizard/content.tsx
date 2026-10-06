@@ -363,6 +363,7 @@ function ExpandedTaskGroup({tasks, hidePanel}: ExpandedTaskGroupProps) {
     // opening of the group
     await completionTimeout(INITIAL_MARK_COMPLETE_TIMEOUT);
     markTasksAsSeen();
+    // oxlint-disable-next-line react/memo-dependencies
   }, [markTasksAsSeen]);
 
   useEffect(() => {
@@ -421,7 +422,7 @@ function TaskGroup({
   }, [tasks]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect
+    // eslint-disable-next-line react-you-might-not-need-an-effect/no-derived-state, react/set-state-in-effect, react/no-deriving-state-in-effects
     setIsExpanded(expanded);
   }, [expanded]);
 
