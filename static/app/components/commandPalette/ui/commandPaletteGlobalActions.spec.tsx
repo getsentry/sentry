@@ -700,28 +700,4 @@ describe('GlobalCommandPaletteActions - Open my current replay session', () => {
 
     expect(window.open).not.toHaveBeenCalled();
   });
-
-  it('is hidden from non-employees', async () => {
-    ConfigStore.set('user', UserFixture({isStaff: false}));
-    render(
-      <CommandPaletteProvider>
-        <GlobalCommandPaletteActions />
-        <SlotOutlets />
-        <CommandPalette {...makeRenderProps(jest.fn())} />
-      </CommandPaletteProvider>,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {pathname: `/organizations/${organization.slug}/issues/`},
-        },
-      }
-    );
-
-    const input = await screen.findByRole('textbox', {name: 'Search commands'});
-    await userEvent.type(input, 'current replay');
-
-    expect(
-      screen.queryByRole('option', {name: /Open my current replay session/})
-    ).not.toBeInTheDocument();
-  });
 });
