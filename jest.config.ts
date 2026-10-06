@@ -283,6 +283,20 @@ const config: Config.InitialOptions = {
     '^sentry-locale/(.*)': '<rootDir>/src/sentry/locale/$1',
     '\\.(svg)$': '<rootDir>/tests/js/sentry-test/mocks/svgMock.js',
 
+    // EXPERIMENT: run tests against React's production build.
+    '^react$': '<rootDir>/tests/js/sentry-test/mocks/reactProduction.js',
+    '^react-production-build$': '<rootDir>/node_modules/react/cjs/react.production.js',
+    '^react/jsx-runtime$':
+      '<rootDir>/node_modules/react/cjs/react-jsx-runtime.production.js',
+    '^react/jsx-dev-runtime$':
+      '<rootDir>/node_modules/react/cjs/react-jsx-dev-runtime.production.js',
+    '^react-dom$': '<rootDir>/node_modules/react-dom/cjs/react-dom.production.js',
+    '^react-dom/client$':
+      '<rootDir>/node_modules/react-dom/cjs/react-dom-client.production.js',
+    '^react-dom/test-utils$':
+      '<rootDir>/node_modules/react-dom/cjs/react-dom-test-utils.production.js',
+    '^scheduler$': '<rootDir>/node_modules/scheduler/cjs/scheduler.production.js',
+
     // Disable echarts in test, since they're very slow and take time to
     // transform
     '^echarts(?:/.*)?$': '<rootDir>/tests/js/sentry-test/mocks/echartsMock.js',
