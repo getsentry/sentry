@@ -78,7 +78,6 @@ interface VisualizationWidgetProps {
     pageLinks?: string;
     tableResults?: any[];
     timeseriesResults?: WidgetTimeSeries[];
-    totalIssuesCount?: string;
   }) => void;
   onLegendSelectionChange?: (selection: LegendSelection) => void;
   onZoom?: EChartDataZoomHandler;

@@ -47,7 +47,7 @@ export type OnDataFetchedProps = {
   sampleCount?: number;
   tableResults?: TableDataWithTitle[];
   timeseriesResults?: WidgetTimeSeries[];
-  totalIssuesCount?: string;
+  totalCount?: string;
 };
 
 export type GenericWidgetQueriesResult = {
@@ -81,10 +81,7 @@ type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   config: DatasetConfig<SeriesResponse, TableResponse>;
   widget: Widget;
   afterFetchSeriesData?: (result: SeriesResponse) => void;
-  afterFetchTableData?: (
-    result: TableResponse,
-    response?: ResponseMeta
-  ) => void | {totalIssuesCount?: string};
+  afterFetchTableData?: (result: TableResponse, response?: ResponseMeta) => void;
   cursor?: string;
   dashboardFilters?: DashboardFilters;
   limit?: number;
@@ -93,7 +90,6 @@ type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   onDataFetched?: ({
     tableResults,
     timeseriesResults,
-    totalIssuesCount,
     pageLinks,
   }: OnDataFetchedProps) => void;
   samplingMode?: SamplingMode;
@@ -284,20 +280,14 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
         timeseriesResults: (hookResults as any).timeseriesResults,
       });
     } else {
-      // Collect any results from afterFetchTableData callbacks
-      let mergedCallbackData = {};
       hookResults.rawData.forEach((data: any) => {
-        const result = afterFetchTableData?.(data as TableResponse);
-        if (result) {
-          mergedCallbackData = {...mergedCallbackData, ...result};
-        }
+        afterFetchTableData?.(data as TableResponse);
       });
 
-      // Always call onDataFetched, merging any callback results
       onDataFetched?.({
         tableResults: (hookResults as any).tableResults,
         pageLinks: (hookResults as any).pageLinks,
-        ...mergedCallbackData,
+        totalCount: hookResults.totalCount,
       });
     }
   }, [
