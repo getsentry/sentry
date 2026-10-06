@@ -116,14 +116,13 @@ describe('SpansTabContent', () => {
       body: {},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-explorer-ai/setup/',
+      url: '/organizations/org-slug/search-agent/start/',
       method: 'POST',
-      body: {},
+      body: {run_id: 1},
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/trace-explorer-ai/query/',
-      method: 'POST',
-      body: {status: 'ok', queries: []},
+      url: '/organizations/org-slug/search-agent/state/1/',
+      body: {status: 'completed', results: []},
     });
     PageFiltersStore.init();
     setProjects([project]);
