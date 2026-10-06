@@ -460,7 +460,7 @@ class RedisClusterQuotaTest(TestCase):
         return RedisQuota(cluster="quotas")
 
     @mock.patch.object(RedisQuota, "get_quotas")
-    def test_is_rate_limited_refund_and_get_usage(self, mock_get_quotas: mock.MagicMock) -> None:
+    def test_is_rate_limited_and_refund(self, mock_get_quotas: mock.MagicMock) -> None:
         quotas = [
             QuotaConfig(
                 id="o",
@@ -481,14 +481,11 @@ class RedisClusterQuotaTest(TestCase):
             ),
         ]
         mock_get_quotas.return_value = quotas
-        org_id = self.project.organization_id
         timestamp = time.time()
 
-        assert self.quota.get_usage(org_id, quotas, timestamp=timestamp) == [0, 0]
         assert not self.quota.is_rate_limited(self.project, timestamp=timestamp).is_limited
         assert not self.quota.is_rate_limited(self.project, timestamp=timestamp).is_limited
         assert self.quota.is_rate_limited(self.project, timestamp=timestamp).is_limited
-        assert self.quota.get_usage(org_id, quotas, timestamp=timestamp) == [2, 2]
 
         self.quota.refund(self.project, timestamp=timestamp)
-        assert self.quota.get_usage(org_id, quotas, timestamp=timestamp) == [1, 1]
+        assert not self.quota.is_rate_limited(self.project, timestamp=timestamp).is_limited

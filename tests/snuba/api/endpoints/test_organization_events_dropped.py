@@ -135,3 +135,23 @@ class OrganizationEventsDroppedEndpointTest(APITestCase, OutcomesSnubaTest):
         response = self._do_request(dataset="discover")
         assert response.status_code == 400, response.content
         assert "does not support dropped events" in response.data["detail"]
+
+    def test_errors_dataset_serves_dropped_and_accepted(self) -> None:
+        # errors maps to DataCategory.ERROR; no byte category, like spans/metrics.
+        self._store_outcome(Outcome.ACCEPTED, DataCategory.ERROR, 1000)
+        self._store_outcome(Outcome.RATE_LIMITED, DataCategory.ERROR, 400, reason="key_quota")
+
+        response = self._do_request(dataset="errors")
+        assert response.status_code == 200, response.content
+        assert response.data["meta"]["dataset"] == "errors"
+
+        dropped = response.data["droppedEvents"]
+        assert len(dropped) == 1
+        assert dropped[0]["outcome"] == Outcome.RATE_LIMITED.api_name()
+        assert dropped[0]["reason"] == "key_quota"
+        assert dropped[0]["count"] == 400
+        assert "byteSize" not in dropped[0]
+
+        accepted = response.data["acceptedEvents"]
+        assert len(accepted) == 1
+        assert accepted[0]["count"] == 1000

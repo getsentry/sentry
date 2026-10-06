@@ -900,7 +900,6 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
           ) : null}
 
           <TraceDrawer
-            replay={props.replay}
             trace={props.tree}
             traceId={props.traceSlug}
             traceGridRef={traceGridRef}

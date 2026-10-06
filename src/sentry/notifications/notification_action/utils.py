@@ -146,6 +146,7 @@ def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotifi
     event_id = getattr(event_data.event, "event_id", None) if event_data.event else None
 
     return IssueNotificationData(
+        organization_id=event_data.group.project.organization_id,
         tags=tag_list,
         notes=notes,
         event_id=event_id,

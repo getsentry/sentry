@@ -9,12 +9,12 @@ import type {Node} from '@react-types/shared';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
 import {Flex} from '@sentry/scraps/layout';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
+import {FilterKeyDetailsTooltip} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKeyDetailsTooltip';
 import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {
@@ -76,19 +76,16 @@ function FilterKeyOperatorLabel({
   includeKeyLabel?: boolean;
   opLabel?: string;
 }) {
-  const {getFieldDefinition} = useSearchQueryBuilderConfig();
-  const fieldDefinition = getFieldDefinition(keyValue);
-
   if (!includeKeyLabel) {
     return <OpLabel>{opLabel}</OpLabel>;
   }
 
   return (
     <Flex align="center" gap="sm">
-      <Tooltip title={fieldDefinition?.desc}>
+      <FilterKeyDetailsTooltip keyName={keyValue}>
         <span>{keyLabel}</span>
         {opLabel ? <OpLabel> {opLabel}</OpLabel> : null}
-      </Tooltip>
+      </FilterKeyDetailsTooltip>
     </Flex>
   );
 }
@@ -390,17 +387,21 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
           filter_key: getKeyName(token.key),
         });
 
+        const focusValue =
+          initialOpSettingRef.current ||
+          (isRegexOperator(option.value) && !isRegexOperator(token.operator));
+
         dispatch({
           type: 'UPDATE_FILTER_OP',
           token,
           op: option.value,
-          focusOverride: initialOpSettingRef.current
+          focusOverride: focusValue
             ? {
                 itemKey: `${item.key}`,
                 part: 'value',
               }
             : undefined,
-          shouldCommitQuery: !initialOpSettingRef.current,
+          shouldCommitQuery: !focusValue,
         });
         initialOpSettingRef.current = false;
         setAutoFocus(false);

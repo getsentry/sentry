@@ -1,8 +1,8 @@
 import math
 import re
-from collections.abc import Collection, Mapping
+from collections.abc import Collection, Iterable, Mapping
 from datetime import datetime
-from typing import Any, Callable, Literal
+from typing import Callable, Literal, Protocol
 
 from django.db.models import Q
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -331,31 +331,40 @@ def is_internal_sentry_convention_attribute(
 
 
 def can_expose_attribute_to_api(
-    attribute: str, item_type: SupportedTraceItemType, include_internal: bool = False
+    attribute: str,
+    item_type: SupportedTraceItemType,
+    include_internal: bool = False,
+    include_internal_convention_attributes: bool = False,
 ) -> bool:
     """Return whether an attribute may be exposed by public API surfaces.
 
     The visibility check expands the requested attribute to its related public
     aliases, internal names, and replacement attributes because any of those may
     carry the metadata that marks the underlying convention as internal.
-    `include_internal` only allows those Sentry-owned internal convention
-    attributes. It does not bypass `can_expose_attribute`, which still filters
-    private attributes first.
+    `include_internal_convention_attributes` allows Sentry-owned attributes
+    marked internal by conventions without exposing unrelated internal
+    attributes. It does not bypass private attribute filtering.
     """
     candidates = _get_sentry_convention_visibility_candidates(attribute, item_type)
-
-    for candidate in candidates:
-        if not can_expose_attribute(candidate, item_type, include_internal=include_internal):
-            return False
-
-    # Private attributes are rejected above before this internal-only override
-    # is applied.
-    if include_internal:
-        return True
-
-    return not any(
+    is_internal_convention_attribute = any(
         is_internal_sentry_convention_attribute(candidate, item_type) for candidate in candidates
     )
+    include_internal_for_visibility = include_internal or (
+        include_internal_convention_attributes and is_internal_convention_attribute
+    )
+
+    for candidate in candidates:
+        if not can_expose_attribute(
+            candidate,
+            item_type,
+            include_internal=include_internal_for_visibility,
+        ):
+            return False
+
+    if include_internal or include_internal_convention_attributes:
+        return True
+
+    return not is_internal_convention_attribute
 
 
 def is_sentry_convention_replacement_attribute(
@@ -513,8 +522,18 @@ def check_attribute_names_exist(
 FORMAT_RE = r"\{((?:\w|\.)+)\}"
 
 
-def parse_formula(
-    formula: str, organization: Organization, resolve_column: Callable[[str], Any]
+class FormulaParam(Protocol):
+    name: str
+    param_type: int | None
+
+
+class FormulaTerm(Protocol):
+    name: str
+    value: str
+
+
+def get_and_parse_formula(
+    formula: str, organization: Organization, resolve_column: Callable[[str], object]
 ) -> str:
     """Given a formula, parse its parameters and create its rpc definition"""
     match = is_function(formula)
@@ -532,11 +551,30 @@ def parse_formula(
     saved_variables = saved_formula.variables.order_by("order")
     parameters = saved_variables.filter(kind=KindItemTypes.PARAM)
     saved_args = parameters.filter(~Q(param_type=ParamItemTypes.CALCULATION))
+    saved_calculations = parameters.filter(param_type=ParamItemTypes.CALCULATION)
+    saved_references = saved_variables.filter(kind=KindItemTypes.REFERENCE)
     if len(saved_args) != len(arguments):
         raise InvalidSearchQuery(
             f"{formula_name} expected {len(saved_args)} arguments got {len(arguments)} instead"
         )
+    return parse_formula(
+        saved_formula.formula,
+        arguments,
+        saved_args,
+        saved_calculations,
+        saved_references,
+        resolve_column,
+    )
 
+
+def parse_formula(
+    formula_definition: str,
+    arguments: list[str],
+    saved_args: Iterable[FormulaParam],
+    saved_calculations: Iterable[FormulaTerm],
+    saved_references: Iterable[FormulaTerm],
+    resolve_column: Callable[[str], object],
+) -> str:
     # Create a dict of param name -> the arg the user passed
     variables = {}
     for saved_arg, arg in zip(saved_args, arguments):
@@ -567,7 +605,6 @@ def parse_formula(
         variables[saved_arg.name] = arg
 
     # Resolve all the calculations
-    saved_calculations = parameters.filter(param_type=ParamItemTypes.CALCULATION)
     calculations = {}
     for calculation in saved_calculations:
         value = calculation.value
@@ -586,7 +623,6 @@ def parse_formula(
     variables.update(calculations)
 
     # Resolve all the references
-    saved_references = saved_variables.filter(kind=KindItemTypes.REFERENCE)
     references = {}
     for reference in saved_references:
         value = reference.value
@@ -599,10 +635,10 @@ def parse_formula(
         references[reference.name] = value
     variables.update(references)
 
-    final_equation = saved_formula.formula
+    final_equation = formula_definition[:]
     for param_name, user_arg in variables.items():
         final_equation = final_equation.replace(f"{{{param_name}}}", str(user_arg))
     if unmatched := re.findall(FORMAT_RE, final_equation):
         raise InvalidSearchQuery(f"Missing parameters for formula; {', '.join(unmatched)}")
 
-    return f"equation|{final_equation}"
+    return f"{final_equation}"
