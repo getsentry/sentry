@@ -95,7 +95,7 @@ export function Banner({
       <Container position="absolute" top={theme.space.xl} right={theme.space.xl}>
         <Button
           size="xs"
-          variant="transparent"
+          variant="link"
           icon={<IconClose />}
           onClick={dismiss}
           aria-label={t('Close')}
