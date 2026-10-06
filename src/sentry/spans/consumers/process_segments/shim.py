@@ -223,6 +223,9 @@ def _get_event_user(segment_span: CompatibleSpan) -> dict[str, Any] | None:
     if geo_data:
         user_data["geo"] = geo_data
 
+    if "id" in user_data:
+        user_data["id"] = str(user_data["id"])
+
     return user_data
 
 
