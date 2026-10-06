@@ -100,7 +100,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         assert missed_checkin.expected_time == next_checkin
         assert missed_checkin.monitor_config is None
         assert (
-            MonitorCheckInConfig.objects.get(id=missed_checkin.config_snapshot_id).config
+            MonitorCheckInConfig.objects.get(id=missed_checkin.checkin_config_id).config
             == monitor.config
         )
 
@@ -265,7 +265,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         assert missed_checkin.expected_time == checkin_date
         assert missed_checkin.monitor_config is None
         assert (
-            MonitorCheckInConfig.objects.get(id=missed_checkin.config_snapshot_id).config
+            MonitorCheckInConfig.objects.get(id=missed_checkin.checkin_config_id).config
             == monitor.config
         )
 

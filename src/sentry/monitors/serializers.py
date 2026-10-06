@@ -365,9 +365,9 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
             env.id: env
             for env in Environment.objects.filter(id__in=[me.environment_id for me in monitor_envs])
         }
-        config_snapshots = dict(
+        checkin_configs = dict(
             MonitorCheckInConfig.objects.filter(
-                id__in={c.config_snapshot_id for c in item_list if c.config_snapshot_id}
+                id__in={c.checkin_config_id for c in item_list if c.checkin_config_id}
             ).values_list("id", "config")
         )
 
@@ -378,8 +378,8 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
                 env_name = env.name if env else "[removed]"
 
             attrs[checkin]["environment_name"] = env_name
-            attrs[checkin]["monitor_config"] = config_snapshots.get(
-                checkin.config_snapshot_id, checkin.monitor_config
+            attrs[checkin]["monitor_config"] = checkin_configs.get(
+                checkin.checkin_config_id, checkin.monitor_config
             )
 
         if self._expand("groups") and self.start and self.end:
