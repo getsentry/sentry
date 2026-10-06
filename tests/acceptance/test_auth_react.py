@@ -26,6 +26,24 @@ PASSWORD = "correct-password"
 
 @no_silo_test
 class ReactAuthTest(AcceptanceTestCase):
+    def test_single_organization_registration(self) -> None:
+        organization = self.create_organization(slug="single-registration")
+
+        with (
+            self.options({"auth.v2.enabled": True, "auth.allow-registration": True}),
+            self.feature("auth:register"),
+            self.settings(SENTRY_SINGLE_ORGANIZATION=True, SENTRY_ORGANIZATION=organization.id),
+        ):
+            self.browser.get("/auth/login/")
+            self.browser.click_when_visible(xpath="//a[normalize-space(.)='Create an account']")
+            self.browser.wait_until('input[name="name"]')
+            self.browser.element('input[name="name"]').send_keys("New User")
+            self.browser.element('input[name="email"]').send_keys("new.user@example.com")
+            self.browser.element('input[name="password"]').send_keys(PASSWORD)
+            self.browser.click_when_visible(xpath="//button[normalize-space(.)='Create account']")
+
+            self.wait_for_authenticated_organization(organization.slug)
+
     def open_password_reset(self, user: User) -> str:
         password_hash = LostPasswordHash.for_user(user)
         path = reverse("sentry-account-recover-confirm", args=[user.id, password_hash.hash])

@@ -24,6 +24,7 @@ const ORIGIN_SPAN_ID = 'b415e097df49bf1c';
 const ORIGIN_TRACE_ID = '6edf623ed48e4172a54e7fbee3b40c5d';
 const CACHE_KEY = '133fefc9b81c';
 const SOURCE_FILE = 'app/(cached-nesting)/mixed-lifetimes/[id]/page.tsx';
+const ORIGIN_SPAN_URL = `/projects/org-slug/project_slug/trace-items/${ORIGIN_SPAN_ID}/`;
 
 describe('CacheLifecycleSection', () => {
   const organization = OrganizationFixture();
@@ -36,6 +37,8 @@ describe('CacheLifecycleSection', () => {
   });
 
   function makeCacheNode(op: string) {
+    // Recent, so the fill time of short-lived entries is inside span retention.
+    const startTimestamp = Date.now() / 1000 - 60;
     return new EapSpanNode(
       null,
       makeEAPSpan({
@@ -43,8 +46,8 @@ describe('CacheLifecycleSection', () => {
         op,
         project_id: 1,
         project_slug: project.slug,
-        start_timestamp: 1000,
-        end_timestamp: 1000.001,
+        start_timestamp: startTimestamp,
+        end_timestamp: startTimestamp + 0.001,
       }),
       {organization}
     );
@@ -102,7 +105,8 @@ describe('CacheLifecycleSection', () => {
 
   function mockOriginSpanRequest() {
     return MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/trace-items/${ORIGIN_SPAN_ID}/`,
+      url: ORIGIN_SPAN_URL,
+      match: [MockApiClient.matchQuery({referrer: 'api.trace-view.cache-origin'})],
       body: {
         itemId: ORIGIN_SPAN_ID,
         timestamp: '2026-10-01T08:43:49Z',
@@ -194,6 +198,109 @@ describe('CacheLifecycleSection', () => {
     expect(screen.getByText('cache.put took 0.37ms')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Open origin span'})).toBeInTheDocument();
     expect(originRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows a skeleton above the button while the origin span loads', async () => {
+    mockOriginSpanRequest();
+
+    render(
+      <TestSection
+        node={makeCacheNode('cache.get')}
+        attributes={makeCacheAttributes({operation: 'get', hit: true, itemAgeSeconds: 9})}
+        links={[makeOriginLink()]}
+        location={location}
+        organization={organization}
+        onTabScrollToNode={jest.fn()}
+      />
+    );
+
+    expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(2);
+    expect(screen.getByRole('button', {name: 'Open origin span'})).toBeInTheDocument();
+    expect(await screen.findByText('GET /mixed-lifetimes/[id]')).toBeInTheDocument();
+    expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
+  });
+
+  it('skips the fill span request when the fill is past span retention', () => {
+    const originRequest = mockOriginSpanRequest();
+
+    render(
+      <TestSection
+        node={makeCacheNode('cache.get')}
+        attributes={makeCacheAttributes({
+          operation: 'get',
+          hit: true,
+          itemAgeSeconds: 50 * 24 * 60 * 60,
+        })}
+        links={[makeOriginLink()]}
+        location={location}
+        organization={organization}
+        onTabScrollToNode={jest.fn()}
+      />
+    );
+
+    expect(
+      screen.getByText('Origin trace is older than your 30-day span retention')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Open origin span'})
+    ).not.toBeInTheDocument();
+    expect(originRequest).not.toHaveBeenCalled();
+  });
+
+  // A 404 can mean the span is in another project, and the trace view can
+  // still find it there.
+  it.each([404, 500])(
+    'keeps the origin link when the fill span request fails with %s',
+    async statusCode => {
+      MockApiClient.addMockResponse({
+        url: ORIGIN_SPAN_URL,
+        statusCode,
+        body: {detail: 'Error'},
+      });
+
+      render(
+        <TestSection
+          node={makeCacheNode('cache.get')}
+          attributes={makeCacheAttributes({
+            operation: 'get',
+            hit: true,
+            itemAgeSeconds: 9,
+          })}
+          links={[makeOriginLink()]}
+          location={location}
+          organization={organization}
+          onTabScrollToNode={jest.fn()}
+        />
+      );
+
+      expect(await screen.findByText('Span preview unavailable')).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Open origin span'})).toBeInTheDocument();
+    }
+  );
+
+  it('does not fetch a fill span from an unsampled trace', () => {
+    const originRequest = mockOriginSpanRequest();
+
+    render(
+      <TestSection
+        node={makeCacheNode('cache.get')}
+        attributes={makeCacheAttributes({operation: 'get', hit: true, itemAgeSeconds: 9})}
+        links={[makeOriginLink({sampled: false})]}
+        location={location}
+        organization={organization}
+        onTabScrollToNode={jest.fn()}
+      />
+    );
+
+    expect(
+      screen.getByText(
+        'The trace that filled this cache entry was not sampled, so it is not available'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Open origin span'})
+    ).not.toBeInTheDocument();
+    expect(originRequest).not.toHaveBeenCalled();
   });
 
   // The backend currently drops typed link attributes (see the TODO in

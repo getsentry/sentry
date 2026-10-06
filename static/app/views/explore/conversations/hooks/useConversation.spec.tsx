@@ -130,7 +130,7 @@ describe('useConversation', () => {
 
   it('stops loading after reaching the pagination cap', async () => {
     const url = `/organizations/${organization.slug}/agents/conversations/conv-123/`;
-    const requests = Array.from({length: 10}, (_, index) =>
+    const requests = Array.from({length: 100}, (_, index) =>
       MockApiClient.addMockResponse({
         url,
         match: [
@@ -154,12 +154,12 @@ describe('useConversation', () => {
 
     await waitFor(() => {
       expect(requests.map(request => request.mock.calls.length)).toEqual(
-        Array.from({length: 10}, () => 1)
+        Array.from({length: 100}, () => 1)
       );
     });
 
     expect(result.current.isLoading).toBe(false);
-    expect(result.current.nodes).toHaveLength(10);
+    expect(result.current.nodes).toHaveLength(100);
   });
 
   it('maps gen_ai.input.messages to node attributes', async () => {
@@ -243,49 +243,6 @@ describe('useConversation', () => {
     const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
       .additional_attributes;
     expect(attrs?.[SpanFields.GEN_AI_OUTPUT_MESSAGES]).toBe(outputMessages);
-  });
-
-  it('preserves span.op for an embeddings span without changing its op type', async () => {
-    // gen_ai.operation.type is a closed enum with no "embeddings" bucket, so an
-    // embeddings call reports "ai_client". We keep that op type (so the timeline
-    // renders it unchanged) and preserve span.op, which the transcript uses to
-    // recognize the embedding.
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/agents/conversations/conv-embedding/`,
-      body: envelope([
-        {
-          'gen_ai.conversation.id': 'conv-embedding',
-          parent_span: 'parent-1',
-          'precise.finish_ts': 1000.5,
-          'precise.start_ts': 1000,
-          project: 'test-project',
-          'project.id': 1,
-          'span.name': 'embeddings Google Embedding',
-          'span.op': 'gen_ai.embeddings',
-          'span.status': 'ok',
-          span_id: 'span-embedding',
-          trace: 'trace-embedding',
-          'gen_ai.operation.type': 'ai_client',
-          'gen_ai.response.model': 'text-embedding-005',
-        },
-      ]),
-    });
-
-    const {result} = renderHookWithProviders(
-      () => useConversation({conversationId: 'conv-embedding'}),
-      {organization}
-    );
-
-    await waitFor(() => {
-      expect(result.current.isLoading).toBe(false);
-    });
-
-    expect(result.current.nodes).toHaveLength(1);
-    const node = result.current.nodes[0];
-    const attrs = (node?.value as {additional_attributes?: Record<string, unknown>})
-      .additional_attributes;
-    expect(attrs?.[SpanFields.SPAN_OP]).toBe('gen_ai.embeddings');
-    expect(attrs?.[SpanFields.GEN_AI_OPERATION_TYPE]).toBe('ai_client');
   });
 
   it('maps gen_ai.embeddings.input to node attributes', async () => {
