@@ -52,6 +52,15 @@ describe('ConnectRepositoryModal', () => {
     );
   }
 
+  async function openRepoMenu() {
+    await userEvent.click(screen.getByText('Search repositories'));
+  }
+
+  async function selectRepository(name: string) {
+    await openRepoMenu();
+    await userEvent.click(await screen.findByText(name));
+  }
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -93,12 +102,15 @@ describe('ConnectRepositoryModal', () => {
       await screen.findByText('Select a repository first to configure code paths')
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
+    expect(
+      screen.queryByRole('textbox', {name: /stack trace prefix/i})
+    ).not.toBeInTheDocument();
   });
 
   it('allows selecting a repository', async () => {
     renderModal();
 
-    await userEvent.click(screen.getByText('Search repositories'));
+    await openRepoMenu();
     expect(await screen.findByText('getsentry/sentry')).toBeInTheDocument();
     expect(screen.getByText('getsentry/relay')).toBeInTheDocument();
 
@@ -108,5 +120,61 @@ describe('ConnectRepositoryModal', () => {
     expect(
       screen.queryByText('Select a repository first to configure code paths')
     ).not.toBeInTheDocument();
+  });
+
+  it('shows the path list after selecting a repository and gates Save on path content', async () => {
+    renderModal();
+
+    await selectRepository('getsentry/sentry');
+
+    expect(
+      screen.queryByText('Select a repository first to configure code paths')
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', {name: /stack trace prefix/i})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: /stack trace prefix/i}),
+      'src/'
+    );
+    expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: /repository prefix/i}),
+      'app/'
+    );
+    expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
+  });
+
+  it('seeds the branch field with the repository default branch', async () => {
+    renderModal();
+
+    await selectRepository('getsentry/relay');
+
+    expect(screen.getByRole('textbox', {name: /branch/i})).toHaveValue('master');
+  });
+
+  it('supports adding another path inside the modal', async () => {
+    renderModal();
+
+    await selectRepository('getsentry/sentry');
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: /stack trace prefix/i}),
+      'src/'
+    );
+    await userEvent.type(
+      screen.getByRole('textbox', {name: /repository prefix/i}),
+      'app/'
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
+
+    expect(screen.getByText(/Paths \(2\)/)).toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', {name: /stack trace prefix/i})
+    ).toBeInTheDocument();
   });
 });

@@ -6,6 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {SCM_STEP_CONTENT_WIDTH} from 'sentry/components/onboarding/consts';
 import {
   IconBot,
   IconGraph,
@@ -19,16 +20,13 @@ import {
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useOnboardingAgentSetupRun} from 'sentry/views/onboarding/agenticProgress/useOnboardingAgentSetupRun';
 import {ONBOARDING_ENTER, ONBOARDING_STAGGER} from 'sentry/views/onboarding/animations';
 import {
   NewWelcomeProductCard,
   type ProductOption,
 } from 'sentry/views/onboarding/components/newWelcomeProductCard';
-import {
-  useWelcomeAgentRun,
-  WelcomeAgentSetup,
-} from 'sentry/views/onboarding/components/welcomeAgentSetup';
-import {SCM_STEP_CONTENT_WIDTH} from 'sentry/views/onboarding/consts';
+import {WelcomeAgentSetup} from 'sentry/views/onboarding/components/welcomeAgentSetup';
 import {OnboardingWelcomeProductId, type StepProps} from 'sentry/views/onboarding/types';
 import {useWelcomeAnalyticsEffect} from 'sentry/views/onboarding/useWelcomeAnalyticsEffect';
 import {useWelcomeHandleComplete} from 'sentry/views/onboarding/useWelcomeHandleComplete';
@@ -142,9 +140,12 @@ export function NewWelcomeUI(props: StepProps) {
     isSetupComplete,
     hasRunFailed,
     hasInitFailed,
+    hasProgressFailed,
+    refreshRun,
     restartRun,
-  } = useWelcomeAgentRun({enabled: showAgentSetup});
-  const showAgentHeading = showAgentSetup && isAgentConnected;
+  } = useOnboardingAgentSetupRun({enabled: showAgentSetup});
+  const showAgentHeading =
+    showAgentSetup && (isAgentConnected || isSetupComplete || hasRunFailed);
   const scmHeading = showAgentHeading
     ? getAgentHeading({hasRunFailed, isSetupComplete})
     : {
@@ -214,6 +215,8 @@ export function NewWelcomeUI(props: StepProps) {
               >
                 <WelcomeAgentSetup
                   hasInitFailed={hasInitFailed}
+                  hasProgressFailed={hasProgressFailed}
+                  onRefresh={() => void refreshRun()}
                   isAgentConnected={isAgentConnected}
                   onboardingCode={onboardingCode}
                   onCopyCommand={handleCopyCommand}

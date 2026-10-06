@@ -108,7 +108,7 @@
     "@rspack/plugin-react-refresh": "2.0.2",
     "@sentry-internal/global-search": "^1.0.0",
     "@sentry/browser": "11.0.0",
-    "@sentry/conventions": "^0.24.0",
+    "@sentry/conventions": "^0.25.0",
     "@sentry/core": "11.0.0",
     "@sentry/node": "11.0.0",
     "@sentry/react": "11.0.0",
@@ -346,7 +346,8 @@
     "patchedDependencies": {
       "zod@4.3.5": "patches/zod@4.3.5.patch",
       "zrender@6.1.0": "patches/zrender@6.1.0.patch",
-      "css-tree@3.2.1": "patches/css-tree@3.2.1.patch"
+      "css-tree@3.2.1": "patches/css-tree@3.2.1.patch",
+      "jest-runtime@30.5.1": "patches/jest-runtime@30.5.1.patch"
     }
   },
   "APIMethod": "stub",

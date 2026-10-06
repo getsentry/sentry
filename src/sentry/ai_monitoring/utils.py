@@ -77,24 +77,6 @@ def _extract_last_assistant_message(messages: Any) -> str | None:
     return None
 
 
-def get_first_input_message(row: Mapping[str, Any]) -> str | None:
-    first_input = _extract_first_user_message(row.get("gen_ai.input.messages"))
-    return first_input or _extract_first_user_message(row.get("gen_ai.request.messages"))
-
-
-def get_last_output(row: Mapping[str, Any]) -> str | None:
-    output_messages = row.get("gen_ai.output.messages")
-    if output_messages:
-        if output_messages == FILTERED:
-            return FILTERED
-        output = extract_assistant_output(output_messages, "assistant")["response_text"]
-        if output:
-            return output
-
-    response_text = row.get("gen_ai.response.text")
-    return response_text if isinstance(response_text, str) and response_text else None
-
-
 def get_aggregated_first_input(row: Mapping[str, Any]) -> str | None:
     input_timestamp = timestamp_to_float(row.get("input_messages_timestamp"))
     request_timestamp = timestamp_to_float(row.get("request_messages_timestamp"))

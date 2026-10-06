@@ -35,7 +35,7 @@ replays: 0001_squashed_0007_organizationmember_replay_access
 
 seer: 0037_rename_agentic_triage_result
 
-sentry: 1204_drop_alertruleactivity
+sentry: 1205_grouphistory_group_status_date_added_index
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 

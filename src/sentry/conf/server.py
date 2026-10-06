@@ -2737,6 +2737,15 @@ SENTRY_BUILTIN_SOURCES = {
         "url": "https://driver-symbols.nvidia.com/",
         "is_public": True,
     },
+    "intel": {
+        "type": "http",
+        "id": "sentry:intel",
+        "name": "Intel",
+        "layout": {"type": "symstore"},
+        "filters": {"filetypes": ["pe"]},
+        "url": "https://software.intel.com/sites/downloads/symbols/",
+        "is_public": True,
+    },
     "chromium": {
         "type": "http",
         "id": "sentry:chromium",

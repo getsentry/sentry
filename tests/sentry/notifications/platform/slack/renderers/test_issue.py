@@ -77,6 +77,7 @@ class IssueAlertInvocationMixin(TestCase):
 class IssueNotificationDataTest(IssueAlertInvocationMixin):
     def test_source(self) -> None:
         data = IssueNotificationData(
+            organization_id=1,
             group_id=self.group.id,
             rule=SerializableRuleProxy(
                 id=1, label="Test Detector", data={}, project_id=self.project.id
@@ -147,7 +148,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
     def test_render_raises_on_invalid_data(self) -> None:
         from sentry.notifications.platform.templates.seer import SeerAutofixError
 
-        invalid_data = SeerAutofixError(error_message="test")
+        invalid_data = SeerAutofixError(organization_id=1, error_message="test")
         rendered_template = NotificationRenderedTemplate(subject="test", body=[])
 
         with pytest.raises(ValueError, match="does not support"):
@@ -335,6 +336,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
 class IssueAlertProviderDispatchTest(TestCase):
     def test_provider_returns_issue_renderer(self) -> None:
         data = IssueNotificationData(
+            organization_id=1,
             group_id=self.group.id,
             rule=SerializableRuleProxy(
                 id=1, label="Test Detector", data={}, project_id=self.project.id
