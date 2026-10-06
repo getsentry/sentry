@@ -142,6 +142,7 @@ class OutcomeReason(StrEnum):
     NO_CACHE_ATTRIBUTES = "no_cache_attributes"
     # A probe the outcome depended on went unanswered; see `ProbeGap`.
     BUDGET_EXHAUSTED = "budget_exhausted"
+    OUT_OF_TIME = "out_of_time"
     UNQUERYABLE_CALL_SITE = "unqueryable_call_site"
     PROBE_FAILED = "probe_failed"
 
@@ -150,6 +151,8 @@ class ProbeGap(StrEnum):
     """Why a probe left its question unanswered."""
 
     BUDGET_EXHAUSTED = "budget_exhausted"
+    # Past the point in a project's run where no more probes start.
+    OUT_OF_TIME = "out_of_time"
     # A call-site value the search grammar cannot match exactly.
     UNQUERYABLE = "unqueryable_call_site"
     FAILED = "probe_failed"
@@ -157,6 +160,7 @@ class ProbeGap(StrEnum):
 
 PROBE_GAP_REASONS: dict[ProbeGap, OutcomeReason] = {
     ProbeGap.BUDGET_EXHAUSTED: OutcomeReason.BUDGET_EXHAUSTED,
+    ProbeGap.OUT_OF_TIME: OutcomeReason.OUT_OF_TIME,
     ProbeGap.UNQUERYABLE: OutcomeReason.UNQUERYABLE_CALL_SITE,
     ProbeGap.FAILED: OutcomeReason.PROBE_FAILED,
 }
@@ -221,6 +225,9 @@ class CallSiteWarmth:
     """
 
     total_call_count: float
+    # The stored spans behind the counts. Fewer than the call-site aggregate saw
+    # means a more heavily sampled answer, and so understated warmth.
+    total_sample_count: float
     warm_call_count: float
     long_ttl_warm_call_count: float
 
@@ -228,6 +235,7 @@ class CallSiteWarmth:
     def from_buckets(cls, buckets: Sequence[WarmthBucket]) -> CallSiteWarmth:
         return cls(
             total_call_count=sum(bucket.call_count for bucket in buckets if bucket.call_count > 0),
+            total_sample_count=sum(bucket.sample_count for bucket in buckets),
             warm_call_count=_warm_call_count(buckets),
             long_ttl_warm_call_count=_warm_call_count(
                 _widen_buckets(buckets, LONG_CACHE_TTL_MINUTES)
@@ -502,6 +510,11 @@ DIVERGENCE_WINDOW_CHARS = 128
 # cut at this fixed size instead.
 STABLE_BLOCK_SEGMENT_CHARS = 256
 
+# Aligning pieces is quadratic in repeated ones, so a prompt of many short lines
+# (padding, tables, scraped text) is cut at the fixed size too. Prose and code
+# within the fetched length stay under this.
+MAX_STABLE_BLOCK_LINE_SEGMENTS = 1_000
+
 
 class DivergenceKind(StrEnum):
     """What sits at the point where a call site's sampled prompts stop agreeing."""
@@ -586,6 +599,7 @@ class PromptDiagnosisGap(StrEnum):
     # Sending prompt text is opt-in and usually off, so this is the common case.
     NO_PROMPT_TEXT = "no_prompt_text"
     TOO_FEW_SAMPLES = "too_few_samples"
+    OUT_OF_TIME = "out_of_time"
     FAILED = "failed"
 
 
@@ -599,9 +613,10 @@ def _common_prefix_length(prompts: Sequence[str]) -> int:
 
 def _segment(text: str) -> list[str]:
     """Cut a prompt tail into pieces that can be aligned across samples, at
-    newlines either literal or escaped by the message-list serialization."""
+    newlines either literal or escaped by the message-list serialization, or at
+    a fixed size where those are absent or too many."""
     pieces = [piece for piece in re.split(r"(?<=\\n)|(?<=\n)", text) if piece]
-    if len(pieces) > 1:
+    if 1 < len(pieces) <= MAX_STABLE_BLOCK_LINE_SEGMENTS:
         return pieces
     return [
         text[offset : offset + STABLE_BLOCK_SEGMENT_CHARS]

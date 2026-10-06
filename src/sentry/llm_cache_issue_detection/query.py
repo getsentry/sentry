@@ -76,8 +76,9 @@ SAMPLE_CALLS_QUERY_LIMIT = SAMPLE_CALLS_LIMIT * 3
 PROMPT_SAMPLES_LIMIT = 4
 PROMPT_SAMPLES_QUERY_LIMIT = PROMPT_SAMPLES_LIMIT * 3
 
-# Bounds how much customer content is read, generously next to the lengths the
-# diagnosis reasons about.
+# Bounds how much customer content the diagnosis holds, generously next to the
+# lengths it reasons about. Applied as rows come back, so the full value is still
+# transferred once.
 PROMPT_MAX_CHARS = 32_768
 
 

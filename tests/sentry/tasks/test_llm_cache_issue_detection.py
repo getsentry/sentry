@@ -1,3 +1,4 @@
+import traceback
 from collections import Counter
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
@@ -6,6 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.db.models import F
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry import features
 from sentry.exceptions import InvalidSearchQuery
@@ -17,6 +19,7 @@ from sentry.tasks import llm_cache_issue_detection
 from sentry.tasks.llm_cache_issue_detection import (
     FINDINGS_PER_PROJECT_LIMIT,
     MAX_WARMTH_PROBES_PER_PROJECT,
+    PROBE_TIME_LIMIT_SECS,
     detect_llm_cache_issues_for_project,
     run_llm_cache_issue_detection,
 )
@@ -69,6 +72,7 @@ def bursty(stats: CallSiteStats) -> CallSiteWarmth:
     """Warmth for a call site whose calls arrive close enough together to cache."""
     return CallSiteWarmth(
         total_call_count=stats.call_count,
+        total_sample_count=stats.call_count,
         warm_call_count=stats.call_count * 0.9,
         long_ttl_warm_call_count=stats.call_count * 0.9,
     )
@@ -78,6 +82,7 @@ def sparse(stats: CallSiteStats) -> CallSiteWarmth:
     """Warmth for a call site whose calls mostly arrive too far apart to cache."""
     return CallSiteWarmth(
         total_call_count=stats.call_count,
+        total_sample_count=stats.call_count,
         warm_call_count=stats.call_count * 0.1,
         long_ttl_warm_call_count=stats.call_count * 0.1,
     )
@@ -162,8 +167,9 @@ class RunLLMCacheIssueDetectionTest(TestCase):
             run_llm_cache_issue_detection()
 
         assert self.dispatched_project_ids(mock_delay) == {agent_project.id}
-        # A reason that skipped nothing is left out.
-        assert counted(mock_count, "projects.skipped") == [(1, {"reason": "no_agent_spans"})]
+        # Left out by the query rather than counted, and a reason that skipped
+        # nothing has no entry.
+        assert counted(mock_count, "projects.skipped") == []
         assert counted(mock_count, "projects.dispatched") == [(1, {})]
 
     @patch("sentry_sdk.metrics.count")
@@ -535,6 +541,36 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
         ]
         assert self.summary()["warmth_probes_sent"] == 2
 
+    def test_stops_probing_once_out_of_time(self) -> None:
+        first, second = agents(NOT_CACHING_STATS, 2)
+        clock = self.enterContext(
+            patch("sentry.tasks.llm_cache_issue_detection.monotonic", return_value=0.0)
+        )
+
+        def slow_warmth(project: Project, stats: CallSiteStats, window: Any) -> CallSiteWarmth:
+            clock.return_value = PROBE_TIME_LIMIT_SECS
+            return bursty(stats)
+
+        self.mock_fetch_warmth.side_effect = slow_warmth
+
+        self.detect(first, second)
+
+        # Every candidate is still reported, with what was left unmeasured.
+        assert self.mock_fetch_warmth.call_count == 1
+        answered = self.candidate(first)
+        assert answered["disposition"] == "would_create"
+        assert answered["sample_calls_gap"] == "out_of_time"
+        assert answered["prompt_diagnosis_gap"] == "out_of_time"
+        assert not self.mock_fetch_samples.called
+        assert not self.mock_fetch_prompts.called
+        unanswered = self.candidate(second)
+        assert (unanswered["outcome"], unanswered["reason"], unanswered["warmth_gap"]) == (
+            "ineligible",
+            "out_of_time",
+            "out_of_time",
+        )
+        assert self.summary()["candidate_count"] == 2
+
     def test_files_a_finding_whose_sample_calls_could_not_be_read(self) -> None:
         self.mock_fetch_samples.side_effect = InvalidSearchQuery("bad term")
 
@@ -657,6 +693,26 @@ class DetectLLMCacheIssuesForProjectTest(TestCase):
             if call.args[0] == "llm_cache_issue_detection.prompt_diagnosis_failed"
         ]
         assert failure.kwargs == {"extra": {"project_id": self.project.id, "error": "ValueError"}}
+
+    def test_keeps_prompt_text_out_of_an_interrupted_diagnosis(self) -> None:
+        # The worker's processing deadline is not an Exception, so it escapes,
+        # and every frame its traceback unwinds would be captured with its locals.
+        self.mock_fetch_prompts.return_value = DIVERGING_PROMPTS
+
+        with (
+            patch(
+                "sentry.tasks.llm_cache_issue_detection.diagnose_prompt_divergence",
+                side_effect=ProcessingDeadlineExceeded,
+            ),
+            pytest.raises(ProcessingDeadlineExceeded) as raised,
+        ):
+            self.detect(NOT_CACHING_STATS)
+
+        assert raised.value.__context__ is None
+        frame_locals = repr(
+            [frame.f_locals for frame, _ in traceback.walk_tb(raised.value.__traceback__)]
+        )
+        assert "Summarize the rows below" not in frame_locals
 
     def test_reports_what_the_aggregate_could_not_attribute(self) -> None:
         self.detect(

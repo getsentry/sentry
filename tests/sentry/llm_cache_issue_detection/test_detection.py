@@ -231,6 +231,7 @@ def test_warmth_charges_each_stored_span_as_a_cold_start(
     )
 
     assert warmth.total_call_count == 2_000
+    assert warmth.total_sample_count == 200 * sample_count
     assert warmth.cacheable_share == pytest.approx(cacheable_share)
 
 
@@ -242,7 +243,10 @@ NOT_CACHING = Classification(CacheOutcome.NOT_CACHING, OutcomeReason.CACHE_ACTIV
     [
         pytest.param(
             CallSiteWarmth(
-                total_call_count=50_000, warm_call_count=10_000, long_ttl_warm_call_count=10_000
+                total_call_count=50_000,
+                total_sample_count=50_000,
+                warm_call_count=10_000,
+                long_ttl_warm_call_count=10_000,
             ),
             Classification(CacheOutcome.INELIGIBLE, OutcomeReason.LOW_CACHEABLE_SHARE),
             id="mostly-isolated-calls",
@@ -250,6 +254,7 @@ NOT_CACHING = Classification(CacheOutcome.NOT_CACHING, OutcomeReason.CACHE_ACTIV
         pytest.param(
             CallSiteWarmth(
                 total_call_count=300,
+                total_sample_count=300,
                 warm_call_count=MIN_CALLS_FOR_CONFIDENCE - 1,
                 long_ttl_warm_call_count=MIN_CALLS_FOR_CONFIDENCE - 1,
             ),
@@ -258,7 +263,10 @@ NOT_CACHING = Classification(CacheOutcome.NOT_CACHING, OutcomeReason.CACHE_ACTIV
         ),
         pytest.param(
             CallSiteWarmth(
-                total_call_count=50_000, warm_call_count=10_000, long_ttl_warm_call_count=40_000
+                total_call_count=50_000,
+                total_sample_count=50_000,
+                warm_call_count=10_000,
+                long_ttl_warm_call_count=40_000,
             ),
             Classification(CacheOutcome.INELIGIBLE, OutcomeReason.WARM_ONLY_AT_LONG_TTL),
             id="warm-only-at-the-long-ttl",
@@ -269,6 +277,11 @@ NOT_CACHING = Classification(CacheOutcome.NOT_CACHING, OutcomeReason.CACHE_ACTIV
             ProbeGap.BUDGET_EXHAUSTED,
             Classification(CacheOutcome.INELIGIBLE, OutcomeReason.BUDGET_EXHAUSTED),
             id="warmth-budget-spent",
+        ),
+        pytest.param(
+            ProbeGap.OUT_OF_TIME,
+            Classification(CacheOutcome.INELIGIBLE, OutcomeReason.OUT_OF_TIME),
+            id="warmth-out-of-time",
         ),
         pytest.param(
             ProbeGap.UNQUERYABLE,
@@ -283,6 +296,7 @@ NOT_CACHING = Classification(CacheOutcome.NOT_CACHING, OutcomeReason.CACHE_ACTIV
         pytest.param(
             CallSiteWarmth(
                 total_call_count=MIN_CALLS_FOR_CONFIDENCE / MIN_CACHEABLE_SHARE,
+                total_sample_count=MIN_CALLS_FOR_CONFIDENCE / MIN_CACHEABLE_SHARE,
                 warm_call_count=MIN_CALLS_FOR_CONFIDENCE,
                 long_ttl_warm_call_count=MIN_CALLS_FOR_CONFIDENCE,
             ),
@@ -716,3 +730,17 @@ def test_the_stable_block_does_not_reach_back_past_the_divergence() -> None:
     assert divergence is not None
     assert divergence.common_prefix_chars == len(shared_prefix)
     assert divergence.stable_block_chars == 0
+
+
+def test_aligns_a_prompt_of_many_short_lines_in_fixed_size_pieces() -> None:
+    # Aligning pieces is quadratic in repeated ones: line by line, comparing this
+    # padding would take tens of seconds.
+    padding = "\\n" * 16_000
+    prompts = [
+        f"As of {moment}. {padding}" for moment in ("2026-08-19T10:15:00Z", "2026-08-19T11:47:31Z")
+    ]
+
+    divergence = diagnose_prompt_divergence(prompts)
+
+    assert divergence is not None
+    assert divergence.stable_block_chars >= len(padding) * 0.9
