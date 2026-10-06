@@ -278,6 +278,10 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
       // Call onDataFetched with transformed results
       onDataFetched?.({
         timeseriesResults: (hookResults as any).timeseriesResults,
+        confidence: hookResults.confidence,
+        dataScanned: hookResults.dataScanned,
+        isSampled: hookResults.isSampled,
+        sampleCount: hookResults.sampleCount,
       });
     } else {
       hookResults.rawData.forEach((data: any) => {
