@@ -11,21 +11,37 @@ describe('AttributeDetailsTooltip', () => {
     ConfigStore.set('user', UserFixture());
   });
 
-  it.each([
-    ['logger.name', 'Public'],
-    ['sentry.dsc.sampled', 'Internal'],
-    ['checkout.cart_size', 'Public'],
-  ])('shows staff the visibility of %s', async (attributeKey, visibility) => {
+  it('shows staff the visibility of internal attributes', async () => {
     ConfigStore.set('user', UserFixture({isStaff: true, isSuperuser: false}));
     render(
-      <AttributeDetailsTooltip attributeKey={attributeKey} fieldDefinitionType="log" />
+      <AttributeDetailsTooltip
+        attributeKey="sentry.dsc.sampled"
+        fieldDefinitionType="log"
+      />
     );
 
-    await userEvent.hover(screen.getByText(attributeKey));
+    await userEvent.hover(screen.getByText('sentry.dsc.sampled'));
 
     expect(await screen.findByText('Visibility')).toBeInTheDocument();
-    expect(screen.getByText(visibility)).toBeInTheDocument();
+    expect(screen.getByText('Internal')).toBeInTheDocument();
   });
+
+  it.each(['logger.name', 'checkout.cart_size'])(
+    'omits visibility for staff viewing public attribute %s',
+    async attributeKey => {
+      ConfigStore.set('user', UserFixture({isStaff: true}));
+      render(
+        <AttributeDetailsTooltip attributeKey={attributeKey} fieldDefinitionType="log" />
+      );
+
+      await userEvent.hover(screen.getByText(attributeKey));
+
+      expect(await screen.findByText('Description')).toBeInTheDocument();
+      expect(screen.queryByText('Visibility')).not.toBeInTheDocument();
+      expect(screen.queryByText('Public')).not.toBeInTheDocument();
+      expect(screen.queryByText('Internal')).not.toBeInTheDocument();
+    }
+  );
 
   it.each(['logger.name', 'sentry.dsc.sampled'])(
     'omits visibility for non-staff viewing %s, even in superuser mode',

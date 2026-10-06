@@ -65,6 +65,10 @@ export function AttributeDetailsTooltip({
         <AttributeDetails
           description={fieldDefinition?.desc ?? DEFAULT_TAG_DESCRIPTION}
           isAddedBySentry={Boolean(fieldDefinition)}
+          isInternal={
+            user.isStaff &&
+            getAttributeVisibility(attributeKey, attributeName) === 'internal'
+          }
           isScrubbed={isScrubbed}
           name={
             <Text bold monospace wordBreak="break-word">
@@ -73,9 +77,6 @@ export function AttributeDetailsTooltip({
           }
           valueType={
             fieldDefinition?.valueType ?? defaultValueType ?? FieldValueType.STRING
-          }
-          visibility={
-            user.isStaff ? getAttributeVisibility(attributeKey, attributeName) : undefined
           }
         />
       }
