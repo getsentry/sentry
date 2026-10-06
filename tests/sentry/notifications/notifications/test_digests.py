@@ -92,6 +92,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
     def setUp(self) -> None:
         super().setUp()
         self.rule = self.create_project_rule(project=self.project)
+        self.workflow_id = int(self.rule.data["actions"][0]["workflow_id"])
         self.key = f"mail:p:{self.project.id}:IssueOwners::AllMembers"
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
         for i in range(USER_COUNT - 1):
@@ -123,7 +124,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
             EmailNotificationSent(
                 category="digest",
                 notification_uuid="ANY",
-                alert_id=self.rule.id,
+                alert_id=self.workflow_id,
                 project_id=self.project.id,
                 organization_id=self.organization.id,
                 id=0,
@@ -146,7 +147,7 @@ class DigestNotificationTest(TestCase, OccurrenceTestMixin, PerformanceIssueTest
                 organization_id=self.organization.id,
                 project_id=self.project.id,
                 provider="email",
-                alert_id=self.rule.id,
+                alert_id=self.workflow_id,
                 alert_type="issue_alert",
                 external_id="ANY",
                 notification_uuid="ANY",

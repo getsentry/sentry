@@ -112,8 +112,8 @@ def get_rules(
         rule if isinstance(rule, NotificationOrigin) else NotificationOrigin.from_legacy_rule(rule)
         for rule in rules
     ]
-    legacy_rules = [origin for origin in origins if origin.legacy_rule_id is not None]
-    workflow_rules = [origin for origin in origins if origin.legacy_rule_id is None]
+    workflow_rules = [origin for origin in origins if origin.workflow_id is not None]
+    legacy_rules = [origin for origin in origins if origin.workflow_id is None]
 
     return get_workflow_links(workflow_rules, organization, project) + get_rules_with_legacy_ids(
         legacy_rules, organization, project

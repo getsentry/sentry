@@ -92,10 +92,10 @@ class NotificationHelpersTest(TestCase):
     def test_get_group_settings_link(self) -> None:
         rule: Rule = self.create_project_rule(self.project)
         rule_details = get_rules([rule], self.organization, self.project, self.group.type)
-        assert rule_details[0].id == rule.id
+        workflow_id = int(rule.data["actions"][0]["workflow_id"])
+        assert rule_details[0].id == workflow_id
         assert rule_details[0].status_url == (
-            f"/organizations/{self.organization.slug}/issues/alerts/rules/"
-            f"{self.project.slug}/{rule.id}/details/"
+            f"/organizations/{self.organization.slug}/monitors/alerts/{workflow_id}/"
         )
         link = get_group_settings_link(
             self.group, self.environment.name, rule_details, 1337, extra="123"

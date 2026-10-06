@@ -71,11 +71,11 @@ class NotificationOrigin:
 
     @property
     def link_id(self) -> int:
-        """Legacy-compatible ID for contexts that previously consumed Rule.id."""
-        if self.legacy_rule_id is not None:
-            return self.legacy_rule_id
-        assert self.workflow_id is not None
-        return self.workflow_id
+        """ID used by rendering context, preferring workflow identity."""
+        if self.workflow_id is not None:
+            return self.workflow_id
+        assert self.legacy_rule_id is not None
+        return self.legacy_rule_id
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, NotificationOrigin):
