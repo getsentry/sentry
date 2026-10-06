@@ -1,17 +1,9 @@
 import {Fragment} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
-import iconAndroid from 'sentry-logos/logo-android.svg';
-import iconChrome from 'sentry-logos/logo-chrome.svg';
-import iconEdgeLegacy from 'sentry-logos/logo-edge-old.svg';
-import iconFirefox from 'sentry-logos/logo-firefox.svg';
-import iconIe from 'sentry-logos/logo-ie.svg';
-import iconOpera from 'sentry-logos/logo-opera.svg';
-import iconSafari from 'sentry-logos/logo-safari.svg';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Tag} from '@sentry/scraps/badge';
-import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Button} from '@sentry/scraps/button';
 import {
   AutoSaveForm,
   defaultFormOptions,
@@ -19,11 +11,9 @@ import {
   FormSearch,
   useScrapsForm,
 } from '@sentry/scraps/form';
-import {Image} from '@sentry/scraps/image';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Switch} from '@sentry/scraps/switch';
-import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Access} from 'sentry/components/acl/access';
@@ -44,6 +34,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {CustomFilters} from './customFilters';
+import {getInitialSubfilters, LegacyBrowserFilter} from './legacyBrowserFilter';
 
 const filterDescriptions = {
   'browser-extensions': {
@@ -80,218 +71,6 @@ const filterDescriptions = {
     ),
   },
 };
-
-const LEGACY_BROWSER_SUBFILTERS = {
-  chrome: {
-    icon: iconChrome,
-    title: 'Chrome',
-    helpText: 'Version 110 and lower',
-    legacy: false,
-  },
-  safari: {
-    icon: iconSafari,
-    title: 'Safari',
-    helpText: 'Version 15 and lower',
-    legacy: false,
-  },
-  safari_pre_6: {
-    icon: iconSafari,
-    helpText: 'Version 5 and lower',
-    title: 'Safari',
-    legacy: true,
-  },
-  firefox: {
-    icon: iconFirefox,
-    title: 'Firefox',
-    helpText: 'Version 110 and lower',
-    legacy: false,
-  },
-  android: {
-    icon: iconAndroid,
-    title: 'Android',
-    helpText: 'Version 3 and lower',
-    legacy: false,
-  },
-  android_pre_4: {
-    icon: iconAndroid,
-    helpText: 'Version 3 and lower',
-    title: 'Android',
-    legacy: true,
-  },
-  edge: {
-    icon: iconEdgeLegacy,
-    title: 'Edge',
-    helpText: 'Version 110 and lower',
-    legacy: false,
-  },
-  edge_pre_79: {
-    icon: iconEdgeLegacy,
-    helpText: 'Version 18 and lower',
-    title: 'Edge (Legacy)',
-    legacy: true,
-  },
-  ie: {
-    icon: iconIe,
-    title: 'Internet Explorer',
-    helpText: 'Version 11 and lower',
-    legacy: false,
-  },
-  ie_pre_9: {
-    icon: iconIe,
-    helpText: 'Version 8 and lower',
-    title: 'Internet Explorer',
-    legacy: true,
-  },
-  ie9: {
-    icon: iconIe,
-    helpText: 'Version 9',
-    title: 'Internet Explorer',
-    legacy: true,
-  },
-  ie10: {
-    icon: iconIe,
-    helpText: 'Version 10',
-    title: 'Internet Explorer',
-    legacy: true,
-  },
-  ie11: {
-    icon: iconIe,
-    helpText: 'Version 11',
-    title: 'Internet Explorer',
-    legacy: true,
-  },
-  opera: {
-    icon: iconOpera,
-    title: 'Opera',
-    helpText: 'Version 99 and lower',
-    legacy: false,
-  },
-  opera_pre_15: {
-    icon: iconOpera,
-    helpText: 'Version 14 and lower',
-    title: 'Opera',
-    legacy: true,
-  },
-  opera_mini: {
-    icon: iconOpera,
-    title: 'Opera Mini',
-    helpText: 'Version 34 and lower',
-    legacy: false,
-  },
-  opera_mini_pre_8: {
-    icon: iconOpera,
-    helpText: 'Version 8 and lower',
-    title: 'Opera Mini',
-    legacy: true,
-  },
-};
-
-type LegacyBrowserSubfilterKeys = Array<keyof typeof LEGACY_BROWSER_SUBFILTERS>;
-
-function getActiveSubfilters(): string[] {
-  return Object.keys(LEGACY_BROWSER_SUBFILTERS).filter(
-    key =>
-      !LEGACY_BROWSER_SUBFILTERS[key as keyof typeof LEGACY_BROWSER_SUBFILTERS].legacy
-  );
-}
-
-function getInitialSubfilters(active: boolean | string[]): string[] {
-  switch (active) {
-    case true:
-      return getActiveSubfilters();
-    case false:
-      return [];
-    default:
-      return active;
-  }
-}
-
-function LegacyBrowserFilterRow({
-  subfilters,
-  disabled,
-  hintText,
-  indicator,
-  label,
-  onToggle,
-}: {
-  hintText: React.ReactNode;
-  label: React.ReactNode;
-  onToggle: (newSubfilters: string[]) => void;
-  subfilters: string[];
-  disabled?: boolean;
-  indicator?: React.ReactNode;
-}) {
-  const subfilterSet = new Set(subfilters);
-
-  const toggleSubfilter = (subfilter: string) => {
-    const newSet = new Set(subfilterSet);
-
-    if (newSet.has(subfilter)) {
-      newSet.delete(subfilter);
-    } else {
-      newSet.add(subfilter);
-    }
-
-    onToggle([...newSet]);
-  };
-
-  const visibleSubfilters = (
-    Object.keys(LEGACY_BROWSER_SUBFILTERS) as LegacyBrowserSubfilterKeys
-  ).filter(key => !LEGACY_BROWSER_SUBFILTERS[key].legacy || subfilterSet.has(key));
-
-  return (
-    <Stack flexGrow={1} width="100%" gap="md">
-      <Stack gap="xs">
-        <Flex align="center" gap="md" justify="between" wrap="wrap">
-          {label}
-          <Flex align="center" gap="md">
-            {indicator}
-            <ButtonBar size="xs">
-              <Button onClick={() => onToggle(getActiveSubfilters())} disabled={disabled}>
-                {t('All')}
-              </Button>
-              <Button onClick={() => onToggle([])} disabled={disabled}>
-                {t('None')}
-              </Button>
-            </ButtonBar>
-          </Flex>
-        </Flex>
-        {hintText}
-      </Stack>
-      <Container border="primary" radius="md" overflow="hidden">
-        <Stack>
-          {visibleSubfilters.map((key, index) => {
-            const subfilter = LEGACY_BROWSER_SUBFILTERS[key];
-            const ariaLabel = subfilter.legacy
-              ? `${subfilter.title} ${subfilter.helpText} (${t('deprecated')})`
-              : `${subfilter.title} ${subfilter.helpText}`;
-            return (
-              <Fragment key={key}>
-                {index > 0 && <Stack.Separator />}
-                <Flex align="center" gap="md" padding="md lg">
-                  <Image src={subfilter.icon} alt="" width="24px" height="24px" />
-                  <Flex align="baseline" gap="sm" wrap="wrap" flexGrow={1}>
-                    <Text bold>{subfilter.title}</Text>
-                    <Text size="sm" variant="muted">
-                      {subfilter.helpText}
-                    </Text>
-                    {subfilter.legacy && <Tag variant="muted">{t('Deprecated')}</Tag>}
-                  </Flex>
-                  <Switch
-                    aria-label={ariaLabel}
-                    checked={subfilterSet.has(key)}
-                    disabled={disabled}
-                    onChange={() => toggleSubfilter(key)}
-                  />
-                </Flex>
-              </Fragment>
-            );
-          })}
-        </Stack>
-      </Container>
-    </Stack>
-  );
-}
 
 const booleanFilterSchema = z.object({
   'browser-extensions': z.boolean(),
@@ -759,7 +538,7 @@ export function ProjectFiltersSettings({project, params}: Props) {
                       {field => (
                         <field.Base disabled={!hasAccess}>
                           {(baseProps, {indicator}) => (
-                            <LegacyBrowserFilterRow
+                            <LegacyBrowserFilter
                               subfilters={field.state.value}
                               disabled={baseProps.disabled}
                               hintText={
