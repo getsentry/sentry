@@ -684,8 +684,10 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert "is_transaction" in span
         assert span["gen_ai.operation.name"] == "chat"
         assert span["gen_ai.operation.type"] == "ai_client"
-        assert span["gen_ai.request.messages"] is not None
-        assert span["gen_ai.response.text"] == "Hi there!"
+        assert span["gen_ai.input.messages"] is not None
+        assert span["gen_ai.output.messages"] == "Hi there!"
+        assert "gen_ai.request.messages" not in span
+        assert "gen_ai.response.text" not in span
         assert span["gen_ai.usage.total_tokens"] == 150
         assert span["gen_ai.cost.total_tokens"] == 0.0025
         assert span["user.id"] == "user-123"
@@ -838,7 +840,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert span["gen_ai.operation.type"] == "tool"
         assert span["gen_ai.tool.name"] == "search_database"
         assert span["gen_ai.tool.call.result"] == "found 3 rows"
-        assert span["gen_ai.tool.output"] == "tool output payload"
+        assert "gen_ai.tool.output" not in span
 
     def test_returns_embeddings_attributes(self) -> None:
         now = before_now(days=5).replace(microsecond=0)
