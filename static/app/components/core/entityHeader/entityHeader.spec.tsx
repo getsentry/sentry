@@ -248,12 +248,12 @@ describe('EntityHeader', () => {
         )
       ).toBe(true);
 
-      // Wide: stats move up beside the title. The spec's boundary is 500px; `sm`
-      // (512px) is the nearest container token.
+      // Wide: stats move up beside the title, at the width where the two first
+      // fit rather than at the spec's nominal band edge.
       expect(
         rules.some(
           r =>
-            /@container[^{]*min-width:\s*512px/.test(r) &&
+            /@container[^{]*min-width:\s*640px/.test(r) &&
             /grid-template-areas:\s*"title stats"\s*"context context"/.test(r)
         )
       ).toBe(true);

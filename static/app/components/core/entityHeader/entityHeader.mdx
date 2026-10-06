@@ -155,7 +155,9 @@ Static labels stay visible while loading. They are known before the data arrives
 
 The header reflows against **its container's** width, not the viewport's — on a routed page that is the content column, so it reacts correctly when a side panel opens.
 
-Above the `sm` container breakpoint (512px) the stats sit to the right of the title. Below it they move to their own row _beneath_ the metadata and left-align. That is a reorder rather than a wrap, which is why the layout is a grid.
+Above the `lg` container breakpoint (640px) the stats sit to the right of the title. Below it they move to their own row _beneath_ the metadata and left-align. That is a reorder rather than a wrap, which is why the layout is a grid.
+
+640px is where a title and a typical stat row first fit side by side, which is wider than the nominal 500px band in the spec — below it the title gets squeezed by a stat row whose width the header cannot know in advance.
 
 <Storybook.Demo resizable align="start">
   <EntityHeader

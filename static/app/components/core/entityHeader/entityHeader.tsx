@@ -56,8 +56,13 @@ export interface EntityHeaderProps {
  * around it, so a fixed template would leave a hole wherever a slot is omitted.
  *
  * Breakpoints use bare (container) keys, so the header reflows against the
- * width available to it rather than the viewport's. `sm` is 512px, the nearest
- * container token to the spec's 500px boundary.
+ * width available to it rather than the viewport's.
+ *
+ * The stats move up beside the title at `lg` (640px). The spec's band edge is
+ * 500px, but its own 650px frame is where the two first fit: 294px of title +
+ * 8px + 316px of stats is exactly the width available there. Below that the
+ * title is squeezed to make room for a stat row whose width the header cannot
+ * know in advance.
  */
 function getGridTemplate({
   hasStats,
@@ -74,15 +79,15 @@ function getGridTemplate({
   }
 
   return {
-    columns: {zero: 'minmax(0, 1fr)', sm: 'minmax(0, 1fr) max-content'},
+    columns: {zero: 'minmax(0, 1fr)', lg: 'minmax(0, 1fr) minmax(0, max-content)'},
     areas: hasContext
       ? {
           // Narrow: the stats drop below the metadata, not beside it. This is a
           // reorder rather than a wrap, which is why the layout needs a grid.
           zero: `"title" "context" "stats"`,
-          sm: `"title stats" "context context"`,
+          lg: `"title stats" "context context"`,
         }
-      : {zero: `"title" "stats"`, sm: `"title stats"`},
+      : {zero: `"title" "stats"`, lg: `"title stats"`},
   } as const;
 }
 
@@ -154,7 +159,7 @@ export function EntityHeader({
             gap="md"
             wrap="wrap"
             minHeight={ROW_HEIGHT}
-            justifySelf={{zero: 'start', sm: 'end'}}
+            justifySelf={{zero: 'start', lg: 'end'}}
           >
             {visibleStats.map(({stat, index}, position) => (
               <Fragment key={index}>
