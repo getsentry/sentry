@@ -11,7 +11,8 @@ from arroyo.backends.kafka import KafkaPayload
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.conf import settings
-from django.test.utils import override_settings
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext, override_settings
 from rest_framework.exceptions import ErrorDetail
 from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import CheckIn
 
@@ -1066,6 +1067,37 @@ class MonitorConsumerTest(TestCase):
         monitor = Monitor.objects.get(slug="my-monitor")
         assert monitor is not None
         assert "timezone" not in monitor.config
+
+    def _send_checkin_capturing_monitor_writes(self, monitor_slug: str, **kwargs: Any) -> list[str]:
+        with CaptureQueriesContext(connections[router.db_for_write(Monitor)]) as ctx:
+            self.send_checkin(monitor_slug, **kwargs)
+        return [
+            q["sql"]
+            for q in ctx.captured_queries
+            if q["sql"].startswith('UPDATE "sentry_monitor" ')
+        ]
+
+    def test_upsert_unchanged_config_skips_write(self) -> None:
+        config = {"schedule": {"type": "crontab", "value": "13 * * * *"}, "checkin_margin": 5}
+        self.send_checkin("my-monitor", monitor_config=config)
+        monitor = Monitor.objects.get(slug="my-monitor")
+        # Keys the upsert does not send, e.g. set from the UI
+        monitor.update(config={**monitor.config, "failure_issue_threshold": 3, "alert_rule_id": 1})
+        stored_config = monitor.config
+
+        assert (
+            self._send_checkin_capturing_monitor_writes("my-monitor", monitor_config=config) == []
+        )
+        monitor.refresh_from_db()
+        assert monitor.config == stored_config
+
+        config["checkin_margin"] = 10
+        assert (
+            len(self._send_checkin_capturing_monitor_writes("my-monitor", monitor_config=config))
+            == 1
+        )
+        monitor.refresh_from_db()
+        assert monitor.config == {**stored_config, "checkin_margin": 10}
 
     def test_team_name_as_owner(self) -> None:
         monitor = self._create_monitor(slug="my-monitor", owner_user_id=self.user.id)
