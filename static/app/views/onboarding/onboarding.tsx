@@ -394,7 +394,7 @@ export function OnboardingWithoutContext() {
           <OnboardingSkipButton stepId={stepObj.id} />
         </Flex>
       </Header>
-      <OnboardingContainer hasFooter={containerHasFooter}>
+      <OnboardingContainer containerType="inline-size" hasFooter={containerHasFooter}>
         <AnimatePresence mode="wait" onExitComplete={updateAnimationState}>
           <OnboardingStep
             key={stepObj.id}
@@ -444,7 +444,7 @@ function Onboarding() {
   );
 }
 
-const OnboardingContainer = styled('div')<{
+const OnboardingContainer = styled(Stack)<{
   hasFooter: boolean;
 }>`
   flex-grow: 1;

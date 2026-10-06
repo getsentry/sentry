@@ -1,3 +1,4 @@
+import {createPortal} from 'react-dom';
 import {motion} from 'framer-motion';
 
 import {
@@ -23,10 +24,10 @@ const footerChromeProps = {
 } as const satisfies ContainerProps;
 
 export function GridFooter(props: React.ComponentProps<typeof motion.div> & GridProps) {
-  return (
-    // A separate element from the grid below: an element can't query itself, and
-    // this is the outermost node the footer owns, so its containment can't
-    // re-anchor a `position: fixed` ancestor.
+  return createPortal(
+    // The footer renders outside the onboarding page's query container so its
+    // fixed position remains relative to the viewport. It needs its own query
+    // container for its responsive slots.
     <Container {...footerChromeProps} containerType="inline-size">
       <MotionGrid
         height="100%"
@@ -38,7 +39,8 @@ export function GridFooter(props: React.ComponentProps<typeof motion.div> & Grid
         {...ONBOARDING_STAGGER}
         {...props}
       />
-    </Container>
+    </Container>,
+    document.body
   );
 }
 

@@ -1116,6 +1116,12 @@ describe('Onboarding', () => {
         const {router} = renderOnboarding('setup-docs');
 
         renderGlobalModal();
+        // The fixed footer must sit outside the page's query container.
+        expect(
+          screen
+            .getByRole('main')
+            .contains(screen.getByRole('button', {name: 'View Sample Error'}))
+        ).toBe(false);
         await userEvent.click(screen.getByRole('button', {name: 'Skip setup'}));
         const dialog = within(screen.getByRole('dialog'));
         await userEvent.click(
