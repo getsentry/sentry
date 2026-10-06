@@ -986,16 +986,21 @@ if (IS_PRODUCTION) {
   );
 }
 
-// Cache rspack builds
+// Cache rspack builds (CI and Vercel)
 if (env.WEBPACK_CACHE_PATH) {
-  appConfig.cache = true;
+  appConfig.experiments = {...appConfig.experiments, newCache: true};
   appConfig.cache = {
-    type: 'persistent',
-    // https://rspack.rs/config/cache
-    storage: {
-      type: 'filesystem',
-      directory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
-    },
+    type: 'filesystem',
+    // Keep clear of the old persistent cache's `app-production` directory,
+    // the new cache fails to open when both share a location
+    name: `app-${WEBPACK_MODE}-new`,
+    cacheDirectory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
+    // Read entries from disk instead of holding the whole cache in memory
+    maxMemoryGenerations: 0,
+    // Only master deploys write the cache, preview deploys restore it from
+    // master. Avoids growing the cache on every branch and the memory spike
+    // from writing it on Vercel's 8GB build machines.
+    readonly: IS_DEPLOY_PREVIEW && env.NOW_GITHUB_COMMIT_REF !== 'master',
   };
 }
 

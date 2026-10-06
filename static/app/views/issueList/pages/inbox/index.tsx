@@ -23,6 +23,7 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {AnsiText} from 'sentry/components/ansiText';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {
@@ -711,7 +712,7 @@ function InboxIssueCard({
 }) {
   const location = useLocation();
   const organization = useOrganization();
-  const {title} = getTitle(group);
+  const {title = ''} = getTitle(group);
   const message = getMessage(group);
   const prefetchHoverProps = useInboxPreviewPrefetch(group);
   const suggestedAssignees = useIssueSuggestedAssignees(group);
@@ -757,7 +758,7 @@ function InboxIssueCard({
           </Flex>
           <Stack minWidth={0} gap="xs">
             <Heading as="h4" size="md" ellipsis>
-              {title}
+              <AnsiText>{title}</AnsiText>
             </Heading>
             <EventMessage level={group.level} message={message} type={group.type} />
             {showPullRequests ? (

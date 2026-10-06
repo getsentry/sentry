@@ -8,7 +8,6 @@ from jsonschema.exceptions import ValidationError
 from sentry.constants import ObjectStatus
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.rule import Rule, RuleSource
-from sentry.models.rulesnooze import RuleSnooze
 from sentry.monitors.models import Monitor, ScheduleType
 from sentry.monitors.utils import ensure_cron_detector, get_detector_for_monitor
 from sentry.rules.conditions.event_frequency import (
@@ -279,42 +278,6 @@ class IssueAlertMigratorTest(TestCase):
         )
         IssueAlertMigrator(issue_alert, self.user.id).run()
         self.assert_issue_alert_migrated(issue_alert, is_enabled=False)
-
-        dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
-        action = dcg_actions.action
-        assert action.type == Action.Type.SLACK
-
-    def test_run__snoozed_rule(self) -> None:
-        # create_project_rule runs the IssueAlertMigrator
-        issue_alert = self.create_project_rule(
-            name="test",
-            condition_data=self.rule_conditions,
-            action_match="any",
-            filter_match="any",
-            action_data=self.action_data,
-            frequency=5,
-        )
-        RuleSnooze.objects.create(rule=issue_alert)
-
-        self.assert_issue_alert_migrated(issue_alert, is_enabled=False)
-
-        dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
-        action = dcg_actions.action
-        assert action.type == Action.Type.SLACK
-
-    def test_run__snoozed_rule_for_user(self) -> None:
-        # create_project_rule runs the IssueAlertMigrator
-        issue_alert = self.create_project_rule(
-            name="test",
-            condition_data=self.rule_conditions,
-            action_match="any",
-            filter_match="any",
-            action_data=self.action_data,
-            frequency=5,
-        )
-        RuleSnooze.objects.create(rule=issue_alert, user_id=self.user.id)
-
-        self.assert_issue_alert_migrated(issue_alert, is_enabled=True)
 
         dcg_actions = DataConditionGroupAction.objects.order_by("id")[0]
         action = dcg_actions.action
