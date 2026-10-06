@@ -1,4 +1,3 @@
-import {useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -29,7 +28,6 @@ import {DocsPageLocation} from 'sentry/components/onboarding/gettingStartedDoc/t
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/onboarding/platformOptionDropdown';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {SetupTitle} from 'sentry/components/updatedEmptyState';
@@ -46,7 +44,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {LLM_ONBOARDING_COPY_MARKDOWN} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {
   AI_AGENTS_GETTING_STARTED_DOCS_LINK,
@@ -62,49 +59,15 @@ import {
   PulsingIndicator,
   SubTitle,
   useOnboardingProject,
+  useSpanWaiter,
 } from 'sentry/views/insights/pages/onboardingUtils';
 
-function useAiSpanWaiter(project: Project) {
-  const {selection} = usePageFilters();
-  const [shouldRefetch, setShouldRefetch] = useState(true);
-
-  const request = useSpans(
-    {
-      search: getHasAiSpansFilter(),
-      fields: ['id'],
-      limit: 1,
-      enabled: !!project,
-      useQueryOptions: {
-        refetchInterval: shouldRefetch ? 5000 : undefined,
-      },
-      pageFilters: {
-        ...selection,
-        projects: [Number(project.id)],
-        datetime: {
-          period: '6h',
-          utc: true,
-          start: null,
-          end: null,
-        },
-      },
-    },
-    Referrer.ONBOARDING
-  );
-
-  const hasEvents = Boolean(request.data?.length);
-
-  useEffect(() => {
-    if (hasEvents && shouldRefetch) {
-      // oxlint-disable-next-line react/set-state-in-effect
-      setShouldRefetch(false);
-    }
-  }, [hasEvents, shouldRefetch]);
-
-  return request;
-}
-
 function WaitingIndicator({project}: {project: Project}) {
-  const spanRequest = useAiSpanWaiter(project);
+  const spanRequest = useSpanWaiter({
+    project,
+    search: getHasAiSpansFilter(),
+    referrer: Referrer.ONBOARDING,
+  });
   const {reloadProjects, fetching} = useProjects();
   const hasEvents = Boolean(spanRequest.data?.length);
 
