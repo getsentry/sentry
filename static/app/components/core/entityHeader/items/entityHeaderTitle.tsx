@@ -1,3 +1,5 @@
+import {VisuallyHidden} from '@react-aria/visually-hidden';
+
 import {UserAvatar} from '@sentry/scraps/avatar';
 import type {TagProps} from '@sentry/scraps/badge';
 import {ProjectsBadge} from '@sentry/scraps/badge';
@@ -121,8 +123,11 @@ function LeadingGraphicSlot({graphic}: {graphic: EntityHeaderLeadingGraphic}) {
       // Labelled, the slot becomes an image in its own right and the badge
       // inside it stays decorative, which is what lets a trace say which
       // projects it touched. Unlabelled, the whole thing is hidden.
+      // `role="img"` with a name is announced without focus, so there is
+      // nothing here to tab to — a stop a keyboard user cannot activate,
+      // dismiss, or read anything further from.
       {...(graphic.label
-        ? {role: 'img', 'aria-label': graphic.label, tabIndex: 0}
+        ? {role: 'img', 'aria-label': graphic.label}
         : {'aria-hidden': true})}
     >
       <LeadingGraphic graphic={graphic} />
@@ -147,8 +152,17 @@ export function EntityHeaderTitle({
   to,
 }: EntityHeaderTitleProps & {isLoading?: boolean}) {
   if (isLoading) {
+    // The heading stays in the tree, carrying the label the caller already has.
+    // Dropping it would make the page's structure change as the data lands, so
+    // anyone navigating by heading mid-load would find nothing and no signal to
+    // come back.
     return (
       <Flex align="center" minHeight={ROW_HEIGHT}>
+        <VisuallyHidden>
+          <Heading as="h2" size="lg">
+            {label}
+          </Heading>
+        </VisuallyHidden>
         <Placeholder width={loadingWidth} height={TITLE_HEIGHT} />
       </Flex>
     );

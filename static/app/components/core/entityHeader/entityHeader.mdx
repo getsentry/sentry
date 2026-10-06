@@ -175,6 +175,8 @@ A stat declares whether it is `text` or a `link`. That is not just documentation
 {type: 'link', label: t('Errors'), value: errors.length, to: errorsTab}
 ```
 
+On a `link` stat the label is what navigates — see below.
+
 The value may change as often as it likes. The type may not.
 
 ## Stat tooltips
@@ -212,7 +214,7 @@ stats={[
 ]}
 ```
 
-A value with a `valueTooltip` and no `to` renders as `InfoText`, so it gains the dotted underline and is reachable by keyboard. A value that also links gets the same underline, but from the tooltip directly rather than through `InfoText`, which would put a second tab stop inside the anchor. The link alone is not enough of a signal: the global anchor colour is overridden by the `Text` inside it, which keeps the stat's own `content.primary`.
+On a `link` stat it is the **label** that navigates, not the value. A link named by its own digits says nothing in a screen reader's links list, and its name would change as the data settled; the label is meaningful and stable. It carries a dotted underline, the same treatment Issue Details gives its stat links. The value is left to explain itself through `valueTooltip`.
 
 ## Loading
 
@@ -263,6 +265,10 @@ Do not use it for list or landing pages, which carry no single entity.
 
 ## Accessibility
 
-- The title renders as an `h2`. The page's `h1` is the TopBar title slot, so the two do not compete.
-- A `leadingGraphic` is decorative and hidden from assistive technology; the title label carries the meaning.
-- A metadata `tooltip` is keyboard accessible, with a dotted underline signalling it is there.
+- The title renders as an `h2`. The page's `h1` is the TopBar title slot, so the two do not compete. It stays in the tree while loading, so the page's structure does not change as data lands.
+- The header sets `aria-busy` while loading, which is the only signal a screen reader gets that more is coming.
+- A `leadingGraphic` is decorative and hidden until given a `label`, at which point it becomes a named `img`. It is deliberately not focusable — a named image is announced without focus, so a tab stop there would be one a keyboard user could not act on.
+- A `people` stack is a named `group`. Its avatars are not focusable, so the per-avatar tooltips are mouse-only and the group name is what carries the meaning.
+- On a `link` stat the label navigates, so the link is named by its destination rather than by a number that changes as data loads.
+- Stats and metadata read in the order the narrow layout shows them, so reading order and focus order follow the eye at every width.
+- The dividers between stats and metadata are decorative and hidden; a header has around five of them.

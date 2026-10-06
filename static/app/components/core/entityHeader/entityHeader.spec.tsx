@@ -154,7 +154,7 @@ describe('EntityHeader', () => {
   });
 
   describe('stats and metadata', () => {
-    it('renders a stat value as a link when a destination is given', () => {
+    it('names a stat link by what it leads to, not by its number', () => {
       render(
         <EntityHeader
           title={{label: 'Session'}}
@@ -170,12 +170,17 @@ describe('EntityHeader', () => {
         />
       );
 
-      expect(screen.getByRole('link', {name: '4'})).toHaveAttribute(
+      // A link named "4" says nothing in a links list, and its name would change
+      // to "7" the moment the data settled. The label navigates instead.
+      expect(screen.getByRole('link', {name: 'Dead Clicks'})).toHaveAttribute(
         'href',
         '/replays/1/?t_main=breadcrumbs'
       );
+      expect(screen.queryByRole('link', {name: '4'})).not.toBeInTheDocument();
+
+      // A text stat links nothing at all.
       expect(screen.getByText('Rage Clicks')).toBeInTheDocument();
-      expect(screen.queryByRole('link', {name: '0'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('link', {name: 'Rage Clicks'})).not.toBeInTheDocument();
     });
 
     it('explains a stat label through a tooltip without restyling it', async () => {
@@ -235,7 +240,7 @@ describe('EntityHeader', () => {
       expect(screen.getByText('python')).toBeInTheDocument();
     });
 
-    it('keeps a linked value as a link, with the tooltip attached to it', async () => {
+    it('attaches a label tooltip to the link rather than nesting a tab stop', async () => {
       render(
         <EntityHeader
           title={{label: 'Session'}}
@@ -245,21 +250,21 @@ describe('EntityHeader', () => {
               label: 'Errors',
               value: 3,
               to: '/replays/1/?t_main=errors',
-              valueTooltip: 'From 2 projects',
+              labelTooltip: 'Errors recorded during this replay',
             },
           ]}
         />
       );
 
-      const link = screen.getByRole('link', {name: '3'});
+      const link = screen.getByRole('link', {name: 'Errors'});
       expect(link).toHaveAttribute('href', '/replays/1/?t_main=errors');
 
-      // The link is the only tab stop — InfoText would add a second one inside
-      // the anchor — so the tooltip draws the underline onto the link itself.
-      expect(link).toHaveStyle({textDecoration: 'underline'});
-
+      // The link is the only tab stop; InfoText would add a second one inside
+      // the anchor.
       await userEvent.hover(link);
-      expect(await screen.findByText('From 2 projects')).toBeInTheDocument();
+      expect(
+        await screen.findByText('Errors recorded during this replay')
+      ).toBeInTheDocument();
     });
 
     it('keeps the same element when a link stat receives its value', () => {
@@ -274,7 +279,7 @@ describe('EntityHeader', () => {
           ]}
         />
       );
-      const before = screen.getByRole('link', {name: '0'});
+      const before = screen.getByRole('link', {name: 'Errors'});
 
       rerender(
         <EntityHeader
@@ -285,24 +290,25 @@ describe('EntityHeader', () => {
         />
       );
 
-      expect(screen.getByRole('link', {name: '3'})).toBe(before);
+      // The name is stable too, now that it is the label rather than the count.
+      expect(screen.getByRole('link', {name: 'Errors'})).toBe(before);
     });
 
-    it('gives a linked value the same metrics as an unlinked one', () => {
+    it('gives a linked label the same metrics as an unlinked one', () => {
       // The two types sit side by side in one row, so they have to agree on
       // their box. `Link` emits text-box-trim but no font size, so an anchor
-      // wrapping the value would be trimmed to the font it inherits from the
+      // wrapping the label would be trimmed to the font it inherits from the
       // row rather than the stat's own.
+      const hasLabelFontSize = (element: HTMLElement) =>
+        getEmotionRules(element).some(rule => /font-size:\s*12px/.test(rule));
+
       const {rerender} = render(
         <EntityHeader
           title={{label: 'Session'}}
           stats={[{type: 'text', label: 'Errors', value: 3}]}
         />
       );
-      const hasStatFontSize = (element: HTMLElement) =>
-        getEmotionRules(element).some(rule => /font-size:\s*16px/.test(rule));
-
-      expect(hasStatFontSize(screen.getByText('3'))).toBe(true);
+      expect(hasLabelFontSize(screen.getByText('Errors'))).toBe(true);
 
       rerender(
         <EntityHeader
@@ -313,9 +319,9 @@ describe('EntityHeader', () => {
         />
       );
 
-      // The anchor itself carries the stat's type, rather than wrapping an
+      // The anchor itself carries the label's type, rather than wrapping an
       // element that does.
-      expect(hasStatFontSize(screen.getByRole('link', {name: '3'}))).toBe(true);
+      expect(hasLabelFontSize(screen.getByRole('link', {name: 'Errors'}))).toBe(true);
     });
 
     it('drops null entries so callers can inline conditionals', () => {
@@ -419,6 +425,22 @@ describe('EntityHeader', () => {
       expect(screen.getByText('Alice (alice@example.com)')).toBeInTheDocument();
     });
 
+    it('names the people stack programmatically, not only on hover', () => {
+      render(
+        <EntityHeader
+          title={{label: 'Session'}}
+          people={{
+            users: [UserFixture({id: '1', name: 'Alice'})],
+            label: 'Viewed by',
+          }}
+        />
+      );
+
+      // The avatars are not focusable, so a tooltip alone reaches nobody
+      // without a mouse — a screen reader would hear a run of bare initials.
+      expect(screen.getByRole('group', {name: 'Viewed by'})).toBeInTheDocument();
+    });
+
     it('renders nothing for people once they resolve to nobody', () => {
       render(
         <EntityHeader
@@ -468,8 +490,15 @@ describe('EntityHeader', () => {
       // loading title and metadata row reads as broken.
       expect(screen.queryByText('Dead Clicks')).not.toBeInTheDocument();
       expect(screen.queryByText('Errors')).not.toBeInTheDocument();
-      expect(screen.queryByRole('heading', {level: 2})).not.toBeInTheDocument();
       expect(screen.queryByText('A subtitle')).not.toBeInTheDocument();
+
+      // The heading stays, so the page's structure does not change as the data
+      // lands and heading navigation still finds the entity mid-load.
+      expect(screen.getByRole('heading', {level: 2, name: 'Session'})).toBeVisible();
+
+      // And the region says it is in flux, which is the only signal a screen
+      // reader gets that more is coming.
+      expect(screen.getByRole('banner')).toHaveAttribute('aria-busy', 'true');
     });
 
     it('shows the people skeleton alongside the stats, not after them', () => {
@@ -504,6 +533,31 @@ describe('EntityHeader', () => {
   });
 
   describe('layout', () => {
+    it('reads in the order the narrow layout shows, so focus follows the eye', () => {
+      render(
+        <EntityHeader
+          title={{label: 'Session', to: '/replays/'}}
+          stats={[
+            {type: 'link', label: 'Errors', value: 3, to: '/replays/1/?t_main=errors'},
+          ]}
+          metadata={[{label: 'Chrome 144', tooltip: 'Browser'}]}
+        />
+      );
+
+      // Below `lg` the grid stacks title, then metadata, then stats. Source
+      // order has to agree, or a screen reader reads the numbers before the
+      // facts above them, and Tab skips the middle row and comes back to it.
+      const follows = (first: Element, second: Element) =>
+        Boolean(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+      const title = screen.getByRole('heading', {level: 2});
+      const metadata = screen.getByText('Chrome 144');
+      const stat = screen.getByRole('link', {name: 'Errors'});
+
+      expect(follows(title, metadata)).toBe(true);
+      expect(follows(metadata, stat)).toBe(true);
+    });
+
     it('pins the stat height so an async value cannot shift the rows below', () => {
       // A viewer avatar list and an error count are both taller than the text
       // they replace, and they land at different times. If the stat grew to fit
@@ -517,7 +571,10 @@ describe('EntityHeader', () => {
         />
       );
 
-      const skeleton = screen.getAllByTestId('loading-placeholder')[1]!;
+      // Stats come last in the DOM, so that they follow the metadata they sit
+      // under in the narrow layout.
+      const placeholders = screen.getAllByTestId('loading-placeholder');
+      const skeleton = placeholders.at(-1)!;
       expect(
         getEmotionRules(skeleton.parentElement!).some(r => /height:\s*32px/.test(r))
       ).toBe(true);

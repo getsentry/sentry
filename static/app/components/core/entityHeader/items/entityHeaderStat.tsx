@@ -80,48 +80,16 @@ export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boo
 
   const valueStyles = {size: 'lg', bold: true, tabular: true, wrap: 'nowrap'} as const;
 
-  let valueContent: React.ReactNode;
-  if (props.type === 'link') {
-    const {to, onClick} = props;
-    // The anchor carries the value's text styles rather than wrapping an
-    // element that has them, the same way `BreadcrumbItemLink` styles its link.
-    //
-    // `Link` emits `text-box-trim` but no font size, so wrapping would leave the
-    // anchor trimmed to the font it inherits from the row while its content sat
-    // at the stat's own size — a link stat and a text stat beside it would not
-    // share a box. Styling the anchor directly also keeps the value
-    // `content.primary`, since a class beats the global `a { color }` rule,
-    // where wrapping only got there via the nested element's own colour.
-    valueContent = (
-      <Text {...valueStyles}>
-        {styleProps => {
-          const link = (
-            <Link to={to} onClick={onClick} {...styleProps}>
-              {value}
-            </Link>
-          );
-          // The tooltip attaches to the link rather than wrapping it in
-          // InfoText, which would put a second tab stop inside the anchor, so
-          // it has to draw the underline itself.
-          return valueTooltip ? (
-            <Tooltip title={valueTooltip} skipWrapper showUnderline>
-              {link}
-            </Tooltip>
-          ) : (
-            link
-          );
-        }}
-      </Text>
-    );
-  } else if (valueTooltip) {
-    valueContent = (
-      <InfoText title={valueTooltip} {...valueStyles}>
-        {value}
-      </InfoText>
-    );
-  } else {
-    valueContent = <Text {...valueStyles}>{value}</Text>;
-  }
+  // The value explains itself and never navigates. A link here would be named
+  // by its own digits — "5" in a links list, and a name that changes to "7" the
+  // moment the data settles.
+  const valueContent = valueTooltip ? (
+    <InfoText title={valueTooltip} {...valueStyles}>
+      {value}
+    </InfoText>
+  ) : (
+    <Text {...valueStyles}>{value}</Text>
+  );
 
   const labelStyles = {
     size: 'sm',
@@ -130,6 +98,47 @@ export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boo
     density: 'comfortable',
     wrap: 'nowrap',
   } as const;
+
+  let labelContent: React.ReactNode;
+  if (props.type === 'link') {
+    const {to, onClick} = props;
+    // The label is what navigates, so the link is named by what it leads to
+    // rather than by a number. The dotted underline is the same treatment Issue
+    // Details gives its stat links.
+    //
+    // The anchor carries the label's text styles rather than wrapping an element
+    // that has them, the same way `BreadcrumbItemLink` styles its link. `Link`
+    // emits `text-box-trim` but no font size, so wrapping would leave the anchor
+    // trimmed to the font it inherits from the row rather than the stat's own.
+    labelContent = (
+      <Text {...labelStyles} underline="dotted">
+        {styleProps => {
+          const link = (
+            <Link to={to} onClick={onClick} {...styleProps}>
+              {label}
+            </Link>
+          );
+          // The tooltip attaches to the link rather than wrapping it in
+          // InfoText, which would put a second tab stop inside the anchor.
+          return labelTooltip ? (
+            <Tooltip title={labelTooltip} skipWrapper>
+              {link}
+            </Tooltip>
+          ) : (
+            link
+          );
+        }}
+      </Text>
+    );
+  } else if (labelTooltip) {
+    labelContent = (
+      <InfoText title={labelTooltip} {...labelStyles}>
+        {label}
+      </InfoText>
+    );
+  } else {
+    labelContent = <Text {...labelStyles}>{label}</Text>;
+  }
 
   return (
     // The outer box is a fixed height so the row cannot resize as async values
@@ -143,13 +152,7 @@ export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boo
       */}
       <Flex align="baseline" gap="xs" minWidth={0}>
         {valueContent}
-        {labelTooltip ? (
-          <InfoText title={labelTooltip} {...labelStyles}>
-            {label}
-          </InfoText>
-        ) : (
-          <Text {...labelStyles}>{label}</Text>
-        )}
+        {labelContent}
       </Flex>
     </Flex>
   );

@@ -57,7 +57,16 @@ export function EntityHeaderPeople({
   }
 
   return (
-    <Flex align="center" height={ROW_HEIGHT} flexShrink={0}>
+    // The stack needs the label programmatically, not only inside a hover
+    // tooltip: the avatars are not focusable, so a tooltip alone is mouse-only
+    // and a screen reader hears an unexplained run of initials.
+    <Flex
+      align="center"
+      height={ROW_HEIGHT}
+      flexShrink={0}
+      role="group"
+      aria-label={label}
+    >
       {isLoading ? (
         <Placeholder width={loadingWidth} height={`${AVATAR_SIZE}px`} />
       ) : (

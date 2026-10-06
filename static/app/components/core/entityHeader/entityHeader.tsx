@@ -92,9 +92,11 @@ function getGridTemplate({
     columns: {zero: 'minmax(0, 1fr)', lg: 'minmax(0, 1fr) minmax(0, max-content)'},
     areas: hasContext
       ? {
-          // Narrow: the stats drop below the metadata, not beside it. This is a
-          // reorder rather than a wrap, which is why the layout needs a grid.
+          // Narrow: the stats sit below the metadata, which is also their order
+          // in the DOM — reading order and focus order follow the layout.
           zero: `"title" "context" "stats"`,
+          // Wide: the stats move up beside the title. Grid placement ignores
+          // source order, so this costs the narrow layout nothing.
           lg: `"title stats" "context context"`,
         }
       : {zero: `"title" "stats"`, lg: `"title stats"`},
@@ -103,7 +105,16 @@ function getGridTemplate({
 
 function Divider({height}: {height: ContainerProps['height']}) {
   return (
-    <Container height={height} display="flex" flexShrink={0} alignSelf="center">
+    // Purely visual: the dividers carry no grouping the layout does not already
+    // convey, and a header has five of them. Read out, they are noise between
+    // every number and every fact.
+    <Container
+      height={height}
+      display="flex"
+      flexShrink={0}
+      alignSelf="center"
+      aria-hidden
+    >
       <Separator orientation="vertical" />
     </Container>
   );
@@ -162,32 +173,14 @@ export function EntityHeader({
       background="primary"
       borderBottom="primary"
       flexShrink={0}
+      // Otherwise the band is simply empty until the data lands, and then
+      // silently is not.
+      aria-busy={isLoading}
     >
       <Grid columns={columns} areas={areas} gap="md" align="start">
         <Container area="title" minWidth={0}>
           <EntityHeaderTitle {...title} isLoading={isLoading} />
         </Container>
-
-        {hasStats && (
-          <Flex
-            area="stats"
-            align="center"
-            gap="md"
-            wrap="wrap"
-            minHeight={ROW_HEIGHT}
-            justifySelf={{zero: 'start', lg: 'end'}}
-          >
-            {hasPeople && people && (
-              <EntityHeaderPeople {...people} isLoading={peopleLoading} />
-            )}
-            {visibleStats.map(({stat, index}, position) => (
-              <Fragment key={index}>
-                {(position > 0 || hasPeople) && <Divider height="8px" />}
-                <EntityHeaderStat {...stat} isLoading={isLoading} />
-              </Fragment>
-            ))}
-          </Flex>
-        )}
 
         {hasContext && (
           <Stack area="context" minWidth={0}>
@@ -220,6 +213,26 @@ export function EntityHeader({
               </Flex>
             )}
           </Stack>
+        )}
+        {hasStats && (
+          <Flex
+            area="stats"
+            align="center"
+            gap="md"
+            wrap="wrap"
+            minHeight={ROW_HEIGHT}
+            justifySelf={{zero: 'start', lg: 'end'}}
+          >
+            {hasPeople && people && (
+              <EntityHeaderPeople {...people} isLoading={peopleLoading} />
+            )}
+            {visibleStats.map(({stat, index}, position) => (
+              <Fragment key={index}>
+                {(position > 0 || hasPeople) && <Divider height="8px" />}
+                <EntityHeaderStat {...stat} isLoading={isLoading} />
+              </Fragment>
+            ))}
+          </Flex>
         )}
       </Grid>
     </Container>
