@@ -639,6 +639,8 @@ class MonitorValidator(CamelSnakeSerializer):
             )
             alert_rule_data = validated_data["alert_rule"]
             request = self.context.get("request")
+            if not request:
+                return instance
             logger.info(
                 "monitors.validator.alert_rule",
                 extra={
@@ -647,8 +649,6 @@ class MonitorValidator(CamelSnakeSerializer):
                     **get_request_attribution(request),
                 },
             )
-            if not request:
-                return instance
 
             project = Project.objects.get(id=instance.project_id)
 

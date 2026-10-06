@@ -39,14 +39,12 @@ from sentry.workflow_engine.models import DataSource, DataSourceDetector, Detect
 logger = logging.getLogger(__name__)
 
 
-def get_request_attribution(request: HttpRequest | Request | None) -> dict[str, str | bool]:
+def get_request_attribution(request: HttpRequest | Request) -> dict[str, str | bool]:
     """
     Identify which endpoint served a request and whether it came from the UI.
     Used to attribute usage of deprecated Rule functionality on Cron Monitor
     endpoints, so these values are bounded and safe to use as metric tags.
     """
-    if request is None:
-        return {"endpoint": "unknown", "ui_request": False}
     resolver_match = getattr(request, "resolver_match", None)
     return {
         "endpoint": getattr(resolver_match, "url_name", None) or "unknown",
