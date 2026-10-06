@@ -1,5 +1,6 @@
 import {useMemo} from 'react';
 import {SentryGlobalSearch} from '@sentry-internal/global-search';
+import * as Sentry from '@sentry/react';
 import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 
@@ -11,7 +12,11 @@ import {
 } from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 
-import {addLoadingMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
 import {openSudo} from 'sentry/actionCreators/sudoModal';
 import {cmdkQueryOptions} from 'sentry/components/commandPalette/types';
@@ -40,6 +45,7 @@ import {
   IconList,
   IconLock,
   IconOpen,
+  IconPlay,
   IconRepository,
   IconSearch,
   IconSeer,
@@ -67,6 +73,8 @@ import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {decodeList} from 'sentry/utils/queryString';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
+import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
+import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -259,6 +267,38 @@ function ResolvedIdentifierCommandPaletteAction() {
 }
 
 /**
+ * Opens the session replay recording the current browser session (in
+ * Sentry's own org) and copies its link, so it can be shared in a bug report.
+ */
+async function openCurrentReplay() {
+  const replay = Sentry.getReplay();
+  if (!replay) {
+    addErrorMessage(t('Session Replay is not enabled for this session'));
+    return;
+  }
+
+  // Upgrades a buffered replay to a session replay (keeping its id) so the
+  // link resolves, or starts recording if nothing is recording yet.
+  const flushed = replay.flush();
+
+  // Only wait when there's no id yet, so window.open stays within the user
+  // gesture and isn't popup-blocked.
+  let replayId = replay.getReplayId();
+  if (!replayId) {
+    await flushed;
+    replayId = replay.getReplayId();
+  }
+  if (!replayId) {
+    addErrorMessage(t('No replay is currently recording'));
+    return;
+  }
+
+  const url = `https://sentry.sentry.io/explore/replays/${replayId}/`;
+  window.open(url, '_blank', 'noreferrer');
+  copyToClipboard(url, {successMessage: t('Copied replay link to clipboard')});
+}
+
+/**
  * Registers globally-available actions into the CMDK collection via JSX.
  * Must be mounted inside CMDKProvider (which requires CommandPaletteStateProvider).
  */
@@ -266,6 +306,7 @@ export function GlobalCommandPaletteActions() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const user = useUser();
+  const isSentryEmployee = useIsSentryEmployee();
   const {projects} = useProjects();
   const {organizations} = useLegacyStore(OrganizationsStore);
   const sentryConfig = useLegacyStore(ConfigStore);
@@ -1099,6 +1140,14 @@ export function GlobalCommandPaletteActions() {
           />
         )}
       </CMDKAction>
+
+      {isSentryEmployee && (
+        <CMDKAction
+          display={{label: t('Open Current Replay'), icon: <IconPlay />}}
+          keywords={[t('replay'), t('session'), t('bug'), t('report'), t('share')]}
+          onAction={openCurrentReplay}
+        />
+      )}
 
       {(NODE_ENV === 'development' || DEPLOY_PREVIEW_CONFIG) && (
         <CMDKAction
