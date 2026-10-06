@@ -576,8 +576,8 @@ class MonitorCheckIn(Model):
     No longer written; replaced by `config_snapshot`.
     """
 
-    config_snapshot = FlexibleForeignKey(
-        "monitors.MonitorCheckInConfig", null=True, db_index=False, on_delete=models.PROTECT
+    checkin_config = FlexibleForeignKey(
+        "monitors.MonitorCheckInConfig", null=True, on_delete=models.PROTECT
     )
     """
     References the MonitorCheckInConfig holding a snapshot of the monitor
