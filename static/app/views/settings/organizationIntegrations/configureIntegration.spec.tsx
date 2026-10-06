@@ -64,7 +64,7 @@ describe('ConfigureIntegration settings tab', () => {
 
   const githubProvider = OrganizationIntegrationsFixture().provider;
 
-  it('shows the integration name as a link in the header', async () => {
+  it('shows the integration name as plain text in the header', async () => {
     const integration = OrganizationIntegrationsFixture({
       name: 'sentry-demos',
       domainName: 'github.com/sentry-demos',
@@ -75,10 +75,8 @@ describe('ConfigureIntegration settings tab', () => {
 
     renderConfigure();
 
-    expect(await screen.findByRole('link', {name: 'sentry-demos'})).toHaveAttribute(
-      'href',
-      'https://github.com/sentry-demos'
-    );
+    expect(await screen.findByText('sentry-demos')).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'sentry-demos'})).not.toBeInTheDocument();
     expect(screen.queryByText('github.com/sentry-demos')).not.toBeInTheDocument();
   });
 
@@ -99,7 +97,7 @@ describe('ConfigureIntegration settings tab', () => {
     );
   });
 
-  it('uses a full domain URL without adding another protocol', async () => {
+  it('shows the integration name as plain text when the domain is a full URL', async () => {
     const integration = OrganizationIntegrationsFixture({
       name: 'Azure DevOps',
       domainName: 'https://example.visualstudio.com/',
@@ -113,10 +111,8 @@ describe('ConfigureIntegration settings tab', () => {
 
     renderConfigure('vsts');
 
-    expect(await screen.findByRole('link', {name: 'Azure DevOps'})).toHaveAttribute(
-      'href',
-      'https://example.visualstudio.com/'
-    );
+    expect(await screen.findByText('Azure DevOps')).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Azure DevOps'})).not.toBeInTheDocument();
   });
 
   it('shows the PagerDuty integration name without a link for a subdomain', async () => {

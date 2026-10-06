@@ -13,7 +13,7 @@ import {
 import {CompactSelect, type SingleSelectProps} from '@sentry/scraps/compactSelect';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
-import {ExternalLink, type LinkProps} from '@sentry/scraps/link';
+import type {LinkProps} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -124,8 +124,6 @@ interface BreadcrumbItemPaginationProps {
 
 export interface BreadcrumbItemPageTitleProps {
   label: string;
-  /** Optional external destination for the title. */
-  href?: string;
   /**
    * Tooltip shown on the label. renders an always-on custom tooltip (e.g. an issue short-id).
    */
@@ -149,7 +147,6 @@ export interface BreadcrumbItemPageTitleProps {
 export function BreadcrumbItemPageTitle({
   label,
   status,
-  href,
   labelTooltip,
   leadingGraphic,
   pagination,
@@ -228,7 +225,7 @@ export function BreadcrumbItemPageTitle({
             variant="inherit"
             {...containerProps}
           >
-            {href ? <ExternalLink href={href}>{label}</ExternalLink> : label}
+            {label}
           </InfoText>
         )}
       </Container>

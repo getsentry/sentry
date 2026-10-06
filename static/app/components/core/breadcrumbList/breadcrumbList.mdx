@@ -267,13 +267,11 @@ Beyond `label`, the optional props are not shared evenly across the item types.
 | `pagination`      |          |       ✓        |                    |
 | `trailingActions` |          |       ✓        |                    |
 | `status`          |          |       ✓        |                    |
-| `href`            |          |       ✓        |                    |
 
 Use `labelTooltip` for a tooltip on the title text. It accepts React content,
 including descriptions and documentation links.
 Use `leadingGraphic` to display a feature badge, such as `<FeatureBadge type="new" />`.
-`status: {label, variant}` adds an accessible status indicator. `href` makes
-the title an external link while keeping its label a string.
+`status: {label, variant}` adds an accessible status indicator.
 
 A trailing action with `type: 'select'` supports a searchable selector. Pass
 `triggerLabel`, `options`, `value`, and `onChange`; `search`, `loading`, and

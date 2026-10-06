@@ -62,7 +62,6 @@ describe('BreadcrumbTitle', () => {
           title={{
             type: 'page-title',
             label: 'Workspace',
-            href: 'https://example.com/workspace',
           }}
           breadcrumbs={[{type: 'link', label: 'Configurations', to: '/configurations/'}]}
         />
@@ -94,10 +93,7 @@ describe('BreadcrumbTitle', () => {
       '/configurations/'
     );
     const heading = screen.getByRole('heading', {name: 'Workspace', level: 1});
-    expect(within(heading).getByRole('link', {name: 'Workspace'})).toHaveAttribute(
-      'href',
-      'https://example.com/workspace'
-    );
+    expect(within(heading).queryByRole('link')).not.toBeInTheDocument();
     expect(within(heading).queryByText('GitHub')).not.toBeInTheDocument();
     expect(within(heading).queryByText('Configurations')).not.toBeInTheDocument();
   });

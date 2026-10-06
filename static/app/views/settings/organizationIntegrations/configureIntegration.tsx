@@ -616,7 +616,6 @@ function IntegrationNavigationHeader({
 }) {
   const organization = useOrganization();
   const {providerKey} = useParams<{providerKey: string}>();
-  const externalUrl = getIntegrationExternalUrl(integration);
   const configurationsHref = `/settings/${organization.slug}/integrations/${providerKey}/?tab=configurations`;
 
   return (
@@ -628,29 +627,11 @@ function IntegrationNavigationHeader({
           type: 'page-title',
           label: integration.name,
           leadingGraphic: <IntegrationIcon size={16} integration={integration} />,
-          href: externalUrl ?? undefined,
         }}
         action={action}
       />
     </Fragment>
   );
-}
-
-function getIntegrationExternalUrl(integration: Integration): string | null {
-  const {domainName} = integration;
-  if (!domainName) {
-    return null;
-  }
-
-  if (/^https?:\/\//i.test(domainName)) {
-    return domainName;
-  }
-
-  if (integration.provider.key === 'pagerduty') {
-    return null;
-  }
-
-  return `https://${domainName}`;
 }
 
 function PagerdutyAddServicesButton({
