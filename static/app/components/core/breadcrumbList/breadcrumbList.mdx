@@ -288,13 +288,11 @@ Beyond `label`, the optional props are not shared evenly across the item types.
 | `labelTooltip`    |          |       ✓        |                    |
 | `pagination`      |          |       ✓        |                    |
 | `trailingActions` |          |       ✓        |                    |
-| `status`          |          |       ✓        |                    |
 
 Use `labelTooltip` for a tooltip on the title text. It accepts React content,
 including descriptions and documentation links.
 Use `trailingActions: {type: 'badge', element: <FeatureBadge type="new" />}`
 to display a feature badge after the title.
-`status: {label, variant}` adds an accessible status indicator.
 
 Editable titles accept `editOnDoubleClick` to use a double click or the edit
 button to start editing. Use `cancelOnBlur` when leaving the input must discard

@@ -27,14 +27,13 @@ function hidesBelowSm(element: HTMLElement): boolean {
 }
 
 describe('BreadcrumbList container-query collapse', () => {
-  it('shows a label tooltip, feature status, and an accessible status indicator', async () => {
+  it('shows a label tooltip and a feature badge', async () => {
     render(
       <BreadcrumbList.Title
         item={{
           type: 'page-title',
           label: 'Security',
           trailingActions: {type: 'badge', element: <FeatureBadge type="new" />},
-          status: {label: 'Authentication active', variant: 'success'},
           labelTooltip: (
             <Stack align="start" gap="md">
               <Text align="left">Manage authentication.</Text>
@@ -47,9 +46,6 @@ describe('BreadcrumbList container-query collapse', () => {
 
     expect(screen.getByText('Security')).toBeInTheDocument();
     expect(screen.getByLabelText('new')).toBeInTheDocument();
-    expect(
-      screen.getByRole('status', {name: 'Authentication active'})
-    ).toBeInTheDocument();
     expect(screen.queryByRole('img', {name: 'More information'})).not.toBeInTheDocument();
     await userEvent.hover(screen.getByText('Security'));
     expect(await screen.findByText('Manage authentication.')).toBeInTheDocument();

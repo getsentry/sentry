@@ -151,12 +151,6 @@ export default function AccountSecurityDetails() {
         title={{
           type: 'page-title',
           label: authenticator.name,
-          status: {
-            variant: authenticator.isEnrolled ? 'success' : 'danger',
-            label: authenticator.isEnrolled
-              ? t('Authentication Method Active')
-              : t('Authentication Method Inactive'),
-          },
         }}
         action={
           <Flex gap="md">

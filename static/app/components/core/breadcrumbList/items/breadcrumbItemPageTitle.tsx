@@ -14,7 +14,6 @@ import {
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
-import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconChevron} from 'sentry/icons';
@@ -115,18 +114,12 @@ export interface BreadcrumbItemPageTitleProps {
   leadingGraphic?: React.ReactNode;
   /** Structured prev/next navigation rendered before the label. */
   pagination?: BreadcrumbItemPaginationProps;
-  /** Accessible status shown before the title. */
-  status?: {
-    label: string;
-    variant: React.ComponentProps<typeof StatusIndicator>['variant'];
-  };
   /** Typed trailing actions rendered after the page title. */
   trailingActions?: BreadcrumbTitleActions;
 }
 
 export function BreadcrumbItemPageTitle({
   label,
-  status,
   labelTooltip,
   leadingGraphic,
   pagination,
@@ -186,14 +179,6 @@ export function BreadcrumbItemPageTitle({
         </Flex>
       )}
       {leadingGraphic && <BreadcrumbLeadingSlot>{leadingGraphic}</BreadcrumbLeadingSlot>}
-      {status && (
-        <StatusIndicator
-          role="status"
-          aria-label={status.label}
-          variant={status.variant}
-          animationIterationCount={0}
-        />
-      )}
       {/* minWidth={0} lets the title content shrink. The visible-width floor lives
           on the outer Flex above. */}
       <Container minWidth={0}>

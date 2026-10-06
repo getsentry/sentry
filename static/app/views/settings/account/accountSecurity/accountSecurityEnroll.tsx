@@ -83,7 +83,6 @@ export default function AccountSecurityEnroll() {
     return null;
   }
 
-  const isActive = authenticator.isEnrolled || authenticator.status === 'rotation';
   const hasEnrollmentForm = Boolean(authenticator.form?.length);
   const authenticatorId = authenticator.authId;
 
@@ -93,12 +92,6 @@ export default function AccountSecurityEnroll() {
         title={{
           type: 'page-title',
           label: authenticator.name,
-          status: {
-            variant: isActive ? 'success' : 'danger',
-            label: isActive
-              ? t('Authentication Method Active')
-              : t('Authentication Method Inactive'),
-          },
         }}
         action={
           authenticator.isEnrolled &&
