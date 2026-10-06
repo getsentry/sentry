@@ -51,14 +51,28 @@ type Props = {
   title: React.ReactNode;
   type: string;
   activeThreadId?: number;
-  isNestedSection?: boolean;
 };
 
-export function TraceEventDataSection({
-  type,
-  title,
+type TraceEventDataActionsProps = Omit<Props, 'children' | 'title' | 'type'>;
+
+export function TraceEventDataSection({type, title, children, ...actionProps}: Props) {
+  const actions = !actionProps.stackTraceNotFound && (
+    <TraceEventDataActions {...actionProps} />
+  );
+  return (
+    <FoldSection
+      sectionKey={type}
+      title={title}
+      disableCollapsePersistence
+      actions={actions}
+    >
+      {children}
+    </FoldSection>
+  );
+}
+
+export function TraceEventDataActions({
   stackTraceNotFound,
-  children,
   platform,
   projectSlug,
   event,
@@ -68,9 +82,8 @@ export function TraceEventDataSection({
   hasVerboseFunctionNames,
   hasAbsoluteFilePaths,
   hasAbsoluteAddresses,
-  isNestedSection = false,
   activeThreadId,
-}: Props) {
+}: TraceEventDataActionsProps) {
   const api = useApi();
   const organization = useOrganization();
 
@@ -553,27 +566,10 @@ export function TraceEventDataSection({
     </Flex>
   );
 
-  if (isNestedSection) {
-    return (
-      <InlineThreadSection title={title} actions={actions}>
-        {children}
-      </InlineThreadSection>
-    );
-  }
-
-  return (
-    <FoldSection
-      sectionKey={type}
-      title={title}
-      disableCollapsePersistence
-      actions={actions}
-    >
-      {children}
-    </FoldSection>
-  );
+  return actions;
 }
 
-function InlineThreadSection({
+export function InlineThreadSection({
   children,
   title,
   actions,

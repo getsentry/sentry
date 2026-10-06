@@ -16,7 +16,11 @@ import {
   ThreadStates,
 } from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
-import {TraceEventDataSection} from 'sentry/components/events/traceEventDataSection';
+import {
+  InlineThreadSection,
+  TraceEventDataActions,
+  TraceEventDataSection,
+} from 'sentry/components/events/traceEventDataSection';
 import {Pill} from 'sentry/components/pill';
 import {Pills} from 'sentry/components/pills';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
@@ -169,32 +173,137 @@ function ThreadStackTraceContent({
   );
 }
 
-export function Threads({data, event, projectSlug, groupingCurrentLevel, group}: Props) {
-  // Sort threads by crashed first
+function useThreadStackTrace({
+  data,
+  event,
+  projectSlug,
+  groupingCurrentLevel,
+  group,
+}: Props) {
   const threads = useMemo(
     () => (data.values ?? []).toSorted((a, b) => Number(b.crashed) - Number(a.crashed)),
     [data.values]
   );
   const [activeThread, setActiveThread] = useActiveThreadState(event, threads);
-
-  // Sync active thread to module store for copy functionality
   useEffect(() => {
     setActiveThreadId(activeThread?.id);
   }, [activeThread?.id]);
-
-  const stackTraceNotFound = !threads.length;
-
-  const hasMoreThanOneThread = threads.length > 1;
-
   const exception = useMemo(
     () => getThreadException(event, activeThread),
     [event, activeThread]
   );
-
   const stackView = activeThread
     ? getIntendedStackView(activeThread, exception)
     : undefined;
+  const platform = inferPlatform(event, activeThread);
+  const hasNonAppFrames = Boolean(
+    exception?.values?.some(value =>
+      value.stacktrace?.frames?.some(frame => !frame.inApp)
+    ) || activeThread?.stacktrace?.frames?.some(frame => !frame.inApp)
+  );
+  return {
+    event,
+    projectSlug,
+    groupingCurrentLevel,
+    group,
+    threads,
+    activeThread,
+    setActiveThread,
+    exception,
+    platform,
+    hasMoreThanOneThread: threads.length > 1,
+    context: {
+      projectSlug,
+      forceFullStackTrace: hasNonAppFrames ? stackView === StackView.FULL : true,
+      defaultIsNewestFramesFirst: isStacktraceNewestFirst(),
+      hasSystemFrames:
+        exception?.values?.some(value => value.stacktrace?.hasSystemFrames) ?? false,
+    },
+    actions: {
+      projectSlug,
+      event,
+      eventId: event.id,
+      platform,
+      activeThreadId: activeThread?.id,
+      hasMinified:
+        !!exception?.values?.find(value => value.rawStacktrace) ||
+        !!activeThread?.rawStacktrace,
+      hasVerboseFunctionNames:
+        !!exception?.values?.some(value =>
+          value.stacktrace?.frames?.some(
+            frame =>
+              !!frame.rawFunction &&
+              !!frame.function &&
+              frame.rawFunction !== frame.function
+          )
+        ) ||
+        !!activeThread?.stacktrace?.frames?.some(
+          frame =>
+            !!frame.rawFunction &&
+            !!frame.function &&
+            frame.rawFunction !== frame.function
+        ),
+      hasAbsoluteFilePaths:
+        !!exception?.values?.some(value =>
+          value.stacktrace?.frames?.some(frame => !!frame.filename)
+        ) || !!activeThread?.stacktrace?.frames?.some(frame => !!frame.filename),
+      hasAbsoluteAddresses:
+        !!exception?.values?.some(value =>
+          value.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
+        ) || !!activeThread?.stacktrace?.frames?.some(frame => !!frame.instructionAddr),
+      hasNewestFirst:
+        !!exception?.values?.some(value => (value.stacktrace?.frames ?? []).length > 1) ||
+        (activeThread?.stacktrace?.frames ?? []).length > 1,
+      stackTraceNotFound: !threads.length,
+    },
+  };
+}
 
+type ThreadStackTraceData = ReturnType<typeof useThreadStackTrace>;
+
+export function Threads(props: Props) {
+  const trace = useThreadStackTrace(props);
+  const content = (
+    <StacktraceContext {...trace.context}>
+      {trace.hasMoreThanOneThread ? (
+        <ThreadsContent trace={trace} />
+      ) : (
+        <TraceEventDataSection
+          {...trace.actions}
+          title={t('Stack Trace')}
+          type={SectionKey.THREADS}
+        >
+          <ThreadsContent trace={trace} />
+        </TraceEventDataSection>
+      )}
+    </StacktraceContext>
+  );
+  return trace.hasMoreThanOneThread ? (
+    <FoldSection
+      sectionKey={SectionKey.STACKTRACE}
+      title={tn('Stack Trace', 'Stack Traces', trace.threads.length)}
+      disableCollapsePersistence
+    >
+      <Stack gap="xl">{content}</Stack>
+    </FoldSection>
+  ) : (
+    content
+  );
+}
+
+function ThreadsContent({trace}: {trace: ThreadStackTraceData}) {
+  const {
+    event,
+    projectSlug,
+    groupingCurrentLevel,
+    group,
+    threads,
+    activeThread,
+    setActiveThread,
+    exception,
+    platform,
+    hasMoreThanOneThread,
+  } = trace;
   const {id: activeThreadId, name: activeThreadName} = activeThread ?? {};
   const hideThreadTags = activeThreadId === undefined || !activeThreadName;
   const threadStateDisplay = getMappedThreadState(activeThread?.state);
@@ -221,8 +330,6 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
       </Pills>
     );
 
-  const platform = inferPlatform(event, activeThread);
-
   function handleChangeThread(direction: 'previous' | 'next') {
     const currentIndex = threads.findIndex((thread: any) => thread.id === activeThreadId);
     let nextIndex = direction === 'previous' ? currentIndex - 1 : currentIndex + 1;
@@ -235,13 +342,24 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
     setActiveThread(threads[nextIndex]);
   }
 
-  const hasNonAppFrames = Boolean(
-    exception?.values?.some(value =>
-      value.stacktrace?.frames?.some(frame => !frame.inApp)
-    ) || activeThread?.stacktrace?.frames?.some(frame => !frame.inApp)
+  const stackTrace = (
+    <Fragment>
+      <ThreadStackTraceContent
+        event={event}
+        projectSlug={projectSlug}
+        activeThread={activeThread}
+        groupingCurrentLevel={groupingCurrentLevel}
+        exception={exception}
+        platform={platform}
+      />
+      {group && (
+        <ErrorBoundary mini message={t('There was an error loading the suspect commits')}>
+          <SuspectCommits projectSlug={projectSlug} eventId={event.id} group={group} />
+        </ErrorBoundary>
+      )}
+    </Fragment>
   );
-
-  const threadComponent = (
+  return (
     <Fragment>
       {hasMoreThanOneThread && (
         <Fragment>
@@ -308,98 +426,18 @@ export function Threads({data, event, projectSlug, groupingCurrentLevel, group}:
           )}
         </Fragment>
       )}
-      <StacktraceContext
-        projectSlug={projectSlug}
-        forceFullStackTrace={hasNonAppFrames ? stackView === StackView.FULL : true}
-        defaultIsNewestFramesFirst={isStacktraceNewestFirst()}
-        hasSystemFrames={
-          exception?.values?.some(value => value.stacktrace?.hasSystemFrames) ?? false
-        }
-      >
-        <TraceEventDataSection
-          type={SectionKey.THREADS}
-          projectSlug={projectSlug}
-          event={event}
-          eventId={event.id}
-          title={hasMoreThanOneThread ? t('Thread Stack Trace') : t('Stack Trace')}
-          platform={platform}
-          isNestedSection={hasMoreThanOneThread}
-          activeThreadId={activeThread?.id}
-          hasMinified={
-            !!exception?.values?.find(value => value.rawStacktrace) ||
-            !!activeThread?.rawStacktrace
-          }
-          hasVerboseFunctionNames={
-            !!exception?.values?.some(
-              value =>
-                !!value.stacktrace?.frames?.some(
-                  frame =>
-                    !!frame.rawFunction &&
-                    !!frame.function &&
-                    frame.rawFunction !== frame.function
-                )
-            ) ||
-            !!activeThread?.stacktrace?.frames?.some(
-              frame =>
-                !!frame.rawFunction &&
-                !!frame.function &&
-                frame.rawFunction !== frame.function
-            )
-          }
-          hasAbsoluteFilePaths={
-            !!exception?.values?.some(
-              value => !!value.stacktrace?.frames?.some(frame => !!frame.filename)
-            ) || !!activeThread?.stacktrace?.frames?.some(frame => !!frame.filename)
-          }
-          hasAbsoluteAddresses={
-            !!exception?.values?.some(
-              value => !!value.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
-            ) ||
-            !!activeThread?.stacktrace?.frames?.some(frame => !!frame.instructionAddr)
-          }
-          hasNewestFirst={
-            !!exception?.values?.some(
-              value => (value.stacktrace?.frames ?? []).length > 1
-            ) || (activeThread?.stacktrace?.frames ?? []).length > 1
-          }
-          stackTraceNotFound={stackTraceNotFound}
-        >
-          <ThreadStackTraceContent
-            event={event}
-            projectSlug={projectSlug}
-            activeThread={activeThread}
-            groupingCurrentLevel={groupingCurrentLevel}
-            exception={exception}
-            platform={platform}
-          />
-          {group && (
-            <ErrorBoundary
-              mini
-              message={t('There was an error loading the suspect commits')}
-            >
-              <SuspectCommits
-                projectSlug={projectSlug}
-                eventId={event.id}
-                group={group}
-              />
-            </ErrorBoundary>
-          )}
-        </TraceEventDataSection>
-      </StacktraceContext>
-    </Fragment>
-  );
 
-  // If there is only one thread, we expect the stacktrace to wrap itself in a section
-  return hasMoreThanOneThread ? (
-    <FoldSection
-      sectionKey={SectionKey.STACKTRACE}
-      title={tn('Stack Trace', 'Stack Traces', threads.length)}
-      disableCollapsePersistence
-    >
-      <Stack gap="xl">{threadComponent}</Stack>
-    </FoldSection>
-  ) : (
-    threadComponent
+      {hasMoreThanOneThread ? (
+        <InlineThreadSection
+          title={t('Thread Stack Trace')}
+          actions={<TraceEventDataActions {...trace.actions} />}
+        >
+          {stackTrace}
+        </InlineThreadSection>
+      ) : (
+        stackTrace
+      )}
+    </Fragment>
   );
 }
 

@@ -5,16 +5,24 @@ import {Exception} from 'sentry/components/events/interfaces/exception';
 import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
 import {Threads} from 'sentry/components/events/interfaces/threads';
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
-import type {Entry, EntryMap, Event} from 'sentry/types/event';
+import type {
+  Entry,
+  EntryMap,
+  EntryThreads,
+  Event,
+  ExceptionType,
+  ExceptionValue,
+} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {defined} from 'sentry/utils/defined';
+import type {StacktraceType} from 'sentry/types/stacktrace';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {isNativePlatform} from 'sentry/utils/platform';
 import {
   getHangProfileData,
   MetricKitHangProfileSection,
+  type HangProfileData,
 } from 'sentry/views/issueDetails/metricKitHangProfileSection';
 
 interface EventStackTraceProps {
@@ -23,10 +31,22 @@ interface EventStackTraceProps {
   projectSlug: Project['slug'];
 }
 
-export function EventStackTrace({event, group, projectSlug}: EventStackTraceProps) {
-  const shouldUseNewStackTrace =
-    // New stack trace is currently only non-native platforms.
-    !isNativePlatform(event.platform);
+type EventTrace =
+  | {
+      data: {values: ExceptionValue[]} | {stacktrace: StacktraceType};
+      entryType: EntryType.EXCEPTION | EntryType.STACKTRACE;
+      kind: 'issue';
+    }
+  | {data: ExceptionType; entryType: EntryType.EXCEPTION; kind: 'exception'}
+  | {data: StacktraceType; entryType: EntryType.STACKTRACE; kind: 'stacktrace'}
+  | {data: EntryThreads['data']; entryType: EntryType.THREADS; kind: 'threads'}
+  | {data: HangProfileData; kind: 'hang'};
+
+function useEventStackTrace({
+  event,
+  group,
+}: Pick<EventStackTraceProps, 'event' | 'group'>): EventTrace[] {
+  const isNative = isNativePlatform(event.platform);
   const eventEntries = useMemo(() => {
     return event.entries.reduce<Partial<EntryMap>>((entryMap, entry) => {
       (entryMap as Record<string, Entry>)[entry.type] = entry;
@@ -36,66 +56,99 @@ export function EventStackTrace({event, group, projectSlug}: EventStackTraceProp
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const hangProfileData =
     mechanism === 'mx_hang_diagnostic' ? getHangProfileData(event) : null;
-  const groupingCurrentLevel = group?.metadata?.current_level;
   const issueTypeConfig = getConfigForIssueType(group, group.project);
 
   if (hangProfileData) {
-    return <MetricKitHangProfileSection data={hangProfileData} />;
+    return [{kind: 'hang', data: hangProfileData}];
   }
 
+  const exception = eventEntries[EntryType.EXCEPTION];
+  const stacktrace = eventEntries[EntryType.STACKTRACE];
+  const threads = eventEntries[EntryType.THREADS];
+  const traces: EventTrace[] = [];
+
+  // Thread rendering includes its associated exception.
+  if (exception && !threads) {
+    traces.push(
+      isNative
+        ? {kind: 'exception', entryType: EntryType.EXCEPTION, data: exception.data}
+        : {
+            kind: 'issue',
+            entryType: EntryType.EXCEPTION,
+            data: {values: exception.data.values ?? []},
+          }
+    );
+  }
+
+  // Native standalone traces can coexist with threads; modern traces cannot.
+  if (issueTypeConfig.stacktrace.enabled && stacktrace && (isNative || !threads)) {
+    traces.push(
+      isNative
+        ? {kind: 'stacktrace', entryType: EntryType.STACKTRACE, data: stacktrace.data}
+        : {
+            kind: 'issue',
+            entryType: EntryType.STACKTRACE,
+            data: {stacktrace: stacktrace.data},
+          }
+    );
+  }
+
+  if (threads) {
+    traces.push({kind: 'threads', entryType: EntryType.THREADS, data: threads.data});
+  }
+
+  return traces;
+}
+
+export function EventStackTrace(props: EventStackTraceProps) {
+  const traces = useEventStackTrace(props);
   return (
     <Fragment>
-      {defined(eventEntries[EntryType.EXCEPTION]) && (
-        <EntryErrorBoundary type={EntryType.EXCEPTION}>
-          {shouldUseNewStackTrace ? (
-            <IssueStackTrace
-              event={event}
-              values={eventEntries[EntryType.EXCEPTION].data.values ?? []}
-              projectSlug={projectSlug}
-              group={group}
-            />
-          ) : (
-            <Exception
-              event={event}
-              data={eventEntries[EntryType.EXCEPTION].data}
-              projectSlug={projectSlug}
-              group={group}
-              groupingCurrentLevel={groupingCurrentLevel}
-            />
-          )}
-        </EntryErrorBoundary>
-      )}
-      {issueTypeConfig.stacktrace.enabled &&
-        defined(eventEntries[EntryType.STACKTRACE]) && (
-          <EntryErrorBoundary type={EntryType.STACKTRACE}>
-            {shouldUseNewStackTrace ? (
-              <IssueStackTrace
-                event={event}
-                stacktrace={eventEntries[EntryType.STACKTRACE].data}
-                projectSlug={projectSlug}
-                group={group}
-              />
-            ) : (
-              <StackTrace
-                event={event}
-                data={eventEntries[EntryType.STACKTRACE].data}
-                projectSlug={projectSlug}
-                groupingCurrentLevel={groupingCurrentLevel}
-              />
-            )}
+      {traces.map(trace => {
+        if (trace.kind === 'hang') {
+          return <MetricKitHangProfileSection key="hang" data={trace.data} />;
+        }
+        return (
+          <EntryErrorBoundary key={trace.entryType} type={trace.entryType}>
+            <EventStackTraceContent {...props} trace={trace} />
           </EntryErrorBoundary>
-        )}
-      {defined(eventEntries[EntryType.THREADS]) && (
-        <EntryErrorBoundary type={EntryType.THREADS}>
-          <Threads
-            event={event}
-            data={eventEntries[EntryType.THREADS].data}
-            projectSlug={projectSlug}
-            groupingCurrentLevel={groupingCurrentLevel}
-            group={group}
-          />
-        </EntryErrorBoundary>
-      )}
+        );
+      })}
     </Fragment>
   );
+}
+
+function EventStackTraceContent({
+  trace,
+  ...props
+}: EventStackTraceProps & {trace: Exclude<EventTrace, {kind: 'hang'}>}) {
+  const groupingCurrentLevel = props.group.metadata?.current_level;
+  switch (trace.kind) {
+    case 'issue':
+      return <IssueStackTrace {...props} {...trace.data} />;
+    case 'exception':
+      return (
+        <Exception
+          {...props}
+          data={trace.data}
+          groupingCurrentLevel={groupingCurrentLevel}
+        />
+      );
+    case 'stacktrace':
+      return (
+        <StackTrace
+          {...props}
+          data={trace.data}
+          groupingCurrentLevel={groupingCurrentLevel}
+        />
+      );
+    case 'threads':
+      return (
+        <Threads
+          {...props}
+          data={trace.data}
+          groupingCurrentLevel={groupingCurrentLevel}
+        />
+      );
+  }
 }
