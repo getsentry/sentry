@@ -165,7 +165,7 @@ def update_if_combinators(apps: StateApps, schema_editor: BaseDatabaseSchemaEdit
                                 if (new_axis := new_function(axis)) is not None:
                                     field["yAxes"][index] = new_axis
                                     changed = True
-                if "orderby" in query:
+                if "orderby" in query and query["orderby"] is not None:
                     field = query["orderby"]
                     order = "asc"
                     if field.startswith("-"):
