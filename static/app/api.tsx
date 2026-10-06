@@ -11,7 +11,6 @@ import {
   SUPERUSER_REQUIRED,
 } from 'sentry/constants/apiErrorCodes';
 import type {ApiResult, ResponseMeta} from 'sentry/types/api';
-import {metric} from 'sentry/utils/analytics';
 import {isSimilarOrigin} from 'sentry/utils/api/isSimilarOrigin';
 import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -55,9 +54,13 @@ export class Request {
   }
 
   cancel() {
+    // Cancelled requests stay in `activeRequests`, so `Client.clear()` can
+    // cancel the same request more than once. Only count the first abort.
+    if (this.alive) {
+      Sentry.metrics.count('ui.api-request.abort', 1);
+    }
     this.alive = false;
     this.aborter?.abort();
-    metric('app.api.request-abort', 1);
   }
 }
 
@@ -428,9 +431,20 @@ export class Client {
     }
 
     const id = uniqueId();
-    const startMarker = `api-request-start-${id}`;
+    const startTime = performance.now();
+    const url = sanitizePath(path);
 
-    metric.mark({name: startMarker});
+    const recordRequestMetric = (outcome: 'success' | 'error', status?: number) => {
+      // Skip requests cancelled while in flight (e.g. with `skipAbort`), which
+      // are already counted as aborts
+      if (!this.activeRequests[id]?.alive) {
+        return;
+      }
+      Sentry.metrics.distribution('ui.api-request', performance.now() - startTime, {
+        unit: 'millisecond',
+        attributes: {status, outcome, url, method},
+      });
+    };
 
     /**
      * Called when the request completes with a 2xx status
@@ -440,11 +454,7 @@ export class Client {
       textStatus: string,
       responseData: any
     ) => {
-      metric.measure({
-        name: 'app.api.request-success',
-        start: startMarker,
-        data: {status: resp?.status},
-      });
+      recordRequestMetric('success', resp?.status);
       if (options.success !== undefined) {
         this.wrapCallback<[any, string, ResponseMeta]>(id, options.success)(
           responseData,
@@ -462,11 +472,7 @@ export class Client {
       textStatus: string,
       errorThrown: string
     ) => {
-      metric.measure({
-        name: 'app.api.request-error',
-        start: startMarker,
-        data: {status: resp?.status},
-      });
+      recordRequestMetric('error', resp?.status);
 
       this.handleRequestError(
         {id, path, requestOptions: options},
