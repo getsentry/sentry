@@ -536,6 +536,30 @@ class BaseUpdateMonitorTest(MonitorTestCase):
             second=0, microsecond=0
         ) + timedelta(minutes=TIMEOUT)
 
+    @patch("sentry.monitors.validators.logger")
+    def test_issue_alert_rule_logs_usage(self, mock_logger: MagicMock) -> None:
+        monitor = self._create_monitor()
+
+        self.get_success_response(
+            self.organization.slug,
+            monitor.slug,
+            method="PUT",
+            **{
+                "alert_rule": {
+                    "targets": [{"targetIdentifier": self.user.id, "targetType": "Member"}],
+                },
+            },
+        )
+        mock_logger.info.assert_called_once_with(
+            "monitors.validator.alert_rule",
+            extra={
+                "organization_id": self.organization.id,
+                "operation": "update",
+                "endpoint": self.endpoint,
+                "ui_request": True,
+            },
+        )
+
     def test_existing_issue_alert_rule(self) -> None:
         monitor = self._create_monitor()
         rule = self._create_issue_alert_rule(monitor)

@@ -17,13 +17,12 @@ from sentry.apidocs.response_types import ValidationErrorResponse, as_validation
 from sentry.constants import ObjectStatus
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
-from sentry.middleware import is_frontend_request
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.monitors.models import Monitor, MonitorEnvironment, MonitorStatus
 from sentry.monitors.serializers import MonitorSerializer, MonitorSerializerResponse
-from sentry.monitors.utils import ensure_cron_detector_deletion
+from sentry.monitors.utils import ensure_cron_detector_deletion, get_request_attribution
 from sentry.monitors.validators import MonitorValidator
 from sentry.utils import metrics
 from sentry.utils.auth import AuthenticatedHttpRequest
@@ -46,20 +45,11 @@ class MonitorDetailsMixin(BaseEndpointMixin):
 
         # expand=alertRule is slated for removal; track who still relies on it.
         if "alertRule" in expand:
-            resolver_match = getattr(request, "resolver_match", None)
-            endpoint = getattr(resolver_match, "url_name", None) or "unknown"
-            ui_request = is_frontend_request(request)
-            metrics.incr(
-                "monitors.serializer.expand_alert_rule",
-                tags={"endpoint": endpoint, "ui_request": ui_request},
-            )
+            attribution = get_request_attribution(request)
+            metrics.incr("monitors.serializer.expand_alert_rule", tags=attribution)
             logger.info(
                 "monitors.serializer.expand_alert_rule",
-                extra={
-                    "organization_id": project.organization_id,
-                    "endpoint": endpoint,
-                    "ui_request": ui_request,
-                },
+                extra={"organization_id": project.organization_id, **attribution},
             )
 
         return self.respond(

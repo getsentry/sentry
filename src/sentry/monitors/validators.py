@@ -1,3 +1,4 @@
+import logging
 import re
 from typing import Any, Literal
 
@@ -47,6 +48,7 @@ from sentry.monitors.utils import (
     ensure_cron_detector,
     get_checkin_margin,
     get_max_runtime,
+    get_request_attribution,
     signal_monitor_created,
     update_issue_alert_rule,
 )
@@ -60,6 +62,8 @@ from sentry.workflow_engine.endpoints.validators.base import (
     BaseDetectorTypeValidator,
 )
 from sentry.workflow_engine.models import Detector
+
+logger = logging.getLogger(__name__)
 
 MONITOR_STATUSES = {
     "active": ObjectStatus.ACTIVE,
@@ -500,6 +504,14 @@ class MonitorValidator(CamelSnakeSerializer):
                 tags={"operation": "create"},
                 sample_rate=1.0,
             )
+            logger.info(
+                "monitors.validator.alert_rule",
+                extra={
+                    "organization_id": organization.id,
+                    "operation": "create",
+                    **get_request_attribution(request),
+                },
+            )
             issue_alert_rule_id = create_issue_alert_rule(
                 request, project, monitor, validated_issue_alert_rule
             )
@@ -627,6 +639,14 @@ class MonitorValidator(CamelSnakeSerializer):
             )
             alert_rule_data = validated_data["alert_rule"]
             request = self.context.get("request")
+            logger.info(
+                "monitors.validator.alert_rule",
+                extra={
+                    "organization_id": instance.organization_id,
+                    "operation": "update",
+                    **get_request_attribution(request),
+                },
+            )
             if not request:
                 return instance
 
