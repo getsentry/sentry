@@ -1440,17 +1440,5 @@ const SelectorItem = styled('div')`
 `;
 
 export function SearchInput(props: InputProps) {
-  const theme = useTheme();
-
-  return (
-    <Input
-      size="sm"
-      {...props}
-      css={css`
-        &:focus-visible {
-          box-shadow: inset 0 0 0 1px ${theme.tokens.focus.default};
-        }
-      `}
-    />
-  );
+  return <Input size="sm" {...props} />;
 }
