@@ -11,7 +11,7 @@ export interface EntityHeaderStatProps {
    * Short, static label such as "Dead Clicks". Never skeletonised — it is known
    * before the data arrives, so showing it immediately keeps the row stable.
    */
-  label: React.ReactNode;
+  label: string;
   /**
    * The measurement itself. Accepts a node so rich values (an error count with
    * platform icons, a viewer avatar list) fit without a second component.

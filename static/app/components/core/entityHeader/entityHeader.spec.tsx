@@ -1,6 +1,7 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {getEmotionRules} from 'sentry-test/utils';
 
+import {Tag} from '@sentry/scraps/badge';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 
 /** The `Grid` that owns the template is the header's only child. */
@@ -40,8 +41,12 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{
             label: 'Session',
-            leadingGraphic: <img alt="Project avatar" />,
-            tags: <span>Live</span>,
+            leadingGraphic: {type: 'platform', platform: 'javascript'},
+            tags: [
+              <Tag key="live" variant="success">
+                {'Live'}
+              </Tag>,
+            ],
           }}
         />
       );
@@ -50,7 +55,31 @@ describe('EntityHeader', () => {
       expect(within(heading).getByText('Session')).toBeInTheDocument();
       expect(screen.getByText('Live')).toBeInTheDocument();
       // The label carries the meaning; the graphic is decorative.
-      expect(screen.queryByRole('img', {name: 'Project avatar'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('img')).not.toBeInTheDocument();
+    });
+
+    it('drops null tag entries', () => {
+      const isLive = false;
+      render(
+        <EntityHeader
+          title={{
+            label: 'Session',
+            tags: [
+              isLive ? (
+                <Tag key="live" variant="success">
+                  {'Live'}
+                </Tag>
+              ) : null,
+              <Tag key="mobile" variant="muted">
+                {'Mobile'}
+              </Tag>,
+            ],
+          }}
+        />
+      );
+
+      expect(screen.getByText('Mobile')).toBeInTheDocument();
+      expect(screen.queryByText('Live')).not.toBeInTheDocument();
     });
   });
 

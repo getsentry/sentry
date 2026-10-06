@@ -23,7 +23,7 @@ It deliberately does **not** render breadcrumbs, the page `h1`, or global action
 
 <Storybook.Demo>
   <EntityHeader
-    title={{label: 'anonymous@example.com', tags: <Tag variant="success">Live</Tag>}}
+    title={{label: 'anonymous@example.com', tags: [<Tag variant="success">Live</Tag>]}}
     stats={[
       {label: 'Dead Clicks', value: 0},
       {label: 'Rage Clicks', value: 2},
@@ -39,7 +39,7 @@ It deliberately does **not** render breadcrumbs, the page `h1`, or global action
 
 ```jsx
 <EntityHeader
-  title={{label: 'anonymous@example.com', tags: <Tag variant="success">Live</Tag>}}
+  title={{label: 'anonymous@example.com', tags: [<Tag variant="success">Live</Tag>]}}
   stats={[
     {label: 'Dead Clicks', value: 0},
     {label: 'Rage Clicks', value: 2},
@@ -65,9 +65,31 @@ Every other slot is optional, and the grid template is built from whichever you 
 <EntityHeader title={{label: 'Profile 8f2c1a'}} />
 ```
 
+## Leading graphic
+
+`title.leadingGraphic` is data, not a node, so the header controls the size and the slot cannot be used to smuggle in a component. Pass one of four shapes:
+
+```jsx
+leadingGraphic={{type: 'user', user: replay.user}}
+leadingGraphic={{type: 'project', project}}
+leadingGraphic={{type: 'platform', platform: 'javascript'}}
+leadingGraphic={{type: 'icon', icon: IconBranch}}
+```
+
+The `icon` variant takes the component itself, not an element, so the header can size and colour it.
+
+<Storybook.Demo>
+  <EntityHeader
+    title={{
+      label: 'javascript-sdk @ 8.42.0',
+      leadingGraphic: {type: 'platform', platform: 'javascript'},
+    }}
+  />
+</Storybook.Demo>
+
 ## Conditional items
 
-`stats` and `metadata` drop `null` entries, so you can inline a conditional instead of building the array ahead of time. Items are keyed by their position in the array you wrote, not in the filtered result, so an item appearing or disappearing never remounts its neighbours.
+`stats`, `metadata` and `tags` drop `null` entries, so you can inline a conditional instead of building the array ahead of time. Items are keyed by their position in the array you wrote, not in the filtered result, so an item appearing or disappearing never remounts its neighbours.
 
 ```jsx
 <EntityHeader
@@ -81,7 +103,7 @@ Every other slot is optional, and the grid template is built from whichever you 
 
 ## Linking and tooltips
 
-A stat value becomes a link with `to`. A metadata item gains a dotted underline and a tooltip with `tooltip`. Use `variant` to call out a problem.
+A stat value becomes a link with `to`, and so does the title. A metadata item gains a dotted underline and a tooltip with `tooltip`. Use `variant` to call out a problem.
 
 <Storybook.Demo>
   <EntityHeader

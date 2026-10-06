@@ -1,7 +1,7 @@
 import {useMatches} from 'react-router-dom';
 import {PlatformIcon} from 'platformicons';
 
-import {UserAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 
@@ -9,7 +9,7 @@ import {DateTime} from 'sentry/components/dateTime';
 import {ErrorCounts} from 'sentry/components/replays/header/errorCounts';
 import {ReplayViewers} from 'sentry/components/replays/header/replayViewers';
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
-import {LiveBadge, useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
+import {useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconCalendar} from 'sentry/icons/iconCalendar';
 import {IconDelete} from 'sentry/icons/iconDelete';
@@ -65,7 +65,7 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
       <EntityHeader
         title={{
           label: t('Deleted Replay'),
-          leadingGraphic: <IconDelete variant="muted" size="sm" />,
+          leadingGraphic: {type: 'icon', icon: IconDelete},
         }}
       />
     );
@@ -107,20 +107,26 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
       isLoading,
       title: {
         label: replayRecord?.user.display_name || t('Anonymous User'),
-        leadingGraphic: replayRecord ? (
-          <UserAvatar
-            user={{
-              username: replayRecord.user?.display_name || '',
-              email: replayRecord.user?.email || '',
-              id: replayRecord.user?.id || '',
-              ip_address: replayRecord.user?.ip || '',
-              name: replayRecord.user?.username || '',
-            }}
-            size={16}
-          />
-        ) : undefined,
+        leadingGraphic: replayRecord
+          ? {
+              type: 'user',
+              user: {
+                username: replayRecord.user?.display_name || '',
+                email: replayRecord.user?.email || '',
+                id: replayRecord.user?.id || '',
+                ip_address: replayRecord.user?.ip || '',
+                name: replayRecord.user?.username || '',
+              },
+            }
+          : undefined,
         to: replaysIndexUrl,
-        tags: isLive ? <LiveBadge /> : undefined,
+        tags: [
+          isLive ? (
+            <Tag key="live" variant="success">
+              {t('Live')}
+            </Tag>
+          ) : null,
+        ],
         loadingWidth: '200px',
       },
       stats: [

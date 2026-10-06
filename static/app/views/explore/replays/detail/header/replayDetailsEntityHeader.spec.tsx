@@ -107,7 +107,7 @@ describe('ReplayDetailsEntityHeader', () => {
 
     render(<ReplayDetailsEntityHeader readerResult={result.current} />, {organization});
 
-    expect(screen.getByTestId('live-badge')).toBeVisible();
+    expect(screen.getByText('Live')).toBeVisible();
   });
 
   it('should hide LIVE badge when last received segment is more than 5 minutes ago', async () => {
@@ -171,11 +171,11 @@ describe('ReplayDetailsEntityHeader', () => {
     render(<ReplayDetailsEntityHeader readerResult={result.current} />, {organization});
 
     // Live badge should be visible initially
-    expect(screen.getByTestId('live-badge')).toBeVisible();
+    expect(screen.getByText('Live')).toBeVisible();
 
     // let 5 minutes and 1/1000 second pass
     await act(async () => jest.advanceTimersByTimeAsync(5 * 60 * 1000 + 1));
 
-    expect(screen.queryByTestId('live-badge')).not.toBeInTheDocument();
+    expect(screen.queryByText('Live')).not.toBeInTheDocument();
   });
 });
