@@ -251,6 +251,11 @@ def _get_event_request(segment_span: CompatibleSpan) -> dict[str, Any]:
     return request_data
 
 
+def _get_event_sdk(segment_span: CompatibleSpan) -> dict[str, Any]:
+    sdk_data = _extract_attribute_values(segment_span, SDK_FIELDS_BY_ATTRIBUTE_NAME)
+    return sdk_data if sdk_data.keys() == {"name", "version"} else {}
+
+
 def _get_detector_compatible_spans(spans: list[CompatibleSpan]) -> list[CompatibleSpan]:
     """
     Return a shallow copy of the given span list, with the fields the legacy issue detectors need
@@ -311,7 +316,7 @@ def build_shim_event_data(
     if user_data:
         event["user"] = user_data
 
-    sdk_data = _extract_attribute_values(segment_span, SDK_FIELDS_BY_ATTRIBUTE_NAME)
+    sdk_data = _get_event_sdk(segment_span)
     if sdk_data:
         event["sdk"] = sdk_data
 
