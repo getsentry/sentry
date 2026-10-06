@@ -1,12 +1,11 @@
 import {Fragment} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -115,16 +114,11 @@ function MetricsHeader() {
             type: 'page-title',
             label: title || METRICS_TITLE,
             labelTooltip: (
-              <Stack align="start" gap="md">
-                <Text align="left">
-                  {t(
-                    'Track critical application signals using counters, gauges, and distributions.'
-                  )}
-                </Text>
-                <ExternalLink href="https://docs.sentry.io/product/explore/metrics/">
-                  {t('Read the Docs')}
-                </ExternalLink>
-              </Stack>
+              <ReadTheDocs docsUrl="https://docs.sentry.io/product/explore/metrics/">
+                {t(
+                  'Track critical application signals using counters, gauges, and distributions.'
+                )}
+              </ReadTheDocs>
             ),
           }}
         />

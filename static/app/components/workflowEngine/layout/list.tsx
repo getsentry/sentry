@@ -1,11 +1,9 @@
 import {Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {OnboardingBanner} from 'sentry/components/workflowEngine/ui/alertsMonitorsOnboardingBanner';
-import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -39,12 +37,7 @@ export function WorkflowEngineListLayout({
           title={{
             type: 'page-title',
             label: title,
-            labelTooltip: (
-              <Stack align="start" gap="md">
-                <Text align="left">{description}</Text>
-                <ExternalLink href={docsUrl}>{t('Read the Docs')}</ExternalLink>
-              </Stack>
-            ),
+            labelTooltip: <ReadTheDocs docsUrl={docsUrl}>{description}</ReadTheDocs>,
           }}
         />
         <TopBar.Slot name="actions">{actions}</TopBar.Slot>

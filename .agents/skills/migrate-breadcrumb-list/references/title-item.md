@@ -35,16 +35,13 @@ There are no dedicated title-level `help`, `badge`, `href`, `status`, or `titleG
 
 ### Tooltips
 
-Move explanations and documentation links into `labelTooltip`. The title's `InfoText` supplies the hover/focus trigger, so do not nest `InfoTip`, `Tooltip`, or `PageHeadingQuestionTooltip` inside it.
+Move explanations and documentation links into `labelTooltip`. The title's `InfoText` supplies the hover/focus trigger, so do not nest `InfoTip` or `Tooltip` inside it.
 
 ```tsx
-labelTooltip: (
-  <Stack align="start" gap="md">
-    <Text align="left">{description}</Text>
-    <ExternalLink href={docsUrl}>{t('Read the Docs')}</ExternalLink>
-  </Stack>
-),
+labelTooltip: <ReadTheDocs docsUrl={docsUrl}>{description}</ReadTheDocs>,
 ```
+
+Import `ReadTheDocs` from `sentry/components/readTheDocs`. It renders only the text and documentation link. Outside a title, it can be passed as the `title` of an `InfoTip`.
 
 For plain explanatory text, pass the string directly. Preserve conditional descriptions and documentation URLs. The separate info icon is removed.
 

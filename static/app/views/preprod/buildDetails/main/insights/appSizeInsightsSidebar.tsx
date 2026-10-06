@@ -4,11 +4,12 @@ import {AnimatePresence} from 'framer-motion';
 
 import {Backdrop} from '@sentry/scraps/backdrop';
 import {Button} from '@sentry/scraps/button';
+import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {Heading} from '@sentry/scraps/text';
 
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
+import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {IconClose, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
@@ -98,11 +99,16 @@ export function AppSizeInsightsSidebar({
                 <Heading as="h2" size="xl">
                   {t('Insights')}
                 </Heading>
-                <PageHeadingQuestionTooltip
-                  docsUrl={getInsightsDocsUrl(platform)}
-                  title={t(
-                    'Insights help you identify opportunities to reduce your app size.'
-                  )}
+                <InfoTip
+                  title={
+                    <ReadTheDocs docsUrl={getInsightsDocsUrl(platform)}>
+                      {t(
+                        'Insights help you identify opportunities to reduce your app size.'
+                      )}
+                    </ReadTheDocs>
+                  }
+                  size="sm"
+                  position="right"
                 />
               </Flex>
               <Button

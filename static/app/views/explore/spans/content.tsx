@@ -4,14 +4,13 @@ import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
 
 import {getBootstrapOrganizationQueryOptions} from 'sentry/bootstrap/bootstrapRequests';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TourContextProvider} from 'sentry/components/tours/components';
@@ -238,16 +237,11 @@ function SpansTabHeader() {
             type: 'page-title',
             label: title || t('Traces'),
             labelTooltip: (
-              <Stack align="start" gap="md">
-                <Text align="left">
-                  {t(
-                    'Find problematic spans/traces or compute real-time metrics via aggregation.'
-                  )}
-                </Text>
-                <ExternalLink href="https://docs.sentry.io/product/explore/trace-explorer/">
-                  {t('Read the Docs')}
-                </ExternalLink>
-              </Stack>
+              <ReadTheDocs docsUrl="https://docs.sentry.io/product/explore/trace-explorer/">
+                {t(
+                  'Find problematic spans/traces or compute real-time metrics via aggregation.'
+                )}
+              </ReadTheDocs>
             ),
           }}
         />

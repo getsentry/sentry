@@ -2,12 +2,11 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -140,16 +139,11 @@ function LogsHeader() {
             type: 'page-title',
             label: title || t('Logs'),
             labelTooltip: (
-              <Stack align="start" gap="md">
-                <Text align="left">
-                  {t(
-                    'Detailed structured logs, linked to errors and traces, for debugging and investigation.'
-                  )}
-                </Text>
-                <ExternalLink href="https://docs.sentry.io/product/explore/logs/">
-                  {t('Read the Docs')}
-                </ExternalLink>
-              </Stack>
+              <ReadTheDocs docsUrl="https://docs.sentry.io/product/explore/logs/">
+                {t(
+                  'Detailed structured logs, linked to errors and traces, for debugging and investigation.'
+                )}
+              </ReadTheDocs>
             ),
           }}
         />

@@ -6,13 +6,12 @@ import uniqBy from 'lodash/uniqBy';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TeamFilter} from 'sentry/components/teamFilter';
@@ -210,16 +209,11 @@ function Dashboard() {
           type: 'page-title',
           label: t('All Projects'),
           labelTooltip: (
-            <Stack align="start" gap="md">
-              <Text align="left">
-                {t(
-                  "A high-level overview of errors, transactions, and deployments filtered by teams you're part of."
-                )}
-              </Text>
-              <ExternalLink href="https://docs.sentry.io/product/projects/">
-                {t('Read the Docs')}
-              </ExternalLink>
-            </Stack>
+            <ReadTheDocs docsUrl="https://docs.sentry.io/product/projects/">
+              {t(
+                "A high-level overview of errors, transactions, and deployments filtered by teams you're part of."
+              )}
+            </ReadTheDocs>
           ),
         }}
       />

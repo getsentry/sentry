@@ -1,14 +1,13 @@
 import {Fragment} from 'react';
 
 import {Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {
   ReplayAccess,
@@ -89,16 +88,11 @@ function ReplaysHeader() {
             type: 'page-title',
             label: title || t('Session Replay'),
             labelTooltip: title ? undefined : (
-              <Stack align="start" gap="md">
-                <Text align="left">
-                  {t(
-                    'Video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.'
-                  )}
-                </Text>
-                <ExternalLink href="https://docs.sentry.io/product/session-replay/">
-                  {t('Read the Docs')}
-                </ExternalLink>
-              </Stack>
+              <ReadTheDocs docsUrl="https://docs.sentry.io/product/session-replay/">
+                {t(
+                  'Video-like reproductions of user sessions so you can visualize repro steps to debug issues faster.'
+                )}
+              </ReadTheDocs>
             ),
           }}
         />

@@ -1,8 +1,9 @@
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {IdBadge} from 'sentry/components/idBadge';
+import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {IconCode, IconCommit, IconPullRequest, IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -59,14 +60,9 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
         type: 'page-title',
         label: t('Snapshots'),
         labelTooltip: (
-          <Stack align="start" gap="md">
-            <Text align="left">
-              {t('Catch visual regressions before they reach users.')}
-            </Text>
-            <ExternalLink href="https://docs.sentry.io/product/snapshots/">
-              {t('Read the Docs')}
-            </ExternalLink>
-          </Stack>
+          <ReadTheDocs docsUrl="https://docs.sentry.io/product/snapshots/">
+            {t('Catch visual regressions before they reach users.')}
+          </ReadTheDocs>
         ),
       }}
     >

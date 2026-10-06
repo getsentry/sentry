@@ -1,17 +1,18 @@
 import {useCallback, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
+import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 
-import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
+import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
@@ -106,9 +107,14 @@ export function FeatureFilter({
       <PanelHeader>
         <Flex align="center" gap="xs">
           {t('%s - Configuration', title)}
-          <PageHeadingQuestionTooltip
-            docsUrl={docsUrl}
-            title={t('Learn more about configuring build filters.')}
+          <InfoTip
+            title={
+              <ReadTheDocs docsUrl={docsUrl}>
+                {t('Learn more about configuring build filters.')}
+              </ReadTheDocs>
+            }
+            size="sm"
+            position="right"
           />
         </Flex>
       </PanelHeader>

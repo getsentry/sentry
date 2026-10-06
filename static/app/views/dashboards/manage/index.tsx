@@ -10,10 +10,8 @@ import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
-import {Text} from '@sentry/scraps/text';
 
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import Feature from 'sentry/components/acl/feature';
@@ -21,6 +19,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
+import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconAdd} from 'sentry/icons';
@@ -421,22 +420,17 @@ function ManageDashboards() {
                     type: 'page-title',
                     label: pageTitle,
                     labelTooltip: (
-                      <Stack align="start" gap="md">
-                        <Text align="left">
-                          {isOnlyPrebuilt
-                            ? t(
-                                'Dashboards built by Sentry to help monitor your application out of the box.'
-                              )
-                            : isOnlyCustom
-                              ? t('Dashboards created by you and your team.')
-                              : t(
-                                  "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
-                                )}
-                        </Text>
-                        <ExternalLink href="https://docs.sentry.io/product/dashboards/">
-                          {t('Read the Docs')}
-                        </ExternalLink>
-                      </Stack>
+                      <ReadTheDocs docsUrl="https://docs.sentry.io/product/dashboards/">
+                        {isOnlyPrebuilt
+                          ? t(
+                              'Dashboards built by Sentry to help monitor your application out of the box.'
+                            )
+                          : isOnlyCustom
+                            ? t('Dashboards created by you and your team.')
+                            : t(
+                                "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
+                              )}
+                      </ReadTheDocs>
                     ),
                   }}
                 />
