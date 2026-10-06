@@ -181,12 +181,36 @@ describe('EntityHeader', () => {
       expect(link).toHaveAttribute('href', '/replays/1/?t_main=errors');
 
       // The link is the only tab stop — InfoText would add a second one inside
-      // the anchor — but it still needs the dotted underline, because the Text
-      // inside it keeps the stat's own colour over the global anchor colour.
+      // the anchor — so the tooltip draws the underline onto the link itself.
       expect(link).toHaveStyle({textDecoration: 'underline'});
 
       await userEvent.hover(link);
       expect(await screen.findByText('From 2 projects')).toBeInTheDocument();
+    });
+
+    it('gives a linked value the same metrics as an unlinked one', () => {
+      // `Link` sets text-box-trim but no font size. If it wrapped the value
+      // instead of carrying its styles, it would become a flex item trimmed to
+      // the font it inherits rather than the stat's, and the baseline would jump
+      // the moment a count resolved and turned into a link.
+      const {rerender} = render(
+        <EntityHeader title={{label: 'Session'}} stats={[{label: 'Errors', value: 3}]} />
+      );
+      const hasStatFontSize = (element: HTMLElement) =>
+        getEmotionRules(element).some(rule => /font-size:\s*16px/.test(rule));
+
+      expect(hasStatFontSize(screen.getByText('3'))).toBe(true);
+
+      rerender(
+        <EntityHeader
+          title={{label: 'Session'}}
+          stats={[{label: 'Errors', value: 3, to: '/replays/1/?t_main=errors'}]}
+        />
+      );
+
+      // The anchor itself carries the stat's type, rather than wrapping an
+      // element that does.
+      expect(hasStatFontSize(screen.getByRole('link', {name: '3'}))).toBe(true);
     });
 
     it('drops null entries so callers can inline conditionals', () => {

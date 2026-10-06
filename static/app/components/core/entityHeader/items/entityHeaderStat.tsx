@@ -67,22 +67,33 @@ export function EntityHeaderStat({
 
   let valueContent: React.ReactNode;
   if (to) {
-    const link = (
-      <Link to={to} onClick={onClick}>
-        <Text {...valueStyles}>{value}</Text>
-      </Link>
-    );
-    // The tooltip attaches to the link rather than wrapping it in InfoText,
-    // which would put a second tab stop inside the anchor. It still has to
-    // carry the underline itself: the link gives the value no affordance of its
-    // own, because the global anchor colour is overridden by the Text inside it
-    // keeping the stat's `content.primary`.
-    valueContent = valueTooltip ? (
-      <Tooltip title={valueTooltip} skipWrapper showUnderline>
-        {link}
-      </Tooltip>
-    ) : (
-      link
+    // The link takes the value's text styles rather than wrapping an element
+    // that has them. `Link` sets `text-box-trim` but no font size, so as a flex
+    // item it would trim itself to the font it inherits — not the stat's — and
+    // the baseline would move the moment a link appeared. Styling the anchor
+    // directly keeps one element, with one set of metrics, in every state.
+    // It also keeps the value `content.primary`: a class beats the global
+    // `a { color }` rule on specificity.
+    valueContent = (
+      <Text {...valueStyles}>
+        {styleProps => {
+          const link = (
+            <Link to={to} onClick={onClick} {...styleProps}>
+              {value}
+            </Link>
+          );
+          // The tooltip attaches to the link rather than wrapping it in
+          // InfoText, which would put a second tab stop inside the anchor, so
+          // it has to draw the underline itself.
+          return valueTooltip ? (
+            <Tooltip title={valueTooltip} skipWrapper showUnderline>
+              {link}
+            </Tooltip>
+          ) : (
+            link
+          );
+        }}
+      </Text>
     );
   } else if (valueTooltip) {
     valueContent = (
