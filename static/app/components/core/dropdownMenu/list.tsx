@@ -122,13 +122,14 @@ function DropdownMenuCollectionItem({
   }
 
   if (node.value?.submenu) {
-    if (!node.value.children) {
+    const submenu = node.value.submenu;
+    if (!node.value.children && !(typeof submenu === 'object' && submenu.content)) {
       return null;
     }
 
     return (
       <DropdownSubmenu
-        items={node.value.children}
+        items={node.value.children ?? []}
         node={node}
         state={state}
         onClose={onClose}

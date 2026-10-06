@@ -28,6 +28,7 @@ type ValueComboboxMenuContextValue = {
   onBackFromAbsoluteDate: () => void;
   onSaveAbsoluteDate: (newDateTimeValue: string) => void;
   onSelectAbsoluteDate: (newDateTimeValue: string) => void;
+  selectionOnly: boolean;
   showDatePicker: boolean;
   token: TokenResult<Token.FILTER>;
   wrapperRef: RefObject<HTMLDivElement | null>;

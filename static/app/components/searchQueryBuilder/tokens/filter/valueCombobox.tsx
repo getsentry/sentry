@@ -100,6 +100,8 @@ type SearchQueryValueBuilderProps = {
   onDelete: () => void;
   token: TokenResult<Token.FILTER>;
   wrapperRef: React.RefObject<HTMLDivElement | null>;
+  /** Restrict input to finding existing suggestions, without editing query values. */
+  selectionOnly?: boolean;
 };
 
 function isStringFilterValues(
@@ -367,10 +369,12 @@ function useFilterSuggestions({
   token,
   filterValue,
   selectedValues,
+  selectionOnly = false,
 }: {
   filterValue: string;
   selectedValues: Array<{selected: boolean; value: string}>;
   token: TokenResult<Token.FILTER>;
+  selectionOnly?: boolean;
 }) {
   const keyName = getKeyName(token.key);
   const {
@@ -387,14 +391,14 @@ function useFilterSuggestions({
     () =>
       getPredefinedValues({
         key,
-        filterValue,
+        filterValue: selectionOnly ? '' : filterValue,
         token,
         fieldDefinition,
       }),
     // React Compiler treats one of these dependencies as mutated later in the
     // component, so it cannot prove the memoization is preserved.
     // oxlint-disable-next-line react/preserve-manual-memoization
-    [key, filterValue, token, fieldDefinition]
+    [key, filterValue, token, fieldDefinition, selectionOnly]
   );
   // Only keys that explicitly have predefined values should skip the fetch.
   // This is because the way keys are fetched doesn't guarantee that we have
@@ -546,6 +550,15 @@ function useFilterSuggestions({
       groups = predefinedValues ?? [];
     }
 
+    if (selectionOnly && isDateToken(token)) {
+      groups = groups.map(group => ({
+        ...group,
+        suggestions: group.suggestions.filter(
+          suggestion => suggestion.value !== 'absolute_date'
+        ),
+      }));
+    }
+
     return groups.map(group => ({
       ...group,
       suggestions: shouldUseDefaultSuggestionOrder
@@ -562,6 +575,8 @@ function useFilterSuggestions({
     key?.key,
     filterValue,
     shouldUseDefaultSuggestionOrder,
+    selectionOnly,
+    token,
   ]);
 
   const suggestionSectionItems = useFrozenSuggestionSectionItems({
@@ -638,6 +653,7 @@ function ValueComboboxCustomMenu(
     onSaveAbsoluteDate,
     onSelectAbsoluteDate,
     showDatePicker,
+    selectionOnly,
     token,
     wrapperRef,
   } = useValueComboboxMenuContext();
@@ -668,6 +684,7 @@ function ValueComboboxCustomMenu(
       items={items}
       isLoading={isFetching}
       canUseWildcard={canUseWildcard}
+      hideWildcardHelp={selectionOnly}
       token={token}
     />
   );
@@ -699,6 +716,7 @@ export function SearchQueryBuilderValueCombobox({
   onCommit,
   wrapperRef,
   editingCommittedValue,
+  selectionOnly = false,
 }: SearchQueryValueBuilderProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -734,7 +752,7 @@ export function SearchQueryBuilderValueCombobox({
   // Multi-select renders committed values as chips, so the input starts empty
   // and only holds the value being typed.
   const [inputValue, setInputValue] = useState(() =>
-    canSelectMultipleValues
+    canSelectMultipleValues || selectionOnly
       ? ''
       : getInitialInputValue(token, canSelectMultipleValues, editingCommittedValue)
   );
@@ -751,7 +769,7 @@ export function SearchQueryBuilderValueCombobox({
   } | null>(null);
 
   const [showDatePicker, setShowDatePicker] = useState(() => {
-    if (isDateToken(token)) {
+    if (!selectionOnly && isDateToken(token)) {
       return token.value.type === Token.VALUE_ISO_8601_DATE;
     }
     return false;
@@ -821,6 +839,8 @@ export function SearchQueryBuilderValueCombobox({
       if (newIndex === -1) {
         // oxlint-disable-next-line react/set-state-in-effect
         setEditingChip(null);
+        // Clear the user's draft when its edited chip was removed externally.
+        // oxlint-disable-next-line react-you-might-not-need-an-effect/no-derived-state
         setInputValue('');
       } else {
         setEditingChip(prev => (prev ? {...prev, index: newIndex} : prev));
@@ -913,16 +933,17 @@ export function SearchQueryBuilderValueCombobox({
   // checked-state comes from `selectedValueMap`, not this list.
   const suggestionSelectedValues = useMemo(
     () =>
-      canSelectMultipleValues && filterValue
+      canSelectMultipleValues && filterValue && !selectionOnly
         ? [{value: filterValue, selected: false}]
         : selectedValues,
-    [canSelectMultipleValues, filterValue, selectedValues]
+    [canSelectMultipleValues, filterValue, selectedValues, selectionOnly]
   );
 
   const {items, suggestionSectionItems, isFetching} = useFilterSuggestions({
     token,
     filterValue,
     selectedValues: suggestionSelectedValues,
+    selectionOnly,
   });
 
   const analyticsData = useMemo(
@@ -985,6 +1006,7 @@ export function SearchQueryBuilderValueCombobox({
       onSaveAbsoluteDate: handleSaveAbsoluteDate,
       onSelectAbsoluteDate: handleSelectAbsoluteDate,
       showDatePicker,
+      selectionOnly,
       token,
       wrapperRef: topLevelWrapperRef,
     }),
@@ -998,6 +1020,7 @@ export function SearchQueryBuilderValueCombobox({
       handleSaveAbsoluteDate,
       handleSelectAbsoluteDate,
       showDatePicker,
+      selectionOnly,
       token,
       topLevelWrapperRef,
     ]
@@ -1118,6 +1141,13 @@ export function SearchQueryBuilderValueCombobox({
     (option: SelectOptionWithKey<string>) => {
       const value = option.value;
 
+      if (selectionOnly) {
+        if (value !== 'absolute_date') {
+          updateFilterValue(value, undefined, {escapeSearchValue: true});
+        }
+        return;
+      }
+
       if (isDateToken(token)) {
         if (value === 'absolute_date') {
           setShowDatePicker(true);
@@ -1150,7 +1180,7 @@ export function SearchQueryBuilderValueCombobox({
         filter_value: value,
       });
     },
-    [analyticsData, token, updateFilterValue]
+    [analyticsData, token, updateFilterValue, selectionOnly]
   );
 
   const addTypedValue = useCallback(
@@ -1234,6 +1264,9 @@ export function SearchQueryBuilderValueCombobox({
 
   const handleInputValueConfirmed = useCallback(
     (value: string) => {
+      if (selectionOnly) {
+        return;
+      }
       if (canSelectMultipleValues) {
         if (value.trim()) {
           addTypedValue(value);
@@ -1287,6 +1320,7 @@ export function SearchQueryBuilderValueCombobox({
       onCommit,
       token,
       updateFilterValue,
+      selectionOnly,
     ]
   );
 
@@ -1350,7 +1384,11 @@ export function SearchQueryBuilderValueCombobox({
 
       const currentValue = inputRef.current?.value ?? '';
 
-      if ((e.key === 'Backspace' || e.key === 'Delete') && !currentValue) {
+      if (
+        !selectionOnly &&
+        (e.key === 'Backspace' || e.key === 'Delete') &&
+        !currentValue
+      ) {
         // Mid-edit (or at an insertion point) with an emptied input: don't remove
         // an unrelated chip.
         if (canSelectMultipleValues && editingChip !== null) {
@@ -1364,7 +1402,14 @@ export function SearchQueryBuilderValueCombobox({
         onDelete();
       }
     },
-    [canSelectMultipleValues, committedValues, editingChip, onDelete, removeValue]
+    [
+      canSelectMultipleValues,
+      committedValues,
+      editingChip,
+      onDelete,
+      removeValue,
+      selectionOnly,
+    ]
   );
 
   // Ensure that the menu stays open when clicking on the selected items
@@ -1435,14 +1480,14 @@ export function SearchQueryBuilderValueCombobox({
         }}
         inputValue={inputValue}
         filterValue={filterValue}
-        placeholder={placeholder}
-        renderInputValue={isRegexValue ? renderRegexPattern : undefined}
+        placeholder={selectionOnly ? t('Filter values…') : placeholder}
+        renderInputValue={!selectionOnly && isRegexValue ? renderRegexPattern : undefined}
         token={token}
-        inputLabel={t('Edit filter value')}
+        inputLabel={selectionOnly ? t('Filter values') : t('Edit filter value')}
         keepVisibleRef={ref}
         onFocus={scrollInputIntoView}
         onInputChange={e =>
-          canSelectMultipleValues
+          canSelectMultipleValues && !selectionOnly
             ? handleMultiSelectInputChange(e.target.value)
             : setInputValue(e.target.value)
         }
@@ -1476,18 +1521,20 @@ export function SearchQueryBuilderValueCombobox({
   const inputSlot = editingChip
     ? committedValues.filter(v => v.index < editingChip.index).length
     : chips.length;
-  const chipRow = isRegexValue
-    ? [
-        <RegexDelimiter
-          key="regex-start"
-          onMouseDown={focusInputFromDelimiter}
-          paddingRight="2xs"
-        />,
-        valueInput,
-        <RegexDelimiter key="regex-end" onMouseDown={focusInputFromDelimiter} />,
-      ]
-    : [...chips.slice(0, inputSlot), valueInput, ...chips.slice(inputSlot)];
-  const rowScrolls = canSelectMultipleValues || isRegexValue;
+  const chipRow = selectionOnly
+    ? [valueInput]
+    : isRegexValue
+      ? [
+          <RegexDelimiter
+            key="regex-start"
+            onMouseDown={focusInputFromDelimiter}
+            paddingRight="2xs"
+          />,
+          valueInput,
+          <RegexDelimiter key="regex-end" onMouseDown={focusInputFromDelimiter} />,
+        ]
+      : [...chips.slice(0, inputSlot), valueInput, ...chips.slice(inputSlot)];
+  const rowScrolls = !selectionOnly && (canSelectMultipleValues || isRegexValue);
 
   return (
     <ValueComboboxContext.Provider value={valueComboboxContextValue}>

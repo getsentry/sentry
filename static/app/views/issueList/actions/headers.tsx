@@ -8,6 +8,7 @@ import {ToolbarHeader} from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
+import {useIssueDisplayProperties} from 'sentry/views/issueList/displayProperties';
 
 type Props = {
   isReprocessingQuery: boolean;
@@ -22,6 +23,7 @@ export function Headers({
   onSelectStatsPeriod,
   isReprocessingQuery,
 }: Props) {
+  const {columns} = useIssueDisplayProperties();
   return (
     <Fragment>
       {isReprocessingQuery ? (
@@ -54,74 +56,88 @@ export function Headers({
         </Fragment>
       ) : (
         <Fragment>
-          <IssueStreamHeaderLabel
-            display={{zero: 'none', [COLUMN_BREAKPOINTS.LAST_SEEN]: 'inline-block'}}
-            align="right"
-            width="86px"
-          >
-            {t('Last Seen')}
-          </IssueStreamHeaderLabel>
-          <IssueStreamHeaderLabel
-            display={{zero: 'none', [COLUMN_BREAKPOINTS.FIRST_SEEN]: 'inline-block'}}
-            align="right"
-            width="50px"
-          >
-            {t('Age')}
-          </IssueStreamHeaderLabel>
-          <IssueStreamHeaderLabel
-            display={{zero: 'none', [COLUMN_BREAKPOINTS.TREND]: 'flex'}}
-            width="175px"
-            flex="1"
-            style={{justifyContent: 'space-between', padding: 0}}
-          >
-            <Flex flex="1" justify="between">
-              {t('Trend')}
-              <GraphToggles>
-                {selection.datetime.period !== '24h' && (
+          {columns.includes('lastSeen') && (
+            <IssueStreamHeaderLabel
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.LAST_SEEN]: 'inline-block'}}
+              align="right"
+              width="86px"
+            >
+              {t('Last Seen')}
+            </IssueStreamHeaderLabel>
+          )}
+          {columns.includes('firstSeen') && (
+            <IssueStreamHeaderLabel
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.FIRST_SEEN]: 'inline-block'}}
+              align="right"
+              width="50px"
+            >
+              {t('Age')}
+            </IssueStreamHeaderLabel>
+          )}
+          {columns.includes('graph') && (
+            <IssueStreamHeaderLabel
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.TREND]: 'flex'}}
+              width="175px"
+              flex="1"
+              style={{justifyContent: 'space-between', padding: 0}}
+            >
+              <Flex flex="1" justify="between">
+                {t('Trend')}
+                <GraphToggles>
+                  {selection.datetime.period !== '24h' && (
+                    <GraphToggle
+                      active={statsPeriod === '24h'}
+                      onClick={() => onSelectStatsPeriod('24h')}
+                    >
+                      {t('24h')}
+                    </GraphToggle>
+                  )}
                   <GraphToggle
-                    active={statsPeriod === '24h'}
-                    onClick={() => onSelectStatsPeriod('24h')}
+                    active={statsPeriod === 'auto'}
+                    onClick={() => onSelectStatsPeriod('auto')}
                   >
-                    {t('24h')}
+                    {selection.datetime.period || t('Custom')}
                   </GraphToggle>
-                )}
-                <GraphToggle
-                  active={statsPeriod === 'auto'}
-                  onClick={() => onSelectStatsPeriod('auto')}
-                >
-                  {selection.datetime.period || t('Custom')}
-                </GraphToggle>
-              </GraphToggles>
-            </Flex>
-          </IssueStreamHeaderLabel>
-          <IssueStreamHeaderLabel
-            display={{zero: 'none', [COLUMN_BREAKPOINTS.EVENTS]: 'inline-block'}}
-            align="right"
-            width="60px"
-          >
-            {t('Events')}
-          </IssueStreamHeaderLabel>
-          <IssueStreamHeaderLabel
-            display={{zero: 'none', [COLUMN_BREAKPOINTS.USERS]: 'inline-block'}}
-            align="right"
-            width="60px"
-          >
-            {t('Users')}
-          </IssueStreamHeaderLabel>
-          <IssueStreamHeaderLabel
-            display={{zero: 'none', [COLUMN_BREAKPOINTS.PRIORITY]: 'inline-block'}}
-            align="left"
-            width="64px"
-          >
-            {t('Priority')}
-          </IssueStreamHeaderLabel>
-          <IssueStreamHeaderLabel
-            display={{zero: 'none', [COLUMN_BREAKPOINTS.ASSIGNEE]: 'inline-block'}}
-            align="right"
-            width="66px"
-          >
-            {t('Assignee')}
-          </IssueStreamHeaderLabel>
+                </GraphToggles>
+              </Flex>
+            </IssueStreamHeaderLabel>
+          )}
+          {columns.includes('event') && (
+            <IssueStreamHeaderLabel
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.EVENTS]: 'inline-block'}}
+              align="right"
+              width="60px"
+            >
+              {t('Events')}
+            </IssueStreamHeaderLabel>
+          )}
+          {columns.includes('users') && (
+            <IssueStreamHeaderLabel
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.USERS]: 'inline-block'}}
+              align="right"
+              width="60px"
+            >
+              {t('Users')}
+            </IssueStreamHeaderLabel>
+          )}
+          {columns.includes('priority') && (
+            <IssueStreamHeaderLabel
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.PRIORITY]: 'inline-block'}}
+              align="left"
+              width="64px"
+            >
+              {t('Priority')}
+            </IssueStreamHeaderLabel>
+          )}
+          {columns.includes('assignee') && (
+            <IssueStreamHeaderLabel
+              display={{zero: 'none', [COLUMN_BREAKPOINTS.ASSIGNEE]: 'inline-block'}}
+              align="right"
+              width="66px"
+            >
+              {t('Assignee')}
+            </IssueStreamHeaderLabel>
+          )}
         </Fragment>
       )}
     </Fragment>

@@ -1,10 +1,13 @@
 import {useCallback, useContext} from 'react';
+import {useTheme} from '@emotion/react';
+import {FocusScope} from '@react-aria/focus';
 import {useMenuTrigger} from '@react-aria/menu';
 import type {TreeState} from '@react-stately/tree';
 import type {Node} from '@react-types/shared';
 
 import {Container} from '@sentry/scraps/layout';
 
+import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
 import {DropdownMenuContent} from './content';
@@ -29,10 +32,12 @@ export function DropdownSubmenu({
   onClose,
   size,
 }: DropdownSubmenuProps) {
+  const theme = useTheme();
   const {rootOverlayState} = useContext(DropdownMenuContext);
   const submenu = node.value?.submenu;
   const options = typeof submenu === 'object' ? submenu : {};
-  const isDisabled = state.disabledKeys.has(node.key) || items.length === 0;
+  const isDisabled =
+    state.disabledKeys.has(node.key) || (items.length === 0 && !options.content);
   const {
     isOpen,
     state: overlayState,
@@ -71,7 +76,7 @@ export function DropdownSubmenu({
           [isOpen, isFocused, rootOverlayState, setTriggerElement]
         )}
         id={menuTriggerProps.id}
-        aria-haspopup={menuTriggerProps['aria-haspopup']}
+        aria-haspopup={options.content ? 'dialog' : menuTriggerProps['aria-haspopup']}
         aria-expanded={isOpen}
         aria-controls={menuTriggerProps['aria-controls']}
         submenuRef={isOpen ? overlayRef : undefined}
@@ -80,7 +85,36 @@ export function DropdownSubmenu({
         state={state}
         closeOnSelect={false}
       />
-      {isOpen && (
+      {isOpen && options.content ? (
+        <FocusScope restoreFocus autoFocus>
+          <PositionWrapper {...overlayProps} zIndex={theme.zIndex.dropdown}>
+            <Overlay
+              id={menuProps.id}
+              role="dialog"
+              aria-label={options.title}
+              aria-labelledby={options.title ? undefined : menuTriggerProps.id}
+              onKeyDown={event => {
+                if (event.defaultPrevented) {
+                  return;
+                }
+                const isEditingText =
+                  event.target instanceof HTMLElement &&
+                  event.target.matches('input, textarea, [contenteditable="true"]');
+                if (
+                  event.key === 'Escape' ||
+                  (event.key === 'ArrowLeft' && !isEditingText)
+                ) {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  state.selectionManager.clearSelection();
+                }
+              }}
+            >
+              {options.content({close: () => rootOverlayState?.close()})}
+            </Overlay>
+          </PositionWrapper>
+        </FocusScope>
+      ) : isOpen ? (
         <DropdownMenuContent
           onClose={onClose}
           closeOnSelect={closeOnSelect}
@@ -93,7 +127,7 @@ export function DropdownSubmenu({
           overlayState={overlayState}
           overlayPositionProps={overlayProps}
         />
-      )}
+      ) : null}
     </Container>
   );
 }

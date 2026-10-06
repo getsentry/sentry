@@ -115,6 +115,8 @@ export interface ControlProps
       | 'flipOptions'
       | 'strategy'
     > {
+  /** Accessible name for an inline picker when it has no visible menu title. */
+  'aria-label'?: string;
   children?: React.ReactNode;
   className?: string;
   /**
@@ -162,6 +164,8 @@ export interface ControlProps
    * useful when the trigger is intentionally narrow but the options need more room.
    */
   menuMinWidth?: number | string;
+  /** Render the existing picker inline inside a containing overlay. */
+  menuPresentation?: 'floating' | 'panel';
   /**
    * Title to display in the menu's header. Keep the title as short as possible.
    */
@@ -227,6 +231,7 @@ export function Control<Value extends SelectKey>({
   maxMenuHeight = '32rem',
   menuWidth,
   menuMinWidth,
+  menuPresentation = 'floating',
   menuHeight,
   menuHeaderTrailingItems,
   menuBody,
@@ -368,6 +373,7 @@ export function Control<Value extends SelectKey>({
     position,
     offset,
     isOpen,
+    defaultOpen: menuPresentation === 'panel',
     isDismissable,
     onInteractOutside,
     shouldCloseOnInteractOutside,
@@ -433,6 +439,12 @@ export function Control<Value extends SelectKey>({
       });
     },
   });
+
+  useEffect(() => {
+    if (menuPresentation === 'panel' && overlayIsOpen && searchEnabled) {
+      nextFrameCallback(() => searchRef.current?.focus());
+    }
+  }, [menuPresentation, overlayIsOpen, searchEnabled]);
 
   // Recalculate overlay position when its main content changes
   const prevMenuBody = usePrevious(menuBody);
@@ -563,6 +575,108 @@ export function Control<Value extends SelectKey>({
     overlayTriggerProps
   );
 
+  const menuContent = overlayIsOpen ? (
+    <StyledOverlay
+      ref={menuRef}
+      embedded={menuPresentation === 'panel'}
+      width={menuWidth ?? menuFullWidth}
+      height={menuHeight}
+      minWidth={menuMinWidth ?? overlayProps.style?.minWidth}
+      maxWidth={
+        overlayProps.style?.maxWidth
+          ? `calc(${withUnits(overlayProps.style.maxWidth)} * 0.9)`
+          : undefined
+      }
+      maxHeight={overlayProps.style?.maxHeight}
+      maxHeightProp={maxMenuHeight}
+      data-menu-has-header={!!menuTitle || clearable}
+      data-menu-has-search={searchEnabled}
+      data-menu-has-footer={!!menuFooter}
+    >
+      <FocusScope contain autoFocus={menuPresentation === 'panel'}>
+        {(menuTitle || menuHeaderTrailingItems || (clearable && hasSelection)) && (
+          <MenuHeader size={size}>
+            <MenuTitle
+              id={menuPresentation === 'panel' && menuTitle ? triggerId : undefined}
+            >
+              {menuTitle}
+            </MenuTitle>
+            <MenuHeaderTrailingItems>
+              {loading && <StyledLoadingIndicator size={12} />}
+              {typeof menuHeaderTrailingItems === 'function'
+                ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
+                : menuHeaderTrailingItems}
+              {clearable && hasSelection && (
+                <ClearButton
+                  onClick={() => onClear?.({overlayState})}
+                  size="zero"
+                  variant="transparent"
+                >
+                  {t('Clear')}
+                </ClearButton>
+              )}
+            </MenuHeaderTrailingItems>
+          </MenuHeader>
+        )}
+        {searchEnabled && (
+          <InputGroup>
+            <InputGroup.LeadingItems disablePointerEvents>
+              <Flex
+                paddingLeft="2xs"
+                align="center"
+                justify="center"
+                // Center the icon by visual weight
+                style={{transform: 'translateY(1px) translateX(1px)'}}
+              >
+                <IconSearch size="xs" variant="muted" />
+              </Flex>
+            </InputGroup.LeadingItems>
+            <SearchInput
+              ref={searchRef}
+              data-1p-ignore
+              placeholder={normalizedSearch?.placeholder ?? 'Search…'}
+              value={searchInputValue}
+              onFocus={onSearchFocus}
+              onBlur={onSearchBlur}
+              onChange={e => updateSearch(e.target.value)}
+              size="xs"
+              {...searchKeyboardProps}
+            />
+          </InputGroup>
+        )}
+        {typeof menuBody === 'function'
+          ? menuBody({closeOverlay: overlayState.close})
+          : menuBody}
+        {!hideOptions && <Stack minHeight="0">{children}</Stack>}
+        {menuFooter && (
+          <MenuFooter>
+            {typeof menuFooter === 'function'
+              ? menuFooter({
+                  closeOverlay: overlayState.close,
+                  resetSearch: () => updateSearch(''),
+                })
+              : menuFooter}
+          </MenuFooter>
+        )}
+      </FocusScope>
+    </StyledOverlay>
+  ) : null;
+
+  if (menuPresentation === 'panel') {
+    return (
+      <ControlContext value={contextValue}>
+        <Container {...wrapperProps} {...overlayProps} style={undefined}>
+          {!menuTitle && (
+            <Container id={triggerId} display="none">
+              {wrapperProps['aria-label'] ?? triggerLabel}
+            </Container>
+          )}
+          {menuContent}
+        </Container>
+      </ControlContext>
+    );
+  }
+
   return (
     <ControlContext value={contextValue}>
       <Container width="max-content" position="relative" {...wrapperProps}>
@@ -577,89 +691,7 @@ export function Control<Value extends SelectKey>({
           zIndex={theme.zIndex?.dropdown}
           {...overlayProps}
         >
-          {overlayIsOpen && (
-            <StyledOverlay
-              ref={menuRef}
-              width={menuWidth ?? menuFullWidth}
-              height={menuHeight}
-              minWidth={menuMinWidth ?? overlayProps.style?.minWidth}
-              maxWidth={
-                overlayProps.style?.maxWidth
-                  ? `calc(${withUnits(overlayProps.style.maxWidth)} * 0.9)`
-                  : undefined
-              }
-              maxHeight={overlayProps.style?.maxHeight}
-              maxHeightProp={maxMenuHeight}
-              data-menu-has-header={!!menuTitle || clearable}
-              data-menu-has-search={searchEnabled}
-              data-menu-has-footer={!!menuFooter}
-            >
-              <FocusScope contain>
-                {(menuTitle ||
-                  menuHeaderTrailingItems ||
-                  (clearable && hasSelection)) && (
-                  <MenuHeader size={size}>
-                    <MenuTitle>{menuTitle}</MenuTitle>
-                    <MenuHeaderTrailingItems>
-                      {loading && <StyledLoadingIndicator size={12} />}
-                      {typeof menuHeaderTrailingItems === 'function'
-                        ? menuHeaderTrailingItems({closeOverlay: overlayState.close})
-                        : menuHeaderTrailingItems}
-                      {clearable && hasSelection && (
-                        <ClearButton
-                          onClick={() => onClear?.({overlayState})}
-                          size="zero"
-                          variant="transparent"
-                        >
-                          {t('Clear')}
-                        </ClearButton>
-                      )}
-                    </MenuHeaderTrailingItems>
-                  </MenuHeader>
-                )}
-                {searchEnabled && (
-                  <InputGroup>
-                    <InputGroup.LeadingItems disablePointerEvents>
-                      <Flex
-                        paddingLeft="2xs"
-                        align="center"
-                        justify="center"
-                        // Center the icon by visual weight
-                        style={{transform: 'translateY(1px) translateX(1px)'}}
-                      >
-                        <IconSearch size="xs" variant="muted" />
-                      </Flex>
-                    </InputGroup.LeadingItems>
-                    <SearchInput
-                      ref={searchRef}
-                      data-1p-ignore
-                      placeholder={normalizedSearch?.placeholder ?? 'Search…'}
-                      value={searchInputValue}
-                      onFocus={onSearchFocus}
-                      onBlur={onSearchBlur}
-                      onChange={e => updateSearch(e.target.value)}
-                      size="xs"
-                      {...searchKeyboardProps}
-                    />
-                  </InputGroup>
-                )}
-                {typeof menuBody === 'function'
-                  ? menuBody({closeOverlay: overlayState.close})
-                  : menuBody}
-                {!hideOptions && <Stack minHeight="0">{children}</Stack>}
-                {menuFooter && (
-                  <MenuFooter>
-                    {typeof menuFooter === 'function'
-                      ? menuFooter({
-                          closeOverlay: overlayState.close,
-                          resetSearch: () => updateSearch(''),
-                        })
-                      : menuFooter}
-                  </MenuFooter>
-                )}
-              </FocusScope>
-            </StyledOverlay>
-          )}
+          {menuContent}
         </StyledPositionWrapper>
       </Container>
     </ControlContext>
@@ -753,6 +785,7 @@ const withUnits = (value: unknown) => (typeof value === 'string' ? value : `${va
 const StyledOverlay = styled(Overlay, {
   shouldForwardProp: prop => isPropValid(prop),
 })<{
+  embedded: boolean;
   maxHeightProp: string | number;
   height?: string | number;
   maxHeight?: string | number;
@@ -765,6 +798,13 @@ const StyledOverlay = styled(Overlay, {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+
+  ${p =>
+    p.embedded &&
+    css`
+      border: 0;
+      box-shadow: none;
+    `}
 
   ${p =>
     p.width &&

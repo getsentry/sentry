@@ -5,6 +5,7 @@ import {expectTypeOf} from 'expect-type';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
+import {MenuComponents} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {IconEllipsis} from 'sentry/icons';
@@ -20,6 +21,76 @@ describe('getEscapedKey', () => {
 });
 
 describe('CompactSelect', () => {
+  it('renders a panel without a trigger and focuses search before header actions', async () => {
+    const onChange = jest.fn();
+    const onClose = jest.fn();
+    render(
+      <CompactSelect
+        menuPresentation="panel"
+        menuTitle="Projects"
+        search
+        value="one"
+        onChange={onChange}
+        onClose={onClose}
+        menuHeaderTrailingItems={<MenuComponents.ResetButton />}
+        options={[
+          {value: 'one', label: 'Project One'},
+          {value: 'two', label: 'Project Two'},
+        ]}
+      />
+    );
+
+    expect(screen.queryByRole('button', {name: 'Project One'})).not.toBeInTheDocument();
+    expect(screen.getByRole('listbox', {name: 'Projects'})).toBeInTheDocument();
+    const search = screen.getByPlaceholderText('Search…');
+    await waitFor(() => expect(search).toHaveFocus());
+    await userEvent.type(search, 'Two');
+    expect(screen.queryByRole('option', {name: 'Project One'})).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('option', {name: 'Project Two'}));
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({value: 'two'}));
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+  });
+
+  it('names a panel without a title and closes through the existing footer actions', async () => {
+    const onClose = jest.fn();
+    render(
+      <CompactSelect
+        menuPresentation="panel"
+        aria-label="Environments"
+        multiple
+        value={[]}
+        onChange={() => {}}
+        onClose={onClose}
+        options={[{value: 'production', label: 'Production'}]}
+        menuFooter={<MenuComponents.ApplyButton />}
+      />
+    );
+
+    expect(screen.getByRole('listbox', {name: 'Environments'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+  });
+
+  it('retains outside-interaction callbacks in a panel', async () => {
+    const onClose = jest.fn();
+    const onInteractOutside = jest.fn();
+    render(
+      <CompactSelect
+        menuPresentation="panel"
+        aria-label="Projects"
+        value="one"
+        onChange={() => {}}
+        onClose={onClose}
+        onInteractOutside={onInteractOutside}
+        options={[{value: 'one', label: 'Project One'}]}
+      />
+    );
+
+    await userEvent.click(document.body);
+    expect(onInteractOutside).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+  });
+
   describe('types', () => {
     it('should enforce correct types for onChange for SingleSelect', () => {
       void (

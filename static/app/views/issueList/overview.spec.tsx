@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import merge from 'lodash/merge';
 import {GroupFixture} from 'sentry-fixture/group';
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
@@ -8,8 +9,17 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {SearchFixture} from 'sentry-fixture/search';
 import {TagsFixture} from 'sentry-fixture/tags';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
+
+import {GlobalModal} from '@sentry/scraps/modal';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -178,7 +188,10 @@ describe('IssueList', () => {
       });
 
       // Should display the initial query in the UI
-      expect(await screen.findByRole('row', {name: 'is:unresolved'})).toBeInTheDocument();
+      expect(
+        await screen.findByRole('button', {name: 'Remove filter: is'})
+      ).toBeInTheDocument();
+      expect(screen.getByText('unresolved')).toBeInTheDocument();
 
       // Should make a request with the initial query
       await waitFor(() => {
@@ -228,7 +241,10 @@ describe('IssueList', () => {
         );
       });
 
-      expect(screen.getByRole('row', {name: 'level:error'})).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Remove filter: level'})
+      ).toBeInTheDocument();
+      expect(screen.getByText('error')).toBeInTheDocument();
     });
 
     it('requests derived data when the issue inbox flag is enabled', async () => {
@@ -392,12 +408,294 @@ describe('IssueList', () => {
     });
   });
 
+  it('opens the filter menu and restores keyboard focus when dismissed', async () => {
+    render(<IssueListOverview />, {organization, initialRouterConfig});
+
+    const filterButton = screen.getByRole('button', {name: 'Filter'});
+    await userEvent.click(filterButton);
+
+    expect(screen.getByRole('menu', {name: 'Filter'})).toBeInTheDocument();
+    expect(screen.getByText('Environment')).toBeInTheDocument();
+    expect(screen.getByText('Date range')).toBeInTheDocument();
+
+    await userEvent.keyboard('{Escape}');
+
+    expect(screen.queryByRole('menu', {name: 'Filter'})).not.toBeInTheDocument();
+    await waitFor(() => expect(filterButton).toHaveFocus());
+    expect(screen.getByText('Ordered by Last Seen')).toBeInTheDocument();
+    expect(getSearchInput()).toBeInTheDocument();
+  });
+
+  it('adds a filter from the picker and removes its chip', async () => {
+    const {router} = render(<IssueListOverview />, {organization, initialRouterConfig});
+    await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Status'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'resolved'}));
+    await waitFor(() => expect(router.location.query.query).toContain('is:resolved'));
+    await userEvent.keyboard('{Escape}{Escape}');
+    await userEvent.click(screen.getByRole('button', {name: 'Remove filter: is'}));
+    await userEvent.click(getSearchInput());
+    await userEvent.keyboard('{enter}');
+    await waitFor(() => expect(router.location.query.query).not.toContain('is:resolved'));
+    expect(router.location.query.query).toContain('issue.priority:');
+  });
+
+  it('uses query-builder multi-select values in the assignee submenu', async () => {
+    const {router} = render(<IssueListOverview />, {organization, initialRouterConfig});
+    await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Assignee'}));
+    const me = await screen.findByRole('checkbox', {name: 'Toggle me'});
+    expect(router.location.query.query).toBeUndefined();
+    await userEvent.click(me);
+    await waitFor(() => expect(router.location.query.query).toContain('assigned:me'));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Toggle my_teams'}));
+    await waitFor(() =>
+      expect(router.location.query.query).toContain('assigned:[me,my_teams]')
+    );
+    expect(screen.getByRole('checkbox', {name: 'Toggle me'})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Toggle my_teams'})).toBeChecked();
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Toggle me'}));
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Toggle my_teams'}));
+    await waitFor(() => expect(router.location.query.query).not.toContain('assigned:'));
+    expect(router.location.query.query).toContain('is:unresolved');
+  });
+
+  it('narrows submenu values without changing the issue query', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/level/values/',
+      body: [
+        {value: 'warning', count: 1},
+        {value: 'error', count: 1},
+      ],
+    });
+    const {router} = render(<IssueListOverview />, {organization, initialRouterConfig});
+    await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+    expect(screen.getByRole('menuitemradio', {name: 'Release'})).toBeInTheDocument();
+    expect(screen.getByRole('menuitemradio', {name: 'Issue type'})).toBeInTheDocument();
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Level'}));
+    const input = await screen.findByPlaceholderText('Filter values…');
+    await userEvent.type(input, 'warn');
+    expect(await screen.findByRole('option', {name: 'warning'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'error'})).not.toBeInTheDocument();
+    expect(router.location.query.query).toBeUndefined();
+    await userEvent.clear(input);
+    await userEvent.type(input, 'arbitrary,value{Enter}');
+    expect(router.location.query.query).toBeUndefined();
+  });
+
+  it('supports project search and staged selection in the submenu', async () => {
+    const secondProject = ProjectFixture({
+      id: '42',
+      slug: 'another-project',
+      isMember: false,
+    });
+    const {router} = render(<IssueListOverview />, {organization, initialRouterConfig});
+    act(() =>
+      ProjectsStore.loadInitialData([
+        project,
+        secondProject,
+        ProjectFixture({id: '43', slug: 'third-project', isMember: false}),
+      ])
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Projects'}));
+    const menu = within(await screen.findByRole('dialog', {name: 'Projects'}));
+    await userEvent.type(menu.getByPlaceholderText('Search…'), 'another');
+    expect(menu.queryByRole('row', {name: 'project-slug'})).not.toBeInTheDocument();
+    await userEvent.click(menu.getByRole('checkbox', {name: 'Select another-project'}));
+    expect(router.location.query.project).not.toEqual(expect.arrayContaining(['42']));
+    await userEvent.click(menu.getByRole('button', {name: 'Apply'}));
+    await waitFor(() => expect(router.location.query.project).toContain('42'));
+    expect(screen.queryByRole('dialog', {name: 'Projects'})).not.toBeInTheDocument();
+  });
+
+  it('supports environment search, cancel, and staged multi-selection in the submenu', async () => {
+    const {router} = render(<IssueListOverview />, {organization, initialRouterConfig});
+    act(() =>
+      ProjectsStore.loadInitialData([{...project, environments: ['prod', 'staging']}])
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Environment'}));
+    let menu = within(await screen.findByRole('dialog', {name: 'Environment'}));
+    await userEvent.type(menu.getByPlaceholderText('Search…'), 'prod');
+    expect(menu.queryByRole('row', {name: 'staging'})).not.toBeInTheDocument();
+    await userEvent.click(menu.getByRole('checkbox', {name: 'Select prod'}));
+    expect(router.location.query.environment).toBeUndefined();
+    await userEvent.click(menu.getByRole('button', {name: 'Cancel'}));
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', {name: 'Environment'})).not.toBeInTheDocument()
+    );
+    expect(router.location.query.environment).toBeUndefined();
+    await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Environment'}));
+    menu = within(await screen.findByRole('dialog', {name: 'Environment'}));
+    await userEvent.click(menu.getByRole('checkbox', {name: 'Select prod'}));
+    await userEvent.click(menu.getByRole('checkbox', {name: 'Select staging'}));
+    await userEvent.click(menu.getByRole('button', {name: 'Apply'}));
+    await waitFor(() =>
+      expect(router.location.query.environment).toEqual(['prod', 'staging'])
+    );
+  });
+
+  it('supports project shortcuts and drops environments unavailable in the new scope', async () => {
+    const {router} = render(<IssueListOverview />, {
+      organization,
+      initialRouterConfig: merge({}, initialRouterConfig, {
+        location: {query: {environment: 'prod'}},
+      }),
+    });
+    act(() =>
+      ProjectsStore.loadInitialData([
+        {...project, isMember: true, environments: ['prod']},
+        ProjectFixture({
+          id: '42',
+          slug: 'another-project',
+          isMember: false,
+          environments: ['staging'],
+        }),
+      ])
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Projects'}));
+    let menu = within(await screen.findByRole('dialog', {name: 'Projects'}));
+    await userEvent.click(menu.getByRole('row', {name: 'another-project'}));
+    await waitFor(() => expect(router.location.query.project).toBe('42'));
+    expect(router.location.query.environment).toBeUndefined();
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', {name: 'Projects'})).not.toBeInTheDocument()
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Projects'}));
+    menu = within(await screen.findByRole('dialog', {name: 'Projects'}));
+    await userEvent.keyboard('{Control>}');
+    await userEvent.click(menu.getByRole('row', {name: 'All Projects'}));
+    await userEvent.keyboard('{/Control}');
+    await waitFor(() => expect(router.location.query.project).toBe('-1'));
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', {name: 'Projects'})).not.toBeInTheDocument()
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Projects'}));
+    menu = within(await screen.findByRole('dialog', {name: 'Projects'}));
+    await userEvent.click(menu.getByRole('row', {name: 'My Projects'}));
+    await waitFor(() => expect(router.location.query.project).toBeUndefined());
+  });
+
+  it('enforces the project selection limit when narrowing All Projects', async () => {
+    PageFiltersStore.onInitializeUrlState({
+      projects: [-1],
+      environments: [],
+      datetime: {period: '14d', start: null, end: null, utc: null},
+    });
+    const {router} = render(<IssueListOverview />, {
+      organization,
+      initialRouterConfig: merge({}, initialRouterConfig, {
+        location: {query: {project: '-1'}},
+      }),
+    });
+    act(() =>
+      ProjectsStore.loadInitialData(
+        Array.from({length: 52}, (_, index) =>
+          ProjectFixture({
+            id: String(index + 1),
+            slug: `project-${index + 1}`,
+            isMember: false,
+          })
+        )
+      )
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Projects'}));
+    const menu = within(await screen.findByRole('dialog', {name: 'Projects'}));
+    await userEvent.click(menu.getByRole('checkbox', {name: 'Select project-1'}));
+    expect(menu.getByRole('button', {name: 'Apply'})).toBeDisabled();
+    await userEvent.keyboard('{Escape}');
+    expect(router.location.query.project).toBe('-1');
+  });
+
+  it('applies advanced filters only when submitted', async () => {
+    const {router} = render(
+      <Fragment>
+        <IssueListOverview />
+        <GlobalModal />
+      </Fragment>,
+      {
+        organization,
+        initialRouterConfig,
+      }
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Advanced filter'}));
+    const dialog = within(await screen.findByRole('dialog'));
+    expect(dialog.getByText('Advanced filter')).toBeInTheDocument();
+    await userEvent.click(dialog.getByRole('button', {name: 'Remove filter: is'}));
+    expect(router.location.query.query).toBeUndefined();
+    await userEvent.click(dialog.getByRole('button', {name: 'Apply filters'}));
+    await waitFor(() => expect(router.location.query.query).toBeDefined());
+    expect(router.location.query.query).not.toContain('is:unresolved');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('preserves an existing filter operator when editing submenu values', async () => {
+    const {router} = render(<IssueListOverview />, {
+      organization,
+      initialRouterConfig: merge({}, initialRouterConfig, {
+        location: {query: {query: '!assigned:me level:error'}},
+      }),
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Assignee'}));
+    expect(await screen.findByRole('checkbox', {name: 'Toggle me'})).toBeChecked();
+    await userEvent.click(screen.getByRole('checkbox', {name: 'Toggle my_teams'}));
+    await waitFor(() =>
+      expect(router.location.query.query).toBe('!assigned:[me,my_teams] level:error')
+    );
+  });
+
+  it('hides display properties in the feed and restores defaults', async () => {
+    render(<IssueListOverview />, {organization, initialRouterConfig});
+    const table = within(screen.getByTestId('issue-list'));
+    expect(table.getByText('Events')).toBeInTheDocument();
+    expect(
+      await table.findByRole('button', {name: 'Modify issue assignee'})
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Display Options'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Events', pressed: true}));
+    expect(table.queryByText('Events')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Events', pressed: false})
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Assignee', pressed: true}));
+    expect(table.queryByText('Assignee')).not.toBeInTheDocument();
+    expect(
+      table.queryByRole('button', {name: 'Modify issue assignee'})
+    ).not.toBeInTheDocument();
+    await waitFor(() => {
+      const stored = JSON.parse(
+        localStorageWrapper.getItem('issues-display-columns:org-slug')!
+      );
+      expect(stored).not.toContain('event');
+    });
+    await userEvent.click(screen.getByRole('button', {name: 'Reset display properties'}));
+    expect(table.getByText('Events')).toBeInTheDocument();
+    expect(
+      table.getByRole('button', {name: 'Modify issue assignee'})
+    ).toBeInTheDocument();
+  });
+
   describe('sort persistence', () => {
     it('does not persist sort to localStorage without the recommended-sort feature', async () => {
       render(<IssueListOverview />, {organization, initialRouterConfig});
 
+      await userEvent.click(screen.getByRole('button', {name: 'Display Options'}));
       await userEvent.click(await screen.findByRole('button', {name: 'Last Seen'}));
-      await userEvent.click(screen.getByRole('option', {name: 'Events'}));
+      await userEvent.click(
+        within(screen.getByRole('listbox', {name: 'Last Seen'})).getByRole('option', {
+          name: 'Events',
+        })
+      );
+
+      expect(screen.getByText('Ordered by Events')).toBeInTheDocument();
 
       // Writing while the feature is off would leave a stale value that overrides
       // the Recommended default once the flag is enabled.
@@ -411,8 +709,13 @@ describe('IssueList', () => {
       });
       render(<IssueListOverview />, {organization: featureOrg, initialRouterConfig});
 
+      await userEvent.click(screen.getByRole('button', {name: 'Display Options'}));
       await userEvent.click(await screen.findByRole('button', {name: /Recommended/}));
-      await userEvent.click(screen.getByRole('option', {name: 'Events'}));
+      await userEvent.click(
+        within(screen.getByRole('listbox', {name: /Recommended/})).getByRole('option', {
+          name: 'Events',
+        })
+      );
 
       expect(getStoredIssueSort(featureOrg.slug)).toBe(IssueSortOptions.FREQ);
     });
@@ -440,8 +743,13 @@ describe('IssueList', () => {
       });
 
       // The view's saved sort applies, not the stored feed sort
+      await userEvent.click(screen.getByRole('button', {name: 'Display Options'}));
       await userEvent.click(await screen.findByRole('button', {name: 'Last Seen'}));
-      await userEvent.click(screen.getByRole('option', {name: 'Users'}));
+      await userEvent.click(
+        within(screen.getByRole('listbox', {name: 'Last Seen'})).getByRole('option', {
+          name: 'Users',
+        })
+      );
 
       // Changing the sort within a view does not overwrite the feed's stored sort
       expect(getStoredIssueSort(featureOrg.slug)).toBe(IssueSortOptions.FREQ);

@@ -2,9 +2,50 @@ import {Fragment} from 'react';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 
 describe('DropdownMenu', () => {
+  it('opens interactive submenu content with the keyboard and restores focus', async () => {
+    render(
+      <DropdownMenu
+        triggerLabel="Filter"
+        items={[
+          {
+            key: 'assignee',
+            label: 'Assignee',
+            submenu: {
+              title: 'Choose assignees',
+              content: ({close}) => <Button onClick={close}>Apply</Button>,
+            },
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+    const submenuTrigger = screen.getByRole('menuitemradio', {name: 'Assignee'});
+    expect(submenuTrigger).toHaveAttribute('aria-haspopup', 'dialog');
+    await userEvent.keyboard('{ArrowRight}');
+    expect(screen.getByRole('dialog', {name: 'Choose assignees'})).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Apply'})).toHaveFocus()
+    );
+
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('menu')).toBeInTheDocument();
+    await waitFor(() => expect(submenuTrigger).toHaveFocus());
+
+    await userEvent.keyboard('{ArrowRight}');
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Filter'})).toHaveFocus()
+    );
+  });
+
   it('renders a basic menu', async () => {
     const onAction = jest.fn();
 

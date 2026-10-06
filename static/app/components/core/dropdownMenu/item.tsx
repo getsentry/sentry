@@ -56,12 +56,19 @@ export interface MenuItemProps extends MenuListItemProps {
    */
   onAction?: () => void;
   /**
-   * Renders this item as a trigger for a nested sub-menu (only works when
-   * `children` is also defined). Pass `true` for the defaults, or an object to
+   * Renders this item as a trigger for a nested sub-menu. Pass `true` for
+   * `children`, or an object to
    * customize the sub-menu: `title` is shown as its header, and `position`
    * overrides where it opens relative to this item (defaults to `right-start`).
    */
-  submenu?: boolean | {position?: UseOverlayProps['position']; title?: string};
+  submenu?:
+    | boolean
+    | {
+        /** Render an interactive panel instead of a list of child menu items. */
+        content?: (props: {close: () => void}) => React.ReactNode;
+        position?: UseOverlayProps['position'];
+        title?: string;
+      };
   /**
    * A plain text version of the `label` prop if the label is not a string. Used for
    * filtering and keyboard select (quick-focusing on options by typing the first letter).

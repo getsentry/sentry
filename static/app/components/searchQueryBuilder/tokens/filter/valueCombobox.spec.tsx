@@ -5,8 +5,84 @@ import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fiel
 import {
   getSelectedValuesFromText,
   prepareInputValueForSaving,
+  SearchQueryBuilderValueCombobox,
   tokenSupportsMultipleValues,
 } from './valueCombobox';
+
+function SelectionOnlyPicker({onDelete}: {onDelete: () => void}) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const {query, parsedQuery} = useSearchQueryBuilderState();
+  const token = parsedQuery?.find(item => item.type === Token.FILTER);
+  return (
+    <Container ref={wrapperRef}>
+      <Text data-test-id="query-value">{query}</Text>
+      {token && (
+        <SearchQueryBuilderValueCombobox
+          token={token}
+          wrapperRef={wrapperRef}
+          editingCommittedValue
+          selectionOnly
+          onCommit={() => {}}
+          onDelete={onDelete}
+        />
+      )}
+    </Container>
+  );
+}
+
+describe('selection-only value picker', () => {
+  it('filters existing values without committing typed text or deleting selections', async () => {
+    const onDelete = jest.fn();
+    render(
+      <SearchQueryBuilderProvider
+        initialQuery="level:error"
+        filterKeys={{
+          level: {
+            key: 'level',
+            name: 'Level',
+            predefined: true,
+            values: ['error', 'info', 'fatal'],
+          },
+        }}
+        getTagValues={() => Promise.resolve([])}
+        onSearch={() => {}}
+        searchSource="test"
+      >
+        <SelectionOnlyPicker onDelete={onDelete} />
+      </SearchQueryBuilderProvider>
+    );
+
+    const input = screen.getByRole('combobox', {name: 'Filter values'});
+    expect(input).toHaveAttribute('placeholder', 'Filter values…');
+    expect(
+      screen.queryByRole('button', {name: 'Edit value: error'})
+    ).not.toBeInTheDocument();
+    await userEvent.type(input, 'unknown,');
+    expect(screen.queryByRole('option', {name: 'unknown,'})).not.toBeInTheDocument();
+    await userEvent.keyboard('{Enter}');
+    expect(screen.getByTestId('query-value')).toHaveTextContent('level:error');
+    await userEvent.tab();
+    expect(screen.getByTestId('query-value')).toHaveTextContent('level:error');
+
+    await userEvent.clear(input);
+    await userEvent.keyboard('{Backspace}');
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(screen.getByTestId('query-value')).toHaveTextContent('level:error');
+    await userEvent.type(input, 'inf');
+    expect(screen.getByRole('option', {name: 'info'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'fatal'})).not.toBeInTheDocument();
+    await userEvent.click(
+      within(screen.getByRole('option', {name: 'info'})).getByRole('checkbox')
+    );
+    expect(screen.getByTestId('query-value')).toHaveTextContent('level:[error,info]');
+    await userEvent.clear(input);
+    await userEvent.type(input, 'fat');
+    await userEvent.click(screen.getByRole('option', {name: 'fatal'}));
+    expect(screen.getByTestId('query-value')).toHaveTextContent(
+      'level:[error,info,fatal]'
+    );
+  });
+});
 
 describe('prepareInputValueForSaving', () => {
   it('preserves manual asterisks in unquoted string values', () => {
@@ -167,3 +243,14 @@ describe('tokenSupportsMultipleValues', () => {
     ).toBe(true);
   });
 });
+import {useRef} from 'react';
+
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+
+import {Container} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import {
+  SearchQueryBuilderProvider,
+  useSearchQueryBuilderState,
+} from 'sentry/components/searchQueryBuilder/context';

@@ -11,7 +11,7 @@ export {
 
 export {CompositeSelect} from './composite';
 
-export {ControlContext} from './control';
+export {Control as CompactSelectControl, ControlContext} from './control';
 
 export {HighlightText} from './highlightText';
 

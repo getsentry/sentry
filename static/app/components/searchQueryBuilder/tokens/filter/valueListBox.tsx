@@ -94,6 +94,7 @@ interface ValueListBoxProps<T> extends CustomComboboxMenuProps<T> {
   items: T[];
   token: TokenResult<Token.FILTER>;
   wrapperRef: React.RefObject<HTMLDivElement | null>;
+  hideWildcardHelp?: boolean;
   portalTarget?: HTMLElement | null;
 }
 
@@ -101,19 +102,26 @@ function Footer({
   isMultiSelect,
   canUseWildcard,
   token,
+  hideWildcardHelp,
 }: {
   canUseWildcard: boolean;
   isMultiSelect: boolean;
   token: TokenResult<Token.FILTER>;
+  hideWildcardHelp?: boolean;
 }) {
-  if (!isMultiSelect && !canUseWildcard && !isRegexOperator(token.operator)) {
+  if (
+    !isMultiSelect &&
+    (hideWildcardHelp || (!canUseWildcard && !isRegexOperator(token.operator)))
+  ) {
     return null;
   }
 
   return (
     <FooterContainer>
       {isMultiSelect ? <Label>{t('Use the checkboxes to select multiple')}</Label> : null}
-      <WildcardFooter canUseWildcard={canUseWildcard} token={token} />
+      {!hideWildcardHelp && (
+        <WildcardFooter canUseWildcard={canUseWildcard} token={token} />
+      )}
     </FooterContainer>
   );
 }
@@ -134,6 +142,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
   portalTarget,
   token,
   wrapperRef,
+  hideWildcardHelp,
 }: ValueListBoxProps<T>) {
   const {menuPresentation} = useSearchQueryBuilderLayout();
   const totalOptions = items.reduce(
@@ -209,6 +218,7 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
               isMultiSelect={isMultiSelect}
               canUseWildcard={canUseWildcard}
               token={token}
+              hideWildcardHelp={hideWildcardHelp}
             />
           </Fragment>
         )}

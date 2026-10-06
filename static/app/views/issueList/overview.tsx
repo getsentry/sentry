@@ -64,6 +64,7 @@ import {
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
+import {IssueDisplayPropertiesProvider} from './displayProperties';
 import {IssueListFilters} from './filters';
 import {IssueListCommandPaletteActions} from './issueListCommandPaletteActions';
 import {
@@ -951,78 +952,80 @@ function IssueListOverviewInner({
   });
 
   return (
-    <IssueSelectionProvider visibleGroupIds={groupIds}>
-      <Stack flex={1}>
-        <IssueListCommandPaletteActions
-          groupIds={groupIds}
-          query={query}
-          queryCount={modifiedQueryCount}
-          selection={selection}
-          sort={sort}
-          onSortChange={onSortChange}
-          onQueryChange={onSearch}
-          onActionTaken={onActionTaken}
-        />
-        <IssueViewsHeader
-          title={title}
-          description={titleDescription}
-          realtimeActive={realtimeActive}
-          onRealtimeChange={onRealtimeChange}
-          headerActions={headerActions}
-        />
-        <Layout.Body>
-          <Layout.Main width="full">
-            <Grid>
-              <IssuesDataConsentBanner source="issues" />
-              <IssueListFilters
-                query={query}
-                sort={sort}
-                onSortChange={onSortChange}
-                onSearch={onSearch}
-              />
-              <IssueListTable
-                selection={selection}
-                query={query}
-                queryCount={modifiedQueryCount}
-                onSelectStatsPeriod={onSelectStatsPeriod}
-                onActionTaken={onActionTaken}
-                onDelete={onDelete}
-                statsPeriod={getGroupStatsPeriod()}
-                groupIds={groupIds}
-                allResultsVisible={allResultsVisible()}
-                displayReprocessingActions={displayReprocessingActions}
-                memberList={memberList}
-                issuesLoading={issuesLoading}
-                statsLoading={statsLoading}
-                error={error}
-                refetchGroups={fetchData}
-                paginationCaption={
-                  !issuesLoading && modifiedQueryCount > 0
-                    ? tct('[start]-[end] of [total]', {
-                        start: numPreviousIssues + 1,
-                        end: numPreviousIssues + numIssuesOnPage,
-                        total: (
-                          <QueryCount
-                            hideParens
-                            hideIfEmpty={false}
-                            count={modifiedQueryCount}
-                            max={queryMaxCount || 100}
-                          />
-                        ),
-                      })
-                    : null
-                }
-                pageLinks={pageLinks}
-                onCursor={onCursorChange}
-                paginationAnalyticsEvent={paginationAnalyticsEvent}
-                issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
-                pageSize={MAX_ITEMS}
-              />
-            </Grid>
-          </Layout.Main>
-        </Layout.Body>
-      </Stack>
-    </IssueSelectionProvider>
+    <IssueDisplayPropertiesProvider>
+      <IssueSelectionProvider visibleGroupIds={groupIds}>
+        <Stack flex={1}>
+          <IssueListCommandPaletteActions
+            groupIds={groupIds}
+            query={query}
+            queryCount={modifiedQueryCount}
+            selection={selection}
+            sort={sort}
+            onSortChange={onSortChange}
+            onQueryChange={onSearch}
+            onActionTaken={onActionTaken}
+          />
+          <IssueViewsHeader
+            title={title}
+            description={titleDescription}
+            realtimeActive={realtimeActive}
+            onRealtimeChange={onRealtimeChange}
+            headerActions={headerActions}
+          />
+          <Layout.Body>
+            <Layout.Main width="full">
+              <Grid>
+                <IssuesDataConsentBanner source="issues" />
+                <IssueListFilters
+                  query={query}
+                  sort={sort}
+                  onSortChange={onSortChange}
+                  onSearch={onSearch}
+                />
+                <IssueListTable
+                  selection={selection}
+                  query={query}
+                  queryCount={modifiedQueryCount}
+                  onSelectStatsPeriod={onSelectStatsPeriod}
+                  onActionTaken={onActionTaken}
+                  onDelete={onDelete}
+                  statsPeriod={getGroupStatsPeriod()}
+                  groupIds={groupIds}
+                  allResultsVisible={allResultsVisible()}
+                  displayReprocessingActions={displayReprocessingActions}
+                  memberList={memberList}
+                  issuesLoading={issuesLoading}
+                  statsLoading={statsLoading}
+                  error={error}
+                  refetchGroups={fetchData}
+                  paginationCaption={
+                    !issuesLoading && modifiedQueryCount > 0
+                      ? tct('[start]-[end] of [total]', {
+                          start: numPreviousIssues + 1,
+                          end: numPreviousIssues + numIssuesOnPage,
+                          total: (
+                            <QueryCount
+                              hideParens
+                              hideIfEmpty={false}
+                              count={modifiedQueryCount}
+                              max={queryMaxCount || 100}
+                            />
+                          ),
+                        })
+                      : null
+                  }
+                  pageLinks={pageLinks}
+                  onCursor={onCursorChange}
+                  paginationAnalyticsEvent={paginationAnalyticsEvent}
+                  issuesSuccessfullyLoaded={issuesSuccessfullyLoaded}
+                  pageSize={MAX_ITEMS}
+                />
+              </Grid>
+            </Layout.Main>
+          </Layout.Body>
+        </Stack>
+      </IssueSelectionProvider>
+    </IssueDisplayPropertiesProvider>
   );
 }
 

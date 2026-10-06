@@ -1,6 +1,5 @@
 import {useTheme} from '@emotion/react';
 
-import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {LoadingError} from 'sentry/components/loadingError';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {LoadingStreamGroup, StreamGroup} from 'sentry/components/stream/group';
@@ -11,6 +10,7 @@ import {useMedia} from 'sentry/utils/useMedia';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
+import {useIssueDisplayProperties} from './displayProperties';
 import {NoGroupsHandler} from './noGroupsHandler';
 
 type GroupListBodyProps = {
@@ -36,17 +36,6 @@ type GroupListProps = {
   query: string;
 };
 
-const DEFAULT_COLUMNS: GroupListColumn[] = [
-  'graph',
-  'firstSeen',
-  'lastSeen',
-  'event',
-  'users',
-  'priority',
-  'assignee',
-  'lastTriggered',
-];
-
 function LoadingSkeleton({
   pageSize,
   displayReprocessingLayout,
@@ -54,13 +43,15 @@ function LoadingSkeleton({
   displayReprocessingLayout: boolean;
   pageSize: number;
 }) {
+  const {columns} = useIssueDisplayProperties();
   return (
     <PanelBody>
       {Array.from({length: pageSize}).map((_, index) => (
         <LoadingStreamGroup
           key={`loading-group-${index}`}
           displayReprocessingLayout={displayReprocessingLayout}
-          withColumns={DEFAULT_COLUMNS}
+          withColumns={columns}
+          withChart={columns.includes('graph')}
         />
       ))}
     </PanelBody>
@@ -127,6 +118,7 @@ function GroupList({
   onActionTaken,
 }: GroupListProps) {
   const theme = useTheme();
+  const {columns} = useIssueDisplayProperties();
   const topIssue = groupIds[0];
   const selectDisabled = useMedia(`(width < ${theme.breakpoints.sm})`);
 
@@ -149,7 +141,8 @@ function GroupList({
             useFilteredStats
             canSelect={!selectDisabled}
             onPriorityChange={priority => onActionTaken([id], {priority})}
-            withColumns={DEFAULT_COLUMNS}
+            withColumns={columns}
+            withChart={columns.includes('graph')}
           />
         );
       })}
