@@ -82,9 +82,7 @@ export function BreadcrumbTitle({title: explicitTitle, breadcrumbs}: Props) {
         ConfigStore.get('customerDomain') &&
         organization &&
         to.startsWith('/settings/') &&
-        to !== '/settings/' &&
-        !to.startsWith('/settings/account/') &&
-        !to.startsWith(`/settings/${organization.slug}/`)
+        to !== '/settings/'
       ) {
         to = `/settings/${organization.slug}/${to.slice('/settings/'.length)}`;
       }
