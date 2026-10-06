@@ -23,6 +23,7 @@ from sentry.constants import ObjectStatus
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
+    DefaultFieldsModel,
     FlexibleForeignKey,
     LegacyTextJSONField,
     Model,
@@ -472,6 +473,30 @@ def check_organization_monitor_limits_on_save(sender, instance, **kwargs):
 
 
 @cell_silo_model
+class MonitorCheckInConfig(DefaultFieldsModel):
+    """
+    A deduplicated, immutable snapshot of a monitor configuration, referenced
+    by check-ins. Rows are content-addressed by `hash`.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    hash = models.CharField(max_length=64)
+    config = models.JSONField()
+
+    class Meta:
+        app_label = "monitors"
+        db_table = "sentry_monitorcheckinconfig"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["hash"], name="sentry_monitorcheckinconfig_hash_unique"
+            ),
+        ]
+
+    __repr__ = sane_repr("hash")
+
+
+@cell_silo_model
 class MonitorCheckIn(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -548,6 +573,12 @@ class MonitorCheckIn(Model):
     monitor_config = LegacyTextJSONField(null=True)
     """
     A snapshot of the monitor configuration at the time of the check-in.
+    """
+
+    config_snapshot_id = BoundedBigIntegerField(null=True)
+    """
+    References the MonitorCheckInConfig holding a snapshot of the monitor
+    configuration at the time of the check-in.
     """
 
     trace_id = UUIDField(null=True)
