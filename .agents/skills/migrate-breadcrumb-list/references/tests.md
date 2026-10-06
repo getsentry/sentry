@@ -4,7 +4,7 @@ Use the repository's `react-testing` skill when editing tests. Verify the change
 
 ## TopBar test setup
 
-`render` from `sentry-test/reactTestingLibrary` already mounts `TopBar.Slot.Provider` and outlets for breadcrumbs, title, search, actions, and feedback. Its title outlet renders an `<h1>`. Most page tests need no extra provider or `<TopBar />`.
+`render` from `sentry-test/reactTestingLibrary` already mounts `TopBar.Slot.Provider` and outlets for breadcrumbs, title, search, actions, and feedback. The title item supplies its own `<h1>`; the outlet uses a plain wrapper. Most page tests need no extra provider or `<TopBar />`.
 
 ```tsx
 render(<MyHeader {...props} />);
@@ -34,7 +34,7 @@ If a custom harness supplies its own outlets, it needs both the internal `breadc
 | Parent trail                                   | `getByRole('list')`; the component has no `<nav>`                                    |
 | Parent link                                    | `getByRole('link', {name})`                                                          |
 | Title rendered through TopBar                  | `getByRole('heading', {name, level: 1})`                                             |
-| Standalone `BreadcrumbList.Title`              | `getByText(name)`; it supplies no heading                                            |
+| Standalone `BreadcrumbList.Title`              | `getByRole('heading', {name, level: 1})`                                             |
 | Overflow trigger                               | `getByRole('button', {name: 'More breadcrumbs'})`                                    |
 | Copy or menu trigger                           | `getByRole('button', {name: actionLabel})`                                           |
 | Button or LinkButton action                    | `getByRole('button', {name})`; LinkButton uses this role too                         |
@@ -60,7 +60,7 @@ expect(
 expect(within(breadcrumbs).queryByText('Custom Errors')).not.toBeInTheDocument();
 ```
 
-Scope queries to the heading, trail, or banner when body content repeats the same text. Feature badges can contribute to the heading's accessible name; inspect the rendered result when choosing a name query.
+Scope queries to the heading, trail, or banner when body content repeats the same text. For `page-title`, the heading contains only the label. Query graphics, pagination, and trailing actions outside the heading.
 
 ## Actions and data
 

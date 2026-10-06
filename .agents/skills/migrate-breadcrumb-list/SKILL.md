@@ -26,7 +26,7 @@ Separate parent links from the current page title. Pass both through one public 
 
 For a page without parents, omit the slot children. The `title` prop is still required.
 
-`TopBar` internally routes the parents and title to separate outlets and supplies the single `<h1>`. `BreadcrumbList.Title` renders inline content without a heading. Use it directly only when composing outside TopBar. Do not add a public `TopBar.Slot name="title"`, `Layout.Title`, or a second page heading; those public title APIs were removed.
+`TopBar` internally routes the parents and title to separate outlets. `BreadcrumbList.Title` supplies the single `<h1>`. For `page-title`, only the label is inside the heading; graphics, pagination, and actions render beside it. Do not wrap the title component in another heading. Use it directly only when composing outside TopBar. Do not add a public `TopBar.Slot name="title"`, `Layout.Title`, or a second page heading; those public title APIs were removed.
 
 Read `static/app/views/navigation/topBar.tsx` and `static/app/components/core/breadcrumbList/` before editing. Prefer the current implementation over old migration examples.
 

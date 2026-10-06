@@ -110,7 +110,7 @@ describe('BreadcrumbList container-query collapse', () => {
     expect(alwaysOnMediaFlex).toBe(false);
   });
 
-  it('renders title content without a heading and hides dividers from AT', () => {
+  it('renders the page-title label as a heading and hides dividers from AT', () => {
     render(
       <Fragment>
         <BreadcrumbList items={[{type: 'link', label: 'Settings', to: '/settings/'}]} />
@@ -118,9 +118,7 @@ describe('BreadcrumbList container-query collapse', () => {
       </Fragment>
     );
 
-    // TopBar owns the page heading. BreadcrumbList.Title only renders the title
-    // content so it can be placed inside that heading without nesting one.
-    expect(screen.queryByRole('heading', {name: 'General'})).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'General', level: 1})).toBeInTheDocument();
     const title = screen.getByText('General');
     expect(title).toBeInTheDocument();
     expect(

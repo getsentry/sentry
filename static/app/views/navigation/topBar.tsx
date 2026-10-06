@@ -1,12 +1,10 @@
 import {Fragment, useEffect, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
-import {mergeProps} from '@react-aria/utils';
 
 import {BreadcrumbList, type BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 import {slot} from '@sentry/scraps/slot';
-import {Heading} from '@sentry/scraps/text';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
@@ -104,9 +102,9 @@ function TopBarContent() {
     >
       <SizeProvider size="sm">
         {/*
-         * Breadcrumbs and the title use separate internal outlets so the title
-         * owns the page heading. BreadcrumbList.Title renders title content
-         * without a heading, while this outlet supplies the single <h1>.
+         * Breadcrumbs and the title use separate internal outlets.
+         * BreadcrumbList.Title supplies the single <h1> and keeps page-title
+         * graphics, pagination, and actions outside the heading.
          *
          * The title occupies the remaining inline space (the header is
          * justify="between", so this absorbs the empty middle; content stays
@@ -130,11 +128,7 @@ function TopBarContent() {
 
           <Slot.Outlet name="title">
             {props => (
-              <Flex align="center" gap="sm" minWidth="0" flexGrow={1}>
-                {flexProps => (
-                  <Heading as="h1" variant="inherit" {...mergeProps(flexProps, props)} />
-                )}
-              </Flex>
+              <Flex {...props} align="center" gap="sm" minWidth="0" flexGrow={1} />
             )}
           </Slot.Outlet>
         </Flex>

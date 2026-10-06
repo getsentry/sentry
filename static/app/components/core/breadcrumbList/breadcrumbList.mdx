@@ -23,8 +23,8 @@ export const documentation = import('!!type-loader!@sentry/scraps/breadcrumbList
 
 `BreadcrumbList` renders the parent portion of a horizontal breadcrumb trail. It
 does not render a navigation landmark or a page heading. Render the current page
-with the `title` prop of `TopBar.Slot name="breadcrumbs"`; `TopBar` supplies the
-page's single `<h1>`.
+with the `title` prop of `TopBar.Slot name="breadcrumbs"`; `BreadcrumbList.Title`
+supplies the page's single `<h1>`.
 
 ## Usage
 
@@ -34,7 +34,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 ```
 
 Pass the page title as a typed `title` prop to `TopBar.Slot name="breadcrumbs"`.
-TopBar renders `BreadcrumbList.Title` internally and supplies the page's single
+TopBar renders `BreadcrumbList.Title` internally, which supplies the page's single
 `<h1>`. The title item supports a leading graphic, a tooltip, pagination,
 trailing actions, or an editable field.
 
@@ -95,9 +95,9 @@ in renders the page name twice.
 </TopBar.Slot>
 ```
 
-Because `BreadcrumbList.Title` carries no heading, this composition still
-produces exactly one `<h1>` even when the title includes pagination, a leading
-graphic, trailing actions, or an editable control.
+`BreadcrumbList.Title` owns the heading; do not wrap it in another heading.
+For `page-title`, only the label is inside the `<h1>`. Pagination, the leading
+graphic, and trailing actions render beside it.
 
 ### Page filters
 
@@ -184,9 +184,9 @@ Page filters are not carried automatically — see [Page filters](#page-filters)
 ### `'page-title'` — the current page
 
 The `page-title` item is rendered with `BreadcrumbList.Title`, not in the
-`BreadcrumbList.items` array. It is bold, non-interactive, and renders as inline
-content. TopBar provides the `<h1>` when the item is passed through `title`; the
-demo below mirrors that heading and flex layout.
+`BreadcrumbList.items` array. Its bold label renders inside an `<h1>`, with
+supporting graphics and actions outside the heading. The demo below mirrors
+TopBar's flex layout.
 
 <Storybook.Demo>
   <BreadcrumbListDemo

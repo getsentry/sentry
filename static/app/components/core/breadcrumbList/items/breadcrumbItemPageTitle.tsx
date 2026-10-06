@@ -14,6 +14,7 @@ import {
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
+import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {IconChevron} from 'sentry/icons';
@@ -128,7 +129,7 @@ export function BreadcrumbItemPageTitle({
   const actions = renderTrailingActions(trailingActions);
 
   return (
-    <Flex as="span" align="center" gap="sm" height="32px" minWidth="32px">
+    <Flex align="center" gap="sm" height="32px" minWidth="32px">
       {pagination && (
         <Flex as="span" align="center">
           <Tooltip
@@ -183,15 +184,11 @@ export function BreadcrumbItemPageTitle({
           on the outer Flex above. */}
       <Container minWidth={0}>
         {containerProps => (
-          <InfoText
-            title={labelTooltip}
-            ellipsis
-            bold
-            variant="inherit"
-            {...containerProps}
-          >
-            {label}
-          </InfoText>
+          <Heading as="h1" variant="inherit" {...containerProps}>
+            <InfoText title={labelTooltip} ellipsis bold variant="inherit">
+              {label}
+            </InfoText>
+          </Heading>
         )}
       </Container>
       {actions}

@@ -1,4 +1,5 @@
 import {Container, Flex, useHasContainerQuery} from '@sentry/scraps/layout';
+import {Heading} from '@sentry/scraps/text';
 
 import {unreachable} from 'sentry/utils/unreachable';
 
@@ -59,7 +60,11 @@ function BreadCrumbTitle({item}: BreadcrumbListTitleProps) {
   switch (item.type) {
     case 'select-projects': {
       const {type: _type, ...props} = item;
-      return <BreadcrumbItemSelectProjects {...props} />;
+      return (
+        <Heading as="h1" variant="inherit">
+          <BreadcrumbItemSelectProjects {...props} />
+        </Heading>
+      );
     }
     case 'page-title': {
       const {type: _type, ...props} = item;
@@ -67,7 +72,11 @@ function BreadCrumbTitle({item}: BreadcrumbListTitleProps) {
     }
     case 'editable-title': {
       const {type: _type, ...props} = item;
-      return <BreadcrumbItemPageTitleEditable {...props} />;
+      return (
+        <Heading as="h1" variant="inherit">
+          <BreadcrumbItemPageTitleEditable {...props} />
+        </Heading>
+      );
     }
     default:
       unreachable(item);
@@ -81,8 +90,7 @@ function BreadCrumbTitle({item}: BreadcrumbListTitleProps) {
  * (below the 'sm' breakpoint — 512px).
  *
  * Consumers pass parent crumbs in `items` and render the final page title with
- * `BreadcrumbList.Title`. Keeping those concerns separate means the TopBar can
- * own the page's single heading.
+ * `BreadcrumbList.Title`, which supplies the page's single heading.
  *
  * Overflow behaviour:
  * - Wide (≥ 512px): all parent items render individually
@@ -117,7 +125,7 @@ export function BreadcrumbList({items}: BreadcrumbListProps) {
 
   return (
     // Renders parent links as inline content (no <nav> landmark). The TopBar
-    // title slot owns the page heading, so this list only contains supporting
+    // title item owns the page heading, so this list only contains supporting
     // parent links.
     <Container width="100%">
       {/*

@@ -4,7 +4,7 @@
 
 - `components/core/breadcrumbList/` — authoritative for the item unions and every prop. The types win over the story.
 - `components/core/breadcrumbList/breadcrumbList.mdx` — authoritative for composition and editorial rules (copy-vs-menu, always-present pagination).
-- `views/navigation/topBar.tsx` — slot names, and the `<Heading as="h1">` that makes the title outlet the page heading.
+- `views/navigation/topBar.tsx` — slot names and title outlet layout; `components/core/breadcrumbList/` owns the heading markup.
 - Reference migrations: getsentry/sentry#120729 (conversations), #120794 (trace view), #123128 (transaction summary), #121282 (dashboards actions), #123569 (replay actions). #122697 removed the migration flag; the earlier PRs' flag forks are dead patterns.
 - Current examples in `static/app/views/` are listed in `SKILL.md`; re-read them before adapting them.
 - `tests/js/sentry-test/reactTestingLibrary.tsx` supplies TopBar slot outlets in the default test renderer.

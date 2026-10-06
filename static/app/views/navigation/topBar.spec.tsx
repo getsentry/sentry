@@ -6,7 +6,10 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
+import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+
+import {IconStack} from 'sentry/icons';
 
 import {TopBar} from './topBar';
 
@@ -53,13 +56,25 @@ describe('TopBar', () => {
     ).toBeInTheDocument();
   });
 
-  it('keeps BreadcrumbList titles inside the single TopBar heading', () => {
+  it('keeps only the page-title label inside the single TopBar heading', () => {
     render(
       <TopBar.Slot.Provider>
         <TopBar />
         <TopBar.Slot
           name="breadcrumbs"
-          title={{type: 'page-title', label: 'Current Issue'}}
+          title={{
+            type: 'page-title',
+            label: 'Current Issue',
+            leadingGraphic: <IconStack data-test-id="title-graphic" />,
+            pagination: {
+              previous: {ariaLabel: 'Previous issue'},
+              next: {ariaLabel: 'Next issue', to: '/issues/next/'},
+            },
+            trailingActions: {
+              type: 'button',
+              element: <Button>Resolve</Button>,
+            },
+          }}
         >
           <BreadcrumbList items={[{type: 'link', label: 'Issues', to: '/issues/'}]} />
         </TopBar.Slot>
@@ -79,6 +94,15 @@ describe('TopBar', () => {
         'link'
       )
     ).not.toBeInTheDocument();
+    const heading = screen.getByRole('heading', {name: 'Current Issue', level: 1});
+    expect(heading).not.toContainElement(screen.getByTestId('title-graphic'));
+    expect(heading).not.toContainElement(
+      screen.getByRole('button', {name: 'Previous issue'})
+    );
+    expect(heading).not.toContainElement(
+      screen.getByRole('button', {name: 'Next issue'})
+    );
+    expect(heading).not.toContainElement(screen.getByRole('button', {name: 'Resolve'}));
     expect(screen.getByRole('link', {name: 'Issues'})).toHaveAttribute(
       'href',
       '/issues/'
