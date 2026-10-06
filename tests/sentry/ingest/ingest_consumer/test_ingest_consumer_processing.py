@@ -860,7 +860,7 @@ def test_individual_attachments(
         with attachment.getfile() as file_contents:
             assert file_contents.read() == expected_content
 
-        delta = attachment.date_expires - (now + datetime.timedelta(days=retention_days))
+        delta = attachment.final_expiry_date() - (now + datetime.timedelta(days=retention_days))
         assert abs(delta.total_seconds()) < 3600
 
 
