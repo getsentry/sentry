@@ -231,44 +231,46 @@ function FlagValueActionsMenu({flagValue}: {flagValue: RawFlag}) {
   const [isVisible, setIsVisible] = useState(false);
 
   return (
-    <RevealOnHover.Action visible={isVisible}>
-      <DropdownMenu
-        size="xs"
-        onOpenChange={isOpen => setIsVisible(isOpen)}
-        trigger={triggerProps => (
-          <OverlayTrigger.IconButton
-            {...triggerProps}
-            aria-label={t('Flag Audit Log Actions Menu')}
-            icon={<IconEllipsis />}
-          />
-        )}
-        items={[
-          {
-            key: 'view-issues-true',
-            label: t('Search issues where this flag value is TRUE'),
-            to: {
-              pathname: `/organizations/${organization.slug}/issues/`,
-              query: {query: `${makeFeatureFlagSearchKey(key)}:"true"`},
+    <Container column="5" justifySelf="end">
+      <RevealOnHover.Action visible={isVisible}>
+        <DropdownMenu
+          size="xs"
+          onOpenChange={isOpen => setIsVisible(isOpen)}
+          trigger={triggerProps => (
+            <OverlayTrigger.IconButton
+              {...triggerProps}
+              aria-label={t('Flag Audit Log Actions Menu')}
+              icon={<IconEllipsis />}
+            />
+          )}
+          items={[
+            {
+              key: 'view-issues-true',
+              label: t('Search issues where this flag value is TRUE'),
+              to: {
+                pathname: `/organizations/${organization.slug}/issues/`,
+                query: {query: `${makeFeatureFlagSearchKey(key)}:"true"`},
+              },
             },
-          },
-          {
-            key: 'view-issues-false',
-            label: t('Search issues where this flag value is FALSE'),
-            to: {
-              pathname: `/organizations/${organization.slug}/issues/`,
-              query: {query: `${makeFeatureFlagSearchKey(key)}:"false"`},
+            {
+              key: 'view-issues-false',
+              label: t('Search issues where this flag value is FALSE'),
+              to: {
+                pathname: `/organizations/${organization.slug}/issues/`,
+                query: {query: `${makeFeatureFlagSearchKey(key)}:"false"`},
+              },
             },
-          },
-          {
-            key: 'copy-value',
-            label: t('Copy flag value to clipboard'),
-            onAction: () =>
-              copy(flagValue.flag, {
-                successMessage: t('Copied flag value to clipboard'),
-              }),
-          },
-        ]}
-      />
-    </RevealOnHover.Action>
+            {
+              key: 'copy-value',
+              label: t('Copy flag value to clipboard'),
+              onAction: () =>
+                copy(flagValue.flag, {
+                  successMessage: t('Copied flag value to clipboard'),
+                }),
+            },
+          ]}
+        />
+      </RevealOnHover.Action>
+    </Container>
   );
 }
