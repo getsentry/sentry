@@ -1,8 +1,9 @@
-from typing import Any, TypedDict
+from typing import TypedDict
 
 import sentry_sdk
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -107,7 +108,7 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
             404: api_constants.RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(self, request: Request, organization: Organization) -> Response[DroppedEventsResponse]:
         """Return the events Sentry received but dropped (rate limited, filtered,
         invalid, abuse, client discarded, cardinality limited) bucketed over the
         requested interval, alongside the accepted volume per bucket so a caller
@@ -123,9 +124,8 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
             supported = ", ".join(
                 sorted(DATASET_LABELS[ds] for ds in DATASET_TO_CATEGORY if ds in DATASET_LABELS)
             )
-            return Response(
-                {"detail": f"dataset does not support dropped events; must be one of: {supported}"},
-                status=400,
+            raise ParseError(
+                f"dataset does not support dropped events; must be one of: {supported}"
             )
 
         # `outcome` is a closed enum (the drop classifications); reject anything
@@ -134,28 +134,23 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
         outcome = request.GET.get("outcome")
         if outcome is not None and outcome not in _DROPPED_OUTCOME_NAMES:
             supported = ", ".join(_DROPPED_OUTCOME_NAMES)
-            return Response(
-                {"detail": f"invalid outcome; must be one of: {supported}"},
-                status=400,
-            )
+            raise ParseError(f"invalid outcome; must be one of: {supported}")
         reason = request.GET.get("reason")
 
         try:
             snuba_params = self.get_snuba_params(request, organization)
         except NoProjects:
-            return Response(
-                {
-                    "meta": {
-                        "dataset": DATASET_LABELS[dataset],
-                        "start": 0,
-                        "end": 0,
-                        "interval": 0,
-                    },
-                    "droppedEvents": [],
-                    "acceptedEvents": [],
+            empty: DroppedEventsResponse = {
+                "meta": {
+                    "dataset": DATASET_LABELS[dataset],
+                    "start": 0,
+                    "end": 0,
+                    "interval": 0,
                 },
-                status=200,
-            )
+                "droppedEvents": [],
+                "acceptedEvents": [],
+            }
+            return Response(empty, status=200)
 
         with handle_query_errors():
             # top_events=0 / use_rpc=False: no aggregation query runs here, so this
@@ -193,7 +188,7 @@ class OrganizationEventsDroppedEndpoint(OrganizationEventsEndpointBase):
             "end": snuba_params.end_date.timestamp() * 1000,
             "interval": rollup * 1000,
         }
-        response: dict[str, Any] = {
+        response: DroppedEventsResponse = {
             "meta": meta,
             "droppedEvents": dropped_events,
             "acceptedEvents": accepted_events,
