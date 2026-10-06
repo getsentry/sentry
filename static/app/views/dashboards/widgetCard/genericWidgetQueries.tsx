@@ -289,6 +289,10 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
         timeseriesResults: (hookResults as any).timeseriesResults,
         timeseriesResultsTypes: (hookResults as any).timeseriesResultsTypes,
         timeseriesResultsUnits: (hookResults as any).timeseriesResultsUnits,
+        confidence: hookResults.confidence,
+        dataScanned: hookResults.dataScanned,
+        isSampled: hookResults.isSampled,
+        sampleCount: hookResults.sampleCount,
       });
     } else {
       hookResults.rawData.forEach((data: any) => {

@@ -1,30 +1,15 @@
-import {useCallback, useState} from 'react';
-
 import type {PageFilters} from 'sentry/types/core';
 import type {
-  Confidence,
   EventsStats,
   GroupedMultiSeriesEventsStats,
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
-import {dedupeArray} from 'sentry/utils/dedupeArray';
-import {defined} from 'sentry/utils/defined';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {getDynamicText} from 'sentry/utils/getDynamicText';
-import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {LogsConfig} from 'sentry/views/dashboards/datasetConfig/logs';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
-import {
-  isEventsStats,
-  isEventsTimeSeriesResponse,
-} from 'sentry/views/dashboards/utils/isEventsStats';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {combineConfidenceForSeries} from 'sentry/views/explore/utils';
-import {
-  convertEventsStatsToTimeSeriesData,
-  transformToSeriesMap,
-} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 import type {
   GenericWidgetQueriesResult,
@@ -52,89 +37,7 @@ type LogsWidgetQueriesProps = {
   widgetInterval?: string;
 };
 
-type LogsWidgetQueriesImplProps = LogsWidgetQueriesProps & {
-  getConfidenceInformation: (result: SeriesResult) => {
-    seriesConfidence: Confidence | null;
-    seriesDataScanned: 'full' | 'partial' | undefined;
-    seriesIsSampled: boolean | null;
-    seriesSampleCount: number | undefined;
-  };
-};
-
-export function LogsWidgetQueries(props: LogsWidgetQueriesProps) {
-  const getConfidenceInformation = useCallback(
-    (result: SeriesResult) => {
-      if (isEventsTimeSeriesResponse(result)) {
-        const series = result.timeSeries;
-        const isTopN = (props.widget.queries[0]?.columns.length ?? 0) > 0;
-        const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopN);
-
-        return {
-          seriesDataScanned: samplingMeta.dataScanned,
-          seriesConfidence: combineConfidenceForSeries(series),
-          seriesSampleCount: samplingMeta.sampleCount,
-          seriesIsSampled: samplingMeta.isSampled,
-        };
-      }
-
-      let seriesConfidence: Confidence | null;
-      let seriesSampleCount: number | undefined;
-      let seriesIsSampled: boolean | null;
-      let seriesDataScanned: 'full' | 'partial' | undefined;
-
-      if (isEventsStats(result)) {
-        const [_order, timeSeries] = convertEventsStatsToTimeSeriesData(
-          props.widget.queries[0]?.aggregates[0] ?? '',
-          result
-        );
-
-        seriesConfidence = combineConfidenceForSeries([timeSeries]);
-
-        const {
-          dataScanned: calculatedDataScanned,
-          sampleCount: calculatedSampleCount,
-          isSampled: calculatedIsSampled,
-        } = determineSeriesSampleCountAndIsSampled([timeSeries], false);
-        seriesDataScanned = calculatedDataScanned;
-        seriesSampleCount = calculatedSampleCount;
-        seriesIsSampled = calculatedIsSampled;
-      } else {
-        const dedupedYAxes = dedupeArray(props.widget.queries[0]?.aggregates ?? []);
-        const seriesMap = transformToSeriesMap(result, dedupedYAxes);
-        const series = dedupedYAxes.flatMap(yAxis => seriesMap[yAxis]).filter(defined);
-        const {
-          dataScanned: calculatedDataScanned,
-          sampleCount: calculatedSampleCount,
-          isSampled: calculatedIsSampled,
-        } = determineSeriesSampleCountAndIsSampled(
-          series,
-          Object.keys(result).some(seriesName => seriesName.toLowerCase() !== 'other')
-        );
-        seriesDataScanned = calculatedDataScanned;
-        seriesSampleCount = calculatedSampleCount;
-        seriesConfidence = combineConfidenceForSeries(series);
-        seriesIsSampled = calculatedIsSampled;
-      }
-
-      return {
-        seriesDataScanned,
-        seriesConfidence,
-        seriesSampleCount,
-        seriesIsSampled,
-      };
-    },
-    [props.widget.queries]
-  );
-
-  return (
-    <LogsWidgetQueriesSingleRequestImpl
-      {...props}
-      getConfidenceInformation={getConfidenceInformation}
-    />
-  );
-}
-
-function LogsWidgetQueriesSingleRequestImpl({
+export function LogsWidgetQueries({
   children,
   widget,
   cursor,
@@ -142,56 +45,24 @@ function LogsWidgetQueriesSingleRequestImpl({
   dashboardFilters,
   onDataFetched,
   onDataFetchStart,
-  getConfidenceInformation,
   selection,
   widgetInterval,
-}: LogsWidgetQueriesImplProps) {
-  const config = LogsConfig;
-  const [confidence, setConfidence] = useState<Confidence | null>(null);
-  const [dataScanned, setDataScanned] = useState<'full' | 'partial' | undefined>(
-    undefined
-  );
-  const [sampleCount, setSampleCount] = useState<number | undefined>(undefined);
-  const [isSampled, setIsSampled] = useState<boolean | null>(null);
-
-  const afterFetchSeriesData = (result: SeriesResult) => {
-    const {seriesDataScanned, seriesConfidence, seriesSampleCount, seriesIsSampled} =
-      getConfidenceInformation(result);
-
-    setDataScanned(seriesDataScanned);
-    setConfidence(seriesConfidence);
-    setSampleCount(seriesSampleCount);
-    setIsSampled(seriesIsSampled);
-    onDataFetched?.({
-      dataScanned: seriesDataScanned,
-      confidence: seriesConfidence,
-      sampleCount: seriesSampleCount,
-      isSampled: seriesIsSampled,
-    });
-  };
-
+}: LogsWidgetQueriesProps) {
   const props = useGenericWidgetQueries<SeriesResult, TableResult>({
-    config,
+    config: LogsConfig,
     widget,
     cursor,
     limit,
     dashboardFilters,
     onDataFetched,
     onDataFetchStart,
-    afterFetchSeriesData,
     samplingMode: SAMPLING_MODE.NORMAL,
     selection,
     widgetInterval,
   });
 
   return getDynamicText({
-    value: children({
-      ...props,
-      dataScanned,
-      confidence,
-      sampleCount,
-      isSampled,
-    }),
+    value: children(props),
     fixed: <div />,
   });
 }
