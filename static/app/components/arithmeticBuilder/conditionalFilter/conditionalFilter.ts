@@ -177,9 +177,9 @@ function findBooleanOperators(value: string): BooleanOperatorMatch[] {
 
 function getConditionalFilterClauseBounds(
   value: string,
-  cursorIndex: number,
-  booleanOperators: BooleanOperatorMatch[] = findBooleanOperators(value)
+  cursorIndex: number
 ): {clauseEnd: number; clauseStart: number} {
+  const booleanOperators = findBooleanOperators(value);
   let cursor = Math.max(0, Math.min(cursorIndex, value.length));
 
   // Cursor on a boolean operator counts as the start of the following clause.
