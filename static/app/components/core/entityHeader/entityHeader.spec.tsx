@@ -1,0 +1,232 @@
+import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
+
+import {EntityHeader} from '@sentry/scraps/entityHeader';
+
+/** The `Grid` that owns the template is the header's only child. */
+function getGridRules() {
+  const grid = screen.getByRole('banner').firstElementChild as HTMLElement;
+  return getEmotionRules(grid);
+}
+
+describe('EntityHeader', () => {
+  describe('title', () => {
+    it('renders the title as an h2, leaving the h1 to the TopBar', () => {
+      render(<EntityHeader title={{label: 'anonymous@example.com'}} />);
+
+      expect(
+        screen.getByRole('heading', {name: 'anonymous@example.com', level: 2})
+      ).toBeInTheDocument();
+
+      // The page's single h1 lives in the TopBar title slot, so the header must
+      // not introduce a competing one.
+      const header = screen.getByRole('banner');
+      expect(within(header).queryByRole('heading', {level: 1})).not.toBeInTheDocument();
+    });
+
+    it('links the title only when a destination is given', () => {
+      const {rerender} = render(<EntityHeader title={{label: 'Session'}} />);
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+
+      rerender(<EntityHeader title={{label: 'Session', to: '/replays/'}} />);
+      expect(screen.getByRole('link', {name: 'Session'})).toHaveAttribute(
+        'href',
+        '/replays/'
+      );
+    });
+
+    it('renders tags beside the title and hides the leading graphic from AT', () => {
+      render(
+        <EntityHeader
+          title={{
+            label: 'Session',
+            leadingGraphic: <img alt="Project avatar" />,
+            tags: <span>Live</span>,
+          }}
+        />
+      );
+
+      const heading = screen.getByRole('heading', {level: 2});
+      expect(within(heading).getByText('Session')).toBeInTheDocument();
+      expect(screen.getByText('Live')).toBeInTheDocument();
+      // The label carries the meaning; the graphic is decorative.
+      expect(screen.queryByRole('img', {name: 'Project avatar'})).not.toBeInTheDocument();
+    });
+  });
+
+  describe('stats and metadata', () => {
+    it('renders a stat value as a link when a destination is given', () => {
+      render(
+        <EntityHeader
+          title={{label: 'Session'}}
+          stats={[
+            {label: 'Dead Clicks', value: 4, to: '/replays/1/?t_main=breadcrumbs'},
+            {label: 'Rage Clicks', value: 0},
+          ]}
+        />
+      );
+
+      expect(screen.getByRole('link', {name: '4'})).toHaveAttribute(
+        'href',
+        '/replays/1/?t_main=breadcrumbs'
+      );
+      expect(screen.getByText('Rage Clicks')).toBeInTheDocument();
+      expect(screen.queryByRole('link', {name: '0'})).not.toBeInTheDocument();
+    });
+
+    it('drops null entries so callers can inline conditionals', () => {
+      const isVideoReplay = true;
+      render(
+        <EntityHeader
+          title={{label: 'Session'}}
+          stats={[
+            isVideoReplay ? null : {label: 'Dead Clicks', value: 4},
+            {label: 'Errors', value: 2},
+          ]}
+          metadata={[
+            {label: 'Chrome 144'},
+            isVideoReplay ? null : {label: 'Windows >=10'},
+          ]}
+        />
+      );
+
+      expect(screen.getByText('Errors')).toBeInTheDocument();
+      expect(screen.getByText('Chrome 144')).toBeInTheDocument();
+      expect(screen.queryByText('Dead Clicks')).not.toBeInTheDocument();
+      expect(screen.queryByText('Windows >=10')).not.toBeInTheDocument();
+    });
+
+    it('keeps a later stat mounted when an earlier conditional stat appears', async () => {
+      function TestHeader({showViewers}: {showViewers: boolean}) {
+        return (
+          <EntityHeader
+            title={{label: 'Session'}}
+            stats={[
+              showViewers ? {label: 'Seen By', value: <span>2 viewers</span>} : null,
+              {
+                label: 'Note',
+                value: <input aria-label="Scratch note" defaultValue="" />,
+              },
+            ]}
+          />
+        );
+      }
+
+      const {rerender} = render(<TestHeader showViewers={false} />);
+
+      // Typing into the later stat gives it observable state. If it were keyed by
+      // position in the filtered array, the earlier stat appearing would remount
+      // it and that state would be lost.
+      await userEvent.type(screen.getByRole('textbox', {name: 'Scratch note'}), 'kept');
+      expect(screen.getByRole('textbox', {name: 'Scratch note'})).toHaveValue('kept');
+
+      rerender(<TestHeader showViewers />);
+
+      expect(screen.getByText('2 viewers')).toBeInTheDocument();
+      expect(screen.getByRole('textbox', {name: 'Scratch note'})).toHaveValue('kept');
+    });
+
+    it('renders a tooltip on a metadata item', async () => {
+      render(
+        <EntityHeader
+          title={{label: 'Session'}}
+          metadata={[{label: 'TTFB', tooltip: 'Time to First Byte'}]}
+        />
+      );
+
+      await userEvent.hover(screen.getByText('TTFB'));
+      expect(await screen.findByText('Time to First Byte')).toBeInTheDocument();
+    });
+  });
+
+  describe('loading', () => {
+    it('renders one skeleton per declared slot, preserving the slot count', () => {
+      render(
+        <EntityHeader
+          isLoading
+          title={{label: 'Session'}}
+          subtitle="A subtitle"
+          stats={[
+            {label: 'Dead Clicks', value: 4},
+            {label: 'Errors', value: 2},
+          ]}
+          metadata={[{label: 'Chrome 144'}, {label: 'Windows >=10'}]}
+        />
+      );
+
+      // title + subtitle + 2 stats + 2 metadata
+      expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(6);
+
+      // Static labels are known before the data arrives, so they stay put and the
+      // row keeps its width across the loading boundary.
+      expect(screen.getByText('Dead Clicks')).toBeInTheDocument();
+      expect(screen.getByText('Errors')).toBeInTheDocument();
+
+      // Values and the title are what is actually unknown.
+      expect(screen.queryByRole('heading', {level: 2})).not.toBeInTheDocument();
+      expect(screen.queryByText('A subtitle')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('layout', () => {
+    it('reorders the stats below the metadata in a narrow container', () => {
+      render(
+        <EntityHeader
+          title={{label: 'Session'}}
+          stats={[{label: 'Errors', value: 2}]}
+          metadata={[{label: 'Chrome 144'}]}
+        />
+      );
+
+      const rules = getGridRules();
+
+      // Base (narrow): stats come last, on their own row.
+      expect(
+        rules.some(
+          r =>
+            !r.includes('@container') &&
+            /grid-template-areas:\s*"title"\s*"context"\s*"stats"/.test(r)
+        )
+      ).toBe(true);
+
+      // Wide: stats move up beside the title. The spec's boundary is 500px; `sm`
+      // (512px) is the nearest container token.
+      expect(
+        rules.some(
+          r =>
+            /@container[^{]*min-width:\s*512px/.test(r) &&
+            /grid-template-areas:\s*"title stats"\s*"context context"/.test(r)
+        )
+      ).toBe(true);
+
+      // Regression guard: the reflow must be driven by the container's width, not
+      // an always-matching viewport media query that would shadow it.
+      expect(
+        rules.some(
+          r => /@media[^{]*min-width:\s*0px/.test(r) && r.includes('grid-template-areas')
+        )
+      ).toBe(false);
+    });
+
+    it('emits no row for a slot that was not supplied', () => {
+      const {rerender} = render(<EntityHeader title={{label: 'Session'}} />);
+
+      // An area declared with no item in it still creates a row, and `gap` still
+      // applies around it — so an omitted slot must not appear in the template.
+      let rules = getGridRules();
+      expect(rules.some(r => /grid-template-areas:\s*"title"\s*;/.test(r))).toBe(true);
+      expect(rules.some(r => r.includes('context'))).toBe(false);
+      expect(rules.some(r => r.includes('stats'))).toBe(false);
+
+      rerender(
+        <EntityHeader title={{label: 'Session'}} metadata={[{label: 'Chrome 144'}]} />
+      );
+
+      rules = getGridRules();
+      expect(rules.some(r => /grid-template-areas:\s*"title"\s*"context"/.test(r))).toBe(
+        true
+      );
+      expect(rules.some(r => r.includes('stats'))).toBe(false);
+    });
+  });
+});

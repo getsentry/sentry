@@ -1,0 +1,159 @@
+---
+title: EntityHeader
+description: The band of entity context below the TopBar on a detail page — what this thing is, how it is doing, and a few facts about it.
+category: layout
+source: '@sentry/scraps/entityHeader'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/app/components/core/entityHeader/entityHeader.tsx
+  figma: https://www.figma.com/design/a638AEl7pFxj29zMODCiOB/Specs--Page-Frame-v1?node-id=1635-47167
+---
+
+import {Tag} from '@sentry/scraps/badge';
+import {EntityHeader} from '@sentry/scraps/entityHeader';
+
+import {IconCalendar, IconFire} from 'sentry/icons';
+import * as Storybook from 'sentry/stories';
+
+export const documentation =
+  import('!!type-loader!@sentry/scraps/entityHeader/entityHeader');
+
+`EntityHeader` is the detail-page header. You supply content — a title, some stats, some facts — and it owns the layout, the density, the responsive reflow, and the loading skeletons.
+
+It deliberately does **not** render breadcrumbs, the page `h1`, or global actions. Those belong to the TopBar and its slots (`TopBar.Slot name="breadcrumbs"` / `"title"`), which already own them. The title here is an `h2`.
+
+<Storybook.Demo>
+  <EntityHeader
+    title={{label: 'anonymous@example.com', tags: <Tag variant="success">Live</Tag>}}
+    stats={[
+      {label: 'Dead Clicks', value: 0},
+      {label: 'Rage Clicks', value: 2},
+      {label: 'Errors', value: 1, icon: <IconFire size="xs" variant="danger" />},
+    ]}
+    metadata={[
+      {label: 'Feb 11, 2026 10:56 CET', icon: <IconCalendar size="xs" />},
+      {label: 'Chrome 144.0.0'},
+      {label: 'Windows >=10'},
+    ]}
+  />
+</Storybook.Demo>
+
+```jsx
+<EntityHeader
+  title={{label: 'anonymous@example.com', tags: <Tag variant="success">Live</Tag>}}
+  stats={[
+    {label: 'Dead Clicks', value: 0},
+    {label: 'Rage Clicks', value: 2},
+    {label: 'Errors', value: 1, icon: <IconFire size="xs" variant="danger" />},
+  ]}
+  metadata={[
+    {label: 'Feb 11, 2026 10:56 CET', icon: <IconCalendar size="xs" />},
+    {label: 'Chrome 144.0.0'},
+    {label: 'Windows >=10'},
+  ]}
+/>
+```
+
+## Only the title is required
+
+Every other slot is optional, and the grid template is built from whichever you pass — so an omitted slot leaves no empty row behind.
+
+<Storybook.Demo>
+  <EntityHeader title={{label: 'Profile 8f2c1a'}} />
+</Storybook.Demo>
+
+```jsx
+<EntityHeader title={{label: 'Profile 8f2c1a'}} />
+```
+
+## Conditional items
+
+`stats` and `metadata` drop `null` entries, so you can inline a conditional instead of building the array ahead of time. Items are keyed by their position in the array you wrote, not in the filtered result, so an item appearing or disappearing never remounts its neighbours.
+
+```jsx
+<EntityHeader
+  title={{label: replay.user.display_name}}
+  stats={[
+    isVideoReplay ? null : {label: 'Dead Clicks', value: replay.count_dead_clicks},
+    {label: 'Errors', value: <ErrorCounts replayErrors={errors} />},
+  ]}
+/>
+```
+
+## Linking and tooltips
+
+A stat value becomes a link with `to`. A metadata item gains a dotted underline and a tooltip with `tooltip`. Use `variant` to call out a problem.
+
+<Storybook.Demo>
+  <EntityHeader
+    title={{label: 'ValueError', to: '/issues/1/'}}
+    subtitle="Cannot parse the provided timestamp"
+    stats={[{label: 'Events', value: 168, to: '/issues/1/events/'}]}
+    metadata={[
+      {label: 'Unhandled', variant: 'danger'},
+      {label: 'TTFB', tooltip: 'Time to First Byte'},
+    ]}
+  />
+</Storybook.Demo>
+
+```jsx
+<EntityHeader
+  title={{label: 'ValueError', to: '/issues/1/'}}
+  subtitle="Cannot parse the provided timestamp"
+  stats={[{label: 'Events', value: 168, to: '/issues/1/events/'}]}
+  metadata={[
+    {label: 'Unhandled', variant: 'danger'},
+    {label: 'TTFB', tooltip: 'Time to First Byte'},
+  ]}
+/>
+```
+
+## Loading
+
+Pass `isLoading` and each slot renders a skeleton sized from the typography it will hold. Because the skeleton comes from the same declarations as the loaded state, the two cannot drift apart — there is no placeholder twin to keep in sync.
+
+Static labels stay visible while loading. They are known before the data arrives, and keeping them stops the row changing width when it resolves.
+
+<Storybook.Demo>
+  <EntityHeader
+    isLoading
+    title={{label: 'anonymous@example.com'}}
+    stats={[
+      {label: 'Dead Clicks', value: 0},
+      {label: 'Errors', value: 1},
+    ]}
+    metadata={[{label: 'Feb 11, 2026 10:56 CET'}, {label: 'Chrome 144.0.0'}]}
+  />
+</Storybook.Demo>
+
+```jsx
+<EntityHeader isLoading title={{label: '…'}} stats={stats} metadata={metadata} />
+```
+
+## Responsive behaviour
+
+The header reflows against **its container's** width, not the viewport's — on a routed page that is the content column, so it reacts correctly when a side panel opens.
+
+Above the `sm` container breakpoint (512px) the stats sit to the right of the title. Below it they move to their own row _beneath_ the metadata and left-align. That is a reorder rather than a wrap, which is why the layout is a grid.
+
+<Storybook.Demo resizable align="start">
+  <EntityHeader
+    title={{label: 'anonymous@example.com'}}
+    stats={[
+      {label: 'Dead Clicks', value: 0},
+      {label: 'Errors', value: 1},
+    ]}
+    metadata={[{label: 'Feb 11, 2026 10:56 CET'}, {label: 'Chrome 144.0.0'}]}
+  />
+</Storybook.Demo>
+
+## When to use
+
+Use `EntityHeader` on a detail page — a single issue, trace, replay, release, or build. It is the shared replacement for hand-rolled header blocks built from `Layout.Header` or bespoke styled grids.
+
+Do not use it for list or landing pages, which carry no single entity.
+
+## Accessibility
+
+- The title renders as an `h2`. The page's `h1` is the TopBar title slot, so the two do not compete.
+- A `leadingGraphic` is decorative and hidden from assistive technology; the title label carries the meaning.
+- A metadata `tooltip` is keyboard accessible, with a dotted underline signalling it is there.
