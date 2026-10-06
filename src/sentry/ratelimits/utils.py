@@ -105,7 +105,9 @@ def get_rate_limit_key(
 
         if getattr(request_user, "is_sentry_app", False):
             category = "org"
-            id = get_organization_id_from_token(token_id)
+            # Sentry app tokens carry their installation's organization, including the
+            # cell's ApiTokenReplica. Only make the control silo RPC when it's missing.
+            id = request_auth.organization_id or get_organization_id_from_token(token_id)
 
             # Fallback to IP address limit if we can't find the organization
             if id is None and ip_address is not None:

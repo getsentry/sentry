@@ -230,6 +230,17 @@ class GetRateLimitKeyTest(TestCase):
             == f"org:default:APITestEndpoint:GET:{self.organization.id}"
         )
 
+    def test_integration_token_without_organization_falls_back(self) -> None:
+        self._populate_public_integration_request(self.request)
+        assert isinstance(self.request.auth, AuthenticatedToken)
+        self.request.auth = self.request.auth.copy(update={"organization_id": None})
+        assert (
+            get_rate_limit_key(
+                self.view, self.request, self.rate_limit_group, self.rate_limit_config
+            )
+            == f"org:default:APITestEndpoint:GET:{self.organization.id}"
+        )
+
 
 class DummyEndpoint(Endpoint):
     permission_classes = (AllowAny,)
