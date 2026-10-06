@@ -1056,8 +1056,8 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
                     "monitor": monitor,
                     "monitor_environment": monitor_environment,
                 }
-                # Plain create instead of get_or_create; 03-A already missed
-                # on guid, so its extra lookup is redundant.
+                # The guid lookup above found nothing, so create directly
+                # rather than repeat the lookup with get_or_create.
                 try:
                     with transaction.atomic(router.db_for_write(MonitorCheckIn)):
                         check_in = MonitorCheckIn.objects.create(
@@ -1075,7 +1075,7 @@ def _process_checkin(item: CheckinItem, span: Transaction | Span | StreamedSpan)
                         )
                     created = True
                 except IntegrityError:
-                    existing = MonitorCheckIn.objects.select_for_update().filter(**lookup).first()
+                    existing = MonitorCheckIn.objects.get_or_none(**lookup)
                     if existing is None:
                         raise
                     check_in = existing
