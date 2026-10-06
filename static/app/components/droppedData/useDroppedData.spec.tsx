@@ -1,4 +1,4 @@
-import {AnnotationFixture} from 'sentry-fixture/annotation';
+import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
@@ -7,25 +7,19 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
 const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations'],
 });
 
-function toDroppedEvent(annotation: Annotation) {
-  const {eventCount, ...bucket} = annotation;
-  return {...bucket, count: eventCount};
-}
-
-const droppedAnnotations = [AnnotationFixture({eventCount: 10})];
-const acceptedAnnotations = [AnnotationFixture({outcome: 'accepted', eventCount: 90})];
+const droppedEvents = [DroppedEventFixture({count: 10})];
+const acceptedEvents = [DroppedEventFixture({outcome: 'accepted', count: 90})];
 
 function droppedEventsBody() {
   return {
     meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
-    droppedEvents: droppedAnnotations.map(toDroppedEvent),
-    acceptedEvents: acceptedAnnotations.map(toDroppedEvent),
+    droppedEvents,
+    acceptedEvents,
   };
 }
 
@@ -38,7 +32,7 @@ describe('useDroppedData', () => {
     PageFiltersStore.reset();
   });
 
-  it('requests dropped events and returns them as annotations', async () => {
+  it('requests dropped events and returns them', async () => {
     const request = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-dropped/`,
       body: droppedEventsBody(),
@@ -61,9 +55,8 @@ describe('useDroppedData', () => {
       })
     );
     expect(request.mock.calls[0][1].query).not.toHaveProperty('yAxis');
-    expect(request.mock.calls[0][1].query).not.toHaveProperty('includeAnnotations');
-    expect(result.current.droppedAnnotations).toEqual(droppedAnnotations);
-    expect(result.current.acceptedAnnotations).toEqual(acceptedAnnotations);
+    expect(result.current.droppedEvents).toEqual(droppedEvents);
+    expect(result.current.acceptedEvents).toEqual(acceptedEvents);
   });
 
   it('requests trace metrics without a chart aggregate', async () => {
@@ -89,7 +82,7 @@ describe('useDroppedData', () => {
       })
     );
     expect(request.mock.calls[0][1].query).not.toHaveProperty('yAxis');
-    expect(result.current.droppedAnnotations).toEqual(droppedAnnotations);
+    expect(result.current.droppedEvents).toEqual(droppedEvents);
   });
 
   it('does not request dropped events without the feature flag', () => {
@@ -104,6 +97,6 @@ describe('useDroppedData', () => {
     );
 
     expect(request).not.toHaveBeenCalled();
-    expect(result.current.droppedAnnotations).toBeUndefined();
+    expect(result.current.droppedEvents).toBeUndefined();
   });
 });
