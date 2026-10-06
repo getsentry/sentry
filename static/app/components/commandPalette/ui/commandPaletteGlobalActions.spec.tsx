@@ -605,7 +605,7 @@ describe('GlobalCommandPaletteActions - Seer XRay Mode gating', () => {
   });
 });
 
-describe('GlobalCommandPaletteActions - Open Current Replay', () => {
+describe('GlobalCommandPaletteActions - Open my current replay session', () => {
   const organization = OrganizationFixture();
 
   beforeEach(() => {
@@ -674,7 +674,7 @@ describe('GlobalCommandPaletteActions - Open Current Replay', () => {
     const input = await screen.findByRole('textbox', {name: 'Search commands'});
     await userEvent.type(input, 'current replay');
     await userEvent.click(
-      await screen.findByRole('option', {name: /Open Current Replay/})
+      await screen.findByRole('option', {name: /Open my current replay session/})
     );
   }
 
@@ -721,7 +721,7 @@ describe('GlobalCommandPaletteActions - Open Current Replay', () => {
     await userEvent.type(input, 'current replay');
 
     expect(
-      screen.queryByRole('option', {name: /Open Current Replay/})
+      screen.queryByRole('option', {name: /Open my current replay session/})
     ).not.toBeInTheDocument();
   });
 });

@@ -1143,7 +1143,7 @@ export function GlobalCommandPaletteActions() {
 
       {isSentryEmployee && (
         <CMDKAction
-          display={{label: t('Open Current Replay'), icon: <IconPlay />}}
+          display={{label: t('Open my current replay session'), icon: <IconPlay />}}
           keywords={[t('replay'), t('session'), t('bug'), t('report'), t('share')]}
           onAction={openCurrentReplay}
         />
