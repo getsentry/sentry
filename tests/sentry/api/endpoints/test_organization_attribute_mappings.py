@@ -192,16 +192,16 @@ class OrganizationAttributeMappingsEndpointTest(APITestCase):
         assert response.status_code == 200
         data = response.json()["data"]
 
-        # sentry.organization_id is a private attribute in common columns (used by spans)
-        organization_id_mapping = next(
+        # sentry.links is a known private attribute in spans
+        links_mapping = next(
             (
                 item
                 for item in data
-                if item["publicAlias"] == "sentry.organization_id" and item["type"] == "spans"
+                if item["publicAlias"] == "sentry.links" and item["type"] == "spans"
             ),
             None,
         )
-        assert organization_id_mapping is None
+        assert links_mapping is None
 
         # sentry.item_type is a private attribute in common columns (used by logs)
         item_type_mapping = next(

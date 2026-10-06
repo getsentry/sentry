@@ -214,6 +214,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="sentry.links",
             internal_name="sentry.links",
             search_type="string",
+            private=True,
         ),
         ResolvedAttribute(
             public_alias="trace_lifecycle",

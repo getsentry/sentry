@@ -432,7 +432,7 @@ class OrganizationEventsValidateEndpointTest(
             {
                 "project": [self.project.id],
                 "dataset": "spans",
-                "field": ["sentry.organization_id"],
+                "field": ["sentry.links"],
             }
         )
 
@@ -440,8 +440,8 @@ class OrganizationEventsValidateEndpointTest(
         assert not response.data["valid"]
         assert response.data["field"] == [
             {
-                "error": "The field sentry.organization_id is not allowed for this query",
-                "name": "sentry.organization_id",
+                "error": "The field sentry.links is not allowed for this query",
+                "name": "sentry.links",
                 "valid": False,
                 "attrType": None,
             },
