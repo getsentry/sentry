@@ -62,6 +62,7 @@ function useTracePagination(rootEventResults?: TraceRootEventQueryResults) {
   // Both lookups run unconditionally to keep hook order stable. Without
   // attributes they resolve to a disabled query.
   const attributes = hasTraceAttributes ? rootEvent.attributes : [];
+  const links = hasTraceAttributes ? rootEvent.links : undefined;
   const currentTraceStartTimestamp = hasTraceAttributes
     ? new Date(rootEvent.timestamp).getTime() / 1000
     : 0;
@@ -69,11 +70,13 @@ function useTracePagination(rootEventResults?: TraceRootEventQueryResults) {
   const previous = useAdjacentTraceNavigation({
     direction: 'previous',
     attributes,
+    links,
     currentTraceStartTimestamp,
   });
   const next = useAdjacentTraceNavigation({
     direction: 'next',
     attributes,
+    links,
     currentTraceStartTimestamp,
   });
 

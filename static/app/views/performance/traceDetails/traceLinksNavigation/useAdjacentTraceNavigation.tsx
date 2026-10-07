@@ -8,7 +8,10 @@ import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import type {
+  TraceItemResponseAttribute,
+  TraceItemResponseLink,
+} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import type {ConnectedTraceConnection} from 'sentry/views/performance/traceDetails/traceLinksNavigation/types';
 import {useFindAdjacentTrace} from 'sentry/views/performance/traceDetails/traceLinksNavigation/useFindLinkedTraces';
 import {useTraceStateDispatch} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
@@ -20,6 +23,7 @@ interface UseAdjacentTraceNavigationProps {
   attributes: TraceItemResponseAttribute[];
   currentTraceStartTimestamp: number;
   direction: ConnectedTraceConnection;
+  links?: TraceItemResponseLink[];
 }
 
 export interface AdjacentTraceNavigation {
@@ -38,6 +42,7 @@ export interface AdjacentTraceNavigation {
 export function useAdjacentTraceNavigation({
   direction,
   attributes,
+  links,
   currentTraceStartTimestamp,
 }: UseAdjacentTraceNavigationProps): AdjacentTraceNavigation {
   const organization = useOrganization();
@@ -92,6 +97,7 @@ export function useAdjacentTraceNavigation({
     adjacentTraceEndTimestamp,
     adjacentTraceStartTimestamp,
     attributes,
+    links,
   });
 
   const dateSelection = useMemo(
