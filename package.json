@@ -108,7 +108,7 @@
     "@rspack/plugin-react-refresh": "2.0.2",
     "@sentry-internal/global-search": "^1.0.0",
     "@sentry/browser": "11.0.0",
-    "@sentry/conventions": "^0.25.0",
+    "@sentry/conventions": "^0.26.0",
     "@sentry/core": "11.0.0",
     "@sentry/node": "11.0.0",
     "@sentry/react": "11.0.0",
@@ -118,7 +118,7 @@
     "@sentry/rrweb-snapshot": "2.44.0",
     "@sentry/sqlish": "1.0.1",
     "@sentry/status-page-list": "^0.6.1",
-    "@sentry/webpack-plugin": "5.3.0",
+    "@sentry/webpack-plugin": "5.4.1",
     "@stripe/react-stripe-js": "^3.9.2",
     "@stripe/stripe-js": "^5.10.0",
     "@swc/plugin-emotion": "19.0.0",
@@ -205,6 +205,7 @@
     "react-grid-layout": "1.5.3",
     "react-lazyload": "^3.2.1",
     "react-popper": "^2.3.0",
+    "react-router": "6.30.6",
     "react-router-dom": "6.30.6",
     "react-select": "4.3.1",
     "react-textarea-autosize": "8.5.7",
@@ -263,8 +264,9 @@
     "jest-canvas-mock": "^2.5.8",
     "jest-environment-node": "30.5.1",
     "jest-fail-on-console": "3.3.4",
+    "jest-resolve": "30.5.1",
     "jsdom": "30.1.1",
-    "knip": "6.32.1",
+    "knip": "6.40.0",
     "odiff-bin": "4.3.8",
     "oxfmt": "^0.70.0",
     "oxlint": "1.85.0",
@@ -312,7 +314,7 @@
       "diff@>=5.0.0 <5.2.2": "5.2.2"
     },
     "packageExtensions": {
-      "@sentry/webpack-plugin@5.3.0": {
+      "@sentry/webpack-plugin@5.4.1": {
         "peerDependenciesMeta": {
           "webpack": {
             "optional": true

@@ -1,9 +1,8 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router-dom';
+import {Link} from 'react-router';
 import {useTheme} from '@emotion/react';
 import {z} from 'zod';
 
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {LinkButton} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
@@ -153,25 +152,22 @@ export function EditExistingErrorDetectorForm({
   return (
     <EditLayout>
       <form.AppForm form={form}>
-        <TopBar.Slot name="breadcrumbs">
-          <BreadcrumbList
-            items={[
-              {
-                type: 'link',
-                label: t('Monitors'),
-                to: makeMonitorBasePathname(organization.slug),
-              },
-              {
-                type: 'link',
-                label: getDetectorTypeLabel(detector.type),
-                to: makeMonitorTypePathname(organization.slug, detector.type),
-              },
-            ]}
-          />
-        </TopBar.Slot>
-        <TopBar.Slot name="title">
-          <BreadcrumbList.Title item={{type: 'page-title', label: detector.name}} />
-        </TopBar.Slot>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{type: 'page-title', label: detector.name}}
+          items={[
+            {
+              type: 'link',
+              label: t('Monitors'),
+              to: makeMonitorBasePathname(organization.slug),
+            },
+            {
+              type: 'link',
+              label: getDetectorTypeLabel(detector.type),
+              to: makeMonitorTypePathname(organization.slug, detector.type),
+            },
+          ]}
+        />
         <AutomationFeedbackButton />
 
         <EditLayout.Body>
