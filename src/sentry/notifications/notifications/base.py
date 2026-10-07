@@ -3,7 +3,7 @@ from __future__ import annotations
 import abc
 import uuid
 from collections.abc import Iterable, Mapping, MutableMapping, Sequence
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 from urllib.parse import urlencode
 
 import sentry_sdk
@@ -56,7 +56,7 @@ class BaseNotification(abc.ABC):
     group: Group
     project: Project
 
-    def __init__(self, organization: Organization, notification_uuid: str | None = None):
+    def __init__(self, organization: Organization, notification_uuid: str | None = None) -> None:
         self.organization = organization
         self.notification_uuid = notification_uuid if notification_uuid else str(uuid.uuid4())
         self.alert_id: int | None = None
@@ -131,9 +131,13 @@ class BaseNotification(abc.ABC):
     def build_notification_footer(self, recipient: Actor, provider: ExternalProviders) -> str:
         raise NotImplementedError
 
-    def get_message_description(self, recipient: Actor, provider: ExternalProviders) -> Any:
+    def get_message_description(self, recipient: Actor, provider: ExternalProviders) -> str | None:
         context = getattr(self, "context", None)
-        return context["text_description"] if context else None
+        if not context:
+            return None
+        # Context is attached dynamically by message builders. Keep the lookup
+        # behavior and tell callers the description is text.
+        return cast("str | None", context["text_description"])
 
     def get_unsubscribe_key(self) -> UnsubscribeContext | None:
         return None
