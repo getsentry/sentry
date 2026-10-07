@@ -23,7 +23,11 @@ It deliberately does **not** render breadcrumbs, the page `h1`, or global action
 
 <Storybook.Demo>
   <EntityHeader
-    title={{label: 'anonymous@example.com', tags: [<Tag variant="success">Live</Tag>]}}
+    title={{
+      label: 'Replay user',
+      value: 'anonymous@example.com',
+      tags: [<Tag variant="success">Live</Tag>],
+    }}
     stats={[
       {type: 'text', label: 'Dead Clicks', value: 0},
       {type: 'text', label: 'Rage Clicks', value: 2},
@@ -39,7 +43,11 @@ It deliberately does **not** render breadcrumbs, the page `h1`, or global action
 
 ```jsx
 <EntityHeader
-  title={{label: 'anonymous@example.com', tags: [<Tag variant="success">Live</Tag>]}}
+  title={{
+    label: 'Replay user',
+    value: 'anonymous@example.com',
+    tags: [<Tag variant="success">Live</Tag>],
+  }}
   stats={[
     {type: 'text', label: 'Dead Clicks', value: 0},
     {type: 'text', label: 'Rage Clicks', value: 2},
@@ -58,12 +66,24 @@ It deliberately does **not** render breadcrumbs, the page `h1`, or global action
 Every other slot is optional, and the grid template is built from whichever you pass — so an omitted slot leaves no empty row behind.
 
 <Storybook.Demo>
-  <EntityHeader title={{label: 'Profile 8f2c1a'}} />
+  <EntityHeader title={{label: 'Profile', value: 'Profile 8f2c1a'}} />
 </Storybook.Demo>
 
 ```jsx
-<EntityHeader title={{label: 'Profile 8f2c1a'}} />
+<EntityHeader title={{label: 'Profile', value: 'Profile 8f2c1a'}} />
 ```
+
+## Title
+
+A title is a `label` and a `value`, the same pairing a stat uses. The `value` is what renders — the entity's name. The `label` says what that name _is_, and is read before it by assistive technology.
+
+```jsx
+title={{label: t('Replay user'), value: replay.user.display_name}}
+```
+
+It is required, because a heading on its own is where the context runs out. A sighted reader knows `anonymous@example.com` is a person from the avatar beside it and the breadcrumb above; someone jumping straight to the heading hears an email address and nothing else. With the label they hear "Replay user, anonymous@example.com".
+
+The `label` is not rendered. That is the one place this pairing differs from a stat, where both halves are visible.
 
 ## Leading graphic
 
@@ -93,7 +113,8 @@ leadingGraphic={{
 <Storybook.Demo>
   <EntityHeader
     title={{
-      label: 'javascript-sdk @ 8.42.0',
+      label: 'Release',
+      value: 'javascript-sdk @ 8.42.0',
       leadingGraphic: {type: 'platform', platform: 'javascript'},
     }}
   />
@@ -108,14 +129,14 @@ People related to the entity get their own slot rather than being a labelled sta
 ```jsx
 // Replay — who watched it
 <EntityHeader
-  title={{label: replay.user.display_name}}
+  title={{label: t('Replay user'), value: replay.user.display_name}}
   people={{users, label: t('Viewed by'), collectiveNoun: t('viewers'), isLoading}}
   stats={[{label: 'Errors', value: 2}]}
 />
 
 // Issue — who is involved in it
 <EntityHeader
-  title={{label: 'ValueError'}}
+  title={{label: 'Issue type', value: 'ValueError'}}
   people={{users: participants, label: t('Participants')}}
 />
 ```
@@ -128,7 +149,7 @@ The slot keeps its space while `isLoading`, which is what stops the stats slidin
 
 ```jsx
 <EntityHeader
-  title={{label: replay.user.display_name}}
+  title={{label: t('Replay user'), value: replay.user.display_name}}
   stats={[
     isVideoReplay
       ? null
@@ -144,7 +165,7 @@ A metadata item gains a dotted underline and a tooltip with `tooltip`. Use `vari
 
 <Storybook.Demo>
   <EntityHeader
-    title={{label: 'ValueError'}}
+    title={{label: 'Issue type', value: 'ValueError'}}
     subtitle="Cannot parse the provided timestamp"
     stats={[{type: 'link', label: 'Events', value: 168, to: '/issues/1/events/'}]}
     metadata={[
@@ -156,7 +177,7 @@ A metadata item gains a dotted underline and a tooltip with `tooltip`. Use `vari
 
 ```jsx
 <EntityHeader
-  title={{label: 'ValueError'}}
+  title={{label: 'Issue type', value: 'ValueError'}}
   subtitle="Cannot parse the provided timestamp"
   stats={[{type: 'link', label: 'Events', value: 168, to: '/issues/1/events/'}]}
   metadata={[
@@ -227,7 +248,7 @@ Each slot is replaced whole, stat labels included. A label is static and could b
 <Storybook.Demo>
   <EntityHeader
     isLoading
-    title={{label: 'anonymous@example.com'}}
+    title={{label: 'Replay user', value: 'anonymous@example.com'}}
     stats={[
       {type: 'text', label: 'Dead Clicks', value: 0},
       {type: 'text', label: 'Errors', value: 1},
@@ -237,7 +258,7 @@ Each slot is replaced whole, stat labels included. A label is static and could b
 </Storybook.Demo>
 
 ```jsx
-<EntityHeader isLoading title={{label: '…'}} stats={stats} metadata={metadata} />
+<EntityHeader isLoading title={{label, value}} stats={stats} metadata={metadata} />
 ```
 
 ## Responsive behaviour
@@ -250,7 +271,7 @@ Above the `lg` container breakpoint (640px) the stats sit to the right of the ti
 
 <Storybook.Demo resizable align="start">
   <EntityHeader
-    title={{label: 'anonymous@example.com'}}
+    title={{label: 'Replay user', value: 'anonymous@example.com'}}
     stats={[
       {type: 'text', label: 'Dead Clicks', value: 0},
       {type: 'text', label: 'Errors', value: 1},
@@ -267,7 +288,7 @@ Do not use it for list or landing pages, which carry no single entity.
 
 ## Accessibility
 
-- The title renders as an `h2`, and is never a link: a heading that is wholly a link announces as both, and the breadcrumb above it already handles going up. The page's `h1` is the TopBar title slot, so the two do not compete. The heading stays in the tree while loading, so the page's structure does not change as data lands.
+- The title renders as an `h2`, named from its `label` and `value` together so heading navigation lands on "Replay user, anonymous@example.com" rather than a bare string. It is never a link: a heading that is wholly a link announces as both, and the breadcrumb above it already handles going up. The page's `h1` is the TopBar title slot, so the two do not compete. The heading stays in the tree while loading, so the page's structure does not change as data lands.
 - The header sets `aria-busy` while loading, which is the only signal a screen reader gets that more is coming.
 - A `leadingGraphic` is decorative and hidden until given a `label`, at which point it becomes a named `img`. It is deliberately not focusable — a named image is announced without focus, so a tab stop there would be one a keyboard user could not act on.
 - A `people` stack is a named `group`. Its avatars are not focusable, so the per-avatar tooltips are mouse-only and the group name is what carries the meaning.

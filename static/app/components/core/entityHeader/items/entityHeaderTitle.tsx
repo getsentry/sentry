@@ -62,10 +62,20 @@ export type EntityHeaderLeadingGraphic =
 
 export interface EntityHeaderTitleProps {
   /**
+   * What the value is — "Replay user", "Issue type". Required, and read before
+   * the value by assistive technology.
+   *
+   * It is not rendered. A sighted reader gets this from the graphic beside the
+   * title and the breadcrumb above it; someone jumping straight to the heading
+   * gets an unexplained string without it. Same meaning as a stat's `label`,
+   * which is why it has the same name.
+   */
+  label: string;
+  /**
    * The entity's name. Rendered as the page's `h2` — the `h1` belongs to the
    * TopBar title slot.
    */
-  label: string;
+  value: string;
   /**
    * A 24px graphic before the title. Decorative unless it is given a label.
    */
@@ -143,7 +153,13 @@ export function EntityHeaderTitle({
   leadingGraphic,
   loadingWidth = '240px',
   tags,
+  value,
 }: EntityHeaderTitleProps & {isLoading?: boolean}) {
+  // Named from both, so heading navigation lands on "Replay user,
+  // anonymous@example.com" rather than on an email address with no frame. The
+  // comma is what gives a screen reader its pause; visually hidden text inside
+  // the heading would read as one run.
+  const accessibleName = `${label}, ${value}`;
   if (isLoading) {
     // The heading stays in the tree, carrying the label the caller already has.
     // Dropping it would make the page's structure change as the data lands, so
@@ -152,8 +168,8 @@ export function EntityHeaderTitle({
     return (
       <Flex align="center" minHeight={ROW_HEIGHT}>
         <VisuallyHidden>
-          <Heading as="h2" size="lg">
-            {label}
+          <Heading as="h2" size="lg" aria-label={accessibleName}>
+            {value}
           </Heading>
         </VisuallyHidden>
         <Placeholder width={loadingWidth} height={TITLE_HEIGHT} />
@@ -180,8 +196,14 @@ export function EntityHeaderTitle({
         affordance. It also kept the global `a` colour over the heading's own,
         so the title rendered blue against the spec.
       */}
-      <Heading as="h2" size="lg" density="comfortable" ellipsis>
-        {label}
+      <Heading
+        as="h2"
+        size="lg"
+        density="comfortable"
+        ellipsis
+        aria-label={accessibleName}
+      >
+        {value}
       </Heading>
       {visibleTags.length > 0 && (
         <Flex align="center" gap="xs" flexShrink={0}>

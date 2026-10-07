@@ -44,7 +44,9 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
   });
 
   if (isArchived) {
-    return <EntityHeader title={{label: t('Deleted Replay')}} />;
+    return (
+      <EntityHeader title={{label: t('Session replay'), value: t('Deleted Replay')}} />
+    );
   }
 
   // Opens the breadcrumbs tab, filtered to rage and dead clicks.
@@ -78,7 +80,10 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
     return {
       isLoading,
       title: {
-        label: replayRecord?.user.display_name || t('Anonymous User'),
+        // The heading shows who recorded the session, which a sighted reader
+        // infers from the avatar beside it.
+        label: t('Replay user'),
+        value: replayRecord?.user.display_name || t('Anonymous User'),
         leadingGraphic: replayRecord
           ? {
               type: 'user',
