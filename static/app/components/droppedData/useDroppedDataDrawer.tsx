@@ -9,7 +9,7 @@ import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 
-export const DROPPED_DATA_DRAWER_QUERY_KEY = 'droppedData';
+const DROPPED_DATA_DRAWER_QUERY_KEY = 'droppedData';
 
 export function useDroppedDataDrawer(dataset: DiscoverDatasets) {
   const {openDrawer, isAnyDrawerOpen} = useDrawer();
