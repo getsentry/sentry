@@ -142,6 +142,7 @@ repos:
       - id: check-merge-conflict
       - id: check-symlinks
       - id: check-yaml
+        args: ['--allow-multiple-documents']
       - id: end-of-file-fixer
         exclude_types: [svg]
         exclude: ^fixtures/
