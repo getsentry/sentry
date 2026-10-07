@@ -36,10 +36,17 @@ export function SetupIntentForm(props: IntentFormProps) {
         );
       }
 
-      const intentData = await fetchMutation<PaymentSetupCreateResponse>({
-        url: setupIntentUrl,
-        method: 'POST',
-      });
+      let intentData: PaymentSetupCreateResponse;
+      try {
+        intentData = await fetchMutation<PaymentSetupCreateResponse>({
+          url: setupIntentUrl,
+          method: 'POST',
+        });
+      } catch (error) {
+        throw new Error(
+          getRequestErrorUserMessage(error, t('Could not set up payment method.'))
+        );
+      }
 
       const result = await stripe.confirmSetup({
         elements,

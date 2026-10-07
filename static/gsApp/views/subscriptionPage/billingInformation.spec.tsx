@@ -342,6 +342,33 @@ describe('Subscription > BillingInformation', () => {
     );
   });
 
+  it('shows a setup error when setup intent creation fails without a detail', async () => {
+    const updatePaymentMethod = MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      method: 'PUT',
+    });
+    const createSetupIntent = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/setup/`,
+      method: 'POST',
+      statusCode: 400,
+      body: {},
+    });
+
+    render(<BillingInformation subscription={subscription} />, {organization});
+
+    const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
+    await userEvent.click(
+      within(cardPanel).getByRole('button', {name: 'Edit payment method'})
+    );
+    await userEvent.click(within(cardPanel).getByRole('button', {name: 'Save Changes'}));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not set up payment method.'
+    );
+    expect(createSetupIntent).toHaveBeenCalledTimes(1);
+    expect(updatePaymentMethod).not.toHaveBeenCalled();
+  });
+
   it('shows a useful error when updating the payment method fails', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/setup/`,
