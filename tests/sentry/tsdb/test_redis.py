@@ -1,29 +1,9 @@
-from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
-
-import pytest
 
 from sentry.testutils.cases import TestCase
 from sentry.tsdb.base import ONE_DAY, ONE_HOUR, ONE_MINUTE, TSDBModel
-from sentry.tsdb.redis import RedisTSDB, SuppressionWrapper
+from sentry.tsdb.redis import RedisTSDB
 from sentry.utils.dates import to_datetime
-
-
-def test_suppression_wrapper() -> None:
-    @contextmanager
-    def raise_after():
-        yield
-        raise Exception("Boom!")
-
-    with pytest.raises(Exception):
-        with raise_after():
-            pass
-
-    with SuppressionWrapper(raise_after()):
-        pass
-
-    with SuppressionWrapper(raise_after()):
-        raise Exception("should not propagate")
 
 
 class RedisTSDBTest(TestCase):
@@ -134,3 +114,7 @@ class RedisTSDBTest(TestCase):
             TSDBModel.project, [1, 2], dts[0], dts[-1], environment_id=0
         )
         assert sum_results == {1: 0, 2: 0}
+
+
+class RedisClusterTSDBTest(RedisTSDBTest):
+    cluster = "cluster"
