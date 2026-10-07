@@ -334,7 +334,7 @@ def run_agentic_triage_for_org(
     if organization is None:
         return None
 
-    if not options.get("seer.night_shift.enable"):
+    if not _is_agentic_triage_enabled():
         logger.info("night_shift.disabled", extra={"organization_id": organization.id})
         return None
 
@@ -411,6 +411,12 @@ def run_agentic_triage_for_org(
         execute_in_task=execute_in_task,
     )
     return run.id
+
+
+def _is_agentic_triage_enabled() -> bool:
+    # run_agentic_triage_for_org shadows the module-level `options` import with
+    # its own run-options kwarg, so this check can't be inlined there.
+    return bool(options.get("seer.night_shift.enable"))
 
 
 @instrumented_task(
