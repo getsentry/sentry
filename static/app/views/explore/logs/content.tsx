@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -139,11 +139,11 @@ function LogsHeader() {
             type: 'page-title',
             label: title || t('Logs'),
             labelTooltip: (
-              <ReadTheDocs docsUrl="https://docs.sentry.io/product/explore/logs/">
+              <DocumentationHint docsUrl="https://docs.sentry.io/product/explore/logs/">
                 {t(
                   'Detailed structured logs, linked to errors and traces, for debugging and investigation.'
                 )}
-              </ReadTheDocs>
+              </DocumentationHint>
             ),
           }}
         />

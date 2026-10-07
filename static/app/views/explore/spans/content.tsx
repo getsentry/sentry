@@ -7,10 +7,10 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {getBootstrapOrganizationQueryOptions} from 'sentry/bootstrap/bootstrapRequests';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TourContextProvider} from 'sentry/components/tours/components';
@@ -237,11 +237,11 @@ function SpansTabHeader() {
             type: 'page-title',
             label: title || t('Traces'),
             labelTooltip: (
-              <ReadTheDocs docsUrl="https://docs.sentry.io/product/explore/trace-explorer/">
+              <DocumentationHint docsUrl="https://docs.sentry.io/product/explore/trace-explorer/">
                 {t(
                   'Find problematic spans/traces or compute real-time metrics via aggregation.'
                 )}
-              </ReadTheDocs>
+              </DocumentationHint>
             ),
           }}
         />

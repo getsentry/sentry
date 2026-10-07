@@ -9,7 +9,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {SlideOverPanel} from '@sentry/scraps/slideOverPanel';
 import {Heading} from '@sentry/scraps/text';
 
-import {ReadTheDocs} from 'sentry/components/readTheDocs';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {IconClose, IconGrabbable} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {useResizableDrawer} from 'sentry/utils/useResizableDrawer';
@@ -101,11 +101,11 @@ export function AppSizeInsightsSidebar({
                 </Heading>
                 <InfoTip
                   title={
-                    <ReadTheDocs docsUrl={getInsightsDocsUrl(platform)}>
+                    <DocumentationHint docsUrl={getInsightsDocsUrl(platform)}>
                       {t(
                         'Insights help you identify opportunities to reduce your app size.'
                       )}
-                    </ReadTheDocs>
+                    </DocumentationHint>
                   }
                   size="sm"
                   position="right"

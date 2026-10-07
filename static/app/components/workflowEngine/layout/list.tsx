@@ -1,8 +1,8 @@
 import {Stack} from '@sentry/scraps/layout';
 
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
-import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {OnboardingBanner} from 'sentry/components/workflowEngine/ui/alertsMonitorsOnboardingBanner';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {TopBar} from 'sentry/views/navigation/topBar';
@@ -37,7 +37,9 @@ export function WorkflowEngineListLayout({
           title={{
             type: 'page-title',
             label: title,
-            labelTooltip: <ReadTheDocs docsUrl={docsUrl}>{description}</ReadTheDocs>,
+            labelTooltip: (
+              <DocumentationHint docsUrl={docsUrl}>{description}</DocumentationHint>
+            ),
           }}
         />
         <TopBar.Slot name="actions">{actions}</TopBar.Slot>

@@ -1,7 +1,7 @@
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 
-import {ReadTheDocs} from 'sentry/components/readTheDocs';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {IconCode, IconCommit, IconPullRequest, IconStack} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -73,9 +73,9 @@ export function SnapshotHeaderContent({data}: SnapshotHeaderContentProps) {
         type: 'page-title',
         label: t('Snapshots'),
         labelTooltip: (
-          <ReadTheDocs docsUrl="https://docs.sentry.io/product/snapshots/">
+          <DocumentationHint docsUrl="https://docs.sentry.io/product/snapshots/">
             {t('Catch visual regressions before they reach users.')}
-          </ReadTheDocs>
+          </DocumentationHint>
         ),
       }}
     />

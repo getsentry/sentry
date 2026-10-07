@@ -4,7 +4,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 
-interface ReadTheDocsProps {
+interface DocumentationHintProps {
   children: React.ReactNode;
   /**
    * The link to the documentation for this page.
@@ -12,7 +12,7 @@ interface ReadTheDocsProps {
   docsUrl: string;
 }
 
-export function ReadTheDocs({children, docsUrl}: ReadTheDocsProps) {
+export function DocumentationHint({children, docsUrl}: DocumentationHintProps) {
   return (
     <Stack align="start" gap="md">
       <Text align="left">{children}</Text>

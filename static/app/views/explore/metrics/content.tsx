@@ -3,9 +3,9 @@ import {Fragment} from 'react';
 import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -114,11 +114,11 @@ function MetricsHeader() {
             type: 'page-title',
             label: title || METRICS_TITLE,
             labelTooltip: (
-              <ReadTheDocs docsUrl="https://docs.sentry.io/product/explore/metrics/">
+              <DocumentationHint docsUrl="https://docs.sentry.io/product/explore/metrics/">
                 {t(
                   'Track critical application signals using counters, gauges, and distributions.'
                 )}
-              </ReadTheDocs>
+              </DocumentationHint>
             ),
           }}
         />

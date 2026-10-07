@@ -8,6 +8,7 @@ import {Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
@@ -20,7 +21,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {TransactionSearchQueryBuilder} from 'sentry/components/performance/transactionSearchQueryBuilder';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
@@ -401,11 +401,11 @@ function ProfilingContentPageHeader() {
           type: 'page-title',
           label: t('Profiles'),
           labelTooltip: (
-            <ReadTheDocs docsUrl="https://docs.sentry.io/product/profiling/">
+            <DocumentationHint docsUrl="https://docs.sentry.io/product/profiling/">
               {t(
                 'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
               )}
-            </ReadTheDocs>
+            </DocumentationHint>
           ),
         }}
       />

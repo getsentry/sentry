@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import {Outlet, useMatches} from 'react-router-dom';
 
-import {ReadTheDocs} from 'sentry/components/readTheDocs';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
@@ -23,7 +23,9 @@ function MobileVitalsHeader() {
         type: 'page-title',
         label: MODULE_TITLE,
         labelTooltip: (
-          <ReadTheDocs docsUrl={MODULE_DOC_LINK}>{MODULE_DESCRIPTION}</ReadTheDocs>
+          <DocumentationHint docsUrl={MODULE_DOC_LINK}>
+            {MODULE_DESCRIPTION}
+          </DocumentationHint>
         ),
       }}
       headerActions={isProjectCrossPlatform && !isEap && <PlatformSelector />}

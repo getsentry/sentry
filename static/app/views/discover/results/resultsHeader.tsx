@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import {fetchHomepageQuery} from 'sentry/actionCreators/discoverHomepageQueries';
 import {fetchSavedQuery} from 'sentry/actionCreators/discoverSavedQueries';
 import type {Client} from 'sentry/api';
-import {ReadTheDocs} from 'sentry/components/readTheDocs';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
 import type {EventView} from 'sentry/utils/discover/eventView';
@@ -115,9 +115,9 @@ function ResultsHeaderBase({
             type: 'page-title',
             label: t('Errors'),
             labelTooltip: (
-              <ReadTheDocs docsUrl="https://docs.sentry.io/product/discover-queries/">
+              <DocumentationHint docsUrl="https://docs.sentry.io/product/discover-queries/">
                 {t('Create queries to get insights into the health of your system.')}
-              </ReadTheDocs>
+              </DocumentationHint>
             ),
           }}
         />

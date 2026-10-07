@@ -6,6 +6,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Grid, Stack, useResponsivePropValue} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {FeedbackFilters} from 'sentry/components/feedback/feedbackFilters';
 import {FeedbackItemLoader} from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
@@ -20,7 +21,6 @@ import {useRedirectToFeedbackFromEvent} from 'sentry/components/feedback/useRedi
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {IconSiren} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -249,11 +249,11 @@ export default function FeedbackListPage() {
               type: 'page-title',
               label: t('User Feedback'),
               labelTooltip: (
-                <ReadTheDocs docsUrl="https://docs.sentry.io/product/user-feedback/">
+                <DocumentationHint docsUrl="https://docs.sentry.io/product/user-feedback/">
                   {t(
                     'The User Feedback Widget allows users to submit feedback quickly and easily any time they encounter something that isn’t working as expected.'
                   )}
-                </ReadTheDocs>
+                </DocumentationHint>
               ),
             }}
           />

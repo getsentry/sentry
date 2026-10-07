@@ -24,6 +24,7 @@ import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {AnsiText} from 'sentry/components/ansiText';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {
@@ -34,7 +35,6 @@ import {getPullRequestStatusLabel} from 'sentry/components/group/externalIssuesL
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {QueryCount} from 'sentry/components/queryCount';
-import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow, IconChevron, IconPullRequest} from 'sentry/icons';
@@ -369,11 +369,11 @@ function InboxContent() {
           label: TITLE,
           trailingActions: {type: 'badge', element: <FeatureBadge type="new" />},
           labelTooltip: (
-            <ReadTheDocs docsUrl="https://docs.sentry.io/product/issues/inbox/">
+            <DocumentationHint docsUrl="https://docs.sentry.io/product/issues/inbox/">
               {t(
                 'A personalized view of issues relevant to you, organized by how close you are to fixing them.'
               )}
-            </ReadTheDocs>
+            </DocumentationHint>
           ),
         }}
       />

@@ -7,6 +7,7 @@ import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {TabList, Tabs} from '@sentry/scraps/tabs';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -20,7 +21,6 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
-import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -659,11 +659,11 @@ function ReleasesHeader() {
           type: 'page-title',
           label: t('Releases'),
           labelTooltip: (
-            <ReadTheDocs docsUrl="https://docs.sentry.io/product/releases/">
+            <DocumentationHint docsUrl="https://docs.sentry.io/product/releases/">
               {t(
                 'A visualization of your release adoption from the past 24 hours, providing a high-level view of the adoption stage, percentage of crash-free users and sessions, and more.'
               )}
-            </ReadTheDocs>
+            </DocumentationHint>
           ),
         }}
       />

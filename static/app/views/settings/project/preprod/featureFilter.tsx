@@ -6,13 +6,13 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
 import {PreprodBuildsTable} from 'sentry/components/preprod/preprodBuildsTable';
 import {PreprodSearchBar} from 'sentry/components/preprod/preprodSearchBar';
-import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {buildDetailsApiOptions} from 'sentry/views/preprod/utils/buildDetailsApiOptions';
@@ -109,9 +109,9 @@ export function FeatureFilter({
           {t('%s - Configuration', title)}
           <InfoTip
             title={
-              <ReadTheDocs docsUrl={docsUrl}>
+              <DocumentationHint docsUrl={docsUrl}>
                 {t('Learn more about configuring build filters.')}
-              </ReadTheDocs>
+              </DocumentationHint>
             }
             size="sm"
             position="right"

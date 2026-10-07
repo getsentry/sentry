@@ -9,10 +9,10 @@ import {Text} from '@sentry/scraps/text';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DiscoverButton} from 'sentry/components/discoverButton';
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {Placeholder} from 'sentry/components/placeholder';
-import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {IconSettings} from 'sentry/icons';
 import {IconTelescope} from 'sentry/icons/iconTelescope';
@@ -281,11 +281,11 @@ export function SpikeProtectionHistoryTable(props: Props) {
           </Text>
           <InfoTip
             title={
-              <ReadTheDocs docsUrl={SPIKE_PROTECTION_DOCS_LINK}>
+              <DocumentationHint docsUrl={SPIKE_PROTECTION_DOCS_LINK}>
                 {t(
                   'Sentry applies a dynamic rate limit to your account designed to protect you from short-term spikes.'
                 )}
-              </ReadTheDocs>
+              </DocumentationHint>
             }
             size="sm"
             position="right"

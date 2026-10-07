@@ -7,11 +7,11 @@ import uniqBy from 'lodash/uniqBy';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 
+import {DocumentationHint} from 'sentry/components/documentationHint';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
-import {ReadTheDocs} from 'sentry/components/readTheDocs';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {TeamFilter} from 'sentry/components/teamFilter';
@@ -209,11 +209,11 @@ function Dashboard() {
           type: 'page-title',
           label: t('All Projects'),
           labelTooltip: (
-            <ReadTheDocs docsUrl="https://docs.sentry.io/product/projects/">
+            <DocumentationHint docsUrl="https://docs.sentry.io/product/projects/">
               {t(
                 "A high-level overview of errors, transactions, and deployments filtered by teams you're part of."
               )}
-            </ReadTheDocs>
+            </DocumentationHint>
           ),
         }}
       />
