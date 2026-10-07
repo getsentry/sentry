@@ -23,15 +23,15 @@ from sentry.models.organization import Organization
 from sentry.utils.db import atomic_transaction
 
 
-class StarSegmentSerializer(serializers.Serializer):
+class StarTransactionSerializer(serializers.Serializer):
     segment_name = serializers.CharField(
         required=True,
-        help_text="The name of the segment (transaction) to star or unstar.",
+        help_text="The name of the transaction to star or unstar.",
     )
     project_id = serializers.IntegerField(
         required=True,
         min_value=1,
-        help_text="The ID of the project the segment belongs to.",
+        help_text="The ID of the project the transaction belongs to.",
     )
 
 
@@ -58,10 +58,10 @@ class InsightsStarredSegmentsEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="starOrganizationSegment",
-        summary="Star a Segment",
+        operation_id="starOrganizationTransaction",
+        summary="Star a Transaction",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
-        request=StarSegmentSerializer,
+        request=StarTransactionSerializer,
         responses={
             200: RESPONSE_SUCCESS,
             400: RESPONSE_BAD_REQUEST,
@@ -74,14 +74,14 @@ class InsightsStarredSegmentsEndpoint(OrganizationEndpoint):
         self, request: Request, organization: Organization
     ) -> Response[None] | Response[ValidationErrorResponse]:
         """
-        Star a segment (transaction) for the requesting user. Span queries expose
-        this as the `is_starred_transaction` field. Returns `403` if the user has
-        already starred the segment.
+        Star a transaction for the requesting user. Span queries expose this as the
+        `is_starred_transaction` field. Returns `403` if the user has already starred
+        the transaction.
         """
         if not self.has_feature(organization, request):
             return self.respond(status=404)
 
-        serializer = StarSegmentSerializer(data=request.data)
+        serializer = StarTransactionSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
@@ -107,8 +107,8 @@ class InsightsStarredSegmentsEndpoint(OrganizationEndpoint):
         return Response(status=status.HTTP_200_OK)
 
     @extend_schema(
-        operation_id="unstarOrganizationSegment",
-        summary="Unstar a Segment",
+        operation_id="unstarOrganizationTransaction",
+        summary="Unstar a Transaction",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OpenApiParameter(
@@ -116,14 +116,14 @@ class InsightsStarredSegmentsEndpoint(OrganizationEndpoint):
                 location="query",
                 required=True,
                 type=str,
-                description="The name of the segment (transaction) to unstar.",
+                description="The name of the transaction to unstar.",
             ),
             OpenApiParameter(
                 name="project_id",
                 location="query",
                 required=True,
                 type=int,
-                description="The ID of the project the segment belongs to.",
+                description="The ID of the project the transaction belongs to.",
             ),
         ],
         responses={
@@ -138,8 +138,8 @@ class InsightsStarredSegmentsEndpoint(OrganizationEndpoint):
         self, request: Request, organization: Organization
     ) -> Response[None] | Response[ValidationErrorResponse]:
         """
-        Unstar a segment (transaction) for the requesting user. Succeeds even if the
-        segment was not starred.
+        Unstar a transaction for the requesting user. Succeeds even if the
+        transaction was not starred.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -149,7 +149,7 @@ class InsightsStarredSegmentsEndpoint(OrganizationEndpoint):
 
         # OpenAPI has no request body for DELETE, so the documented contract is query
         # params. The body is still accepted for existing callers.
-        serializer = StarSegmentSerializer(data=request.data or request.query_params)
+        serializer = StarTransactionSerializer(data=request.data or request.query_params)
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
