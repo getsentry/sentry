@@ -666,6 +666,44 @@ describe('EntityHeader', () => {
       expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(1);
       expect(screen.getByText('Errors')).toBeInTheDocument();
     });
+
+    it('holds one stat while the rest of the header is live', () => {
+      render(
+        <EntityHeader
+          title={{label: 'Replay user', value: 'Session'}}
+          stats={[
+            {type: 'text', label: 'Dead Clicks', value: 4},
+            {type: 'text', label: 'Errors', value: 0, isLoading: true},
+          ]}
+        />
+      );
+
+      // A count that arrives after the entity does would otherwise assert a
+      // zero it has not confirmed.
+      expect(screen.getByText('Dead Clicks')).toBeInTheDocument();
+      expect(screen.queryByText('Errors')).not.toBeInTheDocument();
+      expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(1);
+    });
+
+    it('reports busy while any one slot is still loading', () => {
+      const {rerender} = render(
+        <EntityHeader
+          title={{label: 'Replay user', value: 'Session'}}
+          stats={[{type: 'text', label: 'Errors', value: 0, isLoading: true}]}
+        />
+      );
+
+      expect(screen.getByRole('banner')).toHaveAttribute('aria-busy', 'true');
+
+      rerender(
+        <EntityHeader
+          title={{label: 'Replay user', value: 'Session'}}
+          stats={[{type: 'text', label: 'Errors', value: 2}]}
+        />
+      );
+
+      expect(screen.getByRole('banner')).toHaveAttribute('aria-busy', 'false');
+    });
   });
 
   describe('layout', () => {

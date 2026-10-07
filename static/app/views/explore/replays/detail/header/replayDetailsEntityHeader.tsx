@@ -40,10 +40,7 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
   const replayRecord = readerResult.replayRecord;
   const isArchived = replayRecord?.is_archived ?? false;
 
-  const viewers = useReplayViewers({
-    projectId: replayRecord?.is_archived ? undefined : replayRecord?.project_id,
-    replayId: replayRecord?.id,
-  });
+  const viewers = useReplayViewers({replayRecord});
   const {isLive} = useLiveBadge({
     startedAt: replayRecord?.is_archived ? null : (replayRecord?.started_at ?? null),
     finishedAt: replayRecord?.is_archived ? null : (replayRecord?.finished_at ?? null),
@@ -78,8 +75,13 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
   );
 
   function buildProps(isLoading: boolean): EntityHeaderProps {
+    // The record lands before the attachments and errors do, so the title and
+    // metadata can go live while these are still unknown: the error count is
+    // not yet fetched, and `isVideoReplay` reads false until the attachments
+    // arrive, which would show the click stats on a replay that has none.
+    const statsLoading = readerResult.isPending;
     const isVideoReplay = readerResult.replay?.isVideoReplay() ?? false;
-    const showDeadRageClicks = !isVideoReplay;
+    const showDeadRageClicks = statsLoading || !isVideoReplay;
 
     return {
       isLoading,
@@ -121,6 +123,7 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
               label: t('Dead Clicks'),
               value: deadClicks,
               to: breadcrumbTab,
+              isLoading: statsLoading,
               loadingWidth: '82px',
             }
           : null,
@@ -130,6 +133,7 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
               label: t('Rage Clicks'),
               value: rageClicks,
               to: breadcrumbTab,
+              isLoading: statsLoading,
               loadingWidth: '82px',
             }
           : null,
@@ -141,6 +145,7 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
           labelTooltip: nonFeedbackErrors.length ? (
             <ReplayErrorsTooltip replayErrors={nonFeedbackErrors} />
           ) : undefined,
+          isLoading: statsLoading,
           loadingWidth: '64px',
         },
       ],

@@ -138,6 +138,12 @@ export function EntityHeader({
     );
 
   const peopleLoading = Boolean(people) && (isLoading || Boolean(people?.isLoading));
+  // A slot that loads on its own schedule still leaves the region in flux, so
+  // it has to count towards `aria-busy` as much as the header's own flag does.
+  const isAnyLoading =
+    Boolean(isLoading) ||
+    peopleLoading ||
+    visibleStats.some(({stat}) => Boolean(stat.isLoading));
   const hasPeople = Boolean(people) && (peopleLoading || (people?.users.length ?? 0) > 0);
   const hasStats = visibleStats.length > 0 || hasPeople;
   const hasSubtitle = Boolean(subtitle);
@@ -155,7 +161,7 @@ export function EntityHeader({
       flexShrink={0}
       // Otherwise the band is simply empty until the data lands, and then
       // silently is not.
-      aria-busy={isLoading}
+      aria-busy={isAnyLoading}
     >
       <Grid columns={columns} areas={areas} gap="md" align="start">
         <Container area="title" minWidth={0}>
@@ -211,7 +217,7 @@ export function EntityHeader({
             {visibleStats.map(({stat, index}, position) => (
               <Fragment key={index}>
                 {(position > 0 || hasPeople) && <Divider height="8px" />}
-                <EntityHeaderStat {...stat} isLoading={isLoading} />
+                <EntityHeaderStat {...stat} isLoading={isLoading || stat.isLoading} />
               </Fragment>
             ))}
           </Flex>

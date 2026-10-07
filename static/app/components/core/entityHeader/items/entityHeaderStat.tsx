@@ -14,6 +14,14 @@ interface EntityHeaderStatBase {
    */
   label: string;
   /**
+   * Hold this one stat as a skeleton while the rest of the header is live. Use
+   * it when the value comes from a request that settles after the entity does;
+   * without it a stat renders whatever it has, which asserts a zero before the
+   * real count lands. Independent of, and additive to, the header's own
+   * `isLoading`.
+   */
+  isLoading?: boolean;
+  /**
    * What the stat measures, for a label that is jargon on its own. Takes
    * structured content as readily as a string, so it can be built from
    * `Tooltip.Header`, `Tooltip.Grid` and `Tooltip.Row`.
@@ -66,7 +74,7 @@ export type EntityHeaderStatProps =
       onClick?: () => void;
     } & EntityHeaderStatBase);
 
-export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boolean}) {
+export function EntityHeaderStat(props: EntityHeaderStatProps) {
   const {isLoading, label, labelTooltip, loadingWidth = '80px', value} = props;
   if (isLoading) {
     return (

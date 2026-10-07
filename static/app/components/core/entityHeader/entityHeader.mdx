@@ -114,7 +114,15 @@ Each slot is replaced whole, stat labels included. A label is static and could b
 />
 ```
 
-The header sets `aria-busy` while loading. Note that this is a state in the accessibility tree, not an announcement — no screen reader reads it. A page that needs the transition announced has to add its own live region.
+Slots that resolve on their own schedule carry their own flag, additive to the header's: `people.isLoading` for the avatar stack, and `isLoading` on an individual stat. Use the latter when a count arrives after the entity does — an issue knows its title before it knows how many events it has, and a stat without the flag would render the zero it happens to hold. The entity's own fields stay live throughout.
+
+```jsx
+stats={[
+  {type: 'text', label: t('Events'), value: count, isLoading: isCountPending},
+]}
+```
+
+The header sets `aria-busy` while any slot is loading. Note that this is a state in the accessibility tree, not an announcement — no screen reader reads it. A page that needs the transition announced has to add its own live region.
 
 ## Title
 

@@ -37,8 +37,6 @@ describe('ReplayDetailsEntityHeader', () => {
       url: `/organizations/${organization.slug}/projects/`,
       body: [project],
     });
-    // The header renders the viewer avatars that used to live in ReplayMetaData,
-    // and those resolve the project slug through the store.
     ProjectsStore.loadInitialData([project]);
   });
 
@@ -47,11 +45,69 @@ describe('ReplayDetailsEntityHeader', () => {
   });
 
   function mockViewedBy(replayId: string) {
-    MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.id}/replays/${replayId}/viewed-by/`,
+    return MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/replays/${replayId}/viewed-by/`,
       body: {data: {viewed_by: []}},
     });
   }
+
+  it('reads viewers from the project slug, the key useMarkReplayViewed refetches', async () => {
+    const replayRecord = replayRecordFixture();
+    const viewedBy = mockViewedBy(replayRecord.id);
+
+    render(
+      <ReplayDetailsEntityHeader
+        readerResult={
+          {
+            replayRecord,
+            errors: [],
+            replay: null,
+            isPending: false,
+            fetchError: undefined,
+            attachmentError: undefined,
+          } as unknown as ReturnType<typeof useLoadReplayReader>
+        }
+      />,
+      {organization}
+    );
+
+    // Keyed on the id instead, this request would still reach the same
+    // endpoint but under a query key the mutation's refetch cannot match, so
+    // the stack would not pick up the current user after they watch.
+    await waitFor(() => expect(viewedBy).toHaveBeenCalled());
+  });
+
+  it('holds the stats while the reader is still pending', () => {
+    const replayRecord = replayRecordFixture({count_dead_clicks: 1});
+    mockViewedBy(replayRecord.id);
+
+    render(
+      <ReplayDetailsEntityHeader
+        readerResult={
+          {
+            replayRecord,
+            errors: [],
+            // The window ReplayLoadingState routes to renderLoading: the
+            // record has landed, attachments and errors have not.
+            replay: null,
+            isPending: true,
+            fetchError: undefined,
+            attachmentError: undefined,
+          } as unknown as ReturnType<typeof useLoadReplayReader>
+        }
+      />,
+      {organization}
+    );
+
+    // The title comes off the record, so it is live.
+    expect(screen.getByRole('heading', {name: /Replay user/})).toBeInTheDocument();
+
+    // The counts do not. Asserting them here would show "0 Errors" before the
+    // error pages land, and the click stats on a replay that has none.
+    expect(screen.queryByRole('link', {name: /Errors/})).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: /Dead Clicks/})).not.toBeInTheDocument();
+    expect(screen.getByRole('banner')).toHaveAttribute('aria-busy', 'true');
+  });
 
   it('should show LIVE badge when last received segment is within 5 minutes', async () => {
     const startedAt = new Date(Date.now() - 1000);
