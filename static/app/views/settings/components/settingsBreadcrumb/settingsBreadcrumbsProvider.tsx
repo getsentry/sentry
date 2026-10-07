@@ -1,4 +1,4 @@
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {unreachable} from 'sentry/utils/unreachable';
