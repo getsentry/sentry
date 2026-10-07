@@ -1,19 +1,16 @@
 import {memo} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import {FocusScope} from '@react-aria/focus';
-import {AnimatePresence} from 'framer-motion';
 import type {Location} from 'history';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Input} from '@sentry/scraps/input';
-import {Grid, Stack} from '@sentry/scraps/layout';
+import {Grid} from '@sentry/scraps/layout';
 
+import {openSaveQueryModal} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {Hovercard} from 'sentry/components/hovercard';
-import {Overlay, PositionWrapper} from 'sentry/components/overlay';
+import type {SaveQueryModalProps} from 'sentry/components/modals/explore/saveQueryModal';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization, SavedQuery} from 'sentry/types/organization';
@@ -23,9 +20,9 @@ import type {EventView} from 'sentry/utils/discover/eventView';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useOverlay} from 'sentry/utils/useOverlay';
 import {withApi} from 'sentry/utils/withApi';
 import {withProjects} from 'sentry/utils/withProjects';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 
 const renderDisabled = (p: any) => (
   <Hovercard
@@ -42,68 +39,31 @@ const renderDisabled = (p: any) => (
   </Hovercard>
 );
 
-type SaveAsDropdownProps = {
+type SaveAsButtonProps = {
   disabled: boolean;
-  modifiedHandleCreateQuery: (
-    e: React.MouseEvent | React.FormEvent<HTMLFormElement>
-  ) => void;
-  onChangeInput: (e: React.FormEvent<HTMLInputElement>) => void;
-  queryName: string;
+  onSave: SaveQueryModalProps['saveQuery'];
+  organization: Organization;
 };
 
-export function SaveAsDropdown({
-  queryName,
-  disabled,
-  onChangeInput,
-  modifiedHandleCreateQuery,
-}: SaveAsDropdownProps) {
-  const {isOpen, triggerProps, overlayProps, arrowProps} = useOverlay({
-    position: 'bottom',
-  });
-  const theme = useTheme();
-
+export function SaveAsButton({disabled, onSave, organization}: SaveAsButtonProps) {
   return (
-    <div>
-      <Button
-        {...triggerProps}
-        size="sm"
-        variant="primary"
-        aria-label={t('Save as')}
-        disabled={disabled}
-      >
-        {t('Save as')}
-      </Button>
-      <AnimatePresence>
-        {isOpen && (
-          <PositionWrapper zIndex={theme.zIndex.dropdown} {...overlayProps}>
-            <StyledOverlay arrowProps={arrowProps} animated>
-              <FocusScope contain restoreFocus autoFocus>
-                <form onSubmit={modifiedHandleCreateQuery}>
-                  <Stack gap="md">
-                    <Input
-                      type="text"
-                      name="query_name"
-                      placeholder={t('Display name')}
-                      value={queryName || ''}
-                      onChange={onChangeInput}
-                      disabled={disabled}
-                    />
-                    <SaveAsButton
-                      type="submit"
-                      onClick={modifiedHandleCreateQuery}
-                      variant="primary"
-                      disabled={disabled || !queryName}
-                    >
-                      {t('Save for Organization')}
-                    </SaveAsButton>
-                  </Stack>
-                </form>
-              </FocusScope>
-            </StyledOverlay>
-          </PositionWrapper>
-        )}
-      </AnimatePresence>
-    </div>
+    <Button
+      size="sm"
+      variant="primary"
+      aria-label={t('Save as')}
+      disabled={disabled}
+      onClick={() =>
+        openSaveQueryModal({
+          organization,
+          saveQuery: onSave,
+          traceItemDataset: TraceItemDataset.ERRORS,
+          source: 'errors',
+          showMessage: false,
+        })
+      }
+    >
+      {t('Save as')}
+    </Button>
   );
 }
 
@@ -137,50 +97,32 @@ const SavedQueryButtonGroup = memo(function SavedQueryButtonGroupImpl({
   disabled = false,
   organization,
 }: Props) {
-  function renderButtonViewSaved(isDisabled: boolean) {
-    return (
-      <LinkButton
-        onClick={() => {
-          trackAnalytics('discover_v2.view_saved_queries', {organization});
-        }}
-        data-test-id="discover2-savedquery-button-view-saved"
-        disabled={isDisabled}
-        size="sm"
-        icon={<IconStar isSolid />}
-        to={getDiscoverQueriesUrl(organization)}
-      >
-        {t('Saved Queries')}
-      </LinkButton>
-    );
-  }
-
-  function renderQueryButton(renderFunc: (isDisabled: boolean) => React.ReactNode) {
-    return (
+  return (
+    <Grid flow="column" align="center" gap="md">
       <Feature
         organization={organization}
         features="discover-query"
         overrideName="feature-disabled:discover-saved-query-create"
         renderDisabled={renderDisabled}
       >
-        {({hasFeature}) => renderFunc(!hasFeature || disabled)}
+        {({hasFeature}) => (
+          <LinkButton
+            onClick={() => {
+              trackAnalytics('discover_v2.view_saved_queries', {organization});
+            }}
+            data-test-id="discover2-savedquery-button-view-saved"
+            disabled={!hasFeature || disabled}
+            size="sm"
+            icon={<IconStar isSolid />}
+            to={getDiscoverQueriesUrl(organization)}
+          >
+            {t('Saved Queries')}
+          </LinkButton>
+        )}
       </Feature>
-    );
-  }
-
-  return (
-    <Grid flow="column" align="center" gap="md">
-      {renderQueryButton(isDisabled => renderButtonViewSaved(isDisabled))}
     </Grid>
   );
 });
-
-const StyledOverlay = styled(Overlay)`
-  padding: ${p => p.theme.space.md};
-`;
-
-const SaveAsButton = styled(Button)`
-  width: 100%;
-`;
 
 export const IconUpdate = styled('div')`
   display: inline-block;

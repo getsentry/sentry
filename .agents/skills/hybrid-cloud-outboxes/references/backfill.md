@@ -2,7 +2,7 @@
 
 ## Overview
 
-When a model is migrated to use outboxes (or its replication logic changes), existing rows need outboxes created retroactively. The backfill system handles this incrementally, processing rows in batches with cursor position tracked in Redis and version gating controlled by the sentry options system.
+When a model is migrated to use outboxes (or its replication logic changes), existing rows need outboxes created retroactively. The backfill system handles this incrementally, processing rows in batches with cursor position tracked in Postgres and version gating controlled by the sentry options system.
 
 **Source file**: `src/sentry/hybridcloud/tasks/backfill_outboxes.py`
 
@@ -17,7 +17,7 @@ replication_version: int = 1  # Default
 Two systems work together to control backfills:
 
 1. **Sentry options** — gate the effective replication version (controls _whether_ a backfill runs)
-2. **Redis cursor** — track backfill progress as `(lower_bound_id, current_version)` (controls _where_ a backfill resumes)
+2. **Postgres watermark** — track backfill progress as `(lower_bound_id, current_version)` (controls _where_ a backfill resumes)
 
 ### Version Resolution via Options
 
@@ -38,18 +38,11 @@ The effective version is `min(option_value, coded_version)`. This means:
 - If the option is **set equal to or higher** than the code, the coded version is used
 - If `force_synchronous=True` (self-hosted), the option is bypassed entirely
 
-### Cursor Tracking via Redis
+### Cursor Tracking via Postgres
 
-Redis tracks `(lower_bound_id, current_version)` per model table:
+A watermark row tracks `(low_bound, version)` per model table, keyed by `table_name` (`model._meta.db_table`). Control silo tables write `ControlOutboxBackfillWatermark` and cell silo tables write `CellOutboxBackfillWatermark`, both in `src/sentry/hybridcloud/models/outboxbackfillwatermark.py`.
 
-```python
-# Key format:
-f"outbox_backfill.{model._meta.db_table}"
-
-# Value: JSON-encoded tuple of (lower_bound_id, current_version)
-```
-
-`_chunk_processing_batch()` compares the Redis cursor's `version` against the options-resolved `target_version`:
+`_chunk_processing_batch()` compares the stored `version` against the options-resolved `target_version`:
 
 - If `version > target_version`: backfill already complete, skip
 - If `version < target_version`: new version detected, reset cursor to 0 and start fresh
@@ -81,7 +74,7 @@ f"outbox_replication.{model._meta.db_table}.replication_version"
 2. At this point, `min(option_value, coded_version)` still returns the old version — no backfill runs yet
 3. Set the option to the new version value in the Sentry options system
 4. Now `min(option_value, coded_version)` returns the new version — backfill starts on the next `enqueue_outbox_jobs` cycle
-5. Monitor via Redis cursor state and task metrics
+5. Monitor via the watermark state and task metrics
 
 This two-step process allows deploying code first, then enabling the backfill separately — useful for coordinating with other changes or rolling back quickly by lowering the option.
 
@@ -93,7 +86,7 @@ On self-hosted instances, backfills run synchronously during `sentry upgrade` vi
 2. Drains all pending outbox shards
 3. Ensures the instance is fully caught up after every upgrade
 
-## Redis Cursor State Transitions
+## Cursor State Transitions
 
 1. **Initial**: `(0, 1)` — no backfill has run (created on first `get_processing_state` call)
 2. **In progress**: `(last_processed_id + 1, target_version)` — backfill is processing rows
@@ -119,12 +112,13 @@ Rate is limited by `OUTBOX_BACKFILLS_PER_MINUTE` adjusted by the count of alread
 
 ## Monitoring a Backfill
 
-### Check Redis Cursor State
+### Check Cursor State
 
 ```python
-from sentry.hybridcloud.tasks.backfill_outboxes import get_processing_state
+from sentry.hybridcloud.tasks.backfill_outboxes import read_processing_state
 
-lower_bound, version = get_processing_state("sentry_mymodel")
+# None if the backfill has never reached this table
+lower_bound, version = read_processing_state("sentry_mymodel")
 # lower_bound > 0 means backfill is in progress
 # version == model.replication_version + 1 means backfill is complete
 ```

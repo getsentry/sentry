@@ -1,10 +1,23 @@
+import {Fragment} from 'react';
+import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {makeTestQueryClient} from 'sentry-test/queryClient';
+import {
+  act,
+  render,
+  renderHookWithProviders,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {useSpanSearchQueryBuilderProps} from 'sentry/components/performance/spanSearchQueryBuilder';
+import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {FieldKind} from 'sentry/utils/fields';
 import {
+  TraceItemSearchQueryBuilder,
   useTraceItemSearchQueryBuilderProps,
   type TraceItemSearchQueryBuilderProps,
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
@@ -25,6 +38,22 @@ const organization = OrganizationFixture({
   features: ['search-query-attribute-validation'],
 });
 
+// Explore supplies a provider outside the builder; both register attribute metadata.
+function SpansSearchQueryBuilder() {
+  const {spanSearchQueryBuilderProviderProps, spanSearchQueryBuilderProps} =
+    useSpanSearchQueryBuilderProps({
+      initialQuery: '',
+      searchSource: 'explore',
+      disableRecentSearches: true,
+    });
+
+  return (
+    <SearchQueryBuilderProvider {...spanSearchQueryBuilderProviderProps}>
+      <TraceItemSearchQueryBuilder {...spanSearchQueryBuilderProps} />
+    </SearchQueryBuilderProvider>
+  );
+}
+
 describe('useTraceItemSearchQueryBuilderProps', () => {
   beforeEach(() => {
     PageFiltersStore.init();
@@ -42,6 +71,57 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
+  });
+
+  it('does not retain attributes after switching projects', async () => {
+    const queryClient = makeTestQueryClient();
+    const url = '/organizations/org-slug/trace-items/attributes/';
+    MockApiClient.addMockResponse({
+      url,
+      body: [
+        {
+          key: 'custom.unique',
+          name: 'custom.unique',
+          attributeType: 'number',
+          attributeSource: {source_type: 'user'},
+        },
+      ],
+    });
+    const projectResponse = Promise.withResolvers<void>();
+    const projectRequest = MockApiClient.addMockResponse({
+      url,
+      body: [],
+      match: [MockApiClient.matchQuery({project: ['2']})],
+      asyncDelay: projectResponse.promise,
+    });
+
+    render(<SpansSearchQueryBuilder />, {
+      additionalWrapper: ({children}) => (
+        <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+      ),
+    });
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.keyboard('custom.unique');
+    expect(
+      await screen.findByRole('option', {name: 'custom.unique'})
+    ).toBeInTheDocument();
+
+    act(() => PageFiltersStore.updateProjects([2], null));
+    await waitFor(() => expect(projectRequest).toHaveBeenCalled());
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('option', {name: 'custom.unique'})
+      ).not.toBeInTheDocument()
+    );
+    act(() => projectResponse.resolve());
+    await waitFor(() => expect(queryClient.isFetching()).toBe(0));
+    expect(screen.queryByRole('option', {name: 'custom.unique'})).not.toBeInTheDocument();
+
+    // An empty result in the new scope must not hide attributes when returning.
+    act(() => PageFiltersStore.updateProjects([1], null));
+    expect(
+      await screen.findByRole('option', {name: 'custom.unique'})
+    ).toBeInTheDocument();
   });
 
   it('wires boolean attributes into filter keys, aliases, and sections', () => {
@@ -116,7 +196,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     // The stored backend key and its `[*]` membership form both resolve to the
     // array definition (the `[*]` is stripped before lookup).
     expect(getFieldDefinition('tags[csv_headers,array]')?.kind).toBe(FieldKind.ARRAY);
-    expect(getFieldDefinition('tags[csv_headers,array][*]')?.kind).toBe(FieldKind.ARRAY);
+    expect(getFieldDefinition('tags[csv_headers[*],array]')?.kind).toBe(FieldKind.ARRAY);
   });
 
   it('wires string attributes into filter keys and aliases', () => {
@@ -144,6 +224,50 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     expect(result.current.filterKeys['log.message']).toBeDefined();
     expect(result.current.filterKeyAliases?.['log.message_alias']).toBeDefined();
   });
+
+  it('uses preferred search aliases in deprecation warnings', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: defaultInitialProps,
+      organization,
+    });
+
+    expect(result.current.filterKeyAliases?.['sentry.segment.name']?.alias).toBe(
+      'transaction'
+    );
+
+    render(
+      <Fragment>{result.current.getFilterTokenWarning?.('sentry.segment.name')}</Fragment>
+    );
+
+    expect(document.body).toHaveTextContent(
+      'sentry.segment.name is deprecated. Use transaction instead.'
+    );
+  });
+
+  it('does not warn for product fields that opt out of convention deprecation', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {
+        ...defaultInitialProps,
+        itemType: TraceItemDataset.REPLAYS,
+      },
+      organization,
+    });
+
+    expect(result.current.getFilterTokenWarning?.('url')).toBeUndefined();
+  });
+
+  it.each([TraceItemDataset.ERRORS, TraceItemDataset.PROCESSING_ERRORS])(
+    'does not apply convention aliases or deprecation warnings for %s',
+    itemType => {
+      const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+        initialProps: {...defaultInitialProps, itemType},
+        organization,
+      });
+
+      expect(result.current.filterKeyAliases?.['http.method']).toBeUndefined();
+      expect(result.current.getFilterTokenWarning?.('http.method')).toBeUndefined();
+    }
+  );
 
   it('merges all secondary alias types into filterKeyAliases', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
@@ -299,5 +423,32 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     });
 
     expect(result.current.placeholder).toBe('Search for logs, users, tags, and more');
+  });
+
+  it('allows regex operators for logs when the feature is enabled', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {...defaultInitialProps, itemType: TraceItemDataset.LOGS},
+      organization: OrganizationFixture({features: ['ourlogs-regex-searches']}),
+    });
+
+    expect(result.current.allowRegexOperators).toBe(true);
+  });
+
+  it('does not allow regex operators for logs when the feature is disabled', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {...defaultInitialProps, itemType: TraceItemDataset.LOGS},
+      organization,
+    });
+
+    expect(result.current.allowRegexOperators).toBe(false);
+  });
+
+  it('does not allow regex operators for spans when the feature is enabled', () => {
+    const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+      initialProps: {...defaultInitialProps, itemType: TraceItemDataset.SPANS},
+      organization: OrganizationFixture({features: ['ourlogs-regex-searches']}),
+    });
+
+    expect(result.current.allowRegexOperators).toBe(false);
   });
 });

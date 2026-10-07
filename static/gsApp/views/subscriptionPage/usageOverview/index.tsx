@@ -65,7 +65,8 @@ export function UsageOverview({
             ]?.dataCategories.every(category =>
               checkIsAddOnChildCategory(subscription, category, true)
             )
-          : (metricHistory?.prepaid ?? 0) !== 0 ||
+          : metricHistory?.isDisabled === false ||
+            (metricHistory?.prepaid ?? 0) !== 0 ||
             !!metricHistory?.softCapType ||
             !!getActiveProductTrial(subscription.productTrials ?? null, dataCategory) ||
             (subscription.onDemandBudgets?.budgetMode === OnDemandBudgetMode.SHARED
@@ -96,6 +97,7 @@ export function UsageOverview({
       }
     }
   }, [
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     location.query.product,
     selectedProduct,
     location.pathname,
@@ -128,7 +130,7 @@ export function UsageOverview({
               })}
             </Heading>
           </Stack>
-          <UsageOverviewActions organization={organization} />
+          <UsageOverviewActions organization={organization} subscription={subscription} />
         </Flex>
         <UsageOverviewTable
           subscription={subscription}

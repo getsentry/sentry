@@ -22,8 +22,10 @@ from sentry.issues.action_log.types import (
 from sentry.issues.derived.aggregators import AGGREGATORS
 from sentry.issues.derived.features import (
     BLOCKER,
+    FIRST_ASSIGNMENT_ACTION_ID,
     LAST_COMPLETED_AUTOFIX_STEP,
     LAST_PROGRESSED_AT,
+    NO_CHANGE_RECONCILE_IDS,
     PROGRESS,
     STATUS,
     VIEW_COUNT,
@@ -66,6 +68,7 @@ class FakeEntry:
     actor_id: int = 0
     data: dict[str, object] = field(default_factory=dict)
     original_group_id: int | None = None
+    id: int = 0
 
     @property
     def action(self) -> GroupAction:
@@ -85,12 +88,18 @@ def _resolved_pr_data(pr_id: int) -> dict[str, object]:
     return {"pull_request": pr_id}
 
 
-def _reconcile_entry(status: IssueStatus, *, original_group_id: int | None = None) -> FakeEntry:
+def _reconcile_entry(
+    status: IssueStatus,
+    *,
+    id: int = 0,
+    original_group_id: int | None = None,
+) -> FakeEntry:
     action = ReconcileStatusAction(status=status.value)
     return FakeEntry(
         type=GroupActionType.RECONCILE_STATUS,
         data=action.dict(),
         original_group_id=original_group_id,
+        id=id,
     )
 
 
@@ -136,6 +145,38 @@ def test_view_ignores_non_view() -> None:
             ],
         )
         == 0
+    )
+
+
+# ---------------------------------------------------------------------------
+# track_first_assignment
+# ---------------------------------------------------------------------------
+
+
+def test_first_assignment_records_first_action_id_and_never_changes() -> None:
+    assert (
+        _run_for_feature(
+            FIRST_ASSIGNMENT_ACTION_ID,
+            [
+                FakeEntry(type=GroupActionType.ASSIGN, id=10),
+                FakeEntry(type=GroupActionType.UNASSIGN, id=11),
+                FakeEntry(type=GroupActionType.ASSIGN, id=12),
+            ],
+        )
+        == 10
+    )
+
+
+def test_first_assignment_includes_migrated_actions() -> None:
+    assert (
+        _run_for_feature(
+            FIRST_ASSIGNMENT_ACTION_ID,
+            [
+                FakeEntry(type=GroupActionType.ASSIGN, id=10, original_group_id=123),
+                FakeEntry(type=GroupActionType.ASSIGN, id=12),
+            ],
+        )
+        == 10
     )
 
 
@@ -417,6 +458,61 @@ class TestReconcileStatus:
         )
         assert state[STATUS] == IssueStatus.OPEN
         assert state[PROGRESS] == IssueProgressState.IDENTIFIED
+
+
+# ---------------------------------------------------------------------------
+# NO_CHANGE_RECONCILE_IDS
+# ---------------------------------------------------------------------------
+
+
+class TestNoChangeReconcile:
+    def test_same_status_records_id(self) -> None:
+        assert _run_for_feature(
+            NO_CHANGE_RECONCILE_IDS,
+            [_reconcile_entry(IssueStatus.OPEN, id=7)],
+        ) == [7]
+
+    def test_different_status_does_not_record(self) -> None:
+        assert (
+            _run_for_feature(
+                NO_CHANGE_RECONCILE_IDS,
+                [_reconcile_entry(IssueStatus.CLOSED, id=7)],
+            )
+            == []
+        )
+
+    def test_tracks_multiple(self) -> None:
+        assert _run_for_feature(
+            NO_CHANGE_RECONCILE_IDS,
+            [
+                _reconcile_entry(IssueStatus.OPEN, id=7),
+                _reconcile_entry(IssueStatus.OPEN, id=8),
+            ],
+        ) == [7, 8]
+
+    def test_after_close(self) -> None:
+        assert _run_for_feature(
+            NO_CHANGE_RECONCILE_IDS,
+            [
+                FakeEntry(type=GroupActionType.RESOLVE, id=1),
+                _reconcile_entry(IssueStatus.CLOSED, id=9),
+            ],
+        ) == [9]
+
+    def test_merged_source_ignored(self) -> None:
+        assert (
+            _run_for_feature(
+                NO_CHANGE_RECONCILE_IDS,
+                [_reconcile_entry(IssueStatus.OPEN, id=7, original_group_id=123)],
+            )
+            == []
+        )
+
+    def test_tracks_at_most_twenty(self) -> None:
+        assert _run_for_feature(
+            NO_CHANGE_RECONCILE_IDS,
+            [_reconcile_entry(IssueStatus.OPEN, id=id) for id in range(1, 22)],
+        ) == list(range(1, 21))
 
 
 # ---------------------------------------------------------------------------

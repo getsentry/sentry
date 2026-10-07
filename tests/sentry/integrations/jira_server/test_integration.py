@@ -21,6 +21,7 @@ from sentry.shared_integrations.exceptions import (
     ApiUnauthorized,
     IntegrationConfigurationError,
     IntegrationError,
+    IntegrationFormError,
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
@@ -85,6 +86,16 @@ class JiraServerIntegrationBaseTest(APITestCase):
 
 
 class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
+    def test_issue_url_with_context_path(self) -> None:
+        self.installation.model.metadata["base_url"] = "https://jira.example.org/jira"
+        assert self.installation.get_issue_link_data(
+            "https://jira.example.org/jira/projects/ABC/issues/ABC-123"
+        ) == {"externalIssue": "ABC-123"}
+        with pytest.raises(IntegrationFormError):
+            self.installation.get_issue_link_data(
+                "https://jira.example.org/jira-archive/browse/ABC-123"
+            )
+
     def test_get_create_issue_config(self) -> None:
         event = self.store_event(
             data={

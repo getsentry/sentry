@@ -1,3 +1,4 @@
+import type {ESTree, Visitor} from '@oxlint/plugins';
 /**
  * @file Extracts style declarations from JSX style prop patterns.
  *
@@ -6,8 +7,6 @@
  * - <div style={value} />
  * - <div style={getValue()} />
  */
-
-import type {TSESLint, TSESTree} from '@typescript-eslint/utils';
 
 import {normalizePropertyName} from '../utils/normalizePropertyName.ts';
 
@@ -21,13 +20,13 @@ export function createStylePropExtractor({
   collector,
   themeTracker,
   ruleContext,
-}: ExtractorContext): TSESLint.RuleListener {
+}: ExtractorContext): Visitor {
   /**
    * Process an object expression from style={{ ... }}
    */
   function processObjectExpression(
-    objNode: TSESTree.ObjectExpression,
-    sourceNode: TSESTree.Node
+    objNode: ESTree.ObjectExpression,
+    sourceNode: ESTree.Node
   ) {
     for (const prop of objNode.properties) {
       if (prop.type !== 'Property') {
@@ -70,7 +69,7 @@ export function createStylePropExtractor({
   }
 
   return {
-    JSXAttribute(node: TSESTree.JSXAttribute) {
+    JSXAttribute(node: ESTree.JSXAttribute) {
       if (node.name?.name !== 'style') {
         return;
       }

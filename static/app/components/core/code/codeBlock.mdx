@@ -13,8 +13,8 @@ resources:
 import {Fragment, useState} from 'react';
 
 import {CodeBlock} from '@sentry/scraps/code';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {IconStar} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 
@@ -272,7 +272,7 @@ Fires when the user clicks the copy button.
 
 export function OnCopyExample() {
   const onCopy = () => {
-    addSuccessMessage('Copied!');
+    toast.success('Copied!');
   };
   return (
     <CodeBlock onCopy={onCopy} language="javascript">
@@ -288,7 +288,7 @@ export function OnCopyExample() {
 
 ```jsx
 // track analytics, show toast, etc
-const onCopy = () => addSuccessMessage('Copied!');
+const onCopy = () => toast.success('Copied!');
 
 <CodeBlock onCopy={onCopy} language="javascript">
   {sampleJavaScript}
@@ -301,7 +301,7 @@ Fires when the user manually selects and copies code.
 
 export function OnSelectAndCopyExample() {
   const onSelectAndCopy = () => {
-    addSuccessMessage(
+    toast.success(
       'Copied...but you know you can just press the copy button to copy it all, right?'
     );
   };
@@ -318,7 +318,7 @@ export function OnSelectAndCopyExample() {
 </Storybook.Demo>
 
 ```jsx
-const onSelectAndCopy = () => addSuccessMessage('Copied...but you know you can just
+const onSelectAndCopy = () => toast.success('Copied...but you know you can just
 press the copy button?');
 
 <CodeBlock onSelectAndCopy={onSelectAndCopy} language="javascript">
@@ -337,7 +337,7 @@ Fires when the user switches tabs.
 
 ```jsx
 const [tab, setTab] = useState('npm');
-const onTabClick = () => addSuccessMessage('Clicked a different tab');
+const onTabClick = () => toast.success('Clicked a different tab');
 
 <CodeBlock
   tabs={[

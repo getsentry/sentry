@@ -8,12 +8,8 @@ The flow spans four entry points
 
 we include the run_id in every log line to trace through all logs for that run
 
-    ctx = PrIterationLogContext(
-        logger,
-        iteration=LogCtxIteration.TRIGGERED,
-        run_state=run_state,
-        organization_id=organization_id,
-        group_id=group_id,
+    ctx = PrIterationLogContext.for_run(
+        logger, run_state, organization_id, group_id, iteration=LogCtxIteration.TRIGGERED
     )
     ctx.info("autofix.pr_iteration.check_suite.run_resolved", head_sha=head_sha)
 
@@ -61,7 +57,7 @@ class PrIterationScmInfo(TypedDict, total=False):
 
     scm_repo_full_name: str  # ``owner/repo``
 
-    pr_id: int
+    pr_id: str
     pr_number: int
     pr_url: str
 
@@ -92,29 +88,13 @@ class PrIterationLogContext:
 
     Identity goes into the log ``extra`` only -- deliberately not onto the Sentry
     scope, which would attach it to every span in the request as well.
+
+    Build one with ``for_run`` or ``for_run_id``, never the constructor directly.
     """
 
-    def __init__(
-        self,
-        logger: logging.Logger,
-        *,
-        iteration: LogCtxIteration,
-        run_state: SeerRunState | None,
-        organization_id: int | None,
-        group_id: int | None,
-    ) -> None:
+    def __init__(self, logger: logging.Logger, identity: PrIterationIdentity) -> None:
+        """Don't call directly; build one with ``for_run`` or ``for_run_id``."""
         self._logger = logger
-        identity: PrIterationIdentity = {}
-        if organization_id is not None:
-            identity["sentry_organization_id"] = organization_id
-        if group_id is not None:
-            identity["sentry_group_id"] = group_id
-        if run_state is not None:
-            identity["run_id"] = run_state.run_id
-            if scm_infos := _scm_infos(run_state):
-                identity["scm_infos"] = scm_infos
-            if (iteration_id := _iteration_id(iteration, run_state, organization_id)) is not None:
-                identity["iteration_id"] = iteration_id
         self._identity = identity
 
     @classmethod
@@ -128,13 +108,23 @@ class PrIterationLogContext:
         iteration: LogCtxIteration,
     ) -> PrIterationLogContext:
         """Full identity for a run whose state, org, and group are all in hand."""
-        return cls(
-            logger,
-            run_state=run_state,
-            organization_id=organization_id,
-            group_id=group_id,
-            iteration=iteration,
-        )
+        identity = _base_identity(run_state.run_id, organization_id, group_id)
+        if scm_infos := _scm_infos(run_state):
+            identity["scm_infos"] = scm_infos
+        if (iteration_id := _iteration_id(iteration, run_state, organization_id)) is not None:
+            identity["iteration_id"] = iteration_id
+        return cls(logger, identity)
+
+    @classmethod
+    def for_run_id(
+        cls,
+        logger: logging.Logger,
+        run_id: int | None,
+        organization_id: int | None,
+        group_id: int | None,
+    ) -> PrIterationLogContext:
+        """Identity for a run whose state was never fetched, so no PRs or iteration id."""
+        return cls(logger, _base_identity(run_id, organization_id, group_id))
 
     @property
     def logger(self) -> logging.Logger:
@@ -144,6 +134,10 @@ class PrIterationLogContext:
     @property
     def identity(self) -> PrIterationIdentity:
         return self._identity.copy()
+
+    @property
+    def iteration_id(self) -> int | None:
+        return self._identity.get("iteration_id")
 
     def info(self, name: str, **fields: Any) -> None:
         """Record that we are doing, or have done, a piece of work."""
@@ -156,6 +150,20 @@ class PrIterationLogContext:
         ``autofix.pr_iteration`` rather than a list of names known in advance.
         """
         self._logger.error(name, extra={**self._identity, **fields}, exc_info=exc_info)
+
+
+def _base_identity(
+    run_id: int | None, organization_id: int | None, group_id: int | None
+) -> PrIterationIdentity:
+    """The identity keys that don't need the run state, skipping any not known."""
+    identity: PrIterationIdentity = {}
+    if run_id is not None:
+        identity["run_id"] = run_id
+    if organization_id is not None:
+        identity["sentry_organization_id"] = organization_id
+    if group_id is not None:
+        identity["sentry_group_id"] = group_id
+    return identity
 
 
 def _iteration_id(

@@ -14,18 +14,6 @@ FEATURE_ID = "autofix"
 LEGACY_FEATURE_ID = "autofix_rca"
 
 
-class AutofixRCATweaks(BaseModel):
-    """Deprecated RCA arguments retained until Seer reads step_args."""
-
-    class Config:
-        extra = "ignore"
-
-    intelligence_level: Literal["low", "medium", "high"] = "medium"
-    reasoning_effort: Literal["low", "medium", "high"] | None = "medium"
-    # Not to be confused with user_org_context, this is free-form context added by the user.
-    user_context: str | None = None
-
-
 class RepoPin(BaseModel):
     class Config:
         extra = "forbid"
@@ -48,13 +36,40 @@ class RCAStepArgs(BaseModel):
         extra = "ignore"
 
     intelligence_level: Literal["low", "medium", "high"] = "medium"
-    reasoning_effort: Literal["low", "medium", "high"] | None = "medium"
+    reasoning_effort: Literal["low", "medium", "high"] = "medium"
     repo_pins: RepoPins | None = None
+
+
+class SolutionStepArgs(BaseModel):
+    class Config:
+        extra = "ignore"
+
+    should_run_repo_checks: bool = False
+
+
+class CodeChangesStepArgs(BaseModel):
+    class Config:
+        extra = "ignore"
+
+    should_run_repo_checks: bool = False
+
+
+class PrIterationStepArgs(BaseModel):
+    class Config:
+        extra = "ignore"
+
+    iteration_index: int
+    iteration_id: int | None = None
+    feedback: str | None = None
+    commit_author: str | None = None
+    # Seer could read these from its own run state; passed in to avoid a new run_state reader.
+    pr_urls: dict[str, str] = Field(default_factory=dict)
 
 
 class AutofixFeaturePayload(BaseModel):
     class Config:
         extra = "ignore"
+        smart_union = True
 
     # Universal params across all steps
     group_id: int
@@ -63,14 +78,10 @@ class AutofixFeaturePayload(BaseModel):
     title: str
     culprit: str
     on_completion_hook: OnCompletionHookDefinition
-
-    # Deprecated: the current Seer feature still reads these RCA-only fields.
-    # Keep them in sync with step_args until Seer accepts the step_args.
-    repo_pins: RepoPins | None = None
-    tweaks: AutofixRCATweaks = Field(default_factory=AutofixRCATweaks)
-
-    step: AutofixStep = AutofixStep.ROOT_CAUSE
-    step_args: RCAStepArgs
+    step: AutofixStep
+    step_args: RCAStepArgs | SolutionStepArgs | CodeChangesStepArgs | PrIterationStepArgs
+    existing_run_id: int | None = None
+    insert_index: int | None = None
     # Not to be confused with user_org_context, this is free-form context added by the user.
     user_context: str | None = None
     stopping_point: str | None = None

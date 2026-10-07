@@ -1,48 +1,98 @@
-import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
+import omit from 'lodash/omit';
 
-import {LinkButton} from '@sentry/scraps/button';
+import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcrumbs';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
+import {Placeholder} from 'sentry/components/placeholder';
+import {IconCopyId, IconEllipsis, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import {isSchema, isSentrySampledProfile} from 'sentry/utils/profiling/guards/profile';
+import {getShortEventId} from 'sentry/utils/events';
+import {generateProfilingRouteWithQuery} from 'sentry/utils/profiling/routes';
+import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProfiles} from 'sentry/views/explore/profiling/profilesProvider';
+import {useProjects} from 'sentry/utils/useProjects';
 import type {SpanResponse} from 'sentry/views/insights/types';
 import {TopBar} from 'sentry/views/navigation/topBar';
-
-function getTransactionName(input: Profiling.ProfileInput): string {
-  if (isSchema(input)) {
-    return input.metadata.transactionName;
-  }
-  if (isSentrySampledProfile(input)) {
-    return input.transaction.name || t('Unknown Transaction');
-  }
-
-  return t('Unknown Transaction');
-}
+import {profilesRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionProfiles/utils';
 
 interface ProfileHeaderProps {
-  eventId: string;
+  /** A profile ID, or a profiler ID for a continuous profile. */
+  profileId: string;
   projectId: string;
+  transactionName: string;
   transactionSpan:
     | Pick<SpanResponse, 'trace' | 'span_id' | 'precise.finish_ts'>
     | undefined;
+  variant: 'continuous' | 'transaction';
 }
 
-function ProfileHeader({transactionSpan, projectId, eventId}: ProfileHeaderProps) {
+export function ProfileHeader({
+  profileId,
+  projectId,
+  transactionName,
+  transactionSpan,
+  variant,
+}: ProfileHeaderProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const profiles = useProfiles();
+  const {copy} = useCopyToClipboard();
+  const {projects} = useProjects();
 
-  const transactionName =
-    profiles.type === 'resolved' ? getTransactionName(profiles.data) : '';
-  const profileId = eventId ?? '';
-  const projectSlug = projectId ?? '';
+  const isContinuous = variant === 'continuous';
+  const copyIdLabel = isContinuous
+    ? t('Copy profiler ID to clipboard')
+    : t('Copy profile ID to clipboard');
+
+  const project = projects.find(p => p.slug === projectId);
+
+  const projectGraphic = project ? (
+    <ProjectBadge disableLink project={project} avatarSize={16} hideName />
+  ) : (
+    <Placeholder width="16px" height="16px" />
+  );
+
+  const pageFilters = extractSelectionParameters(location.query);
+  // A continuous profile's start/end are the chunk window, not a page filter.
+  const selection = isContinuous
+    ? omit(pageFilters, ['start', 'end', 'utc'])
+    : pageFilters;
+
+  const transactionSummaryTarget =
+    transactionName && project
+      ? profilesRouteWithQuery({
+          organization,
+          transaction: transactionName,
+          projectID: project.id,
+          query: selection,
+        })
+      : null;
+
+  const items = [
+    {
+      type: 'link' as const,
+      label: t('Profiles'),
+      to: generateProfilingRouteWithQuery({organization, query: selection}),
+    },
+    ...(transactionSummaryTarget
+      ? [
+          {
+            type: 'link' as const,
+            label: transactionName,
+            leadingGraphic: projectGraphic,
+            to: {
+              ...transactionSummaryTarget,
+              query: {...selection, ...transactionSummaryTarget.query},
+            },
+          },
+        ]
+      : []),
+  ];
 
   const transactionTarget = transactionSpan?.span_id
     ? generateLinkToEventInTraceView({
@@ -60,45 +110,45 @@ function ProfileHeader({transactionSpan, projectId, eventId}: ProfileHeaderProps
     });
   };
 
-  const breadcrumbTrails = useMemo(() => {
-    return [
-      {type: 'landing', payload: {query: location.query}},
-      {
-        type: 'profile summary',
-        payload: {
-          projectSlug,
-          transaction: transactionName,
-          query: location.query,
-        },
-      },
-      {
-        type: 'flamechart',
-        payload: {
-          transaction: transactionName,
-          profileId,
-          projectSlug,
-          query: location.query,
-        },
-      },
-    ] as const;
-  }, [location, projectSlug, transactionName, profileId]);
-
-  const breadcrumbs = (
-    <SmallerProfilingBreadcrumbsWrapper>
-      <ProfilingBreadcrumbs organization={organization} trails={breadcrumbTrails} />
-    </SmallerProfilingBreadcrumbsWrapper>
-  );
-
   return (
     <Fragment>
-      <TopBar.Slot name="title">{breadcrumbs}</TopBar.Slot>
-      {transactionTarget && (
-        <TopBar.Slot name="actions">
-          <LinkButton onClick={handleGoToTransaction} to={transactionTarget}>
-            {t('Go to Trace')}
-          </LinkButton>
-        </TopBar.Slot>
-      )}
+      <TopBar.Slot name="breadcrumbs">
+        <BreadcrumbList items={items} />
+      </TopBar.Slot>
+      <TopBar.Slot name="title">
+        <BreadcrumbList.Title
+          item={{
+            type: 'page-title',
+            label: getShortEventId(profileId),
+            labelTooltip: profileId,
+            leadingGraphic: projectGraphic,
+            trailingActions: {
+              type: 'menu',
+              triggerLabel: t('Profile Actions'),
+              triggerIcon: <IconEllipsis />,
+              items: [
+                {
+                  key: 'copy-profile-id',
+                  label: copyIdLabel,
+                  leadingItems: <IconCopyId variant="muted" />,
+                  onAction: () => copy(profileId),
+                },
+                ...(transactionTarget
+                  ? [
+                      {
+                        key: 'open-trace',
+                        label: t('Open Trace'),
+                        leadingItems: <IconOpen variant="muted" />,
+                        to: transactionTarget,
+                        onAction: handleGoToTransaction,
+                      },
+                    ]
+                  : []),
+              ],
+            },
+          }}
+        />
+      </TopBar.Slot>
       <TopBar.Slot name="feedback">
         <FeedbackButton
           aria-label={t('Give Feedback')}
@@ -110,11 +160,3 @@ function ProfileHeader({transactionSpan, projectId, eventId}: ProfileHeaderProps
     </Fragment>
   );
 }
-
-const SmallerProfilingBreadcrumbsWrapper = styled('div')`
-  nav {
-    padding-bottom: ${p => p.theme.space.md};
-  }
-`;
-
-export {ProfileHeader};

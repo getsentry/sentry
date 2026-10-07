@@ -7,6 +7,10 @@ import type {
   SnapshotApprovalStatus,
   SnapshotComparisonState,
 } from 'sentry/views/preprod/types/buildDetailsTypes';
+import {
+  isForceApprovableSnapshotState,
+  isSnapshotApproved,
+} from 'sentry/views/preprod/types/buildDetailsTypes';
 
 interface SnapshotStatusBadgeProps {
   approvalStatus: SnapshotApprovalStatus | null | undefined;
@@ -21,6 +25,22 @@ export function SnapshotStatusBadge({
 }: SnapshotStatusBadgeProps) {
   if (!comparisonState) {
     return <Tag variant="info">{t('Base')}</Tag>;
+  }
+  if (
+    isForceApprovableSnapshotState(comparisonState) &&
+    isSnapshotApproved(approvalStatus)
+  ) {
+    return (
+      <Tooltip
+        title={
+          comparisonState === 'failed'
+            ? t('Approved despite failed comparison')
+            : t('Approved without base snapshots')
+        }
+      >
+        <Tag variant="success">{t('Approved')}</Tag>
+      </Tooltip>
+    );
   }
   if (comparisonState === 'waiting_for_base') {
     return (

@@ -9,7 +9,9 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.explore import utils
 from sentry.explore.models import ExploreSavedQueryStarred
+from sentry.explore.types import SavedQueryRef, SavedQueryType
 from sentry.models.organization import Organization
 
 
@@ -54,15 +56,14 @@ class ExploreSavedQueryStarredOrderEndpoint(OrganizationEndpoint):
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        query_ids = serializer.validated_data["query_ids"]
+        refs = [
+            SavedQueryRef(SavedQueryType.EXPLORE, query_id)
+            for query_id in serializer.validated_data["query_ids"]
+        ]
 
         try:
             with transaction.atomic(using=router.db_for_write(ExploreSavedQueryStarred)):
-                ExploreSavedQueryStarred.objects.reorder_starred_queries(
-                    organization=organization,
-                    user_id=request.user.id,
-                    new_query_positions=query_ids,
-                )
+                utils.reorder_starred_queries(organization, request.user.id, refs)
         except (IntegrityError, ValueError):
             raise ParseError("Mismatch between existing and provided starred queries.")
 

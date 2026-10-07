@@ -64,9 +64,7 @@ class OrganizationInvestigationBlockDetailsEndpoint(OrganizationInvestigationBlo
             serialize(
                 updated,
                 request.user,
-                InvestigationBlockSerializer(
-                    accessible_project_ids=request.access.accessible_project_ids
-                ),
+                InvestigationBlockSerializer(),
             )
         )
 

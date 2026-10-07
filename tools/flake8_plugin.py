@@ -138,6 +138,10 @@ S023_blank_reason_msg = (
 S023_ghost_msg = (
     "S023 {}={!r} names no field on this class; it omits nothing and should be deleted."
 )
+S023_bad_path_msg = (
+    "S023 {}={!r} is not a usable path. Write 'field' or 'field.choice', "
+    "with no leading, trailing or doubled dots."
+)
 
 S024_msg = (
     "S024 This module discovers .py files and parses them with ast, which is a "
@@ -154,6 +158,11 @@ S024_stale_msg = (
 S024_safelist = frozenset(("tools/migrations/squash.py",))
 
 _S024_discovery_methods = frozenset(("rglob", "glob", "iglob"))
+
+S029_msg = (
+    "S029 Seer connection pools must use make_signed_seer_api_request; "
+    "raw urlopen bypasses ViewerContext propagation"
+)
 
 
 # Rules whose diagnostics are fatal. Empty ships every rule off; adding one
@@ -400,6 +409,23 @@ def _name_of(node: ast.expr) -> str:
     if isinstance(node, ast.Subscript):
         return f"{_name_of(node.value)}[{_name_of(node.slice)}]"
     return ast.unparse(node)
+
+
+def _is_seer_connection_pool_call(node: ast.expr) -> bool:
+    if not isinstance(node, ast.Call):
+        return False
+    if _name_of(node.func).rsplit(".", 1)[-1] != "connection_from_url":
+        return False
+
+    for argument in [*node.args, *(keyword.value for keyword in node.keywords)]:
+        for child in ast.walk(argument):
+            if (
+                isinstance(child, ast.Attribute)
+                and child.attr.startswith("SEER_")
+                and child.attr.endswith("_URL")
+            ):
+                return True
+    return False
 
 
 def _is_response_subscript(node: ast.expr) -> ast.expr | None:
@@ -686,6 +712,9 @@ class SentryVisitor(ast.NodeVisitor):
         # S024: a hand-rolled linter both finds .py files and parses them.
         self._s024_discovers_py = False
         self._s024_parses: tuple[int, int] | None = None
+        # S029: pools created from SEER_*_URL must not make raw requests.
+        self._s029_seer_pool_names: set[str] = set()
+        self._s029_urlopen_calls: list[tuple[int, int, str]] = []
         # Module-level classes, indexed as encountered. A base is always defined
         # before its subclass at module level, so in-order indexing suffices.
         self._module_classes: dict[str, ast.ClassDef] = {}
@@ -880,6 +909,10 @@ class SentryVisitor(ast.NodeVisitor):
             self._function_depth -= 1
 
     def visit_Assign(self, node: ast.Assign) -> None:
+        if _is_seer_connection_pool_call(node.value):
+            for target in node.targets:
+                if isinstance(target, ast.Name):
+                    self._s029_seer_pool_names.add(target.id)
         if self._input_stack:
             ctx = self._input_stack[-1]
             for target in node.targets:
@@ -953,31 +986,36 @@ class SentryVisitor(ast.NodeVisitor):
                                     S023_ghost_msg.format("exclude_fields", field),
                                 )
                             )
-                elif kw.arg == "omit_from_public_schema":
-                    if not isinstance(kw.value, ast.Dict):
-                        self.errors.append((dec.lineno, dec.col_offset, S023_not_mapping_msg))
-                        continue
-                    for k, v in zip(kw.value.keys, kw.value.values):
-                        if not isinstance(k, ast.Constant) or not isinstance(k.value, str):
-                            continue
-                        field = k.value
-                        reason = _joined_str(v)
-                        if reason is not None and not reason.strip():
-                            self.errors.append(
-                                (
-                                    dec.lineno,
-                                    dec.col_offset,
-                                    S023_blank_reason_msg.format(field),
-                                )
-                            )
-                        if not open_class and field not in fields:
-                            self.errors.append(
-                                (
-                                    dec.lineno,
-                                    dec.col_offset,
-                                    S023_ghost_msg.format("omit_from_public_schema", field),
-                                )
-                            )
+                elif kw.arg in ("omit_from_public_schema", "deprecate"):
+                    self._check_paths(dec, kw, fields, open_class)
+
+    def _check_paths(
+        self, dec: ast.Call, kw: ast.keyword, fields: set[str], open_class: bool
+    ) -> None:
+        """Reasons and grammar for a {path: reason} mapping.
+
+        Only the first segment is a field here; the schema build resolves the rest."""
+        if not isinstance(kw.value, ast.Dict):
+            self.errors.append((dec.lineno, dec.col_offset, S023_not_mapping_msg))
+            return
+        assert kw.arg is not None
+        for k, v in zip(kw.value.keys, kw.value.values):
+            if not isinstance(k, ast.Constant) or not isinstance(k.value, str):
+                continue
+            path = k.value
+            segments = path.split(".")
+            if any(not segment.strip() for segment in segments):
+                self.errors.append(
+                    (dec.lineno, dec.col_offset, S023_bad_path_msg.format(kw.arg, path))
+                )
+                continue
+            reason = _joined_str(v)
+            if reason is not None and not reason.strip():
+                self.errors.append((dec.lineno, dec.col_offset, S023_blank_reason_msg.format(path)))
+            if not open_class and segments[0] not in fields:
+                self.errors.append(
+                    (dec.lineno, dec.col_offset, S023_ghost_msg.format(kw.arg, segments[0]))
+                )
 
     def _s024_visit_call(self, node: ast.Call) -> None:
         func = node.func
@@ -1082,6 +1120,10 @@ class SentryVisitor(ast.NodeVisitor):
 
     def visit_Call(self, node: ast.Call) -> None:
         self._s024_visit_call(node)
+        if isinstance(node.func, ast.Attribute) and node.func.attr == "urlopen":
+            self._s029_urlopen_calls.append(
+                (node.lineno, node.col_offset, _name_of(node.func.value))
+            )
         if self._input_stack:
             self._record_validator(node)
             self._record_input_call(node)
@@ -1158,6 +1200,7 @@ class SentryCheck:
         visitor.visit(self.tree)
 
         yield from self._s024(visitor)
+        yield from self._s029(visitor)
 
         for e in visitor.errors:
             yield (*e, type(self))
@@ -1173,3 +1216,8 @@ class SentryCheck:
             assert visitor._s024_parses is not None
             line, col = visitor._s024_parses
             yield (line, col, S024_msg, type(self))
+
+    def _s029(self, visitor: SentryVisitor) -> Generator[tuple[int, int, str, type[Any]]]:
+        for line, col, receiver in visitor._s029_urlopen_calls:
+            if receiver in visitor._s029_seer_pool_names:
+                yield (line, col, S029_msg, type(self))

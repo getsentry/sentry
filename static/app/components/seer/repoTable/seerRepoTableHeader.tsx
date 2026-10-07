@@ -72,8 +72,11 @@ export function SeerRepoTableHeader({
   const listItemCheckboxState = useListItemCheckboxContext();
   const {countSelected, endpointOptionsRef, selectAll, selectedIds, knownIds} =
     listItemCheckboxState;
+  // oxlint-disable-next-line react/refs
   const endpointOptions = endpointOptionsRef.current;
+  // oxlint-disable-next-line react/refs
   const rawQuery = endpointOptions?.query?.query;
+  // oxlint-disable-next-line react/refs
   const queryString = typeof rawQuery === 'string' ? rawQuery : undefined;
 
   const selectedRepos = useMemo(() => {
@@ -341,9 +344,11 @@ export function SeerRepoTableHeader({
             <Flex justify="start" width="100%" wrap="wrap" gap="md">
               {tn('Selected %s repository.', 'Selected %s repositories.', countSelected)}
               <a onClick={selectAll}>
+                {/* oxlint-disable-next-line react/refs */}
                 {queryString
                   ? tct('Select all [count] repositories that match: [queryString].', {
                       count: listItemCheckboxState.hits,
+                      // oxlint-disable-next-line react/refs
                       queryString: <var>{queryString}</var>,
                     })
                   : t('Select all %s repositories.', listItemCheckboxState.hits)}
@@ -356,9 +361,11 @@ export function SeerRepoTableHeader({
       <ListItemSelectedState selected="all">
         <SimpleTable.FullWidthRow>
           <Alert variant="info" system>
+            {/* oxlint-disable-next-line react/refs */}
             {queryString
               ? tct('Selected all [count] repositories matching: [queryString].', {
                   count: countSelected,
+                  // oxlint-disable-next-line react/refs
                   queryString: <var>{queryString}</var>,
                 })
               : countSelected > knownIds.length

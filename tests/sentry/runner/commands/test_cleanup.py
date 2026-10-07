@@ -28,13 +28,13 @@ from sentry.runner.commands.cleanup import (
     run_bulk_query_deletes,
     task_execution,
 )
-from sentry.seer.models.night_shift import (
-    SeerNightShiftRun,
-    SeerNightShiftRunResult,
-    SeerNightShiftRunShard,
-)
+from sentry.seer.models.agentic_triage import SeerAgenticTriageRunResult
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunPullRequest
-from sentry.seer.models.workflow import SeerWorkflowStrategy
+from sentry.seer.models.workflow import (
+    SeerWorkflowRun,
+    SeerWorkflowRunExecution,
+    SeerWorkflowStrategy,
+)
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
@@ -48,11 +48,11 @@ class SynchronousTaskQueue:
 
     def __init__(self) -> None:
         # You can use this to inspect the calls to the queue.
-        self.put_calls: list[tuple[str, tuple[int, ...], int | None]] = []
+        self.put_calls: list[tuple[str, tuple[int, ...], int | None, dict[str, Any]]] = []
 
-    def put(self, item: tuple[str, tuple[int, ...], int | None]) -> None:
+    def put(self, item: tuple[str, tuple[int, ...], int | None, dict[str, Any]]) -> None:
         self.put_calls.append(item)
-        task_execution(item[0], item[1], item[2])
+        task_execution(*item)
 
     def join(self) -> None:
         pass
@@ -195,9 +195,10 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
         # Verify we deleted all expected groups (order may vary due to non-unique last_seen)
         all_deleted_ids: set[int] = set()
         for call in task_queue.put_calls:
-            model_name, chunk_ids, call_project_id = call
+            model_name, chunk_ids, call_project_id, deferred_filter = call
             assert model_name == "sentry.models.group.Group"
             assert call_project_id == project.id
+            assert deferred_filter == {}
             all_deleted_ids.update(chunk_ids)
         assert all_deleted_ids == set(ids)
 
@@ -242,8 +243,9 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
         # Verify each call has the correct project_id
         project_ids_seen: set[int] = set()
         for call in group_calls:
-            model_name, chunk_ids, call_project_id = call
+            model_name, chunk_ids, call_project_id, deferred_filter = call
             assert call_project_id is not None
+            assert deferred_filter == {}
             project_ids_seen.add(call_project_id)
 
         # Should have seen both projects
@@ -369,14 +371,14 @@ class SeerRunCleanupTest(TestCase):
         assert not SeerRunPullRequest.objects.filter(id=link.id).exists()
 
     @assume_test_silo_mode(SiloMode.CELL)
-    def test_night_shift_links_survive_with_null_seer_run(self) -> None:
+    def test_agentic_triage_links_survive_with_null_seer_run(self) -> None:
         run = self.create_seer_run(
             organization=self.organization, last_triggered_at=before_now(days=31)
         )
-        night_shift_run = SeerNightShiftRun.objects.create(organization=self.organization)
-        shard = SeerNightShiftRunShard.objects.create(run=night_shift_run, seer_run=run)
-        result = SeerNightShiftRunResult.objects.create(
-            run=night_shift_run,
+        agentic_triage_run = SeerWorkflowRun.objects.create(organization=self.organization)
+        shard = SeerWorkflowRunExecution.objects.create(run=agentic_triage_run, seer_run=run)
+        result = SeerAgenticTriageRunResult.objects.create(
+            run=agentic_triage_run,
             kind=SeerWorkflowStrategy.AGENTIC_TRIAGE,
             result_seer_run=run,
         )

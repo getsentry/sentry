@@ -70,6 +70,36 @@ describe('sanitizePath', () => {
         '/organizations/{orgSlug}/tags/{tagName}/values/',
       ],
 
+      [
+        // OrganizationSeerAgentChatEndpoint
+        '/organizations/sentry/seer/explorer-chat/12345678/',
+        '/organizations/{orgSlug}/seer/explorer-chat/{runId}/',
+      ],
+
+      [
+        // OrganizationSeerAgentChatEndpoint
+        '/organizations/sentry/seer/explorer-chat/',
+        '/organizations/{orgSlug}/seer/explorer-chat/',
+      ],
+
+      [
+        // OrganizationUserDetailsEndpoint
+        '/organizations/sentry/users/123456/',
+        '/organizations/{orgSlug}/users/{userId}/',
+      ],
+
+      [
+        // ShortIdLookupEndpoint
+        '/organizations/sentry/shortids/JAVASCRIPT-1A2B/',
+        '/organizations/{orgSlug}/shortids/{shortId}/',
+      ],
+
+      [
+        // OrganizationTraceItemAttributesEndpoint
+        '/organizations/sentry/trace-items/attributes/',
+        '/organizations/{orgSlug}/trace-items/attributes/',
+      ],
+
       // /projects/ endpoints
       [
         // ProjectAlertRuleDetailsEndpoint
@@ -99,6 +129,18 @@ describe('sanitizePath', () => {
         // ProjectTeamDetailsEndpoint
         '/projects/sentry/javascript/teams/search-and-storage/',
         '/projects/{orgSlug}/{projectSlug}/teams/{teamSlug}/',
+      ],
+
+      [
+        // ProjectTraceItemDetailsEndpoint
+        '/projects/sentry/javascript/trace-items/0123456789abcdef/',
+        '/projects/{orgSlug}/{projectSlug}/trace-items/{itemId}/',
+      ],
+
+      [
+        // ProjectProfilingProfileEndpoint
+        '/projects/sentry/javascript/profiling/profiles/11a21f2012e12b31c2012a09d08a2013/',
+        '/projects/{orgSlug}/{projectSlug}/profiling/profiles/{profileId}/',
       ],
 
       [
@@ -161,6 +203,25 @@ describe('sanitizePath', () => {
         // GroupExternalIssuesEndpoint
         '/groups/11211231/external-issues/',
         '/groups/{groupId}/external-issues/',
+      ],
+
+      // users endpoints
+      [
+        // UserEmailsEndpoint
+        '/users/me/emails/',
+        '/users/{userId}/emails/',
+      ],
+
+      [
+        // SetupWizard
+        '/wizard/abc123def456ghi789jkl012mno345pqr678stu901vwx234yz567abc890def1/',
+        '/wizard/{wizardHash}/',
+      ],
+
+      [
+        // SetupWizard
+        '/wizard/',
+        '/wizard/',
       ],
 
       [

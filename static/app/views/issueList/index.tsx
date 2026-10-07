@@ -65,6 +65,7 @@ function useHydrateIssueViewQueryParams({view}: {view: GroupSearchView | undefin
         {replace: true}
       );
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [view, previousViewData, navigate, organization.slug]);
 }
 
@@ -116,7 +117,7 @@ export function IssueListContainer({children, title = t('Issues')}: Props) {
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
       <AnalyticsArea name="issue_list">
-        <AiQueryProvider>
+        <AiQueryProvider strategy="Issues">
           <IssueViewWrapper>{children}</IssueViewWrapper>
         </AiQueryProvider>
       </AnalyticsArea>

@@ -16,6 +16,7 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {SentryApp} from 'sentry/types/integrations';
+import type {Organization} from 'sentry/types/organization';
 import {
   platformEventLinkMap,
   PlatformEvents,
@@ -35,6 +36,43 @@ const TAB_LABELS: Record<Tab, string> = {
   internal: t('Internal Integration'),
   public: t('Public Integration'),
 };
+
+function IntegrationPanel({
+  applications,
+  emptyMessage,
+  onPublishSubmission,
+  onRemoveApp,
+  organization,
+  title,
+}: {
+  applications: SentryApp[];
+  emptyMessage: string;
+  onPublishSubmission: () => void;
+  onRemoveApp: (app: SentryApp) => void;
+  organization: Organization;
+  title: string;
+}) {
+  return (
+    <Panel>
+      <PanelHeader>{title}</PanelHeader>
+      <PanelBody>
+        {applications.length === 0 ? (
+          <EmptyMessage>{emptyMessage}</EmptyMessage>
+        ) : (
+          applications.map(app => (
+            <SentryApplicationRow
+              key={app.uuid}
+              app={app}
+              organization={organization}
+              onRemoveApp={onRemoveApp}
+              onPublishSubmission={onPublishSubmission}
+            />
+          ))
+        )}
+      </PanelBody>
+    </Panel>
+  );
+}
 
 function OrganizationDeveloperSettings() {
   const location = useLocation();
@@ -75,75 +113,16 @@ function OrganizationDeveloperSettings() {
     );
   };
 
-  const renderApplicationRow = (app: SentryApp) => {
-    return (
-      <SentryApplicationRow
-        key={app.uuid}
-        app={app}
-        organization={organization}
-        onRemoveApp={removeApp}
-        onPublishSubmission={refetch}
-      />
-    );
-  };
-
-  const renderInternalIntegrations = () => {
-    const integrations = applications.filter(
-      (app: SentryApp) => app.status === 'internal'
-    );
-    const isEmpty = integrations.length === 0;
-
-    return (
-      <Panel>
-        <PanelHeader>{t('Internal Integrations')}</PanelHeader>
-        <PanelBody>
-          {isEmpty ? (
-            <EmptyMessage>
-              {t('No internal integrations have been created yet.')}
-            </EmptyMessage>
-          ) : (
-            integrations.map(renderApplicationRow)
-          )}
-        </PanelBody>
-      </Panel>
-    );
-  };
-
-  const renderPublicIntegrations = () => {
-    const integrations = applications.filter(app => app.status !== 'internal');
-    const isEmpty = integrations.length === 0;
-
-    return (
-      <Panel>
-        <PanelHeader>{t('Public Integrations')}</PanelHeader>
-        <PanelBody>
-          {isEmpty ? (
-            <EmptyMessage>
-              {t('No public integrations have been created yet.')}
-            </EmptyMessage>
-          ) : (
-            integrations.map(renderApplicationRow)
-          )}
-        </PanelBody>
-      </Panel>
-    );
-  };
-
-  const renderTabContent = () => {
-    switch (tab) {
-      case 'internal':
-        return renderInternalIntegrations();
-      case 'public':
-      default:
-        return renderPublicIntegrations();
-    }
-  };
-
   const inlineActions = (
     <Flex gap="md">
       <ExampleIntegrationButton analyticsView={analyticsView} size="md" />
       <CreateIntegrationButton analyticsView={analyticsView} size="md" />
     </Flex>
+  );
+
+  const isInternalTab = tab === 'internal';
+  const integrations = applications.filter(app =>
+    isInternalTab ? app.status === 'internal' : app.status !== 'internal'
   );
 
   return (
@@ -185,7 +164,18 @@ function OrganizationDeveloperSettings() {
           {inlineActions}
         </Flex>
       </TabsContainer>
-      {renderTabContent()}
+      <IntegrationPanel
+        applications={integrations}
+        emptyMessage={
+          isInternalTab
+            ? t('No internal integrations have been created yet.')
+            : t('No public integrations have been created yet.')
+        }
+        onPublishSubmission={refetch}
+        onRemoveApp={removeApp}
+        organization={organization}
+        title={isInternalTab ? t('Internal Integrations') : t('Public Integrations')}
+      />
     </div>
   );
 }

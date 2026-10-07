@@ -13,7 +13,7 @@ import {parseAsString, useQueryStates} from 'nuqs';
 import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/useTopEvents';
+import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/topEventsConstants';
 import type {
   AggregateField,
   WritableAggregateField,
@@ -31,7 +31,10 @@ import {
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
-import {isConditionalAggregateYAxisValid} from 'sentry/views/explore/utils/conditionalAggregate';
+import {
+  areConditionalAggregateFiltersInExpressionValid,
+  isConditionalAggregateYAxisValid,
+} from 'sentry/views/explore/utils/conditionalAggregate';
 
 interface QueryParamsContextValue {
   managedFields: Set<string>;
@@ -280,7 +283,10 @@ export function useQueryParamsAggregateFields(
           return true;
         }
         if (isVisualizeEquation(aggregateField)) {
-          return aggregateField.expression.isValid;
+          return (
+            aggregateField.expression.isValid &&
+            areConditionalAggregateFiltersInExpressionValid(aggregateField.yAxis)
+          );
         }
         // Drop series whose `_if` filter is invalid (e.g. aggregates as keys) so
         // timeseries / table queries never send them to the backend.
@@ -315,7 +321,10 @@ export function useQueryParamsVisualizes(
     if (validate) {
       return queryParams.visualizes.filter(visualize => {
         if (isVisualizeEquation(visualize)) {
-          return visualize.expression.isValid;
+          return (
+            visualize.expression.isValid &&
+            areConditionalAggregateFiltersInExpressionValid(visualize.yAxis)
+          );
         }
         // Same as aggregateFields: skip series with an invalid `_if` filter.
         return isConditionalAggregateYAxisValid(visualize.yAxis);

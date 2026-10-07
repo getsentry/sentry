@@ -35,7 +35,6 @@ export const automationsApiOptions = (
     detector?: string[];
     ids?: string[];
     limit?: number;
-    priorityDetector?: string;
     projects?: number[];
     query?: string;
     sortBy?: string;
@@ -45,7 +44,6 @@ export const automationsApiOptions = (
     ? {
         query: options.query,
         sortBy: options.sortBy,
-        priorityDetector: options.priorityDetector,
         id: options.ids,
         per_page: options.limit,
         cursor: options.cursor,
@@ -241,7 +239,9 @@ export function useDeleteAutomationsMutation() {
   });
 }
 
-export function useUpdateAutomation() {
+export function useUpdateAutomation({
+  suppressErrorMessage = false,
+}: {suppressErrorMessage?: boolean} = {}) {
   const org = useOrganization();
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
@@ -278,6 +278,9 @@ export function useUpdateAutomation() {
       });
     },
     onError: error => {
+      if (suppressErrorMessage) {
+        return;
+      }
       addErrorMessage(
         getWorkflowEngineResponseErrorMessage(error.responseJSON) ??
           t('Unable to update alert')

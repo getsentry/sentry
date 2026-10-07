@@ -1,6 +1,7 @@
 import {screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {renderEmbed} from './resourceEmbedTestUtils';
+import {renderEmbed, renderEmbedMarkdown} from './resourceEmbedTestUtils';
+import {TraceWaterfall} from './traceWaterfall';
 
 describe('traceWaterfall embed', () => {
   const traceId = 'a1b2c3d4e5f678901234567890abcdef';
@@ -14,19 +15,19 @@ describe('traceWaterfall embed', () => {
 
   function mockTraceRequests() {
     const traceRequest = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events-trace/${traceId}/`,
-      body: {transactions: [], orphan_errors: []},
+      url: `/organizations/org-slug/trace/${traceId}/`,
+      body: [],
     });
     const metaRequest = MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/events-trace-meta/${traceId}/`,
+      url: `/organizations/org-slug/trace-meta/${traceId}/`,
       body: {
-        errors: 0,
-        performance_issues: 0,
-        projects: 0,
-        transactions: 0,
-        transaction_child_count_map: [],
-        span_count: 0,
-        span_count_map: {},
+        errorsCount: 0,
+        logsCount: 0,
+        metricsCount: 0,
+        performanceIssuesCount: 0,
+        spansCount: 0,
+        spansCountMap: {},
+        uptimeCount: 0,
       },
     });
 
@@ -131,5 +132,17 @@ describe('traceWaterfall embed', () => {
     expect(
       await screen.findByPlaceholderText('Search in trace', {}, {timeout: 10_000})
     ).toHaveValue('');
+  });
+});
+
+describe('traceWaterfall embed at the markdown level', () => {
+  it('falls back to the trace link, since a span tree has no text form', () => {
+    const markdown = renderEmbedMarkdown(TraceWaterfall, 'traceWaterfall', {
+      traceId: 'a1b2c3d4e5f678901234567890abcdef',
+      timestamp: '2026-08-25T16:37:12Z',
+    });
+
+    expect(markdown).toContain('[Trace a1b2c3d4]');
+    expect(markdown).toContain('/traces/trace/a1b2c3d4e5f678901234567890abcdef/');
   });
 });

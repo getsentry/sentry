@@ -1,11 +1,14 @@
 import type {
   ChangeEventHandler,
   ClipboardEvent,
+  FocusEvent,
   FocusEventHandler,
+  KeyboardEventHandler,
   MouseEventHandler,
   Ref,
 } from 'react';
 import {useCallback, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
+import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import type {AriaComboBoxProps} from '@react-aria/combobox';
 import {mergeRefs} from '@react-aria/utils';
@@ -22,11 +25,17 @@ import {
   itemIsSectionWithKey,
   ListBox,
 } from '@sentry/scraps/compactSelect';
-import {Input, useAutosizeInput} from '@sentry/scraps/input';
+import {useAutosizeInput} from '@sentry/scraps/input';
 import {Flex} from '@sentry/scraps/layout';
 
 import {Overlay} from 'sentry/components/overlay';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
+import {
+  isQueryBuilderPanelChrome,
+  useComboBoxLayout,
+  withPanelOverlayProps,
+} from 'sentry/components/tokenizedInput/token/comboBoxLayout';
+import {UnstyledInput} from 'sentry/components/tokenizedInput/token/unstyledInput';
 import {useOverlay} from 'sentry/utils/useOverlay';
 
 interface ComboBoxProps {
@@ -36,12 +45,23 @@ interface ComboBoxProps {
   inputValue: string;
   items: Array<SelectOptionOrSectionWithKey<string>>;
   ['data-test-id']?: string;
+  /**
+   * Keep the suggestion menu open after selecting an option. Useful when the
+   * user still needs to pick a follow-up value (e.g. filter key → filter value).
+   */
+  keepMenuOpenOnSelect?: boolean | ((option: SelectOptionWithKey<string>) => boolean);
   onClick?: MouseEventHandler<HTMLInputElement>;
-  onInputBlur?: () => void;
+  onInputBlur?: (evt?: FocusEvent<HTMLInputElement>) => void;
   onInputChange?: ChangeEventHandler<HTMLInputElement>;
   onInputCommit?: (value: string) => void;
   onInputEscape?: () => void;
   onInputFocus?: FocusEventHandler<HTMLInputElement>;
+  /**
+   * Native keyup on the input. Callers that need the caret after arrow-key
+   * movement (e.g. equation filter autocomplete) should use this rather than
+   * onKeyDown, which fires before the browser updates selection.
+   */
+  onInputKeyUp?: KeyboardEventHandler<HTMLInputElement>;
   onKeyDown?: (evt: KeyboardEvent) => void;
   onKeyDownCapture?: (evt: React.KeyboardEvent<HTMLInputElement>) => void;
   onOpenChange?: (newOpenState: boolean) => void;
@@ -54,6 +74,10 @@ interface ComboBoxProps {
    * other elements.
    */
   shouldCloseOnInteractOutside?: (interactedElement: Element) => boolean;
+  /**
+   * When false, all items from `items` are shown and filtering is left to the caller.
+   */
+  shouldFilterResults?: boolean;
   tabIndex?: number;
 }
 
@@ -110,17 +134,64 @@ export function ComboBox({
   placeholder,
   tabIndex,
   ref,
+  keepMenuOpenOnSelect,
+  onInputKeyUp,
+  shouldFilterResults = true,
 }: ComboBoxProps) {
+  const {menuPresentation, panelRef, portalTarget} = useComboBoxLayout();
   const inputRef = useRef<HTMLInputElement>(null);
   const listBoxRef = useRef<HTMLUListElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
+  const openMenuRef = useRef<(() => void) | null>(null);
+  const closeMenuRef = useRef<(() => void) | null>(null);
+  const suppressAutoOpenRef = useRef(false);
 
   const {hiddenOptions, disabledKeys} = useHiddenItems({
     items,
     filterValue,
     maxOptions: 50,
-    shouldFilterResults: true,
+    shouldFilterResults,
   });
+
+  const hasVisibleItems = items.some(item => {
+    if (itemIsSectionWithKey(item)) {
+      return item.options.some(option => !hiddenOptions.has(option.key));
+    }
+    return !hiddenOptions.has(item.key);
+  });
+
+  const shouldKeepMenuOpenOnSelect = useCallback(
+    (option: SelectOptionWithKey<string>) => {
+      if (typeof keepMenuOpenOnSelect === 'function') {
+        return keepMenuOpenOnSelect(option);
+      }
+      return keepMenuOpenOnSelect ?? false;
+    },
+    [keepMenuOpenOnSelect]
+  );
+
+  const applyOptionSelection = useCallback(
+    (option: SelectOptionWithKey<string>) => {
+      onOptionSelected?.(option);
+      if (shouldKeepMenuOpenOnSelect(option)) {
+        openMenuRef.current?.();
+        return;
+      }
+      if (keepMenuOpenOnSelect === undefined) {
+        return;
+      }
+      // Selecting closes the menu and briefly suppresses auto-open so focus/click
+      // returning to the input does not immediately reopen it.
+      suppressAutoOpenRef.current = true;
+      requestAnimationFrame(() => {
+        closeMenuRef.current?.();
+        requestAnimationFrame(() => {
+          suppressAutoOpenRef.current = false;
+        });
+      });
+    },
+    [keepMenuOpenOnSelect, onOptionSelected, shouldKeepMenuOpenOnSelect]
+  );
 
   const handleValueChange = useCallback(
     (key: Key | null) => {
@@ -132,18 +203,16 @@ export function ComboBox({
         if (itemIsSectionWithKey(item)) {
           const option = item.options.find(child => child.key === key);
           if (option) {
-            onOptionSelected?.(option);
+            applyOptionSelection(option);
             break;
           }
-        } else {
-          if (item.key === key) {
-            onOptionSelected?.(item);
-            break;
-          }
+        } else if (item.key === key) {
+          applyOptionSelection(item);
+          break;
         }
       }
     },
-    [items, onOptionSelected]
+    [applyOptionSelection, items]
   );
 
   const comboBoxProps: Partial<AriaComboBoxProps<SelectOptionOrSectionWithKey<string>>> =
@@ -166,10 +235,35 @@ export function ComboBox({
     shouldCloseOnBlur: false,
     ...comboBoxProps,
   });
+  // oxlint-disable-next-line react/refs
+  openMenuRef.current = () => state.open();
+  // oxlint-disable-next-line react/refs
+  closeMenuRef.current = () => state.close();
+
+  const handleShouldCloseOnInteractOutside = useCallback(
+    (el: Element) => {
+      if (popoverRef.current?.contains(el)) {
+        return false;
+      }
+
+      if (
+        menuPresentation === 'panel' &&
+        isQueryBuilderPanelChrome(el, panelRef.current, portalTarget)
+      ) {
+        return false;
+      }
+
+      return shouldCloseOnInteractOutside?.(el) ?? true;
+    },
+    [menuPresentation, panelRef, portalTarget, shouldCloseOnInteractOutside]
+  );
 
   const handleComboBoxFocus: FocusEventHandler<HTMLInputElement> = useCallback(
     evt => {
       onInputFocus?.(evt);
+      if (suppressAutoOpenRef.current) {
+        return;
+      }
       state.open();
     },
     [onInputFocus, state]
@@ -177,22 +271,21 @@ export function ComboBox({
 
   const handleComboBoxBlur: FocusEventHandler<HTMLInputElement> = useCallback(
     evt => {
-      if (evt.relatedTarget && !shouldCloseOnInteractOutside?.(evt.relatedTarget)) {
+      if (
+        evt.relatedTarget instanceof Element &&
+        !handleShouldCloseOnInteractOutside(evt.relatedTarget)
+      ) {
         return;
       }
-      onInputBlur?.();
+      onInputBlur?.(evt);
       state.close();
     },
-    [onInputBlur, shouldCloseOnInteractOutside, state]
-  );
-
-  const totalOptions = items.reduce(
-    (acc, item) => acc + (itemIsSectionWithKey(item) ? item.options.length : 1),
-    0
+    [handleShouldCloseOnInteractOutside, onInputBlur, state]
   );
 
   // Showing the overlay with nothing to select renders as an empty grey bar
-  const isOpen = state.isOpen && totalOptions > hiddenOptions.size;
+  const isOpen = state.isOpen && hasVisibleItems;
+  const isMenuVisible = isOpen;
 
   const handleComboBoxKeyDown = useCallback(
     (evt: KeyboardEvent) => {
@@ -240,24 +333,13 @@ export function ComboBox({
     onOpenChange?.(isOpen);
   }, [onOpenChange, isOpen]);
 
-  const handleShouldCloseOnInteractOutside = useCallback(
-    (el: Element) => {
-      if (popoverRef.current?.contains(el)) {
-        return false;
-      }
-
-      return shouldCloseOnInteractOutside?.(el) ?? true;
-    },
-    [shouldCloseOnInteractOutside]
-  );
-
   const handleOnInteractOutside = useCallback(() => {
     onInputBlur?.();
     state.close();
   }, [onInputBlur, state]);
 
   const {
-    overlayProps,
+    overlayProps: positionedOverlayProps,
     triggerProps,
     update: updateOverlayPosition,
   } = useOverlay({
@@ -282,9 +364,20 @@ export function ComboBox({
       evt.stopPropagation();
       inputProps.onClick?.(evt);
       onClick?.(evt);
+      if (suppressAutoOpenRef.current) {
+        return;
+      }
       state.open();
     },
     [inputProps, state, onClick]
+  );
+
+  const handleInputKeyUp: KeyboardEventHandler<HTMLInputElement> = useCallback(
+    evt => {
+      inputProps.onKeyUp?.(evt);
+      onInputKeyUp?.(evt);
+    },
+    [inputProps, onInputKeyUp]
   );
 
   useUpdateOverlayPositionOnContentChange({
@@ -295,10 +388,40 @@ export function ComboBox({
 
   const autosizeInputRef = useAutosizeInput({value: inputValue});
 
+  const overlayProps = withPanelOverlayProps(positionedOverlayProps, menuPresentation);
+
+  const overlay = (
+    <StyledPositionWrapper
+      {...overlayProps}
+      hidden={!isMenuVisible}
+      visible={isMenuVisible}
+      style={{
+        ...overlayProps.style,
+        display: isMenuVisible ? overlayProps.style?.display : 'none',
+      }}
+    >
+      <ListBoxOverlay ref={popoverRef} fullWidth={menuPresentation === 'panel'}>
+        <ListBox
+          {...listBoxProps}
+          ref={listBoxRef}
+          listState={state}
+          hasSearch={!!filterValue}
+          hiddenOptions={hiddenOptions}
+          overlayIsOpen={isMenuVisible}
+          size="sm"
+        />
+      </ListBoxOverlay>
+    </StyledPositionWrapper>
+  );
+
   return (
     <Flex align="stretch" width="100%" height="100%" position="relative">
       <UnstyledInput
         {...inputProps}
+        // Reflect the visible popup, not React Aria's open state alone. ComboBox opens
+        // on focus even when there are no options, and callers (e.g. expandable equation
+        // bars) use aria-expanded to decide whether Enter should dismiss.
+        aria-expanded={isMenuVisible}
         size="md"
         ref={mergeRefs(
           ref,
@@ -315,21 +438,10 @@ export function ComboBox({
         onPaste={onPaste}
         disabled={false}
         onKeyDownCapture={onKeyDownCapture}
+        onKeyUp={handleInputKeyUp}
         data-test-id={dataTestId}
       />
-      <StyledPositionWrapper {...overlayProps} visible={isOpen}>
-        <ListBoxOverlay ref={popoverRef}>
-          <ListBox
-            {...listBoxProps}
-            ref={listBoxRef}
-            listState={state}
-            hasSearch={!!filterValue}
-            hiddenOptions={hiddenOptions}
-            overlayIsOpen={isOpen}
-            size="sm"
-          />
-        </ListBoxOverlay>
-      </StyledPositionWrapper>
+      {isMenuVisible && portalTarget ? createPortal(overlay, portalTarget) : overlay}
     </Flex>
   );
 }
@@ -351,7 +463,9 @@ function useUpdateOverlayPositionOnContentChange({
   // Keep a ref to the updateOverlayPosition function so that we can
   // access the latest value in the resize observer callback.
   const updateOverlayPositionRef = useRef(updateOverlayPosition);
+  // oxlint-disable-next-line react/refs
   if (updateOverlayPositionRef.current !== updateOverlayPosition) {
+    // oxlint-disable-next-line react/refs
     updateOverlayPositionRef.current = updateOverlayPosition;
   }
 
@@ -379,37 +493,22 @@ function useUpdateOverlayPositionOnContentChange({
     return () => {
       resizeObserverRef.current?.disconnect();
     };
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [contentRef, isOpen, updateOverlayPosition]);
 }
-
-const UnstyledInput = styled(Input)`
-  background: transparent;
-  border: none;
-  box-shadow: none;
-  flex-grow: 1;
-  padding: 0;
-  height: auto;
-  min-height: auto;
-  resize: none;
-  min-width: 1px;
-  border-radius: 0;
-
-  &:focus {
-    outline: none;
-    border: none;
-    box-shadow: none;
-  }
-`;
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
   display: ${p => (p.visible ? 'block' : 'none')};
   z-index: ${p => p.theme.zIndex.tooltip};
 `;
 
-const ListBoxOverlay = styled(Overlay)`
+const ListBoxOverlay = styled(Overlay, {
+  shouldForwardProp: prop => prop !== 'fullWidth',
+})<{fullWidth?: boolean}>`
   max-height: 400px;
-  min-width: 200px;
-  width: 600px;
-  max-width: min-content;
+  min-width: ${p => (p.fullWidth ? 0 : '200px')};
+  width: ${p => (p.fullWidth ? '100%' : '600px')};
+  max-width: ${p => (p.fullWidth ? '100%' : 'min-content')};
   overflow-y: auto;
+  text-align: left;
 `;

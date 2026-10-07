@@ -7,6 +7,7 @@ import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {AnsiText} from 'sentry/components/ansiText';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {
@@ -20,6 +21,7 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -27,6 +29,7 @@ import {useNewIssuePriorityAndAssigneeUI} from 'sentry/utils/useNewIssuePriority
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
+import {makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
 import {IssueDetailsContextProvider, SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {
@@ -45,9 +48,9 @@ import {
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
 import {
-  IssuePreviewActions,
+  IssuePreviewHeaderActions,
   OpenIssueButton,
-} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewActions';
+} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewHeaderActions';
 import {IssuePreviewSection} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSection';
 import {
   IssuePreviewSeerContent,
@@ -153,7 +156,7 @@ function IssuePreviewContent() {
   const {group, project} = useGroupData();
   const previewSeer = useIssuePreviewSeer();
   const linkedPullRequests = useLinkedPullRequests({group});
-  const {title: primaryTitle} = getTitle(group);
+  const {title: primaryTitle = ''} = getTitle(group);
   const secondaryTitle = getMessage(group);
   const disableActions = [
     ReprocessingStatus.REPROCESSING,
@@ -168,15 +171,15 @@ function IssuePreviewContent() {
     pathname: issueDetailsUrl,
     query: {referrer: 'inbox'},
   };
-  function openSeerDrawer(seerDrawerAction?: string) {
-    navigate({
-      pathname: issueDetailsUrl,
-      query: {
-        ...issueDetailsLocation.query,
-        seerDrawer: 'true',
-        seerDrawerAction,
-      },
-    });
+  function openSeer(action?: string) {
+    navigate(
+      makeSeerLocation({
+        organization,
+        groupId: group.id,
+        action,
+        query: issueDetailsLocation.query,
+      })
+    );
   }
 
   return (
@@ -186,7 +189,12 @@ function IssuePreviewContent() {
           <Container>
             <Flex align="center" justify="between" gap="md">
               <Flex align="center" gap="md" minWidth={0}>
-                <Tooltip title={primaryTitle} skipWrapper showOnlyOnOverflow delay={1000}>
+                <Tooltip
+                  title={stripAnsi(primaryTitle)}
+                  skipWrapper
+                  showOnlyOnOverflow
+                  delay={1000}
+                >
                   <TitleLink
                     to={issueDetailsLocation}
                     analyticsEventKey="issue_inbox.open_issue_clicked"
@@ -199,7 +207,7 @@ function IssuePreviewContent() {
                   >
                     <Container flex="1" minWidth={0}>
                       <Heading as="h3" size="lg" ellipsis>
-                        {primaryTitle}
+                        <AnsiText>{primaryTitle}</AnsiText>
                       </Heading>
                     </Container>
                     <Flex align="center" flexShrink={0}>
@@ -235,12 +243,12 @@ function IssuePreviewContent() {
         wrap="wrap"
         gap="md"
       >
-        <IssuePreviewActions
+        <IssuePreviewHeaderActions
           group={group}
           project={project}
           disabled={disableActions}
-          onContinueInSeer={() => openSeerDrawer()}
-          onRetryCodeChanges={() => openSeerDrawer('retry_code_changes')}
+          onContinueInSeer={() => openSeer()}
+          onRetryCodeChanges={() => openSeer('retry_code_changes')}
         />
         <Flex align="center" wrap="wrap" gap={shouldUseNewUI ? 'md' : 'lg'}>
           <GroupPriority group={group} />
@@ -253,7 +261,7 @@ function IssuePreviewContent() {
         </Flex>
       </Flex>
       {/* Top sections load asynchronously, so block everything to avoid pop-in. */}
-      {previewSeer.isLoading || linkedPullRequests.isPending ? (
+      {previewSeer.state === 'loading' || linkedPullRequests.isPending ? (
         <LoadingIndicator />
       ) : (
         <Dividers>
@@ -269,14 +277,12 @@ function IssuePreviewContent() {
               </IssuePreviewSection.Content>
             </IssuePreviewSection>
           ) : null}
-          {previewSeer.hasAutofix && (
-            <IssuePreviewSeerContent
-              key={group.id}
-              group={group}
-              project={project}
-              previewSeer={previewSeer}
-            />
-          )}
+          <IssuePreviewSeerContent
+            key={group.id}
+            group={group}
+            project={project}
+            previewSeer={previewSeer}
+          />
           <Container>
             <ErrorBoundary mini>
               <FoldSection

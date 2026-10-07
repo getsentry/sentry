@@ -155,6 +155,7 @@ export function CommandPaletteStateProvider({
   children,
 }: CommandPaletteStateProviderProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  // oxlint-disable-next-line react/refs
   const [state, dispatch] = useReducer(commandPaletteReducer, {
     input: inputRef,
     query: '',
@@ -194,6 +195,7 @@ export function CommandPaletteHotkeys() {
       return;
     }
     dispatch({type: 'reset on open'});
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [location.pathname, dispatch]);
 
   useHotkeys([

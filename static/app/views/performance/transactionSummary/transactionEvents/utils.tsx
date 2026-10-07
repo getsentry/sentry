@@ -36,22 +36,12 @@ type EventsDisplayFilter = {
 
 type EventsFilterOptions = Record<EventsDisplayFilterName, EventsDisplayFilter>;
 
-type EventsFilterPercentileValues = Record<
-  Exclude<EventsDisplayFilterName, EventsDisplayFilterName.P100>,
-  number
->;
-
 export function getEventsFilterOptions(
-  spanOperationBreakdownFilter: SpanOperationBreakdownFilter,
-  percentileValues?: EventsFilterPercentileValues
+  spanOperationBreakdownFilter: SpanOperationBreakdownFilter
 ): EventsFilterOptions {
-  const {p99, p95, p75, p50} = percentileValues
-    ? percentileValues
-    : {p99: 0, p95: 0, p75: 0, p50: 0};
   return {
     [EventsDisplayFilterName.P50]: {
       name: EventsDisplayFilterName.P50,
-      query: p50 ? [['transaction.duration', `<=${p50.toFixed(0)}`]] : undefined,
       sort: {
         kind: 'desc',
         field: filterToField(spanOperationBreakdownFilter) || 'transaction.duration',
@@ -60,7 +50,6 @@ export function getEventsFilterOptions(
     },
     [EventsDisplayFilterName.P75]: {
       name: EventsDisplayFilterName.P75,
-      query: p75 ? [['transaction.duration', `<=${p75.toFixed(0)}`]] : undefined,
       sort: {
         kind: 'desc',
         field: filterToField(spanOperationBreakdownFilter) || 'transaction.duration',
@@ -69,7 +58,6 @@ export function getEventsFilterOptions(
     },
     [EventsDisplayFilterName.P95]: {
       name: EventsDisplayFilterName.P95,
-      query: p95 ? [['transaction.duration', `<=${p95.toFixed(0)}`]] : undefined,
       sort: {
         kind: 'desc',
         field: filterToField(spanOperationBreakdownFilter) || 'transaction.duration',
@@ -78,7 +66,6 @@ export function getEventsFilterOptions(
     },
     [EventsDisplayFilterName.P99]: {
       name: EventsDisplayFilterName.P99,
-      query: p99 ? [['transaction.duration', `<=${p99.toFixed(0)}`]] : undefined,
       sort: {
         kind: 'desc',
         field: filterToField(spanOperationBreakdownFilter) || 'transaction.duration',

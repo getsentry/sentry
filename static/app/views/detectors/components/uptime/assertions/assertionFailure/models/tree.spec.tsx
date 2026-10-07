@@ -16,18 +16,16 @@ describe('Assertion Failure Tree model', () => {
       root: makeAndOp({
         id: 'op-1',
         children: [
-          makeStatusCodeOp({id: 'op-2', value: 200}),
-          makeOrOp({
-            id: 'op-3',
-            children: [makeJsonPathOp({id: 'op-4'})],
-          }),
-          makeNotOp({
+          {...makeStatusCodeOp(), id: 'op-2', value: 200},
+          {...makeOrOp(), id: 'op-3', children: [{...makeJsonPathOp(), id: 'op-4'}]},
+          {
+            ...makeNotOp(),
             id: 'op-5',
             operand: makeAndOp({
               id: 'op-6',
-              children: [makeHeaderCheckOp({id: 'op-7'})],
+              children: [{...makeHeaderCheckOp(), id: 'op-7'}],
             }),
-          }),
+          },
         ],
       }),
     };
@@ -42,13 +40,15 @@ describe('Assertion Failure Tree model', () => {
       root: makeAndOp({
         id: 'op-1',
         children: [
-          makeNotOp({
+          {
+            ...makeNotOp(),
             id: 'op-2',
-            operand: makeOrOp({
+            operand: {
+              ...makeOrOp(),
               id: 'op-3',
-              children: [makeStatusCodeOp({id: 'op-4', value: 200})],
-            }),
-          }),
+              children: [{...makeStatusCodeOp(), id: 'op-4', value: 200}],
+            },
+          },
         ],
       }),
     };
@@ -62,16 +62,17 @@ describe('Assertion Failure Tree model', () => {
       root: makeAndOp({
         id: 'op-1',
         children: [
-          makeNotOp({
+          {
+            ...makeNotOp(),
             id: 'op-2',
             operand: makeAndOp({
               id: 'op-3',
               children: [
-                makeStatusCodeOp({id: 'op-4', value: 200}),
-                makeJsonPathOp({id: 'op-5'}),
+                {...makeStatusCodeOp(), id: 'op-4', value: 200},
+                {...makeJsonPathOp(), id: 'op-5'},
               ],
             }),
-          }),
+          },
         ],
       }),
     };

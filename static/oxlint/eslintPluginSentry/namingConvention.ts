@@ -1,9 +1,9 @@
-import {ESLintUtils, type TSESTree} from '@typescript-eslint/utils';
+import {defineRule, type ESTree} from '@oxlint/plugins';
 
 const PASCAL_CASE = /^_*[A-Z][a-zA-Z0-9]*$/u;
 const UPPER_CASE = /^[A-Z][A-Z0-9_]*$/u;
 
-export const namingConvention = ESLintUtils.RuleCreator.withoutDocs({
+export const namingConvention = defineRule({
   meta: {
     type: 'suggestion',
     docs: {
@@ -16,7 +16,7 @@ export const namingConvention = ESLintUtils.RuleCreator.withoutDocs({
     },
   },
   create(context) {
-    function checkTypeLike(node: TSESTree.Identifier | null | undefined): void {
+    function checkTypeLike(node: ESTree.BindingIdentifier | null | undefined): void {
       if (node && !PASCAL_CASE.test(node.name)) {
         context.report({node, messageId: 'typeLike'});
       }
@@ -36,7 +36,7 @@ export const namingConvention = ESLintUtils.RuleCreator.withoutDocs({
         const name =
           node.id.type === 'Identifier'
             ? node.id.name
-            : typeof node.id.value === 'string'
+            : node.id.type === 'Literal' && typeof node.id.value === 'string'
               ? node.id.value
               : undefined;
         if (name !== undefined && !UPPER_CASE.test(name)) {

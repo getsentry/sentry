@@ -9,7 +9,6 @@ from pydantic import Field, PrivateAttr, root_validator
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.pr_iteration.check_suites import (
     CheckSuiteAutofixRun,
-    CheckSuiteHeadMatch,
     GithubCheckSuiteEvent,
     LivePullRequestHead,
     check_suite_head_match,
@@ -25,6 +24,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.base import (
     TriggerDecision,
 )
 from sentry.utils import metrics
+from sentry.utils.tracing import trace
 
 logger = logging.getLogger(__name__)
 
@@ -135,9 +135,6 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
     def is_automated(self) -> bool:
         return True
 
-    def _matches_current_head(self, run_state: SeerRunState) -> CheckSuiteHeadMatch:
-        return check_suite_head_match(self.event, run_state)
-
     def log_fields(self, run_state: SeerRunState) -> dict[str, Any]:
         """Which suite this is, and both sides of the head comparison."""
         repo_name = self.event.repository.full_name
@@ -151,17 +148,6 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
             "check_suite_app_name": self.app_name,
             "run_pr_commit_sha": pr_state.commit_sha if pr_state else None,
         }
-
-    def should_queue(self, run_state: SeerRunState) -> Decision:
-        from sentry.seer.autofix.pr_iteration.feedback import automated_iteration_cap_reached
-
-        if not self._matches_current_head(run_state).matched:
-            return Decision(ok=False, reason="stale_head")
-        # Hard cap also blocks enqueue so failed suites don't pile up in Redis
-        # with no check-suite consume path to drain them.
-        if automated_iteration_cap_reached(run_state):
-            return Decision(ok=False, reason="hard_cap_reached")
-        return Decision(ok=True, reason="head_matches")
 
     def _live_head(self, run_state: SeerRunState) -> LivePullRequestHead:
         try:
@@ -177,8 +163,9 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
             )
             return LivePullRequestHead("unexpected_error")
 
+    @trace
     def should_consume(self, run_state: SeerRunState) -> Decision:
-        head_sha, repo_name, matched = self._matches_current_head(run_state)
+        head_sha, repo_name, matched = check_suite_head_match(self.event, run_state)
         attempt_key = self.check_suite_attempt_key()
         already_processed = attempt_key in _processed_check_suite_attempts(run_state)
         live_head = self._live_head(run_state) if matched and not already_processed else None
@@ -212,21 +199,26 @@ class CheckSuiteFeedbackSource(FeedbackSourceBase):
             return Decision(ok=False, reason="live_head_mismatch")
         return Decision(ok=True, reason="head_matches")
 
+    @trace
     def should_trigger(self, run_state: SeerRunState) -> TriggerDecision:
-        from sentry.seer.autofix.pr_iteration.feedback import automated_iteration_cap_reached
+        try:
+            autofix_run = self.autofix_run
+        except MissingCheckSuiteAutofixRun:
+            return TriggerDecision(task=None, reason="no_autofix_run")
 
-        if automated_iteration_cap_reached(run_state):
-            return TriggerDecision(task=None, reason="hard_cap_reached")
+        # A suite for a superseded commit says nothing about the current head.
+        # It stays queued (the next drain drops it via ``should_consume``) but
+        # schedules nothing, and the reason lands on the waiting iteration's
+        # row so the sweep can say why it never ran.
+        if not check_suite_head_match(self.event, run_state).matched:
+            return TriggerDecision(task=None, reason="stale_head")
 
         # Otherwise queue a consume task for this run: immediately once every check
         # run has completed, or after a delay while some are still pending (they
         # can get stuck, so we trigger anyway rather than wait forever).
         head_sha = self.event.check_suite.head_sha
-        if not head_sha:
-            return TriggerDecision(task=ConsumeTask.Now, reason="missing_head_sha")
-
-        organization_id = self.autofix_run.repository.organization_id
-        repo_id = self.autofix_run.repository.id
+        organization_id = autofix_run.repository.organization_id
+        repo_id = autofix_run.repository.id
 
         # Importing the SCM factory while feedback models are initialized pulls
         # in integration handlers before Django finishes registering apps.

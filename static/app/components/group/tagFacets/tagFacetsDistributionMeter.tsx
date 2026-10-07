@@ -44,16 +44,35 @@ export function TagFacetsDistributionMeter({
   const [hoveredValue, setHoveredValue] = useState<TagSegment | null>(null);
   const topSegments = segments.slice(0, MAX_SEGMENTS);
 
-  function renderTitle() {
-    if (!Array.isArray(segments) || segments.length <= 0) {
-      return (
-        <Title>
-          <TitleType>{title}</TitleType>
-        </Title>
-      );
-    }
+  const totalVisible = topSegments.reduce((sum, value) => sum + value.count, 0);
+  const hasOther = totalVisible < totalValues;
 
-    return (
+  const query = appendExcludeTagValuesCondition(
+    location.query.query,
+    title,
+    topSegments.map(({value}) => value)
+  );
+  const excludeTopSegmentsUrl: LocationDescriptor = {
+    ...location,
+    query: {...location.query, query},
+  };
+
+  if (hasOther) {
+    topSegments.push({
+      isOther: true,
+      name: t('Other'),
+      value: 'other',
+      count: totalValues - totalVisible,
+      url: excludeTopSegmentsUrl,
+    });
+  }
+
+  const titleContent =
+    !Array.isArray(segments) || segments.length <= 0 ? (
+      <Title>
+        <TitleType>{title}</TitleType>
+      </Title>
+    ) : (
       <Title>
         <TitleType>{title}</TitleType>
         <Tooltip
@@ -75,18 +94,13 @@ export function TagFacetsDistributionMeter({
         />
       </Title>
     );
-  }
 
-  function renderSegments() {
-    if (totalValues === 0) {
-      return (
-        <Flex overflow="hidden">
-          <p>{t('No recent data.')}</p>
-        </Flex>
-      );
-    }
-
-    return (
+  const segmentsContent =
+    totalValues === 0 ? (
+      <Flex overflow="hidden">
+        <p>{t('No recent data.')}</p>
+      </Flex>
+    ) : (
       <Flex overflow="hidden">
         {topSegments.map((value, index) => {
           const pct = percent(value.count, totalValues);
@@ -131,109 +145,83 @@ export function TagFacetsDistributionMeter({
         })}
       </Flex>
     );
-  }
 
-  function renderLegend() {
-    return (
-      <AnimatePresence initial={false}>
-        {expanded && (
-          <motion.div
-            variants={{
-              open: {height: ['100%', 'auto'], opacity: 1},
-              closed: {height: '0', opacity: 0, overflow: 'hidden'},
-            }}
-            initial="closed"
-            animate="open"
-            exit="closed"
-          >
-            <LegendContainer>
-              {topSegments.map((segment, index) => {
-                const pctLabel = Math.floor(percent(segment.count, totalValues));
-                const unfocus = !!hoveredValue && hoveredValue.value !== segment.value;
-                const focus = hoveredValue?.value === segment.value;
-                const linkLabel = segment.isOther
-                  ? t(
-                      'Other %s tag values, %s of all events. View other tags.',
-                      title,
-                      `${pctLabel}%`
-                    )
-                  : t(
-                      '%s, %s, %s of all events. View events with this tag value.',
-                      title,
-                      segment.value,
-                      `${pctLabel}%`
-                    );
+  const legendContent = (
+    <AnimatePresence initial={false}>
+      {expanded && (
+        <motion.div
+          variants={{
+            open: {height: ['100%', 'auto'], opacity: 1},
+            closed: {height: '0', opacity: 0, overflow: 'hidden'},
+          }}
+          initial="closed"
+          animate="open"
+          exit="closed"
+        >
+          <LegendContainer>
+            {topSegments.map((segment, index) => {
+              const pctLabel = Math.floor(percent(segment.count, totalValues));
+              const unfocus = !!hoveredValue && hoveredValue.value !== segment.value;
+              const focus = hoveredValue?.value === segment.value;
+              const linkLabel = segment.isOther
+                ? t(
+                    'Other %s tag values, %s of all events. View other tags.',
+                    title,
+                    `${pctLabel}%`
+                  )
+                : t(
+                    '%s, %s, %s of all events. View events with this tag value.',
+                    title,
+                    segment.value,
+                    `${pctLabel}%`
+                  );
 
-                const legend = (
-                  <LegendRow
-                    onMouseOver={() => setHoveredValue(segment)}
-                    onMouseLeave={() => setHoveredValue(null)}
-                  >
-                    <LegendDot
-                      color={
-                        segment.isOther
-                          ? theme.tokens.dataviz.semantic.neutral
-                          : colors[index]!
-                      }
-                      focus={focus}
-                    />
-                    <Tooltip skipWrapper delay={TOOLTIP_DELAY} title={segment.name}>
-                      <LegendText unfocus={unfocus}>
-                        {segment.name ?? <Text variant="muted">{t('n/a')}</Text>}
-                      </LegendText>
-                    </Tooltip>
-                    <LegendPercent>{`${pctLabel}%`}</LegendPercent>
-                  </LegendRow>
-                );
+              const legend = (
+                <LegendRow
+                  onMouseOver={() => setHoveredValue(segment)}
+                  onMouseLeave={() => setHoveredValue(null)}
+                >
+                  <LegendDot
+                    color={
+                      segment.isOther
+                        ? theme.tokens.dataviz.semantic.neutral
+                        : colors[index]!
+                    }
+                    focus={focus}
+                  />
+                  <Tooltip skipWrapper delay={TOOLTIP_DELAY} title={segment.name}>
+                    <LegendText unfocus={unfocus}>
+                      {segment.name ?? <Text variant="muted">{t('n/a')}</Text>}
+                    </LegendText>
+                  </Tooltip>
+                  <LegendPercent>{`${pctLabel}%`}</LegendPercent>
+                </LegendRow>
+              );
 
-                return (
-                  <li key={`segment-${segment.name}-${index}`}>
-                    <Link to={segment.url} aria-label={linkLabel}>
-                      {legend}
-                    </Link>
-                  </li>
-                );
-              })}
-            </LegendContainer>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    );
-  }
-
-  const totalVisible = topSegments.reduce((sum, value) => sum + value.count, 0);
-  const hasOther = totalVisible < totalValues;
-
-  const query = appendExcludeTagValuesCondition(
-    location.query.query,
-    title,
-    topSegments.map(({value}) => value)
+              return (
+                <li key={`segment-${segment.name}-${index}`}>
+                  <Link to={segment.url} aria-label={linkLabel}>
+                    {legend}
+                  </Link>
+                </li>
+              );
+            })}
+          </LegendContainer>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
-  const excludeTopSegmentsUrl: LocationDescriptor = {
-    ...location,
-    query: {...location.query, query},
-  };
-
-  if (hasOther) {
-    topSegments.push({
-      isOther: true,
-      name: t('Other'),
-      value: 'other',
-      count: totalValues - totalVisible,
-      url: excludeTopSegmentsUrl,
-    });
-  }
 
   return (
     <TagSummary>
       <details open aria-expanded={expanded} onClick={e => e.preventDefault()}>
         <StyledSummary>
           <TagHeader onClick={() => setExpanded(!expanded)}>
-            {renderTitle()}
-            {renderSegments()}
+            {titleContent}
+            {segmentsContent}
           </TagHeader>
         </StyledSummary>
-        {renderLegend()}
+        {legendContent}
       </details>
     </TagSummary>
   );

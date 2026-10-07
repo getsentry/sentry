@@ -9,7 +9,6 @@ from taskbroker_client.retry import Retry
 from sentry.integrations.github.status_check import GitHubCheckStatus
 from sentry.integrations.source_code_management.status_check import StatusCheckStatus
 from sentry.models.commitcomparison import CommitComparison
-from sentry.models.repository import Repository
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodComparisonApproval,
@@ -18,10 +17,13 @@ from sentry.preprod.snapshots.constants import MISSING_BASE_GRACE_PERIOD_SECONDS
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
 from sentry.preprod.snapshots.utils import evaluate_snapshot_changes_by_artifact_id
 from sentry.preprod.url_utils import get_preprod_artifact_url
+from sentry.preprod.vcs.pr_comments.snapshot_templates import _selected_types_query
+from sentry.preprod.vcs.repo_utils import resolve_base_repo_url
 from sentry.preprod.vcs.status_checks.snapshots.config import (
     get_snapshot_approval_policy,
 )
 from sentry.preprod.vcs.status_checks.snapshots.templates import (
+    format_approved_without_base_snapshot_status_check_messages,
     format_first_snapshot_status_check_messages,
     format_generated_snapshot_status_check_messages,
     format_missing_base_snapshot_status_check_messages,
@@ -40,7 +42,7 @@ from sentry.preprod.vcs.tasks import update_preprod_snapshot_vcs
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import preprod_tasks
+from sentry.taskworker.namespaces import preprod_snapshots_tasks
 
 logger = logging.getLogger(__name__)
 
@@ -50,7 +52,7 @@ APPROVE_SNAPSHOT_ACTION_IDENTIFIER = "approve_snapshots"
 
 @instrumented_task(
     name="sentry.preprod.tasks.create_preprod_snapshot_status_check",
-    namespace=preprod_tasks,
+    namespace=preprod_snapshots_tasks,
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=60),
@@ -151,11 +153,22 @@ def create_preprod_snapshot_status_check_task(
     for approval in approval_qs:
         approvals_map[approval.preprod_artifact_id] = approval
 
-    base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(all_artifacts)
+    base_artifact_map = PreprodArtifact.get_base_artifacts_for_commit(
+        all_artifacts, require_snapshot_metrics=True
+    )
 
-    is_solo = not base_artifact_map
+    has_base_artifacts = bool(base_artifact_map)
 
-    if not is_solo:
+    # If the base arrives before this delayed check runs, comparison processing
+    # will publish the final status. Avoid creating a duplicate Check Run here.
+    if is_timeout_check and has_base_artifacts:
+        logger.info(
+            "preprod.snapshot_status_checks.create.skipped_timeout_base_resolved",
+            extra={"preprod_artifact_id": preprod_artifact.id},
+        )
+        return
+
+    if has_base_artifacts:
         changes_map = evaluate_snapshot_changes_by_artifact_id(
             all_artifacts,
             snapshot_metrics_map,
@@ -200,7 +213,7 @@ def create_preprod_snapshot_status_check_task(
     approve_action_identifier: str | None = None
     waiting_for_base = False
 
-    if is_solo:
+    if not has_base_artifacts:
         app_ids = {a.app_id for a in all_artifacts if a.app_id}
         has_previous_snapshots = (
             PreprodSnapshotMetrics.objects.filter(
@@ -222,7 +235,22 @@ def create_preprod_snapshot_status_check_task(
                 project=preprod_artifact.project,
             )
         elif commit_comparison.base_sha:
-            if not is_timeout_check:
+            if all(a.id in approvals_map for a in all_artifacts):
+                status = StatusCheckStatus.SUCCESS
+                title, subtitle, summary = (
+                    format_approved_without_base_snapshot_status_check_messages(
+                        all_artifacts,
+                        snapshot_metrics_map,
+                        project=preprod_artifact.project,
+                        base_sha=commit_comparison.base_sha,
+                        base_repo_url=resolve_base_repo_url(
+                            commit_comparison,
+                            preprod_artifact.project.organization_id,
+                            head_repository=repository,
+                        ),
+                    )
+                )
+            elif not is_timeout_check:
                 waiting_for_base = True
                 status = StatusCheckStatus.IN_PROGRESS
                 title, subtitle, summary = format_waiting_for_base_snapshot_status_check_messages(
@@ -238,27 +266,17 @@ def create_preprod_snapshot_status_check_task(
                     },
                 )
             else:
-                assert commit_comparison.base_sha is not None
-                base_repo_name = (
-                    commit_comparison.base_repo_name or commit_comparison.head_repo_name
-                )
-                if base_repo_name == repository.name:
-                    base_repo_url = repository.url
-                else:
-                    base_repository = Repository.objects.filter(
-                        organization_id=preprod_artifact.project.organization_id,
-                        name=base_repo_name,
-                        provider=f"integrations:{commit_comparison.provider}",
-                    ).first()
-                    # Prefer no link over a fork URL that would 404 for the base SHA.
-                    base_repo_url = base_repository.url if base_repository else None
                 status = StatusCheckStatus.FAILURE
                 title, subtitle, summary = format_missing_base_snapshot_status_check_messages(
                     all_artifacts,
                     snapshot_metrics_map,
                     project=preprod_artifact.project,
                     base_sha=commit_comparison.base_sha,
-                    base_repo_url=base_repo_url,
+                    base_repo_url=resolve_base_repo_url(
+                        commit_comparison,
+                        preprod_artifact.project.organization_id,
+                        head_repository=repository,
+                    ),
                 )
         else:
             status = StatusCheckStatus.SUCCESS
@@ -303,6 +321,13 @@ def create_preprod_snapshot_status_check_task(
         else all_artifacts[0]
     )
     target_url = get_preprod_artifact_url(url_artifact, view_type="snapshots")
+    url_metrics = snapshot_metrics_map.get(url_artifact.id)
+    url_comparison = comparisons_map.get(url_metrics.id) if url_metrics else None
+    if url_comparison is not None and url_comparison.state not in (
+        PreprodSnapshotComparison.State.PENDING,
+        PreprodSnapshotComparison.State.PROCESSING,
+    ):
+        target_url += _selected_types_query(url_comparison)
 
     post_snapshot_status_check_task.delay(
         preprod_artifact_id=preprod_artifact.id,
@@ -349,7 +374,8 @@ def _compute_snapshot_status(
             ):
                 has_in_progress = True
             case PreprodSnapshotComparison.State.FAILED:
-                return StatusCheckStatus.FAILURE
+                if artifact.id not in approvals_map:
+                    return StatusCheckStatus.FAILURE
             case PreprodSnapshotComparison.State.SUCCESS:
                 if changes_map.get(artifact.id, False) and artifact.id not in approvals_map:
                     return StatusCheckStatus.FAILURE
@@ -362,7 +388,7 @@ def _compute_snapshot_status(
 
 @instrumented_task(
     name="sentry.preprod.tasks.post_snapshot_status_check",
-    namespace=preprod_tasks,
+    namespace=preprod_snapshots_tasks,
     processing_deadline_duration=30,
     silo_mode=SiloMode.CELL,
     retry=Retry(times=3, delay=4, on=(ApiError, ConnectionError, TimeoutError)),

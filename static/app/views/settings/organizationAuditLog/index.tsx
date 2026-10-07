@@ -1,209 +1,100 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
-import * as Sentry from '@sentry/react';
+import {Fragment, useEffect} from 'react';
+import {useQuery} from '@tanstack/react-query';
+import {parseAsBoolean, parseAsString, useQueryStates} from 'nuqs';
 
 import type {CursorHandler} from '@sentry/scraps/pagination';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
-import type {DateString} from 'sentry/types/core';
 import type {AuditLog} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getDateWithTimezoneInUtc, getUserTimezone} from 'sentry/utils/dates';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
 
 import {AuditLogList} from './auditLogList';
 
-type State = {
-  entryList: AuditLog[] | null;
-  entryListPageLinks: string | null;
-  eventType: string | undefined;
-  eventTypes: string[] | null;
-  isLoading: boolean;
-  statsPeriod: string | null;
-  utc: boolean;
-  currentCursor?: string;
-  end?: DateString;
-  start?: DateString;
+type AuditLogResponse = {
+  options: string[];
+  rows: AuditLog[];
 };
 
 function OrganizationAuditLog() {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [state, setState] = useState<State>({
-    entryList: [],
-    entryListPageLinks: null,
-    eventType: decodeScalar(location.query.event),
-    eventTypes: [],
-    isLoading: true,
-    start: decodeScalar(location.query.start) as DateString | undefined,
-    end: decodeScalar(location.query.end) as DateString | undefined,
-    statsPeriod: decodeScalar(location.query.statsPeriod) ?? null,
-    utc: decodeScalar(location.query.utc) === 'true' || getUserTimezone() === 'UTC',
-  });
   const organization = useOrganization();
-  const api = useApi();
 
   const hasPermission = organization.access.includes('org:write') || isActiveSuperuser();
 
+  const [queryParams, setQueryParams] = useQueryStates(
+    {
+      cursor: parseAsString,
+      event: parseAsString,
+      start: parseAsString,
+      end: parseAsString,
+      statsPeriod: parseAsString,
+      utc: parseAsBoolean,
+    },
+    // Each filter or page change is a step the back button should undo
+    {history: 'push'}
+  );
+  const cursor = queryParams.cursor ?? undefined;
+  const eventType = queryParams.event ?? undefined;
+  const start = queryParams.start ?? undefined;
+  const end = queryParams.end ?? undefined;
+  const statsPeriod = queryParams.statsPeriod ?? undefined;
+  const utc = queryParams.utc === true || getUserTimezone() === 'UTC';
+
+  const {data, isPending, isError} = useQuery({
+    ...apiOptions.as<AuditLogResponse>()(
+      '/organizations/$organizationIdOrSlug/audit-logs/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: {cursor, event: eventType, start, end, statsPeriod, utc},
+        staleTime: 0,
+      }
+    ),
+    select: selectJsonWithHeaders,
+    enabled: hasPermission,
+  });
+
+  useEffect(() => {
+    if (isError) {
+      addErrorMessage('Unable to load audit logs.');
+    }
+  }, [isError]);
+
   const handleCursor: CursorHandler = resultsCursor => {
-    setState(prevState => ({
-      ...prevState,
-      currentCursor: resultsCursor,
-    }));
+    setQueryParams({cursor: resultsCursor ?? null});
   };
-
-  useEffect(() => {
-    // Watch the location for changes so we can re-fetch data.
-    const eventType = decodeScalar(location.query.event);
-    const start = decodeScalar(location.query.start) as DateString | undefined;
-    const end = decodeScalar(location.query.end) as DateString | undefined;
-    const statsPeriod = decodeScalar(location.query.statsPeriod) ?? null;
-    const utc =
-      decodeScalar(location.query.utc) === 'true' || getUserTimezone() === 'UTC';
-
-    // oxlint-disable-next-line react/set-state-in-effect
-    setState(prevState => ({
-      ...prevState,
-      eventType,
-      start,
-      end,
-      statsPeriod: statsPeriod ?? prevState.statsPeriod,
-      utc,
-    }));
-  }, [location.query]);
-
-  const fetchAuditLogData = useCallback(async () => {
-    if (!hasPermission) {
-      return;
-    }
-
-    setState(prevState => ({...prevState, isLoading: true}));
-
-    try {
-      const payload = {
-        cursor: state.currentCursor,
-        event: state.eventType,
-        start: state.start,
-        end: state.end,
-        statsPeriod: state.statsPeriod,
-        utc: state.utc,
-      };
-
-      // Remove undefined values from payload
-      Object.keys(payload).forEach(key => {
-        if (
-          payload[key as keyof typeof payload] === undefined ||
-          payload[key as keyof typeof payload] === '' ||
-          payload[key as keyof typeof payload] === null
-        ) {
-          delete payload[key as keyof typeof payload];
-        }
-      });
-
-      const [data, _, response] = await api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/audit-logs/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-        {
-          method: 'GET',
-          includeAllArgs: true,
-          query: payload,
-        }
-      );
-      setState(prevState => ({
-        ...prevState,
-        entryList: data.rows,
-        eventTypes: data.options,
-        isLoading: false,
-        entryListPageLinks: response?.getResponseHeader('Link') ?? null,
-      }));
-    } catch (err: any) {
-      if (err.status !== 401 && err.status !== 403) {
-        Sentry.captureException(err);
-      }
-      setState(prevState => ({
-        ...prevState,
-        isLoading: false,
-      }));
-      if (err.status !== 403) {
-        addErrorMessage('Unable to load audit logs.');
-      }
-    }
-  }, [
-    api,
-    organization.slug,
-    state.currentCursor,
-    state.eventType,
-    state.start,
-    state.end,
-    state.statsPeriod,
-    state.utc,
-    hasPermission,
-  ]);
-
-  useEffect(() => {
-    // oxlint-disable-next-line react/set-state-in-effect
-    fetchAuditLogData();
-  }, [fetchAuditLogData]);
 
   const handleEventSelect = (value: string) => {
-    setState(prevState => ({
-      ...prevState,
-      eventType: value,
-    }));
-    navigate({
-      query: {...location.query, event: value},
-    });
+    setQueryParams({event: value, cursor: null});
   };
 
-  const handleDateSelect = (data: ChangeData) => {
-    let formattedStart: string | undefined;
-    let formattedEnd: string | undefined;
+  const handleDateSelect = (changeData: ChangeData) => {
+    let formattedStart: string | null = null;
+    let formattedEnd: string | null = null;
 
-    if (data.start && data.end) {
+    if (changeData.start && changeData.end) {
       // Convert to UTC because endpoint only takes in UTC timestamps
-      const startUtc = getDateWithTimezoneInUtc(data.start, data.utc);
-      const endUtc = getDateWithTimezoneInUtc(data.end, data.utc);
-      formattedStart = normalizeDateTimeString(startUtc);
-      formattedEnd = normalizeDateTimeString(endUtc);
-    } else {
-      // start and end must both be defined to pass to endpoint
-      formattedStart = undefined;
-      formattedEnd = undefined;
+      const startUtc = getDateWithTimezoneInUtc(changeData.start, changeData.utc);
+      const endUtc = getDateWithTimezoneInUtc(changeData.end, changeData.utc);
+      formattedStart = normalizeDateTimeString(startUtc) ?? null;
+      formattedEnd = normalizeDateTimeString(endUtc) ?? null;
     }
 
-    const formattedStatsPeriod = data.relative === 'allTime' ? null : data.relative;
+    const formattedStatsPeriod =
+      changeData.relative === 'allTime' ? null : changeData.relative;
 
-    setState(prevState => ({
-      ...prevState,
+    // Reset cursor to avoid stale pagination. Only include UTC if it's been
+    // explicitly set; nuqs would write an undefined value as the string "undefined".
+    setQueryParams({
       start: formattedStart,
       end: formattedEnd,
-      statsPeriod: formattedStatsPeriod,
-      utc: data.utc ?? prevState.utc,
-    }));
-
-    // Always update URL when there are changes
-    const newQuery: Record<string, string | undefined | null> = {
-      ...location.query,
-      start: formattedStart,
-      end: formattedEnd,
-      statsPeriod: formattedStatsPeriod,
-    };
-
-    // Only include UTC in query if it's been explicitly set
-    if (data.utc !== undefined) {
-      newQuery.utc = data.utc ? 'true' : 'false';
-    }
-
-    navigate({
-      query: newQuery,
+      statsPeriod: formattedStatsPeriod ?? null,
+      cursor: null,
+      ...(changeData.utc === undefined ? {} : {utc: Boolean(changeData.utc)}),
     });
   };
 
@@ -211,18 +102,18 @@ function OrganizationAuditLog() {
     <Fragment>
       {hasPermission ? (
         <AuditLogList
-          entries={state.entryList}
-          pageLinks={state.entryListPageLinks}
-          eventType={state.eventType}
-          eventTypes={state.eventTypes}
+          entries={data?.json.rows ?? null}
+          pageLinks={data?.headers.Link ?? null}
+          eventType={eventType}
+          eventTypes={data?.json.options ?? null}
           onEventSelect={handleEventSelect}
           onDateSelect={handleDateSelect}
-          isLoading={state.isLoading}
+          isLoading={isPending}
           onCursor={handleCursor}
-          start={state.start}
-          end={state.end}
-          statsPeriod={state.statsPeriod}
-          utc={state.utc}
+          start={start}
+          end={end}
+          statsPeriod={statsPeriod ?? null}
+          utc={utc}
         />
       ) : (
         <OrganizationPermissionAlert />

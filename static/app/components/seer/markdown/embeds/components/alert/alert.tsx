@@ -9,9 +9,13 @@ const LazyAlertBlock = lazy(() => import('./alertBlock'));
 export const Alert = defineSeerEmbed({
   name: 'alert',
   render(props, level) {
-    if (level === 'block') {
-      return <LazyLoad LazyComponent={LazyAlertBlock} {...props} />;
+    switch (level) {
+      case 'block':
+        return <LazyLoad LazyComponent={LazyAlertBlock} {...props} />;
+      case 'markdown':
+        return <AlertLink {...props} format="markdown" />;
+      case 'inline':
+        return <AlertLink {...props} />;
     }
-    return <AlertLink {...props} />;
   },
 });

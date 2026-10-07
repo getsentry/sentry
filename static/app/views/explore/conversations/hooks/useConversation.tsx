@@ -12,9 +12,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {AiSpanDetails} from 'sentry/views/performance/newTraceDetails/traceDrawer/details/span/aiSpanDetails';
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import {AiSpanDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/aiSpanDetails';
+import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
+import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 
 export interface UseConversationsOptions {
   conversationId: string;
@@ -48,6 +48,7 @@ interface ConversationApiSpan {
   'gen_ai.cost.total_tokens'?: number;
   'gen_ai.embeddings.input'?: string;
   'gen_ai.input.messages'?: string;
+  'gen_ai.operation.name'?: string;
   'gen_ai.operation.type'?: string;
   'gen_ai.output.messages'?: string;
   'gen_ai.request.messages'?: string;
@@ -60,6 +61,14 @@ interface ConversationApiSpan {
   'gen_ai.tool.input'?: string;
   'gen_ai.tool.name'?: string;
   'gen_ai.tool.output'?: string;
+  'gen_ai.usage.cache_creation.input_tokens'?: number;
+  'gen_ai.usage.cache_read.input_tokens'?: number;
+  'gen_ai.usage.input_tokens'?: number;
+  'gen_ai.usage.input_tokens.cache_write'?: number;
+  'gen_ai.usage.input_tokens.cached'?: number;
+  'gen_ai.usage.output_tokens'?: number;
+  'gen_ai.usage.output_tokens.reasoning'?: number;
+  'gen_ai.usage.reasoning.output_tokens'?: number;
   'gen_ai.usage.total_tokens'?: number;
   occurrences?: TraceTree.EAPOccurrence[];
   'span.description'?: string;
@@ -70,9 +79,39 @@ interface ConversationApiSpan {
   'user.username'?: string;
 }
 
+export interface ConversationModelUsage {
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  inputCost: number;
+  inputTokens: number;
+  llmCalls: number;
+  model: string | null;
+  outputCost: number;
+  outputTokens: number;
+  reasoningTokens: number;
+  totalCost: number;
+  totalTokens: number;
+}
+
+export interface ConversationStats {
+  endTimestamp: number;
+  generationDuration: number;
+  inputTokens: number;
+  llmCalls: number;
+  outputTokens: number;
+  startTimestamp: number;
+  toolCalls: number;
+  toolErrors: number;
+  toolNames: string[];
+  totalCost: number;
+  totalTokens: number;
+  usageByModel: ConversationModelUsage[];
+}
+
 interface ConversationApiResponse {
   conversationId: string;
   spans: ConversationApiSpan[];
+  stats: ConversationStats;
   title: string | null;
 }
 
@@ -91,6 +130,7 @@ interface UseConversationResult {
   isLoading: boolean;
   nodeTraceMap: Map<string, string>;
   nodes: AITraceSpanNode[];
+  stats: ConversationStats | null;
   title: string | null;
 }
 
@@ -130,12 +170,11 @@ function createNodeFromApiSpan(
     occurrences: apiSpan.occurrences ?? [],
     additional_attributes: {
       [SpanFields.GEN_AI_CONVERSATION_ID]: apiSpan['gen_ai.conversation.id'],
-      // Preserve the raw span op so the transcript can recognize embeddings
-      // spans, which don't have a dedicated gen_ai.operation.type. Kept off the
-      // op-type path so the timeline still renders them as before.
-      [SpanFields.SPAN_OP]: apiSpan['span.op'] ?? '',
       [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: apiSpan['gen_ai.embeddings.input'] ?? '',
       [SpanFields.GEN_AI_INPUT_MESSAGES]: apiSpan['gen_ai.input.messages'] ?? '',
+      // Recognizes evaluation and embeddings spans, which report the ai_client
+      // operation type.
+      [SpanFields.GEN_AI_OPERATION_NAME]: apiSpan['gen_ai.operation.name'] ?? '',
       [SpanFields.GEN_AI_OPERATION_TYPE]: operationType ?? '',
       [SpanFields.GEN_AI_OUTPUT_MESSAGES]: apiSpan['gen_ai.output.messages'] ?? '',
       [SpanFields.GEN_AI_REQUEST_MESSAGES]: apiSpan['gen_ai.request.messages'] ?? '',
@@ -149,6 +188,24 @@ function createNodeFromApiSpan(
       'gen_ai.tool.call.result': apiSpan['gen_ai.tool.call.result'] ?? '',
       'gen_ai.tool.input': apiSpan['gen_ai.tool.input'] ?? '',
       'gen_ai.tool.output': apiSpan['gen_ai.tool.output'] ?? '',
+      ...(apiSpan['gen_ai.usage.input_tokens'] !== undefined && {
+        [SpanFields.GEN_AI_USAGE_INPUT_TOKENS]: apiSpan['gen_ai.usage.input_tokens'],
+      }),
+      ...(apiSpan['gen_ai.usage.output_tokens'] !== undefined && {
+        [SpanFields.GEN_AI_USAGE_OUTPUT_TOKENS]: apiSpan['gen_ai.usage.output_tokens'],
+      }),
+      [SpanFields.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS]:
+        apiSpan['gen_ai.usage.cache_read.input_tokens'] ??
+        apiSpan['gen_ai.usage.input_tokens.cached'] ??
+        0,
+      'gen_ai.usage.cache_creation.input_tokens':
+        apiSpan['gen_ai.usage.cache_creation.input_tokens'] ??
+        apiSpan['gen_ai.usage.input_tokens.cache_write'] ??
+        0,
+      [SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS]:
+        apiSpan['gen_ai.usage.reasoning.output_tokens'] ??
+        apiSpan['gen_ai.usage.output_tokens.reasoning'] ??
+        0,
       [SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: apiSpan['gen_ai.usage.total_tokens'] ?? 0,
       [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: apiSpan['gen_ai.cost.total_tokens'] ?? 0,
       [SpanFields.SPAN_STATUS]: apiSpan['span.status'],
@@ -295,7 +352,7 @@ function orderDepthFirst(
   return ordered;
 }
 
-const MAX_PAGES = 10;
+const MAX_PAGES = 100;
 
 export function useConversation(
   conversation: UseConversationsOptions
@@ -304,29 +361,27 @@ export function useConversation(
   const {selection} = usePageFilters();
 
   const ONE_HOUR_MS = 60 * 60 * 1000;
-  const hasConversationTimestamps =
-    conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined;
 
   const defaultPeriod = getDefaultPageFilterSelection().datetime.period;
   const hasExplicitDatetime =
     selection.datetime.start !== null ||
     (selection.datetime.period !== null && selection.datetime.period !== defaultPeriod);
 
-  const datetimeParams = hasConversationTimestamps
-    ? {
-        start: new Date(conversation.startTimestamp! - ONE_HOUR_MS).toISOString(),
-        end: new Date(conversation.endTimestamp! + ONE_HOUR_MS).toISOString(),
-      }
-    : hasExplicitDatetime
-      ? normalizeDateTimeParams(selection.datetime)
-      : {};
+  const datetimeParams =
+    conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined
+      ? {
+          start: new Date(conversation.startTimestamp - ONE_HOUR_MS).toISOString(),
+          end: new Date(conversation.endTimestamp + ONE_HOUR_MS).toISOString(),
+        }
+      : hasExplicitDatetime
+        ? normalizeDateTimeParams(selection.datetime)
+        : {};
 
   const selectedProjects = conversation.projects ?? selection.projects;
   const project = selectedProjects.length > 0 ? selectedProjects : [ALL_ACCESS_PROJECTS];
 
   const queryParams = {
     project,
-    per_page: 1000,
     ...datetimeParams,
   };
 
@@ -361,6 +416,7 @@ export function useConversation(
     if (!isFetching && canFetchNextPage) {
       fetchNextPage();
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [data, isFetching, canFetchNextPage, fetchNextPage]);
 
   const allSpans = useMemo(
@@ -368,9 +424,10 @@ export function useConversation(
     [data]
   );
 
-  // The title is conversation-level, so it is identical across pages; read it
-  // off the first page.
-  const title = data?.pages[0]?.json.title ?? null;
+  // Conversation-level fields are identical across pages; read the first page.
+  const firstPage = data?.pages[0]?.json;
+  const title = firstPage?.title ?? null;
+  const stats = firstPage?.stats ?? null;
 
   const {nodes, nodeTraceMap} = useMemo(() => {
     if (allSpans.length === 0) {
@@ -393,6 +450,7 @@ export function useConversation(
 
   if (!conversation.conversationId) {
     return {
+      stats: null,
       nodes: [],
       nodeTraceMap: new Map(),
       isLoading: false,
@@ -402,6 +460,7 @@ export function useConversation(
   }
 
   return {
+    stats,
     nodes,
     nodeTraceMap,
     isLoading: isLoading || isFetchingNextPage || canFetchNextPage,

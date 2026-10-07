@@ -5,6 +5,7 @@ import os
 from urllib.parse import quote
 
 from django.http import HttpResponse
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from objectstore_client import RequestError
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,13 +13,17 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.project import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.models.project import Project
 from sentry.objectstore import UsecaseId, get_session
+from sentry.preprod.snapshots.storage import get_snapshot_storage
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 logger = logging.getLogger(__name__)
+
+PREPROD_SIZE_APP_ICON = "preprod_size_app_icon"
+PREPROD_SNAPSHOTS = "preprod_snapshots"
 
 
 def _content_disposition(raw_filename: str | None) -> str | None:
@@ -43,6 +48,7 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
+    permission_classes = (ProjectReleasePermission,)
     # Higher limits than default (40 rps, 25 concurrent) since this proxies images from Objectstore.
     # Snapshot pages load many images in parallel, so per-user is 400 rps/200 concurrent and per-org is 4k rps/200 concurrent.
     # Objectstore's own ceilings are a percentage of a per-pod global_rps and sit well above these:
@@ -59,20 +65,54 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
         }
     )
 
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="image_type",
+                type=str,
+                location="query",
+                required=False,
+                enum=[PREPROD_SIZE_APP_ICON, PREPROD_SNAPSHOTS],
+                description=(
+                    "Use preprod_size_app_icon for size-analysis app icons, or "
+                    "preprod_snapshots for snapshot images and diff masks. "
+                    "When omitted, images use the shared snapshot reader and its fallback."
+                ),
+            ),
+        ],
+    )
     def get(
         self,
         request: Request,
         project: Project,
         image_id: str,
     ) -> HttpResponse:
+        image_type = request.GET.get("image_type")
+        if image_type not in (None, PREPROD_SIZE_APP_ICON, PREPROD_SNAPSHOTS):
+            return Response({"detail": "Invalid image_type"}, status=400)
+
         organization_id = project.organization_id
         project_id = project.id
 
         object_key = f"{organization_id}/{project_id}/{image_id}"
-        session = get_session(UsecaseId.PREPROD, project)
+        is_app_icon = image_type == PREPROD_SIZE_APP_ICON
 
         try:
-            result = session.get(object_key)
+            if is_app_icon:
+                result = get_session(UsecaseId.PREPROD_SIZE, project).get(object_key)
+                if result is None:
+                    # TODO: On January 1, 2027, remove the preprod fallback for app icons.
+                    result = get_session(UsecaseId.PREPROD, project).get(object_key)
+                    logger.info(
+                        "preprod.objectstore.fallback",
+                        extra={
+                            "image_type": PREPROD_SIZE_APP_ICON,
+                            "operation": "get",
+                            "found": result is not None,
+                        },
+                    )
+            else:
+                result = get_snapshot_storage(project).get(object_key)
             if result is None:
                 return Response({"detail": "Image not found"}, status=404)
 

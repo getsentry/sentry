@@ -116,22 +116,26 @@ export function EventFeatureFlagDrawer({
         {actions}
       </EventNavigator>
       <EventDrawerBody>
-        <CardContainer numCols={1}>
-          <KeyValueTableCard expandLeft contentItems={searchResults} />
+        <CardContainer>
+          <KeyValueTableCard
+            itemProps={{expandLeft: true}}
+            contentItems={searchResults}
+          />
         </CardContainer>
       </EventDrawerBody>
     </EventDrawerContainer>
   );
 }
 
-export const CardContainer = styled('div')<{numCols: number}>`
-  display: grid;
-  grid-template-columns: repeat(${p => p.numCols}, 1fr);
-  align-items: start;
-
-  div {
+export const CardContainer = styled('div')`
+  /* Only the card panels, so dropdown overlays inside rows keep their border. */
+  > div {
     border: none;
-    border-radius: ${p => p.theme.space.xs};
+    border-radius: 0;
+
+    &:only-child {
+      border-radius: ${p => p.theme.space.xs};
+    }
   }
 
   > * {
@@ -141,11 +145,11 @@ export const CardContainer = styled('div')<{numCols: number}>`
       margin-left: -${p => p.theme.space.md};
     }
     :not(:last-child) {
-      border-right: 1.5px solid ${p => p.theme.tokens.border.secondary};
+      border-right: 1px solid ${p => p.theme.tokens.border.secondary};
       padding-right: ${p => p.theme.space.xl};
     }
     :not(:first-child) {
-      border-left: 1.5px solid ${p => p.theme.tokens.border.secondary};
+      border-left: 1px solid ${p => p.theme.tokens.border.secondary};
       padding-left: ${p => p.theme.space.xl};
       padding-right: 0;
       margin-left: -1px;

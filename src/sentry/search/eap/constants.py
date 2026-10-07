@@ -55,6 +55,16 @@ LITERAL_OPERATOR_MAP = {
 }
 IN_OPERATORS = ["IN", "NOT IN"]
 
+# Snuba applies the same type rules to OP_REGEXP as to OP_LIKE: the pattern matches string
+# values, or the string elements of a string array.
+REGEXP_ATTRIBUTE_TYPES = frozenset(
+    {
+        AttributeKey.TYPE_STRING,
+        AttributeKey.TYPE_ARRAY,
+        AttributeKey.TYPE_ARRAY_STRING,
+    }
+)
+
 AGGREGATION_OPERATOR_MAP = {
     "=": AggregationComparisonFilter.OP_EQUALS,
     "!=": AggregationComparisonFilter.OP_NOT_EQUALS,
@@ -239,8 +249,8 @@ ARITHMETIC_OPERATOR_MAP: dict[str, Column.BinaryFormula.Op.ValueType] = {
 }
 
 META_PREFIX = "sentry._meta"
-META_FIELD_PREFIX = f"{META_PREFIX}.fields"
-META_ATTRIBUTE_PREFIX = f"{META_FIELD_PREFIX}.attributes"
+META_FIELD_PREFIX = "sentry._meta.fields"
+META_ATTRIBUTE_PREFIX = "sentry._meta.fields.attributes"
 
 SENTRY_INTERNAL_PREFIXES = ["__sentry_internal", "sentry._internal."]
 
