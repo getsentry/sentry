@@ -1,3 +1,5 @@
+import type * as stylex from '@stylexjs/stylex';
+
 import {useLayoutElement} from '@sentry/scraps/layout/container';
 import type {Responsive} from '@sentry/scraps/layout/styles';
 import {
@@ -108,6 +110,12 @@ export interface BaseTextProps {
    * Determines text wrapping.
    */
   wrap?: 'nowrap' | 'normal' | 'pre' | 'pre-line' | 'pre-wrap';
+
+  /**
+   * StyleX styles merged after the component's own, so they win per
+   * property. Use this (not `className`) to customize text from StyleX.
+   */
+  xstyle?: stylex.StyleXStyles;
 }
 
 type ExclusiveTextEllipsisProps =

@@ -1,6 +1,7 @@
 import React, {useMemo, useRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {mergeRefs} from '@react-aria/utils';
+import type * as stylex from '@stylexjs/stylex';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
 import type {
@@ -26,6 +27,12 @@ type Margin = SpaceSize | 'auto' | '0';
 
 /* eslint-disable @sentry/sort-interface-keys */
 export interface ContainerLayoutProps {
+  /**
+   * StyleX styles merged after the component's own, so they win per
+   * property. Use this (not `className`) to customize a primitive from StyleX.
+   */
+  xstyle?: stylex.StyleXStyles;
+
   background?: Responsive<Exclude<SurfaceVariant, 'overlay'>>;
   display?: Responsive<CSS['display']>;
 
@@ -255,6 +262,7 @@ export const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'visibility',
   'width',
   'whiteSpace',
+  'xstyle',
 ]);
 
 const OMIT_CONTAINER_PROPS: ReadonlySet<string> = omitContainerProps;
@@ -471,6 +479,7 @@ interface LayoutElementProps {
   containerType?: string;
   ref?: React.Ref<any>;
   style?: React.CSSProperties;
+  xstyle?: stylex.StyleXStyles;
 }
 
 export function useLayoutElement(
@@ -481,7 +490,7 @@ export function useLayoutElement(
 ): React.ReactNode {
   // Hooks must run unconditionally, before the render-prop early return.
   const containerRef = useRef<HTMLElement>(null);
-  const {as, containerType, ref, className, style, children} = props;
+  const {as, containerType, ref, className, style, children, xstyle} = props;
 
   // A query container needs its size observed in JS so descendants can resolve
   // container-mode responsive props (e.g. Stack orientation). We only attach a
@@ -496,7 +505,7 @@ export function useLayoutElement(
     [isContainer, ref]
   );
 
-  const merged = finishLayoutStyle(acc, className, style);
+  const merged = finishLayoutStyle(acc, className, style, xstyle);
 
   if (typeof children === 'function') {
     // When using render prop, only pass the styling to the child function
@@ -511,6 +520,7 @@ export function useLayoutElement(
       key === 'containerType' ||
       key === 'ref' ||
       key === 'style' ||
+      key === 'xstyle' ||
       omitProps.has(key) ||
       !isPropValid(key)
     ) {

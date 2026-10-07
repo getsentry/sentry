@@ -36,6 +36,11 @@ export interface LinkProps
    * Indicator if the link should be disabled
    */
   disabled?: boolean;
+  /**
+   * StyleX styles merged after the link's own, so they win per property.
+   * Use this (not `className`) to customize a link from StyleX.
+   */
+  xstyle?: stylex.StyleXStyles;
 }
 
 const styles = stylex.create({
@@ -59,21 +64,29 @@ const styles = stylex.create({
   },
 });
 
-function getLinkClassName(disabled: boolean | undefined, className: string | undefined) {
-  const {className: linkClassName = ''} = stylex.props(
-    styles.link,
-    disabled && styles.disabled
-  );
-  return className ? `${linkClassName} ${className}` : linkClassName;
+function getLinkStyleProps(
+  disabled: boolean | undefined,
+  className: string | undefined,
+  style: React.CSSProperties | undefined,
+  xstyle: stylex.StyleXStyles | undefined
+) {
+  const sx = stylex.props(styles.link, disabled && styles.disabled, xstyle);
+  return {
+    className: className ? `${sx.className ?? ''} ${className}` : sx.className,
+    style: sx.style ? {...sx.style, ...style} : style,
+  };
 }
 
 function Anchor({
   disabled,
   className,
+  style,
+  xstyle,
   ...props
 }: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
   disabled?: LinkProps['disabled'];
   ref?: React.Ref<HTMLAnchorElement>;
+  xstyle?: stylex.StyleXStyles;
 }) {
   const domProps: Record<string, unknown> = {};
   for (const key in props) {
@@ -81,7 +94,7 @@ function Anchor({
       domProps[key] = (props as Record<string, unknown>)[key];
     }
   }
-  return <a {...domProps} className={getLinkClassName(disabled, className)} />;
+  return <a {...domProps} {...getLinkStyleProps(disabled, className, style, xstyle)} />;
 }
 
 type LinkPropsWithButtonBehavior = LinkProps & {
@@ -111,13 +124,14 @@ function LinkBase(props: LinkPropsWithButtonBehavior) {
     analyticsParams: _analyticsParams,
     busy: _busy,
     variant: _variant,
+    xstyle,
     ...linkProps
   } = propsWithBehavior;
 
   return (
     <Component
       {...linkProps}
-      className={getLinkClassName(false, linkProps.className)}
+      {...getLinkStyleProps(false, linkProps.className, linkProps.style, xstyle)}
       onClick={handleClick}
     />
   );

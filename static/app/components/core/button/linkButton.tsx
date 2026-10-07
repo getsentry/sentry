@@ -108,6 +108,7 @@ const FORWARDED_PROPS: ReadonlySet<string> = new Set([
 function LinkButtonElement({
   size: _size,
   styleState,
+  xstyle,
   ...allProps
 }: ResolvedLinkButtonProps & {
   styleState: ReturnType<typeof getButtonStyleState>;
@@ -118,7 +119,7 @@ function LinkButtonElement({
       props[key] = (allProps as Record<string, any>)[key];
     }
   }
-  const sx = getButtonStyleProps(styleState);
+  const sx = getButtonStyleProps(styleState, xstyle);
   props.className = props.className ? `${sx.className} ${props.className}` : sx.className;
   props.style = sx.style ? {...sx.style, ...props.style} : props.style;
   const {handleClick} = useClickTracking(props as LinkButtonProps, 'link');

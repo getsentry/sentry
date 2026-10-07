@@ -32,6 +32,10 @@ const styles = stylex.create({
   flat: {
     boxShadow: 'none',
   },
+  // Overrides the button's medium weight next to a prefix.
+  prefixed: {
+    fontWeight: fontWeight.sansRegular,
+  },
   label: {
     fontWeight: fontWeight.sansMedium,
     paddingRight: space.sm,
@@ -48,11 +52,6 @@ const styles = stylex.create({
   },
 });
 
-// Button sets its own font weight with a class. Two classes for one property
-// are ordered by the generated stylesheet rather than by the class list, so
-// the regular weight next to a prefix is set inline instead.
-const PREFIXED_STYLE: React.CSSProperties = {fontWeight: fontWeight.sansRegular};
-
 export function DropdownButton({
   children,
   prefix,
@@ -61,12 +60,9 @@ export function DropdownButton({
   showChevron = true,
   disabled = false,
   ref,
-  className,
-  style,
+  xstyle,
   ...props
 }: DropdownButtonProps) {
-  const sx = stylex.props(styles.button, (isOpen || disabled) && styles.flat);
-
   return (
     <Button
       aria-haspopup="true"
@@ -75,8 +71,12 @@ export function DropdownButton({
       size={size}
       ref={ref}
       {...props}
-      className={className ? `${sx.className} ${className}` : sx.className}
-      style={prefix ? {...PREFIXED_STYLE, ...style} : style}
+      xstyle={[
+        styles.button,
+        (isOpen || disabled) && styles.flat,
+        !!prefix && styles.prefixed,
+        xstyle,
+      ]}
     >
       {prefix && <span {...stylex.props(styles.label)}>{prefix}</span>}
       {children}

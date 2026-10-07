@@ -39,6 +39,7 @@ export const TEXT_STYLE_PROPS: ReadonlySet<string> = new Set<string>([
   'variant',
   'wordBreak',
   'wrap',
+  'xstyle',
 ]);
 
 const styles = stylex.create({

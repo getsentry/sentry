@@ -20,6 +20,10 @@ import type {Responsive, ResponsiveKey} from './styles';
  * order they were added in.
  */
 export interface LayoutStyle {
+  /**
+   * Breakpoint classes. Several can target one property, so they are added
+   * as is rather than merged.
+   */
   classNames: string[];
   /**
    * Also set plain (non-responsive) values as inline styles. Used for the
@@ -30,10 +34,15 @@ export interface LayoutStyle {
    */
   inline: boolean;
   style: Record<string, string> | undefined;
+  /**
+   * Compiled static StyleX styles, at most one per property. They are merged
+   * per property with the caller's `xstyle`, which therefore wins.
+   */
+  styles: CompiledStyle[];
 }
 
 export function createLayoutStyle(inline = false): LayoutStyle {
-  return {classNames: [], inline, style: undefined};
+  return {classNames: [], inline, style: undefined, styles: []};
 }
 
 // Same cascade order as `rc()`: the container axis, then the viewport axis.
@@ -126,7 +135,7 @@ function addBase<T>(
   if (fixed !== undefined) {
     const fixedStyle = fixedStyleMap[`${fixed}:${String(value)}`];
     if (fixedStyle) {
-      acc.classNames.push(classNameOf(fixedStyle));
+      acc.styles.push(fixedStyle);
       return true;
     }
   }
@@ -135,7 +144,7 @@ function addBase<T>(
   if (resolved === undefined) {
     return false;
   }
-  acc.classNames.push(classNameOf(baseStyles[property]));
+  acc.styles.push(baseStyles[property]);
   setVar(acc, layoutVarName(property), String(resolved));
   return true;
 }
@@ -194,26 +203,44 @@ export function addStyles(
 ): void {
   for (const style of styles) {
     if (style) {
-      acc.classNames.push(classNameOf(style));
+      acc.styles.push(style);
     }
   }
 }
 
 /**
- * Merges the computed layout styles with the `className` and `style` passed to
- * the component. Those come last, so Emotion wrappers (`styled(Flex)`) and
- * inline styles still win.
+ * Merges the computed layout styles with the `xstyle`, `className` and `style`
+ * passed to the component.
+ *
+ * - `xstyle` (StyleX styles) is merged per property after the component's own
+ *   styles, so it overrides them. This is how StyleX callers customize a
+ *   primitive; passing StyleX classes through `className` instead would leave
+ *   two classes for one property, ordered by the stylesheet.
+ * - `className` comes from Emotion wrappers (`styled(Flex)`), whose later
+ *   stylesheet wins at equal specificity.
  */
 export function finishLayoutStyle(
   acc: LayoutStyle,
   className: string | undefined,
-  style: CSSProperties | undefined
+  style: CSSProperties | undefined,
+  xstyle?: stylex.StyleXStyles
 ): {className: string; style: CSSProperties | undefined} {
-  if (className) {
-    acc.classNames.push(className);
+  let ownClassName: string;
+  let xstyleStyle: CSSProperties | undefined;
+  if (xstyle) {
+    const sx = stylex.props(acc.styles as stylex.StyleXStyles[], xstyle);
+    ownClassName = sx.className ?? '';
+    xstyleStyle = sx.style;
+  } else {
+    ownClassName = acc.styles.map(classNameOf).join(' ');
   }
-  return {
-    className: acc.classNames.join(' '),
-    style: acc.style ? (style ? {...acc.style, ...style} : acc.style) : style,
-  };
+  const classNames = [ownClassName, ...acc.classNames];
+  if (className) {
+    classNames.push(className);
+  }
+  const merged =
+    acc.style || xstyleStyle || style
+      ? {...acc.style, ...xstyleStyle, ...style}
+      : undefined;
+  return {className: classNames.join(' '), style: merged};
 }

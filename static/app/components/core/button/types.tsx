@@ -1,3 +1,4 @@
+import type * as stylex from '@stylexjs/stylex';
 import type {LocationDescriptor} from 'history';
 
 import type {Responsive} from '@sentry/scraps/layout';
@@ -39,6 +40,11 @@ export interface DO_NOT_USE_CommonButtonProps extends AnalyticsProps {
    * destructive, `link` for visual similarity to a link.
    */
   variant?: ButtonVariant;
+  /**
+   * StyleX styles merged after the button's own, so they win per property.
+   * Use this (not `className`) to customize a button from StyleX.
+   */
+  xstyle?: stylex.StyleXStyles;
 }
 
 interface ButtonTooltipProps extends Omit<

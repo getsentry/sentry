@@ -1,10 +1,9 @@
 /**
  * Shared StyleX compilation for the rspack loaders and the jest transform.
  *
- * StyleX is only used by @sentry/scraps (static/packages/scraps/src) and a few
- * core components for now (see `STYLEX_ROOTS`). Files there that import
- * `@stylexjs/stylex` are compiled with `@stylexjs/babel-plugin` before swc, and
- * their CSS is collected into a single stylesheet (see `stylex-css-loader.ts`).
+ * Files under `STYLEX_ROOTS` that import `@stylexjs/stylex` are compiled with
+ * `@stylexjs/babel-plugin` before swc, and their CSS is collected into a
+ * single stylesheet (see `stylex-css-loader.ts`).
  *
  * Cascade order: StyleX rules are emitted as plain single-class selectors
  * (`legacyDisableLayers`), and the stylesheet is injected after the LESS
@@ -25,15 +24,13 @@ const CORE_COMPONENTS = path.join(ROOT, 'static/app/components/core');
 export const STYLEX_IMPORT = '@stylexjs/stylex';
 
 /**
- * Directories that may use StyleX: the @sentry/scraps package, plus the core
- * components that dominate Emotion's runtime cost (Button, DropdownButton,
- * Link). Everything else in static/app/components/core stays on Emotion.
+ * Directories that may use StyleX: the @sentry/scraps package and the app.
+ * Files without a `@stylexjs/stylex` import pass through the loader untouched.
  */
 export const STYLEX_ROOTS = [
   SCRAPS_SRC,
-  path.join(CORE_COMPONENTS, 'button'),
-  path.join(CORE_COMPONENTS, 'dropdownMenu'),
-  path.join(CORE_COMPONENTS, 'link'),
+  path.join(ROOT, 'static/app'),
+  path.join(ROOT, 'static/gsApp'),
 ];
 
 type StylexRule = Parameters<typeof stylexBabelPlugin.processStylexRules>[0][number];
@@ -51,6 +48,8 @@ function getPluginOptions(runtimeInjection: boolean) {
     // rspack does, so variables hash identically wherever they are imported.
     aliases: {
       '@sentry/scraps/*': [`${SCRAPS_SRC}/*`, `${CORE_COMPONENTS}/*`],
+      'sentry/*': [path.join(ROOT, 'static/app/*')],
+      'getsentry/*': [path.join(ROOT, 'static/gsApp/*')],
     },
     unstable_moduleResolution: {type: 'commonJS' as const, rootDir: ROOT},
   };

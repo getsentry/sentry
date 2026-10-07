@@ -271,7 +271,7 @@ function isBorderless(variant: ButtonVariant) {
   return variant === 'transparent' || variant === 'link';
 }
 
-export function getButtonStyleProps(s: ButtonStyleState) {
+export function getButtonStyleProps(s: ButtonStyleState, xstyle?: stylex.StyleXStyles) {
   const borderless = isBorderless(s.variant);
   return stylex.props(
     buttonStyles.base,
@@ -285,7 +285,8 @@ export function getButtonStyleProps(s: ButtonStyleState) {
     s.variant === 'link' && buttonStyles.link,
     s.pressed && buttonStyles.pressed,
     s.disabled && buttonStyles.disabled,
-    s.busy && buttonStyles.busy
+    s.busy && buttonStyles.busy,
+    xstyle
   );
 }
 
@@ -315,6 +316,7 @@ const BUTTON_PROPS: ReadonlySet<string> = new Set([
   'size',
   'tooltipProps',
   'variant',
+  'xstyle',
 ]);
 
 function isTrue(value: unknown) {

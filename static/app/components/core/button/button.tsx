@@ -66,7 +66,7 @@ export function Button({
     size,
     hasChildren
   );
-  const sx = getButtonStyleProps(styleState);
+  const sx = getButtonStyleProps(styleState, props.xstyle);
   const contentSx = getButtonContentStyleProps(styleState, {hideWhenBusy: true});
 
   return (
