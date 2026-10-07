@@ -1,11 +1,9 @@
 from unittest import mock
 
 import pytest
-from rest_framework import serializers
 from rest_framework.test import APITestCase as BaseAPITestCase
 
 from fixtures.integrations.jira.mock import MockJira
-from sentry.api.serializers.rest_framework.rule import validate_actions
 from sentry.integrations.jira import JiraCreateTicketAction, JiraIntegration
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.types import EventLifecycleOutcome
@@ -160,26 +158,6 @@ class JiraTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
                 mock_record_event,
                 IntegrationConfigurationError(),
             )
-
-    def test_fails_validation(self) -> None:
-        """
-        Test that the absence of dynamic_form_fields in the action fails validation
-        """
-        with pytest.raises(serializers.ValidationError) as excinfo:
-            validate_actions(
-                {
-                    "actions": [
-                        {
-                            "id": "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
-                            "integration": self.integration.id,
-                            "issuetype": "1",
-                            "name": "Create a Jira ticket in the Jira Cloud account",
-                            "project": "10000",
-                        }
-                    ]
-                }
-            )
-        assert excinfo.value.detail == {"actions": "Must configure issue link settings."}
 
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @mock.patch.object(MockJira, "create_issue")

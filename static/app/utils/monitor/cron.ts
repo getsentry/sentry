@@ -12,6 +12,9 @@ export const DEFAULT_CHECKIN_MARGIN = 1;
 // In minutes
 export const DEFAULT_MAX_RUNTIME = 30;
 
+// In minutes (7 days)
+export const MAX_RUNTIME_LIMIT = 10_080;
+
 /**
  * Priority order for selecting which environment to display/use.
  * Prefers healthy environments over failing ones.

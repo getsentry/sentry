@@ -2,20 +2,16 @@ import {Fragment, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {AttributeDetailsTooltip} from 'sentry/components/attributes/attributeDetailsTooltip';
-import {useIssueDetailsColumnCount} from 'sentry/components/events/eventTags/util';
 import {KeyValueTreeRow} from 'sentry/components/keyValueTree/keyValueTreeRow';
 import {
   KeyValueTreeRowActions,
   visitExternalLinkAction,
 } from 'sentry/components/keyValueTree/keyValueTreeRowActions';
-import {
-  TreeColumn as KeyValueTreeColumn,
-  TreeContainer as KeyValueTreeContainer,
-} from 'sentry/components/keyValueTree/styles';
+import {TreeColumn as KeyValueTreeColumn} from 'sentry/components/keyValueTree/styles';
 import {
   buildKeyValueTree,
   getKeyValueTreeColumns,
@@ -28,6 +24,7 @@ import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType} from 'sentry/utils/discover/eventView';
 import {type RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import type {GetFieldDefinitionType} from 'sentry/utils/fields';
+import {useContainerColumnCount} from 'sentry/utils/useContainerColumnCount';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -177,16 +174,18 @@ export function AttributesTree<RendererExtra extends RenderFunctionBaggage>(
   props: AttributesTreeProps<RendererExtra>
 ) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const widthBasedColumnCount = useIssueDetailsColumnCount(containerRef);
+  const widthBasedColumnCount = useContainerColumnCount(containerRef);
   const columnCount = props.columnCount ?? widthBasedColumnCount;
   return (
-    <TreeContainer
+    <Grid
+      align="start"
+      columns={`repeat(${columnCount}, 1fr)`}
+      whiteSpace="normal"
       ref={containerRef}
-      columnCount={columnCount}
       data-test-id="fields-tree"
     >
       <AttributesTreeColumns {...props} columnCount={columnCount} />
-    </TreeContainer>
+    </Grid>
   );
 }
 
@@ -324,10 +323,6 @@ function getAttribute(
     type: attribute.type,
   };
 }
-
-const TreeContainer = styled(KeyValueTreeContainer)`
-  white-space: normal;
-`;
 
 const TreeColumn = styled(KeyValueTreeColumn)`
   grid-template-columns: minmax(min-content, max-content) auto;

@@ -9,6 +9,7 @@ from django.db import router
 from django.db.models import Count, Exists, OuterRef
 from django.utils import timezone
 from sentry_redis_tools.clients import RedisCluster
+from sentry_sdk import traces
 
 from sentry import options
 from sentry.models.artifactbundle import (
@@ -24,7 +25,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.utils import metrics, redis
 from sentry.utils.db import atomic_transaction
-from sentry.utils.tracing import trace
 
 # The number of Artifact Bundles that we return in case of incomplete indexes.
 MAX_BUNDLES_QUERY = 5
@@ -132,7 +132,7 @@ def is_named_after_own_debug_id(url: str, info: dict[str, Any]) -> bool:
     return file_name.startswith(f"{debug_id}-")
 
 
-@trace
+@traces.trace
 def index_urls_in_bundle(
     organization_id: int,
     artifact_bundle: ArtifactBundle,
@@ -222,7 +222,7 @@ def maybe_renew_artifact_bundles(used_artifact_bundles: dict[int, datetime]):
             renew_artifact_bundle(artifact_bundle_id, threshold_date, now)
 
 
-@trace
+@traces.trace
 def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now: datetime):
     metrics.incr("artifact_bundle_renewal.need_renewal")
     # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.

@@ -5,10 +5,9 @@ from collections import defaultdict
 from collections.abc import Iterable
 from datetime import timedelta
 from typing import Any
-from urllib.parse import urlencode, urlparse, urlunparse
+from urllib.parse import urlencode
 
 from django.db import router, transaction
-from django.urls import reverse
 from django.utils import timezone as django_timezone
 
 from sentry.constants import ObjectStatus
@@ -16,6 +15,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.models.team import Team
+from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -23,6 +23,7 @@ from sentry.monitors.models import (
     MonitorEnvBrokenDetection,
     MonitorIncident,
 )
+from sentry.monitors.types import DATA_SOURCE_CRON_MONITOR
 from sentry.notifications.services import notifications_service
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.tasks.base import instrumented_task
@@ -30,8 +31,8 @@ from sentry.taskworker.namespaces import crons_tasks
 from sentry.types.actor import Actor
 from sentry.utils.email import MessageBuilder
 from sentry.utils.email.manager import get_email_addresses
-from sentry.utils.http import absolute_uri
 from sentry.utils.query import RangeQuerySetWrapper
+from sentry.workflow_engine.models import DataSourceDetector
 
 logger = logging.getLogger("sentry")
 
@@ -49,21 +50,16 @@ MAX_ENVIRONMENTS_IN_MONITOR_LINK = 10
 
 
 def generate_monitor_overview_url(organization: Organization):
-    return absolute_uri(reverse("sentry-organization-crons", args=[organization.slug]))
+    return organization.absolute_url(f"/organizations/{organization.slug}/monitors/crons/")
 
 
 def generate_monitor_detail_url(
-    organization: Organization, project_slug: str, monitor_slug: str, environments: list[str]
+    organization: Organization, detector_id: int, environments: list[str]
 ):
-    url = absolute_uri(
-        reverse(
-            "sentry-organization-cron-monitor-details",
-            args=[organization.slug, project_slug, monitor_slug],
-        )
+    return organization.absolute_url(
+        f"/organizations/{organization.slug}/monitors/{detector_id}/",
+        query=urlencode({"environment": environments}, doseq=True),
     )
-    url_parts = list(urlparse(url))
-    url_parts[4] = urlencode({"environment": environments}, doseq=True)
-    return urlunparse(url_parts)
 
 
 def update_user_monitor_dictionary(
@@ -72,6 +68,7 @@ def update_user_monitor_dictionary(
     open_incident: MonitorIncident,
     project: Project,
     environment_name: str,
+    detector_id: int | None,
 ) -> None:
     user_monitor_entry = user_monitor_entries[user_email][open_incident.monitor.id]
     user_monitor_entry.update(
@@ -82,6 +79,7 @@ def update_user_monitor_dictionary(
             ),
             "project_slug": project.slug,
             "slug": open_incident.monitor.slug,
+            "detector_id": detector_id,
         }
     )
     if len(user_monitor_entry["environment_names"]) < MAX_ENVIRONMENTS_IN_MONITOR_LINK:
@@ -133,11 +131,14 @@ def generate_monitor_email_context(
         (
             monitor_entry["slug"],
             monitor_entry["project_slug"],
-            generate_monitor_detail_url(
-                organization,
-                monitor_entry["project_slug"],
-                monitor_entry["slug"],
-                monitor_entry["environment_names"],
+            (
+                generate_monitor_detail_url(
+                    organization,
+                    monitor_entry["detector_id"],
+                    monitor_entry["environment_names"],
+                )
+                if monitor_entry["detector_id"] is not None
+                else generate_monitor_overview_url(organization)
             ),
             monitor_entry["earliest_start"],
         )
@@ -200,6 +201,16 @@ def detect_broken_monitor_envs_for_org(org_id: int):
         .select_related("monitor_environment")
         .filter(monitor__organization_id=org_id)
     )
+    monitor_ids = set(orgs_open_incidents.values_list("monitor_id", flat=True))
+    detector_ids_by_monitor_id = {
+        int(monitor_id): detector_id
+        for monitor_id, detector_id in DataSourceDetector.objects.filter(
+            data_source__type=DATA_SOURCE_CRON_MONITOR,
+            data_source__organization_id=organization.id,
+            data_source__source_id__in=monitor_ids,
+            detector__type=MonitorIncidentType.slug,
+        ).values_list("data_source__source_id", "detector_id")
+    }
     # Query for all the broken incidents within the current org we are processing
     for open_incident in RangeQuerySetWrapper(
         orgs_open_incidents,
@@ -229,7 +240,12 @@ def detect_broken_monitor_envs_for_org(org_id: int):
                     continue
 
                 update_user_monitor_dictionary(
-                    user_broken_envs, email, open_incident, project, environment_name
+                    user_broken_envs,
+                    email,
+                    open_incident,
+                    project,
+                    environment_name,
+                    detector_ids_by_monitor_id.get(open_incident.monitor_id),
                 )
         elif (
             not detection.env_muted_timestamp
@@ -248,7 +264,12 @@ def detect_broken_monitor_envs_for_org(org_id: int):
                     continue
 
                 update_user_monitor_dictionary(
-                    user_muted_envs, email, open_incident, project, environment_name
+                    user_muted_envs,
+                    email,
+                    open_incident,
+                    project,
+                    environment_name,
+                    detector_ids_by_monitor_id.get(open_incident.monitor_id),
                 )
 
     # After accumulating all users within the org and which monitors to email them, send the emails

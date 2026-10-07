@@ -54,6 +54,11 @@ Message: Second request
 Data: {"url":"/api/test","status_code":200}"
 `);
   });
+  it('strips ANSI codes when the message contains them', () => {
+    const crumb = createMockCrumb({message: '\x1B[31mGET\x1B[0m request'});
+    const result = formatBreadcrumbsAsText([crumb]);
+    expect(result).toContain('Message: GET request\n');
+  });
 });
 describe('formatBreadcrumbsAsMarkdown', () => {
   it('formats breadcrumbs as a markdown table with header', () => {
@@ -73,5 +78,10 @@ describe('formatBreadcrumbsAsMarkdown', () => {
 |-----------|------|----------|-------|---------|------|
 | 2024-01-15T10:30:45.123Z | http | http | info | value\\|with\\|pipes | {"key":"val\\|ue"} |"
 `);
+  });
+  it('strips ANSI codes when the message contains them', () => {
+    const crumb = createMockCrumb({message: '\x1B[31mGET\x1B[0m request'});
+    const result = formatBreadcrumbsAsMarkdown([crumb]);
+    expect(result).toContain('| info | GET request |');
   });
 });

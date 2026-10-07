@@ -277,19 +277,14 @@ export function partitionSpansByType(nodes: AITraceSpanNode[]): {
 
   for (const node of nodes) {
     const opType = getGenAiOpType(node);
-    // Evaluations report gen_ai.operation.type "ai_client" like LLM calls, so
-    // they're recognized by gen_ai.operation.name before they'd fall through
-    // to generationSpans as empty turns.
+    // Evaluations and embeddings report gen_ai.operation.type "ai_client" like
+    // LLM calls, so they're recognized by gen_ai.operation.name before they'd
+    // fall through to generationSpans as empty turns.
     if (isEvaluationNode(node)) {
       evaluationSpans.push(node);
       continue;
     }
-    // Embeddings are checked first: they don't get a dedicated
-    // gen_ai.operation.type (it reports "ai_client"), so they're recognized by
-    // their span op — or, once available, the embeddings-only input attribute.
-    // Either way they must not fall through to generationSpans, where they'd be
-    // dropped for having no chat content.
-    if (getIsEmbeddingsNode(node)) {
+    if (isEmbeddingsNode(node)) {
       embeddingSpans.push(node);
     } else if (getIsAiGenerationSpan(opType)) {
       generationSpans.push(node);
@@ -767,16 +762,8 @@ function getGenAiOpType(node: AITraceSpanNode): string | undefined {
   return getStringAttr(node, SpanFields.GEN_AI_OPERATION_TYPE);
 }
 
-/**
- * Embeddings spans don't get a dedicated `gen_ai.operation.type` (it reports
- * `ai_client`), so they're recognized by their span op instead — falling back to
- * the embeddings-only input attribute when it's present.
- */
-function getIsEmbeddingsNode(node: AITraceSpanNode): boolean {
-  return (
-    getStringAttr(node, SpanFields.SPAN_OP) === 'gen_ai.embeddings' ||
-    Boolean(getStringAttr(node, SpanFields.GEN_AI_EMBEDDINGS_INPUT))
-  );
+function isEmbeddingsNode(node: AITraceSpanNode): boolean {
+  return getStringAttr(node, SpanFields.GEN_AI_OPERATION_NAME) === 'embeddings';
 }
 
 // Prefix every line with `> ` so multi-line content forms one blockquote.

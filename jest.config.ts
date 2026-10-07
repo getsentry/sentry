@@ -348,12 +348,13 @@ const config: Config.InitialOptions = {
         dsn: Boolean(CI) && Boolean(GITHUB_PR_REF) && SENTRY_DSN ? SENTRY_DSN : false,
         // Use production env to reduce sampling of commits on master
         environment: CI ? (IS_MASTER_BRANCH ? 'ci:master' : 'ci:pull_request') : 'local',
-        tracesSampleRate: CI ? 0.75 : 0,
+        // Trace every master run so failures there are always traceable; sample PRs
+        tracesSampleRate: CI ? (IS_MASTER_BRANCH ? 1 : 0.75) : 0,
         profilesSampleRate: 0,
         transportOptions: {keepAlive: true},
       },
-      // Applied to the isolation scope, so these land on error events as well as
-      // on the test suite and test transactions.
+      // Set as tags (for error events) and, via withTagsAsSpanAttributes, as span
+      // attributes, so every span in the trace can be filtered by them.
       tags: {
         ...optionalTags,
         'ci.branch': BRANCH,
