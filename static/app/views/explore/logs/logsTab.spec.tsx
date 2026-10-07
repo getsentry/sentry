@@ -1,4 +1,4 @@
-import {AnnotationFixture} from 'sentry-fixture/annotation';
+import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {initializeLogsTest} from 'sentry-fixture/log';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
@@ -9,7 +9,6 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
-import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
@@ -28,11 +27,6 @@ import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import * as QueryParamsContext from 'sentry/views/explore/queryParams/context';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
-
-function toDroppedEvent(annotation: Annotation) {
-  const {eventCount, ...bucket} = annotation;
-  return {...bucket, count: eventCount};
-}
 
 function LogsTabContentHarness({
   datePageFilterProps,
@@ -848,7 +842,7 @@ describe('LogsTabContent', () => {
         ],
         body: {
           meta: {dataset: 'logs', start: 0, end: 0, interval: 0},
-          droppedEvents: [toDroppedEvent(AnnotationFixture())],
+          droppedEvents: [DroppedEventFixture()],
           acceptedEvents: [],
         },
       });

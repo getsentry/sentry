@@ -1,4 +1,4 @@
-import {AnnotationFixture} from 'sentry-fixture/annotation';
+import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
@@ -13,27 +13,22 @@ import {
 import {useDroppedDataDrawer} from 'sentry/components/droppedData/useDroppedDataDrawer';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-
-function toDroppedEvent(annotation: Annotation) {
-  const {eventCount, ...bucket} = annotation;
-  return {...bucket, count: eventCount};
-}
 
 const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations'],
 });
 
-function mockDroppedData(eventCount: number, statsPeriod: string) {
+function mockDroppedData(count: number, statsPeriod: string) {
+  const dropped = [DroppedEventFixture({count})];
+  const accepted = [DroppedEventFixture({outcome: 'accepted', count: 90})];
+
   return MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events-dropped/`,
     match: [MockApiClient.matchQuery({statsPeriod})],
     body: {
       meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
-      droppedEvents: [toDroppedEvent(AnnotationFixture({eventCount}))],
-      acceptedEvents: [
-        toDroppedEvent(AnnotationFixture({outcome: 'accepted', eventCount: 90})),
-      ],
+      droppedEvents: dropped,
+      acceptedEvents: accepted,
     },
   });
 }
