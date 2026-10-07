@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useEffect, useEffectEvent, useMemo} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
-import {Container} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
@@ -198,7 +197,7 @@ export function GroupList({
 
   const queryClient = useQueryClient();
 
-  const {columns, selectionEnabled} = useStreamGroupColumns({
+  const {columns} = useStreamGroupColumns({
     canSelect: canSelectGroups,
     displayReprocessingLayout: false,
     withChart,
@@ -347,16 +346,12 @@ export function GroupList({
   return (
     <Fragment>
       <StreamGroupTable columns={columns}>
-        {withHeader && (
-          <GroupListHeader columns={columns} selectionEnabled={selectionEnabled} />
-        )}
+        {withHeader && <GroupListHeader columns={columns} />}
         <SimpleTable.Body>
           {loading
             ? Array.from({length: numPlaceholderRows}, (_, i) => (
                 <SimpleTable.FullWidthRow key={i}>
-                  <Container padding="md">
-                    <Placeholder height="50px" />
-                  </Container>
+                  <Placeholder height="50px" />
                 </SimpleTable.FullWidthRow>
               ))
             : groups.map(group => {

@@ -2,7 +2,7 @@ import type {HTMLAttributes, ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, type FlexProps} from '@sentry/scraps/layout';
-import {Table, type TableColumnConfig} from '@sentry/scraps/table';
+import {COL_WIDTH_MINIMUM, Table, type TableColumnConfig} from '@sentry/scraps/table';
 
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -55,7 +55,7 @@ function getStreamGroupColumns({
   if (withColumns.includes('lastSeen')) {
     columns.push({
       key: 'lastSeen',
-      width: '102px',
+      width: 102,
       visible: {[COLUMN_BREAKPOINTS.LAST_SEEN]: true},
     });
   }
@@ -63,16 +63,16 @@ function getStreamGroupColumns({
   if (withColumns.includes('firstSeen')) {
     columns.push({
       key: 'firstSeen',
-      width: '66px',
+      width: COL_WIDTH_MINIMUM,
       visible: {[COLUMN_BREAKPOINTS.FIRST_SEEN]: true},
     });
   }
 
   if (displayReprocessingLayout) {
     columns.push(
-      {key: 'reprocessingStarted', width: {zero: '117px', xl: '172px'}},
-      {key: 'reprocessingEvents', width: {zero: '107px', xl: '172px'}},
-      {key: 'reprocessingProgress', width: '192px', visible: {xl: true}}
+      {key: 'reprocessingStarted', width: {zero: 117, xl: 172}},
+      {key: 'reprocessingEvents', width: {zero: 107, xl: 172}},
+      {key: 'reprocessingProgress', width: 192, visible: {xl: true}}
     );
 
     return columns;
@@ -81,7 +81,7 @@ function getStreamGroupColumns({
   if (withChart) {
     columns.push({
       key: 'graph',
-      width: '191px',
+      width: 191,
       visible: {[COLUMN_BREAKPOINTS.TREND]: true},
     });
   }
@@ -89,7 +89,7 @@ function getStreamGroupColumns({
   if (withColumns.includes('event')) {
     columns.push({
       key: 'event',
-      width: '76px',
+      width: COL_WIDTH_MINIMUM,
       visible: {[COLUMN_BREAKPOINTS.EVENTS]: true},
     });
   }
@@ -97,7 +97,7 @@ function getStreamGroupColumns({
   if (withColumns.includes('users')) {
     columns.push({
       key: 'users',
-      width: '76px',
+      width: COL_WIDTH_MINIMUM,
       visible: {[COLUMN_BREAKPOINTS.USERS]: true},
     });
   }
@@ -105,7 +105,7 @@ function getStreamGroupColumns({
   if (withColumns.includes('priority')) {
     columns.push({
       key: 'priority',
-      width: '80px',
+      width: COL_WIDTH_MINIMUM,
       visible: {[COLUMN_BREAKPOINTS.PRIORITY]: true},
     });
   }
@@ -113,7 +113,7 @@ function getStreamGroupColumns({
   if (withColumns.includes('assignee') || withColumns.includes('assigneeAvatar')) {
     columns.push({
       key: 'assignee',
-      width: '90px',
+      width: COL_WIDTH_MINIMUM,
       visible: {[COLUMN_BREAKPOINTS.ASSIGNEE]: true},
     });
   }
@@ -163,7 +163,6 @@ const RIGHT_ALIGNED_COLUMNS = new Set<StreamGroupColumnKey>([
 
 interface StreamGroupHeaderCellProps {
   column: StreamGroupColumn;
-  selectionEnabled: boolean;
   children?: ReactNode;
   spanRemaining?: boolean;
 }
@@ -171,7 +170,6 @@ interface StreamGroupHeaderCellProps {
 export function StreamGroupHeaderCell({
   children,
   column,
-  selectionEnabled,
   spanRemaining,
 }: StreamGroupHeaderCellProps) {
   const content = children ?? HEADER_LABELS[column.key];
@@ -184,56 +182,32 @@ export function StreamGroupHeaderCell({
     return <BulkActionsHeaderCell scope="colgroup">{content}</BulkActionsHeaderCell>;
   }
 
-  if (column.key === 'issue') {
-    return (
-      <IssueHeaderCell divider={false} selectionEnabled={selectionEnabled}>
-        {content}
-      </IssueHeaderCell>
-    );
-  }
-
-  if (RIGHT_ALIGNED_COLUMNS.has(column.key)) {
-    return <RightAlignedHeaderCell align="right">{content}</RightAlignedHeaderCell>;
-  }
-
-  return <SimpleTable.HeaderCell>{content}</SimpleTable.HeaderCell>;
+  return (
+    <SimpleTable.HeaderCell
+      align={RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'right' : undefined}
+    >
+      {content}
+    </SimpleTable.HeaderCell>
+  );
 }
 
-const CELL_PROPS: Record<StreamGroupColumnKey, FlexProps<'td'>> = {
-  select: {
-    align: 'start',
-    alignSelf: 'stretch',
-    overflow: 'visible',
-    padding: 'md 0 0 0',
-    position: 'relative',
-  },
-  issue: {padding: 'md xl'},
-  lastSeen: {justify: 'end', padding: 'md xl'},
-  firstSeen: {justify: 'end', padding: 'md xl'},
-  graph: {padding: 'md 0 md xl'},
-  reprocessingStarted: {padding: 'md xl', whiteSpace: 'nowrap'},
-  reprocessingEvents: {padding: 'md xl', whiteSpace: 'nowrap'},
-  reprocessingProgress: {padding: 'md xl'},
-  event: {justify: 'end', padding: 'md xl'},
-  users: {justify: 'end', padding: 'md xl'},
-  priority: {justify: 'end', padding: 'md xl'},
-  assignee: {justify: 'end', padding: 'md xl'},
+const SELECT_CELL_PROPS: FlexProps<'td'> = {
+  align: 'start',
+  alignSelf: 'stretch',
+  overflow: 'visible',
+  padding: 'md 0 0 0',
+  position: 'relative',
 };
 
 interface StreamGroupCellProps extends Omit<FlexProps<'td'>, 'column'> {
   column: StreamGroupColumn;
-  selectionEnabled: boolean;
 }
 
-export function StreamGroupCell({
-  column,
-  selectionEnabled,
-  ...props
-}: StreamGroupCellProps) {
+export function StreamGroupCell({column, ...props}: StreamGroupCellProps) {
   return (
     <SimpleTable.RowCell
-      {...CELL_PROPS[column.key]}
-      {...(column.key === 'issue' && selectionEnabled ? {paddingLeft: 'md'} : {})}
+      {...(column.key === 'select' ? SELECT_CELL_PROPS : {})}
+      {...(RIGHT_ALIGNED_COLUMNS.has(column.key) ? {justify: 'end'} : {})}
       {...props}
     />
   );
@@ -249,17 +223,7 @@ const SelectHeaderCell = styled(Table.HeadCell)`
 const BulkActionsHeaderCell = styled(Table.HeadCell)`
   grid-column: 2 / -1;
   align-items: center;
-  padding: 0 ${p => p.theme.space.xl} 0 ${p => p.theme.space.md};
-`;
-
-const RightAlignedHeaderCell = styled(SimpleTable.HeaderCell)`
-  padding-left: ${p => p.theme.space.md};
-`;
-
-const IssueHeaderCell = styled(SimpleTable.HeaderCell, {
-  shouldForwardProp: prop => prop !== 'selectionEnabled',
-})<{selectionEnabled: boolean}>`
-  padding-left: ${p => (p.selectionEnabled ? p.theme.space.md : p.theme.space.xl)};
+  padding: 0 ${p => p.theme.space.xl};
 `;
 
 interface StreamGroupTableProps extends Omit<
@@ -273,12 +237,7 @@ interface StreamGroupTableProps extends Omit<
 export function StreamGroupTable({children, columns, ...props}: StreamGroupTableProps) {
   return (
     <Container containerType="inline-size" marginBottom="xl">
-      <StyledStreamGroupTable
-        {...props}
-        customSections
-        columns={columns}
-        flexibleLastColumn={false}
-      >
+      <StyledStreamGroupTable {...props} customSections columns={columns}>
         {children}
       </StyledStreamGroupTable>
     </Container>

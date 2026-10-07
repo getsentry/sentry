@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useMemo, useRef} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
@@ -187,7 +186,7 @@ export function LoadingStreamGroup({
   withChart = true,
   withColumns = COLUMNS,
 }: LoadingSteamGroupProps) {
-  const {columns, selectionEnabled} = useStreamGroupColumns({
+  const {columns} = useStreamGroupColumns({
     canSelect,
     displayReprocessingLayout,
     withChart,
@@ -195,13 +194,9 @@ export function LoadingStreamGroup({
   });
 
   return (
-    <StreamGroupRow data-test-id="group" useTintRow={false} reviewed={false}>
+    <StreamGroupRow data-test-id="group">
       {columns.map(column => (
-        <StreamGroupCell
-          key={column.key}
-          column={column}
-          selectionEnabled={selectionEnabled}
-        >
+        <StreamGroupCell key={column.key} column={column}>
           {column.key === 'select' ? null : (
             <Placeholder {...LOADING_PLACEHOLDER_PROPS[column.key]} />
           )}
@@ -655,16 +650,11 @@ export function StreamGroup({
       data-test-id="group"
       data-test-reviewed={reviewed}
       onClick={onClick}
-      reviewed={reviewed}
-      useTintRow={useTintRow ?? true}
+      variant={useTintRow && reviewed ? 'faded' : 'default'}
     >
       <InteractionStateLayer as="td" />
       {columns.map(column => (
-        <StreamGroupCell
-          key={column.key}
-          column={column}
-          selectionEnabled={selectionEnabled}
-        >
+        <StreamGroupCell key={column.key} column={column}>
           {renderCellContent(column)}
         </StreamGroupCell>
       ))}
@@ -688,14 +678,10 @@ const CheckboxLabel = styled('label')`
   gap: ${p => p.theme.space.sm};
 `;
 
-const StreamGroupRow = styled(SimpleTable.Row, {
-  shouldForwardProp: prop => prop !== 'reviewed' && prop !== 'useTintRow',
-})<{
-  reviewed: boolean;
-  useTintRow: boolean;
-}>`
-  line-height: 1.1;
-  min-height: 82px;
+const StreamGroupRow = styled(SimpleTable.Row)`
+  [role='cell']:has(${CheckboxLabel}) {
+    z-index: 1;
+  }
 
   [data-issue-title-link] {
     &::before {
@@ -713,41 +699,6 @@ const StreamGroupRow = styled(SimpleTable.Row, {
       }
     }
   }
-
-  ${p =>
-    p.useTintRow &&
-    p.reviewed &&
-    css`
-      animation: tintRow 0.2s linear forwards;
-      position: relative;
-
-      /*
-       * A mask that fills the entire row and makes the text opaque. Doing this because
-       * opacity adds a stacking context in CSS so we need to apply it to another element.
-       */
-      &:after {
-        content: '';
-        pointer-events: none;
-        position: absolute;
-        left: 0;
-        right: 0;
-        top: 0;
-        bottom: 0;
-        width: 100%;
-        height: 100%;
-        background-color: ${p.theme.tokens.background.secondary};
-        opacity: 0.4;
-      }
-
-      @keyframes tintRow {
-        0% {
-          background-color: ${p.theme.tokens.background.secondary};
-        }
-        100% {
-          background-color: ${p.theme.tokens.background.secondary};
-        }
-      }
-    `}
 `;
 
 const GroupCheckBoxWrapper = styled('div')`

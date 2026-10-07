@@ -1,7 +1,6 @@
 import {Fragment, useMemo, useRef, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {useQueryClient} from '@tanstack/react-query';
-import {motion, type MotionNodeAnimationOptions} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -57,12 +56,6 @@ type IssueListActionsProps = {
   onActionTaken?: (itemIds: string[], data: IssueUpdateData) => void;
 };
 
-const animationProps: MotionNodeAnimationOptions = {
-  initial: {translateY: 8, opacity: 0},
-  animate: {translateY: 0, opacity: 1},
-  transition: {duration: 0.1},
-};
-
 function ActionsBarPriority({
   anySelected,
   columns,
@@ -109,11 +102,7 @@ function ActionsBarPriority({
       {columns.map(column => {
         if (column.key === 'select') {
           return (
-            <StreamGroupHeaderCell
-              key={column.key}
-              column={column}
-              selectionEnabled={selectionEnabled}
-            >
+            <StreamGroupHeaderCell key={column.key} column={column}>
               <Checkbox
                 onChange={toggleSelectAllVisible}
                 checked={pageSelected || (anySelected ? 'indeterminate' : false)}
@@ -126,19 +115,14 @@ function ActionsBarPriority({
 
         if (shouldDisplayActions) {
           return column.key === 'issue' ? (
-            <StreamGroupHeaderCell
-              key={column.key}
-              column={column}
-              selectionEnabled={selectionEnabled}
-              spanRemaining
-            >
+            <StreamGroupHeaderCell key={column.key} column={column} spanRemaining>
               {displayReprocessingActions ? null : (
-                <HeaderButtonsWrapper
+                <Grid
                   width={{zero: 'auto', '4xl': '50%'}}
                   gap="xs"
                   flow="column"
                   justify="start"
-                  {...animationProps}
+                  whiteSpace="nowrap"
                 >
                   <ActionSet
                     queryCount={queryCount}
@@ -155,18 +139,14 @@ function ActionsBarPriority({
                     onMerge={handleMerge}
                     onUpdate={handleUpdate}
                   />
-                </HeaderButtonsWrapper>
+                </Grid>
               )}
             </StreamGroupHeaderCell>
           ) : null;
         }
 
         return (
-          <StreamGroupHeaderCell
-            key={column.key}
-            column={column}
-            selectionEnabled={selectionEnabled}
-          >
+          <StreamGroupHeaderCell key={column.key} column={column}>
             {column.key === 'graph' ? (
               <TrendHeader
                 onSelectStatsPeriod={onSelectStatsPeriod}
@@ -408,10 +388,4 @@ const StyledStickyHead = styled(SimpleTable.Head)`
   &[data-stuck] > tr {
     border-radius: 0;
   }
-`;
-
-const MotionGrid = motion.create(Grid);
-
-const HeaderButtonsWrapper = styled(MotionGrid)`
-  white-space: nowrap;
 `;
