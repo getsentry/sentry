@@ -281,8 +281,8 @@ async function openCurrentReplay() {
   // link resolves, or starts recording if nothing is recording yet.
   const flushed = replay.flush();
 
-  // Only wait when there's no id yet, so window.open stays within the user
-  // gesture and isn't popup-blocked.
+  // Only wait when there's no id yet (a buffered replay already has one), so
+  // window.open stays within the user gesture and isn't popup-blocked.
   let replayId = replay.getReplayId();
   if (!replayId) {
     await flushed;
@@ -294,8 +294,10 @@ async function openCurrentReplay() {
   }
 
   const url = `https://sentry.sentry.io/explore/replays/${replayId}/`;
-  window.open(url, '_blank', 'noreferrer');
+  // Copy first: the new tab takes focus, and the clipboard rejects writes from
+  // an unfocused document.
   copyToClipboard(url, {successMessage: t('Copied replay link to clipboard')});
+  window.open(url, '_blank', 'noreferrer');
 }
 
 /**

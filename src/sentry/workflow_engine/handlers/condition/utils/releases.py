@@ -1,5 +1,5 @@
 from itertools import product
-from typing import Any
+from typing import Any, Literal, NamedTuple
 
 from django.db.models.signals import post_delete, post_save, pre_delete
 
@@ -9,32 +9,71 @@ from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.search.utils import LatestReleaseOrders, get_first_last_release_for_group
 from sentry.services.eventstore.models import GroupEvent
-from sentry.utils.cache import cache
+from sentry.workflow_engine.caches import CacheMapping
 from sentry.workflow_engine.handlers.condition.utils.age import ModelAgeType
+
+CACHE_TTL_SECONDS = 600
+
+
+class FirstLastReleaseCacheKey(NamedTuple):
+    group_id: int
+    release_age_type: ModelAgeType
+    order_type: LatestReleaseOrders
+
+
+class LatestReleaseCacheKey(NamedTuple):
+    project_id: int
+    environment_id: int | None
+
+
+class LatestAdoptedReleaseCacheKey(NamedTuple):
+    project_id: int
+    environment_id: int
+
+
+def _latest_release_key(key: LatestReleaseCacheKey) -> str:
+    if key.environment_id is None:
+        return f"project:{key.project_id}:latest_release"
+    return f"project:{key.project_id}:env:{key.environment_id}:latest_release"
+
+
+# Values are Release objects, or False if no release exists (to cache negative lookups).
+first_last_release_cache = CacheMapping[FirstLastReleaseCacheKey, Release | Literal[False]](
+    lambda key: (
+        f"group:{key.group_id}:{key.release_age_type}:{key.order_type.name.lower()}:first_last_release"
+    ),
+    ttl_seconds=CACHE_TTL_SECONDS,
+)
+latest_release_cache = CacheMapping[LatestReleaseCacheKey, Release | Literal[False]](
+    _latest_release_key,
+    ttl_seconds=CACHE_TTL_SECONDS,
+)
+latest_adopted_release_cache = CacheMapping[LatestAdoptedReleaseCacheKey, Release | Literal[False]](
+    lambda key: f"project:{key.project_id}:env:{key.environment_id}:latest_release_adopted",
+    ttl_seconds=CACHE_TTL_SECONDS,
+)
 
 
 def get_first_last_release_for_event(
-    event: GroupEvent, release_age_type: str, order_type: LatestReleaseOrders
+    event: GroupEvent, release_age_type: ModelAgeType, order_type: LatestReleaseOrders
 ) -> Release | None:
     """
     Fetches the first/last release for the group associated with this group event
     """
     group = event.group
-    cache_key = get_first_last_release_for_group_cache_key(group.id, release_age_type, order_type)
-    release = cache.get(cache_key)
-    if release is None:
-        try:
-            release = get_first_last_release_for_group(
-                group, order_type, release_age_type == ModelAgeType.NEWEST
-            )
-        except Release.DoesNotExist:
-            release = None
+    cache_key = FirstLastReleaseCacheKey(group.id, release_age_type, order_type)
+    cached = first_last_release_cache.get(cache_key)
+    if cached is not None:
+        return cached or None
 
-        if release:
-            cache.set(cache_key, release, 600)
-        else:
-            cache.set(cache_key, False, 600)
+    try:
+        release = get_first_last_release_for_group(
+            group, order_type, release_age_type == ModelAgeType.NEWEST
+        )
+    except Release.DoesNotExist:
+        release = None
 
+    first_last_release_cache.set(cache_key, release or False)
     return release
 
 
@@ -57,30 +96,12 @@ def is_newer_release(
         return release_date > comparison_date
 
 
-def get_first_last_release_for_group_cache_key(
-    group_id: int, release_age_type: str, order_type: LatestReleaseOrders
-) -> str:
-    return f"group:{group_id}:{release_age_type}:{order_type.name.lower()}:first_last_release"
-
-
-def get_latest_adopted_release_cache_key(project_id: int, environment_id: int) -> str:
-    return f"project:{project_id}:env:{environment_id}:latest_release_adopted"
-
-
-def get_latest_release_cache_key(project_id: int, environment_id: int | None = None) -> str:
-    if environment_id is None:
-        return f"project:{project_id}:latest_release"
-    return f"project:{project_id}:env:{environment_id}:latest_release"
-
-
 def clear_get_first_last_release_for_group_cache(instance: GroupRelease, **kwargs: Any) -> None:
     model_ages_types = [ModelAgeType.NEWEST, ModelAgeType.OLDEST]
     order_types = [val for val in LatestReleaseOrders]
-    cache.delete_many(
+    first_last_release_cache.delete_many(
         [
-            get_first_last_release_for_group_cache_key(
-                instance.group_id, model_age_type, order_type
-            )
+            FirstLastReleaseCacheKey(instance.group_id, model_age_type, order_type)
             for model_age_type, order_type in product(model_ages_types, order_types)
         ]
     )
@@ -95,9 +116,9 @@ def clear_latest_adopted_release_environment_project_cache(
         # This can happen during deletions as release projects are removed before the release is.
         return
 
-    cache.delete_many(
+    latest_adopted_release_cache.delete_many(
         [
-            get_latest_adopted_release_cache_key(proj_id, instance.environment_id)
+            LatestAdoptedReleaseCacheKey(proj_id, instance.environment_id)
             for proj_id in release_project_ids
         ]
     )
@@ -106,7 +127,9 @@ def clear_latest_adopted_release_environment_project_cache(
 # clear the cache given a Release object
 def clear_release_cache(instance: Release, **kwargs: Any) -> None:
     release_project_ids = instance.projects.values_list("id", flat=True)
-    cache.delete_many([get_latest_release_cache_key(proj_id) for proj_id in release_project_ids])
+    latest_release_cache.delete_many(
+        [LatestReleaseCacheKey(proj_id, None) for proj_id in release_project_ids]
+    )
 
 
 def clear_release_environment_project_cache(instance: ReleaseEnvironment, **kwargs: Any) -> None:
@@ -116,18 +139,15 @@ def clear_release_environment_project_cache(instance: ReleaseEnvironment, **kwar
         # This can happen during deletions as release projects are removed before the release is.
         return
 
-    cache.delete_many(
-        [
-            get_latest_release_cache_key(proj_id, instance.environment_id)
-            for proj_id in release_project_ids
-        ]
+    latest_release_cache.delete_many(
+        [LatestReleaseCacheKey(proj_id, instance.environment_id) for proj_id in release_project_ids]
     )
 
 
 # clear the cache given a ReleaseProject object
 def clear_release_project_cache(instance: ReleaseProject, **kwargs: Any) -> None:
     proj_id = instance.project_id
-    cache.delete(get_latest_release_cache_key(proj_id))
+    latest_release_cache.delete(LatestReleaseCacheKey(proj_id, None))
 
 
 post_save.connect(clear_get_first_last_release_for_group_cache, sender=GroupRelease, weak=False)

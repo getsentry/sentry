@@ -45,7 +45,6 @@ _EAP_DATASET_LABELS = frozenset(
 _EAP_PATH_FRAGMENTS = (
     "/trace-items/",
     "/ai-conversations/",
-    "/spans/fields/",
     "/traces/",
 )
 

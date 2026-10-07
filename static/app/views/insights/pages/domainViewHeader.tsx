@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
+import type {BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
 import type {TabListItemProps} from '@sentry/scraps/tabs';
 import {TabList} from '@sentry/scraps/tabs';
 
@@ -38,7 +39,7 @@ export type Props = {
   selectedModule: ModuleName | undefined;
   additionalBreadCrumbs?: Crumb[];
   additonalHeaderActions?: React.ReactNode;
-  headerTitle?: React.ReactNode;
+  headerTitle?: string | BreadcrumbTitleItem;
   hideDefaultTabs?: boolean;
   tabs?: {onTabChange: (key: string) => void; tabList: React.ReactNode; value: string};
 };
@@ -126,7 +127,14 @@ export function DomainViewHeader({
             <Breadcrumbs crumbs={crumbs} />
           </Layout.HeaderContent>
         )}
-        <Layout.Title>{headerTitle || domainTitle}</Layout.Title>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={
+            typeof headerTitle === 'object'
+              ? headerTitle
+              : {type: 'page-title', label: headerTitle || domainTitle}
+          }
+        />
         {additonalHeaderActions && (
           <TopBar.Slot name="actions">{additonalHeaderActions}</TopBar.Slot>
         )}

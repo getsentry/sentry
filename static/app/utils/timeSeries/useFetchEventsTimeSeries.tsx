@@ -48,10 +48,6 @@ interface UseFetchEventsTimeSeriesOptions<YAxis, Attribute> {
    */
   groupBy?: Attribute[];
   /**
-   * Whether to request annotations (dropped-data outcomes) on the response's `meta.droppedAnnotations` and `meta.acceptedAnnotations`. Off by default, and gated behind the `explore-data-fidelity-annotations` feature flag.
-   */
-  includeAnnotations?: boolean;
-  /**
    * Duration between items in the time series, as a string. e.g., `"5m"`
    */
   interval?: string;
@@ -122,7 +118,6 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     enabled,
     groupBy,
     extrapolate,
-    includeAnnotations,
     query,
     sampling,
     caseInsensitive,
@@ -184,7 +179,6 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
           logQuery: logQueryParams,
           metricQuery: metricQueryParams,
           spanQuery: spanQueryParams,
-          includeAnnotations: includeAnnotations ? 1 : undefined,
         },
         staleTime: Infinity,
       }
@@ -195,23 +189,6 @@ export function useFetchEventsTimeSeries<YAxis extends string, Attribute extends
     enabled: enabled && (hasCustomPageFilters ? true : arePageFiltersReady),
     ...options.queryOptions,
   });
-}
-
-/**
- * One time bucket's volume for a system data-fidelity annotation.
- */
-export interface Annotation {
-  category: string;
-  end: number;
-  eventCount: number;
-  outcome: string;
-  reason: string;
-  start: number;
-  type: string;
-  /**
-   * Only sent for datasets with a paired byte category (logs today).
-   */
-  byteSize?: number;
 }
 
 interface IngestionMeta {
@@ -226,8 +203,6 @@ export type EventsTimeSeriesResponse = {
     dataset: DiscoverDatasets;
     end: number;
     start: number;
-    acceptedAnnotations?: Annotation[];
-    droppedAnnotations?: Annotation[];
     ingestion?: IngestionMeta;
   };
 };
