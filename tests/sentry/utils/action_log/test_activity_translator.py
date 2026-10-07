@@ -2,6 +2,8 @@ from sentry.issues.action_log.types import (
     GroupAction,
     GroupActionType,
     PullRequestClosedAction,
+    SeerPRCreatedAction,
+    SeerPRReadyForReviewAction,
     SetRegressedAction,
     SetResolvedInReleaseAction,
     SmartAssignmentCompletedAction,
@@ -111,6 +113,28 @@ class ActivityToActionTest(TestCase):
             )
 
             assert activity_to_action(act) == expected_action
+
+    def test_seer_pr_actions_allow_null_pr_metadata(self) -> None:
+        # Seer can send PR events where the PR metadata is unknown, e.g.
+        # provider "unknown" and pr_id/pr_number/pr_url all null.
+        pull_requests = [
+            {
+                "provider": "unknown",
+                "repo_name": "example-org/example-repo",
+                "pull_request": {"pr_id": None, "pr_number": None, "pr_url": None},
+            }
+        ]
+        for activity_type, action_class in (
+            (ActivityType.SEER_PR_CREATED, SeerPRCreatedAction),
+            (ActivityType.SEER_PR_READY_FOR_REVIEW, SeerPRReadyForReviewAction),
+        ):
+            act = Factories.create_group_activity(
+                group=self.group,
+                type=activity_type.value,
+                data={"run_id": 123, "pull_requests": pull_requests},
+            )
+
+            assert activity_to_action(act) == action_class(run_id=123, pull_requests=pull_requests)
 
     def test_strips_null_bytes_from_string_fields(self) -> None:
         # Activity data is stored in a text JSON column that tolerates NUL bytes,

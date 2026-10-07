@@ -11,7 +11,9 @@ from typing import Any, ClassVar, Literal, NotRequired, Optional, TypeAlias, Typ
 
 from pydantic import BaseModel
 
-SeerPullRequestItem: TypeAlias = dict[str, str | dict[str, str | int]]
+# Seer may send partial PR metadata (e.g. pr_id/pr_number/pr_url all null when the
+# provider is unknown), so nested values must allow None.
+SeerPullRequestItem: TypeAlias = dict[str, str | None | dict[str, str | int | None]]
 
 
 class GroupActorType(IntEnum):
