@@ -460,7 +460,7 @@ interface CommonIntegration {
   id: string;
   name: string;
   organizationIntegrationStatus: ObjectStatus;
-  provider: OrganizationIntegrationProvider | null | undefined;
+  provider: OrganizationIntegrationProvider;
   status: ObjectStatus;
   /** GitHub only: feature tiers this installation is missing, oldest first. */
   missingFeatures?: Array<{description: string; key: string; name: string}> | null;
