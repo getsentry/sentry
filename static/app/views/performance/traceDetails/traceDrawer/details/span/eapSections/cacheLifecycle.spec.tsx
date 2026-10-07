@@ -121,6 +121,11 @@ describe('CacheLifecycleSection', () => {
     });
   }
 
+  /** The value next to a label in a timeline row's label-value grid. */
+  function getFactValue(label: string) {
+    return screen.getByText(label).nextElementSibling;
+  }
+
   function TestSection(props: React.ComponentProps<typeof CacheLifecycleSection>) {
     return (
       <TraceStateProvider initialPreferences={DEFAULT_TRACE_VIEW_PREFERENCES}>
@@ -143,7 +148,7 @@ describe('CacheLifecycleSection', () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it('shows the hit, entry age and expiry for a cache hit', () => {
+  it('shows the hit, fill time and expiry for a cache hit', () => {
     render(
       <TestSection
         node={makeCacheNode('cache.get')}
@@ -163,11 +168,10 @@ describe('CacheLifecycleSection', () => {
     expect(screen.getByText('Cache filled')).toBeInTheDocument();
     expect(screen.getByText('9s earlier')).toBeInTheDocument();
     expect(screen.getByText('Cache hit')).toBeInTheDocument();
-    expect(screen.getByText('cache.get took 0.21ms')).toBeInTheDocument();
-    expect(screen.getByText(/age 9s/)).toBeInTheDocument();
+    expect(getFactValue('Read')).toHaveTextContent('0.21ms');
     expect(screen.getByText('Expires')).toBeInTheDocument();
     expect(screen.getByText('41s later')).toBeInTheDocument();
-    expect(screen.getByText('ttl 50s')).toBeInTheDocument();
+    expect(getFactValue('TTL')).toHaveTextContent('50s');
     // Without a span link, there is no origin to open.
     expect(
       screen.queryByRole('button', {name: 'Open origin span'})
@@ -194,8 +198,10 @@ describe('CacheLifecycleSection', () => {
     );
 
     expect(await screen.findByText('GET /mixed-lifetimes/[id]')).toBeInTheDocument();
-    expect(screen.getByText(SOURCE_FILE)).toBeInTheDocument();
-    expect(screen.getByText('cache.put took 0.37ms')).toBeInTheDocument();
+    expect(getFactValue('Filled by')).toHaveTextContent('GET /mixed-lifetimes/[id]');
+    expect(getFactValue('Source')).toHaveTextContent(SOURCE_FILE);
+    expect(getFactValue('Write')).toHaveTextContent('0.37ms');
+    expect(getFactValue('Read')).toHaveTextContent('0.21ms');
     expect(screen.getByRole('button', {name: 'Open origin span'})).toBeInTheDocument();
     expect(originRequest).toHaveBeenCalledTimes(1);
   });
@@ -343,9 +349,7 @@ describe('CacheLifecycleSection', () => {
     ).not.toBeInTheDocument();
   });
 
-  // Regression: duration and miss message were adjacent JSX text nodes and
-  // rendered merged as "0.21msno entry was found".
-  it('keeps the miss message separate from the read duration', () => {
+  it('shows the missed key and no fill or expiry on a cache miss', () => {
     render(
       <TestSection
         node={makeCacheNode('cache.get')}
@@ -358,25 +362,10 @@ describe('CacheLifecycleSection', () => {
 
     expect(screen.getByText('Miss')).toBeInTheDocument();
     expect(screen.getByText('Cache miss')).toBeInTheDocument();
-    expect(screen.getByText('cache.get took 0.21ms')).toBeInTheDocument();
-    expect(screen.getByText(/no entry for key/)).toBeInTheDocument();
-    expect(screen.getByText(CACHE_KEY)).toBeInTheDocument();
+    expect(getFactValue('Read')).toHaveTextContent('0.21ms');
+    expect(getFactValue('Key')).toHaveTextContent(CACHE_KEY);
     expect(screen.queryByText('Cache filled')).not.toBeInTheDocument();
     expect(screen.queryByText('Expires')).not.toBeInTheDocument();
-  });
-
-  it('falls back to a generic miss message without a cache key', () => {
-    render(
-      <TestSection
-        node={makeCacheNode('cache.get')}
-        attributes={makeCacheAttributes({operation: 'get', hit: false})}
-        location={location}
-        organization={organization}
-        onTabScrollToNode={jest.fn()}
-      />
-    );
-
-    expect(screen.getByText('the entry was not in the cache')).toBeInTheDocument();
   });
 
   it('shows a neutral read row when cache.hit is missing', () => {
@@ -413,12 +402,12 @@ describe('CacheLifecycleSection', () => {
 
     expect(screen.getByText('Cache filled')).toBeInTheDocument();
     expect(screen.getByText('this span')).toBeInTheDocument();
-    expect(screen.getByText('cache.put took 0.21ms')).toBeInTheDocument();
-    expect(screen.getByText(CACHE_KEY)).toBeInTheDocument();
-    expect(screen.getByText(SOURCE_FILE)).toBeInTheDocument();
+    expect(getFactValue('Write')).toHaveTextContent('0.21ms');
+    expect(getFactValue('Key')).toHaveTextContent(CACHE_KEY);
+    expect(getFactValue('Source')).toHaveTextContent(SOURCE_FILE);
     expect(screen.getByText('Expires')).toBeInTheDocument();
     expect(screen.getByText('50s later')).toBeInTheDocument();
-    expect(screen.getByText('ttl 50s')).toBeInTheDocument();
+    expect(getFactValue('TTL')).toHaveTextContent('50s');
   });
 
   it('hides the expiry row when the put span has no ttl', () => {

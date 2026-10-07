@@ -286,7 +286,7 @@ register(
 register(
     "auth.v2.enabled",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -3571,6 +3571,16 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Number of alerts per variant per day whose legacy payload is compared with the notification
+# platform's render of it. A variant is the source, provider, and the alert attributes the legacy
+# renderers branch on. 0 disables the comparison. Independent of the platform-rollout options above.
+register(
+    "notifications.platform.shadow-render.variant-daily-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Notification sources that record engagement tracking (sent and engagement events).
 # Sources become metric tags, so this list is also what keeps those tags bounded.
 register(
@@ -3806,14 +3816,6 @@ register(
     "uptime.config-drift.cycle-hours",
     type=Int,
     default=24,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Whether the drift sweep republishes the configs it finds missing, rather than only counting them.
-register(
-    "uptime.config-drift.repair",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

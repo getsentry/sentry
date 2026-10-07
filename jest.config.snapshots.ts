@@ -74,8 +74,8 @@ const config: Config.InitialOptions = {
         profilesSampleRate: 0,
         transportOptions: {keepAlive: true},
       },
-      // Applied to the isolation scope, so these land on error events as well as
-      // on the test suite and test transactions.
+      // Set as tags (for error events) and, via withTagsAsSpanAttributes, as span
+      // attributes, so every span in the trace can be filtered by them.
       tags: {
         'ci.branch': BRANCH,
         'ci.commit': GITHUB_PR_SHA,
@@ -88,6 +88,7 @@ const config: Config.InitialOptions = {
   setupFiles: ['<rootDir>/tests/js/sentry-test/snapshots/snapshot-setup.ts'],
   setupFilesAfterEnv: ['<rootDir>/tests/js/sentry-test/snapshots/snapshot-framework.ts'],
 
+  resolver: '<rootDir>/tests/js/jestReactRouterResolver.cjs',
   moduleNameMapper: {
     '\\.(css|less|png|gif|jpg|woff|mp4)$':
       '<rootDir>/tests/js/sentry-test/mocks/importStyleMock.js',

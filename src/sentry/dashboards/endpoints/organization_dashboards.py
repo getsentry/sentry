@@ -408,6 +408,17 @@ class OrganizationDashboardsPermission(OrganizationPermission):
         return True
 
 
+class OrganizationDashboardsCreatePermission(OrganizationDashboardsPermission):
+    # `dashboard:create` is only accepted here, where POST creates a new dashboard.
+    # Other dashboard endpoints use POST to modify existing dashboards (e.g.
+    # revision restore), so the shared permission must not accept it.
+    # `dashboard:write` stays listed for tokens whose stored scopes predate `dashboard:create`.
+    scope_map = {
+        **OrganizationDashboardsPermission.scope_map,
+        "POST": ["org:read", "org:write", "org:admin", "dashboard:create", "dashboard:write"],
+    }
+
+
 @extend_schema(tags=["Dashboards"])
 @cell_silo_endpoint
 class OrganizationDashboardsEndpoint(OrganizationEndpoint):
@@ -416,7 +427,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         "POST": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.DASHBOARDS
-    permission_classes = (OrganizationDashboardsPermission,)
+    permission_classes = (OrganizationDashboardsCreatePermission,)
 
     @extend_schema(
         operation_id="listOrganizationDashboards",

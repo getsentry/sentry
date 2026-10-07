@@ -1,5 +1,4 @@
 import {InfoText} from '@sentry/scraps/info';
-import {Text} from '@sentry/scraps/text';
 
 import {AttributeDetails} from 'sentry/components/attributes/attributeDetails';
 import {
@@ -59,7 +58,6 @@ export function AttributeDetailsTooltip({
 
   return (
     <InfoText
-      monospace
       variant="muted"
       title={
         <AttributeDetails
@@ -70,11 +68,7 @@ export function AttributeDetailsTooltip({
             getAttributeVisibility(attributeKey, attributeName) === 'internal'
           }
           isScrubbed={isScrubbed}
-          name={
-            <Text bold monospace wordBreak="break-word">
-              {attributeName}
-            </Text>
-          }
+          name={attributeName}
           valueType={
             fieldDefinition?.valueType ?? defaultValueType ?? FieldValueType.STRING
           }

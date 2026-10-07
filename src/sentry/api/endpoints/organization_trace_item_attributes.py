@@ -1203,7 +1203,7 @@ class TraceItemAttributeValuesAutocompletionExecutor:
             config=SearchResolverConfig(disable_array_attributes=not supports_arrays),
             definitions=definitions,
         )
-        self.search_type, self.attribute_key, self.context_definition = self.resolve_attribute_key(
+        self.search_type, self.attribute_key, self.context_definitions = self.resolve_attribute_key(
             key
         )
         self.autocomplete_function: dict[str, Callable[[], list[TagValue]]] = (
@@ -1220,14 +1220,15 @@ class TraceItemAttributeValuesAutocompletionExecutor:
 
     def resolve_attribute_key(
         self, key: str
-    ) -> tuple[constants.SearchType, AttributeKey, VirtualColumnDefinition | None]:
-        resolved_attr, context_definition = self.resolver.resolve_attribute(key)
-        if context_definition:
-            resolved_attr = self.resolver.map_context_to_original_column(context_definition)
+    ) -> tuple[constants.SearchType, AttributeKey, list[VirtualColumnDefinition | None]]:
+        resolved_attr, context_definitions = self.resolver.resolve_attribute(key)
+        for context_definition in context_definitions:
+            if context_definition:
+                resolved_attr = self.resolver.map_context_to_original_column(context_definition)
         return (
             resolved_attr.search_type,
             resolved_attr.proto_definition,
-            context_definition,
+            context_definitions,
         )
 
     def execute(self) -> list[TagValue]:
@@ -1464,9 +1465,13 @@ class TraceItemAttributeValuesAutocompletionExecutor:
 
         values: Sequence[str] = rpc_response.values
         counts: Sequence[int] = rpc_response.counts
-        if self.context_definition:
-            context = self.context_definition.constructor(self.snuba_params, self.resolver)
-            values = [context.value_map.get(value, value) for value in values]
+        if self.context_definitions:
+            for context_definition in self.context_definitions:
+                if context_definition is not None:
+                    constructed_context = context_definition.constructor(
+                        self.snuba_params, self.resolver
+                    )
+                    values = [constructed_context.value_map.get(value, value) for value in values]
 
         return [
             TagValue(

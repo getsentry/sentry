@@ -7,6 +7,7 @@ import {Heading} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
+import {AnsiText} from 'sentry/components/ansiText';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EventMessage} from 'sentry/components/events/eventMessage';
 import {
@@ -20,6 +21,7 @@ import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {getAnalyticsDataForGroup, getMessage, getTitle} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -154,7 +156,7 @@ function IssuePreviewContent() {
   const {group, project} = useGroupData();
   const previewSeer = useIssuePreviewSeer();
   const linkedPullRequests = useLinkedPullRequests({group});
-  const {title: primaryTitle} = getTitle(group);
+  const {title: primaryTitle = ''} = getTitle(group);
   const secondaryTitle = getMessage(group);
   const disableActions = [
     ReprocessingStatus.REPROCESSING,
@@ -187,7 +189,12 @@ function IssuePreviewContent() {
           <Container>
             <Flex align="center" justify="between" gap="md">
               <Flex align="center" gap="md" minWidth={0}>
-                <Tooltip title={primaryTitle} skipWrapper showOnlyOnOverflow delay={1000}>
+                <Tooltip
+                  title={stripAnsi(primaryTitle)}
+                  skipWrapper
+                  showOnlyOnOverflow
+                  delay={1000}
+                >
                   <TitleLink
                     to={issueDetailsLocation}
                     analyticsEventKey="issue_inbox.open_issue_clicked"
@@ -200,7 +207,7 @@ function IssuePreviewContent() {
                   >
                     <Container flex="1" minWidth={0}>
                       <Heading as="h3" size="lg" ellipsis>
-                        {primaryTitle}
+                        <AnsiText>{primaryTitle}</AnsiText>
                       </Heading>
                     </Container>
                     <Flex align="center" flexShrink={0}>
