@@ -229,12 +229,7 @@ export function DataTable({
         ref={ref}
         scrollable={scrollable}
       >
-        <TableSections
-          body={Table.Body}
-          customSections={customSections}
-          head={Head}
-          header={header}
-        >
+        <TableSections customSections={customSections} head={Head} header={header}>
           {children}
         </TableSections>
       </Grid>

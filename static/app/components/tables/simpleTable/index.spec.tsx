@@ -241,4 +241,17 @@ describe('SimpleTable component', () => {
       within(screen.getByTestId('rows')).getByRole('cell', {name: 'Row'})
     ).toBeInTheDocument();
   });
+
+  it('renders only a body when no header is given', () => {
+    render(
+      <SimpleTable>
+        <SimpleTable.Row>
+          <SimpleTable.RowCell>Row</SimpleTable.RowCell>
+        </SimpleTable.Row>
+      </SimpleTable>
+    );
+
+    expect(screen.getAllByRole('rowgroup')).toHaveLength(1);
+    expect(screen.queryByRole('columnheader')).not.toBeInTheDocument();
+  });
 });

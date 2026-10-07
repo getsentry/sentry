@@ -9,7 +9,7 @@ import type {
 import {Fragment} from 'react';
 import type {LocationDescriptor} from 'history';
 
-import type {Table} from '@sentry/scraps/table';
+import {Table} from '@sentry/scraps/table';
 
 import type {
   ColumnAlign,
@@ -40,10 +40,8 @@ export function TableSections({
   children,
   customSections,
   head: Head,
-  body: Body,
   header,
 }: {
-  body: ComponentType<{children?: ReactNode}>;
   head: ComponentType<{children?: ReactNode}>;
   children?: ReactNode;
   customSections?: boolean;
@@ -55,15 +53,14 @@ export function TableSections({
 
   return (
     <Fragment>
-      {header && <Head>{header}</Head>}
-      <Body>{children}</Body>
+      {header ? <Head>{header}</Head> : null}
+      <Table.Body>{children}</Table.Body>
     </Fragment>
   );
 }
 
 export interface TableHeaderCellProps extends HTMLAttributes<HTMLTableCellElement> {
   align?: ColumnAlign;
-  children?: ReactNode;
   columnIndex?: number;
   handleSortClick?: (event: MouseEvent) => void;
   replace?: boolean;
@@ -73,10 +70,6 @@ export interface TableHeaderCellProps extends HTMLAttributes<HTMLTableCellElemen
 
 export interface TableRowProps extends HTMLAttributes<HTMLTableRowElement> {
   ref?: RefObject<HTMLTableRowElement | null>;
-}
-
-export interface TableRowCellProps extends HTMLAttributes<HTMLTableCellElement> {
-  children?: ReactNode;
 }
 
 /**
@@ -92,5 +85,5 @@ export interface TableParts {
   HeaderRow: ComponentType<HTMLAttributes<HTMLTableRowElement>>;
   Loading: typeof TableLoading;
   Row: ComponentType<TableRowProps>;
-  RowCell: ComponentType<TableRowCellProps>;
+  RowCell: ComponentType<HTMLAttributes<HTMLTableCellElement>>;
 }

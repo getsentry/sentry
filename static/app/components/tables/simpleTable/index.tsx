@@ -27,6 +27,7 @@ type TableProps = Omit<HTMLAttributes<HTMLTableElement>, 'children'> &
     children?: ReactNode;
     columns?: TableColumnConfig[];
     minimumColumnWidth?: number;
+    /** Columns resize only when they set `resizable: true`. */
     onColumnResize?: (index: number, width: number) => void;
     prependColumnWidths?: string[];
     ref?: RefObject<HTMLTableElement | null>;
@@ -45,27 +46,18 @@ export function SimpleTable({
   header,
   ...props
 }: TableProps) {
-  // This shell has no resize affordance, so its columns do not opt into one.
+  // Most simple tables have fixed layouts, so their columns resize only when they opt in.
   const unresizableColumns = columns?.map(column => ({resizable: false, ...column}));
 
   return (
     <StyledTable columns={unresizableColumns} {...props}>
       <PanelProvider>
-        <TableSections
-          body={Table.Body}
-          customSections={customSections}
-          head={Table.Head}
-          header={header}
-        >
+        <TableSections customSections={customSections} head={Table.Head} header={header}>
           {children}
         </TableSections>
       </PanelProvider>
     </StyledTable>
   );
-}
-
-function HeaderRow({children, ...props}: HTMLAttributes<HTMLTableRowElement>) {
-  return <StyledHeaderRow {...props}>{children}</StyledHeaderRow>;
 }
 
 function HeaderCell({
@@ -257,7 +249,7 @@ function FullWidthRow({children, ...props}: RowProps) {
 
 SimpleTable.Body = Table.Body;
 SimpleTable.Head = Table.Head;
-SimpleTable.HeaderRow = HeaderRow;
+SimpleTable.HeaderRow = StyledHeaderRow;
 SimpleTable.HeaderCell = HeaderCell;
 SimpleTable.Row = Row;
 SimpleTable.RowCell = RowCell;

@@ -4,7 +4,7 @@ import {getEmotionRules} from 'sentry-test/utils';
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import {
   GridEditable,
-  GridEditableTableProvider,
+  GridEditableVariantProvider,
 } from 'sentry/components/tables/gridEditable';
 
 type Row = {count: number; name: string};
@@ -66,7 +66,7 @@ describe('GridEditable', () => {
     );
   });
 
-  it('renders uppercase DataTable headers when outside a table provider', () => {
+  it('renders uppercase DataTable headers when outside a variant provider', () => {
     render(<GridEditable columnOrder={COLUMN_ORDER} data={DATA} grid={{}} />);
 
     const head = screen.getAllByRole('rowgroup')[0]!;
@@ -74,16 +74,26 @@ describe('GridEditable', () => {
     expect(getEmotionRules(head).join('')).toContain('text-transform: uppercase');
   });
 
-  it('renders SimpleTable headers when inside a simple table provider', () => {
+  it('renders SimpleTable headers when inside a simple variant provider', () => {
     render(
-      <GridEditableTableProvider table="simple">
+      <GridEditableVariantProvider variant="simple">
         <GridEditable columnOrder={COLUMN_ORDER} data={DATA} grid={{}} />
-      </GridEditableTableProvider>
+      </GridEditableVariantProvider>
     );
 
     const head = screen.getAllByRole('rowgroup')[0]!;
 
     expect(getEmotionRules(head).join('')).not.toContain('text-transform: uppercase');
     expect(screen.getByRole('columnheader', {name: 'Count'})).toBeInTheDocument();
+  });
+
+  it('renders resize handles when inside a simple variant provider', () => {
+    render(
+      <GridEditableVariantProvider variant="simple">
+        <GridEditable columnOrder={COLUMN_ORDER} data={DATA} grid={{}} />
+      </GridEditableVariantProvider>
+    );
+
+    expect(screen.getAllByRole('separator')).toHaveLength(1);
   });
 });

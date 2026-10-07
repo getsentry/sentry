@@ -103,5 +103,21 @@ describe('DataTable', () => {
     expect(
       within(screen.getByTestId('pinned')).getByRole('cell', {name: 'Pinned'})
     ).toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('rows')).getByRole('cell', {name: 'Row'})
+    ).toBeInTheDocument();
+  });
+
+  it('renders only a body when no header is given', () => {
+    render(
+      <DataTable columns={[{key: 'a'}]}>
+        <DataTable.Row>
+          <DataTable.RowCell>Row</DataTable.RowCell>
+        </DataTable.Row>
+      </DataTable>
+    );
+
+    expect(screen.getAllByRole('rowgroup')).toHaveLength(1);
+    expect(screen.queryByRole('columnheader')).not.toBeInTheDocument();
   });
 });

@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import {GridEditableTableProvider} from 'sentry/components/tables/gridEditable';
+import {GridEditableVariantProvider} from 'sentry/components/tables/gridEditable';
 import {IconChevron} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {parseCursor} from 'sentry/utils/cursor';
@@ -124,7 +124,9 @@ export function EventListTable({children, pagination, title}: EventListTableProp
           ) : null}
         </Header>
       ) : null}
-      <GridEditableTableProvider table="simple">{children}</GridEditableTableProvider>
+      <GridEditableVariantProvider variant="simple">
+        {children}
+      </GridEditableVariantProvider>
     </StyledGridEditable>
   );
 }

@@ -31,46 +31,26 @@ export type * from './types';
 
 export {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED};
 
-type GridEditableTable = 'data' | 'simple';
+type GridEditableVariant = 'data' | 'simple';
 
-const GridEditableTableContext = createContext<GridEditableTable>('data');
+const GridEditableVariantContext = createContext<GridEditableVariant>('data');
 
 /**
- * Renders descendant `GridEditable`s as a `SimpleTable` instead of a `DataTable`.
+ * Chooses whether descendant `GridEditable`s render as a `DataTable`, the default,
+ * or as a `SimpleTable`. A `SimpleTable` does not support `height`, `scrollable`, or
+ * `stickyHeader`.
  */
-export function GridEditableTableProvider({
+export function GridEditableVariantProvider({
   children,
-  table,
+  variant,
 }: {
   children: ReactNode;
-  table: GridEditableTable;
+  variant: GridEditableVariant;
 }) {
-  return <GridEditableTableContext value={table}>{children}</GridEditableTableContext>;
+  return (
+    <GridEditableVariantContext value={variant}>{children}</GridEditableVariantContext>
+  );
 }
-
-const DATA_TABLE_PARTS = {
-  Body: DataTable.Body,
-  Empty: DataTable.Empty,
-  Error: DataTable.Error,
-  Head: DataTable.Head,
-  HeaderCell: DataTable.HeaderCell,
-  HeaderRow: DataTable.HeaderRow,
-  Loading: DataTable.Loading,
-  Row: DataTable.Row,
-  RowCell: DataTable.RowCell,
-} satisfies TableParts;
-
-const SIMPLE_TABLE_PARTS = {
-  Body: SimpleTable.Body,
-  Empty: SimpleTable.Empty,
-  Error: SimpleTable.Error,
-  Head: SimpleTable.Head,
-  HeaderCell: SimpleTable.HeaderCell,
-  HeaderRow: SimpleTable.HeaderRow,
-  Loading: SimpleTable.Loading,
-  Row: SimpleTable.Row,
-  RowCell: SimpleTable.RowCell,
-} satisfies TableParts;
 
 type GridEditableProps<
   DataRow,
@@ -197,8 +177,8 @@ export function GridEditable<
     title,
   } = props;
 
-  const table = useContext(GridEditableTableContext);
-  const parts = table === 'simple' ? SIMPLE_TABLE_PARTS : DATA_TABLE_PARTS;
+  const variant = useContext(GridEditableVariantContext);
+  const parts: TableParts = variant === 'simple' ? SimpleTable : DataTable;
 
   const columns = useMemo<TableColumnConfig[]>(
     () =>
@@ -300,7 +280,7 @@ export function GridEditable<
             )}
           </Header>
         )}
-        {table === 'simple' ? (
+        {variant === 'simple' ? (
           <SimpleTableFrame fit={fit} style={bodyStyle}>
             <SimpleTable
               aria-label={ariaLabel}
