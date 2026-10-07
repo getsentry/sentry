@@ -8,7 +8,7 @@ import tempfile
 import uuid
 from collections import Counter
 from datetime import datetime
-from typing import IO, TYPE_CHECKING, NamedTuple
+from typing import IO, TYPE_CHECKING, Any, NamedTuple
 
 import orjson
 import sentry_sdk
@@ -544,6 +544,9 @@ class ArtifactBundlePostAssembler:
         date_snapshot = timezone.now()
 
         new_date_added = {"date_added": date_snapshot}
+        # With this option, an upload of an existing bundle only re-dates the `ArtifactBundle` row. Its links and
+        # debug-ID rows keep their `date_added`, which nothing reads.
+        date_only_on_bundle = options.get("sourcemaps.artifact-bundles.date-only-on-bundle")
 
         # We want to run everything in a transaction, since we don't want the database to be in an inconsistent
         # state after all of these updates.
@@ -562,30 +565,46 @@ class ArtifactBundlePostAssembler:
 
             # If a release version is passed, we want to create the weak association between a bundle and a release.
             if self.release:
-                ReleaseArtifactBundle.objects.update_or_create(
-                    organization_id=self.organization.id,
-                    release_name=self.release,
+                release_link: dict[str, Any] = {
+                    "organization_id": self.organization.id,
+                    "release_name": self.release,
                     # In case no dist is provided, we will fall back to "" which is the NULL equivalent for our
                     # tables.
-                    dist_name=self.dist or NULL_STRING,
-                    artifact_bundle=artifact_bundle,
-                    defaults=new_date_added,
-                )
+                    "dist_name": self.dist or NULL_STRING,
+                    "artifact_bundle": artifact_bundle,
+                }
+                # `update_or_create` also re-dates a link that already exists.
+                if date_only_on_bundle:
+                    ReleaseArtifactBundle.objects.get_or_create(
+                        **release_link, defaults=new_date_added
+                    )
+                else:
+                    ReleaseArtifactBundle.objects.update_or_create(
+                        **release_link, defaults=new_date_added
+                    )
 
             for project_id in self.project_ids:
-                ProjectArtifactBundle.objects.update_or_create(
-                    organization_id=self.organization.id,
-                    project_id=project_id,
-                    artifact_bundle=artifact_bundle,
-                    defaults=new_date_added,
-                )
+                project_link: dict[str, Any] = {
+                    "organization_id": self.organization.id,
+                    "project_id": project_id,
+                    "artifact_bundle": artifact_bundle,
+                }
+                if date_only_on_bundle:
+                    ProjectArtifactBundle.objects.get_or_create(
+                        **project_link, defaults=new_date_added
+                    )
+                else:
+                    ProjectArtifactBundle.objects.update_or_create(
+                        **project_link, defaults=new_date_added
+                    )
 
             # Instead of doing a `create_or_update` one-by-one, we will instead:
             # - Use a `bulk_create` with `ignore_conflicts` to insert new rows efficiently
             #   if the artifact bundle was newly inserted. This is based on the assumption
             #   that the `bundle_id` is deterministic and the `created` flag signals that
             #   this identical bundle was already inserted.
-            # - Otherwise, update all the affected/conflicting rows with a single query.
+            # - Otherwise, update all the affected/conflicting rows with a single query, unless only the
+            #   `ArtifactBundle` row carries the date.
             if created:
                 debug_id_to_insert = [
                     DebugIdArtifactBundle(
@@ -600,11 +619,17 @@ class ArtifactBundlePostAssembler:
                 DebugIdArtifactBundle.objects.bulk_create(
                     debug_id_to_insert, batch_size=50, ignore_conflicts=True
                 )
-            else:
-                DebugIdArtifactBundle.objects.filter(
-                    organization_id=self.organization.id,
-                    artifact_bundle=artifact_bundle,
-                ).update(date_added=date_snapshot)
+            elif not date_only_on_bundle:
+                debug_id_rows = DebugIdArtifactBundle.objects.filter(
+                    artifact_bundle=artifact_bundle
+                )
+                # The bundle's debug-ID rows all belong to its organization. Filtering on it as well lets Postgres
+                # combine the bundle index with the organization index, reading the organization's whole slice of it.
+                if not options.get(
+                    "sourcemaps.artifact-bundles.assemble.redate-debug-ids-by-bundle"
+                ):
+                    debug_id_rows = debug_id_rows.filter(organization_id=self.organization.id)
+                debug_id_rows.update(date_added=date_snapshot)
 
         metrics.incr("sourcemaps.upload.artifact_bundle")
 

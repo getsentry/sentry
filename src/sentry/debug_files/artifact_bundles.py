@@ -251,8 +251,12 @@ def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now
         updated_rows_count = ArtifactBundle.objects.filter(
             id=artifact_bundle_id, date_added__lte=threshold_date
         ).update(date_added=now)
-        # We want to make cascading queries only if there were actual changes in the db.
-        if updated_rows_count > 0:
+        # We want to make cascading queries only if there were actual changes in the db. Nothing reads `date_added`
+        # from the rows linked to the bundle, so with `date-only-on-bundle` they aren't renewed, which spares
+        # rewriting every URL index and debug-ID row of the bundle.
+        if updated_rows_count > 0 and not options.get(
+            "sourcemaps.artifact-bundles.date-only-on-bundle"
+        ):
             ProjectArtifactBundle.objects.filter(
                 artifact_bundle_id=artifact_bundle_id, date_added__lte=threshold_date
             ).update(date_added=now)
