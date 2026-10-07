@@ -1206,7 +1206,7 @@ def test_as_log_message_partial_data(
     mock_exception.assert_not_called()
 
 
-@pytest.mark.parametrize("status_code", [0, "0", None])
+@pytest.mark.parametrize("status_code", [0, 0.0, "0", None])
 def test_as_log_message_network_without_response(status_code: Any) -> None:
     event = {
         "type": 5,

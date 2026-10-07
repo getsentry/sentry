@@ -518,7 +518,8 @@ def _network_log_message(
 ) -> str | None:
     data = get_path(payload, "data")
     method = _text(get_path(data, "method"))
-    status_code = _text(get_path(data, "statusCode"))
+    raw_status_code = get_path(data, "statusCode")
+    status_code = _text(raw_status_code)
 
     # Skip successful requests
     if status_code.startswith("2"):
@@ -530,7 +531,8 @@ def _network_log_message(
     request_part = f'{label} request "{request_str}"' if request_str else f"{label} request"
 
     # Browsers report status 0 when no response arrived (CORS, abort, network error).
-    status_str = status_code if status_code not in ("", "0") else "no response"
+    no_response = not status_code or status_code == "0" or raw_status_code == 0
+    status_str = "no response" if no_response else status_code
 
     _, response_size = parse_network_content_lengths(event)
     if response_size is None:
