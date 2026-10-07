@@ -69,16 +69,11 @@ function createMockToolNode(overrides: {
   };
 }
 
-// Mirrors the node `useConversation` produces for an embeddings span: the op
-// type stays "ai_client" (the ingestion-computed gen_ai.operation.type has no
-// embeddings bucket), and the span is recognized by its span op. `spanOp` can be
-// cleared to exercise the input-attribute fallback path.
 function createMockEmbeddingNode(overrides: {
   id: string;
   endTimestamp?: number;
   input?: string;
   model?: string;
-  spanOp?: string;
   startTimestamp?: number;
   tokens?: number;
 }) {
@@ -86,7 +81,6 @@ function createMockEmbeddingNode(overrides: {
     id,
     input = 'search query',
     model = 'text-embedding-005',
-    spanOp = 'gen_ai.embeddings',
     startTimestamp = 1000,
     endTimestamp,
     tokens,
@@ -104,7 +98,7 @@ function createMockEmbeddingNode(overrides: {
     },
     attributes: {
       [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
-      [SpanFields.SPAN_OP]: spanOp,
+      [SpanFields.GEN_AI_OPERATION_NAME]: 'embeddings',
       [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: input,
       [SpanFields.GEN_AI_RESPONSE_MODEL]: model,
       ...(tokens === undefined ? {} : {[SpanFields.GEN_AI_USAGE_TOTAL_TOKENS]: tokens}),
@@ -609,25 +603,13 @@ describe('conversationMessages utilities', () => {
       expect(result.embeddingSpans.map(s => s.id)).toEqual(['embed-1']);
     });
 
-    it('recognizes an embeddings span by its span op even though operation.type reports ai_client', () => {
-      // gen_ai.operation.type is a closed, ingestion-computed enum with no
-      // "embeddings" bucket, so real embeddings spans report "ai_client" —
-      // detection must key off the span op instead, or these spans get swallowed
-      // into generationSpans and silently dropped there (no chat content).
+    it('recognizes an embeddings span by its operation name even though operation.type reports ai_client', () => {
       const embeddingNode = createMockEmbeddingNode({id: 'embed-1'});
 
       const result = partitionSpansByType([embeddingNode] as any);
 
       expect(result.embeddingSpans.map(s => s.id)).toEqual(['embed-1']);
       expect(result.generationSpans).toHaveLength(0);
-    });
-
-    it('falls back to the embeddings input attribute when the span op is absent', () => {
-      const embeddingNode = createMockEmbeddingNode({id: 'embed-1', spanOp: ''});
-
-      const result = partitionSpansByType([embeddingNode] as any);
-
-      expect(result.embeddingSpans.map(s => s.id)).toEqual(['embed-1']);
     });
 
     it('separates evaluation spans from generations even though operation.type reports ai_client', () => {
@@ -687,14 +669,12 @@ describe('conversationMessages utilities', () => {
     });
 
     it('skips spans with no captured input', () => {
-      // The input is the whole point of the row, so a span without it (e.g. the
-      // bulk fetch didn't return gen_ai.embeddings.input) produces no message.
       const node = {
         id: 'embed-1',
         value: {start_timestamp: 1000, end_timestamp: 1200},
         attributes: {
           [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
-          [SpanFields.SPAN_OP]: 'gen_ai.embeddings',
+          [SpanFields.GEN_AI_OPERATION_NAME]: 'embeddings',
           [SpanFields.GEN_AI_RESPONSE_MODEL]: 'text-embedding-005',
         },
         errors: new Set(),

@@ -259,7 +259,7 @@ class OrganizationEventsOurLogsEndpointTest(OrganizationEventsEndpointTestBase, 
         response = self.do_request(
             {
                 "field": ["log.body"],
-                "query": "tags[log_tags,array][*]://^alpha-\\d+$//",
+                "query": "tags[log_tags[*],array]://^alpha-\\d+$//",
                 "project": self.project.id,
                 "dataset": self.dataset,
             },

@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import {useQueries, type UseQueryResult} from '@tanstack/react-query';
+import {useQueries} from '@tanstack/react-query';
 
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -8,6 +8,7 @@ import type {DatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import type {convertEventStatsRequestDataToEventTimeseriesQueryParams} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {shouldUseEventsTimeseries} from 'sentry/views/dashboards/utils/shouldUseEventsTimeseries';
+import type {WidgetQueryResult} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
 import {findSeriesDifferences} from 'sentry/views/dashboards/widgetCard/hooks/utils/findSeriesDifferences';
 import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
 
@@ -21,7 +22,7 @@ type SpotCheckQuery = {
   widgetQuery: WidgetQuery;
 };
 
-function isSettled(result: UseQueryResult | undefined) {
+function isSettled(result: WidgetQueryResult<unknown> | undefined) {
   return !!result?.data && !result.isFetching && !result.isPlaceholderData;
 }
 
@@ -41,7 +42,7 @@ export function useEventsTimeseriesSpotCheck({
   enabled: boolean;
   organization: Organization;
   pageFilters: PageFilters;
-  statsQueryResults: Array<UseQueryResult<any>>;
+  statsQueryResults: Array<WidgetQueryResult<any>>;
   timeSeriesQueries: Array<SpotCheckQuery | undefined>;
   widget: Widget;
 }) {

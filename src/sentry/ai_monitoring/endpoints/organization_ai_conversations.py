@@ -7,6 +7,7 @@ import sentry_sdk
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 
 from sentry.ai_monitoring.constants import AI_CONVERSATIONS_FIELDS
 from sentry.ai_monitoring.conversation_aggregates import (
@@ -46,7 +47,6 @@ from sentry.search.eap.types import EAPResponse, FieldsACL, SearchResolverConfig
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
-from sentry.utils.tracing import trace
 
 logger = logging.getLogger("sentry.api.endpoints.organization_ai_conversations")
 
@@ -63,7 +63,6 @@ class UserResponse(TypedDict):
 
 class AIConversationData(AIConversationAggregates):
     conversationId: str
-    errors: int
     title: str | None
     projectId: int | None
     flow: list[str]
@@ -246,7 +245,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
 
         return response
 
-    @trace
+    @traces.trace
     def _get_conversations(
         self,
         snuba_params: SnubaParams,
@@ -289,7 +288,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             )
         return response
 
-    @trace
+    @traces.trace
     def _fetch_conversation_ids(
         self,
         snuba_params: SnubaParams,
@@ -327,7 +326,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             sampling_mode=sampling_mode,
         )
 
-    @trace
+    @traces.trace
     def _get_conversations_data(
         self, snuba_params: SnubaParams, conversation_ids: list[str]
     ) -> list[AIConversationData]:
@@ -340,7 +339,6 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             query_string=build_escaped_term_filter("gen_ai.conversation.id", conversation_ids),
             selected_columns=[
                 "gen_ai.conversation.id",
-                "failure_count() as errors",
                 *CONVERSATION_AGGREGATE_COLUMNS,
                 f"collect_unique_if(`{operation_filter}`, trace) as trace_ids",
                 f"collect_unique_if(`{operation_filter}`, project.id) as project_ids",
@@ -384,7 +382,6 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             trace_ids = sorted(row.get("trace_ids") or [])
             conversations_map[conversation_id] = {
                 "conversationId": conversation_id,
-                "errors": int(row.get("errors") or 0),
                 "title": None,
                 "projectId": min(project_ids, default=None),
                 "flow": row.get("flow") or [],
@@ -409,7 +406,7 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             if conversation_id in conversations_map
         ]
 
-    @trace
+    @traces.trace
     def _apply_titles(
         self,
         conversations_map: dict[str, AIConversationData],

@@ -4,7 +4,7 @@ import {
   matchRoutes,
   useLocation,
   useNavigationType,
-} from 'react-router-dom';
+} from 'react-router';
 import {type Event, type Log} from '@sentry/core';
 import * as Sentry from '@sentry/react';
 

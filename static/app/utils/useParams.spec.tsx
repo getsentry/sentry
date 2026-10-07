@@ -1,4 +1,4 @@
-import {useParams as useReactRouter6Params} from 'react-router-dom';
+import {useParams as useReactRouter6Params} from 'react-router';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 

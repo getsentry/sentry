@@ -172,10 +172,6 @@ const GroupExtra = styled('div')`
     background-size: 1px 10px;
     background-repeat: no-repeat;
   }
-
-  @media (min-width: ${p => p.theme.breakpoints.xl}) {
-    line-height: 1;
-  }
 `;
 
 const ShadowlessProjectBadge = styled(ProjectBadge)`
