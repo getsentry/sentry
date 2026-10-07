@@ -107,6 +107,7 @@ def trigger_autofix_feature(
         is_context_engine_enabled=False,
         enable_frontend_code_search=False,
         enable_coding=enable_coding,
+        enable_pr_context_tools=args.step == AutofixStep.PR_ITERATION,
     )
 
     extras: dict[str, Any] = {

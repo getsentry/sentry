@@ -824,11 +824,6 @@
       "count": 1
     }
   },
-  "static/app/components/passwordStrength.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/components/performanceOnboarding/sidebar.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 4
