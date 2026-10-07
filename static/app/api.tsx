@@ -472,8 +472,6 @@ export class Client {
       textStatus: string,
       errorThrown: string
     ) => {
-      recordRequestMetric('error', resp?.status);
-
       this.handleRequestError(
         {id, path, requestOptions: options},
         resp,
@@ -622,6 +620,10 @@ export class Client {
                 );
               });
             }
+
+            // Record before the global handlers, which may skip `errorHandler`
+            // (e.g. 401 redirects)
+            recordRequestMetric('error', status);
 
             const shouldSkipErrorHandler = Array.from(globalErrorHandlers, handler =>
               handler(responseMeta, options)

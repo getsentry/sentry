@@ -1,4 +1,4 @@
-import {Link as RouterLink} from 'react-router-dom';
+import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -104,7 +104,7 @@ export function SettingsBreadcrumb({params}: Props) {
   );
 }
 
-// Uses Link directly from react-router-dom to avoid the URL normalization
+// Uses Link directly from react-router to avoid the URL normalization
 // that happens in the internal Link component. It is unnecessary because we
 // get routes from the router, and will actually cause issues because the
 // routes do not have organization information.

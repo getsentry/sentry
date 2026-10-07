@@ -548,6 +548,7 @@ const config = defineConfig({
     '@sentry/no-digits-in-tn': 'error',
     '@sentry/no-dynamic-translations': 'error',
     '@sentry/no-flag-comments': 'error',
+    '@sentry/no-legacy-router-imports': 'error',
     '@sentry/no-query-data-type-parameters': 'error',
     '@sentry/no-raw-css-in-styled': 'error',
     '@sentry/no-redundant-default-argument': 'error',
@@ -1462,6 +1463,22 @@ const config = defineConfig({
     'unicorn-js/prefer-simple-condition-first': 'off',
   },
   overrides: [
+    {
+      files: [
+        'tests/js/jestReactRouterResolver.cjs',
+        'tests/js/jestReactRouterResolver.spec.ts',
+      ],
+      env: {node: true},
+      rules: {'import/no-nodejs-modules': 'off'},
+    },
+    {
+      files: [
+        'static/app/utils/reactRouterV6/index.ts',
+        'static/app/utils/reactRouterV6/dom.ts',
+        'static/app/utils/reactRouterV6/types.d.ts',
+      ],
+      rules: {'@sentry/no-legacy-router-imports': 'off'},
+    },
     {
       files: ['**/*.ts', '**/*.tsx', '**/*.mts', '**/*.cts'],
       rules: {

@@ -239,7 +239,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
                     NotificationProviderKey.MSTEAMS, {"type": "AdaptiveCard"}, chart_url="https://c"
                 )
 
-        assert observation.outcome == ShadowOutcome.MATCH
+        assert observation.outcome == ShadowOutcome.MATCH, observation.mismatch
         build_data.assert_called_once_with(
             LegacyRender(
                 provider=NotificationProviderKey.MSTEAMS,
@@ -347,7 +347,7 @@ class ShadowReadOutcomeTest(ShadowInvocationTestCase):
                     raise error
 
         assert excinfo.value is error
-        assert observation.outcome == ShadowOutcome.MATCH
+        assert observation.outcome == ShadowOutcome.MATCH, observation.mismatch
 
     @mock.patch(
         f"{COMPARE_PATH}.NotificationService.render_template", side_effect=ValueError("platform")
