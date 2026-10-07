@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -23,8 +24,11 @@ from sentry.models.artifactbundle import (
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics, redis
 from sentry.utils.db import atomic_transaction
+
+logger = logging.getLogger(__name__)
 
 # The number of Artifact Bundles that we return in case of incomplete indexes.
 MAX_BUNDLES_QUERY = 5
@@ -33,10 +37,10 @@ MAX_BUNDLES_QUERY = 5
 # A value of 3 means that the third upload will trigger indexing and backfill.
 INDEXING_THRESHOLD = 3
 
-# The maximum number of active and of idle bundles that the URL lookup considers when
-# `sourcemaps.artifact-bundles.url-lookup.max-index-rows` is set. This bounds the queries that
-# pick the bundles to scan; the row budget usually stops earlier.
-URL_LOOKUP_MAX_CANDIDATE_BUNDLES = 1000
+# Upper limit for `sourcemaps.artifact-bundles.url-lookup.max-candidate-bundles`. The URL lookup
+# reads up to that many active and that many idle bundles and passes their ids to the index
+# query, so a mistyped value must not make every lookup expensive.
+URL_LOOKUP_MAX_CANDIDATE_BUNDLES_LIMIT = 10_000
 
 
 # We want to keep the bundle as being indexed for 600 seconds = 10 minutes. We might need to revise this number and
@@ -430,7 +434,8 @@ def get_url_lookup_candidates(
     the active bundles first, those uploaded or renewed (`date_added`) within the renewal
     threshold plus a margin, newest first, and then on the remaining bundles, newest first.
     A release with fewer indexed files than the budget, and fewer active and fewer idle
-    bundles than `URL_LOOKUP_MAX_CANDIDATE_BUNDLES`, is still scanned completely.
+    bundles than `sourcemaps.artifact-bundles.url-lookup.max-candidate-bundles`, is still
+    scanned completely.
 
     A bundle that is in use is renewed when a lookup returns it, so it stays active. Lookups
     of bundles beyond the budget can no longer find them by URL.
@@ -439,6 +444,10 @@ def get_url_lookup_candidates(
     if max_index_rows <= 0:
         return None
 
+    max_candidate_bundles = min(
+        max(options.get("sourcemaps.artifact-bundles.url-lookup.max-candidate-bundles"), 1),
+        URL_LOOKUP_MAX_CANDIDATE_BUNDLES_LIMIT,
+    )
     active_days = options.get("system.debug-files-renewal-age-threshold-days") + options.get(
         "sourcemaps.artifact-bundles.url-lookup.active-margin-days"
     )
@@ -455,36 +464,55 @@ def get_url_lookup_candidates(
     # Using a dict to keep the order and drop bundles repeated by duplicate link rows.
     candidates: dict[int, None] = {}
     index_rows = 0
-    truncated = False
+    # Which limit cut the lookup short, if any: "budget" or "candidates".
+    truncated_by: str | None = None
     for bundles in (
         release_bundles.filter(date_added__gte=active_since),
         release_bundles.filter(date_added__lt=active_since),
     ):
         rows = list(
-            bundles.values_list("id", "artifact_count").order_by("-id")[
-                :URL_LOOKUP_MAX_CANDIDATE_BUNDLES
-            ]
+            bundles.values_list("id", "artifact_count").order_by("-id")[:max_candidate_bundles]
         )
         for bundle_id, artifact_count in rows:
             if bundle_id in candidates:
                 continue
             # We always scan at least one bundle, even if it alone exceeds the budget.
             if candidates and index_rows + artifact_count > max_index_rows:
-                truncated = True
+                truncated_by = "budget"
                 break
             candidates[bundle_id] = None
             index_rows += artifact_count
-        if truncated or len(rows) == URL_LOOKUP_MAX_CANDIDATE_BUNDLES:
-            # Either the budget is spent, or this group has more bundles than we looked at,
-            # and those come before any bundle of the next group.
-            truncated = True
+        if truncated_by is None and len(rows) == max_candidate_bundles:
+            # This group has more bundles than we looked at, and those come before any bundle
+            # of the next group.
+            truncated_by = "candidates"
+        if truncated_by is not None:
             break
 
     metrics.distribution("artifact_bundle_url_lookup.index_rows", index_rows)
     metrics.incr(
         "artifact_bundle_url_lookup.candidates",
-        tags={"truncated": "true" if truncated else "false"},
+        tags={"truncated": truncated_by or "false"},
     )
+    # Files in bundles beyond the limits are no longer found by URL. The metric can't say for
+    # which releases, so we log a sample of the truncated lookups.
+    if truncated_by is not None and in_random_rollout(
+        "sourcemaps.artifact-bundles.url-lookup.truncated-log-sample-rate"
+    ):
+        logger.info(
+            "artifact_bundle_url_lookup.truncated",
+            extra={
+                "organization_id": project.organization_id,
+                "project_id": project.id,
+                "release": release_name,
+                "dist": dist_name,
+                "truncated_by": truncated_by,
+                "max_index_rows": max_index_rows,
+                "max_candidate_bundles": max_candidate_bundles,
+                "index_rows": index_rows,
+                "candidates": len(candidates),
+            },
+        )
     return list(candidates)
 
 

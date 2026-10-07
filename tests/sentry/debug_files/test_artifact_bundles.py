@@ -3,6 +3,7 @@ import zipfile
 from datetime import datetime, timedelta
 from hashlib import sha1
 from io import BytesIO
+from unittest.mock import patch
 
 from django.core.files.base import ContentFile
 from django.utils import timezone
@@ -624,3 +625,113 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
             == set()
         )
         assert self.lookup("/path/to/app") == {bundle.id}
+
+    @override_options(
+        {
+            "sourcemaps.artifact-bundles.url-lookup.max-index-rows": 1000,
+            "sourcemaps.artifact-bundles.url-lookup.max-candidate-bundles": 2,
+        }
+    )
+    def test_url_lookup_candidate_cap(self) -> None:
+        oldest = self.create_bundle()
+        older = self.create_bundle()
+        newest = self.create_bundle()
+        for bundle, name in ((oldest, "oldest"), (older, "older"), (newest, "newest")):
+            self.index_url(bundle, f"~/path/to/{name}.js")
+
+        # The budget covers all three bundles, but the lookup reads only the two newest.
+        assert self.lookup("/path/to/newest") == {newest.id}
+        assert self.lookup("/path/to/older") == {older.id}
+        assert self.lookup("/path/to/oldest") == set()
+
+    @override_options(
+        {
+            "sourcemaps.artifact-bundles.url-lookup.max-index-rows": 1000,
+            "sourcemaps.artifact-bundles.url-lookup.max-candidate-bundles": 0,
+        }
+    )
+    def test_url_lookup_candidate_cap_reads_at_least_one_bundle(self) -> None:
+        older = self.create_bundle()
+        newer = self.create_bundle()
+        self.index_url(older, "~/path/to/app.js")
+        self.index_url(newer, "~/path/to/app.js")
+
+        assert self.lookup("/path/to/app") == {newer.id}
+
+    @override_options(
+        {
+            # Each bundle has 5 files, so the budget covers two bundles.
+            "sourcemaps.artifact-bundles.url-lookup.max-index-rows": 10,
+            "sourcemaps.artifact-bundles.url-lookup.truncated-log-sample-rate": 1.0,
+        }
+    )
+    def test_url_lookup_truncated_by_budget_is_logged(self) -> None:
+        for _ in range(3):
+            self.create_bundle()
+
+        with (
+            patch("sentry.debug_files.artifact_bundles.metrics") as metrics,
+            patch("sentry.debug_files.artifact_bundles.logger") as logger,
+        ):
+            self.lookup("/path/to/app")
+
+        metrics.incr.assert_any_call(
+            "artifact_bundle_url_lookup.candidates", tags={"truncated": "budget"}
+        )
+        logger.info.assert_called_once_with(
+            "artifact_bundle_url_lookup.truncated",
+            extra={
+                "organization_id": self.organization.id,
+                "project_id": self.project.id,
+                "release": self.release_name,
+                "dist": self.dist_name,
+                "truncated_by": "budget",
+                "max_index_rows": 10,
+                "max_candidate_bundles": 1000,
+                "index_rows": 10,
+                "candidates": 2,
+            },
+        )
+
+    @override_options(
+        {
+            "sourcemaps.artifact-bundles.url-lookup.max-index-rows": 1000,
+            "sourcemaps.artifact-bundles.url-lookup.max-candidate-bundles": 2,
+            "sourcemaps.artifact-bundles.url-lookup.truncated-log-sample-rate": 0.0,
+        }
+    )
+    def test_url_lookup_truncated_by_candidate_cap(self) -> None:
+        for _ in range(3):
+            self.create_bundle()
+
+        with (
+            patch("sentry.debug_files.artifact_bundles.metrics") as metrics,
+            patch("sentry.debug_files.artifact_bundles.logger") as logger,
+        ):
+            self.lookup("/path/to/app")
+
+        metrics.incr.assert_any_call(
+            "artifact_bundle_url_lookup.candidates", tags={"truncated": "candidates"}
+        )
+        # Not sampled.
+        logger.info.assert_not_called()
+
+    @override_options(
+        {
+            "sourcemaps.artifact-bundles.url-lookup.max-index-rows": 1000,
+            "sourcemaps.artifact-bundles.url-lookup.truncated-log-sample-rate": 1.0,
+        }
+    )
+    def test_url_lookup_not_truncated(self) -> None:
+        self.create_bundle()
+
+        with (
+            patch("sentry.debug_files.artifact_bundles.metrics") as metrics,
+            patch("sentry.debug_files.artifact_bundles.logger") as logger,
+        ):
+            self.lookup("/path/to/app")
+
+        metrics.incr.assert_any_call(
+            "artifact_bundle_url_lookup.candidates", tags={"truncated": "false"}
+        )
+        logger.info.assert_not_called()
