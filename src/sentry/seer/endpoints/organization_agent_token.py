@@ -105,19 +105,19 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
         )
 
         viewer = get_viewer_context()
-        superuser_access_expires_at = (
-            viewer.superuser_access_expires_at
+        superuser = (
+            viewer.superuser
             if viewer is not None
             and viewer.user_id == user_id
             and viewer.organization_id == organization.id
             else None
         )
         ttl = agent_token.DEFAULT_TOKEN_TTL
-        if superuser_access_expires_at is not None:
+        if superuser is not None:
             scopes = sorted(set(scopes) & agent_token.readonly_scopes())
             ttl = min(
                 ttl,
-                datetime.fromtimestamp(superuser_access_expires_at, datetime_timezone.utc)
+                datetime.fromtimestamp(superuser.expires_at, datetime_timezone.utc)
                 - timezone.now(),
             )
             if ttl.total_seconds() <= 0:
@@ -127,7 +127,7 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
             organization_id=organization.id,
             scopes=scopes,
             session_id=session_id,
-            superuser_access_expires_at=superuser_access_expires_at,
+            superuser=superuser,
             ttl=ttl,
         )
         return Response(

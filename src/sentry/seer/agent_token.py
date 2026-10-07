@@ -17,6 +17,7 @@ from django.contrib.auth.models import AnonymousUser
 from django.db import router, transaction
 from django.utils import timezone
 from jwt import PyJWTError
+from pydantic import ValidationError
 
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.seer.models.agent_write_grant import (
@@ -24,6 +25,7 @@ from sentry.seer.models.agent_write_grant import (
     DEFAULT_EXPIRATION,
     SeerAgentWriteGrant,
 )
+from sentry.types.superuser import SuperuserAccess
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import jwt
@@ -76,7 +78,7 @@ class AgentTokenClaims(TypedDict):
     sid: str
     iat: int
     exp: int
-    superuser_access_expires_at: NotRequired[int]
+    superuser: NotRequired[dict[str, object]]
 
 
 def _signing_key() -> str:
@@ -171,7 +173,7 @@ def encode_agent_token(
     scopes: Iterable[str],
     session_id: str,
     ttl: timedelta = DEFAULT_TOKEN_TTL,
-    superuser_access_expires_at: int | None = None,
+    superuser: SuperuserAccess | None = None,
 ) -> tuple[str, datetime]:
     """Mint a signed agent token. Returns the JWT and its expiry. No DB write."""
     now = timezone.now()
@@ -188,8 +190,8 @@ def encode_agent_token(
         "iat": int(now.timestamp()),
         "exp": int(expires_at.timestamp()),
     }
-    if superuser_access_expires_at is not None:
-        payload["superuser_access_expires_at"] = superuser_access_expires_at
+    if superuser is not None:
+        payload["superuser"] = superuser.dict()
     token = jwt.encode(
         payload,
         _signing_key(),
@@ -288,11 +290,11 @@ def _validate_claims(claims: Mapping[str, object]) -> AgentTokenClaims:
         iat=issued_at,
         exp=expires_at,
     )
-    if "superuser_access_expires_at" in claims:
-        superuser_access_expires_at = claims["superuser_access_expires_at"]
-        if type(superuser_access_expires_at) is not int:
-            raise jwt.DecodeError("invalid agent superuser access expiry")
-        result["superuser_access_expires_at"] = superuser_access_expires_at
+    if "superuser" in claims:
+        try:
+            result["superuser"] = SuperuserAccess.parse_obj(claims["superuser"]).dict()
+        except ValidationError as exc:
+            raise jwt.DecodeError("invalid agent superuser access") from exc
     return result
 
 
@@ -323,7 +325,7 @@ def build_authenticated_token(claims: AgentTokenClaims) -> AuthenticatedToken:
         scopes=claims["scopes"],
         user_id=principal.id,
         organization_id=claims["org"],
-        superuser_access_expires_at=claims.get("superuser_access_expires_at"),
+        superuser=SuperuserAccess.parse_obj(claims["superuser"]) if "superuser" in claims else None,
     )
 
 
