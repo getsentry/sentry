@@ -106,11 +106,13 @@ function GridEditableHead<DataRow, Order extends GridColumnOrder<unknown>>({
       {columnOrder.map((column, i) => {
         const columnSort = grid.getColumnSort?.(column, i);
 
+        // Prepended columns have no end padding, so a divider would touch their icons.
         return (
           <SimpleTable.HeaderCell
             align={columnSort?.align}
             columnIndex={i}
             data-test-id="grid-head-cell"
+            divider={i === 0 && prependColumns.length > 0 ? false : undefined}
             key={`${i}.${String(column.key)}`}
             handleSortClick={columnSort?.onSort}
             replace={columnSort?.replace}
