@@ -7,13 +7,28 @@ from __future__ import annotations
 import abc
 import dataclasses
 from enum import IntEnum, StrEnum
-from typing import Any, ClassVar, Literal, NotRequired, Optional, TypeAlias, TypedDict
+from typing import Any, ClassVar, Literal, NotRequired, Optional, TypedDict
 
 from pydantic import BaseModel
 
-# Seer may send partial PR metadata (e.g. pr_id/pr_number/pr_url all null when the
-# provider is unknown), so nested values must allow None.
-SeerPullRequestItem: TypeAlias = dict[str, str | None | dict[str, str | int | None]]
+
+class SeerPullRequestDetails(BaseModel):
+    """
+    PR identifiers for a Seer-created PR. Every field is optional because Seer can
+    report a PR before its metadata is known (e.g. an unknown provider).
+    """
+
+    pr_id: int | str | None = None
+    pr_number: int | None = None
+    pr_url: str | None = None
+
+
+class SeerPullRequestItem(BaseModel):
+    """One entry of `pull_requests` in Seer PR activity data, see format_pull_requests_payload."""
+
+    provider: str
+    repo_name: str
+    pull_request: SeerPullRequestDetails
 
 
 class GroupActorType(IntEnum):

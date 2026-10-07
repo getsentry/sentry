@@ -4,6 +4,8 @@ from sentry.issues.action_log.types import (
     PullRequestClosedAction,
     SeerPRCreatedAction,
     SeerPRReadyForReviewAction,
+    SeerPullRequestDetails,
+    SeerPullRequestItem,
     SetRegressedAction,
     SetResolvedInReleaseAction,
     SmartAssignmentCompletedAction,
@@ -134,7 +136,56 @@ class ActivityToActionTest(TestCase):
                 data={"run_id": 123, "pull_requests": pull_requests},
             )
 
-            assert activity_to_action(act) == action_class(run_id=123, pull_requests=pull_requests)
+            action = activity_to_action(act)
+
+            assert action is not None
+            assert action == action_class(
+                run_id=123,
+                pull_requests=[
+                    SeerPullRequestItem(
+                        provider="unknown",
+                        repo_name="example-org/example-repo",
+                        pull_request=SeerPullRequestDetails(),
+                    )
+                ],
+            )
+            # The persisted payload keeps the same shape as the activity data.
+            assert action.dict()["pull_requests"] == pull_requests
+
+    def test_seer_pr_actions_with_pr_metadata(self) -> None:
+        act = Factories.create_group_activity(
+            group=self.group,
+            type=ActivityType.SEER_PR_READY_FOR_REVIEW.value,
+            data={
+                "run_id": 123,
+                "pull_requests": [
+                    {
+                        "provider": "github",
+                        "repo_name": "example-org/example-repo",
+                        "pull_request": {
+                            "pr_id": 987,
+                            "pr_number": 42,
+                            "pr_url": "https://github.com/example-org/example-repo/pull/42",
+                        },
+                    }
+                ],
+            },
+        )
+
+        assert activity_to_action(act) == SeerPRReadyForReviewAction(
+            run_id=123,
+            pull_requests=[
+                SeerPullRequestItem(
+                    provider="github",
+                    repo_name="example-org/example-repo",
+                    pull_request=SeerPullRequestDetails(
+                        pr_id=987,
+                        pr_number=42,
+                        pr_url="https://github.com/example-org/example-repo/pull/42",
+                    ),
+                )
+            ],
+        )
 
     def test_strips_null_bytes_from_string_fields(self) -> None:
         # Activity data is stored in a text JSON column that tolerates NUL bytes,
