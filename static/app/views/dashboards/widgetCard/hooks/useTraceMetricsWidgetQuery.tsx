@@ -65,9 +65,6 @@ export function useTraceMetricsSeriesQuery(
   } = params;
 
   const {queue} = useWidgetQueryQueue();
-  const hasMeasuredIngestionDelayUi = organization.features.includes(
-    'measured-ingestion-delay-ui'
-  );
 
   const filteredWidget = useMemo(
     () =>
@@ -97,9 +94,7 @@ export function useTraceMetricsSeriesQuery(
         pageFilters,
         queue,
         enabled,
-        query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData, {
-          includeMeasuredIngestionDelayMetadata: hasMeasuredIngestionDelayUi,
-        }),
+        query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
       });
     }),
     combine: combineWidgetQueryResults,
