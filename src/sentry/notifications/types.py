@@ -71,7 +71,11 @@ class NotificationOrigin:
 
     @property
     def link_id(self) -> int:
-        """ID used by rendering context, preferring workflow identity."""
+        """Return the key shared by rule details and rendering context mappings.
+
+        Workflow-backed origins use the workflow ID so templates can find workflow
+        links. Legacy-only origins retain the legacy rule ID.
+        """
         if self.workflow_id is not None:
             return self.workflow_id
         assert self.legacy_rule_id is not None
