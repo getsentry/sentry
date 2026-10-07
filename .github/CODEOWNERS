@@ -357,6 +357,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 /src/sentry/api/endpoints/organization_spans_fields.py                              @getsentry/data-browsing
 /tests/sentry/api/endpoints/test_organization_spans_fields.py                       @getsentry/data-browsing
+/src/sentry/api/endpoints/organization_explore_formulas.py                          @getsentry/data-browsing
+/tests/sentry/api/endpoints/test_organization_explore_formulas.py                   @getsentry/data-browsing
 
 /src/sentry/api/endpoints/organization_traces.py                                    @getsentry/explore
 /tests/sentry/api/endpoints/test_organization_traces.py                             @getsentry/explore

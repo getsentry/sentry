@@ -176,7 +176,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             VisibilityParams.SORT,
             VisibilityParams.GROUP_BY,
             VisibilityParams.Y_AXIS,
-            VisibilityParams.QUERY,
+            VisibilityParams.EXPLORE_QUERY,
             VisibilityParams.DISABLE_AGGREGATE_EXTRAPOLATION,
             VisibilityParams.PREVENT_METRIC_AGGREGATES,
             VisibilityParams.EXCLUDE_OTHER,
@@ -236,9 +236,7 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             rollup = self.get_rollup(request, snuba_params, top_events, use_rpc)
             snuba_params.granularity_secs = rollup
             axes = request.GET.getlist("yAxis", ["count()"])
-            include_measured_ingestion_delay_metadata = request.GET.get(
-                "includeMeasuredIngestionDelayMetadata"
-            ) is not None and features.has(
+            include_measured_ingestion_delay_metadata = features.has(
                 "organizations:measured-ingestion-delay-metadata",
                 organization,
                 actor=request.user,

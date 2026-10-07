@@ -115,6 +115,10 @@ AI_CONVERSATION_ATTRIBUTES = [
     "gen_ai.cost.total_tokens",
     "gen_ai.operation.name",
     "gen_ai.operation.type",
+    "gen_ai.memory.store.id",
+    "gen_ai.memory.query.text",
+    "gen_ai.memory.record.id",
+    "gen_ai.memory.record.count",
     "gen_ai.input.messages",
     "gen_ai.output.messages",
     "gen_ai.system_instructions",
@@ -162,6 +166,7 @@ class AIConversationModelUsage(TypedDict):
 
 
 class AIConversationStats(AIConversationAggregates):
+    errorToolNames: list[str]
     usageByModel: list[AIConversationModelUsage]
 
 
@@ -184,6 +189,7 @@ class AIConversationDetailsResponse(TypedDict):
 
 def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationStats:
     conversation_stats = parse_conversation_aggregates({})
+    error_tool_names: set[str] = set()
     tool_names: set[str] = set()
     usage_by_model: dict[str | None, AIConversationModelUsage] = {}
     # Model columns group query rows, so fold each pair back into conversation totals.
@@ -198,6 +204,8 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
         conversation_stats["toolErrors"] += model_pair_stats["toolErrors"]
         conversation_stats["totalCost"] += model_pair_stats["totalCost"]
         conversation_stats["totalTokens"] += model_pair_stats["totalTokens"]
+        conversation_stats["errors"] += model_pair_stats["errors"]
+        error_tool_names.update(row.get("error_tool_names") or [])
         tool_names.update(model_pair_stats["toolNames"])
 
         start_timestamp = model_pair_stats["startTimestamp"]
@@ -241,12 +249,18 @@ def _parse_grouped_stats(rows: Sequence[Mapping[str, Any]]) -> AIConversationSta
         usage["outputCost"] += float(row.get("output_cost") or 0)
         usage["totalCost"] += model_pair_stats["totalCost"]
 
-    conversation_stats["toolNames"] = sorted(tool_names)
+    conversation_stats["toolNames"] = sorted(
+        tool_names, key=lambda name: (name not in error_tool_names, name)
+    )
     sorted_usage = sorted(
         usage_by_model.values(),
         key=lambda usage: (-usage["totalTokens"], usage["model"] or ""),
     )
-    return {**conversation_stats, "usageByModel": sorted_usage}
+    return {
+        **conversation_stats,
+        "errorToolNames": sorted(error_tool_names),
+        "usageByModel": sorted_usage,
+    }
 
 
 @extend_schema(tags=["Explore"])
@@ -286,6 +300,8 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
         """Return spans recorded for one AI conversation in start-time order.
 
         Message, tool, and response attributes contain their recorded string values.
+        `stats.errors` counts spans whose status is not `ok`, `cancelled`, or `unknown`.
+        `stats.errorToolNames` lists tools used by those spans.
         Without an explicit range, Sentry widens the search across available retention.
         A missing conversation returns an empty `spans` list.
         """
@@ -634,7 +650,11 @@ class OrganizationAIConversationDetailsEndpoint(OrganizationEventsEndpointBase):
                 TableQuery(
                     name="aggregates",
                     query_string=query_string,
-                    selected_columns=[*CONVERSATION_AGGREGATE_COLUMNS, *MODEL_USAGE_COLUMNS],
+                    selected_columns=[
+                        *CONVERSATION_AGGREGATE_COLUMNS,
+                        *MODEL_USAGE_COLUMNS,
+                        "collect_unique_if(`gen_ai.operation.type:tool has:span.status !span.status:[ok,cancelled,unknown]`,gen_ai.tool.name) as error_tool_names",
+                    ],
                     orderby=None,
                     offset=0,
                     # 100 model pairs is enough today. Paginate this grouped query if real

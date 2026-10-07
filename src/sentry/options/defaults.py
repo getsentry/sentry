@@ -286,7 +286,7 @@ register(
 register(
     "auth.v2.enabled",
     type=Bool,
-    default=False,
+    default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1115,11 +1115,49 @@ register(
 )
 
 
+# Before the artifact-lookup endpoint falls back to its two legacy `ReleaseFile` queries, check
+# that the release has any `ReleaseFile` for the requested dist, and skip both when it has none.
+register(
+    "sourcemaps.artifact-lookup.skip-legacy-without-release-files",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # TODO(INFRENG-460): unregister once the sentry-options-automator entries are gone
 register(
     "symbolicator.sourcemaps-bundle-index-refresh-sample-rate",
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Upper bound on the number of `ArtifactBundleIndex` rows a single URL lookup in the
+# artifact-lookup endpoint scans. Releases that have more indexed files than this scan
+# their active bundles (uploaded or renewed recently) first, then the others, newest
+# first, until the budget is spent. 0 disables the limit and scans every bundle.
+register(
+    "sourcemaps.artifact-bundles.url-lookup.max-index-rows",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Days added to `system.debug-files-renewal-age-threshold-days` to decide which bundles
+# count as active for the URL lookup. A bundle in use is renewed once it is older than the
+# threshold, so the margin must cover the time between lookups of a bundle in use.
+register(
+    "sourcemaps.artifact-bundles.url-lookup.active-margin-days",
+    type=Int,
+    default=7,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Do not add `ArtifactBundleIndex` rows for files stored under a name built from their own
+# debug ID (`~/<debug-id>-<n>.js`), which lookups find by debug ID rather than by URL.
+register(
+    "sourcemaps.artifact-bundles.index-skip-debug-id-names",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 
@@ -3571,6 +3609,16 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Number of alerts per variant per day whose legacy payload is compared with the notification
+# platform's render of it. A variant is the source, provider, and the alert attributes the legacy
+# renderers branch on. 0 disables the comparison. Independent of the platform-rollout options above.
+register(
+    "notifications.platform.shadow-render.variant-daily-limit",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Notification sources that record engagement tracking (sent and engagement events).
 # Sources become metric tags, so this list is also what keeps those tags bounded.
 register(
@@ -3806,14 +3854,6 @@ register(
     "uptime.config-drift.cycle-hours",
     type=Int,
     default=24,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Whether the drift sweep republishes the configs it finds missing, rather than only counting them.
-register(
-    "uptime.config-drift.repair",
-    type=Bool,
-    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
