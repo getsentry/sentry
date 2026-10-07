@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import abc
 import logging
-from collections.abc import Generator
+from collections.abc import Generator, MutableMapping
+from typing import Any
 
 from sentry.notifications.types import NotificationActionContext
 from sentry.rules.base import CallbackFuture, RuleBase
@@ -11,7 +12,9 @@ from sentry.services.eventstore.models import GroupEvent
 logger = logging.getLogger("sentry.rules")
 
 
-def instantiate_action(context: NotificationActionContext, action):
+def instantiate_action(
+    context: NotificationActionContext, action: MutableMapping[str, Any]
+) -> EventAction | None:
     from sentry.rules import rules
 
     action_id = action["id"]
