@@ -1,10 +1,10 @@
 /**
  * Shared StyleX compilation for the rspack loaders and the jest transform.
  *
- * StyleX is only used by @sentry/scraps (static/packages/scraps/src) for now.
- * Files there that import `@stylexjs/stylex` are compiled with
- * `@stylexjs/babel-plugin` before swc, and their CSS is collected into a single
- * stylesheet (see `stylex-css-loader.ts`).
+ * StyleX is only used by @sentry/scraps (static/packages/scraps/src) and a few
+ * core components for now (see `STYLEX_ROOTS`). Files there that import
+ * `@stylexjs/stylex` are compiled with `@stylexjs/babel-plugin` before swc, and
+ * their CSS is collected into a single stylesheet (see `stylex-css-loader.ts`).
  *
  * Cascade order: StyleX rules are emitted as plain single-class selectors
  * (`legacyDisableLayers`), and the stylesheet is injected after the LESS
@@ -20,14 +20,21 @@ import stylexBabelPlugin from '@stylexjs/babel-plugin';
 
 const ROOT = path.resolve(import.meta.dirname, '..');
 const SCRAPS_SRC = path.join(ROOT, 'static/packages/scraps/src');
+const CORE_COMPONENTS = path.join(ROOT, 'static/app/components/core');
 
 export const STYLEX_IMPORT = '@stylexjs/stylex';
 
 /**
- * Directories that may use StyleX. Only the @sentry/scraps package for now;
- * the components in static/app/components/core stay on Emotion.
+ * Directories that may use StyleX: the @sentry/scraps package, plus the core
+ * components that dominate Emotion's runtime cost (Button, DropdownButton,
+ * Link). Everything else in static/app/components/core stays on Emotion.
  */
-export const STYLEX_ROOTS = [SCRAPS_SRC];
+export const STYLEX_ROOTS = [
+  SCRAPS_SRC,
+  path.join(CORE_COMPONENTS, 'button'),
+  path.join(CORE_COMPONENTS, 'dropdownMenu'),
+  path.join(CORE_COMPONENTS, 'link'),
+];
 
 type StylexRule = Parameters<typeof stylexBabelPlugin.processStylexRules>[0][number];
 
@@ -43,7 +50,7 @@ function getPluginOptions(runtimeInjection: boolean) {
     // Resolve `@sentry/scraps/*` imports of `.stylex.ts` files the same way
     // rspack does, so variables hash identically wherever they are imported.
     aliases: {
-      '@sentry/scraps/*': [`${SCRAPS_SRC}/*`],
+      '@sentry/scraps/*': [`${SCRAPS_SRC}/*`, `${CORE_COMPONENTS}/*`],
     },
     unstable_moduleResolution: {type: 'commonJS' as const, rootDir: ROOT},
   };

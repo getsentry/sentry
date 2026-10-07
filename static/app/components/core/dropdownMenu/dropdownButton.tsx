@@ -1,9 +1,9 @@
-import {css} from '@emotion/react';
-import styled from '@emotion/styled';
+import * as stylex from '@stylexjs/stylex';
 import type {DistributedOmit} from 'type-fest';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
+import {fontWeight, space} from '@sentry/scraps/theme/constants.stylex';
 
 import {IconChevron} from 'sentry/icons';
 
@@ -25,6 +25,34 @@ export type DropdownButtonProps = DistributedOmit<
   showChevron?: boolean;
 };
 
+const styles = stylex.create({
+  button: {
+    maxWidth: '100%',
+  },
+  flat: {
+    boxShadow: 'none',
+  },
+  label: {
+    fontWeight: fontWeight.sansMedium,
+    paddingRight: space.sm,
+    '::after': {
+      content: '":"',
+    },
+  },
+  chevron: {
+    display: 'flex',
+    alignItems: 'center',
+    marginLeft: 'auto',
+    paddingLeft: space.xs,
+    flexShrink: 0,
+  },
+});
+
+// Button sets its own font weight with a class. Two classes for one property
+// are ordered by the generated stylesheet rather than by the class list, so
+// the regular weight next to a prefix is set inline instead.
+const PREFIXED_STYLE: React.CSSProperties = {fontWeight: fontWeight.sansRegular};
+
 export function DropdownButton({
   children,
   prefix,
@@ -33,69 +61,34 @@ export function DropdownButton({
   showChevron = true,
   disabled = false,
   ref,
+  className,
+  style,
   ...props
 }: DropdownButtonProps) {
+  const sx = stylex.props(styles.button, (isOpen || disabled) && styles.flat);
+
   return (
-    <StyledButton
+    <Button
       aria-haspopup="true"
       aria-expanded={isOpen}
-      hasPrefix={!!prefix}
       disabled={disabled}
-      isOpen={isOpen}
       size={size}
       ref={ref}
       {...props}
+      className={className ? `${sx.className} ${className}` : sx.className}
+      style={prefix ? {...PREFIXED_STYLE, ...style} : style}
     >
-      {prefix && <LabelText>{prefix}</LabelText>}
+      {prefix && <span {...stylex.props(styles.label)}>{prefix}</span>}
       {children}
       {showChevron && (
-        <ChevronWrap>
+        <div {...stylex.props(styles.chevron)}>
           <IconChevron
             variant={(props.variant ?? 'secondary') === 'secondary' ? 'muted' : undefined}
             direction={isOpen ? 'up' : 'down'}
             size={size === 'zero' || size === 'xs' ? 'xs' : 'sm'}
           />
-        </ChevronWrap>
+        </div>
       )}
-    </StyledButton>
+    </Button>
   );
 }
-
-const ChevronWrap = styled('div')`
-  display: flex;
-  align-items: center;
-  margin-left: auto;
-  padding-left: ${p => p.theme.space.xs};
-  flex-shrink: 0;
-`;
-
-interface StyledButtonProps extends Required<
-  Pick<DropdownButtonProps, 'isOpen' | 'disabled'>
-> {
-  hasPrefix?: boolean;
-}
-
-const StyledButton = styled(Button)<StyledButtonProps>`
-  position: relative;
-  max-width: 100%;
-
-  ${p =>
-    (p.isOpen || p.disabled) &&
-    css`
-      box-shadow: none;
-    `}
-  ${p =>
-    p.hasPrefix &&
-    css`
-      font-weight: ${p.theme.font.weight.sans.regular};
-    `}
-`;
-
-const LabelText = styled('span')`
-  &:after {
-    content: ':';
-  }
-
-  font-weight: ${p => p.theme.font.weight.sans.medium};
-  padding-right: ${p => p.theme.space.sm};
-`;

@@ -1,11 +1,10 @@
 import {type LinkProps as ReactRouterLinkProps} from 'react-router';
 import isPropValid from '@emotion/is-prop-valid';
-import {css, type Theme} from '@emotion/react';
-import styled from '@emotion/styled';
+import * as stylex from '@stylexjs/stylex';
 import type {LocationDescriptor} from 'history';
 
 import type {ButtonVariant} from '@sentry/scraps/button/types';
-import {getTextStyles} from '@sentry/scraps/text/text';
+import {background, content, focus} from '@sentry/scraps/theme/tokens.stylex';
 import {type AnalyticsProps, useClickTracking} from '@sentry/scraps/trackingContext';
 
 import {useLinkBehavior} from './linkBehaviorContext';
@@ -39,39 +38,51 @@ export interface LinkProps
   disabled?: boolean;
 }
 
-const getLinkStyles = ({
+const styles = stylex.create({
+  link: {
+    // Text styles of an inherit-variant Text, in the inherited font.
+    fontFamily: 'inherit',
+    textBoxEdge: 'text text',
+    textBoxTrim: 'trim-both',
+    /* @TODO(jonasbadalic) This was defined on theme and only used here */
+    borderRadius: '2px',
+    textDecoration: {default: null, ':focus-visible': 'none'},
+    outline: {default: null, ':focus-visible': 'none'},
+    boxShadow: {
+      default: null,
+      ':focus-visible': `0 0 0 0 ${background.primary}, 0 0 0 2px ${focus.default}`,
+    },
+  },
+  disabled: {
+    pointerEvents: 'none',
+    color: {default: content.disabled, ':hover': content.disabled},
+  },
+});
+
+function getLinkClassName(disabled: boolean | undefined, className: string | undefined) {
+  const {className: linkClassName = ''} = stylex.props(
+    styles.link,
+    disabled && styles.disabled
+  );
+  return className ? `${linkClassName} ${className}` : linkClassName;
+}
+
+function Anchor({
   disabled,
-  theme,
-}: {
-  theme: Theme;
+  className,
+  ...props
+}: React.AnchorHTMLAttributes<HTMLAnchorElement> & {
   disabled?: LinkProps['disabled'];
-}) => css`
-  /* @TODO(jonasbadalic) This was defined on theme and only used here */
-  border-radius: 2px;
-  pointer-events: ${disabled ? 'none' : undefined};
-  color: ${disabled ? theme.tokens.content.disabled : undefined};
-
-  &:hover {
-    color: ${disabled ? theme.tokens.content.disabled : undefined};
+  ref?: React.Ref<HTMLAnchorElement>;
+}) {
+  const domProps: Record<string, unknown> = {};
+  for (const key in props) {
+    if (isPropValid(key)) {
+      domProps[key] = (props as Record<string, unknown>)[key];
+    }
   }
-
-  &:focus-visible {
-    text-decoration: none;
-    ${theme.focusRing()}
-  }
-`;
-
-const getLinkTextStyles = ({theme}: {theme: Theme}) => css`
-  ${getTextStyles({theme, variant: 'inherit'})}
-  font-family: inherit;
-`;
-
-const Anchor = styled('a', {
-  shouldForwardProp: prop => isPropValid(prop) && prop !== 'disabled',
-})<{disabled?: LinkProps['disabled']}>`
-  ${getLinkTextStyles}
-  ${getLinkStyles}
-`;
+  return <a {...domProps} className={getLinkClassName(disabled, className)} />;
+}
 
 type LinkPropsWithButtonBehavior = LinkProps & {
   busy?: boolean;
@@ -91,7 +102,7 @@ function LinkBase(props: LinkPropsWithButtonBehavior) {
     // [object Object]" when "to" prop is a LocationDescriptor object. Have to create a
     // new object here, as we can't delete the "to" prop as it is a required prop.
     const {to: _to, ...restProps} = props;
-    return <Anchor {...restProps} />;
+    return <Anchor {...(restProps as React.AnchorHTMLAttributes<HTMLAnchorElement>)} />;
   }
 
   const {
@@ -103,16 +114,17 @@ function LinkBase(props: LinkPropsWithButtonBehavior) {
     ...linkProps
   } = propsWithBehavior;
 
-  return <Component {...linkProps} onClick={handleClick} />;
+  return (
+    <Component
+      {...linkProps}
+      className={getLinkClassName(false, linkProps.className)}
+      onClick={handleClick}
+    />
+  );
 }
 
-const StyledLink = styled(LinkBase)`
-  ${getLinkTextStyles}
-  ${getLinkStyles}
-`;
-
 export function Link(props: LinkProps) {
-  return <StyledLink {...props} />;
+  return <LinkBase {...props} />;
 }
 
 interface ExternalLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {

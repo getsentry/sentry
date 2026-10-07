@@ -1,7 +1,5 @@
-import {css} from '@emotion/react';
-
 import {useLayoutElement} from '@sentry/scraps/layout/container';
-import {rc, type Responsive} from '@sentry/scraps/layout/styles';
+import type {Responsive} from '@sentry/scraps/layout/styles';
 import {
   addLayoutProp,
   addStyles,
@@ -10,7 +8,6 @@ import {
 } from '@sentry/scraps/layout/stylexLayout';
 import type {ContentVariant, TextSize, Theme} from '@sentry/scraps/theme';
 
-import {getFontSize, getLineHeight, getTextDecoration} from './styles';
 import {
   addCommonTextStyles,
   addDensity,
@@ -180,7 +177,6 @@ type TextPrimitive = 'span' | 'p' | 'label' | 'div' | 'time' | 'legend';
 type DisplayValue = 'inline' | 'block' | 'inline-block' | 'none';
 
 type TextStyleProps = BaseTextProps & {
-  theme: Theme;
   as?: TextPrimitive;
   display?: Responsive<DisplayValue>;
   size?: Responsive<TextSize>;
@@ -203,81 +199,6 @@ function getDefaultDisplay(p: {
 function getNativeDisplay(as: TextPrimitive | undefined): DisplayValue {
   return as === 'p' || as === 'div' || as === 'legend' ? 'block' : 'inline';
 }
-
-/**
- * When no explicit `display` prop is set, the derived default is applied.
- * For a responsive prop we seed the base (`zero`) slot when the consumer left it unset
- * (with the derived default, or the element's native display when there is none)
- * so unspecified small breakpoints keep the sensible default instead of inheriting the value of
- * the smallest specified breakpoint (which `rc` would otherwise make the base).
- */
-function resolveDisplay(p: TextStyleProps): string | undefined {
-  const fallback = getDefaultDisplay(p);
-
-  if (p.display === undefined) {
-    return fallback ? `display: ${fallback};` : undefined;
-  }
-
-  if (typeof p.display === 'string') {
-    return `display: ${p.display};`;
-  }
-
-  const value =
-    p.display.zero === undefined
-      ? {zero: fallback ?? getNativeDisplay(p.as), ...p.display}
-      : p.display;
-
-  return rc('display', value, p.theme);
-}
-
-/**
- * Emotion version of the Text styles, for Emotion components outside
- * `@sentry/scraps` that compose them (e.g. core `Link`).
- */
-export const getTextStyles = (p: TextStyleProps) => css`
-  ${rc('font-size', p.size, p.theme, v => getFontSize(v, p.theme))};
-  ${rc('line-height', p.density, p.theme, v => getLineHeight(v, p.theme))};
-  ${resolveDisplay(p)};
-  ${rc('text-align', p.align, p.theme)};
-
-  font-style: ${p.italic ? 'italic' : undefined};
-  text-decoration: ${getTextDecoration(p)};
-  cursor: ${p.cursor ?? undefined};
-
-  color: ${
-    p.variant === 'inherit'
-      ? undefined
-      : p.theme.tokens.content[
-          p.variant === 'muted' ? 'secondary' : (p.variant ?? 'primary')
-        ]
-  };
-
-  overflow: ${p.ellipsis ? 'hidden' : undefined};
-  text-overflow: ${p.ellipsis ? 'ellipsis' : undefined};
-  white-space: ${p.wrap ? p.wrap : p.ellipsis ? 'nowrap' : undefined};
-  text-wrap: ${p.textWrap ?? undefined};
-  word-break: ${p.wordBreak ?? undefined};
-  width: ${p.ellipsis ? '100%' : undefined};
-
-  font-family: ${p.theme.font.family[p.monospace ? 'mono' : 'sans']};
-  font-weight: ${
-    p.bold === true
-      ? p.theme.font.weight[p.monospace ? 'mono' : 'sans'].medium
-      : p.bold === false
-        ? p.theme.font.weight[p.monospace ? 'mono' : 'sans'].regular
-        : undefined
-  };
-  font-variant-numeric: ${[
-    p.tabular ? 'tabular-nums' : undefined,
-    p.fraction ? 'diagonal-fractions' : undefined,
-  ]
-    .filter(Boolean)
-    .join(' ')};
-  text-transform: ${p.uppercase ? 'uppercase' : undefined};
-
-  text-box-edge: text text;
-  text-box-trim: trim-both;
-`;
 
 export type TextProps<T extends TextPrimitive> = TextAttributes<T> &
   ExclusiveTextEllipsisProps;
@@ -340,7 +261,7 @@ function addTextDisplay(
 function TextComponent<T extends TextPrimitive = 'span'>(
   props: TextProps<T> | TextPropsWithRenderFunction<T>
 ) {
-  const p = props as unknown as Omit<TextStyleProps, 'theme'>;
+  const p = props as unknown as TextStyleProps;
   const acc = createLayoutStyle(typeof props.children === 'function');
   addFontSize(acc, p.size);
   addDensity(acc, p.density);
