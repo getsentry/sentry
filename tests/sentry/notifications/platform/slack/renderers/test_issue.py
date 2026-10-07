@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from unittest import mock
 
 import pytest
 
@@ -119,7 +120,12 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
             tags=["environment", "level"], notes="test note", notification_uuid="test-uuid-123"
         )
 
-        result = issue_notification_data_factory(invocation)
+        with mock.patch(
+            "sentry.notifications.notification_action.types."
+            "BaseIssueAlertHandler.create_rule_instance_from_action",
+            side_effect=AssertionError("payload creation must not construct a Rule"),
+        ):
+            result = issue_notification_data_factory(invocation)
 
         assert result.source == NotificationSource.ISSUE
         assert result.group_id == invocation.event_data.group.id
@@ -192,7 +198,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         *,
         group: Group,
         workflow_id: int,
-        event_id: str,
+        notification_uuid: str,
         title: str = "test event",
         rule_label: str = "Test Workflow",
         notes: str | None = None,
@@ -208,8 +214,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
 
         issue_url = (
             f"http://testserver/organizations/{org_slug}/issues/{group_id}/"
-            f"events/{event_id}/"
-            f"?referrer=slack"
+            f"?referrer=slack&notification_uuid={notification_uuid}"
             f"&workflow_id={workflow_id}&alert_type=issue"
         )
         alert_url = f"http://testserver/organizations/{org_slug}/monitors/alerts/{workflow_id}/"
@@ -319,7 +324,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         assert result == self._build_expected_blocks(
             group=invocation.event_data.group,
             workflow_id=invocation.workflow_id,
-            event_id=invocation.event_data.event.event_id,
+            notification_uuid=invocation.notification_uuid,
         )
 
     def test_render_with_notes(self) -> None:
@@ -336,7 +341,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         assert result == self._build_expected_blocks(
             group=invocation.event_data.group,
             workflow_id=invocation.workflow_id,
-            event_id=invocation.event_data.event.event_id,
+            notification_uuid=invocation.notification_uuid,
             notes="important note",
         )
 
@@ -357,7 +362,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
         assert result == self._build_expected_blocks(
             group=invocation.event_data.group,
             workflow_id=invocation.workflow_id,
-            event_id=invocation.event_data.event.event_id,
+            notification_uuid=invocation.notification_uuid,
             title="tagged event",
             tags=["level: `error`  "],
         )

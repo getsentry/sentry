@@ -4,10 +4,11 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
 import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
 import type {PathMappingValue} from 'sentry/components/connectRepository/type';
+import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 
 const MAPPINGS: PathMappingValue[] = [
-  {stackRoot: 'app/', sourceRoot: 'static/app/', branch: 'main'},
-  {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'frontend'},
+  {id: '1', stackRoot: 'app/', sourceRoot: 'static/app/', branch: 'main'},
+  {id: '2', stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'frontend'},
 ];
 
 /**
@@ -16,17 +17,20 @@ const MAPPINGS: PathMappingValue[] = [
  */
 function renderList({
   initialPathMappings,
+  pathMappings,
   defaultBranch,
   providerKey,
+  existingMappings,
 }: {
   defaultBranch?: string;
+  existingMappings?: RepositoryProjectPathConfig[];
   initialPathMappings?: PathMappingValue[];
+  pathMappings?: PathMappingValue[];
   providerKey?: string;
 } = {}) {
   const branchSeed = defaultBranch ?? 'main';
-  const seeded = initialPathMappings ?? [
-    {stackRoot: '', sourceRoot: '', branch: branchSeed},
-  ];
+  const seeded = pathMappings ??
+    initialPathMappings ?? [{stackRoot: '', sourceRoot: '', branch: branchSeed}];
 
   function Wrapper() {
     const form = useScrapsForm({
@@ -40,6 +44,7 @@ function renderList({
           form={form}
           defaultBranch={defaultBranch}
           providerKey={providerKey}
+          existingMappings={existingMappings}
         />
       </form.AppForm>
     );
@@ -56,6 +61,9 @@ describe('PathMappingList', () => {
       expect(
         screen.getByRole('textbox', {name: /stack trace prefix/i})
       ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Delete path mapping'})
+      ).not.toBeInTheDocument();
     });
 
     it('updates the input as the user types', async () => {
@@ -127,6 +135,44 @@ describe('PathMappingList', () => {
 
       expect(screen.getByText(/Paths \(3\)/)).toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveValue('');
+    });
+
+    it('keeps delete on the summary when the only mapping is open', async () => {
+      renderList({initialPathMappings: [MAPPINGS[0]!]});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
+
+      // enableDelete is false for a single mapping, so delete stays on the summary
+      expect(screen.getAllByRole('button', {name: 'Delete path mapping'})).toHaveLength(
+        1
+      );
+    });
+
+    it('shows an Automatic tag only on generated rows', () => {
+      renderList({
+        initialPathMappings: [
+          {
+            stackRoot: 'app/',
+            sourceRoot: 'static/app/',
+            branch: 'main',
+            automaticallyGenerated: true,
+          },
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'frontend'},
+        ],
+      });
+
+      expect(screen.getAllByText('Automatic')).toHaveLength(1);
+    });
+
+    it('keeps delete on the summary when an existing row is expanded', async () => {
+      renderList({initialPathMappings: MAPPINGS});
+
+      const [firstExpand] = screen.getAllByRole('button', {name: 'Expand path mapping'});
+      await userEvent.click(firstExpand!);
+
+      expect(screen.getAllByRole('button', {name: 'Delete path mapping'})).toHaveLength(
+        2
+      );
     });
 
     it('removes a mapping', async () => {
@@ -221,6 +267,181 @@ describe('PathMappingList', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
 
       expect(screen.getByRole('textbox', {name: /branch/i})).toHaveValue('master');
+    });
+  });
+
+  describe('empty-prefix and exact-duplicate warnings', () => {
+    it('shows both-empty banner when both prefixes are blank', async () => {
+      renderList();
+
+      expect(
+        await screen.findByText(
+          'Both prefixes are empty, so Sentry will look for each file at the same path in your repo.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('switches to stack-empty banner when only the repository prefix is filled', async () => {
+      renderList();
+
+      await userEvent.type(
+        screen.getByRole('textbox', {name: /repository prefix/i}),
+        'app/'
+      );
+
+      expect(
+        screen.getByText(
+          /The stack trace prefix is empty, so this mapping matches every file/
+        )
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/Both prefixes are empty/)).not.toBeInTheDocument();
+    });
+
+    it('switches to source-empty banner when only the stack prefix is filled', async () => {
+      renderList();
+
+      await userEvent.type(
+        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        'src/'
+      );
+
+      expect(screen.getByText(/The repository prefix is empty/)).toBeInTheDocument();
+      expect(screen.queryByText(/Both prefixes are empty/)).not.toBeInTheDocument();
+    });
+
+    it('hides all empty-prefix banners once both prefixes are filled', async () => {
+      renderList();
+
+      await userEvent.type(
+        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        'src/'
+      );
+      await userEvent.type(
+        screen.getByRole('textbox', {name: /repository prefix/i}),
+        'app/'
+      );
+
+      expect(screen.queryByText(/Both prefixes are empty/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/stack trace prefix is empty/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/repository prefix is empty/)).not.toBeInTheDocument();
+    });
+
+    it('does not warn when roots are unrelated', () => {
+      renderList({
+        pathMappings: [
+          {stackRoot: 'app/', sourceRoot: 'static/app/', branch: 'main'},
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+        ],
+      });
+
+      // No warning icon on either collapsed row.
+      expect(screen.queryByRole('img', {name: 'Warning'})).not.toBeInTheDocument();
+    });
+
+    it('shows warning icon and expanded alert for two identical stack roots', async () => {
+      renderList({
+        pathMappings: [
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+        ],
+      });
+
+      // Both rows share the same stack root — each gets a warning icon.
+      expect(screen.getAllByRole('img', {name: 'Warning'})).toHaveLength(2);
+
+      const [firstExpand] = screen.getAllByRole('button', {name: 'Expand path mapping'});
+      await userEvent.click(firstExpand!);
+
+      expect(
+        screen.getByText(
+          /Remove one since only one of them is required for path matching/
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('shows warning icon and across-repos alert when an existing mapping on another repo has the same pair', async () => {
+      renderList({
+        pathMappings: [
+          {id: '1', stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+        ],
+        existingMappings: [
+          {
+            repoName: 'getsentry/relay',
+            stackRoot: 'src/',
+            sourceRoot: 'src/app/',
+          } as RepositoryProjectPathConfig,
+        ],
+      });
+
+      expect(screen.getByRole('img', {name: 'Warning'})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
+
+      expect(screen.getByText(/getsentry\/relay/)).toBeInTheDocument();
+      expect(screen.getByText(/Only one can be used for matching/)).toBeInTheDocument();
+    });
+
+    it('still only disables add-another when roots are exact duplicates, not distinct pairs', () => {
+      renderList({
+        pathMappings: [
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+          {stackRoot: 'src/app/', sourceRoot: 'dist/', branch: 'main'},
+        ],
+      });
+
+      // Different (stackRoot, sourceRoot) pairs — add is NOT disabled.
+      expect(screen.getByRole('button', {name: 'Add another path'})).not.toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+
+    it('shows the exact-duplicate warning on a Code Owners row that duplicates another mapping', async () => {
+      renderList({
+        pathMappings: [
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main', hasCodeOwner: true},
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+        ],
+      });
+
+      // Exact duplicate takes priority: warning icon visible on the Code Owners row.
+      expect(screen.getAllByRole('img', {name: 'Warning'})).toHaveLength(2);
+
+      const [expandCodeOwner] = screen.getAllByRole('button', {
+        name: 'Expand path mapping',
+      });
+      await userEvent.click(expandCodeOwner!);
+
+      expect(
+        screen.getByText(
+          /Remove one since only one of them is required for path matching/
+        )
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/Code Owners/)).not.toBeInTheDocument();
+    });
+
+    it('shows the Code Owners alert on a Code Owners row with no duplicate', async () => {
+      renderList({
+        pathMappings: [
+          {
+            id: '1',
+            stackRoot: 'src/',
+            sourceRoot: 'src/app/',
+            branch: 'main',
+            hasCodeOwner: true,
+          },
+        ],
+      });
+
+      // No duplicate — no warning icon on the collapsed row.
+      expect(screen.queryByRole('img', {name: 'Warning'})).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
+
+      expect(screen.getByRole('link', {name: 'Code Owners'})).toBeInTheDocument();
+      expect(
+        screen.queryByText(/Only one can be used for matching/)
+      ).not.toBeInTheDocument();
     });
   });
 

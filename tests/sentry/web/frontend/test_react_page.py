@@ -319,11 +319,11 @@ class ReactPageViewTest(TestCase):
     def test_customer_domain_non_member_org_superuser(self) -> None:
         self._run_customer_domain_elevated_privileges(is_superuser=True, is_staff=False)
 
-    @override_options({"staff.ga-rollout": True, "auth.v2.enabled": True})
+    @override_options({"staff.ga-rollout": True})
     def test_customer_domain_non_member_org_staff(self) -> None:
         self._run_customer_domain_elevated_privileges(is_superuser=False, is_staff=True)
 
-    @override_options({"staff.ga-rollout": True, "auth.v2.enabled": True})
+    @override_options({"staff.ga-rollout": True})
     def test_customer_domain_non_member_org_superuser_and_staff(self) -> None:
         self._run_customer_domain_elevated_privileges(is_superuser=True, is_staff=True)
 
