@@ -148,10 +148,7 @@ export default function AccountSecurityDetails() {
   return (
     <SentryDocumentTitle title={t('Security')}>
       <SettingsPageHeader
-        title={{
-          type: 'page-title',
-          label: authenticator.name,
-        }}
+        title={authenticator.name}
         action={
           <Flex gap="md">
             {authenticator.isEnrolled && authenticator.allowRotationInPlace && (

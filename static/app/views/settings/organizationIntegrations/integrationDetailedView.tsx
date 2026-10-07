@@ -288,9 +288,7 @@ export default function IntegrationDetailedView() {
     return 'Not Installed';
   }, [configurations]);
   const integrationName = provider?.name ?? '';
-  const navigationTabTitle = (
-    <BreadcrumbTitle title={{type: 'page-title', label: tabTitles[displayedTab]}} />
-  );
+  const navigationTabTitle = <BreadcrumbTitle title={tabTitles[displayedTab]} />;
   const featureData = useMemo(() => {
     return provider?.metadata.features ?? [];
   }, [provider]);
@@ -628,7 +626,7 @@ export default function IntegrationDetailedView() {
   return (
     <SentryDocumentTitle title={integrationName}>
       <IntegrationLayout.Body
-        title={{type: 'page-title', label: tabTitles[displayedTab]}}
+        title={tabTitles[displayedTab]}
         alert={<FirstPartyIntegrationAlert integrations={configurations} hideCTA />}
         topSection={
           <IntegrationLayout.TopSection
