@@ -2,6 +2,7 @@ import responses
 
 from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira import JiraCreateTicketAction
+from sentry.integrations.jira.actions.form import JiraNotifyServiceForm
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.grouplink import GroupLink
 from sentry.silo.base import SiloMode
@@ -189,12 +190,12 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
     def test_invalid_integration(self) -> None:
         rule = self.get_rule(data={"integration": self.integration.id})
 
-        form = rule.get_form_instance()
+        form = JiraNotifyServiceForm(rule.data, integrations=rule.get_integrations())
         assert form.is_valid()
 
     @responses.activate
     def test_invalid_project(self) -> None:
         rule = self.get_rule(data={"integration": self.integration.id})
 
-        form = rule.get_form_instance()
+        form = JiraNotifyServiceForm(rule.data, integrations=rule.get_integrations())
         assert form.is_valid()

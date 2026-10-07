@@ -207,6 +207,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
             expandedProjectIds={item?.expandedProjectIds}
             interval={item?.interval}
             crossEvents={item?.crossEvents}
+            extraFields={item?.extraFields}
           />
         </Item>
       );

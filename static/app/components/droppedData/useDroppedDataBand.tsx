@@ -23,7 +23,7 @@ import {
   highlightedBuckets,
   severityColor,
   withAlpha,
-  type AnnotationBucket,
+  type DroppedDataBucket,
 } from 'sentry/components/droppedData/utils';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
@@ -47,16 +47,16 @@ const DROPPED_DATA_Y_AXIS = {
   axisPointer: {show: false},
 };
 
-interface DroppedDataItem extends AnnotationBucket {
+interface DroppedDataItem extends DroppedDataBucket {
   fill: string;
   value: [start: number, y: number];
 }
 
 interface DroppedDataSeriesParams {
   bandOffset: number;
-  buckets: AnnotationBucket[];
+  buckets: DroppedDataBucket[];
   chartRef: React.RefObject<ReactEchartsRef | null>;
-  renderTooltip: (bucket: AnnotationBucket) => string;
+  renderTooltip: (bucket: DroppedDataBucket) => string;
   theme: Theme;
   yAxisIndex?: number;
 }
@@ -86,7 +86,7 @@ function clampRange({left, right}: PixelRange, track: PixelRange): PixelRange {
  * neighbouring buckets meet without anti-aliased seams.
  */
 function bucketSlot(
-  bucket: AnnotationBucket,
+  bucket: DroppedDataBucket,
   api: CustomSeriesRenderItemAPI
 ): PixelRange | null {
   const [startX] = api.coord([bucket.start, 0]);
@@ -267,7 +267,7 @@ const droppedDataTooltipPosition: TooltipPositionCallback = (
 
 function droppedDataTooltipOption(
   chartRef: React.RefObject<ReactEchartsRef | null>,
-  renderTooltip: (bucket: AnnotationBucket) => string
+  renderTooltip: (bucket: DroppedDataBucket) => string
 ): CustomSeriesOption['tooltip'] {
   return {
     trigger: 'item',
@@ -329,20 +329,20 @@ export function useDroppedDataBand({
   const renderToString = useRenderToString();
   const userTimezone = useTimezone();
   const timezone = utc ? 'UTC' : userTimezone;
-  const {acceptedAnnotations, droppedAnnotations} = droppedData ?? {};
+  const {acceptedEvents, droppedEvents} = droppedData ?? {};
 
   const buckets = useMemo(
     () =>
-      highlightedBuckets(droppedAnnotations ?? [], acceptedAnnotations).sort(
+      highlightedBuckets(droppedEvents ?? [], acceptedEvents).sort(
         (a, b) => a.start - b.start
       ),
-    [acceptedAnnotations, droppedAnnotations]
+    [acceptedEvents, droppedEvents]
   );
   const isVisible = buckets.length > 0;
 
   // TODO: reconsider using the tooltip from the main chart
   const renderTooltip = useCallback(
-    (bucket: AnnotationBucket) =>
+    (bucket: DroppedDataBucket) =>
       renderToString(<DroppedDataTooltip bucket={bucket} timezone={timezone} />),
     [renderToString, timezone]
   );

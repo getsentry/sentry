@@ -1,6 +1,6 @@
 import type React from 'react';
 import {Fragment, useCallback, useMemo, useState, type ReactNode} from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location, LocationDescriptor} from 'history';
 import groupBy from 'lodash/groupBy';

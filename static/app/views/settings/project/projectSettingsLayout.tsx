@@ -1,5 +1,5 @@
 import {useContext, useEffect, useEffectEvent} from 'react';
-import {Outlet, useOutletContext} from 'react-router-dom';
+import {Outlet, useOutletContext} from 'react-router';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';

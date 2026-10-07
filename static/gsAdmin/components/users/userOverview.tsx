@@ -2,6 +2,7 @@ import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -14,7 +15,6 @@ import type {InternalAppApiToken, User} from 'sentry/types/user';
 import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
 
 import {DetailLabel} from 'admin/components/detailLabel';
-import {DetailList} from 'admin/components/detailList';
 import {DetailsContainer} from 'admin/components/detailsContainer';
 import {prettyDate} from 'admin/utils';
 
@@ -76,7 +76,7 @@ export function UserOverview({
   return (
     <DetailsContainer>
       <div>
-        <DetailList>
+        <DescriptionList gap="md">
           <DetailLabel title="Status">
             {user.isSuspended ? 'Suspended' : user.isActive ? 'Active' : 'Disabled'}
           </DetailLabel>
@@ -96,9 +96,9 @@ export function UserOverview({
             <ExternalLink href={sentryUrl}>Sentry</ExternalLink> |{' '}
             <ExternalLink href={sendgridUrl}>SendGrid</ExternalLink>
           </DetailLabel>
-        </DetailList>
+        </DescriptionList>
         <h6>Admin</h6>
-        <DetailList>
+        <DescriptionList gap="md">
           <DetailLabel title="Superuser" yesNo={user.isSuperuser} />
           <DetailLabel title="Staff" yesNo={user.isStaff} />
           <DetailLabel title="Permissions">
@@ -108,12 +108,12 @@ export function UserOverview({
               </Tag>
             ))}
           </DetailLabel>
-        </DetailList>
+        </DescriptionList>
       </div>
       <div>
         <h6>Identities</h6>
         {identities?.length ? (
-          <DetailList>
+          <DescriptionList gap="md">
             {identities.map(identity => (
               <DetailLabel key={identity.id} title={identity.provider.name}>
                 <Flex justify="between">
@@ -143,7 +143,7 @@ export function UserOverview({
                 )}
               </DetailLabel>
             ))}
-          </DetailList>
+          </DescriptionList>
         ) : (
           <p>
             <em>
@@ -153,7 +153,7 @@ export function UserOverview({
         )}
         <h6>Authenticators</h6>
         {user.authenticators?.length ? (
-          <DetailList>
+          <DescriptionList gap="md">
             {user.authenticators.map(auth => (
               <DetailLabel title={auth.type} key={auth.id}>
                 <Flex justify="between">
@@ -172,7 +172,7 @@ export function UserOverview({
                 </small>
               </DetailLabel>
             ))}
-          </DetailList>
+          </DescriptionList>
         ) : (
           <p>
             <em>

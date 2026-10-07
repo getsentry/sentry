@@ -338,24 +338,6 @@ _SENTRY_RULES = (
     "sentry.rules.filters.level.LevelFilter",
 )
 
-MIGRATED_CONDITIONS = frozenset(
-    [
-        "sentry.rules.conditions.tagged_event.TaggedEventCondition",
-        "sentry.rules.conditions.event_attribute.EventAttributeCondition",
-        "sentry.rules.conditions.level.LevelCondition",
-    ]
-)
-
-TICKET_ACTIONS = frozenset(
-    [
-        "sentry.integrations.jira.notify_action.JiraCreateTicketAction",
-        "sentry.integrations.jira_server.notify_action.JiraServerCreateTicketAction",
-        "sentry.integrations.vsts.notify_action.AzureDevopsCreateTicketAction",
-        "sentry.integrations.github.notify_action.GitHubCreateTicketAction",
-        "sentry.integrations.github_enterprise.notify_action.GitHubEnterpriseCreateTicketAction",
-    ]
-)
-
 SENTRY_APP_ACTIONS = frozenset(
     ["sentry.rules.actions.notify_event_sentry_app.NotifyEventSentryAppAction"]
 )

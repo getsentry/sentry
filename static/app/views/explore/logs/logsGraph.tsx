@@ -143,12 +143,12 @@ function Graph({
   const groupBys = useQueryParamsGroupBys();
 
   const [interval, setInterval, intervalOptions] = useChartInterval();
-  const {droppedAnnotations, acceptedAnnotations} = useDroppedData({
+  const {droppedEvents, acceptedEvents} = useDroppedData({
     dataset: DiscoverDatasets.OURLOGS,
   });
   const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
   const openDroppedDataDrawer = useDroppedDataDrawer(DiscoverDatasets.OURLOGS);
-  const canShowDroppedData = hasDroppedData(droppedAnnotations, acceptedAnnotations);
+  const canShowDroppedData = hasDroppedData(droppedEvents, acceptedEvents);
   const showDroppedDataBand =
     canShowDroppedData && isDroppedDataLayerOn && !tableIsEmpty && !tableIsPending;
 
@@ -297,8 +297,8 @@ function Graph({
             droppedData={
               showDroppedDataBand
                 ? {
-                    droppedAnnotations,
-                    acceptedAnnotations,
+                    droppedEvents,
+                    acceptedEvents,
                     onClick: openDroppedDataDrawer,
                   }
                 : undefined

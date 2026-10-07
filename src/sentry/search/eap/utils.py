@@ -4,7 +4,6 @@ from collections.abc import Collection, Iterable, Mapping
 from datetime import datetime
 from typing import Callable, Literal, Protocol
 
-from django.db.models import Q
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_conventions.attributes import ATTRIBUTE_METADATA as ATTRIBUTE_METADATA
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeriesRequest
@@ -16,7 +15,6 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import ExistsFilter, OrFilter,
 from sentry.discover.arithmetic import ArithmeticError, parse_arithmetic, resolve_arithmetic
 from sentry.exceptions import InvalidSearchQuery
 from sentry.explore.models import ExploreSavedFormula, KindItemTypes, ParamItemTypes
-from sentry.models.organization import Organization
 from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute
 from sentry.search.eap.constants import (
     ARRAY,
@@ -85,7 +83,6 @@ from sentry.search.eap.types import (
     ColumnType,
     SupportedTraceItemType,
 )
-from sentry.search.events.fields import is_function, parse_arguments
 from sentry.utils import snuba_rpc
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
@@ -184,7 +181,9 @@ TRACE_ITEM_TYPE_DEFINITIONS: dict[SupportedTraceItemType, ColumnDefinitions] = {
 }
 
 
-def serialize_search_type(search_type: SearchType) -> str:
+def serialize_search_type(
+    search_type: SearchType,
+) -> Literal["string", "number", "boolean", "array"]:
     proto_type = TYPE_MAP.get(search_type)
     if proto_type == STRING:
         return "string"
@@ -331,31 +330,40 @@ def is_internal_sentry_convention_attribute(
 
 
 def can_expose_attribute_to_api(
-    attribute: str, item_type: SupportedTraceItemType, include_internal: bool = False
+    attribute: str,
+    item_type: SupportedTraceItemType,
+    include_internal: bool = False,
+    include_internal_convention_attributes: bool = False,
 ) -> bool:
     """Return whether an attribute may be exposed by public API surfaces.
 
     The visibility check expands the requested attribute to its related public
     aliases, internal names, and replacement attributes because any of those may
     carry the metadata that marks the underlying convention as internal.
-    `include_internal` only allows those Sentry-owned internal convention
-    attributes. It does not bypass `can_expose_attribute`, which still filters
-    private attributes first.
+    `include_internal_convention_attributes` allows Sentry-owned attributes
+    marked internal by conventions without exposing unrelated internal
+    attributes. It does not bypass private attribute filtering.
     """
     candidates = _get_sentry_convention_visibility_candidates(attribute, item_type)
-
-    for candidate in candidates:
-        if not can_expose_attribute(candidate, item_type, include_internal=include_internal):
-            return False
-
-    # Private attributes are rejected above before this internal-only override
-    # is applied.
-    if include_internal:
-        return True
-
-    return not any(
+    is_internal_convention_attribute = any(
         is_internal_sentry_convention_attribute(candidate, item_type) for candidate in candidates
     )
+    include_internal_for_visibility = include_internal or (
+        include_internal_convention_attributes and is_internal_convention_attribute
+    )
+
+    for candidate in candidates:
+        if not can_expose_attribute(
+            candidate,
+            item_type,
+            include_internal=include_internal_for_visibility,
+        ):
+            return False
+
+    if include_internal or include_internal_convention_attributes:
+        return True
+
+    return not is_internal_convention_attribute
 
 
 def is_sentry_convention_replacement_attribute(
@@ -523,30 +531,22 @@ class FormulaTerm(Protocol):
     value: str
 
 
-def get_and_parse_formula(
-    formula: str, organization: Organization, resolve_column: Callable[[str], object]
+def resolve_and_parse_formula(
+    saved_formula: ExploreSavedFormula,
+    arguments: list[str],
+    resolve_column: Callable[[str], object],
 ) -> str:
     """Given a formula, parse its parameters and create its rpc definition"""
-    match = is_function(formula)
-    if not match:
-        raise InvalidSearchQuery(f"{formula} is not a valid function")
-    formula_name = match.group("function")
-    arguments = parse_arguments(formula_name, match.group("columns"))
-
-    saved_formula = ExploreSavedFormula.objects.filter(
-        organization=organization, name=formula_name
-    ).first()
-    if saved_formula is None:
-        raise InvalidSearchQuery(f"Unknown formula {formula_name}")
-
-    saved_variables = saved_formula.variables.order_by("order")
-    parameters = saved_variables.filter(kind=KindItemTypes.PARAM)
-    saved_args = parameters.filter(~Q(param_type=ParamItemTypes.CALCULATION))
-    saved_calculations = parameters.filter(param_type=ParamItemTypes.CALCULATION)
-    saved_references = saved_variables.filter(kind=KindItemTypes.REFERENCE)
+    saved_variables = sorted(
+        saved_formula.variables.all(), key=lambda variable: variable.order if variable.order else 0
+    )
+    parameters = [variable for variable in saved_variables if variable.kind == KindItemTypes.PARAM]
+    saved_args = [arg for arg in parameters if arg.param_type != ParamItemTypes.CALCULATION]
+    saved_calculations = [arg for arg in parameters if arg.param_type == ParamItemTypes.CALCULATION]
+    saved_references = [arg for arg in saved_variables if arg.kind == KindItemTypes.REFERENCE]
     if len(saved_args) != len(arguments):
         raise InvalidSearchQuery(
-            f"{formula_name} expected {len(saved_args)} arguments got {len(arguments)} instead"
+            f"{saved_formula.name} expected {len(saved_args)} arguments got {len(arguments)} instead"
         )
     return parse_formula(
         saved_formula.formula,

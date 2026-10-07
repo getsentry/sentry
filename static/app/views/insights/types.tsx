@@ -126,6 +126,11 @@ export enum SpanFields {
   GEN_AI_TOOL_DEFINITIONS = 'gen_ai.tool.definitions',
   GEN_AI_CONTEXT_WINDOW_SIZE = 'gen_ai.context.window_size',
   GEN_AI_CONTEXT_UTILIZATION = 'gen_ai.context.utilization',
+  GEN_AI_MEMORY_STORE_ID = 'gen_ai.memory.store.id',
+  GEN_AI_MEMORY_QUERY_TEXT = 'gen_ai.memory.query.text',
+  GEN_AI_MEMORY_RECORDS = 'gen_ai.memory.records',
+  GEN_AI_MEMORY_RECORD_ID = 'gen_ai.memory.record.id',
+  GEN_AI_MEMORY_RECORD_COUNT = 'gen_ai.memory.record.count',
   MCP_CLIENT_NAME = 'mcp.client.name',
   NETWORK_TRANSPORT = 'network.transport',
   MCP_RESOURCE_URI = 'mcp.resource.uri',
@@ -264,6 +269,7 @@ type SpanNumberFields =
   | SpanFields.GEN_AI_USAGE_TOTAL_TOKENS
   | SpanFields.GEN_AI_USAGE_CACHE_READ_INPUT_TOKENS
   | SpanFields.GEN_AI_USAGE_REASONING_OUTPUT_TOKENS
+  | SpanFields.GEN_AI_MEMORY_RECORD_COUNT
   | SpanFields.TOTAL_SCORE
   | SpanFields.INP_SCORE
   | SpanFields.INP_SCORE_RATIO
