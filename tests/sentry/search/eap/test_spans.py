@@ -21,6 +21,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_table_pb2 import (
     AggregationComparisonFilter,
     AggregationFilter,
     AggregationOrFilter,
+    Column,
 )
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
@@ -942,15 +943,16 @@ class SearchResolverColumnTest(TestCase):
         assert resolved_column.proto_definition == AttributeKey(
             name="sentry.op", type=AttributeKey.Type.TYPE_STRING
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_project_field(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("project")
         assert resolved_column.proto_definition == AttributeKey(
             name="project", type=AttributeKey.Type.TYPE_STRING
         )
-        assert virtual_context is not None
-        assert virtual_context.constructor(
+        assert len(virtual_context) == 1
+        assert virtual_context[0] is not None
+        assert virtual_context[0].constructor(
             self.resolver.params, self.resolver
         ) == VirtualColumnContext(
             from_column_name="sentry.project_id",
@@ -963,8 +965,9 @@ class SearchResolverColumnTest(TestCase):
         assert resolved_column.proto_definition == AttributeKey(
             name="project.slug", type=AttributeKey.Type.TYPE_STRING
         )
-        assert virtual_context is not None
-        assert virtual_context.constructor(
+        assert len(virtual_context) == 1
+        assert virtual_context[0] is not None
+        assert virtual_context[0].constructor(
             self.resolver.params, self.resolver
         ) == VirtualColumnContext(
             from_column_name="sentry.project_id",
@@ -977,21 +980,21 @@ class SearchResolverColumnTest(TestCase):
         assert resolved_column.proto_definition == AttributeKey(
             name="foo", type=AttributeKey.Type.TYPE_STRING
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_simple_string_tag(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("tags[foo, string]")
         assert resolved_column.proto_definition == AttributeKey(
             name="foo", type=AttributeKey.Type.TYPE_STRING
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_simple_number_tag(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("tags[foo, number]")
         assert resolved_column.proto_definition == AttributeKey(
             name="foo", type=AttributeKey.Type.TYPE_DOUBLE
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_resolve_columns_hides_internal_api_attributes(self) -> None:
         resolver = SearchResolver(
@@ -1044,7 +1047,7 @@ class SearchResolverColumnTest(TestCase):
         )
 
         assert [column.public_alias for column in resolved_equations] == ["equation|count() / 1"]
-        assert resolved_contexts == []
+        assert resolved_contexts == [None]
 
     def test_resolve_columns_includes_internal_api_attributes_when_configured(self) -> None:
         resolver = SearchResolver(
@@ -1077,7 +1080,7 @@ class SearchResolverColumnTest(TestCase):
             label="sum(span.self_time)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_sum_default_argument(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("sum()")
@@ -1087,7 +1090,7 @@ class SearchResolverColumnTest(TestCase):
             label="sum()",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_function_alias(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("sum() as test")
@@ -1097,7 +1100,7 @@ class SearchResolverColumnTest(TestCase):
             label="test",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_count(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("count()")
@@ -1107,7 +1110,7 @@ class SearchResolverColumnTest(TestCase):
             label="count()",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
         resolved_column, virtual_context = self.resolver.resolve_column("count(span.duration)")
         assert resolved_column.proto_definition == AttributeAggregation(
             aggregate=Function.FUNCTION_COUNT,
@@ -1115,7 +1118,7 @@ class SearchResolverColumnTest(TestCase):
             label="count(span.duration)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_p50(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("p50()")
@@ -1125,7 +1128,7 @@ class SearchResolverColumnTest(TestCase):
             label="p50()",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_count_unique(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("count_unique(span.action)")
@@ -1135,7 +1138,7 @@ class SearchResolverColumnTest(TestCase):
             label="count_unique(span.action)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_max_timestamp(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("max(timestamp)")
@@ -1145,7 +1148,7 @@ class SearchResolverColumnTest(TestCase):
             label="max(timestamp)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
 
     def test_min_timestamp(self) -> None:
         resolved_column, virtual_context = self.resolver.resolve_column("min(timestamp)")
@@ -1155,7 +1158,32 @@ class SearchResolverColumnTest(TestCase):
             label="min(timestamp)",
             extrapolation_mode=ExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED,
         )
-        assert virtual_context is None
+        assert virtual_context == [None]
+
+    def test_elapsed_if(self) -> None:
+        with pytest.raises(
+            InvalidSearchQuery, match="The function elapsed_if is not allowed for this query"
+        ):
+            self.resolver.resolve_column("elapsed_if(`span.description:foo`,timestamp)")
+
+        resolver = SearchResolver(
+            params=SnubaParams(projects=[self.project]),
+            config=SearchResolverConfig(fields_acl=FieldsACL(functions={"elapsed_if"})),
+            definitions=SPAN_DEFINITIONS,
+        )
+        resolved_column, virtual_context = resolver.resolve_column(
+            "elapsed_if(`span.description:foo`,timestamp)"
+        )
+        formula = resolved_column.proto_definition
+        assert isinstance(formula, Column.BinaryFormula)
+        assert resolved_column.search_type == "number"
+        assert virtual_context == [None]
+        assert formula.op == Column.BinaryFormula.OP_SUBTRACT
+        assert formula.left.conditional_aggregation.aggregate == Function.FUNCTION_MAX
+        assert formula.right.conditional_aggregation.aggregate == Function.FUNCTION_MIN
+        assert formula.left.conditional_aggregation.filter == (
+            formula.right.conditional_aggregation.filter
+        )
 
     def test_max_string_field_raises(self) -> None:
         with pytest.raises(InvalidSearchQuery):
