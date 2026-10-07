@@ -1022,6 +1022,21 @@ describe('ConnectRepositoryModal', () => {
         );
         expect(closeModal).toHaveBeenCalled();
       });
+
+      it('shows a danger alert and keeps Save disabled when the projects fetch fails', async () => {
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/projects/`,
+          statusCode: 500,
+          body: {},
+        });
+
+        renderRepoLockedConnect();
+
+        expect(
+          await screen.findByText('Failed to load projects. Try again before connecting.')
+        ).toBeInTheDocument();
+        expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
+      });
     });
 
     describe('edit', () => {

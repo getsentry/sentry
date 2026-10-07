@@ -82,9 +82,11 @@ export function RepoLockedConnectForm({
     onSubmit: () => {},
   });
 
-  const {data: projects = [], isPending: isProjectsPending} = useQuery(
-    orgProjectsOptions(organization.slug)
-  );
+  const {
+    data: projects = [],
+    isPending: isProjectsPending,
+    isError: isProjectsError,
+  } = useQuery(orgProjectsOptions(organization.slug));
 
   // Repo-locked connect always needs a branch lookup since there are no
   // existing mappings to read the branch from.
@@ -182,6 +184,7 @@ export function RepoLockedConnectForm({
           const canSave =
             selectedProject !== null &&
             pathMappings.length > 0 &&
+            !isProjectsError &&
             !codeMappingsPending &&
             !codeMappingsError &&
             !hasExactDuplicate(pathMappings, existingMappings) &&
@@ -190,6 +193,13 @@ export function RepoLockedConnectForm({
 
           const alerts = (
             <Stack gap="xs">
+              {isProjectsError && (
+                <Alert.Container>
+                  <Alert variant="danger">
+                    {t('Failed to load projects. Try again before connecting.')}
+                  </Alert>
+                </Alert.Container>
+              )}
               {codeMappingsError && (
                 <Alert.Container>
                   <Alert variant="danger">

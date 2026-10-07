@@ -30,6 +30,10 @@ interface PathMappingSummaryProps extends PathMappingValue {
   warning?: PathMappingWarning;
 }
 
+const CODE_OWNER_DELETE_TOOLTIP = t(
+  'Remove the Code Owners connection before deleting this mapping.'
+);
+
 function PathSegment({value}: {value: string}) {
   return (
     <Flex flex={`${PATH_RATIO} 0 0%`} minWidth={0} maxWidth="max-content">
