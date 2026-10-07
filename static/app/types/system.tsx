@@ -18,18 +18,12 @@ export enum SentryInitRenderReactComponent {
   SU_STAFF_ACCESS_FORM = 'SuperuserStaffAccessForm',
 }
 
-export type OnSentryInitConfiguration =
-  | {
-      element: string;
-      input: string;
-      name: 'passwordStrength';
-    }
-  | {
-      component: SentryInitRenderReactComponent;
-      container: string;
-      name: 'renderReact';
-      props?: Record<string, any>;
-    };
+export type OnSentryInitConfiguration = {
+  component: SentryInitRenderReactComponent;
+  container: string;
+  name: 'renderReact';
+  props?: Record<string, any>;
+};
 
 declare global {
   interface Window {
@@ -46,9 +40,6 @@ declare global {
     /**
      * This allows our server-rendered templates to push configuration that should be
      * run after we render our main application.
-     *
-     * An example of this is dynamically importing the `passwordStrength` module only
-     * on the organization login page.
      */
     __onSentryInit:
       | OnSentryInitConfiguration[]
