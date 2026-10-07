@@ -5,8 +5,8 @@ import type {Location} from 'history';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {GridColumn, GridColumnSort} from 'sentry/components/tables/dataGridTable';
-import {useQueryBasedColumnResize} from 'sentry/components/tables/dataGridTable/useQueryBasedColumnResize';
+import type {GridColumn, GridColumnSort} from 'sentry/components/tables/dataGrid';
+import {useQueryBasedColumnResize} from 'sentry/components/tables/dataGrid/useQueryBasedColumnResize';
 import type {Organization} from 'sentry/types/organization';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {

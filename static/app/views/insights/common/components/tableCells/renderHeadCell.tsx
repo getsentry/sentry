@@ -4,7 +4,7 @@ import type {
   ColumnAlign,
   GridColumnHeader,
   GridColumnSort,
-} from 'sentry/components/tables/dataGridTable';
+} from 'sentry/components/tables/dataGrid';
 import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';

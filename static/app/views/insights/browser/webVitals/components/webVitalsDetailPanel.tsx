@@ -8,11 +8,11 @@ import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
 import {
-  DataGridTable,
+  DataGrid,
   type GridColumnHeader,
   type GridColumnOrder,
   type GridColumnSortBy,
-} from 'sentry/components/tables/dataGridTable';
+} from 'sentry/components/tables/dataGrid';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -289,7 +289,7 @@ export function WebVitalsDetailPanel({
           </ChartContainer>
 
           <TableContainer>
-            <DataGridTable
+            <DataGrid
               data={dataByOpportunity}
               isLoading={isPending}
               columnOrder={columnOrder}

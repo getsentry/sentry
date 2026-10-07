@@ -10,11 +10,11 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
 import {
-  DataGridTable,
+  DataGrid,
   type GridColumnHeader,
   type GridColumnOrder,
   type GridColumnSortBy,
-} from 'sentry/components/tables/dataGridTable';
+} from 'sentry/components/tables/dataGrid';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
@@ -368,7 +368,7 @@ export function PageOverviewWebVitalsDetailPanel({
             )}
           </ChartContainer>
           <TableContainer>
-            <DataGridTable
+            <DataGrid
               data={spansTableData}
               isLoading={isSpansLoading}
               columnOrder={

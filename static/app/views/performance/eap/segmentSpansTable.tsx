@@ -10,7 +10,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination, type CursorHandler} from '@sentry/scraps/pagination';
 
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
-import {DataGridTable} from 'sentry/components/tables/dataGridTable';
+import {DataGrid} from 'sentry/components/tables/dataGrid';
 import {IconPlay, IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -151,7 +151,7 @@ export function SegmentSpansTable({
         />
       </Header>
 
-      <DataGridTable
+      <DataGrid
         isLoading={isLoading}
         error={error}
         data={consolidatedData}

@@ -19,7 +19,7 @@ import type {GridColumnOrder, GridData} from './types';
 
 export type * from './types';
 
-export type DataGridTableProps<
+export type DataGridProps<
   DataRow,
   Order extends GridColumnOrder<unknown> = GridColumnOrder<keyof DataRow>,
 > = {
@@ -48,15 +48,15 @@ export type DataGridTableProps<
   stickyHeader?: boolean;
 };
 
-type DataGridTableHeadProps<DataRow, Order extends GridColumnOrder<unknown>> = {
+type DataGridHeadProps<DataRow, Order extends GridColumnOrder<unknown>> = {
   columnOrder: Order[];
   grid: GridData<DataRow, Order>;
 };
 
-function DataGridTableHead<DataRow, Order extends GridColumnOrder<unknown>>({
+function DataGridHead<DataRow, Order extends GridColumnOrder<unknown>>({
   columnOrder,
   grid,
-}: DataGridTableHeadProps<DataRow, Order>) {
+}: DataGridHeadProps<DataRow, Order>) {
   const prependColumns = grid.renderPrependColumns ? grid.renderPrependColumns(true) : [];
 
   return (
@@ -92,10 +92,10 @@ function DataGridTableHead<DataRow, Order extends GridColumnOrder<unknown>>({
   );
 }
 
-export function DataGridTable<
+export function DataGrid<
   DataRow extends Record<string, any>,
   Order extends GridColumnOrder<unknown> = GridColumnOrder<keyof DataRow>,
->(props: DataGridTableProps<DataRow, Order>) {
+>(props: DataGridProps<DataRow, Order>) {
   const {
     'aria-label': ariaLabel,
     bodyStyle,
@@ -206,7 +206,7 @@ export function DataGridTable<
   };
 
   return (
-    <Profiler id="DataGridTable" onRender={onRenderCallback}>
+    <Profiler id="DataGrid" onRender={onRenderCallback}>
       <SimpleTable
         aria-label={ariaLabel}
         columns={columns}
@@ -221,7 +221,7 @@ export function DataGridTable<
         style={bodyStyle}
       >
         <SimpleTable.Head sticky={stickyHeader}>
-          <DataGridTableHead columnOrder={props.columnOrder} grid={grid} />
+          <DataGridHead columnOrder={props.columnOrder} grid={grid} />
         </SimpleTable.Head>
         <SimpleTable.Body>{renderBody()}</SimpleTable.Body>
       </SimpleTable>

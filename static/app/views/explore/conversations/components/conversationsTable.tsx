@@ -16,10 +16,10 @@ import {Count} from 'sentry/components/count';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {
-  DataGridTable,
+  DataGrid,
   type GridColumnOrder,
   type GridColumnSort,
-} from 'sentry/components/tables/dataGridTable';
+} from 'sentry/components/tables/dataGrid';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconUser} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
@@ -324,13 +324,13 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
   return (
     <Stack gap="lg">
       <FixedRowHeightGrid>
-        <DataGridTable
+        <DataGrid
           isLoading={isFetching}
           error={error}
           data={data}
           columnOrder={displayedColumns}
           stickyHeader
-          // DataGridTable has a default bottom margin; drop it so
+          // DataGrid has a default bottom margin; drop it so
           // the Stack's `lg` gap is the only spacing before the pagination.
           bodyStyle={{marginBottom: 0}}
           grid={{

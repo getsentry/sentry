@@ -9,10 +9,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
 import {Placeholder} from 'sentry/components/placeholder';
-import {
-  DataGridTable,
-  type GridColumnOrder,
-} from 'sentry/components/tables/dataGridTable';
+import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getShortEventId} from 'sentry/utils/events';
@@ -80,7 +77,7 @@ export function UptimeChecksGrid({traceSampling, uptimeChecks}: Props) {
       );
 
   return (
-    <DataGridTable
+    <DataGrid
       emptyMessage={t('No matching uptime checks found')}
       data={uptimeChecks}
       fit="max-content"

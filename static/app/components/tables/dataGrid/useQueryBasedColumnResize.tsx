@@ -3,7 +3,7 @@ import dropRightWhile from 'lodash/dropRightWhile';
 
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
-import type {GridColumnOrder} from 'sentry/components/tables/dataGridTable';
+import type {GridColumnOrder} from 'sentry/components/tables/dataGrid';
 import {decodeInteger, decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';

@@ -6,11 +6,8 @@ import {Pagination} from '@sentry/scraps/pagination';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
-import {
-  DataGridTable,
-  type GridColumnHeader,
-} from 'sentry/components/tables/dataGridTable';
-import {useQueryBasedColumnResize} from 'sentry/components/tables/dataGridTable/useQueryBasedColumnResize';
+import {DataGrid, type GridColumnHeader} from 'sentry/components/tables/dataGrid';
+import {useQueryBasedColumnResize} from 'sentry/components/tables/dataGrid/useQueryBasedColumnResize';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -153,7 +150,7 @@ export function MobileOverviewTable({response, sort}: Props) {
       hasData={data.length > 0}
       isLoading={isLoading}
     >
-      <DataGridTable
+      <DataGrid
         aria-label={t('Domains')}
         isLoading={isLoading}
         error={response.error}

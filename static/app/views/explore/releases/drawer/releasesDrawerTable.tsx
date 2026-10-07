@@ -17,10 +17,10 @@ import {
   normalizeDateTimeParams,
 } from 'sentry/components/pageFilters/parse';
 import {
-  DataGridTable,
+  DataGrid,
   type GridColumnHeader,
   type GridColumnOrder,
-} from 'sentry/components/tables/dataGridTable';
+} from 'sentry/components/tables/dataGrid';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -201,7 +201,7 @@ export function ReleasesDrawerTable({
 
   return (
     <div>
-      <DataGridTable
+      <DataGrid
         error={isError}
         isLoading={isLoading}
         data={releaseData ?? []}

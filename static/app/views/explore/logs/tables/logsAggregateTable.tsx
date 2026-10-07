@@ -9,7 +9,7 @@ import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {DataGridTable} from 'sentry/components/tables/dataGridTable';
+import {DataGrid} from 'sentry/components/tables/dataGrid';
 import {IconStack} from 'sentry/icons/iconStack';
 import {t} from 'sentry/locale';
 import {parseCursor} from 'sentry/utils/cursor';
@@ -113,7 +113,7 @@ export function LogsAggregateTable({
 
   return (
     <Stack>
-      <DataGridTable
+      <DataGrid
         aria-label={t('Aggregates')}
         isLoading={isLoading}
         error={error}

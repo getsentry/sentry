@@ -18,10 +18,10 @@ import {ActivityAvatar} from 'sentry/components/activity/item/avatar';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {
-  DataGridTable,
+  DataGrid,
   type GridColumnOrder,
   type GridColumnSort,
-} from 'sentry/components/tables/dataGridTable';
+} from 'sentry/components/tables/dataGrid';
 import {TimeSince} from 'sentry/components/timeSince';
 import {
   IconCopy,
@@ -416,7 +416,7 @@ function DashboardTable({
   };
 
   return (
-    <DataGridTable
+    <DataGrid
       data={dashboards ?? []}
       columnOrder={columnOrder}
       grid={{

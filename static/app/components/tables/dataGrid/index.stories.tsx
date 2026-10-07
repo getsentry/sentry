@@ -3,11 +3,8 @@ import {Fragment, useState} from 'react';
 import {InlineCode} from '@sentry/scraps/code';
 import {Link} from '@sentry/scraps/link';
 
-import {
-  DataGridTable,
-  type GridColumnOrder,
-} from 'sentry/components/tables/dataGridTable';
-import {useQueryBasedColumnResize} from 'sentry/components/tables/dataGridTable/useQueryBasedColumnResize';
+import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
+import {useQueryBasedColumnResize} from 'sentry/components/tables/dataGrid/useQueryBasedColumnResize';
 import {backend, frontend} from 'sentry/data/platformCategories';
 import * as Storybook from 'sentry/stories';
 
@@ -16,7 +13,7 @@ interface ExampleDataItem {
   name: string;
 }
 
-export default Storybook.story('DataGridTable', story => {
+export default Storybook.story('DataGrid', story => {
   const columns: Array<GridColumnOrder<keyof ExampleDataItem>> = [
     {key: 'category', name: 'Platform Category'},
     {key: 'name', name: 'Platform Name'},
@@ -31,7 +28,7 @@ export default Storybook.story('DataGridTable', story => {
     return (
       <Fragment>
         <p>
-          <Storybook.JSXNode name="DataGridTable" /> builds a{' '}
+          <Storybook.JSXNode name="DataGrid" /> builds a{' '}
           <Link to="/scraps/product/components/tables/simpletable/simpletable/">
             <Storybook.JSXNode name="SimpleTable" />
           </Link>{' '}
@@ -40,7 +37,7 @@ export default Storybook.story('DataGridTable', story => {
           query, or need sorting and resizing. For a table you lay out by hand, use{' '}
           <Storybook.JSXNode name="SimpleTable" /> directly.
         </p>
-        <DataGridTable data={[]} columnOrder={columns} grid={{}} />
+        <DataGrid data={[]} columnOrder={columns} grid={{}} />
       </Fragment>
     );
   });
@@ -73,7 +70,7 @@ export default Storybook.story('DataGridTable', story => {
           By default the column widths are resizable, but will reset frequently unless you
           persist them somehow.
         </p>
-        <DataGridTable
+        <DataGrid
           data={data}
           columnOrder={columnsWithWidth}
           grid={{
@@ -89,20 +86,15 @@ export default Storybook.story('DataGridTable', story => {
     <Storybook.SideBySide>
       <div>
         <p>
-          <Storybook.JSXNode name="DataGridTable" props={{error: String}} />
+          <Storybook.JSXNode name="DataGrid" props={{error: String}} />
         </p>
-        <DataGridTable
-          error="An error happened"
-          data={data}
-          columnOrder={columns}
-          grid={{}}
-        />
+        <DataGrid error="An error happened" data={data} columnOrder={columns} grid={{}} />
       </div>
       <div>
         <p>
-          <Storybook.JSXNode name="DataGridTable" props={{isLoading: true}} />
+          <Storybook.JSXNode name="DataGrid" props={{isLoading: true}} />
         </p>
-        <DataGridTable isLoading data={data} columnOrder={columns} grid={{}} />
+        <DataGrid isLoading data={data} columnOrder={columns} grid={{}} />
       </div>
     </Storybook.SideBySide>
   ));
@@ -124,7 +116,7 @@ export default Storybook.story('DataGridTable', story => {
         <p>
           Hovered Row: {activeRow?.category} {activeRow?.name}
         </p>
-        <DataGridTable
+        <DataGrid
           data={data}
           columnOrder={columns}
           grid={{}}
@@ -158,7 +150,7 @@ export default Storybook.story('DataGridTable', story => {
               In this example no callback is passed, so the table keeps the resized widths
               itself.
             </p>
-            <DataGridTable
+            <DataGrid
               data={data}
               columnOrder={columnsWithWidth}
               grid={{
@@ -173,7 +165,7 @@ export default Storybook.story('DataGridTable', story => {
               <InlineCode>useQueryBasedColumnResize</InlineCode>. Notice how the url
               updates after you drag columns.
             </p>
-            <DataGridTable
+            <DataGrid
               data={data}
               columnOrder={queryBasedColumnResize.columns}
               grid={{
@@ -189,7 +181,7 @@ export default Storybook.story('DataGridTable', story => {
   });
 
   story('Fixed Height', () => (
-    <DataGridTable
+    <DataGrid
       data={data}
       columnOrder={columns}
       grid={{
@@ -211,7 +203,7 @@ export default Storybook.story('DataGridTable', story => {
         <Storybook.SideBySide>
           <div>
             <div>No sticky headers</div>
-            <DataGridTable
+            <DataGrid
               data={data}
               columnOrder={columns}
               grid={{
@@ -223,7 +215,7 @@ export default Storybook.story('DataGridTable', story => {
           </div>
           <div>
             <div>With sticky headers</div>
-            <DataGridTable
+            <DataGrid
               data={data}
               columnOrder={columns}
               grid={{
@@ -256,10 +248,10 @@ export default Storybook.story('DataGridTable', story => {
           the grid to fit around the content.
         </p>
         <p>
-          <Storybook.JSXNode name="DataGridTable" /> will by default resize the columns to
-          fit within it's container. So columns of long width may take up multiple lines
-          or be cut off, which might not be desired (ex. when the table has many columns
-          or is placed into a small container). One way to control column width this is to
+          <Storybook.JSXNode name="DataGrid" /> will by default resize the columns to fit
+          within it's container. So columns of long width may take up multiple lines or be
+          cut off, which might not be desired (ex. when the table has many columns or is
+          placed into a small container). One way to control column width this is to
           provide
           <Storybook.JSXProperty name="minColumnWidth" value="number" />, which applies
           the same width to all columns. However, this does not account for varying widths
@@ -268,7 +260,7 @@ export default Storybook.story('DataGridTable', story => {
         <Storybook.SideBySide>
           <div style={{width: 400}}>
             <div>Without fit content is forced in multiple lines or cut off</div>
-            <DataGridTable
+            <DataGrid
               data={newData}
               columnOrder={columns}
               grid={{
@@ -279,7 +271,7 @@ export default Storybook.story('DataGridTable', story => {
           </div>
           <div style={{width: 400}}>
             <div>With fit the content forces the table to expand (scroll)</div>
-            <DataGridTable
+            <DataGrid
               data={newData}
               columnOrder={columns}
               grid={{

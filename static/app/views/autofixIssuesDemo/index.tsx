@@ -11,10 +11,7 @@ import type {TagVariant} from '@sentry/scraps/theme';
 import {LoadingError} from 'sentry/components/loadingError';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {
-  DataGridTable,
-  type GridColumnOrder,
-} from 'sentry/components/tables/dataGridTable';
+import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -166,7 +163,7 @@ export default function AutofixIssuesDemo() {
           <LoadingError onRetry={refetch} />
         ) : (
           <Container>
-            <DataGridTable
+            <DataGrid
               isLoading={isPending}
               data={issues}
               columnOrder={columnOrder}

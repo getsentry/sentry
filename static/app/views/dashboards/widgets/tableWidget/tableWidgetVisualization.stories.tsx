@@ -38,10 +38,9 @@ export default Storybook.story('TableWidgetVisualization', story => {
           <Storybook.JSXNode name="TableWidgetVisualization" /> is meant to be a robust
           and eventual replacement to all tables in Dashboards and Insights (and
           potentially more). The inner component of this table is{' '}
-          <Storybook.JSXNode name="DataGridTable" />. The table includes features like
-          sorting, column resizing and cell actions. The table allows for custom
-          renderers, but is also able to correctly render fields on its own using
-          fallbacks.
+          <Storybook.JSXNode name="DataGrid" />. The table includes features like sorting,
+          column resizing and cell actions. The table allows for custom renderers, but is
+          also able to correctly render fields on its own using fallbacks.
         </p>
         <p>
           Below is the the most basic example of the table which requires
@@ -77,8 +76,8 @@ ${JSON.stringify(tableWithEmptyData)}
         <TableWidgetVisualization tableData={tableWithEmptyData} />
         <p>
           The table columns use the type <code>TabularColumn[]</code> which is based off
-          of <code>GridColumnOrder</code> from <Storybook.JSXNode name="DataGridTable" />.
-          The prop is optional, as the table will fallback to extract the columns in order
+          of <code>GridColumnOrder</code> from <Storybook.JSXNode name="DataGrid" />. The
+          prop is optional, as the table will fallback to extract the columns in order
           from the table data's <code>meta.fields</code>, displaying them as shown above.
         </p>
         <p>For example, this prop can be used for reordering columns:</p>

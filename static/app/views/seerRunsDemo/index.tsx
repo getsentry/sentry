@@ -11,10 +11,7 @@ import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {GetTagValues} from 'sentry/components/searchQueryBuilder';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {
-  DataGridTable,
-  type GridColumnOrder,
-} from 'sentry/components/tables/dataGridTable';
+import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
@@ -179,7 +176,7 @@ export default function SeerRunsDemo() {
           <LoadingError onRetry={refetch} />
         ) : (
           <Container>
-            <DataGridTable
+            <DataGrid
               isLoading={isPending}
               data={runs}
               columnOrder={columnOrder}

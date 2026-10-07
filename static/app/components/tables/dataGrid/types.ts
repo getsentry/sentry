@@ -1,4 +1,4 @@
-// For DataGridTable, there are 2 generic types for the component, T and K
+// For DataGrid, there are 2 generic types for the component, T and K
 //
 // - T is an element/object that represents the data to be displayed
 // - K is a key of T/
