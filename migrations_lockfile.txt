@@ -9,7 +9,7 @@ ai_monitoring: 0002_add_date_updated_index
 
 discover: 0004_discover_starred_and_last_visited
 
-explore: 0015_add_dataset_to_formulas
+explore: 0016_update_if_syntax_on_spans
 
 feedback: 0007_cleanup_failed_safe_deletes
 
