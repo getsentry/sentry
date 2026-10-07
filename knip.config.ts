@@ -9,6 +9,8 @@ const productionEntryPoints = [
   'static/app/components/core/*/index.tsx',
   // defined in rsbuild.config.ts pipelines
   'static/app/utils/setupStatics.tsx',
+  // Source-scoped Rspack/Jest aliases use this runtime entry; TS uses types.d.ts.
+  'static/app/utils/reactRouterV6/index.ts',
   'static/app/serviceWorker/worker/worker.ts',
   // scripts are entry points
   'scripts/*.ts',

@@ -1,5 +1,5 @@
 import {useCallback} from 'react';
-import {useSearchParams} from 'react-router-dom';
+import {useSearchParams} from 'react-router';
 import styled from '@emotion/styled';
 import {parseAsBoolean, parseAsStringLiteral, useQueryState} from 'nuqs';
 

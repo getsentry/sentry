@@ -488,6 +488,9 @@ importers:
       react-popper:
         specifier: ^2.3.0
         version: 2.3.0(@popperjs/core@2.11.5)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      react-router:
+        specifier: 6.30.6
+        version: 6.30.6(react@19.3.0)
       react-router-dom:
         specifier: 6.30.6
         version: 6.30.6(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -657,6 +660,9 @@ importers:
       jest-fail-on-console:
         specifier: 3.3.4
         version: 3.3.4(@jest/globals@30.5.1)
+      jest-resolve:
+        specifier: 30.5.1
+        version: 30.5.1(patch_hash=f2282b64ef6129c114392d79cc5894368f2712b69b366cc01b8f5fe8e683773f)
       jsdom:
         specifier: 30.1.1
         version: 30.1.1(@noble/hashes@1.8.0)

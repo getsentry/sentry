@@ -1,5 +1,5 @@
 import {Fragment} from 'react';
-import {Outlet, useMatches} from 'react-router-dom';
+import {Outlet, useMatches} from 'react-router';
 
 import {DocumentationHint} from 'sentry/components/documentationHint';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';

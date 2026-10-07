@@ -1,4 +1,4 @@
-import {matchRoutes, type RouteObject} from 'react-router-dom';
+import {matchRoutes, type RouteObject} from 'react-router';
 
 import * as constants from 'sentry/constants';
 import {buildRoutes} from 'sentry/router/routes';

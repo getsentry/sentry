@@ -1,4 +1,4 @@
-import {Outlet} from 'react-router-dom';
+import {Outlet} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
