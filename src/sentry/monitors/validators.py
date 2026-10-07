@@ -19,6 +19,7 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.db.models.fields.slug import DEFAULT_SLUG_MAX_LENGTH
@@ -362,6 +363,11 @@ class ConfigValidator(serializers.Serializer):
         return attrs
 
 
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "alert_rule": "Deprecated issue alert configuration; use the dedicated Workflow APIs.",
+    }
+)
 class MonitorValidator(CamelSnakeSerializer):
     project = ProjectField(
         scope="project:read",
