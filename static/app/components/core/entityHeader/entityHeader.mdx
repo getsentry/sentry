@@ -106,6 +106,14 @@ Each slot is replaced whole, stat labels included. A label is static and could b
   />
 </Storybook.Demo>
 
+```jsx
+<EntityHeader
+  isLoading={!replayRecord}
+  title={{label: t('Replay user'), value: displayName, loadingWidth: '200px'}}
+  stats={[{type: 'text', label: t('Errors'), value: errors.length, loadingWidth: '64px'}]}
+/>
+```
+
 The header sets `aria-busy` while loading. Note that this is a state in the accessibility tree, not an announcement — no screen reader reads it. A page that needs the transition announced has to add its own live region.
 
 ## Title
@@ -128,16 +136,6 @@ The title is never a link. A heading that is wholly a link announces as both, an
 
 `title.leadingGraphic` is data, not a node, so the header controls the size and the slot cannot be used to smuggle in a component.
 
-```jsx
-leadingGraphic={{type: 'user', user: replay.user}}
-leadingGraphic={{type: 'project', projects}}
-leadingGraphic={{type: 'platform', platform: 'javascript'}}
-```
-
-`project` and `platform` draw the same badge but take what the caller actually holds: a trace knows its projects and the header maps them to platforms, a build has only inferred a platform from a file type. A `project` graphic with no known platform renders nothing rather than falling back to an all-projects glyph, which belongs to a saved view.
-
-The box is always 24px. A project or platform badge fills it; a user avatar is drawn at 20 and centred, because the avatars in the people slot are 24 with a 2px border and so show a 20px disc — a borderless 24 here would be the larger of the two circles in the same header.
-
 <Storybook.Demo>
   <EntityHeader
     title={{
@@ -147,6 +145,16 @@ The box is always 24px. A project or platform badge fills it; a user avatar is d
     }}
   />
 </Storybook.Demo>
+
+```jsx
+leadingGraphic={{type: 'user', user: replay.user}}
+leadingGraphic={{type: 'project', projects}}
+leadingGraphic={{type: 'platform', platform: 'javascript'}}
+```
+
+`project` and `platform` draw the same badge but take what the caller actually holds: a trace knows its projects and the header maps them to platforms, a build has only inferred a platform from a file type. A `project` graphic with no known platform renders nothing rather than falling back to an all-projects glyph, which belongs to a saved view.
+
+The box is always 24px. A project or platform badge fills it; a user avatar is drawn at 20 and centred, because the avatars in the people slot are 24 with a 2px border and so show a 20px disc — a borderless 24 here would be the larger of the two circles in the same header.
 
 The graphic is decorative by default — a platform icon next to "ValueError" tells a screen reader nothing the title has not. Give it a `label` when it carries something the title does not, such as which projects a trace touched, and it becomes an image in its own right.
 
@@ -208,27 +216,48 @@ On a `link` stat it is the **label** that navigates, not the value: a link named
 
 `valueTooltip` is only available on a `text` stat. On a link the value is hidden, and a tooltip needs a visible, focusable trigger — put the breakdown in `labelTooltip`, where it attaches to the link.
 
-```jsx
-{
-  type: 'text',
-  label: t('Dead Clicks'),
-  value: 4,
-  labelTooltip: t('A click that did not change anything on the page.'),
-}
-```
-
-Colour says it navigates; an underline says it explains. A link label is accent-coloured, a tooltipped label is underlined, and one that does both is both. A single treatment for the two would mean a link that only navigates looked like one that explains — and an underline reads as "hover for more" to most people, so that is the meaning it keeps.
+Colour says it navigates; an underline says it explains. A link label is accent-coloured, a tooltipped label is underlined, and one that does both is both — as the three stats below are, in order. A single treatment would mean a link that only navigates looked like one that explains, and an underline reads as "hover for more" to most people, so that is the meaning it keeps.
 
 <Storybook.Demo>
   <EntityHeader
     title={{label: 'Issue type', value: 'ValueError'}}
-    subtitle="Cannot parse the provided timestamp"
     stats={[
       {type: 'link', label: 'Events', value: 168, to: '/issues/1/events/'},
-      {type: 'text', label: 'Users', value: 22, labelTooltip: 'Affected in the last 90d'},
+      {
+        type: 'text',
+        label: 'Users',
+        value: 22,
+        labelTooltip: 'Distinct users affected in the last 90 days.',
+      },
+      {
+        type: 'link',
+        label: 'Dead Clicks',
+        value: 4,
+        to: '/issues/1/replays/',
+        labelTooltip: 'A click that did not change anything on the page.',
+      },
     ]}
   />
 </Storybook.Demo>
+
+```jsx
+stats={[
+  {type: 'link', label: t('Events'), value: count, to: eventsTab},
+  {
+    type: 'text',
+    label: t('Users'),
+    value: userCount,
+    labelTooltip: t('Distinct users affected in the last 90 days.'),
+  },
+  {
+    type: 'link',
+    label: t('Dead Clicks'),
+    value: deadClicks,
+    to: replaysTab,
+    labelTooltip: t('A click that did not change anything on the page.'),
+  },
+]}
+```
 
 ## People
 
@@ -293,5 +322,12 @@ Each item's own label is in the DOM whether or not it is on screen, so a screen 
     }}
   />
 </Storybook.Demo>
+
+```jsx
+items={[
+  {label: t('Handling'), values: [t('Unhandled')], variant: 'danger'},
+  {label: t('Mechanism'), values: [event.mechanism]},
+]}
+```
 
 The set is narrower than `ContentVariant` — `primary`, `muted`, `danger`, `success`, `warning` — because a tooltipped item also has to colour its underline, and `Tooltip` supports fewer. Keeping one list means the two cannot disagree.
