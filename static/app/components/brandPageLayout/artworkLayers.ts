@@ -5,8 +5,8 @@ import cloudsImage from 'sentry-images/brandPageLayout/animated/clouds.avif';
 import detailsImage from 'sentry-images/brandPageLayout/animated/details.avif';
 import errorImage from 'sentry-images/brandPageLayout/animated/error.avif';
 import littleBugImage from 'sentry-images/brandPageLayout/animated/little-bug.avif';
-import platformBackImage from 'sentry-images/brandPageLayout/animated/platform-back.avif';
-import platformFrontImage from 'sentry-images/brandPageLayout/animated/platform-front.avif';
+import platform01Image from 'sentry-images/brandPageLayout/animated/platform-01.avif';
+import platform02Image from 'sentry-images/brandPageLayout/animated/platform-02.avif';
 import runningErrorImage from 'sentry-images/brandPageLayout/animated/running-error.avif';
 import seerImage from 'sentry-images/brandPageLayout/animated/seer.avif';
 import sentryImage from 'sentry-images/brandPageLayout/animated/sentry.avif';
@@ -67,20 +67,8 @@ export const ARTWORK_LAYERS: readonly ArtworkLayer[] = [
     entrance: {y: -132},
   },
   {
-    id: 'platform-back',
-    src: platformBackImage,
-    x: 1026.32,
-    y: 310.07,
-    width: 1323.22,
-    height: 1801.49,
-    delay: 0.3,
-    frames: 1,
-    playback: 'static',
-    entrance: {y: 249},
-  },
-  {
-    id: 'platform-front',
-    src: platformFrontImage,
+    id: 'platform-01',
+    src: platform01Image,
     x: 1595.28,
     y: 47.02,
     width: 1028.28,
@@ -89,6 +77,18 @@ export const ARTWORK_LAYERS: readonly ArtworkLayer[] = [
     frames: 1,
     playback: 'static',
     entrance: {y: -159},
+  },
+  {
+    id: 'platform-02',
+    src: platform02Image,
+    x: 1026.32,
+    y: 310.07,
+    width: 1323.22,
+    height: 1801.49,
+    delay: 0.3,
+    frames: 1,
+    playback: 'static',
+    entrance: {y: 249},
   },
   {
     id: 'characters',
