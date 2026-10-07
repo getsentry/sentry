@@ -1,3 +1,4 @@
+import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -19,18 +20,16 @@ interface PathMappingPreviewProps {
  * An empty prefix shows the bare suffix with no highlight.
  */
 function PreviewSegment({root}: {root: string}) {
-  if (root) {
-    return (
-      <Text monospace variant="muted" ellipsis>
-        <AccentPathSegment value={root} />
-        {PREVIEW_SUFFIX}
-      </Text>
-    );
-  }
   return (
-    <Text monospace variant="muted" ellipsis>
+    <InfoText
+      title={`${root}${PREVIEW_SUFFIX}`}
+      mode="overflowOnly"
+      monospace
+      variant="muted"
+    >
+      {root && <AccentPathSegment value={root} />}
       {PREVIEW_SUFFIX}
-    </Text>
+    </InfoText>
   );
 }
 
