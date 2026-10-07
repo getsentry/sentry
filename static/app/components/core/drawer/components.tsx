@@ -245,6 +245,7 @@ const DrawerSlidePanel = styled(SlideOverPanel)`
      overshoot doesn't briefly expose the page beneath. A box-shadow is used
      (vs. a pseudo-element) because the panel's own overflow: auto would clip
      anything positioned outside its bounds. */
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token -- Extend the drawer background beyond its scrollable bounds. */
   box-shadow:
     20px 0 0 ${p => p.theme.tokens.background.overlay},
     ${p => p.theme.shadow.high};

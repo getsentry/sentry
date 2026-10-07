@@ -156,6 +156,7 @@ const styles = (theme: Theme, darkTheme: Theme) => css`
   }
 
   html {
+    /* eslint-disable-next-line @sentry/scraps/use-semantic-token -- The scrollbar track matches the page background. */
     scrollbar-color: ${theme.tokens.graphics.neutral.moderate}
       ${theme.tokens.background.secondary};
   }

@@ -359,6 +359,7 @@ const ClipFade = styled('div')`
     ${p => p.theme.tokens.background.primary}
   );
   text-align: center;
+  /* eslint-disable-next-line @sentry/scraps/use-semantic-token -- The border extends the fade's background fill. */
   border-bottom: ${p => p.theme.space.lg} solid ${p => p.theme.tokens.background.primary};
   /* Let pointer-events pass through ClipFade to visible elements underneath it */
   pointer-events: none;
