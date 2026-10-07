@@ -730,7 +730,7 @@ describe('ConnectRepositoryModal', () => {
       expect(retryPut).toHaveBeenCalled();
     });
 
-    it('disables Save when another repo has the same mapping', async () => {
+    it('shows cross-repo warning but allows Save when seeded duplicate row is unchanged', async () => {
       const conflictingMapping = {
         id: '99',
         repoId: '11',
@@ -753,8 +753,74 @@ describe('ConnectRepositoryModal', () => {
       expect(await screen.findByText('src/')).toBeInTheDocument();
       await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
 
+      // Warning is visible but the row is unchanged — Save must stay enabled.
       expect(await screen.findByText(/getsentry\/relay/)).toBeInTheDocument();
       expect(screen.getByText(/Only one can be used for matching/)).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
+    });
+
+    it('allows Save when a seeded cross-repo duplicate is left unchanged', async () => {
+      const conflictingMapping = {
+        id: '99',
+        repoId: '11',
+        repoName: 'getsentry/relay',
+        projectId: project.id,
+        stackRoot: 'src/',
+        sourceRoot: 'app/',
+        defaultBranch: 'main',
+        integrationId: integration.id,
+        hasCodeOwner: false,
+      };
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/`,
+        method: 'GET',
+        body: [seededMapping, secondMapping, conflictingMapping],
+      });
+
+      renderEditModal();
+
+      // Both seeded rows load; src/ has an across-repos warning.
+      expect(await screen.findByText('src/')).toBeInTheDocument();
+      expect(await screen.findByText('vendor/')).toBeInTheDocument();
+
+      // Edit only the non-duplicate row (vendor/).
+      const [, vendorExpand] = screen.getAllByRole('button', {
+        name: 'Expand path mapping',
+      });
+      await userEvent.click(vendorExpand!);
+      await userEvent.clear(screen.getByRole('textbox', {name: /branch/i}));
+      await userEvent.type(screen.getByRole('textbox', {name: /branch/i}), 'dev');
+
+      // src/ still shows the warning but it's unchanged — Save is enabled.
+      expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
+    });
+
+    it('disables Save when a seeded cross-repo duplicate row is edited', async () => {
+      const conflictingMapping = {
+        id: '99',
+        repoId: '11',
+        repoName: 'getsentry/relay',
+        projectId: project.id,
+        stackRoot: 'src/',
+        sourceRoot: 'app/',
+        defaultBranch: 'main',
+        integrationId: integration.id,
+        hasCodeOwner: false,
+      };
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/code-mappings/`,
+        method: 'GET',
+        body: [seededMapping, conflictingMapping],
+      });
+
+      renderEditModal();
+
+      expect(await screen.findByText('src/')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
+      await userEvent.clear(screen.getByRole('textbox', {name: /branch/i}));
+      await userEvent.type(screen.getByRole('textbox', {name: /branch/i}), 'dev');
+
+      // Row is now a pending write — the duplicate warning blocks Save.
       expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
     });
   });

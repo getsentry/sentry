@@ -424,6 +424,18 @@ function mappingHasChanged(
   );
 }
 
+// Returns true when editProjectRepoMappings will send a write request for this
+// row — i.e. it is new (no server id) or has been changed relative to the
+// seeded original. Used by the edit form's Save gate so only rows that will
+// actually be sent can block Save.
+export function isPendingWrite(
+  mapping: PathMappingValue,
+  seededById: Map<string, RepositoryProjectPathConfig>
+): boolean {
+  const original = mapping.id ? seededById.get(mapping.id) : undefined;
+  return !original || mappingHasChanged(mapping, original);
+}
+
 export async function editProjectRepoMappings({
   orgSlug,
   project,
@@ -439,19 +451,16 @@ export async function editProjectRepoMappings({
   seededMappings: RepositoryProjectPathConfig[];
   submittedMappings: PathMappingValue[];
 }): Promise<void> {
+  const seededById = new Map(seededMappings.map(m => [m.id, m]));
   const submittedIds = new Set(submittedMappings.flatMap(m => (m.id ? [m.id] : [])));
 
   // Exclude Code Owner–protected mappings: the DB rejects their deletion anyway,
   // and the UI prevents users from removing them in the first place.
   const toDelete = seededMappings.filter(m => !submittedIds.has(m.id) && !m.hasCodeOwner);
-  const toUpdate = submittedMappings.filter(m => {
-    if (!m.id) {
-      return false;
-    }
-    const original = seededMappings.find(s => s.id === m.id);
-    return original ? mappingHasChanged(m, original) : false;
-  });
-  const toCreate = submittedMappings.filter(m => !m.id);
+  const toUpdate = submittedMappings.filter(
+    m => m.id && isPendingWrite(m, seededById) && seededById.has(m.id)
+  );
+  const toCreate = submittedMappings.filter(m => isPendingWrite(m, seededById) && !m.id);
 
   // 1. Deletes first. 404: already deleted on a prior partial save — treat as success.
   await Promise.all(

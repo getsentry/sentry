@@ -16,12 +16,16 @@ import {DEFAULT_BRANCH} from 'sentry/components/connectRepository/normalization'
 import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
 import {
   editProjectRepoMappings,
+  isPendingWrite,
   projectCodeMappingsOptions,
   useEditRepoInfo,
   useInvalidateRepoQueries,
 } from 'sentry/components/connectRepository/queries';
 import type {PathMappingValue} from 'sentry/components/connectRepository/type';
-import {hasExactDuplicate} from 'sentry/components/connectRepository/warnings';
+import {
+  getPathMappingWarnings,
+  isExactWarning,
+} from 'sentry/components/connectRepository/warnings';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
@@ -96,6 +100,13 @@ function EditRepositoryFormBody({
 
   const existingMappings = allMappings.filter(m => m.repoId !== repositoryId);
 
+  // Stable lookup used by the Save gate. Seeded rows are fixed for the
+  // lifetime of the form, so this never needs to be recomputed.
+  const seededById = useMemo(
+    () => new Map(seededMappings.map(m => [m.id, m])),
+    [seededMappings]
+  );
+
   const editMutation = useMutation({
     mutationFn: editProjectRepoMappings,
     onSuccess: async () => {
@@ -108,10 +119,15 @@ function EditRepositoryFormBody({
     <form.AppForm form={form}>
       <form.Subscribe selector={state => state.values.pathMappings}>
         {pathMappings => {
+          // Only block Save on exact-duplicate warnings for rows that will
+          // actually be sent to the API. Unchanged seeded rows keep their
+          // warning but don't prevent saving unrelated edits.
+          const warnings = getPathMappingWarnings(pathMappings, existingMappings);
+          const hasPendingDuplicate = pathMappings.some(
+            (m, i) => isExactWarning(warnings[i]) && isPendingWrite(m, seededById)
+          );
           const canSave =
-            Boolean(integrationId) &&
-            pathMappings.length > 0 &&
-            !hasExactDuplicate(pathMappings, existingMappings);
+            Boolean(integrationId) && pathMappings.length > 0 && !hasPendingDuplicate;
 
           const alerts = (
             <Fragment>
