@@ -14,10 +14,10 @@ PAYLOAD = {
 }
 
 
-@with_feature(["organizations:seer-explorer", "organizations:seer-explorer-chat-suggestions"])
+@with_feature(["organizations:seer-explorer", "organizations:seer-chat-suggestions"])
 @override_settings(SENTRY_SELF_HOSTED=False)
 class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
-    endpoint = "sentry-api-0-organization-seer-explorer-suggestions"
+    endpoint = "sentry-api-0-organization-seer-chat-suggestions"
     method = "post"
 
     def setUp(self) -> None:
@@ -115,7 +115,7 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
         self.get_error_response(self.organization.slug, status_code=403, **PAYLOAD)
         mock_run_oneshot.assert_not_called()
 
-    @with_feature({"organizations:seer-explorer-chat-suggestions": False})
+    @with_feature({"organizations:seer-chat-suggestions": False})
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
     def test_returns_403_when_flag_is_off(self, mock_run_oneshot: MagicMock) -> None:
         self.get_error_response(self.organization.slug, status_code=403, **PAYLOAD)
