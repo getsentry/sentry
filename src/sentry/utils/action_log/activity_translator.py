@@ -30,6 +30,7 @@ from sentry.issues.action_log.types import (
     SeerIterationStartedAction,
     SeerPRCreatedAction,
     SeerPRReadyForReviewAction,
+    SeerPullRequestItem,
     SeerRCACompletedAction,
     SeerRCAStartedAction,
     SeerSolutionCompletedAction,
@@ -155,6 +156,29 @@ GROUP_ACTION_TYPE_TO_ACTIVITY_KEYS = {
 
 logger = logging.getLogger(__name__)
 
+SEER_PULL_REQUEST_ACTIVITY_TYPES = frozenset(
+    {ActivityType.SEER_PR_CREATED.value, ActivityType.SEER_PR_READY_FOR_REVIEW.value}
+)
+
+
+def _normalize_seer_pull_requests(pull_requests: Any) -> list[SeerPullRequestItem]:
+    """
+    Convert the `pull_requests` from a Seer webhook payload into the stored
+    SeerPullRequestItem representation. Seer can report PRs before they are
+    identifiable (e.g. provider "unknown" with null pr_number/pr_url); those
+    entries carry nothing worth persisting, so they are dropped rather than
+    widening the stored type.
+    """
+    if not isinstance(pull_requests, list):
+        return []
+    normalized = []
+    for item in pull_requests:
+        try:
+            normalized.append(SeerPullRequestItem.parse_obj(item))
+        except ValidationError:
+            continue
+    return normalized
+
 
 def _needs_jsonb_sanitize(value: Any) -> bool:
     """
@@ -247,6 +271,10 @@ def activity_to_action(activity: "Activity") -> GroupAction | None:
         # Translate from Activity data structure to GroupAction data structure.
         kwargs = kwargs.copy()  # Avoid mutating existing dict
         kwargs["counterpart_group_ids"] = [datum["id"] for datum in kwargs.get("issues", [])]
+
+    if activity.type in SEER_PULL_REQUEST_ACTIVITY_TYPES and "pull_requests" in kwargs:
+        kwargs = kwargs.copy()  # Avoid mutating existing dict
+        kwargs["pull_requests"] = _normalize_seer_pull_requests(kwargs["pull_requests"])
 
     if activity.type == ActivityType.NOTE.value:
         kwargs = kwargs.copy()  # Avoid mutating existing dict

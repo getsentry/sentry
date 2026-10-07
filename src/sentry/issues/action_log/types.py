@@ -13,18 +13,18 @@ from pydantic import BaseModel
 
 
 class SeerPullRequestDetails(BaseModel):
-    """
-    PR identifiers for a Seer-created PR. Every field is optional because Seer can
-    report a PR before its metadata is known (e.g. an unknown provider).
-    """
+    """Identifies a single PR opened by Seer."""
 
-    pr_id: int | str | None = None
-    pr_number: int | None = None
-    pr_url: str | None = None
+    pr_number: int
+    pr_url: str
 
 
 class SeerPullRequestItem(BaseModel):
-    """One entry of `pull_requests` in Seer PR activity data, see format_pull_requests_payload."""
+    """
+    Stable stored representation of a PR opened by Seer. This is intentionally
+    independent of the Seer webhook payload: activity_translator normalizes the
+    payload into this shape and drops entries that don't identify a PR.
+    """
 
     provider: str
     repo_name: str
