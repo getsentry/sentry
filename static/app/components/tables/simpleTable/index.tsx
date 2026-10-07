@@ -222,7 +222,6 @@ const ColumnHeaderCell = styled(Table.HeadCell, {
   position: relative;
   justify-content: space-between;
   height: 100%;
-  --column-resizer-height: 100%;
 
   ${HeaderCellContent} {
     flex: 1;
