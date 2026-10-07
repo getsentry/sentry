@@ -3,6 +3,7 @@ import './exportGlobals';
 
 import type {Config} from 'sentry/types/system';
 import {CAN_MARK} from 'sentry/utils/analytics';
+import {reportEmotionRuntimeMetrics} from 'sentry/utils/emotionRuntimeMetrics';
 
 import {commonInitialization} from './commonInitialization';
 import {initializeSdk} from './initializeSdk';
@@ -14,6 +15,7 @@ import {reportPreloadRequestMetrics} from './reportPreloadRequestMetrics';
 export function initializeApp(config: Config) {
   initializeSdk(config);
   reportPreloadRequestMetrics();
+  reportEmotionRuntimeMetrics();
   // Initialize the config store after the SDK, so we can log errors to Sentry during config initialization if needed. N.B. This mutates the config slightly
   commonInitialization(config);
 

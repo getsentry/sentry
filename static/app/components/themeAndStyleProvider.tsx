@@ -8,6 +8,7 @@ import {NODE_ENV} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {GlobalStyles} from 'sentry/styles/global';
+import {instrumentEmotionCache} from 'sentry/utils/emotionRuntimeMetrics';
 import {darkTheme, lightTheme} from 'sentry/utils/theme/theme';
 
 const SentryComponentInspector =
@@ -31,6 +32,7 @@ type Props = {
 const cache = createCache({key: 'app', stylisPlugins: []});
 // Compat disables :nth-child warning
 cache.compat = true;
+instrumentEmotionCache(cache);
 
 /**
  * Wraps children with emotions ThemeProvider reactively set a theme.
