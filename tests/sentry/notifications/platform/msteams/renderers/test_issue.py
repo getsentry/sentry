@@ -5,7 +5,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from sentry import eventstore
 from sentry.integrations.messaging.message_builder import (
     build_attachment_title,
     build_footer,
@@ -376,7 +375,10 @@ class IssueMSTeamsRendererTest(TestCase):
         group_event.occurrence = occurrence
 
         with (
-            patch.object(eventstore.backend, "get_event_by_id", return_value=event),
+            patch(
+                "sentry.notifications.platform.msteams.renderers.issue.fetch_event",
+                return_value=event,
+            ),
             patch.object(event, "for_group", return_value=group_event) as for_group,
         ):
             result = IssueMSTeamsRenderer.render(

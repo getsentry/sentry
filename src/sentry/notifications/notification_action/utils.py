@@ -19,6 +19,7 @@ from sentry.notifications.platform.templates.issue import (
 )
 from sentry.notifications.platform.templates.metric_alert import MetricAlertNotificationData
 from sentry.notifications.utils.issue_notification_context import IssueNotificationContext
+from sentry.services.eventstore.models import GroupEvent
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.types import ActionInvocation
 
@@ -144,12 +145,16 @@ def issue_notification_data_factory(invocation: ActionInvocation) -> IssueNotifi
     rule = SerializableRuleProxy.from_rule(rule_instance)
 
     event_id = getattr(event_data.event, "event_id", None) if event_data.event else None
+    occurrence_id = (
+        event_data.event.occurrence_id if isinstance(event_data.event, GroupEvent) else None
+    )
 
     return IssueNotificationData(
         organization_id=event_data.group.project.organization_id,
         tags=tag_list,
         notes=notes,
         event_id=event_id,
+        occurrence_id=occurrence_id,
         group_id=event_data.group.id,
         notification_uuid=invocation.notification_uuid,
         rule=rule,

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sentry import eventstore
+from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
@@ -12,6 +12,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedTemplate,
     NotificationSource,
 )
+from sentry.workflow_engine.tasks.utils import fetch_event
 
 
 @renderer_registry.register(NotificationProviderKey.SLACK, sources=[NotificationSource.ISSUE])
@@ -27,8 +28,10 @@ class IssueSlackRenderer(NotificationRenderer[SlackRenderable]):
 
         group = Group.objects.get_from_cache(id=data.group_id)
         event = None
-        if data.event_id:
-            event = eventstore.backend.get_event_by_id(group.project.id, data.event_id)
+        if data.event_id and (fetched := fetch_event(data.event_id, group.project_id)):
+            event = fetched.for_group(group)
+            if data.occurrence_id:
+                event.occurrence = IssueOccurrence.fetch(data.occurrence_id, group.project_id)
 
         blocks_dict = SlackIssuesMessageBuilder(
             group=group,
@@ -36,7 +39,6 @@ class IssueSlackRenderer(NotificationRenderer[SlackRenderable]):
             tags=set(data.tags) if data.tags else None,
             rules=[data.rule.to_notification_origin()] if data.rule else None,
             notes=data.notes,
-            link_to_event=True,
         ).build(notification_uuid=data.notification_uuid)
 
         return SlackRenderable(

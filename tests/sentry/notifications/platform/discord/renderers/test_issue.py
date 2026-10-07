@@ -88,7 +88,7 @@ class IssueDiscordRendererTest(TestCase):
         url = embed.get("url")
         assert (
             url is not None
-            and f"{self.organization.slug}/issues/{group.id}/events/{event.event_id}/?referrer=discord&workflow_id=1&alert_type=issue"
+            and f"{self.organization.slug}/issues/{group.id}/?referrer=discord&notification_uuid=test-uuid&workflow_id=1&alert_type=issue"
             in url
         )
         color = embed.get("color")
