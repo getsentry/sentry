@@ -189,6 +189,57 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
         )
 
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
+    def test_passes_no_alert_edit_access_when_user_cannot_edit(
+        self, mock_run_oneshot: MagicMock
+    ) -> None:
+        workflow = self.create_workflow(organization=self.organization)
+        self.create_detector_workflow(detector=self.create_detector(), workflow=workflow)
+        self.organization.update_option("sentry:alerts_member_write", False)
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.login_as(user=member)
+
+        assert (
+            self._can_edit_node_type(
+                mock_run_oneshot, "/monitors/alerts/:automationId/", automationId=str(workflow.id)
+            )
+            is None
+        )
+
+    @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
+    def test_passes_no_alert_edit_access_when_alert_uses_all_projects_monitor_without_org_write(
+        self, mock_run_oneshot: MagicMock
+    ) -> None:
+        workflow = self.create_workflow(organization=self.organization)
+        self.create_detector_workflow(
+            detector=self.create_all_projects_detector(organization=self.organization),
+            workflow=workflow,
+        )
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.login_as(user=member)
+
+        assert (
+            self._can_edit_node_type(
+                mock_run_oneshot, "/monitors/alerts/:automationId/", automationId=str(workflow.id)
+            )
+            is None
+        )
+
+    @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
+    def test_passes_no_alert_edit_access_for_another_orgs_alert(
+        self, mock_run_oneshot: MagicMock
+    ) -> None:
+        workflow = self.create_workflow(organization=self.create_organization())
+
+        assert (
+            self._can_edit_node_type(
+                mock_run_oneshot, "/monitors/alerts/:automationId/", automationId=str(workflow.id)
+            )
+            is None
+        )
+
+    @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
     def test_passes_monitor_edit_access_when_user_can_edit(
         self, mock_run_oneshot: MagicMock
     ) -> None:
@@ -199,6 +250,51 @@ class OrganizationSeerChatSuggestionsEndpointTest(APITestCase):
                 mock_run_oneshot, "/monitors/:detectorId/", detectorId=str(detector.id)
             )
             == "monitor-detail"
+        )
+
+    @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
+    def test_passes_no_monitor_edit_access_when_user_cannot_edit(
+        self, mock_run_oneshot: MagicMock
+    ) -> None:
+        detector = self.create_detector(project=self.create_project(organization=self.organization))
+        self.organization.update_option("sentry:alerts_member_write", False)
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, role="member")
+        self.login_as(user=member)
+
+        assert (
+            self._can_edit_node_type(
+                mock_run_oneshot, "/monitors/:detectorId/", detectorId=str(detector.id)
+            )
+            is None
+        )
+
+    @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
+    def test_passes_no_monitor_edit_access_for_another_orgs_monitor(
+        self, mock_run_oneshot: MagicMock
+    ) -> None:
+        detector = self.create_detector(
+            project=self.create_project(organization=self.create_organization())
+        )
+
+        assert (
+            self._can_edit_node_type(
+                mock_run_oneshot, "/monitors/:detectorId/", detectorId=str(detector.id)
+            )
+            is None
+        )
+
+    @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")
+    def test_passes_no_monitor_edit_access_for_all_projects_monitor(
+        self, mock_run_oneshot: MagicMock
+    ) -> None:
+        detector = self.create_all_projects_detector(organization=self.organization)
+
+        assert (
+            self._can_edit_node_type(
+                mock_run_oneshot, "/monitors/:detectorId/", detectorId=str(detector.id)
+            )
+            is None
         )
 
     @patch("sentry.seer.endpoints.organization_seer_chat_suggestions.run_oneshot")

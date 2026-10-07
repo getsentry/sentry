@@ -97,14 +97,11 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
         if not features.has(
             "organizations:seer-chat-suggestions", organization, actor=request.user
         ):
-            raise PermissionDenied("Feature flag not enabled")
+            raise PermissionDenied("Your organization does not have access to this feature.")
 
         has_access, error = has_seer_agent_access_with_detail(organization, request.user)
         if not has_access:
             raise PermissionDenied(error)
-
-        if organization.get_option("sentry:hide_ai_features", False):
-            raise PermissionDenied("AI features are disabled for this organization.")
 
         serializer = ChatSuggestionsSerializer(data=request.data)
         if not serializer.is_valid():
