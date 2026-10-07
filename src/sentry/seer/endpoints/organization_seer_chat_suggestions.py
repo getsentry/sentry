@@ -131,7 +131,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
                 payload,
                 organization,
                 user_id=request.user.id,
-                timeout=3,
+                timeout=3.5,
             )
             suggestions = ChatSuggestionsResult.parse_obj(result).suggestions
         except Exception:
