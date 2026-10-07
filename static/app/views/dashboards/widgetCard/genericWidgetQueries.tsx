@@ -3,7 +3,6 @@ import cloneDeep from 'lodash/cloneDeep';
 import trimStart from 'lodash/trimStart';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {ResponseMeta} from 'sentry/types/api';
 import type {PageFilters} from 'sentry/types/core';
 import type {Series} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
@@ -78,7 +77,8 @@ export type GenericWidgetQueriesResult = {
  */
 export type HookWidgetQueryResult = GenericWidgetQueriesResult & {
   /**
-   * Raw API response data, used for callbacks in genericWidgetQueries.tsx
+   * Raw API responses. Keeps its reference until a response changes, which
+   * genericWidgetQueries.tsx uses to call onDataFetched once per new response.
    */
   rawData: any[];
 };
@@ -86,8 +86,6 @@ export type HookWidgetQueryResult = GenericWidgetQueriesResult & {
 type UseGenericWidgetQueriesProps<SeriesResponse, TableResponse> = {
   config: DatasetConfig<SeriesResponse, TableResponse>;
   widget: Widget;
-  afterFetchSeriesData?: (result: SeriesResponse) => void;
-  afterFetchTableData?: (result: TableResponse, response?: ResponseMeta) => void;
   cursor?: string;
   dashboardFilters?: DashboardFilters;
   disabled?: boolean;
@@ -158,8 +156,6 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
   const {
     config,
     widget,
-    afterFetchSeriesData,
-    afterFetchTableData,
     cursor,
     dashboardFilters,
     disabled,
@@ -260,7 +256,7 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
     prevLoadingRef.current = isLoadingNow;
   }, [hookResults?.loading, onDataFetchStart]);
 
-  // Watch for when hook data changes and call callbacks
+  // Call onDataFetched when the hook returns new data
   useEffect(() => {
     if (!hookResults?.rawData) {
       return;
@@ -273,17 +269,11 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
 
     prevRawDataRef.current = hookResults.rawData;
 
-    // Call afterFetch callbacks with raw data
     if (isHeatmap) {
-      // Heat maps have no afterFetch transforms; just surface the result.
       onDataFetched?.({
         heatmapResults: (hookResults as any).heatmapResults,
       });
     } else if (isTimeSeriesData) {
-      hookResults.rawData.forEach((data: any) => {
-        afterFetchSeriesData?.(data as SeriesResponse);
-      });
-
       // Call onDataFetched with transformed results
       onDataFetched?.({
         timeseriesResults: (hookResults as any).timeseriesResults,
@@ -295,24 +285,13 @@ export function useGenericWidgetQueries<SeriesResponse, TableResponse>(
         sampleCount: hookResults.sampleCount,
       });
     } else {
-      hookResults.rawData.forEach((data: any) => {
-        afterFetchTableData?.(data as TableResponse);
-      });
-
       onDataFetched?.({
         tableResults: (hookResults as any).tableResults,
         pageLinks: (hookResults as any).pageLinks,
         totalCount: hookResults.totalCount,
       });
     }
-  }, [
-    hookResults,
-    isHeatmap,
-    isTimeSeriesData,
-    afterFetchSeriesData,
-    afterFetchTableData,
-    onDataFetched,
-  ]);
+  }, [hookResults, isHeatmap, isTimeSeriesData, onDataFetched]);
 
   // Return hook results, with a fallback for the loading state
   const baseResults = hookResults ?? {
