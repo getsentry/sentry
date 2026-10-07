@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {ThreadSelector} from 'sentry/components/events/interfaces/threads/threadSelector';
@@ -55,13 +55,13 @@ export function ThreadSummary() {
 
   return (
     <Fragment>
-      <Grid columns="auto 1fr" gap="xl">
-        <Stack gap="md">
+      <Flex wrap="wrap" gap="md xl">
+        <Stack gap="md" minWidth="0">
           <ThreadHeading>{t('Threads')}</ThreadHeading>
           <ThreadControls />
         </Stack>
         <ThreadState />
-      </Grid>
+      </Flex>
       <ThreadTags />
     </Fragment>
   );

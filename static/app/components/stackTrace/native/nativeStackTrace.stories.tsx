@@ -186,16 +186,46 @@ export default Storybook.story('Native StackTrace', story => {
   });
 
   story('Narrow Containers', () => {
-    const {event, stacktrace} = makeBasicData();
+    const {event, threads} = makeMultiThreadData();
+    const mainFrames = threads[0]!.stacktrace!.frames!;
+    mainFrames.splice(
+      1,
+      0,
+      makeFrame({
+        function:
+          'std::__1::__function::__func<CrashyApp::Loader::start()::$_0, std::__1::allocator<CrashyApp::Loader::start()::$_0>, void ()>::operator()()',
+        filename: 'Loader.cpp',
+        lineNo: 112,
+        instructionAddr: '0x100031f80',
+        package: '/build/CrashyApp.app/CrashyApp',
+        context: [
+          [111, '  auto task = [this] {'],
+          [112, '    this->config->reload();'],
+          [113, '  };'],
+        ],
+      }),
+      makeFrame({
+        function: null,
+        filename: null,
+        absPath: null,
+        instructionAddr: '0x10a2f3c10',
+        package: '/build/CrashyApp.app/Frameworks/Analytics.framework/Analytics',
+        symbolicatorStatus: SymbolicatorStatus.MISSING,
+      })
+    );
     return (
       <Stack gap="xl">
-        {[320, 700].map(width => (
+        {[360, 700].map(width => (
           <Stack key={width} gap="sm" width={`${width}px`} maxWidth="100%">
             <Text>{width}px container</Text>
-            <Container>
-              <StoryProvider event={event} stacktrace={stacktrace}>
-                <NativeStackTraceFrames />
-              </StoryProvider>
+            <Container border="primary" radius="md" padding="md">
+              <IssueThreadStackTrace
+                event={event}
+                data={{values: threads}}
+                group={undefined}
+                groupingCurrentLevel={0}
+                projectSlug="project-slug"
+              />
             </Container>
           </Stack>
         ))}

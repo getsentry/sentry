@@ -9,6 +9,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {getLeadHint, trimPackage} from 'sentry/components/events/interfaces/frame/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {useNativeDisplayOptionsContext} from 'sentry/components/stackTrace/displayOptionsContext';
+import {ChevronAction} from 'sentry/components/stackTrace/frame/actions/chevron';
 import {useNativeStackTraceContext} from 'sentry/components/stackTrace/native/nativeStackTraceContext';
 import {
   useStackTraceContext,
@@ -57,6 +58,48 @@ function getFunctionLabel({
   return null;
 }
 
+/**
+ * Narrow containers stack the frame so the function name gets the full width,
+ * with package, address and actions on a secondary line and the chevron
+ * centered beside both. Wide containers use one row of aligned columns.
+ */
+function getHeaderLayout({
+  hasChevron,
+  hasLeadHint,
+  hasStatusIcons,
+}: {
+  hasChevron: boolean;
+  hasLeadHint: boolean;
+  hasStatusIcons: boolean;
+}) {
+  const status = hasStatusIcons ? 'status ' : '';
+  const gutter = hasStatusIcons ? '. ' : '';
+  const chevron = hasChevron ? ' chevron' : '';
+  const statusColumn = hasStatusIcons ? '16px ' : '';
+  const chevronColumn = hasChevron ? ' auto' : '';
+
+  const narrowAreas = [
+    hasLeadHint ? `"${gutter}hint hint hint${hasChevron ? ' .' : ''}"` : null,
+    `"${status}function function function${chevron}"`,
+    `"${gutter}package address actions${chevron}"`,
+  ];
+  const wideAreas = [
+    hasLeadHint ? `"${status}hint address function actions${chevron}"` : null,
+    `"${status}package address function actions${chevron}"`,
+  ];
+
+  return {
+    areas: {
+      zero: narrowAreas.filter(defined).join(' '),
+      xl: wideAreas.filter(defined).join(' '),
+    },
+    columns: {
+      zero: `${statusColumn}minmax(0, max-content) max-content minmax(min-content, 1fr)${chevronColumn}`,
+      xl: `${statusColumn}150px 120px minmax(0, 1fr) minmax(140px, auto)${chevronColumn}`,
+    },
+  };
+}
+
 export function NativeFrameHeader({actions}: StackTraceFrameHeaderProps) {
   const {
     event,
@@ -68,7 +111,7 @@ export function NativeFrameHeader({actions}: StackTraceFrameHeaderProps) {
     nextFrame,
     toggleExpansion,
   } = useStackTraceFrameContext();
-  const {meta} = useStackTraceContext();
+  const {hasAnyExpandableFrames, meta} = useStackTraceContext();
   const {view} = useStackTraceViewState();
   const {absoluteFilePaths, verboseFunctionNames} = useNativeDisplayOptionsContext();
   const {hasAnyStatusIcons} = useNativeStackTraceContext();
@@ -86,16 +129,13 @@ export function NativeFrameHeader({actions}: StackTraceFrameHeaderProps) {
   return (
     <Container containerType="inline-size">
       <HeaderGrid
+        {...getHeaderLayout({
+          hasChevron: hasAnyExpandableFrames,
+          hasLeadHint: showLeadHint,
+          hasStatusIcons: hasAnyStatusIcons,
+        })}
         align="center"
-        columns={{
-          zero: hasAnyStatusIcons
-            ? '16px minmax(0, 120px) minmax(0, 1fr)'
-            : 'minmax(0, 120px) minmax(0, 1fr)',
-          lg: hasAnyStatusIcons
-            ? '16px 150px 120px minmax(0, 1fr) minmax(168px, auto)'
-            : '150px 120px minmax(0, 1fr) minmax(168px, auto)',
-        }}
-        gap={{zero: '2xs sm', lg: '0 md'}}
+        gap={{zero: '2xs sm', xl: '0 md'}}
         padding="xs md"
         data-test-id="native-stack-trace-frame-title"
         data-sub-frame={isSubFrame ? true : undefined}
@@ -113,36 +153,29 @@ export function NativeFrameHeader({actions}: StackTraceFrameHeaderProps) {
       >
         {hasAnyStatusIcons ? (
           <Flex
+            area="status"
             align="center"
             justify="center"
-            column="1"
-            row={{zero: '1 / 3', lg: '1'}}
             data-test-id="native-stack-trace-status-cell"
           >
             <SymbolicatorStatusIcon />
           </Flex>
         ) : null}
 
-        <Flex
-          direction={{zero: 'row', lg: 'column'}}
-          align={{zero: 'baseline', lg: 'start'}}
-          column={{
-            zero: hasAnyStatusIcons ? '3' : '2',
-            lg: hasAnyStatusIcons ? '2' : '1',
-          }}
-          row="1"
-          gap={{zero: 'xs', lg: '0'}}
-          justify="center"
+        {showLeadHint ? (
+          <Container area="hint" alignSelf={{zero: 'center', xl: 'end'}} minWidth={0}>
+            <Text size="xs" variant="muted" ellipsis>
+              {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
+            </Text>
+          </Container>
+        ) : null}
+
+        <Container
+          area="package"
+          alignSelf={showLeadHint ? {zero: 'center', xl: 'start'} : 'center'}
           minWidth={0}
           overflow="hidden"
         >
-          {showLeadHint ? (
-            <Container flexShrink={0}>
-              <Text size="xs" variant="muted" ellipsis>
-                {getLeadHint({event, hasNextFrame: defined(nextFrame)})}
-              </Text>
-            </Container>
-          ) : null}
           <InfoText
             title={
               frame.package ??
@@ -151,6 +184,7 @@ export function NativeFrameHeader({actions}: StackTraceFrameHeaderProps) {
             maxWidth={400}
             delay={1000}
             position="auto-start"
+            size={{zero: 'xs', xl: 'sm'}}
             variant="inherit"
             ellipsis
           >
@@ -165,32 +199,13 @@ export function NativeFrameHeader({actions}: StackTraceFrameHeaderProps) {
                 ))}
             </Container>
           </InfoText>
-        </Flex>
+        </Container>
 
-        <Flex
-          align="center"
-          minWidth={0}
-          overflow="hidden"
-          column={{
-            zero: hasAnyStatusIcons ? '2' : '1',
-            lg: hasAnyStatusIcons ? '3' : '2',
-          }}
-          row="1"
-        >
+        <Flex area="address" align="center" minWidth={0} overflow="hidden">
           <NativeFrameAddress />
         </Flex>
 
-        <Flex
-          wrap="wrap"
-          align="baseline"
-          gap="2xs xs"
-          minWidth={0}
-          column={{
-            zero: hasAnyStatusIcons ? '2 / -1' : '1 / -1',
-            lg: hasAnyStatusIcons ? '4' : '3',
-          }}
-          row={{zero: '2', lg: '1'}}
-        >
+        <Flex area="function" wrap="wrap" align="baseline" gap="2xs xs" minWidth={0}>
           {functionLabel ? (
             <Tooltip
               title={frame.rawFunction ?? frame.symbol}
@@ -210,7 +225,7 @@ export function NativeFrameHeader({actions}: StackTraceFrameHeaderProps) {
               position="auto-start"
               size="sm"
               variant="muted"
-              wordBreak="break-all"
+              wordBreak="break-word"
             >
               {'('}
               {absoluteFilePaths ? (frame.absPath ?? frame.filename) : frame.filename}
@@ -221,19 +236,21 @@ export function NativeFrameHeader({actions}: StackTraceFrameHeaderProps) {
         </Flex>
 
         <Flex
+          area="actions"
           align="center"
           justify="end"
           gap="xs"
           minWidth={0}
-          column={{
-            zero: hasAnyStatusIcons ? '2 / -1' : '1 / -1',
-            lg: hasAnyStatusIcons ? '5' : '4',
-          }}
-          row={{zero: '3', lg: '1'}}
           data-test-id="native-stack-trace-frame-actions"
         >
           {resolvedActions}
         </Flex>
+
+        {hasAnyExpandableFrames ? (
+          <Flex area="chevron" align="center">
+            <ChevronAction />
+          </Flex>
+        ) : null}
       </HeaderGrid>
     </Container>
   );
@@ -264,5 +281,5 @@ const HeaderGrid = styled(Grid)<{
 const FunctionName = styled(AnnotatedText)`
   min-width: 0;
   flex: 0 1 auto;
-  word-break: break-all;
+  overflow-wrap: anywhere;
 `;
