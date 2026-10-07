@@ -16,10 +16,11 @@ import {
 import {HighlightQuery} from 'sentry/components/searchSyntax/renderer';
 
 interface PlainTextQueryInputProps {
+  actionBarWidth?: number;
   label?: string;
 }
 
-export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
+export function PlainTextQueryInput({label, actionBarWidth}: PlainTextQueryInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const {query, parsedQuery, dispatch, handleSearch} = useSearchQueryBuilderState();
   const {placeholder, disabled} = useSearchQueryBuilderConfig();
@@ -60,12 +61,16 @@ export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
   return (
     <InputWrapper>
       {parsedQuery ? (
-        <Highlight size={size}>
+        <Highlight
+          size={size}
+          style={actionBarWidth ? {paddingRight: actionBarWidth + 12} : undefined}
+        >
           <HighlightQuery parsedQuery={parsedQuery} cursorPosition={cursorPosition} />
         </Highlight>
       ) : null}
       <InvisibleInput
         aria-label={label}
+        style={actionBarWidth ? {paddingRight: actionBarWidth + 12} : undefined}
         ref={inputRef}
         autoComplete="off"
         value={query}

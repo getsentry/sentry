@@ -75,7 +75,7 @@ function Grid({hideSearchIcon, ...props}: GridProps) {
   const ref = useRef<HTMLDivElement>(null);
   const selectionKeyHandlerRef = useRef<HTMLInputElement>(null);
   const {dispatch} = useSearchQueryBuilderState();
-  const {size, menuPresentation} = useSearchQueryBuilderLayout();
+  const {menuPresentation} = useSearchQueryBuilderLayout();
   const state = useListState<ParseResultToken>({
     ...props,
     selectionBehavior: 'replace',
@@ -107,7 +107,7 @@ function Grid({hideSearchIcon, ...props}: GridProps) {
       ref={ref}
       $hideSearchIcon={hideSearchIcon}
       $menuPresentation={menuPresentation}
-      style={size === 'small' ? undefined : {paddingRight: props.actionBarWidth + 12}}
+      style={props.actionBarWidth ? {paddingRight: props.actionBarWidth + 12} : undefined}
       onBlur={e => {
         if (ref.current?.contains(e.relatedTarget)) {
           return;

@@ -251,6 +251,7 @@ export interface SearchQueryBuilderProps {
    * as an option, and so on with any other provided keys.
    */
   replaceRawSearchKeys?: string[];
+  showClearButton?: boolean;
   /**
    * When false, hides the leading magnifying glass icon and the padding reserved for it.
    * Defaults to true.
@@ -266,8 +267,10 @@ export interface SearchQueryBuilderProps {
 function ActionButtons({
   ref,
   trailingItems = null,
+  showClearButton = true,
 }: {
   ref?: React.Ref<HTMLDivElement>;
+  showClearButton?: boolean;
   trailingItems?: React.ReactNode;
 }) {
   const {clearSearchQuery, query} = useSearchQueryBuilderState();
@@ -299,7 +302,7 @@ function ActionButtons({
           />
         </Tooltip>
       ) : null}
-      {query === '' ? null : (
+      {!showClearButton || query === '' ? null : (
         <ActionButton
           aria-label={t('Clear search query')}
           size="zero"
@@ -321,6 +324,7 @@ function SearchQueryBuilderUI({
   onBlur,
   queryInterface = QueryInterfaceType.TOKENIZED,
   showSearchIcon = true,
+  showClearButton = true,
   trailingItems,
   onChange,
 }: SearchQueryBuilderProps) {
@@ -367,7 +371,7 @@ function SearchQueryBuilderUI({
           </PositionedSearchIconContainer>
         ) : null}
         {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
-          <PlainTextQueryInput label={label} />
+          <PlainTextQueryInput label={label} actionBarWidth={actionBarWidth} />
         ) : (
           <TokenizedQueryGrid
             // oxlint-disable-next-line react/refs
@@ -377,8 +381,12 @@ function SearchQueryBuilderUI({
             hideSearchIcon={!showSearchIcon}
           />
         )}
-        {size !== 'small' && (
-          <ActionButtons ref={actionBarRef} trailingItems={trailingItems} />
+        {(size !== 'small' || trailingItems) && (
+          <ActionButtons
+            ref={actionBarRef}
+            trailingItems={trailingItems}
+            showClearButton={showClearButton}
+          />
         )}
       </PanelProvider>
     </Wrapper>

@@ -29,11 +29,15 @@ import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 type IssueViewSaveButtonProps = {
   query: string;
   sort: IssueSortOptions;
+  onSave?: () => void;
 };
 
 function SegmentedIssueViewSaveButton({
+  query,
+  sort,
+  onSave,
   openCreateIssueViewModal,
-}: {
+}: IssueViewSaveButtonProps & {
   openCreateIssueViewModal: () => void;
 }) {
   const organization = useOrganization();
@@ -58,12 +62,15 @@ function SegmentedIssueViewSaveButton({
 
   const saveView = () => {
     if (view) {
+      onSave?.();
       trackAnalytics('issue_views.save.clicked', {organization, source: 'button'});
       updateGroupSearchView(
         {
           id: view.id,
           name: view.name,
-          ...createIssueViewFromUrl({query: location.query}),
+          ...createIssueViewFromUrl({
+            query: {...location.query, query, sort},
+          }),
         },
         {
           onSuccess: () => {
@@ -95,6 +102,7 @@ function SegmentedIssueViewSaveButton({
       {({hasFeature}) => (
         <ButtonBar>
           <PrimarySaveButton
+            size="sm"
             variant="primary"
             data-test-id={hasUnsavedChanges ? 'save-button-unsaved' : 'save-button'}
             onClick={() => {
@@ -133,6 +141,7 @@ function SegmentedIssueViewSaveButton({
                 disabled={!hasFeature || isSaving}
                 icon={<IconChevron direction="down" />}
                 aria-label={t('More save options')}
+                size="sm"
                 variant="primary"
               />
             )}
@@ -144,7 +153,7 @@ function SegmentedIssueViewSaveButton({
   );
 }
 
-export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
+export function IssueViewSaveButton({query, sort, onSave}: IssueViewSaveButtonProps) {
   const {openModal} = useModal();
 
   const {viewId} = useParams();
@@ -153,6 +162,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
   const organization = useOrganization();
 
   const openCreateIssueViewModal = () => {
+    onSave?.();
     trackAnalytics('issue_views.save_as.clicked', {organization, source: 'button'});
     openModal(props => (
       <CreateIssueViewModal
@@ -191,6 +201,7 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
       >
         {({hasFeature}) => (
           <Button
+            size="sm"
             variant="primary"
             onClick={openCreateIssueViewModal}
             disabled={!hasFeature}
@@ -203,7 +214,12 @@ export function IssueViewSaveButton({query, sort}: IssueViewSaveButtonProps) {
   }
 
   return (
-    <SegmentedIssueViewSaveButton openCreateIssueViewModal={openCreateIssueViewModal} />
+    <SegmentedIssueViewSaveButton
+      query={query}
+      sort={sort}
+      onSave={onSave}
+      openCreateIssueViewModal={openCreateIssueViewModal}
+    />
   );
 }
 

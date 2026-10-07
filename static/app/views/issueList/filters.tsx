@@ -13,7 +13,6 @@ import {
 } from 'sentry/views/issueList/displayProperties';
 import {IssueFilterMenu} from 'sentry/views/issueList/filterMenu';
 import {IssueSearch} from 'sentry/views/issueList/issueSearch';
-import {IssueViewSaveButton} from 'sentry/views/issueList/issueViews/issueViewSaveButton';
 import type {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 interface Props {
@@ -29,7 +28,7 @@ export function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
   return (
     <Flex align="start" gap="md" wrap="wrap" paddingBottom="xl" width="100%">
       <Container flex="1" minWidth="240px">
-        <IssueSearch query={query} onSearch={onSearch} />
+        <IssueSearch query={query} sort={sort} onSearch={onSearch} />
       </Container>
       <Flex gap="sm" align="center">
         <IssueFilterMenu query={query} onSearch={onSearch} />
@@ -98,7 +97,6 @@ export function IssueListFilters({query, sort, onSortChange, onSearch}: Props) {
             />
           )}
         />
-        <IssueViewSaveButton query={query} sort={sort} />
       </Flex>
     </Flex>
   );
