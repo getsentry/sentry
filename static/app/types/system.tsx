@@ -1,5 +1,3 @@
-import type {FocusTrap} from 'focus-trap';
-
 import type {ApiResult} from 'sentry/types/api';
 
 import type {ParntershipAgreementType} from './overrides';
@@ -31,10 +29,6 @@ export type OnSentryInitConfiguration =
       container: string;
       name: 'renderReact';
       props?: Record<string, any>;
-    }
-  | {
-      name: 'onReady';
-      onReady: (globals: Record<string, any>) => void;
     };
 
 declare global {
@@ -77,16 +71,6 @@ declare global {
      */
     __sentryGlobalStaticPrefix: string;
 
-    // typing currently used for demo add on
-    // TODO: improve typing
-    SentryApp?: {
-      ConfigStore: any;
-      Modal: any;
-      getModalPortal: () => HTMLElement;
-      modalFocusTrap?: {
-        current?: FocusTrap | null;
-      };
-    };
     /**
      * Is the UI running as dev-ui proxy.
      * Used by webpack-devserver + html-webpack

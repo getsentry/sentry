@@ -5,7 +5,6 @@ import {RouterProvider} from 'react-router/dom';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import throttle from 'lodash/throttle';
 
-import {exportedGlobals} from 'sentry/bootstrap/exportGlobals';
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
 import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
@@ -126,14 +125,6 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
       )
     );
   }
-
-  /**
-   * Callback for when js bundle is loaded. Provide library + component references
-   * for downstream consumers to use.
-   */
-  if (initConfig.name === 'onReady' && typeof initConfig.onReady === 'function') {
-    initConfig.onReady(exportedGlobals);
-  }
 }
 
 /**
@@ -144,11 +135,6 @@ async function processItem(initConfig: OnSentryInitConfiguration) {
  * these will be defined in server rendered templates
  */
 export async function processInitQueue() {
-  // Currently, this is run *before* anything is queued in
-  // `window.__onSentryInit`. We want to provide a migration path for potential
-  // custom plugins that rely on `window.SentryApp` so they can start migrating
-  // their plugins ASAP, as `SentryApp` will be loaded async and will require
-  // callbacks to access it, instead of via `window` global.
   if (window.__onSentryInit !== undefined && !Array.isArray(window.__onSentryInit)) {
     return;
   }
