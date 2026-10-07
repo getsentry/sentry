@@ -1737,6 +1737,7 @@ const config = defineConfig({
         'tests/js/jest-pegjs-transform.js',
         'tests/js/sentry-test/jest-environment.js',
         'tests/js/sentry-test/jest-environment-node.js',
+        'tests/js/sentry-test/withTagsAsSpanAttributes.js',
         'tests/js/sentry-test/wrapWithStructuredClone.js',
         'tests/js/sentry-test/mocks/*',
         'tests/js/sentry-test/loadFixtures.ts',

@@ -1,11 +1,11 @@
 import {useMemo} from 'react';
 
-import {
-  getSpanLinkType,
-  type TraceItemResponseAttribute,
-  type TraceItemResponseLink,
+import type {
+  TraceItemResponseAttribute,
+  TraceItemResponseLink,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
+import {getSpanLinkType} from 'sentry/views/performance/traceDetails/getSpanLinkType';
 import type {ConnectedTraceConnection} from 'sentry/views/performance/traceDetails/traceLinksNavigation/types';
 
 /**

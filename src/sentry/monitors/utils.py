@@ -1,13 +1,12 @@
 import logging
 from collections import defaultdict
 from datetime import datetime, timedelta
+from uuid import uuid4
 
 from django.db import router, transaction
-from django.utils import timezone
 from rest_framework.request import Request
 
 from sentry import audit_log
-from sentry.api.serializers.rest_framework.rule import RuleSerializer
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.group import Group
@@ -29,7 +28,6 @@ from sentry.signals import (
 )
 from sentry.snuba.occurrences_rpc import OccurrenceCategory
 from sentry.snuba.referrer import Referrer
-from sentry.users.models.user import User
 from sentry.utils.audit import create_audit_entry, create_system_audit_entry
 from sentry.utils.auth import AuthenticatedHttpRequest
 from sentry.utils.db import atomic_transaction
@@ -317,7 +315,7 @@ def create_issue_alert_rule(
     project: Project,
     monitor: Monitor,
     validated_issue_alert_rule: dict,
-) -> int | None:
+) -> int:
     """
     Creates an Issue Alert `Rule` instance from a request with the given data
     :param request: Request object
@@ -326,32 +324,24 @@ def create_issue_alert_rule(
     :param validated_issue_alert_rule: Dictionary of configurations for an associated Rule
     :return: dict
     """
-    issue_alert_rule_data = create_issue_alert_rule_data(
-        project, request.user, monitor, validated_issue_alert_rule
-    )
-    serializer = RuleSerializer(
-        context={"project": project, "organization": project.organization},
-        data=issue_alert_rule_data,
-    )
-
-    if not serializer.is_valid():
-        return None
-
-    data = serializer.validated_data
-    # combine filters and conditions into one conditions criteria for the rule object
-    conditions = data.get("conditions", [])
-    if "filters" in data:
-        conditions.extend(data["filters"])
-
     rule = ProjectRuleCreator(
-        name=data["name"],
+        name=f"Monitor Alert: {monitor.name}"[:64],
         project=project,
-        action_match=data["actionMatch"],
-        actions=data.get("actions", []),
-        conditions=conditions,
-        frequency=data.get("frequency"),
-        environment=data.get("environment"),
-        filter_match=data.get("filterMatch"),
+        action_match="any",
+        actions=_build_issue_alert_rule_actions(validated_issue_alert_rule),
+        conditions=[
+            {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
+            {"id": "sentry.rules.conditions.regression_event.RegressionEventCondition"},
+            {
+                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                "key": "monitor.slug",
+                "match": "eq",
+                "value": monitor.slug,
+            },
+        ],
+        frequency=5,
+        environment=validated_issue_alert_rule.get("environment"),
+        filter_match="all",
         request=request,
         source=RuleSource.CRON_MONITOR,
     ).run()
@@ -361,57 +351,16 @@ def create_issue_alert_rule(
     return rule.id
 
 
-def create_issue_alert_rule_data(
-    project: Project, user: User, monitor: Monitor, issue_alert_rule: dict
-):
-    """
-    Gets a dict formatted alert rule to create alongside the monitor
-    :param project: Project object
-    :param user: User object that made the request
-    :param monitor: Monitor object being created
-    :param issue_alert_rule: Dictionary of configurations for an associated Rule
-    :return: dict
-    """
-    return {
-        "actionMatch": "any",
-        "actions": [
-            {
-                "id": "sentry.mail.actions.NotifyEmailAction",
-                "targetIdentifier": target["target_identifier"],
-                "targetType": target["target_type"],
-            }
-            for target in issue_alert_rule.get("targets", [])
-        ],
-        "conditions": [
-            {
-                "id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
-            },
-            {
-                "id": "sentry.rules.conditions.regression_event.RegressionEventCondition",
-            },
-        ],
-        "createdBy": {
-            "email": user.email,
-            "id": user.id,
-            "name": user.email,
-        },
-        "dateCreated": timezone.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-        "environment": issue_alert_rule.get("environment", None),
-        "filterMatch": "all",
-        "filters": [
-            {
-                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-                "key": "monitor.slug",
-                "match": "eq",
-                "value": monitor.slug,
-            },
-        ],
-        "frequency": 5,
-        "name": f"Monitor Alert: {monitor.name}"[:64],
-        "owner": None,
-        "projects": [project.slug],
-        "snooze": False,
-    }
+def _build_issue_alert_rule_actions(issue_alert_rule: dict) -> list[dict]:
+    return [
+        {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetIdentifier": target["target_identifier"],
+            "targetType": target["target_type"],
+            "uuid": str(uuid4()),
+        }
+        for target in issue_alert_rule.get("targets", [])
+    ]
 
 
 def update_issue_alert_rule(
@@ -421,62 +370,38 @@ def update_issue_alert_rule(
     issue_alert_rule: Rule,
     issue_alert_rule_data: dict,
 ):
-    actions = []
-    for target in issue_alert_rule_data.get("targets", []):
-        target_identifier = target["target_identifier"]
-        target_type = target["target_type"]
+    # update only slug conditions
+    conditions = issue_alert_rule.data.get("conditions", [])
+    updated = False
+    for condition in conditions:
+        if condition.get("key") == "monitor.slug":
+            condition["value"] = monitor.slug
+            updated = True
 
-        action = {
-            "id": "sentry.mail.actions.NotifyEmailAction",
-            "targetIdentifier": target_identifier,
-            "targetType": target_type,
-        }
-        actions.append(action)
-
-    serializer = RuleSerializer(
-        context={"project": project, "organization": project.organization},
-        data={
-            "actions": actions,
-            "environment": issue_alert_rule_data.get("environment", None),
-        },
-        partial=True,
-    )
-
-    if serializer.is_valid():
-        data = serializer.validated_data
-
-        # update only slug conditions
-        conditions = issue_alert_rule.data.get("conditions", [])
-        updated = False
-        for condition in conditions:
-            if condition.get("key") == "monitor.slug":
-                condition["value"] = monitor.slug
-                updated = True
-
-        # slug condition not present, add slug to conditions
-        if not updated:
-            conditions.append(
-                {
-                    "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
-                    "key": "monitor.slug",
-                    "match": "eq",
-                    "value": monitor.slug,
-                }
-            )
-
-        updated_rule = ProjectRuleUpdater(
-            rule=issue_alert_rule,
-            request=request,
-            project=project,
-            name=f"Monitor Alert: {monitor.name}"[:64],
-            environment=data.get("environment", None),
-            actions=data.get("actions", []),
-            conditions=conditions,
-        ).run()
-
-        RuleActivity.objects.create(
-            rule=updated_rule, user_id=request.user.id, type=RuleActivityType.UPDATED.value
+    # slug condition not present, add slug to conditions
+    if not updated:
+        conditions.append(
+            {
+                "id": "sentry.rules.filters.tagged_event.TaggedEventFilter",
+                "key": "monitor.slug",
+                "match": "eq",
+                "value": monitor.slug,
+            }
         )
+
+    updated_rule = ProjectRuleUpdater(
+        rule=issue_alert_rule,
+        request=request,
+        project=project,
+        name=f"Monitor Alert: {monitor.name}"[:64],
+        environment=issue_alert_rule_data.get("environment"),
+        actions=_build_issue_alert_rule_actions(issue_alert_rule_data),
+        conditions=conditions,
+    ).run()
+
+    RuleActivity.objects.create(
+        rule=updated_rule, user_id=request.user.id, type=RuleActivityType.UPDATED.value
+    )
 
     return issue_alert_rule.id
 

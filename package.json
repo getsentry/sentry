@@ -101,14 +101,14 @@
     "@react-stately/tree": "3.10.1",
     "@react-types/shared": "3.36.0",
     "@remix-run/router": "1.23.4",
-    "@rsbuild/core": "^2.2.4",
+    "@rsbuild/core": "^2.2.12",
     "@rsbuild/plugin-basic-ssl": "^2.0.0",
-    "@rsdoctor/rspack-plugin": "1.6.3",
-    "@rspack/core": "2.2.3",
+    "@rsdoctor/rspack-plugin": "1.6.4",
+    "@rspack/core": "2.2.8",
     "@rspack/plugin-react-refresh": "2.0.2",
     "@sentry-internal/global-search": "^1.0.0",
     "@sentry/browser": "11.0.0",
-    "@sentry/conventions": "^0.25.0",
+    "@sentry/conventions": "^0.26.0",
     "@sentry/core": "11.0.0",
     "@sentry/node": "11.0.0",
     "@sentry/react": "11.0.0",
@@ -118,10 +118,10 @@
     "@sentry/rrweb-snapshot": "2.44.0",
     "@sentry/sqlish": "1.0.1",
     "@sentry/status-page-list": "^0.6.1",
-    "@sentry/webpack-plugin": "5.3.0",
+    "@sentry/webpack-plugin": "5.4.1",
     "@stripe/react-stripe-js": "^3.9.2",
     "@stripe/stripe-js": "^5.10.0",
-    "@swc/plugin-emotion": "15.0.0",
+    "@swc/plugin-emotion": "19.0.0",
     "@tanstack/query-async-storage-persister": "5.101.4",
     "@tanstack/react-devtools": "0.9.9",
     "@tanstack/react-form": "1.28.6",
@@ -218,7 +218,7 @@
     "sprintf-js": "1.0.3",
     "style-loader": "4.0.0",
     "swc-plugin-component-annotate": "1.18.0",
-    "ts-checker-rspack-plugin": "1.6.1",
+    "ts-checker-rspack-plugin": "1.6.2",
     "tslib": "^2.8.1",
     "type-fest": "^5.8.0",
     "yaml": "2.9.0",
@@ -237,8 +237,8 @@
     "@mdx-js/mdx": "3.1.1",
     "@sentry/jest-environment": "8.0.0",
     "@sentry/rrweb-types": "2.44.0",
-    "@swc-contrib/mut-cjs-exports": "15.0.0",
-    "@swc/core": "1.16.2",
+    "@swc-contrib/mut-cjs-exports": "19.0.0",
+    "@swc/core": "1.16.13",
     "@swc/jest": "0.2.39",
     "@tanstack/eslint-plugin-query": "5.101.4",
     "@testing-library/dom": "10.4.1",
@@ -264,7 +264,7 @@
     "jest-environment-node": "30.5.1",
     "jest-fail-on-console": "3.3.4",
     "jsdom": "30.1.1",
-    "knip": "6.32.1",
+    "knip": "6.40.0",
     "odiff-bin": "4.3.8",
     "oxfmt": "^0.70.0",
     "oxlint": "1.85.0",
@@ -312,7 +312,7 @@
       "diff@>=5.0.0 <5.2.2": "5.2.2"
     },
     "packageExtensions": {
-      "@sentry/webpack-plugin@5.3.0": {
+      "@sentry/webpack-plugin@5.4.1": {
         "peerDependenciesMeta": {
           "webpack": {
             "optional": true
@@ -347,7 +347,8 @@
       "zod@4.3.5": "patches/zod@4.3.5.patch",
       "zrender@6.1.0": "patches/zrender@6.1.0.patch",
       "css-tree@3.2.1": "patches/css-tree@3.2.1.patch",
-      "jest-runtime@30.5.1": "patches/jest-runtime@30.5.1.patch"
+      "jest-runtime@30.5.1": "patches/jest-runtime@30.5.1.patch",
+      "jest-resolve@30.5.1": "patches/jest-resolve@30.5.1.patch"
     }
   },
   "APIMethod": "stub",

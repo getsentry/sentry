@@ -3,11 +3,22 @@ from dataclasses import dataclass
 from typing import Literal
 
 from sentry.models.rule import Rule
+from sentry.notifications.types import NotificationOrigin
 
 RuleIdType = Literal["workflow_id", "legacy_rule_id"]
 
 
-def get_key_from_rule_data(rule: Rule, key: str) -> str:
+def get_key_from_rule_data(rule: Rule | NotificationOrigin, key: str) -> str:
+    if isinstance(rule, NotificationOrigin):
+        if key == "legacy_rule_id":
+            value = rule.legacy_rule_id
+        elif key == "workflow_id":
+            value = rule.workflow_id
+        else:
+            raise KeyError(key)
+        assert value is not None
+        return str(value)
+
     value = rule.data.get("actions", [{}])[0].get(key)
     assert value is not None
     return value
@@ -33,7 +44,7 @@ def split_rules_by_rule_workflow_id(rules: Sequence[Rule]) -> RulesAndWorkflows:
 
 
 def get_rule_or_workflow_id(
-    rule: Rule, *, prefer: RuleIdType = "legacy_rule_id"
+    rule: Rule | NotificationOrigin, *, prefer: RuleIdType = "legacy_rule_id"
 ) -> tuple[RuleIdType, str]:
     """
     Returns which id the rule data carries, and its value. When both a legacy
@@ -49,4 +60,6 @@ def get_rule_or_workflow_id(
             return (key, get_key_from_rule_data(rule, key))
         except AssertionError:
             pass
-    return ("legacy_rule_id", str(rule.id))
+    if isinstance(rule, Rule):
+        return ("legacy_rule_id", str(rule.id))
+    raise AssertionError("Notification origin requires a workflow or legacy rule ID")

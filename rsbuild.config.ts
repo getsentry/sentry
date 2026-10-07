@@ -281,7 +281,7 @@ const appConfig: Configuration = {
      * This generates a single "sentry.css" file that imports ALL component styles
      * for use on Django-powered pages.
      */
-    sentry: 'less/sentry.less',
+    sentry: './less/sentry.less',
   },
   context: staticPrefix,
   incremental: DEV_MODE,
@@ -515,9 +515,6 @@ const appConfig: Configuration = {
       'getsentry-test': path.join(import.meta.dirname, 'tests', 'js', 'getsentry-test'),
       admin: path.join(staticPrefix, 'gsAdmin'),
 
-      // Aliasing this for getsentry's build, otherwise `less/select2` will not be able
-      // to be resolved
-      less: path.join(staticPrefix, 'less'),
       'sentry-test': path.join(import.meta.dirname, 'tests', 'js', 'sentry-test'),
       'sentry-locale': path.join(import.meta.dirname, 'src', 'sentry', 'locale'),
       'ios-device-list': path.join(
@@ -989,16 +986,21 @@ if (IS_PRODUCTION) {
   );
 }
 
-// Cache rspack builds
+// Cache rspack builds (CI and Vercel)
 if (env.WEBPACK_CACHE_PATH) {
-  appConfig.cache = true;
+  appConfig.experiments = {...appConfig.experiments, newCache: true};
   appConfig.cache = {
-    type: 'persistent',
-    // https://rspack.rs/config/cache
-    storage: {
-      type: 'filesystem',
-      directory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
-    },
+    type: 'filesystem',
+    // Keep clear of the old persistent cache's `app-production` directory,
+    // the new cache fails to open when both share a location
+    name: `app-${WEBPACK_MODE}-new`,
+    cacheDirectory: path.join(import.meta.dirname, env.WEBPACK_CACHE_PATH),
+    // Read entries from disk instead of holding the whole cache in memory
+    maxMemoryGenerations: 0,
+    // Only master deploys write the cache, preview deploys restore it from
+    // master. Avoids growing the cache on every branch and the memory spike
+    // from writing it on Vercel's 8GB build machines.
+    readonly: IS_DEPLOY_PREVIEW && env.NOW_GITHUB_COMMIT_REF !== 'master',
   };
 }
 
