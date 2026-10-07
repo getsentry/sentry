@@ -231,7 +231,8 @@ class SlackNotifyServiceAction(IntegrationEventAction):
     ) -> None:
         """Send a notification action notification to Slack."""
         contexts = [future.context for future in futures]
-        context = self.context or (contexts[0] if contexts else None)
+        future_context = contexts[0] if contexts else None
+        context = self.context or future_context
         action_id = context.action_id if context else None
 
         if not action_id:
@@ -250,7 +251,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 integration=integration,
                 channel=channel,
             )
-            self.record_notification_sent(event, channel, context, notification_uuid)
+            self.record_notification_sent(event, channel, future_context, notification_uuid)
             return
 
         try:
@@ -313,7 +314,7 @@ class SlackNotifyServiceAction(IntegrationEventAction):
                 organization=self.project.organization, notification_uuid=notification_uuid
             ),
         )
-        self.record_notification_sent(event, channel, context, notification_uuid)
+        self.record_notification_sent(event, channel, future_context, notification_uuid)
 
     def after(
         self, event: GroupEvent, notification_uuid: str | None = None
