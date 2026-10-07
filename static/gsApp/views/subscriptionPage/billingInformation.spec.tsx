@@ -357,9 +357,7 @@ describe('Subscription > BillingInformation', () => {
     render(<BillingInformation subscription={subscription} />, {organization});
 
     const cardPanel = await screen.findByRole('region', {name: 'Payment method'});
-    await userEvent.click(
-      within(cardPanel).getByRole('button', {name: 'Edit payment method'})
-    );
+    await userEvent.click(screen.getByRole('button', {name: 'Edit payment method'}));
     await userEvent.click(within(cardPanel).getByRole('button', {name: 'Save Changes'}));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
