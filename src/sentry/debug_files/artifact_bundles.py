@@ -470,10 +470,11 @@ def get_url_lookup_candidates(
         release_bundles.filter(date_added__gte=active_since),
         release_bundles.filter(date_added__lt=active_since),
     ):
+        # One more row than we scan tells whether this group has more bundles.
         rows = list(
-            bundles.values_list("id", "artifact_count").order_by("-id")[:max_candidate_bundles]
+            bundles.values_list("id", "artifact_count").order_by("-id")[: max_candidate_bundles + 1]
         )
-        for bundle_id, artifact_count in rows:
+        for bundle_id, artifact_count in rows[:max_candidate_bundles]:
             if bundle_id in candidates:
                 continue
             # We always scan at least one bundle, even if it alone exceeds the budget.
@@ -482,7 +483,7 @@ def get_url_lookup_candidates(
                 break
             candidates[bundle_id] = None
             index_rows += artifact_count
-        if truncated_by is None and len(rows) == max_candidate_bundles:
+        if truncated_by is None and len(rows) > max_candidate_bundles:
             # This group has more bundles than we looked at, and those come before any bundle
             # of the next group.
             truncated_by = "candidates"

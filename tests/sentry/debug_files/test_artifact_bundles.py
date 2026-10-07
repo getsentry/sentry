@@ -647,6 +647,29 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
     @override_options(
         {
             "sourcemaps.artifact-bundles.url-lookup.max-index-rows": 1000,
+            "sourcemaps.artifact-bundles.url-lookup.max-candidate-bundles": 2,
+            "system.debug-files-renewal-age-threshold-days": 7,
+            "sourcemaps.artifact-bundles.url-lookup.active-margin-days": 7,
+        }
+    )
+    def test_url_lookup_candidate_cap_reaches_idle_bundles(self) -> None:
+        idle = self.create_bundle(date_added=timezone.now() - timedelta(days=50))
+        older = self.create_bundle()
+        newer = self.create_bundle()
+        for bundle, name in ((idle, "idle"), (older, "older"), (newer, "newer")):
+            self.index_url(bundle, f"~/path/to/{name}.js")
+
+        with patch("sentry.debug_files.artifact_bundles.metrics") as metrics:
+            # There are exactly as many active bundles as the cap, so the idle one is scanned too.
+            assert self.lookup("/path/to/idle") == {idle.id}
+
+        metrics.incr.assert_any_call(
+            "artifact_bundle_url_lookup.candidates", tags={"truncated": "false"}
+        )
+
+    @override_options(
+        {
+            "sourcemaps.artifact-bundles.url-lookup.max-index-rows": 1000,
             "sourcemaps.artifact-bundles.url-lookup.max-candidate-bundles": 0,
         }
     )
