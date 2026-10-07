@@ -1,3 +1,5 @@
+import {SEARCH_NETWORK__PROTOCOL__NAME} from '@sentry/conventions/attributes/search';
+
 import {t} from 'sentry/locale';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {
@@ -67,14 +69,14 @@ const FIRST_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
       queries: [
         {
           name: '',
-          conditions: `${MCP_SERVER_FILTER} (has:${SpanFields.NETWORK_PROTOCOL_NAME} OR has:${SpanFields.NETWORK_TRANSPORT})`,
+          conditions: `${MCP_SERVER_FILTER} (has:${SEARCH_NETWORK__PROTOCOL__NAME} OR has:${SpanFields.NETWORK_TRANSPORT})`,
           fields: [
-            SpanFields.NETWORK_PROTOCOL_NAME,
+            SEARCH_NETWORK__PROTOCOL__NAME,
             SpanFields.NETWORK_TRANSPORT,
             'count()',
           ],
           aggregates: ['count()'],
-          columns: [SpanFields.NETWORK_PROTOCOL_NAME, SpanFields.NETWORK_TRANSPORT],
+          columns: [SEARCH_NETWORK__PROTOCOL__NAME, SpanFields.NETWORK_TRANSPORT],
           fieldAliases: [
             t('Protocol'),
             t('Network transport'),
