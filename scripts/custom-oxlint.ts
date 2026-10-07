@@ -478,7 +478,15 @@ async function baseScan(base: string, allowed: Set<string>, policy: string) {
 
 async function main() {
   const args = process.argv.slice(2);
-  const maintenance = ['check', 'ci', 'enroll', 'prune', 'backlog', 'snapshot'] as const;
+  const maintenance = [
+    'check',
+    'ci',
+    'enroll',
+    'prune',
+    'backlog',
+    'snapshot',
+    'report-scraps',
+  ] as const;
   const command = maintenance.find(action => args[0] === `--${action}`);
   const {values, positionals} = parseArgs({
     args: command ? args.slice(1) : [],
@@ -509,6 +517,7 @@ Put a maintenance flag first. Maintenance always scans all files.
   --backlog [--rule RULE] [--file PATH] [--json]
                           Show unsuppressed findings with optional filters.
   --snapshot              Print live counts in the native suppression format.
+  --report-scraps          Print enabled Scraps rules, stages, and live findings as JSON.
   -h, --help              Show wrapper and native oxlint help.
 
 Native oxlint options:
@@ -622,6 +631,36 @@ Native oxlint options:
       `Rule ${values.rule} is not enrolled`
     );
   }
+  const reporting = command === 'report-scraps';
+  const monitored = new Set<string>();
+  for (const rules of [
+    config.rules,
+    ...(config.overrides ?? []).map(item => item.rules),
+  ]) {
+    for (const [rule, options] of Object.entries(rules ?? {})) {
+      const severity = Array.isArray(options) ? options[0] : options;
+      if (rule.startsWith('@sentry/scraps/') && severity !== 'off' && severity !== 0) {
+        monitored.add(rule);
+      }
+    }
+  }
+  const scanRules = reporting ? monitored : allowed;
+  const reportingRules = (rules: OxlintConfig['rules']) =>
+    Object.fromEntries(
+      Object.entries(rules ?? {})
+        .filter(([rule]) => monitored.has(rule))
+        .map(([rule, options]) => {
+          const severity = Array.isArray(options) ? options[0] : options;
+          return [
+            rule,
+            severity === 'off' || severity === 0
+              ? options
+              : Array.isArray(options)
+                ? ['error', ...options.slice(1)]
+                : 'error',
+          ];
+        })
+    );
   let replacement: Suppressions | undefined;
   await transaction(async (original, updateLease) => {
     const committed =
@@ -639,7 +678,11 @@ Native oxlint options:
       policy,
       JSON.stringify({
         ...config,
-        options: {typeAware: true, reportUnusedDisableDirectives: 'off'},
+        options: {
+          ...config.options,
+          typeAware: true,
+          reportUnusedDisableDirectives: 'off',
+        },
         categories: {
           correctness: 'off',
           suspicious: 'off',
@@ -649,12 +692,14 @@ Native oxlint options:
           restriction: 'off',
           nursery: 'off',
         },
-        rules: incubator.rules,
+        rules: reporting ? reportingRules(config.rules) : incubator.rules,
         overrides: config.overrides?.map(({rules, ...context}) => ({
           ...context,
-          rules: Object.fromEntries(
-            Object.entries(rules ?? {}).filter(([rule]) => allowed.has(rule))
-          ),
+          rules: reporting
+            ? reportingRules(rules)
+            : Object.fromEntries(
+                Object.entries(rules ?? {}).filter(([rule]) => allowed.has(rule))
+              ),
         })),
         jsPlugins: config.jsPlugins?.map(plugin =>
           typeof plugin === 'string'
@@ -664,8 +709,17 @@ Native oxlint options:
       })
     );
     try {
-      const current = await rawScan(root, allowed, policy);
-      if (command === 'backlog') {
+      const current = await rawScan(root, scanRules, policy);
+      if (reporting) {
+        console.log(
+          JSON.stringify({
+            rules: [...monitored]
+              .sort()
+              .map(rule => ({rule, stage: allowed.has(rule) ? 'incubator' : 'enforced'})),
+            findings: current.findings,
+          })
+        );
+      } else if (command === 'backlog') {
         const findings = current.findings.filter(
           item =>
             (!values.rule || item.rule === canonicalRule(values.rule)) &&
