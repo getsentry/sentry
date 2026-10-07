@@ -10,6 +10,7 @@ from sentry.integrations.on_call.metrics import OnCallInteractionType
 from sentry.integrations.opsgenie.metrics import record_event, record_lifecycle_termination_level
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.utils.feature_flags import EventFeatureFlag, get_event_feature_flags
 from sentry.models.group import Group
 from sentry.models.rule import Rule
 from sentry.notifications.types import TEST_NOTIFICATION_ID
@@ -29,30 +30,15 @@ logger = logging.getLogger("sentry.integrations.opsgenie")
 MAX_FEATURE_FLAGS_DETAIL_LENGTH = 4000
 
 
-def get_feature_flags_detail(event: Event | GroupEvent) -> str | None:
+def format_feature_flags_detail(flags: Sequence[EventFeatureFlag]) -> str | None:
     """
-    Format the feature flags evaluated before the event (as recorded by the SDK
-    feature flag integrations in `contexts.flags.values`) for the alert details.
+    Format feature flags as a single Opsgenie/JSM `details` value, e.g.
+    "new-checkout: true, dark-mode: false", truncated to fit the details limit.
     """
-    contexts = event.data.get("contexts") or {}
-    flags_context = contexts.get("flags") or {}
-    values = flags_context.get("values") or []
-    if not isinstance(values, list):
+    if not flags:
         return None
 
-    formatted = []
-    for item in values:
-        if not isinstance(item, dict) or item.get("flag") is None:
-            continue
-        result = item.get("result")
-        if isinstance(result, bool):
-            result = "true" if result else "false"
-        formatted.append(f"{item['flag']}: {result}")
-
-    if not formatted:
-        return None
-
-    detail = "\n".join(formatted)
+    detail = ", ".join(f"{f.flag}: {f.result}" for f in flags)
     if len(detail) > MAX_FEATURE_FLAGS_DETAIL_LENGTH:
         detail = detail[: MAX_FEATURE_FLAGS_DETAIL_LENGTH - 3] + "..."
     return detail
@@ -120,7 +106,7 @@ class OpsgenieClient(ApiClient):
         priority: OpsgeniePriority | None = "P3",
         notification_uuid: str | None = None,
     ):
-        feature_flags = get_feature_flags_detail(event)
+        feature_flags = format_feature_flags_detail(get_event_feature_flags(event))
         feature_flags_context = {"Feature Flags": feature_flags} if feature_flags else {}
 
         payload = {
