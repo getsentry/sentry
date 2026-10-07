@@ -71,7 +71,7 @@ const conversationIds = [CONVERSATION_A, CONVERSATION_B];
 
 function mockConversation(conversationId: string, node: EapSpanNode) {
   const {[SpanFields.GEN_AI_RESPONSE_TEXT]: responseText, ...attributes} =
-    node.attributes;
+    node.attributes ?? {};
   return MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/agents/conversations/${conversationId}/`,
     body: {
