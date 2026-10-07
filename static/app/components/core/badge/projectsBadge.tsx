@@ -18,8 +18,8 @@ type ProjectsBadgeSize = 'md' | 'lg';
  * offset is whatever the frame has left over.
  */
 const SIZES = {
-  md: {frame: 16, tile: 16, stacked: 10.5, radius: '2xs'},
-  lg: {frame: 24, tile: 20, stacked: 16, radius: 'sm'},
+  md: {frame: 16, tile: 16, stacked: 11, radius: '2xs'},
+  lg: {frame: 24, tile: 20, stacked: 16, radius: 'xs'},
 } as const satisfies Record<
   ProjectsBadgeSize,
   {frame: number; radius: ContainerProps['radius']; stacked: number; tile: number}
@@ -29,7 +29,7 @@ export interface ProjectsBadgeProps {
   /**
    * Platform slugs for the project(s) to display.
    * - 0 entries: renders an all-projects or my-projects icon
-   * - 1 entry: renders a single bordered platform icon
+   * - 1 entry: renders a single platform icon in a rounded tile
    * - 2+ entries: renders two stacked platform icons (top-left + bottom-right)
    */
   projectPlatforms: string[];
@@ -45,9 +45,6 @@ export interface ProjectsBadgeProps {
 
 /**
  * One platform's icon, in the rounded tile the spec draws it in.
- *
- * The image is drawn at the tile's full size and positioned a pixel outside
- * the content box, so the border sits over its edge rather than around it.
  */
 function PlatformTile({
   platform,
@@ -61,18 +58,16 @@ function PlatformTile({
 } & Pick<ContainerProps, 'top' | 'left' | 'bottom' | 'right'>) {
   return (
     <Container
+      display="flex"
       position="absolute"
       width={`${size}px`}
       height={`${size}px`}
       overflow="hidden"
       radius={radius}
-      border="muted"
       background="primary"
       {...position}
     >
-      <Container position="absolute" top="-1px" left="-1px">
-        <PlatformIcon platform={platform} size={size} aria-hidden />
-      </Container>
+      <PlatformIcon platform={platform} size={size} aria-hidden />
     </Container>
   );
 }

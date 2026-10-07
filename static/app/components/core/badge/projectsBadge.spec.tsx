@@ -41,8 +41,8 @@ describe('ProjectsBadge', () => {
 
       const [frame, first, second] = boxes(container);
       expect(frame).toMatchObject({width: '16', height: '16'});
-      expect(first).toMatchObject({width: '10.5', top: '0', left: '0', radius: '3'});
-      expect(second).toMatchObject({width: '10.5', top: '5.5', left: '5.5'});
+      expect(first).toMatchObject({width: '11', top: '0', left: '0', radius: '3'});
+      expect(second).toMatchObject({width: '11', top: '5', left: '5'});
     });
 
     it('draws the no-project icon at the full frame', () => {
@@ -61,7 +61,7 @@ describe('ProjectsBadge', () => {
       const [frame, tile] = boxes(container);
       expect(frame).toMatchObject({width: '24', height: '24'});
       // Centred in the frame, which is the spec's 2px on each edge.
-      expect(tile).toMatchObject({width: '20', height: '20', radius: '5'});
+      expect(tile).toMatchObject({width: '20', height: '20', radius: '4'});
     });
 
     it('insets two stacked platforms so the pair spans the frame', () => {
@@ -71,7 +71,7 @@ describe('ProjectsBadge', () => {
 
       const [frame, first, second] = boxes(container);
       expect(frame).toMatchObject({width: '24', height: '24'});
-      expect(first).toMatchObject({width: '16', top: '0', left: '0', radius: '5'});
+      expect(first).toMatchObject({width: '16', top: '0', left: '0', radius: '4'});
       expect(second).toMatchObject({width: '16', top: '8', left: '8'});
     });
 
