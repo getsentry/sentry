@@ -223,8 +223,13 @@ export function SpansTable({
                   handleSortClick={updateSort}
                   sort={direction}
                 >
-                  <Flex align="center" gap="xs" justify={COLUMN_ALIGN_JUSTIFY[align]}>
-                    <Text as="span" size="sm" variant="inherit">
+                  <Flex
+                    align="center"
+                    gap="xs"
+                    justify={COLUMN_ALIGN_JUSTIFY[align]}
+                    minWidth="0"
+                  >
+                    <Text as="span" ellipsis size="sm" variant="inherit">
                       {label}
                     </Text>
                     {pendingFields.has(field) ? (
