@@ -399,8 +399,6 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/shared/groups/$shareId/'
   | '/organizations/$organizationIdOrSlug/shared/issues/$shareId/'
   | '/organizations/$organizationIdOrSlug/shortids/$issueId/'
-  | '/organizations/$organizationIdOrSlug/spans-samples/'
-  | '/organizations/$organizationIdOrSlug/spans/fields/'
   | '/organizations/$organizationIdOrSlug/stats-summary/'
   | '/organizations/$organizationIdOrSlug/stats/'
   | '/organizations/$organizationIdOrSlug/stats_v2/'
