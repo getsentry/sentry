@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, TypedDict, overload
+from typing import Any, TypedDict
 
 import sentry_sdk
 from snuba_sdk import (
@@ -786,26 +786,6 @@ class SnubaQueryBuilder:
         self._alias_to_metric_field = {
             field.alias: field for field in self._metrics_query.select if field.alias is not None
         }
-
-    @overload
-    @staticmethod
-    def generate_snql_for_action_by_fields(
-        metric_action_by_field: MetricOrderByField,
-        use_case_id: UseCaseID,
-        org_id: int,
-        projects: Sequence[Project],
-        is_column: bool = False,
-    ) -> list[OrderBy]: ...
-
-    @overload
-    @staticmethod
-    def generate_snql_for_action_by_fields(
-        metric_action_by_field: MetricActionByField,
-        use_case_id: UseCaseID,
-        org_id: int,
-        projects: Sequence[Project],
-        is_column: bool = False,
-    ) -> Column | AliasedExpression | Function: ...
 
     @staticmethod
     def generate_snql_for_action_by_fields(
