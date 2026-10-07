@@ -17,6 +17,7 @@ import {getDuration} from 'sentry/utils/duration/getDuration';
 import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {
+  getSpanLinkType,
   useTraceItemDetails,
   type TraceItemResponseAttribute,
   type TraceItemResponseLink,
@@ -104,11 +105,8 @@ function findCacheOriginLink(
     return undefined;
   }
   return (
-    links.find(
-      link =>
-        getAttributeValue(link.attributes ?? [], 'sentry.link.type', 'string') ===
-        CACHE_ORIGIN_LINK_TYPE
-    ) ?? (links.length === 1 ? links[0] : undefined)
+    links.find(link => getSpanLinkType(link) === CACHE_ORIGIN_LINK_TYPE) ??
+    (links.length === 1 ? links[0] : undefined)
   );
 }
 
@@ -573,11 +571,10 @@ function CacheWriteLifecycleSection({
       {/*
         TODO(cache): add a "Served" row ("12 reads · 11 hits") between fill
         and expiry. Two ways to count the readers:
-        - Today: cache.get spans with this cache.key in [start, start + ttl].
-          Approximate under sampling.
-        - Exact, once sentry.links is filterable
-          (https://github.com/getsentry/sentry/pull/125741): cache.get spans
-          whose links contain this span's id.
+        - By key: cache.get spans with this cache.key in [start, start + ttl].
+          Also counts reads of other fills of the same key.
+        - By link: `span.op:cache.get sentry.links:*<this span id>*` (#125741).
+          Misses hits without a link. Match only the span id: the JSON is private.
 
         <Timeline.Item
           title={t('Served')}
