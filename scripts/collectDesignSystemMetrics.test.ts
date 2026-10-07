@@ -25,6 +25,7 @@ test('CODEOWNERS uses last match, all owners, ownerless clearing and directory b
 /static/app/**/special?.tsx @special
 /static/app/cleared/
 *.js @javascript
+/static/app/literal.+^$|.tsx @literal
 `);
   assert.deepEqual(ownership.forFile('static/app/page.tsx'), ['@frontend', '@design']);
   assert.deepEqual(ownership.forFile('static/app/special1.tsx'), ['@special']);
@@ -32,7 +33,16 @@ test('CODEOWNERS uses last match, all owners, ownerless clearing and directory b
   assert.deepEqual(ownership.forFile('static/app/cleared/page.tsx'), []);
   assert.deepEqual(ownership.forFile('static/application/page.tsx'), ['@default']);
   assert.deepEqual(ownership.forFile('static/app/file.js'), ['@javascript']);
+  assert.deepEqual(ownership.forFile('static/app/literal.+^$|.tsx'), ['@literal']);
+  assert.deepEqual(ownership.forFile('static/app/literalX.tsx'), [
+    '@frontend',
+    '@design',
+  ]);
   assert.throws(() => codeowners('![abc] @owner'), /Unsupported/);
+  assert.throws(
+    () => codeowners(String.raw`/static/app/foo\bar.tsx @owner`),
+    /Unsupported/
+  );
 });
 
 test('source inventory counts actual bindings, canonical components, Emotion, and overlapping owners', t => {
@@ -157,6 +167,7 @@ export const Page = () => <><Alias/><Alias.Separator/><Layout.Stack/><Button/><L
     zeros.some(
       metric =>
         metric.name === 'design_system.component.uses' &&
+        'component' in metric.attributes &&
         metric.attributes.component === stack.component &&
         metric.value === 0
     )
@@ -209,7 +220,10 @@ test('publication uses real SDK batches and rejects HTTP errors, drops and flush
     makeNodeTransport: (options: Parameters<typeof Sentry.makeNodeTransport>[0]) =>
       Sentry.createTransport(options, ({body}) => {
         requests.push(String(body));
-        return Promise.resolve({statusCode, headers: {}});
+        return Promise.resolve({
+          statusCode,
+          headers: {'x-sentry-rate-limits': null, 'retry-after': null},
+        });
       }),
   };
   await assert.rejects(

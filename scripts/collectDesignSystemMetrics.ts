@@ -107,7 +107,7 @@ export function codeowners(contents: string) {
               ? '[^/]*'
               : character === '?'
                 ? '[^/]'
-                : character.replace(/[.+^$|]/g, '\\$&')
+                : RegExp.escape(character)
           )
           .join('');
       })
