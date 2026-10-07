@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
+from enum import StrEnum
 from typing import Any
 
+import sentry_sdk
 from django.conf import settings
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -13,6 +15,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint
+from sentry.middleware import is_frontend_request
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import collect_user_org_context, enqueue_seer_run
 from sentry.seer.endpoints.trace_explorer_ai_setup import OrganizationTraceExplorerAIPermission
@@ -22,6 +25,20 @@ from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SearchAgentStartRequest, SeerViewerContext
 
 logger = logging.getLogger(__name__)
+
+
+class SearchAgentResultTarget(StrEnum):
+    """Where the caller will use the translated query."""
+
+    UI_SEARCH = "ui_search"
+    AGENT_SEARCH = "agent_search"
+
+
+def infer_result_target(request: Request) -> SearchAgentResultTarget:
+    """Classify web UI requests as ``ui_search`` and all other callers as ``agent_search``."""
+    if is_frontend_request(request):
+        return SearchAgentResultTarget.UI_SEARCH
+    return SearchAgentResultTarget.AGENT_SEARCH
 
 
 class SearchAgentStartSerializer(serializers.Serializer):
@@ -69,6 +86,7 @@ def send_search_agent_start_request(
     cross_event: bool = False,
     reflection_step: bool = False,
     code_mode: bool = False,
+    result_target: SearchAgentResultTarget | None = None,
 ) -> SeerRun:
     """Create the SeerRun mirror and enqueue the outbox that starts the agent in Seer."""
     body = SearchAgentStartRequest(
@@ -92,6 +110,8 @@ def send_search_agent_start_request(
         options["model_name"] = model_name
     if metric_context is not None:
         options["metric_context"] = metric_context
+    if result_target is not None:
+        options["result_target"] = result_target.value
     body["options"] = options
 
     return enqueue_seer_run(
@@ -137,7 +157,8 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
         options = validated_data.get("options") or {}
         model_name = options.get("model_name")
         metric_context = options.get("metric_context")
-        code_mode_toggle = bool(options.get("code_mode"))
+        result_target = infer_result_target(request)
+        sentry_sdk.set_tag("search_agent.result_target", result_target.value)
 
         projects = self.get_projects(
             request, organization, project_ids=set(validated_data["project_ids"])
@@ -201,12 +222,12 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                     organization,
                     actor=request.user,
                 ),
-                code_mode=code_mode_toggle
-                and features.has(
+                code_mode=features.has(
                     "organizations:seer-assisted-query-codemode",
                     organization,
                     actor=request.user,
                 ),
+                result_target=result_target,
             )
             return Response(
                 {

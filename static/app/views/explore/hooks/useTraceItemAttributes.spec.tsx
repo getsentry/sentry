@@ -52,4 +52,18 @@ describe('useTraceItemAttributes', () => {
       expect(result.current.attributes['custom.unique']).toBeUndefined()
     );
   });
+
+  it('marks the default attributes as sent by Sentry', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/trace-items/attributes/',
+      body: [],
+    });
+
+    const {result} = renderHookWithProviders(() =>
+      useLogItemAttributes({projects: [1]}, 'number')
+    );
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.attributes.severity_number?.attributeSource).toBe('sentry');
+  });
 });

@@ -1,5 +1,5 @@
 import {useCallback} from 'react';
-import {useBlocker} from 'react-router-dom';
+import {useBlocker} from 'react-router';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex, Grid} from '@sentry/scraps/layout';

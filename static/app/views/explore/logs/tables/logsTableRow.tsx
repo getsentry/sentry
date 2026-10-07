@@ -9,6 +9,7 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
 
+import {AnsiText} from 'sentry/components/ansiText';
 import {EmptyStreamWrapper} from 'sentry/components/emptyStateWarning';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -308,8 +309,8 @@ export const LogRowContent = memo(function LogRowContentImpl({
   function onPointerUp(event: SyntheticEvent) {
     // do not expand the context menu if...
     if (event.target instanceof Element) {
-      // ... you clicked a button
-      if (isInsideButton(event.target)) {
+      // ... you clicked a button or a dropdown menu
+      if (isInsideButton(event.target) || event.target.closest('[role="menu"]')) {
         return;
       }
 
@@ -618,7 +619,7 @@ export const LogRowContent = memo(function LogRowContentImpl({
         </LogsTableBodyFirstCell>
         {isErrorRow ? (
           <LogErrorLabelCell data-test-id="log-table-cell-error">
-            {String(dataRow[OurLogKnownFieldKey.MESSAGE] ?? '')}
+            <AnsiText>{String(dataRow[OurLogKnownFieldKey.MESSAGE] ?? '')}</AnsiText>
           </LogErrorLabelCell>
         ) : (
           fields?.map((field, index) => {

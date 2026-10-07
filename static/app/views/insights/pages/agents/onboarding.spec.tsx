@@ -129,7 +129,7 @@ describe('Onboarding deployment target', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('link', {name: /manually instrument/i})).toHaveAttribute(
       'href',
-      'https://docs.sentry.io/platforms/javascript/tracing/instrumentation/ai-agents-module-browser/#manual-span-creation'
+      'https://docs.sentry.io/platforms/javascript/guides/node/agent-tracing/manual-instrumentation/'
     );
     expect(screen.getByRole('button', {name: 'Copy instructions'})).toBeInTheDocument();
   });

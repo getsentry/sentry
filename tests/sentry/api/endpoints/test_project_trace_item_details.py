@@ -10,6 +10,7 @@ from sentry_protos.snuba.v1.endpoint_trace_item_details_pb2 import (
 from sentry.api.endpoints.project_trace_item_details import (
     convert_rpc_attribute_to_json,
     serialize_event,
+    serialize_meta,
 )
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.testutils.cases import APITestCase
@@ -147,6 +148,22 @@ def test_convert_rpc_attribute_to_json_exposes_array_with_array_flag() -> None:
             "value": ["assistant output"],
         }
     ]
+
+
+@pytest.mark.parametrize("field_key", ["http.method", "http.request.method"])
+def test_serialize_meta_resolves_deprecated_attribute_names(field_key: str) -> None:
+    result = serialize_meta(
+        [
+            {"name": "http.request.method", "value": {"valStr": "GET"}},
+            {
+                "name": f"sentry._meta.fields.attributes.{field_key}",
+                "value": {"valStr": '{"": {"rem": [["!config", "s"]]}}'},
+            },
+        ],
+        SupportedTraceItemType.SPANS,
+    )
+
+    assert result == {field_key: {"": {"rem": [["!config", "s"]]}}}
 
 
 class TestSerializeEvent:
@@ -303,11 +320,17 @@ class TestInternalConventionVisibilityFiltering:
         assert "sentry.dsc.environment" not in names
         assert "dsc.environment" not in names
 
-    def test_convert_rpc_shows_internal_convention_attributes_when_include_internal(self) -> None:
+    @pytest.mark.parametrize(
+        "visibility",
+        [{"include_internal": True}, {"include_internal_convention_attributes": True}],
+    )
+    def test_convert_rpc_shows_internal_convention_attributes_when_included(
+        self, visibility: dict[str, bool]
+    ) -> None:
         result = convert_rpc_attribute_to_json(
             [self.INTERNAL_ATTR, self.PUBLIC_ATTR],
             SupportedTraceItemType.SPANS,
-            include_internal=True,
+            **visibility,
         )
 
         names = [r["name"] for r in result]

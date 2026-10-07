@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -42,19 +43,18 @@ export function IssueReplayCount({group}: Props) {
         )}
         aria-label={t('replay-count')}
       >
-        <IconPlay size="xs" />
-        {countDisplay}
+        <Flex as="span" align="center" gap="xs">
+          <IconPlay size="xs" />
+          {countDisplay}
+        </Flex>
       </ReplayCountLink>
     </Tooltip>
   );
 }
 
 const ReplayCountLink = styled(Link)`
-  display: inline-flex;
   color: ${p => p.theme.colors.gray500};
   font-size: ${p => p.theme.font.size.sm};
-  gap: 0 ${p => p.theme.space.xs};
-  position: relative;
 
   &:hover {
     color: ${p => p.theme.tokens.interactive.link.accent.hover};

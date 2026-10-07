@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from sentry.integrations.jira_server.actions.form import JiraServerNotifyServiceForm
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.rules.actions import TicketEventAction
@@ -28,6 +27,3 @@ class JiraServerCreateTicketAction(TicketEventAction):
 
     def translate_integration(self, integration: RpcIntegration) -> str:
         return integration.metadata.get("domain_name", integration.name)
-
-    def get_form_instance(self) -> JiraServerNotifyServiceForm:
-        return JiraServerNotifyServiceForm(self.data, integrations=self.get_integrations())

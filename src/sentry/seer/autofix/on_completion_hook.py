@@ -29,9 +29,12 @@ from sentry.seer.autofix.analytics import record_autofix_event
 from sentry.seer.autofix.artifact_schemas import FixabilityAssessment, RootCauseArtifact
 from sentry.seer.autofix.autofix_agent import (
     STEP_CONFIGS,
+    fetch_run_group,
+    get_current_step,
     get_iterations,
     get_latest_iteration_index,
     iteration_repos,
+    resolve_run_group_id,
     should_open_autofix_pr_as_draft,
     trigger_autofix_agent,
     trigger_coding_agent_handoff,
@@ -90,10 +93,8 @@ from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.tasks.seer.pr_iteration import (
-    UnsupportedProviderError,
     _add_comment_reaction,
     _delete_own_comment_eyes_reaction,
-    _resolve_review_comment_threads,
     consume_queued_autofix_feedback,
 )
 from sentry.utils import metrics
@@ -155,29 +156,6 @@ def _stopping_point_from_run(organization: Organization, run_id: int) -> str | N
     )
 
 
-def _group_and_referrer_from_run(
-    organization: Organization, run_id: int
-) -> tuple[int | None, AutofixReferrer | None]:
-    run_context = (
-        SeerAgentRun.objects.filter(
-            run__organization_id=organization.id,
-            run__seer_run_state_id=run_id,
-            source__in=(AUTOFIX_FEATURE_ID, LEGACY_AUTOFIX_FEATURE_ID),
-        )
-        .values("group_id", "extras")
-        .first()
-    )
-    if run_context is None:
-        return None, None
-
-    raw_referrer = (run_context["extras"] or {}).get("referrer")
-    try:
-        referrer = AutofixReferrer(raw_referrer) if isinstance(raw_referrer, str) else None
-    except ValueError:
-        referrer = None
-    return run_context["group_id"], referrer
-
-
 class AutofixOnCompletionHook(AgentOnCompletionHook):
     """
     Hook called when an agent-based autofix run completes.
@@ -222,11 +200,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             )
             return
 
-        group_id, run_referrer = cls._resolve_group_id(organization, run_id, state)
+        group_id, run_referrer = resolve_run_group_id(organization, run_id, state)
 
         # this must run before we null check group id else we won't get the analytics required for pr iteration
         if state.status == "error":
-            current_step, _ = cls._get_current_step(state)
+            current_step, _ = get_current_step(state)
             if current_step == AutofixStep.PR_ITERATION:
                 cls._fail_pr_iteration(organization, run_id, state, group_id)
                 return
@@ -238,7 +216,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             )
             return
 
-        group = cls._fetch_group(organization, run_id, group_id)
+        group = fetch_run_group(organization, run_id, group_id)
         if group is None:
             return
 
@@ -266,7 +244,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 seer_run_state_id=run_id,
             ).update(last_triggered_at=now)
 
-        current_step, _ = cls._get_current_step(state)
+        current_step, _ = get_current_step(state)
         if current_step == AutofixStep.PR_ITERATION:
             log_ctx = cls._iteration_log_context(organization, group, state)
             set_pr_iteration_attributes(
@@ -313,33 +291,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         cls._maybe_continue_pipeline(
             organization, run_id, state, group, fallback_referrer=run_referrer
         )
-
-    @classmethod
-    def _resolve_group_id(
-        cls, organization: Organization, run_id: int, state: SeerRunState
-    ) -> tuple[int | None, AutofixReferrer | None]:
-        """The run's group id, from the run state or the Sentry-side run mirror."""
-        metadata = state.metadata or {}
-        group_id = metadata.get("group_id")
-        mirror_group_id, run_referrer = _group_and_referrer_from_run(organization, run_id)
-        if group_id is None:
-            group_id = mirror_group_id
-        return group_id, run_referrer
-
-    @classmethod
-    def _fetch_group(cls, organization: Organization, run_id: int, group_id: int) -> Group | None:
-        """The run's group, scoped to the organization."""
-        group = Group.objects.filter(id=group_id, project__organization_id=organization.id).first()
-        if group is None:
-            logger.warning(
-                "autofix.on_completion_hook.group_not_found",
-                extra={
-                    "run_id": run_id,
-                    "organization_id": organization.id,
-                    "group_id": group_id,
-                },
-            )
-        return group
 
     @classmethod
     def _iteration_log_context(
@@ -393,7 +344,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         state: SeerRunState,
     ) -> None:
         """Log and count PR-iteration tool calls Seer marked ``is_error``."""
-        current_step, _ = cls._get_current_step(state)
+        current_step, _ = get_current_step(state)
         if current_step != AutofixStep.PR_ITERATION:
             return
 
@@ -476,7 +427,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         if not features.has("organizations:autofix-pr-iteration-manual", organization=organization):
             return outcomes
 
-        current_step, _ = cls._get_current_step(state)
+        current_step, _ = get_current_step(state)
         if current_step != AutofixStep.PR_ITERATION or state.status != "completed":
             return outcomes
 
@@ -509,13 +460,12 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             record("no_pr_comment_sources")
             return outcomes
 
-        # Rate-limit-sensitive orgs skip the extra reaction-delete / resolve API calls.
-        rate_limit_sensitive = is_github_rate_limit_sensitive(organization.slug)
-        delete_eyes = not rate_limit_sensitive
+        changed_repos = iteration_repos(iterations[-1])
+
+        # Rate-limit-sensitive orgs skip the extra reaction-delete API calls.
+        delete_eyes = not is_github_rate_limit_sensitive(organization.slug)
 
         scm_by_repo: dict[str, SourceCodeManager] = {}
-        # Inline review-comment node ids to resolve, grouped by (repo, PR).
-        resolve_by_repo_pr: dict[tuple[str, int], list[str]] = {}
         for source in sources:
             comment_id = source.comment.id
             if comment_id is None:
@@ -566,8 +516,10 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             pr_number = pr_state.pr_number
 
             source_type = source.type
-            # Only top-level PR comments get the :tada:; inline comments resolve below (CW-1688).
-            if source_type == "github-pr-comment":
+            # Inline review comments only get the :tada: if this iteration committed to their repo.
+            if source_type == "github-pr-review-comment" and repo_name not in changed_repos:
+                record("react_skipped_no_changes")
+            else:
                 _add_comment_reaction(
                     scm,
                     source_type=source_type,
@@ -576,12 +528,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     reaction="hooray",
                 )
                 record("reacted")
-            elif source_type == "github-pr-review-comment" and not rate_limit_sensitive:
-                unique_id = getattr(source.comment, "unique_id", None)
-                if unique_id is None:
-                    record("resolve_no_unique_id")
-                else:
-                    resolve_by_repo_pr.setdefault((repo_name, pr_number), []).append(unique_id)
             if delete_eyes:
                 _delete_own_comment_eyes_reaction(
                     scm,
@@ -589,50 +535,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     pr_number=pr_number,
                     comment_id=comment_id,
                 )
-
-        if rate_limit_sensitive and any(
-            source.type == "github-pr-review-comment" for source in sources
-        ):
-            record("resolve_rate_limited")
-
-        for (repo_name, pr_number), unique_ids in resolve_by_repo_pr.items():
-            log_extra = {
-                "run_id": run_id,
-                "organization_id": organization.id,
-                "repo_name": repo_name,
-                "pr_number": pr_number,
-                "comment_count": len(unique_ids),
-            }
-            try:
-                result = _resolve_review_comment_threads(
-                    scm_by_repo[repo_name],
-                    pr_number=pr_number,
-                    comment_unique_ids=unique_ids,
-                )
-            except UnsupportedProviderError:
-                logger.warning(
-                    "autofix.on_completion_hook.completion_reaction.resolve_unsupported_provider",
-                    extra=log_extra,
-                    exc_info=True,
-                )
-                record("resolve_unsupported_provider")
-                continue
-            except Exception:
-                logger.exception(
-                    "autofix.on_completion_hook.completion_reaction.resolve_failed",
-                    extra=log_extra,
-                )
-                record("resolve_failed")
-                continue
-
-            resolve_outcomes = {
-                "resolved": result.resolved,
-                "resolve_skipped_already_resolved": result.already_resolved,
-                "resolve_thread_not_found": result.not_found,
-            }
-            for outcome, amount in resolve_outcomes.items():
-                if amount:
-                    record(outcome, amount)
 
         return outcomes
 
@@ -661,7 +563,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         Determines which step just completed and sends the appropriate webhook event.
         """
-        current_step, current_referrer = cls._get_current_step(state)
+        current_step, current_referrer = get_current_step(state)
         current_referrer = current_referrer or fallback_referrer
 
         seer_run = SeerRun.objects.filter(
@@ -873,35 +775,6 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         }
 
     @classmethod
-    def _get_current_step(
-        cls, state: SeerRunState
-    ) -> tuple[AutofixStep, AutofixReferrer | None] | tuple[None, None]:
-        """Determine which step just completed."""
-        for block in reversed(state.blocks):
-            message = block.message
-            if message.metadata is not None:
-                referrer = message.metadata.get("referrer")
-                if referrer is not None:
-                    try:
-                        autofix_referrer = AutofixReferrer(referrer)
-                    except ValueError:
-                        autofix_referrer = None
-                else:
-                    autofix_referrer = None
-
-                # find the first message with a valid step metadata
-                step = message.metadata.get("step")
-                if step is not None:
-                    try:
-                        autofix_step = AutofixStep(step)
-                    except ValueError:
-                        continue
-
-                    return autofix_step, autofix_referrer
-
-        return None, None
-
-    @classmethod
     def _get_next_step(cls, current_step: AutofixStep) -> AutofixStep | None:
         """Get the next step in the pipeline after the current step."""
         try:
@@ -929,7 +802,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             run_id: The run ID
             state: The current run state
         """
-        current_step, referrer = cls._get_current_step(state)
+        current_step, referrer = get_current_step(state)
         referrer = referrer or fallback_referrer or AutofixReferrer.ON_COMPLETION_HOOK
 
         if current_step is None:

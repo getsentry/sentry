@@ -1,4 +1,4 @@
-import {Link} from 'react-router-dom';
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';

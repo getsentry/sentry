@@ -402,6 +402,9 @@ class Referrer(StrEnum):
     API_INSIGHTS_AGENTS_MODELS_TABLE = "api.insights.agent-monitoring.models-table"
     API_INSIGHTS_AGENTS_TOOLS_TABLE = "api.insights.agent-monitoring.tools-table"
     API_INSIGHTS_AGENTS_TRACE_DRAWER = "api.insights.agent-monitoring.trace-drawer"
+    API_INSIGHTS_AGENTS_TRACE_DRAWER_TOOL_USAGE = (
+        "api.insights.agent-monitoring.trace-drawer-tool-usage"
+    )
     API_INSIGHTS_AGENTS_TRACES_TABLE = "api.insights.agent-monitoring.traces-table"
     API_INSIGHTS_AGENTS_TOKEN_USAGE_WIDGET = "api.insights.agent-monitoring.token-usage-widget"
     API_INSIGHTS_AGENTS_TOKEN_COST_WIDGET = "api.insights.agent-monitoring.token-cost-widget"
@@ -416,6 +419,7 @@ class Referrer(StrEnum):
     API_INSIGHTS_AGENTS_ONBOARDING = "api.insights.agent-monitoring.onboarding"
 
     # MCP (Model Context Protocol)
+    API_INSIGHTS_MCP_ONBOARDING = "api.insights.mcp.onboarding"
     API_INSIGHTS_MCP_PROMPT_DURATION_WIDGET = "api.insights.mcp.prompt-duration-widget"
     API_INSIGHTS_MCP_PROMPT_ERROR_RATE_WIDGET = "api.insights.mcp.prompt-error-rate-widget"
     API_INSIGHTS_MCP_PROMPT_TABLE = "api.insights.mcp.prompt-table"
@@ -622,6 +626,7 @@ class Referrer(StrEnum):
     API_TRACE_VIEW_GET_PARENTS = "api.trace-view.get-parents"
     API_TRACE_VIEW_GET_OCCURRENCE_IDS = "api.trace-view.get-occurrence-ids"
     API_TRACE_VIEW_LINKED_TRACES = "api.trace-view.linked-traces"
+    API_TRACE_VIEW_CACHE_ORIGIN = "api.trace-view.cache-origin"
     API_TRENDS_GET_EVENT_STATS = "api.trends.get-event-stats"
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS = "api.trends.get-event-statsv2.top-events"
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS_PRIMARY = (
