@@ -119,3 +119,25 @@ class InsightsStarredSegmentTest(APITestCase, SnubaTestCase):
             assert InsightsStarredSegment.objects.filter(
                 project_id=other_project.id,
             ).exists()
+
+    def test_delete_with_query_params(self) -> None:
+        with self.feature(self.feature_name):
+            segment_name = "my_segment"
+            response = self.client.post(
+                self.url, data={"segment_name": segment_name, "project_id": self.project_ids[0]}
+            )
+            assert response.status_code == 200, response.content
+
+            response = self.client.delete(
+                f"{self.url}?segment_name={segment_name}&project_id={self.project_ids[0]}"
+            )
+            assert response.status_code == 200, response.content
+
+            assert not InsightsStarredSegment.objects.filter(
+                segment_name=segment_name,
+            ).exists()
+
+    def test_delete_without_params(self) -> None:
+        with self.feature(self.feature_name):
+            response = self.client.delete(self.url)
+            assert response.status_code == 400
