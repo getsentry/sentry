@@ -93,10 +93,14 @@ function ConversationsLandingHeader() {
 
   if (!hasSavedQuery) {
     return (
-      <TopBar.Slot name="title">
-        {CONVERSATIONS_LANDING_TITLE}
-        <FeatureBadge type="new" />
-      </TopBar.Slot>
+      <TopBar.Slot
+        name="breadcrumbs"
+        title={{
+          type: 'page-title',
+          label: CONVERSATIONS_LANDING_TITLE,
+          trailingActions: {type: 'badge', element: <FeatureBadge type="new" />},
+        }}
+      />
     );
   }
 

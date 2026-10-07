@@ -23,6 +23,7 @@ import {orgNeedsSeerTrial} from 'sentry/utils/seer/orgNeedsSeerTrial';
 import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import {hasAccessToSubscriptionOverview} from 'getsentry/utils/billing';
@@ -74,6 +75,7 @@ export default function SeerAutomationTrial() {
 
   return (
     <AnalyticsArea name="trial">
+      <BreadcrumbTitle title={t('Seer')} />
       <Flex justify="center">
         <HeroImage src={seerConfigMain} aspectRatio="1119/526" alt="Seer hero image" />
       </Flex>
