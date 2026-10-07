@@ -153,7 +153,7 @@ test('override-only rules are enrolled with editor warnings and scoped CLI error
     ],
   }`;
   const config = readFileSync(path.join(root, 'oxlint.config.ts'), 'utf8').replace(
-    'export const incubator = defineConfig({\n  rules: {},\n  overrides: [],\n});',
+    /^export const incubator = defineConfig\(\{[\s\S]+?^\}\);/m,
     `export const incubator = defineConfig(${registry});`
   );
   write('oxlint.config.ts', config);
