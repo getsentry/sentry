@@ -19,6 +19,7 @@ from sentry.auth.services.access.service import access_service
 from sentry.auth.services.auth import AuthenticatedToken, RpcAuthState, RpcMemberSsoState
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import (
+    SUPERUSER_READONLY_SCOPES,
     Superuser,
     get_superuser_access_expiry,
     get_superuser_scopes,
@@ -44,6 +45,7 @@ from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
 from sentry.seer.agent_token import is_agent_auth
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.types.superuser import SuperuserAccess
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -1014,10 +1016,7 @@ def from_request_org_and_scopes(
     Note that `scopes` is usually None because request.auth is not set at `get_authorization_header`
     when the request is made from the frontend using cookies
     """
-    if (
-        isinstance(request.auth, AuthenticatedToken)
-        and request.auth.superuser_access_expires_at is not None
-    ):
+    if isinstance(request.auth, AuthenticatedToken) and request.auth.superuser is not None:
         if rpc_user_org_context is None:
             return DEFAULT
         return from_superuser_access(request.auth, rpc_user_org_context)
@@ -1064,6 +1063,7 @@ def from_request_org_and_scopes(
         )
 
         superuser_scopes = get_superuser_scopes(auth_state, rpc_user_org_context)
+        superuser_read_only = superuser_scopes <= SUPERUSER_READONLY_SCOPES
         if scopes:
             superuser_scopes = superuser_scopes.union(set(scopes))
         if member and member.scopes:
@@ -1075,7 +1075,7 @@ def from_request_org_and_scopes(
                 set_viewer_context_superuser(
                     user_id=request.user.id,
                     organization_id=rpc_user_org_context.organization.id,
-                    superuser_access_expires_at=expires_at,
+                    superuser=SuperuserAccess(expires_at=expires_at, read_only=superuser_read_only),
                 )
 
         return ApiBackedOrganizationGlobalAccess(
@@ -1144,7 +1144,7 @@ def from_request(
     request: Request, organization: Organization | None = None, scopes: Iterable[str] | None = None
 ) -> Access:
     if isinstance(request.auth, AuthenticatedToken) and (
-        is_agent_auth(request.auth) or request.auth.superuser_access_expires_at is not None
+        is_agent_auth(request.auth) or request.auth.superuser is not None
     ):
         if organization is None:
             return DEFAULT
@@ -1316,7 +1316,7 @@ def from_rpc_member(
 
 
 def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
-    if isinstance(auth, AuthenticatedToken) and auth.superuser_access_expires_at is not None:
+    if isinstance(auth, AuthenticatedToken) and auth.superuser is not None:
         context = organization_service.get_organization_by_id(
             id=organization.id, user_id=auth.user_id
         )
@@ -1348,7 +1348,7 @@ def from_auth(auth: AuthenticatedToken, organization: Organization) -> Access:
 def from_rpc_auth(
     auth: AuthenticatedToken, rpc_user_org_context: RpcUserOrganizationContext
 ) -> Access:
-    if isinstance(auth, AuthenticatedToken) and auth.superuser_access_expires_at is not None:
+    if isinstance(auth, AuthenticatedToken) and auth.superuser is not None:
         return from_superuser_access(auth, rpc_user_org_context)
     if is_system_auth(auth):
         return SystemAccess()
@@ -1398,7 +1398,7 @@ def from_superuser_access(
     auth: AuthenticatedToken, rpc_user_org_context: RpcUserOrganizationContext
 ) -> Access:
     if (
-        auth.superuser_access_expires_at is None
+        auth.superuser is None
         or auth.organization_id != rpc_user_org_context.organization.id
         or auth.user_id != rpc_user_org_context.user_id
     ):
@@ -1407,9 +1407,7 @@ def from_superuser_access(
     user = users[0] if users else None
     if user is None:
         return DEFAULT
-    delegated = resolve_superuser_access(
-        auth.superuser_access_expires_at, user, rpc_user_org_context
-    )
+    delegated = resolve_superuser_access(auth.superuser, user, rpc_user_org_context)
     if delegated is None:
         return DEFAULT
     scopes, _ = delegated

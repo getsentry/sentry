@@ -139,7 +139,7 @@ def _resolve_viewer_context(
             user_id=user_id,
             project_id=None,
             token=None,
-            superuser_access_expires_at=None,
+            superuser=None,
         )
     return replace(vc, organization_id=org_id, user_id=user_id)
 

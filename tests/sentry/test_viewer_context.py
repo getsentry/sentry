@@ -7,6 +7,7 @@ from unittest import mock
 
 import pytest
 
+from sentry.types.superuser import SuperuserAccess
 from sentry.viewer_context import (
     ActorType,
     ViewerContext,
@@ -26,8 +27,25 @@ class TestActorType:
 
 
 class TestViewerContext:
+    @pytest.mark.parametrize(
+        "superuser",
+        [
+            {"expires_at": True, "read_only": True},
+            {"expires_at": 123, "read_only": "false"},
+            {"expires_at": 123},
+            "invalid",
+        ],
+    )
+    def test_invalid_superuser_claim(self, superuser):
+        with pytest.raises(ValueError):
+            ViewerContext.deserialize({"superuser": superuser})
+
     def test_superuser_access_roundtrip_and_org_change(self):
-        ctx = ViewerContext(user_id=42, organization_id=10, superuser_access_expires_at=1234567890)
+        ctx = ViewerContext(
+            user_id=42,
+            organization_id=10,
+            superuser=SuperuserAccess(expires_at=1234567890, read_only=True),
+        )
         assert ViewerContext.deserialize(ctx.serialize()) == ctx
         assert "1234567890" not in repr(ctx)
         with viewer_context_scope(ctx):
@@ -36,7 +54,7 @@ class TestViewerContext:
             set_viewer_context_organization(11)
             changed = get_viewer_context()
             assert changed is not None
-            assert changed.superuser_access_expires_at is None
+            assert changed.superuser is None
 
     def test_defaults(self):
         ctx = ViewerContext()

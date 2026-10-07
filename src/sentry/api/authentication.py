@@ -980,7 +980,7 @@ class ViewerContextAuthentication(BaseAuthentication):
         # avoid requiring browser-session SSO state on service callbacks.
         setattr(request, "user_from_viewer_context", True)
 
-        if vc.superuser_access_expires_at is not None:
+        if vc.superuser is not None:
             org_context = (
                 organization_service.get_organization_by_id(
                     id=vc.organization_id,
@@ -992,7 +992,7 @@ class ViewerContextAuthentication(BaseAuthentication):
                 else None
             )
             delegated = (
-                resolve_superuser_access(vc.superuser_access_expires_at, user, org_context)
+                resolve_superuser_access(vc.superuser, user, org_context)
                 if org_context is not None
                 else None
             )
@@ -1004,7 +1004,7 @@ class ViewerContextAuthentication(BaseAuthentication):
                 user_id=user.id,
                 organization_id=vc.organization_id,
                 scopes=sorted(scopes),
-                superuser_access_expires_at=vc.superuser_access_expires_at,
+                superuser=vc.superuser,
             )
             # Org-bound access must not enable global staff/superuser bypasses.
             user = user.copy(

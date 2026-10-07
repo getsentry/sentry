@@ -381,7 +381,7 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
                 perm.has_object_permission(drf_request, APIView(), self.org)
             ctx = get_viewer_context()
             assert ctx is not None
-            assert ctx.superuser_access_expires_at is None
+            assert ctx.superuser is None
             expiry.assert_not_called()
 
     @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
@@ -400,7 +400,7 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
             assert perm.has_object_permission(drf_request, APIView(), self.org)
             ctx = get_viewer_context()
             assert ctx is not None
-            assert ctx.superuser_access_expires_at is None
+            assert ctx.superuser is None
             expiry.assert_not_called()
 
     @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)
@@ -418,7 +418,8 @@ class OrganizationPermissionTest(PermissionBaseTestCase):
             ctx = get_viewer_context()
             assert ctx is not None
             assert ctx.organization_id == self.org.id
-            assert ctx.superuser_access_expires_at == 123
+            assert ctx.superuser is not None
+            assert ctx.superuser.expires_at == 123
             assert perm.has_object_permission(drf_request, APIView(), self.org)
 
     @override_settings(SENTRY_SELF_HOSTED=False, VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON=True)

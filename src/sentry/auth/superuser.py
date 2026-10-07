@@ -36,6 +36,7 @@ from sentry.data_secrecy.logic import should_allow_superuser_access
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcUserOrganizationContext
 from sentry.types.request import _HttpRequestWithUser, _RequestWithUser
+from sentry.types.superuser import SUPERUSER_ACCESS_TTL, SuperuserAccess
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
@@ -579,9 +580,6 @@ class Superuser(ElevatedMode):
             response.delete_cookie(COOKIE_NAME)
 
 
-SUPERUSER_ACCESS_TTL = timedelta(minutes=5)
-
-
 def get_superuser_access_expiry(su: Superuser, organization_id: int) -> int | None:
     """Bound an approved superuser session for ViewerContext propagation."""
     data = su.get_session_data()
@@ -597,16 +595,15 @@ def get_superuser_access_expiry(su: Superuser, organization_id: int) -> int | No
 
 
 def resolve_superuser_access(
-    expires_at: int, user: RpcUser, org_context: RpcUserOrganizationContext
+    superuser: SuperuserAccess, user: RpcUser, org_context: RpcUserOrganizationContext
 ) -> tuple[set[str], datetime] | None:
     """Validate expiry and current user/customer policy."""
     if not user.is_active or not user.is_superuser or user.is_suspended:
         return None
     try:
-        if type(expires_at) is not int:
-            return None
-        expires = datetime.fromtimestamp(expires_at, timezone.utc)
-        if expires <= django_timezone.now():
+        expires = datetime.fromtimestamp(superuser.expires_at, timezone.utc)
+        now = django_timezone.now()
+        if expires <= now or expires > now + SUPERUSER_ACCESS_TTL:
             return None
         scopes = (
             get_superuser_scopes(
