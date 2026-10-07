@@ -11,7 +11,7 @@ import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
-import {GridTable} from 'sentry/components/tables/gridTable';
+import {DataGridTable} from 'sentry/components/tables/dataGridTable';
 import {IconProfiling} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
@@ -456,7 +456,7 @@ export function EventsTable({
                             totalEventsCount,
                           })
                         : null}
-                      <GridTable
+                      <DataGridTable
                         isLoading={
                           isTotalEventsLoading ||
                           isDiscoverQueryLoading ||

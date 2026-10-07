@@ -5,8 +5,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {DataGridTable} from 'sentry/components/tables/dataGridTable';
 import {getNextSort} from 'sentry/components/tables/getNextSort';
-import {GridTable} from 'sentry/components/tables/gridTable';
 import {IconStar} from 'sentry/icons';
 import {getSortField} from 'sentry/utils/dashboards/issueFieldRenderers';
 import {defined} from 'sentry/utils/defined';
@@ -256,9 +256,9 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
     }));
 
   return (
-    <GridTable
+    <DataGridTable
       data={data}
-      // GridTable needs name, but this functionality is replaced by aliases
+      // DataGridTable needs name, but this functionality is replaced by aliases
       columnOrder={columnOrder.map(column => ({...column, name: column.key}))}
       grid={{
         staticColumnWidths: getStaticColumnWidths(columnOrder, aliases),
@@ -401,7 +401,7 @@ TableWidgetVisualization.LoadingPlaceholder = function ({
 }) {
   const columnsWithName = columns?.map(column => ({...column, name: column.key})) ?? [];
   return (
-    <GridTable
+    <DataGridTable
       isLoading
       columnOrder={columnsWithName}
       data={[]}

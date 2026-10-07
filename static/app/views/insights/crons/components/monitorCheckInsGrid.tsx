@@ -1,6 +1,9 @@
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
-import {GridTable, type GridColumnOrder} from 'sentry/components/tables/gridTable';
+import {
+  DataGridTable,
+  type GridColumnOrder,
+} from 'sentry/components/tables/dataGridTable';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {CheckIn, CheckInCellKey} from 'sentry/views/insights/crons/types';
@@ -20,7 +23,7 @@ export function MonitorCheckInsGrid({checkIns, isLoading, project, hasMultiEnv}:
     : [];
 
   return (
-    <GridTable<CheckIn, GridColumnOrder<CheckInCellKey>>
+    <DataGridTable<CheckIn, GridColumnOrder<CheckInCellKey>>
       isLoading={isLoading}
       emptyMessage={t('No check-ins have been recorded for this time period.')}
       fit="max-content"

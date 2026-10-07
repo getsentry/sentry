@@ -27,10 +27,10 @@ import {
   prepareInputValueForSaving,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
 import {
-  GridTable,
+  DataGridTable,
   type GridColumnHeader,
   type GridColumnOrder,
-} from 'sentry/components/tables/gridTable';
+} from 'sentry/components/tables/dataGridTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -326,7 +326,7 @@ export function TracesTable({
     : {};
 
   const tableComponent = (
-    <GridTable
+    <DataGridTable
       isLoading={tracesRequest.isPending}
       error={tracesRequest.error}
       data={tableData}

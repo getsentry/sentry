@@ -24,7 +24,10 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SearchBar} from 'sentry/components/searchBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {GridTable, type GridColumnOrder} from 'sentry/components/tables/gridTable';
+import {
+  DataGridTable,
+  type GridColumnOrder,
+} from 'sentry/components/tables/dataGridTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {IconStar} from 'sentry/icons';
 import {IconEllipsis} from 'sentry/icons/iconEllipsis';
@@ -297,7 +300,7 @@ export function InvestigationsPage() {
                   />
                 </Grid>
                 <TableWrapper>
-                  <GridTable
+                  <DataGridTable
                     data={investigations}
                     columnOrder={COLUMNS}
                     grid={{

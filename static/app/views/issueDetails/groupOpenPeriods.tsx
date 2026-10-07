@@ -7,7 +7,10 @@ import {Flex} from '@sentry/scraps/layout';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {GridTable, type GridColumnOrder} from 'sentry/components/tables/gridTable';
+import {
+  DataGridTable,
+  type GridColumnOrder,
+} from 'sentry/components/tables/dataGridTable';
 import {IconSeer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {GroupOpenPeriodActivity} from 'sentry/types/group';
@@ -167,7 +170,7 @@ function IssueOpenPeriodsList() {
         tableUnits: t('open periods'),
       }}
     >
-      <GridTable
+      <DataGridTable
         isLoading={isPending}
         data={data}
         error={error}

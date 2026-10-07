@@ -1,11 +1,11 @@
 import type {Location} from 'history';
 
-import {getNextSort} from 'sentry/components/tables/getNextSort';
 import type {
   ColumnAlign,
   GridColumnHeader,
   GridColumnSort,
-} from 'sentry/components/tables/gridTable';
+} from 'sentry/components/tables/dataGridTable';
+import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {encodeSort} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {

@@ -1,6 +1,6 @@
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
-import type {GridColumnHeader} from 'sentry/components/tables/gridTable';
+import type {GridColumnHeader} from 'sentry/components/tables/dataGridTable';
 import {t} from 'sentry/locale';
 import type {SpanResponse} from 'sentry/views/insights/types';
 

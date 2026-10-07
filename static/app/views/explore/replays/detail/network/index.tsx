@@ -10,10 +10,10 @@ import {
   useJumpButtons,
   type VisibleRange,
 } from 'sentry/components/replays/useJumpButtons';
+import {GridTable} from 'sentry/components/replays/virtualizedGrid/gridTable';
 import {OverflowHidden} from 'sentry/components/replays/virtualizedGrid/overflowHidden';
 import {SplitPanel} from 'sentry/components/replays/virtualizedGrid/splitPanel';
 import {useDetailsSplit} from 'sentry/components/replays/virtualizedGrid/useDetailsSplit';
-import {VirtualizedGridContainer} from 'sentry/components/replays/virtualizedGrid/virtualizedGridContainer';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
@@ -158,10 +158,7 @@ export function NetworkList() {
       <FilterLoadingIndicator isLoading={!replay}>
         <NetworkFilters networkFrames={networkFrames} {...filterProps} />
       </FilterLoadingIndicator>
-      <VirtualizedGridContainer
-        ref={containerRef}
-        data-test-id="replay-details-network-tab"
-      >
+      <GridTable ref={containerRef} data-test-id="replay-details-network-tab">
         <SplitPanel
           style={{
             gridTemplateRows: splitSize === undefined ? '1fr' : `1fr auto ${splitSize}px`,
@@ -298,7 +295,7 @@ export function NetworkList() {
             startTimestampMs={startTimestampMs}
           />
         </SplitPanel>
-      </VirtualizedGridContainer>
+      </GridTable>
     </Stack>
   );
 }

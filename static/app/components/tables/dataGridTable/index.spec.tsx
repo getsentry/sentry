@@ -1,7 +1,10 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {getEmotionRules} from 'sentry-test/utils';
 
-import {GridTable, type GridColumnOrder} from 'sentry/components/tables/gridTable';
+import {
+  DataGridTable,
+  type GridColumnOrder,
+} from 'sentry/components/tables/dataGridTable';
 
 type Row = {count: number; name: string};
 
@@ -12,10 +15,10 @@ const COLUMN_ORDER: Array<GridColumnOrder<keyof Row>> = [
   {key: 'count', name: 'Count'},
 ];
 
-describe('GridTable', () => {
+describe('DataGridTable', () => {
   it('announces descending when a column is sorted descending', () => {
     render(
-      <GridTable
+      <DataGridTable
         columnOrder={COLUMN_ORDER}
         data={DATA}
         grid={{
@@ -37,7 +40,7 @@ describe('GridTable', () => {
 
   it('announces ascending when a column is sorted ascending', () => {
     render(
-      <GridTable
+      <DataGridTable
         columnOrder={COLUMN_ORDER}
         data={DATA}
         grid={{
@@ -55,7 +58,7 @@ describe('GridTable', () => {
   });
 
   it('announces no sort when the table is unsorted', () => {
-    render(<GridTable columnOrder={COLUMN_ORDER} data={DATA} grid={{}} />);
+    render(<DataGridTable columnOrder={COLUMN_ORDER} data={DATA} grid={{}} />);
 
     expect(screen.getByRole('columnheader', {name: 'Count'})).not.toHaveAttribute(
       'aria-sort'
@@ -63,14 +66,14 @@ describe('GridTable', () => {
   });
 
   it('renders resize handles for every column but the last when resizable', () => {
-    render(<GridTable columnOrder={COLUMN_ORDER} data={DATA} grid={{}} />);
+    render(<DataGridTable columnOrder={COLUMN_ORDER} data={DATA} grid={{}} />);
 
     expect(screen.getAllByRole('separator')).toHaveLength(1);
   });
 
   it('sizes unsized columns to their content when fit to max content', () => {
     render(
-      <GridTable columnOrder={COLUMN_ORDER} data={DATA} fit="max-content" grid={{}} />
+      <DataGridTable columnOrder={COLUMN_ORDER} data={DATA} fit="max-content" grid={{}} />
     );
 
     expect(screen.getByRole('table')).toHaveStyle({
@@ -79,7 +82,7 @@ describe('GridTable', () => {
   });
 
   it('stretches body cell content across the cell', () => {
-    render(<GridTable columnOrder={COLUMN_ORDER} data={DATA} grid={{}} />);
+    render(<DataGridTable columnOrder={COLUMN_ORDER} data={DATA} grid={{}} />);
 
     const rules = getEmotionRules(screen.getByRole('cell', {name: 'first'})).join('');
 

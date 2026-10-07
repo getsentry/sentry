@@ -66,7 +66,7 @@ export default Storybook.story('SimpleTable', story => {
         <p>
           The <Storybook.JSXNode name="SimpleTable" /> component composes tables out of
           rows and cells. To configure one from a list of columns and renderers instead,
-          use <Storybook.JSXNode name="GridTable" />.
+          use <Storybook.JSXNode name="DataGridTable" />.
         </p>
 
         <p>
