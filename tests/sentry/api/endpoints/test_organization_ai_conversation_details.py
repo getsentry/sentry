@@ -1075,6 +1075,8 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
         assert len(response.data["spans"]) == 1
         expected_stats = {
             "endTimestamp": int(now.timestamp() * 1000),
+            "errors": 1,
+            "errorToolNames": ["database"],
             "inputTokens": 190,
             "llmCalls": 2,
             "outputTokens": 110,
@@ -1185,7 +1187,6 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             timestamp=now - timedelta(seconds=1),
             op="gen_ai.chat",
             operation_type="ai_client",
-            status="error",
             trace_id=trace_id,
         )
         span_id = span["span_id"]
@@ -1200,6 +1201,7 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
 
         response = self.do_request(conversation_id, query)
         assert response.status_code == 200
+        assert response.data["stats"]["errors"] == 0
         assert len(response.data["spans"]) == 1
 
         span_data = response.data["spans"][0]
