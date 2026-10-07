@@ -33,6 +33,11 @@ MAX_BUNDLES_QUERY = 5
 # A value of 3 means that the third upload will trigger indexing and backfill.
 INDEXING_THRESHOLD = 3
 
+# The maximum number of active and of idle bundles that the URL lookup considers when
+# `sourcemaps.artifact-bundles.url-lookup.max-index-rows` is set. This bounds the queries that
+# pick the bundles to scan; the row budget usually stops earlier.
+URL_LOOKUP_MAX_CANDIDATE_BUNDLES = 1000
+
 
 # We want to keep the bundle as being indexed for 600 seconds = 10 minutes. We might need to revise this number and
 # optimize it based on the time taken to perform the indexing (on average).
@@ -412,21 +417,98 @@ def get_artifact_bundles_containing_debug_id(
     )
 
 
+def get_url_lookup_candidates(
+    project: Project, release_name: str, dist_name: str
+) -> list[int] | None:
+    """
+    Returns the ids of the bundles whose files the URL lookup should scan, or `None` to scan
+    every bundle in the release.
+
+    The URL lookup checks every `ArtifactBundleIndex` row of the bundles it scans, whether
+    the file is found or not, and some releases have millions of them. When
+    `sourcemaps.artifact-bundles.url-lookup.max-index-rows` is set, that budget is spent on
+    the active bundles first, those uploaded or renewed (`date_added`) within the renewal
+    threshold plus a margin, newest first, and then on the remaining bundles, newest first.
+    A release with fewer indexed files than the budget, and fewer active and fewer idle
+    bundles than `URL_LOOKUP_MAX_CANDIDATE_BUNDLES`, is still scanned completely.
+
+    A bundle that is in use is renewed when a lookup returns it, so it stays active. Lookups
+    of bundles beyond the budget can no longer find them by URL.
+    """
+    max_index_rows = options.get("sourcemaps.artifact-bundles.url-lookup.max-index-rows")
+    if max_index_rows <= 0:
+        return None
+
+    active_days = options.get("system.debug-files-renewal-age-threshold-days") + options.get(
+        "sourcemaps.artifact-bundles.url-lookup.active-margin-days"
+    )
+    active_since = timezone.now() - timedelta(days=active_days)
+
+    release_bundles = ArtifactBundle.objects.filter(
+        organization_id=project.organization_id,
+        releaseartifactbundle__organization_id=project.organization_id,
+        releaseartifactbundle__release_name=release_name,
+        releaseartifactbundle__dist_name=dist_name,
+        projectartifactbundle__project_id=project.id,
+    )
+
+    # Using a dict to keep the order and drop bundles repeated by duplicate link rows.
+    candidates: dict[int, None] = {}
+    index_rows = 0
+    truncated = False
+    for bundles in (
+        release_bundles.filter(date_added__gte=active_since),
+        release_bundles.filter(date_added__lt=active_since),
+    ):
+        rows = list(
+            bundles.values_list("id", "artifact_count").order_by("-id")[
+                :URL_LOOKUP_MAX_CANDIDATE_BUNDLES
+            ]
+        )
+        for bundle_id, artifact_count in rows:
+            if bundle_id in candidates:
+                continue
+            # We always scan at least one bundle, even if it alone exceeds the budget.
+            if candidates and index_rows + artifact_count > max_index_rows:
+                truncated = True
+                break
+            candidates[bundle_id] = None
+            index_rows += artifact_count
+        if truncated or len(rows) == URL_LOOKUP_MAX_CANDIDATE_BUNDLES:
+            # Either the budget is spent, or this group has more bundles than we looked at,
+            # and those come before any bundle of the next group.
+            truncated = True
+            break
+
+    metrics.distribution("artifact_bundle_url_lookup.index_rows", index_rows)
+    metrics.incr(
+        "artifact_bundle_url_lookup.candidates",
+        tags={"truncated": "true" if truncated else "false"},
+    )
+    return list(candidates)
+
+
 def get_artifact_bundles_containing_url(
     project: Project, release_name: str, dist_name: str, url: str
 ) -> set[tuple[int, datetime]]:
     """
-    Returns the most recently uploaded bundle containing a file matching the `release`, `dist` and `url`.
+    Returns the most recently uploaded bundles containing a file matching the `release`, `dist` and `url`.
     """
-    return set(
-        ArtifactBundle.objects.filter(
-            Exists(
-                ArtifactBundleIndex.objects.filter(
-                    artifact_bundle_id=OuterRef("pk"),
-                    organization_id=project.organization.id,
-                    url__icontains=url,
-                )
-            ),
+    contains_url = Exists(
+        ArtifactBundleIndex.objects.filter(
+            artifact_bundle_id=OuterRef("pk"),
+            organization_id=project.organization.id,
+            url__icontains=url,
+        )
+    )
+
+    candidates = get_url_lookup_candidates(project, release_name, dist_name)
+    if candidates is not None:
+        # The candidates already belong to the project, release and dist.
+        bundles = ArtifactBundle.objects.filter(contains_url, id__in=candidates)
+    else:
+        bundles = ArtifactBundle.objects.filter(
+            contains_url,
             Exists(
                 ProjectArtifactBundle.objects.filter(
                     artifact_bundle_id=OuterRef("pk"),
@@ -442,8 +524,11 @@ def get_artifact_bundles_containing_url(
                 )
             ),
         )
-        .values_list("id", "date_added")
-        .order_by("-date_last_modified", "-id")[:MAX_BUNDLES_QUERY]
+
+    return set(
+        bundles.values_list("id", "date_added").order_by("-date_last_modified", "-id")[
+            :MAX_BUNDLES_QUERY
+        ]
     )
 
 

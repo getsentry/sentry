@@ -5,6 +5,15 @@ import type {ApiResult} from 'sentry/types/api';
 import type {ParntershipAgreementType} from './overrides';
 import type {User} from './user';
 
+export type PreloadRequestName = 'organization' | 'projects' | 'teams';
+
+export interface PreloadRequestResult {
+  durationMs: number;
+  outcome: 'success' | 'error';
+  errorName?: string;
+  status?: number;
+}
+
 export enum SentryInitRenderReactComponent {
   SETUP_WIZARD = 'SetupWizard',
   WEB_AUTHN_ASSSERT = 'WebAuthnAssert',
@@ -92,13 +101,20 @@ declare global {
      */
     __sentry_preload?: {
       orgSlug?: string;
-      organization?: Promise<ApiResult | null>;
+      organization?: Promise<ApiResult>;
       organization_fallback?: Promise<ApiResult>;
-      projects?: Promise<ApiResult | null>;
+      projects?: Promise<ApiResult>;
       projects_fallback?: Promise<ApiResult>;
-      teams?: Promise<ApiResult | null>;
+      teams?: Promise<ApiResult>;
       teams_fallback?: Promise<ApiResult>;
     };
+    /**
+     * Outcomes of the requests in `__sentry_preload`, recorded before the SDK
+     * is initialized so they can be reported as metrics afterwards.
+     */
+    __sentry_preload_results?: Partial<
+      Record<PreloadRequestName, Promise<PreloadRequestResult>>
+    >;
     /**
      * Set to true if adblock could be installed.
      * See sentry/js/ads.js for how this global is disabled.

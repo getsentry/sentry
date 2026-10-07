@@ -15,6 +15,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import * as useMetricTraceDetailModule from 'sentry/views/explore/metrics/hooks/useMetricTraceDetail';
 import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
@@ -33,6 +34,11 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+function toDroppedEvent(annotation: Annotation) {
+  const {eventCount, ...bucket} = annotation;
+  return {...bucket, count: eventCount};
+}
 
 const TRACE_METRIC_FIXTURE_DATE = new Date('2025-04-03T15:50:10.000Z');
 
@@ -205,14 +211,15 @@ describe('MetricPanel', () => {
   describe('dropped data layer', () => {
     function mockDroppedData() {
       return MockApiClient.addMockResponse({
-        url: `/organizations/${organization.slug}/events-timeseries/`,
+        url: `/organizations/${organization.slug}/events-dropped/`,
         method: 'GET',
         match: [
           MockApiClient.matchQuery({referrer: 'api.explore.dropped-data-annotations'}),
         ],
         body: {
-          timeSeries: [],
-          meta: {droppedAnnotations: [AnnotationFixture()], acceptedAnnotations: []},
+          meta: {dataset: 'tracemetrics', start: 0, end: 0, interval: 0},
+          droppedEvents: [toDroppedEvent(AnnotationFixture())],
+          acceptedEvents: [],
         },
       });
     }
