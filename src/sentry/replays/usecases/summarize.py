@@ -297,18 +297,18 @@ def generate_summary_logs(
         events = json.loads(segment.tobytes().decode("utf-8"))
         for event in events:
             event_type = which(event)
-            timestamp = get_replay_event_timestamp_ms(event, event_type)
+            timestamp_ms = get_replay_event_timestamp_ms(event, event_type)
 
             # Events without a usable timestamp can't be placed relative to the replay start or
             # to errors, so they are kept in segment order rather than dropped.
-            if timestamp is not None:
-                if timestamp < replay_start_ms:
+            if timestamp_ms is not None:
+                if timestamp_ms < replay_start_ms:
                     continue
 
                 # Yield any error messages that occurred before this event
                 while (
                     error_idx < len(error_events)
-                    and error_events[error_idx]["timestamp"] < timestamp
+                    and error_events[error_idx]["timestamp"] < timestamp_ms
                 ):
                     error = error_events[error_idx]
                     if error["category"] == "error":
