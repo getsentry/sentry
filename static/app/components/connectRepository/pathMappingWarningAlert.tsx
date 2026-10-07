@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router-dom';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Link} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
