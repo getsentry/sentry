@@ -37,9 +37,9 @@ const FILTERED_STATUSES_BY_ERROR_TYPE: Readonly<Record<string, ReadonlySet<strin
   TooManyRequestsError: new Set(['429']),
 };
 const FILTERED_REQUEST_ERROR_VALUE_REGEX = /^(GET|POST|PUT|DELETE) .* (\d+)$/;
-// A `RequestError` built without a response (the fetch itself failed, e.g. the
-// page navigated away or the network dropped) has no status in its value
-const NO_RESPONSE_REQUEST_ERROR_VALUE_REGEX = /^(GET|POST|PUT|PATCH|DELETE) \S+$/;
+// Fetch failures use status 0; legacy RequestErrors without response metadata
+// have no status in their message.
+const NO_RESPONSE_REQUEST_ERROR_VALUE_REGEX = /^(GET|POST|PUT|PATCH|DELETE) \S+(?: 0)?$/;
 
 const ENDPOINT_TAG_REGEX = /^([A-Za-z]+ (\/[^/]+)+\/) \d+$/;
 

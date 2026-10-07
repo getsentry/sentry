@@ -140,6 +140,7 @@ describe('api', () => {
         const error = await new Client().requestPromise('/test/').catch(e => e);
 
         expect(error).toBeInstanceOf(RequestError);
+        expect(error.name).toBe('RequestError');
         expect(error.status).toBe(0);
         expect(error.responseJSON).toBeUndefined();
       });
