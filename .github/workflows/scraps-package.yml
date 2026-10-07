@@ -3,6 +3,7 @@ name: Scraps package
 on:
   pull_request:
     paths:
+      - '.craft.yml'
       - 'static/packages/scraps/**'
       - 'pnpm-workspace.yaml'
       - 'pnpm-lock.yaml'
