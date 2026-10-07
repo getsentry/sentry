@@ -67,6 +67,12 @@ KEY_TRANSACTION_PROJECT_PARAM = OpenApiParameter(
 @extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class KeyTransactionEndpoint(KeyTransactionBase):
+    """
+    Legacy: team key transactions are only used by the AM1 performance pages. Newer plans
+    star transactions per user through `InsightsStarredSegmentsEndpoint`
+    (`insights/starred-segments/`), so this endpoint is intentionally kept private.
+    """
+
     publish_status = {
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,
@@ -252,6 +258,12 @@ class KeyTransactionEndpoint(KeyTransactionBase):
 @extend_schema(tags=["Discover"])
 @cell_silo_endpoint
 class KeyTransactionListEndpoint(KeyTransactionBase):
+    """
+    Legacy: team key transactions are only used by the AM1 performance pages. Newer plans
+    star transactions per user through `InsightsStarredSegmentsEndpoint`
+    (`insights/starred-segments/`), so this endpoint is intentionally kept private.
+    """
+
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
