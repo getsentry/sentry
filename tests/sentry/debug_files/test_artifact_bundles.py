@@ -10,9 +10,11 @@ from django.utils import timezone
 from sentry.debug_files.artifact_bundles import (
     get_artifact_bundles_containing_url,
     get_redis_cluster_for_artifact_bundles,
+    index_urls_in_bundle,
 )
 from sentry.models.artifactbundle import (
     ArtifactBundle,
+    ArtifactBundleArchive,
     ArtifactBundleIndex,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
@@ -174,6 +176,58 @@ class ArtifactLookupTest(TestCase):
         assert indexed[2].artifact_bundle == bundles[1]
         assert indexed[3].url == "~/path/to/other2.js"
         assert indexed[3].artifact_bundle == bundles[2]
+
+    def test_index_urls_in_bundle_deleted_bundle_is_ignored(self) -> None:
+        """
+        Regression test: if a concurrent worker deletes the ArtifactBundle row
+        while index_urls_in_bundle is mid-flight (race condition with
+        _remove_duplicate_artifact_bundles), the FK constraint on
+        ArtifactBundleIndex raises an IntegrityError.  The function should
+        catch that error and return silently instead of propagating it.
+        """
+        self.clear_cache()
+
+        bundle_file = make_compressed_zip_file(
+            {
+                "path/in/zip/foo": {
+                    "url": "~/path/to/app.js",
+                    "content": b"content",
+                },
+            }
+        )
+        with self.tasks():
+            upload_bundle(bundle_file, self.project, "1.0.0")
+
+        bundles = get_artifact_bundles(self.project, "1.0.0")
+        assert len(bundles) == 1
+        artifact_bundle = bundles[0]
+
+        # Open the archive while the file still exists, simulating a worker that
+        # already loaded the bundle contents before the race window opens.
+        archive = ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=False)
+        try:
+            # Simulate the race: a concurrent worker deletes the ArtifactBundle row
+            # (and its associated File) while this worker is between loading the
+            # archive and committing the ArtifactBundleIndex inserts.
+            artifact_bundle_id = artifact_bundle.id
+            ArtifactBundle.objects.filter(id=artifact_bundle_id).delete()
+
+            # index_urls_in_bundle must not raise even though the bundle row is gone.
+            # Passing existing_archive avoids a second file.getfile() call (the file
+            # is already deleted) and ensures bulk_create actually fires so the
+            # IntegrityError handler is exercised.
+            index_urls_in_bundle(
+                organization_id=self.organization.id,
+                artifact_bundle=artifact_bundle,
+                existing_archive=archive,
+            )
+        finally:
+            archive.close()
+
+        # No index rows should have been created.
+        assert (
+            ArtifactBundleIndex.objects.filter(artifact_bundle_id=artifact_bundle_id).count() == 0
+        )
 
 
 class GetArtifactBundlesContainingUrlTest(TestCase):
