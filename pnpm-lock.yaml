@@ -15,6 +15,9 @@ patchedDependencies:
   css-tree@3.2.1:
     hash: ec4e8a1e54e91be1bbca26a0c6047f0832c2fd45d01795becd6cc0144334a489
     path: patches/css-tree@3.2.1.patch
+  jest-resolve@30.5.1:
+    hash: f2282b64ef6129c114392d79cc5894368f2712b69b366cc01b8f5fe8e683773f
+    path: patches/jest-resolve@30.5.1.patch
   jest-runtime@30.5.1:
     hash: 36dce404d135697664f0f47961ef7b7df4963b97984d55155c6719f3e2c5205b
     path: patches/jest-runtime@30.5.1.patch
@@ -10461,7 +10464,7 @@ snapshots:
       jest-haste-map: 30.5.1
       jest-message-util: 30.5.1
       jest-regex-util: 30.5.0
-      jest-resolve: 30.5.1
+      jest-resolve: 30.5.1(patch_hash=f2282b64ef6129c114392d79cc5894368f2712b69b366cc01b8f5fe8e683773f)
       jest-resolve-dependencies: 30.5.1
       jest-runner: 30.5.1
       jest-runtime: 30.5.1(patch_hash=36dce404d135697664f0f47961ef7b7df4963b97984d55155c6719f3e2c5205b)
@@ -15736,7 +15739,7 @@ snapshots:
       jest-docblock: 30.5.0
       jest-environment-node: 30.5.1
       jest-regex-util: 30.5.0
-      jest-resolve: 30.5.1
+      jest-resolve: 30.5.1(patch_hash=f2282b64ef6129c114392d79cc5894368f2712b69b366cc01b8f5fe8e683773f)
       jest-runner: 30.5.1
       jest-util: 30.5.1
       jest-validate: 30.5.1
@@ -15845,7 +15848,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  jest-resolve@30.5.1:
+  jest-resolve@30.5.1(patch_hash=f2282b64ef6129c114392d79cc5894368f2712b69b366cc01b8f5fe8e683773f):
     dependencies:
       chalk: 4.1.2
       graceful-fs: 4.2.11
@@ -15873,7 +15876,7 @@ snapshots:
       jest-haste-map: 30.5.1
       jest-leak-detector: 30.5.1
       jest-message-util: 30.5.1
-      jest-resolve: 30.5.1
+      jest-resolve: 30.5.1(patch_hash=f2282b64ef6129c114392d79cc5894368f2712b69b366cc01b8f5fe8e683773f)
       jest-runtime: 30.5.1(patch_hash=36dce404d135697664f0f47961ef7b7df4963b97984d55155c6719f3e2c5205b)
       jest-util: 30.5.1
       jest-watcher: 30.5.1
@@ -15902,7 +15905,7 @@ snapshots:
       jest-message-util: 30.5.1
       jest-mock: 30.5.1
       jest-regex-util: 30.5.0
-      jest-resolve: 30.5.1
+      jest-resolve: 30.5.1(patch_hash=f2282b64ef6129c114392d79cc5894368f2712b69b366cc01b8f5fe8e683773f)
       jest-snapshot: 30.5.1
       jest-util: 30.5.1
       slash: 3.0.0
