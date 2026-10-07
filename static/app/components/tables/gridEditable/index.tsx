@@ -217,6 +217,7 @@ export function GridEditable<
 
         {prependColumns?.map((item, i) => (
           <SimpleTable.RowCell
+            {...bodyCellLayout}
             css={gridBodyCellStaticStyle}
             data-test-id="grid-body-cell"
             key={`prepend-${i}`}
@@ -226,6 +227,7 @@ export function GridEditable<
         ))}
         {props.columnOrder.map((col, i) => (
           <SimpleTable.RowCell
+            {...bodyCellLayout}
             data-test-id="grid-body-cell"
             key={`${String(col.key)}${i}`}
           >
@@ -272,6 +274,13 @@ export function GridEditable<
     </Fragment>
   );
 }
+
+// Grid renderers size their content to the cell, as in right-aligned numbers.
+const bodyCellLayout = {
+  align: 'stretch',
+  direction: 'column',
+  justify: 'center',
+} as const;
 
 const clickableRowStyle = css`
   cursor: pointer;

@@ -935,7 +935,7 @@ function HoveringRowLoadingRenderer({
   return (
     <HoveringRowLoadingRendererContainer
       position={position}
-      headerHeight={isEmbedded ? 0 : 45}
+      headerHeight={isEmbedded ? 0 : 40}
       height={isEmbedded ? LOGS_GRID_BODY_ROW_HEIGHT * 1 : LOGS_GRID_BODY_ROW_HEIGHT * 3}
     >
       <LoadingIndicator

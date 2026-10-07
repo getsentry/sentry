@@ -1,4 +1,5 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {getEmotionRules} from 'sentry-test/utils';
 
 import type {GridColumnOrder} from 'sentry/components/tables/gridEditable';
 import {GridEditable} from 'sentry/components/tables/gridEditable';
@@ -76,5 +77,14 @@ describe('GridEditable', () => {
     expect(screen.getByRole('table')).toHaveStyle({
       gridTemplateColumns: 'minmax(max-content, auto) minmax(max-content, auto)',
     });
+  });
+
+  it('stretches body cell content across the cell', () => {
+    render(<GridEditable columnOrder={COLUMN_ORDER} data={DATA} grid={{}} />);
+
+    const rules = getEmotionRules(screen.getByRole('cell', {name: 'first'})).join('');
+
+    expect(rules).toContain('flex-direction: column');
+    expect(rules).toContain('align-items: stretch');
   });
 });
