@@ -104,7 +104,21 @@ class SearchAgentStateEndpoint(OrganizationEndpoint):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
 
-        resolved = resolve_seer_run(run_id, organization)
+        # Assisted-query sessions are private to the user who started them.
+        # Numeric ids with no mirror row predate per-user ownership and stay a passthrough.
+        user_id = request.user.id
+        if user_id is None:
+            return Response(
+                {"detail": "A user account is required to view this run."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        resolved = resolve_seer_run(
+            run_id,
+            organization,
+            user_id=user_id,
+            allow_legacy_numeric=True,
+            owner_mismatch_detail="You do not have access to this run.",
+        )
         if isinstance(resolved, Response):
             return resolved
         seer_run_id = resolved.seer_run_state_id

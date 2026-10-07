@@ -52,6 +52,40 @@ class ResolveSeerRunTest(TestCase):
 
         assert result == ResolvedSeerRun(555, str(run.uuid))
 
+    def test_user_scope_rejects_unmirrored_numeric_run(self) -> None:
+        result = resolve_seer_run("555", self.organization, user_id=self.user.id)
+
+        assert isinstance(result, Response)
+        assert result.status_code == status.HTTP_403_FORBIDDEN
+
+    def test_allow_legacy_numeric_passes_through_unmirrored_run(self) -> None:
+        result = resolve_seer_run(
+            "555",
+            self.organization,
+            user_id=self.user.id,
+            allow_legacy_numeric=True,
+        )
+
+        assert result == ResolvedSeerRun(555, None)
+
+    def test_allow_legacy_numeric_still_rejects_another_users_run(self) -> None:
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=555, user_id=self.user.id
+        )
+        other_user = self.create_user()
+
+        result = resolve_seer_run(
+            "555",
+            self.organization,
+            user_id=other_user.id,
+            allow_legacy_numeric=True,
+            owner_mismatch_detail="You do not have access to this run.",
+        )
+
+        assert isinstance(result, Response)
+        assert result.status_code == status.HTTP_403_FORBIDDEN
+        assert result.data == {"detail": "You do not have access to this run."}
+
     def test_user_scope_rejects_another_users_numeric_run(self) -> None:
         run = self.create_seer_run(
             organization=self.organization, seer_run_state_id=555, user_id=self.user.id
