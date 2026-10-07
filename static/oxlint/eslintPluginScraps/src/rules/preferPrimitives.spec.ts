@@ -39,6 +39,22 @@ function invalid(
 
 ruleTester.run('prefer-primitives', preferPrimitives, {
   valid: [
+    ...['', 'position:absolute;'].map(extra => ({
+      name: `template typography must cover a majority of declarations (${extra})`,
+      code: `${emotion} const C = styled.span\`font-size:14px;color:red;width:10px;height:10px;${extra}\`;`,
+    })),
+    ...['', ',position:"absolute"'].map(extra => ({
+      name: `object typography must cover a majority of declarations (${extra})`,
+      code: `const C = <span style={{fontSize:14,color:'red',width:10,height:10${extra}}}/>;`,
+    })),
+    ...['', 'position:absolute;'].map(extra => ({
+      name: `template container styles must cover a majority of declarations (${extra})`,
+      code: `${emotion} const C = styled.div\`padding:8px;border-radius:4px;width:10px;height:10px;${extra}\`;`,
+    })),
+    ...['', ',position:"absolute"'].map(extra => ({
+      name: `object container styles must cover a majority of declarations (${extra})`,
+      code: `const C = <div style={{padding:8,borderRadius:4,width:10,height:10${extra}}}/>;`,
+    })),
     ...['{styles}', '{display: styles}'].map(pattern => ({
       name: `destructured ${pattern} does not inherit initializer styles`,
       code: `const ${pattern} = {display:'flex'}; const C = <div style={styles}/>;`,
@@ -183,6 +199,26 @@ ruleTester.run('prefer-primitives', preferPrimitives, {
     },
   ],
   invalid: [
+    invalid(
+      'template typography covers a majority of declarations',
+      emotion + 'const C = styled.span`font-size:14px;color:red;width:10px;`;',
+      'Text'
+    ),
+    invalid(
+      'object typography covers a majority of declarations',
+      '<span style={{fontSize:14,color:"red",width:10}}/>',
+      'Text'
+    ),
+    invalid(
+      'template container styles cover a majority of declarations',
+      emotion + 'const C = styled.div`padding:8px;border-radius:4px;width:10px;`;',
+      'Container'
+    ),
+    invalid(
+      'object container styles cover a majority of declarations',
+      '<div style={{padding:8,borderRadius:4,width:10}}/>',
+      'Container'
+    ),
     invalid(
       'quoted camelCase typography keys',
       '<span style={{"fontSize":14,"fontWeight":500}}/>',

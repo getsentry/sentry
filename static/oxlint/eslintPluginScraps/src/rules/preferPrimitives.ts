@@ -235,19 +235,20 @@ function stylePrimitive(
   if (display === 'grid' || display === 'inline-grid') {
     return supportsLayout ? 'Grid' : undefined;
   }
+  const minimumSupported = Math.max(2, Math.floor(declarations.size / 2) + 1);
   if (
     tags.every(element => TEXT_ELEMENTS.has(element)) &&
     [...declarations].filter(([property, value]) => {
       const supported = TEXT_PROPERTIES.get(property);
       return supported === null || (value !== null && supported?.includes(value));
-    }).length >= 2
+    }).length >= minimumSupported
   ) {
     return 'Text';
   }
   if (
     supportsLayout &&
     [...declarations.keys()].filter(property => CONTAINER_PROPERTIES.has(property))
-      .length >= 2
+      .length >= minimumSupported
   ) {
     return 'Container';
   }
