@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {css, useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 
@@ -210,7 +211,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
       >
         {tourProps => (
           <div {...tourProps}>
-            <Flex
+            <ActionBar
               justify="between"
               gap="md"
               wrap="wrap"
@@ -220,24 +221,6 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
               position="relative"
               background={isComplete ? undefined : 'primary'}
               role="banner"
-              css={cssTheme => css`
-                padding-inline: var(--issue-details-inset, ${cssTheme.space['2xl']});
-                transition: background 0.3s ease-in-out;
-                &:before {
-                  z-index: -1;
-                  position: absolute;
-                  inset: 0;
-                  content: '';
-                  background: linear-gradient(
-                    to right,
-                    ${cssTheme.tokens.background.primary},
-                    ${color(cssTheme.tokens.content.success)
-                      .lighten(0.5)
-                      .alpha(0.15)
-                      .string()}
-                  );
-                }
-              `}
             >
               <Container
                 aria-hidden="true"
@@ -268,13 +251,30 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
                   />
                 </Flex>
               </Flex>
-            </Flex>
+            </ActionBar>
           </div>
         )}
       </TourElement>
     </Fragment>
   );
 }
+
+const ActionBar = styled(Flex)`
+  padding-inline: var(--issue-details-inset, ${p => p.theme.space['2xl']});
+  transition: background 0.3s ease-in-out;
+
+  &:before {
+    z-index: -1;
+    position: absolute;
+    inset: 0;
+    content: '';
+    background: linear-gradient(
+      to right,
+      ${p => p.theme.tokens.background.primary},
+      ${p => color(p.theme.tokens.content.success).lighten(0.5).alpha(0.15).string()}
+    );
+  }
+`;
 
 function HeaderActions({group}: {group: Group}) {
   const {feedback} = useFeedbackSDKIntegration();
