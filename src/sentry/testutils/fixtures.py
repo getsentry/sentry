@@ -239,6 +239,13 @@ class Fixtures:
     def create_api_key(self, *args, **kwargs):
         return Factories.create_api_key(*args, **kwargs)
 
+    def create_api_application(self, **kwargs):
+        kwargs.setdefault("owner", self.user)
+        return Factories.create_api_application(**kwargs)
+
+    def create_api_device_code(self, *args, **kwargs):
+        return Factories.create_api_device_code(*args, **kwargs)
+
     def create_auth_provider(self, *args, **kwargs):
         return Factories.create_auth_provider(*args, **kwargs)
 

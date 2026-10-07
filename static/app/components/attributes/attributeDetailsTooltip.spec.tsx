@@ -1,9 +1,57 @@
+import {UserFixture} from 'sentry-fixture/user';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {AttributeDetailsTooltip} from 'sentry/components/attributes/attributeDetailsTooltip';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {FieldValueType} from 'sentry/utils/fields';
 
 describe('AttributeDetailsTooltip', () => {
+  beforeEach(() => {
+    ConfigStore.set('user', UserFixture());
+  });
+
+  it.each([
+    {attributeKey: 'sentry.dsc.sampled', name: undefined},
+    {attributeKey: 'sentry.dsc.environment', name: 'environment'},
+  ])('marks $attributeKey as internal for staff', async ({attributeKey, name}) => {
+    ConfigStore.set('user', UserFixture({isStaff: true, isSuperuser: false}));
+    render(
+      <AttributeDetailsTooltip
+        attributeKey={attributeKey}
+        fieldDefinitionType="log"
+        name={name}
+      />
+    );
+
+    await userEvent.hover(screen.getByText(name ?? attributeKey));
+
+    expect(await screen.findByText('Visibility')).toBeInTheDocument();
+    expect(screen.getByText('Internal')).toBeInTheDocument();
+  });
+
+  it.each([
+    {attributeKey: 'logger.name', isStaff: true, isSuperuser: false},
+    {attributeKey: 'checkout.cart_size', isStaff: true, isSuperuser: false},
+    {attributeKey: 'logger.name', isStaff: false, isSuperuser: true},
+    {attributeKey: 'sentry.dsc.sampled', isStaff: false, isSuperuser: true},
+  ])(
+    'omits visibility for $attributeKey (staff=$isStaff, superuser=$isSuperuser)',
+    async ({attributeKey, isStaff, isSuperuser}) => {
+      ConfigStore.set('user', UserFixture({isStaff, isSuperuser}));
+      render(
+        <AttributeDetailsTooltip attributeKey={attributeKey} fieldDefinitionType="log" />
+      );
+
+      await userEvent.hover(screen.getByText(attributeKey));
+
+      expect(await screen.findByText('Description')).toBeInTheDocument();
+      expect(screen.queryByText('Visibility')).not.toBeInTheDocument();
+      expect(screen.queryByText('Public')).not.toBeInTheDocument();
+      expect(screen.queryByText('Internal')).not.toBeInTheDocument();
+    }
+  );
+
   it('describes the attribute when hovering its name', async () => {
     render(
       <AttributeDetailsTooltip attributeKey="logger.name" fieldDefinitionType="log" />
