@@ -79,16 +79,15 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     isError: isBuildDetailsError,
   } = buildDetailsQuery;
 
-  // TODO(preprod): for now show nothing for loading/error states, but in the future we
-  // might be able to show the release breadcrumb
-  if (isBuildDetailsPending) {
+  if (isBuildDetailsPending || isBuildDetailsError || !buildDetailsData) {
     return (
-      <Stack padding="0 0 xl 0">{/* Empty header space - no skeleton content */}</Stack>
+      <Stack padding="0 0 xl 0">
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{type: 'page-title', label: t('Releases')}}
+        />
+      </Stack>
     );
-  }
-
-  if (isBuildDetailsError || !buildDetailsData) {
-    return <Stack padding="0 0 xl 0">{/* Empty header space during error */}</Stack>;
   }
 
   const project = ProjectsStore.getBySlug(projectSlug);
@@ -169,11 +168,22 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
           name="breadcrumbs"
           title={{
             type: 'page-title',
-            label: versionTitle || t('Build'),
-            leadingGraphic: project && (
+            label: versionTitle || t('Releases'),
+            leadingGraphic: versionTitle && project && (
               <IdBadge project={project} avatarSize={16} hideName />
             ),
           }}
+          items={
+            versionTitle
+              ? [
+                  {
+                    type: 'link',
+                    label: t('Releases'),
+                    to: makeReleasesUrl(organization.slug, projectSlug, {}),
+                  },
+                ]
+              : undefined
+          }
         />
       </Layout.HeaderContent>
 

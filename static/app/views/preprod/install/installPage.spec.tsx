@@ -56,10 +56,16 @@ describe('InstallPage', () => {
     );
   }
 
-  it('renders the Releases breadcrumb linking to the mobile-builds distribution view', async () => {
+  it('uses Releases as the loading title, then shows it as a parent link', async () => {
     render(<ExampleInstallPage />, {organization, initialRouterConfig});
 
-    expect(await screen.findByText('Test App - v1.0.0 (123)')).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Releases', level: 1})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Releases'})).not.toBeInTheDocument();
+    expect(screen.getByTestId('topbar-breadcrumbs-slot')).toBeEmptyDOMElement();
+
+    expect(
+      await screen.findByRole('heading', {name: 'Test App - v1.0.0 (123)', level: 1})
+    ).toBeInTheDocument();
 
     const releasesLink = within(screen.getByTestId('topbar-breadcrumbs-slot')).getByRole(
       'link',
@@ -121,7 +127,7 @@ describe('InstallPage', () => {
     expect(screen.getByText('beta')).toBeInTheDocument();
   });
 
-  it('keeps the Releases breadcrumb clickable when build details fail to load', async () => {
+  it('keeps Releases as the title when build details fail to load', async () => {
     MockApiClient.addMockResponse({
       url: BUILD_DETAILS_URL,
       method: 'GET',
@@ -131,18 +137,8 @@ describe('InstallPage', () => {
 
     render(<ExampleInstallPage />, {organization, initialRouterConfig});
 
-    expect(await screen.findByText('Install')).toBeInTheDocument();
-
-    const topbarSlot = screen.getByTestId('topbar-title-slot');
-
-    const releasesLink = within(screen.getByTestId('topbar-breadcrumbs-slot')).getByRole(
-      'link',
-      {name: 'Releases'}
-    );
-    expect(releasesLink).toHaveAttribute(
-      'href',
-      `/organizations/${organization.slug}/explore/releases/?tab=mobile-builds&display=distribution&query=installable%3Atrue`
-    );
-    expect(within(topbarSlot).getByText('Install')).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'Retry'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Releases', level: 1})).toBeInTheDocument();
+    expect(screen.getByTestId('topbar-breadcrumbs-slot')).toBeEmptyDOMElement();
   });
 });

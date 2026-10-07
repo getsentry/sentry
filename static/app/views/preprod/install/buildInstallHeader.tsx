@@ -62,8 +62,7 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
       <Layout.HeaderContent>
         <TopBar.Slot
           name="breadcrumbs"
-          title={{type: 'page-title', label: t('Install')}}
-          items={[releasesCrumb]}
+          title={{type: 'page-title', label: t('Releases')}}
         />
         <Flex gap="lg" wrap="wrap" align="center">
           <Placeholder width="120px" height="16px" />
@@ -79,8 +78,7 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
       <Layout.HeaderContent>
         <TopBar.Slot
           name="breadcrumbs"
-          title={{type: 'page-title', label: t('Install')}}
-          items={[releasesCrumb]}
+          title={{type: 'page-title', label: t('Releases')}}
         />
       </Layout.HeaderContent>
     );
