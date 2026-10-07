@@ -408,11 +408,10 @@ class TraceItemEventsResponse(BaseModel):
 
 
 class ExecuteQuerySuccessResponse(BaseModel):
-    """Success shape for `execute_table_query`, `execute_trace_table_query`, and
-    `execute_replays_query`: `{"data": [...], "meta": {...}}`. `meta` is omitted
-    from the wire when the upstream call didn't return one (e.g. the no-projects
-    short-circuit in `execute_replays_query`), which is why we lean on
-    `exclude_unset` instead of emitting `"meta": None`."""
+    """Success shape for `execute_table_query` and `execute_trace_table_query`:
+    `{"data": [...], "meta": {...}}`. `meta` is omitted from the wire when the
+    upstream call didn't return one, which is why we lean on `exclude_unset`
+    instead of emitting `"meta": None`."""
 
     data: list[dict[str, Any]]
     meta: dict[str, Any] | None = None

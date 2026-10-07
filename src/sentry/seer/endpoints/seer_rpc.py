@@ -68,7 +68,6 @@ from sentry.seer.agent.monitoring_providers import (
 )
 from sentry.seer.agent.on_completion_hook import call_on_completion_hook
 from sentry.seer.agent.tools import (
-    execute_replays_query,
     execute_table_query,
     execute_timeseries_query,
     execute_trace_table_query,
@@ -969,7 +968,6 @@ seer_method_registry: dict[str, SeerRpcMethod] = {  # return type must be serial
     "execute_table_query": seer_rpc(execute_table_query),
     "execute_timeseries_query": seer_rpc(execute_timeseries_query),
     "execute_trace_table_query": seer_rpc(execute_trace_table_query),
-    "execute_replays_query": seer_rpc(execute_replays_query),
     "execute_issues_query": seer_rpc(execute_issues_query),
     "get_repository_definition": seer_rpc(get_repository_definition),
     "call_custom_tool": seer_rpc(call_custom_tool),
