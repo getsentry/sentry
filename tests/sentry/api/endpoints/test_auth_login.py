@@ -1511,3 +1511,116 @@ class AuthRecoveryEndpointTest(APITestCase):
         assert response.data == {"password": ["The password is too similar to the username."]}
         assert LostPasswordHash.objects.filter(user=self.user).exists()
         assert "_auth_user_id" not in self.client.session
+
+
+@control_silo_test
+class AuthPasswordAssignmentEndpointTest(APITestCase):
+    def assign_password(self, token: str, password: str = "new-secure-password") -> Response:
+        return self.client.post(
+            reverse("sentry-api-0-auth-password"),
+            data={"userId": self.user.id, "token": token, "password": password},
+        )
+
+    def test_validate_token(self) -> None:
+        password_hash = LostPasswordHash.for_user(self.user)
+        response = self.client.get(
+            reverse("sentry-api-0-auth-password"),
+            data={"userId": self.user.id, "token": password_hash.hash},
+        )
+        assert response.status_code == 200
+        assert response.data == {"valid": True}
+        assert "_auth_user_id" not in self.client.session
+
+    def test_assign_password_signs_in(self) -> None:
+        self.user.set_unusable_password()
+        self.user.save()
+        password_hash = LostPasswordHash.for_user(self.user)
+        response = self.assign_password(password_hash.hash)
+        assert response.status_code == 200
+        assert response.data["nextUri"]
+        assert self.client.session["_auth_user_id"] == str(self.user.id)
+        self.user.refresh_from_db()
+        assert self.user.check_password("new-secure-password")
+        assert not LostPasswordHash.objects.filter(user=self.user).exists()
+        assert UserEmail.objects.get(user=self.user, email=self.user.email).is_verified
+
+    def test_assign_password_requires_mfa_login(self) -> None:
+        TotpInterface().enroll(self.user)
+        password_hash = LostPasswordHash.for_user(self.user)
+        response = self.assign_password(password_hash.hash)
+        assert response.status_code == 200
+        assert response.data == {"nextUri": reverse("sentry-login")}
+        assert "_auth_user_id" not in self.client.session
+        assert "_pending_2fa" not in self.client.session
+        self.user.refresh_from_db()
+        assert self.user.check_password("new-secure-password")
+
+    def test_token_cannot_be_replayed(self) -> None:
+        password_hash = LostPasswordHash.for_user(self.user)
+        assert self.assign_password(password_hash.hash).status_code == 200
+        response = self.assign_password(password_hash.hash)
+        assert response.status_code == 400
+        assert response.data == {"detail": "Invalid or expired recovery token"}
+
+    def test_assign_password_rejects_managed_user(self) -> None:
+        password_hash = LostPasswordHash.for_user(self.user)
+        self.user.update(is_managed=True)
+        response = self.assign_password(password_hash.hash)
+        assert response.status_code == 400
+        assert "_auth_user_id" not in self.client.session
+        self.user.refresh_from_db()
+        assert not self.user.check_password("new-secure-password")
+
+    def test_assign_password_rejects_suspended_user(self) -> None:
+        password_hash = LostPasswordHash.for_user(self.user)
+        self.user.update(is_suspended=True)
+        response = self.assign_password(password_hash.hash)
+        assert response.status_code == 400
+        assert "_auth_user_id" not in self.client.session
+
+    def test_requires_csrf_token(self) -> None:
+        self.client = APIClient(enforce_csrf_checks=True)
+        response = self.assign_password("token")
+        assert response.status_code == 403
+
+    def test_validate_rejects_managed_user(self) -> None:
+        password_hash = LostPasswordHash.for_user(self.user)
+        self.user.update(is_managed=True)
+        response = self.client.get(
+            reverse("sentry-api-0-auth-password"),
+            data={"userId": self.user.id, "token": password_hash.hash},
+        )
+        assert response.status_code == 200
+        assert response.data == {"valid": False}
+
+    def test_validate_rejects_suspended_user(self) -> None:
+        password_hash = LostPasswordHash.for_user(self.user)
+        self.user.update(is_suspended=True)
+        response = self.client.get(
+            reverse("sentry-api-0-auth-password"),
+            data={"userId": self.user.id, "token": password_hash.hash},
+        )
+        assert response.status_code == 200
+        assert response.data == {"valid": False}
+
+    def test_assign_password_mfa_invalidates_existing_session(self) -> None:
+        self.login_as(self.user)
+        TotpInterface().enroll(self.user)
+        password_hash = LostPasswordHash.for_user(self.user)
+        response = self.assign_password(password_hash.hash)
+        assert response.status_code == 200
+        assert response.data == {"nextUri": reverse("sentry-login")}
+        assert self.client.get(reverse("sentry-api-0-auth")).status_code == 400
+
+    @override_settings(
+        AUTH_PASSWORD_VALIDATORS=[
+            {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"}
+        ]
+    )
+    def test_assign_password_rejects_weak_password(self) -> None:
+        password_hash = LostPasswordHash.for_user(self.user)
+        response = self.assign_password(password_hash.hash, "a")
+        assert response.status_code == 400
+        assert "password" in response.data
+        assert LostPasswordHash.objects.filter(user=self.user).exists()
+        assert "_auth_user_id" not in self.client.session
