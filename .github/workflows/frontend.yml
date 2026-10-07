@@ -119,11 +119,12 @@ jobs:
       # Lint just the files transitively impacted by the PR. Diff the merge base against
       # HEAD^2 (the PR head) so we only seed on the PR's own changes. Diffing against the
       # working tree (the merge commit) would also pull in everything that landed on master
-      # since the fork point.
+      # since the fork point. The inner command skips `pnpm run`, which would join every
+      # impacted path into one `sh -c` string and exceed Linux's per-argument limit (E2BIG).
       - name: oxlint (impacted files)
         id: oxlint-impacted
         if: steps.strategy.outputs.scope == 'scoped'
-        run: pnpm run lint:js:changed --since "$MERGE_BASE..HEAD^2" -- pnpm run lint:js --no-error-on-unmatched-pattern
+        run: pnpm run lint:js:changed --since "$MERGE_BASE..HEAD^2" -- node scripts/custom-oxlint.ts --no-error-on-unmatched-pattern
         env:
           MERGE_BASE: ${{ steps.strategy.outputs.merge_base }}
           DEBUG: 'run-on-changed:*'
