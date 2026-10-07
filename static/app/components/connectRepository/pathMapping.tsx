@@ -4,7 +4,7 @@ import {PathMappingEdit} from './pathMappingEdit';
 import type {ConnectRepoForm} from './pathMappingList';
 import {PathMappingSummary} from './pathMappingSummary';
 import type {PathMappingValue} from './type';
-import type {PathMappingWarning} from './warnings';
+import {isExactWarning, type PathMappingWarning} from './warnings';
 
 interface PathMappingProps {
   editing: boolean;
@@ -16,6 +16,8 @@ interface PathMappingProps {
   /** Current field values — used by the collapsed summary row. */
   value: PathMappingValue;
   defaultBranch?: string;
+  /** A new row with no summary can delete itself only when another row exists. */
+  enableDelete?: boolean;
   projectSlug?: string;
   providerKey?: string;
   warning?: PathMappingWarning;
@@ -26,6 +28,7 @@ export function PathMapping({
   fields,
   form,
   isNew,
+  enableDelete = false,
   value,
   onDelete,
   onExpandToggle,
@@ -35,9 +38,11 @@ export function PathMapping({
   warning,
 }: PathMappingProps) {
   const showSummary = !(editing && isNew);
+  const editorOnDelete = !showSummary && enableDelete ? onDelete : undefined;
+  const hasWarning = isExactWarning(warning);
 
   return (
-    <Stack border="muted" radius="md">
+    <Stack border={hasWarning ? 'warning' : 'muted'} radius="md" overflow="hidden">
       {showSummary && (
         <PathMappingSummary
           {...value}
@@ -58,6 +63,7 @@ export function PathMapping({
           projectSlug={projectSlug}
           hasCodeOwner={value.hasCodeOwner}
           warning={warning}
+          onDelete={editorOnDelete}
         />
       )}
     </Stack>

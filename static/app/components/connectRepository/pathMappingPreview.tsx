@@ -5,14 +5,33 @@ import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
 import {AccentPathSegment} from './accentPathSegment';
-import {SOURCE_ROOT_PLACEHOLDER, STACK_ROOT_PLACEHOLDER} from './constants';
-import {normalizeRoot} from './normalization';
 
 const PREVIEW_SUFFIX = 'views/index.tsx';
 
 interface PathMappingPreviewProps {
   sourceRoot: string;
   stackRoot: string;
+}
+
+/**
+ * Renders the path segment for one side of the preview.
+ * An accent highlight is shown only when the prefix has a value.
+ * An empty prefix shows the bare suffix with no highlight.
+ */
+function PreviewSegment({root}: {root: string}) {
+  if (root) {
+    return (
+      <Text monospace variant="muted" ellipsis>
+        <AccentPathSegment value={root} />
+        {PREVIEW_SUFFIX}
+      </Text>
+    );
+  }
+  return (
+    <Text monospace variant="muted" ellipsis>
+      {PREVIEW_SUFFIX}
+    </Text>
+  );
 }
 
 export function PathMappingPreview({stackRoot, sourceRoot}: PathMappingPreviewProps) {
@@ -32,12 +51,7 @@ export function PathMappingPreview({stackRoot, sourceRoot}: PathMappingPreviewPr
           <Text bold variant="muted">
             {t('In your stack trace')}
           </Text>
-          <Text monospace variant="muted" ellipsis>
-            <AccentPathSegment
-              value={stackRoot || normalizeRoot(STACK_ROOT_PLACEHOLDER)}
-            />
-            {PREVIEW_SUFFIX}
-          </Text>
+          <PreviewSegment root={stackRoot} />
         </Stack>
         <Flex align="center" display={{zero: 'none', '2xs': 'flex'}}>
           <IconArrow direction="right" />
@@ -46,12 +60,7 @@ export function PathMappingPreview({stackRoot, sourceRoot}: PathMappingPreviewPr
           <Text bold variant="muted">
             {t('Sentry opens in your repo')}
           </Text>
-          <Text monospace variant="muted" ellipsis>
-            <AccentPathSegment
-              value={sourceRoot || normalizeRoot(SOURCE_ROOT_PLACEHOLDER)}
-            />
-            {PREVIEW_SUFFIX}
-          </Text>
+          <PreviewSegment root={sourceRoot} />
         </Stack>
       </Flex>
     </Container>

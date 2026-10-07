@@ -4,7 +4,7 @@ import {normalizeRoot} from './normalization';
 import type {PathMappingValue} from './type';
 
 export type PathMappingWarning =
-  | {type: 'catchAll'}
+  | {sourceRoot: string; stackRoot: string; type: 'catchAll'}
   | {type: 'codeOwner'}
   | {sourceRoot: string; stackRoot: string; type: 'exactInForm'}
   | {repoName: string; sourceRoot: string; stackRoot: string; type: 'exactAcrossRepos'};
@@ -45,8 +45,8 @@ function deriveWarning(
     return {type: 'codeOwner'};
   }
 
-  if (stackRoot === '') {
-    return {type: 'catchAll'};
+  if (stackRoot === '' || sourceRoot === '') {
+    return {type: 'catchAll', stackRoot, sourceRoot};
   }
 
   return undefined;

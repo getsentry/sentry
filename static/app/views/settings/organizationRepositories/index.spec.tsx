@@ -15,7 +15,10 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import * as pipelineModal from 'sentry/components/pipeline/modal';
-import type {IntegrationWithConfig} from 'sentry/types/integrations';
+import type {
+  IntegrationWithConfig,
+  RepositoryProjectPathConfig,
+} from 'sentry/types/integrations';
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import OrganizationRepositories from 'sentry/views/settings/organizationRepositories';
 
@@ -494,7 +497,7 @@ describe('OrganizationRepositories', () => {
     const PROJECT = ProjectFixture({id: 'proj-1', slug: 'my-project'});
     const organization = OrganizationFixture({features: ['code-mappings-refactor']});
 
-    function setupRepoMocks(codeMappingBody: Array<Record<PropertyKey, unknown>>) {
+    function setupRepoMocks(codeMappingBody: RepositoryProjectPathConfig[]) {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/config/integrations/',
         body: {providers: [GITHUB_PROVIDER]},
@@ -533,6 +536,8 @@ describe('OrganizationRepositories', () => {
     it('always shows the + button even when a repo already has code mappings', async () => {
       setupRepoMocks([
         {
+          automaticallyGenerated: false,
+          hasCodeOwner: false,
           id: '1',
           repoId: REPO.id,
           repoName: REPO.name,
@@ -542,6 +547,7 @@ describe('OrganizationRepositories', () => {
           sourceRoot: '',
           defaultBranch: 'main',
           integrationId: GITHUB_INTEGRATION.id,
+          provider: null,
         },
       ]);
       render(<OrganizationRepositories />, {organization});
@@ -571,6 +577,8 @@ describe('OrganizationRepositories', () => {
     it('clicking a mapped project chip opens the repo-locked edit modal', async () => {
       setupRepoMocks([
         {
+          automaticallyGenerated: false,
+          hasCodeOwner: false,
           id: '1',
           repoId: REPO.id,
           repoName: REPO.name,
@@ -580,6 +588,7 @@ describe('OrganizationRepositories', () => {
           sourceRoot: '',
           defaultBranch: 'main',
           integrationId: GITHUB_INTEGRATION.id,
+          provider: null,
         },
       ]);
       MockApiClient.addMockResponse({

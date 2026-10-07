@@ -7,8 +7,8 @@ import type {PathMappingValue} from 'sentry/components/connectRepository/type';
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
 
 const MAPPINGS: PathMappingValue[] = [
-  {stackRoot: 'app/', sourceRoot: 'static/app/', branch: 'main'},
-  {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'frontend'},
+  {id: '1', stackRoot: 'app/', sourceRoot: 'static/app/', branch: 'main'},
+  {id: '2', stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'frontend'},
 ];
 
 /**
@@ -61,6 +61,9 @@ describe('PathMappingList', () => {
       expect(
         screen.getByRole('textbox', {name: /stack trace prefix/i})
       ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Delete path mapping'})
+      ).not.toBeInTheDocument();
     });
 
     it('updates the input as the user types', async () => {
@@ -132,6 +135,44 @@ describe('PathMappingList', () => {
 
       expect(screen.getByText(/Paths \(3\)/)).toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveValue('');
+    });
+
+    it('keeps delete on the summary when the only mapping is open', async () => {
+      renderList({initialPathMappings: [MAPPINGS[0]!]});
+
+      await userEvent.click(screen.getByRole('button', {name: 'Expand path mapping'}));
+
+      // enableDelete is false for a single mapping, so delete stays on the summary
+      expect(screen.getAllByRole('button', {name: 'Delete path mapping'})).toHaveLength(
+        1
+      );
+    });
+
+    it('shows an Automatic tag only on generated rows', () => {
+      renderList({
+        initialPathMappings: [
+          {
+            stackRoot: 'app/',
+            sourceRoot: 'static/app/',
+            branch: 'main',
+            automaticallyGenerated: true,
+          },
+          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'frontend'},
+        ],
+      });
+
+      expect(screen.getAllByText('Automatic')).toHaveLength(1);
+    });
+
+    it('keeps delete on the summary when an existing row is expanded', async () => {
+      renderList({initialPathMappings: MAPPINGS});
+
+      const [firstExpand] = screen.getAllByRole('button', {name: 'Expand path mapping'});
+      await userEvent.click(firstExpand!);
+
+      expect(screen.getAllByRole('button', {name: 'Delete path mapping'})).toHaveLength(
+        2
+      );
     });
 
     it('removes a mapping', async () => {
@@ -229,19 +270,34 @@ describe('PathMappingList', () => {
     });
   });
 
-  describe('catch-all and exact-duplicate warnings', () => {
-    it('shows the catch-all alert when the expanded row has an empty stack root', async () => {
+  describe('empty-prefix and exact-duplicate warnings', () => {
+    it('shows both-empty banner when both prefixes are blank', async () => {
       renderList();
 
-      // The initial row is empty (catch-all state).
       expect(
         await screen.findByText(
-          'This mapping matches every path because the stack trace prefix is empty. Add a specific path if you only want it to apply to some files.'
+          'Both prefixes are empty, so Sentry will look for each file at the same path in your repo.'
         )
       ).toBeInTheDocument();
     });
 
-    it('hides the catch-all alert once a stack root is entered', async () => {
+    it('switches to stack-empty banner when only the repository prefix is filled', async () => {
+      renderList();
+
+      await userEvent.type(
+        screen.getByRole('textbox', {name: /repository prefix/i}),
+        'app/'
+      );
+
+      expect(
+        screen.getByText(
+          /The stack trace prefix is empty, so this mapping matches every file/
+        )
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/Both prefixes are empty/)).not.toBeInTheDocument();
+    });
+
+    it('switches to source-empty banner when only the stack prefix is filled', async () => {
       renderList();
 
       await userEvent.type(
@@ -249,11 +305,25 @@ describe('PathMappingList', () => {
         'src/'
       );
 
-      expect(
-        screen.queryByText(
-          'This mapping matches every path because the stack trace prefix is empty. Add a specific path if you only want it to apply to some files.'
-        )
-      ).not.toBeInTheDocument();
+      expect(screen.getByText(/The repository prefix is empty/)).toBeInTheDocument();
+      expect(screen.queryByText(/Both prefixes are empty/)).not.toBeInTheDocument();
+    });
+
+    it('hides all empty-prefix banners once both prefixes are filled', async () => {
+      renderList();
+
+      await userEvent.type(
+        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        'src/'
+      );
+      await userEvent.type(
+        screen.getByRole('textbox', {name: /repository prefix/i}),
+        'app/'
+      );
+
+      expect(screen.queryByText(/Both prefixes are empty/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/stack trace prefix is empty/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/repository prefix is empty/)).not.toBeInTheDocument();
     });
 
     it('does not warn when roots are unrelated', () => {
@@ -291,7 +361,9 @@ describe('PathMappingList', () => {
 
     it('shows warning icon and across-repos alert when an existing mapping on another repo has the same pair', async () => {
       renderList({
-        pathMappings: [{stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'}],
+        pathMappings: [
+          {id: '1', stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main'},
+        ],
         existingMappings: [
           {
             repoName: 'getsentry/relay',
@@ -351,7 +423,13 @@ describe('PathMappingList', () => {
     it('shows the Code Owners alert on a Code Owners row with no duplicate', async () => {
       renderList({
         pathMappings: [
-          {stackRoot: 'src/', sourceRoot: 'src/app/', branch: 'main', hasCodeOwner: true},
+          {
+            id: '1',
+            stackRoot: 'src/',
+            sourceRoot: 'src/app/',
+            branch: 'main',
+            hasCodeOwner: true,
+          },
         ],
       });
 

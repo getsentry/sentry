@@ -21,9 +21,6 @@ interface RowMeta {
 
 const EMPTY_MAPPING: PathMappingValue = {stackRoot: '', sourceRoot: '', branch: ''};
 
-const hasContent = (value: PathMappingValue) =>
-  value.stackRoot.trim() !== '' || value.sourceRoot.trim() !== '';
-
 const mappingKey = (value: PathMappingValue, branchFallback: string) => {
   const {stackRoot, sourceRoot, branch} = normalizePathMapping(value, branchFallback);
   return `${stackRoot}\0${sourceRoot}\0${branch}`;
@@ -34,21 +31,16 @@ const hasDuplicateMappings = (values: PathMappingValue[], branchFallback: string
   return new Set(keys).size !== keys.length;
 };
 
-// Collapsing a filled new row promotes it to an established mapping so
-// reopening it shows the summary pinned above the editor.
+// Collapsing a row promotes it to an established mapping so reopening it
+// shows the summary pinned above the editor, even if the row is still empty.
 const clearIsNewOnCollapse = (
   meta: RowMeta[],
-  collapsingId: number | null,
-  values: PathMappingValue[]
+  collapsingId: number | null
 ): RowMeta[] => {
   if (collapsingId === null) {
     return meta;
   }
-  return meta.map((m, i) =>
-    m.id === collapsingId && hasContent(values[i] ?? EMPTY_MAPPING)
-      ? {...m, isNew: false}
-      : m
-  );
+  return meta.map(m => (m.id === collapsingId ? {...m, isNew: false} : m));
 };
 
 export const PathMappingList = withForm({
@@ -78,7 +70,7 @@ export const PathMappingList = withForm({
     const [rowMeta, setRowMeta] = useState<RowMeta[]>(() => {
       const initial = form.state.values.pathMappings;
       idRef.current = initial.length;
-      return initial.map((v, i) => ({id: i, isNew: !hasContent(v)}));
+      return initial.map((v, i) => ({id: i, isNew: !v.id}));
     });
 
     const [openId, setOpenId] = useState<number | null>(() =>
@@ -86,8 +78,7 @@ export const PathMappingList = withForm({
     );
 
     const toggle = (id: number) => {
-      const currentValues = form.state.values.pathMappings;
-      setRowMeta(prev => clearIsNewOnCollapse(prev, openId, currentValues));
+      setRowMeta(prev => clearIsNewOnCollapse(prev, openId));
       setOpenId(prev => (prev === id ? null : id));
     };
 
@@ -119,10 +110,9 @@ export const PathMappingList = withForm({
 
             const handleAddAnother = () => {
               const id = nextId();
-              const currentValues = form.state.values.pathMappings;
               field.pushValue(newRowValue);
               setRowMeta(prev => [
-                ...clearIsNewOnCollapse(prev, openId, currentValues),
+                ...clearIsNewOnCollapse(prev, openId),
                 {id, isNew: true},
               ]);
               setOpenId(id);
@@ -149,6 +139,7 @@ export const PathMappingList = withForm({
                             <PathMapping
                               key={meta.id}
                               editing={openId === meta.id}
+                              enableDelete={pathMappings.length > 1}
                               fields={fields}
                               form={form}
                               isNew={meta.isNew}

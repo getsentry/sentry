@@ -3,7 +3,7 @@ import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
@@ -31,9 +31,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 function PathsPlaceholder() {
   return (
     <Container border="muted" radius="md" padding="2xl" style={{borderStyle: 'dashed'}}>
-      <Text variant="muted">
-        {t('Select a repository first to configure code paths')}
-      </Text>
+      <Flex justify="center">
+        <Text variant="muted">
+          {t('Select a repository first to configure code paths')}
+        </Text>
+      </Flex>
     </Container>
   );
 }
