@@ -140,7 +140,8 @@ describe('api', () => {
         const error = await new Client().requestPromise('/test/').catch(e => e);
 
         expect(error).toBeInstanceOf(RequestError);
-        expect(error.status).toBeUndefined();
+        expect(error.status).toBe(0);
+        expect(error.responseJSON).toBeUndefined();
       });
 
       it('stays unsettled when the request is cancelled', async () => {
@@ -153,6 +154,44 @@ describe('api', () => {
         await new Promise(resolve => setTimeout(resolve, 0));
 
         expect(settled).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('request()', () => {
+      it('calls error and complete and cleans up when fetch fails', async () => {
+        fetchMock.mockReject(new TypeError('Failed to fetch'));
+        const client = new Client();
+        const error = jest.fn();
+        const complete = jest.fn();
+        const success = jest.fn();
+
+        const request = client.request('/test/', {error, complete, success});
+        await expect(request.requestPromise).rejects.toThrow('Failed to fetch');
+
+        await waitFor(() => expect(complete).toHaveBeenCalledTimes(1));
+        expect(error).toHaveBeenCalledTimes(1);
+        const [response, textStatus, errorThrown] = error.mock.calls[0]!;
+        expect(response.status).toBe(0);
+        expect(response.responseJSON).toBeUndefined();
+        expect(response.getResponseHeader('content-type')).toBeNull();
+        expect(textStatus).toBe('error');
+        expect(errorThrown).toBe('Failed to fetch');
+        expect(complete).toHaveBeenCalledWith(response, 'error');
+        expect(success).not.toHaveBeenCalled();
+        expect(client.activeRequests).toEqual({});
+      });
+
+      it('does not call error or complete for an aborted fetch', async () => {
+        fetchMock.mockResponse(() => '');
+        const error = jest.fn();
+        const complete = jest.fn();
+        const request = new Client().request('/test/', {error, complete});
+
+        request.cancel();
+        await expect(request.requestPromise).rejects.toHaveProperty('name', 'AbortError');
+
+        expect(error).not.toHaveBeenCalled();
+        expect(complete).not.toHaveBeenCalled();
       });
     });
   });
