@@ -194,6 +194,34 @@ describe('BreadcrumbList container-query collapse', () => {
     expect(hidesBelowSm(selectItem!)).toBe(true);
   });
 
+  it('links to the current selection in the narrow breadcrumb menu', async () => {
+    render(
+      <BreadcrumbList
+        items={[
+          {type: 'link', label: 'Settings', to: '/settings/'},
+          {
+            type: 'select',
+            label: 'javascript',
+            to: '/settings/org-slug/projects/javascript/',
+            value: 'javascript',
+            options: [
+              {value: 'javascript', label: 'javascript'},
+              {value: 'python', label: 'python'},
+            ],
+            onChange: () => {},
+          },
+        ]}
+      />
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'More breadcrumbs'}));
+    expect(screen.getByRole('menuitemradio', {name: 'javascript'})).toHaveAttribute(
+      'href',
+      '/settings/org-slug/projects/javascript/'
+    );
+    expect(screen.queryByRole('menuitemradio', {name: 'python'})).not.toBeInTheDocument();
+  });
+
   it('gives crumbs a visible-width floor and never collapses them to 0', () => {
     render(
       <BreadcrumbList items={[{type: 'link', label: 'Settings', to: '/settings/'}]} />

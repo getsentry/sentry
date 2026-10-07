@@ -70,7 +70,7 @@ function BreadCrumbTitle({item}: BreadcrumbListTitleProps) {
 
 /**
  * Renders a horizontal breadcrumb trail. Uses a container query to collapse
- * parent link crumbs into an overflow (…) menu when the container is narrow
+ * parent crumbs into an overflow (…) menu when the container is narrow
  * (below the 'sm' breakpoint — 512px).
  *
  * Consumers pass parent crumbs in `items` and render the final page title with
@@ -78,9 +78,9 @@ function BreadCrumbTitle({item}: BreadcrumbListTitleProps) {
  *
  * Overflow behaviour:
  * - Wide (≥ 512px): all parent items render individually
- * - Narrow (< 512px): parent items hide and link parents collapse into a single
- *   BreadcrumbItemMenuBreadcrumbs overflow button; non-link parents (e.g.
- *   'select') just hide.
+ * - Narrow (< 512px): parent items hide and links collapse into a single
+ *   BreadcrumbItemMenuBreadcrumbs overflow button. Selects with a destination
+ *   appear there as links to their current selection.
  */
 export function BreadcrumbList({items}: BreadcrumbListProps) {
   const hasParentQueryContainer = useHasContainerQuery();
@@ -89,18 +89,32 @@ export function BreadcrumbList({items}: BreadcrumbListProps) {
     return null;
   }
 
-  // Collect link items for the overflow menu (narrow layout)
-  const menuItems = items
-    .filter(item => item.type === 'link')
-    .map((item, index) => ({
-      label: item.label,
-      to: item.to,
-      externalHref: item.externalHref,
-      leadingItems: item.leadingGraphic,
-      // Include the index so two crumbs pointing at the same destination don't
-      // collide on key. The list is static and never reordered, so the index is a stable identifier.
-      key: `${index}`,
-    }));
+  // Collect links and the current destination of each select for the narrow menu.
+  const menuItems = items.flatMap((item, index) => {
+    const key = `${index}`;
+    if (item.type === 'link') {
+      return [
+        {
+          key,
+          label: item.label,
+          to: item.to,
+          externalHref: item.externalHref,
+          leadingItems: item.leadingGraphic,
+        },
+      ];
+    }
+    return item.to === undefined
+      ? []
+      : [
+          {
+            key,
+            label: item.label ?? String(item.value),
+            to: item.to,
+            externalHref: undefined,
+            leadingItems: item.leadingGraphic,
+          },
+        ];
+  });
 
   // Responsive display values using container queries (bare breakpoint keys):
   //   'zero' is the base (0px) → applies until the first override
@@ -125,15 +139,14 @@ export function BreadcrumbList({items}: BreadcrumbListProps) {
       >
         <Flex as="ol" align="center" gap="xs" margin="0" padding="0" wrap="nowrap">
           {items.map((item, index) => (
-            // Wide: show every item. Narrow: hide them all — 'link' parents
-            // reappear in the overflow menu below; other types (e.g. 'select')
-            // simply collapse out of view.
+            // Wide: show every item. Narrow: hide them all; items with a
+            // destination reappear as links in the overflow menu below.
             <BreadcrumbDividerCombo key={index} display={visibleWhenWide}>
               {renderItem(item)}
             </BreadcrumbDividerCombo>
           ))}
 
-          {/* Overflow menu — only visible in narrow layout when there are link items to collapse */}
+          {/* Overflow menu — only visible in narrow layout when there are destinations to show */}
           {menuItems.length > 0 && (
             <BreadcrumbDividerCombo display={visibleWhenNarrow}>
               <BreadcrumbItemMenuBreadcrumbs items={menuItems} />
