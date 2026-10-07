@@ -545,6 +545,34 @@ describe('EntityHeader', () => {
       expect(within(item).getByText('Chrome 144.0.0')).toBeInTheDocument();
     });
 
+    it('never hides a focusable element on a link stat', () => {
+      render(
+        <EntityHeader
+          title={{label: 'Replay user', value: 'Session'}}
+          stats={[
+            {
+              type: 'link',
+              label: 'Errors',
+              value: 3,
+              to: '/replays/1/?t_main=errors',
+              labelTooltip: 'From 2 projects',
+            },
+          ]}
+        />
+      );
+
+      // The value is hidden on a link stat, because the link speaks it as part
+      // of its own name. Anything hidden must also be unreachable: a tab stop
+      // that announces nothing is focus landing somewhere a screen reader
+      // cannot follow.
+      const header = screen.getByRole('banner');
+      const hiddenFocusable = header.querySelectorAll(
+        '[aria-hidden="true"] [tabindex], [aria-hidden="true"][tabindex]'
+      );
+
+      expect(hiddenFocusable).toHaveLength(0);
+    });
+
     it('renders a tooltip on a metadata item', async () => {
       render(
         <EntityHeader

@@ -100,11 +100,12 @@ function getGridTemplate({
     columns: {zero: 'minmax(0, 1fr)', lg: 'minmax(0, 1fr) minmax(0, max-content)'},
     areas: hasContext
       ? {
-          // Narrow: the stats sit below the metadata, which is also their order
-          // in the DOM — reading order and focus order follow the layout.
+          // Narrow: the stats sit below the metadata, matching their DOM order.
           zero: `"title" "context" "stats"`,
-          // Wide: the stats move up beside the title. Grid placement ignores
-          // source order, so this costs the narrow layout nothing.
+          // Wide: the stats move up beside the title, which the DOM order no
+          // longer matches. One source order cannot satisfy both templates —
+          // it follows the stacked one, where the gap between read and shown
+          // position would be a whole row rather than a column.
           lg: `"title stats" "context context"`,
         }
       : {zero: `"title" "stats"`, lg: `"title stats"`},

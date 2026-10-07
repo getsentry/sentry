@@ -32,11 +32,6 @@ interface EntityHeaderStatBase {
    * the content you expect, so the row does not jump when the value lands.
    */
   loadingWidth?: string;
-  /**
-   * What the value is made of — the projects behind an error count, say. Takes
-   * structured content, which is how a breakdown stays out of the row itself.
-   */
-  valueTooltip?: React.ReactNode;
 }
 
 /**
@@ -49,7 +44,19 @@ interface EntityHeaderStatBase {
  * often as it likes; the type may not.
  */
 export type EntityHeaderStatProps =
-  | ({type: 'text'} & EntityHeaderStatBase)
+  | ({
+      type: 'text';
+      /**
+       * What the value is made of — the projects behind an error count, say.
+       * Takes structured content, which is how a breakdown stays out of the row.
+       *
+       * Only on a text stat. On a link stat the value is hidden, since the link
+       * speaks it as part of its own name, and a tooltip needs a visible,
+       * focusable trigger — put the breakdown in `labelTooltip` instead, where
+       * it attaches to the link.
+       */
+      valueTooltip?: React.ReactNode;
+    } & EntityHeaderStatBase)
   | ({
       /**
        * Where the value leads. Required, so the stat cannot quietly stop being
@@ -63,14 +70,7 @@ export type EntityHeaderStatProps =
 export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boolean}) {
   const valueId = useId();
   const labelId = useId();
-  const {
-    isLoading,
-    label,
-    labelTooltip,
-    loadingWidth = '80px',
-    value,
-    valueTooltip,
-  } = props;
+  const {isLoading, label, labelTooltip, loadingWidth = '80px', value} = props;
   // The whole stat becomes one skeleton, label included. The label is static and
   // could be shown immediately, but a half-drawn stat reads as broken next to a
   // title and metadata row that are still loading.
@@ -90,15 +90,16 @@ export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boo
   // and the value is hidden, since it is now spoken as part of that name.
   // (`aria-labelledby` resolves hidden references, so the text still counts.)
   const isLink = props.type === 'link';
-  const valueContent = valueTooltip ? (
-    <InfoText id={valueId} aria-hidden={isLink} title={valueTooltip} {...valueStyles}>
-      {value}
-    </InfoText>
-  ) : (
-    <Text id={valueId} aria-hidden={isLink} {...valueStyles}>
-      {value}
-    </Text>
-  );
+  const valueContent =
+    props.type === 'text' && props.valueTooltip ? (
+      <InfoText id={valueId} title={props.valueTooltip} {...valueStyles}>
+        {value}
+      </InfoText>
+    ) : (
+      <Text id={valueId} aria-hidden={isLink} {...valueStyles}>
+        {value}
+      </Text>
+    );
 
   const labelStyles = {
     size: 'sm',

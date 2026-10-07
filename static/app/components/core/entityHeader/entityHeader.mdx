@@ -113,7 +113,9 @@ leadingGraphic={{type: 'platform', platform: 'javascript'}}
 
 `project` and `platform` draw the same badge but take what the caller actually holds. A trace knows its projects and the header maps them to platforms; a build has only inferred a platform from a file type. A `project` graphic with no known platform renders nothing rather than falling back to an all-projects glyph, which belongs to a saved view.
 
-The graphic is decorative by default: a platform icon next to "ValueError" tells a screen reader nothing the title has not. Give it a `label` when it carries something the title does not — which projects a trace touched, say — and it becomes an image in its own right, reachable by keyboard, with `tooltip` for richer hover content than the label.
+The graphic is decorative by default: a platform icon next to "ValueError" tells a screen reader nothing the title has not. Give it a `label` when it carries something the title does not — which projects a trace touched, say — and it becomes an image in its own right.
+
+It is deliberately not focusable, since a named image is announced without focus. That means `tooltip` is mouse-only: use it for elaboration, and keep anything a user actually needs in `label`.
 
 ```jsx
 leadingGraphic={{
@@ -342,10 +344,10 @@ Do not use it for list or landing pages, which carry no single entity.
 ## Accessibility
 
 - The title renders as an `h2`, named from its `label` and `value` together so heading navigation lands on "Replay user, anonymous@example.com" rather than a bare string. It is never a link: a heading that is wholly a link announces as both, and the breadcrumb above it already handles going up. The page's `h1` is the TopBar title slot, so the two do not compete. The heading stays in the tree while loading, so the page's structure does not change as data lands.
-- The header sets `aria-busy` while loading, which is the only signal a screen reader gets that more is coming.
+- The header sets `aria-busy` while loading. Be aware this is a state in the accessibility tree, not an announcement — no screen reader reads it. A page that needs the transition announced has to add its own live region.
 - A `leadingGraphic` is decorative and hidden until given a `label`, at which point it becomes a named `img`. It is deliberately not focusable — a named image is announced without focus, so a tab stop there would be one a keyboard user could not act on.
 - A `people` stack is a named `group`. Its avatars are not focusable, so the per-avatar tooltips are mouse-only and the group name is what carries the meaning.
 - On a `link` stat the label navigates, and the link is named from the value and the label together, so the stat reads as one fact rather than two elements. A `text` stat is still two: its value and label are adjacent and read in order, but a screen reader moving element by element visits them separately.
-- Stats and metadata read in the order the narrow layout shows them, so reading order and focus order follow the eye at every width.
+- The DOM order is title, then context, then stats. That matches the narrow layout, where the stats sit below the metadata. Above the `lg` breakpoint the stats move up beside the title, and the two disagree: they are read after the metadata but shown above it. One source order cannot satisfy both templates, so it follows the stacked one.
 - The metadata row is a named list and each item a listitem, carrying its own label as text so a screen reader reads "Browser, Chrome 144.0.0" rather than a bare version string.
 - The dividers between stats and metadata are decorative and hidden; a header has around five of them.
