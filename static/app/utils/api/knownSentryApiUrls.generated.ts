@@ -190,6 +190,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/group-search-views/starred/order/'
   | '/organizations/$organizationIdOrSlug/incident-groupopenperiod/'
   | '/organizations/$organizationIdOrSlug/insights/starred-segments/'
+  | '/organizations/$organizationIdOrSlug/insights/starred-transactions/'
   | '/organizations/$organizationIdOrSlug/insights/tree/'
   | '/organizations/$organizationIdOrSlug/integration-requests/'
   | '/organizations/$organizationIdOrSlug/integrations/'
