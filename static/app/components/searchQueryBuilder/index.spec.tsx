@@ -22,7 +22,12 @@ import {
   type SearchQueryBuilderProps,
 } from 'sentry/components/searchQueryBuilder';
 import {AskSeerComboBox} from 'sentry/components/searchQueryBuilder/askSeerCombobox/askSeerComboBox';
-import {useInitialSeerQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
+import type {SeerRawResponse} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
+import {
+  buildSeerMutationResult,
+  mapSeerResponseItem,
+  useInitialSeerQuery,
+} from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
 import {
   SearchQueryBuilderProvider,
   useSearchQueryBuilderAI,
@@ -7744,19 +7749,18 @@ describe('SearchQueryBuilder', () => {
           method: 'POST',
         });
         MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/trace-explorer-ai/setup/',
-          method: 'POST',
-        });
-        MockApiClient.addMockResponse({
-          url: '/organizations/org-slug/trace-explorer-ai/query/',
+          url: '/organizations/org-slug/search-agent/translate/',
           method: 'POST',
           body: {
-            status: 'ok',
-            queries: [
+            unsupported_reason: null,
+            responses: [
               {
                 query: 'span.duration:>30s',
                 stats_period: '',
                 group_by: [],
+                start: null,
+                end: null,
+                mode: 'spans',
                 visualization: [{chart_type: 1, y_axes: ['count()']}],
                 sort: '-span.duration',
               },
@@ -7772,44 +7776,24 @@ describe('SearchQueryBuilder', () => {
               initialQuery={query}
               applySeerSearchQuery={() => {}}
               askSeerMutationOptions={mutationOptions({
-                mutationFn: async (_value: string) => {
-                  const data = await fetchMutation<{
-                    queries: Array<{
-                      group_by: string[];
-                      mode: string;
-                      query: string;
-                      sort: string;
-                      stats_period: string;
-                      visualization: Array<{chart_type: number; y_axes: string[]}>;
-                    }>;
-                    status: string;
-                    unsupported_reason: string | null;
-                  }>({
+                mutationFn: async (queryToSubmit: string) => {
+                  const data = await fetchMutation<SeerRawResponse>({
                     url: getApiUrl(
-                      '/organizations/$organizationIdOrSlug/trace-explorer-ai/query/',
+                      '/organizations/$organizationIdOrSlug/search-agent/translate/',
                       {
                         path: {organizationIdOrSlug: 'org-slug'},
                       }
                     ),
                     method: 'POST',
-                    data: {},
+                    data: {
+                      natural_language_query: queryToSubmit,
+                      project_ids: [1],
+                    },
                   });
 
-                  return {
-                    ...data,
-                    queries: data.queries.map(q => ({
-                      visualizations:
-                        q?.visualization?.map((v: any) => ({
-                          chartType: v?.chart_type,
-                          yAxes: v?.y_axes,
-                        })) ?? [],
-                      query: q?.query,
-                      sort: q?.sort ?? '',
-                      groupBys: q?.group_by ?? [],
-                      statsPeriod: q?.stats_period ?? '',
-                      mode: q?.mode ?? 'spans',
-                    })),
-                  };
+                  return buildSeerMutationResult(data, [1], response =>
+                    mapSeerResponseItem(response, 'spans')
+                  );
                 },
               })}
             />
