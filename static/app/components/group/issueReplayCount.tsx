@@ -43,7 +43,7 @@ export function IssueReplayCount({group}: Props) {
         )}
         aria-label={t('replay-count')}
       >
-        <Flex as="span" display="inline-flex" align="center" gap="xs">
+        <Flex as="span" align="center" gap="xs">
           <IconPlay size="xs" />
           {countDisplay}
         </Flex>
