@@ -424,7 +424,7 @@ export default function SentryAppDetailedView() {
 
   return (
     <IntegrationLayout.Body
-      integrationName={integrationName}
+      title={integrationName}
       alert={null}
       topSection={
         <IntegrationLayout.TopSection

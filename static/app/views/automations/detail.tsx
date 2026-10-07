@@ -1,9 +1,9 @@
 import {Fragment, useState} from 'react';
 
 import {Alert} from '@sentry/scraps/alert';
-import {BreadcrumbList} from '@sentry/scraps/breadcrumbList';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Flex} from '@sentry/scraps/layout';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
+import {Container, Flex} from '@sentry/scraps/layout';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {DateTime} from 'sentry/components/dateTime';
@@ -15,7 +15,6 @@ import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter'
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {KeyValueTable, KeyValueTableRow} from 'sentry/components/tables/keyValueTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
@@ -90,20 +89,17 @@ function AutomationDetailContentInner({automation}: {automation: Automation}) {
   return (
     <SentryDocumentTitle title={automation.name}>
       <DetailLayout>
-        <TopBar.Slot name="breadcrumbs">
-          <BreadcrumbList
-            items={[
-              {
-                type: 'link',
-                label: t('Alerts'),
-                to: makeAutomationBasePathname(organization.slug),
-              },
-            ]}
-          />
-        </TopBar.Slot>
-        <TopBar.Slot name="title">
-          <BreadcrumbList.Title item={{type: 'page-title', label: automation.name}} />
-        </TopBar.Slot>
+        <TopBar.Slot
+          name="breadcrumbs"
+          title={{type: 'page-title', label: automation.name}}
+          items={[
+            {
+              type: 'link',
+              label: t('Alerts'),
+              to: makeAutomationBasePathname(organization.slug),
+            },
+          ]}
+        />
         <AutomationFeedbackButton />
         <DetailLayout.Body>
           <DetailLayout.Main>
@@ -215,20 +211,22 @@ function AutomationDetailContentInner({automation}: {automation: Automation}) {
             </DetailSection>
             <DetailSection title={t('Details')}>
               <ErrorBoundary mini>
-                <KeyValueTable margin>
-                  <KeyValueTableRow
-                    keyName={t('Date created')}
-                    value={<DateTime date={automation.dateCreated} dateOnly year />}
-                  />
-                  <KeyValueTableRow
-                    keyName={t('Created by')}
-                    value={<UserDisplayName id={automation.createdBy} />}
-                  />
-                  <KeyValueTableRow
-                    keyName={t('Last modified')}
-                    value={<TimeSince date={automation.dateUpdated} />}
-                  />
-                </KeyValueTable>
+                <Container marginBottom="xl">
+                  <DescriptionList striped>
+                    <DescriptionList.Term>{t('Date created')}</DescriptionList.Term>
+                    <DescriptionList.Details>
+                      <DateTime date={automation.dateCreated} dateOnly year />
+                    </DescriptionList.Details>
+                    <DescriptionList.Term>{t('Created by')}</DescriptionList.Term>
+                    <DescriptionList.Details>
+                      <UserDisplayName id={automation.createdBy} />
+                    </DescriptionList.Details>
+                    <DescriptionList.Term>{t('Last modified')}</DescriptionList.Term>
+                    <DescriptionList.Details>
+                      <TimeSince date={automation.dateUpdated} />
+                    </DescriptionList.Details>
+                  </DescriptionList>
+                </Container>
               </ErrorBoundary>
             </DetailSection>
           </DetailLayout.Sidebar>

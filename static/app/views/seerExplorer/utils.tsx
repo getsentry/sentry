@@ -8,7 +8,7 @@ import {
   type ReactNode,
   type RefObject,
 } from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import {useTheme} from '@emotion/react';
 import type {LocationDescriptor} from 'history';
 import queryString from 'query-string';

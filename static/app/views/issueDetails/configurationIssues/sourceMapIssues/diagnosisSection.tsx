@@ -5,10 +5,7 @@ import {InlineCode} from '@sentry/scraps/code';
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import type {
-  SourceMapDebugResponse,
-  SourceMapDebugQueryResult,
-} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
+import type {SourceMapDebugResponse} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {IconOpen} from 'sentry/icons';
@@ -159,32 +156,22 @@ function getDiagnosisMessage(data: SourceMapDebugResponse | undefined): ReactNod
   );
 }
 
-interface DiagnosisSectionProps {
-  sourceMapQuery: SourceMapDebugQueryResult;
-}
+export type DiagnosisState =
+  | {status: 'loading'}
+  | {message: string; status: 'unavailable'}
+  | {message: string; onRetry: () => void; status: 'error'}
+  | {data: SourceMapDebugResponse; status: 'ready'};
 
-export function DiagnosisSection({sourceMapQuery}: DiagnosisSectionProps) {
-  const {data, isLoading, isError} = sourceMapQuery;
-
-  function renderContent(): ReactNode {
-    if (isLoading) {
-      return <LoadingIndicator mini />;
-    }
-    if (isError) {
-      return (
-        <LoadingError
-          message={t('Unable to load source map diagnostic information for this event.')}
-        />
-      );
-    }
-
-    return getDiagnosisMessage(data);
-  }
-
+export function DiagnosisSection({state}: {state: DiagnosisState}) {
   return (
     <Stack gap="lg" padding="lg">
       <Heading as="h3">{t('Diagnosis')}</Heading>
-      {renderContent()}
+      {state.status === 'loading' && <LoadingIndicator mini />}
+      {state.status === 'error' && (
+        <LoadingError message={state.message} onRetry={state.onRetry} />
+      )}
+      {state.status === 'unavailable' && <Text>{state.message}</Text>}
+      {state.status === 'ready' && getDiagnosisMessage(state.data)}
     </Stack>
   );
 }

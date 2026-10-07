@@ -318,49 +318,6 @@ class QuotaConfig:
         return hash(self._comparison_key())
 
 
-class RateLimit:
-    """
-    Return value of ``quotas.is_rate_limited``.
-    """
-
-    __slots__ = ["is_limited", "retry_after", "reason", "reason_code"]
-
-    def __init__(self, is_limited, retry_after=None, reason=None, reason_code=None):
-        self.is_limited = is_limited
-        # delta of seconds in the future to retry
-        self.retry_after = retry_after
-        # human readable description
-        self.reason = reason
-        # machine readable description
-        self.reason_code = reason_code
-
-    def to_dict(self):
-        """
-        Converts the object into a plain dictionary
-        :return: a dict containing the non None elm of the RateLimit
-
-        >>> x = RateLimit(is_limited = False, retry_after = 33)
-        >>> x.to_dict() == {'is_limited': False, 'retry_after': 33}
-        True
-
-        """
-        return {
-            name: getattr(self, name, None)
-            for name in self.__slots__
-            if getattr(self, name, None) is not None
-        }
-
-
-class NotRateLimited(RateLimit):
-    def __init__(self, **kwargs):
-        super().__init__(False, **kwargs)
-
-
-class RateLimited(RateLimit):
-    def __init__(self, **kwargs):
-        super().__init__(True, **kwargs)
-
-
 def _limit_from_settings(x: Any) -> int | None:
     """
     limit=0 (or any falsy value) in database means "no limit". Convert that to
@@ -409,13 +366,11 @@ class Quota(Service):
     to, for example error events or attachments. For more information on quota
     parameters, see ``QuotaConfig``.
 
-    To retrieve a list of active quotas, use ``quotas.get_quotas``. Also, to
-    check the current status of quota usage, call ``quotas.get_usage``.
+    To retrieve a list of active quotas, use ``quotas.get_quotas``.
     """
 
     __all__ = (
         "get_abuse_quotas",
-        "is_rate_limited",
         "validate",
         "refund",
         "get_event_retention",
@@ -448,43 +403,10 @@ class Quota(Service):
         """
         return []
 
-    def is_rate_limited(self, project, key=None):
-        """
-        Checks whether any of the quotas in effect for the given project and
-        project key has been exceeded and records consumption of the quota.
-
-        By invoking this method, the caller signals that data is being ingested
-        and needs to be counted against the quota. This increment happens
-        atomically if none of the quotas have been exceeded. Otherwise, a rate
-        limit is returned and data is not counted against the quotas.
-
-        When an event or any other data is dropped after ``is_rate_limited`` has
-        been called, use ``quotas.refund``.
-
-        If no key is specified, then only organization-wide and project-wide
-        quotas are checked. If a key is specified, then key-quotas are also
-        checked.
-
-        The return value is a subclass of ``RateLimit``:
-
-         - ``RateLimited``, if at least one quota has been exceeded. The event
-           should not be ingested by the caller, and none of the quotas have
-           been counted.
-
-         - ``NotRateLimited``, if consumption is within all quotas. Data must be
-           ingested by the caller, and the counters for all counters have been
-           incremented.
-
-        :param project: The project instance that is used to determine quotas.
-        :param key:     A project key to obtain quotas for. If omitted, only
-                        project and organization quotas are used.
-        """
-        return NotRateLimited()
-
     def refund(self, project, key=None, timestamp=None, category=None, quantity=None):
         """
-        Signals event rejection after ``quotas.is_rate_limited`` has been called
-        successfully, and refunds the previously consumed quota.
+        Signals that data counted against quotas was dropped, and refunds the
+        previously consumed quota.
 
         :param project:   The project that the dropped data belonged to.
         :param key:       The project key that was used to ingest the data. If

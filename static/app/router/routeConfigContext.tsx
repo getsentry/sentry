@@ -1,5 +1,5 @@
 import {createContext, useContext} from 'react';
-import type {RouteObject} from 'react-router-dom';
+import type {RouteObject} from 'react-router';
 
 const RouteConfigContext = createContext<RouteObject[] | null>(null);
 

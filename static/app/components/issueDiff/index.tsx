@@ -24,7 +24,6 @@ interface IssueDiffProps {
   targetIssueId: string;
   baseEventId?: string;
   hasSimilarityEmbeddingsProjectFeature?: boolean;
-  shouldBeGrouped?: string;
   targetEventId?: string;
 }
 
@@ -60,7 +59,6 @@ export function IssueDiff({
   baseEventId = 'latest',
   targetEventId = 'latest',
   hasSimilarityEmbeddingsProjectFeature,
-  shouldBeGrouped,
 }: IssueDiffProps) {
   const organization = useOrganization();
   const location = useLocation();
@@ -187,15 +185,8 @@ export function IssueDiff({
       project_id: baseEventData?.projectID,
       group_id: baseEventData?.groupID,
       parent_group_id: targetEventData?.groupID,
-      shouldBeGrouped,
     });
-  }, [
-    baseEventData,
-    hasSimilarityEmbeddingsFeature,
-    organization,
-    shouldBeGrouped,
-    targetEventData,
-  ]);
+  }, [baseEventData, hasSimilarityEmbeddingsFeature, organization, targetEventData]);
 
   if (hasError) {
     return (

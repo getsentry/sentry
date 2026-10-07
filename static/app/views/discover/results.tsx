@@ -1,4 +1,4 @@
-import {Component, Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Component, Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
@@ -88,7 +88,7 @@ import {ResultsHeader} from 'sentry/views/discover/results/resultsHeader';
 import {ResultsSearchQueryBuilder} from 'sentry/views/discover/results/resultsSearchQueryBuilder';
 import {SampleDataAlert} from 'sentry/views/discover/results/sampleDataAlert';
 import Tags from 'sentry/views/discover/results/tags';
-import {IconUpdate, SaveAsDropdown} from 'sentry/views/discover/savedQuery';
+import {IconUpdate, SaveAsButton} from 'sentry/views/discover/savedQuery';
 import {
   getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDataset,
@@ -106,6 +106,8 @@ import {
   handleAddQueryToDashboard,
   SAVED_QUERY_DATASET_TO_WIDGET_TYPE,
 } from 'sentry/views/discover/utils';
+import {SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
+import {useStarQuery} from 'sentry/views/explore/hooks/useStarQuery';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {addRoutePerformanceContext} from 'sentry/views/performance/utils';
@@ -1263,7 +1265,7 @@ function SaveQueryButton({
 }) {
   const api = useApi();
   const navigate = useNavigate();
-  const [queryName, setQueryName] = useState('');
+  const {starQuery} = useStarQuery();
 
   const {isNewQuery, isEditingQuery} = useMemo(() => {
     if (!savedQuery) {
@@ -1285,12 +1287,6 @@ function SaveQueryButton({
     return {isNewQuery: false, isEditingQuery: !isEqualQuery || !isEqualYAxis};
   }, [eventView, savedQuery, yAxis]);
 
-  useEffect(() => {
-    // oxlint-disable-next-line react/set-state-in-effect
-    setQueryName('');
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
-  }, [eventView.id]);
-
   const currentDataset = getDatasetFromLocationOrSavedQueryDataset(
     location,
     savedQuery?.queryDataset
@@ -1300,26 +1296,32 @@ function SaveQueryButton({
     organization.features.includes('discover-saved-queries-deprecation');
   const tracesUrl = getExploreUrl({organization, query: 'is_transaction:true'});
 
-  const handleCreate = useCallback(
-    (event: React.MouseEvent | React.FormEvent<HTMLFormElement>) => {
-      event.preventDefault();
-      event.stopPropagation();
-      if (!queryName) {
-        return;
+  const handleCreate = async ({name, starred}: {name: string; starred?: boolean}) => {
+    const nextEventView = eventView.clone();
+    nextEventView.name = name;
+    // The save query modal shows its own success and error messages
+    const sq = await handleCreateSavedQuery(
+      api,
+      organization,
+      nextEventView,
+      yAxis,
+      !eventView.id
+    );
+    if (starred) {
+      try {
+        await starQuery(
+          {queryId: Number(sq.id), queryType: SavedQueryType.DISCOVER},
+          true
+        );
+      } catch (err) {
+        Sentry.captureException(err);
       }
-      const nextEventView = eventView.clone();
-      nextEventView.name = queryName;
-      handleCreateSavedQuery(api, organization, nextEventView, yAxis, !eventView.id).then(
-        (sq: SavedQuery) => {
-          const view = EventView.fromSavedQuery(sq);
-          Banner.dismiss('discover');
-          setQueryName('');
-          navigate(normalizeUrl(view.getResultsViewUrlTarget(organization)));
-        }
-      );
-    },
-    [api, navigate, organization, eventView, yAxis, queryName]
-  );
+    }
+    const view = EventView.fromSavedQuery(sq);
+    Banner.dismiss('discover');
+    navigate(normalizeUrl(view.getResultsViewUrlTarget(organization)));
+    return {id: sq.id};
+  };
 
   const handleUpdate = (event: React.MouseEvent) => {
     event.preventDefault();
@@ -1327,7 +1329,6 @@ function SaveQueryButton({
     handleUpdateSavedQuery(api, organization, eventView, yAxis).then((sq: SavedQuery) => {
       const view = EventView.fromSavedQuery(sq);
       setSavedQuery(sq);
-      setQueryName('');
       navigate(view.getResultsViewShortUrlTarget(organization));
     });
   };
@@ -1367,10 +1368,9 @@ function SaveQueryButton({
                 }
                 title={getTransactionDeprecationMessage(tracesUrl)}
               >
-                <SaveAsDropdown
-                  queryName={queryName}
-                  onChangeInput={e => setQueryName(e.currentTarget.value)}
-                  modifiedHandleCreateQuery={handleCreate}
+                <SaveAsButton
+                  organization={organization}
+                  onSave={handleCreate}
                   disabled={disabled || deprecatingTransactionsDataset}
                 />
               </Tooltip>
@@ -1386,10 +1386,9 @@ function SaveQueryButton({
             }
             title={getTransactionDeprecationMessage(tracesUrl)}
           >
-            <SaveAsDropdown
-              queryName={queryName}
-              onChangeInput={e => setQueryName(e.currentTarget.value)}
-              modifiedHandleCreateQuery={handleCreate}
+            <SaveAsButton
+              organization={organization}
+              onSave={handleCreate}
               disabled={disabled || deprecatingTransactionsDataset}
             />
           </Tooltip>
@@ -1605,7 +1604,7 @@ export default function ResultsContainer() {
       // This avoids an unnecessary re-render when forcing a project filter for team plan users
       skipInitializeUrlParams
     >
-      <AiQueryProvider>
+      <AiQueryProvider strategy="Errors">
         <SavedQueryAPI
           addAlert={addAlert}
           api={api}
