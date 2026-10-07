@@ -89,8 +89,7 @@ export function useComposerSuggestions({
   const items = useMemo(() => {
     return suggestionsBySource.flatMap(({source, suggestions}) =>
       suggestions.slice(0, MAX_SUGGESTIONS).map(suggestion => {
-        const textValue =
-          'getText' in source ? source.getText(suggestion) : source.getId(suggestion);
+        const textValue = source.getText?.(suggestion) ?? source.getId(suggestion);
         return {
           key: `${source.id}:${source.getId(suggestion)}`,
           hideCheck: true,

@@ -397,6 +397,29 @@ describe('Composer', () => {
     expect(textbox).toHaveTextContent('Inserted snippet');
   });
 
+  it('replaces only the selected trigger range with a synchronous action', async () => {
+    render(
+      <ControlledComposer
+        sources={[{...COMMAND_SOURCE, restrictToStart: false}]}
+        initialValue="Before /sni after"
+      />
+    );
+    const textbox = getEditor();
+    await userEvent.click(textbox);
+    await userEvent.pointer({
+      target: textbox,
+      node: textbox.firstChild!,
+      offset: 11,
+      keys: '[MouseLeft]',
+    });
+    await userEvent.click(await screen.findByRole('option', {name: '/snippet'}));
+    await userEvent.keyboard('here');
+
+    expect(screen.getByRole('status', {name: 'Editor value'})).toHaveTextContent(
+      'Before Inserted snippet here after|'
+    );
+  });
+
   it('allows repeating a command after clearing the editor', async () => {
     render(<ControlledComposer sources={[COMMAND_SOURCE]} />);
     const textbox = getEditor();

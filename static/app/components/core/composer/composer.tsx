@@ -267,7 +267,7 @@ export function Composer({
     }
     const {source, suggestion} = item;
 
-    if ('onSelect' in source) {
+    if (source.onSelect) {
       const {start, end} = activeTrigger;
       dismissedRequestKeyRef.current = getRequestKey(activeTrigger);
       setActiveTrigger(null);

@@ -167,6 +167,8 @@ const remotePlugin = {
 
 Sources providing `onSelect` run a custom action on selection instead of inserting text at the trigger position — for command-style triggers that clear the editor, insert a snippet, or toggle a mode. Pair it with `restrictToStart` so the trigger only matches at the very start of the editor's text, like a slash command.
 
+Provide either `getText` or `onSelect`, never both. Call at most one editor action synchronously inside `onSelect`, before any `await`. Actions capture the value and trigger range at selection: `insertText` replaces that range with plain text, and repeated calls do not build on earlier edits. Do not retain actions for later use; asynchronous updates belong in the owner's controlled value.
+
 <Storybook.Demo overflow="visible">
   <CommandComposerDemo />
 </Storybook.Demo>

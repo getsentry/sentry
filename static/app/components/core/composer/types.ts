@@ -5,10 +5,14 @@ import type {FormSize} from 'sentry/utils/theme';
 
 import type {ComposerValue} from './model';
 
+/**
+ * Edits the value captured when a suggestion is selected. Call at most one action,
+ * synchronously inside `onSelect`; actions cannot be retained or used after awaiting.
+ */
 export interface ComposerActions {
   /** Clears the editor back to empty text with no mentions. */
   clear(): void;
-  /** Inserts text at the current cursor position, replacing the trigger and its query. */
+  /** Replaces the trigger and query range captured at selection with plain text. */
   insertText(text: string): void;
 }
 
@@ -44,6 +48,7 @@ interface AsyncComposerSourceBase<TSuggestion> extends ComposerSourceBase<TSugge
 interface InsertComposerSelection<TSuggestion> {
   /** Returns the exact text inserted at the trigger position. */
   getText(suggestion: TSuggestion): string;
+  onSelect?: never;
 }
 
 interface RunComposerSelection<TSuggestion> {
@@ -51,8 +56,11 @@ interface RunComposerSelection<TSuggestion> {
    * Handles selection directly instead of automatically inserting text —
    * for sources whose suggestions clear the editor, insert a snippet, or
    * trigger some other side effect (e.g. slash commands).
+   * Call at most one editor action synchronously; actions use the selected value
+   * and trigger range, so repeated calls do not build on earlier edits.
    */
   onSelect(suggestion: TSuggestion, actions: ComposerActions): void;
+  getText?: never;
 }
 
 export type ComposerSource<TSuggestion> =
