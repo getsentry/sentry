@@ -10,7 +10,10 @@ from django.db import connections, router
 from django.test.utils import CaptureQueriesContext
 from rest_framework import status
 
-from sentry.api.endpoints.source_map_debug import MIN_JS_SDK_VERSION_FOR_DEBUG_IDS
+from sentry.api.endpoints.source_map_debug import (
+    MIN_JS_SDK_VERSION_FOR_DEBUG_IDS,
+    get_release_bundle_urls,
+)
 from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleIndex,
@@ -1535,7 +1538,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert release_process_result["source_file_lookup_result"] == "found"
         assert release_process_result["source_map_lookup_result"] == "found"
 
-    @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 1})
+    @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 2})
     def test_frame_release_process_artifact_bundle_url_match_by_bundle_reads_newest_bundle(
         self,
     ) -> None:
@@ -1548,13 +1551,31 @@ class SourceMapDebugEndpointTestCase(APITestCase):
             ),
             project_id=self.project.id,
         )
-        self.create_release_artifact_bundle(["~/bundle.min.js", "~/bundle.min.js.map"])
+        self.create_release_artifact_bundle(
+            ["~/bundle.min.js", "~/bundle.min.js.map"], artifact_count=3
+        )
 
         release_process_result = self.get_release_process_result(event.event_id)
 
         # The newest bundle is read even though its files exceed the budget.
         assert release_process_result["source_file_lookup_result"] == "found"
         assert release_process_result["source_map_lookup_result"] == "found"
+
+    def test_release_bundle_urls_reads_at_most_max_index_rows(self) -> None:
+        release = self.create_release(version="some-release")
+        self.create_release_artifact_bundle(
+            ["~/bundle.min.js", "~/bundle.min.js.map", "~/other.min.js"], artifact_count=3
+        )
+
+        with override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 2}):
+            release_bundle_urls = get_release_bundle_urls(self.project, release)
+
+        # The newest bundle has more files than the budget, so only part of them is read.
+        assert release_bundle_urls is not None
+        assert len(release_bundle_urls) == 2
+
+        with override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 0}):
+            assert get_release_bundle_urls(self.project, release) is None
 
     @override_options({"sourcemaps.source-map-debug.url-match-max-index-rows": 10})
     def test_frame_release_process_artifact_bundle_url_match_by_bundle_reads_index_once(

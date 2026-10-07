@@ -680,7 +680,8 @@ def get_release_bundle_urls(project: Project, release: Release) -> dict[str, set
     `ArtifactBundleIndex`. With `sourcemaps.source-map-debug.url-match-max-index-rows` set, the
     `ArtifactBundleIndex` rows of the newest bundles are read by bundle instead, newest first, as
     long as the bundles' files add up to at most that many rows. The newest bundle is always read,
-    and files only found in older bundles are reported as not found.
+    up to that many rows if it alone has more files. Files only found in older bundles, or beyond
+    the rows read, are reported as not found.
     """
     max_index_rows = options.get("sourcemaps.source-map-debug.url-match-max-index-rows")
     if max_index_rows <= 0:
@@ -707,11 +708,15 @@ def get_release_bundle_urls(project: Project, release: Release) -> dict[str, set
         index_rows += artifact_count
 
     # The bundles all belong to the project's organization, and filtering on it as well could make
-    # Postgres also read the organization's slice of the organization index.
+    # Postgres also read the organization's slice of the organization index. The limit holds the
+    # rows read to the budget even when the newest bundle alone has more files.
+    index_rows_query = (
+        ArtifactBundleIndex.objects.filter(artifact_bundle_id__in=list(bundle_ids))
+        .order_by("-artifact_bundle_id")
+        .values_list("artifact_bundle_id", "url")[:max_index_rows]
+    )
     release_bundle_urls: dict[str, set[int]] = {}
-    for bundle_id, url in ArtifactBundleIndex.objects.filter(
-        artifact_bundle_id__in=list(bundle_ids)
-    ).values_list("artifact_bundle_id", "url"):
+    for bundle_id, url in index_rows_query:
         release_bundle_urls.setdefault(url, set()).add(bundle_id)
     return release_bundle_urls
 
