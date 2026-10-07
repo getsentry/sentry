@@ -3,7 +3,6 @@ from functools import cached_property
 from unittest.mock import MagicMock, call, patch
 
 from django.core import mail
-from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
 
@@ -13,7 +12,7 @@ from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.silo import control_silo_test
 from sentry.users.models.lostpasswordhash import LostPasswordHash
 from sentry.users.models.useremail import UserEmail
-from sentry.users.web.accounts import recover_confirm
+from sentry.users.web.accounts import expired, recover_confirm
 
 
 @control_silo_test
@@ -33,10 +32,37 @@ class TestAccounts(TestCase):
     def relocation_reclaim_path(self, user_id: int) -> str:
         return reverse("sentry-account-relocate-reclaim", kwargs={"user_id": user_id})
 
-    def test_get_renders_form(self) -> None:
+    def test_get_renders_react(self) -> None:
         resp = self.client.get(self.path)
         assert resp.status_code == 200
-        self.assertTemplateUsed("sentry/account/recover/index.html")
+        self.assertTemplateUsed(resp, "sentry/base-react.html")
+
+    def test_recovery_post_requires_api(self) -> None:
+        response = self.client.post(self.path, {"user": self.user.email})
+
+        assert response.status_code == 405
+
+    def test_recovery_confirm_post_requires_api(self) -> None:
+        path = self.password_recover_path(self.user.id, "token")
+
+        response = self.client.post(path, {"password": "new-password"})
+
+        assert response.status_code == 405
+        assert response["Referrer-Policy"] == "strict-origin-when-cross-origin"
+
+    @patch.object(LostPasswordHash, "send_recover_password_email")
+    def test_expired_password_returns_to_recovery_confirmation(self, send_email: MagicMock) -> None:
+        request = self.make_request()
+        user = self.create_user(email="user+recovery@example.com")
+
+        response = expired(request, user)
+
+        assert response.status_code == 302
+        assert (
+            response["Location"] == "/account/recover/?email=user%2Brecovery%40example.com&sent=1"
+        )
+        token = LostPasswordHash.objects.get(user=user)
+        send_email.assert_called_once_with(user, token.hash, request.META["REMOTE_ADDR"])
 
     def test_recovery_confirm_renders_react(self) -> None:
         response = self.client.get(self.password_recover_path(self.user.id, "token"))
@@ -44,15 +70,6 @@ class TestAccounts(TestCase):
         assert response.status_code == 200
         self.assertTemplateUsed("sentry/base-react.html")
         assert response["Referrer-Policy"] == "strict-origin-when-cross-origin"
-
-    def test_recovery_confirm_cookie_disables_react(self) -> None:
-        self.client.cookies["sentry_react_auth"] = "0"
-        password_hash = LostPasswordHash.for_user(self.user)
-
-        response = self.client.get(self.password_recover_path(self.user.id, password_hash.hash))
-
-        assert response.status_code == 200
-        self.assertTemplateUsed("sentry/account/recover/confirm.html")
 
     def test_relocation_confirm_renders_legacy(self) -> None:
         password_hash = LostPasswordHash.for_user(self.user)
@@ -62,7 +79,7 @@ class TestAccounts(TestCase):
         assert response.status_code == 200
         self.assertTemplateUsed("sentry/account/relocate/confirm.html")
 
-    def test_set_password_confirm_renders_legacy(self) -> None:
+    def test_set_password_confirm_renders_react(self) -> None:
         password_hash = LostPasswordHash.for_user(self.user)
 
         response = self.client.get(
@@ -70,128 +87,17 @@ class TestAccounts(TestCase):
         )
 
         assert response.status_code == 200
-        self.assertTemplateUsed("sentry/account/set_password/confirm.html")
+        self.assertTemplateUsed("sentry/base-react.html")
+        assert response["Referrer-Policy"] == "strict-origin-when-cross-origin"
 
-    def test_post_unknown_user(self) -> None:
-        resp = self.client.post(self.path, {"user": "nobody"})
-        assert resp.status_code == 200
-        self.assertTemplateUsed("sentry/account/recover/sent.html")
-        assert 0 == len(LostPasswordHash.objects.all())
-
-    def test_post_success(self) -> None:
-        user = self.create_user()
-
-        resp = self.client.post(self.path, {"user": user.email})
-        assert resp.status_code == 200
-        self.assertTemplateUsed("sentry/account/recover/sent.html")
-        assert 1 == len(LostPasswordHash.objects.all())
-
-    def test_post_managed_user(self) -> None:
-        user = self.create_user()
-        user.is_managed = True
-        user.save()
-
-        resp = self.client.post(self.path, {"user": user.email})
-        assert resp.status_code == 200
-        self.assertTemplateUsed("sentry/account/recover/index.html")
-        self.assertContains(resp, "The account you are trying to recover is managed")
-        assert 0 == len(LostPasswordHash.objects.all())
-
-    def test_post_suspended_user_no_email_sent(self) -> None:
-        user = self.create_user()
-        user.update(is_suspended=True)
-
-        resp = self.client.post(self.path, {"user": user.email})
-        assert resp.status_code == 200
-        self.assertTemplateUsed("sentry/account/recover/sent.html")
-        assert 0 == len(LostPasswordHash.objects.all())
-
-    def test_post_multiple_users(self) -> None:
-        user = self.create_user(email="bob")
-        user.email = "bob@example.com"
-        user.save()
-
-        user_dup = self.create_user(email="jill")
-        user_dup.email = user.email
-        user_dup.save()
-
-        resp = self.client.post(self.path, {"user": user.email})
-        assert resp.status_code == 200
-        self.assertTemplateUsed("sentry/account/recover/index.html")
-        assert 0 == len(LostPasswordHash.objects.all())
-
-    def test_leaking_recovery_hash(self) -> None:
-        user = self.create_user()
-
-        resp = self.client.post(self.path, {"user": user.email})
-        assert resp.status_code == 200
-
-        lost_password = LostPasswordHash.objects.get(user=user)
-
-        resp = self.client.post(
-            self.password_recover_path(lost_password.user_id, lost_password.hash),
-            {"password": "test_password"},
+    def test_set_password_confirm_post_requires_api(self) -> None:
+        response = self.client.post(
+            reverse("sentry-account-set-password-confirm", args=[self.user.id, "token"]),
+            {"password": "new-password"},
         )
 
-        header_name = "Referrer-Policy"
-
-        assert resp.has_header(header_name)
-        assert resp[header_name] == "strict-origin-when-cross-origin"
-
-    def test_recover_verifies_primary_email(self) -> None:
-        user = self.create_user()
-        user_email = UserEmail.objects.get(email=user.email)
-        user_email.is_verified = False
-        user_email.save()
-
-        lost_password = LostPasswordHash.objects.create(user=user)
-
-        resp = self.client.post(
-            self.password_recover_path(lost_password.user_id, lost_password.hash),
-            {"password": "test_password"},
-        )
-        assert resp.status_code == 302
-
-        user_email.refresh_from_db()
-        assert user_email.is_verified
-
-    @override_settings(
-        AUTH_PASSWORD_VALIDATORS=[
-            {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"}
-        ]
-    )
-    def test_unable_to_set_weak_password_via_recover_form(self) -> None:
-        lost_password = LostPasswordHash.objects.create(user=self.user)
-
-        resp = self.client.post(
-            self.password_recover_path(lost_password.user_id, lost_password.hash),
-            data={"user": self.user.email, "password": self.user.email},
-        )
-        assert resp.status_code == 200
-        assert b"The password is too similar to the username." in resp.content
-
-    def test_suspended_user_cannot_recover_password(self) -> None:
-        user = self.create_user()
-        old_password = user.password
-        user.update(is_suspended=True)
-
-        lost_password = LostPasswordHash.objects.create(user=user)
-
-        resp = self.client.get(
-            self.password_recover_path(lost_password.user_id, lost_password.hash),
-        )
-        assert resp.status_code == 200
-        self.assertTemplateUsed("sentry/account/recover/failure.html")
-
-        resp = self.client.post(
-            self.password_recover_path(lost_password.user_id, lost_password.hash),
-            {"password": "new_password_123"},
-        )
-        assert resp.status_code == 200
-        self.assertTemplateUsed("sentry/account/recover/failure.html")
-
-        user.refresh_from_db()
-        assert user.password == old_password
+        assert response.status_code == 405
+        assert response["Referrer-Policy"] == "strict-origin-when-cross-origin"
 
     def test_relocate_recovery_no_inputs(self) -> None:
         user = self.create_user()
@@ -199,10 +105,7 @@ class TestAccounts(TestCase):
         user_email.is_verified = False
         user_email.save()
 
-        resp = self.client.post(self.path, {"user": user.email})
-        assert resp.status_code == 200
-
-        lost_password = LostPasswordHash.objects.get(user=user)
+        lost_password = LostPasswordHash.objects.create(user=user)
 
         resp = self.client.get(
             self.relocation_recover_path(lost_password.user_id, lost_password.hash),
@@ -362,10 +265,7 @@ class TestAccounts(TestCase):
         user_email.is_verified = False
         user_email.save()
 
-        resp = self.client.post(self.path, {"user": user.email})
-        assert resp.status_code == 200
-
-        lost_password = LostPasswordHash.objects.get(user=user)
+        lost_password = LostPasswordHash.objects.create(user=user)
         user.is_unclaimed = True
         user.save()
         new_username = "test_username"
@@ -395,10 +295,7 @@ class TestAccounts(TestCase):
         user_email.is_verified = False
         user_email.save()
 
-        resp = self.client.post(self.path, {"user": user.email})
-        assert resp.status_code == 200
-
-        lost_password = LostPasswordHash.objects.get(user=user)
+        lost_password = LostPasswordHash.objects.create(user=user)
         user.is_unclaimed = True
         user.save()
         old_password = user.password
@@ -433,10 +330,7 @@ class TestAccounts(TestCase):
         user_email.is_verified = False
         user_email.save()
 
-        resp = self.client.post(self.path, {"user": user.email})
-        assert resp.status_code == 200
-
-        lost_password = LostPasswordHash.objects.get(user=user)
+        lost_password = LostPasswordHash.objects.create(user=user)
         user.is_unclaimed = True
         user.save()
         old_password = user.password
