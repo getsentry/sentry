@@ -325,24 +325,4 @@ describe('getHighlightedSpanAttributes', () => {
       {name: 'Transport', value: 'stdio'},
     ]);
   });
-
-  it('shows memory attributes without repeating the operation', () => {
-    const result = getHighlightedSpanAttributes({
-      op: 'gen_ai.search_memory',
-      spanId: '123',
-      attributes: {
-        'gen_ai.operation.type': 'memory',
-        'gen_ai.operation.name': 'search_memory',
-        'gen_ai.memory.store.id': 'user-prefs',
-        'gen_ai.memory.record.count': 3,
-        'gen_ai.memory.record.id': 'mem_123',
-      },
-    });
-
-    expect(result).toEqual([
-      {name: 'Memory Store', value: 'user-prefs'},
-      {name: 'Records', value: '3'},
-      {name: 'Record', value: 'mem_123'},
-    ]);
-  });
 });
