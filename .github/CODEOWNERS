@@ -47,6 +47,24 @@
 /.agents/skills/sentry-javascript-bugs/                 @getsentry/app-frontend
 /.agents/skills/generate-snapshot-tests/                @getsentry/app-frontend
 
+## Frontend Platform shared code
+# These paths are in the stack trace of most frontend events: layout primitives, page
+# filters, icons, the settings shell. Sentry assigns an issue to the LAST matching line,
+# so they must come before the feature views declared below. A frame in a feature view
+# then beats a frame in a shared component. GitHub review routing only depends on order
+# when patterns overlap, and the one overlap here is intended: more specific settings
+# sub-paths declared by other teams further down now take precedence.
+/static/app/utils/theme/                              @getsentry/design-engineering
+/static/app/components/commandPalette/                @getsentry/design-engineering
+/static/app/components/core/                          @getsentry/design-engineering
+/static/app/components/pageFilters/                   @getsentry/design-engineering
+/static/app/components/backendJsonFormAdapter/        @getsentry/design-engineering
+/static/app/icons/                                    @getsentry/design-engineering
+/static/app/views/settings/                           @getsentry/design-engineering
+/static/app/bootstrap/                                @getsentry/design-engineering
+/static/app/bootstrap/initializeSdk.tsx               @getsentry/team-javascript-sdks-browser @getsentry/team-javascript-sdks-framework
+## End of Frontend Platform shared code
+
 ## Legal
 /LICENSE.md                                              @getsentry/owners-legal
 
@@ -339,6 +357,8 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 
 /src/sentry/api/endpoints/organization_spans_fields.py                              @getsentry/data-browsing
 /tests/sentry/api/endpoints/test_organization_spans_fields.py                       @getsentry/data-browsing
+/src/sentry/api/endpoints/organization_explore_formulas.py                          @getsentry/data-browsing
+/tests/sentry/api/endpoints/test_organization_explore_formulas.py                   @getsentry/data-browsing
 
 /src/sentry/api/endpoints/organization_traces.py                                    @getsentry/explore
 /tests/sentry/api/endpoints/test_organization_traces.py                             @getsentry/explore
@@ -840,24 +860,13 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /bin/preprod/                                          @getsentry/emerge-tools
 # End of preprod
 
-## Frontend Platform (keep last as we want highest specificity)
-/static/app/utils/theme/                              @getsentry/design-engineering
-/static/app/components/commandPalette/                @getsentry/design-engineering
-/static/app/components/core/                          @getsentry/design-engineering
+## Frontend Platform (keep last as we want highest specificity; shared code that appears in stack traces lives in the block near the top)
 /static/packages/scraps/                              @getsentry/design-engineering
 /static/app/components/dnd/                           @getsentry/design-engineering
-/static/app/components/pageFilters/                   @getsentry/design-engineering
-/static/app/components/backendJsonFormAdapter/        @getsentry/design-engineering
-/static/app/icons/                                    @getsentry/design-engineering
 /static/app/stories/                                  @getsentry/design-engineering
-/static/app/components/commandPalette/                @getsentry/design-engineering
 /static/app/views/navigation/                         @getsentry/design-engineering
 /static/less/                                         @getsentry/design-engineering
-/static/app/views/settings/                           @getsentry/design-engineering
 /static/app/views/nav/                                @getsentry/design-engineering
-/static/app/bootstrap/                                @getsentry/design-engineering
-/static/app/bootstrap/initializeSdk.tsx               @getsentry/team-javascript-sdks-browser @getsentry/team-javascript-sdks-framework
-/static/app/components/commandPalette/                @getsentry/design-engineering
 # Config files
 /figma.config.json                                     @getsentry/design-engineering
 /knip.config.ts                                        @getsentry/design-engineering

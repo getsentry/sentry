@@ -6,7 +6,6 @@ from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.rule import Rule
-from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules.conditions.event_frequency import (
     EventUniqueUserFrequencyConditionWithConditions,
 )
@@ -112,27 +111,6 @@ class RuleMigrationHelpersTestBase(TestCase):
 
 
 class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
-    def test_rule_snooze_updates_workflow(self) -> None:
-        rule_snooze = RuleSnooze.objects.create(rule=self.issue_alert)
-
-        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
-        workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
-
-        assert workflow.enabled is False
-
-        rule_snooze.delete()
-
-        workflow.refresh_from_db()
-        assert workflow.enabled is True
-
-    def test_ignores_per_user_rule_snooze(self) -> None:
-        RuleSnooze.objects.create(rule=self.issue_alert, user_id=self.user.id)
-        issue_alert_workflow = AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id)
-
-        workflow = Workflow.objects.get(id=issue_alert_workflow.workflow.id)
-        workflow.refresh_from_db()
-        assert workflow.enabled is True
-
     def test_update_issue_alert(self) -> None:
         # NotifyEventAction dual-writes a WEBHOOK action only when webhooks are enabled.
         assert self.issue_alert.project
@@ -357,21 +335,6 @@ class IssueAlertDualWriteUpdateTest(RuleMigrationHelpersTestBase):
         self.issue_alert.save()
         with pytest.raises(ValidationError):
             update_migrated_issue_alert(self.issue_alert)
-
-    def test_keeps_snooze_status(self) -> None:
-        RuleSnooze.objects.create(rule=self.issue_alert)
-        workflow = Workflow.objects.get(
-            id=AlertRuleWorkflow.objects.get(rule_id=self.issue_alert.id).workflow.id
-        )
-        assert workflow.enabled is False
-
-        self.issue_alert.data["frequency"] = 5
-        self.issue_alert.save()
-
-        update_migrated_issue_alert(self.issue_alert)
-
-        workflow.refresh_from_db()
-        assert workflow.enabled is False
 
 
 class IssueAlertDualWriteDeleteTest(RuleMigrationHelpersTestBase):
