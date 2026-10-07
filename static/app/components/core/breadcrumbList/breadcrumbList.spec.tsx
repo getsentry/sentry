@@ -119,12 +119,12 @@ describe('BreadcrumbList container-query collapse', () => {
     expect(screen.getByRole('heading', {name: 'General', level: 1})).toBeInTheDocument();
     const title = screen.getByText('General');
     expect(title).toBeInTheDocument();
-    expect(
-      getEmotionRules(title).some(
-        rule =>
-          rule.includes('overflow: hidden') && rule.includes('text-overflow: ellipsis')
-      )
-    ).toBe(true);
+    expect(getEmotionRules(title).join(' ')).toEqual(
+      expect.stringContaining('overflow: hidden')
+    );
+    expect(getEmotionRules(title).join(' ')).toEqual(
+      expect.stringContaining('text-overflow: ellipsis')
+    );
 
     // Parent links must not be marked current.
     expect(screen.getByRole('link', {name: 'Settings'})).not.toHaveAttribute(

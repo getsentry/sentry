@@ -1,6 +1,5 @@
 import React, {useMemo, useRef} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
-import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
@@ -10,22 +9,21 @@ import type {
   SpaceSize,
   SurfaceVariant,
 } from '@sentry/scraps/theme';
+import {radius, space} from '@sentry/scraps/theme/constants.stylex';
+import {background, border} from '@sentry/scraps/theme/tokens.stylex';
 
+import {ContainerQueryProvider, type Responsive, type Shorthand} from './styles';
 import {
-  ContainerQueryProvider,
-  getBorder,
-  getMargin,
-  getRadius,
-  getSpacing,
-  rc,
-  type Responsive,
-  type Shorthand,
-} from './styles';
+  addLayoutProp,
+  createLayoutStyle,
+  finishLayoutStyle,
+  type LayoutStyle,
+} from './stylexLayout';
 
 type Margin = SpaceSize | 'auto' | '0';
 
 /* eslint-disable @sentry/sort-interface-keys */
-interface ContainerLayoutProps {
+export interface ContainerLayoutProps {
   background?: Responsive<Exclude<SurfaceVariant, 'overlay'>>;
   display?: Responsive<CSS['display']>;
 
@@ -176,7 +174,10 @@ export type ContainerPropsWithRenderFunction<T extends ContainerElement = 'div'>
   ContainerLayoutProps,
   'containerType'
 > & {
-  children: (props: {className: string}) => React.ReactNode | undefined;
+  children: (props: {
+    className: string;
+    style?: React.CSSProperties;
+  }) => React.ReactNode | undefined;
   as?: never;
   /**
    * Declaring a query container is not supported with the render-prop form: the
@@ -201,7 +202,7 @@ export type ContainerPropsWithRenderFunction<T extends ContainerElement = 'div'>
     >
   >;
 
-const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
+export const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'alignSelf',
   'area',
   'as',
@@ -254,134 +255,278 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'whiteSpace',
 ]);
 
-export const Container = styled(
-  <T extends ContainerElement = 'div'>(
-    props: (ContainerProps<T> | ContainerPropsWithRenderFunction<T>) & {
-      className?: string;
-    }
-  ) => {
-    // Hooks must run unconditionally, before the render-prop early return.
-    const containerRef = useRef<HTMLElement>(null);
-    const {as, containerType, ref, ...rest} = props;
+const OMIT_CONTAINER_PROPS: ReadonlySet<string> = omitContainerProps;
 
-    // A query container needs its size observed in JS so descendants can resolve
-    // container-mode responsive props (e.g. Stack orientation). We only attach a
-    // ref + observer when this element is actually a container, keeping the
-    // common (non-container) path free of any ResizeObserver overhead.
-    const isContainer = !!containerType && containerType !== 'normal';
+function resolveSpace(size: SpaceSize): string {
+  return space[size] ?? space['0'];
+}
 
-    const containerRefs = useMemo(
-      () => (isContainer ? mergeRefs(ref as React.Ref<any>, containerRef) : ref),
-      [isContainer, ref]
-    );
+/** `"md lg"` → `"8px 12px"`, like `getSpacing` but without the Emotion theme. */
+export function resolveSpacing(spacing: Shorthand<SpaceSize, 4>): string {
+  return spacing.length < 3
+    ? resolveSpace(spacing as SpaceSize)
+    : spacing
+        .split(' ')
+        .map(size => resolveSpace(size as SpaceSize))
+        .join(' ');
+}
 
-    if (typeof props.children === 'function') {
-      // When using render prop, only pass className to the child function
-      return props.children({className: props.className ?? ''});
-    }
+function resolveMarginSize(size: Margin): string {
+  return size === 'auto' || size === '0' ? size : resolveSpace(size);
+}
 
-    const Component = as ?? 'div';
+function resolveMargin(margin: Shorthand<Margin, 4>): string {
+  return margin.length < 3
+    ? resolveMarginSize(margin as Margin)
+    : margin
+        .split(' ')
+        .map(size => resolveMarginSize(size as Margin))
+        .join(' ');
+}
 
-    const node = <Component {...(rest as any)} ref={containerRefs} />;
+function resolveRadius(value: Shorthand<RadiusSize, 4>): string {
+  return value
+    .split(' ')
+    .map(size => radius[size as RadiusSize])
+    .join(' ');
+}
 
-    if (isContainer) {
-      return (
-        <ContainerQueryProvider elementRef={containerRef}>{node}</ContainerQueryProvider>
-      );
-    }
-
-    return node;
-  },
-  {
-    shouldForwardProp: prop => {
-      // containerType must reach the inner component to wire up the query
-      // container; it is stripped there so it never lands on the DOM.
-      if (prop === 'containerType') {
-        return true;
-      }
-      if (omitContainerProps.has(prop as keyof ContainerLayoutProps | 'as')) {
-        return false;
-      }
-      return isPropValid(prop);
-    },
+function borderColor(key: Exclude<BorderVariant, 'none'>): string {
+  switch (key) {
+    case 'primary':
+      return border.primary;
+    case 'muted':
+    case 'secondary':
+      return border.secondary;
+    default:
+      return border[`${key}Vibrant`];
   }
-)<ContainerProps<any> | ContainerPropsWithRenderFunction<any>>`
-  ${p => rc('container-type', p.containerType, p.theme)};
+}
 
-  ${p => rc('display', p.display, p.theme)};
-  ${p => rc('position', p.position, p.theme)};
+type BorderSide = 'border' | 'borderTop' | 'borderBottom' | 'borderLeft' | 'borderRight';
 
-  ${p => rc('inset', p.inset, p.theme)};
-  ${p => rc('top', p.top, p.theme)};
-  ${p => rc('bottom', p.bottom, p.theme)};
-  ${p => rc('left', p.left, p.theme)};
-  ${p => rc('right', p.right, p.theme)};
+/**
+ * StyleX drops the `border*` shorthands, so a border variant is set as
+ * width/style/color longhands: one static class each for plain values, and
+ * per-breakpoint variables for responsive ones.
+ */
+function addBorder(
+  acc: LayoutStyle,
+  side: BorderSide,
+  value: Responsive<BorderVariant> | undefined
+): void {
+  if (value === undefined) {
+    return;
+  }
+  if (typeof value === 'string') {
+    addLayoutProp(acc, `${side}Width`, value, {fixed: side});
+    return;
+  }
+  addLayoutProp(acc, `${side}Width`, value, {resolve: v => (v === 'none' ? '0' : '1px')});
+  addLayoutProp(acc, `${side}Style`, value, {
+    resolve: v => (v === 'none' ? 'none' : 'solid'),
+  });
+  addLayoutProp(acc, `${side}Color`, value, {
+    resolve: v => (v === 'none' ? undefined : borderColor(v)),
+  });
+}
 
-  ${p => rc('overflow', p.overflow, p.theme)};
-  ${p => rc('overflow-x', p.overflowX, p.theme)};
-  ${p => rc('overflow-y', p.overflowY, p.theme)};
+export function resolveBackground(value: SurfaceVariant | 'overlay'): string {
+  return background[value];
+}
 
-  ${p => rc('overscroll-behavior', p.overscrollBehavior, p.theme)};
+/**
+ * Adds the styles of every `Container` prop. `display` is passed separately
+ * so `Flex` and `Grid` can default it without copying props.
+ */
+export function addContainerStyles(
+  acc: LayoutStyle,
+  p: ContainerLayoutProps,
+  display: ContainerLayoutProps['display'] = p.display
+): void {
+  addLayoutProp(acc, 'containerType', p.containerType, {fixed: 'containerType'});
 
-  ${p => rc('pointer-events', p.pointerEvents, p.theme)};
+  addLayoutProp(acc, 'display', display, {fixed: 'display'});
+  addLayoutProp(acc, 'position', p.position, {fixed: 'position'});
 
-  ${p => rc('cursor', p.cursor, p.theme)};
-  ${p => rc('contain', p.contain, p.theme)};
+  addLayoutProp(acc, 'inset', p.inset, {fixed: 'inset'});
+  addLayoutProp(acc, 'top', p.top, {fixed: 'top'});
+  addLayoutProp(acc, 'bottom', p.bottom, {fixed: 'bottom'});
+  addLayoutProp(acc, 'left', p.left, {fixed: 'left'});
+  addLayoutProp(acc, 'right', p.right, {fixed: 'right'});
 
-  ${p => rc('padding', p.padding, p.theme, getSpacing)};
-  ${p => rc('padding-top', p.paddingTop, p.theme, getSpacing)};
-  ${p => rc('padding-bottom', p.paddingBottom, p.theme, getSpacing)};
-  ${p => rc('padding-left', p.paddingLeft, p.theme, getSpacing)};
-  ${p => rc('padding-right', p.paddingRight, p.theme, getSpacing)};
+  addLayoutProp(acc, 'overflow', p.overflow, {fixed: 'overflow'});
+  addLayoutProp(acc, 'overflowX', p.overflowX, {fixed: 'overflowX'});
+  addLayoutProp(acc, 'overflowY', p.overflowY, {fixed: 'overflowY'});
 
-  ${p => rc('margin', p.margin, p.theme, getMargin)};
-  ${p => rc('margin-top', p.marginTop, p.theme, getMargin)};
-  ${p => rc('margin-bottom', p.marginBottom, p.theme, getMargin)};
-  ${p => rc('margin-left', p.marginLeft, p.theme, getMargin)};
-  ${p => rc('margin-right', p.marginRight, p.theme, getMargin)};
+  addLayoutProp(acc, 'overscrollBehavior', p.overscrollBehavior);
 
-  ${p =>
-    rc('background', p.background, p.theme, v =>
-      v ? p.theme.tokens.background[v] : undefined
-    )};
+  addLayoutProp(acc, 'pointerEvents', p.pointerEvents, {fixed: 'pointerEvents'});
 
-  ${p => rc('border-radius', p.radius, p.theme, getRadius)};
+  addLayoutProp(acc, 'cursor', p.cursor, {fixed: 'cursor'});
+  addLayoutProp(acc, 'contain', p.contain);
 
-  ${p => rc('width', p.width, p.theme)};
-  ${p => rc('min-width', p.minWidth, p.theme)};
-  ${p => rc('max-width', p.maxWidth, p.theme)};
+  addLayoutProp(acc, 'padding', p.padding, {fixed: 'padding', resolve: resolveSpacing});
+  addLayoutProp(acc, 'paddingTop', p.paddingTop, {
+    fixed: 'paddingTop',
+    resolve: resolveSpace,
+  });
+  addLayoutProp(acc, 'paddingBottom', p.paddingBottom, {
+    fixed: 'paddingBottom',
+    resolve: resolveSpace,
+  });
+  addLayoutProp(acc, 'paddingLeft', p.paddingLeft, {
+    fixed: 'paddingLeft',
+    resolve: resolveSpace,
+  });
+  addLayoutProp(acc, 'paddingRight', p.paddingRight, {
+    fixed: 'paddingRight',
+    resolve: resolveSpace,
+  });
 
-  ${p => rc('height', p.height, p.theme)};
-  ${p => rc('min-height', p.minHeight, p.theme)};
-  ${p => rc('max-height', p.maxHeight, p.theme)};
+  addLayoutProp(acc, 'margin', p.margin, {fixed: 'margin', resolve: resolveMargin});
+  addLayoutProp(acc, 'marginTop', p.marginTop, {
+    fixed: 'marginTop',
+    resolve: resolveMarginSize,
+  });
+  addLayoutProp(acc, 'marginBottom', p.marginBottom, {
+    fixed: 'marginBottom',
+    resolve: resolveMarginSize,
+  });
+  addLayoutProp(acc, 'marginLeft', p.marginLeft, {
+    fixed: 'marginLeft',
+    resolve: resolveMarginSize,
+  });
+  addLayoutProp(acc, 'marginRight', p.marginRight, {
+    fixed: 'marginRight',
+    resolve: resolveMarginSize,
+  });
 
-  ${p => rc('grid-area', p.area, p.theme)};
-  ${p => rc('grid-row', p.row, p.theme)};
-  ${p => rc('grid-column', p.column, p.theme)};
+  addLayoutProp(acc, 'backgroundColor', p.background, {
+    fixed: 'background',
+    resolve: resolveBackground,
+  });
 
-  ${p => rc('order', p.order, p.theme)};
-  ${p => rc('flex', p.flex, p.theme)};
-  ${p => rc('flex-grow', p.flexGrow, p.theme)};
-  ${p => rc('flex-shrink', p.flexShrink, p.theme)};
-  ${p => rc('flex-basis', p.flexBasis, p.theme)};
+  addLayoutProp(acc, 'borderRadius', p.radius, {fixed: 'radius', resolve: resolveRadius});
 
-  ${p => rc('align-self', p.alignSelf, p.theme)};
-  ${p => rc('justify-self', p.justifySelf, p.theme)};
+  addLayoutProp(acc, 'width', p.width, {fixed: 'width'});
+  addLayoutProp(acc, 'minWidth', p.minWidth, {fixed: 'minWidth'});
+  addLayoutProp(acc, 'maxWidth', p.maxWidth, {fixed: 'maxWidth'});
 
-  ${p => rc('border', p.border, p.theme, getBorder)};
-  ${p => rc('border-top', p.borderTop, p.theme, getBorder)};
-  ${p => rc('border-bottom', p.borderBottom, p.theme, getBorder)};
-  ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};
-  ${p => rc('border-right', p.borderRight, p.theme, getBorder)};
+  addLayoutProp(acc, 'height', p.height, {fixed: 'height'});
+  addLayoutProp(acc, 'minHeight', p.minHeight, {fixed: 'minHeight'});
+  addLayoutProp(acc, 'maxHeight', p.maxHeight, {fixed: 'maxHeight'});
 
-  ${p => rc('visibility', p.visibility, p.theme)};
-  ${p => rc('white-space', p.whiteSpace, p.theme)};
+  addLayoutProp(acc, 'gridArea', p.area);
+  addLayoutProp(acc, 'gridRow', p.row);
+  addLayoutProp(acc, 'gridColumn', p.column);
 
-  /**
-   * This cast is required because styled-components does not preserve the generic signature of the wrapped component.
-   * By default, the generic type parameter <T> is lost, so we use 'as unknown as' to restore the correct typing.
-   * https://github.com/styled-components/styled-components/issues/1803
-   */
-` as unknown as <T extends ContainerElement = 'div'>(
+  addLayoutProp(acc, 'order', p.order);
+  addLayoutProp(acc, 'flex', p.flex, {fixed: 'flex'});
+  addLayoutProp(acc, 'flexGrow', p.flexGrow, {fixed: 'flexGrow'});
+  addLayoutProp(acc, 'flexShrink', p.flexShrink, {fixed: 'flexShrink'});
+  addLayoutProp(acc, 'flexBasis', p.flexBasis);
+
+  addLayoutProp(acc, 'alignSelf', p.alignSelf, {fixed: 'alignSelf'});
+  addLayoutProp(acc, 'justifySelf', p.justifySelf, {fixed: 'justifySelf'});
+
+  addBorder(acc, 'border', p.border);
+  addBorder(acc, 'borderTop', p.borderTop);
+  addBorder(acc, 'borderBottom', p.borderBottom);
+  addBorder(acc, 'borderLeft', p.borderLeft);
+  addBorder(acc, 'borderRight', p.borderRight);
+
+  addLayoutProp(acc, 'visibility', p.visibility, {fixed: 'visibility'});
+  addLayoutProp(acc, 'whiteSpace', p.whiteSpace, {fixed: 'whiteSpace'});
+}
+
+/**
+ * Renders the element of a layout primitive with its computed styles. Props in
+ * `omitProps` and anything that is not a valid DOM attribute are dropped,
+ * matching the `shouldForwardProp` the Emotion version used.
+ */
+interface LayoutElementProps {
+  as?: React.ElementType;
+  children?: unknown;
+  className?: string;
+  containerType?: string;
+  ref?: React.Ref<any>;
+  style?: React.CSSProperties;
+}
+
+export function useLayoutElement(
+  props: LayoutElementProps,
+  acc: LayoutStyle,
+  omitProps: ReadonlySet<string>,
+  defaultElement: React.ElementType = 'div'
+): React.ReactNode {
+  // Hooks must run unconditionally, before the render-prop early return.
+  const containerRef = useRef<HTMLElement>(null);
+  const {as, containerType, ref, className, style, children} = props;
+
+  // A query container needs its size observed in JS so descendants can resolve
+  // container-mode responsive props (e.g. Stack orientation). We only attach a
+  // ref + observer when this element is actually a container, keeping the
+  // common (non-container) path free of any ResizeObserver overhead.
+  const isContainer = !!containerType && containerType !== 'normal';
+
+  const containerRefs = useMemo(
+    // Passes the ref objects along; nothing reads `.current` during render.
+    // oxlint-disable-next-line react/refs
+    () => (isContainer ? mergeRefs(ref, containerRef) : ref),
+    [isContainer, ref]
+  );
+
+  const merged = finishLayoutStyle(acc, className, style);
+
+  if (typeof children === 'function') {
+    // When using render prop, only pass the styling to the child function
+    return (children as (styleProps: typeof merged) => React.ReactNode)(merged);
+  }
+
+  const domProps: Record<string, unknown> = {};
+  for (const key in props) {
+    if (
+      key === 'as' ||
+      key === 'className' ||
+      key === 'containerType' ||
+      key === 'ref' ||
+      key === 'style' ||
+      omitProps.has(key) ||
+      !isPropValid(key)
+    ) {
+      continue;
+    }
+    domProps[key] = (props as Record<string, unknown>)[key];
+  }
+
+  const Component = as ?? defaultElement;
+  const node = (
+    <Component
+      {...domProps}
+      className={merged.className}
+      style={merged.style}
+      ref={containerRefs}
+    />
+  );
+
+  if (isContainer) {
+    return (
+      <ContainerQueryProvider elementRef={containerRef}>{node}</ContainerQueryProvider>
+    );
+  }
+
+  return node;
+}
+
+function ContainerComponent<T extends ContainerElement = 'div'>(
+  props: ContainerProps<T> | ContainerPropsWithRenderFunction<T>
+) {
+  const acc = createLayoutStyle();
+  addContainerStyles(acc, props);
+  return useLayoutElement(props, acc, OMIT_CONTAINER_PROPS);
+}
+
+export const Container = ContainerComponent as <T extends ContainerElement = 'div'>(
   props: ContainerProps<T> | ContainerPropsWithRenderFunction<T>
 ) => React.ReactElement;

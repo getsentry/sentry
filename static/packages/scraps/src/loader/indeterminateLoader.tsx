@@ -1,11 +1,8 @@
 import {useRef, useState} from 'react';
-import {keyframes, useTheme} from '@emotion/react';
-import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
+import * as stylex from '@stylexjs/stylex';
 
-// Load the standalone Emotion theme augmentation without a runtime import.
-// eslint-disable-next-line unicorn/require-module-specifiers
-import type {} from '@sentry/scraps/theme';
+import {border} from '@sentry/scraps/theme/tokens.stylex';
 
 interface IndeterminateLoaderProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: 'vibrant' | 'monochrome';
@@ -14,17 +11,70 @@ interface IndeterminateLoaderProps extends React.HTMLAttributes<HTMLDivElement> 
 const SQUIGGLE_TILE =
   "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='1 0 16 8'%3E%3Cpath stroke='%23fff' stroke-linecap='round' stroke-miterlimit='10' stroke-width='2' d='M17 6c-4 0-4-4-8-4S5 6 1 6'/%3E%3C/svg%3E\")";
 
-const indeterminateSlow = keyframes`
-  0% { left: -35%; right: 100%; }
-  60% { left: 100%; right: -90%; }
-  100% { left: 100%; right: -90%; }
-`;
+const indeterminateSlow = stylex.keyframes({
+  '0%': {left: '-35%', right: '100%'},
+  '60%': {left: '100%', right: '-90%'},
+  '100%': {left: '100%', right: '-90%'},
+});
 
-const indeterminateFast = keyframes`
-  0% { left: -200%; right: 100%; }
-  60% { left: 107%; right: -8%; }
-  100% { left: 107%; right: -8%; }
-`;
+const indeterminateFast = stylex.keyframes({
+  '0%': {left: '-200%', right: '100%'},
+  '60%': {left: '107%', right: '-8%'},
+  '100%': {left: '107%', right: '-8%'},
+});
+
+const squiggleMask = {
+  maskImage: SQUIGGLE_TILE,
+  maskRepeat: 'repeat-x',
+  maskSize: '16px 8px',
+  WebkitMaskImage: SQUIGGLE_TILE,
+  WebkitMaskRepeat: 'repeat-x',
+  WebkitMaskSize: '16px 8px',
+} as const;
+
+const styles = stylex.create({
+  track: {
+    position: 'relative',
+    overflow: 'hidden',
+    width: stylex.firstThatWorks('calc(round(down, 100% - 16px, 8px) + 16px)', '100%'),
+    height: '8px',
+    '::before': {
+      content: '""',
+      position: 'absolute',
+      inset: 0,
+      ...squiggleMask,
+    },
+  },
+  trackVibrant: {
+    '::before': {backgroundColor: border.secondary, opacity: 1},
+  },
+  trackMonochrome: {
+    '::before': {backgroundColor: 'currentColor', opacity: 0.2},
+  },
+  colorMask: {
+    position: 'absolute',
+    inset: 0,
+    ...squiggleMask,
+  },
+  bar: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    right: 0,
+    animationTimingFunction: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
+    animationIterationCount: 'infinite',
+    animationFillMode: 'backwards',
+  },
+  barVibrant: {backgroundColor: border.accentVibrant},
+  barMonochrome: {backgroundColor: 'currentColor'},
+  slow: {animationName: indeterminateSlow},
+  fast: {animationName: indeterminateFast},
+  timing: (duration: string, delay: string) => ({
+    animationDuration: duration,
+    animationDelay: delay,
+  }),
+});
 
 // Lerp animation timing based on track width.
 // Small (~128px): 2.0s duration, 1.0s delay
@@ -57,90 +107,45 @@ function useAnimationTiming() {
 
 export function IndeterminateLoader({
   variant = 'vibrant',
+  className,
+  style,
   ...props
 }: IndeterminateLoaderProps) {
-  const theme = useTheme();
   const {ref, duration, delay} = useAnimationTiming();
+  const isMonochrome = variant === 'monochrome';
+  const barColor = isMonochrome ? styles.barMonochrome : styles.barVibrant;
+  const sx = stylex.props(
+    styles.track,
+    isMonochrome ? styles.trackMonochrome : styles.trackVibrant
+  );
 
   return (
-    <Track
+    <div
       ref={ref}
       role="progressbar"
       aria-label="Loading"
-      opacity={variant === 'monochrome' ? '0.2' : '1'}
-      color={variant === 'monochrome' ? 'currentColor' : theme.tokens.border.secondary}
       {...props}
+      className={className ? `${sx.className} ${className}` : sx.className}
+      style={sx.style ? {...sx.style, ...style} : style}
     >
-      <ColorMask>
-        <Bar
-          color={
-            variant === 'monochrome' ? 'currentColor' : theme.tokens.border.accent.vibrant
-          }
-          animation={indeterminateSlow}
-          timing="cubic-bezier(0.4, 0.0, 0.2, 1)"
-          duration={`${duration}s`}
-          delay="0s"
+      <span {...stylex.props(styles.colorMask)}>
+        <span
+          {...stylex.props(
+            styles.bar,
+            barColor,
+            styles.slow,
+            styles.timing(`${duration}s`, '0s')
+          )}
         />
-        <Bar
-          color={
-            variant === 'monochrome' ? 'currentColor' : theme.tokens.border.accent.vibrant
-          }
-          animation={indeterminateFast}
-          timing="cubic-bezier(0.4, 0.0, 0.2, 1)"
-          duration={`${duration}s`}
-          delay={`${delay}s`}
+        <span
+          {...stylex.props(
+            styles.bar,
+            barColor,
+            styles.fast,
+            styles.timing(`${duration}s`, `${delay}s`)
+          )}
         />
-      </ColorMask>
-    </Track>
+      </span>
+    </div>
   );
 }
-
-const Track = styled('div')<{color: string; opacity: string}>`
-  position: relative;
-  overflow: hidden;
-  width: 100%;
-  width: calc(round(down, 100% - 16px, 8px) + 16px);
-  height: 8px;
-
-  &::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: ${p => p.color};
-    opacity: ${p => p.opacity};
-    mask-image: ${SQUIGGLE_TILE};
-    mask-repeat: repeat-x;
-    mask-size: 16px 8px;
-    -webkit-mask-image: ${SQUIGGLE_TILE};
-    -webkit-mask-repeat: repeat-x;
-    -webkit-mask-size: 16px 8px;
-  }
-`;
-
-const ColorMask = styled('span')`
-  position: absolute;
-  inset: 0;
-  mask-image: ${SQUIGGLE_TILE};
-  mask-repeat: repeat-x;
-  mask-size: 16px 8px;
-  -webkit-mask-image: ${SQUIGGLE_TILE};
-  -webkit-mask-repeat: repeat-x;
-  -webkit-mask-size: 16px 8px;
-`;
-
-const Bar = styled('span')<{
-  animation: ReturnType<typeof keyframes>;
-  color: string;
-  delay: string;
-  duration: string;
-  timing: string;
-}>`
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: ${p => p.color};
-  animation: ${p => p.animation} ${p => p.duration} ${p => p.timing} ${p => p.delay}
-    infinite backwards;
-`;

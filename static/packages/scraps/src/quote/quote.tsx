@@ -1,8 +1,10 @@
 import {Fragment, type ReactNode} from 'react';
-import styled from '@emotion/styled';
+import * as stylex from '@stylexjs/stylex';
 
 import {Stack} from '@sentry/scraps/layout';
 import type {StackProps} from '@sentry/scraps/layout';
+import {space} from '@sentry/scraps/theme/constants.stylex';
+import {border} from '@sentry/scraps/theme/tokens.stylex';
 
 import {Text} from '../text';
 
@@ -17,16 +19,41 @@ interface QuoteBaseProps {
 }
 export type QuoteProps = QuoteBaseProps & Omit<StackProps<'blockquote'>, 'children'>;
 
+const styles = stylex.create({
+  line: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    left: 0,
+    margin: 0,
+    borderStyle: 'none',
+    height: '100%',
+    width: '1px',
+    paddingLeft: space.xl,
+    marginLeft: space.lg,
+    borderLeftWidth: '1px',
+    borderLeftStyle: 'solid',
+    borderLeftColor: border.primary,
+  },
+  // Reset any properties that might be set by the global CSS styles.
+  content: {
+    margin: 0,
+    padding: 0,
+    borderStyle: 'none',
+    paddingLeft: `calc(${space.xl} + ${space.lg})`,
+  },
+});
+
 export function Quote(props: QuoteProps) {
   const {children, ...spreadProps} = props;
   return (
     <Stack gap="md" as="figure" position="relative" {...spreadProps}>
-      <Line aria-orientation="vertical" />
-      <Blockquote cite={props.source?.href} as="blockquote">
+      <hr aria-orientation="vertical" {...stylex.props(styles.line)} />
+      <blockquote cite={props.source?.href} {...stylex.props(styles.content)}>
         {children}
-      </Blockquote>
+      </blockquote>
       {props.source ? (
-        <Caption>
+        <figcaption {...stylex.props(styles.content)}>
           <Text as="p">
             &ndash;&nbsp;
             {props.source.author}
@@ -36,42 +63,8 @@ export function Quote(props: QuoteProps) {
               </Fragment>
             ) : null}
           </Text>
-        </Caption>
+        </figcaption>
       ) : null}
     </Stack>
   );
 }
-
-const Line = styled('hr')`
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0;
-  margin: 0;
-  border: none;
-  height: 100%;
-  width: 1px;
-  padding-left: ${p => p.theme.space.xl};
-  margin-left: ${p => p.theme.space.lg};
-  border-left: 1px solid ${p => p.theme.tokens.border.primary};
-`;
-
-const Blockquote = styled('blockquote')`
-  /**
-   * Reset any properties that might be set by the global CSS styles.
-   */
-  margin: 0;
-  padding: 0;
-  border: none;
-  padding-left: calc(${p => `${p.theme.space.xl} + ${p.theme.space.lg}`});
-`;
-
-const Caption = styled('figcaption')`
-  /**
-   * Reset any properties that might be set by the global CSS styles.
-   */
-  margin: 0;
-  padding: 0;
-  border: none;
-  padding-left: calc(${p => `${p.theme.space.xl} + ${p.theme.space.lg}`});
-`;
