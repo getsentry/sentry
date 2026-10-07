@@ -13,73 +13,108 @@ export const seerSettingsRoutes = (): SentryRouteObject => ({
       component: make(() => import('getsentry/views/seerAutomation/trial')),
     },
     {
-      // Legacy onboarding, seat-based redirects to /seer/
-      path: 'onboarding/',
-      name: t('Setup Wizard'),
-      component: make(
-        () => import('getsentry/views/seerAutomation/onboarding/onboarding')
-      ),
-    },
-    {
-      path: 'connectors/',
-      name: t('Connectors'),
-      component: make(() => import('getsentry/views/seerAutomation/connectors')),
-    },
-    {
-      // Legacy autofix page, redirects to /seer/projects/ if seat-based is active
-      index: true,
-      name: t('Seer Automation'),
-      component: make(() => import('getsentry/views/seerAutomation/seerAutomation')),
-    },
-    {
-      // Legacy orgs will skip this check
-      component: make(() => import('getsentry/views/seerAutomation/scmRequired')),
+      handle: {
+        settingsBreadcrumb: {
+          type: 'link',
+          label: t('Seer'),
+          to: '/settings/:orgId/seer/',
+        },
+      },
       children: [
         {
-          path: 'projects/',
-          name: t('Autofix'),
-          handle: {seerSection: 'autofix'},
-          component: make(() => import('getsentry/views/seerAutomation/projects')),
-          children: [
-            {
-              path: ':projectSlug/',
-              name: t('Project Details'),
-              component: make(
-                () => import('getsentry/views/seerAutomation/projectFlyout')
-              ),
-            },
-            {
-              path: 'defaults/',
-              name: t('Defaults'),
-              component: make(
-                () => import('getsentry/views/seerAutomation/projectDefaults')
-              ),
-            },
-          ],
+          // Legacy onboarding, seat-based redirects to /seer/
+          path: 'onboarding/',
+          name: t('Setup Wizard'),
+          component: make(
+            () => import('getsentry/views/seerAutomation/onboarding/onboarding')
+          ),
         },
         {
-          path: 'repos/',
-          name: t('Code Review'),
-          component: make(() => import('getsentry/views/seerAutomation/repos')),
-          children: [
-            {
-              path: ':repoId/',
-              name: t('Repository Details'),
-              component: make(() => import('getsentry/views/seerAutomation/repoDetails')),
-            },
-            {
-              path: 'defaults/',
-              name: t('Defaults'),
-              component: make(
-                () => import('getsentry/views/seerAutomation/repoDefaults')
-              ),
-            },
-          ],
+          path: 'connectors/',
+          name: t('Connectors'),
+          component: make(() => import('getsentry/views/seerAutomation/connectors')),
         },
         {
-          path: 'advanced/',
-          name: t('Advanced Settings'),
-          component: make(() => import('getsentry/views/seerAutomation/advanced')),
+          // Legacy autofix page, redirects to /seer/projects/ if seat-based is active
+          index: true,
+          name: t('Seer Automation'),
+          component: make(() => import('getsentry/views/seerAutomation/seerAutomation')),
+        },
+        {
+          // Legacy orgs will skip this check
+          component: make(() => import('getsentry/views/seerAutomation/scmRequired')),
+          children: [
+            {
+              path: 'projects/',
+              name: t('Autofix'),
+              handle: {seerSection: 'autofix'},
+              component: make(() => import('getsentry/views/seerAutomation/projects')),
+              children: [
+                {
+                  handle: {
+                    settingsBreadcrumb: {
+                      type: 'link',
+                      label: t('Autofix'),
+                      to: '/settings/:orgId/seer/projects/',
+                    },
+                  },
+                  children: [
+                    {
+                      path: ':projectSlug/',
+                      name: t('Project Details'),
+                      component: make(
+                        () => import('getsentry/views/seerAutomation/projectFlyout')
+                      ),
+                    },
+                    {
+                      path: 'defaults/',
+                      name: t('Defaults'),
+                      component: make(
+                        () => import('getsentry/views/seerAutomation/projectDefaults')
+                      ),
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              path: 'repos/',
+              name: t('Code Review'),
+              component: make(() => import('getsentry/views/seerAutomation/repos')),
+              children: [
+                {
+                  handle: {
+                    settingsBreadcrumb: {
+                      type: 'link',
+                      label: t('Code Review'),
+                      to: '/settings/:orgId/seer/repos/',
+                    },
+                  },
+                  children: [
+                    {
+                      path: ':repoId/',
+                      name: t('Repository Details'),
+                      component: make(
+                        () => import('getsentry/views/seerAutomation/repoDetails')
+                      ),
+                    },
+                    {
+                      path: 'defaults/',
+                      name: t('Defaults'),
+                      component: make(
+                        () => import('getsentry/views/seerAutomation/repoDefaults')
+                      ),
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              path: 'advanced/',
+              name: t('Advanced Settings'),
+              component: make(() => import('getsentry/views/seerAutomation/advanced')),
+            },
+          ],
         },
       ],
     },

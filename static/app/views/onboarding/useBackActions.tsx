@@ -1,5 +1,5 @@
 import {useCallback} from 'react';
-import {useBlocker} from 'react-router-dom';
+import {useBlocker} from 'react-router';
 
 import {removeProject} from 'sentry/actionCreators/projects';
 import {useOnboardingContext} from 'sentry/components/onboarding/onboardingContext';

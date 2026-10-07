@@ -9,8 +9,6 @@ import {
 } from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
-import {TopBar} from 'sentry/views/navigation/topBar';
-
 /**
  * Main container for a page.
  */
@@ -77,10 +75,6 @@ export function HeaderActions(props: {children: React.ReactNode}) {
       {...props}
     />
   );
-}
-
-export function Title(props: {children: React.ReactNode}) {
-  return <TopBar.Slot name="title">{props.children}</TopBar.Slot>;
 }
 
 /**

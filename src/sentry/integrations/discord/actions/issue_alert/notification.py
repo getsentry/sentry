@@ -1,7 +1,6 @@
 from collections.abc import Generator, Sequence
 from typing import Any
 
-from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder.issues import DiscordIssuesMessageBuilder
 from sentry.integrations.discord.spec import DiscordMessagingSpec
@@ -106,6 +105,3 @@ class DiscordNotifyServiceAction(IntegrationEventAction):
 
     def get_tags_list(self) -> Sequence[str]:
         return [s.strip() for s in self.get_option("tags", "").split(",")]
-
-    def get_form_instance(self) -> DiscordNotifyServiceForm:
-        return DiscordNotifyServiceForm(self.data, integrations=self.get_integrations())

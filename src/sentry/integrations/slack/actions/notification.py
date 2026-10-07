@@ -19,7 +19,6 @@ from sentry.integrations.repository.notification_action import (
     NewNotificationActionNotificationMessage,
 )
 from sentry.integrations.services.integration import RpcIntegration
-from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.metrics import record_lifecycle_termination_level
 from sentry.integrations.slack.sdk_client import SlackSdkClient
@@ -388,6 +387,3 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
     def get_tags_list(self) -> Sequence[str]:
         return [s.strip() for s in self.get_option("tags", "").split(",")]
-
-    def get_form_instance(self) -> SlackNotifyServiceForm:
-        return SlackNotifyServiceForm(self.data, integrations=self.get_integrations())

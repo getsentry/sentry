@@ -110,16 +110,16 @@ class IssueMSTeamsRendererTest(TestCase):
         )
 
         project = Project.objects.get_from_cache(id=group.project_id)
-        rules = [
+        origins = [
             SerializableRuleProxy(
                 id=1,
                 label="Test Detector",
                 data={"actions": [{"workflow_id": 1}]},
                 project_id=self.project.id,
-            ).to_rule()
+            ).to_notification_origin()
         ]
         footer_text = build_footer(
-            group=group, project=project, url_format=MSTEAMS_URL_FORMAT, rules=rules
+            group=group, project=project, url_format=MSTEAMS_URL_FORMAT, rules=origins
         )
 
         from datetime import datetime

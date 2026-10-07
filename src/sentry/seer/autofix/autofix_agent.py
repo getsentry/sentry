@@ -46,6 +46,7 @@ from sentry.seer.autofix.feature.models import (
     FEATURE_ID,
     LEGACY_FEATURE_ID,
     CodeChangesStepArgs,
+    PrIterationStepArgs,
     RCAStepArgs,
     RepoPin,
     RepoPins,
@@ -539,6 +540,27 @@ def _resolve_default_branch(
     return None
 
 
+def _build_pr_iteration_step_args(
+    group: Group,
+    *,
+    run_id: int | None,
+    feedback: Sequence[Feedback] | None,
+    commit_author: SeerCommitAuthor | None,
+    iteration_id: int | None,
+) -> PrIterationStepArgs:
+    run_state = get_autofix_run_state(group, run_id) if run_id is not None else None
+    if run_state is None or not run_state.repo_pr_states:
+        raise PrIterationNoPullRequestException()
+
+    return PrIterationStepArgs(
+        iteration_index=get_open_iteration_index(run_state),
+        iteration_id=iteration_id,
+        feedback=serialize_feedback(feedback) if feedback else None,
+        commit_author=json.dumps(commit_author) if commit_author is not None else None,
+        pr_urls={pr.repo_name: pr.pr_url for pr in run_state.repo_pr_states.values() if pr.pr_url},
+    )
+
+
 def _build_repo_pins(group: Group, referrer: AutofixReferrer) -> RepoPins | None:
     preference = read_preference_from_sentry_db(group.project)
     # Imported lazily to avoid a circular import: sentry.scm pulls in the
@@ -640,23 +662,42 @@ def trigger_autofix_agent(
             and features.has("organizations:autofix-should-run-repo-checks", group.organization)
         )
 
-        use_seer_feature = step in (AutofixStep.ROOT_CAUSE, AutofixStep.SOLUTION) or (
-            step == AutofixStep.CODE_CHANGES
-            and features.has(
-                "organizations:autofix-code-changes-in-seer", group.organization, actor=user
+        use_seer_feature = (
+            step in (AutofixStep.ROOT_CAUSE, AutofixStep.SOLUTION)
+            or (
+                step == AutofixStep.CODE_CHANGES
+                and features.has(
+                    "organizations:autofix-code-changes-in-seer", group.organization, actor=user
+                )
+            )
+            or (
+                step == AutofixStep.PR_ITERATION
+                and features.has(
+                    "organizations:autofix-pr-iteration-in-seer", group.organization, actor=user
+                )
             )
         )
         if use_seer_feature:
             if run_id is not None:
                 _assert_existing_run_belongs_to_group(group, run_id)
 
-            step_args: RCAStepArgs | SolutionStepArgs | CodeChangesStepArgs
+            feature_iteration_index: int | None = None
+            step_args: RCAStepArgs | SolutionStepArgs | CodeChangesStepArgs | PrIterationStepArgs
             if step == AutofixStep.ROOT_CAUSE:
                 step_args = RCAStepArgs(repo_pins=_build_repo_pins(group, referrer))
             elif step == AutofixStep.SOLUTION:
                 step_args = SolutionStepArgs(should_run_repo_checks=enable_bash_mode)
             elif step == AutofixStep.CODE_CHANGES:
                 step_args = CodeChangesStepArgs(should_run_repo_checks=enable_bash_mode)
+            elif step == AutofixStep.PR_ITERATION:
+                step_args = _build_pr_iteration_step_args(
+                    group,
+                    run_id=run_id,
+                    feedback=feedback,
+                    commit_author=commit_author,
+                    iteration_id=iteration_id,
+                )
+                feature_iteration_index = step_args.iteration_index
             else:
                 raise ValueError(f"invalid step: {step}")
 
@@ -695,6 +736,7 @@ def trigger_autofix_agent(
                 feature_run_id,
                 str(feature_run.uuid),
                 referrer,
+                feature_iteration_index,
                 actor_user_id=actor_user_id,
             )
             return feature_run

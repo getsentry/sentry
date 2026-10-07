@@ -70,6 +70,8 @@ const allAiNodes = [generationA, generationB, evaluation, unassociatedGeneration
 const conversationIds = [CONVERSATION_A, CONVERSATION_B];
 
 function mockConversation(conversationId: string, node: EapSpanNode) {
+  const {[SpanFields.GEN_AI_RESPONSE_TEXT]: responseText, ...attributes} =
+    node.attributes ?? {};
   return MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/agents/conversations/${conversationId}/`,
     body: {
@@ -77,7 +79,10 @@ function mockConversation(conversationId: string, node: EapSpanNode) {
       title: null,
       spans: [
         {
-          ...node.attributes,
+          ...attributes,
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
+            {role: 'assistant', content: responseText},
+          ]),
           span_id: node.id,
           'span.name': node.op,
           'span.status': 'ok',
@@ -89,7 +94,7 @@ function mockConversation(conversationId: string, node: EapSpanNode) {
           trace: TRACE_ID,
         },
         {
-          ...node.attributes,
+          ...attributes,
           span_id: `${node.id}-other-trace`,
           'span.name': node.op,
           'span.status': 'ok',
@@ -99,7 +104,9 @@ function mockConversation(conversationId: string, node: EapSpanNode) {
           project: 'project-slug',
           'project.id': 1,
           trace: 'another-trace',
-          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Other trace answer',
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
+            {role: 'assistant', content: 'Other trace answer'},
+          ]),
         },
       ],
     },
@@ -123,6 +130,10 @@ describe('TraceAiConversations', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
       body: [],
     });
     MockApiClient.addMockResponse({
