@@ -1,5 +1,5 @@
 import {Fragment, useMemo} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Flex} from '@sentry/scraps/layout';
@@ -96,7 +96,7 @@ function AggregatesTable({
         prependColumnWidths={['min-content']}
         scrollable
         header={
-          <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderRow css={titleCaseHeaderStyle}>
             <SimpleTable.HeaderCell>
               <Flex align="center" gap="xs" />
             </SimpleTable.HeaderCell>
@@ -201,7 +201,7 @@ function SpansTable({spansTableResult, query: queryParts, index}: SampleTablePro
         minimumColumnWidth={50}
         scrollable
         header={
-          <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderRow css={titleCaseHeaderStyle}>
             {visibleFields.map((field, i) => {
               // Hide column names before alignment is determined
               if (result.isPending) {
@@ -267,4 +267,8 @@ const TopResultsIndicator = styled('div')<{color: string}>`
 
 const StyledLink = styled(Link)`
   display: flex;
+`;
+
+const titleCaseHeaderStyle = css`
+  text-transform: capitalize;
 `;

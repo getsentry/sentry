@@ -1,5 +1,5 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import clamp from 'lodash/clamp';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
@@ -229,7 +229,7 @@ export function SuspectFunctionsTable({
         columns={COLUMNS.map(column => ({key: column.value}))}
         scrollable
         header={
-          <SimpleTable.HeaderRow>
+          <SimpleTable.HeaderRow css={titleCaseHeaderStyle}>
             {COLUMNS.map((column, i) => {
               return (
                 <SimpleTable.HeaderCell
@@ -367,3 +367,7 @@ function useMemoryPagination(items: any[], size: number) {
     },
   };
 }
+
+const titleCaseHeaderStyle = css`
+  text-transform: capitalize;
+`;
