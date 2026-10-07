@@ -63,7 +63,6 @@ class UserResponse(TypedDict):
 
 class AIConversationData(AIConversationAggregates):
     conversationId: str
-    errors: int
     title: str | None
     projectId: int | None
     flow: list[str]
@@ -340,7 +339,6 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             query_string=build_escaped_term_filter("gen_ai.conversation.id", conversation_ids),
             selected_columns=[
                 "gen_ai.conversation.id",
-                "failure_count() as errors",
                 *CONVERSATION_AGGREGATE_COLUMNS,
                 f"collect_unique_if(`{operation_filter}`, trace) as trace_ids",
                 f"collect_unique_if(`{operation_filter}`, project.id) as project_ids",
@@ -384,7 +382,6 @@ class OrganizationAIConversationsEndpoint(OrganizationEventsEndpointBase):
             trace_ids = sorted(row.get("trace_ids") or [])
             conversations_map[conversation_id] = {
                 "conversationId": conversation_id,
-                "errors": int(row.get("errors") or 0),
                 "title": None,
                 "projectId": min(project_ids, default=None),
                 "flow": row.get("flow") or [],

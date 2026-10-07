@@ -12,6 +12,8 @@ class AIConversationExamples:
                 "webUrl": "https://sentry.io/organizations/org-slug/explore/agents/conversations/01JQZ4W8X7J2Q9B4R5M6N7P8T9/?project=1",
                 "stats": {
                     "endTimestamp": 1743465601250,
+                    "errors": 0,
+                    "errorToolNames": [],
                     "generationDuration": 1250.0,
                     "inputTokens": 0,
                     "llmCalls": 1,
