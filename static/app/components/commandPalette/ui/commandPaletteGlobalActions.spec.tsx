@@ -691,6 +691,11 @@ describe('GlobalCommandPaletteActions - Open my current replay session', () => {
     expect(flush).toHaveBeenCalled();
     expect(window.open).toHaveBeenCalledWith(url, '_blank', 'noreferrer');
     await waitFor(() => expect(navigator.clipboard.writeText).toHaveBeenCalledWith(url));
+    // Copies before the new tab takes focus away from this document
+    const copyOrder = jest.mocked(navigator.clipboard.writeText).mock
+      .invocationCallOrder[0]!;
+    const openOrder = jest.mocked(window.open).mock.invocationCallOrder[0]!;
+    expect(copyOrder).toBeLessThan(openOrder);
   });
 
   it('does not open anything when replay is not enabled', async () => {
