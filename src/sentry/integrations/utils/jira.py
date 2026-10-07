@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import re
-from urllib.parse import ParseResult, parse_qs, urlparse
+from urllib.parse import parse_qs, urlparse
+
+from sentry.integrations.utils.issue_url import get_url_origin
 
 ISSUE_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
 
@@ -9,20 +11,6 @@ ISSUE_KEY_RE = re.compile(r"^[A-Za-z][A-Za-z0-9]*-\d+$")
 #   /browse/ABC-123
 #   /projects/ABC/issues/ABC-123
 _ISSUE_PATH_PARENTS = frozenset({"browse", "issues"})
-
-
-_DEFAULT_PORTS = {"http": 80, "https": 443}
-
-
-def _origin(url: ParseResult) -> tuple[str, str, int] | None:
-    """Scheme, host and port, with the port defaulted so ``:443`` == implicit."""
-    if url.scheme not in _DEFAULT_PORTS or not url.hostname:
-        return None
-    try:
-        port = url.port
-    except ValueError:  # a non-numeric port
-        return None
-    return (url.scheme, url.hostname.lower(), port or _DEFAULT_PORTS[url.scheme])
 
 
 def _path_segments(path: str) -> list[str]:
@@ -60,8 +48,8 @@ def parse_jira_issue_key(query: str, base_url: str) -> str | None:
         # so leave it alone rather than raising out of a search request.
         return None
 
-    origin = _origin(url)
-    if origin is None or origin != _origin(base):
+    origin = get_url_origin(url)
+    if origin is None or origin != get_url_origin(base):
         return None
 
     # Jira Server can be mounted under a context path, so the link has to sit

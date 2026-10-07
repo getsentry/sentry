@@ -1,54 +1,30 @@
 import {Fragment} from 'react';
 
-import {useEventGroupingInfo} from 'sentry/components/events/groupingInfo/useEventGroupingInfo';
-import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
+
+import type {EventGroupingInfoResponse} from './useEventGroupingInfo';
 
 export function GroupInfoSummary({
-  event,
-  group,
-  projectSlug,
+  groupInfo,
   showGroupingConfig,
 }: {
-  event: Event;
-  group: Group | undefined;
-  projectSlug: string;
+  groupInfo: EventGroupingInfoResponse | null;
   showGroupingConfig: boolean;
 }) {
-  const {groupInfo, isPending, hasPerformanceGrouping} = useEventGroupingInfo({
-    event,
-    group,
-    projectSlug,
-  });
-  const groupedBy = groupInfo?.variants
-    ? Object.values(groupInfo.variants)
-        .filter(variant => variant.contributes && variant.description !== null)
-        .map(variant => variant.description!)
-        .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
-        .join(', ')
-    : t('nothing');
-
-  const groupingConfig = showGroupingConfig && groupInfo?.grouping_config;
-
-  if (isPending && !hasPerformanceGrouping) {
-    return (
-      <Placeholder
-        height="20px"
-        width="unset"
-        style={{flexGrow: 1, marginBottom: '20px'}}
-      />
-    );
-  }
+  const groupedBy =
+    Object.values(groupInfo?.variants ?? {})
+      .filter(variant => variant.contributes)
+      .flatMap(variant => (variant.description ? [variant.description] : []))
+      .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()))
+      .join(', ') || t('nothing');
 
   return (
     <p data-test-id="loaded-grouping-info">
       <strong>{t('Grouped by:')}</strong> {groupedBy}
-      {groupingConfig && (
+      {showGroupingConfig && groupInfo?.grouping_config && (
         <Fragment>
           <br />
-          <strong>{t('Grouping Config:')}</strong> {groupingConfig}
+          <strong>{t('Grouping Config:')}</strong> {groupInfo.grouping_config}
         </Fragment>
       )}
     </p>

@@ -80,7 +80,9 @@ function parseEquationIndex(label: string): number {
 export function useStableLabels(queries: BaseMetricQuery[]) {
   const labelsRef = useRef<string[]>([]);
 
+  // oxlint-disable-next-line react/refs
   if (labelsRef.current.length !== queries.length) {
+    // oxlint-disable-next-line react/refs
     labelsRef.current = assignSequentialLabels(queries);
   }
 

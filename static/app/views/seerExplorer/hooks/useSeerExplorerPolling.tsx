@@ -24,7 +24,7 @@ const STALE_TIME_MS = 120_000;
 const isResponseComplete = (sessionData: SeerExplorerResponse['session'] | undefined) =>
   sessionData &&
   sessionData.status !== 'processing' &&
-  sessionData.blocks.every((block: Block) => !block.loading) &&
+  (sessionData.blocks ?? []).every((block: Block) => !block.loading) &&
   Object.values(sessionData?.repo_pr_states ?? {}).every(
     state => state.pr_creation_status !== 'creating'
   );
@@ -84,8 +84,11 @@ export const useSeerExplorerPolling = ({runId}: {runId: SeerExplorerRunId | null
 
   // Reset error poll count when runId changes
   const prevRunIdRef = useRef(runId);
+  // oxlint-disable-next-line react/refs
   if (prevRunIdRef.current !== runId) {
+    // oxlint-disable-next-line react/refs
     prevRunIdRef.current = runId;
+    // oxlint-disable-next-line react/refs
     errorPollCountRef.current = 0;
   }
 
@@ -151,6 +154,7 @@ export const useSeerExplorerPolling = ({runId}: {runId: SeerExplorerRunId | null
     apiData?.session,
     isError,
     error?.status,
+    // oxlint-disable-next-line react/refs
     errorPollCountRef.current
   );
 

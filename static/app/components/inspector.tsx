@@ -8,7 +8,6 @@ import {useHotkeys} from '@sentry/scraps/hotkey';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
-import {useTranslation} from '@sentry/scraps/translationContext';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Overlay} from 'sentry/components/overlay';
@@ -20,6 +19,7 @@ import {
 } from 'sentry/components/profiling/profilingContextMenu';
 import {NODE_ENV} from 'sentry/constants';
 import {IconChevron, IconCopy, IconDocs, IconLink, IconOpen} from 'sentry/icons';
+import {t} from 'sentry/locale';
 // eslint-disable-next-line boundaries/dependencies
 import {storyFiles, storyFrontmatterIndex} from 'sentry/stories/storyManifest.generated';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -39,7 +39,6 @@ const storybookFilesLookup = storyFiles.reduce<Record<string, string>>((acc, fil
 
 export function SentryComponentInspector() {
   const theme = useTheme();
-  const {t} = useTranslation();
   const tooltipRef = useRef<HTMLDivElement>(null);
   const contextMenuElementRef = useRef<HTMLDivElement>(null);
   const skipShowingTooltipRef = useRef(false);
@@ -68,6 +67,7 @@ export function SentryComponentInspector() {
     },
   ]);
 
+  // oxlint-disable-next-line react/refs
   const contextMenu = useContextMenu({container: tooltipRef.current});
   const [contextMenuTrace, setContextMenuTrace] = useState<TraceElement[] | null>(null);
 
@@ -96,6 +96,7 @@ export function SentryComponentInspector() {
 
   // Store the state in a ref to avoid re-rendering inside the listeners
   const stateRef = useRef(state);
+  // oxlint-disable-next-line react/refs
   stateRef.current = state;
 
   useLayoutEffect(() => {
@@ -439,13 +440,13 @@ export function SentryComponentInspector() {
             background-color: ${theme.tokens.border.success.muted} !important;
           }
 
-          [data-sentry-component-trace][data-sentry-source-path*="app/components/core"]:not([data-inspector-skip]) {
+          [data-sentry-component-trace]:is([data-sentry-source-path*="app/components/core"], [data-sentry-source-path*="packages/scraps/src"]):not([data-inspector-skip]) {
             box-shadow: 0 0 0 1px ${theme.tokens.border.accent.vibrant} !important;
             background-color: ${theme.tokens.border.accent.muted} !important;
           }
 
-          [data-sentry-component-trace][data-sentry-source-path*="app/components/core"]:not([data-inspector-skip]) [data-sentry-source-path*="app/components/core"],
-          [data-sentry-component-trace][data-sentry-source-path*="app/components/core"]:not([data-inspector-skip]) [data-sentry-source-path] {
+          [data-sentry-component-trace]:is([data-sentry-source-path*="app/components/core"], [data-sentry-source-path*="packages/scraps/src"]):not([data-inspector-skip]) :is([data-sentry-source-path*="app/components/core"], [data-sentry-source-path*="packages/scraps/src"]),
+          [data-sentry-component-trace]:is([data-sentry-source-path*="app/components/core"], [data-sentry-source-path*="packages/scraps/src"]):not([data-inspector-skip]) [data-sentry-source-path] {
             box-shadow: none !important;
           }
         `}
@@ -467,13 +468,13 @@ function MenuItem(props: {
   storybook: string | null;
   subMenuPortalRef: HTMLElement | null;
 }) {
-  const {t} = useTranslation();
   const figmaUrl = props.storybook
     ? storyFrontmatterIndex[props.storybook]?.figma
     : undefined;
 
   const [isOpen, _setIsOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
+  // oxlint-disable-next-line react/refs
   const popper = usePopper(triggerRef.current, props.subMenuPortalRef, {
     placement: 'right-start',
     modifiers: [
@@ -519,6 +520,7 @@ function MenuItem(props: {
   return (
     <Fragment>
       <ProfilingContextMenuItemButton
+        // oxlint-disable-next-line react/refs
         {...props.contextMenu.getMenuItemProps({
           ref: el => {
             triggerRef.current = el;
@@ -712,7 +714,8 @@ function getSourcePath(el: unknown): string {
   if (!isTraceElement(el)) {
     return 'unknown path';
   }
-  return el.dataset.sentrySourcePath?.split(/static\//)[1] || 'unknown path';
+  const sourcePath = el.dataset.sentrySourcePath;
+  return sourcePath?.split(/static\//)[1] ?? 'unknown path';
 }
 
 const getFileName = (path: string) => {
@@ -728,7 +731,10 @@ function getComponentStorybookFile(
   el: unknown,
   stories: Record<string, string>
 ): string | null {
-  const sourcePath = getSourcePath(el);
+  const sourcePath = getSourcePath(el).replace(
+    /^packages\/scraps\/src\//,
+    'app/components/core/'
+  );
   const mdxSourcePath = sourcePath.replace(/\.tsx$/, '.mdx');
 
   if (stories[mdxSourcePath] && getFileName(mdxSourcePath) === getFileName(sourcePath)) {
@@ -780,7 +786,9 @@ function isCoreComponent(el: unknown): boolean {
   if (!isTraceElement(el)) {
     return false;
   }
-  return el.dataset.sentrySourcePath?.includes('app/components/core') ?? false;
+  return /(?:app\/components\/core|packages\/scraps\/src)\//.test(
+    el.dataset.sentrySourcePath ?? ''
+  );
 }
 
 function isViewComponent(el: unknown): boolean {

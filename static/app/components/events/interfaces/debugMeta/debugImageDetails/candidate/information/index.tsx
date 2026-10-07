@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -31,6 +31,215 @@ type Props = {
   isInternalSource: boolean;
   eventDateReceived?: string;
 };
+
+function getTimeSinceData({
+  candidate,
+  dateCreated,
+  eventDateReceived,
+  hasReprocessWarning,
+}: {
+  candidate: ImageCandidate;
+  dateCreated: string;
+  hasReprocessWarning: boolean;
+  eventDateReceived?: string;
+}) {
+  const dateTime = <DateTime date={dateCreated} />;
+
+  if (candidate.download.status !== CandidateDownloadStatus.UNAPPLIED) {
+    return {
+      tooltipDesc: dateTime,
+      displayIcon: false,
+    };
+  }
+
+  const uploadedBeforeEvent = moment(dateCreated).isBefore(eventDateReceived);
+
+  if (uploadedBeforeEvent) {
+    if (hasReprocessWarning) {
+      return {
+        tooltipDesc: (
+          <Stack gap="md">
+            <Container>
+              {tct(
+                'This debug file was uploaded [when] before this event. It takes up to 1 hour for new files to propagate. To apply new debug information, reprocess this issue.',
+                {
+                  when: moment(eventDateReceived).from(dateCreated, true),
+                }
+              )}
+            </Container>
+            <Text as="div" tabular>
+              {dateTime}
+            </Text>
+          </Stack>
+        ),
+        displayIcon: true,
+      };
+    }
+
+    const uplodadedMinutesDiff = moment(eventDateReceived).diff(dateCreated, 'minutes');
+
+    if (uplodadedMinutesDiff >= 60) {
+      return {
+        tooltipDesc: dateTime,
+        displayIcon: false,
+      };
+    }
+
+    return {
+      tooltipDesc: (
+        <Stack gap="md">
+          <Container>
+            {tct(
+              'This debug file was uploaded [when] before this event. It takes up to 1 hour for new files to propagate.',
+              {
+                when: moment(eventDateReceived).from(dateCreated, true),
+              }
+            )}
+          </Container>
+          <Text as="div" tabular>
+            {dateTime}
+          </Text>
+        </Stack>
+      ),
+      displayIcon: true,
+    };
+  }
+
+  if (hasReprocessWarning) {
+    return {
+      tooltipDesc: (
+        <Stack gap="md">
+          <Container>
+            {tct(
+              'This debug file was uploaded [when] after this event. To apply new debug information, reprocess this issue.',
+              {
+                when: moment(dateCreated).from(eventDateReceived, true),
+              }
+            )}
+          </Container>
+          <Text as="div" tabular>
+            {dateTime}
+          </Text>
+        </Stack>
+      ),
+      displayIcon: true,
+    };
+  }
+
+  return {
+    tooltipDesc: (
+      <Stack gap="md">
+        <Container>
+          {tct('This debug file was uploaded [when] after this event.', {
+            when: moment(eventDateReceived).from(dateCreated, true),
+          })}
+        </Container>
+        <Text as="div" tabular>
+          {dateTime}
+        </Text>
+      </Stack>
+    ),
+    displayIcon: true,
+  };
+}
+
+function ProcessingInfo({candidate}: {candidate: ImageCandidate}) {
+  if (
+    candidate.download.status !== CandidateDownloadStatus.OK &&
+    candidate.download.status !== CandidateDownloadStatus.DELETED
+  ) {
+    return null;
+  }
+
+  const {debug, unwind} = candidate as ImageCandidateOk;
+
+  if (!debug && !unwind) {
+    return null;
+  }
+
+  return (
+    <Fragment>
+      <Flex gap="sm">
+        {debug && (
+          <Tooltip title={getProcessingInfoTooltip(debug)} skipWrapper>
+            <Flex align="center" gap="sm">
+              <ProcessingIcon processingInfo={debug} />
+              <Text size="sm" variant="muted">
+                {t('Symbolication')}
+              </Text>
+            </Flex>
+          </Tooltip>
+        )}
+        {unwind && (
+          <Tooltip title={getProcessingInfoTooltip(unwind)} skipWrapper>
+            <Flex align="center" gap="sm">
+              <ProcessingIcon processingInfo={unwind} />
+              <Text size="sm" variant="muted">
+                {t('Stack Unwinding')}
+              </Text>
+            </Flex>
+          </Tooltip>
+        )}
+      </Flex>
+      <Divider />
+    </Fragment>
+  );
+}
+
+function ExtraDetails({
+  candidate,
+  eventDateReceived,
+  hasReprocessWarning,
+  source,
+}: {
+  candidate: ImageCandidate;
+  hasReprocessWarning: boolean;
+  source: ImageCandidate['source'];
+  eventDateReceived?: string;
+}) {
+  if (
+    (candidate.download.status !== CandidateDownloadStatus.UNAPPLIED &&
+      candidate.download.status !== CandidateDownloadStatus.OK) ||
+    source !== INTERNAL_SOURCE
+  ) {
+    return null;
+  }
+
+  const {prettyFileType, size, dateCreated} = candidate as
+    | ImageCandidateInternalOk
+    | ImageCandidateUnApplied;
+
+  const {tooltipDesc, displayIcon} = getTimeSinceData({
+    candidate,
+    dateCreated,
+    eventDateReceived,
+    hasReprocessWarning,
+  });
+
+  return (
+    <Fragment>
+      <Tooltip title={tooltipDesc}>
+        <Grid columns="max-content 1fr" align="center" gap="xs">
+          {displayIcon && <IconWarning variant="danger" size="xs" />}
+          <Text size="sm" tabular variant="muted">
+            {tct('Uploaded [timesince]', {
+              timesince: <TimeSince disabledAbsoluteTooltip date={dateCreated} />,
+            })}
+          </Text>
+        </Grid>
+      </Tooltip>
+      <Divider />
+      <Text size="sm" tabular variant="muted">
+        <FileSize bytes={size} />
+      </Text>
+      <Divider />
+      <Text size="sm" variant="muted">
+        {prettyFileType}
+      </Text>
+      <Divider />
+    </Fragment>
+  );
+}
 
 export function Information({
   candidate,
@@ -61,164 +270,6 @@ export function Information({
     return null;
   }
 
-  function getTimeSinceData(dateCreated: string) {
-    const dateTime = <DateTime date={dateCreated} />;
-
-    if (candidate.download.status !== CandidateDownloadStatus.UNAPPLIED) {
-      return {
-        tooltipDesc: dateTime,
-        displayIcon: false,
-      };
-    }
-
-    const uploadedBeforeEvent = moment(dateCreated).isBefore(eventDateReceived);
-
-    if (uploadedBeforeEvent) {
-      if (hasReprocessWarning) {
-        return {
-          tooltipDesc: (
-            <Fragment>
-              {tct(
-                'This debug file was uploaded [when] before this event. It takes up to 1 hour for new files to propagate. To apply new debug information, reprocess this issue.',
-                {
-                  when: moment(eventDateReceived).from(dateCreated, true),
-                }
-              )}
-              <DateTimeWrapper>{dateTime}</DateTimeWrapper>
-            </Fragment>
-          ),
-          displayIcon: true,
-        };
-      }
-
-      const uplodadedMinutesDiff = moment(eventDateReceived).diff(dateCreated, 'minutes');
-
-      if (uplodadedMinutesDiff >= 60) {
-        return {
-          tooltipDesc: dateTime,
-          displayIcon: false,
-        };
-      }
-
-      return {
-        tooltipDesc: (
-          <Fragment>
-            {tct(
-              'This debug file was uploaded [when] before this event. It takes up to 1 hour for new files to propagate.',
-              {
-                when: moment(eventDateReceived).from(dateCreated, true),
-              }
-            )}
-            <DateTimeWrapper>{dateTime}</DateTimeWrapper>
-          </Fragment>
-        ),
-        displayIcon: true,
-      };
-    }
-
-    if (hasReprocessWarning) {
-      return {
-        tooltipDesc: (
-          <Fragment>
-            {tct(
-              'This debug file was uploaded [when] after this event. To apply new debug information, reprocess this issue.',
-              {
-                when: moment(dateCreated).from(eventDateReceived, true),
-              }
-            )}
-            <DateTimeWrapper>{dateTime}</DateTimeWrapper>
-          </Fragment>
-        ),
-        displayIcon: true,
-      };
-    }
-
-    return {
-      tooltipDesc: (
-        <Fragment>
-          {tct('This debug file was uploaded [when] after this event.', {
-            when: moment(eventDateReceived).from(dateCreated, true),
-          })}
-          <DateTimeWrapper>{dateTime}</DateTimeWrapper>
-        </Fragment>
-      ),
-      displayIcon: true,
-    };
-  }
-
-  function renderProcessingInfo() {
-    if (
-      candidate.download.status !== CandidateDownloadStatus.OK &&
-      candidate.download.status !== CandidateDownloadStatus.DELETED
-    ) {
-      return null;
-    }
-
-    const {debug, unwind} = candidate as ImageCandidateOk;
-
-    if (!debug && !unwind) {
-      return null;
-    }
-
-    return (
-      <Fragment>
-        <Flex gap="sm">
-          {debug && (
-            <Tooltip title={getProcessingInfoTooltip(debug)} skipWrapper>
-              <Flex align="center" gap="sm">
-                <ProcessingIcon processingInfo={debug} />
-                <Text size="sm">{t('Symbolication')}</Text>
-              </Flex>
-            </Tooltip>
-          )}
-          {unwind && (
-            <Tooltip title={getProcessingInfoTooltip(unwind)} skipWrapper>
-              <Flex align="center" gap="sm">
-                <ProcessingIcon processingInfo={unwind} />
-                <Text size="sm">{t('Stack Unwinding')}</Text>
-              </Flex>
-            </Tooltip>
-          )}
-        </Flex>
-        <Divider />
-      </Fragment>
-    );
-  }
-
-  function renderExtraDetails() {
-    if (
-      (candidate.download.status !== CandidateDownloadStatus.UNAPPLIED &&
-        candidate.download.status !== CandidateDownloadStatus.OK) ||
-      source !== INTERNAL_SOURCE
-    ) {
-      return null;
-    }
-
-    const {prettyFileType, size, dateCreated} = candidate as
-      | ImageCandidateInternalOk
-      | ImageCandidateUnApplied;
-
-    const {tooltipDesc, displayIcon} = getTimeSinceData(dateCreated);
-
-    return (
-      <Fragment>
-        <Tooltip title={tooltipDesc}>
-          <TimeSinceWrapper>
-            {displayIcon && <IconWarning variant="danger" size="xs" />}
-            {tct('Uploaded [timesince]', {
-              timesince: <TimeSince disabledAbsoluteTooltip date={dateCreated} />,
-            })}
-          </TimeSinceWrapper>
-        </Tooltip>
-        <Divider />
-        <FileSize bytes={size} />
-        <Divider />
-        <span>{prettyFileType}</span>
-        <Divider />
-      </Fragment>
-    );
-  }
-
   const filenameOrLocation = getFilenameOrLocation();
 
   return (
@@ -233,11 +284,16 @@ export function Information({
           </FilenameOrLocation>
         )}
       </div>
-      <Details>
-        {renderExtraDetails()}
-        {renderProcessingInfo()}
+      <Flex align="center" gap="md" wrap="wrap">
+        <ExtraDetails
+          candidate={candidate}
+          eventDateReceived={eventDateReceived}
+          hasReprocessWarning={hasReprocessWarning}
+          source={source}
+        />
+        <ProcessingInfo candidate={candidate} />
         <Features download={download} />
-      </Details>
+      </Flex>
     </Wrapper>
   );
 }
@@ -251,26 +307,4 @@ const Wrapper = styled('div')`
 const FilenameOrLocation = styled('span')`
   padding-left: ${p => p.theme.space.md};
   font-size: ${p => p.theme.font.size.sm};
-`;
-
-const Details = styled('div')`
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: max-content;
-  gap: ${p => p.theme.space.md};
-  color: ${p => p.theme.colors.gray500};
-  font-size: ${p => p.theme.font.size.sm};
-`;
-
-const TimeSinceWrapper = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  align-items: center;
-  gap: ${p => p.theme.space.xs};
-  font-variant-numeric: tabular-nums;
-`;
-
-const DateTimeWrapper = styled('div')`
-  padding-top: ${p => p.theme.space.md};
-  font-variant-numeric: tabular-nums;
 `;

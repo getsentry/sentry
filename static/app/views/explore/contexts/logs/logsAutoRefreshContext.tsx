@@ -6,10 +6,8 @@ import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {
-  useLogsQueryHighFidelity,
-  useLogsApiOptionsWithInfinite,
-} from 'sentry/views/explore/logs/useLogsQuery';
+import {useLogsApiOptionsWithInfinite} from 'sentry/views/explore/logs/useLogsApiOptions';
+import {useLogsQueryHighFidelity} from 'sentry/views/explore/logs/useLogsQueryHighFidelity';
 
 export const LOGS_AUTO_REFRESH_KEY = 'live';
 export const LOGS_REFRESH_INTERVAL_KEY = 'refreshEvery';
@@ -65,6 +63,7 @@ export function LogsAutoRefreshProvider({
   const hasInitialized = useRef(false);
 
   const allowedStates: AutoRefreshState[] = ['enabled', 'timeout', 'rate_limit', 'error'];
+  // oxlint-disable-next-line react/refs
   if (hasInitialized.current) {
     // Paused is not allowed via linking since it requires internal state (pausedAt) to work.
     allowedStates.push('paused');
@@ -77,6 +76,7 @@ export function LogsAutoRefreshProvider({
       : 'idle';
 
   if (autoRefresh !== 'idle') {
+    // oxlint-disable-next-line react/refs
     hasInitialized.current = true;
   }
 
@@ -93,6 +93,7 @@ export function LogsAutoRefreshProvider({
         isTableFrozen,
         pausedAt,
         setPausedAt,
+        // oxlint-disable-next-line react/refs
         hasInitialized: hasInitialized.current,
       }}
     >

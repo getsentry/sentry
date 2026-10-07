@@ -148,66 +148,64 @@ function TransactionThresholdModal({
       });
   };
 
-  function renderModalFields() {
-    return (
-      <Fragment>
-        <FieldGroup
-          data-test-id="response-metric"
-          label={t('Calculation Method')}
-          inline={false}
-          help={t(
-            'This determines which duration metric is used for the Response Time Threshold.'
-          )}
-          showHelpInTooltip
-          flexibleControlStateSize
-          stacked
-          required
-        >
-          <Select
-            options={[
-              {
-                label: t('Transaction Duration'),
-                value: TransactionThresholdMetric.TRANSACTION_DURATION,
-              },
-              {
-                label: t('Largest Contentful Paint'),
-                value: TransactionThresholdMetric.LARGEST_CONTENTFUL_PAINT,
-              },
-            ]}
-            name="responseMetric"
-            value={metric}
-            onChange={option => {
-              setMetric(option.value);
-            }}
-          />
-        </FieldGroup>
-        <FieldGroup
-          data-test-id="response-time-threshold"
-          label={t('Response Time Threshold (ms)')}
-          inline={false}
-          help={t(
-            'The satisfactory response time for the calculation method defined above. This is used to calculate Apdex and User Misery scores.'
-          )}
-          showHelpInTooltip
-          flexibleControlStateSize
-          stacked
-          required
-        >
-          <Input
-            type="number"
-            name="threshold"
-            pattern="[0-9]*(\.[0-9]*)?"
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
-              setThreshold(event.target.value);
-            }}
-            value={threshold}
-            step={100}
-            min={100}
-          />
-        </FieldGroup>
-      </Fragment>
-    );
-  }
+  const modalFields = (
+    <Fragment>
+      <FieldGroup
+        data-test-id="response-metric"
+        label={t('Calculation Method')}
+        inline={false}
+        help={t(
+          'This determines which duration metric is used for the Response Time Threshold.'
+        )}
+        showHelpInTooltip
+        flexibleControlStateSize
+        stacked
+        required
+      >
+        <Select
+          options={[
+            {
+              label: t('Transaction Duration'),
+              value: TransactionThresholdMetric.TRANSACTION_DURATION,
+            },
+            {
+              label: t('Largest Contentful Paint'),
+              value: TransactionThresholdMetric.LARGEST_CONTENTFUL_PAINT,
+            },
+          ]}
+          name="responseMetric"
+          value={metric}
+          onChange={option => {
+            setMetric(option.value);
+          }}
+        />
+      </FieldGroup>
+      <FieldGroup
+        data-test-id="response-time-threshold"
+        label={t('Response Time Threshold (ms)')}
+        inline={false}
+        help={t(
+          'The satisfactory response time for the calculation method defined above. This is used to calculate Apdex and User Misery scores.'
+        )}
+        showHelpInTooltip
+        flexibleControlStateSize
+        stacked
+        required
+      >
+        <Input
+          type="number"
+          name="threshold"
+          pattern="[0-9]*(\.[0-9]*)?"
+          onChange={(event: React.ChangeEvent<HTMLInputElement>) => {
+            setThreshold(event.target.value);
+          }}
+          value={threshold}
+          step={100}
+          min={100}
+        />
+      </FieldGroup>
+    </Fragment>
+  );
 
   const summaryView = eventView.clone();
   summaryView.query = summaryView.getQueryWithAdditionalConditions();
@@ -237,7 +235,7 @@ function TransactionThresholdModal({
             }
           )}
         </Instruction>
-        {renderModalFields()}
+        {modalFields}
       </Body>
       <Footer>
         <Grid flow="column" align="center" gap="md">

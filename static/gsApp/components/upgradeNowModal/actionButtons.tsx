@@ -15,7 +15,6 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-import {sendReplayOnboardRequest} from 'getsentry/actionCreators/upsell';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Plan, PreviewData, Subscription} from 'getsentry/types';
 import type {AM2UpdateSurfaces} from 'getsentry/utils/trackGetsentryAnalytics';
@@ -30,12 +29,10 @@ type Props = {
   reservations: Reservations;
   subscription: Subscription;
   surface: AM2UpdateSurfaces;
-  isActionDisabled?: boolean;
   onComplete?: () => void;
 };
 
 export function ActionButtons({
-  isActionDisabled,
   onComplete,
   organization,
   plan,
@@ -89,34 +86,6 @@ export function ActionButtons({
     }
   };
 
-  const onEmailOwner = async () => {
-    await sendReplayOnboardRequest({
-      api,
-      orgSlug: organization.slug,
-      currentPlan: 'am1-non-beta',
-      onSuccess: () => {
-        onComplete?.();
-        closeModal();
-        trackGetsentryAnalytics('upgrade_now.modal.sent_email', {
-          organization,
-          surface,
-          canSelfServe: subscription.canSelfServe,
-          channel: subscription.channel,
-          has_billing_scope: organization.access?.includes('org:billing'),
-        });
-      },
-      onError: () => {
-        navigate(
-          normalizeUrl({
-            pathname: `/checkout/${organization.slug}/`,
-            query: {referrer: 'replay_upgrade_modal-email_owner-error'},
-          }),
-          {replace: true}
-        );
-      },
-    });
-  };
-
   const onClickManageSubscription = () => {
     trackGetsentryAnalytics('upgrade_now.modal.manage_sub', {
       organization,
@@ -127,15 +96,9 @@ export function ActionButtons({
     });
   };
 
-  const hasBillingAccess = organization.access?.includes('org:billing');
-
-  return hasBillingAccess ? (
+  return (
     <ButtonRow>
-      <Button
-        variant="primary"
-        onClick={onUpdatePlan}
-        disabled={isActionDisabled === true}
-      >
+      <Button variant="primary" onClick={onUpdatePlan}>
         {t('Update Now')}
       </Button>
       <LinkButton
@@ -144,31 +107,6 @@ export function ActionButtons({
       >
         {t('Manage Subscription')}
       </LinkButton>
-    </ButtonRow>
-  ) : (
-    <ButtonRow>
-      <Button
-        variant="primary"
-        tooltipProps={{
-          title: t(
-            'Notify an owner by email to update to the latest version of your plan'
-          ),
-        }}
-        onClick={onEmailOwner}
-        disabled={isActionDisabled === true}
-      >
-        {t('Request to Update Plan')}
-      </Button>
-      <Button
-        disabled
-        tooltipProps={{
-          title: t(
-            'Only members with the role "Owner" or "Billing" can manage subscriptions'
-          ),
-        }}
-      >
-        {t('Manage Subscription')}
-      </Button>
     </ButtonRow>
   );
 }

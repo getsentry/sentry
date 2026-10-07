@@ -29,11 +29,13 @@ export function useApi({persistInFlight, api: providedApi}: Options = {}) {
   const localApi = useRef<Client | undefined>(undefined);
 
   // Lazily construct the client if we weren't provided with one
+  // oxlint-disable-next-line react/refs
   if (localApi.current === undefined && providedApi === undefined) {
     localApi.current = new Client();
   }
 
   // Use the provided client if available
+  // oxlint-disable-next-line react/refs
   const api = providedApi ?? localApi.current!;
 
   // Clear API calls on unmount (if persistInFlight is disabled

@@ -11,11 +11,14 @@ import type {
   InvestigationCandidate,
   InvestigationBlock,
   InvestigationBlockExecutionStart,
-  InvestigationBlockKind,
   InvestigationDetail,
   InvestigationExecutionDetail,
   InvestigationListItem,
+  InvestigationOrchestration,
+  InvestigationOrchestrationCommandResponse,
+  InvestigationOrchestrationCommandVariables,
   InvestigationTitleGeneration,
+  InvestigationViewer,
   MetricOpenPeriodInvestigationSource,
 } from 'sentry/views/investigations/types';
 
@@ -97,6 +100,106 @@ export function investigationTitleGenerationQueryOptions(
   );
 }
 
+/**
+ * Records a presence heartbeat and returns the other viewers, active ones first,
+ * up to `limit`. `total` counts all of them.
+ */
+export function investigationPresenceQueryOptions(
+  organizationSlug: string,
+  investigationId: string,
+  limit: number
+) {
+  return apiOptions.as<{
+    heartbeatIntervalMs: number;
+    total: number;
+    viewers: InvestigationViewer[];
+  }>()('/organizations/$organizationIdOrSlug/investigations/$investigationId/presence/', {
+    path: {
+      organizationIdOrSlug: organizationSlug,
+      investigationId,
+    },
+    query: {limit},
+    method: 'PUT',
+    staleTime: 0,
+  });
+}
+
+/**
+ * The live state of an agentic run: phase, broad scan, hypotheses, and report
+ * progress. Seer overwrites the whole projection on every orchestration event,
+ * so there is nothing to merge — the newest response wins outright.
+ *
+ * `staleTime: 0` because a running workflow changes constantly. Callers that
+ * render a run in progress should add a `refetchInterval` and drop it once
+ * `status` reaches a terminal value, as `InvestigationHypotheses` does.
+ */
+export function investigationOrchestrationQueryOptions(
+  organizationSlug: string,
+  investigationId: string
+) {
+  return apiOptions.as<InvestigationOrchestration>()(
+    '/organizations/$organizationIdOrSlug/investigations/$investigationId/orchestration/',
+    {
+      path: {
+        organizationIdOrSlug: organizationSlug,
+        investigationId,
+      },
+      staleTime: 0,
+    }
+  );
+}
+
+/**
+ * Send a viewer command — accept/reject a hypothesis, steer, retry, cancel — to
+ * a running workflow.
+ *
+ * The response carries the post-command projection, so it is written straight
+ * into the orchestration cache instead of triggering another fetch.
+ */
+export function useInvestigationOrchestrationCommandMutation(
+  organizationSlug: string,
+  investigationId: string,
+  options?: MutationOptions<
+    InvestigationOrchestrationCommandResponse,
+    InvestigationOrchestrationCommandVariables
+  >
+) {
+  const queryClient = useQueryClient();
+  const orchestrationOptions = investigationOrchestrationQueryOptions(
+    organizationSlug,
+    investigationId
+  );
+
+  return useMutation({
+    ...options,
+    mutationFn: ({command, expectedWorkflowVersion, requestId}) =>
+      fetchMutation<InvestigationOrchestrationCommandResponse>({
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/investigations/$investigationId/orchestration/commands/',
+          {
+            path: {
+              organizationIdOrSlug: organizationSlug,
+              investigationId,
+            },
+          }
+        ),
+        method: 'POST',
+        data: {requestId, expectedWorkflowVersion, command},
+      }),
+    onSuccess: async (response, variables, onMutateResult, context) => {
+      queryClient.setQueryData(orchestrationOptions.queryKey, current =>
+        current ? {...current, json: response.projection} : current
+      );
+      await options?.onSuccess?.(response, variables, onMutateResult, context);
+    },
+    onError: async (error, variables, onMutateResult, context) => {
+      // A rejected command usually means the projection moved on beneath us.
+      await queryClient.invalidateQueries({queryKey: orchestrationOptions.queryKey});
+      await options?.onError?.(error, variables, onMutateResult, context);
+    },
+  });
+}
+
 export function investigationCandidatesQueryOptions({
   organizationSlug,
   sources,
@@ -130,13 +233,6 @@ function investigationCandidatesUrl(organizationSlug: string) {
 type FavoriteVariables = {
   investigation: InvestigationListItem;
   shouldFavorite: boolean;
-};
-
-type AddBlockVariables = {
-  investigation: InvestigationDetail;
-  kind: InvestigationBlockKind;
-  prompt: string;
-  title: string;
 };
 
 type RunBlockVariables = {
@@ -197,24 +293,6 @@ function useInvestigationMutation<TData, TVariables>(
   });
 }
 
-export function useCreateInvestigationMutation(
-  organizationSlug: string,
-  options?: MutationOptions<InvestigationListItem, void>
-) {
-  return useInvestigationMutation(
-    organizationSlug,
-    () =>
-      fetchMutation<InvestigationListItem>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/investigations/', {
-          path: {organizationIdOrSlug: organizationSlug},
-        }),
-        method: 'POST',
-        data: {title: 'Untitled investigation'},
-      }),
-    options
-  );
-}
-
 export function useLaunchInvestigationMutation(
   organizationSlug: string,
   options?: MutationOptions<InvestigationDetail, MetricOpenPeriodInvestigationSource>
@@ -227,11 +305,12 @@ export function useLaunchInvestigationMutation(
           path: {organizationIdOrSlug: organizationSlug},
         }),
         method: 'POST',
-        data: {
-          templateKey: 'breached_metric',
-          templateVersion: 1,
-          source,
-        },
+        // No `templateKey`: the metric snapshot is enough for the server to
+        // build an agentic run, which is what gives this investigation
+        // hypotheses instead of a fixed sequence of notebook cells. The
+        // candidates endpoint matches agentic and template lineage keys alike,
+        // so an already-investigated breach still resolves to "View".
+        data: {source},
       }),
     options,
     {invalidateCandidates: true}
@@ -279,7 +358,7 @@ export function useRenameInvestigationMutation(
         }
 
         return {
-          headers: current.headers,
+          ...current,
           json: {
             ...updated,
             // Preserve newer optimistic block state while the rename was in flight.
@@ -295,60 +374,6 @@ export function useRenameInvestigationMutation(
         queryKey: investigationListQueryOptions({organizationSlug}).queryKey,
       });
       await options?.onSuccess?.(updated, savedTitle, onMutateResult, context);
-    },
-  });
-}
-
-export function useAddInvestigationBlockMutation(
-  organizationSlug: string,
-  investigationId: string,
-  options?: MutationOptions<InvestigationBlock, AddBlockVariables>
-) {
-  const queryClient = useQueryClient();
-  const detailOptions = getInvestigationDetailQueryOptions(
-    organizationSlug,
-    investigationId
-  );
-
-  return useMutation({
-    ...options,
-    mutationFn: ({investigation, kind, prompt, title}) =>
-      fetchMutation<InvestigationBlock>({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/investigations/$investigationId/blocks/',
-          {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              investigationId,
-            },
-          }
-        ),
-        method: 'POST',
-        data: {
-          investigationVersion: investigation.version,
-          kind,
-          title,
-          generationPrompt: prompt,
-        },
-      }),
-    onSuccess: async (block, variables, onMutateResult, context) => {
-      queryClient.setQueryData(detailOptions.queryKey, current =>
-        current
-          ? {
-              ...current,
-              json: {
-                ...current.json,
-                blockCount: current.json.blockCount + 1,
-                blocks: [...(current.json.blocks ?? []), block],
-                version: current.json.version + 1,
-              },
-            }
-          : current
-      );
-      await queryClient.invalidateQueries({
-        queryKey: investigationListQueryOptions({organizationSlug}).queryKey,
-      });
-      await options?.onSuccess?.(block, variables, onMutateResult, context);
     },
   });
 }
@@ -482,8 +507,7 @@ export function useRunInvestigationBlockMutation(
 
 export function useUpdateInvestigationBlockPromptMutation(
   organizationSlug: string,
-  investigationId: string,
-  options?: MutationOptions<InvestigationBlock, UpdateBlockPromptVariables>
+  investigationId: string
 ) {
   const queryClient = useQueryClient();
   const detailOptions = getInvestigationDetailQueryOptions(
@@ -491,8 +515,7 @@ export function useUpdateInvestigationBlockPromptMutation(
     investigationId
   );
 
-  return useMutation({
-    ...options,
+  return useMutation<InvestigationBlock, Error, UpdateBlockPromptVariables>({
     mutationFn: ({block, investigationVersion, prompt}) =>
       fetchMutation<InvestigationBlock>({
         url: getApiUrl(
@@ -512,7 +535,7 @@ export function useUpdateInvestigationBlockPromptMutation(
           generationPrompt: prompt,
         },
       }),
-    onSuccess: async (updatedBlock, variables, onMutateResult, context) => {
+    onSuccess: (updatedBlock, variables) => {
       queryClient.setQueryData(detailOptions.queryKey, current =>
         current
           ? {
@@ -529,11 +552,9 @@ export function useUpdateInvestigationBlockPromptMutation(
             }
           : current
       );
-      await options?.onSuccess?.(updatedBlock, variables, onMutateResult, context);
     },
-    onError: async (error, variables, onMutateResult, context) => {
+    onError: async () => {
       await queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
-      await options?.onError?.(error, variables, onMutateResult, context);
     },
   });
 }

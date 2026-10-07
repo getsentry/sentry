@@ -4,7 +4,8 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import type {MenuItemProps} from 'sentry/components/dropdownMenu';
+import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useReplayMenuItems} from 'sentry/views/explore/replays/detail/header/useReplayMenuItems';
 

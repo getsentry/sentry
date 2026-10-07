@@ -16,7 +16,7 @@ from sentry.digests.types import NotificationWithRuleObjects, Record, RecordWith
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType
+from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, NotificationOrigin
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 
@@ -40,17 +40,21 @@ class BindRecordsTestCase(TestCase):
     def record(self) -> Record:
         return event_to_record(self.event, (self.rule,), self.notification_uuid)
 
+    @cached_property
+    def origin(self) -> NotificationOrigin:
+        return NotificationOrigin.from_legacy_rule(self.rule)
+
     @property
     def group_mapping(self) -> dict[int, Group]:
         return {self.event.group.id: self.event.group}
 
     @property
-    def rule_mapping(self) -> dict[int, Rule]:
-        return {self.rule.id: self.rule}
+    def rule_mapping(self) -> dict[int, NotificationOrigin]:
+        return {self.rule.id: self.origin}
 
     def test_success(self) -> None:
         (record,) = _bind_records([self.record], self.group_mapping, self.rule_mapping)
-        assert record == self.record.with_rules([self.rule])
+        assert record == self.record.with_rules([self.origin])
 
     def test_without_group(self) -> None:
         # If the record can't be associated with a group, it should be dropped
@@ -73,6 +77,10 @@ class GroupRecordsTestCase(TestCase):
     def rule(self) -> Rule:
         return self.create_project_rule(project=self.project)
 
+    @cached_property
+    def origin(self) -> NotificationOrigin:
+        return NotificationOrigin.from_legacy_rule(self.rule)
+
     def test_success(self) -> None:
         events = [
             self.store_event(data={"fingerprint": ["group-1"]}, project_id=self.project.id)
@@ -83,13 +91,37 @@ class GroupRecordsTestCase(TestCase):
         records = [
             RecordWithRuleObjects(
                 event.event_id,
-                NotificationWithRuleObjects(event, [self.rule], self.notification_uuid),
+                NotificationWithRuleObjects(event, [self.origin], self.notification_uuid),
                 event.datetime.timestamp(),
             )
             for event in events
         ]
-        ret = _group_records(records, {group.id: group}, {self.rule.id: self.rule})
-        assert ret == {self.rule: {group: records}}
+        ret = _group_records(records, {group.id: group}, {self.rule.id: self.origin})
+        assert ret == {self.origin: {group: records}}
+
+    def test_equivalent_origins_share_a_digest_group(self) -> None:
+        event = self.store_event(data={"fingerprint": ["group-1"]}, project_id=self.project.id)
+        group = event.group
+        assert group is not None
+        equivalent_origin = NotificationOrigin(
+            label="Renamed alert",
+            environment_id=None,
+            workflow_id=self.origin.workflow_id,
+            legacy_rule_id=self.origin.legacy_rule_id,
+        )
+        records = [
+            RecordWithRuleObjects(
+                event.event_id,
+                NotificationWithRuleObjects(event, [origin], self.notification_uuid),
+                event.datetime.timestamp(),
+            )
+            for origin in (self.origin, equivalent_origin)
+        ]
+
+        digest = _group_records(records, {group.id: group}, {self.rule.id: self.origin})
+
+        assert list(digest) == [self.origin]
+        assert digest[self.origin][group] == records
 
 
 class SortDigestTestCase(TestCase):
@@ -115,24 +147,30 @@ class SortDigestTestCase(TestCase):
             action_data=[{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}],
         )
 
-        rules = [first_rule, second_rule]
+        origins = [
+            NotificationOrigin.from_legacy_rule(first_rule),
+            NotificationOrigin.from_legacy_rule(second_rule),
+        ]
         groups = [self.create_group() for _ in range(3)]
 
         event_counts = {groups[0].id: 10, groups[1].id: 5, groups[2].id: 5}
         user_counts = {groups[0].id: 4, groups[1].id: 2, groups[2].id: 1}
 
-        grouped: Digest = {rules[0]: {groups[0]: []}, rules[1]: {groups[1]: [], groups[2]: []}}
+        grouped: Digest = {
+            origins[0]: {groups[0]: []},
+            origins[1]: {groups[1]: [], groups[2]: []},
+        }
 
         ret = _sort_digest(grouped, event_counts, user_counts)
 
         # ensure top-level keys are sorted
-        assert tuple(ret) == (rules[1], rules[0])
+        assert tuple(ret) == (origins[1], origins[0])
         # ensure second-level keys are sorted
-        assert tuple(ret[rules[1]]) == (groups[1], groups[2])
+        assert tuple(ret[origins[1]]) == (groups[1], groups[2])
 
         assert ret == {
-            rules[1]: {groups[1]: [], groups[2]: []},
-            rules[0]: {groups[0]: []},
+            origins[1]: {groups[1]: [], groups[2]: []},
+            origins[0]: {groups[0]: []},
         }
 
 

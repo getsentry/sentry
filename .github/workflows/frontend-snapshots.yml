@@ -7,10 +7,6 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, edited]
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
-  cancel-in-progress: true
-
 env:
   NODE_OPTIONS: '--max-old-space-size=4096'
   SNAPSHOT_OUTPUT_DIR: .artifacts/snapshots
@@ -21,6 +17,9 @@ jobs:
     # Skip 'edited' events that aren't a base branch change (e.g. title/body edits).
     # When the base branch changes, the diff target changes so we need a fresh run.
     if: github.event.action != 'edited' || github.event.changes.base != ''
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+      cancel-in-progress: true
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:

@@ -2,7 +2,9 @@ import {
   DropdownMenu,
   type DropdownMenuProps,
   type MenuItemProps,
-} from 'sentry/components/dropdownMenu';
+} from '@sentry/scraps/dropdownMenu';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+
 import {t} from 'sentry/locale';
 import {uniqueId} from 'sentry/utils/guid';
 import {
@@ -22,7 +24,12 @@ interface AddOpButtonProps extends Omit<DropdownMenuProps, 'items'> {
   onAddOp: (op: UptimeOp) => void;
 }
 
-export function AddOpButton({onAddOp, ...dropdownProps}: AddOpButtonProps) {
+export function AddOpButton({
+  onAddOp,
+  trigger,
+  triggerLabel,
+  ...dropdownProps
+}: AddOpButtonProps) {
   const menuItems: MenuItemProps[] = [
     {
       key: 'status_code',
@@ -89,11 +96,18 @@ export function AddOpButton({onAddOp, ...dropdownProps}: AddOpButtonProps) {
       items={menuItems}
       size="sm"
       {...dropdownProps}
-      triggerProps={{
-        'aria-label': t('Add Assertion'),
-        showChevron: false,
-        ...dropdownProps.triggerProps,
-      }}
+      trigger={
+        trigger ??
+        (triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            aria-label={t('Add Assertion')}
+            showChevron={false}
+          >
+            {triggerLabel ?? ''}
+          </OverlayTrigger.Button>
+        ))
+      }
     />
   );
 }

@@ -58,6 +58,7 @@ export function PictureInPicturePortal({
   useEffect(() => {
     // oxlint-disable-next-line react/immutability
     pipWindow.document.body.className = document.body.className;
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [pipWindow, theme]);
 
   return createPortal(

@@ -19,7 +19,7 @@ from sentry import audit_log, killswitches
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.models.environment import Environment
-from sentry.monitors.constants import TIMEOUT, PermitCheckInStatus
+from sentry.monitors.constants import MAX_TIMEOUT, TIMEOUT, PermitCheckInStatus
 from sentry.monitors.consumers.monitor_consumer import StoreMonitorCheckInStrategyFactory
 from sentry.monitors.models import (
     CheckInStatus,
@@ -164,13 +164,16 @@ class MonitorConsumerTest(TestCase):
         self,
         ts: datetime | None = None,
         consumer: ProcessingStrategy | None = None,
+        partition_ids: list[int] | None = None,
     ) -> None:
         if ts is None:
             ts = datetime.now()
         if consumer is None:
             consumer = self.create_consumer()
 
-        wrapper = {"message_type": "clock_pulse"}
+        wrapper: dict[str, Any] = {"message_type": "clock_pulse"}
+        if partition_ids is not None:
+            wrapper["partition_ids"] = partition_ids
 
         consumer.submit(
             Message(
@@ -451,6 +454,69 @@ class MonitorConsumerTest(TestCase):
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.TIMEOUT
         assert checkin.duration == 5000
+
+    def test_check_in_in_progress_timeout_capped(self) -> None:
+        monitor = self._create_monitor(slug="my-monitor")
+        now = datetime.now()
+        self.send_checkin(
+            monitor.slug,
+            status="in_progress",
+            ts=now - timedelta(minutes=MAX_TIMEOUT - 10),
+            item_ts=now,
+        )
+        self.send_checkin(monitor.slug, guid=self.guid, status="in_progress", ts=now)
+
+        # The in-progress update can not extend the timeout past MAX_TIMEOUT
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.IN_PROGRESS
+        assert checkin.timeout_at == checkin.date_added.replace(
+            second=0, microsecond=0
+        ) + timedelta(minutes=MAX_TIMEOUT)
+
+    def test_check_in_in_progress_after_timeout(self) -> None:
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(monitor.slug, status="in_progress")
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        checkin.update(status=CheckInStatus.TIMEOUT)
+
+        self.send_checkin(
+            monitor.slug,
+            guid=self.guid,
+            status="in_progress",
+            expected_error=ProcessingErrorsException(
+                [{"type": ProcessingErrorType.CHECKIN_FINISHED}], monitor
+            ),
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.TIMEOUT
+
+    def test_check_in_update_past_max_timeout(self) -> None:
+        monitor = self._create_monitor(slug="my-monitor")
+        now = datetime.now()
+        self.send_checkin(
+            monitor.slug,
+            status="in_progress",
+            ts=now - timedelta(minutes=MAX_TIMEOUT + 1),
+            item_ts=now,
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        checkin.update(status=CheckInStatus.TIMEOUT)
+
+        self.send_checkin(
+            monitor.slug,
+            guid=self.guid,
+            ts=now,
+            expected_error=ProcessingErrorsException(
+                [{"type": ProcessingErrorType.CHECKIN_FINISHED}], monitor
+            ),
+        )
+
+        checkin = MonitorCheckIn.objects.get(guid=self.guid)
+        assert checkin.status == CheckInStatus.TIMEOUT
+        assert checkin.duration is None
 
     def test_check_in_update(self) -> None:
         monitor = self._create_monitor(slug="my-monitor")
@@ -1073,6 +1139,21 @@ class MonitorConsumerTest(TestCase):
         assert monitor.exists()
         assert monitor[0].config["checkin_margin"] == 1
 
+    def test_monitor_upsert_limits_clamped(self) -> None:
+        self.send_checkin(
+            "long-running-monitor",
+            monitor_config={
+                "schedule": {"type": "crontab", "value": "13 * * * *"},
+                "max_runtime": 20160,
+                "checkin_margin": 100000,
+            },
+        )
+
+        monitor = Monitor.objects.get(slug="long-running-monitor")
+        assert monitor.config["max_runtime"] == 10080
+        assert monitor.config["checkin_margin"] == 40320
+        assert MonitorCheckIn.objects.filter(guid=self.guid).exists()
+
     def test_monitor_invalid_config(self) -> None:
         # 6 value schedule
         self.send_checkin(
@@ -1118,6 +1199,22 @@ class MonitorConsumerTest(TestCase):
                         "type": ProcessingErrorType.MONITOR_NOT_FOUND,
                     },
                 ],
+            ),
+        )
+
+        assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
+
+    def test_payload_key_collides_with_log_record(self) -> None:
+        """
+        Client payload keys are logged on failure paths. A key such as
+        `message` collides with a `logging.LogRecord` attribute and must not
+        break check-in processing.
+        """
+        self.send_checkin(
+            "my-missing-monitor",
+            message="hello",
+            expected_error=ProcessingErrorsException(
+                [{"type": ProcessingErrorType.MONITOR_NOT_FOUND}],
             ),
         )
 
@@ -1307,6 +1404,51 @@ class MonitorConsumerTest(TestCase):
         # One more check-in to process the batch
         self.send_checkin(monitor.slug, consumer=consumer)
 
+        assert try_monitor_clock_tick.call_count == 1
+
+    @mock.patch("sentry.monitors.consumers.monitor_consumer.try_monitor_clock_tick")
+    @mock.patch("sentry.monitors.consumers.monitor_consumer.record_pulse_partitions")
+    def test_clock_pulse_records_partitions(
+        self, record_pulse_partitions: mock.MagicMock, try_monitor_clock_tick: mock.MagicMock
+    ) -> None:
+        calls = mock.Mock()
+        calls.attach_mock(record_pulse_partitions, "record_pulse_partitions")
+        calls.attach_mock(try_monitor_clock_tick, "try_monitor_clock_tick")
+
+        # The partition list is remembered before the clock call measures it
+        now = datetime.now()
+        self.send_clock_pulse(ts=now, partition_ids=[0, 1, 2])
+        pulse = {"message_type": "clock_pulse", "partition_ids": [0, 1, 2]}
+        assert calls.mock_calls == [
+            mock.call.record_pulse_partitions(pulse),
+            mock.call.try_monitor_clock_tick(now, self.partition.index),
+        ]
+
+        # A check-in does not change the remembered list
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(monitor.slug)
+        assert record_pulse_partitions.call_count == 1
+
+    @mock.patch("sentry.monitors.consumers.monitor_consumer.try_monitor_clock_tick")
+    @mock.patch("sentry.monitors.consumers.monitor_consumer.record_pulse_partitions")
+    def test_parallel_clock_pulse_records_partitions(
+        self, record_pulse_partitions: mock.MagicMock, try_monitor_clock_tick: mock.MagicMock
+    ) -> None:
+        factory = StoreMonitorCheckInStrategyFactory(mode="batched-parallel", max_batch_size=2)
+        commit = mock.Mock()
+        consumer = factory.create_with_partitions(commit, {self.partition: 0})
+
+        monitor = self._create_monitor(slug="my-monitor")
+
+        self.send_clock_pulse(consumer=consumer, partition_ids=[0, 1])
+        self.send_checkin(monitor.slug, consumer=consumer)
+
+        # One more check-in to process the batch
+        self.send_checkin(monitor.slug, consumer=consumer)
+
+        record_pulse_partitions.assert_called_once_with(
+            {"message_type": "clock_pulse", "partition_ids": [0, 1]}
+        )
         assert try_monitor_clock_tick.call_count == 1
 
     @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")

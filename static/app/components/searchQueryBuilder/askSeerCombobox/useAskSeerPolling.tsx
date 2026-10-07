@@ -11,6 +11,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   AskSeerPollingResponse,
   AskSeerStartResponse,
+  AskSeerStrategy,
   QueryTokensProps,
 } from './types';
 
@@ -58,11 +59,10 @@ const makeInitialAskSeerData = <
   session: null,
 });
 
-interface UseAskSeerPollingOptions<T extends QueryTokensProps> {
+interface UseAskSeerPollingOptions {
   projectIds: number[];
-  strategy: string;
+  strategy: AskSeerStrategy;
   onError?: (error: Error) => void;
-  onSuccess?: (result: T) => void;
   options?: Record<string, unknown>;
 }
 
@@ -75,7 +75,7 @@ interface UseAskSeerPollingOptions<T extends QueryTokensProps> {
  * 3. Stop polling when status is completed or error
  */
 export function useAskSeerPolling<T extends QueryTokensProps>(
-  options: UseAskSeerPollingOptions<T>
+  options: UseAskSeerPollingOptions
 ) {
   const api = useApi();
   const queryClient = useQueryClient();
@@ -176,12 +176,9 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
       if (!isStillProcessing) {
         // oxlint-disable-next-line react/set-state-in-effect
         setWaitingForResponse(false);
-        if (sessionData.status === 'completed' && sessionData.final_response) {
-          options.onSuccess?.(sessionData.final_response);
-        }
       }
     }
-  }, [waitingForResponse, sessionData, options]);
+  }, [waitingForResponse, sessionData]);
 
   // Reset function
   const reset = useCallback(() => {

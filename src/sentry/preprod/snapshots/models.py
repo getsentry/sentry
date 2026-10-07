@@ -57,6 +57,7 @@ class PreprodSnapshotComparison(DefaultFieldsModel):
         UNKNOWN = 0
         TIMEOUT = 1
         INTERNAL_ERROR = 2
+        BASE_MANIFEST_MISSING = 3
 
         @classmethod
         def as_choices(cls) -> tuple[tuple[int, str], ...]:
@@ -64,6 +65,7 @@ class PreprodSnapshotComparison(DefaultFieldsModel):
                 (cls.UNKNOWN, "unknown"),
                 (cls.TIMEOUT, "timeout"),
                 (cls.INTERNAL_ERROR, "internal_error"),
+                (cls.BASE_MANIFEST_MISSING, "base_manifest_missing"),
             )
 
     state = BoundedPositiveIntegerField(default=State.PENDING, choices=State.as_choices())

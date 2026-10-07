@@ -47,6 +47,7 @@ export function useFilteredRankedAttributes({
   useEffect(() => {
     // oxlint-disable-next-line react/set-state-in-effect
     setPage(0);
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [filteredRankedAttributes]);
 
   const totalPages = Math.ceil(filteredRankedAttributes.length / pageSize);

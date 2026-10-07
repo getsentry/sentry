@@ -322,6 +322,7 @@ function ConfirmModal({
             </Alert>
           </Alert.Container>
         )}
+        {/* oxlint-disable-next-line react/refs */}
         {makeConfirmMessage()}
       </Body>
       <Footer>
@@ -341,6 +342,7 @@ function ConfirmModal({
             </Button>
           )}
           {renderConfirmButton ? (
+            // oxlint-disable-next-line react/refs
             renderConfirmButton({
               closeModal,
               defaultOnClick: handleConfirm,

@@ -21,7 +21,7 @@ import type {
   OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {useLogsApiOptionsWithInfinite} from 'sentry/views/explore/logs/useLogsQuery';
+import {useLogsApiOptionsWithInfinite} from 'sentry/views/explore/logs/useLogsApiOptions';
 /**
  * Virtual Streaming
  *
@@ -78,6 +78,7 @@ export function useVirtualStreaming({
   const queryKeyString = JSON.stringify(logsQueryKey);
   const previousQueryKeyString = usePrevious(queryKeyString);
   const boxedVirtualTimestamp = useRef(virtualTimestamp);
+  // oxlint-disable-next-line react/refs
   boxedVirtualTimestamp.current = virtualTimestamp;
 
   const organizationRef = useRef(organization);
@@ -217,6 +218,7 @@ export function useVirtualStreaming({
   }, [data]);
 
   // We only want to warn once per session, also warning shouldn't add to the dependencies of the RAF useEffect.
+  // oxlint-disable-next-line react/refs
   warnRef.current = () => {
     if (hasWarnedRef.current) {
       return;

@@ -31,6 +31,7 @@ function StoreCapture({
 }: {
   storeRef: React.MutableRefObject<ReturnType<typeof TestCollection.useStore> | null>;
 }) {
+  // oxlint-disable-next-line react/refs
   storeRef.current = TestCollection.useStore();
   return null;
 }
@@ -387,8 +388,6 @@ describe('Collection', () => {
   });
 
   it('throws when useStore is called outside the Provider', () => {
-    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
     function BadComponent() {
       TestCollection.useStore();
       return null;
@@ -397,7 +396,5 @@ describe('Collection', () => {
     expect(() => render(<BadComponent />)).toThrow(
       'useStore must be called inside the matching Collection Provider'
     );
-
-    consoleSpy.mockRestore();
   });
 });

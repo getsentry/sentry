@@ -26,7 +26,9 @@ from sentry.models.pullrequest import (
 from sentry.models.repository import Repository
 from sentry.pr_metrics.attribution import SentryAppSignalDetails, record_attribution_signal
 from sentry.seer.agent.client_utils import get_agent_state_from_pr_id
+from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.milestones import reconcile_pull_requests_merged_milestone
+from sentry.seer.models.autofix_issue_data import SeerAutofixIssueData
 from sentry.seer.models.run import SeerRunPullRequest
 from sentry.utils import metrics
 
@@ -105,7 +107,33 @@ def record_pr_action_analytic(
             )
         )
 
-        metrics.incr(f"ai.autofix.pr.{analytic_action}", tags={"mode": "explorer"})
+        referrer = (agent_state.metadata or {}).get("referrer")
+        if referrer not in AutofixReferrer:
+            referrer = AutofixReferrer.UNKNOWN
+        metrics.incr(
+            f"ai.autofix.pr.{analytic_action}",
+            sample_rate=1.0,
+            tags={"mode": "explorer", "referrer": referrer},
+        )
+
+        try:
+            _update_autofix_issue_data_for_pr(
+                org=org,
+                repo_id=repo_id,
+                pull_request=pull_request,
+                group_id=group.id,
+                action=analytic_action,
+            )
+        except Exception:
+            logger.exception(
+                "seer.autofix.issue_data_pr_update.failed",
+                extra={
+                    "organization_id": org.id,
+                    "group_id": group.id,
+                    "run_id": agent_state.run_id,
+                    "action": analytic_action,
+                },
+            )
 
         try:
             _record_pr_attribution(
@@ -125,7 +153,43 @@ def record_pr_action_analytic(
                 },
             )
 
+        if analytic_action == "merged" and pull_request.get("created_at"):
+            created_at = datetime.fromisoformat(pull_request["created_at"]).timestamp() * 1000
+            metrics.distribution(
+                "ai.autofix.pr.time_to_merge_hours",
+                (sent_at - created_at) / 3_600_000,
+                sample_rate=1.0,
+                tags={"referrer": referrer},
+            )
         return
+
+
+def _update_autofix_issue_data_for_pr(
+    *,
+    org: Organization,
+    repo_id: int,
+    pull_request: dict[str, Any],
+    group_id: int,
+    action: AnalyticAction,
+) -> None:
+    if not features.has("organizations:seer-fixability-training-data", org):
+        return
+
+    issue_data = SeerAutofixIssueData.objects.filter(
+        group_id=group_id, organization_id=org.id
+    ).first()
+    number = pull_request.get("number")
+    if issue_data is None or number is None:
+        return
+
+    pr, _ = PullRequest.objects.get_or_create(
+        organization_id=org.id,
+        repository_id=repo_id,
+        key=str(number),
+    )
+    issue_data.pull_request = pr
+    issue_data.raw_issue_data["status"] = f"pr_{action}"
+    issue_data.save(update_fields=["pull_request", "raw_issue_data", "date_updated"])
 
 
 def _record_pr_attribution(

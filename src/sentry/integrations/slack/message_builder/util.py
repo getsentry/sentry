@@ -5,6 +5,7 @@ from sentry.integrations.slack.message_builder.types import SLACK_URL_FORMAT
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule
+from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils.links import create_link_to_workflow
 from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.utils.http import absolute_uri
@@ -13,12 +14,12 @@ from sentry.utils.http import absolute_uri
 def build_slack_footer(
     group: Group,
     project: Project,
-    rules: Sequence[Rule] | None = None,
+    rules: Sequence[Rule | NotificationOrigin] | None = None,
 ) -> str:
     footer = f"{group.qualified_short_id}"
 
     if rules:
-        key, value = get_rule_or_workflow_id(rules[0])
+        key, value = get_rule_or_workflow_id(rules[0], prefer="workflow_id")
         match key:
             case "workflow_id":
                 rule_url = absolute_uri(create_link_to_workflow(group.organization.slug, value))

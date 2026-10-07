@@ -30,6 +30,12 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {
+  GranularPermissionSelection,
+  granularPermissionsToScopes,
+  type GranularPermissions,
+} from 'sentry/views/settings/account/granularPermissionSelection';
 import {displayNewToken} from 'sentry/views/settings/components/newTokenHandler';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {
@@ -67,8 +73,15 @@ function getPermissionsPreview(scopes: string[]): string {
 
 export default function ApiNewToken() {
   const [permissions, setPermissions] = useState({...INITIAL_PERMISSIONS});
+  const [granularPermissions, setGranularPermissions] = useState<GranularPermissions>({});
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const organization = useOrganization({allowNull: true});
+
+  // Personal tokens aren't tied to an organization, so the flag is read from
+  // the organization currently in context.
+  const hasGranularPermissions =
+    organization?.features.includes('granular-permission-scopes-ui') ?? false;
 
   const handleGoBack = useCallback(
     () => navigate(normalizeUrl(API_INDEX_ROUTE)),
@@ -76,10 +89,12 @@ export default function ApiNewToken() {
   );
 
   const scopes = Array.from(
-    new Set(
-      permissionStateToList(permissions, false).filter(
-        (value): value is NonNullable<typeof value> => value !== undefined
-      )
+    new Set<string>(
+      hasGranularPermissions
+        ? granularPermissionsToScopes(granularPermissions)
+        : permissionStateToList(permissions, false).filter(
+            (value): value is NonNullable<typeof value> => value !== undefined
+          )
     )
   ).sort();
 
@@ -158,15 +173,22 @@ export default function ApiNewToken() {
           <Panel>
             <PanelHeader>{t('Permissions')}</PanelHeader>
             <PanelBody>
-              <PermissionSelection
-                appPublished={false}
-                displaySpecialPermissions={false}
-                permissions={permissions}
-                onChange={nextPermissions => {
-                  setPermissions({...nextPermissions});
-                }}
-                displayedPermissions={DISPLAYED_PERMISSIONS}
-              />
+              {hasGranularPermissions ? (
+                <GranularPermissionSelection
+                  permissions={granularPermissions}
+                  onChange={setGranularPermissions}
+                />
+              ) : (
+                <PermissionSelection
+                  appPublished={false}
+                  displaySpecialPermissions={false}
+                  permissions={permissions}
+                  onChange={nextPermissions => {
+                    setPermissions({...nextPermissions});
+                  }}
+                  displayedPermissions={DISPLAYED_PERMISSIONS}
+                />
+              )}
             </PanelBody>
             <FieldGroup
               label={t('Permissions Preview')}

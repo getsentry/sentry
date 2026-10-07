@@ -1,15 +1,14 @@
 import {useState} from 'react';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Stack} from '@sentry/scraps/layout';
 
-import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import {AgenticProgress} from 'sentry/components/onboarding/agenticProgress/agenticProgressList';
+import type {AgenticProgressRun} from 'sentry/components/onboarding/agenticProgress/types';
 import {IconChevron} from 'sentry/icons';
 import * as Storybook from 'sentry/stories';
 import {WelcomeAgentSetup} from 'sentry/views/onboarding/components/welcomeAgentSetup';
-
-import {AgenticProgress} from './agenticProgressList';
-import type {AgenticProgressRun} from './types';
 
 type AgenticProgressStageState = AgenticProgressRun['stages'][number];
 
@@ -127,10 +126,13 @@ function AgentConnectionStory() {
         <Container width="100%" maxWidth="480px">
           <WelcomeAgentSetup
             hasInitFailed={false}
+            hasProgressFailed={false}
+            onRefresh={() => {}}
             isAgentConnected={isAgentConnected}
             onboardingCode="Lg1iSt2qeQ"
             onCopyCommand={() => {}}
             onRetry={() => setIsAgentConnected(false)}
+            onSelectSnippet={() => {}}
             onSetupInBrowser={() => {}}
             run={makeAgenticProgressRun({
               sequence: 3,

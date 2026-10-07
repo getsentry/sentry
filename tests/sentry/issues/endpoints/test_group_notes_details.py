@@ -190,6 +190,7 @@ class GroupNotesDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
 
         activity = Activity.objects.get(id=response.data["id"])
+        assert response.data["commentId"] == str(activity.id)
         assert activity.user_id == self.user.id
         assert activity.group == self.group
         assert activity.data == {"text": "hi haters", "external_id": "123"}
@@ -225,7 +226,7 @@ class GroupNotesDetailsTest(APITestCase):
         }
 
     @action_log_activity_enabled()
-    def test_put_returns_gale(self) -> None:
+    def test_put_returns_original_comment_and_appends_edit(self) -> None:
         self.login_as(user=self.user)
         group = self.group
 
@@ -233,44 +234,22 @@ class GroupNotesDetailsTest(APITestCase):
         post_url = f"/api/0/issues/{group.id}/comments/"
         response = self.client.post(post_url, format="json", data={"text": "original"})
         assert response.status_code == 201, response.content
-        activity_id = response.data["data"]["comment_id"]
+        comment_id = response.data["commentId"]
+        original_entry = GroupActionLogEntry.objects.get(
+            group_id=group.id, id=response.data["id"], type=GroupActionType.COMMENT.value
+        )
 
-        put_url = f"/api/0/issues/{group.id}/comments/{activity_id}/"
+        put_url = f"{post_url}{comment_id}/"
         response = self.client.put(put_url, format="json", data={"text": "updated text"})
         assert response.status_code == 200, response.content
 
-        GroupActionLogEntry.objects.get(
-            group_id=group.id,
-            type=GroupActionType.COMMENT.value,
-            data__comment_id=activity_id,
-        )
-        # `id` is the Activity id (comment_id), matching the flag-off contract
-        assert response.data["id"] == str(activity_id)
+        assert response.data["id"] == str(original_entry.id)
+        assert response.data["commentId"] == comment_id
         assert response.data["type"] == "note"
         assert response.data["user"]["id"] == str(self.user.id)
         # the fresh text is re-derived from the edited activity, not the stale GALE entry
         assert response.data["data"]["text"] == "updated text"
-        assert response.data["data"]["comment_id"] == activity_id
-
-    @action_log_activity_enabled()
-    def test_put_writes_comment_edit_entry(self) -> None:
-        self.login_as(user=self.user)
-        group = self.group
-
-        post_url = f"/api/0/issues/{group.id}/comments/"
-        response = self.client.post(post_url, format="json", data={"text": "original"})
-        assert response.status_code == 201, response.content
-        activity_id = response.data["data"]["comment_id"]
-
-        original_entry = GroupActionLogEntry.objects.get(
-            group_id=group.id,
-            type=GroupActionType.COMMENT.value,
-            data__comment_id=activity_id,
-        )
-
-        put_url = f"/api/0/issues/{group.id}/comments/{activity_id}/"
-        response = self.client.put(put_url, format="json", data={"text": "updated text"})
-        assert response.status_code == 200, response.content
+        assert response.data["data"]["comment_id"] == int(comment_id)
 
         edit_entry = GroupActionLogEntry.objects.get(
             group_id=group.id, type=GroupActionType.COMMENT_EDIT.value
@@ -291,15 +270,13 @@ class GroupNotesDetailsTest(APITestCase):
         post_url = f"/api/0/issues/{group.id}/comments/"
         response = self.client.post(post_url, format="json", data={"text": "original"})
         assert response.status_code == 201, response.content
-        activity_id = response.data["data"]["comment_id"]
+        comment_id = response.data["commentId"]
 
         original_entry = GroupActionLogEntry.objects.get(
-            group_id=group.id,
-            type=GroupActionType.COMMENT.value,
-            data__comment_id=activity_id,
+            group_id=group.id, id=response.data["id"], type=GroupActionType.COMMENT.value
         )
 
-        delete_url = f"/api/0/issues/{group.id}/comments/{activity_id}/"
+        delete_url = f"{post_url}{comment_id}/"
         response = self.client.delete(delete_url, format="json")
         assert response.status_code == 204, response.status_code
 
@@ -339,6 +316,7 @@ class GroupNotesDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
 
         assert response.data["id"] == str(self.activity.id)
+        assert response.data["commentId"] == str(self.activity.id)
         assert response.data["data"]["text"] == "updated"
 
     @with_feature("projects:issue-action-log-write-to-db")

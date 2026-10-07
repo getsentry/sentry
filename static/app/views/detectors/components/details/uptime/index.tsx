@@ -1,12 +1,12 @@
 import {useCallback, useState} from 'react';
 
 import {CodeBlock} from '@sentry/scraps/code';
+import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
 import {Placeholder} from 'sentry/components/placeholder';
-import {KeyValueTableRow} from 'sentry/components/tables/keyValueTable';
 import {DetailLayout} from 'sentry/components/workflowEngine/layout/detail';
 import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t, tn} from 'sentry/locale';
@@ -15,6 +15,7 @@ import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {
   DisableDetectorAction,
+  DuplicateDetectorAction,
   EditDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
 import {DetectorDetailsAssignee} from 'sentry/views/detectors/components/details/common/assignee';
@@ -69,6 +70,7 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
             <DatePageFilter />
             <Flex align="center" gap="sm" marginLeft="auto">
               <DisableDetectorAction detector={detector} />
+              <DuplicateDetectorAction detector={detector} />
               <EditDetectorAction detector={detector} />
             </Flex>
           </Flex>
@@ -145,14 +147,14 @@ export function UptimeDetectorDetails({detector, project}: UptimeDetectorDetails
           <DetectorDetailsAssignee owner={detector.owner} />
           <DetectorDetailsDescription description={detector.description} />
           <DetectorExtraDetails>
-            <KeyValueTableRow
-              keyName={t('Interval')}
-              value={t('Every %s', getDuration(dataSource.queryObj.intervalSeconds))}
-            />
-            <KeyValueTableRow
-              keyName={t('Timeout')}
-              value={t('After %s', getDuration(dataSource.queryObj.timeoutMs / 1000, 2))}
-            />
+            <DescriptionList.Term>{t('Interval')}</DescriptionList.Term>
+            <DescriptionList.Details>
+              {t('Every %s', getDuration(dataSource.queryObj.intervalSeconds))}
+            </DescriptionList.Details>
+            <DescriptionList.Term>{t('Timeout')}</DescriptionList.Term>
+            <DescriptionList.Details>
+              {t('After %s', getDuration(dataSource.queryObj.timeoutMs / 1000, 2))}
+            </DescriptionList.Details>
             <DetectorExtraDetails.Environment detector={detector} />
             <DetectorExtraDetails.DateCreated detector={detector} />
             <DetectorExtraDetails.CreatedBy detector={detector} />

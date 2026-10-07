@@ -6,9 +6,10 @@ from django.conf import settings
 from rest_framework import serializers
 
 from sentry.models.custominboundfilter import (
+    MAX_FILTERS_PER_PROJECT,
+    ConditionType,
     CustomInboundFilter,
-    CustomInboundFilterConditionType,
-    CustomInboundFilterDataType,
+    DataType,
 )
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
@@ -452,6 +453,18 @@ def _trace_metric_names_generic_filters(project: Project) -> list[GenericFilter]
     return [_generic_filter("trace-metric-name", condition)]
 
 
+def _ip_denylist_generic_filters(project: Project) -> list[GenericFilter]:
+    """
+    The legacy IP address list as a generic filter. It keeps the outcome reason of the
+    native ``clientIps`` filter it replaces, so filter stats stay continuous.
+    """
+    ips = project.get_option("sentry:blacklisted_ips")
+    if not ips:
+        return []
+
+    return [_generic_filter(FilterStatKeys.IP_ADDRESS, _client_ip_matcher(ips))]
+
+
 @dataclass(frozen=True)
 class InboundFilterFeatures:
     """
@@ -459,12 +472,16 @@ class InboundFilterFeatures:
 
     ``custom_inbound_filters`` gates the other three, and additionally gates the
     legacy ``releases`` and ``errorMessages`` filter settings built by the caller.
+
+    ``generic_ip_filter`` serves the legacy IP address list as a generic filter. The
+    caller then leaves out the native ``clientIps`` setting.
     """
 
     custom_inbound_filters: bool = False
     logs: bool = False
     metrics: bool = False
     custom_inbound_filters_v2: bool = False
+    generic_ip_filter: bool = False
 
 
 def get_generic_filters(
@@ -478,6 +495,10 @@ def get_generic_filters(
     hardcoded set of rules, specific to each type.
     """
     generic_filters: list[GenericFilter] = []
+
+    # First, as the native IP filter runs before the other native filters.
+    if filter_features.generic_ip_filter:
+        generic_filters += _ip_denylist_generic_filters(project)
 
     if filter_features.custom_inbound_filters:
         if filter_features.logs:
@@ -545,8 +566,8 @@ def _custom_error_type_condition(values: list[str]) -> RuleCondition:
 # Builds the Relay condition that matches one filter condition's glob values.
 _ConditionMatcher = Callable[[list[str]], RuleCondition]
 
-# Where each condition type's data lives on one kind of ingested item.
-_ConditionMatchers = Mapping[CustomInboundFilterConditionType, _ConditionMatcher]
+# The matcher for each condition type a data type supports.
+_ConditionMatchers = Mapping[ConditionType, _ConditionMatcher]
 
 
 def _field_matcher(name: str) -> _ConditionMatcher:
@@ -556,34 +577,42 @@ def _field_matcher(name: str) -> _ConditionMatcher:
     return match
 
 
-# Replays, sessions, profiles and transactions are not selectable data types: Relay
-# reads their release under `event.release`, so they cannot be told apart from errors.
-_MATCHERS_BY_SINGLE_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMatchers] = {
-    CustomInboundFilterDataType.ERROR: {
-        CustomInboundFilterConditionType.ERROR_TYPE: _custom_error_type_condition,
-        CustomInboundFilterConditionType.ERROR_MESSAGE: _custom_error_message_condition,
-        CustomInboundFilterConditionType.RELEASE: _field_matcher("event.release"),
+def _cidr_matcher(name: str) -> _ConditionMatcher:
+    def match(values: list[str]) -> RuleCondition:
+        return {"op": "cidr", "name": name, "value": values}
+
+    return match
+
+
+_client_ip_matcher = _cidr_matcher("envelope.client_ip")
+
+
+_CONDITION_MATCHERS: Mapping[
+    ConditionType,
+    _ConditionMatcher | Mapping[DataType, _ConditionMatcher],
+] = {
+    ConditionType.ERROR_TYPE: {
+        DataType.ERROR: _custom_error_type_condition,
     },
-    CustomInboundFilterDataType.LOG: {
-        CustomInboundFilterConditionType.LOG_MESSAGE: _field_matcher("log.body"),
-        CustomInboundFilterConditionType.RELEASE: _field_matcher(
-            "log.attributes.sentry.release.value"
-        ),
+    ConditionType.ERROR_MESSAGE: {
+        DataType.ERROR: _custom_error_message_condition,
     },
-    CustomInboundFilterDataType.METRIC: {
-        CustomInboundFilterConditionType.METRIC_NAME: _field_matcher("trace_metric.name"),
-        CustomInboundFilterConditionType.RELEASE: _field_matcher(
-            "trace_metric.attributes.sentry.release.value"
-        ),
+    ConditionType.LOG_MESSAGE: {
+        DataType.LOG: _field_matcher("log.body"),
     },
-    # Matches standalone spans only. A span sent inside a transaction is dropped with
-    # the transaction, which the error matcher reads.
-    CustomInboundFilterDataType.SPAN: {
-        CustomInboundFilterConditionType.RELEASE: _field_matcher(
-            "span.attributes.sentry.release.value"
-        ),
+    ConditionType.METRIC_NAME: {
+        DataType.METRIC: _field_matcher("trace_metric.name"),
     },
+    ConditionType.RELEASE: {
+        DataType.ERROR: _field_matcher("event.release"),
+        DataType.LOG: _field_matcher("log.attributes.sentry.release.value"),
+        DataType.METRIC: _field_matcher("trace_metric.attributes.sentry.release.value"),
+        DataType.SPAN: _field_matcher("span.attributes.sentry.release.value"),
+    },
+    ConditionType.IP_ADDRESS: _client_ip_matcher,
 }
+
+_SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}
 
 
 def _any_condition_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionMatcher:
@@ -595,28 +624,30 @@ def _any_condition_matcher(matchers: Sequence[_ConditionMatcher]) -> _ConditionM
     return match
 
 
-def _build_all_data_types_matchers() -> _ConditionMatchers:
-    per_data_type = list(_MATCHERS_BY_SINGLE_DATA_TYPE.values())
-    shared_condition_types = set.intersection(*(set(matchers.keys()) for matchers in per_data_type))
+def _matcher(condition_type: ConditionType, data_type: DataType) -> _ConditionMatcher | None:
+    spec = _CONDITION_MATCHERS[condition_type]
+    if callable(spec):
+        return spec
+    if data_type is not DataType.ALL:
+        return spec.get(data_type)
+    if set(spec) != _SINGLE_DATA_TYPES:
+        return None
+    return _any_condition_matcher(list(spec.values()))
 
-    return {
-        condition_type: _any_condition_matcher(
-            [matchers[condition_type] for matchers in per_data_type]
-        )
-        for condition_type in CustomInboundFilterConditionType
-        if condition_type in shared_condition_types
+
+_MATCHERS_BY_DATA_TYPE: Mapping[DataType, _ConditionMatchers] = {
+    data_type: {
+        condition_type: matcher
+        for condition_type in ConditionType
+        if (matcher := _matcher(condition_type, data_type)) is not None
     }
-
-
-_MATCHERS_BY_DATA_TYPE: Mapping[CustomInboundFilterDataType, _ConditionMatchers] = {
-    CustomInboundFilterDataType.ALL: _build_all_data_types_matchers(),
-    **_MATCHERS_BY_SINGLE_DATA_TYPE,
+    for data_type in DataType
 }
 
 
 def get_supported_condition_types(
-    data_type: CustomInboundFilterDataType,
-) -> list[CustomInboundFilterConditionType]:
+    data_type: DataType,
+) -> list[ConditionType]:
     return list(_MATCHERS_BY_DATA_TYPE[data_type])
 
 
@@ -636,14 +667,14 @@ def _custom_filter_condition(
         return None
 
     try:
-        matchers = _MATCHERS_BY_DATA_TYPE[CustomInboundFilterDataType(data_type)]
+        matchers = _MATCHERS_BY_DATA_TYPE[DataType(data_type)]
     except ValueError:
         return None
 
     rule_conditions: list[RuleCondition] = []
     for condition in conditions:
         try:
-            condition_type = CustomInboundFilterConditionType(condition.get("type", ""))
+            condition_type = ConditionType(condition.get("type", ""))
         except ValueError:
             return None
 
@@ -664,9 +695,11 @@ def _custom_filter_condition(
 
 def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericFilter]:
     generic_filters: list[GenericFilter] = []
+    # A row with legacy_filter set is the double write of a legacy list that Relay still receives
+    # through the legacy path, so serving it here would filter the same data twice.
     custom_filters = CustomInboundFilter.objects.filter(
-        project_id=project.id, active=True
-    ).order_by("id")
+        project_id=project.id, active=True, legacy_filter__isnull=True
+    ).order_by("id")[:MAX_FILTERS_PER_PROJECT]
     for custom_filter in custom_filters:
         condition = _custom_filter_condition(custom_filter.conditions, custom_filter.data_type)
         if condition is not None:

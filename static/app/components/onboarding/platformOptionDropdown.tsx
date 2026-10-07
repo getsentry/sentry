@@ -39,6 +39,7 @@ type PlatformOptionsControlProps = {
    * pins the runtime selector to "cloudflare".
    */
   lockedValues?: Record<string, string>;
+  onChange?: (key: string, value: string) => void;
 };
 
 function OptionControl({option, value, onChange, disabled}: OptionControlProps) {
@@ -74,12 +75,14 @@ export function PlatformOptionDropdown({
   disabled,
   connectors,
   lockedValues,
+  onChange,
 }: PlatformOptionsControlProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const urlOptionValues = useUrlPlatformOptions(platformOptions);
 
   const handleChange = (key: string, value: string) => {
+    onChange?.(key, value);
     navigate(
       {
         ...location,

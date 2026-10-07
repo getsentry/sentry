@@ -7,6 +7,7 @@ import responses
 from django.urls import reverse
 from rest_framework.serializers import ValidationError
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
@@ -328,6 +329,7 @@ class OpsgenieApiPipelineTest(APITestCase):
                 "domain_name": "cool-name.app.opsgenie.com",
             },
         )
+        integration.add_organization(self.organization, self.user)
         other_organization = self.create_organization(owner=self.user)
 
         resp = self._install(other_organization, api_key="")
@@ -374,3 +376,47 @@ class OpsgenieApiPipelineTest(APITestCase):
                 "integration_key": "replacement-key",
             }
         ]
+
+    @with_feature(
+        {
+            "organizations:integrations-enterprise-alert-rule": True,
+            "organizations:integrations-enterprise-incident-management": True,
+        }
+    )
+    def test_reinstall_after_uninstall_refreshes_global_data(self) -> None:
+        self._install()
+        integration = Integration.objects.get(provider="opsgenie", external_id="cool-name")
+        OrganizationIntegration.objects.filter(integration=integration).delete()
+
+        resp = self._install(base_url="https://api.atlassian.com/jsm/ops/integration/")
+        assert resp.status_code == 200
+
+        integration.refresh_from_db()
+        assert integration.metadata == {
+            "base_url": "https://api.atlassian.com/jsm/ops/integration/",
+            "domain_name": "cool-name.atlassian.net",
+        }
+        assert Integration.objects.filter(provider="opsgenie", external_id="cool-name").count() == 1
+
+    @with_feature(
+        {
+            "organizations:integrations-enterprise-alert-rule": True,
+            "organizations:integrations-enterprise-incident-management": True,
+        }
+    )
+    def test_install_refreshes_global_data_when_other_install_is_pending_deletion(self) -> None:
+        other_organization = self.create_organization(owner=self.user)
+        self._install(other_organization)
+        integration = Integration.objects.get(provider="opsgenie", external_id="cool-name")
+        OrganizationIntegration.objects.filter(integration=integration).update(
+            status=ObjectStatus.PENDING_DELETION
+        )
+
+        resp = self._install(base_url="https://api.eu.opsgenie.com/")
+        assert resp.status_code == 200
+
+        integration.refresh_from_db()
+        assert integration.metadata == {
+            "base_url": "https://api.eu.opsgenie.com/",
+            "domain_name": "cool-name.app.eu.opsgenie.com",
+        }

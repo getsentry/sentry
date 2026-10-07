@@ -1,4 +1,11 @@
-from sentry.issues.action_log.types import PullRequestClosedAction, SetRegressedAction
+from sentry.issues.action_log.types import (
+    GroupAction,
+    GroupActionType,
+    PullRequestClosedAction,
+    SetRegressedAction,
+    SetResolvedInReleaseAction,
+    SmartAssignmentCompletedAction,
+)
 from sentry.models.activity import Activity
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
@@ -40,6 +47,26 @@ class ActivityToActionTest(TestCase):
         assert activity_to_action(first_seen_act) is None
         assert activity_to_action(release_act) is None
 
+    def test_internal_group_activity(self) -> None:
+        act = Factories.create_group_activity(
+            group=self.group,
+            type=ActivityType.SMART_ASSIGNMENT_COMPLETED.value,
+            data={
+                "run_id": 123,
+                "run_uuid": "00000000-0000-0000-0000-000000000001",
+                "predicted_assignee_user_ids": [456, None],
+            },
+        )
+
+        assert activity_to_action(act) == SmartAssignmentCompletedAction(
+            run_id=123,
+            run_uuid="00000000-0000-0000-0000-000000000001",
+            predicted_assignee_user_ids=[456, None],
+        )
+        assert (
+            GroupActionType.SMART_ASSIGNMENT_COMPLETED not in GroupAction.get_user_visible_types()
+        )
+
     def test_empty_data(self) -> None:
         for activity_type in [
             ActivityType.SET_RESOLVED.value,
@@ -73,13 +100,17 @@ class ActivityToActionTest(TestCase):
         assert activity_to_action(act) == PullRequestClosedAction(pull_request=123)
 
     def test_optional_field(self) -> None:
-        act = Factories.create_group_activity(
-            group=self.group,
-            type=ActivityType.SET_REGRESSION.value,
-            data={"version": "abc"},
-        )
+        for activity_type, expected_action in (
+            (ActivityType.SET_REGRESSION, SetRegressedAction(version="abc")),
+            (ActivityType.SET_RESOLVED_IN_RELEASE, SetResolvedInReleaseAction(version="abc")),
+        ):
+            act = Factories.create_group_activity(
+                group=self.group,
+                type=activity_type.value,
+                data={"version": "abc"},
+            )
 
-        assert activity_to_action(act) == SetRegressedAction(version="abc")
+            assert activity_to_action(act) == expected_action
 
     def test_strips_null_bytes_from_string_fields(self) -> None:
         # Activity data is stored in a text JSON column that tolerates NUL bytes,

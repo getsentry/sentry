@@ -362,12 +362,6 @@ class DatabaseBackedUserService(UserService):
             return User.objects.extra(
                 select={
                     "permissions": "select array_agg(permission) from sentry_userpermission where user_id=auth_user.id",
-                    "roles": """
-                        SELECT array_agg(permissions)
-                        FROM sentry_userrole
-                        JOIN sentry_userrole_users
-                          ON sentry_userrole_users.role_id=sentry_userrole.id
-                       WHERE user_id=auth_user.id""",
                     "useremails": "select array_agg(row_to_json(sentry_useremail)) from sentry_useremail where user_id=auth_user.id",
                     "authenticators": "SELECT array_agg(row_to_json(auth_authenticator)) FROM auth_authenticator WHERE user_id=auth_user.id",
                     "useravatar": "SELECT array_agg(row_to_json(sentry_useravatar)) FROM sentry_useravatar WHERE user_id = auth_user.id",

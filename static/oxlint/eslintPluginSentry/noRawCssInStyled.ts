@@ -1,11 +1,10 @@
-import {AST_NODE_TYPES, ESLintUtils} from '@typescript-eslint/utils';
-import type {TSESTree} from '@typescript-eslint/utils';
+import {defineRule, type ESTree} from '@oxlint/plugins';
 
 import {isStyledOrCssTemplate} from './utils/styled.ts';
 
 const CSS_DECLARATION_RE = /[\w-]+\s*:\s*[^;]+;/;
 
-function isInsideStyledOrCssTemplate(node: TSESTree.Node): boolean {
+function isInsideStyledOrCssTemplate(node: ESTree.Node): boolean {
   let current = node.parent;
   while (current) {
     if (isStyledOrCssTemplate(current)) {
@@ -20,7 +19,7 @@ function looksLikeCssDeclarations(text: string): boolean {
   return CSS_DECLARATION_RE.test(text);
 }
 
-export const noRawCssInStyled = ESLintUtils.RuleCreator.withoutDocs({
+export const noRawCssInStyled = defineRule({
   meta: {
     type: 'problem',
     docs: {
@@ -38,7 +37,7 @@ export const noRawCssInStyled = ESLintUtils.RuleCreator.withoutDocs({
     return {
       TemplateLiteral(node) {
         if (
-          node.parent?.type === AST_NODE_TYPES.TaggedTemplateExpression &&
+          node.parent?.type === 'TaggedTemplateExpression' &&
           node.parent.quasi === node
         ) {
           return;

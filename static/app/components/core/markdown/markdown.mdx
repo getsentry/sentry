@@ -227,7 +227,7 @@ By default, `Tag` renders nothing. Provide a `Tag` component override to handle 
 >
 ```
 
-During streaming, partial tag syntax (e.g. `{% ref type="issue"` before the closing `/%}` arrives) is automatically suppressed to avoid flashing raw source text.
+With `variant="streaming"`, partial tag syntax (e.g. `{% ref type="issue"` before the closing `/%}` arrives) is automatically suppressed to avoid flashing raw source text. Static content renders unclosed tag syntax as written.
 
 ## Security
 
@@ -242,26 +242,26 @@ The component applies the same security model as the existing `MarkedText`:
 
 Every override receives a `Default` prop in addition to the props listed below (except `Image`, which has no built-in default).
 
-| Key              | Default                        | Props                            |
-| ---------------- | ------------------------------ | -------------------------------- |
-| `Paragraph`      | `<Text as="p">`                | `children`                       |
-| `Heading`        | `<Heading as="h1-h6">`         | `children`, `level` (1-6)        |
-| `CodeBlock`      | `<CodeBlock>`                  | `children` (string), `lang`      |
-| `InlineCode`     | `<InlineCode>`                 | `children` (string)              |
-| `Link`           | `<Link>` / `<ExternalLink>`    | `children`, `href`, `title`      |
-| `Blockquote`     | `<Quote>`                      | `children`                       |
-| `Strong`         | `<strong>`                     | `children`                       |
-| `Emphasis`       | `<em>`                         | `children`                       |
-| `Strikethrough`  | `<Text strikethrough>`         | `children`                       |
-| `Image`          | stripped                       | `src`, `alt`, `title`            |
-| `Text`           | passthrough                    | `children` (string)              |
-| `OrderedList`    | `<Stack as="ol">`              | `children`                       |
-| `UnorderedList`  | `<Stack as="ul">`              | `children`                       |
-| `ListItem`       | `<Text size="md">` as `<li>`   | `children`                       |
-| `TaskList`       | `<Stack as="ul">` (no bullets) | `children`                       |
-| `TaskListItem`   | `<Container as="li">`          | `children`, `checked` (bool)     |
-| `Table`          | styled `<table>`               | `children`                       |
-| `Tag`            | `null` (silent)                | `name`, `level`, `attrs`, `data` |
-| `HorizontalRule` | `<Separator>`                  | -                                |
-| `LineBreak`      | `<br>`                         | -                                |
-| `Html`           | DOMPurify sanitized            | `html` (string)                  |
+| Key              | Default                        | Props                                   |
+| ---------------- | ------------------------------ | --------------------------------------- |
+| `Paragraph`      | `<Text as="p">`                | `children`                              |
+| `Heading`        | `<Heading as="h1-h6">`         | `children`, `level` (1-6)               |
+| `CodeBlock`      | `<CodeBlock>`                  | `children` (string), `lang`             |
+| `InlineCode`     | `<InlineCode>`                 | `children` (string)                     |
+| `Link`           | `<Link>` / `<ExternalLink>`    | `children`, `href`, `title`             |
+| `Blockquote`     | `<Quote>`                      | `children`                              |
+| `Strong`         | `<strong>`                     | `children`                              |
+| `Emphasis`       | `<em>`                         | `children`                              |
+| `Strikethrough`  | `<Text strikethrough>`         | `children`                              |
+| `Image`          | stripped                       | `src`, `alt`, `title`                   |
+| `Text`           | passthrough                    | `children` (string)                     |
+| `OrderedList`    | `<Stack as="ol">`              | `children`                              |
+| `UnorderedList`  | `<Stack as="ul">`              | `children`                              |
+| `ListItem`       | `<Text size="md">` as `<li>`   | `children`                              |
+| `TaskList`       | `<Stack as="ul">` (no bullets) | `children`                              |
+| `TaskListItem`   | `<Container as="li">`          | `children`, `checked` (bool)            |
+| `Table`          | styled `<table>`               | `children`, `columns`, `header`, `rows` |
+| `Tag`            | `null` (silent)                | `name`, `level`, `attrs`, `data`        |
+| `HorizontalRule` | `<Separator>`                  | -                                       |
+| `LineBreak`      | `<br>`                         | -                                       |
+| `Html`           | DOMPurify sanitized            | `html` (string)                         |
