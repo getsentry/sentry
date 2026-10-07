@@ -123,7 +123,7 @@ jobs:
       - name: oxlint (impacted files)
         id: oxlint-impacted
         if: steps.strategy.outputs.scope == 'scoped'
-        run: pnpm run lint:js:changed --since "$MERGE_BASE..HEAD^2" -- pnpm run lint:js --no-error-on-unmatched-pattern
+        run: pnpm run lint:js:changed --since "$MERGE_BASE..HEAD^2" -- node scripts/custom-oxlint.ts --no-error-on-unmatched-pattern
         env:
           MERGE_BASE: ${{ steps.strategy.outputs.merge_base }}
           DEBUG: 'run-on-changed:*'

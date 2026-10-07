@@ -1,7 +1,6 @@
 import {defineRule} from '@oxlint/plugins';
 
 import {shouldAnalyze} from '../ast/extractor/index.ts';
-import {createImportTracker} from '../ast/tracker/imports.ts';
 import {getStyledCallInfo} from '../ast/utils/styled.ts';
 
 export const noDoubleDollarInterpolation = defineRule({
@@ -22,12 +21,10 @@ export const noDoubleDollarInterpolation = defineRule({
     if (!shouldAnalyze(context)) {
       return {};
     }
-    const importTracker = createImportTracker(context);
 
     return {
-      ...importTracker.visitors,
       TaggedTemplateExpression(node) {
-        if (!getStyledCallInfo(node, importTracker)) {
+        if (!getStyledCallInfo(node)) {
           return;
         }
 

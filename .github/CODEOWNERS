@@ -198,10 +198,10 @@ tsconfig.*                                               @getsentry/owners-js-bu
 package.json                                             @getsentry/owners-js-deps
 pnpm-lock.yaml                                           @getsentry/owners-js-deps
 
-## Design
-/static/fonts/                                           @getsentry/design
-/static/images/                                          @getsentry/design
-/src/sentry/static/                                      @getsentry/design
+## Product Design
+/static/fonts/                                           @getsentry/product-design
+/static/images/                                          @getsentry/product-design
+/src/sentry/static/                                      @getsentry/product-design
 
 # Owners by product feature
 #

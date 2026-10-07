@@ -7,6 +7,7 @@ import {
   render,
   screen,
   userEvent,
+  waitFor,
   waitForDrawerToHide,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -51,6 +52,71 @@ describe('useDroppedDataDrawer', () => {
     PageFiltersStore.reset();
   });
 
+  it('adds the drawer to the URL when opened and removes it when closed', async () => {
+    mockDroppedData(10, '14d');
+
+    const {router} = render(<DroppedDataTrigger />, {
+      organization,
+      initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
+    expect(router.location.query.droppedData).toBe('true');
+
+    await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
+    await waitForDrawerToHide('Dropped Data');
+    await waitFor(() => expect(router.location.query.droppedData).toBeUndefined());
+  });
+
+  it('opens when the URL already has the drawer param', async () => {
+    mockDroppedData(10, '14d');
+
+    render(<DroppedDataTrigger />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/explore/traces/', query: {droppedData: 'true'}},
+      },
+    });
+
+    expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
+  });
+
+  it('opens a single drawer when several charts use the hook', async () => {
+    mockDroppedData(10, '14d');
+
+    render(
+      <div>
+        <DroppedDataTrigger />
+        <DroppedDataTrigger />
+      </div>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/explore/traces/', query: {droppedData: 'true'}},
+        },
+      }
+    );
+
+    expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
+    expect(screen.getAllByRole('complementary', {name: 'Dropped Data'})).toHaveLength(1);
+  });
+
+  it('closes when navigating back', async () => {
+    mockDroppedData(10, '14d');
+
+    const {router} = render(<DroppedDataTrigger />, {
+      organization,
+      initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
+
+    router.navigate(-1);
+    await waitForDrawerToHide('Dropped Data');
+  });
+
   it('stays open and refreshes when zooming changes the time range', async () => {
     mockDroppedData(10, '14d');
     mockDroppedData(3, '1h');
@@ -64,7 +130,7 @@ describe('useDroppedDataDrawer', () => {
     expect(await screen.findByText('10 Dropped Events')).toBeInTheDocument();
 
     act(() => {
-      router.navigate('/explore/traces/?statsPeriod=1h');
+      router.navigate('/explore/traces/?droppedData=true&statsPeriod=1h');
       PageFiltersStore.updateDateTime({period: '1h', start: null, end: null, utc: false});
     });
 
