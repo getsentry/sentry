@@ -1,26 +1,80 @@
 import {Fragment} from 'react';
 import {PlatformIcon} from 'platformicons';
 
+import type {ContainerProps} from '@sentry/scraps/layout';
 import {Container, Stack} from '@sentry/scraps/layout';
 
 import {IconAllProjects, IconMyProjects} from 'sentry/icons';
+
+type ProjectsBadgeSize = 'md' | 'lg';
+
+/**
+ * Geometry per size, read off the spec frames rather than scaled from the
+ * edge: the two sizes do not share one ratio, and at `md` the contents fill
+ * the frame while at `lg` they sit inside it.
+ *
+ * `tile` is the single platform icon, centred in the frame. `stacked` is each
+ * of the two overlapping icons, which start at opposite corners — so their
+ * offset is whatever the frame has left over.
+ */
+const SIZES = {
+  md: {frame: 16, tile: 16, stacked: 10.5, radius: '2xs'},
+  lg: {frame: 24, tile: 20, stacked: 16, radius: 'sm'},
+} as const satisfies Record<
+  ProjectsBadgeSize,
+  {frame: number; radius: ContainerProps['radius']; stacked: number; tile: number}
+>;
 
 export interface ProjectsBadgeProps {
   /**
    * Platform slugs for the project(s) to display.
    * - 0 entries: renders an all-projects or my-projects icon
    * - 1 entry: renders a single bordered platform icon
-   * - 2+ entries: renders two stacked platform icons (top-right + bottom-right)
+   * - 2+ entries: renders two stacked platform icons (top-left + bottom-right)
    */
   projectPlatforms: string[];
   /** When projectPlatforms is empty, use all-projects icon instead of my-projects */
   allProjects?: boolean;
   /**
-   * Edge of the square the badge occupies. `16` suits a crumb or a nav row; `24`
-   * a page header, where it sits against 16px type and the avatars beside it.
-   * @default 16
+   * `md` (16px) suits a crumb or a nav row; `lg` (24px) a page header, where it
+   * sits against 16px type and the avatars beside it.
+   * @default 'md'
    */
-  size?: 16 | 24;
+  size?: ProjectsBadgeSize;
+}
+
+/**
+ * One platform's icon, in the rounded tile the spec draws it in.
+ *
+ * The image is drawn at the tile's full size and positioned a pixel outside
+ * the content box, so the border sits over its edge rather than around it.
+ */
+function PlatformTile({
+  platform,
+  radius,
+  size,
+  ...position
+}: {
+  platform: string;
+  radius: ContainerProps['radius'];
+  size: number;
+} & Pick<ContainerProps, 'top' | 'left' | 'bottom' | 'right'>) {
+  return (
+    <Container
+      position="absolute"
+      width={`${size}px`}
+      height={`${size}px`}
+      overflow="hidden"
+      radius={radius}
+      border="muted"
+      background="primary"
+      {...position}
+    >
+      <Container position="absolute" top="-1px" left="-1px">
+        <PlatformIcon platform={platform} size={size} aria-hidden />
+      </Container>
+    </Container>
+  );
 }
 
 /**
@@ -35,82 +89,48 @@ export interface ProjectsBadgeProps {
 export function ProjectsBadge({
   projectPlatforms,
   allProjects,
-  size = 16,
+  size = 'md',
 }: ProjectsBadgeProps) {
-  const stackedIconSize = Math.round(size * 0.75);
-  const stackedOffset = size - stackedIconSize;
+  const {frame, tile, stacked, radius} = SIZES[size];
+  const stackedOffset = frame - stacked;
 
   let icons: React.ReactNode;
 
   switch (projectPlatforms.length) {
-    case 0:
-      icons = allProjects ? (
-        <IconAllProjects size={size === 24 ? 'lg' : 'md'} aria-hidden="true" />
-      ) : (
-        <IconMyProjects size={size === 24 ? 'lg' : 'md'} aria-hidden="true" />
-      );
+    case 0: {
+      const Icon = allProjects ? IconAllProjects : IconMyProjects;
+      icons =
+        size === 'md' ? (
+          <Icon size="md" aria-hidden="true" />
+        ) : (
+          <Icon legacySize={`${tile}px`} aria-hidden="true" />
+        );
       break;
+    }
 
     case 1:
       icons = (
-        <Container
-          position="absolute"
-          top="0px"
-          left="0px"
-          width={`${size}px`}
-          height={`${size}px`}
-          overflow="hidden"
-          radius={size === 24 ? 'xs' : '2xs'}
-          border="muted"
-        >
-          {p => (
-            <PlatformIcon
-              {...p}
-              platform={projectPlatforms[0] ?? ''}
-              size={size - 2}
-              aria-hidden
-            />
-          )}
-        </Container>
+        <PlatformTile platform={projectPlatforms[0] ?? ''} size={tile} radius={radius} />
       );
       break;
 
     default:
-      // Two overlapping icons: first at top-right, second at bottom-right.
       icons = (
         <Fragment>
-          <Container
-            position="absolute"
+          <PlatformTile
+            platform={projectPlatforms[0] ?? ''}
+            size={stacked}
+            radius={radius}
             top="0"
-            right={`${stackedOffset}px`}
-            width={`${stackedIconSize}px`}
-            height={`${stackedIconSize}px`}
-          >
-            {p => (
-              <PlatformIcon
-                {...p}
-                platform={projectPlatforms[0] ?? ''}
-                size={stackedIconSize}
-                aria-hidden
-              />
-            )}
-          </Container>
-          <Container
-            position="absolute"
-            bottom="0"
-            right="0"
-            width={`${stackedIconSize}px`}
-            height={`${stackedIconSize}px`}
-          >
-            {p => (
-              <PlatformIcon
-                {...p}
-                platform={projectPlatforms[1] ?? ''}
-                size={stackedIconSize}
-                aria-hidden
-              />
-            )}
-          </Container>
+            left="0"
+          />
+          <PlatformTile
+            platform={projectPlatforms[1] ?? ''}
+            size={stacked}
+            radius={radius}
+            top={`${stackedOffset}px`}
+            left={`${stackedOffset}px`}
+          />
         </Fragment>
       );
   }
@@ -120,8 +140,8 @@ export function ProjectsBadge({
       flexShrink={0}
       justify="center"
       align="center"
-      width={`${size}px`}
-      height={`${size}px`}
+      width={`${frame}px`}
+      height={`${frame}px`}
       position="relative"
       aria-hidden="true"
     >

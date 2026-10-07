@@ -91,11 +91,11 @@ function LeadingGraphic({graphic}: {graphic: EntityHeaderLeadingGraphic}) {
     case 'project': {
       const platforms = graphic.projects.map(project => project.platform).filter(defined);
       return platforms.length === 0 ? null : (
-        <ProjectsBadge projectPlatforms={platforms} size={24} />
+        <ProjectsBadge projectPlatforms={platforms} size="lg" />
       );
     }
     case 'platform':
-      return <ProjectsBadge projectPlatforms={[graphic.platform]} size={24} />;
+      return <ProjectsBadge projectPlatforms={[graphic.platform]} size="lg" />;
     default:
       unreachable(graphic);
       return null;
