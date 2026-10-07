@@ -8,7 +8,6 @@ from sentry import eventstore
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
-from sentry.models.rule import Rule
 from sentry.notifications.platform.msteams.provider import MSTeamsRenderable
 from sentry.notifications.platform.registry import renderer_registry
 from sentry.notifications.platform.renderer import NotificationRenderer
@@ -20,6 +19,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedTemplate,
     NotificationSource,
 )
+from sentry.notifications.types import NotificationOrigin
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.types.actor import Actor
 
@@ -65,7 +65,7 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
             except Exception:
                 raise NotificationRenderError(f"Failed to retrieve event {data.event_id}")
 
-        rules = [data.rule.to_rule()] if data.rule else []
+        rules = [data.rule.to_notification_origin()] if data.rule else []
         issue_url = cls.build_issue_url(group=group, notification_uuid=data.notification_uuid)
 
         fields: list[Block | None] = [
@@ -125,7 +125,7 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
         *,
         group: Group,
         event: Event | GroupEvent | None,
-        rules: Sequence[Rule],
+        rules: Sequence[NotificationOrigin],
     ) -> ColumnSetBlock:
         from sentry.integrations.messaging.message_builder import build_footer
         from sentry.integrations.msteams.card_builder import MSTEAMS_URL_FORMAT
@@ -186,8 +186,15 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
 
     @classmethod
     def build_action_payload(
-        cls, *, action_type: ACTION_TYPE, data: IssueNotificationData, rules: Sequence[Rule]
+        cls,
+        *,
+        action_type: ACTION_TYPE,
+        data: IssueNotificationData,
+        rules: Sequence[NotificationOrigin],
     ) -> dict[str, Any]:
+        # Keep this lazy to avoid initializing the msteams package during notifications app startup.
+        from sentry.integrations.msteams.card_builder.issues import get_workflow_ids
+
         # Teams posts this back to the webhook when the action is used, and only handles it
         # correctly when the contents are nested under a `payload` key.
         return {
@@ -195,7 +202,8 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
                 "actionType": action_type,
                 "groupId": data.group_id,
                 "eventId": data.event_id,
-                "rules": [rule.id for rule in rules],
+                "rules": [data.rule.id],
+                "workflows": get_workflow_ids(rules),
             }
         }
 
@@ -209,7 +217,7 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
         reverse_action: ACTION_TYPE,
         reverse_action_title: str,
         data: IssueNotificationData,
-        rules: Sequence[Rule],
+        rules: Sequence[NotificationOrigin],
         **card_kwargs: Any,
     ) -> Action:
         """
@@ -249,7 +257,11 @@ class IssueMSTeamsRenderer(NotificationRenderer[MSTeamsRenderable]):
 
     @classmethod
     def build_actions(
-        cls, *, group: Group, data: IssueNotificationData, rules: Sequence[Rule]
+        cls,
+        *,
+        group: Group,
+        data: IssueNotificationData,
+        rules: Sequence[NotificationOrigin],
     ) -> ContainerBlock:
         from sentry.integrations.msteams.card_builder import ME
         from sentry.integrations.msteams.card_builder.block import (

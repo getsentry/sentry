@@ -82,9 +82,10 @@ export interface TraceItemDetailsResponse {
 // decodes the JSON for us. Since links are so structurally similar to spans, the types are similar as well.
 export type TraceItemResponseLink = {
   itemId: string;
-  sampled: boolean;
   traceId: string;
   attributes?: TraceItemResponseAttribute[];
+  /** Absent when the SDK did not record the sampling decision. */
+  sampled?: boolean;
 };
 
 type TraceItemDetailsUrlParams = {
@@ -162,7 +163,7 @@ export function useTraceItemDetails(props: UseTraceItemDetailsProps) {
   return result;
 }
 
-function traceItemDetailsApiOptions({
+export function traceItemDetailsApiOptions({
   organizationSlug,
   projectSlug,
   traceItemId,
@@ -270,7 +271,6 @@ export function usePrefetchTraceItemDetailsOnHover({
   referrer,
   timestamp,
   routingHint,
-  hoverPrefetchDisabled,
   sharedHoverTimeoutRef,
   timeout,
 }: UseTraceItemDetailsProps & {
@@ -283,10 +283,6 @@ export function usePrefetchTraceItemDetailsOnHover({
    * Custom timeout for the prefetched item.
    */
   timeout: number;
-  /**
-   * Whether the hover prefetch should be disabled.
-   */
-  hoverPrefetchDisabled?: boolean;
 }) {
   const {fetchDetails, prefetch, project, traceItemMeta, traceItemAttributes, isPending} =
     useTraceItemDetailsPrefetch({
@@ -317,7 +313,6 @@ export function usePrefetchTraceItemDetailsOnHover({
       ownHoverTimeoutRef.current = timeoutId;
     },
     onHoverEnd: clearSharedHoverTimeout,
-    isDisabled: hoverPrefetchDisabled,
   });
 
   useEffect(

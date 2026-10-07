@@ -884,3 +884,22 @@ class TestActivitiesCreateActions(TestCase):
         caption = cast(CapturedAction, log.assert_logged(SetResolvedByAgeAction))
         action: SetResolvedByAgeAction = cast(SetResolvedByAgeAction, caption.action)
         assert action.auto_resolve_age_threshold == 123
+
+    def test_smart_assignment_completed_creates_log_entry(self) -> None:
+        data = {
+            "run_id": 123,
+            "run_uuid": "00000000-0000-0000-0000-000000000001",
+            "predicted_assignee_user_ids": [456, None],
+        }
+
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
+            Activity.objects.create(
+                group=self.group,
+                project=self.project,
+                type=ActivityType.SMART_ASSIGNMENT_COMPLETED.value,
+                data=data,
+            )
+
+        entry = GroupActionLogEntry.objects.get(group_id=self.group.id)
+        assert entry.type == GroupActionType.SMART_ASSIGNMENT_COMPLETED
+        assert entry.data == data

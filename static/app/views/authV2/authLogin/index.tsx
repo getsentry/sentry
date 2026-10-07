@@ -3,20 +3,16 @@ import {useTheme} from '@emotion/react';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {BrandPageLayout} from 'sentry/components/brandPageLayout';
-import {IconLab} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import {AuthV2CookieState, useEnableAuthV2} from 'sentry/utils/useEnableAuthV2';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -38,13 +34,7 @@ export default function AuthLogin() {
   const location = useLocation();
   const requestedNextUri =
     typeof location.query.next === 'string' ? location.query.next : undefined;
-  const {setAuthV2CookieState} = useEnableAuthV2();
   const hasStartedAnalyticsSession = useRef(false);
-
-  const returnToLegacyLogin = () => {
-    setAuthV2CookieState(AuthV2CookieState.DISABLED);
-    testableWindowLocation.reload();
-  };
 
   const {
     data: authConfig,
@@ -217,132 +207,104 @@ export default function AuthLogin() {
 
   return (
     <Fragment>
-      <BrandPageLayout.HeaderEnd>
-        <Stack align="end" gap="sm" maxWidth="300px">
-          <Tag variant="warning" icon={<IconLab isSolid />}>
-            {t('New Experience')}
-          </Tag>
-          <Text as="div" align="right" size="sm" variant="muted">
-            {tct('Having problems logging in? [legacyLogin]', {
-              legacyLogin: (
+      <Stack width="100%" maxWidth="360px" gap="2xl">
+        <Heading as="h1" size="3xl" align="center">
+          {t('Sign in to Sentry')}
+        </Heading>
+
+        <AnimatePresence initial={false} mode="wait">
+          <MotionStack
+            key={mainState}
+            width="100%"
+            gap="lg"
+            initial={{opacity: 0, y: -10}}
+            animate={{opacity: 1, y: 0}}
+            exit={{opacity: 0, y: 10}}
+            transition={theme.motion.framer.smooth.moderate}
+          >
+            {hasInitialAuthConfigError ? (
+              <Stack gap="md">
+                <Alert variant="danger">
+                  {t('Unable to load the login page. Try again.')}
+                </Alert>
                 <Button
-                  analyticsEventKey="auth.login.legacy_fallback_clicked"
-                  analyticsEventName="Auth: Legacy Login Fallback Clicked"
-                  analyticsParams={{state: mainState}}
-                  size="zero"
-                  variant="link"
-                  onClick={returnToLegacyLogin}
+                  analyticsEventKey="auth.login.retry_clicked"
+                  analyticsEventName="Auth: Login Retry Clicked"
+                  analyticsParams={{stage: 'auth_config'}}
+                  busy={isAuthConfigFetching}
+                  onClick={() => refetchAuthConfig()}
                 >
-                  {t('Return to the old login experience')}
+                  {t('Retry')}
                 </Button>
-              ),
-            })}
-          </Text>
-        </Stack>
-      </BrandPageLayout.HeaderEnd>
-
-      <Fragment>
-        <Stack width="100%" maxWidth="360px" gap="2xl">
-          <Heading as="h1" size="3xl" align="center">
-            {t('Sign in to Sentry')}
-          </Heading>
-
-          <AnimatePresence initial={false} mode="wait">
-            <MotionStack
-              key={mainState}
-              width="100%"
-              gap="lg"
-              initial={{opacity: 0, y: -10}}
-              animate={{opacity: 1, y: 0}}
-              exit={{opacity: 0, y: 10}}
-              transition={theme.motion.framer.smooth.moderate}
-            >
-              {hasInitialAuthConfigError ? (
-                <Stack gap="md">
-                  <Alert variant="danger">
-                    {t('Unable to load the login page. Try again.')}
-                  </Alert>
-                  <Button
-                    analyticsEventKey="auth.login.retry_clicked"
-                    analyticsEventName="Auth: Login Retry Clicked"
-                    analyticsParams={{stage: 'auth_config'}}
-                    busy={isAuthConfigFetching}
-                    onClick={() => refetchAuthConfig()}
-                  >
-                    {t('Retry')}
-                  </Button>
-                </Stack>
-              ) : hasAuthOrganizationError ? (
-                <Stack gap="md">
-                  <Alert variant="danger">
-                    {t('Unable to load organization authentication. Please try again.')}
-                  </Alert>
-                  <Button
-                    analyticsEventKey="auth.login.retry_clicked"
-                    analyticsEventName="Auth: Login Retry Clicked"
-                    analyticsParams={{stage: 'organization_config'}}
-                    busy={isAuthOrganizationFetching}
-                    onClick={() => refetchAuthOrganization()}
-                  >
-                    {t('Retry')}
-                  </Button>
-                </Stack>
-              ) : pendingMfaMethods ? (
+              </Stack>
+            ) : hasAuthOrganizationError ? (
+              <Stack gap="md">
+                <Alert variant="danger">
+                  {t('Unable to load organization authentication. Please try again.')}
+                </Alert>
+                <Button
+                  analyticsEventKey="auth.login.retry_clicked"
+                  analyticsEventName="Auth: Login Retry Clicked"
+                  analyticsParams={{stage: 'organization_config'}}
+                  busy={isAuthOrganizationFetching}
+                  onClick={() => refetchAuthOrganization()}
+                >
+                  {t('Retry')}
+                </Button>
+              </Stack>
+            ) : pendingMfaMethods ? (
+              <AccountAuthentication
+                authConfig={loginConfig}
+                mfaMethods={pendingMfaMethods}
+                onCancelMfa={() => {
+                  demoLogin.reset();
+                  setMfaMethods(undefined);
+                }}
+                onAuthenticated={completeAuthentication}
+                onMfaRequired={handleMfaRequired}
+              />
+            ) : organizationSsoOnly ? (
+              <RequiredOrganizationSso
+                authOrganization={organizationSsoOnly}
+                onClear={isSingleOrganization ? undefined : handleClearOrganization}
+              />
+            ) : (
+              <Fragment>
                 <AccountAuthentication
-                  authConfig={loginConfig}
-                  mfaMethods={pendingMfaMethods}
-                  onCancelMfa={() => {
-                    demoLogin.reset();
-                    setMfaMethods(undefined);
-                  }}
+                  authConfig={accountAuthConfig}
+                  organizationSlug={orgSlug}
+                  showEmailAuth={showEmailAuth}
                   onAuthenticated={completeAuthentication}
+                  onCancelMfa={() => setMfaMethods(undefined)}
                   onMfaRequired={handleMfaRequired}
-                />
-              ) : organizationSsoOnly ? (
-                <RequiredOrganizationSso
-                  authOrganization={organizationSsoOnly}
-                  onClear={isSingleOrganization ? undefined : handleClearOrganization}
-                />
-              ) : (
-                <Fragment>
-                  <AccountAuthentication
-                    authConfig={accountAuthConfig}
-                    organizationSlug={orgSlug}
-                    showEmailAuth={showEmailAuth}
-                    onAuthenticated={completeAuthentication}
-                    onCancelMfa={() => setMfaMethods(undefined)}
-                    onMfaRequired={handleMfaRequired}
-                  >
-                    <AccountAuthentication.Context>
-                      {organizationAuthenticationContext}
-                    </AccountAuthentication.Context>
-                  </AccountAuthentication>
-                  {loginConfig?.canRegister && (
-                    <Text as="div" align="center" size="sm">
-                      {tct('New to Sentry? [register:Create an account]', {
-                        register: <Link to="/auth/register/" />,
-                      })}
-                    </Text>
-                  )}
-                </Fragment>
-              )}
-            </MotionStack>
-          </AnimatePresence>
-        </Stack>
+                >
+                  <AccountAuthentication.Context>
+                    {organizationAuthenticationContext}
+                  </AccountAuthentication.Context>
+                </AccountAuthentication>
+                {loginConfig?.canRegister && (
+                  <Text as="div" align="center" size="sm">
+                    {tct('New to Sentry? [register:Create an account]', {
+                      register: <Link to="/auth/register/" />,
+                    })}
+                  </Text>
+                )}
+              </Fragment>
+            )}
+          </MotionStack>
+        </AnimatePresence>
+      </Stack>
 
-        {(loginConfig?.warning || loginConfig?.loginBannerMarkdown) && (
-          <Stack width="100%" gap="md">
-            {loginConfig.warning && (
-              <Alert variant="warning">{loginConfig.warning}</Alert>
-            )}
-            {loginConfig.loginBannerMarkdown && (
-              <Alert variant="muted">
-                <MarkedText text={loginConfig.loginBannerMarkdown} inline />
-              </Alert>
-            )}
-          </Stack>
-        )}
-      </Fragment>
+      {(loginConfig?.warning || loginConfig?.loginBannerMarkdown) && (
+        <Stack width="100%" gap="md">
+          {loginConfig.warning && <Alert variant="warning">{loginConfig.warning}</Alert>}
+          {loginConfig.loginBannerMarkdown && (
+            <Alert variant="muted">
+              <MarkedText text={loginConfig.loginBannerMarkdown} inline />
+            </Alert>
+          )}
+        </Stack>
+      )}
     </Fragment>
   );
 }

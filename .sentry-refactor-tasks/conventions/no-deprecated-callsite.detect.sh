@@ -3,18 +3,16 @@
 # Detector for the `no-deprecated-callsite` convention.
 #
 # Flags every callsite that references an `@deprecated` symbol, using the
-# type-aware `@typescript-eslint/no-deprecated` rule. Because the rule resolves
-# each symbol through the TypeScript checker, its message includes the symbol's
-# own `@deprecated` JSDoc text (the migration instruction) — which the scanner
-# surfaces as the finding's explanation.
+# type-aware oxlint rule `typescript/no-deprecated` (backed by oxlint-tsgolint).
+# Because the rule resolves each symbol through the TypeScript checker, its
+# message includes the symbol's own `@deprecated` JSDoc text (the migration
+# instruction) — which the scanner surfaces as the finding's explanation.
 #
-# Unlike no-derived-state, this reuses the plugin already installed in the repo
-# (@typescript-eslint, which ships the no-deprecated rule), so it does NOT add
-# any package and does NOT touch package.json / the lockfile. It only writes a
-# temporary flat eslint config and removes it on exit.
+# It does NOT add any package and does NOT touch package.json / the lockfile.
+# It only writes a temporary oxlint config and removes it on exit.
 #
 # Usage: no-deprecated-callsite.detect.sh <repo-path>
-#   <repo-path>  checkout of the target repo (cwd for pnpm/eslint)
+#   <repo-path>  checkout of the target repo (cwd for pnpm/oxlint)
 #
 # All install/diagnostic output goes to stderr; only the runner's JSON reaches
 # stdout, which the scanner parses.
@@ -22,8 +20,8 @@ set -euo pipefail
 
 repo_path="$1"
 script_dir="$(cd "$(dirname "$0")" && pwd)"
-rule="@typescript-eslint/no-deprecated"
-config_path="$repo_path/.no-deprecated-callsite.eslint.config.mjs"
+rule="typescript/no-deprecated"
+config_path="$repo_path/.no-deprecated-callsite.oxlintrc.json"
 
 cd "$repo_path"
 
@@ -47,41 +45,24 @@ report() {
   fi
 }
 
-# Bring up the repo's toolchain. No `pnpm add` — the no-deprecated rule ships
-# with the repo's own @typescript-eslint, so the working tree stays clean.
+# Bring up the repo's toolchain. No `pnpm add` — oxlint and oxlint-tsgolint are
+# already repo dependencies, so the working tree stays clean.
 if ! pnpm install --frozen-lockfile 1>&2; then
   report "pnpm install --frozen-lockfile failed; cannot lint without the repo toolchain"
   exit 1
 fi
 
-# Standalone flat config loading only this rule. It lives inside the repo so its
-# imports resolve from the repo's node_modules, and `projectService` discovers
-# the root tsconfig.json (tsconfigRootDir = this config's dir = repo root). The
-# rule is type-aware, so type information is required — hence projectService.
+# Standalone config loading only this rule, so none of the repo's other
+# type-aware rules add to the run time. It lives in the repo root because oxlint
+# treats files outside a config's directory as ignored.
 cat > "$config_path" <<'EOF'
-import parser from '@typescript-eslint/parser';
-import plugin from '@typescript-eslint/eslint-plugin';
-export default [
-  {
-    files: ['**/*.{ts,tsx}'],
-    languageOptions: {
-      parser,
-      parserOptions: {
-        projectService: true,
-        tsconfigRootDir: import.meta.dirname,
-        ecmaFeatures: { jsx: true },
-        sourceType: 'module',
-      },
-    },
-    plugins: { '@typescript-eslint': plugin },
-    rules: { '@typescript-eslint/no-deprecated': 'error' },
-  },
-];
+{
+  "plugins": ["typescript"],
+  "categories": {"correctness": "off"},
+  "options": {"typeAware": true},
+  "rules": {"typescript/no-deprecated": "error"}
+}
 EOF
-
-# Type-aware linting across all of static/ builds a large type graph — give the
-# eslint process extra heap so it does not OOM on a repo this size.
-export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=8192"
 
 # Emit only callsites whose deprecation note carries a migration instruction —
 # i.e. `@deprecated` text beyond the bare "`<name>` is deprecated." A bare
@@ -92,9 +73,9 @@ export NODE_OPTIONS="${NODE_OPTIONS:-} --max-old-space-size=8192"
 # Run the detector on its own rather than piping it straight into the filter.
 # As a pipeline, a detector that died before writing anything reached the filter
 # as empty input, and the filter's `JSON.parse(data || "[]")` turned that into a
-# valid empty result — so "eslint never ran" and "the codebase is clean" were
-# indistinguishable downstream. Capture the output, then decide.
-if ! raw="$(pnpm exec node "$script_dir/eslint-json-runner.ts" \
+# valid empty result — so "the linter never ran" and "the codebase is clean"
+# were indistinguishable downstream. Capture the output, then decide.
+if ! raw="$(pnpm exec node "$script_dir/oxlint-json-runner.ts" \
   "$repo_path" "$rule" "$config_path" static 2>"$detector_log")"; then
   report "detector failed:
 $(cat "$detector_log")"

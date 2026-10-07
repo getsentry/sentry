@@ -151,7 +151,7 @@ export default function WebhookDetailedView() {
 
   return (
     <IntegrationLayout.Body
-      integrationName={t('Webhooks (Legacy)')}
+      title={t('Webhooks (Legacy)')}
       alert={
         <Alert.Container>
           <Alert variant="warning">

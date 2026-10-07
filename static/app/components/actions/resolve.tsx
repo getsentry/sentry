@@ -61,9 +61,9 @@ interface ResolveDropdownMenuProps {
   latestRelease?: Project['latestRelease'];
   latestSemverRelease?: {version: string};
   multipleProjectsSelected?: boolean;
-  priority?: 'primary';
   project?: Project;
   shouldConfirm?: boolean;
+  variant?: 'primary' | 'secondary';
 }
 
 function ResolveDropdownMenu({
@@ -75,7 +75,7 @@ function ResolveDropdownMenu({
   shouldConfirm,
   disabled,
   disableDropdown,
-  priority,
+  variant,
   project,
   multipleProjectsSelected,
   hasSemverReleaseFeature,
@@ -268,7 +268,7 @@ function ResolveDropdownMenu({
         <Button
           {...triggerProps}
           size={size}
-          variant={priority}
+          variant={variant}
           aria-label={t('More resolve options')}
           icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
           disabled={isDisabled}
@@ -306,10 +306,10 @@ interface ResolveActionsProps {
   disabled?: boolean;
   latestRelease?: Project['latestRelease'];
   multipleProjectsSelected?: boolean;
-  priority?: 'primary';
   projectFetchError?: boolean;
   shouldConfirm?: boolean;
   size?: 'xs' | 'sm';
+  variant?: 'primary' | 'secondary';
 }
 
 export function ResolveActions({
@@ -323,7 +323,7 @@ export function ResolveActions({
   disabled,
   disableDropdown,
   disableResolveInRelease,
-  priority,
+  variant = 'secondary',
   projectFetchError,
   multipleProjectsSelected,
   hasSemverReleaseFeature,
@@ -343,7 +343,7 @@ export function ResolveActions({
     <Tooltip disabled={!projectFetchError} title={t('Error fetching project')}>
       <ButtonBar>
         <Button
-          variant={priority}
+          variant={variant}
           size={size}
           tooltipProps={{
             delay: 1000,
@@ -378,7 +378,7 @@ export function ResolveActions({
             shouldConfirm={shouldConfirm}
             disabled={disabled}
             disableDropdown={disableDropdown}
-            priority={priority}
+            variant={variant}
             multipleProjectsSelected={multipleProjectsSelected}
             hasSemverReleaseFeature={hasSemverReleaseFeature}
             latestSemverRelease={latestSemverRelease}

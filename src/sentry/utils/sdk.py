@@ -35,7 +35,9 @@ from sentry import options
 from sentry.conf.types.sdk_config import SdkConfig
 from sentry.options.rollout import in_random_rollout
 from sentry.utils import json, warnings
+from sentry.utils.attributes import get_attribute_value
 from sentry.utils.db import DjangoAtomicIntegration
+from sentry.utils.env import in_test_environment
 from sentry.utils.rust import RustInfoIntegration
 from sentry.utils.tracing import get_current_span, start_span
 from sentry.viewer_context import set_viewer_context_organization
@@ -92,11 +94,11 @@ SAMPLED_TASKS = {
     "sentry.monitors.tasks.clock_pulse": 1.0,
     # The scheduler's decision propagates to every per-org run, and each run
     # fans out into many snuba queries. Keep both rates equal.
-    "sentry.dynamic_sampling.per_org.run_calculations_per_org": 0.1,
-    "sentry.dynamic_sampling.per_org.schedule_per_org_calculations": 0.1,
+    "sentry.dynamic_sampling.per_org.run_calculations_per_org": 0.001,
+    "sentry.dynamic_sampling.per_org.schedule_per_org_calculations": 0.001,
     "sentry.tasks.autofix.configure_seer_for_existing_org": 1.0,
     "sentry.tasks.seer.context_engine_index.schedule_context_engine_indexing_tasks": 1.0,
-    "sentry.workflow_engine.tasks.process_workflows_event": 0.00006,
+    "sentry.workflow_engine.tasks.process_workflows_event": 0.00003,
 }
 
 SAMPLED_ROUTES = {
@@ -294,7 +296,10 @@ def before_send_log(log: Log, _: Hint) -> Log | None:
     if attributes is not None:
         # This is a coming from arroyo and creating high cardinality of attribute names like
         # `Partition(topic=Topic(name='...'), index=...)`
-        if attributes.get("sentry.message.template") == "New partitions assigned: %r":
+        if (
+            get_attribute_value(attributes, "sentry.message.template", "string")
+            == "New partitions assigned: %r"
+        ):
             return None
 
     try:
@@ -333,14 +338,14 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     )
 
     # Remove legacy keys to avoid cross-deploy problems.
-    sdk_options.pop("dsn", None)
-    sdk_options.pop("relay_dsn", None)
+    sdk_options.pop("dsn", None)  # type: ignore[typeddict-item]
+    sdk_options.pop("relay_dsn", None)  # type: ignore[typeddict-item]
+    sdk_options.pop("sentry_mirror_dsn", None)  # type: ignore[typeddict-item]
 
     # Modify SENTRY_SDK_CONFIG in your deployment scripts to specify your desired DSN
     backend_dsn = sdk_options.pop("backend_dsn", None)
-    mirror_dsn = sdk_options.pop("sentry_mirror_dsn", None)
 
-    dsns = Dsns(backend=backend_dsn or mirror_dsn)
+    dsns = Dsns(backend=backend_dsn)
 
     return sdk_options, dsns
 
@@ -413,10 +418,11 @@ def configure_sdk():
         )
         return
 
-    warnings.warn(
-        "Sentry SDK not initialized: no DSN available. "
-        "Set `sentry_mirror_dsn` in SENTRY_SDK_CONFIG or ensure an internal project key exists."
-    )
+    if not in_test_environment():
+        warnings.warn(
+            "Sentry SDK not initialized: no DSN available. "
+            "Set `backend_dsn` in SENTRY_SDK_CONFIG or ensure an internal project key exists."
+        )
 
 
 def check_tag_for_scope_bleed(
