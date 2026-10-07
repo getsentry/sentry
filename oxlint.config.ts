@@ -11,6 +11,18 @@ export const incubator = defineConfig({
   rules: {'@sentry/scraps/prefer-primitives': 'error'},
   overrides: [
     {
+      files: ['**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}'],
+      rules: {
+        'typescript/no-non-null-assertion': 'error',
+        'typescript/no-unsafe-argument': 'error',
+        'typescript/no-unsafe-call': 'error',
+        'typescript/no-unsafe-enum-comparison': 'error',
+        'typescript/no-unsafe-member-access': 'error',
+        'typescript/no-unsafe-return': 'error',
+      },
+      excludeFiles: ['**/*.spec.{js,mjs,ts,jsx,tsx}'],
+    },
+    {
       files: coreComponentFiles,
       rules: {'@sentry/scraps/prefer-primitives': 'off'},
     },
@@ -1951,18 +1963,6 @@ const config = defineConfig({
       rules: {
         'no-restricted-imports': 'off',
       },
-    },
-    {
-      files: coreComponentFiles,
-      rules: {
-        'typescript/no-non-null-assertion': 'error',
-        'typescript/no-unsafe-argument': 'error',
-        'typescript/no-unsafe-call': 'error',
-        'typescript/no-unsafe-enum-comparison': 'error',
-        'typescript/no-unsafe-member-access': 'error',
-        'typescript/no-unsafe-return': 'error',
-      },
-      excludeFiles: ['**/*.spec.{js,mjs,ts,jsx,tsx}'],
     },
     ...incubator.overrides,
   ],
