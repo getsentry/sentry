@@ -174,15 +174,8 @@ const LogsSearchSection = memo(function LogsSearchSectionImpl({
       validatedSearchQueryData,
     });
 
-  const hasTranslateEndpoint = organization.features.includes(
-    'gen-ai-search-agent-translate'
-  );
-
   return (
-    <SearchQueryBuilderProvider
-      enableAISearch={hasTranslateEndpoint}
-      {...searchQueryBuilderProviderProps}
-    >
+    <SearchQueryBuilderProvider enableAISearch {...searchQueryBuilderProviderProps}>
       <ExploreBodySearch>
         <Layout.Main width="full">
           <Grid
