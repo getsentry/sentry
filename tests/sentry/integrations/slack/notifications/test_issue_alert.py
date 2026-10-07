@@ -9,7 +9,7 @@ import responses
 import sentry
 from sentry.constants import ObjectStatus
 from sentry.digests.backends.redis import RedisBackend
-from sentry.digests.notifications import event_to_record
+from sentry.digests.notifications import event_to_record, get_rules_from_workflows
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.slack.message_builder.issues import get_tags
@@ -24,7 +24,13 @@ from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.notifications.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.notifications.rules import AlertRuleNotification
-from sentry.notifications.types import ActionTargetType, FallthroughChoiceType, FineTuningAPIKey
+from sentry.notifications.types import (
+    ActionTargetType,
+    FallthroughChoiceType,
+    FineTuningAPIKey,
+    NotificationOrigin,
+)
+from sentry.notifications.utils.rules import get_rule_or_workflow_id
 from sentry.plugins.base import Notification
 from sentry.silo.base import SiloMode
 from sentry.tasks.digests import deliver_digest
@@ -34,6 +40,8 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.users.models.identity import Identity, IdentityStatus
 from sentry.workflow_engine.migration_helpers.issue_alert_migration import IssueAlertMigrator
+from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.models.alertrule_workflow import AlertRuleWorkflow
 
 pytestmark = [requires_snuba]
 
@@ -328,7 +336,11 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
             == f"{event.project.slug} | <http://testserver/settings/account/notifications/alerts/?referrer=issue_alert-slack-user&notification_uuid={notification_uuid}&organizationId={event.organization.id}|Notification Settings>"
         )
 
-    def _assert_issue_owners_env_block(self, rule: Rule, environment: Environment) -> None:
+    def _assert_issue_owners_env_block(
+        self, rule: Rule | NotificationOrigin, environment: Environment
+    ) -> None:
+        _, workflow_id_value = get_rule_or_workflow_id(rule, prefer="workflow_id")
+        workflow_id = int(workflow_id_value)
         event = self.store_event(
             data={"message": "Hello world", "level": "error", "environment": environment.name},
             project_id=self.project.id,
@@ -349,13 +361,13 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         notification_uuid = notification.notification_uuid
         assert (
             fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{rule.data['actions'][0]['workflow_id']}/|ja rule>"
+            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{workflow_id}/|ja rule>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&environment=production&workflow_id={rule.data['actions'][0]['workflow_id']}&alert_type=issue|*Hello world*>"
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&environment={environment.name}&workflow_id={workflow_id}&alert_type=issue|*Hello world*>"
         )
         assert (
             blocks[4]["elements"][0]["text"]
@@ -402,6 +414,27 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         IssueAlertMigrator(rule).run()
 
         self._assert_issue_owners_env_block(rule, environment)
+
+    def test_issue_alert_uses_environment_from_workflow_rule(self) -> None:
+        development = self.create_environment(self.project, name="development")
+        production = self.create_environment(self.project, name="production")
+        ProjectOwnership.objects.create(project_id=self.project.id)
+        action_data = {
+            "id": "sentry.mail.actions.NotifyEmailAction",
+            "targetType": "IssueOwners",
+            "targetIdentifier": "",
+        }
+        legacy_rule = self.create_project_rule(
+            project=self.project,
+            action_data=[action_data],
+            name="ja rule",
+            environment_id=development.id,
+        )
+        workflow_id = int(legacy_rule.data["actions"][0]["workflow_id"])
+        Workflow.objects.filter(id=workflow_id).update(environment_id=production.id)
+        workflow_rule = get_rules_from_workflows(self.project, {workflow_id})[workflow_id]
+
+        self._assert_issue_owners_env_block(workflow_rule, production)
 
     @responses.activate
     def test_issue_alert_team_issue_owners_block(self) -> None:
@@ -929,6 +962,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         digests.enabled.return_value = True
 
         rule = self.create_project_rule(project=self.project)
+        workflow_id = AlertRuleWorkflow.objects.get(rule_id=rule.id).workflow_id
         ProjectOwnership.objects.create(project_id=self.project.id)
         event = self.store_event(
             data={"message": "Hello world", "level": "error"}, project_id=self.project.id
@@ -946,13 +980,13 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
         assert (
             fallback_text
-            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/issues/alerts/rules/{event.project.slug}/{rule.id}/details/|Test Alert>"
+            == f"Alert triggered <http://testserver/organizations/{event.organization.slug}/monitors/alerts/{workflow_id}/|Test Alert>"
         )
         assert blocks[0]["text"]["text"] == fallback_text
         assert event.group
         assert (
             blocks[1]["text"]["text"]
-            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&alert_rule_id={rule.id}&alert_type=issue|*Hello world*>"
+            == f":red_circle: <http://testserver/organizations/{event.organization.slug}/issues/{event.group.id}/?referrer=issue_alert-slack&notification_uuid={notification_uuid}&workflow_id={workflow_id}&alert_type=issue|*Hello world*>"
         )
         assert (
             blocks[4]["elements"][0]["text"]

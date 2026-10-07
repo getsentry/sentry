@@ -1,6 +1,6 @@
 import type {ComponentProps} from 'react';
 import {useEffect, useRef, useState} from 'react';
-import {useMatches} from 'react-router-dom';
+import {useMatches} from 'react-router';
 import styled from '@emotion/styled';
 import type {Query} from 'history';
 

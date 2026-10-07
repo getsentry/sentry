@@ -331,7 +331,7 @@ export function ConversationsTable({conversations}: ConversationsTableProps) {
           data={data}
           columnOrder={displayedColumns}
           stickyHeader
-          // GridEditable's Panel body has a default bottom margin; drop it so
+          // GridEditable has a default bottom margin; drop it so
           // the Stack's `lg` gap is the only spacing before the pagination.
           bodyStyle={{marginBottom: 0}}
           grid={{

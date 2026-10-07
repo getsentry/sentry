@@ -31,6 +31,7 @@ import {
 } from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {renderRegexPattern} from 'sentry/components/searchQueryBuilder/tokens/filter/highlightedRegexPattern';
 import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
+import {RegexDelimiter} from 'sentry/components/searchQueryBuilder/tokens/filter/regexDelimiter';
 import {SpecificDatePicker} from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {useFrozenSuggestionSectionItems} from 'sentry/components/searchQueryBuilder/tokens/filter/useFrozenSuggestionSectionItems';
 import {
@@ -1318,6 +1319,11 @@ export function SearchQueryBuilderValueCombobox({
     [dispatch, fieldDefinition, selectedValues, token]
   );
 
+  const focusInputFromDelimiter = (e: React.MouseEvent) => {
+    e.preventDefault();
+    inputRef.current?.focus();
+  };
+
   const editValue = (index: number) => {
     const target = selectedValues[index];
     if (!target) {
@@ -1470,7 +1476,17 @@ export function SearchQueryBuilderValueCombobox({
   const inputSlot = editingChip
     ? committedValues.filter(v => v.index < editingChip.index).length
     : chips.length;
-  const chipRow = [...chips.slice(0, inputSlot), valueInput, ...chips.slice(inputSlot)];
+  const chipRow = isRegexValue
+    ? [
+        <RegexDelimiter
+          key="regex-start"
+          onMouseDown={focusInputFromDelimiter}
+          paddingRight="2xs"
+        />,
+        valueInput,
+        <RegexDelimiter key="regex-end" onMouseDown={focusInputFromDelimiter} />,
+      ]
+    : [...chips.slice(0, inputSlot), valueInput, ...chips.slice(inputSlot)];
   const rowScrolls = canSelectMultipleValues || isRegexValue;
 
   return (
@@ -1478,7 +1494,7 @@ export function SearchQueryBuilderValueCombobox({
       <ValueComboboxMenuContext.Provider value={menuContextValue}>
         <ValueEditingChips
           align="center"
-          gap="2xs"
+          gap={isRegexValue ? undefined : '2xs'}
           minWidth="0"
           height="100%"
           overflowX={rowScrolls ? 'auto' : undefined}

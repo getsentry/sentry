@@ -1,4 +1,4 @@
-import type {AgenticProgressRun} from 'sentry/views/onboarding/agenticProgress/types';
+import type {AgenticProgressRun} from 'sentry/components/onboarding/agenticProgress/types';
 
 export function AgenticProgressRunFixture(
   params: Partial<AgenticProgressRun> = {}
