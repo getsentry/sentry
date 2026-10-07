@@ -43,7 +43,6 @@ import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
-import {Referrer} from 'sentry/views/insights/pages/agents/utils/referrers';
 
 function useOnboardingProject() {
   const {projects} = useProjects();
@@ -86,7 +85,7 @@ function useAiSpanWaiter(project: Project) {
         },
       },
     },
-    Referrer.ONBOARDING
+    'api.insights.mcp.onboarding'
   );
 
   const hasEvents = Boolean(request.data?.length);
