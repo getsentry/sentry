@@ -14,27 +14,12 @@ import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils/defined';
 import {unreachable} from 'sentry/utils/unreachable';
 
-/**
- * Edge of the box the leading graphic occupies, whatever it holds.
- */
 const LEADING_GRAPHIC_SIZE = 24;
-
-/**
- * A user avatar is drawn smaller than that box and centred in it.
- *
- * The avatars in the people slot are 24 with a 2px border, and `box-sizing` is
- * border-box, so their visible disc is 20. A borderless 24 here would be the
- * larger of the two circles in the same header.
- */
 const LEADING_AVATAR_SIZE = 20;
 
 /**
  * Either the graphic is named, in which case it may also elaborate on hover, or
  * it is decorative and says nothing.
- *
- * A `tooltip` without a `label` used to type-check and then be discarded
- * silently, because the tooltip is only rendered when there is a label to be
- * the accessible name. The pairing is now unrepresentable.
  */
 type EntityHeaderLeadingGraphicBase =
   | {
@@ -60,14 +45,11 @@ type EntityHeaderLeadingGraphicBase =
     };
 
 /**
- * The graphic that can sit before the title. Declared as data rather than a
- * node so the header owns the sizing, and so a page cannot quietly put an
- * arbitrary component in the slot.
+ * The graphic that can sit before the title.
  *
  * `project` and `platform` render the same badge but take what the caller
  * actually holds: a trace knows its projects, a build has only inferred a
- * platform from a file type. Mapping projects to platforms happens here rather
- * than at every call site.
+ * platform from a file type.
  */
 export type EntityHeaderLeadingGraphic =
   | ({type: 'user'; user: AvatarUser} & EntityHeaderLeadingGraphicBase)
@@ -111,8 +93,6 @@ function LeadingGraphic({graphic}: {graphic: EntityHeaderLeadingGraphic}) {
       return <UserAvatar user={graphic.user} size={LEADING_AVATAR_SIZE} />;
     case 'project': {
       const platforms = graphic.projects.map(project => project.platform).filter(defined);
-      // `ProjectsBadge` falls back to an all-projects glyph for an empty list,
-      // which belongs to a saved view, not to the entity a page is about.
       return platforms.length === 0 ? null : (
         <ProjectsBadge projectPlatforms={platforms} size={LEADING_GRAPHIC_SIZE} />
       );
@@ -196,8 +176,6 @@ export function EntityHeaderTitle({
     );
   }
 
-  // Keyed by declaration index, not by position in the filtered array, so a
-  // conditional tag appearing never remounts the ones after it.
   const visibleTags = (tags ?? [])
     .map((tag, index) => ({tag, index}))
     .filter(
@@ -210,10 +188,7 @@ export function EntityHeaderTitle({
       {leadingGraphic && <LeadingGraphicSlot graphic={leadingGraphic} />}
       {/*
         Plain text, not a link. A heading that is wholly a link announces as
-        both, and the title is not where navigation belongs — the breadcrumb
-        above it already goes up, and a link nobody can see is not an
-        affordance. It also kept the global `a` colour over the heading's own,
-        so the title rendered blue against the spec.
+        both, and the breadcrumb above it already handles going up.
       */}
       <Heading
         as="h2"

@@ -148,12 +148,6 @@ const AvatarStyle = (p: {theme: Theme}) => css`
   margin-left: -8px;
   cursor: default;
 
-  /*
-   * The wrapper is row-reverse, so the last child is the one at the left edge.
-   * It has no sibling to tuck under, and its negative margin pulled the list's
-   * own width in by 8px instead — leaving every stack, however many avatars it
-   * held, measuring 8px narrower than the avatars it drew.
-   */
   &:last-child {
     margin-left: 0;
   }

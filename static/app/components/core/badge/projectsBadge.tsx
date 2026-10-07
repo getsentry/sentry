@@ -37,8 +37,6 @@ export function ProjectsBadge({
   allProjects,
   size = 16,
 }: ProjectsBadgeProps) {
-  // The stacked geometry is proportional to the box, so both sizes read the
-  // same: each icon is three quarters of the edge, offset by the remainder.
   const stackedIconSize = Math.round(size * 0.75);
   const stackedOffset = size - stackedIconSize;
 
@@ -69,7 +67,6 @@ export function ProjectsBadge({
             <PlatformIcon
               {...p}
               platform={projectPlatforms[0] ?? ''}
-              // Inset by the 1px border on each edge.
               size={size - 2}
               aria-hidden
             />
@@ -80,7 +77,6 @@ export function ProjectsBadge({
 
     default:
       // Two overlapping icons: first at top-right, second at bottom-right.
-      // At 16px that is two 12px icons offset by 4; at 24px, 18px offset by 6.
       icons = (
         <Fragment>
           <Container

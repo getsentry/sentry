@@ -14,11 +14,6 @@ interface Props {
 
 /**
  * How a replay's errors split across the projects that reported them.
- *
- * A replay can pick up errors from several backends, and the header used to
- * show that as a stack of project avatars beside the count. That put a
- * breakdown in a row built for single numbers, so the split moved here and the
- * stat kept the total.
  */
 export function ReplayErrorsTooltip({replayErrors}: Props) {
   const {projects} = useProjects();
@@ -49,11 +44,6 @@ export function ReplayErrorsTooltip({replayErrors}: Props) {
             }
             trailingItems={<Text tabular>{count}</Text>}
           >
-            {/*
-              `Tooltip.Row` renders `display: contents` so its cells become grid
-              items of the shared grid. A bare string would land there as an
-              anonymous box, so each cell is an element of its own.
-            */}
             <Text>{projectSlug}</Text>
           </Tooltip.Row>
         ))}

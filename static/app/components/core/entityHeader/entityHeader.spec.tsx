@@ -8,7 +8,6 @@ import {Tag} from '@sentry/scraps/badge';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-/** The `Grid` that owns the template is the header's only child. */
 function getGridRules() {
   const grid = screen.getByRole('banner').firstElementChild as HTMLElement;
   return getEmotionRules(grid);
@@ -41,8 +40,7 @@ describe('EntityHeader', () => {
       render(<EntityHeader title={{label: 'Replay user', value: 'Session'}} />);
 
       // A heading that is wholly a link announces as both, and the breadcrumb
-      // above already handles going up. Keeping it plain also keeps the
-      // heading's own colour, which the global `a` rule would otherwise win.
+      // above already handles going up.
       expect(
         screen.getByRole('heading', {level: 2, name: 'Replay user, Session'})
       ).toBeVisible();
@@ -114,9 +112,6 @@ describe('EntityHeader', () => {
         />
       );
 
-      // The people slot's avatars are 24 with a 2px border, so their visible
-      // disc is 20. Drawing this one at 24 would make it the larger of the two
-      // circles in the same header, so it is 20 centred in a 24 box.
       const avatar = screen.getByText('A').closest('span')!;
       expect(avatar).toHaveStyle({width: '20px', height: '20px'});
 
@@ -135,8 +130,6 @@ describe('EntityHeader', () => {
         />
       );
 
-      // ProjectsBadge falls back to an all-projects glyph for an empty list,
-      // which means something on a saved view and nothing on a detail page.
       expect(screen.getByRole('heading', {level: 2})).toBeInTheDocument();
       expect(screen.queryByRole('img')).not.toBeInTheDocument();
     });
@@ -212,9 +205,6 @@ describe('EntityHeader', () => {
         />
       );
 
-      // Two signals for two meanings. One treatment for both would mean a link
-      // that only navigates looks like one that explains — and a dotted
-      // underline reads as "hover for more" to most people.
       const link = screen.getByRole('link', {name: '4 Dead Clicks'});
       const plain = screen.getByText('Rage Clicks');
 
@@ -227,7 +217,6 @@ describe('EntityHeader', () => {
       expect(textColour(link)).toBeDefined();
       expect(textColour(link)).not.toBe(textColour(plain));
 
-      // Neither is underlined: nothing here explains, so nothing signals that.
       expect(link).not.toHaveStyle({textDecoration: 'underline'});
       expect(plain).not.toHaveStyle({textDecoration: 'underline'});
     });
@@ -280,7 +269,6 @@ describe('EntityHeader', () => {
         />
       );
 
-      // The row itself stays a single number.
       expect(screen.getByText('3')).toBeInTheDocument();
       expect(screen.queryByText('javascript')).not.toBeInTheDocument();
 
@@ -317,9 +305,6 @@ describe('EntityHeader', () => {
     });
 
     it('keeps the same element when a link stat receives its value', () => {
-      // The type is declared, so a count arriving cannot turn a span into an
-      // anchor. React keeps the node, nothing is re-laid out, and the row holds
-      // still — which is the whole reason `type` is not inferred from `to`.
       const {rerender} = render(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
@@ -343,10 +328,6 @@ describe('EntityHeader', () => {
     });
 
     it('gives a linked label the same metrics as an unlinked one', () => {
-      // The two types sit side by side in one row, so they have to agree on
-      // their box. `Link` emits text-box-trim but no font size, so an anchor
-      // wrapping the label would be trimmed to the font it inherits from the
-      // row rather than the stat's own.
       const hasLabelFontSize = (element: HTMLElement) =>
         getEmotionRules(element).some(rule => /font-size:\s*12px/.test(rule));
 
@@ -367,8 +348,6 @@ describe('EntityHeader', () => {
         />
       );
 
-      // The anchor itself carries the label's type, rather than wrapping an
-      // element that does.
       expect(hasLabelFontSize(screen.getByRole('link', {name: '3 Errors'}))).toBe(true);
     });
 
@@ -422,9 +401,6 @@ describe('EntityHeader', () => {
 
       const {rerender} = render(<TestHeader showViewers={false} />);
 
-      // Typing into the later stat gives it observable state. If it were keyed by
-      // position in the filtered array, the earlier stat appearing would remount
-      // it and that state would be lost.
       await userEvent.type(screen.getByRole('textbox', {name: 'Scratch note'}), 'kept');
       expect(screen.getByRole('textbox', {name: 'Scratch note'})).toHaveValue('kept');
 
@@ -445,8 +421,6 @@ describe('EntityHeader', () => {
         />
       );
 
-      // People load on their own schedule. Reserving the space is what stops the
-      // stats shifting sideways when they land.
       expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
 
       rerender(
@@ -515,7 +489,6 @@ describe('EntityHeader', () => {
       );
 
       expect(screen.queryByTestId('loading-placeholder')).not.toBeInTheDocument();
-      // Nobody means no leading divider before the first stat.
       expect(screen.getByRole('banner').querySelectorAll('hr')).toHaveLength(0);
     });
 
@@ -567,8 +540,6 @@ describe('EntityHeader', () => {
         />
       );
 
-      // A browser is a name and a version. They read as one phrase, but they are
-      // two values rather than a string the caller joined.
       expect(screen.getByText('Chrome 144.0.0')).toBeVisible();
       // Present for a screen reader, clipped out of the visual layout.
       expect(screen.getByText('Browser')).toHaveStyle({clipPath: 'inset(50%)'});
@@ -655,11 +626,8 @@ describe('EntityHeader', () => {
         />
       );
 
-      // title + subtitle + 2 stats + 2 metadata
       expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(6);
 
-      // Every slot is fully replaced, labels included — a half-drawn stat beside a
-      // loading title and metadata row reads as broken.
       expect(screen.queryByText('Dead Clicks')).not.toBeInTheDocument();
       expect(screen.queryByText('Errors')).not.toBeInTheDocument();
       expect(screen.queryByText('A subtitle')).not.toBeInTheDocument();
@@ -676,10 +644,6 @@ describe('EntityHeader', () => {
     });
 
     it('shows the people skeleton alongside the stats, not after them', () => {
-      // People cannot be fetched until the entity resolves and yields its
-      // project. If the slot only appeared once its own request was in flight,
-      // its skeleton would start just as the stats beside it finished — reading
-      // as two loads in sequence rather than one.
       const {rerender} = render(
         <EntityHeader
           isLoading
@@ -689,10 +653,8 @@ describe('EntityHeader', () => {
         />
       );
 
-      // title + stat + people
       expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(3);
 
-      // The entity lands, its people request starts, and the avatar slot holds.
       rerender(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
@@ -738,9 +700,6 @@ describe('EntityHeader', () => {
     });
 
     it('pins the stat height so an async value cannot shift the rows below', () => {
-      // A viewer avatar list and an error count are both taller than the text
-      // they replace, and they land at different times. If the stat grew to fit
-      // them, every row beneath would move as each query settled.
       const {rerender} = render(
         <EntityHeader
           isLoading
@@ -798,7 +757,6 @@ describe('EntityHeader', () => {
 
       const rules = getGridRules();
 
-      // Base (narrow): stats come last, on their own row.
       expect(
         rules.some(
           r =>
@@ -807,8 +765,6 @@ describe('EntityHeader', () => {
         )
       ).toBe(true);
 
-      // Wide: stats move up beside the title, at the width where the two first
-      // fit rather than at the spec's nominal band edge.
       expect(
         rules.some(
           r =>
@@ -817,8 +773,6 @@ describe('EntityHeader', () => {
         )
       ).toBe(true);
 
-      // Regression guard: the reflow must be driven by the container's width, not
-      // an always-matching viewport media query that would shadow it.
       expect(
         rules.some(
           r => /@media[^{]*min-width:\s*0px/.test(r) && r.includes('grid-template-areas')
@@ -831,8 +785,6 @@ describe('EntityHeader', () => {
         <EntityHeader title={{label: 'Replay user', value: 'Session'}} />
       );
 
-      // An area declared with no item in it still creates a row, and `gap` still
-      // applies around it — so an omitted slot must not appear in the template.
       let rules = getGridRules();
       expect(rules.some(r => /grid-template-areas:\s*"title"\s*;/.test(r))).toBe(true);
       expect(rules.some(r => r.includes('context'))).toBe(false);

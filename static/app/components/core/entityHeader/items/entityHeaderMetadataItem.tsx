@@ -9,9 +9,8 @@ import {Text} from '@sentry/scraps/text';
 import {Placeholder} from 'sentry/components/placeholder';
 
 /**
- * The variants a metadata item can take. Narrower than `ContentVariant` because
- * a tooltipped item also has to colour its underline, and `Tooltip` supports a
- * smaller set — keeping one list means the two never disagree.
+ * The variants a metadata item can take. Narrower than `ContentVariant`, so
+ * that a tooltipped item's underline can use the same list.
  */
 type EntityHeaderMetadataVariant = 'primary' | 'muted' | 'danger' | 'success' | 'warning';
 
@@ -50,8 +49,7 @@ export interface EntityHeaderMetadataItemProps {
    */
   tooltip?: React.ReactNode;
   /**
-   * Defaults to `muted`. Use a semantic variant to call out a problem, the way
-   * Issue Details renders "Unhandled" in `danger`.
+   * Defaults to `muted`. Use a semantic variant to call out a problem.
    */
   variant?: EntityHeaderMetadataVariant;
 }

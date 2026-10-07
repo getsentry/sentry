@@ -28,20 +28,15 @@ interface EntityHeaderStatBase {
 
 /**
  * A stat declares what it is, rather than the component inferring it from
- * whether a destination happens to be defined.
- *
- * This matters at runtime, not just for readability: a stat whose type depended
- * on its data would render a different element once that data arrived, and
- * swapping a span for an anchor mid-load moves the row. The value may change as
- * often as it likes; the type may not.
+ * whether a destination happens to be defined. The value may change as often
+ * as it likes; the type may not.
  */
 export type EntityHeaderStatProps =
   | ({
       type: 'text';
       /**
        * The measurement itself. Keep it to the single number the label names,
-       * and put any breakdown in `valueTooltip` — a stat that renders its own
-       * detail inline fights the density the row is built for.
+       * and put any breakdown in `valueTooltip`.
        */
       value: React.ReactNode;
       /**
@@ -73,9 +68,6 @@ export type EntityHeaderStatProps =
 
 export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boolean}) {
   const {isLoading, label, labelTooltip, loadingWidth = '80px', value} = props;
-  // The whole stat becomes one skeleton, label included. The label is static and
-  // could be shown immediately, but a half-drawn stat reads as broken next to a
-  // title and metadata row that are still loading.
   if (isLoading) {
     return (
       <Flex align="center" height={ROW_HEIGHT} flexShrink={0}>
@@ -102,9 +94,6 @@ export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boo
       </Text>
     );
 
-  // Colour says it navigates, an underline says it explains. Two signals for
-  // two meanings — a dotted underline for both would have meant a link looked
-  // like a tooltip, which is the more widely read of the two.
   const labelStyles = {
     size: 'sm',
     bold: true,
@@ -117,11 +106,6 @@ export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boo
     const {to, onClick} = props;
     // The label is what navigates, so the link is named by what it leads to
     // rather than by a number.
-    //
-    // The anchor carries the label's text styles rather than wrapping an element
-    // that has them, the same way `BreadcrumbItemLink` styles its link. `Link`
-    // emits `text-box-trim` but no font size, so wrapping would leave the anchor
-    // trimmed to the font it inherits from the row rather than the stat's own.
     labelContent = (
       <Text {...labelStyles} variant="accent">
         {styleProps => {
@@ -139,9 +123,7 @@ export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boo
             </Link>
           );
           // The tooltip attaches to the link rather than wrapping it in
-          // InfoText, which would put a second tab stop inside the anchor — so
-          // it has to carry the underline itself. Without it a link that
-          // explains looks exactly like one that only navigates.
+          // InfoText, which would put a second tab stop inside the anchor.
           return labelTooltip ? (
             <Tooltip title={labelTooltip} skipWrapper showUnderline>
               {link}
@@ -167,15 +149,7 @@ export function EntityHeaderStat(props: EntityHeaderStatProps & {isLoading?: boo
   }
 
   return (
-    // The outer box is a fixed height so the row cannot resize as async values
-    // land — an error count settling is taller than the text it replaces, and
-    // that would otherwise shift the rows below. Content is centred inside it
-    // rather than growing it.
     <Flex align="center" height={ROW_HEIGHT} flexShrink={0} minWidth={0}>
-      {/*
-        `baseline` is what makes the value and its label sit on a shared line,
-        which is the visual signature of the stat row.
-      */}
       <Flex align="baseline" gap="xs" minWidth={0}>
         {valueContent}
         {labelContent}

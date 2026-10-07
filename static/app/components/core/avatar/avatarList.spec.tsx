@@ -13,10 +13,6 @@ describe('AvatarList', () => {
   it('does not pull the stack in past its leftmost avatar', () => {
     render(<AvatarList users={[{...user, id: '1', name: 'AB'}]} />);
 
-    // Every avatar tucks 8px under the one to its left. The wrapper is
-    // row-reverse, so the last child is the leftmost one and has nothing to
-    // tuck under — without exempting it the list measured 8px narrower than the
-    // avatars it drew, whatever the count.
     const rules = getEmotionRules(screen.getByText('A').closest('span')!);
 
     expect(rules.some(rule => /margin-left:\s*-8px/.test(rule))).toBe(true);

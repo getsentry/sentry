@@ -10,7 +10,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import type {AvatarUser} from 'sentry/types/user';
 import {userDisplayName} from 'sentry/utils/formatters';
 
-/** Matches the spec's overlapping 24px stack. */
 const AVATAR_SIZE = 24;
 
 export interface EntityHeaderPeopleProps {
@@ -26,8 +25,8 @@ export interface EntityHeaderPeopleProps {
    */
   users: AvatarUser[];
   /**
-   * These usually load on their own schedule, separate from the entity, so this
-   * is independent of the header's `isLoading`.
+   * Independent of the header's `isLoading`: these usually load on their own
+   * schedule, separate from the entity.
    */
   isLoading?: boolean;
   /**

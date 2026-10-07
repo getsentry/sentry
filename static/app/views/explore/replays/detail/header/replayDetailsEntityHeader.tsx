@@ -25,10 +25,6 @@ interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;
 }
 
-/**
- * A name and, when there is one, a version. Two values rather than one joined
- * string: they are separate properties of the replay.
- */
 function nameAndVersion(
   name: string,
   version: string | null
@@ -44,7 +40,6 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
   const replayRecord = readerResult.replayRecord;
   const isArchived = replayRecord?.is_archived ?? false;
 
-  // Hooks run unconditionally, before any of the loading branches below.
   const viewers = useReplayViewers({
     projectId: replayRecord?.is_archived ? undefined : replayRecord?.project_id,
     replayId: replayRecord?.id,
@@ -60,7 +55,6 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
     );
   }
 
-  // Opens the breadcrumbs tab, filtered to rage and dead clicks.
   const breadcrumbTab = {
     ...location,
     query: {
@@ -79,7 +73,6 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
   const deadClicks = replayRecord?.count_dead_clicks ?? 0;
   const rageClicks = replayRecord?.count_rage_clicks ?? 0;
 
-  // Feedback is surfaced separately, so it would double-count here.
   const nonFeedbackErrors = readerResult.errors.filter(
     error => !error.title.includes('User Feedback')
   );
@@ -122,9 +115,6 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
         isLoading: viewers.isPending,
       },
       stats: [
-        // These link unconditionally. Linking only once a count was non-zero
-        // meant the stat changed element as its data arrived, which moved the
-        // row; a zero count lands on the same tab, filtered and empty.
         showDeadRageClicks
           ? {
               type: 'link',
@@ -220,8 +210,6 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
       renderArchived={() => null}
       renderError={() => null}
       renderThrottled={() => null}
-      // The record often arrives before the recording segments do, so render the
-      // real header as soon as there is something to show.
       renderLoading={() => <EntityHeader {...buildProps(!replayRecord)} />}
       renderMissing={() => null}
       renderProcessingError={() => <EntityHeader {...buildProps(false)} />}

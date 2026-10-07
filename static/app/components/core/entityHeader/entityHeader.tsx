@@ -29,9 +29,7 @@ export interface EntityHeaderProps {
    */
   title: EntityHeaderTitleProps;
   /**
-   * Renders every slot as a correctly sized skeleton. Because the skeleton is
-   * produced from the same declarations as the loaded state, the two cannot
-   * drift apart.
+   * Renders every slot as a correctly sized skeleton.
    */
   isLoading?: boolean;
   /**
@@ -49,10 +47,7 @@ export interface EntityHeaderProps {
   };
   /**
    * People related to this entity — who viewed it, who is participating in it.
-   * Rendered as an avatar stack at the head of the stats row, which is where
-   * the spec puts it. It gets its own slot rather than being a labelled stat
-   * because it has no value, and because it loads on its own schedule —
-   * leaving space for it is what stops the row jumping.
+   * Rendered as an avatar stack at the head of the stats row.
    */
   people?: EntityHeaderPeopleProps;
   /**
@@ -67,21 +62,6 @@ export interface EntityHeaderProps {
   subtitle?: React.ReactNode;
 }
 
-/**
- * Computes the grid template from the slots that are actually present.
- *
- * A named grid area with no item still creates a row, and `gap` still applies
- * around it, so a fixed template would leave a hole wherever a slot is omitted.
- *
- * Breakpoints use bare (container) keys, so the header reflows against the
- * width available to it rather than the viewport's.
- *
- * The stats move up beside the title at `lg` (640px). The spec's band edge is
- * 500px, but its own 650px frame is where the two first fit: 294px of title +
- * 8px + 316px of stats is exactly the width available there. Below that the
- * title is squeezed to make room for a stat row whose width the header cannot
- * know in advance.
- */
 function getGridTemplate({
   hasStats,
   hasContext,
@@ -100,12 +80,9 @@ function getGridTemplate({
     columns: {zero: 'minmax(0, 1fr)', lg: 'minmax(0, 1fr) minmax(0, max-content)'},
     areas: hasContext
       ? {
-          // Narrow: the stats sit below the metadata, matching their DOM order.
           zero: `"title" "context" "stats"`,
-          // Wide: the stats move up beside the title, which the DOM order no
-          // longer matches. One source order cannot satisfy both templates —
-          // it follows the stacked one, where the gap between read and shown
-          // position would be a whole row rather than a column.
+          // One source order cannot match both templates, so it follows the
+          // stacked one, where reading order and visual order agree.
           lg: `"title stats" "context context"`,
         }
       : {zero: `"title" "stats"`, lg: `"title stats"`},
@@ -149,9 +126,6 @@ export function EntityHeader({
 }: EntityHeaderProps) {
   const hasParentQueryContainer = useHasContainerQuery();
 
-  // Keep the declaration index alongside each item. Keying by position in the
-  // filtered array would remount every later item whenever an earlier
-  // conditional one appears, closing any menu it happens to own.
   const visibleStats = (stats ?? [])
     .map((stat, index) => ({stat, index}))
     .filter((entry): entry is {index: number; stat: EntityHeaderStatProps} =>
@@ -163,9 +137,6 @@ export function EntityHeader({
       Boolean(entry.item)
     );
 
-  // The header's own loading counts as these loading, so the avatar skeleton
-  // comes up alongside the stat skeletons instead of appearing only once the
-  // entity has resolved and its own request can start.
   const peopleLoading = Boolean(people) && (isLoading || Boolean(people?.isLoading));
   const hasPeople = Boolean(people) && (peopleLoading || (people?.users.length ?? 0) > 0);
   const hasStats = visibleStats.length > 0 || hasPeople;
@@ -250,15 +221,9 @@ export function EntityHeader({
   );
 
   if (hasParentQueryContainer) {
-    // On a routed page the content column is already a query container, and its
-    // width is exactly what the layout should react to.
     return header;
   }
 
-  // Standalone — a drawer, a panel, a story — the header establishes its own.
-  // This has to be a separate element: `Container` cannot be both an `as`
-  // element and a query container, because emotion consumes `as` and renders
-  // the DOM node itself, skipping the wiring that sets the container up.
   return (
     <Container containerType="inline-size" width="100%" flexShrink={0}>
       {header}
