@@ -197,7 +197,6 @@ export function severityColor(ratio: number, theme: Theme): string {
 
 interface AnnotationVolume {
   eventCount: number;
-  byteSize?: number;
 }
 
 export interface OutcomeVolume extends AnnotationVolume {
@@ -217,30 +216,21 @@ export interface AnnotationBucket {
   start: number;
 }
 
-interface VolumeDraft {
-  byteSize: number | undefined;
-  eventCount: number;
-}
-
 interface BucketDraft {
-  accepted: VolumeDraft;
+  accepted: AnnotationVolume;
   annotations: Annotation[];
-  byOutcome: Map<string, OutcomeVolume & VolumeDraft>;
-  dropped: VolumeDraft;
+  byOutcome: Map<string, OutcomeVolume>;
+  dropped: AnnotationVolume;
   end: number;
   start: number;
 }
 
-function emptyVolume(): VolumeDraft {
-  return {eventCount: 0, byteSize: undefined};
+function emptyVolume(): AnnotationVolume {
+  return {eventCount: 0};
 }
 
-function addAnnotation(volume: VolumeDraft, annotation: Annotation): void {
+function addAnnotation(volume: AnnotationVolume, annotation: Annotation): void {
   volume.eventCount += annotation.eventCount;
-
-  if (defined(annotation.byteSize)) {
-    volume.byteSize = (volume.byteSize ?? 0) + annotation.byteSize;
-  }
 }
 
 function addDroppedAnnotation(
@@ -280,8 +270,8 @@ function addDroppedAnnotation(
   addAnnotation(outcomeVolume, annotation);
 }
 
-function acceptedVolumeByStart(annotations: Annotation[]): Map<number, VolumeDraft> {
-  const volumes = new Map<number, VolumeDraft>();
+function acceptedVolumeByStart(annotations: Annotation[]): Map<number, AnnotationVolume> {
+  const volumes = new Map<number, AnnotationVolume>();
 
   for (const annotation of annotations) {
     const accepted = volumes.get(annotation.start) ?? emptyVolume();
@@ -294,7 +284,7 @@ function acceptedVolumeByStart(annotations: Annotation[]): Map<number, VolumeDra
 
 function toBucket(
   draft: BucketDraft,
-  acceptedByStart: Map<number, VolumeDraft>
+  acceptedByStart: Map<number, AnnotationVolume>
 ): AnnotationBucket {
   const accepted = acceptedByStart.get(draft.start) ?? emptyVolume();
   const total = draft.dropped.eventCount + accepted.eventCount;

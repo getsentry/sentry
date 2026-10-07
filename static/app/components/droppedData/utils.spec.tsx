@@ -185,25 +185,6 @@ describe('groupIntoBuckets', () => {
     expect(buckets[0]!.accepted.eventCount).toBe(0);
     expect(buckets[0]!.ratio).toBe(1);
   });
-
-  it('sums byteSize only for annotations that report it', () => {
-    const [withBytes] = groupIntoBuckets(
-      [
-        AnnotationFixture({start: 0, eventCount: 10, byteSize: 400}),
-        AnnotationFixture({start: 0, eventCount: 5, byteSize: 100, reason: 'quota'}),
-      ],
-      [AnnotationFixture({start: 0, eventCount: 90, byteSize: 9_500})]
-    );
-
-    expect(withBytes!.dropped.byteSize).toBe(500);
-    expect(withBytes!.accepted.byteSize).toBe(9_500);
-
-    const [withoutBytes] = groupIntoBuckets([
-      AnnotationFixture({start: 0, eventCount: 10}),
-    ]);
-
-    expect(withoutBytes!.dropped.byteSize).toBeUndefined();
-  });
 });
 
 describe('severityColor', () => {

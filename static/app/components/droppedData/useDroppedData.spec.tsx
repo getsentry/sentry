@@ -7,13 +7,27 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {Annotation} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 
 const organization = OrganizationFixture({
   features: ['explore-data-fidelity-annotations'],
 });
 
+function toDroppedEvent(annotation: Annotation) {
+  const {eventCount, ...bucket} = annotation;
+  return {...bucket, count: eventCount};
+}
+
 const droppedAnnotations = [AnnotationFixture({eventCount: 10})];
 const acceptedAnnotations = [AnnotationFixture({outcome: 'accepted', eventCount: 90})];
+
+function droppedEventsBody() {
+  return {
+    meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+    droppedEvents: droppedAnnotations.map(toDroppedEvent),
+    acceptedEvents: acceptedAnnotations.map(toDroppedEvent),
+  };
+}
 
 describe('useDroppedData', () => {
   beforeEach(() => {
@@ -24,13 +38,10 @@ describe('useDroppedData', () => {
     PageFiltersStore.reset();
   });
 
-  it('requests annotations and returns them', async () => {
+  it('requests dropped events and returns them as annotations', async () => {
     const request = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-timeseries/`,
-      body: {
-        timeSeries: [],
-        meta: {droppedAnnotations, acceptedAnnotations},
-      },
+      url: `/organizations/${organization.slug}/events-dropped/`,
+      body: droppedEventsBody(),
     });
 
     const {result} = renderHookWithProviders(
@@ -41,26 +52,24 @@ describe('useDroppedData', () => {
     await waitFor(() => expect(result.current.isPending).toBe(false));
 
     expect(request).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/events-timeseries/`,
+      `/organizations/${organization.slug}/events-dropped/`,
       expect.objectContaining({
         query: expect.objectContaining({
           dataset: DiscoverDatasets.SPANS,
-          includeAnnotations: 1,
           referrer: 'api.explore.dropped-data-annotations',
         }),
       })
     );
+    expect(request.mock.calls[0][1].query).not.toHaveProperty('yAxis');
+    expect(request.mock.calls[0][1].query).not.toHaveProperty('includeAnnotations');
     expect(result.current.droppedAnnotations).toEqual(droppedAnnotations);
     expect(result.current.acceptedAnnotations).toEqual(acceptedAnnotations);
   });
 
-  it('requests a count over all trace metrics', async () => {
+  it('requests trace metrics without a chart aggregate', async () => {
     const request = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-timeseries/`,
-      body: {
-        timeSeries: [],
-        meta: {droppedAnnotations, acceptedAnnotations},
-      },
+      url: `/organizations/${organization.slug}/events-dropped/`,
+      body: droppedEventsBody(),
     });
 
     const {result} = renderHookWithProviders(
@@ -71,22 +80,22 @@ describe('useDroppedData', () => {
     await waitFor(() => expect(result.current.isPending).toBe(false));
 
     expect(request).toHaveBeenCalledWith(
-      `/organizations/${organization.slug}/events-timeseries/`,
+      `/organizations/${organization.slug}/events-dropped/`,
       expect.objectContaining({
         query: expect.objectContaining({
           dataset: DiscoverDatasets.TRACEMETRICS,
-          yAxis: 'count(value)',
-          includeAnnotations: 1,
+          referrer: 'api.explore.dropped-data-annotations',
         }),
       })
     );
+    expect(request.mock.calls[0][1].query).not.toHaveProperty('yAxis');
     expect(result.current.droppedAnnotations).toEqual(droppedAnnotations);
   });
 
-  it('does not request annotations without the feature flag', () => {
+  it('does not request dropped events without the feature flag', () => {
     const request = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events-timeseries/`,
-      body: {timeSeries: [], meta: {}},
+      url: `/organizations/${organization.slug}/events-dropped/`,
+      body: droppedEventsBody(),
     });
 
     const {result} = renderHookWithProviders(

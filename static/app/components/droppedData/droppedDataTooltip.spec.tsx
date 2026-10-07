@@ -103,38 +103,6 @@ describe('DroppedDataTooltip', () => {
     expect(screen.getByText('SDK Data Dropped')).toBeInTheDocument();
   });
 
-  it('shares one byte unit between the payload row numbers', () => {
-    render(
-      <ExampleDroppedDataTooltip
-        dropped={[
-          AnnotationFixture({start: START, end: END, eventCount: 10, byteSize: 26e9}),
-        ]}
-        accepted={[
-          AnnotationFixture({
-            start: START,
-            end: END,
-            eventCount: 90,
-            byteSize: 224e9,
-          }),
-        ]}
-      />
-    );
-
-    expect(screen.getByText('Payloads Rejected')).toBeInTheDocument();
-    expect(screen.getByText('26')).toBeInTheDocument();
-    expect(screen.getByText('/250 GB')).toBeInTheDocument();
-  });
-
-  it('omits the payload row for datasets without a byte category', () => {
-    render(
-      <ExampleDroppedDataTooltip
-        dropped={[AnnotationFixture({start: START, end: END, eventCount: 10})]}
-      />
-    );
-
-    expect(screen.queryByText('Payloads Rejected')).not.toBeInTheDocument();
-  });
-
   it('falls back to a generic label for an unknown outcome', () => {
     render(
       <ExampleDroppedDataTooltip
