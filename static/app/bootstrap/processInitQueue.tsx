@@ -1,9 +1,7 @@
 import {useState} from 'react';
-import {createRoot} from 'react-dom/client';
 import {createBrowserRouter} from 'react-router';
 import {RouterProvider} from 'react-router/dom';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
-import throttle from 'lodash/throttle';
 
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
 import {DocumentTitleManager} from 'sentry/components/sentryDocumentTitle/documentTitleManager';
@@ -42,49 +40,6 @@ function SimpleRouter({element}: SimpleRouterProps) {
 }
 
 async function processItem(initConfig: OnSentryInitConfiguration) {
-  /**
-   * Allows our auth pages to dynamically attach a client side password
-   * strength indicator The password strength component is very
-   * heavyweight as it includes the zxcvbn, a relatively byte-heavy
-   * password strength estimation library. Load it on demand.
-   */
-  if (initConfig.name === 'passwordStrength') {
-    if (!initConfig.input || !initConfig.element) {
-      return;
-    }
-    const inputElem = document.querySelector(initConfig.input);
-    const rootEl = document.querySelector(initConfig.element);
-
-    if (!inputElem || !rootEl) {
-      return;
-    }
-
-    const {PasswordStrength} = await import(
-      /* webpackChunkName: "PasswordStrength" */ 'sentry/components/passwordStrength'
-    );
-
-    const root = createRoot(rootEl);
-    inputElem.addEventListener(
-      'input',
-      throttle(e => {
-        root.render(
-          /**
-           * The screens and components rendering here will always render in light mode.
-           * This is because config is not available at this point (user might not be logged in yet),
-           * and so we dont know which theme to pick.
-           */
-          <QueryClientProvider client={queryClient}>
-            <ThemeAndStyleProvider>
-              <PasswordStrength value={e.target.value} />
-            </ThemeAndStyleProvider>
-          </QueryClientProvider>
-        );
-      })
-    );
-
-    return;
-  }
-
   /**
    * Allows server rendered templates to render a React component to DOM
    * without exposing the component globally.

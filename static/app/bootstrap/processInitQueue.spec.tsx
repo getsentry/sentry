@@ -7,43 +7,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {act, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {processInitQueue} from 'sentry/bootstrap/processInitQueue';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
 
 describe('processInitQueue', () => {
   describe('renderReact', () => {
-    it('renders password strength input', async () => {
-      window.__onSentryInit = [
-        {
-          name: 'passwordStrength',
-          input: '#password',
-          element: '#password-strength',
-        },
-      ];
-
-      render(
-        <div>
-          <input id="password" placeholder="password" />
-          <div id="password-strength" />
-        </div>
-      );
-
-      processInitQueue();
-
-      // Assert that password strength renders and reacts to user input
-      await userEvent.type(screen.getByPlaceholderText('password'), '!');
-      expect(await screen.findByText('Very Weak')).toBeInTheDocument();
-
-      // Type the rest of the password
-      await userEvent.type(
-        screen.getByPlaceholderText('password'),
-        '!!!!!supersecretpassword!!!!!!'
-      );
-      expect(await screen.findByText('Very Strong')).toBeInTheDocument();
-    });
-
     it('renders setup wizard', async () => {
       window.__onSentryInit = [
         {
