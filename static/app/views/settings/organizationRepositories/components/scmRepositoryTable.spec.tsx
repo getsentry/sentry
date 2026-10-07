@@ -441,4 +441,22 @@ describe('ScmRepositoryTable', () => {
       expect(await screen.findByTestId('platform-icon-python')).toBeInTheDocument();
     });
   });
+
+  it('renders without crashing when integration has no provider', () => {
+    const installationWithoutProvider = makeInstallation({
+      integration: OrganizationIntegrationsFixture({id: '1', provider: undefined}),
+    });
+
+    expect(() =>
+      render(
+        <ScmRepositoryTable
+          provider={provider}
+          installations={[installationWithoutProvider]}
+        />
+      )
+    ).not.toThrow();
+
+    // Integration name should still render even without a provider.
+    expect(screen.getByText('hb-testing')).toBeInTheDocument();
+  });
 });
