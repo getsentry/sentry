@@ -25,6 +25,17 @@ interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;
 }
 
+/**
+ * A name and, when there is one, a version. Two values rather than one joined
+ * string: they are separate properties of the replay.
+ */
+function nameAndVersion(
+  name: string,
+  version: string | null
+): [React.ReactNode, ...React.ReactNode[]] {
+  return version ? [name, version] : [name];
+}
+
 export function ReplayDetailsEntityHeader({readerResult}: Props) {
   const location = useLocation();
   const matches = useMatches();
@@ -108,7 +119,6 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
       people: {
         users: viewers.users,
         label: t('Viewed by'),
-        collectiveNoun: t('viewers'),
         isLoading: viewers.isPending,
       },
       stats: [
@@ -147,26 +157,25 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
       metadata: {
         label: t('Replay properties'),
         items: [
-          {
-            leadingGraphic: <IconCalendar size="sm" variant="muted" />,
-            label: t('Started at'),
-            values:
-              replayRecord && !replayRecord.is_archived
-                ? [
-                    prefs.timestampType === 'absolute' ? (
-                      <DateTime
-                        key="started"
-                        year
-                        timeZone
-                        date={replayRecord.started_at}
-                      />
-                    ) : (
-                      <TimeSince key="started" date={replayRecord.started_at} />
-                    ),
-                  ]
-                : [],
-            loadingWidth: '150px',
-          },
+          replayRecord && !replayRecord.is_archived
+            ? {
+                leadingGraphic: <IconCalendar size="md" variant="muted" />,
+                label: t('Started at'),
+                values: [
+                  prefs.timestampType === 'absolute' ? (
+                    <DateTime
+                      key="started"
+                      year
+                      timeZone
+                      date={replayRecord.started_at}
+                    />
+                  ) : (
+                    <TimeSince key="started" date={replayRecord.started_at} />
+                  ),
+                ],
+                loadingWidth: '150px',
+              }
+            : null,
           replayRecord?.browser.name
             ? {
                 leadingGraphic: (
@@ -179,10 +188,9 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
                   />
                 ),
                 label: t('Browser'),
-                // Two values, not one string the caller joined: the name and the
-                // version are separate properties of the replay.
-                values: [replayRecord.browser.name, replayRecord.browser.version].filter(
-                  Boolean
+                values: nameAndVersion(
+                  replayRecord.browser.name,
+                  replayRecord.browser.version
                 ),
               }
             : null,
@@ -198,7 +206,7 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
                   />
                 ),
                 label: t('Operating system'),
-                values: [replayRecord.os.name, replayRecord.os.version].filter(Boolean),
+                values: nameAndVersion(replayRecord.os.name, replayRecord.os.version),
               }
             : null,
         ],

@@ -1,10 +1,10 @@
 import {Fragment} from 'react';
+import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import {AvatarList} from '@sentry/scraps/avatar';
 import {ROW_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
-import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {Placeholder} from 'sentry/components/placeholder';
 import type {AvatarUser} from 'sentry/types/user';
@@ -16,8 +16,8 @@ const AVATAR_SIZE = 24;
 export interface EntityHeaderPeopleProps {
   /**
    * How these people relate to the entity, e.g. "Viewed by" or "Participants".
-   * Required because a stack of faces says nothing on its own — it becomes the
-   * header of each avatar's tooltip.
+   * Required because a stack of faces says nothing on its own — it heads the
+   * text a screen reader reads in place of the stack.
    */
   label: string;
   /**
@@ -25,11 +25,6 @@ export interface EntityHeaderPeopleProps {
    * renders nothing.
    */
   users: AvatarUser[];
-  /**
-   * What to call them in the overflow chip, e.g. "viewers" gives "+3 other
-   * viewers". Defaults to "people".
-   */
-  collectiveNoun?: string;
   /**
    * These usually load on their own schedule, separate from the entity, so this
    * is independent of the header's `isLoading`.
@@ -43,50 +38,56 @@ export interface EntityHeaderPeopleProps {
 }
 
 export function EntityHeaderPeople({
-  collectiveNoun,
   isLoading,
   label,
   loadingWidth = '40px',
   maxVisibleAvatars = 5,
   users,
 }: EntityHeaderPeopleProps) {
-  const {t} = useTranslation();
-
   if (!isLoading && users.length === 0) {
     return null;
   }
 
+  // The stack is read as text, not as a group of images.
+  //
+  // An uploaded avatar reaches the accessibility tree as an `img` with the
+  // person's name; a letter avatar reaches it as a `span` with a `title` and an
+  // svg of initials, which is not a reliable name. Most people have no uploaded
+  // avatar, so the stack announced as a run of single letters. The avatars are
+  // not focusable either, so their tooltips were mouse-only and the overflow
+  // chip was unreachable by anyone.
+  //
+  // Naming everyone here fixes all three at once, and does not depend on a
+  // screen reader announcing a `group` role.
+  const names = users.map(user => userDisplayName(user, false)).join(', ');
+
   return (
-    // The stack needs the label programmatically, not only inside a hover
-    // tooltip: the avatars are not focusable, so a tooltip alone is mouse-only
-    // and a screen reader hears an unexplained run of initials.
-    <Flex
-      align="center"
-      height={ROW_HEIGHT}
-      flexShrink={0}
-      role="group"
-      aria-label={label}
-    >
+    <Flex align="center" height={ROW_HEIGHT} flexShrink={0}>
       {isLoading ? (
         <Placeholder width={loadingWidth} height={`${AVATAR_SIZE}px`} />
       ) : (
-        <AvatarList
-          users={users}
-          avatarSize={AVATAR_SIZE}
-          maxVisibleAvatars={maxVisibleAvatars}
-          // A bare stack of faces does not say what it represents, so both the
-          // per-avatar tooltip and the overflow chip name the relationship.
-          // Without this the chip reads "+3 other users", AvatarList's default.
-          typeAvatars={collectiveNoun ?? t('people')}
-          renderTooltip={user => (
-            <Fragment>
-              <Tooltip.Header>{label}</Tooltip.Header>
-              <Tooltip.Grid>
-                <Tooltip.Row>{userDisplayName(user)}</Tooltip.Row>
-              </Tooltip.Grid>
-            </Fragment>
-          )}
-        />
+        <Fragment>
+          <VisuallyHidden>{`${label}: ${names}`}</VisuallyHidden>
+          {/*
+            Decorative once the names are spoken above — otherwise a screen
+            reader reads the list and then the initials behind it.
+          */}
+          <Flex aria-hidden>
+            <AvatarList
+              users={users}
+              avatarSize={AVATAR_SIZE}
+              maxVisibleAvatars={maxVisibleAvatars}
+              renderTooltip={user => (
+                <Fragment>
+                  <Tooltip.Header>{label}</Tooltip.Header>
+                  <Tooltip.Grid>
+                    <Tooltip.Row>{userDisplayName(user)}</Tooltip.Row>
+                  </Tooltip.Grid>
+                </Fragment>
+              )}
+            />
+          </Flex>
+        </Fragment>
       )}
     </Flex>
   );

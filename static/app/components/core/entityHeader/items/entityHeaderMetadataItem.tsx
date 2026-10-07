@@ -26,8 +26,11 @@ export interface EntityHeaderMetadataItemProps {
    * The values themselves, rendered together. One item is one property, which
    * may take more than one value to express: a browser is its name *and* its
    * version, which is two values rather than one string the caller joined.
+   *
+   * At least one. An item with none would announce a label and then nothing,
+   * which reads as a property whose value failed to load.
    */
-  values: React.ReactNode[];
+  values: [React.ReactNode, ...React.ReactNode[]];
   /**
    * Decorative 16x16 graphic rendered before the values.
    */

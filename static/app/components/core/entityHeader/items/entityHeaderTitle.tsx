@@ -28,22 +28,36 @@ const LEADING_GRAPHIC_SIZE = 24;
  */
 const LEADING_AVATAR_SIZE = 20;
 
-interface EntityHeaderLeadingGraphicBase {
-  /**
-   * Names the graphic for assistive technology, and shows on hover.
-   *
-   * Leave it off when the graphic repeats what the title already says — a
-   * platform icon next to "ValueError" tells a screen reader nothing new, and
-   * stays decorative. Give it one when the graphic carries something the title
-   * does not, such as which projects a trace touched.
-   */
-  label?: string;
-  /**
-   * Richer hover content than `label`, for a graphic standing in for a list.
-   * Requires `label`, which remains the accessible name.
-   */
-  tooltip?: React.ReactNode;
-}
+/**
+ * Either the graphic is named, in which case it may also elaborate on hover, or
+ * it is decorative and says nothing.
+ *
+ * A `tooltip` without a `label` used to type-check and then be discarded
+ * silently, because the tooltip is only rendered when there is a label to be
+ * the accessible name. The pairing is now unrepresentable.
+ */
+type EntityHeaderLeadingGraphicBase =
+  | {
+      /**
+       * Names the graphic for assistive technology. Give it one when the
+       * graphic carries something the title does not, such as which projects a
+       * trace touched.
+       */
+      label: string;
+      /**
+       * Richer hover content than `label`. Mouse-only — the graphic is not
+       * focusable — so keep anything a user needs in `label` itself.
+       */
+      tooltip?: React.ReactNode;
+    }
+  | {
+      /**
+       * Leave both off when the graphic repeats what the title already says. A
+       * platform icon next to "ValueError" tells a screen reader nothing new.
+       */
+      label?: never;
+      tooltip?: never;
+    };
 
 /**
  * The graphic that can sit before the title. Declared as data rather than a
@@ -167,8 +181,13 @@ export function EntityHeaderTitle({
     // come back.
     return (
       <Flex align="center" minHeight={ROW_HEIGHT}>
+        {/*
+          Named by the label alone. The value is not known yet, and a caller
+          with a fallback — "Anonymous User" while the record loads — would
+          otherwise have the header assert a name it has not got.
+        */}
         <VisuallyHidden>
-          <Heading as="h2" size="lg" aria-label={accessibleName}>
+          <Heading as="h2" size="lg" aria-label={label}>
             {value}
           </Heading>
         </VisuallyHidden>

@@ -447,20 +447,31 @@ describe('EntityHeader', () => {
       expect(screen.getByText('Alice (alice@example.com)')).toBeInTheDocument();
     });
 
-    it('names the people stack programmatically, not only on hover', () => {
+    it('reads the people out by name rather than as a stack of initials', () => {
       render(
         <EntityHeader
           title={{label: 'Replay user', value: 'Session'}}
           people={{
-            users: [UserFixture({id: '1', name: 'Alice'})],
+            users: [
+              UserFixture({id: '1', name: 'Alice'}),
+              UserFixture({id: '2', name: 'Bob'}),
+            ],
             label: 'Viewed by',
           }}
         />
       );
 
-      // The avatars are not focusable, so a tooltip alone reaches nobody
-      // without a mouse — a screen reader would hear a run of bare initials.
-      expect(screen.getByRole('group', {name: 'Viewed by'})).toBeInTheDocument();
+      // Most people have no uploaded avatar, and a letter avatar reaches the
+      // tree as initials with an unreliable name. The avatars are not focusable
+      // either, so their tooltips are mouse-only. Naming everyone as text fixes
+      // all of that, and does not rely on a `group` role being announced.
+      expect(screen.getByText('Viewed by: Alice, Bob')).toBeInTheDocument();
+
+      // And the stack itself is decorative now the names are spoken.
+      const stack = screen
+        .getAllByTestId('letter_avatar-avatar')[0]!
+        .closest('[aria-hidden]');
+      expect(stack).toBeInTheDocument();
     });
 
     it('renders nothing for people once they resolve to nobody', () => {
@@ -624,9 +635,9 @@ describe('EntityHeader', () => {
 
       // The heading stays, so the page's structure does not change as the data
       // lands and heading navigation still finds the entity mid-load.
-      expect(
-        screen.getByRole('heading', {level: 2, name: 'Replay user, Session'})
-      ).toBeVisible();
+      // Named by the label alone while loading: the value is not known, and a
+      // caller's fallback would otherwise be asserted as the entity's name.
+      expect(screen.getByRole('heading', {level: 2, name: 'Replay user'})).toBeVisible();
 
       // And the region says it is in flux, which is the only signal a screen
       // reader gets that more is coming.
