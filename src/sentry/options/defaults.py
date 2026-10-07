@@ -1144,6 +1144,24 @@ register(
     default=7,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Number of active, and of idle, bundles the URL lookup reads at most when
+# `sourcemaps.artifact-bundles.url-lookup.max-index-rows` is set. Lookups of releases with more
+# bundles than this are cut short even when the row budget isn't spent, which the
+# `artifact_bundle_url_lookup.candidates` metric tags as `truncated:candidates`. Capped at 10,000.
+register(
+    "sourcemaps.artifact-bundles.url-lookup.max-candidate-bundles",
+    type=Int,
+    default=1000,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Fraction of the URL lookups cut short by the row budget or the bundle cap that are logged,
+# with the organization, project and release, to tell which releases lose files.
+register(
+    "sourcemaps.artifact-bundles.url-lookup.truncated-log-sample-rate",
+    type=Float,
+    default=0.01,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Do not add `ArtifactBundleIndex` rows for files stored under a name built from their own
 # debug ID (`~/<debug-id>-<n>.js`), which lookups find by debug ID rather than by URL.
@@ -1152,6 +1170,23 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Decide whether a release is fully indexed from its newest bundles only, instead of
+# counting every bundle in the release on each artifact-lookup request.
+register(
+    "sourcemaps.artifact-bundles.bounded-indexing-state",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Seconds to cache the bundle count per release used by the upload task to decide whether
+# to index and backfill. 0 disables the cache.
+register(
+    "sourcemaps.artifact-bundles.indexing-state-cache-ttl",
+    type=Int,
+    default=0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 

@@ -18,7 +18,7 @@ const testRule = defineRule({
     },
   },
   create(context) {
-    const tracker = createImportTracker(context);
+    const tracker = createImportTracker();
 
     return {
       ...tracker.visitors,
@@ -26,7 +26,7 @@ const testRule = defineRule({
       // Test resolve() by checking JSX element names
       JSXOpeningElement(node: ESTree.JSXOpeningElement) {
         if (node.name.type === 'JSXIdentifier') {
-          const info = tracker.resolve(node.name);
+          const info = tracker.resolve(node.name.name);
           if (info) {
             context.report({
               node,

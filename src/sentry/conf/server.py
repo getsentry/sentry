@@ -1165,6 +1165,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "performance:sentry.tasks.statistical_detectors.run_detection",
         "schedule": crontab("0", "*/1", "*", "*", "*"),
     },
+    "statistical-detectors-detect-function-change-points": {
+        "task": "profiling:sentry.tasks.statistical_detectors.detect_function_change_points",
+        "schedule": crontab("0", "*/1", "*", "*", "*"),
+    },
     "seer-explorer-index": {
         "task": "seer:sentry.tasks.seer_explorer_index.schedule_explorer_index",
         "schedule": crontab("0", "*/1", "*", "*", "*"),
@@ -2479,7 +2483,6 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.jira_server.JiraServerIntegrationProvider",
     "sentry.integrations.vsts.VstsIntegrationProvider",
     "sentry.integrations.pagerduty.integration.PagerDutyIntegrationProvider",
-    "sentry.integrations.vercel.VercelIntegrationProvider",
     "sentry.integrations.msteams.integration.MsTeamsIntegrationProvider",
     "sentry.integrations.aws_lambda.AwsLambdaIntegrationProvider",
     "sentry.integrations.discord.DiscordIntegrationProvider",
