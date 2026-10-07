@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -108,19 +108,20 @@ export function Banner({
           </Grid>
         </Grid>
       </BannerFlex>
-      <Button
-        size="zero"
-        icon={<IconClose />}
-        onClick={dismiss}
-        aria-label={t('Close')}
-        css={css`
-          position: absolute;
-          top: -${theme.space.md};
-          right: -${theme.space.md};
-          border-radius: 50%;
-          z-index: 1;
-        `}
-      />
+      <Container
+        position="absolute"
+        top={`-${theme.space.md}`}
+        right={`-${theme.space.md}`}
+        style={{zIndex: 1}}
+      >
+        <Button
+          size="zero"
+          icon={<IconClose />}
+          onClick={dismiss}
+          aria-label={t('Close')}
+          style={{borderRadius: '50%'}}
+        />
+      </Container>
     </Container>
   );
 }
