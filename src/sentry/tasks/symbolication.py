@@ -9,6 +9,7 @@ from django.conf import settings
 from sentry_sdk import traces
 from taskbroker_client.constants import CompressionType
 
+from sentry import options
 from sentry.ingest.event_payload import load_event_payload, prepare_submit
 from sentry.killswitches import killswitch_matches_context
 from sentry.lang.native.processing import (
@@ -69,6 +70,7 @@ def _do_symbolicate_event(
     data: Event | None = None,
     has_attachments: bool = False,
     symbolicate_functions: list[SymbolicatorFunction] | None = None,
+    unprocessed_pending: bool = False,
     unprocessed: MutableMapping[str, Any] | None = None,
 ) -> None:
     data = load_event_payload(data, cache_key, processing.event_processing_store)
@@ -88,9 +90,8 @@ def _do_symbolicate_event(
     sentry_sdk.set_tag("event_id", event_id)
     sentry_sdk.set_attribute("event_id", event_id)
 
-    # Eager task execution doesn't serialize task arguments, so copy before symbolication
-    # modifies the payload in place.
-    if unprocessed is data:
+    # Copy before symbolication modifies the payload in place, even if it is skipped.
+    if unprocessed_pending and not options.get("store.reprocessing-force-disable"):
         unprocessed = copy.deepcopy(data)
 
     def _continue_to_process_event(was_killswitched: bool = False) -> None:
@@ -240,6 +241,7 @@ def submit_symbolicate(
     has_attachments: bool = False,
     symbolicate_functions: list[SymbolicatorFunction] | None = None,
     data: Event | None = None,
+    unprocessed_pending: bool = False,
     unprocessed: MutableMapping[str, Any] | None = None,
 ) -> None:
     data, cache_key = prepare_submit(data, cache_key, event_id)
@@ -263,6 +265,7 @@ def submit_symbolicate(
         has_attachments=has_attachments,
         symbolicate_functions=symbolicate_function_names,
         data=data,
+        unprocessed_pending=unprocessed_pending,
         unprocessed=unprocessed,
     )
 
@@ -292,6 +295,7 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
         data: Event | None = None,
         has_attachments: bool = False,
         symbolicate_functions: list[str] | None = None,
+        unprocessed_pending: bool = False,
         unprocessed: MutableMapping[str, Any] | None = None,
         **kwargs: Any,
     ) -> None:
@@ -320,6 +324,7 @@ def make_task_fn(name: str, queue: str, task_kind: SymbolicatorTaskKind) -> Symb
             data=data,
             has_attachments=has_attachments,
             symbolicate_functions=symbolicate_function_values,
+            unprocessed_pending=unprocessed_pending,
             unprocessed=unprocessed,
         )
 

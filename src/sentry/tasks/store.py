@@ -243,12 +243,9 @@ def _do_preprocess_event(
                 "symbolication_function": symbolication_function_name,
             },
         ):
-            unprocessed = None
             transport = get_event_payload_transport(event_id)
             if transport.cache:
                 reprocessing2.backup_unprocessed_event(data=original_data)
-            if transport.inline and not options.get("store.reprocessing-force-disable"):
-                unprocessed = original_data
 
             submit_symbolicate(
                 SymbolicatorTaskKind(
@@ -261,7 +258,7 @@ def _do_preprocess_event(
                 has_attachments=has_attachments,
                 symbolicate_functions=symbolicate_functions,
                 data=data,
-                unprocessed=unprocessed,
+                unprocessed_pending=transport.inline,
             )
             return
         # else: go directly to process, do not go through the symbolicate queue, do not collect 200
