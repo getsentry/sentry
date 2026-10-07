@@ -14,9 +14,6 @@ import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils/defined';
 import {unreachable} from 'sentry/utils/unreachable';
 
-const LEADING_GRAPHIC_SIZE = 24;
-const LEADING_AVATAR_SIZE = 20;
-
 /**
  * Either the graphic is named, in which case it may also elaborate on hover, or
  * it is decorative and says nothing.
@@ -90,20 +87,15 @@ export interface EntityHeaderTitleProps {
 function LeadingGraphic({graphic}: {graphic: EntityHeaderLeadingGraphic}) {
   switch (graphic.type) {
     case 'user':
-      return <UserAvatar user={graphic.user} size={LEADING_AVATAR_SIZE} />;
+      return <UserAvatar user={graphic.user} size={20} />;
     case 'project': {
       const platforms = graphic.projects.map(project => project.platform).filter(defined);
       return platforms.length === 0 ? null : (
-        <ProjectsBadge projectPlatforms={platforms} size={LEADING_GRAPHIC_SIZE} />
+        <ProjectsBadge projectPlatforms={platforms} size={24} />
       );
     }
     case 'platform':
-      return (
-        <ProjectsBadge
-          projectPlatforms={[graphic.platform]}
-          size={LEADING_GRAPHIC_SIZE}
-        />
-      );
+      return <ProjectsBadge projectPlatforms={[graphic.platform]} size={24} />;
     default:
       unreachable(graphic);
       return null;
@@ -115,8 +107,8 @@ function LeadingGraphicSlot({graphic}: {graphic: EntityHeaderLeadingGraphic}) {
     <Flex
       align="center"
       justify="center"
-      width={`${LEADING_GRAPHIC_SIZE}px`}
-      height={`${LEADING_GRAPHIC_SIZE}px`}
+      width="24px"
+      height="24px"
       flexShrink={0}
       // Labelled, the slot becomes an image in its own right and the badge
       // inside it stays decorative, which is what lets a trace say which

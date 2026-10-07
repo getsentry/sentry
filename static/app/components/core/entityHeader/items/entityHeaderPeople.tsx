@@ -10,8 +10,6 @@ import {Placeholder} from 'sentry/components/placeholder';
 import type {AvatarUser} from 'sentry/types/user';
 import {userDisplayName} from 'sentry/utils/formatters';
 
-const AVATAR_SIZE = 24;
-
 export interface EntityHeaderPeopleProps {
   /**
    * How these people relate to the entity, e.g. "Viewed by" or "Participants".
@@ -63,7 +61,7 @@ export function EntityHeaderPeople({
   return (
     <Flex align="center" height={ROW_HEIGHT} flexShrink={0}>
       {isLoading ? (
-        <Placeholder width={loadingWidth} height={`${AVATAR_SIZE}px`} />
+        <Placeholder width={loadingWidth} height="24px" />
       ) : (
         <Fragment>
           <VisuallyHidden>{`${label}: ${names}`}</VisuallyHidden>
@@ -74,7 +72,7 @@ export function EntityHeaderPeople({
           <Flex aria-hidden>
             <AvatarList
               users={users}
-              avatarSize={AVATAR_SIZE}
+              avatarSize={24}
               maxVisibleAvatars={maxVisibleAvatars}
               renderTooltip={user => (
                 <Fragment>
