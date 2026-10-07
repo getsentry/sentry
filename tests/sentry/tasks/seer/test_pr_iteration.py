@@ -69,8 +69,10 @@ from sentry.tasks.seer.pr_iteration import (
     ALREADY_PAUSED_PR_ITERATION_COMMENT,
     STOP_PR_ITERATION_FAILED_COMMENT,
     STOPPED_PR_ITERATION_COMMENT,
+    _add_review_reaction,
     _build_review_feedback,
     _delete_own_comment_eyes_reaction,
+    _delete_own_review_eyes_reaction,
     _dropped_drain_reason,
     _ineligible_pr_iteration_comment_body,
     consume_queued_autofix_feedback,
@@ -2856,6 +2858,61 @@ class DeleteOwnCommentEyesReactionTest(TestCase):
         )
 
         mock_scm_actions.delete_pull_request_comment_reaction.assert_not_called()
+
+
+class _ReviewReactionScmProtocols:
+    def create_pull_request_review_reaction(self, *args: Any, **kwargs: Any) -> Any: ...
+
+    def delete_pull_request_review_reaction(self, *args: Any, **kwargs: Any) -> Any: ...
+
+
+class ReviewReactionTest(TestCase):
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_adds_reaction_by_review_id(self, mock_scm_actions: MagicMock) -> None:
+        scm = MagicMock(spec=_ReviewReactionScmProtocols)
+
+        _add_review_reaction(scm, pr_number=7, review_id=500, reaction="eyes")
+
+        mock_scm_actions.create_pull_request_review_reaction.assert_called_once_with(
+            scm, "7", "500", "eyes"
+        )
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_add_skips_unsupported_provider(self, mock_scm_actions: MagicMock) -> None:
+        _add_review_reaction(MagicMock(spec=[]), pr_number=7, review_id=500, reaction="eyes")
+
+        mock_scm_actions.create_pull_request_review_reaction.assert_not_called()
+
+    @patch(f"{TASK_PATH}.sentry_sdk.capture_exception")
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_add_swallows_exceptions(
+        self, mock_scm_actions: MagicMock, mock_capture: MagicMock
+    ) -> None:
+        mock_scm_actions.create_pull_request_review_reaction.side_effect = RuntimeError("boom")
+
+        _add_review_reaction(
+            MagicMock(spec=_ReviewReactionScmProtocols), pr_number=7, review_id=500, reaction="eyes"
+        )
+
+        mock_capture.assert_called_once()
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_deletes_own_eyes_by_content(self, mock_scm_actions: MagicMock) -> None:
+        scm = MagicMock(spec=_ReviewReactionScmProtocols)
+
+        _delete_own_review_eyes_reaction(scm, pr_number=7, review_id=500)
+
+        mock_scm_actions.delete_pull_request_review_reaction.assert_called_once_with(
+            scm, "7", "500", "eyes"
+        )
+
+    @patch(f"{TASK_PATH}.scm_actions")
+    def test_delete_swallows_exceptions(self, mock_scm_actions: MagicMock) -> None:
+        mock_scm_actions.delete_pull_request_review_reaction.side_effect = RuntimeError("boom")
+
+        _delete_own_review_eyes_reaction(
+            MagicMock(spec=_ReviewReactionScmProtocols), pr_number=7, review_id=500
+        )
 
 
 class BuildReviewFeedbackTest(TestCase):
