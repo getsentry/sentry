@@ -662,7 +662,7 @@ importers:
         version: 3.3.4(@jest/globals@30.5.1)
       jest-resolve:
         specifier: 30.5.1
-        version: 30.5.1
+        version: 30.5.1(patch_hash=f2282b64ef6129c114392d79cc5894368f2712b69b366cc01b8f5fe8e683773f)
       jsdom:
         specifier: 30.1.1
         version: 30.1.1(@noble/hashes@1.8.0)
