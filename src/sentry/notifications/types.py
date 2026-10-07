@@ -71,15 +71,11 @@ class NotificationOrigin:
 
     @property
     def link_id(self) -> int:
-        """Return the key shared by rule details and rendering context mappings.
-
-        Workflow-backed origins use the workflow ID so templates can find workflow
-        links. Legacy-only origins retain the legacy rule ID.
-        """
-        if self.workflow_id is not None:
-            return self.workflow_id
-        assert self.legacy_rule_id is not None
-        return self.legacy_rule_id
+        """Legacy-compatible ID for contexts that previously consumed Rule.id."""
+        if self.legacy_rule_id is not None:
+            return self.legacy_rule_id
+        assert self.workflow_id is not None
+        return self.workflow_id
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, NotificationOrigin):
