@@ -1,7 +1,7 @@
 import {Fragment, useCallback, useEffect, useEffectEvent, useMemo} from 'react';
-import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
+import {Container} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import type {AssignableEntity} from 'sentry/components/assigneeSelectorDropdown';
@@ -16,6 +16,11 @@ import {
   DEFAULT_STREAM_GROUP_STATS_PERIOD,
   StreamGroup,
 } from 'sentry/components/stream/group';
+import {
+  StreamGroupTable,
+  useStreamGroupColumns,
+} from 'sentry/components/stream/groupColumns';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {Group, PriorityLevel} from 'sentry/types/group';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
@@ -34,10 +39,8 @@ export type GroupListColumn =
   | 'event'
   | 'users'
   | 'priority'
-  | 'progress'
   | 'assignee'
   | 'assigneeAvatar'
-  | 'lastTriggered'
   | 'firstSeen'
   | 'lastSeen';
 
@@ -195,6 +198,13 @@ export function GroupList({
 
   const queryClient = useQueryClient();
 
+  const {columns, selectionEnabled} = useStreamGroupColumns({
+    canSelect: canSelectGroups,
+    displayReprocessingLayout: false,
+    withChart,
+    withColumns,
+  });
+
   const issuesQueryOptions =
     endpoint.path === '/organizations/$organizationIdOrSlug/issues/'
       ? apiOptions.as<Group[]>()(endpoint.path, {
@@ -300,8 +310,6 @@ export function GroupList({
     dataUpdatedAt,
   ]);
 
-  const columns = withColumns;
-
   if (hasError) {
     // A retry only helps a failure that could land differently next time. The
     // query here is fixed, so a boolean one the endpoint never accepts and a
@@ -338,14 +346,18 @@ export function GroupList({
 
   return (
     <Fragment>
-      <PanelContainer>
-        {withHeader && <GroupListHeader withChart={!!withChart} withColumns={columns} />}
-        <PanelBody>
+      <StreamGroupTable columns={columns}>
+        {withHeader && (
+          <GroupListHeader columns={columns} selectionEnabled={selectionEnabled} />
+        )}
+        <SimpleTable.Body>
           {loading
             ? Array.from({length: numPlaceholderRows}, (_, i) => (
-                <GroupPlaceholder key={i}>
-                  <Placeholder height="50px" />
-                </GroupPlaceholder>
+                <SimpleTable.FullWidthRow key={i}>
+                  <Container padding="md">
+                    <Placeholder height="50px" />
+                  </Container>
+                </SimpleTable.FullWidthRow>
               ))
             : groups.map(group => {
                 const members = memberList?.get(group.project.slug);
@@ -356,7 +368,7 @@ export function GroupList({
                     group={group}
                     canSelect={canSelectGroups}
                     withChart={withChart}
-                    withColumns={columns}
+                    withColumns={withColumns}
                     memberList={members}
                     useFilteredStats={useFilteredStats}
                     useTintRow={useTintRow}
@@ -373,23 +385,11 @@ export function GroupList({
                   />
                 );
               })}
-        </PanelBody>
-      </PanelContainer>
+        </SimpleTable.Body>
+      </StreamGroupTable>
       {withPagination && (
         <Pagination pageLinks={pageLinks} onCursor={handleCursorChange} />
       )}
     </Fragment>
   );
 }
-
-const GroupPlaceholder = styled('div')`
-  padding: ${p => p.theme.space.md};
-
-  &:not(:last-child) {
-    border-bottom: solid 1px ${p => p.theme.tokens.border.secondary};
-  }
-`;
-
-const PanelContainer = styled(Panel)`
-  container-type: inline-size;
-`;

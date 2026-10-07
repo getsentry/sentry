@@ -2474,11 +2474,6 @@
       "count": 1
     }
   },
-  "static/app/views/issueList/actions/index.tsx": {
-    "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
   "static/app/views/issueList/issueViews/createIssueViewModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1

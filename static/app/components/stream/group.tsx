@@ -1,11 +1,12 @@
 import {Fragment, useCallback, useMemo, useRef} from 'react';
-import {css, useTheme} from '@emotion/react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
 import InteractionStateLayer from '@sentry/scraps/interactionStateLayer';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
@@ -20,10 +21,15 @@ import {GroupHeaderRow} from 'sentry/components/groupHeaderRow';
 import {GroupMetaRow} from 'sentry/components/groupMetaRow';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {PanelItem} from 'sentry/components/panels/panelItem';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ProgressBar} from 'sentry/components/progressBar';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
+import {
+  StreamGroupCell,
+  useStreamGroupColumns,
+  type StreamGroupColumn,
+} from 'sentry/components/stream/groupColumns';
+import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {TimeSince} from 'sentry/components/timeSince';
 import {UnreadIndicator} from 'sentry/components/unreadIndicator';
@@ -53,7 +59,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {useAssignIssueMutation} from 'sentry/views/issueDetails/useAssignIssueMutation';
-import {COLUMN_BREAKPOINTS} from 'sentry/views/issueList/actions/utils';
 import {
   useOptionalIssueSelectionActions,
   useOptionalIssueSelectionSummary,
@@ -65,14 +70,7 @@ import {
 } from 'sentry/views/issueList/utils';
 
 export const DEFAULT_STREAM_GROUP_STATS_PERIOD = '24h';
-const COLUMNS: GroupListColumn[] = [
-  'graph',
-  'event',
-  'users',
-  'priority',
-  'assignee',
-  'lastTriggered',
-];
+const COLUMNS: GroupListColumn[] = ['graph', 'event', 'users', 'priority', 'assignee'];
 
 type Props = {
   group: Group;
@@ -180,160 +178,63 @@ function GroupFirstSeen({group}: {group: Group}) {
 
 type LoadingSteamGroupProps = Pick<
   Props,
-  'displayReprocessingLayout' | 'withChart' | 'withColumns'
+  'canSelect' | 'displayReprocessingLayout' | 'withChart' | 'withColumns'
 >;
 
 export function LoadingStreamGroup({
-  displayReprocessingLayout,
+  canSelect = true,
+  displayReprocessingLayout = false,
   withChart = true,
   withColumns = COLUMNS,
 }: LoadingSteamGroupProps) {
-  const theme = useTheme();
+  const {columns, selectionEnabled} = useStreamGroupColumns({
+    canSelect,
+    displayReprocessingLayout,
+    withChart,
+    withColumns,
+  });
 
   return (
-    <Wrapper data-test-id="group" useTintRow={false} reviewed={false}>
-      <GroupSummary canSelect={false}>
-        <Placeholder height="58px" />
-      </GroupSummary>
-      {withColumns.includes('lastSeen') && (
-        <Flex
-          display={{zero: 'none', [COLUMN_BREAKPOINTS.LAST_SEEN]: 'flex'}}
-          width="86px"
-          paddingRight="xl"
-          marginRight="xl"
-          align="center"
-          justify="end"
+    <StreamGroupRow data-test-id="group" useTintRow={false} reviewed={false}>
+      {columns.map(column => (
+        <StreamGroupCell
+          key={column.key}
+          column={column}
+          selectionEnabled={selectionEnabled}
         >
-          <Placeholder height="18px" width="70px" />
-        </Flex>
-      )}
-      {withColumns.includes('firstSeen') && (
-        <Flex
-          display={{zero: 'none', [COLUMN_BREAKPOINTS.FIRST_SEEN]: 'flex'}}
-          width="50px"
-          paddingRight="xl"
-          marginRight="xl"
-          align="center"
-          justify="end"
-        >
-          <Placeholder height="18px" width="30px" />
-        </Flex>
-      )}
-      {withChart && !displayReprocessingLayout && (
-        <Container
-          display={{zero: 'none', [COLUMN_BREAKPOINTS.TREND]: 'block'}}
-          width="175px"
-          alignSelf="center"
-          marginRight="xl"
-        >
-          <Placeholder height="36px" />
-        </Container>
-      )}
-      {displayReprocessingLayout ? (
-        <Fragment>
-          <Container
-            width={{zero: '85px', xl: '140px'}}
-            alignSelf="center"
-            margin="0 xl"
-            whiteSpace="nowrap"
-            overflow="hidden"
-            style={{color: theme.colors.gray800, textOverflow: 'ellipsis'}}
-          >
-            <Placeholder height="17px" />
-          </Container>
-          <Container
-            width={{zero: '75px', xl: '140px'}}
-            alignSelf="center"
-            margin="0 xl"
-            whiteSpace="nowrap"
-            overflow="hidden"
-            style={{color: theme.colors.gray800, textOverflow: 'ellipsis'}}
-          >
-            <Placeholder height="17px" />
-          </Container>
-          <Container
-            display={{zero: 'none', xl: 'block'}}
-            width="160px"
-            margin="0 xl"
-            alignSelf="center"
-          >
-            <Placeholder height="17px" />
-          </Container>
-        </Fragment>
-      ) : (
-        <Fragment>
-          {withColumns.includes('event') && (
-            <Flex
-              display={{zero: 'none', [COLUMN_BREAKPOINTS.EVENTS]: 'flex'}}
-              alignSelf="center"
-              paddingRight="xl"
-              marginRight="xl"
-              width="60px"
-              align="center"
-              justify="end"
-            >
-              <Placeholder height="18px" width="40px" />
-            </Flex>
+          {column.key === 'select' ? null : (
+            <Placeholder {...LOADING_PLACEHOLDER_PROPS[column.key]} />
           )}
-          {withColumns.includes('users') && (
-            <Flex
-              display={{zero: 'none', [COLUMN_BREAKPOINTS.USERS]: 'flex'}}
-              alignSelf="center"
-              paddingRight="xl"
-              marginRight="xl"
-              width="60px"
-              align="center"
-              justify="end"
-            >
-              <Placeholder height="18px" width="40px" />
-            </Flex>
-          )}
-          {withColumns.includes('progress') && (
-            <Flex
-              display={{zero: 'none', [COLUMN_BREAKPOINTS.PROGRESS]: 'flex'}}
-              width="124px"
-              paddingRight="xl"
-              marginRight="xl"
-              alignSelf="center"
-              justify="start"
-            >
-              <Placeholder height="18px" />
-            </Flex>
-          )}
-          {withColumns.includes('priority') && (
-            <Flex
-              display={{zero: 'none', [COLUMN_BREAKPOINTS.PRIORITY]: 'flex'}}
-              width="64px"
-              paddingRight="xl"
-              marginRight="xl"
-              alignSelf="center"
-              justify="end"
-            >
-              <Placeholder height="24px" />
-            </Flex>
-          )}
-          {(withColumns.includes('assignee') ||
-            withColumns.includes('assigneeAvatar')) && (
-            <Flex
-              display={{zero: 'none', [COLUMN_BREAKPOINTS.ASSIGNEE]: 'flex'}}
-              alignSelf="center"
-              width="66px"
-              paddingRight="xl"
-              marginRight="xl"
-              justify="end"
-              style={{textAlign: 'right'}}
-            >
-              <Placeholder height="24px" />
-            </Flex>
-          )}
-        </Fragment>
-      )}
-    </Wrapper>
+        </StreamGroupCell>
+      ))}
+    </StreamGroupRow>
   );
 }
 
-function ReprocessingColumns({group}: {group: GroupReprocessing}) {
-  const theme = useTheme();
+const LOADING_PLACEHOLDER_PROPS: Record<
+  Exclude<StreamGroupColumn['key'], 'select'>,
+  {height: string; width?: string}
+> = {
+  issue: {height: '58px'},
+  lastSeen: {height: '18px', width: '70px'},
+  firstSeen: {height: '18px', width: '30px'},
+  graph: {height: '36px'},
+  reprocessingStarted: {height: '17px'},
+  reprocessingEvents: {height: '17px'},
+  reprocessingProgress: {height: '17px'},
+  event: {height: '18px', width: '40px'},
+  users: {height: '18px', width: '40px'},
+  priority: {height: '24px'},
+  assignee: {height: '24px'},
+};
+
+function ReprocessingCell({
+  column,
+  group,
+}: {
+  column: StreamGroupColumn;
+  group: GroupReprocessing;
+}) {
   const {statusDetails, count} = group;
   const {info, pendingEvents} = statusDetails;
 
@@ -344,51 +245,29 @@ function ReprocessingColumns({group}: {group: GroupReprocessing}) {
   const {totalEvents, dateCreated} = info;
 
   const remainingEventsToReprocess = totalEvents - pendingEvents;
-  const remainingEventsToReprocessPercent = percent(
-    remainingEventsToReprocess,
-    totalEvents
-  );
 
-  return (
-    <Fragment>
-      <Flex
-        width={{zero: '85px', xl: '140px'}}
-        alignSelf="center"
-        margin="0 xl"
-        whiteSpace="nowrap"
-        overflow="hidden"
-        style={{color: theme.colors.gray800, textOverflow: 'ellipsis'}}
-      >
-        <TimeSince date={dateCreated} />
-      </Flex>
-      <Container
-        width={{zero: '75px', xl: '140px'}}
-        alignSelf="center"
-        margin="0 xl"
-        whiteSpace="nowrap"
-        overflow="hidden"
-        style={{color: theme.colors.gray800, textOverflow: 'ellipsis'}}
-      >
-        {defined(count) ? (
-          <Fragment>
-            <Count value={remainingEventsToReprocess} />
-            {'/'}
-            <Count value={totalEvents} />
-          </Fragment>
-        ) : (
-          <Placeholder height="17px" />
-        )}
-      </Container>
-      <Container
-        display={{zero: 'none', xl: 'block'}}
-        width="160px"
-        margin="0 xl"
-        alignSelf="center"
-      >
-        <ProgressBar value={remainingEventsToReprocessPercent} />
-      </Container>
-    </Fragment>
-  );
+  switch (column.key) {
+    case 'reprocessingStarted':
+      return (
+        <Text ellipsis>
+          <TimeSince date={dateCreated} />
+        </Text>
+      );
+    case 'reprocessingEvents':
+      return defined(count) ? (
+        <Text ellipsis>
+          <Count value={remainingEventsToReprocess} />
+          {'/'}
+          <Count value={totalEvents} />
+        </Text>
+      ) : (
+        <Placeholder height="17px" />
+      );
+    case 'reprocessingProgress':
+      return <ProgressBar value={percent(remainingEventsToReprocess, totalEvents)} />;
+    default:
+      return null;
+  }
 }
 
 export function StreamGroup({
@@ -408,7 +287,6 @@ export function StreamGroup({
   onPriorityChange,
   onAssigneeChange,
 }: Props) {
-  const issueSelectionSummary = useOptionalIssueSelectionSummary();
   const issueSelectionActions = useOptionalIssueSelectionActions();
   const groupId = group.id;
 
@@ -416,8 +294,12 @@ export function StreamGroup({
   const navigate = useNavigate();
   const location = useLocation();
   const area = useAnalyticsArea();
-  const selectionEnabled =
-    canSelect && !!issueSelectionSummary && !!issueSelectionActions;
+  const {columns, selectionEnabled} = useStreamGroupColumns({
+    canSelect,
+    displayReprocessingLayout: !!displayReprocessingLayout,
+    withChart,
+    withColumns,
+  });
   const originalInboxState = useRef(group.inbox as InboxDetails | null);
   const {selection} = usePageFilters();
 
@@ -478,7 +360,7 @@ export function StreamGroup({
     ]
   );
 
-  const clickHasBeenHandled = useCallback((evt: React.MouseEvent<HTMLDivElement>) => {
+  const clickHasBeenHandled = useCallback((evt: React.MouseEvent<HTMLElement>) => {
     const targetElement = evt.target as Partial<HTMLElement>;
     const tagName = targetElement?.tagName?.toLowerCase();
 
@@ -661,7 +543,7 @@ export function StreamGroup({
     </Tooltip>
   );
 
-  const onClick = (e: React.MouseEvent<HTMLDivElement>) => {
+  const onClick = (e: React.MouseEvent<HTMLTableRowElement>) => {
     if (displayReprocessingLayout) {
       return;
     }
@@ -696,164 +578,97 @@ export function StreamGroup({
     );
   };
 
-  return (
-    <Wrapper
-      data-test-id="group"
-      data-test-reviewed={reviewed}
-      onClick={onClick}
-      reviewed={reviewed}
-      useTintRow={useTintRow ?? true}
-    >
-      <InteractionStateLayer />
-      <Fragment>
-        {selectionEnabled && (
+  const renderCellContent = (column: StreamGroupColumn) => {
+    switch (column.key) {
+      case 'select':
+        return (
           <GroupCheckbox
             group={group}
             displayReprocessingLayout={displayReprocessingLayout}
           />
-        )}
-        <GroupSummary canSelect={selectionEnabled}>
-          <GroupHeaderRow data={group} query={query} source={referrer} />
-          <GroupMetaRow data={group} showLifetime={false} />
-        </GroupSummary>
-      </Fragment>
-      {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
-
-      {withColumns.includes('lastSeen') && (
-        <Flex
-          display={{zero: 'none', [COLUMN_BREAKPOINTS.LAST_SEEN]: 'flex'}}
-          width="86px"
-          paddingRight="xl"
-          marginRight="xl"
-          align="center"
-          justify="end"
-        >
-          <GroupLastSeen group={group} />
-        </Flex>
-      )}
-
-      {withColumns.includes('firstSeen') && (
-        <Flex
-          display={{zero: 'none', [COLUMN_BREAKPOINTS.FIRST_SEEN]: 'flex'}}
-          width="50px"
-          paddingRight="xl"
-          marginRight="xl"
-          align="center"
-          justify="end"
-        >
-          <GroupFirstSeen group={group} />
-        </Flex>
-      )}
-
-      {withChart && !displayReprocessingLayout && (
-        <Container
-          display={{zero: 'none', [COLUMN_BREAKPOINTS.TREND]: 'block'}}
-          width="175px"
-          alignSelf="center"
-          marginRight="xl"
-        >
-          {issueTypeConfig.stats.enabled && defined(groupStats) ? (
+        );
+      case 'issue':
+        return (
+          <Fragment>
+            <Stack flex="1" justify="center" minWidth="0" overflow="hidden">
+              <GroupHeaderRow data={group} query={query} source={referrer} />
+              <GroupMetaRow data={group} showLifetime={false} />
+            </Stack>
+            {hasGuideAnchor && <GuideAnchor target="issue_stream" />}
+          </Fragment>
+        );
+      case 'lastSeen':
+        return <GroupLastSeen group={group} />;
+      case 'firstSeen':
+        return <GroupFirstSeen group={group} />;
+      case 'graph':
+        return issueTypeConfig.stats.enabled && defined(groupStats) ? (
+          <Container width="100%">
             <GroupStatusChart
               stats={groupStats}
               secondaryStats={groupSecondaryStats}
               showSecondaryPoints={showSecondaryPoints}
               groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
             />
-          ) : issueTypeConfig.stats.enabled ? (
-            <Placeholder height="36px" />
-          ) : null}
-        </Container>
-      )}
-      {displayReprocessingLayout ? (
-        <ReprocessingColumns group={group as GroupReprocessing} />
-      ) : (
-        <Fragment>
-          {withColumns.includes('event') && (
-            <Flex
-              display={{zero: 'none', [COLUMN_BREAKPOINTS.EVENTS]: 'flex'}}
-              alignSelf="center"
-              paddingRight="xl"
-              marginRight="xl"
-              width="60px"
-              align="center"
-              justify="end"
-            >
-              {issueTypeConfig.stats.enabled && defined(primaryCount) ? (
-                groupCount
-              ) : issueTypeConfig.stats.enabled ? (
-                <Placeholder height="18px" width="40px" />
-              ) : null}
-            </Flex>
-          )}
-          {withColumns.includes('users') && (
-            <Flex
-              display={{zero: 'none', [COLUMN_BREAKPOINTS.USERS]: 'flex'}}
-              alignSelf="center"
-              paddingRight="xl"
-              marginRight="xl"
-              width="60px"
-              align="center"
-              justify="end"
-            >
-              {issueTypeConfig.stats.enabled && defined(primaryUserCount) ? (
-                groupUsersCount
-              ) : issueTypeConfig.stats.enabled ? (
-                <Placeholder height="18px" width="40px" />
-              ) : null}
-            </Flex>
-          )}
-          {withColumns.includes('priority') && (
-            <Flex
-              display={{zero: 'none', [COLUMN_BREAKPOINTS.PRIORITY]: 'flex'}}
-              width="64px"
-              paddingRight="xl"
-              marginRight="xl"
-              alignSelf="center"
-              justify="end"
-            >
-              {group.priority ? (
-                <GroupPriority group={group} onChange={onPriorityChange} />
-              ) : null}
-            </Flex>
-          )}
-          {withColumns.includes('progress') && (
-            <Flex
-              display={{zero: 'none', [COLUMN_BREAKPOINTS.PROGRESS]: 'flex'}}
-              width="124px"
-              paddingRight="xl"
-              marginRight="xl"
-              alignSelf="center"
-              justify="start"
-            >
-              <Placeholder height="18px" />
-            </Flex>
-          )}
-          {(withColumns.includes('assignee') ||
-            withColumns.includes('assigneeAvatar')) && (
-            <Flex
-              display={{zero: 'none', [COLUMN_BREAKPOINTS.ASSIGNEE]: 'flex'}}
-              alignSelf="center"
-              width="66px"
-              paddingRight="xl"
-              marginRight="xl"
-              justify="end"
-              style={{textAlign: 'right'}}
-            >
-              {withColumns.includes('assigneeAvatar') ? (
-                <AssigneeAvatar assignedTo={group.assignedTo} />
-              ) : (
-                <AssigneeSelector
-                  group={group}
-                  assigneeLoading={assigneeLoading}
-                  handleAssigneeChange={handleAssigneeChange}
-                  memberList={memberList}
-                />
-              )}
-            </Flex>
-          )}
-        </Fragment>
-      )}
-    </Wrapper>
+          </Container>
+        ) : issueTypeConfig.stats.enabled ? (
+          <Placeholder height="36px" />
+        ) : null;
+      case 'reprocessingStarted':
+      case 'reprocessingEvents':
+      case 'reprocessingProgress':
+        return <ReprocessingCell column={column} group={group as GroupReprocessing} />;
+      case 'event':
+        return issueTypeConfig.stats.enabled && defined(primaryCount) ? (
+          groupCount
+        ) : issueTypeConfig.stats.enabled ? (
+          <Placeholder height="18px" width="40px" />
+        ) : null;
+      case 'users':
+        return issueTypeConfig.stats.enabled && defined(primaryUserCount) ? (
+          groupUsersCount
+        ) : issueTypeConfig.stats.enabled ? (
+          <Placeholder height="18px" width="40px" />
+        ) : null;
+      case 'priority':
+        return group.priority ? (
+          <GroupPriority group={group} onChange={onPriorityChange} />
+        ) : null;
+      case 'assignee':
+        return withColumns.includes('assigneeAvatar') ? (
+          <AssigneeAvatar assignedTo={group.assignedTo} />
+        ) : (
+          <AssigneeSelector
+            group={group}
+            assigneeLoading={assigneeLoading}
+            handleAssigneeChange={handleAssigneeChange}
+            memberList={memberList}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <StreamGroupRow
+      data-test-id="group"
+      data-test-reviewed={reviewed}
+      onClick={onClick}
+      reviewed={reviewed}
+      useTintRow={useTintRow ?? true}
+    >
+      <InteractionStateLayer as="td" />
+      {columns.map(column => (
+        <StreamGroupCell
+          key={column.key}
+          column={column}
+          selectionEnabled={selectionEnabled}
+        >
+          {renderCellContent(column)}
+        </StreamGroupCell>
+      ))}
+    </StreamGroupRow>
   );
 }
 
@@ -873,14 +688,13 @@ const CheckboxLabel = styled('label')`
   gap: ${p => p.theme.space.sm};
 `;
 
-// Position for wrapper is relative for overlay actions
-const Wrapper = styled(PanelItem)<{
+const StreamGroupRow = styled(SimpleTable.Row, {
+  shouldForwardProp: prop => prop !== 'reviewed' && prop !== 'useTintRow',
+})<{
   reviewed: boolean;
   useTintRow: boolean;
 }>`
-  position: relative;
   line-height: 1.1;
-  padding: ${p => p.theme.space.md} 0;
   min-height: 82px;
 
   [data-issue-title-link] {
@@ -934,18 +748,6 @@ const Wrapper = styled(PanelItem)<{
         }
       }
     `}
-`;
-
-const GroupSummary = styled('div')<{canSelect: boolean}>`
-  overflow: hidden;
-  margin-left: ${p => (p.canSelect ? p.theme.space.md : p.theme.space.xl)};
-  margin-right: ${p => p.theme.space['3xl']};
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  font-size: ${p => p.theme.font.size.md};
-  width: auto;
 `;
 
 const GroupCheckBoxWrapper = styled('div')`

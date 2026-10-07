@@ -179,7 +179,6 @@ export const COLUMN_BREAKPOINTS = {
   EVENTS: 'lg',
   USERS: '2xl',
   PRIORITY: '4xl',
-  PROGRESS: '2xs',
   ASSIGNEE: 'sm',
 } as const satisfies Record<string, ResponsiveKey | undefined>;
 
